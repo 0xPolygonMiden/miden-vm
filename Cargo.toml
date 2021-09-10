@@ -1,0 +1,19 @@
+[package]
+name = "distaff"
+version = "0.1.0"
+description="TODO"
+authors = ["distaff contributors"]
+readme="README.md"
+edition = "2018"
+repository = "TODO"
+license = "MIT"
+
+[lib]
+bench = false
+
+[dependencies]
+log = "0.4"
+winterfell = "0.2"
+
+[dev-dependencies]
+winter-rand-utils = "0.2"
