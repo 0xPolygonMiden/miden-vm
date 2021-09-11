@@ -7,6 +7,8 @@ use winterfell::{ProofOptions, StarkProof};
 // ================================================================================================
 mod utils;
 
+mod air;
+
 mod processor;
 pub use processor::{OpCode, OpHint};
 
