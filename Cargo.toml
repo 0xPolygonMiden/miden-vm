@@ -12,6 +12,7 @@ license = "MIT"
 bench = false
 
 [dependencies]
+hex = "0.4"
 log = "0.4"
 winterfell = "0.2"
 

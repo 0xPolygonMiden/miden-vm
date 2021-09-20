@@ -7,6 +7,9 @@ use winterfell::{
 mod trace_state;
 pub use trace_state::TraceState;
 
+mod transition;
+pub use transition::VmTransition;
+
 mod decoder;
 mod stack;
 mod utils;
@@ -16,6 +19,9 @@ mod utils;
 
 pub struct ProcessorAir {
     context: AirContext<BaseElement>,
+    ctx_depth: usize,
+    loop_depth: usize,
+    stack_depth: usize,
 }
 
 impl Air for ProcessorAir {
@@ -23,7 +29,7 @@ impl Air for ProcessorAir {
     type PublicInputs = PublicInputs;
 
     fn new(trace_info: TraceInfo, _pub_inputs: PublicInputs, options: ProofOptions) -> Self {
-        let meta = parse_trace_meta(&trace_info);
+        let meta = TraceMetadata::from_trace_info(&trace_info);
 
         let mut tcd = stack::get_transition_constraint_degrees(meta.stack_depth);
         tcd.append(&mut decoder::get_transition_constraint_degrees(
@@ -33,20 +39,36 @@ impl Air for ProcessorAir {
 
         Self {
             context: AirContext::new(trace_info, tcd, options),
+            ctx_depth: meta.ctx_depth,
+            loop_depth: meta.loop_depth,
+            stack_depth: meta.stack_depth,
         }
     }
 
+    fn get_periodic_column_values(&self) -> Vec<Vec<Self::BaseElement>> {
+        // TODO
+        unimplemented!()
+    }
+
     fn get_assertions(&self) -> Vec<Assertion<BaseElement>> {
+        // TODO
         unimplemented!()
     }
 
     fn evaluate_transition<E: FieldElement<BaseField = BaseElement>>(
         &self,
-        _frame: &EvaluationFrame<E>,
-        _periodic_values: &[E],
-        _result: &mut [E],
+        frame: &EvaluationFrame<E>,
+        periodic_values: &[E],
+        result: &mut [E],
     ) {
-        unimplemented!()
+        let mut transition = VmTransition::new(self.ctx_depth, self.loop_depth, self.stack_depth);
+        transition.update(frame);
+
+        // TODO
+        let (masks, ark) = periodic_values.split_at(1);
+
+        decoder::enforce_constraints(&transition, masks, ark, result);
+        stack::enforce_constraints(&transition, ark, result);
     }
 
     fn context(&self) -> &AirContext<BaseElement> {
@@ -63,6 +85,13 @@ pub struct PublicInputs {
     outputs: Vec<BaseElement>,
 }
 
+impl PublicInputs {
+    pub fn new(_program_hash: [u8; 32], _inputs: &[u128], _outputs: &[u128]) -> Self {
+        // TODO
+        unimplemented!()
+    }
+}
+
 impl Serializable for PublicInputs {
     fn write_into<W: winterfell::ByteWriter>(&self, target: &mut W) {
         target.write_u8_slice(&self.program_hash);
@@ -75,17 +104,19 @@ impl Serializable for PublicInputs {
 // ================================================================================================
 
 pub struct TraceMetadata {
-    ctx_depth: usize,
-    loop_depth: usize,
-    stack_depth: usize,
+    pub ctx_depth: usize,
+    pub loop_depth: usize,
+    pub stack_depth: usize,
 }
 
-fn parse_trace_meta(trace_info: &TraceInfo) -> TraceMetadata {
-    let ctx_depth = trace_info.meta()[0] as usize;
-    let loop_depth = trace_info.meta()[1] as usize;
-    TraceMetadata {
-        ctx_depth,
-        loop_depth,
-        stack_depth: 0, // TODO
+impl TraceMetadata {
+    pub fn from_trace_info(trace_info: &TraceInfo) -> Self {
+        let ctx_depth = trace_info.meta()[0] as usize;
+        let loop_depth = trace_info.meta()[1] as usize;
+        TraceMetadata {
+            ctx_depth,
+            loop_depth,
+            stack_depth: 0, // TODO
+        }
     }
 }

@@ -1,5 +1,5 @@
 use super::{
-    are_equal, binary_not, enforce_left_shift, enforce_stack_copy, is_binary, is_zero, BaseElement,
+    are_equal, binary_not, enforce_left_shift, enforce_stack_copy, is_binary, is_zero,
     EvaluationResult, FieldElement,
 };
 
@@ -15,32 +15,30 @@ const LT_IDX: usize = 5;
 const Y_ACC_IDX: usize = 6;
 const X_ACC_IDX: usize = 7;
 
-const TWO: BaseElement = BaseElement::new(2);
-
 // ASSERTIONS
 // ================================================================================================
 
 /// Enforces constraints for ASSERT operation. The constraints are similar to DROP operation, but
 /// have an auxiliary constraint which enforces that 1 - x = 0, where x is the top of the stack.
-pub fn enforce_assert(
-    result: &mut [BaseElement],
-    aux: &mut [BaseElement],
-    old_stack: &[BaseElement],
-    new_stack: &[BaseElement],
-    op_flag: BaseElement,
+pub fn enforce_assert<E: FieldElement>(
+    result: &mut [E],
+    aux: &mut [E],
+    old_stack: &[E],
+    new_stack: &[E],
+    op_flag: E,
 ) {
     enforce_left_shift(result, old_stack, new_stack, 1, 1, op_flag);
-    aux.agg_constraint(0, op_flag, are_equal(BaseElement::ONE, old_stack[0]));
+    aux.agg_constraint(0, op_flag, are_equal(E::ONE, old_stack[0]));
 }
 
 /// Enforces constraints for ASSERTEQ operation. The stack is shifted by 2 registers the left and
 /// an auxiliary constraint enforces that the first element of the stack is equal to the second.
-pub fn enforce_asserteq(
-    result: &mut [BaseElement],
-    aux: &mut [BaseElement],
-    old_stack: &[BaseElement],
-    new_stack: &[BaseElement],
-    op_flag: BaseElement,
+pub fn enforce_asserteq<E: FieldElement>(
+    result: &mut [E],
+    aux: &mut [E],
+    old_stack: &[E],
+    new_stack: &[E],
+    op_flag: E,
 ) {
     enforce_left_shift(result, old_stack, new_stack, 2, 2, op_flag);
     aux.agg_constraint(0, op_flag, are_equal(old_stack[0], old_stack[1]));
@@ -51,12 +49,12 @@ pub fn enforce_asserteq(
 
 /// Evaluates constraints for EQ operation. These enforce that when x == y, top of the stack at
 /// the next step is set to 1, otherwise top of the stack at the next step is set to 0.
-pub fn enforce_eq(
-    result: &mut [BaseElement],
-    aux: &mut [BaseElement],
-    old_stack: &[BaseElement],
-    new_stack: &[BaseElement],
-    op_flag: BaseElement,
+pub fn enforce_eq<E: FieldElement>(
+    result: &mut [E],
+    aux: &mut [E],
+    old_stack: &[E],
+    new_stack: &[E],
+    op_flag: E,
 ) {
     // compute difference between top two values of the stack
     let x = old_stack[1];
@@ -82,12 +80,14 @@ pub fn enforce_eq(
 // ================================================================================================
 
 /// Evaluates constraints for CMP operation.
-pub fn enforce_cmp(
-    result: &mut [BaseElement],
-    old_stack: &[BaseElement],
-    new_stack: &[BaseElement],
-    op_flag: BaseElement,
+pub fn enforce_cmp<E: FieldElement>(
+    result: &mut [E],
+    old_stack: &[E],
+    new_stack: &[E],
+    op_flag: E,
 ) {
+    let two = E::ONE + E::ONE;
+
     // layout of first 8 registers
     // [pow, bit_a, bit_b, not_set, gt, lt, acc_b, acc_a]
 
@@ -119,7 +119,7 @@ pub fn enforce_cmp(
     result.agg_constraint(6, op_flag, are_equal(not_set, not_set_check));
 
     // power of 2 register was updated correctly
-    let power_of_two_constraint = are_equal(new_stack[POW2_IDX] * TWO, power_of_two);
+    let power_of_two_constraint = are_equal(new_stack[POW2_IDX] * two, power_of_two);
     result.agg_constraint(7, op_flag, power_of_two_constraint);
 
     // registers beyond the 7th register were not affected
@@ -127,12 +127,14 @@ pub fn enforce_cmp(
 }
 
 /// Evaluates constraints for BINACC operation.
-pub fn enforce_binacc(
-    result: &mut [BaseElement],
-    old_stack: &[BaseElement],
-    new_stack: &[BaseElement],
-    op_flag: BaseElement,
+pub fn enforce_binacc<E: FieldElement>(
+    result: &mut [E],
+    old_stack: &[E],
+    new_stack: &[E],
+    op_flag: E,
 ) {
+    let two = E::ONE + E::ONE;
+
     // layout of first 4 registers:
     // [value bit, 0, power of two, accumulated value]
     // value bit is located in the next state (not current state)
@@ -146,7 +148,7 @@ pub fn enforce_binacc(
 
     // power of 2 register was updated correctly
     let power_of_two = old_stack[2];
-    let power_of_two_constraint = are_equal(new_stack[2], power_of_two * TWO);
+    let power_of_two_constraint = are_equal(new_stack[2], power_of_two * two);
     result.agg_constraint(2, op_flag, power_of_two_constraint);
 
     // binary representation accumulator was updated correctly

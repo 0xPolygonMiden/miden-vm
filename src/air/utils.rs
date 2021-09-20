@@ -1,25 +1,25 @@
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
+use winterfell::math::FieldElement;
 
 // BASIC CONSTRAINTS OPERATORS
 // ================================================================================================
 
 #[inline(always)]
-pub fn is_zero(v: BaseElement) -> BaseElement {
+pub fn is_zero<E: FieldElement>(v: E) -> E {
     v
 }
 
 #[inline(always)]
-pub fn is_binary(v: BaseElement) -> BaseElement {
+pub fn is_binary<E: FieldElement>(v: E) -> E {
     v.square() - v
 }
 
 #[inline(always)]
-pub fn binary_not(v: BaseElement) -> BaseElement {
-    BaseElement::ONE - v
+pub fn binary_not<E: FieldElement>(v: E) -> E {
+    E::ONE - v
 }
 
 #[inline(always)]
-pub fn are_equal(v1: BaseElement, v2: BaseElement) -> BaseElement {
+pub fn are_equal<E: FieldElement>(v1: E, v2: E) -> E {
     v1 - v2
 }
 
@@ -28,12 +28,12 @@ pub fn are_equal(v1: BaseElement, v2: BaseElement) -> BaseElement {
 
 /// Enforces that stack values starting from `from_slot` haven't changed. All constraints in the
 /// `result` slice are filled in.
-pub fn enforce_stack_copy(
-    result: &mut [BaseElement],
-    old_stack: &[BaseElement],
-    new_stack: &[BaseElement],
+pub fn enforce_stack_copy<E: FieldElement>(
+    result: &mut [E],
+    old_stack: &[E],
+    new_stack: &[E],
     from_slot: usize,
-    op_flag: BaseElement,
+    op_flag: E,
 ) {
     for i in from_slot..result.len() {
         result.agg_constraint(i, op_flag, are_equal(old_stack[i], new_stack[i]));
@@ -42,12 +42,12 @@ pub fn enforce_stack_copy(
 
 /// Enforces that values in the stack were shifted to the right by `num_slots`. Constraints in
 /// the `result` slice are filled in starting from `num_slots` index.
-pub fn enforce_right_shift(
-    result: &mut [BaseElement],
-    old_stack: &[BaseElement],
-    new_stack: &[BaseElement],
+pub fn enforce_right_shift<E: FieldElement>(
+    result: &mut [E],
+    old_stack: &[E],
+    new_stack: &[E],
     num_slots: usize,
-    op_flag: BaseElement,
+    op_flag: E,
 ) {
     for i in num_slots..result.len() {
         result.agg_constraint(
@@ -60,13 +60,13 @@ pub fn enforce_right_shift(
 
 /// Enforces that values in the stack were shifted to the left by `num_slots` starting from
 /// `from_slots`. All constraints in the `result` slice are filled in.
-pub fn enforce_left_shift(
-    result: &mut [BaseElement],
-    old_stack: &[BaseElement],
-    new_stack: &[BaseElement],
+pub fn enforce_left_shift<E: FieldElement>(
+    result: &mut [E],
+    old_stack: &[E],
+    new_stack: &[E],
     from_slot: usize,
     num_slots: usize,
-    op_flag: BaseElement,
+    op_flag: E,
 ) {
     // make sure values in the stack were shifted by `num_slots` to the left
     let start_idx = from_slot - num_slots;
@@ -88,24 +88,27 @@ pub fn enforce_left_shift(
 // TRAIT TO SIMPLIFY CONSTRAINT AGGREGATION
 // ================================================================================================
 
-pub trait EvaluationResult {
-    fn agg_constraint(&mut self, index: usize, flag: BaseElement, value: BaseElement);
+pub trait EvaluationResult<E: FieldElement> {
+    fn agg_constraint(&mut self, index: usize, flag: E, value: E);
 }
 
-impl EvaluationResult for [BaseElement] {
-    fn agg_constraint(&mut self, index: usize, flag: BaseElement, value: BaseElement) {
+impl<E: FieldElement> EvaluationResult<E> for [E] {
+    fn agg_constraint(&mut self, index: usize, flag: E, value: E) {
         self[index] += flag * value;
     }
 }
 
-impl EvaluationResult for Vec<BaseElement> {
-    fn agg_constraint(&mut self, index: usize, flag: BaseElement, value: BaseElement) {
+impl<E: FieldElement> EvaluationResult<E> for Vec<E> {
+    fn agg_constraint(&mut self, index: usize, flag: E, value: E) {
         self[index] += flag * value;
     }
 }
 
 // TESTS
 // ================================================================================================
+
+#[cfg(test)]
+use winterfell::math::fields::f128::BaseElement;
 
 #[cfg(test)]
 pub trait ToElements {

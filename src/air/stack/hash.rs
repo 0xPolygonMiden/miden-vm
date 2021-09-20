@@ -5,15 +5,15 @@ use crate::utils::hasher::{apply_inv_mds, apply_mds, apply_sbox};
 
 /// Evaluates constraints for a single round of a modified Rescue hash function. Hash state is
 /// assumed to be in the first 6 registers of user stack; the rest of the stack does not change.
-pub fn enforce_rescr(
-    result: &mut [BaseElement],
-    old_stack: &[BaseElement],
-    new_stack: &[BaseElement],
-    ark: &[BaseElement],
-    op_flag: BaseElement,
+pub fn enforce_rescr<E: FieldElement<BaseField = BaseElement>>(
+    result: &mut [E],
+    old_stack: &[E],
+    new_stack: &[E],
+    ark: &[E],
+    op_flag: E,
 ) {
     // evaluate the first half of Rescue round
-    let mut old_state = [BaseElement::ZERO; HASH_STATE_WIDTH];
+    let mut old_state = [E::ZERO; HASH_STATE_WIDTH];
     old_state.copy_from_slice(&old_stack[..HASH_STATE_WIDTH]);
     for i in 0..HASH_STATE_WIDTH {
         old_state[i] += ark[i];
@@ -22,7 +22,7 @@ pub fn enforce_rescr(
     apply_mds(&mut old_state);
 
     // evaluate inverse of the second half of Rescue round
-    let mut new_state = [BaseElement::ZERO; HASH_STATE_WIDTH];
+    let mut new_state = [E::ZERO; HASH_STATE_WIDTH];
     new_state.copy_from_slice(&new_stack[..HASH_STATE_WIDTH]);
     apply_inv_mds(&mut new_state);
     apply_sbox(&mut new_state);

@@ -45,9 +45,9 @@ pub fn add_constants(state: &mut [BaseElement], idx: usize, offset: usize) {
     }
 }
 
-pub fn apply_sbox(state: &mut [BaseElement]) {
+pub fn apply_sbox<E: FieldElement>(state: &mut [E]) {
     for i in 0..STATE_WIDTH {
-        state[i] = state[i].exp(ALPHA);
+        state[i] = state[i].exp(ALPHA.into());
     }
 }
 
@@ -58,12 +58,12 @@ pub fn apply_inv_sbox(state: &mut [BaseElement]) {
     }
 }
 
-pub fn apply_mds(state: &mut [BaseElement]) {
-    let mut result = [BaseElement::ZERO; STATE_WIDTH];
-    let mut temp = [BaseElement::ZERO; STATE_WIDTH];
+pub fn apply_mds<E: FieldElement<BaseField = BaseElement>>(state: &mut [E]) {
+    let mut result = [E::ZERO; STATE_WIDTH];
+    let mut temp = [E::ZERO; STATE_WIDTH];
     for i in 0..STATE_WIDTH {
         for j in 0..STATE_WIDTH {
-            temp[j] = MDS[i * STATE_WIDTH + j] * state[j];
+            temp[j] = E::from(MDS[i * STATE_WIDTH + j]) * state[j];
         }
 
         for j in 0..STATE_WIDTH {
@@ -73,12 +73,12 @@ pub fn apply_mds(state: &mut [BaseElement]) {
     state.copy_from_slice(&result);
 }
 
-pub fn apply_inv_mds(state: &mut [BaseElement]) {
-    let mut result = [BaseElement::ZERO; STATE_WIDTH];
-    let mut temp = [BaseElement::ZERO; STATE_WIDTH];
+pub fn apply_inv_mds<E: FieldElement<BaseField = BaseElement>>(state: &mut [E]) {
+    let mut result = [E::ZERO; STATE_WIDTH];
+    let mut temp = [E::ZERO; STATE_WIDTH];
     for i in 0..STATE_WIDTH {
         for j in 0..STATE_WIDTH {
-            temp[j] = INV_MDS[i * STATE_WIDTH + j] * state[j];
+            temp[j] = E::from(INV_MDS[i * STATE_WIDTH + j]) * state[j];
         }
 
         for j in 0..STATE_WIDTH {
@@ -91,7 +91,7 @@ pub fn apply_inv_mds(state: &mut [BaseElement]) {
 // 128-BIT RESCUE CONSTANTS
 // ================================================================================================
 
-const ALPHA: u128 = 3;
+const ALPHA: u32 = 3;
 const INV_ALPHA: u128 = 226854911280625642308916371969163307691;
 
 const MDS: [BaseElement; STATE_WIDTH * STATE_WIDTH] = [

@@ -5,7 +5,7 @@ use super::{
     },
     TransitionConstraintDegree,
 };
-use crate::{air::TraceState, processor::OpCode, HASH_STATE_WIDTH};
+use crate::{air::VmTransition, processor::OpCode, HASH_STATE_WIDTH};
 use winterfell::math::{fields::f128::BaseElement, FieldElement};
 
 mod input;
@@ -44,26 +44,25 @@ pub fn get_transition_constraint_degrees(_stack_depth: usize) -> Vec<TransitionC
 
 // HELPER FUNCTIONS
 // ================================================================================================
-pub fn enforce_constraints(
-    current: &TraceState,
-    next: &TraceState,
-    ark: &[BaseElement],
-    result: &mut [BaseElement],
+pub fn enforce_constraints<E: FieldElement<BaseField = BaseElement>>(
+    transition: &VmTransition<E>,
+    ark: &[E],
+    result: &mut [E],
 ) {
     // split constraint evaluation result into aux constraints and stack constraints
     let (aux, result) = result.split_at_mut(NUM_AUX_CONSTRAINTS);
 
     // get user stack registers from current and next steps
-    let old_stack = current.user_stack();
-    let new_stack = next.user_stack();
+    let old_stack = transition.current().user_stack();
+    let new_stack = transition.next().user_stack();
 
     // initialize a vector to hold stack constraint evaluations; this is needed because
     // constraint evaluator functions assume that the stack is at least 8 items deep; while
     // it may actually be smaller than that
-    let mut evaluations = vec![BaseElement::ZERO; old_stack.len()];
+    let mut evaluations = vec![E::ZERO; old_stack.len()];
 
     // 1 ----- enforce constraints for low-degree operations --------------------------------------
-    let ld_flags = current.ld_op_flags();
+    let ld_flags = transition.ld_op_flags();
 
     // assertion operations
     enforce_assert(
@@ -252,7 +251,7 @@ pub fn enforce_constraints(
     );
 
     // 2 ----- enforce constraints for high-degree operations --------------------------------------
-    let hd_flags = current.hd_op_flags();
+    let hd_flags = transition.hd_op_flags();
 
     enforce_push(
         &mut evaluations,
@@ -286,14 +285,14 @@ pub fn enforce_constraints(
         old_stack,
         new_stack,
         0,
-        current.begin_flag(),
+        transition.begin_flag(),
     );
     enforce_stack_copy(
         &mut evaluations,
         old_stack,
         new_stack,
         0,
-        current.noop_flag(),
+        transition.noop_flag(),
     );
 
     // 4 ----- copy evaluations into the result ---------------------------------------------------

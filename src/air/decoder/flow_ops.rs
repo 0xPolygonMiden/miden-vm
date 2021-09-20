@@ -1,3 +1,5 @@
+use winterfell::math::FieldElement;
+
 use super::{
     are_equal, enforce_left_shift, enforce_right_shift, enforce_stack_copy, is_zero, BaseElement,
     EvaluationResult, TraceState, SPONGE_WIDTH,
@@ -6,12 +8,10 @@ use super::{
 // CONSTRAINT EVALUATORS
 // ================================================================================================
 
-pub fn enforce_begin(
-    result: &mut [BaseElement],
-    current: &TraceState,
-    next: &TraceState,
-    op_flag: BaseElement,
-) {
+pub fn enforce_begin<E>(result: &mut [E], current: &TraceState<E>, next: &TraceState<E>, op_flag: E)
+where
+    E: FieldElement<BaseField = BaseElement>,
+{
     // make sure sponge state has been cleared
     let new_sponge = next.sponge();
     result.agg_constraint(0, op_flag, is_zero(new_sponge[0]));
@@ -44,12 +44,10 @@ pub fn enforce_begin(
     );
 }
 
-pub fn enforce_tend(
-    result: &mut [BaseElement],
-    current: &TraceState,
-    next: &TraceState,
-    op_flag: BaseElement,
-) {
+pub fn enforce_tend<E>(result: &mut [E], current: &TraceState<E>, next: &TraceState<E>, op_flag: E)
+where
+    E: FieldElement<BaseField = BaseElement>,
+{
     let parent_hash = current.ctx_stack()[0];
     let block_hash = current.sponge()[0];
 
@@ -83,12 +81,10 @@ pub fn enforce_tend(
     );
 }
 
-pub fn enforce_fend(
-    result: &mut [BaseElement],
-    current: &TraceState,
-    next: &TraceState,
-    op_flag: BaseElement,
-) {
+pub fn enforce_fend<E>(result: &mut [E], current: &TraceState<E>, next: &TraceState<E>, op_flag: E)
+where
+    E: FieldElement<BaseField = BaseElement>,
+{
     let parent_hash = current.ctx_stack()[0];
     let block_hash = current.sponge()[0];
 
@@ -122,12 +118,10 @@ pub fn enforce_fend(
     );
 }
 
-pub fn enforce_loop(
-    result: &mut [BaseElement],
-    current: &TraceState,
-    next: &TraceState,
-    op_flag: BaseElement,
-) {
+pub fn enforce_loop<E>(result: &mut [E], current: &TraceState<E>, next: &TraceState<E>, op_flag: E)
+where
+    E: FieldElement<BaseField = BaseElement>,
+{
     // make sure sponge state has been cleared
     let new_sponge = next.sponge();
     result.agg_constraint(0, op_flag, is_zero(new_sponge[0]));
@@ -161,12 +155,10 @@ pub fn enforce_loop(
     );
 }
 
-pub fn enforce_wrap(
-    result: &mut [BaseElement],
-    current: &TraceState,
-    next: &TraceState,
-    op_flag: BaseElement,
-) {
+pub fn enforce_wrap<E>(result: &mut [E], current: &TraceState<E>, next: &TraceState<E>, op_flag: E)
+where
+    E: FieldElement<BaseField = BaseElement>,
+{
     // make sure sponge state has been cleared
     let new_sponge = next.sponge();
     result.agg_constraint(0, op_flag, is_zero(new_sponge[0]));
@@ -205,12 +197,10 @@ pub fn enforce_wrap(
     );
 }
 
-pub fn enforce_break(
-    result: &mut [BaseElement],
-    current: &TraceState,
-    next: &TraceState,
-    op_flag: BaseElement,
-) {
+pub fn enforce_break<E>(result: &mut [E], current: &TraceState<E>, next: &TraceState<E>, op_flag: E)
+where
+    E: FieldElement<BaseField = BaseElement>,
+{
     // make sure sponge state didn't change
     let old_sponge = current.sponge();
     let new_sponge = next.sponge();
@@ -250,12 +240,10 @@ pub fn enforce_break(
     );
 }
 
-pub fn enforce_void(
-    result: &mut [BaseElement],
-    current: &TraceState,
-    next: &TraceState,
-    op_flag: BaseElement,
-) {
+pub fn enforce_void<E>(result: &mut [E], current: &TraceState<E>, next: &TraceState<E>, op_flag: E)
+where
+    E: FieldElement<BaseField = BaseElement>,
+{
     // make sure sponge state didn't change
     let old_sponge = current.sponge();
     let new_sponge = next.sponge();

@@ -1,4 +1,4 @@
-use super::{are_equal, binary_not, enforce_left_shift, is_binary, BaseElement, EvaluationResult};
+use super::{are_equal, binary_not, enforce_left_shift, is_binary, EvaluationResult, FieldElement};
 
 // CONSTRAINT EVALUATORS
 // ================================================================================================
@@ -6,12 +6,12 @@ use super::{are_equal, binary_not, enforce_left_shift, is_binary, BaseElement, E
 /// Enforces constraints for CHOOSE operation. These constraints work with top 3 registers of the
 /// stack and enforce that when condition = 1, x remains at the top of the stack; when
 /// condition = 0, y remains at the top of the stack. Otherwise the operation fails.
-pub fn enforce_choose(
-    result: &mut [BaseElement],
-    aux: &mut [BaseElement],
-    old_stack: &[BaseElement],
-    new_stack: &[BaseElement],
-    op_flag: BaseElement,
+pub fn enforce_choose<E: FieldElement>(
+    result: &mut [E],
+    aux: &mut [E],
+    old_stack: &[E],
+    new_stack: &[E],
+    op_flag: E,
 ) {
     let x = old_stack[0];
     let y = old_stack[1];
@@ -32,12 +32,12 @@ pub fn enforce_choose(
 /// Enforces constraints for CHOOSE2 operation. These constraints work with top 6 registers of
 /// the stack and enforce that when condition = 1, (x0, x1) remain at the top of the stack; when
 /// condition = 0, (y0, y1) remains at the top of the stack. Otherwise the operation fails.
-pub fn enforce_choose2(
-    result: &mut [BaseElement],
-    aux: &mut [BaseElement],
-    old_stack: &[BaseElement],
-    new_stack: &[BaseElement],
-    op_flag: BaseElement,
+pub fn enforce_choose2<E: FieldElement>(
+    result: &mut [E],
+    aux: &mut [E],
+    old_stack: &[E],
+    new_stack: &[E],
+    op_flag: E,
 ) {
     let x0 = old_stack[0];
     let x1 = old_stack[1];
@@ -63,12 +63,12 @@ pub fn enforce_choose2(
 /// Enforces constraints for CSWAP2 operation. These constraints work with top 6 registers of the
 /// stack and enforce that when condition = 1, (v2, v3) move to the top of the stack; when
 /// condition = 0, top 4 elements of the stack remain unchanged.
-pub fn enforce_cswap2(
-    result: &mut [BaseElement],
-    aux: &mut [BaseElement],
-    old_stack: &[BaseElement],
-    new_stack: &[BaseElement],
-    op_flag: BaseElement,
+pub fn enforce_cswap2<E: FieldElement>(
+    result: &mut [E],
+    aux: &mut [E],
+    old_stack: &[E],
+    new_stack: &[E],
+    op_flag: E,
 ) {
     let v0 = old_stack[0];
     let v1 = old_stack[1];
