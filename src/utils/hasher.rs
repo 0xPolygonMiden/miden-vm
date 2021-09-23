@@ -41,20 +41,20 @@ pub fn apply_round(state: &mut [BaseElement], step: usize) {
 
 pub fn add_constants(state: &mut [BaseElement], idx: usize, offset: usize) {
     for i in 0..STATE_WIDTH {
-        state[i] = state[i] + ARK[offset + i][idx];
+        state[i] += ARK[offset + i][idx];
     }
 }
 
 pub fn apply_sbox<E: FieldElement>(state: &mut [E]) {
-    for i in 0..STATE_WIDTH {
-        state[i] = state[i].exp(ALPHA.into());
+    for element in state.iter_mut().take(STATE_WIDTH) {
+        *element = element.exp(ALPHA.into());
     }
 }
 
 pub fn apply_inv_sbox(state: &mut [BaseElement]) {
     // TODO: optimize
-    for i in 0..STATE_WIDTH {
-        state[i] = state[i].exp(INV_ALPHA);
+    for element in state.iter_mut().take(STATE_WIDTH) {
+        *element = element.exp(INV_ALPHA);
     }
 }
 
@@ -66,8 +66,8 @@ pub fn apply_mds<E: FieldElement<BaseField = BaseElement>>(state: &mut [E]) {
             temp[j] = E::from(MDS[i * STATE_WIDTH + j]) * state[j];
         }
 
-        for j in 0..STATE_WIDTH {
-            result[i] += temp[j];
+        for &tmp_value in temp.iter() {
+            result[i] += tmp_value;
         }
     }
     state.copy_from_slice(&result);
@@ -81,8 +81,8 @@ pub fn apply_inv_mds<E: FieldElement<BaseField = BaseElement>>(state: &mut [E]) 
             temp[j] = E::from(INV_MDS[i * STATE_WIDTH + j]) * state[j];
         }
 
-        for j in 0..STATE_WIDTH {
-            result[i] = result[i] * temp[j];
+        for &tmp_value in temp.iter() {
+            result[i] *= tmp_value;
         }
     }
     state.copy_from_slice(&result);

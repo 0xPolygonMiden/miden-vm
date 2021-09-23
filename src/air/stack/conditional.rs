@@ -6,13 +6,15 @@ use super::{are_equal, binary_not, enforce_left_shift, is_binary, EvaluationResu
 /// Enforces constraints for CHOOSE operation. These constraints work with top 3 registers of the
 /// stack and enforce that when condition = 1, x remains at the top of the stack; when
 /// condition = 0, y remains at the top of the stack. Otherwise the operation fails.
-pub fn enforce_choose<E: FieldElement>(
+pub fn enforce_choose<E>(
     result: &mut [E],
     aux: &mut [E],
     old_stack: &[E],
     new_stack: &[E],
     op_flag: E,
-) {
+) where
+    E: FieldElement,
+{
     let x = old_stack[0];
     let y = old_stack[1];
     let condition = old_stack[2];
@@ -32,13 +34,15 @@ pub fn enforce_choose<E: FieldElement>(
 /// Enforces constraints for CHOOSE2 operation. These constraints work with top 6 registers of
 /// the stack and enforce that when condition = 1, (x0, x1) remain at the top of the stack; when
 /// condition = 0, (y0, y1) remains at the top of the stack. Otherwise the operation fails.
-pub fn enforce_choose2<E: FieldElement>(
+pub fn enforce_choose2<E>(
     result: &mut [E],
     aux: &mut [E],
     old_stack: &[E],
     new_stack: &[E],
     op_flag: E,
-) {
+) where
+    E: FieldElement,
+{
     let x0 = old_stack[0];
     let x1 = old_stack[1];
     let y0 = old_stack[2];
@@ -63,13 +67,15 @@ pub fn enforce_choose2<E: FieldElement>(
 /// Enforces constraints for CSWAP2 operation. These constraints work with top 6 registers of the
 /// stack and enforce that when condition = 1, (v2, v3) move to the top of the stack; when
 /// condition = 0, top 4 elements of the stack remain unchanged.
-pub fn enforce_cswap2<E: FieldElement>(
+pub fn enforce_cswap2<E>(
     result: &mut [E],
     aux: &mut [E],
     old_stack: &[E],
     new_stack: &[E],
     op_flag: E,
-) {
+) where
+    E: FieldElement,
+{
     let v0 = old_stack[0];
     let v1 = old_stack[1];
     let v2 = old_stack[2];

@@ -1,3 +1,5 @@
+#![allow(clippy::unusual_byte_groupings)]
+
 use winterfell::math::{fields::f128::BaseElement, FieldElement};
 
 // FLOW CONTROL OPERATIONS

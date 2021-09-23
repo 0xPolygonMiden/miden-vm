@@ -91,10 +91,10 @@ impl<E: FieldElement<BaseField = BaseElement>> VmTransition<E> {
 
         let not_2 = binary_not(self.current.cf_op_bits()[2]);
         for i in 0..4 {
-            self.cf_op_flags[i] = self.cf_op_flags[i] * not_2;
+            self.cf_op_flags[i] *= not_2;
         }
         for i in 4..8 {
-            self.cf_op_flags[i] = self.cf_op_flags[i] * self.current.cf_op_bits()[2];
+            self.cf_op_flags[i] *= self.current.cf_op_bits()[2];
         }
 
         // set low-degree operation flags
@@ -108,28 +108,28 @@ impl<E: FieldElement<BaseField = BaseElement>> VmTransition<E> {
 
         let not_2 = binary_not(self.current.ld_op_bits()[2]);
         for i in 0..4 {
-            self.ld_op_flags[i] = self.ld_op_flags[i] * not_2;
+            self.ld_op_flags[i] *= not_2;
         }
         for i in 4..8 {
-            self.ld_op_flags[i] = self.ld_op_flags[i] * self.current.ld_op_bits()[2];
+            self.ld_op_flags[i] *= self.current.ld_op_bits()[2];
         }
         self.ld_op_flags.copy_within(0..8, 8);
 
         let not_3 = binary_not(self.current.ld_op_bits()[3]);
         for i in 0..8 {
-            self.ld_op_flags[i] = self.ld_op_flags[i] * not_3;
+            self.ld_op_flags[i] *= not_3;
         }
         for i in 8..16 {
-            self.ld_op_flags[i] = self.ld_op_flags[i] * self.current.ld_op_bits()[3];
+            self.ld_op_flags[i] *= self.current.ld_op_bits()[3];
         }
         self.ld_op_flags.copy_within(0..16, 16);
 
         let not_4 = binary_not(self.current.ld_op_bits()[4]);
         for i in 0..16 {
-            self.ld_op_flags[i] = self.ld_op_flags[i] * not_4;
+            self.ld_op_flags[i] *= not_4;
         }
         for i in 16..32 {
-            self.ld_op_flags[i] = self.ld_op_flags[i] * self.current.ld_op_bits()[4];
+            self.ld_op_flags[i] *= self.current.ld_op_bits()[4];
         }
 
         // set high-degree operation flags
@@ -154,10 +154,10 @@ impl<E: FieldElement<BaseField = BaseElement>> VmTransition<E> {
         // don't coincide with BEGIN operation; we do this by multiplying each flag by a
         // single op_bit from another op bank; this increases degree of each flag by 1
         debug_assert!(OpCode::Push.hd_index() == 0, "PUSH index is not 0!");
-        self.hd_op_flags[0] = self.hd_op_flags[0] * self.current.ld_op_bits()[0];
+        self.hd_op_flags[0] *= self.current.ld_op_bits()[0];
 
         debug_assert!(OpCode::Assert.ld_index() == 0, "ASSERT index is not 0!");
-        self.ld_op_flags[0] = self.ld_op_flags[0] * self.current.hd_op_bits()[0];
+        self.ld_op_flags[0] *= self.current.hd_op_bits()[0];
     }
 }
 

@@ -1,4 +1,4 @@
-use winterfell::math::FieldElement;
+use winterfell::math::{fields::f128::BaseElement, FieldElement};
 
 // BASIC CONSTRAINTS OPERATORS
 // ================================================================================================
@@ -104,30 +104,27 @@ impl<E: FieldElement> EvaluationResult<E> for Vec<E> {
     }
 }
 
-// TESTS
+// TYPE CONVERSIONS
 // ================================================================================================
 
-#[cfg(test)]
-use winterfell::math::fields::f128::BaseElement;
-
-#[cfg(test)]
 pub trait ToElements {
     fn to_elements(&self) -> Vec<BaseElement>;
 }
 
-#[cfg(test)]
 impl<const N: usize> ToElements for [u128; N] {
     fn to_elements(&self) -> Vec<BaseElement> {
         self.iter().map(|&v| BaseElement::new(v)).collect()
     }
 }
 
-#[cfg(test)]
 impl ToElements for Vec<u128> {
     fn to_elements(&self) -> Vec<BaseElement> {
         self.iter().map(|&v| BaseElement::new(v)).collect()
     }
 }
+
+// TESTS
+// ================================================================================================
 
 #[cfg(test)]
 mod tests {

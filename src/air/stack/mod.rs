@@ -38,8 +38,10 @@ pub const NUM_AUX_CONSTRAINTS: usize = 2;
 // CONSTRAINT DEGREES
 // ================================================================================================
 
-pub fn get_transition_constraint_degrees(_stack_depth: usize) -> Vec<TransitionConstraintDegree> {
-    unimplemented!()
+pub fn get_transition_constraint_degrees(stack_depth: usize) -> Vec<TransitionConstraintDegree> {
+    // all stack transition constraints have degree 7
+    let degree = TransitionConstraintDegree::new(7);
+    vec![degree; stack_depth + NUM_AUX_CONSTRAINTS]
 }
 
 // HELPER FUNCTIONS
@@ -190,6 +192,7 @@ pub fn enforce_constraints<E: FieldElement<BaseField = BaseElement>>(
         new_stack,
         ld_flags[OpCode::Neg.ld_index()],
     );
+
     enforce_not(
         &mut evaluations,
         aux,

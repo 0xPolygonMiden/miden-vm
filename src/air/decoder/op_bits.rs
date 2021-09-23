@@ -19,21 +19,21 @@ where
     let mut cf_bit_sum = E::ZERO;
     for &op_bit in current.cf_op_bits() {
         result[i] = is_binary(op_bit);
-        cf_bit_sum = cf_bit_sum + op_bit;
+        cf_bit_sum += op_bit;
         i += 1;
     }
 
     let mut ld_bit_prod = E::ONE;
     for &op_bit in current.ld_op_bits() {
         result[i] = is_binary(op_bit);
-        ld_bit_prod = ld_bit_prod * op_bit;
+        ld_bit_prod *= op_bit;
         i += 1;
     }
 
     let mut hd_bit_prod = E::ONE;
     for &op_bit in current.hd_op_bits() {
         result[i] = is_binary(op_bit);
-        hd_bit_prod = hd_bit_prod * op_bit;
+        hd_bit_prod *= op_bit;
         i += 1;
     }
 

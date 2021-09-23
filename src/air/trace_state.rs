@@ -1,7 +1,7 @@
 use crate::{
     CF_OP_BITS_RANGE, HD_OP_BITS_RANGE, LD_OP_BITS_RANGE, MIN_CONTEXT_DEPTH, MIN_LOOP_DEPTH,
     MIN_STACK_DEPTH, NUM_CF_OP_BITS, NUM_HD_OP_BITS, NUM_LD_OP_BITS, OP_COUNTER_IDX,
-    PROGRAM_DIGEST_SIZE, SPONGE_RANGE, SPONGE_WIDTH,
+    OP_SPONGE_RANGE, PROGRAM_DIGEST_SIZE, SPONGE_WIDTH,
 };
 use core::{cmp, fmt};
 use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
@@ -45,9 +45,9 @@ impl<E: FieldElement<BaseField = BaseElement>> TraceState<E> {
             ctx_stack: vec![E::ZERO; cmp::max(ctx_depth, MIN_CONTEXT_DEPTH)],
             loop_stack: vec![E::ZERO; cmp::max(loop_depth, MIN_LOOP_DEPTH)],
             user_stack: vec![E::ZERO; cmp::max(stack_depth, MIN_STACK_DEPTH)],
-            ctx_depth: ctx_depth,
-            loop_depth: loop_depth,
-            stack_depth: stack_depth,
+            ctx_depth,
+            loop_depth,
+            stack_depth,
         }
     }
 
@@ -55,7 +55,7 @@ impl<E: FieldElement<BaseField = BaseElement>> TraceState<E> {
         let op_counter = state[OP_COUNTER_IDX];
 
         let mut sponge = [E::ZERO; SPONGE_WIDTH];
-        sponge.copy_from_slice(&state[SPONGE_RANGE]);
+        sponge.copy_from_slice(&state[OP_SPONGE_RANGE]);
 
         let mut cf_op_bits = [E::ZERO; NUM_CF_OP_BITS];
         cf_op_bits.copy_from_slice(&state[CF_OP_BITS_RANGE]);
@@ -128,11 +128,6 @@ impl<E: FieldElement<BaseField = BaseElement>> TraceState<E> {
         self.op_counter
     }
 
-    #[cfg(test)]
-    pub fn set_op_counter(&mut self, value: E) {
-        self.op_counter = value;
-    }
-
     // SPONGE
     // --------------------------------------------------------------------------------------------
     pub fn sponge(&self) -> &[E] {
@@ -195,6 +190,7 @@ impl<E: FieldElement<BaseField = BaseElement>> TraceState<E> {
 
     // RAW STATE
     // --------------------------------------------------------------------------------------------
+    #[cfg(test)]
     pub fn to_vec(&self) -> Vec<E> {
         let mut result = Vec::with_capacity(self.width());
         result.push(self.op_counter);
@@ -211,7 +207,7 @@ impl<E: FieldElement<BaseField = BaseElement>> TraceState<E> {
     pub fn update(&mut self, row: &[E]) {
         self.op_counter = row[OP_COUNTER_IDX];
 
-        for (i, j) in SPONGE_RANGE.enumerate() {
+        for (i, j) in OP_SPONGE_RANGE.enumerate() {
             self.sponge[i] = row[j];
         }
         for (i, j) in CF_OP_BITS_RANGE.enumerate() {
@@ -240,54 +236,39 @@ impl<E: FieldElement<BaseField = BaseElement>> TraceState<E> {
             self.user_stack[i] = row[j];
         }
     }
-
-    pub fn update_from_trace(&mut self, trace: &[Vec<E>], step: usize) {
-        self.op_counter = trace[OP_COUNTER_IDX][step];
-
-        for (i, j) in SPONGE_RANGE.enumerate() {
-            self.sponge[i] = trace[j][step];
-        }
-        for (i, j) in CF_OP_BITS_RANGE.enumerate() {
-            self.cf_op_bits[i] = trace[j][step];
-        }
-        for (i, j) in LD_OP_BITS_RANGE.enumerate() {
-            self.ld_op_bits[i] = trace[j][step];
-        }
-        for (i, j) in HD_OP_BITS_RANGE.enumerate() {
-            self.hd_op_bits[i] = trace[j][step];
-        }
-
-        let ctx_stack_start = HD_OP_BITS_RANGE.end;
-        let ctx_stack_end = ctx_stack_start + self.ctx_depth;
-        for (i, j) in (ctx_stack_start..ctx_stack_end).enumerate() {
-            self.ctx_stack[i] = trace[j][step];
-        }
-
-        let loop_stack_end = ctx_stack_end + self.loop_depth;
-        for (i, j) in (ctx_stack_end..loop_stack_end).enumerate() {
-            self.loop_stack[i] = trace[j][step];
-        }
-
-        let user_stack_end = loop_stack_end + self.stack_depth;
-        for (i, j) in (loop_stack_end..user_stack_end).enumerate() {
-            self.user_stack[i] = trace[j][step];
-        }
-    }
 }
 
-impl<E: FieldElement<BaseField = BaseElement>> fmt::Debug for TraceState<E> {
+impl fmt::Debug for TraceState<BaseElement> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "[{:>4}] {:>32X?} {:?} {:?} {:?} {:>32X?} {:>32X?} {:?}",
-            self.op_counter,
-            self.sponge,
-            self.cf_op_bits,
-            self.ld_op_bits,
-            self.hd_op_bits,
-            self.ctx_stack,
-            self.loop_stack,
+            self.op_counter.as_int(),
+            self.sponge.iter().map(|v| v.as_int()).collect::<Vec<_>>(),
+            self.cf_op_bits
+                .iter()
+                .map(|v| v.as_int())
+                .collect::<Vec<_>>(),
+            self.ld_op_bits
+                .iter()
+                .map(|v| v.as_int())
+                .collect::<Vec<_>>(),
+            self.hd_op_bits
+                .iter()
+                .map(|v| v.as_int())
+                .collect::<Vec<_>>(),
+            self.ctx_stack
+                .iter()
+                .map(|v| v.as_int())
+                .collect::<Vec<_>>(),
+            self.loop_stack
+                .iter()
+                .map(|v| v.as_int())
+                .collect::<Vec<_>>(),
             self.user_stack
+                .iter()
+                .map(|v| v.as_int())
+                .collect::<Vec<_>>()
         )
     }
 }
@@ -297,7 +278,7 @@ impl fmt::Display for TraceState<BaseElement> {
         write!(
             f,
             "[{:>4}] {:>16X?} {:?} {:?} {:?} {:>16X?} {:>16X?} {:?}",
-            self.op_counter,
+            self.op_counter.as_int(),
             self.sponge
                 .iter()
                 .map(|x| x.as_int() >> 64)
@@ -412,22 +393,15 @@ mod tests {
     }
 
     #[test]
-    fn update_from_trace() {
-        let data = vec![
+    fn update() {
+        let row_data = vec![
             101, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-        ];
-        let mut trace = Vec::with_capacity(data.len());
-        for i in 0..data.len() {
-            trace.push(vec![
-                BaseElement::ZERO,
-                BaseElement::new(data[i]),
-                BaseElement::ZERO,
-            ]);
-        }
+        ]
+        .to_elements();
 
         // first row
         let mut state = TraceState::new(2, 1, 3);
-        state.update_from_trace(&trace, 0);
+        state.update(&vec![BaseElement::ZERO; row_data.len()]);
 
         assert_eq!(0, state.op_counter().as_int());
         assert_eq!([0, 0, 0, 0].to_elements(), state.sponge());
@@ -441,7 +415,7 @@ mod tests {
         assert_eq!(3, state.stack_depth());
 
         // second row
-        state.update_from_trace(&trace, 1);
+        state.update(&row_data);
 
         assert_eq!(101, state.op_counter().as_int());
         assert_eq!([1, 2, 3, 4].to_elements(), state.sponge());

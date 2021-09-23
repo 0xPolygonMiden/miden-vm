@@ -232,11 +232,11 @@ impl Stack {
                 let v_a = self.tape_a.split_off(self.tape_a.len() - n);
 
                 // then, we reinsert them while interlacing node and leaf index binary values
-                for i in 0..n {
+                for (i, &value) in v_a.iter().enumerate().take(n) {
                     // most significant bit is pushed first
                     self.tape_a
                         .push(BaseElement::new((idx.as_int() >> (n - i - 1)) & 1));
-                    self.tape_a.push(v_a[i]);
+                    self.tape_a.push(value);
                 }
             }
             OpHint::None => {

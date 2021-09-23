@@ -23,7 +23,7 @@ impl AssemblyError {
     pub fn empty_block(op: &[&str], step: usize) -> AssemblyError {
         AssemblyError {
             message: String::from("a program block must contain at least one instruction"),
-            step: step,
+            step,
             op: op.join("."),
         }
     }
@@ -47,7 +47,7 @@ impl AssemblyError {
     pub fn dangling_instructions(step: usize) -> AssemblyError {
         AssemblyError {
             message: "dangling instructions after program end".to_string(),
-            step: step,
+            step,
             op: String::from("end"),
         }
     }
@@ -55,7 +55,7 @@ impl AssemblyError {
     pub fn invalid_op(op: &[&str], step: usize) -> AssemblyError {
         AssemblyError {
             message: format!("instruction {} is invalid", op.join(".")),
-            step: step,
+            step,
             op: op.join("."),
         }
     }
@@ -63,7 +63,7 @@ impl AssemblyError {
     pub fn missing_param(op: &[&str], step: usize) -> AssemblyError {
         AssemblyError {
             message: format!("malformed instruction {}: parameter is missing", op[0]),
-            step: step,
+            step,
             op: op.join("."),
         }
     }
@@ -74,7 +74,7 @@ impl AssemblyError {
                 "malformed instruction {}: too many parameters provided",
                 op[0]
             ),
-            step: step,
+            step,
             op: op.join("."),
         }
     }
@@ -85,7 +85,7 @@ impl AssemblyError {
                 "malformed instruction {}: parameter '{}' is invalid",
                 op[0], op[1]
             ),
-            step: step,
+            step,
             op: op.join("."),
         }
     }
@@ -93,7 +93,7 @@ impl AssemblyError {
     pub fn invalid_param_reason(op: &[&str], step: usize, reason: String) -> AssemblyError {
         AssemblyError {
             message: format!("malformed instruction {}: {}", op[0], reason),
-            step: step,
+            step,
             op: op.join("."),
         }
     }
@@ -101,7 +101,7 @@ impl AssemblyError {
     pub fn invalid_block_head(op: &[&str], step: usize) -> AssemblyError {
         AssemblyError {
             message: format!("invalid block head '{}'", op.join(".")),
-            step: step,
+            step,
             op: op.join("."),
         }
     }
@@ -112,7 +112,7 @@ impl AssemblyError {
                 "invalid repeat statement '{}': 2 or more iterations must be specified",
                 op.join(".")
             ),
-            step: step,
+            step,
             op: op.join("."),
         }
     }
@@ -120,7 +120,7 @@ impl AssemblyError {
     pub fn dangling_else(step: usize) -> AssemblyError {
         AssemblyError {
             message: "else without matching if".to_string(),
-            step: step,
+            step,
             op: String::from("else"),
         }
     }
@@ -128,7 +128,7 @@ impl AssemblyError {
     pub fn unmatched_block(step: usize) -> AssemblyError {
         AssemblyError {
             message: "block without matching end".to_string(),
-            step: step,
+            step,
             op: String::from("block"),
         }
     }
@@ -136,7 +136,7 @@ impl AssemblyError {
     pub fn unmatched_if(step: usize) -> AssemblyError {
         AssemblyError {
             message: "if without matching else/end".to_string(),
-            step: step,
+            step,
             op: String::from("if.true"),
         }
     }
@@ -144,7 +144,7 @@ impl AssemblyError {
     pub fn unmatched_while(step: usize) -> AssemblyError {
         AssemblyError {
             message: "while without matching end".to_string(),
-            step: step,
+            step,
             op: String::from("while.true"),
         }
     }
@@ -152,7 +152,7 @@ impl AssemblyError {
     pub fn unmatched_repeat(step: usize, op: &[&str]) -> AssemblyError {
         AssemblyError {
             message: "repeat without matching end".to_string(),
-            step: step,
+            step,
             op: op.join("."),
         }
     }
@@ -160,7 +160,7 @@ impl AssemblyError {
     pub fn unmatched_else(step: usize) -> AssemblyError {
         AssemblyError {
             message: "else without matching end".to_string(),
-            step: step,
+            step,
             op: String::from("else"),
         }
     }

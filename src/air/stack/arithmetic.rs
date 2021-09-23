@@ -8,12 +8,10 @@ use super::{
 
 /// Enforces constraints for ADD operation. The constraints are based on the first 2 elements of
 /// the stack; the rest of the stack is shifted left by 1 element.
-pub fn enforce_add<E: FieldElement>(
-    result: &mut [E],
-    old_stack: &[E],
-    new_stack: &[E],
-    op_flag: E,
-) {
+pub fn enforce_add<E>(result: &mut [E], old_stack: &[E], new_stack: &[E], op_flag: E)
+where
+    E: FieldElement,
+{
     let x = old_stack[0];
     let y = old_stack[1];
     let op_result = x + y;
@@ -25,12 +23,10 @@ pub fn enforce_add<E: FieldElement>(
 
 /// Enforces constraints for MUL operation. The constraints are based on the first 2 elements of
 /// the stack; the rest of the stack is shifted left by 1 element.
-pub fn enforce_mul<E: FieldElement>(
-    result: &mut [E],
-    old_stack: &[E],
-    new_stack: &[E],
-    op_flag: E,
-) {
+pub fn enforce_mul<E>(result: &mut [E], old_stack: &[E], new_stack: &[E], op_flag: E)
+where
+    E: FieldElement,
+{
     let x = old_stack[0];
     let y = old_stack[1];
     let op_result = x * y;
@@ -42,12 +38,10 @@ pub fn enforce_mul<E: FieldElement>(
 
 /// Enforces constraints for INV operation. The constraints are based on the first element of
 /// the stack; the rest of the stack is unaffected.
-pub fn enforce_inv<E: FieldElement>(
-    result: &mut [E],
-    old_stack: &[E],
-    new_stack: &[E],
-    op_flag: E,
-) {
+pub fn enforce_inv<E>(result: &mut [E], old_stack: &[E], new_stack: &[E], op_flag: E)
+where
+    E: FieldElement,
+{
     // Constraints for INV operation is defined as: x * inv(x) = 1; this also means
     // that if x = 0, the constraint will not be satisfied
     let x = old_stack[0];
@@ -60,12 +54,10 @@ pub fn enforce_inv<E: FieldElement>(
 
 /// Enforces constraints for NEG operation. The constraints are based on the first element of
 /// the stack; the rest of the stack is unaffected.
-pub fn enforce_neg<E: FieldElement>(
-    result: &mut [E],
-    old_stack: &[E],
-    new_stack: &[E],
-    op_flag: E,
-) {
+pub fn enforce_neg<E>(result: &mut [E], old_stack: &[E], new_stack: &[E], op_flag: E)
+where
+    E: FieldElement,
+{
     // Constraint for NEG operation is defined as: x + neg(x) = 0
     let x = old_stack[0];
     let neg_x = new_stack[0];
@@ -81,13 +73,10 @@ pub fn enforce_neg<E: FieldElement>(
 /// Enforces constraints for NOT operation. The constraints are based on the first element of
 /// the stack, but also evaluates an auxiliary constraint which guarantees that the first
 /// element of the stack is binary.
-pub fn enforce_not<E: FieldElement>(
-    result: &mut [E],
-    aux: &mut [E],
-    old_stack: &[E],
-    new_stack: &[E],
-    op_flag: E,
-) {
+pub fn enforce_not<E>(result: &mut [E], aux: &mut [E], old_stack: &[E], new_stack: &[E], op_flag: E)
+where
+    E: FieldElement,
+{
     // NOT operation is defined simply as: 1 - x; this means 0 becomes 1, and 1 becomes 0
     let x = old_stack[0];
     let op_result = binary_not(x);
@@ -103,13 +92,10 @@ pub fn enforce_not<E: FieldElement>(
 /// Enforces constraints for AND operation. The constraints are based on the first two elements
 /// of the stack, but also evaluates auxiliary constraints which guarantee that both elements
 /// are binary.
-pub fn enforce_and<E: FieldElement>(
-    result: &mut [E],
-    aux: &mut [E],
-    old_stack: &[E],
-    new_stack: &[E],
-    op_flag: E,
-) {
+pub fn enforce_and<E>(result: &mut [E], aux: &mut [E], old_stack: &[E], new_stack: &[E], op_flag: E)
+where
+    E: FieldElement,
+{
     // AND operation is the same as: x * y
     let x = old_stack[0];
     let y = old_stack[1];
@@ -127,13 +113,10 @@ pub fn enforce_and<E: FieldElement>(
 /// Enforces constraints for OR operation. The constraints are based on the first two elements
 /// of the stack, but also evaluates auxiliary constraints which guarantee that both elements
 /// are binary.
-pub fn enforce_or<E: FieldElement>(
-    result: &mut [E],
-    aux: &mut [E],
-    old_stack: &[E],
-    new_stack: &[E],
-    op_flag: E,
-) {
+pub fn enforce_or<E>(result: &mut [E], aux: &mut [E], old_stack: &[E], new_stack: &[E], op_flag: E)
+where
+    E: FieldElement,
+{
     // OR operation is the same as: 1 - (1 - x) * (1 - y)
     let x = old_stack[0];
     let y = old_stack[1];

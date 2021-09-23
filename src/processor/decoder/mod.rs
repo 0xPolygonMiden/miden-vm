@@ -3,7 +3,7 @@ use crate::{
     utils::sponge, BASE_CYCLE_LENGTH, MAX_CONTEXT_DEPTH, MAX_LOOP_DEPTH, NUM_CF_OP_BITS,
     NUM_HD_OP_BITS, NUM_LD_OP_BITS, PUSH_OP_ALIGNMENT, SPONGE_WIDTH,
 };
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
+use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
 
 // TYPES AND INTERFACES
 // ================================================================================================
@@ -92,6 +92,11 @@ impl Decoder {
     #[cfg(test)]
     pub fn current_step(&self) -> usize {
         self.step
+    }
+
+    /// Returns the max value of the op_counter register converted to u64.
+    pub fn max_op_counter_value(&self) -> u64 {
+        self.op_counter[self.op_counter.len() - 1].as_int() as u64
     }
 
     /// Returns the max value of the context stack reached during program execution.

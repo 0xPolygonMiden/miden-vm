@@ -20,26 +20,30 @@ const X_ACC_IDX: usize = 7;
 
 /// Enforces constraints for ASSERT operation. The constraints are similar to DROP operation, but
 /// have an auxiliary constraint which enforces that 1 - x = 0, where x is the top of the stack.
-pub fn enforce_assert<E: FieldElement>(
+pub fn enforce_assert<E>(
     result: &mut [E],
     aux: &mut [E],
     old_stack: &[E],
     new_stack: &[E],
     op_flag: E,
-) {
+) where
+    E: FieldElement,
+{
     enforce_left_shift(result, old_stack, new_stack, 1, 1, op_flag);
     aux.agg_constraint(0, op_flag, are_equal(E::ONE, old_stack[0]));
 }
 
 /// Enforces constraints for ASSERTEQ operation. The stack is shifted by 2 registers the left and
 /// an auxiliary constraint enforces that the first element of the stack is equal to the second.
-pub fn enforce_asserteq<E: FieldElement>(
+pub fn enforce_asserteq<E>(
     result: &mut [E],
     aux: &mut [E],
     old_stack: &[E],
     new_stack: &[E],
     op_flag: E,
-) {
+) where
+    E: FieldElement,
+{
     enforce_left_shift(result, old_stack, new_stack, 2, 2, op_flag);
     aux.agg_constraint(0, op_flag, are_equal(old_stack[0], old_stack[1]));
 }
@@ -49,13 +53,10 @@ pub fn enforce_asserteq<E: FieldElement>(
 
 /// Evaluates constraints for EQ operation. These enforce that when x == y, top of the stack at
 /// the next step is set to 1, otherwise top of the stack at the next step is set to 0.
-pub fn enforce_eq<E: FieldElement>(
-    result: &mut [E],
-    aux: &mut [E],
-    old_stack: &[E],
-    new_stack: &[E],
-    op_flag: E,
-) {
+pub fn enforce_eq<E>(result: &mut [E], aux: &mut [E], old_stack: &[E], new_stack: &[E], op_flag: E)
+where
+    E: FieldElement,
+{
     // compute difference between top two values of the stack
     let x = old_stack[1];
     let y = old_stack[2];
@@ -80,12 +81,10 @@ pub fn enforce_eq<E: FieldElement>(
 // ================================================================================================
 
 /// Evaluates constraints for CMP operation.
-pub fn enforce_cmp<E: FieldElement>(
-    result: &mut [E],
-    old_stack: &[E],
-    new_stack: &[E],
-    op_flag: E,
-) {
+pub fn enforce_cmp<E>(result: &mut [E], old_stack: &[E], new_stack: &[E], op_flag: E)
+where
+    E: FieldElement,
+{
     let two = E::ONE + E::ONE;
 
     // layout of first 8 registers
@@ -127,12 +126,10 @@ pub fn enforce_cmp<E: FieldElement>(
 }
 
 /// Evaluates constraints for BINACC operation.
-pub fn enforce_binacc<E: FieldElement>(
-    result: &mut [E],
-    old_stack: &[E],
-    new_stack: &[E],
-    op_flag: E,
-) {
+pub fn enforce_binacc<E>(result: &mut [E], old_stack: &[E], new_stack: &[E], op_flag: E)
+where
+    E: FieldElement,
+{
     let two = E::ONE + E::ONE;
 
     // layout of first 4 registers:

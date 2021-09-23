@@ -2,7 +2,7 @@ use core::{convert::TryInto, ops::Range};
 use log::debug;
 use std::time::Instant;
 use winterfell::{
-    math::{fields::f128::BaseElement, StarkField},
+    math::{fields::f128::BaseElement, FieldElement, StarkField},
     ExecutionTrace, ProofOptions, ProverError, Serializable, StarkProof, VerifierError,
 };
 
@@ -11,6 +11,7 @@ use winterfell::{
 mod utils;
 
 mod air;
+pub use air::utils::ToElements;
 use air::{ProcessorAir, PublicInputs, TraceMetadata, TraceState};
 
 mod processor;
@@ -153,7 +154,7 @@ const NUM_LD_OPS: usize = 32;
 const NUM_HD_OPS: usize = 4;
 
 const OP_COUNTER_IDX: usize = 0;
-const SPONGE_RANGE: Range<usize> = Range { start: 1, end: 5 };
+const OP_SPONGE_RANGE: Range<usize> = Range { start: 1, end: 5 };
 const CF_OP_BITS_RANGE: Range<usize> = Range { start: 5, end: 8 };
 const LD_OP_BITS_RANGE: Range<usize> = Range { start: 8, end: 13 };
 const HD_OP_BITS_RANGE: Range<usize> = Range { start: 13, end: 15 };
@@ -176,8 +177,21 @@ fn get_last_state(trace: &ExecutionTrace<BaseElement>) -> TraceState<BaseElement
     let last_step = trace.length() - 1;
     let meta = TraceMetadata::from_trace_info(&trace.get_info());
 
-    let mut last_row = vec![];
+    let mut last_row = vec![BaseElement::ZERO; trace.width()];
     trace.read_row_into(last_step, &mut last_row);
 
     TraceState::from_vec(meta.ctx_depth, meta.loop_depth, meta.stack_depth, &last_row)
+}
+
+/// Prints out an execution trace.
+fn print_trace(trace: &ExecutionTrace<BaseElement>, _multiples_of: usize) {
+    let trace_width = trace.width();
+    let meta = TraceMetadata::from_trace_info(&trace.get_info());
+
+    let mut state = vec![BaseElement::ZERO; trace_width];
+    for i in 0..trace.length() {
+        trace.read_row_into(i, &mut state);
+        let state = TraceState::from_vec(meta.ctx_depth, meta.loop_depth, meta.stack_depth, &state);
+        println!("{:?}", state);
+    }
 }
