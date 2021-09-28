@@ -17,6 +17,9 @@ name = "distaff"
 path = "src/lib.rs"
 bench = false
 
+[features]
+concurrent = ["winterfell/concurrent"]
+
 [dependencies]
 hex = "0.4"
 log = "0.4"
