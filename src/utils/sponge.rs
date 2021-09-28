@@ -43,7 +43,6 @@ pub fn apply_sbox<E: FieldElement>(state: &mut [E]) {
 }
 
 pub fn apply_inv_sbox(state: &mut [BaseElement]) {
-    // TODO: optimize
     for element in state.iter_mut().take(STATE_WIDTH) {
         *element = element.exp(INV_ALPHA);
     }

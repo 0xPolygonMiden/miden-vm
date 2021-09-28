@@ -34,6 +34,21 @@ impl<E: FieldElement<BaseField = BaseElement>> VmTransition<E> {
         }
     }
 
+    #[cfg(test)]
+    pub fn from_states(current: TraceState<E>, next: TraceState<E>) -> Self {
+        let mut result = Self {
+            current,
+            next,
+            cf_op_flags: [E::ZERO; NUM_CF_OPS],
+            ld_op_flags: [E::ZERO; NUM_LD_OPS],
+            hd_op_flags: [E::ZERO; NUM_HD_OPS],
+            begin_flag: E::ZERO,
+            noop_flag: E::ZERO,
+        };
+        result.set_op_flags();
+        result
+    }
+
     // DATA MUTATORS
     // --------------------------------------------------------------------------------------------
 

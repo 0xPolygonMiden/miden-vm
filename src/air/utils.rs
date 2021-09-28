@@ -80,6 +80,7 @@ pub fn enforce_left_shift<E: FieldElement>(
     }
 
     // also make sure that remaining slots were filled in with 0s
+    #[allow(clippy::needless_range_loop)]
     for i in remainder_idx..result.len() {
         result.agg_constraint(i, op_flag, is_zero(new_stack[i]));
     }

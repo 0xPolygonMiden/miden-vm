@@ -52,7 +52,6 @@ pub fn apply_sbox<E: FieldElement>(state: &mut [E]) {
 }
 
 pub fn apply_inv_sbox(state: &mut [BaseElement]) {
-    // TODO: optimize
     for element in state.iter_mut().take(STATE_WIDTH) {
         *element = element.exp(INV_ALPHA);
     }
@@ -82,7 +81,7 @@ pub fn apply_inv_mds<E: FieldElement<BaseField = BaseElement>>(state: &mut [E]) 
         }
 
         for &tmp_value in temp.iter() {
-            result[i] *= tmp_value;
+            result[i] += tmp_value;
         }
     }
     state.copy_from_slice(&result);

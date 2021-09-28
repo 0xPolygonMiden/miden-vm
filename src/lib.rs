@@ -8,7 +8,7 @@ use winterfell::{
 
 // RE-EXPORTS
 // ================================================================================================
-mod utils;
+pub mod utils;
 
 mod air;
 pub use air::utils::ToElements;
@@ -113,7 +113,6 @@ pub fn verify(
 pub const MAX_CONTEXT_DEPTH: usize = 16;
 pub const MAX_LOOP_DEPTH: usize = 8;
 const MIN_TRACE_LENGTH: usize = 16;
-const MAX_REGISTER_COUNT: usize = 128;
 const BASE_CYCLE_LENGTH: usize = 16;
 
 const MIN_STACK_DEPTH: usize = 8;
@@ -184,6 +183,7 @@ fn get_last_state(trace: &ExecutionTrace<BaseElement>) -> TraceState<BaseElement
 }
 
 /// Prints out an execution trace.
+#[allow(unused)]
 fn print_trace(trace: &ExecutionTrace<BaseElement>, _multiples_of: usize) {
     let trace_width = trace.width();
     let meta = TraceMetadata::from_trace_info(&trace.get_info());

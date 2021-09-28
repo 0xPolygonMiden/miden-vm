@@ -45,14 +45,11 @@ const SPONGE_CONSTRAINT_DEGREES: [usize; NUM_SPONGE_CONSTRAINTS] = [
     6, 7, 6, 6, // sponge transition constraints
 ];
 
-const LOOP_IMAGE_CONSTRAINT_DEGREE: usize = 4;
 const STACK_CONSTRAINT_DEGREE: usize = 4;
 
 const CYCLE_MASK_IDX: usize = 0;
 const PREFIX_MASK_IDX: usize = 1;
 const PUSH_MASK_IDX: usize = 2;
-
-pub const NUM_STATIC_DECODER_CONSTRAINTS: usize = NUM_OP_CONSTRAINTS + NUM_SPONGE_CONSTRAINTS + 1; // for loop image constraint
 
 // CONSTRAINT DEGREES
 // ================================================================================================
@@ -73,8 +70,6 @@ pub fn get_transition_constraint_degrees(
     for &degree in SPONGE_CONSTRAINT_DEGREES.iter() {
         result.push(TransitionConstraintDegree::new(degree));
     }
-
-    //result.push(TransitionConstraintDegree::new(LOOP_IMAGE_CONSTRAINT_DEGREE));
 
     result.resize(
         result.len()

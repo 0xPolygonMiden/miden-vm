@@ -13,7 +13,7 @@ const NUM_STATIC_DECODER_REGISTERS: usize = 1 + SPONGE_WIDTH + NUM_OP_BITS; // 1
 
 // TYPES AND INTERFACES
 // ================================================================================================
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct TraceState<E: FieldElement<BaseField = BaseElement>> {
     op_counter: E,
     sponge: [E; SPONGE_WIDTH],
@@ -114,10 +114,12 @@ impl<E: FieldElement<BaseField = BaseElement>> TraceState<E> {
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
+    #[cfg(test)]
     pub fn width(&self) -> usize {
         HD_OP_BITS_RANGE.end + self.ctx_depth + self.loop_depth + self.stack_depth
     }
 
+    #[cfg(test)]
     pub fn stack_depth(&self) -> usize {
         self.stack_depth
     }
@@ -126,6 +128,11 @@ impl<E: FieldElement<BaseField = BaseElement>> TraceState<E> {
     // --------------------------------------------------------------------------------------------
     pub fn op_counter(&self) -> E {
         self.op_counter
+    }
+
+    #[cfg(test)]
+    pub fn set_op_counter(&mut self, value: E) {
+        self.op_counter = value;
     }
 
     // SPONGE
@@ -163,6 +170,7 @@ impl<E: FieldElement<BaseField = BaseElement>> TraceState<E> {
         result
     }
 
+    #[cfg(test)]
     pub fn set_op_bits(&mut self, bits: [E; NUM_OP_BITS]) {
         self.cf_op_bits.copy_from_slice(&bits[..3]);
         self.ld_op_bits.copy_from_slice(&bits[3..8]);

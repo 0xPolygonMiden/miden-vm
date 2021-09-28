@@ -19,12 +19,12 @@ fn main() {
         ex = examples::fibonacci::get_example(&args);
     } else {
         ex = match args[1].as_str() {
-            //"collatz"       => examples::collatz::get_example(&args[1..]),
-            //"comparison"    => examples::comparison::get_example(&args[1..]),
-            //"conditional"   => examples::conditional::get_example(&args[1..]),
+            "collatz" => examples::collatz::get_example(&args[1..]),
+            "comparison" => examples::comparison::get_example(&args[1..]),
+            "conditional" => examples::conditional::get_example(&args[1..]),
             "fibonacci" => examples::fibonacci::get_example(&args[1..]),
-            //"merkle"        => examples::merkle::get_example(&args[1..]),
-            //"rangecheck"    => examples::range::get_example(&args[1..]),
+            "merkle" => examples::merkle::get_example(&args[1..]),
+            "rangecheck" => examples::range::get_example(&args[1..]),
             _ => panic!("Could not find example program for '{}'", args[1]),
         }
     }

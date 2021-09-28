@@ -3,12 +3,12 @@ use winterfell::{math::fields::f128::BaseElement, ProofOptions};
 
 mod utils;
 
-//pub mod collatz;
-//pub mod comparison;
-//pub mod conditional;
+pub mod collatz;
+pub mod comparison;
+pub mod conditional;
 pub mod fibonacci;
-//pub mod merkle;
-//pub mod range;
+pub mod merkle;
+pub mod range;
 
 pub struct Example {
     pub program: Program,

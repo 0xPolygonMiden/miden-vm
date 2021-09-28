@@ -89,7 +89,7 @@ impl Decoder {
     }
 
     /// Returns value of the current step pointer.
-    #[cfg(test)]
+    #[allow(unused)]
     pub fn current_step(&self) -> usize {
         self.step
     }
@@ -111,7 +111,7 @@ impl Decoder {
     }
 
     /// Returns the state of the stack at the specified `step`.
-    #[cfg(test)]
+    #[allow(unused, clippy::vec_init_then_push)]
     pub fn get_state(&self, step: usize) -> Vec<BaseElement> {
         let mut state = Vec::new();
 
