@@ -1,0 +1,29 @@
+[package]
+name = "distaff"
+version = "0.1.0"
+description="TODO"
+authors = ["distaff contributors"]
+readme="README.md"
+edition = "2018"
+repository = "TODO"
+license = "MIT"
+
+[[bin]]
+name = "distaff"
+path = "src/main.rs"
+
+[lib]
+name = "distaff"
+path = "src/lib.rs"
+bench = false
+
+[features]
+concurrent = ["winterfell/concurrent"]
+
+[dependencies]
+hex = "0.4"
+log = "0.4"
+winterfell = "0.2"
+winter-utils = "0.2"
+env_logger = "0.9"
+winter-rand-utils = "0.2"
