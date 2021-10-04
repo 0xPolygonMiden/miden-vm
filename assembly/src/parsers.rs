@@ -1,5 +1,5 @@
 use super::{AssemblyError, HintMap, OpCode, OpHint};
-use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
+use processor::{BaseElement, FieldElement, StarkField};
 
 // CONSTANTS
 // ================================================================================================

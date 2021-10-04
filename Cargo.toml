@@ -2,6 +2,7 @@
 members = [
   "vm",
   "processor",
+  "assembly",
   "utils",
   "examples"
 ]

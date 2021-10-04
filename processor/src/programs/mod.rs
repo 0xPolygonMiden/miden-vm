@@ -1,12 +1,10 @@
 use crate::{
     OpCode, OpHint, BASE_CYCLE_LENGTH, HACC_NUM_ROUNDS, PROGRAM_DIGEST_SIZE, SPONGE_WIDTH,
 };
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
-
-pub mod assembly;
+pub use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
 
 pub mod blocks;
-use blocks::{Group, Loop, ProgramBlock, Span, Switch};
+use blocks::{Group, ProgramBlock};
 
 mod inputs;
 pub use inputs::ProgramInputs;

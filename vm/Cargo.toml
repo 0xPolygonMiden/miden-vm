@@ -17,6 +17,7 @@ bench = false
 concurrent = ["winterfell/concurrent"]
 
 [dependencies]
+assembly = { path = "../assembly", package = "distaff-assembly" }
 processor = { path = "../processor", package = "distaff-processor" }
 distaff-utils = { path = "../utils", package = "distaff-utils" }
 hex = "0.4"

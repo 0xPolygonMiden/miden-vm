@@ -1,15 +1,16 @@
 use core::ops::Range;
-use winterfell::{
-    math::{fields::f128::BaseElement, FieldElement},
-    ExecutionTrace,
-};
 
 // RE-EXPORTS
 // ================================================================================================
 
+pub use winterfell::{
+    math::{fields::f128::BaseElement, FieldElement, StarkField},
+    ExecutionTrace,
+};
+
 mod programs;
 use programs::blocks::{Loop, ProgramBlock, Span};
-pub use programs::{assembly, blocks, Program, ProgramInputs};
+pub use programs::{blocks, Program, ProgramInputs};
 
 mod decoder;
 use decoder::Decoder;
@@ -203,7 +204,7 @@ fn execute_loop(block: &Loop, decoder: &mut Decoder, stack: &mut Stack) {
 pub const MAX_CONTEXT_DEPTH: usize = 16;
 pub const MAX_LOOP_DEPTH: usize = 8;
 const MIN_TRACE_LENGTH: usize = 16;
-const BASE_CYCLE_LENGTH: usize = 16;
+pub const BASE_CYCLE_LENGTH: usize = 16;
 
 const MIN_STACK_DEPTH: usize = 8;
 const MIN_CONTEXT_DEPTH: usize = 1;

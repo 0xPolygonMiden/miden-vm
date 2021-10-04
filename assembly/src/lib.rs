@@ -1,4 +1,7 @@
-use super::{Group, Loop, OpCode, OpHint, Program, ProgramBlock, Span, Switch, BASE_CYCLE_LENGTH};
+use processor::{
+    blocks::{Group, Loop, ProgramBlock, Span, Switch},
+    OpCode, OpHint, Program, BASE_CYCLE_LENGTH,
+};
 use std::collections::HashMap;
 
 mod parsers;

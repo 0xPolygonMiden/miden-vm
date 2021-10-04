@@ -7,7 +7,8 @@ use winterfell::{ExecutionTrace, ProverError, Serializable, VerifierError};
 // RE-EXPORTS
 // ================================================================================================
 
-pub use processor::{assembly, Program, ProgramInputs};
+pub use assembly;
+pub use processor::{Program, ProgramInputs};
 
 mod air;
 pub use air::utils::ToElements;
