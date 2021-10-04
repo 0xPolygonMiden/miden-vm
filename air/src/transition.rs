@@ -1,5 +1,5 @@
 use super::{utils::binary_not, TraceState};
-use crate::{OpCode, NUM_CF_OPS, NUM_HD_OPS, NUM_LD_OPS};
+use distaff_processor::{OpCode, NUM_CF_OPS, NUM_HD_OPS, NUM_LD_OPS};
 use winterfell::{
     math::{fields::f128::BaseElement, FieldElement},
     EvaluationFrame,

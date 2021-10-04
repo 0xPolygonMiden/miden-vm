@@ -20,6 +20,7 @@ concurrent = ["winterfell/concurrent"]
 assembly = { path = "../assembly", package = "distaff-assembly" }
 processor = { path = "../processor", package = "distaff-processor" }
 distaff-utils = { path = "../utils", package = "distaff-utils" }
+air = { path = "../air", package = "distaff-air" }
 hex = "0.4"
 log = "0.4"
 winterfell = "0.2"

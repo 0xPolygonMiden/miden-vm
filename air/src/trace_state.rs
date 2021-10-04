@@ -1,4 +1,4 @@
-use crate::{
+use distaff_processor::{
     CF_OP_BITS_RANGE, HD_OP_BITS_RANGE, LD_OP_BITS_RANGE, MIN_CONTEXT_DEPTH, MIN_LOOP_DEPTH,
     MIN_STACK_DEPTH, NUM_CF_OP_BITS, NUM_HD_OP_BITS, NUM_LD_OP_BITS, OP_COUNTER_IDX,
     OP_SPONGE_RANGE, PROGRAM_DIGEST_SIZE, SPONGE_WIDTH,
@@ -313,7 +313,7 @@ impl fmt::Display for TraceState<BaseElement> {
 mod tests {
 
     use super::TraceState;
-    use crate::air::utils::ToElements;
+    use crate::utils::ToElements;
     use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
 
     #[test]

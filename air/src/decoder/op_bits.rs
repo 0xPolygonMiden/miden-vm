@@ -89,7 +89,7 @@ where
 mod tests {
 
     use super::{super::NUM_OP_CONSTRAINTS, FlowOps, UserOps, VmTransition};
-    use crate::{air::TraceState, ToElements};
+    use crate::{TraceState, ToElements};
     use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
 
     #[test]

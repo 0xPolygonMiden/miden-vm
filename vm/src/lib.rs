@@ -1,6 +1,5 @@
 use core::{convert::TryInto, ops::Range};
 use log::debug;
-use processor::OpCode;
 use std::time::Instant;
 use winterfell::{ExecutionTrace, ProverError, Serializable, VerifierError};
 
@@ -10,7 +9,6 @@ use winterfell::{ExecutionTrace, ProverError, Serializable, VerifierError};
 pub use assembly;
 pub use processor::{Program, ProgramInputs};
 
-mod air;
 pub use air::utils::ToElements;
 use air::{ProcessorAir, PublicInputs, TraceMetadata, TraceState};
 

@@ -6,11 +6,10 @@ use super::{
     TransitionConstraintDegree,
 };
 use crate::{
-    air::{TraceState, VmTransition},
-    BASE_CYCLE_LENGTH, MIN_CONTEXT_DEPTH, MIN_LOOP_DEPTH, SPONGE_WIDTH,
+    TraceState, VmTransition,
 };
 use core::cmp;
-use processor::opcodes::{FlowOps, UserOps};
+use distaff_processor::{opcodes::{FlowOps, UserOps}, BASE_CYCLE_LENGTH, MIN_CONTEXT_DEPTH, MIN_LOOP_DEPTH, SPONGE_WIDTH};
 use winterfell::math::{fields::f128::BaseElement, FieldElement};
 
 mod op_bits;

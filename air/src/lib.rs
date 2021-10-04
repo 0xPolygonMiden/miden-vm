@@ -1,4 +1,4 @@
-use crate::{
+use distaff_processor::{
     CF_OP_BITS_RANGE, HASH_DIGEST_SIZE, HD_OP_BITS_RANGE, LD_OP_BITS_RANGE, OP_COUNTER_IDX,
     OP_SPONGE_RANGE,
 };

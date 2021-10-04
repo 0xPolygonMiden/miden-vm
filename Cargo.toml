@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "air",
   "vm",
   "processor",
   "assembly",

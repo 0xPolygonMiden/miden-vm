@@ -5,10 +5,10 @@ use super::{
     },
     TransitionConstraintDegree,
 };
-use crate::{air::VmTransition, HASH_STATE_WIDTH};
+use crate::{VmTransition};
 use winterfell::math::{fields::f128::BaseElement, FieldElement};
 
-use processor::OpCode;
+use distaff_processor::{OpCode, HASH_STATE_WIDTH};
 
 mod input;
 use input::{enforce_push, enforce_read, enforce_read2};

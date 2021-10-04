@@ -281,8 +281,8 @@ where
 mod tests {
 
     use super::{are_equal, TraceState};
-    use crate::air::ToElements;
-    use processor::opcodes::{FlowOps, UserOps};
+    use crate::ToElements;
+    use distaff_processor::opcodes::{FlowOps, UserOps};
     use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
 
     #[test]

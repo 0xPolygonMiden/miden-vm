@@ -1,0 +1,20 @@
+[package]
+name = "distaff-air"
+version = "0.1.0"
+description = "TODO"
+authors = ["distaff contributors"]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/maticnetwork/distaff"
+categories = ["TODO"]
+keywords = ["TODO"]
+edition = "2018"
+
+[lib]
+bench = false
+
+[dependencies]
+winterfell = "0.2"
+winter-utils = "0.2"
+distaff-utils = { path = "../utils", package = "distaff-utils" }
+distaff-processor = { path = "../processor", package = "distaff-processor" }
