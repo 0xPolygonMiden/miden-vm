@@ -1,5 +1,4 @@
-use distaff::{assembly, Program, ProgramInputs};
-use winterfell::{math::fields::f128::BaseElement, ProofOptions};
+use distaff::{assembly, BaseElement, Program, ProgramInputs, ProofOptions};
 
 mod utils;
 

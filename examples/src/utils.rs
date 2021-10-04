@@ -1,4 +1,4 @@
-use winterfell::{FieldExtension, HashFunction, ProofOptions};
+use distaff::{FieldExtension, HashFunction, ProofOptions};
 
 pub fn parse_args(args: &[String]) -> (usize, ProofOptions) {
     let default_options = ProofOptions::new(

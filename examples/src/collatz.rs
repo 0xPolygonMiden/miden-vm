@@ -1,6 +1,5 @@
 use super::{utils::parse_args, Example};
-use distaff::{assembly, ProgramInputs};
-use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
+use distaff::{assembly, BaseElement, FieldElement, ProgramInputs, StarkField};
 
 pub fn get_example(args: &[String]) -> Example {
     // read starting value of the sequence and proof options from the arguments

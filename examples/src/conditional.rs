@@ -1,6 +1,5 @@
 use super::{utils::parse_args, Example};
-use distaff::{assembly, ProgramInputs};
-use winterfell::math::{fields::f128::BaseElement, StarkField};
+use distaff::{assembly, BaseElement, ProgramInputs, StarkField};
 
 pub fn get_example(args: &[String]) -> Example {
     // get flag value and proof options from the arguments

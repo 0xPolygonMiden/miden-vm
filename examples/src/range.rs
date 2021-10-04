@@ -1,7 +1,6 @@
 use super::{utils::parse_args, Example};
-use distaff::{assembly, Program, ProgramInputs};
+use distaff::{assembly, BaseElement, FieldElement, Program, ProgramInputs, StarkField};
 use winter_rand_utils::rand_vector;
-use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
 
 pub fn get_example(args: &[String]) -> Example {
     // get the number of values to range check and proof options

@@ -1,10 +1,7 @@
 use core::{convert::TryInto, ops::Range};
 use log::debug;
 use std::time::Instant;
-use winterfell::{
-    math::{fields::f128::BaseElement, FieldElement, StarkField},
-    ExecutionTrace, ProofOptions, ProverError, Serializable, StarkProof, VerifierError,
-};
+use winterfell::{ExecutionTrace, ProverError, Serializable, VerifierError};
 
 // RE-EXPORTS
 // ================================================================================================
@@ -19,6 +16,11 @@ pub use processor::{OpCode, OpHint};
 
 mod programs;
 pub use programs::{assembly, blocks, Program, ProgramInputs};
+
+pub use winterfell::{
+    math::{fields::f128::BaseElement, FieldElement, StarkField},
+    FieldExtension, HashFunction, ProofOptions, StarkProof,
+};
 
 // EXECUTOR
 // ================================================================================================

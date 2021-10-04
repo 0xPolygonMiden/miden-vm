@@ -1,5 +1,5 @@
 use super::{assembly, utils::parse_args, Example, Program, ProgramInputs};
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
+use distaff::{BaseElement, FieldElement};
 
 pub fn get_example(args: &[String]) -> Example {
     // get the length of Fibonacci sequence and proof options from the arguments

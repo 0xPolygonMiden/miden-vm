@@ -1,9 +1,6 @@
-use distaff::{self, ToElements};
-use std::{env, io::Write, time::Instant};
-use winterfell::{math::StarkField, StarkProof};
-
-mod examples;
+use distaff::{self, StarkField, StarkProof, ToElements};
 use examples::Example;
+use std::{env, io::Write, time::Instant};
 
 fn main() {
     // configure logging

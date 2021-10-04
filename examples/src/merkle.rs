@@ -1,7 +1,8 @@
 use super::{utils::parse_args, Example};
-use distaff::{assembly, utils::hasher, Program, ProgramInputs};
+use distaff::{
+    assembly, utils::hasher, BaseElement, FieldElement, Program, ProgramInputs, StarkField,
+};
 use winter_rand_utils::prng_vector;
-use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
 
 pub fn get_example(args: &[String]) -> Example {
     // get the length of Merkle authentication path and proof options from the arguments
