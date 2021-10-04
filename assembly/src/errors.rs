@@ -1,13 +1,14 @@
-// TYPES AND INTERFACES
+use core::fmt;
+
+// ASSEMBLY ERROR
 // ================================================================================================
+
 pub struct AssemblyError {
     message: String,
     step: usize,
     op: String,
 }
 
-// ASSEMBLY ERROR IMPLEMENTATION
-// ================================================================================================
 impl AssemblyError {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
@@ -183,14 +184,14 @@ impl AssemblyError {
 // COMMON TRAIT IMPLEMENTATIONS
 // ================================================================================================
 
-impl std::fmt::Debug for AssemblyError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for AssemblyError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "assembly error at {}: {}", self.step, self.message)
     }
 }
 
-impl std::fmt::Display for AssemblyError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for AssemblyError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "assembly error at {}: {}", self.step, self.message)
     }
 }

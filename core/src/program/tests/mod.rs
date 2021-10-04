@@ -1,6 +1,7 @@
-use super::{Group, Loop, Program, ProgramBlock, Span, Switch};
-use crate::processor::OpCode;
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
+use super::{
+    blocks::{Group, Loop, ProgramBlock, Span, Switch},
+    BaseElement, FieldElement, OpCode, Program,
+};
 
 mod utils;
 use utils::{close_block, traverse};

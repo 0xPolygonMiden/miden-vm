@@ -14,8 +14,8 @@ edition = "2018"
 bench = false
 
 [dependencies]
-winterfell = "0.2"
-utils = { path = "../utils", package = "distaff-utils" }
+vm-core = { package = "distaff-core", path = "../core" }
+winter-prover = { package = "winter-prover", version = "0.2"}
 
 [dev-dependencies]
-rand-utils = { version = "0.2", package = "winter-rand-utils" }
+rand-utils = { package = "winter-rand-utils", version = "0.2" }

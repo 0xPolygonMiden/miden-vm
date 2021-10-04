@@ -1,6 +1,6 @@
-use super::{hash_op, hash_seq, OpCode, OpHint, BASE_CYCLE_LENGTH};
-use std::collections::HashMap;
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
+use super::{hash_op, hash_seq, BaseElement, FieldElement, OpCode, OpHint, BASE_CYCLE_LENGTH};
+use core::fmt;
+use winter_utils::collections::BTreeMap;
 
 //#[cfg(test)]
 //mod tests;
@@ -61,7 +61,7 @@ pub enum ProgramBlock {
 #[derive(Clone)]
 pub struct Span {
     op_codes: Vec<OpCode>,
-    op_hints: HashMap<usize, OpHint>,
+    op_hints: BTreeMap<usize, OpHint>,
 }
 
 #[derive(Clone)]
@@ -90,8 +90,8 @@ impl ProgramBlock {
     }
 }
 
-impl std::fmt::Debug for ProgramBlock {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for ProgramBlock {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ProgramBlock::Span(block) => write!(f, "{:?}", block)?,
             ProgramBlock::Group(block) => write!(f, "{:?}", block)?,
@@ -105,7 +105,7 @@ impl std::fmt::Debug for ProgramBlock {
 // SPAN IMPLEMENTATION
 // ================================================================================================
 impl Span {
-    pub fn new(instructions: Vec<OpCode>, hints: HashMap<usize, OpHint>) -> Span {
+    pub fn new(instructions: Vec<OpCode>, hints: BTreeMap<usize, OpHint>) -> Span {
         let alignment = instructions.len() % BASE_CYCLE_LENGTH;
         assert!(
             alignment == BASE_CYCLE_LENGTH - 1,
@@ -155,11 +155,11 @@ impl Span {
     }
 
     pub fn new_block(instructions: Vec<OpCode>) -> ProgramBlock {
-        ProgramBlock::Span(Span::new(instructions, HashMap::new()))
+        ProgramBlock::Span(Span::new(instructions, BTreeMap::new()))
     }
 
     pub fn from_instructions(instructions: Vec<OpCode>) -> Span {
-        Span::new(instructions, HashMap::new())
+        Span::new(instructions, BTreeMap::new())
     }
 
     pub fn length(&self) -> usize {
@@ -214,8 +214,8 @@ impl Span {
     }
 }
 
-impl std::fmt::Debug for Span {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for Span {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (op_code, op_hint) = self.get_op(0);
         write!(f, "{}{}", op_code, op_hint)?;
 
@@ -253,8 +253,8 @@ impl Group {
     }
 }
 
-impl std::fmt::Debug for Group {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for Group {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "block ")?;
         for block in self.body.iter() {
             write!(f, "{:?} ", block)?;
@@ -305,8 +305,8 @@ impl Switch {
     }
 }
 
-impl std::fmt::Debug for Switch {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for Switch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "if ")?;
         for block in self.t_branch.iter() {
             write!(f, "{:?} ", block)?;
@@ -362,8 +362,8 @@ impl Loop {
     }
 }
 
-impl std::fmt::Debug for Loop {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for Loop {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "while ")?;
         for block in self.body.iter() {
             write!(f, "{:?} ", block)?;

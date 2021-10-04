@@ -1,6 +1,7 @@
 #![allow(clippy::unusual_byte_groupings)]
 
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
+use crate::{BaseElement, FieldElement};
+use core::fmt;
 
 // FLOW CONTROL OPERATIONS
 // ================================================================================================
@@ -23,8 +24,8 @@ impl FlowOps {
     }
 }
 
-impl std::fmt::Display for FlowOps {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for FlowOps {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             FlowOps::Hacc => write!(f, "hacc"),
 
@@ -112,8 +113,8 @@ impl UserOps {
     }
 }
 
-impl std::fmt::Display for UserOps {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for UserOps {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             UserOps::Begin => write!(f, "begin"),
             UserOps::Noop => write!(f, "noop"),
@@ -182,8 +183,8 @@ impl OpHint {
     }
 }
 
-impl std::fmt::Display for OpHint {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for OpHint {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             OpHint::EqStart => write!(f, "::eq"),
             OpHint::RcStart(value) => write!(f, ".{}", value),

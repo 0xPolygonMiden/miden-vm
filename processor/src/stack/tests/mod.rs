@@ -1,6 +1,4 @@
-use super::{OpCode, OpHint, ProgramInputs, Stack};
-use utils::{hasher, HASH_STATE_WIDTH};
-use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
+use super::{hasher, BaseElement, FieldElement, OpCode, OpHint, ProgramInputs, Stack, StarkField};
 
 mod comparisons;
 mod conditional;
@@ -351,7 +349,7 @@ fn rescr() {
         .collect::<Vec<_>>();
 
     stack.execute(OpCode::RescR, OpHint::None);
-    hasher::apply_round(&mut expected[..HASH_STATE_WIDTH], 0);
+    hasher::apply_round(&mut expected[..hasher::STATE_WIDTH], 0);
     assert_eq!(
         expected,
         get_stack_state(&stack, 1)
@@ -361,7 +359,7 @@ fn rescr() {
     );
 
     stack.execute(OpCode::RescR, OpHint::None);
-    hasher::apply_round(&mut expected[..HASH_STATE_WIDTH], 1);
+    hasher::apply_round(&mut expected[..hasher::STATE_WIDTH], 1);
     assert_eq!(
         expected,
         get_stack_state(&stack, 2)

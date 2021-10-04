@@ -1,4 +1,4 @@
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
+use crate::FieldElement;
 
 // BASIC CONSTRAINTS OPERATORS
 // ================================================================================================
@@ -105,32 +105,12 @@ impl<E: FieldElement> EvaluationResult<E> for Vec<E> {
     }
 }
 
-// TYPE CONVERSIONS
-// ================================================================================================
-
-pub trait ToElements {
-    fn to_elements(&self) -> Vec<BaseElement>;
-}
-
-impl<const N: usize> ToElements for [u128; N] {
-    fn to_elements(&self) -> Vec<BaseElement> {
-        self.iter().map(|&v| BaseElement::new(v)).collect()
-    }
-}
-
-impl ToElements for Vec<u128> {
-    fn to_elements(&self) -> Vec<BaseElement> {
-        self.iter().map(|&v| BaseElement::new(v)).collect()
-    }
-}
-
 // TESTS
 // ================================================================================================
 
 #[cfg(test)]
 mod tests {
-    use super::ToElements;
-    use winterfell::math::{fields::f128::BaseElement, FieldElement};
+    use vm_core::{utils::ToElements, BaseElement, FieldElement};
 
     #[test]
     fn enforce_left_shift() {

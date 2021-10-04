@@ -1,6 +1,8 @@
-use super::{get_stack_state, init_stack, OpCode, OpHint, Stack, TRACE_LENGTH};
+use super::{
+    get_stack_state, init_stack, BaseElement, FieldElement, OpCode, OpHint, Stack, StarkField,
+    TRACE_LENGTH,
+};
 use rand_utils::rand_value;
-use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
 
 // EQUALITY OPERATION
 // ================================================================================================

@@ -88,9 +88,11 @@ where
 #[cfg(test)]
 mod tests {
 
-    use super::{super::NUM_OP_CONSTRAINTS, FlowOps, UserOps, VmTransition};
-    use crate::{TraceState, ToElements};
-    use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
+    use super::{
+        super::NUM_OP_CONSTRAINTS, BaseElement, FieldElement, FlowOps, UserOps, VmTransition,
+    };
+    use crate::{ToElements, TraceState};
+    use vm_core::StarkField;
 
     #[test]
     fn op_bits_are_binary() {

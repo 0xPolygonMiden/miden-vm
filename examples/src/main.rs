@@ -1,6 +1,7 @@
-use distaff::{self, StarkField, StarkProof, ToElements};
+use distaff::{self, StarkField, StarkProof};
 use examples::Example;
 use std::{env, io::Write, time::Instant};
+use vm_core::utils::ToElements;
 
 fn main() {
     // configure logging

@@ -1,14 +1,12 @@
-use super::{
+use crate::{
+    hasher,
+    opcodes::UserOps as OpCode,
     utils::{
         are_equal, binary_not, enforce_left_shift, enforce_right_shift, enforce_stack_copy,
         is_binary, is_zero, EvaluationResult,
     },
-    TransitionConstraintDegree,
+    BaseElement, FieldElement, TransitionConstraintDegree, VmTransition,
 };
-use crate::{VmTransition};
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
-
-use distaff_processor::{OpCode, HASH_STATE_WIDTH};
 
 mod input;
 use input::{enforce_push, enforce_read, enforce_read2};

@@ -1,16 +1,14 @@
-use super::{
+use crate::{
+    op_sponge::STATE_WIDTH as OP_SPONGE_WIDTH,
+    opcodes::{FlowOps, UserOps},
     utils::{
         are_equal, binary_not, enforce_left_shift, enforce_right_shift, enforce_stack_copy,
         is_binary, is_zero, EvaluationResult,
     },
-    TransitionConstraintDegree,
-};
-use crate::{
-    TraceState, VmTransition,
+    BaseElement, FieldElement, TraceState, TransitionConstraintDegree, VmTransition,
+    BASE_CYCLE_LENGTH, MIN_CONTEXT_DEPTH, MIN_LOOP_DEPTH,
 };
 use core::cmp;
-use distaff_processor::{opcodes::{FlowOps, UserOps}, BASE_CYCLE_LENGTH, MIN_CONTEXT_DEPTH, MIN_LOOP_DEPTH, SPONGE_WIDTH};
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
 
 mod op_bits;
 use op_bits::enforce_op_bits;

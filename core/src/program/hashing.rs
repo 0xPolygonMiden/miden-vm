@@ -1,8 +1,7 @@
 use super::{
-    OpCode, ProgramBlock, BASE_CYCLE_LENGTH, HACC_NUM_ROUNDS, SPONGE_WIDTH as STATE_WIDTH,
+    op_sponge, BaseElement, FieldElement, OpCode, ProgramBlock, BASE_CYCLE_LENGTH, HACC_NUM_ROUNDS,
+    OP_SPONGE_WIDTH as STATE_WIDTH,
 };
-use utils::sponge;
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
 
 // CONSTANTS
 // ================================================================================================
@@ -71,7 +70,7 @@ pub fn hash_op(
     op_value: BaseElement,
     step: usize,
 ) {
-    sponge::apply_round(state, BaseElement::from(op_code), op_value, step);
+    op_sponge::apply_round(state, BaseElement::from(op_code), op_value, step);
 }
 
 /// Merges hash of a control block (v0, v1) into the hash of the parent block.

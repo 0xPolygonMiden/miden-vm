@@ -1,11 +1,11 @@
 [workspace]
 members = [
   "air",
-  "vm",
-  "processor",
   "assembly",
-  "utils",
-  "examples"
+  "core",
+  "distaff",
+  "examples",
+  "processor",
 ]
 
 [profile.release]

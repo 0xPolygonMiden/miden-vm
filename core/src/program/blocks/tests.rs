@@ -1,5 +1,4 @@
-use super::{HashMap, OpCode, OpHint, Span};
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
+use super::{HashMap, OpCode, OpHint, Span, BaseElement, FieldElement};
 
 #[test]
 fn span_hash() {

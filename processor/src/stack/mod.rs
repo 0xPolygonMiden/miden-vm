@@ -1,6 +1,8 @@
-use crate::{OpCode, OpHint, ProgramInputs, MAX_STACK_DEPTH, MIN_STACK_DEPTH};
-use utils::{hasher, HASH_STATE_WIDTH};
-use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
+use crate::{
+    hasher, BaseElement, FieldElement, OpCode, OpHint, ProgramInputs, StarkField, MAX_STACK_DEPTH,
+    MIN_STACK_DEPTH,
+};
+use core::cmp;
 
 #[cfg(test)]
 mod tests;
@@ -25,7 +27,7 @@ impl Stack {
     pub fn new(inputs: &ProgramInputs, init_trace_length: usize) -> Stack {
         // allocate space for register traces and initialize the first state with public inputs
         let public_inputs = inputs.get_public_inputs();
-        let init_stack_depth = std::cmp::max(public_inputs.len(), MIN_STACK_DEPTH);
+        let init_stack_depth = cmp::max(public_inputs.len(), MIN_STACK_DEPTH);
         let mut registers: Vec<Vec<BaseElement>> = Vec::with_capacity(init_stack_depth);
         for i in 0..init_stack_depth {
             let mut register = vec![BaseElement::ZERO; init_trace_length];
@@ -659,7 +661,7 @@ impl Stack {
     // --------------------------------------------------------------------------------------------
     fn op_rescr(&mut self) {
         assert!(
-            self.depth >= HASH_STATE_WIDTH,
+            self.depth >= hasher::STATE_WIDTH,
             "stack underflow at step {}",
             self.step
         );
@@ -681,7 +683,7 @@ impl Stack {
         self.registers[4][self.step] = state[4];
         self.registers[5][self.step] = state[5];
 
-        self.copy_state(HASH_STATE_WIDTH);
+        self.copy_state(hasher::STATE_WIDTH);
     }
 
     // HELPER METHODS

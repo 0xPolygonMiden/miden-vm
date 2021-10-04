@@ -1,5 +1,4 @@
-use super::{AssemblyError, HintMap, OpCode, OpHint};
-use processor::{BaseElement, FieldElement, StarkField};
+use super::{AssemblyError, BaseElement, FieldElement, HintMap, OpCode, OpHint, StarkField};
 
 // CONSTANTS
 // ================================================================================================

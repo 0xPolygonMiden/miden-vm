@@ -1,7 +1,10 @@
 use crate::{
-    OpCode, OpHint, BASE_CYCLE_LENGTH, HACC_NUM_ROUNDS, PROGRAM_DIGEST_SIZE, SPONGE_WIDTH,
+    op_sponge,
+    opcodes::{OpHint, UserOps as OpCode},
+    BaseElement, FieldElement, BASE_CYCLE_LENGTH, HACC_NUM_ROUNDS, MAX_PUBLIC_INPUTS,
+    OP_SPONGE_WIDTH, PROGRAM_DIGEST_SIZE,
 };
-pub use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
+use core::fmt;
 
 pub mod blocks;
 use blocks::{Group, ProgramBlock};
@@ -12,10 +15,10 @@ pub use inputs::ProgramInputs;
 mod hashing;
 use hashing::{hash_acc, hash_op, hash_seq};
 
-//#[cfg(test)]
-//mod tests;
+#[cfg(test)]
+mod tests;
 
-// TYPES AND INTERFACES
+// PROGRAM
 // ================================================================================================
 #[derive(Clone)]
 pub struct Program {
@@ -23,8 +26,6 @@ pub struct Program {
     hash: [u8; 32],
 }
 
-// PROGRAM IMPLEMENTATION
-// ================================================================================================
 impl Program {
     /// Constructs a new program from the specified root block.
     pub fn new(root: Group) -> Program {
@@ -62,8 +63,8 @@ impl Program {
     }
 }
 
-impl std::fmt::Debug for Program {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for Program {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut body_code = format!("{:?}", self.root);
         // get rid of extra `begin` token
         body_code.replace_range(..6, "");

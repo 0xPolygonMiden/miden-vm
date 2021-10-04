@@ -1,8 +1,6 @@
-use winterfell::math::FieldElement;
-
 use super::{
     are_equal, enforce_left_shift, enforce_right_shift, enforce_stack_copy, is_zero, BaseElement,
-    EvaluationResult, TraceState, SPONGE_WIDTH,
+    EvaluationResult, FieldElement, TraceState, OP_SPONGE_WIDTH,
 };
 
 // CONSTRAINT EVALUATORS
@@ -13,15 +11,15 @@ where
     E: FieldElement<BaseField = BaseElement>,
 {
     // make sure sponge state has been cleared
-    let new_sponge = next.sponge();
+    let new_sponge = next.op_sponge();
     result.agg_constraint(0, op_flag, is_zero(new_sponge[0]));
     result.agg_constraint(1, op_flag, is_zero(new_sponge[1]));
     result.agg_constraint(2, op_flag, is_zero(new_sponge[2]));
     result.agg_constraint(3, op_flag, is_zero(new_sponge[3]));
 
     // make sure hash of parent block was pushed onto the context stack
-    let parent_hash = current.sponge()[0];
-    let ctx_stack_start = SPONGE_WIDTH + 1; // 1 is for loop image constraint
+    let parent_hash = current.op_sponge()[0];
+    let ctx_stack_start = OP_SPONGE_WIDTH + 1; // 1 is for loop image constraint
     let ctx_stack_end = ctx_stack_start + current.ctx_stack().len();
     let ctx_result = &mut result[ctx_stack_start..ctx_stack_end];
     ctx_result.agg_constraint(0, op_flag, are_equal(parent_hash, next.ctx_stack()[0]));
@@ -49,16 +47,16 @@ where
     E: FieldElement<BaseField = BaseElement>,
 {
     let parent_hash = current.ctx_stack()[0];
-    let block_hash = current.sponge()[0];
+    let block_hash = current.op_sponge()[0];
 
-    let new_sponge = next.sponge();
+    let new_sponge = next.op_sponge();
     result.agg_constraint(0, op_flag, are_equal(parent_hash, new_sponge[0]));
     result.agg_constraint(1, op_flag, are_equal(block_hash, new_sponge[1]));
     // no constraint on the 3rd element of the sponge
     result.agg_constraint(3, op_flag, is_zero(new_sponge[3]));
 
     // make parent hash was popped from context stack
-    let ctx_stack_start = SPONGE_WIDTH + 1; // 1 is for loop image constraint
+    let ctx_stack_start = OP_SPONGE_WIDTH + 1; // 1 is for loop image constraint
     let ctx_stack_end = ctx_stack_start + current.ctx_stack().len();
     let ctx_result = &mut result[ctx_stack_start..ctx_stack_end];
     enforce_left_shift(
@@ -86,16 +84,16 @@ where
     E: FieldElement<BaseField = BaseElement>,
 {
     let parent_hash = current.ctx_stack()[0];
-    let block_hash = current.sponge()[0];
+    let block_hash = current.op_sponge()[0];
 
-    let new_sponge = next.sponge();
+    let new_sponge = next.op_sponge();
     result.agg_constraint(0, op_flag, are_equal(parent_hash, new_sponge[0]));
     // no constraint on the 2nd element of the sponge
     result.agg_constraint(2, op_flag, are_equal(block_hash, new_sponge[2]));
     result.agg_constraint(3, op_flag, is_zero(new_sponge[3]));
 
     // make sure parent hash was popped from context stack
-    let ctx_stack_start = SPONGE_WIDTH + 1; // 1 is for loop image constraint
+    let ctx_stack_start = OP_SPONGE_WIDTH + 1; // 1 is for loop image constraint
     let ctx_stack_end = ctx_stack_start + current.ctx_stack().len();
     let ctx_result = &mut result[ctx_stack_start..ctx_stack_end];
     enforce_left_shift(
@@ -123,15 +121,15 @@ where
     E: FieldElement<BaseField = BaseElement>,
 {
     // make sure sponge state has been cleared
-    let new_sponge = next.sponge();
+    let new_sponge = next.op_sponge();
     result.agg_constraint(0, op_flag, is_zero(new_sponge[0]));
     result.agg_constraint(1, op_flag, is_zero(new_sponge[1]));
     result.agg_constraint(2, op_flag, is_zero(new_sponge[2]));
     result.agg_constraint(3, op_flag, is_zero(new_sponge[3]));
 
     // make sure hash of parent block was pushed onto the context stack
-    let parent_hash = current.sponge()[0];
-    let ctx_stack_start = SPONGE_WIDTH + 1; // 1 is for loop image constraint
+    let parent_hash = current.op_sponge()[0];
+    let ctx_stack_start = OP_SPONGE_WIDTH + 1; // 1 is for loop image constraint
     let ctx_stack_end = ctx_stack_start + current.ctx_stack().len();
     let ctx_result = &mut result[ctx_stack_start..ctx_stack_end];
     ctx_result.agg_constraint(0, op_flag, are_equal(parent_hash, next.ctx_stack()[0]));
@@ -160,22 +158,22 @@ where
     E: FieldElement<BaseField = BaseElement>,
 {
     // make sure sponge state has been cleared
-    let new_sponge = next.sponge();
+    let new_sponge = next.op_sponge();
     result.agg_constraint(0, op_flag, is_zero(new_sponge[0]));
     result.agg_constraint(1, op_flag, is_zero(new_sponge[1]));
     result.agg_constraint(2, op_flag, is_zero(new_sponge[2]));
     result.agg_constraint(3, op_flag, is_zero(new_sponge[3]));
 
     // make sure item at the top of loop stack is equal to loop image
-    let loop_image = current.sponge()[0];
+    let loop_image = current.op_sponge()[0];
     result.agg_constraint(
-        SPONGE_WIDTH,
+        OP_SPONGE_WIDTH,
         op_flag,
         are_equal(loop_image, current.loop_stack()[0]),
     );
 
     // make sure context stack didn't change
-    let ctx_stack_start = SPONGE_WIDTH + 1; // 1 is for loop image constraint
+    let ctx_stack_start = OP_SPONGE_WIDTH + 1; // 1 is for loop image constraint
     let ctx_stack_end = ctx_stack_start + current.ctx_stack().len();
     let ctx_result = &mut result[ctx_stack_start..ctx_stack_end];
     enforce_stack_copy(
@@ -202,22 +200,22 @@ where
     E: FieldElement<BaseField = BaseElement>,
 {
     // make sure sponge state didn't change
-    let old_sponge = current.sponge();
-    let new_sponge = next.sponge();
-    for i in 0..SPONGE_WIDTH {
+    let old_sponge = current.op_sponge();
+    let new_sponge = next.op_sponge();
+    for i in 0..OP_SPONGE_WIDTH {
         result.agg_constraint(i, op_flag, are_equal(old_sponge[i], new_sponge[i]));
     }
 
     // make sure item at the top of loop stack is equal to loop image
     let loop_image = old_sponge[0];
     result.agg_constraint(
-        SPONGE_WIDTH,
+        OP_SPONGE_WIDTH,
         op_flag,
         are_equal(loop_image, current.loop_stack()[0]),
     );
 
     // make sure context stack didn't change
-    let ctx_stack_start = SPONGE_WIDTH + 1; // 1 is for loop image constraint
+    let ctx_stack_start = OP_SPONGE_WIDTH + 1; // 1 is for loop image constraint
     let ctx_stack_end = ctx_stack_start + current.ctx_stack().len();
     let ctx_result = &mut result[ctx_stack_start..ctx_stack_end];
     enforce_stack_copy(
@@ -245,14 +243,14 @@ where
     E: FieldElement<BaseField = BaseElement>,
 {
     // make sure sponge state didn't change
-    let old_sponge = current.sponge();
-    let new_sponge = next.sponge();
-    for i in 0..SPONGE_WIDTH {
+    let old_sponge = current.op_sponge();
+    let new_sponge = next.op_sponge();
+    for i in 0..OP_SPONGE_WIDTH {
         result.agg_constraint(i, op_flag, are_equal(old_sponge[i], new_sponge[i]));
     }
 
     // make sure context stack didn't change
-    let ctx_stack_start = SPONGE_WIDTH + 1; // 1 is for loop image constraint
+    let ctx_stack_start = OP_SPONGE_WIDTH + 1; // 1 is for loop image constraint
     let ctx_stack_end = ctx_stack_start + current.ctx_stack().len();
     let ctx_result = &mut result[ctx_stack_start..ctx_stack_end];
     enforce_stack_copy(
@@ -282,8 +280,10 @@ mod tests {
 
     use super::{are_equal, TraceState};
     use crate::ToElements;
-    use distaff_processor::opcodes::{FlowOps, UserOps};
-    use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
+    use vm_core::{
+        opcodes::{FlowOps, UserOps},
+        BaseElement, FieldElement, StarkField,
+    };
 
     #[test]
     fn op_begin() {
@@ -669,6 +669,6 @@ mod tests {
         state.extend_from_slice(loop_stack);
         state.push(101); // single value for user stack
 
-        TraceState::from_vec(ctx_depth, loop_depth, 1, &state.to_elements())
+        TraceState::from_slice(ctx_depth, loop_depth, 1, &state.to_elements())
     }
 }

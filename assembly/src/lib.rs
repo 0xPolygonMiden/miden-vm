@@ -1,19 +1,26 @@
-use processor::{
-    blocks::{Group, Loop, ProgramBlock, Span, Switch},
-    OpCode, OpHint, Program, BASE_CYCLE_LENGTH,
+use vm_core::{
+    opcodes::{OpHint, UserOps as OpCode},
+    program::{
+        blocks::{Group, Loop, ProgramBlock, Span, Switch},
+        Program,
+    },
+    BaseElement, FieldElement, StarkField, BASE_CYCLE_LENGTH,
 };
-use std::collections::HashMap;
+use winter_utils::collections::BTreeMap;
 
 mod parsers;
 use parsers::*;
 
 mod errors;
-use errors::AssemblyError;
+pub use errors::AssemblyError;
 
 #[cfg(test)]
 mod tests;
 
-type HintMap = HashMap<usize, OpHint>;
+// TYPE ALIASES
+// ================================================================================================
+
+type HintMap = BTreeMap<usize, OpHint>;
 
 // ASSEMBLY COMPILER
 // ================================================================================================
@@ -166,7 +173,7 @@ fn parse_branch(
         "while" => vec![OpCode::Assert],
         _ => return Err(AssemblyError::invalid_block_head(&head, i)),
     };
-    let mut op_hints: HintMap = HashMap::new();
+    let mut op_hints: HintMap = BTreeMap::new();
 
     // save first step to check for empty branches
     let first_step = i;

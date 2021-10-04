@@ -1,16 +1,11 @@
-use core::ops::Range;
-
-// RE-EXPORTS
-// ================================================================================================
-
-pub use winterfell::{
-    math::{fields::f128::BaseElement, FieldElement, StarkField},
-    ExecutionTrace,
+use vm_core::{
+    hasher, op_sponge,
+    opcodes::{self, OpHint, UserOps as OpCode},
+    program::blocks::{Loop, ProgramBlock, Span},
+    BASE_CYCLE_LENGTH, HACC_NUM_ROUNDS, MAX_CONTEXT_DEPTH, MAX_LOOP_DEPTH, MAX_STACK_DEPTH,
+    MIN_STACK_DEPTH, MIN_TRACE_LENGTH, NUM_CF_OP_BITS, NUM_HD_OP_BITS, NUM_LD_OP_BITS,
+    PUSH_OP_ALIGNMENT,
 };
-
-mod programs;
-use programs::blocks::{Loop, ProgramBlock, Span};
-pub use programs::{blocks, Program, ProgramInputs};
 
 mod decoder;
 use decoder::Decoder;
@@ -18,8 +13,14 @@ use decoder::Decoder;
 mod stack;
 use stack::Stack;
 
-pub mod opcodes;
-pub use opcodes::{OpHint, UserOps as OpCode};
+// EXPORTS
+// ================================================================================================
+
+pub use vm_core::{
+    program::{Program, ProgramInputs},
+    BaseElement, FieldElement, StarkField,
+};
+pub use winter_prover::ExecutionTrace;
 
 // PUBLIC FUNCTIONS
 // ================================================================================================
@@ -197,68 +198,6 @@ fn execute_loop(block: &Loop, decoder: &mut Decoder, stack: &mut Stack) {
     // close block
     close_block(decoder, stack, block.skip_hash(), true);
 }
-
-// GLOBAL CONSTANTS
-// ================================================================================================
-
-pub const MAX_CONTEXT_DEPTH: usize = 16;
-pub const MAX_LOOP_DEPTH: usize = 8;
-const MIN_TRACE_LENGTH: usize = 16;
-pub const BASE_CYCLE_LENGTH: usize = 16;
-
-pub const MIN_STACK_DEPTH: usize = 8;
-pub const MIN_CONTEXT_DEPTH: usize = 1;
-pub const MIN_LOOP_DEPTH: usize = 1;
-
-// PUSH OPERATION
-// ------------------------------------------------------------------------------------------------
-const PUSH_OP_ALIGNMENT: usize = 8;
-
-// HASH OPERATION
-// ------------------------------------------------------------------------------------------------
-const HASH_STATE_RATE: usize = 4;
-const HASH_STATE_CAPACITY: usize = 2;
-pub const HASH_STATE_WIDTH: usize = HASH_STATE_RATE + HASH_STATE_CAPACITY;
-const HASH_NUM_ROUNDS: usize = 10;
-pub const HASH_DIGEST_SIZE: usize = 2;
-
-// OPERATION SPONGE
-// ------------------------------------------------------------------------------------------------
-pub const SPONGE_WIDTH: usize = 4;
-pub const PROGRAM_DIGEST_SIZE: usize = 2;
-const HACC_NUM_ROUNDS: usize = 14;
-
-// DECODER LAYOUT
-// ------------------------------------------------------------------------------------------------
-//
-//  ctr ╒═════ sponge ══════╕╒═══ cf_ops ══╕╒═══════ ld_ops ═══════╕╒═ hd_ops ╕╒═ ctx ══╕╒═ loop ═╕
-//   0    1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   ..   ..   ..
-// ├────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┤
-
-pub const NUM_CF_OP_BITS: usize = 3;
-pub const NUM_LD_OP_BITS: usize = 5;
-pub const NUM_HD_OP_BITS: usize = 2;
-
-pub const NUM_CF_OPS: usize = 8;
-pub const NUM_LD_OPS: usize = 32;
-pub const NUM_HD_OPS: usize = 4;
-
-pub const OP_COUNTER_IDX: usize = 0;
-pub const OP_SPONGE_RANGE: Range<usize> = Range { start: 1, end: 5 };
-pub const CF_OP_BITS_RANGE: Range<usize> = Range { start: 5, end: 8 };
-pub const LD_OP_BITS_RANGE: Range<usize> = Range { start: 8, end: 13 };
-pub const HD_OP_BITS_RANGE: Range<usize> = Range { start: 13, end: 15 };
-
-// STACK LAYOUT
-// ------------------------------------------------------------------------------------------------
-//
-// ╒═══════════════════ user registers ════════════════════════╕
-//    0      1    2    .................................    31
-// ├─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┤
-
-pub const MAX_PUBLIC_INPUTS: usize = 8;
-pub const MAX_OUTPUTS: usize = MAX_PUBLIC_INPUTS;
-pub const MAX_STACK_DEPTH: usize = 32;
 
 // TESTS
 // ================================================================================================

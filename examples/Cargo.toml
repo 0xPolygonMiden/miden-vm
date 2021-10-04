@@ -20,9 +20,9 @@ bench = false
 doc = false
 
 [dependencies]
-distaff = { path = "../vm" }
+distaff = { path = "../distaff" }
 env_logger = "0.9"
 hex = "0.4"
 log = "0.4"
-distaff-utils = { path = "../utils", package = "distaff-utils" }
+vm-core = { path = "../core", package = "distaff-core" }
 winter-rand-utils = "0.2"

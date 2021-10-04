@@ -1,9 +1,8 @@
-use super::{utils::binary_not, TraceState};
-use distaff_processor::{OpCode, NUM_CF_OPS, NUM_HD_OPS, NUM_LD_OPS};
-use winterfell::{
-    math::{fields::f128::BaseElement, FieldElement},
-    EvaluationFrame,
+use crate::{
+    opcodes::UserOps as OpCode, utils::binary_not, BaseElement, FieldElement, TraceState,
+    NUM_CF_OPS, NUM_HD_OPS, NUM_LD_OPS,
 };
+use winter_air::EvaluationFrame;
 
 // VM TRANSITION
 // ================================================================================================
@@ -180,11 +179,8 @@ impl<E: FieldElement<BaseField = BaseElement>> VmTransition<E> {
 // ================================================================================================
 #[cfg(test)]
 mod tests {
-    use super::{super::utils::ToElements, VmTransition};
-    use winterfell::{
-        math::{fields::f128::BaseElement, FieldElement, StarkField},
-        EvaluationFrame,
-    };
+    use super::{EvaluationFrame, VmTransition};
+    use vm_core::{utils::ToElements, BaseElement, FieldElement, StarkField};
 
     #[test]
     fn op_flags() {

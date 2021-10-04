@@ -1,28 +1,27 @@
-use distaff_processor::{
-    CF_OP_BITS_RANGE, HASH_DIGEST_SIZE, HD_OP_BITS_RANGE, LD_OP_BITS_RANGE, OP_COUNTER_IDX,
-    OP_SPONGE_RANGE,
+use core::convert::{TryFrom, TryInto};
+use vm_core::{
+    hasher, op_sponge, opcodes, utils::ToElements, BASE_CYCLE_LENGTH, CF_OP_BITS_RANGE,
+    HD_OP_BITS_RANGE, LD_OP_BITS_RANGE, MIN_CONTEXT_DEPTH, MIN_LOOP_DEPTH, NUM_CF_OPS, NUM_HD_OPS,
+    NUM_LD_OPS, OP_COUNTER_IDX, OP_SPONGE_RANGE,
 };
-use core::convert::TryFrom;
-use distaff_utils::hasher::ARK;
-use std::convert::TryInto;
-use winter_utils::group_slice_elements;
-use winterfell::{
-    math::{fields::f128::BaseElement, FieldElement},
-    Air, AirContext, Assertion, EvaluationFrame, ProofOptions, Serializable, TraceInfo,
+use winter_air::{
+    Air, AirContext, Assertion, EvaluationFrame, ProofOptions, TraceInfo,
     TransitionConstraintDegree,
 };
-
-mod trace_state;
-pub use trace_state::TraceState;
-
-mod transition;
-pub use transition::VmTransition;
+use winter_utils::{group_slice_elements, ByteWriter, Serializable};
 
 mod decoder;
 mod stack;
+mod transition;
+mod utils;
 
-pub mod utils;
-use utils::ToElements;
+// EXPORTS
+// ================================================================================================
+
+pub use transition::VmTransition;
+pub use vm_core::{
+    BaseElement, FieldElement, StarkField, TraceState, MAX_OUTPUTS, MIN_TRACE_LENGTH,
+};
 
 // PROCESSOR AIR
 // ================================================================================================
@@ -32,7 +31,7 @@ pub struct ProcessorAir {
     op_count: usize,
     inputs: Vec<BaseElement>,
     outputs: Vec<BaseElement>,
-    program_hash: [BaseElement; HASH_DIGEST_SIZE],
+    program_hash: [BaseElement; op_sponge::DIGEST_SIZE],
     ctx_depth: usize,
     loop_depth: usize,
     stack_depth: usize,
@@ -71,7 +70,7 @@ impl Air for ProcessorAir {
             result.push(mask.to_elements());
         }
 
-        for ark in ARK.iter() {
+        for ark in hasher::ARK.iter() {
             result.push(ark.to_vec());
         }
 
@@ -208,7 +207,7 @@ impl Air for ProcessorAir {
 // ================================================================================================
 
 pub struct PublicInputs {
-    program_hash: [BaseElement; HASH_DIGEST_SIZE],
+    program_hash: [BaseElement; op_sponge::DIGEST_SIZE],
     inputs: Vec<BaseElement>,
     outputs: Vec<BaseElement>,
 }
@@ -236,7 +235,7 @@ impl PublicInputs {
 }
 
 impl Serializable for PublicInputs {
-    fn write_into<W: winterfell::ByteWriter>(&self, target: &mut W) {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write(&self.program_hash[..]);
         target.write(&self.inputs);
         target.write(&self.outputs);

@@ -1,5 +1,7 @@
-use crate::MAX_PUBLIC_INPUTS;
-use winterfell::math::fields::f128::BaseElement;
+use super::{BaseElement, MAX_PUBLIC_INPUTS};
+
+// PROGRAM INPUTS
+// ================================================================================================
 
 #[derive(Clone, Debug)]
 pub struct ProgramInputs {

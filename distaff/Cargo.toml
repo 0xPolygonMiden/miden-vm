@@ -17,13 +17,9 @@ bench = false
 concurrent = ["winterfell/concurrent"]
 
 [dependencies]
-assembly = { path = "../assembly", package = "distaff-assembly" }
-processor = { path = "../processor", package = "distaff-processor" }
-distaff-utils = { path = "../utils", package = "distaff-utils" }
-air = { path = "../air", package = "distaff-air" }
+air = { package = "distaff-air", path = "../air" }
+assembly = { package = "distaff-assembly", path = "../assembly" }
+processor = { package = "distaff-processor", path = "../processor" }
 hex = "0.4"
 log = "0.4"
 winterfell = "0.2"
-winter-utils = "0.2"
-env_logger = "0.9"
-winter-rand-utils = "0.2"

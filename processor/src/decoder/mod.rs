@@ -1,10 +1,9 @@
-use super::opcodes::{FlowOps, UserOps};
 use crate::{
-    BASE_CYCLE_LENGTH, MAX_CONTEXT_DEPTH, MAX_LOOP_DEPTH, NUM_CF_OP_BITS, NUM_HD_OP_BITS,
-    NUM_LD_OP_BITS, PUSH_OP_ALIGNMENT, SPONGE_WIDTH,
+    op_sponge,
+    opcodes::{FlowOps, UserOps},
+    BaseElement, FieldElement, StarkField, BASE_CYCLE_LENGTH, MAX_CONTEXT_DEPTH, MAX_LOOP_DEPTH,
+    NUM_CF_OP_BITS, NUM_HD_OP_BITS, NUM_LD_OP_BITS, PUSH_OP_ALIGNMENT,
 };
-use utils::sponge;
-use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
 
 // TYPES AND INTERFACES
 // ================================================================================================
@@ -12,8 +11,8 @@ pub struct Decoder {
     step: usize,
 
     op_counter: Vec<BaseElement>,
-    sponge_trace: [Vec<BaseElement>; SPONGE_WIDTH],
-    sponge: [BaseElement; SPONGE_WIDTH],
+    op_sponge_trace: [Vec<BaseElement>; op_sponge::STATE_WIDTH],
+    op_sponge: [BaseElement; op_sponge::STATE_WIDTH],
 
     cf_op_bits: [Vec<BaseElement>; NUM_CF_OP_BITS],
     ld_op_bits: [Vec<BaseElement>; NUM_LD_OP_BITS],
@@ -35,13 +34,13 @@ impl Decoder {
         let op_counter = vec![BaseElement::ZERO; init_trace_length];
 
         // initialize instruction sponge
-        let sponge_trace = [
+        let op_sponge_trace = [
             vec![BaseElement::ZERO; init_trace_length],
             vec![BaseElement::ZERO; init_trace_length],
             vec![BaseElement::ZERO; init_trace_length],
             vec![BaseElement::ZERO; init_trace_length],
         ];
-        let sponge = [BaseElement::ZERO; SPONGE_WIDTH];
+        let op_sponge = [BaseElement::ZERO; op_sponge::STATE_WIDTH];
 
         // initialize op_bits registers
         let cf_op_bits = [
@@ -72,8 +71,8 @@ impl Decoder {
         Decoder {
             step: 0,
             op_counter,
-            sponge,
-            sponge_trace,
+            op_sponge,
+            op_sponge_trace,
             cf_op_bits,
             ld_op_bits,
             hd_op_bits,
@@ -117,7 +116,7 @@ impl Decoder {
         let mut state = Vec::new();
 
         state.push(self.op_counter[step]);
-        for register in self.sponge_trace.iter() {
+        for register in self.op_sponge_trace.iter() {
             state.push(register[step]);
         }
         for register in self.cf_op_bits.iter() {
@@ -143,7 +142,7 @@ impl Decoder {
     pub fn into_register_traces(mut self) -> Vec<Vec<BaseElement>> {
         let mut registers = vec![self.op_counter];
 
-        let [r0, r1, r2, r3] = self.sponge_trace;
+        let [r0, r1, r2, r3] = self.op_sponge_trace;
         registers.push(r0);
         registers.push(r1);
         registers.push(r2);
@@ -204,7 +203,7 @@ impl Decoder {
         let context_hash = self.pop_context();
         self.copy_loop_stack();
 
-        let block_hash = self.sponge[0];
+        let block_hash = self.op_sponge[0];
         if true_branch {
             // we are closing true branch of execution
             self.set_op_bits(FlowOps::Tend, UserOps::Noop);
@@ -243,7 +242,7 @@ impl Decoder {
         self.copy_context_stack();
         let top_loop_image = self.peek_loop_image();
         assert!(
-            self.sponge[0] == top_loop_image,
+            self.op_sponge[0] == top_loop_image,
             "cannot wrap a loop at step {}: hash of the last iteration doesn't match loop image",
             self.step
         );
@@ -263,12 +262,12 @@ impl Decoder {
         self.copy_context_stack();
         let top_loop_image = self.pop_loop_image();
         assert!(
-            self.sponge[0] == top_loop_image,
+            self.op_sponge[0] == top_loop_image,
             "cannot break a loop at step {}: hash of the last iteration doesn't match loop image",
             self.step
         );
         self.set_op_bits(FlowOps::Break, UserOps::Noop);
-        self.set_sponge(self.sponge);
+        self.set_sponge(self.op_sponge);
     }
 
     /// Updates the decoder with the value of the specified operation.
@@ -315,7 +314,7 @@ impl Decoder {
         }
 
         // for sponge and stack registers, just copy the value of the last state of the register
-        for register in self.sponge_trace.iter_mut() {
+        for register in self.op_sponge_trace.iter_mut() {
             fill_register(register, self.step + 1, register[self.step]);
         }
         for register in self.ctx_stack.iter_mut() {
@@ -342,7 +341,7 @@ impl Decoder {
             let new_length = self.trace_length() * 2;
 
             self.op_counter.resize(new_length, BaseElement::ZERO);
-            for register in self.sponge_trace.iter_mut() {
+            for register in self.op_sponge_trace.iter_mut() {
                 register.resize(new_length, BaseElement::ZERO);
             }
             for register in self.cf_op_bits.iter_mut() {
@@ -418,7 +417,7 @@ impl Decoder {
 
         // set the top of the stack to the hash of the current program block
         // which is located in the first register of the sponge
-        self.ctx_stack[0][self.step] = self.sponge[0]
+        self.ctx_stack[0][self.step] = self.op_sponge[0]
     }
 
     /// Removes the top value from the context stack and returns it.
@@ -528,28 +527,28 @@ impl Decoder {
 
     /// Sets the states of the sponge to the provided values and updates `sponge_trace` registers
     /// at the current step.
-    fn set_sponge(&mut self, state: [BaseElement; SPONGE_WIDTH]) {
-        self.sponge = state;
-        self.sponge_trace[0][self.step] = state[0];
-        self.sponge_trace[1][self.step] = state[1];
-        self.sponge_trace[2][self.step] = state[2];
-        self.sponge_trace[3][self.step] = state[3];
+    fn set_sponge(&mut self, state: [BaseElement; op_sponge::STATE_WIDTH]) {
+        self.op_sponge = state;
+        self.op_sponge_trace[0][self.step] = state[0];
+        self.op_sponge_trace[1][self.step] = state[1];
+        self.op_sponge_trace[2][self.step] = state[2];
+        self.op_sponge_trace[3][self.step] = state[3];
     }
 
     /// Applies a modified version of Rescue round to the sponge state and copies the result
     /// into `sponge_trace` registers.
     fn apply_hacc_round(&mut self, op_code: UserOps, op_value: BaseElement) {
         // apply single round of sponge function
-        sponge::apply_round(
-            &mut self.sponge,
+        op_sponge::apply_round(
+            &mut self.op_sponge,
             BaseElement::new(op_code as u128),
             op_value,
             self.step - 1,
         );
 
         // copy the new sponge state into the sponge_trace registers
-        for i in 0..SPONGE_WIDTH {
-            self.sponge_trace[i][self.step] = self.sponge[i];
+        for i in 0..op_sponge::STATE_WIDTH {
+            self.op_sponge_trace[i][self.step] = self.op_sponge[i];
         }
     }
 }

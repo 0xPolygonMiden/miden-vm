@@ -1,6 +1,6 @@
 use super::{utils::parse_args, Example};
 use distaff::{assembly, BaseElement, FieldElement, Program, ProgramInputs, StarkField};
-use distaff_utils::hasher;
+use vm_core::hasher;
 use winter_rand_utils::prng_vector;
 
 pub fn get_example(args: &[String]) -> Example {

@@ -1,8 +1,7 @@
 use super::{
     super::{hashing::hash_op, HACC_NUM_ROUNDS},
-    Loop, OpCode, ProgramBlock, Span,
+    BaseElement, FieldElement, Loop, OpCode, ProgramBlock, Span,
 };
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
 
 // PUBLIC FUNCTIONS
 // ================================================================================================

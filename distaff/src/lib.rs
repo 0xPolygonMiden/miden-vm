@@ -1,21 +1,15 @@
-use core::{convert::TryInto, ops::Range};
+use air::{ProcessorAir, PublicInputs, TraceMetadata, TraceState, MAX_OUTPUTS, MIN_TRACE_LENGTH};
+use core::convert::TryInto;
 use log::debug;
 use std::time::Instant;
 use winterfell::{ExecutionTrace, ProverError, Serializable, VerifierError};
 
-// RE-EXPORTS
+// EXPORTS
 // ================================================================================================
 
 pub use assembly;
-pub use processor::{Program, ProgramInputs};
-
-pub use air::utils::ToElements;
-use air::{ProcessorAir, PublicInputs, TraceMetadata, TraceState};
-
-pub use winterfell::{
-    math::{fields::f128::BaseElement, FieldElement, StarkField},
-    FieldExtension, HashFunction, ProofOptions, StarkProof,
-};
+pub use processor::{BaseElement, FieldElement, Program, ProgramInputs, StarkField};
+pub use winterfell::{FieldExtension, HashFunction, ProofOptions, StarkProof};
 
 // EXECUTOR
 // ================================================================================================
@@ -104,68 +98,6 @@ pub fn verify(
     winterfell::verify::<ProcessorAir>(proof, pub_inputs)
 }
 
-// GLOBAL CONSTANTS
-// ================================================================================================
-
-pub const MAX_CONTEXT_DEPTH: usize = 16;
-pub const MAX_LOOP_DEPTH: usize = 8;
-const MIN_TRACE_LENGTH: usize = 16;
-const BASE_CYCLE_LENGTH: usize = 16;
-
-const MIN_STACK_DEPTH: usize = 8;
-const MIN_CONTEXT_DEPTH: usize = 1;
-const MIN_LOOP_DEPTH: usize = 1;
-
-// PUSH OPERATION
-// ------------------------------------------------------------------------------------------------
-const PUSH_OP_ALIGNMENT: usize = 8;
-
-// HASH OPERATION
-// ------------------------------------------------------------------------------------------------
-const HASH_STATE_RATE: usize = 4;
-const HASH_STATE_CAPACITY: usize = 2;
-const HASH_STATE_WIDTH: usize = HASH_STATE_RATE + HASH_STATE_CAPACITY;
-const HASH_NUM_ROUNDS: usize = 10;
-const HASH_DIGEST_SIZE: usize = 2;
-
-// OPERATION SPONGE
-// ------------------------------------------------------------------------------------------------
-const SPONGE_WIDTH: usize = 4;
-const PROGRAM_DIGEST_SIZE: usize = 2;
-const HACC_NUM_ROUNDS: usize = 14;
-
-// DECODER LAYOUT
-// ------------------------------------------------------------------------------------------------
-//
-//  ctr ╒═════ sponge ══════╕╒═══ cf_ops ══╕╒═══════ ld_ops ═══════╕╒═ hd_ops ╕╒═ ctx ══╕╒═ loop ═╕
-//   0    1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   ..   ..   ..
-// ├────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┤
-
-const NUM_CF_OP_BITS: usize = 3;
-const NUM_LD_OP_BITS: usize = 5;
-const NUM_HD_OP_BITS: usize = 2;
-
-const NUM_CF_OPS: usize = 8;
-const NUM_LD_OPS: usize = 32;
-const NUM_HD_OPS: usize = 4;
-
-const OP_COUNTER_IDX: usize = 0;
-const OP_SPONGE_RANGE: Range<usize> = Range { start: 1, end: 5 };
-const CF_OP_BITS_RANGE: Range<usize> = Range { start: 5, end: 8 };
-const LD_OP_BITS_RANGE: Range<usize> = Range { start: 8, end: 13 };
-const HD_OP_BITS_RANGE: Range<usize> = Range { start: 13, end: 15 };
-
-// STACK LAYOUT
-// ------------------------------------------------------------------------------------------------
-//
-// ╒═══════════════════ user registers ════════════════════════╕
-//    0      1    2    .................................    31
-// ├─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┤
-
-pub const MAX_PUBLIC_INPUTS: usize = 8;
-pub const MAX_OUTPUTS: usize = MAX_PUBLIC_INPUTS;
-pub const MAX_STACK_DEPTH: usize = 32;
-
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -176,7 +108,7 @@ fn get_last_state(trace: &ExecutionTrace<BaseElement>) -> TraceState<BaseElement
     let mut last_row = vec![BaseElement::ZERO; trace.width()];
     trace.read_row_into(last_step, &mut last_row);
 
-    TraceState::from_vec(meta.ctx_depth, meta.loop_depth, meta.stack_depth, &last_row)
+    TraceState::from_slice(meta.ctx_depth, meta.loop_depth, meta.stack_depth, &last_row)
 }
 
 /// Prints out an execution trace.
@@ -188,7 +120,8 @@ fn print_trace(trace: &ExecutionTrace<BaseElement>, _multiples_of: usize) {
     let mut state = vec![BaseElement::ZERO; trace_width];
     for i in 0..trace.length() {
         trace.read_row_into(i, &mut state);
-        let state = TraceState::from_vec(meta.ctx_depth, meta.loop_depth, meta.stack_depth, &state);
+        let state =
+            TraceState::from_slice(meta.ctx_depth, meta.loop_depth, meta.stack_depth, &state);
         println!("{:?}", state);
     }
 }

@@ -1,5 +1,5 @@
 [package]
-name = "distaff-utils"
+name = "distaff-core"
 version = "0.1.0"
 description = "TODO"
 authors = ["distaff contributors"]
@@ -13,5 +13,10 @@ edition = "2018"
 [lib]
 bench = false
 
+[features]
+default = ["std"]
+std = ["math/std", "winter-utils/std"]
+
 [dependencies]
-math = { package = "winter-math", version = "0.2" }
+math = { package = "winter-math", version = "0.2", default-features = false }
+winter-utils = { package = "winter-utils", version = "0.2", default-features = false }
