@@ -1,6 +1,5 @@
 use super::{OpCode, OpHint, ProgramInputs, Stack};
-use crate::utils::hasher;
-use crate::HASH_STATE_WIDTH;
+use utils::{hasher, HASH_STATE_WIDTH};
 use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
 
 mod comparisons;

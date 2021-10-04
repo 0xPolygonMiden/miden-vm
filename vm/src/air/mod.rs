@@ -1,8 +1,9 @@
 use crate::{
-    utils::hasher::ARK, CF_OP_BITS_RANGE, HASH_DIGEST_SIZE, HD_OP_BITS_RANGE, LD_OP_BITS_RANGE,
-    OP_COUNTER_IDX, OP_SPONGE_RANGE,
+    CF_OP_BITS_RANGE, HASH_DIGEST_SIZE, HD_OP_BITS_RANGE, LD_OP_BITS_RANGE, OP_COUNTER_IDX,
+    OP_SPONGE_RANGE,
 };
 use core::convert::TryFrom;
+use distaff_utils::hasher::ARK;
 use std::convert::TryInto;
 use winter_utils::group_slice_elements;
 use winterfell::{

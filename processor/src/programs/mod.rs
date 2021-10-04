@@ -1,6 +1,5 @@
 use crate::{
-    processor::{OpCode, OpHint},
-    BASE_CYCLE_LENGTH, HACC_NUM_ROUNDS, PROGRAM_DIGEST_SIZE, SPONGE_WIDTH,
+    OpCode, OpHint, BASE_CYCLE_LENGTH, HACC_NUM_ROUNDS, PROGRAM_DIGEST_SIZE, SPONGE_WIDTH,
 };
 use winterfell::math::{fields::f128::BaseElement, FieldElement};
 
@@ -15,8 +14,8 @@ pub use inputs::ProgramInputs;
 mod hashing;
 use hashing::{hash_acc, hash_op, hash_seq};
 
-#[cfg(test)]
-mod tests;
+//#[cfg(test)]
+//mod tests;
 
 // TYPES AND INTERFACES
 // ================================================================================================

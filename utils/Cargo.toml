@@ -1,0 +1,17 @@
+[package]
+name = "distaff-utils"
+version = "0.1.0"
+description = "TODO"
+authors = ["distaff contributors"]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/maticnetwork/distaff"
+categories = ["TODO"]
+keywords = ["TODO"]
+edition = "2018"
+
+[lib]
+bench = false
+
+[dependencies]
+math = { package = "winter-math", version = "0.2" }

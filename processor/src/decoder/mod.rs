@@ -1,8 +1,9 @@
 use super::opcodes::{FlowOps, UserOps};
 use crate::{
-    utils::sponge, BASE_CYCLE_LENGTH, MAX_CONTEXT_DEPTH, MAX_LOOP_DEPTH, NUM_CF_OP_BITS,
-    NUM_HD_OP_BITS, NUM_LD_OP_BITS, PUSH_OP_ALIGNMENT, SPONGE_WIDTH,
+    BASE_CYCLE_LENGTH, MAX_CONTEXT_DEPTH, MAX_LOOP_DEPTH, NUM_CF_OP_BITS, NUM_HD_OP_BITS,
+    NUM_LD_OP_BITS, PUSH_OP_ALIGNMENT, SPONGE_WIDTH,
 };
+use utils::sponge;
 use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
 
 // TYPES AND INTERFACES

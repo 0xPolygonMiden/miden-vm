@@ -2,8 +2,8 @@ use super::{hash_op, hash_seq, OpCode, OpHint, BASE_CYCLE_LENGTH};
 use std::collections::HashMap;
 use winterfell::math::{fields::f128::BaseElement, FieldElement};
 
-#[cfg(test)]
-mod tests;
+//#[cfg(test)]
+//mod tests;
 
 // CONSTANTS
 // ================================================================================================

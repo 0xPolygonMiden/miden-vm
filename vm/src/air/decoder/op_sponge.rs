@@ -1,7 +1,7 @@
 use super::{
     are_equal, BaseElement, EvaluationResult, FieldElement, UserOps, VmTransition, SPONGE_WIDTH,
 };
-use crate::utils::sponge::{apply_inv_mds, apply_mds, apply_sbox};
+use distaff_utils::sponge::{apply_inv_mds, apply_mds, apply_sbox};
 
 // CONSTRAINT EVALUATOR
 // ================================================================================================

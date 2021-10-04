@@ -1,5 +1,5 @@
 use super::{get_stack_state, init_stack, OpCode, OpHint, Stack, TRACE_LENGTH};
-use winter_rand_utils::rand_value;
+use rand_utils::rand_value;
 use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
 
 // EQUALITY OPERATION

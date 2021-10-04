@@ -1,7 +1,5 @@
-use crate::{
-    utils::hasher, OpCode, OpHint, ProgramInputs, HASH_STATE_WIDTH, MAX_STACK_DEPTH,
-    MIN_STACK_DEPTH,
-};
+use crate::{OpCode, OpHint, ProgramInputs, MAX_STACK_DEPTH, MIN_STACK_DEPTH};
+use utils::{hasher, HASH_STATE_WIDTH};
 use winterfell::math::{fields::f128::BaseElement, FieldElement, StarkField};
 
 #[cfg(test)]

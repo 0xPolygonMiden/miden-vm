@@ -1,0 +1,21 @@
+[package]
+name = "distaff-processor"
+version = "0.1.0"
+description = "TODO"
+authors = ["distaff contributors"]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/maticnetwork/distaff"
+categories = ["TODO"]
+keywords = ["TODO"]
+edition = "2018"
+
+[lib]
+bench = false
+
+[dependencies]
+winterfell = "0.2"
+utils = { path = "../utils", package = "distaff-utils" }
+
+[dev-dependencies]
+rand-utils = { version = "0.2", package = "winter-rand-utils" }

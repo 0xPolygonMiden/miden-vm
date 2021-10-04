@@ -1,8 +1,8 @@
 use crate::{
-    BASE_CYCLE_LENGTH as CYCLE_LENGTH, HASH_DIGEST_SIZE as DIGEST_SIZE,
-    HASH_NUM_ROUNDS as NUM_ROUNDS, HASH_STATE_RATE as STATE_RATE, HASH_STATE_WIDTH as STATE_WIDTH,
+    CYCLE_LENGTH, DIGEST_SIZE, HASH_NUM_ROUNDS as NUM_ROUNDS, HASH_STATE_RATE as STATE_RATE,
+    HASH_STATE_WIDTH as STATE_WIDTH,
 };
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
+use math::{fields::f128::BaseElement, FieldElement};
 
 // HASHER FUNCTIONS
 // ================================================================================================

@@ -1,7 +1,7 @@
 use super::{
     OpCode, ProgramBlock, BASE_CYCLE_LENGTH, HACC_NUM_ROUNDS, SPONGE_WIDTH as STATE_WIDTH,
 };
-use crate::utils::sponge;
+use utils::sponge;
 use winterfell::math::{fields::f128::BaseElement, FieldElement};
 
 // CONSTANTS

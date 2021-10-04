@@ -7,10 +7,10 @@ use super::{
 };
 use crate::{
     air::{TraceState, VmTransition},
-    processor::opcodes::{FlowOps, UserOps},
     BASE_CYCLE_LENGTH, MIN_CONTEXT_DEPTH, MIN_LOOP_DEPTH, SPONGE_WIDTH,
 };
 use core::cmp;
+use processor::opcodes::{FlowOps, UserOps};
 use winterfell::math::{fields::f128::BaseElement, FieldElement};
 
 mod op_bits;

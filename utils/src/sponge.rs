@@ -1,5 +1,5 @@
-use crate::{BASE_CYCLE_LENGTH as NUM_ROUNDS, SPONGE_WIDTH as STATE_WIDTH};
-use winterfell::math::{fields::f128::BaseElement, FieldElement};
+use crate::{CYCLE_LENGTH as NUM_ROUNDS, SPONGE_WIDTH as STATE_WIDTH};
+use math::{fields::f128::BaseElement, FieldElement};
 
 // ACCUMULATOR FUNCTIONS
 // ================================================================================================

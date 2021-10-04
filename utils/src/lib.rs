@@ -1,5 +1,16 @@
 use core::ops::Range;
 
+// CONSTANTS
+// ================================================================================================
+
+const CYCLE_LENGTH: usize = 16;
+const SPONGE_WIDTH: usize = 4;
+const DIGEST_SIZE: usize = 2;
+const HASH_NUM_ROUNDS: usize = 10;
+const HASH_STATE_RATE: usize = 4;
+const HASH_STATE_CAPACITY: usize = 2;
+pub const HASH_STATE_WIDTH: usize = HASH_STATE_RATE + HASH_STATE_CAPACITY;
+
 // RE-EXPORTS
 // ================================================================================================
 pub mod hasher;

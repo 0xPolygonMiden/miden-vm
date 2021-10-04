@@ -1,21 +1,17 @@
 use core::{convert::TryInto, ops::Range};
 use log::debug;
+use processor::OpCode;
 use std::time::Instant;
 use winterfell::{ExecutionTrace, ProverError, Serializable, VerifierError};
 
 // RE-EXPORTS
 // ================================================================================================
-pub mod utils;
+
+pub use processor::{assembly, Program, ProgramInputs};
 
 mod air;
 pub use air::utils::ToElements;
 use air::{ProcessorAir, PublicInputs, TraceMetadata, TraceState};
-
-mod processor;
-pub use processor::{OpCode, OpHint};
-
-mod programs;
-pub use programs::{assembly, blocks, Program, ProgramInputs};
 
 pub use winterfell::{
     math::{fields::f128::BaseElement, FieldElement, StarkField},

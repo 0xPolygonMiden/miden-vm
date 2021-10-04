@@ -1,7 +1,7 @@
 use super::{
     are_equal, enforce_stack_copy, BaseElement, EvaluationResult, FieldElement, HASH_STATE_WIDTH,
 };
-use crate::utils::hasher::{apply_inv_mds, apply_mds, apply_sbox};
+use distaff_utils::hasher::{apply_inv_mds, apply_mds, apply_sbox};
 
 /// Evaluates constraints for a single round of a modified Rescue hash function. Hash state is
 /// assumed to be in the first 6 registers of user stack; the rest of the stack does not change.
