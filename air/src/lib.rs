@@ -1,8 +1,8 @@
 use core::convert::{TryFrom, TryInto};
 use vm_core::{
-    hasher, op_sponge, opcodes, utils::ToElements, BASE_CYCLE_LENGTH, CF_OP_BITS_RANGE,
-    HD_OP_BITS_RANGE, LD_OP_BITS_RANGE, MIN_CONTEXT_DEPTH, MIN_LOOP_DEPTH, NUM_CF_OPS, NUM_HD_OPS,
-    NUM_LD_OPS, OP_COUNTER_IDX, OP_SPONGE_RANGE,
+    hasher, op_sponge, opcodes, BASE_CYCLE_LENGTH, CF_OP_BITS_RANGE, HD_OP_BITS_RANGE,
+    LD_OP_BITS_RANGE, MIN_CONTEXT_DEPTH, MIN_LOOP_DEPTH, NUM_CF_OPS, NUM_HD_OPS, NUM_LD_OPS,
+    OP_COUNTER_IDX, OP_SPONGE_RANGE,
 };
 use winter_air::{
     Air, AirContext, Assertion, EvaluationFrame, ProofOptions, TraceInfo,
@@ -20,7 +20,8 @@ mod utils;
 
 pub use transition::VmTransition;
 pub use vm_core::{
-    BaseElement, FieldElement, StarkField, TraceState, MAX_OUTPUTS, MIN_TRACE_LENGTH,
+    utils::ToElements, BaseElement, FieldElement, StarkField, TraceState, MAX_OUTPUTS,
+    MIN_TRACE_LENGTH,
 };
 
 // PROCESSOR AIR

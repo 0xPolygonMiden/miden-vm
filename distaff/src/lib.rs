@@ -1,15 +1,19 @@
 use air::{ProcessorAir, PublicInputs, TraceMetadata, TraceState, MAX_OUTPUTS, MIN_TRACE_LENGTH};
 use core::convert::TryInto;
 use log::debug;
+use prover::{ExecutionTrace, ProverError, Serializable};
 use std::time::Instant;
-use winterfell::{ExecutionTrace, ProverError, Serializable, VerifierError};
+
+#[cfg(test)]
+mod tests;
 
 // EXPORTS
 // ================================================================================================
 
 pub use assembly;
 pub use processor::{BaseElement, FieldElement, Program, ProgramInputs, StarkField};
-pub use winterfell::{FieldExtension, HashFunction, ProofOptions, StarkProof};
+pub use prover::{FieldExtension, HashFunction, ProofOptions, StarkProof};
+pub use verifier::{verify, VerifierError};
 
 // EXECUTOR
 // ================================================================================================
@@ -72,30 +76,9 @@ pub fn execute(
         .map(|&v| v.as_int())
         .collect::<Vec<_>>();
     let pub_inputs = PublicInputs::new(program_hash, &inputs, &outputs);
-    let proof = winterfell::prove::<ProcessorAir>(trace, pub_inputs, options.clone())?;
+    let proof = prover::prove::<ProcessorAir>(trace, pub_inputs, options.clone())?;
 
     Ok((outputs, proof))
-}
-
-// VERIFIER
-// ================================================================================================
-
-/// Returns Ok(()) if the specified program was executed correctly against the specified inputs
-/// and outputs.
-///
-/// Specifically, verifies that if a program with the specified `program_hash` is executed with the
-/// provided `public_inputs` and some secret inputs, and the result is equal to the `outputs`.
-///
-/// # Errors
-/// Returns an error if the provided proof does not prove a correct execution of the program.
-pub fn verify(
-    program_hash: [u8; 32],
-    public_inputs: &[u128],
-    outputs: &[u128],
-    proof: StarkProof,
-) -> Result<(), VerifierError> {
-    let pub_inputs = PublicInputs::new(program_hash, public_inputs, outputs);
-    winterfell::verify::<ProcessorAir>(proof, pub_inputs)
 }
 
 // HELPER FUNCTIONS

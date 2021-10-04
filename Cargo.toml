@@ -6,6 +6,7 @@ members = [
   "distaff",
   "examples",
   "processor",
+  "verifier"
 ]
 
 [profile.release]

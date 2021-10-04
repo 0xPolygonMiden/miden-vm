@@ -13,9 +13,14 @@ edition = "2018"
 [lib]
 bench = false
 
+
+[features]
+default = ["std"]
+std = ["vm-core/std", "winterfell/std"]
+
 [dependencies]
-vm-core = { package = "distaff-core", path = "../core" }
-winter-prover = { package = "winter-prover", version = "0.2"}
+vm-core = { package = "distaff-core", path = "../core", default-features = false }
+winterfell = { package = "winter-prover", version = "0.2", default-features = false }
 
 [dev-dependencies]
 rand-utils = { package = "winter-rand-utils", version = "0.2" }

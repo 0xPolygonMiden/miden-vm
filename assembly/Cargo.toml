@@ -18,5 +18,5 @@ default = ["std"]
 std = ["vm-core/std", "winter-utils/std"]
 
 [dependencies]
-vm-core = { package = "distaff-core", path = "../core", default-features = false}
+vm-core = { package = "distaff-core", path = "../core", default-features = false }
 winter-utils = { package = "winter-utils", version = "0.2", default-features = false }

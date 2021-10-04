@@ -1,0 +1,21 @@
+[package]
+name = "distaff-verifier"
+version = "0.1.0"
+description="TODO"
+authors = ["distaff contributors"]
+readme="README.md"
+edition = "2018"
+repository = "TODO"
+license = "MIT"
+
+[lib]
+bench = false
+
+[features]
+default = ["std"]
+std = ["air/std", "assembly/std", "winterfell/std"]
+
+[dependencies]
+air = { package = "distaff-air", path = "../air", default-features = false }
+assembly = { package = "distaff-assembly", path = "../assembly", default-features = false }
+winterfell = { package = "winter-verifier", version = "0.2", default-features = false }
