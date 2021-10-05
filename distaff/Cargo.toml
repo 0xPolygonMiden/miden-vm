@@ -1,0 +1,28 @@
+[package]
+name = "distaff"
+version = "0.1.0"
+description="TODO"
+authors = ["distaff contributors"]
+readme="README.md"
+edition = "2018"
+repository = "TODO"
+license = "MIT"
+
+[lib]
+name = "distaff"
+path = "src/lib.rs"
+bench = false
+
+[features]
+concurrent = ["prover/concurrent", "std"]
+default = ["std"]
+std = ["air/std", "assembly/std", "processor/std", "prover/std", "verifier/std"]
+
+[dependencies]
+air = { package = "distaff-air", path = "../air", default-features = false }
+assembly = { package = "distaff-assembly", path = "../assembly", default-features = false }
+processor = { package = "distaff-processor", path = "../processor", default-features = false }
+prover = { package = "winter-prover", version = "0.2", default-features = false }
+hex = "0.4"
+log = "0.4"
+verifier = { package = "distaff-verifier", path = "../verifier", default-features = false }
