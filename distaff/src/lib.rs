@@ -71,7 +71,7 @@ pub fn execute(
 
     // generate STARK proof
     let inputs = inputs
-        .get_public_inputs()
+        .public_inputs()
         .iter()
         .map(|&v| v.as_int())
         .collect::<Vec<_>>();

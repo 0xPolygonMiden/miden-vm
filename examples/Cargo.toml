@@ -6,23 +6,23 @@ authors = ["distaff contributors"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/maticnetwork/distaff"
-categories = ["TODO"]
 edition = "2018"
 
 [lib]
 bench = false
-doc = false
+doctest = false
 
 [[bin]]
 name = "distaff"
 path = "src/main.rs"
 bench = false
-doc = false
+doctest = false
 
 [dependencies]
 distaff = { path = "../distaff" }
 env_logger = "0.9"
 hex = "0.4"
 log = "0.4"
+structopt = { version = "0.3", default-features = false }
 vm-core = { path = "../core", package = "distaff-core" }
 winter-rand-utils = "0.2"

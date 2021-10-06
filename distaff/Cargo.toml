@@ -12,6 +12,7 @@ license = "MIT"
 name = "distaff"
 path = "src/lib.rs"
 bench = false
+doctest = false
 
 [features]
 concurrent = ["prover/concurrent", "std"]

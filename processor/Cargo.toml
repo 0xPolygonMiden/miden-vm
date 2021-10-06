@@ -12,7 +12,7 @@ edition = "2018"
 
 [lib]
 bench = false
-
+doctest = false
 
 [features]
 default = ["std"]

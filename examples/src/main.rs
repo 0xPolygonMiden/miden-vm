@@ -1,7 +1,8 @@
-use distaff::{self, StarkField, StarkProof};
-use examples::Example;
-use std::{env, io::Write, time::Instant};
-use vm_core::utils::ToElements;
+use distaff::StarkProof;
+use examples::{Example, ExampleOptions, ExampleType};
+use log::debug;
+use std::{io::Write, time::Instant};
+use structopt::StructOpt;
 
 fn main() {
     // configure logging
@@ -10,67 +11,63 @@ fn main() {
         .filter_level(log::LevelFilter::Debug)
         .init();
 
-    // determine the example to run based on command-line inputs
-    let ex: Example;
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 2 {
-        ex = examples::fibonacci::get_example(&args);
-    } else {
-        ex = match args[1].as_str() {
-            "collatz" => examples::collatz::get_example(&args[1..]),
-            "comparison" => examples::comparison::get_example(&args[1..]),
-            "conditional" => examples::conditional::get_example(&args[1..]),
-            "fibonacci" => examples::fibonacci::get_example(&args[1..]),
-            "merkle" => examples::merkle::get_example(&args[1..]),
-            "rangecheck" => examples::range::get_example(&args[1..]),
-            _ => panic!("Could not find example program for '{}'", args[1]),
-        }
-    }
+    // read command-line args
+    let options = ExampleOptions::from_args();
+
+    debug!("============================================================");
+
+    let proof_options = options.get_proof_options();
+
+    // instantiate and prepare the example
+    let example = match options.example {
+        ExampleType::Fib { sequence_length } => examples::fibonacci::get_example(sequence_length),
+        ExampleType::Collatz { start_value } => examples::collatz::get_example(start_value),
+        ExampleType::Comparison { value } => examples::comparison::get_example(value),
+        ExampleType::Conditional { value } => examples::conditional::get_example(value),
+        ExampleType::Merkle { tree_depth } => examples::merkle::get_example(tree_depth),
+        ExampleType::Range { num_values } => examples::range::get_example(num_values),
+    };
+
     let Example {
         program,
         inputs,
         num_outputs,
-        options,
+        pub_inputs,
         expected_result,
-    } = ex;
-    println!("--------------------------------");
+    } = example;
+    debug!("--------------------------------");
 
     // execute the program and generate the proof of execution
     let now = Instant::now();
-    let (outputs, proof) = distaff::execute(&program, &inputs, num_outputs, &options).unwrap();
-    println!("--------------------------------");
-    println!(
+    let (outputs, proof) =
+        distaff::execute(&program, &inputs, num_outputs, &proof_options).unwrap();
+    debug!("--------------------------------");
+    debug!(
         "Executed program with hash {} in {} ms",
         hex::encode(program.hash()),
         now.elapsed().as_millis()
     );
-    println!("Program output: {:?}", outputs);
+    debug!("Program output: {:?}", outputs);
     assert_eq!(
-        expected_result,
-        outputs.to_elements(),
+        expected_result, outputs,
         "Program result was computed incorrectly"
     );
 
     // serialize the proof to see how big it is
     let proof_bytes = proof.to_bytes();
-    println!("Execution proof size: {} KB", proof_bytes.len() / 1024);
-    println!(
+    debug!("Execution proof size: {} KB", proof_bytes.len() / 1024);
+    debug!(
         "Execution proof security: {} bits",
         proof.security_level(true)
     );
-    println!("--------------------------------");
+    debug!("--------------------------------");
 
     // verify that executing a program with a given hash and given inputs
     // results in the expected output
     let proof = StarkProof::from_bytes(&proof_bytes).unwrap();
-    let pub_inputs = inputs
-        .get_public_inputs()
-        .iter()
-        .map(|&v| v.as_int())
-        .collect::<Vec<_>>();
     let now = Instant::now();
     match distaff::verify(*program.hash(), &pub_inputs, &outputs, proof) {
-        Ok(_) => println!("Execution verified in {} ms", now.elapsed().as_millis()),
-        Err(msg) => println!("Failed to verify execution: {}", msg),
+        Ok(_) => debug!("Execution verified in {} ms", now.elapsed().as_millis()),
+        Err(msg) => debug!("Failed to verify execution: {}", msg),
     }
 }

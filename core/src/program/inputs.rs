@@ -11,11 +11,7 @@ pub struct ProgramInputs {
 
 impl ProgramInputs {
     /// Returns `ProgramInputs` initialized with the provided public and secret inputs.
-    pub fn new(
-        public: &[BaseElement],
-        secret_a: &[BaseElement],
-        secret_b: &[BaseElement],
-    ) -> ProgramInputs {
+    pub fn new(public: &[u128], secret_a: &[u128], secret_b: &[u128]) -> ProgramInputs {
         assert!(
             public.len() <= MAX_PUBLIC_INPUTS,
             "expected no more than {} public inputs, but received {}",
@@ -26,8 +22,11 @@ impl ProgramInputs {
             "number of primary secret inputs cannot be smaller than the number of secondary secret inputs");
 
         ProgramInputs {
-            public: public.to_vec(),
-            secret: [secret_a.to_vec(), secret_b.to_vec()],
+            public: public.iter().map(|&v| BaseElement::new(v)).collect(),
+            secret: [
+                secret_a.iter().map(|&v| BaseElement::new(v)).collect(),
+                secret_b.iter().map(|&v| BaseElement::new(v)).collect(),
+            ],
         }
     }
 
@@ -41,18 +40,18 @@ impl ProgramInputs {
 
     /// Returns `ProgramInputs` initialized with the provided public inputs and secret
     /// input tapes set to empty vectors.
-    pub fn from_public(public: &[BaseElement]) -> ProgramInputs {
+    pub fn from_public(public: &[u128]) -> ProgramInputs {
         ProgramInputs {
-            public: public.to_vec(),
+            public: public.iter().map(|&v| BaseElement::new(v)).collect(),
             secret: [vec![], vec![]],
         }
     }
 
-    pub fn get_public_inputs(&self) -> &[BaseElement] {
+    pub fn public_inputs(&self) -> &[BaseElement] {
         &self.public
     }
 
-    pub fn get_secret_inputs(&self) -> &[Vec<BaseElement>; 2] {
+    pub fn secret_inputs(&self) -> &[Vec<BaseElement>; 2] {
         &self.secret
     }
 }
