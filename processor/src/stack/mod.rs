@@ -26,7 +26,7 @@ impl Stack {
     /// of actual steps exceeds this initial setting.
     pub fn new(inputs: &ProgramInputs, init_trace_length: usize) -> Stack {
         // allocate space for register traces and initialize the first state with public inputs
-        let public_inputs = inputs.get_public_inputs();
+        let public_inputs = inputs.public_inputs();
         let init_stack_depth = cmp::max(public_inputs.len(), MIN_STACK_DEPTH);
         let mut registers: Vec<Vec<BaseElement>> = Vec::with_capacity(init_stack_depth);
         for i in 0..init_stack_depth {
@@ -38,7 +38,7 @@ impl Stack {
         }
 
         // reverse secret inputs so that they are consumed in FIFO order
-        let [secret_inputs_a, secret_inputs_b] = inputs.get_secret_inputs();
+        let [secret_inputs_a, secret_inputs_b] = inputs.secret_inputs();
         let mut tape_a = secret_inputs_a.clone();
         tape_a.reverse();
         let mut tape_b = secret_inputs_b.clone();

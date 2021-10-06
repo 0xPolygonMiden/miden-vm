@@ -7,7 +7,7 @@ use air::ToElements;
 #[test]
 fn execute_span() {
     let program = assembly::compile("begin add push.5 mul push.7 end").unwrap();
-    let inputs = ProgramInputs::from_public(&[BaseElement::new(1), BaseElement::new(2)]);
+    let inputs = ProgramInputs::from_public(&[1, 2]);
 
     let trace = processor::execute(&program, &inputs);
     let trace_length = trace.length();
@@ -29,7 +29,7 @@ fn execute_span() {
 #[test]
 fn execute_block() {
     let program = assembly::compile("begin add block push.5 mul push.7 end end").unwrap();
-    let inputs = ProgramInputs::from_public(&[BaseElement::new(1), BaseElement::new(2)]);
+    let inputs = ProgramInputs::from_public(&[1, 2]);
 
     let trace = processor::execute(&program, &inputs);
     let trace_length = trace.length();
@@ -56,11 +56,7 @@ fn execute_if_else() {
             .unwrap();
 
     // execute true branch
-    let inputs = ProgramInputs::new(
-        &[BaseElement::new(5), BaseElement::new(3)],
-        &[BaseElement::new(1)],
-        &[],
-    );
+    let inputs = ProgramInputs::new(&[5, 3], &[1], &[]);
     let trace = processor::execute(&program, &inputs);
     let trace_length = trace.length();
     let trace_width = trace.width();
@@ -79,11 +75,7 @@ fn execute_if_else() {
     assert_eq!([24, 0, 0, 0, 0, 0, 0, 0].to_elements(), state.user_stack());
 
     // execute false branch
-    let inputs = ProgramInputs::new(
-        &[BaseElement::new(5), BaseElement::new(3)],
-        &[BaseElement::new(0)],
-        &[],
-    );
+    let inputs = ProgramInputs::new(&[5, 3], &[0], &[]);
     let trace = processor::execute(&program, &inputs);
     let trace_length = trace.length();
     let trace_width = trace.width();
@@ -107,11 +99,7 @@ fn execute_loop() {
     let program = assembly::compile("begin mul read while.true dup mul read end end").unwrap();
 
     // don't enter the loop
-    let inputs = ProgramInputs::new(
-        &[BaseElement::new(5), BaseElement::new(3)],
-        &[BaseElement::new(0)],
-        &[],
-    );
+    let inputs = ProgramInputs::new(&[5, 3], &[0], &[]);
     let trace = processor::execute(&program, &inputs);
 
     assert_eq!(64, trace.length());
@@ -128,11 +116,7 @@ fn execute_loop() {
     assert_eq!([15, 0, 0, 0, 0, 0, 0, 0].to_elements(), state.user_stack());
 
     // execute one iteration
-    let inputs = ProgramInputs::new(
-        &[BaseElement::new(5), BaseElement::new(3)],
-        &[BaseElement::new(1), BaseElement::new(0)],
-        &[],
-    );
+    let inputs = ProgramInputs::new(&[5, 3], &[1, 0], &[]);
     let trace = processor::execute(&program, &inputs);
 
     assert_eq!(128, trace.length());
@@ -149,18 +133,7 @@ fn execute_loop() {
     assert_eq!([225, 0, 0, 0, 0, 0, 0, 0].to_elements(), state.user_stack());
 
     // execute five iteration
-    let inputs = ProgramInputs::new(
-        &[BaseElement::new(5), BaseElement::new(3)],
-        &[
-            BaseElement::new(1),
-            BaseElement::new(1),
-            BaseElement::new(1),
-            BaseElement::new(1),
-            BaseElement::new(1),
-            BaseElement::new(0),
-        ],
-        &[],
-    );
+    let inputs = ProgramInputs::new(&[5, 3], &[1, 1, 1, 1, 1, 0], &[]);
     let trace = processor::execute(&program, &inputs);
 
     assert_eq!(256, trace.length());

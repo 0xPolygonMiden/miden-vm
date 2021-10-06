@@ -1,4 +1,4 @@
-use distaff::{BaseElement, FieldExtension, HashFunction, Program, ProgramInputs, ProofOptions};
+use distaff::{FieldExtension, HashFunction, Program, ProgramInputs, ProofOptions};
 use structopt::StructOpt;
 
 pub mod collatz;
@@ -14,8 +14,9 @@ pub mod range;
 pub struct Example {
     pub program: Program,
     pub inputs: ProgramInputs,
+    pub pub_inputs: Vec<u128>,
     pub num_outputs: usize,
-    pub expected_result: Vec<BaseElement>,
+    pub expected_result: Vec<u128>,
 }
 
 // EXAMPLE OPTIONS
@@ -113,4 +114,42 @@ pub enum ExampleType {
         #[structopt(short = "n", default_value = "100")]
         num_values: usize,
     },
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+pub fn test_example(example: Example, fail: bool) {
+    let Example {
+        program,
+        inputs,
+        pub_inputs,
+        num_outputs,
+        expected_result,
+    } = example;
+
+    let options = ProofOptions::new(
+        32,
+        8,
+        0,
+        HashFunction::Blake3_256,
+        FieldExtension::None,
+        8,
+        256,
+    );
+
+    let (mut outputs, proof) = distaff::execute(&program, &inputs, num_outputs, &options).unwrap();
+
+    assert_eq!(
+        expected_result, outputs,
+        "Program result was computed incorrectly"
+    );
+
+    if fail {
+        outputs[0] = outputs[0] + 1;
+        assert!(distaff::verify(*program.hash(), &pub_inputs, &outputs, proof).is_err())
+    } else {
+        assert!(distaff::verify(*program.hash(), &pub_inputs, &outputs, proof).is_ok());
+    }
 }

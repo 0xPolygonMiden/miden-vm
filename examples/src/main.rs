@@ -1,9 +1,8 @@
-use distaff::{self, StarkField, StarkProof};
+use distaff::StarkProof;
 use examples::{Example, ExampleOptions, ExampleType};
 use log::debug;
 use std::{io::Write, time::Instant};
 use structopt::StructOpt;
-use vm_core::utils::ToElements;
 
 fn main() {
     // configure logging
@@ -33,6 +32,7 @@ fn main() {
         program,
         inputs,
         num_outputs,
+        pub_inputs,
         expected_result,
     } = example;
     debug!("--------------------------------");
@@ -49,8 +49,7 @@ fn main() {
     );
     debug!("Program output: {:?}", outputs);
     assert_eq!(
-        expected_result,
-        outputs.to_elements(),
+        expected_result, outputs,
         "Program result was computed incorrectly"
     );
 
@@ -66,14 +65,9 @@ fn main() {
     // verify that executing a program with a given hash and given inputs
     // results in the expected output
     let proof = StarkProof::from_bytes(&proof_bytes).unwrap();
-    let pub_inputs = inputs
-        .get_public_inputs()
-        .iter()
-        .map(|&v| v.as_int())
-        .collect::<Vec<_>>();
     let now = Instant::now();
     match distaff::verify(*program.hash(), &pub_inputs, &outputs, proof) {
-        Ok(_) => println!("Execution verified in {} ms", now.elapsed().as_millis()),
-        Err(msg) => println!("Failed to verify execution: {}", msg),
+        Ok(_) => debug!("Execution verified in {} ms", now.elapsed().as_millis()),
+        Err(msg) => debug!("Failed to verify execution: {}", msg),
     }
 }

@@ -10,6 +10,7 @@ license = "MIT"
 
 [lib]
 bench = false
+doctest = false
 
 [features]
 default = ["std"]

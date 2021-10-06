@@ -1,26 +1,25 @@
 use crate::Example;
-use distaff::{assembly, BaseElement, FieldElement, Program, ProgramInputs};
+use distaff::{assembly, BaseElement, FieldElement, Program, ProgramInputs, StarkField};
+use log::debug;
+
+// EXAMPLE BUILDER
+// ================================================================================================
 
 pub fn get_example(n: usize) -> Example {
     // generate the program and expected results
     let program = generate_fibonacci_program(n);
-    let expected_result = vec![compute_fibonacci(n)];
-    println!(
+    let expected_result = vec![compute_fibonacci(n).as_int()];
+    debug!(
         "Generated a program to compute {}-th Fibonacci term; expected result: {}",
         n, expected_result[0]
     );
 
-    // initialize stack with 2 values; 1 will be at the top
-    let inputs = ProgramInputs::from_public(&[BaseElement::ONE, BaseElement::ZERO]);
-
-    // a single element from the top of the stack will be the output
-    let num_outputs = 1;
-
     Example {
         program,
-        inputs,
+        inputs: ProgramInputs::from_public(&[1, 0]),
+        pub_inputs: vec![1, 0],
         expected_result,
-        num_outputs,
+        num_outputs: 1,
     }
 }
 
@@ -57,4 +56,19 @@ fn compute_fibonacci(n: usize) -> BaseElement {
     }
 
     n2
+}
+
+// EXAMPLE TESTER
+// ================================================================================================
+
+#[test]
+fn test_fib_example() {
+    let example = get_example(16);
+    super::test_example(example, false);
+}
+
+#[test]
+fn test_fib_example_fail() {
+    let example = get_example(16);
+    super::test_example(example, true);
 }

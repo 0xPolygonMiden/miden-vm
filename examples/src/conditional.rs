@@ -1,14 +1,18 @@
 use crate::Example;
-use distaff::{assembly, BaseElement, ProgramInputs, StarkField};
+use distaff::{assembly, ProgramInputs};
+use log::debug;
+
+// EXAMPLE BUILDER
+// ================================================================================================
 
 pub fn get_example(flag: usize) -> Example {
     // convert flag to a field element
-    let flag = BaseElement::new(flag as u128);
+    let flag = flag as u128;
 
     // determine the expected result
-    let expected_result = match flag.as_int() {
-        0 => BaseElement::new(15),
-        1 => BaseElement::new(8),
+    let expected_result = match flag {
+        0 => 15u128,
+        1 => 8u128,
         _ => panic!("flag must be a binary value"),
     };
 
@@ -29,21 +33,31 @@ pub fn get_example(flag: usize) -> Example {
     )
     .unwrap();
 
-    println!(
+    debug!(
         "Generated a program to test conditional execution; expected result: {}",
         expected_result
     );
 
-    // put the flag as the only secret input for tape A
-    let inputs = ProgramInputs::new(&[], &[flag], &[]);
-
-    // a single element from the top of the stack will be the output
-    let num_outputs = 1;
-
     Example {
         program,
-        inputs,
+        inputs: ProgramInputs::new(&[], &[flag], &[]),
+        pub_inputs: vec![],
         expected_result: vec![expected_result],
-        num_outputs,
+        num_outputs: 1,
     }
+}
+
+// EXAMPLE TESTER
+// ================================================================================================
+
+#[test]
+fn test_conditional_example() {
+    let example = get_example(1);
+    super::test_example(example, false);
+}
+
+#[test]
+fn test_conditional_example_fail() {
+    let example = get_example(1);
+    super::test_example(example, true);
 }

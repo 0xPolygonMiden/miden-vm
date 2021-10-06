@@ -381,20 +381,7 @@ fn init_stack(
     secret_inputs_b: &[u128],
     trace_length: usize,
 ) -> Stack {
-    let public_inputs = public_inputs
-        .iter()
-        .map(|&v| BaseElement::new(v))
-        .collect::<Vec<_>>();
-    let secret_inputs_a = secret_inputs_a
-        .iter()
-        .map(|&v| BaseElement::new(v))
-        .collect::<Vec<_>>();
-    let secret_inputs_b = secret_inputs_b
-        .iter()
-        .map(|&v| BaseElement::new(v))
-        .collect::<Vec<_>>();
-
-    let inputs = ProgramInputs::new(&public_inputs, &secret_inputs_a, &secret_inputs_b);
+    let inputs = ProgramInputs::new(public_inputs, secret_inputs_a, secret_inputs_b);
     return Stack::new(&inputs, trace_length);
 }
 

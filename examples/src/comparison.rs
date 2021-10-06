@@ -1,16 +1,14 @@
 use crate::Example;
-use distaff::{assembly, BaseElement, ProgramInputs, StarkField};
+use distaff::{assembly, ProgramInputs};
+use log::debug;
+
+// EXAMPLE BUILDER
+// ================================================================================================
 
 pub fn get_example(value: usize) -> Example {
-    // convert value to a field element
-    let value = BaseElement::new(value as u128);
-
     // determine the expected result
-    let expected_result: BaseElement = if value.as_int() < 9 {
-        value * BaseElement::new(9)
-    } else {
-        value + BaseElement::new(9)
-    };
+    let value = value as u128;
+    let expected_result = if value < 9 { value * 9 } else { value + 9 };
 
     // construct the program which checks if the value provided via secret inputs is
     // less than 9; if it is, the value is multiplied by 9, otherwise, 9 is added
@@ -33,24 +31,31 @@ pub fn get_example(value: usize) -> Example {
     )
     .unwrap();
 
-    println!(
+    debug!(
         "Generated a program to test comparisons; expected result: {}",
         expected_result
     );
 
-    // put the flag as the only secret input for tape A
-    let inputs = ProgramInputs::new(&[], &[value], &[]);
-
-    // a single element from the top of the stack will be the output
-    let num_outputs = 2;
-
     Example {
         program,
-        inputs,
-        expected_result: vec![
-            BaseElement::new(expected_result.as_int() & 1),
-            expected_result,
-        ],
-        num_outputs,
+        inputs: ProgramInputs::new(&[], &[value], &[]),
+        pub_inputs: vec![],
+        expected_result: vec![expected_result & 1, expected_result],
+        num_outputs: 2,
     }
+}
+
+// EXAMPLE TESTER
+// ================================================================================================
+
+#[test]
+fn test_comparison_example() {
+    let example = get_example(10);
+    super::test_example(example, false);
+}
+
+#[test]
+fn test_comparison_example_fail() {
+    let example = get_example(10);
+    super::test_example(example, true);
 }

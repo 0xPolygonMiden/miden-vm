@@ -1,7 +1,11 @@
 use crate::Example;
 use distaff::{assembly, BaseElement, FieldElement, Program, ProgramInputs, StarkField};
+use log::debug;
 use vm_core::hasher;
 use winter_rand_utils::prng_vector;
+
+// EXAMPLE BUILDER
+// ================================================================================================
 
 pub fn get_example(depth: usize) -> Example {
     assert!(
@@ -15,20 +19,14 @@ pub fn get_example(depth: usize) -> Example {
 
     // compute root of the Merkle tree to which the path resolves
     let mut expected_result = compute_merkle_root(&auth_path, leaf_index);
-    println!("Expected tree root: {:?}", expected_result);
+    debug!("Expected tree root: {:?}", expected_result);
 
     // generate the program to verify Merkle path of given length
     let program = generate_merkle_program(depth, leaf_index);
-    println!(
+    debug!(
         "Generated a program to verify Merkle proof for a tree of depth {}",
         depth
     );
-
-    // transform Merkle path into a set of inputs for the program
-    let inputs = generate_program_inputs(&auth_path, leaf_index);
-
-    // 4 element at the top of the stack will be the output
-    let num_outputs = 4;
 
     // double and reverse tree root because values on the stack are in reverse order
     expected_result.push(expected_result[0]);
@@ -37,9 +35,10 @@ pub fn get_example(depth: usize) -> Example {
 
     Example {
         program,
-        inputs,
+        inputs: generate_program_inputs(&auth_path, leaf_index),
+        pub_inputs: vec![],
         expected_result,
-        num_outputs,
+        num_outputs: 4,
     }
 }
 
@@ -74,26 +73,26 @@ fn generate_program_inputs(path: &[Vec<BaseElement>; 2], index: usize) -> Progra
     let mut index = index + usize::pow(2, (n - 1) as u32);
 
     // push the leaf node onto secret input tapes A and B
-    a.push(path[0][0]);
-    b.push(path[1][0]);
+    a.push(path[0][0].as_int());
+    b.push(path[1][0].as_int());
 
     // populate the tapes with inputs for smpath operation
     for i in 1..n {
         // push next bit of the position index onto tapes A and B; we use both tapes
         // here so that we can use READ2 instruction when reading inputs from the tapes
-        a.push(BaseElement::ZERO);
-        b.push(BaseElement::new((index & 1) as u128));
+        a.push(0);
+        b.push((index & 1) as u128);
         index >>= 1;
 
         // push the next node onto tapes A and B
-        a.push(path[0][i]);
-        b.push(path[1][i]);
+        a.push(path[0][i].as_int());
+        b.push(path[1][i].as_int());
     }
 
     // populate the tapes with inputs for pmpath operation
     for i in 1..n {
-        a.push(path[0][i]);
-        b.push(path[1][i]);
+        a.push(path[0][i].as_int());
+        b.push(path[1][i].as_int());
     }
 
     ProgramInputs::new(&[], &a, &b)
@@ -119,7 +118,7 @@ fn generate_authentication_path(n: usize) -> ([Vec<BaseElement>; 2], usize) {
 
 /// Computes tree root to which a given authentication path resolves assuming the
 /// path is for a leaf node at position specified by `index` parameter.
-fn compute_merkle_root(path: &[Vec<BaseElement>; 2], index: usize) -> Vec<BaseElement> {
+fn compute_merkle_root(path: &[Vec<BaseElement>; 2], index: usize) -> Vec<u128> {
     let mut buf = [BaseElement::ZERO; 4];
     let mut v: Vec<BaseElement>;
     let n = path[0].len();
@@ -150,5 +149,20 @@ fn compute_merkle_root(path: &[Vec<BaseElement>; 2], index: usize) -> Vec<BaseEl
         index >>= 1;
     }
 
-    v.to_vec()
+    v.iter().map(|e| e.as_int()).collect()
+}
+
+// EXAMPLE TESTER
+// ================================================================================================
+
+#[test]
+fn test_merkle_example() {
+    let example = get_example(4);
+    super::test_example(example, false);
+}
+
+#[test]
+fn test_merkle_example_fail() {
+    let example = get_example(4);
+    super::test_example(example, true);
 }
