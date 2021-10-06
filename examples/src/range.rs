@@ -1,7 +1,7 @@
 use crate::Example;
 use distaff::{assembly, Program, ProgramInputs};
 use log::debug;
-use winter_rand_utils::rand_vector;
+use rand_utils::rand_vector;
 
 // EXAMPLE BUILDER
 // ================================================================================================

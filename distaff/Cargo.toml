@@ -17,13 +17,13 @@ doctest = false
 [features]
 concurrent = ["prover/concurrent", "std"]
 default = ["std"]
-std = ["air/std", "assembly/std", "processor/std", "prover/std", "verifier/std"]
+std = ["air/std", "assembly/std", "hex/std", "processor/std", "prover/std", "verifier/std"]
 
 [dependencies]
 air = { package = "distaff-air", path = "../air", default-features = false }
 assembly = { package = "distaff-assembly", path = "../assembly", default-features = false }
 processor = { package = "distaff-processor", path = "../processor", default-features = false }
 prover = { package = "winter-prover", version = "0.2", default-features = false }
-hex = "0.4"
-log = "0.4"
+hex = { version = "0.4", optional = true }
+log = { version = "0.4", default-features = false }
 verifier = { package = "distaff-verifier", path = "../verifier", default-features = false }

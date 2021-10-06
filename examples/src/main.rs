@@ -24,7 +24,9 @@ fn main() {
         ExampleType::Collatz { start_value } => examples::collatz::get_example(start_value),
         ExampleType::Comparison { value } => examples::comparison::get_example(value),
         ExampleType::Conditional { value } => examples::conditional::get_example(value),
+        #[cfg(feature = "std")]
         ExampleType::Merkle { tree_depth } => examples::merkle::get_example(tree_depth),
+        #[cfg(feature = "std")]
         ExampleType::Range { num_values } => examples::range::get_example(num_values),
     };
 
@@ -35,13 +37,16 @@ fn main() {
         pub_inputs,
         expected_result,
     } = example;
+    #[cfg(feature = "std")]
     debug!("--------------------------------");
 
     // execute the program and generate the proof of execution
+    #[cfg(feature = "std")]
     let now = Instant::now();
     let (outputs, proof) =
         distaff::execute(&program, &inputs, num_outputs, &proof_options).unwrap();
     debug!("--------------------------------");
+    #[cfg(feature = "std")]
     debug!(
         "Executed program with hash {} in {} ms",
         hex::encode(program.hash()),

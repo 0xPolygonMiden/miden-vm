@@ -18,11 +18,16 @@ path = "src/main.rs"
 bench = false
 doctest = false
 
+[features]
+concurrent = ["distaff/concurrent", "std"]
+default = ["std"]
+std = ["distaff/std", "hex/std", "rand-utils", "vm-core/std"]
+
 [dependencies]
-distaff = { path = "../distaff" }
-env_logger = "0.9"
-hex = "0.4"
-log = "0.4"
+distaff = { path = "../distaff", default-features = false }
+env_logger = { version = "0.9", default-features = false }
+hex = { version = "0.4", optional = true }
+log = { version = "0.4", default-features = false }
 structopt = { version = "0.3", default-features = false }
-vm-core = { path = "../core", package = "distaff-core" }
-winter-rand-utils = "0.2"
+vm-core = { package = "distaff-core", path = "../core", default-features = false }
+rand-utils = { package = "winter-rand-utils", version = "0.2", optional = true }

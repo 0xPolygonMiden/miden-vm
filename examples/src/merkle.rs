@@ -1,8 +1,8 @@
 use crate::Example;
 use distaff::{assembly, BaseElement, FieldElement, Program, ProgramInputs, StarkField};
 use log::debug;
+use rand_utils::prng_vector;
 use vm_core::hasher;
-use winter_rand_utils::prng_vector;
 
 // EXAMPLE BUILDER
 // ================================================================================================

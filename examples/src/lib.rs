@@ -5,7 +5,9 @@ pub mod collatz;
 pub mod comparison;
 pub mod conditional;
 pub mod fibonacci;
+#[cfg(feature = "std")]
 pub mod merkle;
+#[cfg(feature = "std")]
 pub mod range;
 
 // EXAMPLE
@@ -103,12 +105,14 @@ pub enum ExampleType {
         value: usize,
     },
     /// Computes a root of a randomly generated Merkle branch of the specified depth
+    #[cfg(feature = "std")]
     Merkle {
         /// Depth of the Merkle tree
         #[structopt(short = "n", default_value = "20")]
         tree_depth: usize,
     },
     /// Determines how many of the randomly generated values are less than 2^63
+    #[cfg(feature = "std")]
     Range {
         /// Number of randomly generated 64-bit values
         #[structopt(short = "n", default_value = "100")]
