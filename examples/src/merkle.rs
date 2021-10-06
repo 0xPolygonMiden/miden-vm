@@ -1,11 +1,9 @@
-use super::{utils::parse_args, Example};
+use crate::Example;
 use distaff::{assembly, BaseElement, FieldElement, Program, ProgramInputs, StarkField};
 use vm_core::hasher;
 use winter_rand_utils::prng_vector;
 
-pub fn get_example(args: &[String]) -> Example {
-    // get the length of Merkle authentication path and proof options from the arguments
-    let (depth, options) = parse_args(args);
+pub fn get_example(depth: usize) -> Example {
     assert!(
         depth >= 2,
         "tree depth must be at least 2, but received {}",
@@ -40,7 +38,6 @@ pub fn get_example(args: &[String]) -> Example {
     Example {
         program,
         inputs,
-        options,
         expected_result,
         num_outputs,
     }

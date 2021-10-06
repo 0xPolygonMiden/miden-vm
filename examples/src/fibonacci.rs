@@ -1,10 +1,7 @@
-use super::{assembly, utils::parse_args, Example, Program, ProgramInputs};
-use distaff::{BaseElement, FieldElement};
+use crate::Example;
+use distaff::{assembly, BaseElement, FieldElement, Program, ProgramInputs};
 
-pub fn get_example(args: &[String]) -> Example {
-    // get the length of Fibonacci sequence and proof options from the arguments
-    let (n, options) = parse_args(args);
-
+pub fn get_example(n: usize) -> Example {
     // generate the program and expected results
     let program = generate_fibonacci_program(n);
     let expected_result = vec![compute_fibonacci(n)];
@@ -22,7 +19,6 @@ pub fn get_example(args: &[String]) -> Example {
     Example {
         program,
         inputs,
-        options,
         expected_result,
         num_outputs,
     }

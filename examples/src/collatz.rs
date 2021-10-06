@@ -1,13 +1,12 @@
-use super::{utils::parse_args, Example};
+use crate::Example;
 use distaff::{assembly, BaseElement, FieldElement, ProgramInputs, StarkField};
 
-pub fn get_example(args: &[String]) -> Example {
-    // read starting value of the sequence and proof options from the arguments
-    let (value, options) = parse_args(args);
-    let value = BaseElement::new(value as u128);
+pub fn get_example(start_value: usize) -> Example {
+    // convert starting value of the sequence into a field element
+    let start_value = BaseElement::new(start_value as u128);
 
     // determine the expected result
-    let expected_result = compute_collatz_steps(value);
+    let expected_result = compute_collatz_steps(start_value);
 
     // construct the program which executes an unbounded loop to compute a Collatz sequence
     // which starts with the provided value; the output of the program is the number of steps
@@ -36,7 +35,7 @@ pub fn get_example(args: &[String]) -> Example {
     );
 
     // put the starting value as the only secret input for tape A
-    let inputs = ProgramInputs::new(&[], &[value], &[]);
+    let inputs = ProgramInputs::new(&[], &[start_value], &[]);
 
     // a single element from the top of the stack will be the output
     let num_outputs = 1;
@@ -44,7 +43,6 @@ pub fn get_example(args: &[String]) -> Example {
     Example {
         program,
         inputs,
-        options,
         expected_result: vec![expected_result],
         num_outputs,
     }

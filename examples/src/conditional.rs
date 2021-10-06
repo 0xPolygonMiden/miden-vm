@@ -1,9 +1,8 @@
-use super::{utils::parse_args, Example};
+use crate::Example;
 use distaff::{assembly, BaseElement, ProgramInputs, StarkField};
 
-pub fn get_example(args: &[String]) -> Example {
-    // get flag value and proof options from the arguments
-    let (flag, options) = parse_args(args);
+pub fn get_example(flag: usize) -> Example {
+    // convert flag to a field element
     let flag = BaseElement::new(flag as u128);
 
     // determine the expected result
@@ -44,7 +43,6 @@ pub fn get_example(args: &[String]) -> Example {
     Example {
         program,
         inputs,
-        options,
         expected_result: vec![expected_result],
         num_outputs,
     }

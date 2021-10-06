@@ -1,20 +1,17 @@
-use super::{utils::parse_args, Example};
+use crate::Example;
 use distaff::{assembly, BaseElement, FieldElement, Program, ProgramInputs, StarkField};
 use winter_rand_utils::rand_vector;
 
-pub fn get_example(args: &[String]) -> Example {
-    // get the number of values to range check and proof options
-    let (n, options) = parse_args(args);
-
+pub fn get_example(num_values: usize) -> Example {
     // generate random sequence of 64-bit values
-    let values = generate_values(n);
+    let values = generate_values(num_values);
 
     // generate the program and expected results
-    let program = generate_range_check_program(n);
+    let program = generate_range_check_program(num_values);
     let expected_result = vec![count_63_bit_values(&values)];
     println!(
         "Generated a program to range-check {} values; expected result: {}",
-        n, expected_result[0]
+        num_values, expected_result[0]
     );
 
     // set public inputs to the initial sum (0), and pass values to the secret tape A
@@ -26,7 +23,6 @@ pub fn get_example(args: &[String]) -> Example {
     Example {
         program,
         inputs,
-        options,
         expected_result,
         num_outputs,
     }
