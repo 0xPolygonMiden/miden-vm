@@ -1,5 +1,5 @@
 use air::{ProcessorAir, PublicInputs, TraceMetadata, TraceState, MAX_OUTPUTS, MIN_TRACE_LENGTH};
-use core::convert::TryInto;
+use core::{convert::TryInto, ops::Deref};
 #[cfg(feature = "std")]
 use log::debug;
 use prover::{ExecutionTrace, ProverError, Serializable};
@@ -12,9 +12,10 @@ mod tests;
 // EXPORTS
 // ================================================================================================
 
+pub use air::{FieldExtension, HashFunction, ProofOptions};
 pub use assembly;
 pub use processor::{BaseElement, FieldElement, Program, ProgramInputs, StarkField};
-pub use prover::{FieldExtension, HashFunction, ProofOptions, StarkProof};
+pub use prover::StarkProof;
 pub use verifier::{verify, VerifierError};
 
 // EXECUTOR
@@ -81,7 +82,7 @@ pub fn execute(
         .map(|&v| v.as_int())
         .collect::<Vec<_>>();
     let pub_inputs = PublicInputs::new(program_hash, &inputs, &outputs);
-    let proof = prover::prove::<ProcessorAir>(trace, pub_inputs, options.clone())?;
+    let proof = prover::prove::<ProcessorAir>(trace, pub_inputs, options.deref().clone())?;
 
     Ok((outputs, proof))
 }
