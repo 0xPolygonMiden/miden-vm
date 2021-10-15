@@ -25,7 +25,7 @@ pub struct Example {
 // ================================================================================================
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "winterfell", about = "Winterfell examples")]
+#[structopt(name = "Distaff", about = "Distaff examples")]
 pub struct ExampleOptions {
     #[structopt(subcommand)]
     pub example: ExampleType,

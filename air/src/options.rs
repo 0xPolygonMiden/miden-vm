@@ -38,8 +38,8 @@ impl ProofOptions {
 
     pub fn with_128_bit_security() -> Self {
         Self(WinterProofOptions::new(
-            36,
-            8,
+            27,
+            16,
             21,
             HashFunction::Blake3_256,
             FieldExtension::Quadratic,
