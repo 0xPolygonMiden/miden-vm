@@ -1,13 +1,13 @@
 [package]
 name = "distaff-air"
 version = "0.1.0"
-description = "TODO"
+description = "Algebraic intermediate representation of Distaff VM processor"
 authors = ["distaff contributors"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/maticnetwork/distaff"
-categories = ["TODO"]
-keywords = ["TODO"]
+categories = ["cryptography", "no-std"]
+keywords = ["air", "arithmetization", "crypto", "distaff"]
 edition = "2018"
 
 [lib]

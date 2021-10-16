@@ -5,12 +5,13 @@ use vm_core::{
     OP_COUNTER_IDX, OP_SPONGE_RANGE,
 };
 use winter_air::{
-    Air, AirContext, Assertion, EvaluationFrame, ProofOptions, TraceInfo,
+    Air, AirContext, Assertion, EvaluationFrame, ProofOptions as WinterProofOptions, TraceInfo,
     TransitionConstraintDegree,
 };
 use winter_utils::{group_slice_elements, ByteWriter, Serializable};
 
 mod decoder;
+mod options;
 mod stack;
 mod transition;
 mod utils;
@@ -18,11 +19,13 @@ mod utils;
 // EXPORTS
 // ================================================================================================
 
+pub use options::ProofOptions;
 pub use transition::VmTransition;
 pub use vm_core::{
     utils::ToElements, BaseElement, FieldElement, StarkField, TraceState, MAX_OUTPUTS,
     MIN_TRACE_LENGTH,
 };
+pub use winter_air::{FieldExtension, HashFunction};
 
 // PROCESSOR AIR
 // ================================================================================================
@@ -43,7 +46,7 @@ impl Air for ProcessorAir {
     type BaseElement = BaseElement;
     type PublicInputs = PublicInputs;
 
-    fn new(trace_info: TraceInfo, pub_inputs: PublicInputs, options: ProofOptions) -> Self {
+    fn new(trace_info: TraceInfo, pub_inputs: PublicInputs, options: WinterProofOptions) -> Self {
         let meta = TraceMetadata::from_trace_info(&trace_info);
 
         let mut tcd = decoder::get_transition_constraint_degrees(meta.ctx_depth, meta.loop_depth);

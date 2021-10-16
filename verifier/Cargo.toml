@@ -1,11 +1,13 @@
 [package]
 name = "distaff-verifier"
 version = "0.1.0"
-description="TODO"
+description="Distaff VM execution verifier"
 authors = ["distaff contributors"]
 readme="README.md"
 edition = "2018"
-repository = "TODO"
+repository = "https://github.com/maticnetwork/distaff"
+categories = ["cryptography", "no-std"]
+keywords = ["distaff", "stark", "verifier", "zkp"]
 license = "MIT"
 
 [lib]

@@ -1,13 +1,13 @@
 [package]
 name = "distaff-core"
 version = "0.1.0"
-description = "TODO"
+description = "Distaff VM core components"
 authors = ["distaff contributors"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/maticnetwork/distaff"
-categories = ["TODO"]
-keywords = ["TODO"]
+categories = ["emulators", "no-std"]
+keywords = ["distaff", "instruction-set", "program"]
 edition = "2018"
 
 [lib]

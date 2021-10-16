@@ -1,13 +1,13 @@
 [package]
 name = "distaff-processor"
 version = "0.1.0"
-description = "TODO"
+description = "Distaff VM processor"
 authors = ["distaff contributors"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/maticnetwork/distaff"
-categories = ["TODO"]
-keywords = ["TODO"]
+categories = ["emulators", "no-std"]
+keywords = ["distaff", "virtual-machine"]
 edition = "2018"
 
 [lib]

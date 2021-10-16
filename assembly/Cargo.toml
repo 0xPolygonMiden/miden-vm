@@ -1,13 +1,13 @@
 [package]
 name = "distaff-assembly"
 version = "0.1.0"
-description = "TODO"
+description = "Distaff VM assembly language"
 authors = ["distaff contributors"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/maticnetwork/distaff"
-categories = ["TODO"]
-keywords = ["TODO"]
+categories = ["compilers", "no-std"]
+keywords = ["assembler", "assembly", "distaff", "language"]
 edition = "2018"
 
 [lib]
