@@ -13,6 +13,8 @@ pub mod utils;
 mod trace_state;
 pub use trace_state::TraceState;
 
+pub mod v1;
+
 // GLOBAL CONSTANTS
 // ================================================================================================
 
