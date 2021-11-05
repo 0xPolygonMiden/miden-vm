@@ -1,14 +1,14 @@
-# Distaff VM instruction set
-Distaff VM instruction set consists of a small number of atomic instructions. There are two types of instructions:
+# Miden VM instruction set
+Miden VM instruction set consists of a small number of atomic instructions. There are two types of instructions:
 
 * **System instructions** are encoded with a 3-bit opcode. They are used to control program execution path and are executed automatically by the VM as it traverses [program execution graph](programs.md).
 * **User instructions** are encoded with a 7-bit opcode. A sequence of user instructions forms a an [instruction block](programs.md/#Instruction-blocks) in a program execution graph.
 
-In every cycle, Distaff VM executes a tuple of two instructions: one system instruction and one user instruction. However, not all combinations of system and user instructions are valid, and specifics of this are described in the following sections.
+In every cycle, Miden VM executes a tuple of two instructions: one system instruction and one user instruction. However, not all combinations of system and user instructions are valid, and specifics of this are described in the following sections.
 
-Distaff VM consumes programs in a form of an execution graph. An execution graph can be constructed directly from program blocks, but constructing programs in this manner may be tedious and error-prone. So, most **users are encouraged** to write programs using [Distaff assembly](../../assembly/doc/assembly.md) instead. However, it is still beneficial to understand which raw instructions are available in Distaff VM and what their semantics are.
+Miden VM consumes programs in a form of an execution graph. An execution graph can be constructed directly from program blocks, but constructing programs in this manner may be tedious and error-prone. So, most **users are encouraged** to write programs using [Miden assembly](../../assembly/doc/assembly.md) instead. However, it is still beneficial to understand which raw instructions are available in Miden VM and what their semantics are.
 
-The tables below describe all currently available atomic instructions in Distaff VM.
+The tables below describe all currently available atomic instructions in Miden VM.
 
 ## System instructions
 
@@ -92,10 +92,10 @@ User instructions can be executed only concurrently with the `HACC` system instr
 
 | Instruction | Opcode   | Description                            |
 | ----------- | :------: | -------------------------------------- |
-| RESCR       |  1011111 | Pops top 6 items from the stack, computes a single round of a modified [Rescue](https://eprint.iacr.org/2019/426) hash function over these values, and pushes the resulting 6 values onto the stack. This operation can be used to hash up to two 256-bit values (see [here](#Hashing-in-Distaff-VM)).  |
+| RESCR       |  1011111 | Pops top 6 items from the stack, computes a single round of a modified [Rescue](https://eprint.iacr.org/2019/426) hash function over these values, and pushes the resulting 6 values onto the stack. This operation can be used to hash up to two 256-bit values (see [here](#Hashing-in-Miden-VM)).  |
 
-## Value comparison in Distaff VM
-There are 3 operations in Distaff VM which can be used to compare values: `EQ`, `CMP`, and `BINACC`. Using these operations you can check whether 2 values a equal, whether one value is greater or less than the other, and whether a value can be represented with a given number of bits.
+## Value comparison in Miden VM
+There are 3 operations in Miden VM which can be used to compare values: `EQ`, `CMP`, and `BINACC`. Using these operations you can check whether 2 values a equal, whether one value is greater or less than the other, and whether a value can be represented with a given number of bits.
 
 ### Checking equality
 Using `EQ` operation you can determine whether two values are equal. Before executing this operation, you should position values on the stack in the appropriate order. Specifically, the stack should look like so:
@@ -187,8 +187,8 @@ Overall, the number of operations needed to determine whether a value can be rep
 * Checking if a value can be represented with 64 bits requires 68 operations,
 * Checking if a value can be represented with 32 bits requires 36 operations.
 
-## Hashing in Distaff VM
-Distaff VM provides a `RESCR` instruction which can be used as a building block for computing cryptographic hashes. The `RESCR` instruction computes a single round of a modified [Rescue hash function](https://eprint.iacr.org/2019/426) over the top 6 items of the stack. Specifically, the top 6 stack items form the state of the sponge with the items at the top of the stack considered to be the inner part of the sponge, while the items at the bottom of the stack are considered to be the outer part of the sponge.
+## Hashing in Miden VM
+Miden VM provides a `RESCR` instruction which can be used as a building block for computing cryptographic hashes. The `RESCR` instruction computes a single round of a modified [Rescue hash function](https://eprint.iacr.org/2019/426) over the top 6 items of the stack. Specifically, the top 6 stack items form the state of the sponge with the items at the top of the stack considered to be the inner part of the sponge, while the items at the bottom of the stack are considered to be the outer part of the sponge.
 
 The pseudo-code for the modified Rescue round looks like so:
 ```
@@ -205,7 +205,7 @@ Another thing to note is that round constants are on a cycle that repeats every 
 
 ### Using RESCR instruction
 
-Generally, we want to hash values that are 256 bits long. And since all values in Distaff VM are elements of a 128-bits field, we'll need 2 elements to represent each 256-bit value. For example, suppose we wanted to compute `hash(x)`. First, we'd represent `x` by a pair of elements `(x0, x1)`, and then we'd position these elements on the stack like so:
+Generally, we want to hash values that are 256 bits long. And since all values in Miden VM are elements of a 128-bits field, we'll need 2 elements to represent each 256-bit value. For example, suppose we wanted to compute `hash(x)`. First, we'd represent `x` by a pair of elements `(x0, x1)`, and then we'd position these elements on the stack like so:
 ```
 [0, 0, 0, 0, x1, x0]
 ```

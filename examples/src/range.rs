@@ -1,6 +1,6 @@
 use crate::Example;
-use distaff::{assembly, Program, ProgramInputs};
 use log::debug;
+use miden::{assembly, Program, ProgramInputs};
 use rand_utils::rand_vector;
 
 // EXAMPLE BUILDER

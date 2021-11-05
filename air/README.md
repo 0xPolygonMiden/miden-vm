@@ -1,9 +1,9 @@
-# Distaff VM AIR
-This crate contains *algebraic intermediate representation* (AIR) of Distaff VM execution logic.
+# Miden VM AIR
+This crate contains *algebraic intermediate representation* (AIR) of Miden VM execution logic.
 
-AIR is a STARK-specific format of describing a computation. It consists of defining a set of constraints expressed as low-degree polynomials. Distaff VM evaluates these polynomials over an execution trace produced by Distaff processor and includes the results in the execution proof. To verify the proof, the verifier checks that the constraints are evaluated correctly against the execution trace committed to by the prover.
+AIR is a STARK-specific format of describing a computation. It consists of defining a set of constraints expressed as low-degree polynomials. Miden VM evaluates these polynomials over an execution trace produced by Miden processor and includes the results in the execution proof. To verify the proof, the verifier checks that the constraints are evaluated correctly against the execution trace committed to by the prover.
 
-Internally, Distaff VM AIR is separated into two parts:
+Internally, Miden VM AIR is separated into two parts:
 * AIR for the decoder, which is responsible for decoding instructions and managing control flow.
 * AIR for the stack, which is responsible for executing instructions against the stack.
 

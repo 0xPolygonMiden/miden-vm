@@ -3,8 +3,8 @@ members = [
   "air",
   "assembly",
   "core",
-  "distaff",
   "examples",
+  "miden",
   "processor",
   "verifier"
 ]

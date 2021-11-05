@@ -1,13 +1,13 @@
 [package]
-name = "distaff-verifier"
+name = "miden-verifier"
 version = "0.1.0"
-description="Distaff VM execution verifier"
-authors = ["distaff contributors"]
+description="Miden VM execution verifier"
+authors = ["miden contributors"]
 readme="README.md"
 edition = "2018"
-repository = "https://github.com/maticnetwork/distaff"
+repository = "https://github.com/maticnetwork/miden"
 categories = ["cryptography", "no-std"]
-keywords = ["distaff", "stark", "verifier", "zkp"]
+keywords = ["miden", "stark", "verifier", "zkp"]
 license = "MIT"
 
 [lib]
@@ -19,6 +19,6 @@ default = ["std"]
 std = ["air/std", "assembly/std", "winterfell/std"]
 
 [dependencies]
-air = { package = "distaff-air", path = "../air", default-features = false }
-assembly = { package = "distaff-assembly", path = "../assembly", default-features = false }
+air = { package = "miden-air", path = "../air", default-features = false }
+assembly = { package = "miden-assembly", path = "../assembly", default-features = false }
 winterfell = { package = "winter-verifier", version = "0.2", default-features = false }

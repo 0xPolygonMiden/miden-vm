@@ -1,11 +1,11 @@
 [package]
 name = "examples"
 version = "0.1.0"
-description = "Examples of using Distaff VM"
-authors = ["distaff contributors"]
+description = "Examples of using Miden VM"
+authors = ["miden contributors"]
 readme = "README.md"
 license = "MIT"
-repository = "https://github.com/maticnetwork/distaff"
+repository = "https://github.com/maticnetwork/miden"
 edition = "2018"
 
 [lib]
@@ -13,21 +13,21 @@ bench = false
 doctest = false
 
 [[bin]]
-name = "distaff"
+name = "miden"
 path = "src/main.rs"
 bench = false
 doctest = false
 
 [features]
-concurrent = ["distaff/concurrent", "std"]
+concurrent = ["miden/concurrent", "std"]
 default = ["std"]
-std = ["distaff/std", "hex/std", "rand-utils", "vm-core/std"]
+std = ["hex/std", "miden/std", "rand-utils", "vm-core/std"]
 
 [dependencies]
-distaff = { path = "../distaff", default-features = false }
 env_logger = { version = "0.9", default-features = false }
 hex = { version = "0.4", optional = true }
 log = { version = "0.4", default-features = false }
+miden = { path = "../miden", default-features = false }
 structopt = { version = "0.3", default-features = false }
-vm-core = { package = "distaff-core", path = "../core", default-features = false }
+vm-core = { package = "miden-core", path = "../core", default-features = false }
 rand-utils = { package = "winter-rand-utils", version = "0.2", optional = true }

@@ -1,10 +1,10 @@
 # Examples
-This crate contains several examples of Distaff VM programs and demonstrates how these programs can be executed on Distaff VM.
+This crate contains several examples of Miden VM programs and demonstrates how these programs can be executed on Miden VM.
 
 ## Running examples
 To run examples of executing programs and verifying proofs of their execution, do the following:
 
-First, compile an optimized version of the `distaff` binary by running:
+First, compile an optimized version of the `miden` binary by running:
 ```
 cargo build --release
 ```
@@ -15,20 +15,20 @@ cargo build --release --manifest-path examples/Cargo.toml --features concurrent
 
 In either case, the binary will be located in `target/release` directory, and you can run it like so:
 ```
-./target/release/distaff [FLAGS] [OPTIONS] <SUBCOMMAND>
+./target/release/miden [FLAGS] [OPTIONS] <SUBCOMMAND>
 ```
 Where each example can be invoked using a distinct subcommand. To view the list of all available options and examples you can look up help like so:
 
 ```
-./target/release/distaff -h
+./target/release/miden -h
 ```
 This will print out something similar to this:
 ```
-Distaff 0.1.0
-Distaff examples
+Miden 0.1.0
+Miden examples
 
 USAGE:
-    distaff.exe [OPTIONS] <SUBCOMMAND>
+    miden.exe [OPTIONS] <SUBCOMMAND>
 
 FLAGS:
     -h, --help       Prints help information
@@ -53,26 +53,26 @@ Currently, the only available option for all examples is `-s` for specifying sec
 
 For example, to execute Fibonacci calculator at 128-bit security level, you can run the following:
 ```
-./target/release/distaff -s 128bits fib
+./target/release/miden -s 128bits fib
 ```
 
 ### Example-specific options
 
 To view additional options available for specific examples, you can run the following:
 ```
-./target/release/distaff help <example name>
+./target/release/miden help <example name>
 ```
 For example, executing:
 ```
-./target/release/distaff help collatz
+./target/release/miden help collatz
 ```
 Will print something like this:
 ```
-distaff.exe-collatz 0.1.0
+miden.exe-collatz 0.1.0
 Compute a Collatz sequence from the specified starting value
 
 USAGE:
-    distaff.exe collatz [OPTIONS]
+    miden.exe collatz [OPTIONS]
 
 FLAGS:
     -h, --help       Prints help information
@@ -84,7 +84,7 @@ OPTIONS:
 
 Thus, to compute Collatz sequence with a different starting value, you could execute something like this:
 ```
-./target/release/distaff collatz -n 513
+./target/release/miden collatz -n 513
 ```
 
 ## License

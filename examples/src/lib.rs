@@ -1,4 +1,4 @@
-use distaff::{Program, ProgramInputs, ProofOptions};
+use miden::{Program, ProgramInputs, ProofOptions};
 use structopt::StructOpt;
 
 pub mod collatz;
@@ -25,7 +25,7 @@ pub struct Example {
 // ================================================================================================
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "Distaff", about = "Distaff examples")]
+#[structopt(name = "Miden", about = "Miden examples")]
 pub struct ExampleOptions {
     #[structopt(subcommand)]
     pub example: ExampleType,
@@ -105,13 +105,13 @@ pub fn test_example(example: Example, fail: bool) {
         32,
         8,
         0,
-        distaff::HashFunction::Blake3_256,
-        distaff::FieldExtension::None,
+        miden::HashFunction::Blake3_256,
+        miden::FieldExtension::None,
         8,
         256,
     );
 
-    let (mut outputs, proof) = distaff::execute(&program, &inputs, num_outputs, &options).unwrap();
+    let (mut outputs, proof) = miden::execute(&program, &inputs, num_outputs, &options).unwrap();
 
     assert_eq!(
         expected_result, outputs,
@@ -120,8 +120,8 @@ pub fn test_example(example: Example, fail: bool) {
 
     if fail {
         outputs[0] = outputs[0] + 1;
-        assert!(distaff::verify(*program.hash(), &pub_inputs, &outputs, proof).is_err())
+        assert!(miden::verify(*program.hash(), &pub_inputs, &outputs, proof).is_err())
     } else {
-        assert!(distaff::verify(*program.hash(), &pub_inputs, &outputs, proof).is_ok());
+        assert!(miden::verify(*program.hash(), &pub_inputs, &outputs, proof).is_ok());
     }
 }

@@ -1,5 +1,5 @@
-# Distaff core
-This crate contains core components used by Distaff VM. These components include:
+# Miden core
+This crate contains core components used by Miden VM. These components include:
 
 * Instruction set architecture (ISA) defined [here](src/opcodes.rs) and described [here](doc/isa.md).
 * Program structure defined [here](src/programs/mod.rs) and described [here](doc/programs.md).

@@ -1,28 +1,28 @@
-# Distaff
+# Polygon Miden
 
-<a href="https://github.com/maticnetwork/distaff/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-<img src="https://github.com/maticnetwork/distaff/workflows/CI/badge.svg?branch=main">
-<a href="https://deps.rs/repo/github/maticnetwork/distaff"><img src="https://deps.rs/repo/github/maticnetwork/distaff/status.svg"></a>
+<a href="https://github.com/maticnetwork/miden/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+<img src="https://github.com/maticnetwork/miden/workflows/CI/badge.svg?branch=main">
+<a href="https://deps.rs/repo/github/maticnetwork/miden"><img src="https://deps.rs/repo/github/maticnetwork/miden/status.svg"></a>
 
 A STARK-based virtual machine.
 
 **WARNING:** This project is in an alpha stage. It has not been audited and may contain bugs and security flaws. This implementation is NOT ready for production use.
 
 ## Overview
-Distaff is a zero-knowledge virtual machine written in Rust. For any program executed on Distaff VM, a STARK-based proof of execution is automatically generated. This proof can then be used by anyone to verify that a program was executed correctly without the need for re-executing the program or even knowing what the program was.
+Miden is a zero-knowledge virtual machine written in Rust. For any program executed on Miden VM, a STARK-based proof of execution is automatically generated. This proof can then be used by anyone to verify that a program was executed correctly without the need for re-executing the program or even knowing what the program was.
 
-* If you'd like to learn more about how Distaff VM works, check out the [distaff](distaff) crate.
-* If you'd like to see Distaff VM in action, check out the [examples](examples) crate.
+* If you'd like to learn more about how Miden VM works, check out the [miden](miden) crate.
+* If you'd like to see Miden VM in action, check out the [examples](examples) crate.
 * If you'd like to learn more about STARKs, check out the [references](#references) section.
 
 ### Status and features
 Currently, this project contains a direct port of the original [Distaff VM](https://github.com/guildofweavers/distaff) to [Winterfell](https://github.com/novifinancial/winterfell) backend. This means that, as compared to the original Distaff VM, the proving system has been upgraded to a much more up-to-date and performant STARK prover - but, the functionality of the VM remained the same. This functionality includes:
 
-* **Field arithmetic.** Distaff VM can execute one field operation per cycle. This includes addition, multiplication, inversion, and boolean operations (on binary values).
-* **Conditional statements.** Distaff VM programs can include basic *if-then-else* statements, however, these statements can be nested at most 16 levels deep.
-* **Loops.** Distaff VM programs can include counter-controlled (*for*) and condition-controlled (*while*) loops. However, loops can be nested at most 8 levels deep.
-* **Inequality comparisons.** Distaff VM supports *less-than* and *greater-than* comparison of field elements (via binary decomposition). However, each comparison requires dozens of VM cycles.
-* **Hashing.** Distaff VM natively supports Rescue hash function. A 2-to-1 Rescue hash can be computed in as few as 10 VM cycles.
+* **Field arithmetic.** Miden VM can execute one field operation per cycle. This includes addition, multiplication, inversion, and boolean operations (on binary values).
+* **Conditional statements.** Miden VM programs can include basic *if-then-else* statements, however, these statements can be nested at most 16 levels deep.
+* **Loops.** Miden VM programs can include counter-controlled (*for*) and condition-controlled (*while*) loops. However, loops can be nested at most 8 levels deep.
+* **Inequality comparisons.** Miden VM supports *less-than* and *greater-than* comparison of field elements (via binary decomposition). However, each comparison requires dozens of VM cycles.
+* **Hashing.** Miden VM natively supports Rescue hash function. A 2-to-1 Rescue hash can be computed in as few as 10 VM cycles.
 
 #### Planned features
 In the coming months we plan to make significant changes to the VM to expand its feature set. Among other things, these will include:
@@ -30,30 +30,30 @@ In the coming months we plan to make significant changes to the VM to expand its
 * **Flow control.** Restrictions on nestings of loops and conditional statements will be removed.
 * **Memory.** Support for read-write random-access memory will be added to the VM.
 * **Storage.** Support for read-write persistent storage will be added to the VM.
-* **Function calls.** Distaff programs will support hash-addressable function calls.
+* **Function calls.** Miden programs will support hash-addressable function calls.
 * **u32 operations.** The VM will be able to execute a single u32 operation per cycle.
 
-Our ultimate goal is to make Distaff VM an easy compilation target for high level languages such as Solidity, Move, and others.
+Our ultimate goal is to make Miden VM an easy compilation target for high level languages such as Solidity, Move, and others.
 
-The new version of the VM is being developed in the [next](https://github.com/maticnetwork/distaff/tree/next) branch.
+The new version of the VM is being developed in the [next](https://github.com/maticnetwork/miden/tree/next) branch.
 
 ### Project structure
 The project is organized into several crates like so:
 
 | Crate                  | Description |
 | ---------------------- | ----------- |
-| [core](core)           | Contains components defining Distaff VM instruction set, program structure, and a set of utility functions used by other crates. |
-| [assembly](assembly)   | Contains Distaff assembler and definition of the Distaff Assembly language. The assembler is used to compile Distaff assembly source code into Distaff VM programs. |
-| [processor](processor) | Contains Distaff VM processor. The processor is used to execute Distaff programs and to generate program execution traces. These traces are then used by the VM to generate proofs of correct program execution. |
-| [air](air)             | Contains *algebraic intermediate representation* (AIR) of Distaff VM processor logic. This AIR is used by the VM during proof generation and verification processes. |
-| [distaff](distaff)     | Contains the actual Distaff VM which can be used to execute programs and verify proofs of their execution. |
-| [verifier](verifier)   | Contains a light-weight verifier which can be used to verify proofs of program execution generated by Distaff VM. |
-| [examples](examples)   | Contains several toy and real-world examples of Distaff VM programs and demonstrates how these programs can be executed on Distaff VM. |
+| [core](core)           | Contains components defining Miden VM instruction set, program structure, and a set of utility functions used by other crates. |
+| [assembly](assembly)   | Contains Miden assembler and definition of the Miden Assembly language. The assembler is used to compile Miden assembly source code into Miden VM programs. |
+| [processor](processor) | Contains Miden VM processor. The processor is used to execute Miden programs and to generate program execution traces. These traces are then used by the VM to generate proofs of correct program execution. |
+| [air](air)             | Contains *algebraic intermediate representation* (AIR) of Miden VM processor logic. This AIR is used by the VM during proof generation and verification processes. |
+| [miden](miden)       | Contains the actual Miden VM which can be used to execute programs and verify proofs of their execution. |
+| [verifier](verifier)   | Contains a light-weight verifier which can be used to verify proofs of program execution generated by Miden VM. |
+| [examples](examples)   | Contains several toy and real-world examples of Miden VM programs and demonstrates how these programs can be executed on Miden VM. |
 
 ## Performance
-Current version of Distaff VM operates at around 10 KHz when run on a single CPU core. When run on a 16-core CPU, Distaff VM can operate at over 80 KHz. In the future we hope to significantly improve this performance.
+Current version of Miden VM operates at around 10 KHz when run on a single CPU core. When run on a 16-core CPU, Miden VM can operate at over 80 KHz. In the future we hope to significantly improve this performance.
 
-In the benchmarks below, the VM executes a [Fibonacci calculator](distaff/README.md#Fibonacci-calculator) program on AMD Ryzen 9 5950X CPU (single thread):
+In the benchmarks below, the VM executes a [Fibonacci calculator](miden/README.md#Fibonacci-calculator) program on AMD Ryzen 9 5950X CPU (single thread):
 
 <table style="text-align:center">
     <thead>
@@ -159,7 +159,7 @@ A few notes about these results:
 2. The Fibonacci calculator program is sequential - so, we can parallelize only the proof generation part. This means that the share of time taken up by running the program itself grows proportionally. For example, when we execute the program using 32 threads, the time it takes to run the program is roughly 25% of the overall execution time (vs 3% for a single thread).
 
 ## References
-Proofs of execution generated by Distaff VM are based on STARKs. A STARK is a novel proof-of-computation scheme that allows you to create an efficiently verifiable proof that a computation was executed correctly. The scheme was developed by Eli Ben-Sasson, Michael Riabzev et al. at Technion - Israel Institute of Technology. STARKs do not require an initial trusted setup, and rely on very few cryptographic assumptions.
+Proofs of execution generated by Miden VM are based on STARKs. A STARK is a novel proof-of-computation scheme that allows you to create an efficiently verifiable proof that a computation was executed correctly. The scheme was developed by Eli Ben-Sasson, Michael Riabzev et al. at Technion - Israel Institute of Technology. STARKs do not require an initial trusted setup, and rely on very few cryptographic assumptions.
 
 Here are some resources to learn more about STARKs:
 

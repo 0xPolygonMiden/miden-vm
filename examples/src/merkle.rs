@@ -1,6 +1,6 @@
 use crate::Example;
-use distaff::{assembly, BaseElement, FieldElement, Program, ProgramInputs, StarkField};
 use log::debug;
+use miden::{assembly, BaseElement, FieldElement, Program, ProgramInputs, StarkField};
 use rand_utils::prng_vector;
 use vm_core::hasher;
 

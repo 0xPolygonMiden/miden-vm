@@ -1,6 +1,6 @@
 use crate::Example;
-use distaff::{assembly, BaseElement, FieldElement, ProgramInputs, StarkField};
 use log::debug;
+use miden::{assembly, BaseElement, FieldElement, ProgramInputs, StarkField};
 
 // EXAMPLE BUILDER
 // ================================================================================================

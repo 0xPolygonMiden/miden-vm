@@ -1,13 +1,13 @@
 [package]
-name = "distaff-core"
+name = "miden-core"
 version = "0.1.0"
-description = "Distaff VM core components"
-authors = ["distaff contributors"]
+description = "Miden VM core components"
+authors = ["miden contributors"]
 readme = "README.md"
 license = "MIT"
-repository = "https://github.com/maticnetwork/distaff"
+repository = "https://github.com/maticnetwork/miden"
 categories = ["emulators", "no-std"]
-keywords = ["distaff", "instruction-set", "program"]
+keywords = ["instruction-set", "miden", "program"]
 edition = "2018"
 
 [lib]

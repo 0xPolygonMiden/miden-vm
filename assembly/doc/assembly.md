@@ -1,14 +1,14 @@
-# Distaff assembly
-Distaff assembly is a simple, low-level language for writing programs for Distaff VM. It stands just above raw Distaff VM [instructions](../../core/doc/isa.md), and in fact, many instructions in Distaff assembly map directly to raw instruction of Distaff VM. However, Distaff assembly has several advantages:
+# Miden assembly
+Miden assembly is a simple, low-level language for writing programs for Miden VM. It stands just above raw Miden VM [instructions](../../core/doc/isa.md), and in fact, many instructions in Miden assembly map directly to raw instruction of Miden VM. However, Miden assembly has several advantages:
 
-* Distaff assembly supports *macro instructions*. These instructions expand into sequences of raw Distaff VM instructions making it easier to encode common operations.
-* Distaff assembler takes care of properly aligning and padding all instructions reducing the amount of mental bookkeeping needed for writing programs.
-* Distaff assembly natively supports control flow expression which the assembler automatically transforms into a program execution graph needed by Distaff VM.
+* Miden assembly supports *macro instructions*. These instructions expand into sequences of raw Miden VM instructions making it easier to encode common operations.
+* Miden assembler takes care of properly aligning and padding all instructions reducing the amount of mental bookkeeping needed for writing programs.
+* Miden assembly natively supports control flow expression which the assembler automatically transforms into a program execution graph needed by Miden VM.
 
 ## Assembly programs
-A Distaff assembly program is just a sequence of instructions each describing a specific operation. You can use any combination of whitespace characters to separate one instruction from another. Every program must start with a `begin` instruction and terminate with an `end` instruction.
+A Miden assembly program is just a sequence of instructions each describing a specific operation. You can use any combination of whitespace characters to separate one instruction from another. Every program must start with a `begin` instruction and terminate with an `end` instruction.
 
-In addition to simple instructions sequences, Distaff VM supports the following control structures:
+In addition to simple instructions sequences, Miden VM supports the following control structures:
 
 * *if-then-(else)* expressions for conditional execution;
 * *repeat* expressions for bounded counter-controlled loops;
@@ -17,7 +17,7 @@ In addition to simple instructions sequences, Distaff VM supports the following 
 Each of these is described below.
 
 ### Conditional execution
-Conditional execution in Distaff VM can be accomplished with *if-then-(else)* statements. These statements look like so:
+Conditional execution in Miden VM can be accomplished with *if-then-(else)* statements. These statements look like so:
 ```
 if.true
     <instructions>
@@ -81,7 +81,7 @@ A note on performance:
 The above affects only nested loops. So, when one loop follows another, the VM does no need to allocate any additional registers.
 
 ## Instruction set
-Instructions in Distaff VM are just keywords separated from each other by any combination of whitespace characters. Many instructions can be parametrized with a single parameter. The notation for specifying parameters is *operation.parameter*. For example, `push.123` describes a `push` operation which is parametrized with value `123`.
+Instructions in Miden VM are just keywords separated from each other by any combination of whitespace characters. Many instructions can be parametrized with a single parameter. The notation for specifying parameters is *operation.parameter*. For example, `push.123` describes a `push` operation which is parametrized with value `123`.
 
 For most instructions which support parameters, the default parameter is set to `1`. For example, `dup` is equivalent to `dup.1`, `choose` is equivalent to `choose.1` and so on.
 
@@ -103,7 +103,7 @@ A single instruction may take multiple VM cycles to execute. The number of cycle
 | read.ab   | Pushes the next values from input tapes `A` and `B` onto the stack. Value from input tape `A` is pushed first, followed by the value from input tape `B`. | 1 |
 
 #### Input tapes
-Distaff VM has two input tapes for supplying secret inputs to a program: tape `A` and tape `B`. You can use `read.a` and `read.ab` instructions to move value from these tapes onto the stack. When a value is read from a tape, tape pointer advances to the next value. This means, that a value can be read from a tape only once. If you try to read values from a tape which has no more values, the operation fails.
+Miden VM has two input tapes for supplying secret inputs to a program: tape `A` and tape `B`. You can use `read.a` and `read.ab` instructions to move value from these tapes onto the stack. When a value is read from a tape, tape pointer advances to the next value. This means, that a value can be read from a tape only once. If you try to read values from a tape which has no more values, the operation fails.
 
 ### Stack manipulation instructions
 
@@ -135,7 +135,7 @@ Distaff VM has two input tapes for supplying secret inputs to a program: tape `A
 | or        | Pops top two items from the stack, computes an equivalent of their boolean `OR`, and pushes the result onto the stack. If either of the values is not binary, the operation fails. | 1 |
 
 #### Finite field arithmetic
-All arithmetic operations in Distaff VM happen in a [prime field](https://en.wikipedia.org/wiki/Finite_field) with modulus `340282366920938463463374557953744961537` (which can also be written as 2<sup>128</sup> - 45 * 2<sup>40</sup> + 1). This means that overflow happens after a value exceeds field modulus. So, for example: `340282366920938463463374557953744961536 + 1 = 0`.
+All arithmetic operations in Miden VM happen in a [prime field](https://en.wikipedia.org/wiki/Finite_field) with modulus `340282366920938463463374557953744961537` (which can also be written as 2<sup>128</sup> - 45 * 2<sup>40</sup> + 1). This means that overflow happens after a value exceeds field modulus. So, for example: `340282366920938463463374557953744961536 + 1 = 0`.
 
 Divisions in prime fields are defined as inverse of multiplication. Specifically, `c = a / b` means: find such `c` that `b * c = a`. This may lead to unintuitive results. For example, `1 / 2 = 170141183460469231731687278976872480769`.
 
@@ -180,7 +180,7 @@ We can transform it into a linear program using selection instructions like so:
 | pmpath.*n* | Pops top 3 items from the stack, uses the first 2 items to compute a root of a Merkle authentication path for a tree of depth *n* and a leaf indicated by the 3rd stack item, and pushes the result onto the stack. The result is always represented by 2 stack items. Input tapes `A` and `B` are expected to contain nodes of the Merkle authentication path (see [here](#Merkle-authentication-path) for more info).  | ~ *32n* |
 
 #### Rescue hash function
-Distaff VM uses a modified version of [Rescue](https://eprint.iacr.org/2019/426) hash function. This modification adds half-rounds to the beginning and to the end of the standard Rescue hash function to make the arithmetization of the function fully foldable. High-level pseudo-code for the modified version looks like so:
+Miden VM uses a modified version of [Rescue](https://eprint.iacr.org/2019/426) hash function. This modification adds half-rounds to the beginning and to the end of the standard Rescue hash function to make the arithmetization of the function fully foldable. High-level pseudo-code for the modified version looks like so:
 ```
 for 10 iterations do:
     add round constants;
@@ -214,9 +214,9 @@ First, we'll describe `pmpath` instruction. Suppose we have a Merkle tree of dep
        /  \    /  \
       a    b  c    d
 ```
-where: `ab = hash(a, b)`, `cd = hash(c, d)`, and `abcd = hash(ab, cd)`. All of these values are 256 bits in size, and thus, we'd need two 128-bit field elements to represent each of them in Distaff VM.
+where: `ab = hash(a, b)`, `cd = hash(c, d)`, and `abcd = hash(ab, cd)`. All of these values are 256 bits in size, and thus, we'd need two 128-bit field elements to represent each of them in Miden VM.
 
-If we consider leaf `c`, Merkle authentication path for this leaf would be: [`d`, `ab`], and the root of this path would be `abcd`. To compute this root in Distaff VM we can use `pmpath` instruction like so:
+If we consider leaf `c`, Merkle authentication path for this leaf would be: [`d`, `ab`], and the root of this path would be `abcd`. To compute this root in Miden VM we can use `pmpath` instruction like so:
 
 1. First, we need to put two elements representing leaf `c` onto the stack.
 2. Then, we need to execute `pmpath.3` instruction. We set the parameter to `3` because the depth of our Merkle tree is 3.
