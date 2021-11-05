@@ -6,7 +6,9 @@ pub enum Operation {
     Noop,
     Push(BaseElement),
     Add,
+    Neg,
     Mul,
+    Inv,
 }
 
 impl Operation {
@@ -18,7 +20,9 @@ impl Operation {
             Self::Noop => 0b0000_0000,
             Self::Push(_) => 0b0000_0001,
             Self::Add => 0b0000_0010,
-            Self::Mul => 0b0000_0011,
+            Self::Neg => 0b0000_0011,
+            Self::Mul => 0b0000_0100,
+            Self::Inv => 0b0000_0101,
         }
     }
 
@@ -37,7 +41,9 @@ impl fmt::Display for Operation {
             Self::Noop => write!(f, "noop"),
             Self::Push(value) => write!(f, "push.{}", value),
             Self::Add => write!(f, "add"),
+            Self::Neg => write!(f, "neg"),
             Self::Mul => write!(f, "mul"),
+            Self::Inv => write!(f, "inv"),
         }
     }
 }

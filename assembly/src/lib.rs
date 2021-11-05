@@ -14,6 +14,8 @@ use parsers::*;
 mod errors;
 pub use errors::AssemblyError;
 
+pub mod v1;
+
 #[cfg(test)]
 mod tests;
 
