@@ -1,25 +1,25 @@
-# Distaff VM
-This crate contains an implementation of Distaff VM. It can be used to execute Distaff VM programs and to verify correctness of program execution.
+# Miden VM
+This crate contains an implementation of Miden VM. It can be used to execute Miden VM programs and to verify correctness of program execution.
 
 ## Overview
-Distaff VM is a simple [stack machine](https://en.wikipedia.org/wiki/Stack_machine). This means all values live on the stack and all operations work with values near the top of the stack. 
+Miden VM is a simple [stack machine](https://en.wikipedia.org/wiki/Stack_machine). This means all values live on the stack and all operations work with values near the top of the stack. 
 
 ### The stack
-Currently, Distaff VM stack can be up to 32 items deep (this limit will be removed in the future). However, the more stack space a program uses, the longer it will take to execute, and the larger the execution proof will be. So, it pays to use stack space judiciously.
+Currently, Miden VM stack can be up to 32 items deep (this limit will be removed in the future). However, the more stack space a program uses, the longer it will take to execute, and the larger the execution proof will be. So, it pays to use stack space judiciously.
 
 Values on the stack are elements of a [prime field](https://en.wikipedia.org/wiki/Finite_field) with modulus `340282366920938463463374557953744961537` (which can also be written as 2<sup>128</sup> - 45 * 2<sup>40</sup> + 1). This means that all valid values are in the range between `0` and `340282366920938463463374557953744961536` - this covers almost all 128-bit integers.   
 
 All arithmetic operations (e.g., addition, multiplication) happen in the same prime field. This means that overflow happens after a value reaches field modulus. So, for example: `340282366920938463463374557953744961536 + 1 = 0`.
 
-Besides being field elements, values in Distaff VM are untyped. However, some operations expect binary values and will fail if you attempt to execute them using non-binary values. Binary values are values which are either `0` or `1`.
+Besides being field elements, values in Miden VM are untyped. However, some operations expect binary values and will fail if you attempt to execute them using non-binary values. Binary values are values which are either `0` or `1`.
 
 ### Programs
-Programs in Distaff VM are structured as an [execution graph](../core/doc/programs.md) of program blocks each consisting of a sequence of VM [instructions](../core/doc/isa.md). There are two ways of constructing such a graph:
+Programs in Miden VM are structured as an [execution graph](../core/doc/programs.md) of program blocks each consisting of a sequence of VM [instructions](../core/doc/isa.md). There are two ways of constructing such a graph:
 
-1. You can manually build it from blocks of raw Distaff VM instructions.
-2. You can compile [Distaff assembly](../assembly) source code into it.
+1. You can manually build it from blocks of raw Miden VM instructions.
+2. You can compile [Miden assembly](../assembly) source code into it.
 
-The latter approach is strongly encouraged because building programs from raw Distaff VM instructions is tedious, error-prone, and requires an in-depth understanding of VM internals. All examples throughout these docs use assembly syntax.
+The latter approach is strongly encouraged because building programs from raw Miden VM instructions is tedious, error-prone, and requires an in-depth understanding of VM internals. All examples throughout these docs use assembly syntax.
 
 ### Inputs / outputs
 Currently, there are 3 ways to get values onto the stack:
@@ -31,18 +31,18 @@ Currently, there are 3 ways to get values onto the stack:
 Values remaining on the stack after a program is executed can be returned as program outputs. You can specify exactly how many values (from the top of the stack) should be returned. Currently, the number of outputs is limited to 8. A way to return a large number of values (hundreds or thousands) is not yet available, but will be provided in the future.
 
 ### Memory
-Currently, Distaff VM has no random access memory - all values live on the stack. However, a memory module will be added in the future to enable saving values to and reading values from RAM.
+Currently, Miden VM has no random access memory - all values live on the stack. However, a memory module will be added in the future to enable saving values to and reading values from RAM.
 
 ### Program hash
-All Distaff programs can be reduced to a single 32-byte value, called program hash. Once a `Program` object is constructed (e.g. by compiling assembly code), you can access this hash via `Program::hash()` method. This hash value is used by a verifier when they verify program execution. This ensure that the verifier verifies execution of a specific program (e.g. a program which the prover had committed to previously). The methodology for computing program hash is described [here](../core/doc/programs.md#Program-hash).
+All Miden programs can be reduced to a single 32-byte value, called program hash. Once a `Program` object is constructed (e.g. by compiling assembly code), you can access this hash via `Program::hash()` method. This hash value is used by a verifier when they verify program execution. This ensure that the verifier verifies execution of a specific program (e.g. a program which the prover had committed to previously). The methodology for computing program hash is described [here](../core/doc/programs.md#Program-hash).
 
 ## Usage
-Distaff crate exposes `execute()` and `verify()` functions which can be used to execute programs and verify their execution. Both are explained below, but you can also take a look at several working examples [here](../examples).
+Miden crate exposes `execute()` and `verify()` functions which can be used to execute programs and verify their execution. Both are explained below, but you can also take a look at several working examples [here](../examples).
 
 ### Executing a program 
-To execute a program on Distaff VM, you can use `execute()` function. The function takes the following parameters:
+To execute a program on Miden VM, you can use `execute()` function. The function takes the following parameters:
 
-* `program: &Program` - the program to be executed. A program can be constructed manually by building a program execution graph, or compiled from Distaff assembly (see [here](#Writing-programs)).
+* `program: &Program` - the program to be executed. A program can be constructed manually by building a program execution graph, or compiled from Miden assembly (see [here](#Writing-programs)).
 * `inputs: &ProgramInputs` - inputs for the program. These include public inputs used to initialize the stack, as well as secret inputs consumed during program execution (see [here](#Program-inputs)).
 * `num_outputs: usize` - number of items on the stack to be returned as program output. Currently, at most 8 outputs can be returned.
 * `options: &ProofOptions` - config parameters for proof generation. The default options target 96-bit security level.
@@ -63,13 +63,13 @@ Besides the `ProgramInputs::new()` function, you can also use `ProgramInputs::fr
 #### Program execution example
 Here is a simple example of executing a program which pushes two numbers onto the stack and computes their sum:
 ```Rust
-use distaff::{assembly, ProgramInputs, ProofOptions};
+use miden::{assembly, ProgramInputs, ProofOptions};
 
 // this is our program, we compile it from assembly code
 let program = assembly::compile("begin push.3 push.5 add end").unwrap();
 
 // let's execute it
-let (outputs, proof) = distaff::execute(
+let (outputs, proof) = miden::execute(
     &program,
     &ProgramInputs::none(),   // we won't provide any inputs
     1,                        // we'll return one item from the stack
@@ -100,20 +100,20 @@ Notice how the verifier needs to know only the hash of the program - not what th
 #### Verifying execution example
 Here is a simple example of verifying execution of the program from the previous example:
 ```Rust
-use distaff;
+use miden;
 
 let program =   /* value from previous example */;
 let proof =     /* value from previous example */;
 
 // let's verify program execution
-match distaff::verify(*program.hash(), &[], &[8], proof) {
+match miden::verify(*program.hash(), &[], &[8], proof) {
     Ok(_) => println!("Execution verified!"),
     Err(msg) => println!("Something went terribly wrong: {}", msg),
 }
 ```
 
 ## Fibonacci calculator
-Let's write a simple program for Distaff VM (using [Distaff assembly](../assembly). Our program will compute the 5-th [Fibonacci number](https://en.wikipedia.org/wiki/Fibonacci_number):
+Let's write a simple program for Miden VM (using [Miden assembly](../assembly). Our program will compute the 5-th [Fibonacci number](https://en.wikipedia.org/wiki/Fibonacci_number):
 
 ```
 push.0      // stack state: 0
@@ -133,7 +133,7 @@ add         // stack state: 3 2
 ```
 Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.2 drop add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would like like this (this is actually a simplified version of the example in [fibonacci.rs](../examples/src/fibonacci.rs)):
 ```Rust
-use distaff::{assembly, ProgramInputs, ProofOptions};
+use miden::{assembly, ProgramInputs, ProofOptions};
 
 // set the number of terms to compute
 let n = 50;
@@ -153,7 +153,7 @@ let program = assembly::compile(&source).unwrap();
 let inputs = ProgramInputs::from_public(&[1, 0]);
 
 // execute the program
-let (outputs, proof) = distaff::execute(
+let (outputs, proof) = miden::execute(
     &program,
     &inputs,
     1,                        // top stack item is the output
@@ -169,7 +169,7 @@ Above, we used public inputs to initialize the stack rather than using `push` op
 This program is rather efficient: the stack never gets more than 4 items deep. For some benchmarks of executing this program on the VM see [here](../README.md#Performance).
 
 ## Crate features
-Distaff VM can be compiled with the following features:
+Miden VM can be compiled with the following features:
 
 * `std` - enabled by default and relies on the Rust standard library.
 * `concurrent` - implies `std` and also enables multi-threaded proof generation.

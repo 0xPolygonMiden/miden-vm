@@ -1,5 +1,5 @@
-# Programs in Distaff VM
-Distaff VM consumes programs are structured in a form of an execution graph. The purpose of this graph is twofold:
+# Programs in Miden VM
+Miden VM consumes programs are structured in a form of an execution graph. The purpose of this graph is twofold:
 
 1. To describe program execution semantics.
 2. To define structure of program hash.
@@ -146,7 +146,7 @@ A diagram for this program would look like so:
 Here, we have 4 control blocks, where loop blocks B<sub>2</sub> is nested within the *else* branch of block B<sub>1</sub>.
 
 ## Program hash
-All Distaff programs can be reduced to a 32-byte hash represented by a pair of elements in a 128-bit field. The hash is designed to target 128-bit preimage and second preimage resistance, and 64-bit collision resistance.
+All Miden programs can be reduced to a 32-byte hash represented by a pair of elements in a 128-bit field. The hash is designed to target 128-bit preimage and second preimage resistance, and 64-bit collision resistance.
 
 Program hash is computed from hashes of individual program blocks in a manner similar to computing roots of Merkle trees.
 
@@ -171,7 +171,7 @@ Graphically, this process looks like so:
     <img src="assets/prog_hash2.dio.png">
 </p>
 
-As mentioned above, hashes of Distaff programs are computed in a manner similar to roots of Merkle trees. This is by design. Using this property of program hashes, we can selectively reveal any of the program blocks while keeping the rest of the program private (e.g. secret programs with public pre/post conditions).
+As mentioned above, hashes of Miden programs are computed in a manner similar to roots of Merkle trees. This is by design. Using this property of program hashes, we can selectively reveal any of the program blocks while keeping the rest of the program private (e.g. secret programs with public pre/post conditions).
 
 For example, if we wanted to reveal instruction sequence *d<sub>0</sub> . . . d<sub>n</sub>*, we could do so by making intermediate hash *h<sub>1</sub>* public. Then, anyone would be able to reconstruct the root hash from these two pieces of data and be sure that *d<sub>0</sub> . . . d<sub>n</sub>* is, in fact, the last sequence of instructions executed in the program with hash *h<sub>p</sub>*.
 
@@ -284,7 +284,7 @@ For example, let's say we want to hash a sequence of blocks `[b0, b1, b2]`, wher
 5. Finally, we return `state[0]` as the hash of the sequence.
 
 ## Hash computations in the VM
-Distaff VM computes program hash as the program is executed in the VM. Hash computations are structured so that even if a single instruction is added, removed, or replaced with a different instruction, the computed hash will not match the original hash of the program.
+Miden VM computes program hash as the program is executed in the VM. Hash computations are structured so that even if a single instruction is added, removed, or replaced with a different instruction, the computed hash will not match the original hash of the program.
 
 There are several components in the VM which facilitate hash computations:
 

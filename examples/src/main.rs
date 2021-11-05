@@ -1,6 +1,6 @@
-use distaff::StarkProof;
 use examples::{Example, ExampleOptions, ExampleType};
 use log::debug;
+use miden::StarkProof;
 use std::{io::Write, time::Instant};
 use structopt::StructOpt;
 
@@ -43,8 +43,7 @@ fn main() {
     // execute the program and generate the proof of execution
     #[cfg(feature = "std")]
     let now = Instant::now();
-    let (outputs, proof) =
-        distaff::execute(&program, &inputs, num_outputs, &proof_options).unwrap();
+    let (outputs, proof) = miden::execute(&program, &inputs, num_outputs, &proof_options).unwrap();
     debug!("--------------------------------");
     #[cfg(feature = "std")]
     debug!(
@@ -71,7 +70,7 @@ fn main() {
     // results in the expected output
     let proof = StarkProof::from_bytes(&proof_bytes).unwrap();
     let now = Instant::now();
-    match distaff::verify(*program.hash(), &pub_inputs, &outputs, proof) {
+    match miden::verify(*program.hash(), &pub_inputs, &outputs, proof) {
         Ok(_) => debug!("Execution verified in {} ms", now.elapsed().as_millis()),
         Err(msg) => debug!("Failed to verify execution: {}", msg),
     }

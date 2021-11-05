@@ -1,13 +1,13 @@
 [package]
-name = "distaff-assembly"
+name = "miden-assembly"
 version = "0.1.0"
-description = "Distaff VM assembly language"
-authors = ["distaff contributors"]
+description = "Miden VM assembly language"
+authors = ["miden contributors"]
 readme = "README.md"
 license = "MIT"
-repository = "https://github.com/maticnetwork/distaff"
+repository = "https://github.com/maticnetwork/miden"
 categories = ["compilers", "no-std"]
-keywords = ["assembler", "assembly", "distaff", "language"]
+keywords = ["assembler", "assembly", "language", "miden"]
 edition = "2018"
 
 [lib]
@@ -19,5 +19,5 @@ default = ["std"]
 std = ["vm-core/std", "winter-utils/std"]
 
 [dependencies]
-vm-core = { package = "distaff-core", path = "../core", default-features = false }
+vm-core = { package = "miden-core", path = "../core", default-features = false }
 winter-utils = { package = "winter-utils", version = "0.2", default-features = false }

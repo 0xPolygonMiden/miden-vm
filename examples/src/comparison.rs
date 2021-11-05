@@ -1,6 +1,6 @@
 use crate::Example;
-use distaff::{assembly, ProgramInputs};
 use log::debug;
+use miden::{assembly, ProgramInputs};
 
 // EXAMPLE BUILDER
 // ================================================================================================

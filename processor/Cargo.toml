@@ -1,13 +1,13 @@
 [package]
-name = "distaff-processor"
+name = "miden-processor"
 version = "0.1.0"
-description = "Distaff VM processor"
-authors = ["distaff contributors"]
+description = "Miden VM processor"
+authors = ["miden contributors"]
 readme = "README.md"
 license = "MIT"
-repository = "https://github.com/maticnetwork/distaff"
+repository = "https://github.com/maticnetwork/miden"
 categories = ["emulators", "no-std"]
-keywords = ["distaff", "virtual-machine"]
+keywords = ["miden", "virtual-machine"]
 edition = "2018"
 
 [lib]
@@ -19,7 +19,7 @@ default = ["std"]
 std = ["vm-core/std", "winterfell/std"]
 
 [dependencies]
-vm-core = { package = "distaff-core", path = "../core", default-features = false }
+vm-core = { package = "miden-core", path = "../core", default-features = false }
 winterfell = { package = "winter-prover", version = "0.2", default-features = false }
 
 [dev-dependencies]
