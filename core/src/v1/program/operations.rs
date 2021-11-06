@@ -39,7 +39,7 @@ impl fmt::Display for Operation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Noop => write!(f, "noop"),
-            Self::Push(value) => write!(f, "push.{}", value),
+            Self::Push(value) => write!(f, "push({})", value),
             Self::Add => write!(f, "add"),
             Self::Neg => write!(f, "neg"),
             Self::Mul => write!(f, "mul"),

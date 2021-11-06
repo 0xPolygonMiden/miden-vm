@@ -50,6 +50,10 @@ impl Split {
 
 impl fmt::Display for Split {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "if {} else {} end", self.branches[0], self.branches[1])
+        write!(
+            f,
+            "if.true {} else {} end",
+            self.branches[0], self.branches[1]
+        )
     }
 }

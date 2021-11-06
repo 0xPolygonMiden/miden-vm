@@ -1,21 +1,137 @@
-use crate::AssemblyError;
-use vm_core::v1::program::Script;
+use crate::v1::block_parser::parse_blocks;
+use std::collections::BTreeMap;
+use vm_core::v1::program::{blocks::CodeBlock, Script};
 
 mod block_parser;
 
 mod op_parser;
 use op_parser::parse_op_token;
 
-mod token_stream;
-use token_stream::TokenStream;
+mod tokens;
+use tokens::{Token, TokenStream};
+
+mod errors;
+pub use errors::AssemblyError;
 
 #[cfg(test)]
 mod tests;
 
-// ASSEMBLY COMPILER
+// ASSEMBLER
 // ================================================================================================
-pub fn compile_script(source: &str) -> Result<Script, AssemblyError> {
-    let mut tokens = TokenStream::new(source);
-    let root = block_parser::parse_block_body(&mut tokens)?;
-    Ok(Script::new(root))
+
+/// TODO: add comments
+pub struct Assembler {}
+
+impl Assembler {
+    pub fn new() -> Assembler {
+        Self {}
+    }
+
+    /// TODO: add comments
+    pub fn compile_script(&self, source: &str) -> Result<Script, AssemblyError> {
+        let mut tokens = TokenStream::new(source);
+        let mut proc_map = BTreeMap::new();
+
+        // parse procedures and add them to the procedure map; procedures are parsed in the order
+        // in which they appear in the source, and thus, procedures which come later may invoke
+        // preceding procedures
+        while let Some(token) = tokens.read() {
+            match token.parts()[0] {
+                Token::PROC => parse_proc(&mut tokens, &mut proc_map)?,
+                _ => break,
+            }
+        }
+
+        // make sure script body is present
+        let next_token = tokens
+            .read()
+            .ok_or_else(|| AssemblyError::missing_begin(tokens.pos()))?;
+        if next_token.parts()[0] != Token::BEGIN {
+            return Err(AssemblyError::dangling_ops_after_proc(
+                next_token.parts(),
+                tokens.pos(),
+            ));
+        }
+
+        // parse script body and return the resulting script
+        let script_root = parse_script(&mut tokens, &proc_map)?;
+        Ok(Script::new(script_root))
+    }
+}
+
+impl Default for Assembler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// PARSERS
+// ================================================================================================
+
+/// TODO: add comments
+fn parse_script(
+    tokens: &mut TokenStream,
+    proc_map: &BTreeMap<String, CodeBlock>,
+) -> Result<CodeBlock, AssemblyError> {
+    let script_start = tokens.pos();
+    // consume the 'begin' token
+    let header = tokens.read().expect("missing script header");
+    header.validate_begin()?;
+    tokens.advance();
+
+    // parse the script body
+    let root = block_parser::parse_blocks(tokens, proc_map)?;
+
+    // consume the 'end' token
+    match tokens.read() {
+        None => Err(AssemblyError::unmatched_begin(script_start)),
+        Some(token) => match token.parts()[0] {
+            Token::END => token.validate_end(),
+            _ => Err(AssemblyError::unmatched_begin(script_start)),
+        },
+    }?;
+    tokens.advance();
+
+    // make sure there are no instructions after the end
+    if let Some(token) = tokens.read() {
+        return Err(AssemblyError::dangling_ops_after_script(
+            token.parts(),
+            tokens.pos(),
+        ));
+    }
+
+    Ok(root)
+}
+
+/// TODO: add comments
+fn parse_proc(
+    tokens: &mut TokenStream,
+    proc_map: &mut BTreeMap<String, CodeBlock>,
+) -> Result<(), AssemblyError> {
+    let proc_start = tokens.pos();
+
+    // read procedure name and consume the procedure header token
+    let header = tokens.read().expect("missing procedure header");
+    let label = header.parse_proc()?;
+    if proc_map.contains_key(&label) {
+        return Err(AssemblyError::duplicate_proc_label(tokens.pos(), &label));
+    }
+    tokens.advance();
+
+    // parse procedure body
+    let root = parse_blocks(tokens, proc_map)?;
+
+    // consume the 'end' token
+    match tokens.read() {
+        None => Err(AssemblyError::unmatched_proc(proc_start, &label)),
+        Some(token) => match token.parts()[0] {
+            Token::END => token.validate_end(),
+            _ => Err(AssemblyError::unmatched_proc(proc_start, &label)),
+        },
+    }?;
+    tokens.advance();
+
+    // add the procedure to the procedure map and return
+    proc_map.insert(label, root);
+    Ok(())
 }

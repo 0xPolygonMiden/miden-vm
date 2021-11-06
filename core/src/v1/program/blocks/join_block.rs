@@ -37,6 +37,6 @@ impl Join {
 
 impl fmt::Display for Join {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "block {} {} end", self.body[0], self.body[1])
+        write!(f, "join {} {} end", self.body[0], self.body[1])
     }
 }

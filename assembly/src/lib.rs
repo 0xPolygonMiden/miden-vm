@@ -48,7 +48,7 @@ pub fn compile(source: &str) -> Result<Program, AssemblyError> {
 
     // make sure there is nothing left after the last token
     if i < tokens.len() - 1 {
-        return Err(AssemblyError::dangling_instructions(i));
+        return Err(AssemblyError::dangling_ops_after_script(&[], i));
     }
 
     // build and return the program
