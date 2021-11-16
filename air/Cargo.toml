@@ -19,6 +19,6 @@ default = ["std"]
 std = ["vm-core/std", "winter-air/std", "winter-utils/std"]
 
 [dependencies]
-vm-core = { package = "miden-core", path = "../core", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.1", default-features = false }
 winter-air = { package = "winter-air", version = "0.2", default-features = false }
 winter-utils = { package = "winter-utils", version = "0.2", default-features = false }

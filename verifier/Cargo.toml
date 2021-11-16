@@ -19,6 +19,6 @@ default = ["std"]
 std = ["air/std", "assembly/std", "winterfell/std"]
 
 [dependencies]
-air = { package = "miden-air", path = "../air", default-features = false }
-assembly = { package = "miden-assembly", path = "../assembly", default-features = false }
+air = { package = "miden-air", path = "../air", version = "0.1", default-features = false }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.1", default-features = false }
 winterfell = { package = "winter-verifier", version = "0.2", default-features = false }

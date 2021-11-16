@@ -19,7 +19,7 @@ default = ["std"]
 std = ["vm-core/std", "winterfell/std"]
 
 [dependencies]
-vm-core = { package = "miden-core", path = "../core", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.1", default-features = false }
 winterfell = { package = "winter-prover", version = "0.2", default-features = false }
 
 [dev-dependencies]
