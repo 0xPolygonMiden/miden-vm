@@ -3,6 +3,7 @@
 <a href="https://github.com/maticnetwork/miden/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
 <img src="https://github.com/maticnetwork/miden/workflows/CI/badge.svg?branch=main">
 <a href="https://deps.rs/repo/github/maticnetwork/miden"><img src="https://deps.rs/repo/github/maticnetwork/miden/status.svg"></a>
+<a href="https://crates.io/crates/miden"><img src="https://img.shields.io/crates/v/miden"></a>
 
 A STARK-based virtual machine.
 
@@ -170,6 +171,9 @@ Vitalik Buterin's blog series on zk-STARKs:
 * [STARKs, part 1: Proofs with Polynomials](https://vitalik.ca/general/2017/11/09/starks_part_1.html)
 * [STARKs, part 2: Thank Goodness it's FRI-day](https://vitalik.ca/general/2017/11/22/starks_part_2.html)
 * [STARKs, part 3: Into the Weeds](https://vitalik.ca/general/2018/07/21/starks_part_3.html)
+
+Alan Szepieniec's STARK tutorial:
+* [Anatomy of a STARK](https://aszepieniec.github.io/stark-anatomy/)
 
 StarkWare's STARK Math blog series:
 * [STARK Math: The Journey Begins](https://medium.com/starkware/stark-math-the-journey-begins-51bd2b063c71)
