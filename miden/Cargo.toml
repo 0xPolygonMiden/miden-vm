@@ -22,7 +22,7 @@ default = ["std"]
 std = ["air/std", "assembly/std", "hex/std", "processor/std", "prover/std", "verifier/std"]
 
 [dependencies]
-air = { package = "miden-air", path = "../air", default-features = false }
+air = { package = "miden-air", path = "../air", version = "0.1", default-features = false }
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.1", default-features = false }
 processor = { package = "miden-processor", path = "../processor", version = "0.1", default-features = false }
 prover = { package = "winter-prover", version = "0.2", default-features = false }
