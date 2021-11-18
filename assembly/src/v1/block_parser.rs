@@ -27,7 +27,7 @@ pub fn parse_blocks(
     // make sure at least one block has been read
     if blocks.is_empty() {
         let start_op = tokens.read_at(start_pos).expect("no start token");
-        Err(AssemblyError::empty_block(start_op.parts(), start_pos))
+        Err(AssemblyError::empty_block(start_op))
     } else {
         // build a binary tree out of the parsed list of blocks
         Ok(combine_blocks(blocks))
@@ -70,7 +70,7 @@ impl BlockParser {
             Self::IfElse => {
                 // --------------------------------------------------------------------------------
                 // record start of the if-else block and consume the 'if' token
-                let block_start = tokens.pos();
+                let if_start = tokens.pos();
                 tokens.advance();
 
                 // read the `if` clause
@@ -91,10 +91,15 @@ impl BlockParser {
 
                             // consume the `end` token
                             match tokens.read() {
-                                None => Err(AssemblyError::unmatched_else(else_start)),
+                                None => Err(AssemblyError::unmatched_else(
+                                    tokens.read_at(else_start).expect("no else token"),
+                                )),
                                 Some(token) => match token.parts()[0] {
                                     Token::END => token.validate_end(),
-                                    _ => Err(AssemblyError::unmatched_else(else_start)),
+                                    Token::ELSE => Err(AssemblyError::dangling_else(token)),
+                                    _ => Err(AssemblyError::unmatched_else(
+                                        tokens.read_at(else_start).expect("no else token"),
+                                    )),
                                 },
                             }?;
                             tokens.advance();
@@ -110,9 +115,17 @@ impl BlockParser {
                             // when no `else` clause was specified, a Span with a single noop
                             CodeBlock::new_span(vec![Operation::Noop])
                         }
-                        _ => return Err(AssemblyError::unmatched_if(block_start)),
+                        _ => {
+                            return Err(AssemblyError::unmatched_if(
+                                tokens.read_at(if_start).expect("no if token"),
+                            ))
+                        }
                     },
-                    None => return Err(AssemblyError::unmatched_if(block_start)),
+                    None => {
+                        return Err(AssemblyError::unmatched_if(
+                            tokens.read_at(if_start).expect("no if token"),
+                        ))
+                    }
                 };
 
                 Ok(CodeBlock::new_split(t_branch, f_branch))
@@ -120,7 +133,7 @@ impl BlockParser {
             Self::While => {
                 // --------------------------------------------------------------------------------
                 // record start of the while block and consume the 'while' token
-                let block_start = tokens.pos();
+                let while_start = tokens.pos();
                 tokens.advance();
 
                 // read the loop body
@@ -128,10 +141,15 @@ impl BlockParser {
 
                 // consume the `end` token
                 match tokens.read() {
-                    None => Err(AssemblyError::unmatched_while(block_start)),
+                    None => Err(AssemblyError::unmatched_while(
+                        tokens.read_at(while_start).expect("no if token"),
+                    )),
                     Some(token) => match token.parts()[0] {
                         Token::END => token.validate_end(),
-                        _ => Err(AssemblyError::unmatched_while(block_start)),
+                        Token::ELSE => Err(AssemblyError::dangling_else(token)),
+                        _ => Err(AssemblyError::unmatched_while(
+                            tokens.read_at(while_start).expect("no if token"),
+                        )),
                     },
                 }?;
                 tokens.advance();
@@ -141,7 +159,7 @@ impl BlockParser {
             Self::Repeat(iter_count) => {
                 // --------------------------------------------------------------------------------
                 // record start of the repeat block and consume the 'repeat' token
-                let block_start = tokens.pos();
+                let repeat_start = tokens.pos();
                 tokens.advance();
 
                 // read the loop body
@@ -149,10 +167,15 @@ impl BlockParser {
 
                 // consume the `end` token
                 match tokens.read() {
-                    None => Err(AssemblyError::unmatched_while(block_start)),
+                    None => Err(AssemblyError::unmatched_repeat(
+                        tokens.read_at(repeat_start).expect("no repeat token"),
+                    )),
                     Some(token) => match token.parts()[0] {
                         Token::END => token.validate_end(),
-                        _ => Err(AssemblyError::unmatched_while(block_start)),
+                        Token::ELSE => Err(AssemblyError::dangling_else(token)),
+                        _ => Err(AssemblyError::unmatched_repeat(
+                            tokens.read_at(repeat_start).expect("no repeat token"),
+                        )),
                     },
                 }?;
                 tokens.advance();
@@ -174,7 +197,9 @@ impl BlockParser {
                 // retrieve the procedure block from the proc map and consume the 'exec' token
                 let proc_root = proc_map
                     .get(label)
-                    .ok_or_else(|| AssemblyError::undefined_proc(tokens.pos(), label))?
+                    .ok_or_else(|| {
+                        AssemblyError::undefined_proc(tokens.read().expect("no exec token"), label)
+                    })?
                     .clone();
                 tokens.advance();
                 Ok(proc_root)
@@ -211,6 +236,7 @@ impl BlockParser {
                     token.validate_end()?;
                     None
                 }
+                Token::BEGIN | Token::PROC => None,
                 _ => Some(Self::Span),
             },
         };

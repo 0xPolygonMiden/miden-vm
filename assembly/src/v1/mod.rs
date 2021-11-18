@@ -29,7 +29,7 @@ impl Assembler {
 
     /// TODO: add comments
     pub fn compile_script(&self, source: &str) -> Result<Script, AssemblyError> {
-        let mut tokens = TokenStream::new(source);
+        let mut tokens = TokenStream::new(source)?;
         let mut proc_map = BTreeMap::new();
 
         // parse procedures and add them to the procedure map; procedures are parsed in the order
@@ -45,12 +45,9 @@ impl Assembler {
         // make sure script body is present
         let next_token = tokens
             .read()
-            .ok_or_else(|| AssemblyError::missing_begin(tokens.pos()))?;
+            .ok_or_else(|| AssemblyError::unexpected_eof(tokens.pos()))?;
         if next_token.parts()[0] != Token::BEGIN {
-            return Err(AssemblyError::dangling_ops_after_proc(
-                next_token.parts(),
-                tokens.pos(),
-            ));
+            return Err(AssemblyError::unexpected_token(next_token, Token::BEGIN));
         }
 
         // parse script body and return the resulting script
@@ -84,20 +81,22 @@ fn parse_script(
 
     // consume the 'end' token
     match tokens.read() {
-        None => Err(AssemblyError::unmatched_begin(script_start)),
+        None => Err(AssemblyError::unmatched_begin(
+            tokens.read_at(script_start).expect("no begin token"),
+        )),
         Some(token) => match token.parts()[0] {
             Token::END => token.validate_end(),
-            _ => Err(AssemblyError::unmatched_begin(script_start)),
+            Token::ELSE => Err(AssemblyError::dangling_else(token)),
+            _ => Err(AssemblyError::unmatched_begin(
+                tokens.read_at(script_start).expect("no begin token"),
+            )),
         },
     }?;
     tokens.advance();
 
     // make sure there are no instructions after the end
     if let Some(token) = tokens.read() {
-        return Err(AssemblyError::dangling_ops_after_script(
-            token.parts(),
-            tokens.pos(),
-        ));
+        return Err(AssemblyError::dangling_ops_after_script(token));
     }
 
     Ok(root)
@@ -114,7 +113,7 @@ fn parse_proc(
     let header = tokens.read().expect("missing procedure header");
     let label = header.parse_proc()?;
     if proc_map.contains_key(&label) {
-        return Err(AssemblyError::duplicate_proc_label(tokens.pos(), &label));
+        return Err(AssemblyError::duplicate_proc_label(header, &label));
     }
     tokens.advance();
 
@@ -123,10 +122,14 @@ fn parse_proc(
 
     // consume the 'end' token
     match tokens.read() {
-        None => Err(AssemblyError::unmatched_proc(proc_start, &label)),
+        None => Err(AssemblyError::unmatched_proc(
+            tokens.read_at(proc_start).expect("no proc token"),
+        )),
         Some(token) => match token.parts()[0] {
             Token::END => token.validate_end(),
-            _ => Err(AssemblyError::unmatched_proc(proc_start, &label)),
+            _ => Err(AssemblyError::unmatched_proc(
+                tokens.read_at(proc_start).expect("no proc token"),
+            )),
         },
     }?;
     tokens.advance();

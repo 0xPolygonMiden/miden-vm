@@ -17,7 +17,7 @@ pub fn parse_op_token(op: &Token, span_ops: &mut Vec<Operation>) -> Result<(), A
         "neg" => parse_neg(span_ops, op),
         "inv" => parse_inv(span_ops, op),
 
-        _ => return Err(AssemblyError::invalid_op(op.parts(), op.pos())),
+        _ => return Err(AssemblyError::invalid_op(op)),
     }?;
 
     Ok(())
@@ -39,7 +39,7 @@ fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyE
 /// Appends ADD operation to the span block.
 fn parse_add(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op.parts(), op.pos()));
+        return Err(AssemblyError::extra_param(op));
     }
     span_ops.push(Operation::Add);
     Ok(())
@@ -48,7 +48,7 @@ fn parse_add(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyEr
 /// Appends NEG ADD operations to the span block.
 fn parse_sub(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op.parts(), op.pos()));
+        return Err(AssemblyError::extra_param(op));
     }
     span_ops.push(Operation::Neg);
     span_ops.push(Operation::Add);
@@ -58,7 +58,7 @@ fn parse_sub(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyEr
 /// Appends MUL operation to the span block.
 fn parse_mul(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op.parts(), op.pos()));
+        return Err(AssemblyError::extra_param(op));
     }
     span_ops.push(Operation::Mul);
     Ok(())
@@ -67,7 +67,7 @@ fn parse_mul(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyEr
 /// Appends INV MUL operations to the span block.
 fn parse_div(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op.parts(), op.pos()));
+        return Err(AssemblyError::extra_param(op));
     }
     span_ops.push(Operation::Inv);
     span_ops.push(Operation::Mul);
@@ -77,7 +77,7 @@ fn parse_div(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyEr
 /// Appends NEG operation to the span block.
 fn parse_neg(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op.parts(), op.pos()));
+        return Err(AssemblyError::extra_param(op));
     }
     span_ops.push(Operation::Neg);
     Ok(())
@@ -86,7 +86,7 @@ fn parse_neg(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyEr
 /// Appends INV operation to the span block.
 fn parse_inv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op.parts(), op.pos()));
+        return Err(AssemblyError::extra_param(op));
     }
     span_ops.push(Operation::Inv);
     Ok(())
@@ -98,34 +98,35 @@ fn parse_inv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyEr
 fn read_element(op: &Token) -> Result<BaseElement, AssemblyError> {
     // make sure exactly 1 parameter was supplied
     if op.num_parts() == 1 {
-        return Err(AssemblyError::missing_param(op.parts(), op.pos()));
+        return Err(AssemblyError::missing_param(op));
     } else if op.num_parts() > 2 {
-        return Err(AssemblyError::extra_param(op.parts(), op.pos()));
+        return Err(AssemblyError::extra_param(op));
     }
 
     let result = if op.parts()[1].starts_with("0x") {
         // parse hexadecimal number
         match u64::from_str_radix(&op.parts()[1][2..], 16) {
             Ok(i) => i,
-            Err(_) => return Err(AssemblyError::invalid_param(op.parts(), op.pos())),
+            Err(_) => return Err(AssemblyError::invalid_param(op, 1)),
         }
     } else {
         // parse decimal number
         match op.parts()[1].parse::<u64>() {
             Ok(i) => i,
-            Err(_) => return Err(AssemblyError::invalid_param(op.parts(), op.pos())),
+            Err(_) => return Err(AssemblyError::invalid_param(op, 1)),
         }
     };
 
     // make sure the value is a valid field element
     if result >= BaseElement::MODULUS {
-        return Err(AssemblyError::invalid_param_reason(
-            op.parts(),
-            op.pos(),
+        return Err(AssemblyError::invalid_param_with_reason(
+            op,
+            1,
             format!(
                 "parameter value must be smaller than {}",
                 BaseElement::MODULUS
-            ),
+            )
+            .as_str(),
         ));
     }
 

@@ -1,4 +1,4 @@
-use super::Token;
+use super::{AssemblyError, Token};
 use core::fmt;
 
 // TOKEN STREAM
@@ -16,16 +16,21 @@ impl<'a> TokenStream<'a> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// TODO: add comments
-    pub fn new(source: &'a str) -> Self {
+    pub fn new(source: &'a str) -> Result<Self, AssemblyError> {
+        if source.is_empty() {
+            return Err(AssemblyError::empty_source());
+        }
         let tokens = source.split_whitespace().collect::<Vec<_>>();
-        // TODO: make sure there is at least one valid token
+        if tokens.is_empty() {
+            return Err(AssemblyError::empty_source());
+        }
         let current = Token::new(tokens[0], 0);
-        Self {
+        Ok(Self {
             tokens,
             current,
             pos: 0,
             temp: Token::default(),
-        }
+        })
     }
 
     // PUBLIC ACCESSORS
