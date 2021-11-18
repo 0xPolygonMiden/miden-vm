@@ -66,6 +66,23 @@ impl Span {
     pub fn hash(&self) -> Digest {
         self.hash
     }
+
+    /// Returns a new [Span] block instantiated with operations from this block repeated the
+    /// specified number of times.
+    pub fn replicate(&self, num_copies: usize) -> Self {
+        let mut ops = Vec::with_capacity(self.ops.len() * num_copies);
+        for _ in 0..num_copies {
+            ops.extend_from_slice(&self.ops);
+        }
+        Self::new(ops)
+    }
+
+    /// Appends the operations from the provided [Span] to this [Span].
+    pub fn append(&mut self, mut other: Self) {
+        self.ops.append(&mut other.ops);
+        let op_batches = batch_ops(&self.ops);
+        self.hash = Rp62_248::hash_elements(flatten_slice_elements(&op_batches));
+    }
 }
 
 impl fmt::Display for Span {

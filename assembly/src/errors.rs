@@ -13,6 +13,14 @@ impl AssemblyError {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
+    pub fn unexpected_eof(step: usize) -> AssemblyError {
+        AssemblyError {
+            message: "unexpected EOF".to_string(),
+            step,
+            op: String::from(""),
+        }
+    }
+
     pub fn empty_program() -> AssemblyError {
         AssemblyError {
             message: String::from("a program must contain at least one instruction"),
@@ -42,14 +50,6 @@ impl AssemblyError {
             message: String::from("a program must end with an 'end' instruction"),
             step: 0,
             op: String::from(op),
-        }
-    }
-
-    pub fn dangling_instructions(step: usize) -> AssemblyError {
-        AssemblyError {
-            message: "dangling instructions after program end".to_string(),
-            step,
-            op: String::from("end"),
         }
     }
 
@@ -163,6 +163,76 @@ impl AssemblyError {
             message: "else without matching end".to_string(),
             step,
             op: String::from("else"),
+        }
+    }
+
+    // SCRIPT
+    // --------------------------------------------------------------------------------------------
+
+    pub fn missing_begin(step: usize) -> AssemblyError {
+        AssemblyError {
+            message: "missing script body".to_string(),
+            step,
+            op: "begin".to_string(),
+        }
+    }
+
+    pub fn unmatched_begin(step: usize) -> AssemblyError {
+        AssemblyError {
+            message: "begin without matching end".to_string(),
+            step,
+            op: "begin".to_string(),
+        }
+    }
+
+    pub fn dangling_ops_after_script(op: &[&str], step: usize) -> AssemblyError {
+        AssemblyError {
+            message: "dangling instructions after script end".to_string(),
+            step,
+            op: op.join("."),
+        }
+    }
+
+    // PROCEDURES
+    // --------------------------------------------------------------------------------------------
+
+    pub fn duplicate_proc_label(step: usize, label: &str) -> AssemblyError {
+        AssemblyError {
+            message: format!("duplicate procedure label: {}", label),
+            step,
+            op: format!("proc.{}", label),
+        }
+    }
+
+    pub fn invalid_proc_label(label: &str, op: &[&str], step: usize) -> AssemblyError {
+        AssemblyError {
+            message: format!("invalid procedure label: {}", label),
+            step,
+            op: op.join("."),
+        }
+    }
+
+    pub fn unmatched_proc(step: usize, label: &str) -> AssemblyError {
+        AssemblyError {
+            message: "proc without matching end".to_string(),
+            step,
+            op: format!("proc.{}", label),
+        }
+    }
+
+    pub fn undefined_proc(step: usize, label: &str) -> AssemblyError {
+        AssemblyError {
+            message: format!("undefined procedure: {}", label),
+            step,
+            op: format!("exec.{}", label),
+        }
+    }
+
+    pub fn dangling_ops_after_proc(op: &[&str], step: usize) -> AssemblyError {
+        AssemblyError {
+            message: "dangling instructions after procedure end".to_string(),
+            step,
+            op: op.join("."),
         }
     }
 
