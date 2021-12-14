@@ -7,7 +7,7 @@ use winter_utils::group_vector_elements;
 // ================================================================================================
 
 /// TODO: Add comments
-pub fn parse_blocks(
+pub fn parse_code_blocks(
     tokens: &mut TokenStream,
     proc_map: &BTreeMap<String, CodeBlock>,
 ) -> Result<CodeBlock, AssemblyError> {
@@ -74,7 +74,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the `if` clause
-                let t_branch = parse_blocks(tokens, proc_map)?;
+                let t_branch = parse_code_blocks(tokens, proc_map)?;
 
                 // build the `else` clause; if the else clause is specified, then read it;
                 // otherwise, set to a Span with a single noop
@@ -87,7 +87,7 @@ impl BlockParser {
                             tokens.advance();
 
                             // parse the `false` branch
-                            let f_branch = parse_blocks(tokens, proc_map)?;
+                            let f_branch = parse_code_blocks(tokens, proc_map)?;
 
                             // consume the `end` token
                             match tokens.read() {
@@ -137,7 +137,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the loop body
-                let loop_body = parse_blocks(tokens, proc_map)?;
+                let loop_body = parse_code_blocks(tokens, proc_map)?;
 
                 // consume the `end` token
                 match tokens.read() {
@@ -163,7 +163,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the loop body
-                let loop_body = parse_blocks(tokens, proc_map)?;
+                let loop_body = parse_code_blocks(tokens, proc_map)?;
 
                 // consume the `end` token
                 match tokens.read() {

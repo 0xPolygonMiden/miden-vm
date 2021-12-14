@@ -6,7 +6,7 @@ fn single_span() {
     let assembler = super::Assembler::new();
     let source = "begin push.1 push.2 add end";
     let script = assembler.compile_script(source).unwrap();
-    let expected = "begin span push(1) push(2) add end end";
+    let expected = "begin span pad incr push(2) add end end";
     assert_eq!(expected, format!("{}", script));
 }
 
@@ -15,24 +15,24 @@ fn span_and_simple_if() {
     let assembler = super::Assembler::new();
 
     // if with else
-    let source = "begin push.1 push.2 if.true add else mul end end";
+    let source = "begin push.2 push.3 if.true add else mul end end";
     let script = assembler.compile_script(source).unwrap();
     let expected = "\
         begin \
             join \
-                span push(1) push(2) end \
+                span push(2) push(3) end \
                 if.true span add end else span mul end end \
             end \
         end";
     assert_eq!(expected, format!("{}", script));
 
     // if without else
-    let source = "begin push.1 push.2 if.true add end end";
+    let source = "begin push.2 push.3 if.true add end end";
     let script = assembler.compile_script(source).unwrap();
     let expected = "\
         begin \
             join \
-                span push(1) push(2) end \
+                span push(2) push(3) end \
                 if.true span add end else span noop end end \
             end \
         end";
@@ -48,7 +48,7 @@ fn nested_control_blocks() {
 
     // if with else
     let source = "begin \
-        push.1 push.2 \
+        push.2 push.3 \
         if.true \
             add while.true push.7 push.11 add end \
         else \
@@ -61,7 +61,7 @@ fn nested_control_blocks() {
         begin \
             join \
                 join \
-                    span push(1) push(2) end \
+                    span push(2) push(3) end \
                     if.true \
                         join \
                             span add end \
@@ -86,9 +86,9 @@ fn nested_control_blocks() {
 #[test]
 fn script_with_one_procedure() {
     let assembler = super::Assembler::new();
-    let source = "proc.foo push.3 push.7 mul end begin push.1 push.2 add exec.foo end";
+    let source = "proc.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end";
     let script = assembler.compile_script(source).unwrap();
-    let expected = "begin span push(1) push(2) add push(3) push(7) mul end end";
+    let expected = "begin span push(2) push(3) add push(3) push(7) mul end end";
     assert_eq!(expected, format!("{}", script));
 }
 
@@ -98,10 +98,10 @@ fn script_with_nested_procedure() {
     let source = "\
         proc.foo push.3 push.7 mul end \
         proc.bar push.5 exec.foo add end \
-        begin push.1 push.2 add exec.foo push.11 exec.bar sub end";
+        begin push.2 push.4 add exec.foo push.11 exec.bar sub end";
     let script = assembler.compile_script(source).unwrap();
     let expected = "begin \
-        span push(1) push(2) add push(3) push(7) mul \
+        span push(2) push(4) add push(3) push(7) mul \
         push(11) push(5) push(3) push(7) mul add neg add \
         end end";
     assert_eq!(expected, format!("{}", script));
