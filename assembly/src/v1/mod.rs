@@ -1,11 +1,8 @@
-use crate::v1::block_parser::parse_blocks;
 use std::collections::BTreeMap;
 use vm_core::v1::program::{blocks::CodeBlock, Script};
 
-mod block_parser;
-
-mod op_parser;
-use op_parser::parse_op_token;
+mod parsers;
+use parsers::parse_code_blocks;
 
 mod tokens;
 use tokens::{Token, TokenStream};
@@ -77,7 +74,7 @@ fn parse_script(
     tokens.advance();
 
     // parse the script body
-    let root = block_parser::parse_blocks(tokens, proc_map)?;
+    let root = parse_code_blocks(tokens, proc_map)?;
 
     // consume the 'end' token
     match tokens.read() {
@@ -118,7 +115,7 @@ fn parse_proc(
     tokens.advance();
 
     // parse procedure body
-    let root = parse_blocks(tokens, proc_map)?;
+    let root = parse_code_blocks(tokens, proc_map)?;
 
     // consume the 'end' token
     match tokens.read() {
