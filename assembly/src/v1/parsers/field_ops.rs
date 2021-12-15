@@ -162,7 +162,7 @@ pub fn parse_xor(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
         Operation::Dup0,
         Operation::Dup2,
         Operation::Or,
-        Operation::Movdn2,
+        Operation::MovDn2,
         Operation::And,
         Operation::Not,
         Operation::And,
