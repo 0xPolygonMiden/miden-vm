@@ -20,7 +20,23 @@ impl<'a> TokenStream<'a> {
         if source.is_empty() {
             return Err(AssemblyError::empty_source());
         }
-        let tokens = source.split_whitespace().collect::<Vec<_>>();
+
+        let mut in_comment = false;
+        let tokens = source
+            .split_whitespace()
+            .filter(|&token| {
+                if token == "#" {
+                    in_comment = !in_comment;
+                } else if !in_comment {
+                    return true;
+                }
+                false
+            })
+            .collect::<Vec<_>>();
+
+        if in_comment {
+            return Err(AssemblyError::unmatched_comment(tokens.len()));
+        }
         if tokens.is_empty() {
             return Err(AssemblyError::empty_source());
         }

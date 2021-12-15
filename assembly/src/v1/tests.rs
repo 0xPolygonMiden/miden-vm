@@ -107,6 +107,76 @@ fn script_with_nested_procedure() {
     assert_eq!(expected, format!("{}", script));
 }
 
+// COMMENTS
+// ================================================================================================
+
+#[test]
+fn comment_simple() {
+    let assembler = super::Assembler::new();
+    let source = "begin # simple comment # push.1 push.2 add end";
+    let script = assembler.compile_script(source).unwrap();
+    let expected = "begin span pad incr push(2) add end end";
+    assert_eq!(expected, format!("{}", script));
+}
+
+#[test]
+fn comment_in_nested_control_blocks() {
+    let assembler = super::Assembler::new();
+
+    // if with else
+    let source = "begin \
+        push.1 push.2 \
+        if.true \
+            # nested comment # \
+            add while.true push.7 push.11 add end \
+        else \
+            mul repeat.2 push.8 end if.true mul end  \
+            # nested comment # \
+        end
+        push.3 add
+        end";
+    let script = assembler.compile_script(source).unwrap();
+    let expected = "\
+        begin \
+            join \
+                join \
+                    span pad incr push(2) end \
+                    if.true \
+                        join \
+                            span add end \
+                            while.true span push(7) push(11) add end end \
+                        end \
+                    else \
+                        join \
+                            span mul push(8) push(8) end \
+                            if.true span mul end else span noop end end \
+                        end \
+                    end \
+                end \
+            span push(3) add end \
+            end \
+        end";
+    assert_eq!(expected, format!("{}", script));
+}
+
+#[test]
+fn comment_before_script() {
+    let assembler = super::Assembler::new();
+    let source = " # starting comment # begin push.1 push.2 add end";
+    let script = assembler.compile_script(source).unwrap();
+    let expected = "begin span pad incr push(2) add end end";
+    assert_eq!(expected, format!("{}", script));
+}
+
+#[test]
+fn comment_after_script() {
+    let assembler = super::Assembler::new();
+    let source = "begin push.1 push.2 add end # closing comment # ";
+    let script = assembler.compile_script(source).unwrap();
+    let expected = "begin span pad incr push(2) add end end";
+    assert_eq!(expected, format!("{}", script));
+}
+
 // ERRORS
 // ================================================================================================
 
@@ -297,5 +367,26 @@ fn invalid_while() {
     assert!(script.is_err());
     if let Err(error) = script {
         assert_eq!(error.message(), "while without matching end");
+    }
+}
+
+#[test]
+fn invalid_comment() {
+    let assembler = super::Assembler::new();
+
+    // comment not closed
+    let source = "begin # unclosed comment push.1 push.2 add end";
+    let script = assembler.compile_script(source);
+    assert!(script.is_err());
+    if let Err(error) = script {
+        assert_eq!(error.message(), "# comment delimiter without matching #");
+    }
+
+    // comment missing whitespace
+    let source = "begin #comment push.1 push.2 add end";
+    let script = assembler.compile_script(source);
+    assert!(script.is_err());
+    if let Err(error) = script {
+        assert_eq!(error.message(), "instruction '#comment' is invalid");
     }
 }
