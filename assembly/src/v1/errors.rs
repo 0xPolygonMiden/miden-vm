@@ -144,6 +144,14 @@ impl AssemblyError {
         }
     }
 
+    pub fn unmatched_comment(step: usize) -> Self {
+        AssemblyError {
+            message: "# comment delimiter without matching #".to_string(),
+            step,
+            op: "".to_string(),
+        }
+    }
+
     // SCRIPT
     // --------------------------------------------------------------------------------------------
 
