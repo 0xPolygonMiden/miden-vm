@@ -6,8 +6,11 @@ use vm_core::{
 };
 
 mod blocks;
+mod crypto_ops;
 mod field_ops;
 mod io_ops;
+mod stack_ops;
+mod u32_ops;
 
 // OP PARSER
 // ================================================================================================
@@ -39,8 +42,72 @@ fn parse_op_token(op: &Token, span_ops: &mut Vec<Operation>) -> Result<(), Assem
         "gte" => field_ops::parse_gte(span_ops, op),
         "eqw" => field_ops::parse_eqw(span_ops, op),
 
+        // ----- u32 operations -------------------------------------------------------------------
+        "u32test" => u32_ops::parse_u32test(span_ops, op),
+        "u32testw" => u32_ops::parse_u32testw(span_ops, op),
+        "u32assert" => u32_ops::parse_u32assert(span_ops, op),
+        "u32assertw" => u32_ops::parse_u32assertw(span_ops, op),
+        "u32cast" => u32_ops::parse_u32cast(span_ops, op),
+        "u32split" => u32_ops::parse_u32split(span_ops, op),
+
+        "u32add" => u32_ops::parse_u32add(span_ops, op),
+        "u32addc" => u32_ops::parse_u32addc(span_ops, op),
+        "u32sub" => u32_ops::parse_u32sub(span_ops, op),
+        "u32mul" => u32_ops::parse_u32mul(span_ops, op),
+        "u32madd" => u32_ops::parse_u32madd(span_ops, op),
+        "u32div" => u32_ops::parse_u32div(span_ops, op),
+        "u32mod" => u32_ops::parse_u32mod(span_ops, op),
+
+        "u32and" => u32_ops::parse_u32and(span_ops, op),
+        "u32or" => u32_ops::parse_u32or(span_ops, op),
+        "u32xor" => u32_ops::parse_u32xor(span_ops, op),
+        "u32not" => u32_ops::parse_u32not(span_ops, op),
+        "u32shr" => u32_ops::parse_u32shr(span_ops, op),
+        "u32shl" => u32_ops::parse_u32shl(span_ops, op),
+        "u32rotr" => u32_ops::parse_u32rotr(span_ops, op),
+        "u32rotl" => u32_ops::parse_u32rotl(span_ops, op),
+        "u32revb" => u32_ops::parse_u32revb(span_ops, op),
+
+        "u32eq" => u32_ops::parse_u32eq(span_ops, op),
+        "u32neq" => u32_ops::parse_u32neq(span_ops, op),
+        "u32lt" => u32_ops::parse_u32lt(span_ops, op),
+        "u32lte" => u32_ops::parse_u32lte(span_ops, op),
+        "u32gt" => u32_ops::parse_u32gt(span_ops, op),
+        "u32gte" => u32_ops::parse_u32gte(span_ops, op),
+        "u32min" => u32_ops::parse_u32min(span_ops, op),
+        "u32max" => u32_ops::parse_u32max(span_ops, op),
+
+        // ----- stack manipulation ---------------------------------------------------------------
+        "drop" => stack_ops::parse_drop(span_ops, op),
+        "dropw" => stack_ops::parse_dropw(span_ops, op),
+        "padw" => stack_ops::parse_padw(span_ops, op),
+        "dup" => stack_ops::parse_dup(span_ops, op),
+        "dupw" => stack_ops::parse_dupw(span_ops, op),
+        "swap" => stack_ops::parse_swap(span_ops, op),
+        "swapw" => stack_ops::parse_swapw(span_ops, op),
+        "movup" => stack_ops::parse_movup(span_ops, op),
+        "movupw" => stack_ops::parse_movupw(span_ops, op),
+        "movdn" => stack_ops::parse_movdn(span_ops, op),
+        "movdnw" => stack_ops::parse_movdnw(span_ops, op),
+
+        "cswap" => stack_ops::parse_cswap(span_ops, op),
+        "cswapw" => stack_ops::parse_cswapw(span_ops, op),
+        "cdrop" => stack_ops::parse_cdrop(span_ops, op),
+        "cdropw" => stack_ops::parse_cdropw(span_ops, op),
+
         // ----- input / output operations --------------------------------------------------------
         "push" => io_ops::parse_push(span_ops, op),
+        "pushw" => io_ops::parse_pushw(span_ops, op),
+        "env" => io_ops::parse_env(span_ops, op),
+        "read" => io_ops::parse_read(span_ops, op),
+        "readw" => io_ops::parse_readw(span_ops, op),
+        "mem" => io_ops::parse_mem(span_ops, op),
+
+        // ----- cryptographic operations ---------------------------------------------------------
+        "rphash" => crypto_ops::parse_rphash(span_ops, op),
+        "rpperm" => crypto_ops::parse_rpperm(span_ops, op),
+
+        "mtree" => crypto_ops::parse_mtree(span_ops, op),
 
         // ----- catch all ------------------------------------------------------------------------
         _ => return Err(AssemblyError::invalid_op(op)),
