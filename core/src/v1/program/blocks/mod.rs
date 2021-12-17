@@ -12,7 +12,7 @@ pub use call_block::Call;
 pub use join_block::Join;
 pub use loop_block::Loop;
 pub use proxy_block::Proxy;
-pub use span_block::Span;
+pub use span_block::{OpBatch, Span};
 pub use split_block::Split;
 
 // PROGRAM BLOCK

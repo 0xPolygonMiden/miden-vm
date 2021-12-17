@@ -11,9 +11,12 @@ const GROUP_SIZE: usize = 9;
 /// Maximum number of groups per batch.
 const BATCH_SIZE: usize = 8;
 
+/// Maximum number of operations which can fit into a single operation batch.
+const MAX_OPS_PER_BATCH: usize = GROUP_SIZE * BATCH_SIZE;
+
 // SPAN BLOCK
 // ================================================================================================
-/// A code block used to describe a linear sequence of operations.
+/// A code block used to describe a linear sequence of operations (i.e., no branching or loops).
 ///
 /// When the VM executes a Span block, it breaks the sequence of operations into batches and
 /// groups according to the following rules:
@@ -30,13 +33,13 @@ const BATCH_SIZE: usize = 8;
 /// If a sequence of operations does not have any operations which carry immediate values, then
 /// up to 72 operations can fit into a single batch.
 ///
-/// From the user's perspective, all operations are executed in order, however, the VM may insert
-/// NOOPs to ensure proper alignment of all operations in the sequence.
+/// From the user's perspective, all operations are executed in order, however, the assembler may
+/// insert NOOPs to ensure proper alignment of all operations in the sequence.
 ///
 /// TODO: describe how Span hash is computed.
 #[derive(Clone, Debug)]
 pub struct Span {
-    ops: Vec<Operation>,
+    op_batches: Vec<OpBatch>,
     hash: Digest,
 }
 
@@ -51,12 +54,8 @@ impl Span {
     /// - `operations` vector contains any number of system operations.
     pub fn new(operations: Vec<Operation>) -> Self {
         assert!(!operations.is_empty()); // TODO: return error
-        let op_batches = batch_ops(&operations);
-        let hash = Rp62_248::hash_elements(flatten_slice_elements(&op_batches));
-        Self {
-            ops: operations,
-            hash,
-        }
+        let (op_batches, hash) = batch_ops(operations);
+        Self { op_batches, hash }
     }
 
     // PUBLIC ACCESSORS
@@ -67,38 +66,97 @@ impl Span {
         self.hash
     }
 
+    /// Returns list of operation batches contained in this span block.
+    pub fn op_batches(&self) -> &[OpBatch] {
+        &self.op_batches
+    }
+
+    /// Returns a list of operations contained in this span block.
+    pub fn get_ops(&self) -> Vec<Operation> {
+        let mut ops = Vec::with_capacity(self.op_batches.len() * MAX_OPS_PER_BATCH);
+        for batch in self.op_batches.iter() {
+            ops.extend_from_slice(&batch.ops);
+        }
+        ops
+    }
+
+    // SPAN MUTATORS
+    // --------------------------------------------------------------------------------------------
+
     /// Returns a new [Span] block instantiated with operations from this block repeated the
     /// specified number of times.
     pub fn replicate(&self, num_copies: usize) -> Self {
-        let mut ops = Vec::with_capacity(self.ops.len() * num_copies);
+        let own_ops = self.get_ops();
+        let mut ops = Vec::with_capacity(own_ops.len() * num_copies);
         for _ in 0..num_copies {
-            ops.extend_from_slice(&self.ops);
+            ops.extend_from_slice(&own_ops);
         }
         Self::new(ops)
     }
 
     /// Appends the operations from the provided [Span] to this [Span].
-    pub fn append(&mut self, mut other: Self) {
-        self.ops.append(&mut other.ops);
-        let op_batches = batch_ops(&self.ops);
-        self.hash = Rp62_248::hash_elements(flatten_slice_elements(&op_batches));
+    pub fn append(&mut self, other: Self) {
+        let mut ops = self.get_ops();
+        for batch in other.op_batches {
+            ops.extend_from_slice(&batch.ops);
+        }
+        let (op_batches, hash) = batch_ops(ops);
+        self.op_batches = op_batches;
+        self.hash = hash;
     }
 }
 
 impl fmt::Display for Span {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "span {}", self.ops[0])?;
-        for op in self.ops.iter().skip(1) {
-            write!(f, " {}", op)?;
+        write!(f, "span")?;
+        for batch in self.op_batches.iter() {
+            for op in batch.ops.iter() {
+                write!(f, " {}", op)?;
+            }
         }
         write!(f, " end")
+    }
+}
+
+// OPERATION BATCH
+// ================================================================================================
+
+/// A batch of operations in a [Span] block.
+///
+/// An operation batch consists of up to 8 operation groups, with each group containing up to 9
+/// operations or a single immediate value.
+#[derive(Clone, Debug)]
+pub struct OpBatch {
+    ops: Vec<Operation>,
+    groups: [BaseElement; BATCH_SIZE],
+}
+
+impl OpBatch {
+    /// Returns a new operation batch.
+    fn new() -> Self {
+        Self {
+            ops: Vec::new(),
+            groups: [BaseElement::ZERO; BATCH_SIZE],
+        }
+    }
+
+    /// Returns a list of operations contained in this batch.
+    pub fn ops(&self) -> &[Operation] {
+        &self.ops
+    }
+
+    /// Returns a list of operation groups contained in this batch.
+    ///
+    /// Each group is represented by a single field element.
+    pub fn groups(&self) -> [BaseElement; BATCH_SIZE] {
+        self.groups
     }
 }
 
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn batch_ops(ops: &[Operation]) -> Vec<[BaseElement; BATCH_SIZE]> {
+fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
     // encodes a group of opcodes; up to 7 opcodes can fit into one group
     let mut op_group = 0u64;
 
@@ -112,50 +170,55 @@ fn batch_ops(ops: &[Operation]) -> Vec<[BaseElement; BATCH_SIZE]> {
 
     // current batch of operations; each batch can contain a combination of op groups and immediate
     // values; total number of slots in a batch is 8.
-    let mut batch = [BaseElement::ZERO; BATCH_SIZE];
-    let mut batches = Vec::<[BaseElement; BATCH_SIZE]>::new();
+    let mut batch = OpBatch::new();
+    let mut batches = Vec::<OpBatch>::new();
+    let mut batch_groups = Vec::<[BaseElement; BATCH_SIZE]>::new();
 
     for op in ops {
         // if the operation carries immediate value, process it first
         if let Some(imm) = op.imm_value() {
-            // operation carrying an immediate value cannot be the first one in the group;
-            // so, we just add a noop in front of it
-            if op_idx == 0 {
-                op_group = Operation::Noop.op_code() as u64;
-                op_idx += 1;
-            }
-
             // check if the batch has room for the immediate value, and if not start another batch
-            if next_group_idx == BATCH_SIZE {
+            if next_group_idx >= BATCH_SIZE {
+                batch_groups.push(batch.groups());
                 batches.push(batch);
-                batch = [BaseElement::ZERO; BATCH_SIZE];
+                batch = OpBatch::new();
                 op_group = 0;
                 group_idx = 0;
                 next_group_idx = 1;
                 op_idx = 0;
             }
 
+            // operation carrying an immediate value cannot be the first one in the group except
+            // for the first group of a batch; so, we just add a noop in front of it
+            if op_idx == 0 && group_idx != 0 {
+                batch.ops.push(Operation::Noop);
+                op_group = Operation::Noop.op_code() as u64;
+                op_idx += 1;
+            }
+
             // put the immediate value into the next available slot
-            batch[next_group_idx] = imm;
+            batch.groups[next_group_idx] = imm;
             next_group_idx += 1;
         }
 
         // add the opcode to the group
         op_group |= (op.op_code() as u64) << (Operation::OP_BITS * op_idx);
+        batch.ops.push(op);
         op_idx += 1;
 
         // if the group is full, put it into the batch and start another group
         if op_idx == GROUP_SIZE {
-            batch[group_idx] = BaseElement::new(op_group);
+            batch.groups[group_idx] = BaseElement::new(op_group);
             op_idx = 0;
             op_group = 0;
             group_idx = next_group_idx;
             next_group_idx += 1;
 
             // if the batch is full, start another batch
-            if next_group_idx == BATCH_SIZE {
+            if next_group_idx >= BATCH_SIZE {
+                batch_groups.push(batch.groups());
                 batches.push(batch);
-                batch = [BaseElement::ZERO; BATCH_SIZE];
+                batch = OpBatch::new();
                 group_idx = 0;
                 next_group_idx = 1;
             }
@@ -163,14 +226,17 @@ fn batch_ops(ops: &[Operation]) -> Vec<[BaseElement; BATCH_SIZE]> {
     }
 
     // make sure we finished processing the last batch
-    if group_idx != 0 || op_group != 0 {
+    if group_idx != 0 || op_idx != 0 {
         if op_group != 0 {
-            batch[group_idx] = BaseElement::new(op_group);
+            batch.groups[group_idx] = BaseElement::new(op_group);
         }
+        batch_groups.push(batch.groups());
         batches.push(batch);
     }
 
-    batches
+    let hash = Rp62_248::hash_elements(flatten_slice_elements(&batch_groups));
+
+    (batches, hash)
 }
 
 // TESTS
@@ -178,41 +244,48 @@ fn batch_ops(ops: &[Operation]) -> Vec<[BaseElement; BATCH_SIZE]> {
 
 #[cfg(test)]
 mod tests {
-    use super::{BaseElement, FieldElement, Operation, GROUP_SIZE};
+    use super::{
+        BaseElement, ElementHasher, FieldElement, Operation, Rp62_248, BATCH_SIZE, GROUP_SIZE,
+    };
 
     #[test]
     fn batch_ops() {
         // one operation
-        let ops = [Operation::Add];
-        let batches = super::batch_ops(&ops);
+        let ops = vec![Operation::Add];
+        let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
-        assert_eq!(BaseElement::from(Operation::Add.op_code()), batches[0][0]);
-        for &group in batches[0].iter().skip(1) {
-            assert_eq!(BaseElement::ZERO, group);
-        }
+        let batch = &batches[0];
+        assert_eq!(ops, batch.ops);
+        let mut batch_groups = [BaseElement::ZERO; BATCH_SIZE];
+        batch_groups[0] = build_group(&ops);
+        assert_eq!(batch_groups, batch.groups);
+        assert_eq!(Rp62_248::hash_elements(&batch_groups), hash);
 
         // two operations
-        let ops = [Operation::Add, Operation::Mul];
-        let batches = super::batch_ops(&ops);
+        let ops = vec![Operation::Add, Operation::Mul];
+        let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
-        assert_eq!(build_group(&ops), batches[0][0]);
-        for &group in batches[0].iter().skip(1) {
-            assert_eq!(BaseElement::ZERO, group);
-        }
+        let batch = &batches[0];
+        assert_eq!(ops, batch.ops);
+        let mut batch_groups = [BaseElement::ZERO; BATCH_SIZE];
+        batch_groups[0] = build_group(&ops);
+        assert_eq!(batch_groups, batch.groups);
+        assert_eq!(Rp62_248::hash_elements(&batch_groups), hash);
 
         // one group with one immediate value
-        let ops = [Operation::Add, Operation::Push(BaseElement::new(12345678))];
-        let batches = super::batch_ops(&ops);
+        let ops = vec![Operation::Add, Operation::Push(BaseElement::new(12345678))];
+        let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
-        let batch = batches[0];
-        assert_eq!(build_group(&ops), batch[0]);
-        assert_eq!(BaseElement::new(12345678), batch[1]);
-        for &group in batch.iter().skip(2) {
-            assert_eq!(BaseElement::ZERO, group);
-        }
+        let batch = &batches[0];
+        assert_eq!(ops, batch.ops);
+        let mut batch_groups = [BaseElement::ZERO; BATCH_SIZE];
+        batch_groups[0] = build_group(&ops);
+        batch_groups[1] = BaseElement::new(12345678);
+        assert_eq!(batch_groups, batch.groups);
+        assert_eq!(Rp62_248::hash_elements(&batch_groups), hash);
 
         // one group with 7 immediate values
-        let ops = [
+        let ops = vec![
             Operation::Add,
             Operation::Push(BaseElement::new(1)),
             Operation::Push(BaseElement::new(2)),
@@ -222,16 +295,25 @@ mod tests {
             Operation::Push(BaseElement::new(6)),
             Operation::Push(BaseElement::new(7)),
         ];
-        let batches = super::batch_ops(&ops);
+        let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
-        let batch = batches[0];
-        assert_eq!(build_group(&ops), batch[0]);
-        for (i, &group) in batch.iter().enumerate().skip(1) {
-            assert_eq!(BaseElement::new(i as u64), group);
-        }
+        let batch = &batches[0];
+        assert_eq!(ops, batch.ops);
+        let batch_groups = [
+            build_group(&ops),
+            BaseElement::new(1),
+            BaseElement::new(2),
+            BaseElement::new(3),
+            BaseElement::new(4),
+            BaseElement::new(5),
+            BaseElement::new(6),
+            BaseElement::new(7),
+        ];
+        assert_eq!(batch_groups, batch.groups);
+        assert_eq!(Rp62_248::hash_elements(&batch_groups), hash);
 
         // two groups with 7 immediate values; the last push overflows to the second batch
-        let ops = [
+        let ops = vec![
             Operation::Add,
             Operation::Mul,
             Operation::Add,
@@ -243,24 +325,35 @@ mod tests {
             Operation::Push(BaseElement::new(6)),
             Operation::Push(BaseElement::new(7)),
         ];
-        let batches = super::batch_ops(&ops);
+        let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(2, batches.len());
-        let batch0 = batches[0];
-        assert_eq!(build_group(&ops[..9]), batch0[0]);
-        for (i, &group) in batch0.iter().enumerate().skip(1).take(6) {
-            assert_eq!(BaseElement::new(i as u64), group);
-        }
-        assert_eq!(BaseElement::ZERO, batch0[7]);
+        let batch0 = &batches[0];
+        assert_eq!(ops[..9], batch0.ops);
 
-        let batch1 = batches[1];
-        assert_eq!(build_group(&[Operation::Noop, ops[9]]), batch1[0]);
-        assert_eq!(BaseElement::new(7), batch1[1]);
-        for &group in batch1.iter().skip(2) {
-            assert_eq!(BaseElement::ZERO, group);
-        }
+        let batch0_groups = [
+            build_group(&ops[..9]),
+            BaseElement::new(1),
+            BaseElement::new(2),
+            BaseElement::new(3),
+            BaseElement::new(4),
+            BaseElement::new(5),
+            BaseElement::new(6),
+            BaseElement::ZERO,
+        ];
+        assert_eq!(batch0_groups, batch0.groups);
+
+        let batch1 = &batches[1];
+        assert_eq!(vec![ops[9]], batch1.ops);
+        let mut batch1_groups = [BaseElement::ZERO; BATCH_SIZE];
+        batch1_groups[0] = build_group(&[ops[9]]);
+        batch1_groups[1] = BaseElement::new(7);
+        assert_eq!(batch1_groups, batch1.groups);
+
+        let all_groups = [batch0_groups, batch1_groups].concat();
+        assert_eq!(Rp62_248::hash_elements(&all_groups), hash);
 
         // immediate values in-between groups
-        let ops = [
+        let ops = vec![
             Operation::Add,
             Operation::Mul,
             Operation::Add,
@@ -273,13 +366,55 @@ mod tests {
             Operation::Add,
         ];
 
-        let batches = super::batch_ops(&ops);
+        let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
-        let batch = batches[0];
-        assert_eq!(build_group(&ops[..9]), batch[0]);
-        assert_eq!(BaseElement::new(7), batch[1]);
-        assert_eq!(BaseElement::new(11), batch[2]);
-        assert_eq!(build_group(&ops[9..]), batch[3]);
+        let batch = &batches[0];
+        assert_eq!(ops, batch.ops);
+
+        let batch_groups = [
+            build_group(&ops[..9]),
+            BaseElement::new(7),
+            BaseElement::new(11),
+            build_group(&ops[9..]),
+            BaseElement::ZERO,
+            BaseElement::ZERO,
+            BaseElement::ZERO,
+            BaseElement::ZERO,
+        ];
+        assert_eq!(batch_groups, batch.groups);
+        assert_eq!(Rp62_248::hash_elements(&batch_groups), hash);
+
+        // push at start of second group; assembler inserts a NOOP in front of PUSH
+        let ops = vec![
+            Operation::Add,
+            Operation::Mul,
+            Operation::Add,
+            Operation::Add,
+            Operation::Add,
+            Operation::Mul,
+            Operation::Mul,
+            Operation::Add,
+            Operation::Add,
+            Operation::Push(BaseElement::new(11)),
+        ];
+        let (batches, hash) = super::batch_ops(ops.clone());
+        assert_eq!(1, batches.len());
+        let batch = &batches[0];
+        let mut expected_ops = ops.clone();
+        expected_ops.insert(9, Operation::Noop);
+        assert_eq!(expected_ops, batch.ops);
+        let batch_groups = [
+            build_group(&ops[..9]),
+            build_group(&[Operation::Noop, ops[9]]),
+            BaseElement::new(11),
+            BaseElement::ZERO,
+            BaseElement::ZERO,
+            BaseElement::ZERO,
+            BaseElement::ZERO,
+            BaseElement::ZERO,
+        ];
+        assert_eq!(batch_groups, batch.groups);
+        assert_eq!(Rp62_248::hash_elements(&batch_groups), hash);
     }
 
     // TEST HELPERS
