@@ -37,12 +37,14 @@ impl Split {
         self.hash
     }
 
-    /// Returns a code block which is to be executed when the top of the stack is `1`.
+    /// Returns a reference to the code block which is to be executed when the top of the stack
+    /// is `1`.
     pub fn on_true(&self) -> &CodeBlock {
         &self.branches[0]
     }
 
-    /// Returns a code block which is to be executed when the top of the stack is `0`.
+    /// Returns a reference to the code block which is to be executed when the top of the stack
+    /// is `0`.
     pub fn on_false(&self) -> &CodeBlock {
         &self.branches[1]
     }

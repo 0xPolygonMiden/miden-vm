@@ -33,6 +33,18 @@ impl Join {
     pub fn hash(&self) -> Digest {
         self.hash
     }
+
+    /// Returns a reference to the code block which is to be executed first when this join block
+    /// is executed.
+    pub fn first(&self) -> &CodeBlock {
+        &self.body[0]
+    }
+
+    /// Returns a reference to the code block which is to be executed second when this join block
+    /// is executed.
+    pub fn second(&self) -> &CodeBlock {
+        &self.body[1]
+    }
 }
 
 impl fmt::Display for Join {

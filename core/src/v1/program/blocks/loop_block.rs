@@ -37,6 +37,11 @@ impl Loop {
     pub fn hash(&self) -> Digest {
         self.hash
     }
+
+    /// Returns a reference to the code block which represents the body of the loop.
+    pub fn body(&self) -> &CodeBlock {
+        &self.body
+    }
 }
 
 impl fmt::Display for Loop {
