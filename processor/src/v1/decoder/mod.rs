@@ -1,5 +1,5 @@
-use vm_core::{
-    v1::program::{
+use vm_core::v1::{
+    program::{
         blocks::{Join, Loop, OpBatch, Span, Split},
         Operation,
     },

@@ -1,7 +1,7 @@
-use vm_core::{
-    v1::program::{
+use vm_core::v1::{
+    program::{
         blocks::{CodeBlock, Join, Loop, Span, Split},
-        Script,
+        Operation, Script,
     },
     BaseElement, FieldElement,
 };
@@ -29,7 +29,7 @@ impl<'a> Processor<'a> {
         Self {
             script,
             decoder: Decoder::new(),
-            stack: Stack::new(),
+            stack: Stack::new(1),
         }
     }
 
@@ -60,7 +60,7 @@ impl<'a> Processor<'a> {
     fn execute_join_block(&mut self, block: &Join) -> Result<(), ExecutionError> {
         // start JOIN block; state of the stack does not change
         self.decoder.start_join(block);
-        self.stack.noop();
+        self.stack.execute(Operation::Noop)?;
 
         // execute first and then second child of the join block
         self.execute_code_block(block.first())?;
@@ -68,7 +68,7 @@ impl<'a> Processor<'a> {
 
         // end JOIN block; state of the stack does not change
         self.decoder.end_join(block);
-        self.stack.noop();
+        self.stack.execute(Operation::Noop)?;
 
         Ok(())
     }
@@ -80,19 +80,21 @@ impl<'a> Processor<'a> {
         // the block should be executed.
         let condition = self.stack.peek()?;
         self.decoder.start_split(block, condition);
-        self.stack.drop()?;
+        self.stack.execute(Operation::Drop)?;
 
         // execute either the true or the false branch of the split block based on the condition
         // retrieved from the top of the stack
-        match condition {
-            BaseElement::ONE => self.execute_code_block(block.on_true())?,
-            BaseElement::ZERO => self.execute_code_block(block.on_false())?,
-            _ => return Err(ExecutionError::NotBinaryValue(condition)),
+        if condition == BaseElement::ONE {
+            self.execute_code_block(block.on_true())?;
+        } else if condition == BaseElement::ZERO {
+            self.execute_code_block(block.on_false())?;
+        } else {
+            return Err(ExecutionError::NotBinaryValue(condition));
         }
 
         // end SPLIT block; state of the stack does not change
         self.decoder.end_split(block);
-        self.stack.noop();
+        self.stack.execute(Operation::Noop)?;
 
         Ok(())
     }
@@ -109,32 +111,34 @@ impl<'a> Processor<'a> {
         // before we execute the loop body we drop the condition from the stack; when the loop
         // body is not executed, we keep the condition on the stack so that it can be dropped by
         // the END operation later.
-        match condition {
-            BaseElement::ONE => {
-                // drop the condition and execute the loop body at least once
-                self.stack.drop()?;
+        if condition == BaseElement::ONE {
+            // drop the condition and execute the loop body at least once
+            self.stack.execute(Operation::Drop)?;
+            self.execute_code_block(block.body())?;
+
+            // keep executing the loop body until the condition on the top of the stack is no
+            // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
+            // which drops the condition from the stack
+            while self.stack.peek()? == BaseElement::ONE {
+                self.stack.execute(Operation::Drop)?;
+                self.decoder.repeat(block);
+
                 self.execute_code_block(block.body())?;
-
-                // keep executing the loop body until the condition on the top of the stack is no
-                // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
-                // which drops the condition from the stack
-                while self.stack.peek()? == BaseElement::ONE {
-                    self.stack.drop()?;
-                    self.decoder.repeat(block);
-
-                    self.execute_code_block(block.body())?;
-                }
             }
-            BaseElement::ZERO => self.stack.noop(),
-            _ => return Err(ExecutionError::NotBinaryValue(condition)),
+        } else if condition == BaseElement::ZERO {
+            self.stack.execute(Operation::Noop)?
+        } else {
+            return Err(ExecutionError::NotBinaryValue(condition));
         }
 
         // execute END operation; this can be done only if the top of the stack is ZERO, in which
         // case the top of the stack is dropped
-        match self.stack.peek()? {
-            BaseElement::ZERO => self.stack.drop()?,
-            BaseElement::ONE => unreachable!("top of the stack should not be ONE"),
-            condition => return Err(ExecutionError::NotBinaryValue(condition)),
+        if self.stack.peek()? == BaseElement::ONE {
+            self.stack.execute(Operation::Drop)?;
+        } else if condition == BaseElement::ZERO {
+            unreachable!("top of the stack should not be ONE");
+        } else {
+            return Err(ExecutionError::NotBinaryValue(self.stack.peek()?));
         }
         self.decoder.end_loop(block);
 
@@ -147,7 +151,7 @@ impl<'a> Processor<'a> {
         // start the SPAN block and get the first operation batch from it; when executing a SPAN
         // operation the state of the stack does not change
         self.decoder.start_span(block);
-        self.stack.noop();
+        self.stack.execute(Operation::Noop)?;
 
         // execute the first operation batch
         for &op in block.op_batches()[0].ops() {
@@ -160,7 +164,7 @@ impl<'a> Processor<'a> {
         // of the stack
         for op_batch in block.op_batches().iter().skip(1) {
             self.decoder.respan(op_batch);
-            self.stack.noop();
+            self.stack.execute(Operation::Noop)?;
             for &op in op_batch.ops() {
                 self.stack.execute(op)?;
                 self.decoder.execute_user_op(op);
@@ -170,7 +174,7 @@ impl<'a> Processor<'a> {
         // end the SPAN block; when executing an END operation the state of the stack does not
         // change
         self.decoder.end_span(block);
-        self.stack.noop();
+        self.stack.execute(Operation::Noop)?;
 
         Ok(())
     }
