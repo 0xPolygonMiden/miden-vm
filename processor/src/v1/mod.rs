@@ -133,9 +133,9 @@ impl<'a> Processor<'a> {
 
         // execute END operation; this can be done only if the top of the stack is ZERO, in which
         // case the top of the stack is dropped
-        if self.stack.peek()? == BaseElement::ONE {
+        if self.stack.peek()? == BaseElement::ZERO {
             self.stack.execute(Operation::Drop)?;
-        } else if condition == BaseElement::ZERO {
+        } else if condition == BaseElement::ONE {
             unreachable!("top of the stack should not be ONE");
         } else {
             return Err(ExecutionError::NotBinaryValue(self.stack.peek()?));

@@ -6,6 +6,7 @@ use vm_core::v1::{program::Operation, BaseElement, FieldElement};
 mod field_ops;
 mod io_ops;
 mod stack_ops;
+mod u32_ops;
 
 // CONSTANT
 // ================================================================================================
@@ -48,6 +49,18 @@ impl Stack {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns depth of the stack at the current step.
+    #[allow(dead_code)]
+    pub fn depth(&self) -> usize {
+        self.depth
+    }
+
+    /// Returns the current step of the execution trace.
+    #[allow(dead_code)]
+    pub fn current_step(&self) -> usize {
+        self.step
+    }
+
     /// Returns execution trace length for this stack.
     pub fn trace_length(&self) -> usize {
         self.trace[0].len()
@@ -65,15 +78,15 @@ impl Stack {
         Ok(self.trace[0][self.step])
     }
 
+    /// Returns trace state at the current step.
+    ///
+    /// Trace state is always 16 elements long and contains the top 16 values of the stack. When
+    /// the stack depth is less than 16, the un-used slots contain ZEROs.
     #[allow(dead_code)]
-    pub fn get_trace_state(&self, step: usize) -> [BaseElement; STACK_TOP_SIZE] {
-        assert!(
-            step <= self.step,
-            "cannot get trace state for a future step"
-        );
+    pub fn trace_state(&self) -> [BaseElement; STACK_TOP_SIZE] {
         let mut result = [BaseElement::ZERO; STACK_TOP_SIZE];
         for (result, column) in result.iter_mut().zip(self.trace.iter()) {
-            *result = column[step];
+            *result = column[self.step];
         }
         result
     }
@@ -83,23 +96,24 @@ impl Stack {
 
     /// TODO: add comments
     pub fn execute(&mut self, op: Operation) -> Result<(), ExecutionError> {
-        // increment current step by one and make sure there is enough memory allocated to hold
-        // the execution trace
-        self.advance_step();
+        // make sure there is enough memory allocated to hold the execution trace
+        self.ensure_trace_capacity();
 
+        // execute the operation
         match op {
             // ----- system operations ------------------------------------------------------------
             Operation::Noop => self.copy_state(0),
-            Operation::Assert => unimplemented!(),
+            Operation::Assert => self.op_assert()?,
 
             // ----- flow control operations ------------------------------------------------------
-            Operation::Join => unreachable!(),
-            Operation::Split => unreachable!(),
-            Operation::Loop => unreachable!(),
-            Operation::Repeat => unreachable!(),
-            Operation::Span => unreachable!(),
-            Operation::Respan => unreachable!(),
-            Operation::End => unreachable!(),
+            // control flow operations are never executed directly
+            Operation::Join => unreachable!("control flow operation"),
+            Operation::Split => unreachable!("control flow operation"),
+            Operation::Loop => unreachable!("control flow operation"),
+            Operation::Repeat => unreachable!("control flow operation"),
+            Operation::Span => unreachable!("control flow operation"),
+            Operation::Respan => unreachable!("control flow operation"),
+            Operation::End => unreachable!("control flow operation"),
 
             // ----- field operations -------------------------------------------------------------
             Operation::Add => self.op_add()?,
@@ -116,58 +130,58 @@ impl Stack {
             Operation::Eqz => self.op_eqz()?,
 
             // ----- u32 operations ---------------------------------------------------------------
-            Operation::U32split => unimplemented!(),
-            Operation::U32add => unimplemented!(),
-            Operation::U32addc => unimplemented!(),
-            Operation::U32sub => unimplemented!(),
-            Operation::U32mul => unimplemented!(),
-            Operation::U32madd => unimplemented!(),
-            Operation::U32div => unimplemented!(),
+            Operation::U32split => self.op_u32split()?,
+            Operation::U32add => self.op_u32add()?,
+            Operation::U32addc => self.op_u32addc()?,
+            Operation::U32sub => self.op_u32sub()?,
+            Operation::U32mul => self.op_u32mul()?,
+            Operation::U32madd => self.op_u32madd()?,
+            Operation::U32div => self.op_u32div()?,
 
-            Operation::U32and => unimplemented!(),
-            Operation::U32or => unimplemented!(),
-            Operation::U32xor => unimplemented!(),
+            Operation::U32and => self.op_u32and()?,
+            Operation::U32or => self.op_u32or()?,
+            Operation::U32xor => self.op_u32xor()?,
 
             // ----- stack manipulation -----------------------------------------------------------
             Operation::Pad => self.op_pad()?,
             Operation::Drop => self.op_drop()?,
 
-            Operation::Dup0 => unimplemented!(),
-            Operation::Dup1 => unimplemented!(),
-            Operation::Dup2 => unimplemented!(),
-            Operation::Dup3 => unimplemented!(),
-            Operation::Dup4 => unimplemented!(),
-            Operation::Dup5 => unimplemented!(),
-            Operation::Dup6 => unimplemented!(),
-            Operation::Dup7 => unimplemented!(),
-            Operation::Dup8 => unimplemented!(),
-            Operation::Dup9 => unimplemented!(),
-            Operation::Dup10 => unimplemented!(),
-            Operation::Dup11 => unimplemented!(),
-            Operation::Dup12 => unimplemented!(),
-            Operation::Dup13 => unimplemented!(),
-            Operation::Dup14 => unimplemented!(),
-            Operation::Dup15 => unimplemented!(),
+            Operation::Dup0 => self.op_dup(0)?,
+            Operation::Dup1 => self.op_dup(1)?,
+            Operation::Dup2 => self.op_dup(2)?,
+            Operation::Dup3 => self.op_dup(3)?,
+            Operation::Dup4 => self.op_dup(4)?,
+            Operation::Dup5 => self.op_dup(5)?,
+            Operation::Dup6 => self.op_dup(6)?,
+            Operation::Dup7 => self.op_dup(7)?,
+            Operation::Dup8 => self.op_dup(8)?,
+            Operation::Dup9 => self.op_dup(9)?,
+            Operation::Dup10 => self.op_dup(10)?,
+            Operation::Dup11 => self.op_dup(11)?,
+            Operation::Dup12 => self.op_dup(12)?,
+            Operation::Dup13 => self.op_dup(13)?,
+            Operation::Dup14 => self.op_dup(14)?,
+            Operation::Dup15 => self.op_dup(15)?,
 
-            Operation::Swap => unimplemented!(),
-            Operation::SwapW => unimplemented!(),
-            Operation::SwapW2 => unimplemented!(),
-            Operation::SwapW3 => unimplemented!(),
+            Operation::Swap => self.op_swap()?,
+            Operation::SwapW => self.op_swapw()?,
+            Operation::SwapW2 => self.op_swapw2()?,
+            Operation::SwapW3 => self.op_swapw3()?,
 
-            Operation::MovUp2 => unimplemented!(),
-            Operation::MovUp3 => unimplemented!(),
-            Operation::MovUp4 => unimplemented!(),
-            Operation::MovUp8 => unimplemented!(),
-            Operation::MovUp12 => unimplemented!(),
+            Operation::MovUp2 => self.op_movup2()?,
+            Operation::MovUp3 => self.op_movup3()?,
+            Operation::MovUp4 => self.op_movup4()?,
+            Operation::MovUp8 => self.op_movup8()?,
+            Operation::MovUp12 => self.op_movup12()?,
 
-            Operation::MovDn2 => unimplemented!(),
-            Operation::MovDn3 => unimplemented!(),
-            Operation::MovDn4 => unimplemented!(),
-            Operation::MovDn8 => unimplemented!(),
-            Operation::MovDn12 => unimplemented!(),
+            Operation::MovDn2 => self.op_movdn2()?,
+            Operation::MovDn3 => self.op_movdn3()?,
+            Operation::MovDn4 => self.op_movdn4()?,
+            Operation::MovDn8 => self.op_movdn8()?,
+            Operation::MovDn12 => self.op_movdn12()?,
 
-            Operation::CSwap => unimplemented!(),
-            Operation::CSwapW => unimplemented!(),
+            Operation::CSwap => self.op_cswap()?,
+            Operation::CSwapW => self.op_cswapw()?,
 
             // ----- input / output ---------------------------------------------------------------
             Operation::Push(value) => self.op_push(value)?,
@@ -183,11 +197,26 @@ impl Stack {
             Operation::RpPerm => unimplemented!(),
         }
 
+        // increment step by 1
+        self.step += 1;
+
         Ok(())
     }
 
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
+
+    /// TODO: add comments
+    fn op_assert(&mut self) -> Result<(), ExecutionError> {
+        if self.depth == 0 {
+            return Err(ExecutionError::StackUnderflow("ASSERT", self.step));
+        }
+        if self.trace[0][self.step] != BaseElement::ONE {
+            return Err(ExecutionError::FailedAssertion(self.step));
+        }
+        self.shift_left(1);
+        Ok(())
+    }
 
     /// Copies stack values starting with the specified position to the next step.
     fn copy_state(&mut self, start_pos: usize) {
@@ -197,7 +226,7 @@ impl Stack {
         );
         let end_pos = cmp::min(self.depth, STACK_TOP_SIZE);
         for i in start_pos..end_pos {
-            self.trace[i][self.step] = self.trace[i][self.step - 1];
+            self.trace[i][self.step + 1] = self.trace[i][self.step];
         }
     }
 
@@ -223,15 +252,15 @@ impl Stack {
             0 => unreachable!("stack underflow"),
             1..=16 => {
                 for i in start_pos..self.depth {
-                    self.trace[i - 1][self.step] = self.trace[i][self.step - 1];
+                    self.trace[i - 1][self.step + 1] = self.trace[i][self.step];
                 }
             }
             _ => {
                 for i in start_pos..STACK_TOP_SIZE {
-                    self.trace[i - 1][self.step] = self.trace[i][self.step - 1];
+                    self.trace[i - 1][self.step + 1] = self.trace[i][self.step];
                 }
                 let from_overflow = self.overflow.pop().expect("overflow stack is empty");
-                self.trace[STACK_TOP_SIZE - 1][self.step] = from_overflow;
+                self.trace[STACK_TOP_SIZE - 1][self.step + 1] = from_overflow;
             }
         }
 
@@ -256,14 +285,14 @@ impl Stack {
             0 => {} // if the stack is empty, do nothing
             1..=MAX_TOP_IDX => {
                 for i in start_pos..self.depth {
-                    self.trace[i + 1][self.step] = self.trace[i][self.step - 1];
+                    self.trace[i + 1][self.step + 1] = self.trace[i][self.step];
                 }
             }
             _ => {
                 for i in start_pos..MAX_TOP_IDX {
-                    self.trace[i + 1][self.step] = self.trace[i][self.step - 1];
+                    self.trace[i + 1][self.step + 1] = self.trace[i][self.step];
                 }
-                let to_overflow = self.trace[MAX_TOP_IDX][self.step - 1];
+                let to_overflow = self.trace[MAX_TOP_IDX][self.step];
                 self.overflow.push(to_overflow)
             }
         }
@@ -271,16 +300,11 @@ impl Stack {
         self.depth += 1;
     }
 
-    /// Increments current step by one and makes sure there is enough memory allocated for the
-    /// trace to accommodate the new row.
+    /// Makes sure there is enough memory allocated for the trace to accommodate a new row.
     ///
     /// Trace length is doubled every time it needs to be increased.
-    fn advance_step(&mut self) {
-        // increment step by 1
-        self.step += 1;
-
-        // make sure there is enough memory allocated for register traces
-        if self.step >= self.trace_length() {
+    fn ensure_trace_capacity(&mut self) {
+        if self.step + 1 >= self.trace_length() {
             let new_length = self.trace_length() * 2;
             for register in self.trace.iter_mut() {
                 register.resize(new_length, BaseElement::ZERO);
