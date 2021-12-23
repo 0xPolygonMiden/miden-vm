@@ -1,7 +1,7 @@
 use vm_core::v1::{
     program::{
         blocks::{CodeBlock, Join, Loop, Span, Split},
-        Operation, Script,
+        Operation, ProgramInputs, Script,
     },
     BaseElement, FieldElement,
 };
@@ -25,11 +25,11 @@ pub struct Processor<'a> {
 }
 
 impl<'a> Processor<'a> {
-    pub fn new(script: &'a Script) -> Self {
+    pub fn new(script: &'a Script, inputs: ProgramInputs) -> Self {
         Self {
             script,
             decoder: Decoder::new(),
-            stack: Stack::new(1),
+            stack: Stack::new(&inputs, 4),
         }
     }
 

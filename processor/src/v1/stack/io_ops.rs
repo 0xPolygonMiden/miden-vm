@@ -19,13 +19,13 @@ impl Stack {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{FieldElement, Operation},
+        super::{FieldElement, Operation, ProgramInputs},
         BaseElement, Stack,
     };
 
     #[test]
     fn op_push() {
-        let mut stack = Stack::new(2);
+        let mut stack = Stack::new(&ProgramInputs::none(), 2);
         assert_eq!(0, stack.depth());
         assert_eq!(0, stack.current_step());
         assert_eq!([BaseElement::ZERO; 16], stack.trace_state());

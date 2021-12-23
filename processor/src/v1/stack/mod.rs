@@ -1,18 +1,11 @@
-use super::ExecutionError;
+use super::{BaseElement, ExecutionError, FieldElement, Operation, ProgramInputs};
 use core::{cmp, convert::TryInto};
-use std::panic;
-use vm_core::v1::{program::Operation, BaseElement, FieldElement};
+use vm_core::v1::STACK_TOP_SIZE;
 
 mod field_ops;
 mod io_ops;
 mod stack_ops;
 mod u32_ops;
-
-// CONSTANT
-// ================================================================================================
-
-/// Specifies the number of stack registers which can be accesses by the VM directly.
-const STACK_TOP_SIZE: usize = 16;
 
 // TYPES ALIASES
 // ================================================================================================
@@ -33,14 +26,20 @@ impl Stack {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// TODO: add comments
-    pub fn new(init_trace_length: usize) -> Self {
+    pub fn new(inputs: &ProgramInputs, init_trace_length: usize) -> Self {
+        let init_values = inputs.stack_init();
+        let mut trace: Vec<Vec<BaseElement>> = Vec::with_capacity(STACK_TOP_SIZE);
+        for i in 0..STACK_TOP_SIZE {
+            let mut column = vec![BaseElement::ZERO; init_trace_length];
+            if i < init_values.len() {
+                column[0] = init_values[i];
+            }
+            trace.push(column)
+        }
+
         Self {
             step: 0,
-            trace: (0..STACK_TOP_SIZE)
-                .map(|_| vec![BaseElement::ZERO; init_trace_length])
-                .collect::<Vec<_>>()
-                .try_into()
-                .unwrap(),
+            trace: trace.try_into().expect("failed to convert vector to array"),
             overflow: Vec::new(),
             depth: 0,
         }

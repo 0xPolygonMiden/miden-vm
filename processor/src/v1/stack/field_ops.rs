@@ -85,14 +85,14 @@ impl Stack {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{BaseElement, FieldElement, Operation},
+        super::{BaseElement, FieldElement, Operation, ProgramInputs},
         Stack,
     };
 
     #[test]
     fn op_add() {
         // initialize the stack with two values
-        let mut stack = Stack::new(2);
+        let mut stack = Stack::new(&ProgramInputs::none(), 2);
         let (a, b) = init_stack(&mut stack);
 
         // add the values
@@ -108,7 +108,7 @@ mod tests {
     #[test]
     fn op_mul() {
         // initialize the stack with two values
-        let mut stack = Stack::new(2);
+        let mut stack = Stack::new(&ProgramInputs::none(), 2);
         let (a, b) = init_stack(&mut stack);
 
         // add the values

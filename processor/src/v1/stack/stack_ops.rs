@@ -102,16 +102,15 @@ impl Stack {
 
 #[cfg(test)]
 mod tests {
-    use vm_core::StarkField;
-
     use super::{
-        super::{FieldElement, Operation},
+        super::{FieldElement, Operation, ProgramInputs},
         BaseElement, Stack,
     };
+    use vm_core::StarkField;
 
     #[test]
     fn op_pad() {
-        let mut stack = Stack::new(2);
+        let mut stack = Stack::new(&ProgramInputs::none(), 2);
 
         // push one item onto the stack
         stack.execute(Operation::Push(BaseElement::ONE)).unwrap();
@@ -140,7 +139,7 @@ mod tests {
 
     #[test]
     fn op_drop() {
-        let mut stack = Stack::new(2);
+        let mut stack = Stack::new(&ProgramInputs::none(), 2);
 
         // push one item onto the stack
         stack.execute(Operation::Push(BaseElement::ONE)).unwrap();
@@ -169,7 +168,7 @@ mod tests {
 
     #[test]
     fn op_dup() {
-        let mut stack = Stack::new(2);
+        let mut stack = Stack::new(&ProgramInputs::none(), 2);
 
         // calling DUP on an empty stack should be an error
         assert!(stack.execute(Operation::Dup0).is_err());
