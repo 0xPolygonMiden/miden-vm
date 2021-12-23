@@ -1,6 +1,6 @@
+use super::BaseElement;
 use core::fmt;
 use crypto::{hashers::Rp62_248, Digest as HasherDigest, ElementHasher, Hasher};
-use math::fields::f128::BaseElement;
 use std::collections::BTreeMap;
 
 pub mod blocks;
@@ -8,6 +8,9 @@ use blocks::CodeBlock;
 
 mod operations;
 pub use operations::Operation;
+
+mod inputs;
+pub use inputs::ProgramInputs;
 
 // TYPES ALIASES
 // ================================================================================================
