@@ -1,9 +1,9 @@
-use super::{ExecutionError, Stack};
+use super::{ExecutionError, Processor};
 
 // FIELD OPERATIONS
 // ================================================================================================
 
-impl Stack {
+impl Processor {
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
     /// Pops two elements off the stack, adds them together, and pushes the result back onto the
@@ -12,14 +12,12 @@ impl Stack {
     /// # Errors
     /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_add(&mut self) -> Result<(), ExecutionError> {
-        if self.depth < 2 {
-            return Err(ExecutionError::StackUnderflow("ADD", self.step));
-        }
+        self.stack.check_depth(2, "ADD")?;
 
-        let b = self.trace[0][self.step];
-        let a = self.trace[1][self.step];
-        self.trace[0][self.step + 1] = a + b;
-        self.shift_left(2);
+        let b = self.stack.get(0);
+        let a = self.stack.get(1);
+        self.stack.set(0, a + b);
+        self.stack.shift_left(2);
         Ok(())
     }
 
@@ -33,14 +31,12 @@ impl Stack {
     /// # Errors
     /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_mul(&mut self) -> Result<(), ExecutionError> {
-        if self.depth < 2 {
-            return Err(ExecutionError::StackUnderflow("MUL", self.step));
-        }
+        self.stack.check_depth(2, "MUL")?;
 
-        let b = self.trace[0][self.step];
-        let a = self.trace[1][self.step];
-        self.trace[0][self.step + 1] = a * b;
-        self.shift_left(2);
+        let b = self.stack.get(0);
+        let a = self.stack.get(1);
+        self.stack.set(0, a * b);
+        self.stack.shift_left(2);
         Ok(())
     }
 
@@ -85,59 +81,59 @@ impl Stack {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{BaseElement, FieldElement, Operation, ProgramInputs},
-        Stack,
+        super::{BaseElement, FieldElement, Operation},
+        Processor,
     };
 
     #[test]
     fn op_add() {
         // initialize the stack with two values
-        let mut stack = Stack::new(&ProgramInputs::none(), 2);
-        let (a, b) = init_stack(&mut stack);
+        let mut processor = Processor::new_dummy();
+        let (a, b) = init_stack(&mut processor);
 
         // add the values
-        stack.execute(Operation::Add).unwrap();
+        processor.execute_op(Operation::Add).unwrap();
         let mut expected = [BaseElement::ZERO; 16];
         expected[0] = a + b;
 
-        assert_eq!(1, stack.depth());
-        assert_eq!(3, stack.current_step());
-        assert_eq!(expected, stack.trace_state());
+        assert_eq!(1, processor.stack.depth());
+        assert_eq!(3, processor.stack.current_step());
+        assert_eq!(expected, processor.stack.trace_state());
     }
 
     #[test]
     fn op_mul() {
         // initialize the stack with two values
-        let mut stack = Stack::new(&ProgramInputs::none(), 2);
-        let (a, b) = init_stack(&mut stack);
+        let mut processor = Processor::new_dummy();
+        let (a, b) = init_stack(&mut processor);
 
         // add the values
-        stack.execute(Operation::Mul).unwrap();
+        processor.execute_op(Operation::Mul).unwrap();
         let mut expected = [BaseElement::ZERO; 16];
         expected[0] = a * b;
 
-        assert_eq!(1, stack.depth());
-        assert_eq!(3, stack.current_step());
-        assert_eq!(expected, stack.trace_state());
+        assert_eq!(1, processor.stack.depth());
+        assert_eq!(3, processor.stack.current_step());
+        assert_eq!(expected, processor.stack.trace_state());
     }
 
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
-    fn init_stack(stack: &mut Stack) -> (BaseElement, BaseElement) {
+    fn init_stack(processor: &mut Processor) -> (BaseElement, BaseElement) {
         let a = BaseElement::new(3);
         let b = BaseElement::new(7);
 
         // push values a and b onto the stack
-        stack.execute(Operation::Push(a)).unwrap();
-        stack.execute(Operation::Push(b)).unwrap();
+        processor.execute_op(Operation::Push(a)).unwrap();
+        processor.execute_op(Operation::Push(b)).unwrap();
         let mut expected = [BaseElement::ZERO; 16];
         expected[0] = b;
         expected[1] = a;
 
-        assert_eq!(2, stack.depth());
-        assert_eq!(2, stack.current_step());
-        assert_eq!(expected, stack.trace_state());
+        assert_eq!(2, processor.stack.depth());
+        assert_eq!(2, processor.stack.current_step());
+        assert_eq!(expected, processor.stack.trace_state());
 
         (a, b)
     }
