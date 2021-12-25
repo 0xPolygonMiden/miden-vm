@@ -1,6 +1,6 @@
-use super::{ExecutionError, Stack};
+use super::{ExecutionError, Processor};
 
-impl Stack {
+impl Processor {
     // CASTING OPERATIONS
     // --------------------------------------------------------------------------------------------
     pub(super) fn op_u32split(&mut self) -> Result<(), ExecutionError> {
