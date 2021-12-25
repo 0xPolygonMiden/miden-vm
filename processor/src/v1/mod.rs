@@ -3,7 +3,7 @@ use vm_core::v1::{
         blocks::{CodeBlock, Join, Loop, Span, Split},
         Operation, ProgramInputs, Script,
     },
-    BaseElement, FieldElement,
+    BaseElement, FieldElement, StarkField,
 };
 
 mod operations;
@@ -14,8 +14,16 @@ use decoder::Decoder;
 mod stack;
 use stack::Stack;
 
+mod memory;
+use memory::Memory;
+
 mod errors;
 pub use errors::ExecutionError;
+
+// TYPE ALIASES
+// ================================================================================================
+
+type Word = [BaseElement; 4];
 
 // PROCESSOR
 // ================================================================================================
@@ -24,6 +32,7 @@ pub struct Processor {
     step: usize,
     decoder: Decoder,
     stack: Stack,
+    memory: Memory,
 }
 
 impl Processor {
@@ -32,6 +41,7 @@ impl Processor {
             step: 0,
             decoder: Decoder::new(),
             stack: Stack::new(&inputs, 4),
+            memory: Memory::new(),
         }
     }
 

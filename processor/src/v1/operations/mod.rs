@@ -105,8 +105,8 @@ impl Processor {
             Operation::Read => unimplemented!(),
             Operation::ReadW => unimplemented!(),
 
-            Operation::LoadW => unimplemented!(),
-            Operation::StoreW => unimplemented!(),
+            Operation::LoadW => self.op_loadw()?,
+            Operation::StoreW => self.op_storew()?,
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::RpHash => unimplemented!(),
@@ -114,15 +114,16 @@ impl Processor {
         }
 
         // increment the clock cycle
-        self.advance_step();
+        self.advance_clock();
 
         Ok(())
     }
 
     /// Increments the clock cycle for all components of the processor.
-    fn advance_step(&mut self) {
+    fn advance_clock(&mut self) {
         self.step += 1;
-        self.stack.advance_step();
+        self.stack.advance_clock();
+        self.memory.advance_clock();
     }
 
     /// Makes sure there is enough memory allocated for the trace to accommodate a new clock cycle.

@@ -190,7 +190,7 @@ impl Stack {
     }
 
     // Increments the clock cycle.
-    pub fn advance_step(&mut self) {
+    pub fn advance_clock(&mut self) {
         self.step += 1;
     }
 
