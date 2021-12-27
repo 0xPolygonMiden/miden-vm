@@ -44,9 +44,11 @@ pub fn parse_movup(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), As
 }
 
 pub fn parse_movupw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    if _op.num_parts() != 2 {
-        return Err(AssemblyError::extra_param(_op))
-    }
+    match _op.num_parts() {
+        d if d < 2 => return Err(AssemblyError::missing_param(_op)),
+        d if d > 2 => return Err(AssemblyError::extra_param(_op)),
+        _ => ()
+    };
 
     match _op.parts()[1] {
         "2" => {
@@ -58,7 +60,7 @@ pub fn parse_movupw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), A
             _span_ops.push(Operation::SwapW2);
             _span_ops.push(Operation::SwapW3);
         }
-        _ => return Err(AssemblyError::extra_param(_op)),
+        _ => return Err(AssemblyError::invalid_param(_op, 1)),
     }
 
     Ok(())
