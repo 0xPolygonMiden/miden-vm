@@ -43,9 +43,25 @@ pub fn parse_movup(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), As
     unimplemented!()
 }
 
-/// TODO: implement
 pub fn parse_movupw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+    if _op.num_parts() != 2 {
+        return Err(AssemblyError::extra_param(_op))
+    }
+
+    match _op.parts()[1] {
+        "2" => {
+            _span_ops.push(Operation::SwapW);
+            _span_ops.push(Operation::SwapW2);
+        }
+        "3" => {
+            _span_ops.push(Operation::SwapW);
+            _span_ops.push(Operation::SwapW2);
+            _span_ops.push(Operation::SwapW3);
+        }
+        _ => return Err(AssemblyError::extra_param(_op)),
+    }
+
+    Ok(())
 }
 
 /// TODO: implement
