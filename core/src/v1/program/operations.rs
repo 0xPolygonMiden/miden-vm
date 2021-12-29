@@ -173,26 +173,14 @@ pub enum Operation {
     /// Pushes a copy of stack element 7 onto the stack.
     Dup7,
 
-    /// Pushes a copy of stack element 8 onto the stack.
-    Dup8,
-
     /// Pushes a copy of stack element 9 onto the stack.
     Dup9,
-
-    /// Pushes a copy of stack element 10 onto the stack.
-    Dup10,
 
     /// Pushes a copy of stack element 11 onto the stack.
     Dup11,
 
-    /// Pushes a copy of stack element 12 onto the stack.
-    Dup12,
-
     /// Pushes a copy of stack element 13 onto the stack.
     Dup13,
-
-    /// Pushes a copy of stack element 14 onto the stack.
-    Dup14,
 
     /// Pushes a copy of stack element 15 onto the stack.
     Dup15,
@@ -218,11 +206,26 @@ pub enum Operation {
     /// Moves stack element 4 to the top of the stack.
     MovUp4,
 
-    /// Moves stack element 8 to the top of the stack.
-    MovUp8,
+    /// Moves stack element 5 to the top of the stack.
+    MovUp5,
 
-    /// Moves stack element 12 to the top of the stack.
-    MovUp12,
+    /// Moves stack element 6 to the top of the stack.
+    MovUp6,
+
+    /// Moves stack element 7 to the top of the stack.
+    MovUp7,
+
+    /// Moves stack element 9 to the top of the stack.
+    MovUp9,
+
+    /// Moves stack element 11 to the top of the stack.
+    MovUp11,
+
+    /// Moves stack element 13 to the top of the stack.
+    MovUp13,
+
+    /// Moves stack element 15 to the top of the stack.
+    MovUp15,
 
     /// Moves the top stack element to position 2 on the stack.
     MovDn2,
@@ -233,11 +236,26 @@ pub enum Operation {
     /// Moves the top stack element to position 4 on the stack.
     MovDn4,
 
-    /// Moves the top stack element to position 8 on the stack.
-    MovDn8,
+    /// Moves the top stack element to position 5 on the stack.
+    MovDn5,
 
-    /// Moves the top stack element to position 12 on the stack.
-    MovDn12,
+    /// Moves the top stack element to position 6 on the stack.
+    MovDn6,
+
+    /// Moves the top stack element to position 7 on the stack.
+    MovDn7,
+
+    /// Moves the top stack element to position 9 on the stack.
+    MovDn9,
+
+    /// Moves the top stack element to position 11 on the stack.
+    MovDn11,
+
+    /// Moves the top stack element to position 13 on the stack.
+    MovDn13,
+
+    /// Moves the top stack element to position 15 on the stack.
+    MovDn15,
 
     /// Pops an element off the stack, and if the element is 1, swaps the top two remaining
     /// elements on the stack. If the popped element is 0, the stack remains unchanged.
@@ -306,14 +324,10 @@ impl Operation {
             Self::Dup5 => 0b0001_0101,
             Self::Dup6 => 0b0001_0110,
             Self::Dup7 => 0b0001_0111,
-            Self::Dup8 => 0b0001_1000,
-            Self::Dup9 => 0b0001_1001,
-            Self::Dup10 => 0b0001_1010,
-            Self::Dup11 => 0b0001_1011,
-            Self::Dup12 => 0b0001_1100,
-            Self::Dup13 => 0b0001_1101,
-            Self::Dup14 => 0b0001_1110,
-            Self::Dup15 => 0b0001_1111,
+            Self::Dup9 => 0b0001_1000,
+            Self::Dup11 => 0b0001_1001,
+            Self::Dup13 => 0b0001_1011,
+            Self::Dup15 => 0b0001_1100,
 
             Self::Swap => 0b0010_0000,
             Self::SwapW => 0b0010_0001,
@@ -323,14 +337,24 @@ impl Operation {
             Self::MovUp2 => 0b0010_0001,
             Self::MovUp3 => 0b0010_0010,
             Self::MovUp4 => 0b0010_0011,
-            Self::MovUp8 => 0b0010_0100,
-            Self::MovUp12 => 0b0010_0101,
+            Self::MovUp5 => 0b0010_0100,
+            Self::MovUp6 => 0b0010_0101,
+            Self::MovUp7 => 0b0010_0110,
+            Self::MovUp9 => 0b0010_0111,
+            Self::MovUp11 => 0b0010_1000,
+            Self::MovUp13 => 0b0010_1001,
+            Self::MovUp15 => 0b0010_1011,
 
             Self::MovDn2 => 0b0010_0110,
             Self::MovDn3 => 0b0010_0111,
             Self::MovDn4 => 0b0010_1000,
-            Self::MovDn8 => 0b0010_1001,
-            Self::MovDn12 => 0b0010_1010,
+            Self::MovDn5 => 0b0010_1001,
+            Self::MovDn6 => 0b0010_1010,
+            Self::MovDn7 => 0b0010_1010,
+            Self::MovDn9 => 0b0010_1010,
+            Self::MovDn11 => 0b0010_1010,
+            Self::MovDn13 => 0b0010_1010,
+            Self::MovDn15 => 0b0010_1010,
 
             Self::CSwap => 0b0010_1010,
             Self::CSwapW => 0b0010_1010,
@@ -430,13 +454,9 @@ impl fmt::Display for Operation {
             Self::Dup5 => write!(f, "dup5"),
             Self::Dup6 => write!(f, "dup6"),
             Self::Dup7 => write!(f, "dup7"),
-            Self::Dup8 => write!(f, "dup8"),
             Self::Dup9 => write!(f, "dup9"),
-            Self::Dup10 => write!(f, "dup10"),
             Self::Dup11 => write!(f, "dup11"),
-            Self::Dup12 => write!(f, "dup12"),
             Self::Dup13 => write!(f, "dup13"),
-            Self::Dup14 => write!(f, "dup14"),
             Self::Dup15 => write!(f, "dup15"),
 
             Self::Swap => write!(f, "swap"),
@@ -447,14 +467,24 @@ impl fmt::Display for Operation {
             Self::MovUp2 => write!(f, "movup2"),
             Self::MovUp3 => write!(f, "movup3"),
             Self::MovUp4 => write!(f, "movup4"),
-            Self::MovUp8 => write!(f, "movup8"),
-            Self::MovUp12 => write!(f, "movup12"),
+            Self::MovUp5 => write!(f, "movup5"),
+            Self::MovUp6 => write!(f, "movup6"),
+            Self::MovUp7 => write!(f, "movup7"),
+            Self::MovUp9 => write!(f, "movup9"),
+            Self::MovUp11 => write!(f, "movup11"),
+            Self::MovUp13 => write!(f, "movup13"),
+            Self::MovUp15 => write!(f, "movup15"),
 
             Self::MovDn2 => write!(f, "movdn2"),
             Self::MovDn3 => write!(f, "movdn3"),
             Self::MovDn4 => write!(f, "movdn4"),
-            Self::MovDn8 => write!(f, "movdn8"),
-            Self::MovDn12 => write!(f, "movdn12"),
+            Self::MovDn5 => write!(f, "movdn5"),
+            Self::MovDn6 => write!(f, "movdn6"),
+            Self::MovDn7 => write!(f, "movdn7"),
+            Self::MovDn9 => write!(f, "movdn9"),
+            Self::MovDn11 => write!(f, "movdn11"),
+            Self::MovDn13 => write!(f, "movdn13"),
+            Self::MovDn15 => write!(f, "movdn15"),
 
             Self::CSwap => write!(f, "cswap"),
             Self::CSwapW => write!(f, "cswapw"),
