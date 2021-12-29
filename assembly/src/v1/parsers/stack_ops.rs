@@ -43,9 +43,30 @@ pub fn parse_movup(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), As
     unimplemented!()
 }
 
-/// TODO: implement
-pub fn parse_movupw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates movupw.x assembly instruction to VM operations.
+///
+/// Specifically:
+/// * movupw.2 is translated into SWAPW SWAPW2
+/// * movupw.3 is translated into SWAPW SWAPW2 SWAPW3
+pub fn parse_movupw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0..=1 => return Err(AssemblyError::missing_param(op)),
+        2 => match op.parts()[1] {
+            "2" => {
+                span_ops.push(Operation::SwapW);
+                span_ops.push(Operation::SwapW2);
+            }
+            "3" => {
+                span_ops.push(Operation::SwapW);
+                span_ops.push(Operation::SwapW2);
+                span_ops.push(Operation::SwapW3);
+            }
+            _ => return Err(AssemblyError::invalid_param(op, 1)),
+        },
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    Ok(())
 }
 
 /// TODO: implement
