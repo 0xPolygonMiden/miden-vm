@@ -74,9 +74,30 @@ pub fn parse_movdn(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), As
     unimplemented!()
 }
 
-/// TODO: implement
-pub fn parse_movdnw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates movdnw.x assembly instruction to VM operations.
+///
+/// Specifically:
+/// * movdnw.2 is translated into SWAPW2 SWAPW
+/// * movdnw.3 is translated into SWAPW3 SWAPW2 SWAPW
+pub fn parse_movdnw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0..=1 => return Err(AssemblyError::missing_param(op)),
+        2 => match op.parts()[1] {
+            "2" => {
+                span_ops.push(Operation::SwapW2);
+                span_ops.push(Operation::SwapW);
+            }
+            "3" => {
+                span_ops.push(Operation::SwapW3);
+                span_ops.push(Operation::SwapW2);
+                span_ops.push(Operation::SwapW);
+            }
+            _ => return Err(AssemblyError::invalid_param(op, 1)),
+        },
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    Ok(())
 }
 
 // CONDITIONAL MANIPULATION
