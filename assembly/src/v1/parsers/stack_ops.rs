@@ -3,24 +3,75 @@ use super::{AssemblyError, Operation, Token};
 // STACK MANIPULATION
 // ================================================================================================
 
-/// TODO: implement
-pub fn parse_drop(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates drop assembly instruction to VM operation DROP.
+pub fn parse_drop(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => span_ops.push(Operation::Drop),
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
 }
 
-/// TODO: implement
-pub fn parse_dropw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates dropw assembly instruction to VM operations DROP DROP DROP DROP.
+pub fn parse_dropw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => {
+            for _ in 0..4 {
+                span_ops.push(Operation::Drop);
+            }
+        }
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
 }
 
-/// TODO: implement
-pub fn parse_padw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates padw assembly instruction to VM operations PAD PAD PAD PAD.
+pub fn parse_padw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => {
+            for _ in 0..4 {
+                span_ops.push(Operation::Pad);
+            }
+        }
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
 }
 
-/// TODO: implement
-pub fn parse_dup(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates dup.n assembly instruction to VM operations DUPN.
+pub fn parse_dup(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => span_ops.push(Operation::Dup0),
+        2 => match op.parts()[1] {
+            "0" => span_ops.push(Operation::Dup0),
+            "1" => span_ops.push(Operation::Dup1),
+            "2" => span_ops.push(Operation::Dup2),
+            "3" => span_ops.push(Operation::Dup3),
+            "4" => span_ops.push(Operation::Dup4),
+            "5" => span_ops.push(Operation::Dup5),
+            "6" => span_ops.push(Operation::Dup6),
+            "7" => span_ops.push(Operation::Dup7),
+            "8" => span_ops.push(Operation::Dup8),
+            "9" => span_ops.push(Operation::Dup9),
+            "10" => span_ops.push(Operation::Dup10),
+            "11" => span_ops.push(Operation::Dup11),
+            "12" => span_ops.push(Operation::Dup12),
+            "13" => span_ops.push(Operation::Dup13),
+            "14" => span_ops.push(Operation::Dup14),
+            "15" => span_ops.push(Operation::Dup15),
+            _ => return Err(AssemblyError::invalid_param(op, 1)),
+        },
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
 }
 
 /// TODO: implement
