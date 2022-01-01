@@ -74,9 +74,48 @@ pub fn parse_dup(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
     Ok(())
 }
 
-/// TODO: implement
-pub fn parse_dupw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates dupw.n assembly instruction to four VM operations DUP depending on
+/// the index of the word.
+pub fn parse_dupw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => {
+            span_ops.push(Operation::Dup3);
+            span_ops.push(Operation::Dup2);
+            span_ops.push(Operation::Dup1);
+            span_ops.push(Operation::Dup0);
+        }
+        2 => match op.parts()[1] {
+            "0" => {
+                span_ops.push(Operation::Dup3);
+                span_ops.push(Operation::Dup2);
+                span_ops.push(Operation::Dup1);
+                span_ops.push(Operation::Dup0);
+            }
+            "1" => {
+                span_ops.push(Operation::Dup7);
+                span_ops.push(Operation::Dup6);
+                span_ops.push(Operation::Dup5);
+                span_ops.push(Operation::Dup4);
+            }
+            "2" => {
+                span_ops.push(Operation::Dup11);
+                span_ops.push(Operation::Dup10);
+                span_ops.push(Operation::Dup9);
+                span_ops.push(Operation::Dup8);
+            }
+            "3" => {
+                span_ops.push(Operation::Dup15);
+                span_ops.push(Operation::Dup14);
+                span_ops.push(Operation::Dup13);
+                span_ops.push(Operation::Dup12);
+            }
+            _ => return Err(AssemblyError::invalid_param(op, 1)),
+        },
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
 }
 
 /// TODO: implement
@@ -84,9 +123,21 @@ pub fn parse_swap(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), Ass
     unimplemented!()
 }
 
-/// TODO: implement
-pub fn parse_swapw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates swapw.n assembly instruction to four VM operation SWAPWN
+pub fn parse_swapw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => span_ops.push(Operation::SwapW),
+        2 => match op.parts()[1] {
+            "1" => span_ops.push(Operation::SwapW),
+            "2" => span_ops.push(Operation::SwapW2),
+            "3" => span_ops.push(Operation::SwapW3),
+            _ => return Err(AssemblyError::invalid_param(op, 1)),
+        },
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
 }
 
 /// TODO: implement
