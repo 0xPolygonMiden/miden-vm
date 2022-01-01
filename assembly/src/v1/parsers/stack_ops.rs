@@ -205,22 +205,55 @@ pub fn parse_movdnw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 // CONDITIONAL MANIPULATION
 // ================================================================================================
 
-/// TODO: implement
-pub fn parse_cswap(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates cswap assembly instruction that translates to CSWAP.
+pub fn parse_cswap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => span_ops.push(Operation::CSwap),
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    Ok(())
 }
 
-/// TODO: implement
-pub fn parse_cswapw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates cswapw assembly instruction that translates to CSWAPW.
+pub fn parse_cswapw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => span_ops.push(Operation::CSwapW),
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    Ok(())
 }
 
-/// TODO: implement
-pub fn parse_cdrop(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates cdrop assembly instruction that translates to CSWAP DROP
+pub fn parse_cdrop(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => {
+            span_ops.push(Operation::CSwap);
+            span_ops.push(Operation::Drop);
+        }
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    Ok(())
 }
 
-/// TODO: implement
-pub fn parse_cdropw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates cdropw assembly instruction that translates to CSWAPW DROP DROP DROP DROP
+pub fn parse_cdropw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => {
+            span_ops.push(Operation::CSwapW);
+            span_ops.push(Operation::Drop);
+            span_ops.push(Operation::Drop);
+            span_ops.push(Operation::Drop);
+            span_ops.push(Operation::Drop);
+        }
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    Ok(())
 }
