@@ -54,11 +54,31 @@ impl Processor {
         unimplemented!();
     }
 
-    pub(super) fn op_movup8(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_movup5(&mut self) -> Result<(), ExecutionError> {
         unimplemented!();
     }
 
-    pub(super) fn op_movup12(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_movup6(&mut self) -> Result<(), ExecutionError> {
+        unimplemented!();
+    }
+
+    pub(super) fn op_movup7(&mut self) -> Result<(), ExecutionError> {
+        unimplemented!();
+    }
+
+    pub(super) fn op_movup9(&mut self) -> Result<(), ExecutionError> {
+        unimplemented!();
+    }
+
+    pub(super) fn op_movup11(&mut self) -> Result<(), ExecutionError> {
+        unimplemented!();
+    }
+
+    pub(super) fn op_movup13(&mut self) -> Result<(), ExecutionError> {
+        unimplemented!();
+    }
+
+    pub(super) fn op_movup15(&mut self) -> Result<(), ExecutionError> {
         unimplemented!();
     }
 
@@ -74,11 +94,31 @@ impl Processor {
         unimplemented!();
     }
 
-    pub(super) fn op_movdn8(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_movdn5(&mut self) -> Result<(), ExecutionError> {
         unimplemented!();
     }
 
-    pub(super) fn op_movdn12(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_movdn6(&mut self) -> Result<(), ExecutionError> {
+        unimplemented!();
+    }
+
+    pub(super) fn op_movdn7(&mut self) -> Result<(), ExecutionError> {
+        unimplemented!();
+    }
+
+    pub(super) fn op_movdn9(&mut self) -> Result<(), ExecutionError> {
+        unimplemented!();
+    }
+
+    pub(super) fn op_movdn11(&mut self) -> Result<(), ExecutionError> {
+        unimplemented!();
+    }
+
+    pub(super) fn op_movdn13(&mut self) -> Result<(), ExecutionError> {
+        unimplemented!();
+    }
+
+    pub(super) fn op_movdn15(&mut self) -> Result<(), ExecutionError> {
         unimplemented!();
     }
 

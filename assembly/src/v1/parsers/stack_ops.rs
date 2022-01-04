@@ -58,13 +58,29 @@ pub fn parse_dup(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
             "5" => span_ops.push(Operation::Dup5),
             "6" => span_ops.push(Operation::Dup6),
             "7" => span_ops.push(Operation::Dup7),
-            "8" => span_ops.push(Operation::Dup8),
+            "8" => {
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::Dup9);
+                span_ops.push(Operation::Add);
+            }
             "9" => span_ops.push(Operation::Dup9),
-            "10" => span_ops.push(Operation::Dup10),
+            "10" => {
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::Dup11);
+                span_ops.push(Operation::Add);
+            }
             "11" => span_ops.push(Operation::Dup11),
-            "12" => span_ops.push(Operation::Dup12),
+            "12" => {
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::Dup13);
+                span_ops.push(Operation::Add);
+            }
             "13" => span_ops.push(Operation::Dup13),
-            "14" => span_ops.push(Operation::Dup14),
+            "14" => {
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::Dup15);
+                span_ops.push(Operation::Add);
+            }
             "15" => span_ops.push(Operation::Dup15),
             _ => return Err(AssemblyError::invalid_param(op, 1)),
         },
@@ -140,9 +156,50 @@ pub fn parse_swapw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
     Ok(())
 }
 
-/// TODO: implement
-pub fn parse_movup(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates movup.x assembly instruction to VM operations.
+/// We specifically utilize the MovUpX VM operations for indexes that match
+/// exactly with the assembly instruction.
+/// The reamaining ones we implement them PAD MOVUPX ADD.
+pub fn parse_movup(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0..=1 => return Err(AssemblyError::missing_param(op)),
+        2 => match op.parts()[1] {
+            "2" => span_ops.push(Operation::MovUp2),
+            "3" => span_ops.push(Operation::MovUp3),
+            "4" => span_ops.push(Operation::MovUp4),
+            "5" => span_ops.push(Operation::MovUp5),
+            "6" => span_ops.push(Operation::MovUp6),
+            "7" => span_ops.push(Operation::MovUp7),
+            "8" => {
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::MovUp9);
+                span_ops.push(Operation::Add);
+            }
+            "9" => span_ops.push(Operation::MovUp9),
+            "10" => {
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::MovUp11);
+                span_ops.push(Operation::Add);
+            }
+            "11" => span_ops.push(Operation::MovUp11),
+            "12" => {
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::MovUp13);
+                span_ops.push(Operation::Add);
+            }
+            "13" => span_ops.push(Operation::MovUp13),
+            "14" => {
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::MovUp15);
+                span_ops.push(Operation::Add);
+            }
+            "15" => span_ops.push(Operation::MovUp15),
+            _ => return Err(AssemblyError::invalid_param(op, 1)),
+        },
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    Ok(())
 }
 
 /// Translates movupw.x assembly instruction to VM operations.
@@ -171,9 +228,54 @@ pub fn parse_movupw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
     Ok(())
 }
 
-/// TODO: implement
-pub fn parse_movdn(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates movdn.x assembly instruction to VM operations.
+/// We specifically utilize the MovDnX VM operations for indexes that match
+/// exactly with the assembly instruction.
+/// The reamaining ones we implement them PAD SWAP MOVDNX DROP.
+pub fn parse_movdn(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0..=1 => return Err(AssemblyError::missing_param(op)),
+        2 => match op.parts()[1] {
+            "2" => span_ops.push(Operation::MovDn2),
+            "3" => span_ops.push(Operation::MovDn3),
+            "4" => span_ops.push(Operation::MovDn4),
+            "5" => span_ops.push(Operation::MovDn5),
+            "6" => span_ops.push(Operation::MovDn6),
+            "7" => span_ops.push(Operation::MovDn7),
+            "8" => {
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::Swap);
+                span_ops.push(Operation::MovDn9);
+                span_ops.push(Operation::Drop);
+            }
+            "9" => span_ops.push(Operation::MovDn9),
+            "10" => {
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::Swap);
+                span_ops.push(Operation::MovDn11);
+                span_ops.push(Operation::Drop);
+            }
+            "11" => span_ops.push(Operation::MovDn11),
+            "12" => {
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::Swap);
+                span_ops.push(Operation::MovDn13);
+                span_ops.push(Operation::Drop);
+            }
+            "13" => span_ops.push(Operation::MovDn13),
+            "14" => {
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::Swap);
+                span_ops.push(Operation::MovDn15);
+                span_ops.push(Operation::Drop);
+            }
+            "15" => span_ops.push(Operation::MovDn15),
+            _ => return Err(AssemblyError::invalid_param(op, 1)),
+        },
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    Ok(())
 }
 
 /// Translates movdnw.x assembly instruction to VM operations.
