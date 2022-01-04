@@ -134,9 +134,103 @@ pub fn parse_dupw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
     Ok(())
 }
 
-/// TODO: implement
-pub fn parse_swap(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates swap.x assembly instruction to VM operations MOVUPX MOVDN(X-1)
+pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => span_ops.push(Operation::Swap),
+        2 => match op.parts()[1] {
+            "1" => span_ops.push(Operation::Swap),
+            "2" => {
+                span_ops.push(Operation::MovUp2);
+                span_ops.push(Operation::Swap);
+            }
+            "3" => {
+                span_ops.push(Operation::MovUp3);
+                span_ops.push(Operation::MovDn2);
+            }
+            "4" => {
+                span_ops.push(Operation::MovUp4);
+                span_ops.push(Operation::MovDn3);
+            }
+            "5" => {
+                span_ops.push(Operation::MovUp5);
+                span_ops.push(Operation::MovDn4);
+            }
+            "6" => {
+                span_ops.push(Operation::MovUp6);
+                span_ops.push(Operation::MovDn5);
+            }
+            "7" => {
+                span_ops.push(Operation::MovUp7);
+                span_ops.push(Operation::MovDn6);
+            }
+            "8" => {
+                // MovUp8
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::MovUp9);
+                span_ops.push(Operation::Add);
+                span_ops.push(Operation::MovDn7);
+            }
+            "9" => {
+                span_ops.push(Operation::MovUp9);
+                // MovDn8
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::Swap);
+                span_ops.push(Operation::MovDn9);
+                span_ops.push(Operation::Drop);
+            }
+            "10" => {
+                // MovUp10
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::MovUp11);
+                span_ops.push(Operation::Add);
+                span_ops.push(Operation::MovDn9);
+            }
+            "11" => {
+                span_ops.push(Operation::MovUp11);
+                // MovDn10
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::Swap);
+                span_ops.push(Operation::MovDn11);
+                span_ops.push(Operation::Drop);
+            }
+            "12" => {
+                // MovUp12
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::MovUp13);
+                span_ops.push(Operation::Add);
+                span_ops.push(Operation::MovDn11);
+            }
+            "13" => {
+                span_ops.push(Operation::MovUp13);
+                // MovDn12
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::Swap);
+                span_ops.push(Operation::MovDn13);
+                span_ops.push(Operation::Drop);
+            }
+            "14" => {
+                // MovUp14
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::MovUp15);
+                span_ops.push(Operation::Add);
+                span_ops.push(Operation::MovDn13);
+            }
+            "15" => {
+                span_ops.push(Operation::MovUp15);
+                // MovDn14
+                span_ops.push(Operation::Pad);
+                span_ops.push(Operation::Swap);
+                span_ops.push(Operation::MovDn15);
+                span_ops.push(Operation::Drop);
+            }
+            _ => return Err(AssemblyError::invalid_param(op, 1)),
+        },
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
 }
 
 /// Translates swapw.n assembly instruction to four VM operation SWAPWN
