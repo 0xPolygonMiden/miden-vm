@@ -1,8 +1,8 @@
 use air::{ProcessorAir, PublicInputs, TraceMetadata, TraceState, MAX_OUTPUTS, MIN_TRACE_LENGTH};
-use core::{convert::TryInto, ops::Deref};
+use core::convert::TryInto;
 #[cfg(feature = "std")]
 use log::debug;
-use prover::{ExecutionTrace, ProverError, Serializable};
+use prover::{Prover, ProverError, Serializable, Trace, TraceTable};
 #[cfg(feature = "std")]
 use std::time::Instant;
 
@@ -76,21 +76,66 @@ pub fn execute(
     );
 
     // generate STARK proof
-    let inputs = inputs
-        .public_inputs()
-        .iter()
-        .map(|&v| v.as_int())
-        .collect::<Vec<_>>();
-    let pub_inputs = PublicInputs::new(program_hash, &inputs, &outputs);
-    let proof = prover::prove::<ProcessorAir>(trace, pub_inputs, options.deref().clone())?;
+    let prover = ExecutionProver::new(inputs.clone(), num_outputs, options.clone());
+    let proof = prover.prove(trace)?;
+    //let proof = prover::prove::<ProcessorAir>(trace, pub_inputs, options.deref().clone())?;
 
     Ok((outputs, proof))
+}
+
+// PROVER
+// ================================================================================================
+
+struct ExecutionProver {
+    inputs: ProgramInputs,
+    num_outputs: usize,
+    options: ProofOptions,
+}
+
+impl ExecutionProver {
+    pub fn new(inputs: ProgramInputs, num_outputs: usize, options: ProofOptions) -> Self {
+        Self {
+            inputs,
+            num_outputs,
+            options,
+        }
+    }
+}
+
+impl Prover for ExecutionProver {
+    type BaseField = BaseElement;
+    type Air = ProcessorAir;
+    type Trace = TraceTable<Self::BaseField>;
+
+    fn options(&self) -> &prover::ProofOptions {
+        &self.options
+    }
+
+    fn get_pub_inputs(&self, trace: &Self::Trace) -> PublicInputs {
+        // copy the user stack state the the last step to return as output
+        let last_state = get_last_state(trace);
+        let outputs = last_state.user_stack()[..self.num_outputs]
+            .iter()
+            .map(|&v| v.as_int())
+            .collect::<Vec<_>>();
+
+        let inputs = self
+            .inputs
+            .public_inputs()
+            .iter()
+            .map(|&v| v.as_int())
+            .collect::<Vec<_>>();
+
+        let program_hash: [u8; 32] = last_state.program_hash().to_bytes().try_into().unwrap();
+
+        PublicInputs::new(program_hash, &inputs, &outputs)
+    }
 }
 
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn get_last_state(trace: &ExecutionTrace<BaseElement>) -> TraceState<BaseElement> {
+fn get_last_state(trace: &TraceTable<BaseElement>) -> TraceState<BaseElement> {
     let last_step = trace.length() - 1;
     let meta = TraceMetadata::from_trace_info(&trace.get_info());
 
@@ -102,7 +147,7 @@ fn get_last_state(trace: &ExecutionTrace<BaseElement>) -> TraceState<BaseElement
 
 /// Prints out an execution trace.
 #[allow(unused)]
-fn print_trace(trace: &ExecutionTrace<BaseElement>, _multiples_of: usize) {
+fn print_trace(trace: &TraceTable<BaseElement>, _multiples_of: usize) {
     let trace_width = trace.width();
     let meta = TraceMetadata::from_trace_info(&trace.get_info());
 

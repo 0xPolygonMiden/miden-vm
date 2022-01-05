@@ -20,4 +20,4 @@ std = ["vm-core/std", "winter-utils/std"]
 
 [dependencies]
 vm-core = { package = "miden-core", path = "../core", version = "0.1", default-features = false }
-winter-utils = { package = "winter-utils", version = "0.2", default-features = false }
+winter-utils = { package = "winter-utils", version = "0.3", default-features = false }

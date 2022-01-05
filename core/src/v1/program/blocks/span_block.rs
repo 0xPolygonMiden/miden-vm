@@ -1,5 +1,4 @@
-use super::{fmt, Digest, ElementHasher, Operation, Rp62_248};
-use math::{fields::f62::BaseElement, FieldElement};
+use super::{fmt, BaseElement, Digest, ElementHasher, FieldElement, Operation, RescueHasher};
 use winter_utils::flatten_slice_elements;
 
 // CONSTANTS
@@ -85,6 +84,7 @@ impl Span {
 
     /// Returns a new [Span] block instantiated with operations from this block repeated the
     /// specified number of times.
+    #[must_use]
     pub fn replicate(&self, num_copies: usize) -> Self {
         let own_ops = self.get_ops();
         let mut ops = Vec::with_capacity(own_ops.len() * num_copies);
@@ -234,7 +234,7 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
         batches.push(batch);
     }
 
-    let hash = Rp62_248::hash_elements(flatten_slice_elements(&batch_groups));
+    let hash = RescueHasher::hash_elements(flatten_slice_elements(&batch_groups));
 
     (batches, hash)
 }
@@ -245,7 +245,7 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
 #[cfg(test)]
 mod tests {
     use super::{
-        BaseElement, ElementHasher, FieldElement, Operation, Rp62_248, BATCH_SIZE, GROUP_SIZE,
+        BaseElement, ElementHasher, FieldElement, Operation, RescueHasher, BATCH_SIZE, GROUP_SIZE,
     };
 
     #[test]
@@ -259,7 +259,7 @@ mod tests {
         let mut batch_groups = [BaseElement::ZERO; BATCH_SIZE];
         batch_groups[0] = build_group(&ops);
         assert_eq!(batch_groups, batch.groups);
-        assert_eq!(Rp62_248::hash_elements(&batch_groups), hash);
+        assert_eq!(RescueHasher::hash_elements(&batch_groups), hash);
 
         // two operations
         let ops = vec![Operation::Add, Operation::Mul];
@@ -270,7 +270,7 @@ mod tests {
         let mut batch_groups = [BaseElement::ZERO; BATCH_SIZE];
         batch_groups[0] = build_group(&ops);
         assert_eq!(batch_groups, batch.groups);
-        assert_eq!(Rp62_248::hash_elements(&batch_groups), hash);
+        assert_eq!(RescueHasher::hash_elements(&batch_groups), hash);
 
         // one group with one immediate value
         let ops = vec![Operation::Add, Operation::Push(BaseElement::new(12345678))];
@@ -282,7 +282,7 @@ mod tests {
         batch_groups[0] = build_group(&ops);
         batch_groups[1] = BaseElement::new(12345678);
         assert_eq!(batch_groups, batch.groups);
-        assert_eq!(Rp62_248::hash_elements(&batch_groups), hash);
+        assert_eq!(RescueHasher::hash_elements(&batch_groups), hash);
 
         // one group with 7 immediate values
         let ops = vec![
@@ -310,7 +310,7 @@ mod tests {
             BaseElement::new(7),
         ];
         assert_eq!(batch_groups, batch.groups);
-        assert_eq!(Rp62_248::hash_elements(&batch_groups), hash);
+        assert_eq!(RescueHasher::hash_elements(&batch_groups), hash);
 
         // two groups with 7 immediate values; the last push overflows to the second batch
         let ops = vec![
@@ -350,7 +350,7 @@ mod tests {
         assert_eq!(batch1_groups, batch1.groups);
 
         let all_groups = [batch0_groups, batch1_groups].concat();
-        assert_eq!(Rp62_248::hash_elements(&all_groups), hash);
+        assert_eq!(RescueHasher::hash_elements(&all_groups), hash);
 
         // immediate values in-between groups
         let ops = vec![
@@ -382,7 +382,7 @@ mod tests {
             BaseElement::ZERO,
         ];
         assert_eq!(batch_groups, batch.groups);
-        assert_eq!(Rp62_248::hash_elements(&batch_groups), hash);
+        assert_eq!(RescueHasher::hash_elements(&batch_groups), hash);
 
         // push at start of second group; assembler inserts a NOOP in front of PUSH
         let ops = vec![
@@ -414,7 +414,7 @@ mod tests {
             BaseElement::ZERO,
         ];
         assert_eq!(batch_groups, batch.groups);
-        assert_eq!(Rp62_248::hash_elements(&batch_groups), hash);
+        assert_eq!(RescueHasher::hash_elements(&batch_groups), hash);
     }
 
     // TEST HELPERS

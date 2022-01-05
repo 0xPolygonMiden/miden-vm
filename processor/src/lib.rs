@@ -22,13 +22,13 @@ pub use vm_core::{
     program::{Program, ProgramInputs},
     BaseElement, FieldElement, StarkField,
 };
-pub use winterfell::ExecutionTrace;
+pub use winterfell::TraceTable;
 
 // PUBLIC FUNCTIONS
 // ================================================================================================
 
 /// Returns register traces resulting from executing the `program` against the specified inputs.
-pub fn execute(program: &Program, inputs: &ProgramInputs) -> ExecutionTrace<BaseElement> {
+pub fn execute(program: &Program, inputs: &ProgramInputs) -> TraceTable<BaseElement> {
     // initialize decoder and stack components
     let mut decoder = Decoder::new(MIN_TRACE_LENGTH);
     let mut stack = Stack::new(inputs, MIN_TRACE_LENGTH);
@@ -53,7 +53,7 @@ pub fn execute(program: &Program, inputs: &ProgramInputs) -> ExecutionTrace<Base
     let mut register_traces = decoder.into_register_traces();
     register_traces.append(&mut stack.into_register_traces());
 
-    let mut trace = ExecutionTrace::init(register_traces);
+    let mut trace = TraceTable::init(register_traces);
     trace.set_meta(meta);
 
     trace

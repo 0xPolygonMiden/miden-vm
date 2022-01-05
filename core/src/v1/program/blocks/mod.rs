@@ -1,4 +1,4 @@
-use super::{Digest, ElementHasher, Hasher, Operation, Rp62_248};
+use super::{BaseElement, Digest, ElementHasher, FieldElement, Hasher, Operation, RescueHasher};
 use core::fmt;
 
 mod call_block;

@@ -1,5 +1,5 @@
+use super::BaseElement;
 use core::fmt;
-use math::fields::f62::BaseElement;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {

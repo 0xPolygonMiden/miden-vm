@@ -1,5 +1,5 @@
 pub mod program;
-pub use math::{fields::f62::BaseElement, FieldElement, StarkField};
+pub use math::{fields::f64::BaseElement, FieldElement, StarkField};
 
 // CONSTANTS
 // ================================================================================================
