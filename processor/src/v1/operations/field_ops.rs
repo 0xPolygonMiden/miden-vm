@@ -1,4 +1,4 @@
-use super::{ExecutionError, Processor};
+use super::{BaseElement, ExecutionError, FieldElement, Processor};
 
 // FIELD OPERATIONS
 // ================================================================================================
@@ -44,8 +44,17 @@ impl Processor {
         unimplemented!()
     }
 
+    /// Pops an element off the stack, adds ONE to it, and pushes the result back onto the stack.
+    ///
+    /// # Errors
+    /// Returns an error if the stack does not contain any elements.
     pub(super) fn op_incr(&mut self) -> Result<(), ExecutionError> {
-        unimplemented!()
+        self.stack.check_depth(1, "INCR")?;
+
+        let a = self.stack.get(0);
+        self.stack.set(0, a + BaseElement::ONE);
+        self.stack.copy_state(1);
+        Ok(())
     }
 
     // BOOLEAN OPERATIONS

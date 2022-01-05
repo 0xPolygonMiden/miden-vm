@@ -1,11 +1,5 @@
-use super::{BaseElement, ExecutionError, FieldElement, ProgramInputs};
+use super::{BaseElement, ExecutionError, FieldElement, ProgramInputs, StackTrace, STACK_TOP_SIZE};
 use core::{cmp, convert::TryInto};
-use vm_core::v1::STACK_TOP_SIZE;
-
-// TYPES ALIASES
-// ================================================================================================
-
-type StackTrace = [Vec<BaseElement>; STACK_TOP_SIZE];
 
 // STACK
 // ================================================================================================
@@ -85,6 +79,11 @@ impl Stack {
             *result = column[self.step];
         }
         result
+    }
+
+    /// TODO: probably replace with into_trace()?
+    pub fn trace(&self) -> &StackTrace {
+        &self.trace
     }
 
     // TRACE ACCESSORS AND MUTATORS
@@ -192,6 +191,13 @@ impl Stack {
     // Increments the clock cycle.
     pub fn advance_clock(&mut self) {
         self.step += 1;
+    }
+
+    pub fn finalize(&mut self) {
+        for _ in self.step..self.trace_length() - 1 {
+            self.copy_state(0);
+            self.advance_clock();
+        }
     }
 
     // UTILITY METHODS
