@@ -24,3 +24,4 @@ winterfell = { package = "winter-prover", version = "0.3", default-features = fa
 
 [dev-dependencies]
 rand-utils = { package = "winter-rand-utils", version = "0.3" }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.1", default-features = false }

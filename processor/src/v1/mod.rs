@@ -3,7 +3,7 @@ use vm_core::v1::{
         blocks::{CodeBlock, Join, Loop, Span, Split},
         Operation, ProgramInputs, Script,
     },
-    BaseElement, FieldElement, StarkField,
+    BaseElement, FieldElement, StarkField, STACK_TOP_SIZE,
 };
 
 mod operations;
@@ -17,13 +17,20 @@ use stack::Stack;
 mod memory;
 use memory::Memory;
 
+mod trace;
+pub use trace::ExecutionTrace;
+
 mod errors;
 pub use errors::ExecutionError;
+
+#[cfg(test)]
+mod tests;
 
 // TYPE ALIASES
 // ================================================================================================
 
 type Word = [BaseElement; 4];
+type StackTrace = [Vec<BaseElement>; STACK_TOP_SIZE];
 
 // PROCESSOR
 // ================================================================================================
@@ -45,8 +52,15 @@ impl Processor {
         }
     }
 
-    pub fn execute(&mut self, script: &Script) -> Result<(), ExecutionError> {
-        self.execute_code_block(script.root())
+    pub fn execute(&mut self, script: &Script) -> Result<ExecutionTrace, ExecutionError> {
+        self.execute_code_block(script.root())?;
+
+        self.stack.finalize();
+
+        // TODO: get rid of cloning
+        let trace = ExecutionTrace::new(self.stack.trace().clone());
+
+        Ok(trace)
     }
 
     // PUBLIC ACCESSORS
