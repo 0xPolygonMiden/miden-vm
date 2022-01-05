@@ -9,5 +9,6 @@ pub enum ExecutionError {
     UnexecutableCodeBlock(CodeBlock),
     NotBinaryValue(BaseElement),
     StackUnderflow(&'static str, usize),
+    DivideByZero(usize),
     FailedAssertion(usize),
 }
