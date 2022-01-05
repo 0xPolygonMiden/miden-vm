@@ -120,7 +120,6 @@ fn generate_authentication_path(n: usize) -> ([Vec<BaseElement>; 2], usize) {
 /// path is for a leaf node at position specified by `index` parameter.
 fn compute_merkle_root(path: &[Vec<BaseElement>; 2], index: usize) -> Vec<u128> {
     let mut buf = [BaseElement::ZERO; 4];
-    let mut v: Vec<BaseElement>;
     let n = path[0].len();
 
     let r = index & 1;
@@ -129,7 +128,7 @@ fn compute_merkle_root(path: &[Vec<BaseElement>; 2], index: usize) -> Vec<u128> 
     buf[2] = path[0][1 - r];
     buf[3] = path[1][1 - r];
 
-    v = hasher::digest(&buf);
+    let mut v = hasher::digest(&buf);
 
     let mut index = (index + usize::pow(2, (n - 1) as u32)) >> 1;
     for i in 2..n {

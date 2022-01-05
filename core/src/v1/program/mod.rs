@@ -1,6 +1,6 @@
-use super::BaseElement;
+use super::{BaseElement, FieldElement};
 use core::fmt;
-use crypto::{hashers::Rp62_248, Digest as HasherDigest, ElementHasher, Hasher};
+use crypto::{hashers::Rp64_256 as RescueHasher, Digest as HasherDigest, ElementHasher, Hasher};
 use std::collections::BTreeMap;
 
 pub mod blocks;
@@ -15,7 +15,7 @@ pub use inputs::ProgramInputs;
 // TYPES ALIASES
 // ================================================================================================
 
-type Digest = <Rp62_248 as Hasher>::Digest;
+type Digest = <RescueHasher as Hasher>::Digest;
 
 // SCRIPT
 // ================================================================================================
@@ -36,7 +36,7 @@ impl Script {
     // --------------------------------------------------------------------------------------------
     /// Constructs a new program from the specified code block.
     pub fn new(root: CodeBlock) -> Self {
-        let hash = Rp62_248::merge(&[root.hash(), Digest::default()]);
+        let hash = RescueHasher::merge(&[root.hash(), Digest::default()]);
         Self {
             root,
             hash: hash.as_bytes(),

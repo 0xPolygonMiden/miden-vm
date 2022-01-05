@@ -43,7 +43,7 @@ pub struct ProcessorAir {
 }
 
 impl Air for ProcessorAir {
-    type BaseElement = BaseElement;
+    type BaseField = BaseElement;
     type PublicInputs = PublicInputs;
 
     fn new(trace_info: TraceInfo, pub_inputs: PublicInputs, options: WinterProofOptions) -> Self {
@@ -68,7 +68,7 @@ impl Air for ProcessorAir {
         }
     }
 
-    fn get_periodic_column_values(&self) -> Vec<Vec<Self::BaseElement>> {
+    fn get_periodic_column_values(&self) -> Vec<Vec<Self::BaseField>> {
         let mut result = Vec::new();
         for mask in decoder::MASKS.iter() {
             result.push(mask.to_elements());

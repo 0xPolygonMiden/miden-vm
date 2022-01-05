@@ -1,6 +1,6 @@
 use crate::{
-    assembly, BaseElement, ExecutionTrace, FieldElement, ProgramInputs, Serializable,
-    TraceMetadata, TraceState,
+    assembly, BaseElement, FieldElement, ProgramInputs, Serializable, Trace, TraceMetadata,
+    TraceState, TraceTable,
 };
 use air::ToElements;
 
@@ -153,7 +153,7 @@ fn execute_loop() {
     );
 }
 
-fn get_trace_state(trace: &ExecutionTrace<BaseElement>, step: usize) -> TraceState<BaseElement> {
+fn get_trace_state(trace: &TraceTable<BaseElement>, step: usize) -> TraceState<BaseElement> {
     let meta = TraceMetadata::from_trace_info(&trace.get_info());
     let mut row = vec![BaseElement::ZERO; trace.width()];
     trace.read_row_into(step, &mut row);

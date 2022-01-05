@@ -30,4 +30,4 @@ log = { version = "0.4", default-features = false }
 miden = { path = "../miden", version = "0.1", default-features = false }
 structopt = { version = "0.3", default-features = false }
 vm-core = { package = "miden-core", path = "../core", default-features = false }
-rand-utils = { package = "winter-rand-utils", version = "0.2", optional = true }
+rand-utils = { package = "winter-rand-utils", version = "0.3", optional = true }

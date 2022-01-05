@@ -1,4 +1,4 @@
-use super::{fmt, CodeBlock, Digest, Hasher, Rp62_248};
+use super::{fmt, CodeBlock, Digest, Hasher, RescueHasher};
 
 // JOIN BLOCKS
 // ================================================================================================
@@ -19,7 +19,7 @@ impl Join {
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Join] block instantiated with the specified code blocks.
     pub fn new(body: [CodeBlock; 2]) -> Self {
-        let hash = Rp62_248::merge(&[body[0].hash(), body[1].hash()]);
+        let hash = RescueHasher::merge(&[body[0].hash(), body[1].hash()]);
         Self {
             body: Box::new(body),
             hash,

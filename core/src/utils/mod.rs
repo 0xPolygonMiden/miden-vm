@@ -3,7 +3,9 @@ use core::ops::Range;
 
 // RANGE
 // ================================================================================================
+
 pub trait RangeSlider {
+    #[must_use]
     fn slide(self, slide_by: usize) -> Self;
 }
 
