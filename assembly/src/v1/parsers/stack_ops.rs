@@ -142,88 +142,92 @@ pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
         2 => match op.parts()[1] {
             "1" => span_ops.push(Operation::Swap),
             "2" => {
-                span_ops.push(Operation::MovUp2);
                 span_ops.push(Operation::Swap);
+                span_ops.push(Operation::MovUp2);
             }
             "3" => {
-                span_ops.push(Operation::MovUp3);
                 span_ops.push(Operation::MovDn2);
+                span_ops.push(Operation::MovUp3);
             }
             "4" => {
-                span_ops.push(Operation::MovUp4);
                 span_ops.push(Operation::MovDn3);
+                span_ops.push(Operation::MovUp4);
             }
             "5" => {
-                span_ops.push(Operation::MovUp5);
                 span_ops.push(Operation::MovDn4);
+                span_ops.push(Operation::MovUp5);
             }
             "6" => {
-                span_ops.push(Operation::MovUp6);
                 span_ops.push(Operation::MovDn5);
+                span_ops.push(Operation::MovUp6);
             }
             "7" => {
-                span_ops.push(Operation::MovUp7);
                 span_ops.push(Operation::MovDn6);
+                span_ops.push(Operation::MovUp7);
             }
             "8" => {
+                span_ops.push(Operation::MovDn7);
                 // MovUp8
                 span_ops.push(Operation::Pad);
                 span_ops.push(Operation::MovUp9);
                 span_ops.push(Operation::Add);
-                span_ops.push(Operation::MovDn7);
             }
             "9" => {
-                span_ops.push(Operation::MovUp9);
                 // MovDn8
                 span_ops.push(Operation::Pad);
                 span_ops.push(Operation::Swap);
                 span_ops.push(Operation::MovDn9);
                 span_ops.push(Operation::Drop);
+
+                span_ops.push(Operation::MovUp9);
             }
             "10" => {
+                span_ops.push(Operation::MovDn9);
                 // MovUp10
                 span_ops.push(Operation::Pad);
                 span_ops.push(Operation::MovUp11);
                 span_ops.push(Operation::Add);
-                span_ops.push(Operation::MovDn9);
             }
             "11" => {
-                span_ops.push(Operation::MovUp11);
                 // MovDn10
                 span_ops.push(Operation::Pad);
                 span_ops.push(Operation::Swap);
                 span_ops.push(Operation::MovDn11);
                 span_ops.push(Operation::Drop);
+
+                span_ops.push(Operation::MovUp11);
             }
             "12" => {
+                span_ops.push(Operation::MovDn11);
                 // MovUp12
                 span_ops.push(Operation::Pad);
                 span_ops.push(Operation::MovUp13);
                 span_ops.push(Operation::Add);
-                span_ops.push(Operation::MovDn11);
             }
             "13" => {
-                span_ops.push(Operation::MovUp13);
                 // MovDn12
                 span_ops.push(Operation::Pad);
                 span_ops.push(Operation::Swap);
                 span_ops.push(Operation::MovDn13);
                 span_ops.push(Operation::Drop);
+
+                span_ops.push(Operation::MovUp13);
             }
             "14" => {
+                span_ops.push(Operation::MovDn13);
                 // MovUp14
                 span_ops.push(Operation::Pad);
                 span_ops.push(Operation::MovUp15);
                 span_ops.push(Operation::Add);
-                span_ops.push(Operation::MovDn13);
             }
             "15" => {
-                span_ops.push(Operation::MovUp15);
                 // MovDn14
                 span_ops.push(Operation::Pad);
                 span_ops.push(Operation::Swap);
                 span_ops.push(Operation::MovDn15);
                 span_ops.push(Operation::Drop);
+
+                span_ops.push(Operation::MovUp15);
             }
             _ => return Err(AssemblyError::invalid_param(op, 1)),
         },
