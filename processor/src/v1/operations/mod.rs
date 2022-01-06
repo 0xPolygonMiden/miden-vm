@@ -150,3 +150,16 @@ impl Process {
         Self::new(super::ProgramInputs::none())
     }
 }
+
+// TEST HELPERS
+// ================================================================================================
+
+#[cfg(test)]
+fn init_stack_with(process: &mut Process, values: &[u64]) -> Vec<BaseElement> {
+    let mut result = Vec::with_capacity(values.len());
+    for value in values.iter().map(|&v| BaseElement::new(v)) {
+        process.execute_op(Operation::Push(value)).unwrap();
+        result.push(value);
+    }
+    result.iter().cloned().rev().collect()
+}
