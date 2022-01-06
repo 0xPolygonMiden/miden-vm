@@ -154,12 +154,13 @@ impl Process {
 // TEST HELPERS
 // ================================================================================================
 
+/// Pushes proved values onto the stack of the specified process. The values are pushed in the
+/// order in which they are provided.
 #[cfg(test)]
-fn init_stack_with(process: &mut Process, values: &[u64]) -> Vec<BaseElement> {
+fn init_stack_with(process: &mut Process, values: &[u64]) {
     let mut result = Vec::with_capacity(values.len());
     for value in values.iter().map(|&v| BaseElement::new(v)) {
         process.execute_op(Operation::Push(value)).unwrap();
         result.push(value);
     }
-    result.iter().cloned().rev().collect()
 }

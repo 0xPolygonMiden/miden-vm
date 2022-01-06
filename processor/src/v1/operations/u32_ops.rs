@@ -268,7 +268,6 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
     }
 
-
     #[test]
     fn op_u32addc() {
         // --- test c = 1 -----------------------------------------------------
@@ -284,7 +283,7 @@ mod tests {
         let hi = (result >> 32) as u32;
         let lo = result as u32;
         assert!(hi <= 1);
-    
+
         process.execute_op(Operation::U32addc).unwrap();
         let expected = build_expected(&[hi, lo, d as u32]);
         assert_eq!(expected, process.stack.trace_state());
@@ -368,7 +367,7 @@ mod tests {
     fn op_u32and() {
         let mut process = Process::new_dummy();
         let (a, b, c, d) = init_stack_rand(&mut process);
-        
+
         process.execute_op(Operation::U32and).unwrap();
         let expected = build_expected(&[a & b, c, d]);
         assert_eq!(expected, process.stack.trace_state());
@@ -378,7 +377,7 @@ mod tests {
     fn op_u32or() {
         let mut process = Process::new_dummy();
         let (a, b, c, d) = init_stack_rand(&mut process);
-        
+
         process.execute_op(Operation::U32or).unwrap();
         let expected = build_expected(&[a | b, c, d]);
         assert_eq!(expected, process.stack.trace_state());
@@ -388,7 +387,7 @@ mod tests {
     fn op_u32xor() {
         let mut process = Process::new_dummy();
         let (a, b, c, d) = init_stack_rand(&mut process);
-        
+
         process.execute_op(Operation::U32xor).unwrap();
         let expected = build_expected(&[a ^ b, c, d]);
         assert_eq!(expected, process.stack.trace_state());
