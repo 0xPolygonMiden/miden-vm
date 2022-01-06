@@ -1,6 +1,6 @@
-use super::{BaseElement, ExecutionError, FieldElement, Processor};
+use super::{BaseElement, ExecutionError, FieldElement, Process};
 
-impl Processor {
+impl Process {
     // STACK MANIPULATION
     // --------------------------------------------------------------------------------------------
     /// Pushes a ZERO onto the processor.stack.
@@ -140,13 +140,13 @@ impl Processor {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{FieldElement, Operation, Processor},
+        super::{FieldElement, Operation, Process},
         BaseElement,
     };
 
     #[test]
     fn op_pad() {
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
 
         // push one item onto the stack
         processor
@@ -177,7 +177,7 @@ mod tests {
 
     #[test]
     fn op_drop() {
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
 
         // push one item onto the stack
         processor
@@ -208,7 +208,7 @@ mod tests {
 
     #[test]
     fn op_dup() {
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
 
         // calling DUP on an empty stack should be an error
         assert!(processor.execute_op(Operation::Dup0).is_err());

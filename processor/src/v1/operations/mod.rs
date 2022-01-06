@@ -1,4 +1,4 @@
-use super::{BaseElement, ExecutionError, FieldElement, Operation, Processor};
+use super::{BaseElement, ExecutionError, FieldElement, Operation, Process};
 
 mod field_ops;
 mod io_ops;
@@ -10,7 +10,7 @@ mod utils;
 // OPERATION DISPATCHER
 // ================================================================================================
 
-impl Processor {
+impl Process {
     /// Executes the specified operation.
     pub(super) fn execute_op(&mut self, op: Operation) -> Result<(), ExecutionError> {
         // make sure there is enough memory allocated to hold the execution trace

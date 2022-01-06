@@ -1,9 +1,9 @@
-use super::{BaseElement, ExecutionError, FieldElement, Processor};
+use super::{BaseElement, ExecutionError, FieldElement, Process};
 
 // INPUT OPERATIONS
 // ================================================================================================
 
-impl Processor {
+impl Process {
     /// Pushes the provided value onto the stack.
     ///
     /// The original stack is shifted to the right by one item.

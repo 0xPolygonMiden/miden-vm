@@ -35,14 +35,14 @@ type StackTrace = [Vec<BaseElement>; STACK_TOP_SIZE];
 // PROCESSOR
 // ================================================================================================
 
-pub struct Processor {
+pub struct Process {
     step: usize,
     decoder: Decoder,
     stack: Stack,
     memory: Memory,
 }
 
-impl Processor {
+impl Process {
     pub fn new(inputs: ProgramInputs) -> Self {
         Self {
             step: 0,
@@ -62,9 +62,6 @@ impl Processor {
 
         Ok(trace)
     }
-
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
 
     // CODE BLOCK EXECUTORS
     // --------------------------------------------------------------------------------------------
