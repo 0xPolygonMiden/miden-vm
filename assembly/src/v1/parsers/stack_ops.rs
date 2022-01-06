@@ -173,13 +173,10 @@ pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
                 span_ops.push(Operation::Add);
             }
             "9" => {
-                // MovDn8
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::Swap);
                 span_ops.push(Operation::MovDn9);
-                span_ops.push(Operation::Drop);
-
+                span_ops.push(Operation::Pad);
                 span_ops.push(Operation::MovUp9);
+                span_ops.push(Operation::Add);
             }
             "10" => {
                 span_ops.push(Operation::MovDn9);
@@ -189,13 +186,10 @@ pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
                 span_ops.push(Operation::Add);
             }
             "11" => {
-                // MovDn10
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::Swap);
                 span_ops.push(Operation::MovDn11);
-                span_ops.push(Operation::Drop);
-
+                span_ops.push(Operation::Pad);
                 span_ops.push(Operation::MovUp11);
+                span_ops.push(Operation::Add);
             }
             "12" => {
                 span_ops.push(Operation::MovDn11);
@@ -205,13 +199,10 @@ pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
                 span_ops.push(Operation::Add);
             }
             "13" => {
-                // MovDn12
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::Swap);
                 span_ops.push(Operation::MovDn13);
-                span_ops.push(Operation::Drop);
-
+                span_ops.push(Operation::Pad);
                 span_ops.push(Operation::MovUp13);
+                span_ops.push(Operation::Add);
             }
             "14" => {
                 span_ops.push(Operation::MovDn13);
@@ -221,13 +212,10 @@ pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
                 span_ops.push(Operation::Add);
             }
             "15" => {
-                // MovDn14
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::Swap);
                 span_ops.push(Operation::MovDn15);
-                span_ops.push(Operation::Drop);
-
+                span_ops.push(Operation::Pad);
                 span_ops.push(Operation::MovUp15);
+                span_ops.push(Operation::Add);
             }
             _ => return Err(AssemblyError::invalid_param(op, 1)),
         },
