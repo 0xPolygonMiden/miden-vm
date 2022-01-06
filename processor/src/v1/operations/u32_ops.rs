@@ -1,6 +1,6 @@
-use super::{ExecutionError, Processor};
+use super::{ExecutionError, Process};
 
-impl Processor {
+impl Process {
     // CASTING OPERATIONS
     // --------------------------------------------------------------------------------------------
     pub(super) fn op_u32split(&mut self) -> Result<(), ExecutionError> {

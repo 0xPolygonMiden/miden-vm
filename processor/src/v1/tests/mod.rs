@@ -1,4 +1,4 @@
-use super::{BaseElement, FieldElement, Processor, ProgramInputs, STACK_TOP_SIZE};
+use super::{BaseElement, FieldElement, ProgramInputs, STACK_TOP_SIZE};
 
 #[test]
 fn simple_program() {
@@ -8,9 +8,7 @@ fn simple_program() {
         .unwrap();
 
     let inputs = ProgramInputs::none();
-    let mut processor = Processor::new(inputs);
-
-    let trace = processor.execute(&script).unwrap();
+    let trace = super::execute(&script, &inputs).unwrap();
 
     let last_state = trace.last_stack_state();
     let expected_state = build_stack_state(&[3]);

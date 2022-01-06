@@ -1,9 +1,9 @@
-use super::{utils::assert_binary, BaseElement, ExecutionError, FieldElement, Processor};
+use super::{utils::assert_binary, BaseElement, ExecutionError, FieldElement, Process};
 
 // FIELD OPERATIONS
 // ================================================================================================
 
-impl Processor {
+impl Process {
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
     /// Pops two elements off the stack, adds them together, and pushes the result back onto the
@@ -219,7 +219,7 @@ impl Processor {
 mod tests {
     use super::{
         super::{BaseElement, FieldElement, Operation},
-        Processor,
+        Process,
     };
     use rand_utils::rand_value;
 
@@ -229,7 +229,7 @@ mod tests {
     #[test]
     fn op_add() {
         // initialize the stack with a few values
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         let (c, b, a) = init_stack_rand(&mut processor);
 
         // add the top two values
@@ -244,7 +244,7 @@ mod tests {
     #[test]
     fn op_neg() {
         // initialize the stack with a few values
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         let (c, b, a) = init_stack_rand(&mut processor);
 
         // negate the top value
@@ -259,7 +259,7 @@ mod tests {
     #[test]
     fn op_mul() {
         // initialize the stack with a few values
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         let (c, b, a) = init_stack_rand(&mut processor);
 
         // add the top two values
@@ -274,7 +274,7 @@ mod tests {
     #[test]
     fn op_inv() {
         // initialize the stack with a few values
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         let (c, b, a) = init_stack_rand(&mut processor);
 
         // invert the top value
@@ -295,7 +295,7 @@ mod tests {
     #[test]
     fn op_incr() {
         // initialize the stack with a few values
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         let (c, b, a) = init_stack_rand(&mut processor);
 
         // negate the top value
@@ -313,7 +313,7 @@ mod tests {
     #[test]
     fn op_and() {
         // --- test 0 AND 0 ---------------------------------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         init_stack_with(&mut processor, &[2, 0, 0]);
 
         processor.execute_op(Operation::And).unwrap();
@@ -321,7 +321,7 @@ mod tests {
         assert_eq!(expected, processor.stack.trace_state());
 
         // --- test 1 AND 0 ---------------------------------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         init_stack_with(&mut processor, &[2, 0, 1]);
 
         processor.execute_op(Operation::And).unwrap();
@@ -329,7 +329,7 @@ mod tests {
         assert_eq!(expected, processor.stack.trace_state());
 
         // --- test 0 AND 1 ---------------------------------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         init_stack_with(&mut processor, &[2, 1, 0]);
 
         processor.execute_op(Operation::And).unwrap();
@@ -337,7 +337,7 @@ mod tests {
         assert_eq!(expected, processor.stack.trace_state());
 
         // --- test 1 AND 0 ---------------------------------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         init_stack_with(&mut processor, &[2, 1, 1]);
 
         processor.execute_op(Operation::And).unwrap();
@@ -345,12 +345,12 @@ mod tests {
         assert_eq!(expected, processor.stack.trace_state());
 
         // --- first operand is not binary ------------------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         init_stack_with(&mut processor, &[2, 1, 2]);
         assert!(processor.execute_op(Operation::And).is_err());
 
         // --- second operand is not binary ------------------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         init_stack_with(&mut processor, &[2, 2, 1]);
         assert!(processor.execute_op(Operation::And).is_err());
     }
@@ -358,7 +358,7 @@ mod tests {
     #[test]
     fn op_not() {
         // --- test NOT 0 -----------------------------------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         init_stack_with(&mut processor, &[2, 0]);
 
         processor.execute_op(Operation::Not).unwrap();
@@ -366,7 +366,7 @@ mod tests {
         assert_eq!(expected, processor.stack.trace_state());
 
         // --- test NOT 1 ----------------------------------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         init_stack_with(&mut processor, &[2, 1]);
 
         processor.execute_op(Operation::Not).unwrap();
@@ -374,7 +374,7 @@ mod tests {
         assert_eq!(expected, processor.stack.trace_state());
 
         // --- operand is not binary ------------------------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         init_stack_with(&mut processor, &[2, 2]);
         assert!(processor.execute_op(Operation::Not).is_err());
     }
@@ -385,7 +385,7 @@ mod tests {
     #[test]
     fn op_eq() {
         // --- test when top two values are equal -----------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         init_stack_with(&mut processor, &[3, 7, 7]);
 
         processor.execute_op(Operation::Eq).unwrap();
@@ -393,7 +393,7 @@ mod tests {
         assert_eq!(expected, processor.stack.trace_state());
 
         // --- test when top two values are not equal -------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         init_stack_with(&mut processor, &[3, 5, 7]);
 
         processor.execute_op(Operation::Eq).unwrap();
@@ -404,7 +404,7 @@ mod tests {
     #[test]
     fn op_eqz() {
         // --- test when top is zero ------------------------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         init_stack_with(&mut processor, &[3, 0]);
 
         processor.execute_op(Operation::Eqz).unwrap();
@@ -412,7 +412,7 @@ mod tests {
         assert_eq!(expected, processor.stack.trace_state());
 
         // --- test when top is not zero --------------------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         init_stack_with(&mut processor, &[3, 4]);
 
         processor.execute_op(Operation::Eqz).unwrap();
@@ -423,7 +423,7 @@ mod tests {
     #[test]
     fn op_eqw() {
         // --- test when top two words are equal ------------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         let mut values = init_stack_with(&mut processor, &[1, 2, 3, 4, 5, 2, 3, 4, 5]);
 
         processor.execute_op(Operation::Eqw).unwrap();
@@ -432,7 +432,7 @@ mod tests {
         assert_eq!(expected, processor.stack.trace_state());
 
         // --- test when top two words are not equal --------------------------
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         let mut values = init_stack_with(&mut processor, &[1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
         processor.execute_op(Operation::Eqw).unwrap();
@@ -444,7 +444,7 @@ mod tests {
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
-    fn init_stack_rand(processor: &mut Processor) -> (BaseElement, BaseElement, BaseElement) {
+    fn init_stack_rand(processor: &mut Process) -> (BaseElement, BaseElement, BaseElement) {
         // push values a and b onto the stack
         let a = rand_value();
         let b = rand_value();
@@ -453,7 +453,7 @@ mod tests {
         (values[2], values[1], values[0])
     }
 
-    fn init_stack_with(processor: &mut Processor, values: &[u64]) -> Vec<BaseElement> {
+    fn init_stack_with(processor: &mut Process, values: &[u64]) -> Vec<BaseElement> {
         let mut result = Vec::with_capacity(values.len());
         for value in values.iter().map(|&v| BaseElement::new(v)) {
             processor.execute_op(Operation::Push(value)).unwrap();

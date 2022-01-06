@@ -1,9 +1,9 @@
-use super::{BaseElement, ExecutionError, Processor};
+use super::{BaseElement, ExecutionError, Process};
 
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
 
-impl Processor {
+impl Process {
     /// Pushes the provided value onto the stack.
     ///
     /// The original stack is shifted to the right by one item.
@@ -88,12 +88,12 @@ impl Processor {
 mod tests {
     use super::{
         super::{FieldElement, Operation},
-        BaseElement, Processor,
+        BaseElement, Process,
     };
 
     #[test]
     fn op_push() {
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         assert_eq!(0, processor.stack.depth());
         assert_eq!(0, processor.stack.current_step());
         assert_eq!([BaseElement::ZERO; 16], processor.stack.trace_state());
@@ -125,7 +125,7 @@ mod tests {
 
     #[test]
     fn op_storew() {
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         assert_eq!(0, processor.memory.size());
 
         // push the first word onto the stack and save it at address 0
@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn op_loadw() {
-        let mut processor = Processor::new_dummy();
+        let mut processor = Process::new_dummy();
         assert_eq!(0, processor.memory.size());
 
         // push a word onto the stack and save it at address 1
@@ -219,7 +219,7 @@ mod tests {
 
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
-    fn store_value(processor: &mut Processor, addr: u64, value: [BaseElement; 4]) {
+    fn store_value(processor: &mut Process, addr: u64, value: [BaseElement; 4]) {
         for &value in value.iter() {
             processor.execute_op(Operation::Push(value)).unwrap();
         }
