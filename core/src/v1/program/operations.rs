@@ -286,8 +286,11 @@ pub enum Operation {
     LoadW,
 
     /// Pops an element off the stack, interprets it as a memory address, and writes the remaining
-    /// 4 elements at the top of the stack into memory at hte specified address.
+    /// 4 elements at the top of the stack into memory at the specified address.
     StoreW,
+
+    /// Pushes the current depth of the stack onto the stack.
+    SDepth,
 
     // ----- cryptographic operations -------------------------------------------------------------
     RpHash,
@@ -381,6 +384,8 @@ impl Operation {
 
             Self::Read => 0b0011_1100,
             Self::ReadW => 0b0011_1101,
+
+            Self::SDepth => 0b0011_1101,
 
             Self::RpHash => 0b0011_1110,
             Self::RpPerm => 0b0011_1111,
@@ -503,6 +508,8 @@ impl fmt::Display for Operation {
 
             Self::LoadW => write!(f, "loadw"),
             Self::StoreW => write!(f, "storew"),
+
+            Self::SDepth => write!(f, "sdepth"),
 
             // ----- cryptographic operations -----------------------------------------------------
             Self::RpHash => write!(f, "rphash"),
