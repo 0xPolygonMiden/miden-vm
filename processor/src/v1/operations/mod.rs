@@ -1,4 +1,4 @@
-use super::{BaseElement, ExecutionError, FieldElement, Operation, Process};
+use super::{BaseElement, ExecutionError, FieldElement, Operation, Process, StarkField};
 
 mod field_ops;
 mod io_ops;
