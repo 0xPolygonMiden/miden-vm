@@ -50,10 +50,109 @@ pub fn parse_readw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), As
 // RANDOM ACCESS MEMORY
 // ================================================================================================
 
-/// TODO: implement
-pub fn parse_mem(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Appends STOREW or LOADW and required stack manipulations to the span block, as specified by the
+/// memory operation.
+///
+/// If the op does not contain an address, the memory address is assumed to be
+/// on top of the stack. Otherwise, the provided address will be pushed so it is on top of the
+/// stack when STOREW or LOADW is executed.
+///
+/// "mem.push" reads a word (4 elements) from memory and pushes it onto the stack.
+/// "mem.load" reads a word from memory and overwrites the top 4 elements of the stack.
+/// "mem.pop" is a write operation that pops the top 4 elements off the stack and saves them to
+/// memory.
+/// "mem.store" is a write operation that saves the top 4 elements of the stack to memory and
+/// leaves them on the stack.
+pub fn parse_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 | 1 => Err(AssemblyError::missing_param(op)),
+        2 | 3 => match op.parts()[1] {
+            "push" | "load" => parse_mem_read(span_ops, op),
+            "pop" | "store" => parse_mem_write(span_ops, op),
+            _ => Err(AssemblyError::invalid_op(op)),
+        },
+        _ => Err(AssemblyError::extra_param(op)),
+    }
 }
+
+/// Translates the mem.push and mem.load assembly ops to the system's LOADW memory read operation.
+///
+/// If the op provides an address (e.g. mem.push.a), it must be pushed to the stack directly
+/// before the LOADW operation. For "mem.load", LOADW can be used directly. For "mem.push", space
+/// for 4 new elements on the stack must be made first, using PAD. Then, if the memory address was
+/// provided via the stack (not as part of the memory op) it must be moved to the top.
+///
+/// # Errors
+///
+/// This function expects a memory read assembly operation that has already been validated. If
+/// called without validation, it could yield incorrect results or return an AssemblyError.
+fn parse_mem_read(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    if op.parts()[1] == "push" {
+        // make space for the new elements
+        for _ in 0..4 {
+            span_ops.push(Operation::Pad);
+        }
+
+        // put the memory address on top of the stack
+        if op.num_parts() == 2 {
+            // move the memory address to the top of the stack
+            span_ops.push(Operation::MovUp4);
+        } else {
+            // parse the provided memory address and push it onto the stack
+            let address = parse_element_param(op, 2)?;
+            span_ops.push(Operation::Push(address));
+        }
+    } else if op.num_parts() == 3 {
+        push_mem_addr(span_ops, op)?;
+    }
+
+    // load from the memory address on top of the stack
+    span_ops.push(Operation::LoadW);
+
+    Ok(())
+}
+
+/// Translates the mem.pop and mem.store assembly ops to the system's STOREW memory write
+/// operation.
+///
+/// If the op provides an address (e.g. mem.pop.a), it must be pushed to the stack directly before
+/// the STOREW operation. For "mem.store", STOREW can be used directly. For "mem.pop", the stack
+/// must DROP the top 4 elements after they are written to memory.
+///
+/// # Errors
+///
+/// This function expects a memory write assembly operation that has already been validated. If
+/// called without validation, it could yield incorrect results or return an AssemblyError.
+fn parse_mem_write(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    if op.num_parts() == 3 {
+        push_mem_addr(span_ops, op)?;
+    }
+
+    span_ops.push(Operation::StoreW);
+
+    if op.parts()[1] == "pop" {
+        for _ in 0..4 {
+            span_ops.push(Operation::Drop);
+        }
+    }
+
+    Ok(())
+}
+
+/// Parses a provided memory address and pushes it onto the stack.
+///
+/// # Errors
+///
+/// This function will return an AssemblyError if the address parameter does not exist.
+fn push_mem_addr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    let address = parse_element_param(op, 2)?;
+    span_ops.push(Operation::Push(address));
+
+    Ok(())
+}
+
+// TESTS
+// ================================================================================================
 
 #[cfg(test)]
 mod tests {
