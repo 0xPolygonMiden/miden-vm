@@ -5,6 +5,7 @@ mod io_ops;
 mod stack_ops;
 mod sys_ops;
 mod u32_ops;
+mod utils;
 
 // OPERATION DISPATCHER
 // ================================================================================================
@@ -44,6 +45,7 @@ impl Processor {
 
             Operation::Eq => self.op_eq()?,
             Operation::Eqz => self.op_eqz()?,
+            Operation::Eqw => self.op_eqw()?,
 
             // ----- u32 operations ---------------------------------------------------------------
             Operation::U32split => self.op_u32split()?,
