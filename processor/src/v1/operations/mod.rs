@@ -116,6 +116,8 @@ impl Processor {
             Operation::LoadW => self.op_loadw()?,
             Operation::StoreW => self.op_storew()?,
 
+            Operation::SDepth => unimplemented!(),
+
             // ----- cryptographic operations -----------------------------------------------------
             Operation::RpHash => unimplemented!(),
             Operation::RpPerm => unimplemented!(),
