@@ -218,7 +218,7 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{BaseElement, FieldElement, Operation},
+        super::{init_stack_with, BaseElement, FieldElement, Operation},
         Process,
     };
     use rand_utils::rand_value;
@@ -229,82 +229,82 @@ mod tests {
     #[test]
     fn op_add() {
         // initialize the stack with a few values
-        let mut processor = Process::new_dummy();
-        let (c, b, a) = init_stack_rand(&mut processor);
+        let mut process = Process::new_dummy();
+        let (a, b, c) = init_stack_rand(&mut process);
 
         // add the top two values
-        processor.execute_op(Operation::Add).unwrap();
+        process.execute_op(Operation::Add).unwrap();
         let expected = build_expected(&[a + b, c]);
 
-        assert_eq!(2, processor.stack.depth());
-        assert_eq!(4, processor.stack.current_step());
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(2, process.stack.depth());
+        assert_eq!(4, process.stack.current_step());
+        assert_eq!(expected, process.stack.trace_state());
     }
 
     #[test]
     fn op_neg() {
         // initialize the stack with a few values
-        let mut processor = Process::new_dummy();
-        let (c, b, a) = init_stack_rand(&mut processor);
+        let mut process = Process::new_dummy();
+        let (a, b, c) = init_stack_rand(&mut process);
 
         // negate the top value
-        processor.execute_op(Operation::Neg).unwrap();
+        process.execute_op(Operation::Neg).unwrap();
         let expected = build_expected(&[-a, b, c]);
 
-        assert_eq!(expected, processor.stack.trace_state());
-        assert_eq!(3, processor.stack.depth());
-        assert_eq!(4, processor.stack.current_step());
+        assert_eq!(expected, process.stack.trace_state());
+        assert_eq!(3, process.stack.depth());
+        assert_eq!(4, process.stack.current_step());
     }
 
     #[test]
     fn op_mul() {
         // initialize the stack with a few values
-        let mut processor = Process::new_dummy();
-        let (c, b, a) = init_stack_rand(&mut processor);
+        let mut process = Process::new_dummy();
+        let (a, b, c) = init_stack_rand(&mut process);
 
         // add the top two values
-        processor.execute_op(Operation::Mul).unwrap();
+        process.execute_op(Operation::Mul).unwrap();
         let expected = build_expected(&[a * b, c]);
 
-        assert_eq!(2, processor.stack.depth());
-        assert_eq!(4, processor.stack.current_step());
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(2, process.stack.depth());
+        assert_eq!(4, process.stack.current_step());
+        assert_eq!(expected, process.stack.trace_state());
     }
 
     #[test]
     fn op_inv() {
         // initialize the stack with a few values
-        let mut processor = Process::new_dummy();
-        let (c, b, a) = init_stack_rand(&mut processor);
+        let mut process = Process::new_dummy();
+        let (a, b, c) = init_stack_rand(&mut process);
 
         // invert the top value
         if b != BaseElement::ZERO {
-            processor.execute_op(Operation::Inv).unwrap();
+            process.execute_op(Operation::Inv).unwrap();
             let expected = build_expected(&[a.inv(), b, c]);
 
-            assert_eq!(3, processor.stack.depth());
-            assert_eq!(4, processor.stack.current_step());
-            assert_eq!(expected, processor.stack.trace_state());
+            assert_eq!(3, process.stack.depth());
+            assert_eq!(4, process.stack.current_step());
+            assert_eq!(expected, process.stack.trace_state());
         }
 
         // inverting zero should be an error
-        processor.execute_op(Operation::Pad).unwrap();
-        assert!(processor.execute_op(Operation::Inv).is_err());
+        process.execute_op(Operation::Pad).unwrap();
+        assert!(process.execute_op(Operation::Inv).is_err());
     }
 
     #[test]
     fn op_incr() {
         // initialize the stack with a few values
-        let mut processor = Process::new_dummy();
-        let (c, b, a) = init_stack_rand(&mut processor);
+        let mut process = Process::new_dummy();
+        let (a, b, c) = init_stack_rand(&mut process);
 
         // negate the top value
-        processor.execute_op(Operation::Incr).unwrap();
+        process.execute_op(Operation::Incr).unwrap();
         let expected = build_expected(&[a + BaseElement::ONE, b, c]);
 
-        assert_eq!(3, processor.stack.depth());
-        assert_eq!(4, processor.stack.current_step());
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(3, process.stack.depth());
+        assert_eq!(4, process.stack.current_step());
+        assert_eq!(expected, process.stack.trace_state());
     }
 
     // BOOLEAN OPERATIONS
@@ -313,70 +313,70 @@ mod tests {
     #[test]
     fn op_and() {
         // --- test 0 AND 0 ---------------------------------------------------
-        let mut processor = Process::new_dummy();
-        init_stack_with(&mut processor, &[2, 0, 0]);
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 0, 0]);
 
-        processor.execute_op(Operation::And).unwrap();
+        process.execute_op(Operation::And).unwrap();
         let expected = build_expected(&[BaseElement::ZERO, BaseElement::new(2)]);
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(expected, process.stack.trace_state());
 
         // --- test 1 AND 0 ---------------------------------------------------
-        let mut processor = Process::new_dummy();
-        init_stack_with(&mut processor, &[2, 0, 1]);
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 0, 1]);
 
-        processor.execute_op(Operation::And).unwrap();
+        process.execute_op(Operation::And).unwrap();
         let expected = build_expected(&[BaseElement::ZERO, BaseElement::new(2)]);
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(expected, process.stack.trace_state());
 
         // --- test 0 AND 1 ---------------------------------------------------
-        let mut processor = Process::new_dummy();
-        init_stack_with(&mut processor, &[2, 1, 0]);
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 1, 0]);
 
-        processor.execute_op(Operation::And).unwrap();
+        process.execute_op(Operation::And).unwrap();
         let expected = build_expected(&[BaseElement::ZERO, BaseElement::new(2)]);
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(expected, process.stack.trace_state());
 
         // --- test 1 AND 0 ---------------------------------------------------
-        let mut processor = Process::new_dummy();
-        init_stack_with(&mut processor, &[2, 1, 1]);
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 1, 1]);
 
-        processor.execute_op(Operation::And).unwrap();
+        process.execute_op(Operation::And).unwrap();
         let expected = build_expected(&[BaseElement::ONE, BaseElement::new(2)]);
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(expected, process.stack.trace_state());
 
         // --- first operand is not binary ------------------------------------
-        let mut processor = Process::new_dummy();
-        init_stack_with(&mut processor, &[2, 1, 2]);
-        assert!(processor.execute_op(Operation::And).is_err());
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 1, 2]);
+        assert!(process.execute_op(Operation::And).is_err());
 
         // --- second operand is not binary ------------------------------------
-        let mut processor = Process::new_dummy();
-        init_stack_with(&mut processor, &[2, 2, 1]);
-        assert!(processor.execute_op(Operation::And).is_err());
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 2, 1]);
+        assert!(process.execute_op(Operation::And).is_err());
     }
 
     #[test]
     fn op_not() {
         // --- test NOT 0 -----------------------------------------------------
-        let mut processor = Process::new_dummy();
-        init_stack_with(&mut processor, &[2, 0]);
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 0]);
 
-        processor.execute_op(Operation::Not).unwrap();
+        process.execute_op(Operation::Not).unwrap();
         let expected = build_expected(&[BaseElement::ONE, BaseElement::new(2)]);
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(expected, process.stack.trace_state());
 
         // --- test NOT 1 ----------------------------------------------------
-        let mut processor = Process::new_dummy();
-        init_stack_with(&mut processor, &[2, 1]);
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 1]);
 
-        processor.execute_op(Operation::Not).unwrap();
+        process.execute_op(Operation::Not).unwrap();
         let expected = build_expected(&[BaseElement::ZERO, BaseElement::new(2)]);
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(expected, process.stack.trace_state());
 
         // --- operand is not binary ------------------------------------------
-        let mut processor = Process::new_dummy();
-        init_stack_with(&mut processor, &[2, 2]);
-        assert!(processor.execute_op(Operation::Not).is_err());
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 2]);
+        assert!(process.execute_op(Operation::Not).is_err());
     }
 
     // COMPARISON OPERATIONS
@@ -385,93 +385,94 @@ mod tests {
     #[test]
     fn op_eq() {
         // --- test when top two values are equal -----------------------------
-        let mut processor = Process::new_dummy();
-        init_stack_with(&mut processor, &[3, 7, 7]);
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[3, 7, 7]);
 
-        processor.execute_op(Operation::Eq).unwrap();
+        process.execute_op(Operation::Eq).unwrap();
         let expected = build_expected(&[BaseElement::ONE, BaseElement::new(3)]);
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(expected, process.stack.trace_state());
 
         // --- test when top two values are not equal -------------------------
-        let mut processor = Process::new_dummy();
-        init_stack_with(&mut processor, &[3, 5, 7]);
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[3, 5, 7]);
 
-        processor.execute_op(Operation::Eq).unwrap();
+        process.execute_op(Operation::Eq).unwrap();
         let expected = build_expected(&[BaseElement::ZERO, BaseElement::new(3)]);
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(expected, process.stack.trace_state());
     }
 
     #[test]
     fn op_eqz() {
         // --- test when top is zero ------------------------------------------
-        let mut processor = Process::new_dummy();
-        init_stack_with(&mut processor, &[3, 0]);
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[3, 0]);
 
-        processor.execute_op(Operation::Eqz).unwrap();
+        process.execute_op(Operation::Eqz).unwrap();
         let expected = build_expected(&[BaseElement::ONE, BaseElement::new(3)]);
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(expected, process.stack.trace_state());
 
         // --- test when top is not zero --------------------------------------
-        let mut processor = Process::new_dummy();
-        init_stack_with(&mut processor, &[3, 4]);
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[3, 4]);
 
-        processor.execute_op(Operation::Eqz).unwrap();
+        process.execute_op(Operation::Eqz).unwrap();
         let expected = build_expected(&[BaseElement::ZERO, BaseElement::new(3)]);
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(expected, process.stack.trace_state());
     }
 
     #[test]
     fn op_eqw() {
         // --- test when top two words are equal ------------------------------
-        let mut processor = Process::new_dummy();
-        let mut values = init_stack_with(&mut processor, &[1, 2, 3, 4, 5, 2, 3, 4, 5]);
+        let mut process = Process::new_dummy();
+        let mut values = vec![1, 2, 3, 4, 5, 2, 3, 4, 5];
+        init_stack_with(&mut process, &values);
 
-        processor.execute_op(Operation::Eqw).unwrap();
-        values.insert(0, BaseElement::ONE);
-        let expected = build_expected(&values);
-        assert_eq!(expected, processor.stack.trace_state());
+        process.execute_op(Operation::Eqw).unwrap();
+        values.reverse();
+        values.insert(0, 1);
+        let expected = build_expected_from_ints(&values);
+        assert_eq!(expected, process.stack.trace_state());
 
         // --- test when top two words are not equal --------------------------
-        let mut processor = Process::new_dummy();
-        let mut values = init_stack_with(&mut processor, &[1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        let mut process = Process::new_dummy();
+        let mut values = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+        init_stack_with(&mut process, &values);
 
-        processor.execute_op(Operation::Eqw).unwrap();
-        values.insert(0, BaseElement::ZERO);
-        let expected = build_expected(&values);
-        assert_eq!(expected, processor.stack.trace_state());
+        process.execute_op(Operation::Eqw).unwrap();
+        values.reverse();
+        values.insert(0, 0);
+        let expected = build_expected_from_ints(&values);
+        assert_eq!(expected, process.stack.trace_state());
     }
 
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
-    fn init_stack_rand(processor: &mut Process) -> (BaseElement, BaseElement, BaseElement) {
+    fn init_stack_rand(process: &mut Process) -> (BaseElement, BaseElement, BaseElement) {
         // push values a and b onto the stack
         let a = rand_value();
         let b = rand_value();
         let c = rand_value();
-        let values = init_stack_with(processor, &[a, b, c]);
-        (values[2], values[1], values[0])
-    }
-
-    fn init_stack_with(processor: &mut Process, values: &[u64]) -> Vec<BaseElement> {
-        let mut result = Vec::with_capacity(values.len());
-        for value in values.iter().map(|&v| BaseElement::new(v)) {
-            processor.execute_op(Operation::Push(value)).unwrap();
-            result.push(value);
-        }
-
-        assert_eq!(values.len(), processor.stack.depth());
-        assert_eq!(values.len(), processor.stack.current_step());
-        let rev_result: Vec<BaseElement> = result.iter().cloned().rev().collect();
-        assert_eq!(build_expected(&rev_result), processor.stack.trace_state());
-
-        rev_result
+        init_stack_with(process, &[a, b, c]);
+        (
+            BaseElement::new(c),
+            BaseElement::new(b),
+            BaseElement::new(a),
+        )
     }
 
     fn build_expected(values: &[BaseElement]) -> [BaseElement; 16] {
         let mut expected = [BaseElement::ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = value;
+        }
+        expected
+    }
+
+    fn build_expected_from_ints(values: &[u64]) -> [BaseElement; 16] {
+        let mut expected = [BaseElement::ZERO; 16];
+        for (&value, result) in values.iter().zip(expected.iter_mut()) {
+            *result = BaseElement::new(value);
         }
         expected
     }

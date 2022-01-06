@@ -1,4 +1,4 @@
-use super::{BaseElement, ExecutionError, FieldElement, Operation, Process};
+use super::{BaseElement, ExecutionError, FieldElement, Operation, Process, StarkField};
 
 mod field_ops;
 mod io_ops;
@@ -148,5 +148,19 @@ impl Process {
     #[cfg(test)]
     fn new_dummy() -> Self {
         Self::new(super::ProgramInputs::none())
+    }
+}
+
+// TEST HELPERS
+// ================================================================================================
+
+/// Pushes proved values onto the stack of the specified process. The values are pushed in the
+/// order in which they are provided.
+#[cfg(test)]
+fn init_stack_with(process: &mut Process, values: &[u64]) {
+    let mut result = Vec::with_capacity(values.len());
+    for value in values.iter().map(|&v| BaseElement::new(v)) {
+        process.execute_op(Operation::Push(value)).unwrap();
+        result.push(value);
     }
 }
