@@ -32,10 +32,21 @@ mod tests;
 type Word = [BaseElement; 4];
 type StackTrace = [Vec<BaseElement>; STACK_TOP_SIZE];
 
-// PROCESSOR
+// EXECUTOR
 // ================================================================================================
 
-pub struct Process {
+/// Returns an execution trace resulting from executing the provided script against the provided
+/// inputs.
+pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace, ExecutionError> {
+    let mut process = Process::new(inputs.clone());
+    process.execute_code_block(script.root())?;
+    Ok(ExecutionTrace::new(process))
+}
+
+// PROCESS
+// ================================================================================================
+
+struct Process {
     step: usize,
     decoder: Decoder,
     stack: Stack,
@@ -50,17 +61,6 @@ impl Process {
             stack: Stack::new(&inputs, 4),
             memory: Memory::new(),
         }
-    }
-
-    pub fn execute(&mut self, script: &Script) -> Result<ExecutionTrace, ExecutionError> {
-        self.execute_code_block(script.root())?;
-
-        self.stack.finalize();
-
-        // TODO: get rid of cloning
-        let trace = ExecutionTrace::new(self.stack.trace().clone());
-
-        Ok(trace)
     }
 
     // CODE BLOCK EXECUTORS

@@ -81,9 +81,9 @@ impl Stack {
         result
     }
 
-    /// TODO: probably replace with into_trace()?
-    pub fn trace(&self) -> &StackTrace {
-        &self.trace
+    /// TODO: add docs
+    pub fn into_trace(self) -> StackTrace {
+        self.trace
     }
 
     // TRACE ACCESSORS AND MUTATORS
@@ -191,13 +191,6 @@ impl Stack {
     // Increments the clock cycle.
     pub fn advance_clock(&mut self) {
         self.step += 1;
-    }
-
-    pub fn finalize(&mut self) {
-        for _ in self.step..self.trace_length() - 1 {
-            self.copy_state(0);
-            self.advance_clock();
-        }
     }
 
     // UTILITY METHODS
