@@ -18,6 +18,38 @@ pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
     validate_op_len(op, 2, 2)?;
 
     let value = parse_element_param(op, 1)?;
+    push_value(span_ops, value);
+
+    Ok(())
+}
+
+/// Appends PUSH operations to the span block until all elements of the provided word are pushed
+/// onto the stack.
+///
+/// All immediate values are handled in the same way as for the single element "push" operation.
+///
+/// # Errors
+///
+/// This function expects an assembly op with 4 immediate values that are valid field elements
+/// in decimal or hexadecimal representation. It will return an error if the assembly instruction's
+/// immediate values are invalid.
+pub fn parse_pushw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    validate_op_len(op, 5, 5)?;
+
+    for idx in 1..=4 {
+        let value = parse_element_param(op, idx)?;
+        push_value(span_ops, value);
+    }
+
+    Ok(())
+}
+
+/// This is a helper function that appends a PUSH operation to the span block which puts the
+/// provided value parameter onto the stack.
+///
+/// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
+/// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
+fn push_value(span_ops: &mut Vec<Operation>, value: BaseElement) {
     if value == BaseElement::ZERO {
         span_ops.push(Operation::Pad);
     } else if value == BaseElement::ONE {
@@ -26,12 +58,6 @@ pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
     } else {
         span_ops.push(Operation::Push(value));
     }
-    Ok(())
-}
-
-/// TODO: implement
-pub fn parse_pushw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
 }
 
 // ENVIRONMENT INPUTS
