@@ -31,7 +31,7 @@ impl Stack {
             step: 0,
             trace: trace.try_into().expect("failed to convert vector to array"),
             overflow: Vec::new(),
-            depth: 0,
+            depth: init_values.len(),
         }
     }
 
@@ -39,7 +39,6 @@ impl Stack {
     // --------------------------------------------------------------------------------------------
 
     /// Returns depth of the stack at the current step.
-    #[allow(dead_code)]
     pub fn depth(&self) -> usize {
         self.depth
     }

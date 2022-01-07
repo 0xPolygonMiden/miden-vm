@@ -4,6 +4,9 @@ use super::{BaseElement, ExecutionError, Process};
 // ================================================================================================
 
 impl Process {
+    // CONSTANT INPUTS
+    // --------------------------------------------------------------------------------------------
+
     /// Pushes the provided value onto the stack.
     ///
     /// The original stack is shifted to the right by one item.
@@ -13,7 +16,7 @@ impl Process {
         Ok(())
     }
 
-    // MEMORY OPERATIONS
+    // MEMORY READING AND WRITING
     // --------------------------------------------------------------------------------------------
 
     /// Loads a word (4 elements) from the specified memory address onto the stack.
@@ -80,7 +83,7 @@ impl Process {
         Ok(())
     }
 
-    // ADVICE OPERATIONS
+    // ADVICE INPUTS
     // --------------------------------------------------------------------------------------------
 
     /// Removes the next element from the advice tape and pushes onto the stack.
@@ -115,6 +118,18 @@ impl Process {
         self.stack.set(3, a);
         self.stack.copy_state(4);
 
+        Ok(())
+    }
+
+    // ENVIRONMENT INPUTS
+    // --------------------------------------------------------------------------------------------
+
+    /// Pushes the current depth of the stack (the depth before this operation is executed) onto
+    /// the stack.
+    pub(super) fn op_sdepth(&mut self) -> Result<(), ExecutionError> {
+        let stack_depth = self.stack.depth();
+        self.stack.set(0, BaseElement::new(stack_depth as u64));
+        self.stack.shift_right(0);
         Ok(())
     }
 }
@@ -235,7 +250,7 @@ mod tests {
         assert_eq!(word, process.memory.get_value(1).unwrap());
     }
 
-    // ADVICE TAPE OPERATION TESTS
+    // ADVICE INPUT TESTS
     // --------------------------------------------------------------------------------------------
 
     #[test]
@@ -279,6 +294,32 @@ mod tests {
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::Pad).unwrap();
         assert!(process.execute_op(Operation::ReadW).is_err());
+    }
+
+    // ENVIRONMENT INPUT TESTS
+    // --------------------------------------------------------------------------------------------
+
+    #[test]
+    fn op_sdepth() {
+        // stack is empty
+        let mut process = Process::new_dummy();
+        process.execute_op(Operation::SDepth).unwrap();
+        let expected = build_expected_stack(&[0]);
+        assert_eq!(expected, process.stack.trace_state());
+        assert_eq!(1, process.stack.depth());
+
+        // stack has one item
+        process.execute_op(Operation::SDepth).unwrap();
+        let expected = build_expected_stack(&[1, 0]);
+        assert_eq!(expected, process.stack.trace_state());
+        assert_eq!(2, process.stack.depth());
+
+        // stack has 3 items
+        process.execute_op(Operation::Pad).unwrap();
+        process.execute_op(Operation::SDepth).unwrap();
+        let expected = build_expected_stack(&[3, 0, 1, 0]);
+        assert_eq!(expected, process.stack.trace_state());
+        assert_eq!(4, process.stack.depth());
     }
 
     // HELPER METHODS
