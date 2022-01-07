@@ -116,7 +116,7 @@ impl Process {
             Operation::LoadW => self.op_loadw()?,
             Operation::StoreW => self.op_storew()?,
 
-            Operation::SDepth => unimplemented!(),
+            Operation::SDepth => self.op_sdepth()?,
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::RpHash => unimplemented!(),
