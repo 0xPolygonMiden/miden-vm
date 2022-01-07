@@ -8,7 +8,15 @@ use super::{parse_element_param, AssemblyError, BaseElement, FieldElement, Opera
 /// In cases when the immediate value is 0, PUSH operation is replaced with PAD. Also, in cases
 /// when immediate value is 1, PUSH operation is replaced with PAD INCR because in most cases
 /// this will be more efficient than doing a PUSH.
+///
+/// # Errors
+///
+/// This function expects an assembly op with exactly one immediate value that is a valid field
+/// element in decimal or hexadecimal representation. It will return an error if the immediate
+/// value is invalid or missing.
 pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    validate_op_len(op, 2, 2)?;
+
     let value = parse_element_param(op, 1)?;
     if value == BaseElement::ZERO {
         span_ops.push(Operation::Pad);
