@@ -64,14 +64,12 @@ pub fn parse_readw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), As
 /// "mem.store" is a write operation that saves the top 4 elements of the stack to memory and
 /// leaves them on the stack.
 pub fn parse_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        0 | 1 => Err(AssemblyError::missing_param(op)),
-        2 | 3 => match op.parts()[1] {
-            "push" | "load" => parse_mem_read(span_ops, op),
-            "pop" | "store" => parse_mem_write(span_ops, op),
-            _ => Err(AssemblyError::invalid_op(op)),
-        },
-        _ => Err(AssemblyError::extra_param(op)),
+    validate_op_len(op, 2, 3)?;
+
+    match op.parts()[1] {
+        "push" | "load" => parse_mem_read(span_ops, op),
+        "pop" | "store" => parse_mem_write(span_ops, op),
+        _ => Err(AssemblyError::invalid_op(op)),
     }
 }
 
@@ -149,6 +147,26 @@ fn push_mem_addr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
     span_ops.push(Operation::Push(address));
 
     Ok(())
+}
+
+// HELPERS
+// ================================================================================================
+
+/// This is a helper function that validates the length of the assembly io instruction and returns
+/// an error if params are missing or there are extras.
+///
+/// The minimum and maximum number of valid instruction parts for the op are provided by the
+/// caller.
+///
+/// # Errors
+///
+/// This function will return an AssemblyError if the assembly op has too many or too few parts.
+fn validate_op_len(op: &Token, min_parts: usize, max_parts: usize) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        too_few if too_few < min_parts => Err(AssemblyError::missing_param(op)),
+        too_many if too_many > max_parts => Err(AssemblyError::extra_param(op)),
+        _ => Ok(()),
+    }
 }
 
 // TESTS
