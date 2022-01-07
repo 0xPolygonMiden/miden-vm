@@ -110,8 +110,8 @@ impl Process {
             // ----- input / output ---------------------------------------------------------------
             Operation::Push(value) => self.op_push(value)?,
 
-            Operation::Read => unimplemented!(),
-            Operation::ReadW => unimplemented!(),
+            Operation::Read => self.op_read()?,
+            Operation::ReadW => self.op_readw()?,
 
             Operation::LoadW => self.op_loadw()?,
             Operation::StoreW => self.op_storew()?,
@@ -129,11 +129,12 @@ impl Process {
         Ok(())
     }
 
-    /// Increments the clock cycle for all components of the processor.
+    /// Increments the clock cycle for all components of the process.
     fn advance_clock(&mut self) {
         self.step += 1;
         self.stack.advance_clock();
         self.memory.advance_clock();
+        self.advice.advance_clock();
     }
 
     /// Makes sure there is enough memory allocated for the trace to accommodate a new clock cycle.
@@ -144,10 +145,17 @@ impl Process {
     // TEST METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Instantiates a new processor for testing purposes.
+    /// Instantiates a new blank process for testing purposes.
     #[cfg(test)]
     fn new_dummy() -> Self {
         Self::new(super::ProgramInputs::none())
+    }
+
+    /// Instantiates a new process with an advice tape for testing purposes.
+    #[cfg(test)]
+    fn new_dummy_with_advice_tape(advice_tape: &[u64]) -> Self {
+        let inputs = super::ProgramInputs::new(&[], advice_tape);
+        Self::new(inputs)
     }
 }
 

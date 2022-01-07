@@ -22,6 +22,7 @@ impl ExecutionTrace {
             decoder: _,
             stack,
             memory: _,
+            advice: _,
         } = process;
 
         let mut stack_trace = stack.into_trace();

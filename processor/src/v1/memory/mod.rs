@@ -48,7 +48,7 @@ impl Memory {
         self.state.insert(int_addr, value);
     }
 
-    // Increments the clock cycle.
+    /// Increments the clock cycle.
     pub fn advance_clock(&mut self) {
         self.step += 1;
     }

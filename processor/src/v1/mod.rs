@@ -17,6 +17,9 @@ use stack::Stack;
 mod memory;
 use memory::Memory;
 
+mod advice;
+use advice::AdviceProvider;
+
 mod trace;
 pub use trace::ExecutionTrace;
 
@@ -51,6 +54,7 @@ struct Process {
     decoder: Decoder,
     stack: Stack,
     memory: Memory,
+    advice: AdviceProvider,
 }
 
 impl Process {
@@ -60,6 +64,7 @@ impl Process {
             decoder: Decoder::new(),
             stack: Stack::new(&inputs, 4),
             memory: Memory::new(),
+            advice: AdviceProvider::new(&inputs),
         }
     }
 
