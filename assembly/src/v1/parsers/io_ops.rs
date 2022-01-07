@@ -163,19 +163,112 @@ mod tests {
         let mut span_ops: Vec<Operation> = Vec::new();
         let op_0 = Token::new("push.0", 0);
         let op_1 = Token::new("push.1", 0);
-        let op_other = Token::new("push.2", 0);
+        let op_dec = Token::new("push.135", 0);
+        let op_hex = Token::new("push.0x7b", 0);
         let expected = vec![
             Operation::Pad,
             Operation::Pad,
             Operation::Incr,
-            Operation::Push(BaseElement::new(2)),
+            Operation::Push(BaseElement::new(135)),
+            Operation::Push(BaseElement::new(123)),
         ];
 
         parse_push(&mut span_ops, &op_0).expect("Failed to parse push.0");
         parse_push(&mut span_ops, &op_1).expect("Failed to parse push.1");
-        parse_push(&mut span_ops, &op_other).expect("Failed to parse push.2");
+        parse_push(&mut span_ops, &op_dec).expect("Failed to parse push of decimal element 123");
+        parse_push(&mut span_ops, &op_hex).expect("Failed to parse push of hex element 0x7b");
 
         assert_eq!(span_ops, expected);
+    }
+
+    #[test]
+    fn push_invalid() {
+        // fails when immediate value is invalid or missing
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let param_idx = 0;
+
+        // value missing
+        let op_no_val = Token::new("pushw", param_idx);
+        assert!(parse_push(&mut span_ops, &op_no_val).is_err());
+
+        // invalid value
+        let op_val_invalid = Token::new("push.abc", param_idx);
+        assert!(parse_push(&mut span_ops, &op_val_invalid).is_err());
+
+        // extra value
+        let op_extra_val = Token::new("pushw.0.1", param_idx);
+        assert!(parse_push(&mut span_ops, &op_extra_val).is_err());
+    }
+
+    #[test]
+    fn pushw() {
+        // pushes a word of 4 immediate values in decimal or hexadecimal onto the stack
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op = Token::new("pushw.1.23.0x1C8.0", 0);
+        let expected = vec![
+            Operation::Pad,
+            Operation::Incr,
+            Operation::Push(BaseElement::new(23)),
+            Operation::Push(BaseElement::new(456)),
+            Operation::Pad,
+        ];
+        parse_pushw(&mut span_ops, &op).expect("Failed to parse pushw");
+
+        assert_eq!(span_ops, expected);
+    }
+
+    #[test]
+    fn pushw_invalid() {
+        // fails when immediate values are invalid or missing
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let param_idx = 0;
+
+        // no values
+        let op_no_vals = Token::new("pushw", param_idx);
+        assert!(parse_pushw(&mut span_ops, &op_no_vals).is_err());
+
+        // insufficient values provided
+        let op_val_missing = Token::new("pushw.0.1.2", param_idx);
+        assert!(parse_pushw(&mut span_ops, &op_val_missing).is_err());
+
+        // invalid value
+        let op_val_invalid = Token::new("push.0.1.2.abc", param_idx);
+        assert!(parse_pushw(&mut span_ops, &op_val_invalid).is_err());
+
+        // extra value
+        let op_extra_val = Token::new("pushw.0.1.2.3.4", param_idx);
+        assert!(parse_pushw(&mut span_ops, &op_extra_val).is_err());
+    }
+
+    #[test]
+    fn env_sdepth() {
+        // pushes the current depth of the stack onto the top of the stack
+        let mut span_ops = vec![Operation::Push(BaseElement::ONE); 8];
+        let op = Token::new("env.sdepth", 0);
+        let mut expected = span_ops.clone();
+        expected.push(Operation::SDepth);
+
+        parse_env(&mut span_ops, &op).expect("Failed to parse env.sdepth with empty stack");
+        assert_eq!(span_ops, expected);
+    }
+
+    #[test]
+    fn env_invalid() {
+        // fails when env op variant is invalid or missing or has too many immediate values
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let param_idx = 0;
+
+        // missing env var
+        let op_no_val = Token::new("env", param_idx);
+        assert!(parse_mem(&mut span_ops, &op_no_val).is_err());
+
+        // invalid env var
+        let op_val_invalid = Token::new("env.invalid", param_idx);
+        assert!(parse_push(&mut span_ops, &op_val_invalid).is_err());
+
+        // extra value
+        let op_extra_val = Token::new("env.sdepth.0", param_idx);
+        assert!(parse_push(&mut span_ops, &op_extra_val).is_err());
     }
 
     #[test]
@@ -297,5 +390,24 @@ mod tests {
             .expect("Failed to parse mem.load.0 (address provided by op)");
 
         assert_eq!(&span_ops_addr, &expected_addr);
+    }
+
+    #[test]
+    fn mem_invalid() {
+        // fails when mem op variant is invalid or missing or has too many immediate values
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let param_idx = 0;
+
+        // missing variant
+        let op_no_val = Token::new("mem", param_idx);
+        assert!(parse_mem(&mut span_ops, &op_no_val).is_err());
+
+        // invalid variant
+        let op_val_invalid = Token::new("mem.abc", param_idx);
+        assert!(parse_push(&mut span_ops, &op_val_invalid).is_err());
+
+        // extra value
+        let op_extra_val = Token::new("mem.push.0.1", param_idx);
+        assert!(parse_push(&mut span_ops, &op_extra_val).is_err());
     }
 }
