@@ -63,9 +63,28 @@ fn push_value(span_ops: &mut Vec<Operation>, value: BaseElement) {
 // ENVIRONMENT INPUTS
 // ================================================================================================
 
-/// TODO: implement
-pub fn parse_env(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Appends machine operations to the current span block according to the requested environment
+/// assembly instruction.
+///
+/// "env.sdepth" pushes the current depth of the stack onto the top of the stack, which is handled
+/// directly by the SDEPTH operation.
+///
+/// # Errors
+///
+/// This function expects a valid assembly environment op that specifies the environment input to
+/// be handled. It will return an error if the assembly instruction is malformed or the environment
+/// input is unrecognized.
+pub fn parse_env(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    validate_op_len(op, 2, 2)?;
+
+    match op.parts()[1] {
+        "sdepth" => {
+            span_ops.push(Operation::SDepth);
+        }
+        _ => return Err(AssemblyError::invalid_op(op)),
+    }
+
+    Ok(())
 }
 
 // NON-DETERMINISTIC INPUTS
