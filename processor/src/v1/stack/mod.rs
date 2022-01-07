@@ -188,7 +188,7 @@ impl Stack {
         self.depth += 1;
     }
 
-    // Increments the clock cycle.
+    /// Increments the clock cycle.
     pub fn advance_clock(&mut self) {
         self.step += 1;
     }

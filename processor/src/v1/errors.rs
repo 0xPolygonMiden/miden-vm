@@ -11,4 +11,5 @@ pub enum ExecutionError {
     StackUnderflow(&'static str, usize),
     DivideByZero(usize),
     FailedAssertion(usize),
+    EmptyAdviceTape(usize),
 }
