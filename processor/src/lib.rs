@@ -1,11 +1,12 @@
 use vm_core::{
-    hasher, op_sponge,
-    opcodes::{self, OpHint, UserOps as OpCode},
-    program::blocks::{Loop, ProgramBlock, Span},
-    BASE_CYCLE_LENGTH, HACC_NUM_ROUNDS, MAX_CONTEXT_DEPTH, MAX_LOOP_DEPTH, MAX_STACK_DEPTH,
-    MIN_STACK_DEPTH, MIN_TRACE_LENGTH, NUM_CF_OP_BITS, NUM_HD_OP_BITS, NUM_LD_OP_BITS,
-    PUSH_OP_ALIGNMENT,
+    program::{
+        blocks::{CodeBlock, Join, Loop, Span, Split},
+        Operation, ProgramInputs, Script,
+    },
+    BaseElement, FieldElement, StarkField, STACK_TOP_SIZE,
 };
+
+mod operations;
 
 mod decoder;
 use decoder::Decoder;
@@ -13,190 +14,204 @@ use decoder::Decoder;
 mod stack;
 use stack::Stack;
 
-pub mod v1;
+mod hasher;
+use hasher::Hasher;
 
-// EXPORTS
+mod memory;
+use memory::Memory;
+
+mod advice;
+use advice::AdviceProvider;
+
+mod trace;
+pub use trace::ExecutionTrace;
+
+mod errors;
+pub use errors::ExecutionError;
+
+#[cfg(test)]
+mod tests;
+
+// TYPE ALIASES
 // ================================================================================================
 
-pub use vm_core::{
-    program::{Program, ProgramInputs},
-    BaseElement, FieldElement, StarkField,
-};
-pub use winterfell::TraceTable;
+type Word = [BaseElement; 4];
+type StackTrace = [Vec<BaseElement>; STACK_TOP_SIZE];
 
-// PUBLIC FUNCTIONS
+// EXECUTOR
 // ================================================================================================
 
-/// Returns register traces resulting from executing the `program` against the specified inputs.
-pub fn execute(program: &Program, inputs: &ProgramInputs) -> TraceTable<BaseElement> {
-    // initialize decoder and stack components
-    let mut decoder = Decoder::new(MIN_TRACE_LENGTH);
-    let mut stack = Stack::new(inputs, MIN_TRACE_LENGTH);
-
-    // execute body of the program
-    execute_blocks(program.root().body(), &mut decoder, &mut stack);
-    close_block(&mut decoder, &mut stack, BaseElement::ZERO, true);
-
-    // fill in remaining steps to make sure the length of the trace is a power of 2
-    decoder.finalize_trace();
-    stack.finalize_trace();
-
-    // build execution trace metadata as a vector of bytes
-    let op_counter = decoder.max_op_counter_value();
-    let context_depth = decoder.max_ctx_stack_depth();
-    let loop_depth = decoder.max_loop_stack_depth();
-    let mut meta = op_counter.to_le_bytes().to_vec();
-    meta.push(context_depth as u8);
-    meta.push(loop_depth as u8);
-
-    // merge decoder and stack register traces into a single vector
-    let mut register_traces = decoder.into_register_traces();
-    register_traces.append(&mut stack.into_register_traces());
-
-    let mut trace = TraceTable::init(register_traces);
-    trace.set_meta(meta);
-
-    trace
+/// Returns an execution trace resulting from executing the provided script against the provided
+/// inputs.
+pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace, ExecutionError> {
+    let mut process = Process::new(inputs.clone());
+    process.execute_code_block(script.root())?;
+    Ok(ExecutionTrace::new(process))
 }
 
-// HELPER FUNCTIONS
+// PROCESS
 // ================================================================================================
-fn execute_blocks(blocks: &[ProgramBlock], decoder: &mut Decoder, stack: &mut Stack) {
-    // execute first block in the sequence, which mast be a Span block
-    match &blocks[0] {
-        ProgramBlock::Span(block) => execute_span(block, decoder, stack, true),
-        _ => panic!("first block in a sequence must be a Span block"),
-    }
 
-    // execute all other blocks in the sequence one after another
-    for block in blocks.iter().skip(1) {
-        match block {
-            ProgramBlock::Span(block) => execute_span(block, decoder, stack, false),
-            ProgramBlock::Group(block) => {
-                start_block(decoder, stack);
-                execute_blocks(block.body(), decoder, stack);
-                close_block(decoder, stack, BaseElement::ZERO, true);
-            }
-            ProgramBlock::Switch(block) => {
-                start_block(decoder, stack);
-                let condition = stack.get_stack_top();
-                match condition {
-                    BaseElement::ZERO => {
-                        execute_blocks(block.false_branch(), decoder, stack);
-                        close_block(decoder, stack, block.true_branch_hash(), false);
-                    }
-                    BaseElement::ONE => {
-                        execute_blocks(block.true_branch(), decoder, stack);
-                        close_block(decoder, stack, block.false_branch_hash(), true);
-                    }
-                    _ => panic!(
-                        "cannot select a branch based on a non-binary condition {}",
-                        condition
-                    ),
-                };
-            }
-            ProgramBlock::Loop(block) => {
-                let condition = stack.get_stack_top();
-                match condition {
-                    BaseElement::ZERO => {
-                        start_block(decoder, stack);
-                        execute_blocks(block.skip(), decoder, stack);
-                        close_block(decoder, stack, block.body_hash(), false);
-                    }
-                    BaseElement::ONE => execute_loop(block, decoder, stack),
-                    _ => panic!(
-                        "cannot enter loop based on a non-binary condition {}",
-                        condition
-                    ),
-                }
-            }
+struct Process {
+    step: usize,
+    decoder: Decoder,
+    stack: Stack,
+    hasher: Hasher,
+    memory: Memory,
+    advice: AdviceProvider,
+}
+
+impl Process {
+    pub fn new(inputs: ProgramInputs) -> Self {
+        Self {
+            step: 0,
+            decoder: Decoder::new(),
+            stack: Stack::new(&inputs, 4),
+            hasher: Hasher::new(),
+            memory: Memory::new(),
+            advice: AdviceProvider::new(&inputs),
         }
     }
-}
 
-/// Executes all instructions in a Span block.
-fn execute_span(block: &Span, decoder: &mut Decoder, stack: &mut Stack, is_first: bool) {
-    // if this is the first Span block in a sequence of blocks, it needs to be
-    // pre-padded with a NOOP to make sure the first instruction in the block
-    // starts executing on a step which is a multiple of 16
-    if !is_first {
-        decoder.decode_op(OpCode::Noop, BaseElement::ZERO);
-        stack.execute(OpCode::Noop, OpHint::None);
+    // CODE BLOCK EXECUTORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Executes the specified [CodeBlock].
+    ///
+    /// # Errors
+    /// Returns an [ExecutionError] if executing the specified block fails for any reason.
+    fn execute_code_block(&mut self, block: &CodeBlock) -> Result<(), ExecutionError> {
+        match block {
+            CodeBlock::Join(block) => self.execute_join_block(block),
+            CodeBlock::Split(block) => self.execute_split_block(block),
+            CodeBlock::Loop(block) => self.execute_loop_block(block),
+            CodeBlock::Span(block) => self.execute_span_block(block),
+            CodeBlock::Proxy(_) => Err(ExecutionError::UnexecutableCodeBlock(block.clone())),
+            _ => Err(ExecutionError::UnsupportedCodeBlock(block.clone())),
+        }
     }
 
-    // execute all other instructions in the block
-    for i in 0..block.length() {
-        let (op_code, op_hint) = block.get_op(i);
-        decoder.decode_op(op_code, op_hint.value());
-        stack.execute(op_code, op_hint);
+    /// Executes the specified [Join] block.
+    #[inline(always)]
+    fn execute_join_block(&mut self, block: &Join) -> Result<(), ExecutionError> {
+        // start JOIN block; state of the stack does not change
+        self.decoder.start_join(block);
+        self.execute_op(Operation::Noop)?;
+
+        // execute first and then second child of the join block
+        self.execute_code_block(block.first())?;
+        self.execute_code_block(block.second())?;
+
+        // end JOIN block; state of the stack does not change
+        self.decoder.end_join(block);
+        self.execute_op(Operation::Noop)?;
+
+        Ok(())
     }
-}
 
-/// Starts executing a new program block.
-fn start_block(decoder: &mut Decoder, stack: &mut Stack) {
-    decoder.start_block();
-    stack.execute(OpCode::Noop, OpHint::None);
-}
+    /// Executes the specified [Split] block.
+    #[inline(always)]
+    fn execute_split_block(&mut self, block: &Split) -> Result<(), ExecutionError> {
+        // start SPLIT block; this also removes the top stack item to determine which branch of
+        // the block should be executed.
+        let condition = self.stack.peek()?;
+        self.decoder.start_split(block, condition);
+        self.execute_op(Operation::Drop)?;
 
-/// Closes the currently executing program block.
-fn close_block(
-    decoder: &mut Decoder,
-    stack: &mut Stack,
-    sibling_hash: BaseElement,
-    is_true_branch: bool,
-) {
-    // a sequence of blocks always ends on a step which is one less than a multiple of 16;
-    // all sequences end one operation short of multiple of 16 - so, we need to pad them
-    // with a single NOOP ensure proper alignment
-    decoder.decode_op(OpCode::Noop, BaseElement::ZERO);
-    stack.execute(OpCode::Noop, OpHint::None);
+        // execute either the true or the false branch of the split block based on the condition
+        // retrieved from the top of the stack
+        if condition == BaseElement::ONE {
+            self.execute_code_block(block.on_true())?;
+        } else if condition == BaseElement::ZERO {
+            self.execute_code_block(block.on_false())?;
+        } else {
+            return Err(ExecutionError::NotBinaryValue(condition));
+        }
 
-    // end the block, this prepares decoder registers for merging block hash into
-    // program hash
-    decoder.end_block(sibling_hash, is_true_branch);
-    stack.execute(OpCode::Noop, OpHint::None);
+        // end SPLIT block; state of the stack does not change
+        self.decoder.end_split(block);
+        self.execute_op(Operation::Noop)?;
 
-    // execute NOOPs to merge block hash into the program hash
-    for _ in 0..HACC_NUM_ROUNDS {
-        decoder.decode_op(OpCode::Noop, BaseElement::ZERO);
-        stack.execute(OpCode::Noop, OpHint::None);
+        Ok(())
     }
-}
 
-/// Executes the specified loop.
-fn execute_loop(block: &Loop, decoder: &mut Decoder, stack: &mut Stack) {
-    // mark the beginning of the loop block
-    decoder.start_loop(block.image());
-    stack.execute(OpCode::Noop, OpHint::None);
+    /// Executes the specified [Loop] block.
+    #[inline(always)]
+    fn execute_loop_block(&mut self, block: &Loop) -> Result<(), ExecutionError> {
+        // start LOOP block; this requires examining the top of the stack to determine whether
+        // the loop's body should be executed.
+        let condition = self.stack.peek()?;
+        self.decoder.start_loop(block, condition);
 
-    // execute blocks in loop body until top of the stack becomes 0
-    loop {
-        execute_blocks(block.body(), decoder, stack);
+        // if the top of the stack is ONE, execute the loop body; otherwise skip the loop body;
+        // before we execute the loop body we drop the condition from the stack; when the loop
+        // body is not executed, we keep the condition on the stack so that it can be dropped by
+        // the END operation later.
+        if condition == BaseElement::ONE {
+            // drop the condition and execute the loop body at least once
+            self.execute_op(Operation::Drop)?;
+            self.execute_code_block(block.body())?;
 
-        let condition = stack.get_stack_top();
-        match condition {
-            BaseElement::ZERO => {
-                decoder.break_loop();
-                stack.execute(OpCode::Noop, OpHint::None);
-                break;
+            // keep executing the loop body until the condition on the top of the stack is no
+            // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
+            // which drops the condition from the stack
+            while self.stack.peek()? == BaseElement::ONE {
+                self.execute_op(Operation::Drop)?;
+                self.decoder.repeat(block);
+
+                self.execute_code_block(block.body())?;
             }
-            BaseElement::ONE => {
-                decoder.wrap_loop();
-                stack.execute(OpCode::Noop, OpHint::None);
+        } else if condition == BaseElement::ZERO {
+            self.execute_op(Operation::Noop)?
+        } else {
+            return Err(ExecutionError::NotBinaryValue(condition));
+        }
+
+        // execute END operation; this can be done only if the top of the stack is ZERO, in which
+        // case the top of the stack is dropped
+        if self.stack.peek()? == BaseElement::ZERO {
+            self.execute_op(Operation::Drop)?;
+        } else if condition == BaseElement::ONE {
+            unreachable!("top of the stack should not be ONE");
+        } else {
+            return Err(ExecutionError::NotBinaryValue(self.stack.peek()?));
+        }
+        self.decoder.end_loop(block);
+
+        Ok(())
+    }
+
+    /// Executes the specified [Span] block.
+    #[inline(always)]
+    fn execute_span_block(&mut self, block: &Span) -> Result<(), ExecutionError> {
+        // start the SPAN block and get the first operation batch from it; when executing a SPAN
+        // operation the state of the stack does not change
+        self.decoder.start_span(block);
+        self.execute_op(Operation::Noop)?;
+
+        // execute the first operation batch
+        for &op in block.op_batches()[0].ops() {
+            self.execute_op(op)?;
+            self.decoder.execute_user_op(op);
+        }
+
+        // if the span contains more operation batches, execute them. each additional batch is
+        // preceded by a RESPAN operation; executing RESPAN operation does not change the state
+        // of the stack
+        for op_batch in block.op_batches().iter().skip(1) {
+            self.decoder.respan(op_batch);
+            self.execute_op(Operation::Noop)?;
+            for &op in op_batch.ops() {
+                self.execute_op(op)?;
+                self.decoder.execute_user_op(op);
             }
-            _ => panic!(
-                "cannot exit loop based on a non-binary condition {}",
-                condition
-            ),
-        };
-    }
+        }
 
-    // execute the contents of the skip block to make sure the loop was exited correctly
-    match &block.skip()[0] {
-        ProgramBlock::Span(block) => execute_span(block, decoder, stack, true),
-        _ => panic!("invalid skip block content: content must be a Span block"),
-    }
+        // end the SPAN block; when executing an END operation the state of the stack does not
+        // change
+        self.decoder.end_span(block);
+        self.execute_op(Operation::Noop)?;
 
-    // close block
-    close_block(decoder, stack, block.skip_hash(), true);
+        Ok(())
+    }
 }

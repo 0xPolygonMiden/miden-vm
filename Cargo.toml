@@ -1,12 +1,12 @@
 [workspace]
 members = [
-  "air",
+  #"air",
   "assembly",
   "core",
-  "examples",
-  "miden",
+  #"examples",
+  #"miden",
   "processor",
-  "verifier"
+  #"verifier"
 ]
 
 [profile.release]

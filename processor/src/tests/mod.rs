@@ -2,7 +2,7 @@ use super::{BaseElement, FieldElement, ProgramInputs, STACK_TOP_SIZE};
 
 #[test]
 fn simple_program() {
-    let assembler = assembly::v1::Assembler::new();
+    let assembler = assembly::Assembler::new();
     let script = assembler
         .compile_script("begin push.1 push.2 add end")
         .unwrap();

@@ -1,75 +1,100 @@
-use crate::{
-    op_sponge,
-    opcodes::{OpHint, UserOps as OpCode},
-    BaseElement, FieldElement, BASE_CYCLE_LENGTH, HACC_NUM_ROUNDS, MAX_PUBLIC_INPUTS,
-    OP_SPONGE_WIDTH, PROGRAM_DIGEST_SIZE,
-};
+use super::{BaseElement, FieldElement};
 use core::fmt;
+use crypto::{hashers::Rp64_256 as RescueHasher, Digest as HasherDigest, ElementHasher, Hasher};
+use std::collections::BTreeMap;
 
 pub mod blocks;
-use blocks::{Group, ProgramBlock};
+use blocks::CodeBlock;
+
+mod operations;
+pub use operations::Operation;
 
 mod inputs;
 pub use inputs::ProgramInputs;
 
-mod hashing;
-use hashing::{hash_acc, hash_op, hash_seq};
-
-#[cfg(test)]
-mod tests;
-
-// PROGRAM
+// TYPES ALIASES
 // ================================================================================================
-#[derive(Clone)]
-pub struct Program {
-    root: Group,
+
+type Digest = <RescueHasher as Hasher>::Digest;
+
+// SCRIPT
+// ================================================================================================
+/// A program which can be executed by the VM.
+///
+/// A script is a self-contained program which can be executed by the VM. A script has its own
+/// read-write memory, but has no storage and cannot define functions. When executed against a
+/// [Module], a script can call the module's functions, and via these functions modify the module's
+/// storage.
+#[derive(Clone, Debug)]
+pub struct Script {
+    root: CodeBlock,
     hash: [u8; 32],
 }
 
-impl Program {
-    /// Constructs a new program from the specified root block.
-    pub fn new(root: Group) -> Program {
-        // make sure the root block starts with BEGIN operation
-        match &root.body()[0] {
-            ProgramBlock::Span(block) => {
-                let (op_code, _) = block.get_op(0);
-                assert!(
-                    op_code == OpCode::Begin,
-                    "a program must start with BEGIN operation"
-                );
-            }
-            _ => panic!("a program must start with a Span block"),
-        }
-
-        // compute program hash
-        let (v0, v1) = root.get_hash();
-        let hash = hash_acc(BaseElement::ZERO, v0, v1);
-        let mut hash_bytes = [0u8; 32];
-        hash_bytes.copy_from_slice(BaseElement::elements_as_bytes(&hash[..PROGRAM_DIGEST_SIZE]));
-
-        Program {
+impl Script {
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+    /// Constructs a new program from the specified code block.
+    pub fn new(root: CodeBlock) -> Self {
+        let hash = RescueHasher::merge(&[root.hash(), Digest::default()]);
+        Self {
             root,
-            hash: hash_bytes,
+            hash: hash.as_bytes(),
         }
     }
-    /// Returns the root block of the program.
-    pub fn root(&self) -> &Group {
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns the root code block of this script.
+    pub fn root(&self) -> &CodeBlock {
         &self.root
     }
 
-    /// Returns hash of the program.
+    /// Returns a hash of this script.
     pub fn hash(&self) -> &[u8; 32] {
         &self.hash
     }
 }
 
-impl fmt::Debug for Program {
+impl fmt::Display for Script {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut body_code = format!("{:?}", self.root);
-        // get rid of extra `begin` token
-        body_code.replace_range(..6, "");
-        write!(f, "{}", body_code)?;
-
-        Ok(())
+        write!(f, "begin {} end", self.root)
     }
+}
+
+// MODULE
+// ================================================================================================
+/// TODO: add comments
+#[derive(Clone)]
+#[allow(dead_code)]
+pub struct Module {
+    functions: BTreeMap<Digest, CodeBlock>,
+    storage: Vec<u64>, // TODO: this should be a sparse Merkle tree
+}
+
+#[allow(dead_code)]
+impl Module {
+    pub fn new(_functions: BTreeMap<Digest, CodeBlock>) -> Self {
+        unimplemented!()
+    }
+
+    pub fn code_root(&self) -> Digest {
+        unimplemented!()
+    }
+
+    pub fn storage_root(&self) -> Digest {
+        unimplemented!()
+    }
+
+    pub fn get_function(&self, _hash: Digest) -> Option<&CodeBlock> {
+        //self.functions.get(&hash)
+        unimplemented!()
+    }
+
+    pub fn load(&self, _index: BaseElement) -> [BaseElement; 4] {
+        unimplemented!()
+    }
+
+    pub fn store(&self, _index: usize, _value: [BaseElement; 4]) {}
 }

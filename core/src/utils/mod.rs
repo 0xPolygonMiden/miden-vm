@@ -1,22 +1,6 @@
 use crate::BaseElement;
 use core::ops::Range;
 
-// RANGE
-// ================================================================================================
-
-pub trait RangeSlider {
-    #[must_use]
-    fn slide(self, slide_by: usize) -> Self;
-}
-
-impl RangeSlider for Range<usize> {
-    fn slide(self, width: usize) -> Range<usize> {
-        Range {
-            start: self.end,
-            end: self.end + width,
-        }
-    }
-}
 
 // TYPE CONVERSIONS
 // ================================================================================================

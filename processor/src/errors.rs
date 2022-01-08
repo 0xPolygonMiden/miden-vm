@@ -1,4 +1,4 @@
-use vm_core::v1::{program::blocks::CodeBlock, BaseElement};
+use vm_core::{program::blocks::CodeBlock, BaseElement};
 
 // EXECUTION ERROR
 // ================================================================================================

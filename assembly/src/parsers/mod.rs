@@ -1,8 +1,8 @@
 use super::{AssemblyError, Token, TokenStream};
 pub use blocks::parse_code_blocks;
 use vm_core::{
-    v1::{program::Operation, BaseElement, StarkField},
     FieldElement,
+    {program::Operation, BaseElement, StarkField},
 };
 
 mod blocks;
