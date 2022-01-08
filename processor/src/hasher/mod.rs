@@ -1,5 +1,5 @@
 use super::{BaseElement, FieldElement, Word};
-use vm_core::v1::hasher::{apply_round, NUM_ROUNDS, STATE_WIDTH};
+use vm_core::hasher::{apply_round, NUM_ROUNDS, STATE_WIDTH};
 
 // TYPE ALIASES
 // ================================================================================================

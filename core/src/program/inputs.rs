@@ -1,57 +1,57 @@
-use super::{BaseElement, MAX_PUBLIC_INPUTS};
+use super::{super::STACK_TOP_SIZE, BaseElement};
 
 // PROGRAM INPUTS
 // ================================================================================================
 
+/// TODO: add docs
 #[derive(Clone, Debug)]
 pub struct ProgramInputs {
-    public: Vec<BaseElement>,
-    secret: [Vec<BaseElement>; 2],
+    stack_init: Vec<BaseElement>,
+    advice_tape: Vec<BaseElement>,
 }
 
 impl ProgramInputs {
-    /// Returns `ProgramInputs` initialized with the provided public and secret inputs.
-    pub fn new(public: &[u128], secret_a: &[u128], secret_b: &[u128]) -> ProgramInputs {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+    /// TODO: add comments
+    pub fn new(stack_init: &[u64], advice_tape: &[u64]) -> ProgramInputs {
         assert!(
-            public.len() <= MAX_PUBLIC_INPUTS,
-            "expected no more than {} public inputs, but received {}",
-            MAX_PUBLIC_INPUTS,
-            public.len()
+            stack_init.len() <= STACK_TOP_SIZE,
+            "expected no more than {} initial stack values, but received {}",
+            STACK_TOP_SIZE,
+            stack_init.len()
         );
-        assert!(secret_a.len() >= secret_b.len(),
-            "number of primary secret inputs cannot be smaller than the number of secondary secret inputs");
 
+        // TODO: make sure there is no overflow
         ProgramInputs {
-            public: public.iter().map(|&v| BaseElement::new(v)).collect(),
-            secret: [
-                secret_a.iter().map(|&v| BaseElement::new(v)).collect(),
-                secret_b.iter().map(|&v| BaseElement::new(v)).collect(),
-            ],
+            stack_init: stack_init.iter().map(|&v| BaseElement::new(v)).collect(),
+            advice_tape: advice_tape.iter().map(|&v| BaseElement::new(v)).collect(),
         }
     }
 
-    /// Returns `ProgramInputs` with public and secret input tapes set to empty vectors.
+    /// Returns `ProgramInputs` with no initial stack values.
     pub fn none() -> ProgramInputs {
         ProgramInputs {
-            public: Vec::new(),
-            secret: [Vec::new(), Vec::new()],
+            stack_init: Vec::new(),
+            advice_tape: Vec::new(),
         }
     }
 
-    /// Returns `ProgramInputs` initialized with the provided public inputs and secret
-    /// input tapes set to empty vectors.
-    pub fn from_public(public: &[u128]) -> ProgramInputs {
-        ProgramInputs {
-            public: public.iter().map(|&v| BaseElement::new(v)).collect(),
-            secret: [vec![], vec![]],
-        }
+    /// Returns `ProgramInputs` initialized with the provided initial stack values.
+    pub fn from_public(stack_init: &[u64]) -> ProgramInputs {
+        Self::new(stack_init, &[])
     }
 
-    pub fn public_inputs(&self) -> &[BaseElement] {
-        &self.public
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns initial stack values.
+    pub fn stack_init(&self) -> &[BaseElement] {
+        &self.stack_init
     }
 
-    pub fn secret_inputs(&self) -> &[Vec<BaseElement>; 2] {
-        &self.secret
+    /// Returns a reference to the advice tape.
+    pub fn advice_tape(&self) -> &[BaseElement] {
+        &self.advice_tape
     }
 }

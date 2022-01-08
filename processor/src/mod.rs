@@ -1,4 +1,4 @@
-use vm_core::v1::{
+use vm_core::{
     program::{
         blocks::{CodeBlock, Join, Loop, Span, Split},
         Operation, ProgramInputs, Script,

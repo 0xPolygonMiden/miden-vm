@@ -1,6 +1,6 @@
 use super::{parse_op_token, AssemblyError, Token, TokenStream};
 use std::collections::BTreeMap;
-use vm_core::v1::program::{blocks::CodeBlock, Operation};
+use vm_core::program::{blocks::CodeBlock, Operation};
 use winter_utils::group_vector_elements;
 
 // BLOCK PARSER
