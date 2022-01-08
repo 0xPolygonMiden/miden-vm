@@ -14,6 +14,9 @@ use decoder::Decoder;
 mod stack;
 use stack::Stack;
 
+mod hasher;
+use hasher::Hasher;
+
 mod memory;
 use memory::Memory;
 
@@ -53,6 +56,7 @@ struct Process {
     step: usize,
     decoder: Decoder,
     stack: Stack,
+    hasher: Hasher,
     memory: Memory,
     advice: AdviceProvider,
 }
@@ -63,6 +67,7 @@ impl Process {
             step: 0,
             decoder: Decoder::new(),
             stack: Stack::new(&inputs, 4),
+            hasher: Hasher::new(),
             memory: Memory::new(),
             advice: AdviceProvider::new(&inputs),
         }

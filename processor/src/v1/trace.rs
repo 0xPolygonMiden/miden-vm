@@ -21,6 +21,7 @@ impl ExecutionTrace {
             step,
             decoder: _,
             stack,
+            hasher: _,
             memory: _,
             advice: _,
         } = process;

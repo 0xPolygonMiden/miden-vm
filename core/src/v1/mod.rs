@@ -1,3 +1,4 @@
+pub mod hasher;
 pub mod program;
 pub use math::{fields::f64::BaseElement, FieldElement, StarkField};
 
