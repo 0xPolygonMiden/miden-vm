@@ -278,8 +278,12 @@ pub enum Operation {
     /// Pushes the immediate value onto the stack.
     Push(BaseElement),
 
-    Read,  // TODO: add tape label?
-    ReadW, // TODO: add tape label?
+    /// Removes the next element from the advice tape and pushes it onto the stack.
+    Read,
+
+    /// Returns a a word (4 elements) from the advice tape and overwrites the top four stack
+    /// elements with it.
+    ReadW,
 
     /// Pops an element off the stack, interprets it as a memory address, and replaces the
     /// remaining 4 elements at the top of the stack with values located at the specified address.
@@ -293,8 +297,25 @@ pub enum Operation {
     SDepth,
 
     // ----- cryptographic operations -------------------------------------------------------------
-    RpHash,
+    /// Applies Rescue Prime permutation to the top 12 elements of the stack. The outer part of the
+    /// sponge is assumed to be at the top of the stack.
     RpPerm,
+
+    /// Computes a root of a Merkle path for the specified leaf. This operation can be used to
+    /// prove that the prover knows a path in the specified Merkle tree which starts with the
+    /// specified leaf.
+    ///
+    /// The stack is expected to be arranged as follows (from the top):
+    /// - depth of the path, 1 element.
+    /// - index of the leaf, 1 element.
+    /// - value of the leaf, 4 elements. This value can be provided non-deterministically.
+    /// - root of the tree, 4 elements.
+    ///
+    /// The Merkle path itself is looked up in the advice provider based on the specified tree
+    /// root. At the end of the operation, the depth is popped off the stack, and the leaf values
+    /// are replaced with the computed root. Thus, if the correct Merkle path was provided, the
+    /// computed root and the provided root must be the same.
+    MpVerify,
 }
 
 impl Operation {
@@ -387,8 +408,8 @@ impl Operation {
 
             Self::SDepth => 0b0011_1101,
 
-            Self::RpHash => 0b0011_1110,
             Self::RpPerm => 0b0011_1111,
+            Self::MpVerify => 0b0011_1110,
 
             Self::End => 0b0111_0000,
             Self::Join => 0b0111_0001,
@@ -512,8 +533,8 @@ impl fmt::Display for Operation {
             Self::SDepth => write!(f, "sdepth"),
 
             // ----- cryptographic operations -----------------------------------------------------
-            Self::RpHash => write!(f, "rphash"),
             Self::RpPerm => write!(f, "rpperm"),
+            Self::MpVerify => write!(f, "mpverify"),
         }
     }
 }

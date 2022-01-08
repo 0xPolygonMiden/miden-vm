@@ -37,6 +37,43 @@ impl Process {
         self.stack.copy_state(12);
         Ok(())
     }
+
+    /// TODO: add docs
+    pub(super) fn op_mpverify(&mut self) -> Result<(), ExecutionError> {
+        self.stack.check_depth(10, "MPVERIFY")?;
+
+        // read depth, index, leaf value, and root value from the stack
+        let depth = self.stack.get(0);
+        let index = self.stack.get(1);
+        let leaf = [
+            self.stack.get(2),
+            self.stack.get(3),
+            self.stack.get(4),
+            self.stack.get(5),
+        ];
+        let provided_root = [
+            self.stack.get(6),
+            self.stack.get(7),
+            self.stack.get(8),
+            self.stack.get(9),
+        ];
+
+        // get a Merkle path from the advice provider for the specified root and leaf index.
+        // the path is expected to be of the specified depth.
+        let path = self.advice.get_merkle_path(provided_root, depth, index)?;
+
+        // use hasher to compute the Merkle root of the path
+        let (_addr, computed_root) = self.hasher.build_merkle_root(leaf, &path, index);
+
+        // pop the depth off the stack, replace the leaf value with the computed root, and shift
+        // the rest of the stack by one item to the left
+        self.stack.set(0, index);
+        for (i, &value) in computed_root.iter().enumerate() {
+            self.stack.set(i + 1, value);
+        }
+        self.stack.shift_left(6);
+        Ok(())
+    }
 }
 
 // TESTS

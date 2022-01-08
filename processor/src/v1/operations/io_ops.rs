@@ -86,7 +86,7 @@ impl Process {
     // ADVICE INPUTS
     // --------------------------------------------------------------------------------------------
 
-    /// Removes the next element from the advice tape and pushes onto the stack.
+    /// Removes the next element from the advice tape and pushes it onto the stack.
     ///
     /// # Errors
     /// Returns an error if the advice tape is empty.
