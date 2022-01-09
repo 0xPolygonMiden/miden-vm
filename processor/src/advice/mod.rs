@@ -1,19 +1,34 @@
 use super::{BaseElement, ExecutionError, ProgramInputs, Word};
+use std::collections::BTreeMap;
+use vm_core::{utils::IntoBytes, AdviceSet, StarkField};
 
+/// TODO: add docs
 pub struct AdviceProvider {
     step: usize,
     tape: Vec<BaseElement>,
+    sets: BTreeMap<[u8; 32], AdviceSet>,
 }
 
 impl AdviceProvider {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// TODO: add docs
-    pub fn new(inputs: &ProgramInputs) -> Self {
-        // the advice tape is reversed so that we can pop elements off the end
+    pub fn new(inputs: ProgramInputs) -> Self {
+        let (_, mut advice_tape, advice_sets) = inputs.into_parts();
+
+        // reverse the advice tape so that we can pop elements off the end
+        advice_tape.reverse();
+
+        // put advice sets into a map
+        let mut advice_map = BTreeMap::new();
+        for merkle_set in advice_sets {
+            advice_map.insert(merkle_set.root().into_bytes(), merkle_set);
+        }
+
         Self {
             step: 0,
-            tape: inputs.advice_tape().iter().rev().cloned().collect(),
+            tape: advice_tape,
+            sets: advice_map,
         }
     }
 
@@ -43,15 +58,16 @@ impl AdviceProvider {
     ///   specified root.
     /// * The Merkle path provider for the specified root does not contain a Merkle path for a
     ///   leaf at the specified depth and index.
-    #[allow(unused)]
     pub fn get_merkle_path(
         &mut self,
-        _root: Word,
-        _depth: BaseElement,
-        _index: BaseElement,
+        root: Word,
+        depth: BaseElement,
+        index: BaseElement,
     ) -> Result<Vec<Word>, ExecutionError> {
-        // TODO: implement
-        unimplemented!()
+        // TODO: return error if not found
+        let merkle_set = self.sets.get(&root.into_bytes()).unwrap();
+
+        Ok(merkle_set.get_path(depth.as_int() as u32, index.as_int()))
     }
 
     // CONTEXT MANAGEMENT

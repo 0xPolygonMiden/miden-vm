@@ -69,7 +69,7 @@ impl Process {
             stack: Stack::new(&inputs, 4),
             hasher: Hasher::new(),
             memory: Memory::new(),
-            advice: AdviceProvider::new(&inputs),
+            advice: AdviceProvider::new(inputs),
         }
     }
 

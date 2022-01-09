@@ -82,10 +82,12 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{init_stack_with, BaseElement, FieldElement, Operation},
+        super::{init_stack_with, BaseElement, FieldElement, Operation, StarkField},
         Process,
     };
+    use crate::Word;
     use rand_utils::rand_vector;
+    use vm_core::{program::ProgramInputs, AdviceSet};
     use winterfell::crypto::{hashers::Rp64_256, ElementHasher};
 
     #[test]
@@ -114,5 +116,60 @@ mod tests {
         init_stack_with(&mut process, &values);
         process.execute_op(Operation::RpPerm).unwrap();
         assert_eq!(expected.as_elements(), &process.stack.trace_state()[..4]);
+    }
+
+    #[test]
+    fn op_mpverify() {
+        let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
+
+        let tree = AdviceSet::new_merkle_tree(leaves.to_vec());
+        let inti_stack = [
+            tree.depth() as u64,
+            0,
+            leaves[0][0].as_int(),
+            leaves[0][1].as_int(),
+            leaves[0][2].as_int(),
+            leaves[0][3].as_int(),
+            tree.root()[0].as_int(),
+            tree.root()[1].as_int(),
+            tree.root()[2].as_int(),
+            tree.root()[3].as_int(),
+        ];
+
+        let inputs = ProgramInputs::new(&inti_stack, &[], vec![tree.clone()]);
+        let mut process = Process::new(inputs);
+
+        process.execute_op(Operation::MpVerify).unwrap();
+        let expected = build_expected(&[
+            BaseElement::new(0),
+            tree.root()[0],
+            tree.root()[1],
+            tree.root()[2],
+            tree.root()[3],
+            tree.root()[0],
+            tree.root()[1],
+            tree.root()[2],
+            tree.root()[3],
+        ]);
+        assert_eq!(expected, process.stack.trace_state());
+    }
+
+    // HELPER FUNCTIONS
+    // --------------------------------------------------------------------------------------------
+    fn init_leaf(value: u64) -> Word {
+        [
+            BaseElement::new(value),
+            BaseElement::ZERO,
+            BaseElement::ZERO,
+            BaseElement::ZERO,
+        ]
+    }
+
+    fn build_expected(values: &[BaseElement]) -> [BaseElement; 16] {
+        let mut expected = [BaseElement::ZERO; 16];
+        for (&value, result) in values.iter().zip(expected.iter_mut()) {
+            *result = value
+        }
+        expected
     }
 }

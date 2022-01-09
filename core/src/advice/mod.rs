@@ -12,19 +12,20 @@ type Node = [BaseElement; 4];
 // ================================================================================================
 
 /// TODO: add docs
-pub enum MerkleSet {
+#[derive(Clone, Debug)]
+pub enum AdviceSet {
     MerkleTree(MerkleTree),
 }
 
-impl MerkleSet {
+impl AdviceSet {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [MerkleSet] instantiated as a Merkle tree from the provided leaves.
+    /// Returns a new [AdviceSet] instantiated as a Merkle tree from the provided leaves.
     ///
     /// # Errors
     /// TODO: Returns an error of the number of leaves is not a power of two.
-    pub fn new_tree(leaves: Vec<Node>) -> Self {
+    pub fn new_merkle_tree(leaves: Vec<Node>) -> Self {
         Self::MerkleTree(MerkleTree::new(leaves))
     }
 
@@ -35,6 +36,12 @@ impl MerkleSet {
     pub fn root(&self) -> Node {
         match self {
             Self::MerkleTree(tree) => tree.root(),
+        }
+    }
+
+    pub fn depth(&self) -> u32 {
+        match self {
+            Self::MerkleTree(tree) => tree.depth(),
         }
     }
 

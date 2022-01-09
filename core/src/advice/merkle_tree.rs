@@ -13,9 +13,10 @@ type Digest = <Rp64_256 as Hasher>::Digest;
 // MERKLE TREE
 // ================================================================================================
 
-// A fully-balanced binary Merkle tree (i.e., a tree where the number of leaves is a power of two).
-//
-// This struct is intended to be used as one of the variants of the MerkleSet enum.
+/// A fully-balanced binary Merkle tree (i.e., a tree where the number of leaves is a power of two).
+///
+/// This struct is intended to be used as one of the variants of the MerkleSet enum.
+#[derive(Clone, Debug)]
 pub struct MerkleTree {
     nodes: Vec<Node>,
 }

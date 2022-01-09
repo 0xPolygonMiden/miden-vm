@@ -1,4 +1,4 @@
-use super::{super::STACK_TOP_SIZE, BaseElement};
+use crate::{AdviceSet, BaseElement, STACK_TOP_SIZE};
 
 // PROGRAM INPUTS
 // ================================================================================================
@@ -8,13 +8,18 @@ use super::{super::STACK_TOP_SIZE, BaseElement};
 pub struct ProgramInputs {
     stack_init: Vec<BaseElement>,
     advice_tape: Vec<BaseElement>,
+    advice_sets: Vec<AdviceSet>,
 }
 
 impl ProgramInputs {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// TODO: add comments
-    pub fn new(stack_init: &[u64], advice_tape: &[u64]) -> ProgramInputs {
+    pub fn new(
+        stack_init: &[u64],
+        advice_tape: &[u64],
+        advice_sets: Vec<AdviceSet>,
+    ) -> ProgramInputs {
         assert!(
             stack_init.len() <= STACK_TOP_SIZE,
             "expected no more than {} initial stack values, but received {}",
@@ -26,6 +31,7 @@ impl ProgramInputs {
         ProgramInputs {
             stack_init: stack_init.iter().map(|&v| BaseElement::new(v)).collect(),
             advice_tape: advice_tape.iter().map(|&v| BaseElement::new(v)).collect(),
+            advice_sets,
         }
     }
 
@@ -34,12 +40,13 @@ impl ProgramInputs {
         ProgramInputs {
             stack_init: Vec::new(),
             advice_tape: Vec::new(),
+            advice_sets: Vec::new(),
         }
     }
 
-    /// Returns `ProgramInputs` initialized with the provided initial stack values.
+    /// Returns new [ProgramInputs] initialized with the provided initial stack values.
     pub fn from_public(stack_init: &[u64]) -> ProgramInputs {
-        Self::new(stack_init, &[])
+        Self::new(stack_init, &[], Vec::new())
     }
 
     // PUBLIC ACCESSORS
@@ -53,5 +60,16 @@ impl ProgramInputs {
     /// Returns a reference to the advice tape.
     pub fn advice_tape(&self) -> &[BaseElement] {
         &self.advice_tape
+    }
+
+    /// Decomposes these [ProgramInputs] into their raw components.
+    pub fn into_parts(self) -> (Vec<BaseElement>, Vec<BaseElement>, Vec<AdviceSet>) {
+        let Self {
+            stack_init,
+            advice_tape,
+            advice_sets,
+        } = self;
+
+        (stack_init, advice_tape, advice_sets)
     }
 }
