@@ -87,7 +87,7 @@ mod tests {
     };
     use crate::Word;
     use rand_utils::rand_vector;
-    use vm_core::{program::ProgramInputs, AdviceSet};
+    use vm_core::{ProgramInputs, AdviceSet};
     use winterfell::crypto::{hashers::Rp64_256, ElementHasher};
 
     #[test]

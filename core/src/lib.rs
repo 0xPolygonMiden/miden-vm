@@ -3,8 +3,8 @@ pub mod program;
 pub mod utils;
 pub use math::{fields::f64::BaseElement, FieldElement, StarkField};
 
-mod advice;
-pub use advice::AdviceSet;
+mod inputs;
+pub use inputs::{ProgramInputs, AdviceSet};
 
 // CONSTANTS
 // ================================================================================================

@@ -1,9 +1,12 @@
-use crate::{AdviceSet, BaseElement, STACK_TOP_SIZE};
+use super::{BaseElement, STACK_TOP_SIZE};
+
+mod advice;
+pub use advice::AdviceSet;
 
 // PROGRAM INPUTS
 // ================================================================================================
 
-/// TODO: add docs
+/// Input container for Miden VM programs.
 #[derive(Clone, Debug)]
 pub struct ProgramInputs {
     stack_init: Vec<BaseElement>,
@@ -35,7 +38,7 @@ impl ProgramInputs {
         }
     }
 
-    /// Returns `ProgramInputs` with no initial stack values.
+    /// Returns [ProgramInputs] with no initial stack values.
     pub fn none() -> ProgramInputs {
         ProgramInputs {
             stack_init: Vec::new(),
@@ -52,7 +55,7 @@ impl ProgramInputs {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns initial stack values.
+    /// Returns a reference to the initial stack values.
     pub fn stack_init(&self) -> &[BaseElement] {
         &self.stack_init
     }
@@ -61,6 +64,9 @@ impl ProgramInputs {
     pub fn advice_tape(&self) -> &[BaseElement] {
         &self.advice_tape
     }
+
+    // DESTRUCTURING
+    // --------------------------------------------------------------------------------------------
 
     /// Decomposes these [ProgramInputs] into their raw components.
     pub fn into_parts(self) -> (Vec<BaseElement>, Vec<BaseElement>, Vec<AdviceSet>) {
