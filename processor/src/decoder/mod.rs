@@ -1,11 +1,7 @@
-use vm_core::{
-    program::{
-        blocks::{Join, Loop, OpBatch, Span, Split},
-        Operation,
-    },
-    BaseElement,
-};
+use super::{BaseElement, Join, Loop, OpBatch, Operation, Span, Split};
 
+// DECODER
+// ================================================================================================
 pub struct Decoder {}
 
 impl Decoder {

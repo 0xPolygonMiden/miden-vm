@@ -1,13 +1,10 @@
-use super::{BaseElement, FieldElement};
+use super::{BaseElement, FieldElement, Operation};
 use core::fmt;
 use crypto::{hashers::Rp64_256 as RescueHasher, Digest as HasherDigest, ElementHasher, Hasher};
 use std::collections::BTreeMap;
 
 pub mod blocks;
 use blocks::CodeBlock;
-
-mod operations;
-pub use operations::Operation;
 
 // TYPES ALIASES
 // ================================================================================================
