@@ -301,20 +301,20 @@ pub enum Operation {
     /// sponge is assumed to be at the top of the stack.
     RpPerm,
 
-    /// Computes a root of a Merkle path for the specified leaf. This operation can be used to
+    /// Computes a root of a Merkle path for the specified node. This operation can be used to
     /// prove that the prover knows a path in the specified Merkle tree which starts with the
-    /// specified leaf.
+    /// specified node.
     ///
     /// The stack is expected to be arranged as follows (from the top):
     /// - depth of the path, 1 element.
-    /// - index of the leaf, 1 element.
-    /// - value of the leaf, 4 elements. This value can be provided non-deterministically.
+    /// - index of the node, 1 element.
+    /// - value of the node, 4 elements.
     /// - root of the tree, 4 elements.
     ///
-    /// The Merkle path itself is looked up in the advice provider based on the specified tree
-    /// root. At the end of the operation, the depth is popped off the stack, and the leaf values
-    /// are replaced with the computed root. Thus, if the correct Merkle path was provided, the
-    /// computed root and the provided root must be the same.
+    /// The Merkle path itself is expected to be provided by the prover non-deterministically (via
+    /// advice sets). At the end of the operation, the depth is popped off the stack, and the node
+    /// values are replaced with the computed root. Thus, if the correct Merkle path was provided,
+    /// the computed root and the provided root must be the same.
     MpVerify,
 }
 

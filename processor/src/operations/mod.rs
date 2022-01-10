@@ -155,7 +155,7 @@ impl Process {
     /// Instantiates a new process with an advice tape for testing purposes.
     #[cfg(test)]
     fn new_dummy_with_advice_tape(advice_tape: &[u64]) -> Self {
-        let inputs = super::ProgramInputs::new(&[], advice_tape);
+        let inputs = super::ProgramInputs::new(&[], advice_tape, vec![]).unwrap();
         Self::new(inputs)
     }
 }

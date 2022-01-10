@@ -38,7 +38,21 @@ impl Process {
         Ok(())
     }
 
-    /// TODO: add docs
+    /// Computes a root of a Merkle path for the specified node. The stack is expected to be
+    /// arranged as follows (from the top):
+    /// - depth of the path, 1 element.
+    /// - index of the node, 1 element.
+    /// - value of the node, 4 elements.
+    /// - root of the tree, 4 elements.
+    ///
+    /// To perform the operation we do the following:
+    /// 1. Look up the Merkle path in the advice provider for the specified tree root.
+    /// 2. Use the hasher to compute the root of the Merkle path for the specified node.
+    /// 3. Replace the node value with the computed root.
+    /// 4. Pop the depth value off the stack.
+    ///
+    /// If the correct Merkle path was provided, the computed root and the provided root must be
+    /// the same. This can be checked via subsequent operations.
     pub(super) fn op_mpverify(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(10, "MPVERIFY")?;
 
@@ -82,10 +96,12 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{init_stack_with, BaseElement, FieldElement, Operation},
+        super::{init_stack_with, BaseElement, FieldElement, Operation, StarkField},
         Process,
     };
+    use crate::Word;
     use rand_utils::rand_vector;
+    use vm_core::{AdviceSet, ProgramInputs};
     use winterfell::crypto::{hashers::Rp64_256, ElementHasher};
 
     #[test]
@@ -114,5 +130,60 @@ mod tests {
         init_stack_with(&mut process, &values);
         process.execute_op(Operation::RpPerm).unwrap();
         assert_eq!(expected.as_elements(), &process.stack.trace_state()[..4]);
+    }
+
+    #[test]
+    fn op_mpverify() {
+        let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
+
+        let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
+        let inti_stack = [
+            tree.depth() as u64,
+            0,
+            leaves[0][0].as_int(),
+            leaves[0][1].as_int(),
+            leaves[0][2].as_int(),
+            leaves[0][3].as_int(),
+            tree.root()[0].as_int(),
+            tree.root()[1].as_int(),
+            tree.root()[2].as_int(),
+            tree.root()[3].as_int(),
+        ];
+
+        let inputs = ProgramInputs::new(&inti_stack, &[], vec![tree.clone()]).unwrap();
+        let mut process = Process::new(inputs);
+
+        process.execute_op(Operation::MpVerify).unwrap();
+        let expected = build_expected(&[
+            BaseElement::new(0),
+            tree.root()[0],
+            tree.root()[1],
+            tree.root()[2],
+            tree.root()[3],
+            tree.root()[0],
+            tree.root()[1],
+            tree.root()[2],
+            tree.root()[3],
+        ]);
+        assert_eq!(expected, process.stack.trace_state());
+    }
+
+    // HELPER FUNCTIONS
+    // --------------------------------------------------------------------------------------------
+    fn init_leaf(value: u64) -> Word {
+        [
+            BaseElement::new(value),
+            BaseElement::ZERO,
+            BaseElement::ZERO,
+            BaseElement::ZERO,
+        ]
+    }
+
+    fn build_expected(values: &[BaseElement]) -> [BaseElement; 16] {
+        let mut expected = [BaseElement::ZERO; 16];
+        for (&value, result) in values.iter().zip(expected.iter_mut()) {
+            *result = value
+        }
+        expected
     }
 }

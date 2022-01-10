@@ -9,9 +9,6 @@ use blocks::CodeBlock;
 mod operations;
 pub use operations::Operation;
 
-mod inputs;
-pub use inputs::ProgramInputs;
-
 // TYPES ALIASES
 // ================================================================================================
 

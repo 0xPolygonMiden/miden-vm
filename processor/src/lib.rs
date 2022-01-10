@@ -1,9 +1,9 @@
 use vm_core::{
     program::{
         blocks::{CodeBlock, Join, Loop, Span, Split},
-        Operation, ProgramInputs, Script,
+        Operation, Script,
     },
-    BaseElement, FieldElement, StarkField, STACK_TOP_SIZE,
+    BaseElement, FieldElement, ProgramInputs, StarkField, STACK_TOP_SIZE,
 };
 
 mod operations;
@@ -69,7 +69,7 @@ impl Process {
             stack: Stack::new(&inputs, 4),
             hasher: Hasher::new(),
             memory: Memory::new(),
-            advice: AdviceProvider::new(&inputs),
+            advice: AdviceProvider::new(inputs),
         }
     }
 

@@ -1,6 +1,17 @@
 pub mod hasher;
 pub mod program;
+pub mod utils;
 pub use math::{fields::f64::BaseElement, FieldElement, StarkField};
+
+mod inputs;
+pub use inputs::{AdviceSet, ProgramInputs};
+
+pub mod errors;
+
+// TYPE ALIASES
+// ================================================================================================
+
+pub type Word = [BaseElement; 4];
 
 // CONSTANTS
 // ================================================================================================
