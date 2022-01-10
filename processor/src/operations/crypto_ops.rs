@@ -87,7 +87,7 @@ mod tests {
     };
     use crate::Word;
     use rand_utils::rand_vector;
-    use vm_core::{ProgramInputs, AdviceSet};
+    use vm_core::{AdviceSet, ProgramInputs};
     use winterfell::crypto::{hashers::Rp64_256, ElementHasher};
 
     #[test]
@@ -122,7 +122,7 @@ mod tests {
     fn op_mpverify() {
         let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
 
-        let tree = AdviceSet::new_merkle_tree(leaves.to_vec());
+        let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
         let inti_stack = [
             tree.depth() as u64,
             0,
@@ -136,7 +136,7 @@ mod tests {
             tree.root()[3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&inti_stack, &[], vec![tree.clone()]);
+        let inputs = ProgramInputs::new(&inti_stack, &[], vec![tree.clone()]).unwrap();
         let mut process = Process::new(inputs);
 
         process.execute_op(Operation::MpVerify).unwrap();

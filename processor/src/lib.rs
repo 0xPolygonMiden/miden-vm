@@ -3,7 +3,7 @@ use vm_core::{
         blocks::{CodeBlock, Join, Loop, Span, Split},
         Operation, Script,
     },
-    BaseElement, FieldElement, StarkField, STACK_TOP_SIZE, ProgramInputs
+    BaseElement, FieldElement, ProgramInputs, StarkField, STACK_TOP_SIZE,
 };
 
 mod operations;

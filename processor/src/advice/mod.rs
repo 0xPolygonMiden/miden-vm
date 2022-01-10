@@ -19,16 +19,10 @@ impl AdviceProvider {
         // reverse the advice tape so that we can pop elements off the end
         advice_tape.reverse();
 
-        // put advice sets into a map
-        let mut advice_map = BTreeMap::new();
-        for merkle_set in advice_sets {
-            advice_map.insert(merkle_set.root().into_bytes(), merkle_set);
-        }
-
         Self {
             step: 0,
             tape: advice_tape,
-            sets: advice_map,
+            sets: advice_sets,
         }
     }
 
@@ -67,7 +61,10 @@ impl AdviceProvider {
         // TODO: return error if not found
         let merkle_set = self.sets.get(&root.into_bytes()).unwrap();
 
-        Ok(merkle_set.get_path(depth.as_int() as u32, index.as_int()))
+        // TODO: map error
+        Ok(merkle_set
+            .get_path(depth.as_int() as u32, index.as_int())
+            .unwrap())
     }
 
     // CONTEXT MANAGEMENT

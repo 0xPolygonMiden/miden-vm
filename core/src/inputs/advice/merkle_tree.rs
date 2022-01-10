@@ -1,8 +1,7 @@
-use super::Node;
-use core::slice;
+use super::{AdviceSetError, Word};
+use core::{convert::TryInto, slice};
 use crypto::{hashers::Rp64_256, Hasher};
 use math::log2;
-use std::convert::TryInto;
 use winter_utils::uninit_vector;
 
 // TYPE ALIASES
@@ -18,7 +17,7 @@ type Digest = <Rp64_256 as Hasher>::Digest;
 /// This struct is intended to be used as one of the variants of the MerkleSet enum.
 #[derive(Clone, Debug)]
 pub struct MerkleTree {
-    nodes: Vec<Node>,
+    nodes: Vec<Word>,
 }
 
 impl MerkleTree {
@@ -27,12 +26,14 @@ impl MerkleTree {
     /// Returns a Merkle tree instantiated from the provided leaves.
     ///
     /// # Errors
-    /// TODO: Returns an error if the number of leaves is smaller than two or is not a power of two.
-    pub fn new(leaves: Vec<Node>) -> Self {
+    /// Returns an error if the number of leaves is smaller than two or is not a power of two.
+    pub fn new(leaves: Vec<Word>) -> Result<Self, AdviceSetError> {
         let n = leaves.len();
-
-        assert!(n > 1, "not greater than 1"); // convert to error
-        assert!(n.is_power_of_two(), "not power of two"); // convert to error
+        if n <= 1 {
+            return Err(AdviceSetError::DepthTooSmall);
+        } else if !n.is_power_of_two() {
+            return Err(AdviceSetError::NumLeavesNotPowerOfTwo(n));
+        }
 
         // create un-initialized vector to hold all tree nodes
         let mut nodes = unsafe { uninit_vector(2 * n) };
@@ -49,14 +50,14 @@ impl MerkleTree {
             nodes[i] = digest_into_node(Rp64_256::merge(&two_nodes[i]));
         }
 
-        Self { nodes }
+        Ok(Self { nodes })
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
     /// Returns the root of this Merkle tree.
-    pub fn root(&self) -> Node {
+    pub fn root(&self) -> Word {
         self.nodes[1]
     }
 
@@ -71,14 +72,20 @@ impl MerkleTree {
     ///
     /// # Errors
     /// Returns an error if:
-    /// * TODO: The specified depth is greater than the depth of the tree.
-    /// * TODO: The specified index not valid for the specified depth.
-    pub fn get_node(&self, depth: u32, index: u64) -> Node {
-        assert!(depth <= self.depth(), "invalid depth");
-        assert!(index < 2u64.pow(depth), "invalid index");
+    /// * The specified depth is greater than the depth of the tree.
+    /// * The specified index not valid for the specified depth.
+    pub fn get_node(&self, depth: u32, index: u64) -> Result<Word, AdviceSetError> {
+        if depth == 0 {
+            return Err(AdviceSetError::DepthTooSmall);
+        } else if depth > self.depth() {
+            return Err(AdviceSetError::DepthTooBig(depth));
+        }
+        if index >= 2u64.pow(depth) {
+            return Err(AdviceSetError::InvalidIndex(depth, index));
+        }
 
         let pos = 2usize.pow(depth as u32) + (index as usize);
-        self.nodes[pos]
+        Ok(self.nodes[pos])
     }
 
     /// Returns a Merkle path to the node at the specified depth and index. The note itself is
@@ -86,11 +93,17 @@ impl MerkleTree {
     ///
     /// # Errors
     /// Returns an error if:
-    /// * TODO: The specified depth is greater than the depth of the tree.
-    /// * TODO: The specified index not valid for the specified depth.
-    pub fn get_path(&self, depth: u32, index: u64) -> Vec<Node> {
-        assert!(depth <= self.depth(), "invalid depth");
-        assert!(index < 2u64.pow(depth), "invalid index");
+    /// * The specified depth is greater than the depth of the tree.
+    /// * The specified index not valid for the specified depth.
+    pub fn get_path(&self, depth: u32, index: u64) -> Result<Vec<Word>, AdviceSetError> {
+        if depth == 0 {
+            return Err(AdviceSetError::DepthTooSmall);
+        } else if depth > self.depth() {
+            return Err(AdviceSetError::DepthTooBig(depth));
+        }
+        if index >= 2u64.pow(depth) {
+            return Err(AdviceSetError::InvalidIndex(depth, index));
+        }
 
         let mut path = Vec::with_capacity(depth as usize);
         let mut pos = 2usize.pow(depth as u32) + (index as usize);
@@ -100,7 +113,7 @@ impl MerkleTree {
             pos >>= 1;
         }
 
-        path
+        Ok(path)
     }
 }
 
@@ -108,7 +121,7 @@ impl MerkleTree {
 // ================================================================================================
 
 // TODO: should be part of ElementDigest
-fn digest_into_node(digest: Digest) -> Node {
+fn digest_into_node(digest: Digest) -> Word {
     digest.as_elements().try_into().unwrap()
 }
 
@@ -117,11 +130,11 @@ fn digest_into_node(digest: Digest) -> Node {
 
 #[cfg(test)]
 mod tests {
-    use super::{digest_into_node, Node};
+    use super::{digest_into_node, Word};
     use crypto::{hashers::Rp64_256, ElementHasher, Hasher};
     use math::{fields::f64::BaseElement, FieldElement};
 
-    const LEAVES4: [Node; 4] = [
+    const LEAVES4: [Word; 4] = [
         int_to_node(1),
         int_to_node(2),
         int_to_node(3),
@@ -130,7 +143,7 @@ mod tests {
 
     #[test]
     fn build_merkle_tree() {
-        let tree = super::MerkleTree::new(LEAVES4.to_vec());
+        let tree = super::MerkleTree::new(LEAVES4.to_vec()).unwrap();
         assert_eq!(8, tree.nodes.len());
 
         // leaves were copied correctly
@@ -149,45 +162,42 @@ mod tests {
 
     #[test]
     fn get_leaf() {
-        let tree = super::MerkleTree::new(LEAVES4.to_vec());
+        let tree = super::MerkleTree::new(LEAVES4.to_vec()).unwrap();
 
         // check depth 2
-        assert_eq!(LEAVES4[0], tree.get_node(2, 0));
-        assert_eq!(LEAVES4[1], tree.get_node(2, 1));
-        assert_eq!(LEAVES4[2], tree.get_node(2, 2));
-        assert_eq!(LEAVES4[3], tree.get_node(2, 3));
+        assert_eq!(LEAVES4[0], tree.get_node(2, 0).unwrap());
+        assert_eq!(LEAVES4[1], tree.get_node(2, 1).unwrap());
+        assert_eq!(LEAVES4[2], tree.get_node(2, 2).unwrap());
+        assert_eq!(LEAVES4[3], tree.get_node(2, 3).unwrap());
 
         // check depth 1
-        let (root, node2, node3) = compute_internal_nodes();
+        let (_, node2, node3) = compute_internal_nodes();
 
-        assert_eq!(node2, tree.get_node(1, 0));
-        assert_eq!(node3, tree.get_node(1, 1));
-
-        // check depth 0
-        assert_eq!(root, tree.get_node(0, 0));
+        assert_eq!(node2, tree.get_node(1, 0).unwrap());
+        assert_eq!(node3, tree.get_node(1, 1).unwrap());
     }
 
     #[test]
     fn get_path() {
-        let tree = super::MerkleTree::new(LEAVES4.to_vec());
+        let tree = super::MerkleTree::new(LEAVES4.to_vec()).unwrap();
 
         let (_, node2, node3) = compute_internal_nodes();
 
         // check depth 2
-        assert_eq!(vec![LEAVES4[1], node3], tree.get_path(2, 0));
-        assert_eq!(vec![LEAVES4[0], node3], tree.get_path(2, 1));
-        assert_eq!(vec![LEAVES4[3], node2], tree.get_path(2, 2));
-        assert_eq!(vec![LEAVES4[2], node2], tree.get_path(2, 3));
+        assert_eq!(vec![LEAVES4[1], node3], tree.get_path(2, 0).unwrap());
+        assert_eq!(vec![LEAVES4[0], node3], tree.get_path(2, 1).unwrap());
+        assert_eq!(vec![LEAVES4[3], node2], tree.get_path(2, 2).unwrap());
+        assert_eq!(vec![LEAVES4[2], node2], tree.get_path(2, 3).unwrap());
 
         // check depth 1
-        assert_eq!(vec![node3], tree.get_path(1, 0));
-        assert_eq!(vec![node2], tree.get_path(1, 1));
+        assert_eq!(vec![node3], tree.get_path(1, 0).unwrap());
+        assert_eq!(vec![node2], tree.get_path(1, 1).unwrap());
     }
 
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
-    fn compute_internal_nodes() -> (Node, Node, Node) {
+    fn compute_internal_nodes() -> (Word, Word, Word) {
         let node2 = Rp64_256::hash_elements(&[LEAVES4[0], LEAVES4[1]].concat());
         let node3 = Rp64_256::hash_elements(&[LEAVES4[2], LEAVES4[3]].concat());
         let root = Rp64_256::merge(&[node2, node3]);
@@ -199,7 +209,7 @@ mod tests {
         )
     }
 
-    const fn int_to_node(value: u64) -> Node {
+    const fn int_to_node(value: u64) -> Word {
         [
             BaseElement::new(value),
             BaseElement::ZERO,

@@ -1,14 +1,9 @@
-use super::BaseElement;
+use super::{AdviceSetError, Word};
 
 mod merkle_tree;
 use merkle_tree::MerkleTree;
 
-// TYPE ALIASES
-// ================================================================================================
-
-type Node = [BaseElement; 4];
-
-// MERKLE SET
+// ADVICE SET
 // ================================================================================================
 
 /// TODO: add docs
@@ -24,34 +19,50 @@ impl AdviceSet {
     /// Returns a new [AdviceSet] instantiated as a Merkle tree from the provided leaves.
     ///
     /// # Errors
-    /// TODO: Returns an error of the number of leaves is not a power of two.
-    pub fn new_merkle_tree(leaves: Vec<Node>) -> Self {
-        Self::MerkleTree(MerkleTree::new(leaves))
+    /// Returns an error if the number of leaves is smaller than two or is not a power of two.
+    pub fn new_merkle_tree(leaves: Vec<Word>) -> Result<Self, AdviceSetError> {
+        Ok(Self::MerkleTree(MerkleTree::new(leaves)?))
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a root of this Merkle set.
-    pub fn root(&self) -> Node {
+    /// Returns a root of this advice set.
+    pub fn root(&self) -> Word {
         match self {
             Self::MerkleTree(tree) => tree.root(),
         }
     }
 
+    /// Returns the maximum depth of this advice set.
     pub fn depth(&self) -> u32 {
         match self {
             Self::MerkleTree(tree) => tree.depth(),
         }
     }
 
-    pub fn get_node(&self, depth: u32, index: u64) -> Node {
+    /// Returns a node located at the specified depth and index.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The specified depth is greater than the depth of this advice set.
+    /// - The specified index is invalid in the context of the specified depth.
+    /// - This advice set does not contain a node at the specified index and depth.
+    pub fn get_node(&self, depth: u32, index: u64) -> Result<Word, AdviceSetError> {
         match self {
             Self::MerkleTree(tree) => tree.get_node(depth, index),
         }
     }
 
-    pub fn get_path(&self, depth: u32, index: u64) -> Vec<Node> {
+    /// Returns a Merkle path to a node located at the specified depth and index. The node itself
+    /// is not included in the path.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The specified depth is greater than the depth of this advice set.
+    /// - The specified index is invalid in the context of the specified depth.
+    /// - This advice set does not contain a node at the specified index and depth.
+    pub fn get_path(&self, depth: u32, index: u64) -> Result<Vec<Word>, AdviceSetError> {
         match self {
             Self::MerkleTree(tree) => tree.get_path(depth, index),
         }
