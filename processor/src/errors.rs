@@ -1,4 +1,4 @@
-use vm_core::{program::blocks::CodeBlock, BaseElement};
+use vm_core::{errors::AdviceSetError, program::blocks::CodeBlock, BaseElement};
 
 // EXECUTION ERROR
 // ================================================================================================
@@ -12,4 +12,6 @@ pub enum ExecutionError {
     DivideByZero(usize),
     FailedAssertion(usize),
     EmptyAdviceTape(usize),
+    AdviceSetNotFound([u8; 32]),
+    AdviseSetLookupFailed(AdviceSetError),
 }

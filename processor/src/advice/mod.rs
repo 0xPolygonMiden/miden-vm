@@ -12,7 +12,7 @@ pub struct AdviceProvider {
 impl AdviceProvider {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// TODO: add docs
+    /// Returns a new advice provider instantiated from the specified program inputs.
     pub fn new(inputs: ProgramInputs) -> Self {
         let (_, mut advice_tape, advice_sets) = inputs.into_parts();
 
@@ -39,32 +39,64 @@ impl AdviceProvider {
             .ok_or(ExecutionError::EmptyAdviceTape(self.step))
     }
 
-    // MERKLE PATHS
+    // ADVISE SETS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a Merkle path to a leaf at the specified index in a Merkle tree with the specified
-    /// root.
+    /// Returns a node at the specified index in a Merkle tree with the specified root.
     ///
     /// # Errors
     /// Returns an error if:
-    /// * A Merkle path provider for the specified root cannot be found in this advice provider.
-    /// * The specified depth is greater than the depth of the Merkle tree identified by the
-    ///   specified root.
-    /// * The Merkle path provider for the specified root does not contain a Merkle path for a
-    ///   leaf at the specified depth and index.
+    /// - A Merkle tree for the specified root cannot be found in this advice provider.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree
+    ///   identified by the specified root.
+    /// - Value of the node at the specified depth and index is not known to this advice provider.
+    #[allow(dead_code)]
+    pub fn get_tree_node(
+        &mut self,
+        root: Word,
+        depth: BaseElement,
+        index: BaseElement,
+    ) -> Result<Word, ExecutionError> {
+        // look up the advise set and return an error if none is found
+        let advise_set = self
+            .sets
+            .get(&root.into_bytes())
+            .ok_or_else(|| ExecutionError::AdviceSetNotFound(root.into_bytes()))?;
+
+        // get the tree node from the advise set based on depth and index
+        let node = advise_set
+            .get_node(depth.as_int() as u32, index.as_int())
+            .map_err(ExecutionError::AdviseSetLookupFailed)?;
+
+        Ok(node)
+    }
+
+    /// Returns a path to a node at the specified index in a Merkle tree with the specified root.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - A Merkle tree for the specified root cannot be found in this advice provider.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree
+    ///   identified by the specified root.
+    /// - Path to the node at the specified depth and index is not known to this advice provider.
     pub fn get_merkle_path(
         &mut self,
         root: Word,
         depth: BaseElement,
         index: BaseElement,
     ) -> Result<Vec<Word>, ExecutionError> {
-        // TODO: return error if not found
-        let merkle_set = self.sets.get(&root.into_bytes()).unwrap();
+        // look up the advise set and return an error if none is found
+        let advise_set = self
+            .sets
+            .get(&root.into_bytes())
+            .ok_or_else(|| ExecutionError::AdviceSetNotFound(root.into_bytes()))?;
 
-        // TODO: map error
-        Ok(merkle_set
+        // get the Merkle path from the advise set based on depth and index
+        let path = advise_set
             .get_path(depth.as_int() as u32, index.as_int())
-            .unwrap())
+            .map_err(ExecutionError::AdviseSetLookupFailed)?;
+
+        Ok(path)
     }
 
     // CONTEXT MANAGEMENT
