@@ -1,6 +1,10 @@
 use super::BaseElement;
 use core::fmt;
 
+// OPERATIONS
+// ================================================================================================
+
+/// TODO: add docs
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Operation {
     // ----- system operations --------------------------------------------------------------------
@@ -316,108 +320,117 @@ pub enum Operation {
     /// values are replaced with the computed root. Thus, if the correct Merkle path was provided,
     /// the computed root and the provided root must be the same.
     MpVerify,
+
+    // ----- decorators ---------------------------------------------------------------------------
+    /// Prints out the state of the VM. This operation has no effect on the VM state, and does not
+    /// advance VM clock.
+    ///
+    /// TODO: add debug options to specify what is to be printed out.
+    Debug,
 }
 
 impl Operation {
     pub const OP_BITS: usize = 7;
 
     /// Returns the opcode of this operation.
-    pub fn op_code(&self) -> u8 {
+    pub fn op_code(&self) -> Option<u8> {
         match self {
-            Self::Noop => 0b0000_0000,
-            Self::Assert => 0b0000_0001,
+            Self::Noop => Some(0b0000_0000),
+            Self::Assert => Some(0b0000_0001),
 
-            Self::Push(_) => 0b0000_0010,
+            Self::Push(_) => Some(0b0000_0010),
 
-            Self::Eq => 0b0000_0011,
-            Self::Eqz => 0b0000_0100,
-            Self::Eqw => 0b0000_0100,
+            Self::Eq => Some(0b0000_0011),
+            Self::Eqz => Some(0b0000_0100),
+            Self::Eqw => Some(0b0000_0100),
 
-            Self::Add => 0b0000_0101,
-            Self::Neg => 0b0000_0110,
-            Self::Mul => 0b0000_0111,
-            Self::Inv => 0b0000_1000,
-            Self::Incr => 0b0000_1001,
-            Self::And => 0b0000_1010,
-            Self::Or => 0b0000_1011,
-            Self::Not => 0b0000_1100,
+            Self::Add => Some(0b0000_0101),
+            Self::Neg => Some(0b0000_0110),
+            Self::Mul => Some(0b0000_0111),
+            Self::Inv => Some(0b0000_1000),
+            Self::Incr => Some(0b0000_1001),
+            Self::And => Some(0b0000_1010),
+            Self::Or => Some(0b0000_1011),
+            Self::Not => Some(0b0000_1100),
 
-            Self::Pad => 0b0000_1101,
-            Self::Drop => 0b0000_1110,
+            Self::Pad => Some(0b0000_1101),
+            Self::Drop => Some(0b0000_1110),
 
-            Self::Dup0 => 0b0001_0000,
-            Self::Dup1 => 0b0001_0001,
-            Self::Dup2 => 0b0001_0010,
-            Self::Dup3 => 0b0001_0011,
-            Self::Dup4 => 0b0001_0100,
-            Self::Dup5 => 0b0001_0101,
-            Self::Dup6 => 0b0001_0110,
-            Self::Dup7 => 0b0001_0111,
-            Self::Dup9 => 0b0001_1000,
-            Self::Dup11 => 0b0001_1001,
-            Self::Dup13 => 0b0001_1011,
-            Self::Dup15 => 0b0001_1100,
+            Self::Dup0 => Some(0b0001_0000),
+            Self::Dup1 => Some(0b0001_0001),
+            Self::Dup2 => Some(0b0001_0010),
+            Self::Dup3 => Some(0b0001_0011),
+            Self::Dup4 => Some(0b0001_0100),
+            Self::Dup5 => Some(0b0001_0101),
+            Self::Dup6 => Some(0b0001_0110),
+            Self::Dup7 => Some(0b0001_0111),
+            Self::Dup9 => Some(0b0001_1000),
+            Self::Dup11 => Some(0b0001_1001),
+            Self::Dup13 => Some(0b0001_1011),
+            Self::Dup15 => Some(0b0001_1100),
 
-            Self::Swap => 0b0010_0000,
-            Self::SwapW => 0b0010_0001,
-            Self::SwapW2 => 0b0010_0010,
-            Self::SwapW3 => 0b0010_0011,
+            Self::Swap => Some(0b0010_0000),
+            Self::SwapW => Some(0b0010_0001),
+            Self::SwapW2 => Some(0b0010_0010),
+            Self::SwapW3 => Some(0b0010_0011),
 
-            Self::MovUp2 => 0b0010_0001,
-            Self::MovUp3 => 0b0010_0010,
-            Self::MovUp4 => 0b0010_0011,
-            Self::MovUp5 => 0b0010_0100,
-            Self::MovUp6 => 0b0010_0101,
-            Self::MovUp7 => 0b0010_0110,
-            Self::MovUp9 => 0b0010_0111,
-            Self::MovUp11 => 0b0010_1000,
-            Self::MovUp13 => 0b0010_1001,
-            Self::MovUp15 => 0b0010_1011,
+            Self::MovUp2 => Some(0b0010_0001),
+            Self::MovUp3 => Some(0b0010_0010),
+            Self::MovUp4 => Some(0b0010_0011),
+            Self::MovUp5 => Some(0b0010_0100),
+            Self::MovUp6 => Some(0b0010_0101),
+            Self::MovUp7 => Some(0b0010_0110),
+            Self::MovUp9 => Some(0b0010_0111),
+            Self::MovUp11 => Some(0b0010_1000),
+            Self::MovUp13 => Some(0b0010_1001),
+            Self::MovUp15 => Some(0b0010_1011),
 
-            Self::MovDn2 => 0b0010_0110,
-            Self::MovDn3 => 0b0010_0111,
-            Self::MovDn4 => 0b0010_1000,
-            Self::MovDn5 => 0b0010_1001,
-            Self::MovDn6 => 0b0010_1010,
-            Self::MovDn7 => 0b0010_1010,
-            Self::MovDn9 => 0b0010_1010,
-            Self::MovDn11 => 0b0010_1010,
-            Self::MovDn13 => 0b0010_1010,
-            Self::MovDn15 => 0b0010_1010,
+            Self::MovDn2 => Some(0b0010_0110),
+            Self::MovDn3 => Some(0b0010_0111),
+            Self::MovDn4 => Some(0b0010_1000),
+            Self::MovDn5 => Some(0b0010_1001),
+            Self::MovDn6 => Some(0b0010_1010),
+            Self::MovDn7 => Some(0b0010_1010),
+            Self::MovDn9 => Some(0b0010_1010),
+            Self::MovDn11 => Some(0b0010_1010),
+            Self::MovDn13 => Some(0b0010_1010),
+            Self::MovDn15 => Some(0b0010_1010),
 
-            Self::CSwap => 0b0010_1010,
-            Self::CSwapW => 0b0010_1010,
+            Self::CSwap => Some(0b0010_1010),
+            Self::CSwapW => Some(0b0010_1010),
 
-            Self::U32split => 0b0011_0000,
-            Self::U32add => 0b0011_0001,
-            Self::U32addc => 0b0011_0010,
-            Self::U32sub => 0b0011_0011,
-            Self::U32mul => 0b0011_0100,
-            Self::U32madd => 0b0011_0101,
-            Self::U32div => 0b0011_0110,
+            Self::U32split => Some(0b0011_0000),
+            Self::U32add => Some(0b0011_0001),
+            Self::U32addc => Some(0b0011_0010),
+            Self::U32sub => Some(0b0011_0011),
+            Self::U32mul => Some(0b0011_0100),
+            Self::U32madd => Some(0b0011_0101),
+            Self::U32div => Some(0b0011_0110),
 
-            Self::U32and => 0b0011_0111,
-            Self::U32or => 0b0011_1000,
-            Self::U32xor => 0b0011_1001,
+            Self::U32and => Some(0b0011_0111),
+            Self::U32or => Some(0b0011_1000),
+            Self::U32xor => Some(0b0011_1001),
 
-            Self::LoadW => 0b0011_1010,
-            Self::StoreW => 0b0011_1011,
+            Self::LoadW => Some(0b0011_1010),
+            Self::StoreW => Some(0b0011_1011),
 
-            Self::Read => 0b0011_1100,
-            Self::ReadW => 0b0011_1101,
+            Self::Read => Some(0b0011_1100),
+            Self::ReadW => Some(0b0011_1101),
 
-            Self::SDepth => 0b0011_1101,
+            Self::SDepth => Some(0b0011_1101),
 
-            Self::RpPerm => 0b0011_1111,
-            Self::MpVerify => 0b0011_1110,
+            Self::RpPerm => Some(0b0011_1111),
+            Self::MpVerify => Some(0b0011_1110),
 
-            Self::End => 0b0111_0000,
-            Self::Join => 0b0111_0001,
-            Self::Split => 0b0111_0010,
-            Self::Loop => 0b0111_0011,
-            Self::Repeat => 0b0111_0100,
-            Self::Respan => 0b0111_1000,
-            Self::Span => 0b0111_1111,
+            Self::End => Some(0b0111_0000),
+            Self::Join => Some(0b0111_0001),
+            Self::Split => Some(0b0111_0010),
+            Self::Loop => Some(0b0111_0011),
+            Self::Repeat => Some(0b0111_0100),
+            Self::Respan => Some(0b0111_1000),
+            Self::Span => Some(0b0111_1111),
+
+            Self::Debug => None,
         }
     }
 
@@ -427,6 +440,16 @@ impl Operation {
             Self::Push(imm) => Some(*imm),
             _ => None,
         }
+    }
+
+    /// Returns true if this operation is a decorator.
+    ///
+    /// Decorators do not advance VM clock cycle and do not deterministic VM state (i.e., stack,
+    /// memory), but they can change non-deterministic components (e.g., advice tape).
+    ///
+    /// Additionally, decorators do not have assigned op codes.
+    pub fn is_decorator(&self) -> bool {
+        matches!(self, Self::Debug)
     }
 }
 
@@ -535,6 +558,9 @@ impl fmt::Display for Operation {
             // ----- cryptographic operations -----------------------------------------------------
             Self::RpPerm => write!(f, "rpperm"),
             Self::MpVerify => write!(f, "mpverify"),
+
+            // ----- decorators -------------------------------------------------------------------
+            Self::Debug => write!(f, "debug"),
         }
     }
 }

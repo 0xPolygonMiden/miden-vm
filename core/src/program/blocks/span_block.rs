@@ -175,6 +175,13 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
     let mut batch_groups = Vec::<[BaseElement; BATCH_SIZE]>::new();
 
     for op in ops {
+        // if the operator is a decorator we add it to the list of batch ops, but don't process it
+        // further (i.e., the operation will not affect program hash).
+        if op.is_decorator() {
+            batch.ops.push(op);
+            continue;
+        }
+
         // if the operation carries immediate value, process it first
         if let Some(imm) = op.imm_value() {
             // check if the batch has room for the immediate value, and if not start another batch
@@ -192,7 +199,7 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
             // for the first group of a batch; so, we just add a noop in front of it
             if op_idx == 0 && group_idx != 0 {
                 batch.ops.push(Operation::Noop);
-                op_group = Operation::Noop.op_code() as u64;
+                op_group = Operation::Noop.op_code().expect("no opcode") as u64;
                 op_idx += 1;
             }
 
@@ -201,8 +208,9 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
             next_group_idx += 1;
         }
 
-        // add the opcode to the group
-        op_group |= (op.op_code() as u64) << (Operation::OP_BITS * op_idx);
+        // add the opcode to the group; the operation should have an opcode because we filter
+        // out decorators at the beginning of the loop.
+        op_group |= (op.op_code().expect("no opcode") as u64) << (Operation::OP_BITS * op_idx);
         batch.ops.push(op);
         op_idx += 1;
 
@@ -244,9 +252,7 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        BaseElement, ElementHasher, FieldElement, Operation, RescueHasher, BATCH_SIZE, GROUP_SIZE,
-    };
+    use super::{BaseElement, ElementHasher, FieldElement, Operation, RescueHasher, BATCH_SIZE};
 
     #[test]
     fn batch_ops() {
@@ -417,14 +423,36 @@ mod tests {
         assert_eq!(RescueHasher::hash_elements(&batch_groups), hash);
     }
 
+    #[test]
+    fn batch_ops_with_decorator() {
+        let ops = vec![
+            Operation::Push(BaseElement::ONE),
+            Operation::Add,
+            Operation::Debug,
+            Operation::Mul,
+        ];
+        let (batches, hash) = super::batch_ops(ops.clone());
+        assert_eq!(1, batches.len());
+        let batch = &batches[0];
+        assert_eq!(ops, batch.ops);
+        let mut batch_groups = [BaseElement::ZERO; BATCH_SIZE];
+        batch_groups[0] = build_group(&ops);
+        batch_groups[1] = BaseElement::ONE;
+        assert_eq!(batch_groups, batch.groups);
+        assert_eq!(RescueHasher::hash_elements(&batch_groups), hash);
+    }
+
     // TEST HELPERS
     // --------------------------------------------------------------------------------------------
 
     fn build_group(ops: &[Operation]) -> BaseElement {
-        assert!(ops.len() <= GROUP_SIZE);
         let mut group = 0u64;
-        for (i, op) in ops.iter().enumerate() {
-            group |= (op.op_code() as u64) << (Operation::OP_BITS * i);
+        let mut i = 0;
+        for op in ops.iter() {
+            if !op.is_decorator() {
+                group |= (op.op_code().unwrap() as u64) << (Operation::OP_BITS * i);
+                i += 1;
+            }
         }
         BaseElement::new(group)
     }

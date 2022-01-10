@@ -1,6 +1,7 @@
 use super::{BaseElement, ExecutionError, FieldElement, Operation, Process, StarkField};
 
 mod crypto_ops;
+mod decorators;
 mod field_ops;
 mod io_ops;
 mod stack_ops;
@@ -122,6 +123,9 @@ impl Process {
             // ----- cryptographic operations -----------------------------------------------------
             Operation::RpPerm => self.op_rpperm()?,
             Operation::MpVerify => self.op_mpverify()?,
+
+            // ----- decorators -------------------------------------------------------------------
+            Operation::Debug => self.op_debug()?,
         }
 
         // increment the clock cycle
