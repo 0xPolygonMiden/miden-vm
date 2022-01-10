@@ -1,8 +1,19 @@
 use super::{BaseElement, ExecutionError, ProgramInputs, Word};
-use std::collections::BTreeMap;
 use vm_core::{utils::IntoBytes, AdviceSet, StarkField};
+use winter_utils::collections::{BTreeMap, Vec};
 
-/// TODO: add docs
+// ADVICE PROVIDER
+// ================================================================================================
+
+/// An advice provider supplies non-deterministic inputs to the processor during program execution.
+///
+/// The provider manages two types of inputs:
+/// 1. An advice tape, from which the program can read elements sequentially. Once read, the
+///    element is removed from the tape.
+/// 2. Advise sets, which can be identified by their roots. Advise sets are views into Merkle
+///    trees and can be used to provide Merkle paths.
+///
+/// An advice provider can be instantiated from [ProgramInputs].
 pub struct AdviceProvider {
     step: usize,
     tape: Vec<BaseElement>,

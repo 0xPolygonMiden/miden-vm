@@ -38,7 +38,21 @@ impl Process {
         Ok(())
     }
 
-    /// TODO: add docs
+    /// Computes a root of a Merkle path for the specified node. The stack is expected to be
+    /// arranged as follows (from the top):
+    /// - depth of the path, 1 element.
+    /// - index of the node, 1 element.
+    /// - value of the node, 4 elements.
+    /// - root of the tree, 4 elements.
+    ///
+    /// To perform the operation we do the following:
+    /// 1. Look up the Merkle path in the advice provider for the specified tree root.
+    /// 2. Use the hasher to compute the root of the Merkle path for the specified node.
+    /// 3. Replace the node value with the computed root.
+    /// 4. Pop the depth value off the stack.
+    ///
+    /// If the correct Merkle path was provided, the computed root and the provided root must be
+    /// the same. This can be checked via subsequent operations.
     pub(super) fn op_mpverify(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(10, "MPVERIFY")?;
 

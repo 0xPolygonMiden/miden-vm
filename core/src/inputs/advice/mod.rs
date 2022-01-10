@@ -21,6 +21,7 @@ impl AdviceSet {
     /// # Errors
     /// Returns an error if the number of leaves is smaller than two or is not a power of two.
     pub fn new_merkle_tree(leaves: Vec<Word>) -> Result<Self, AdviceSetError> {
+        // TODO: change the signature to accept a vector of [u8; 32]?
         Ok(Self::MerkleTree(MerkleTree::new(leaves)?))
     }
 
