@@ -50,6 +50,11 @@ impl AdviceProvider {
             .ok_or(ExecutionError::EmptyAdviceTape(self.step))
     }
 
+    /// Writes the provided value at the head of the advice tape.
+    pub fn write_tape(&mut self, value: BaseElement) {
+        self.tape.push(value);
+    }
+
     // ADVISE SETS
     // --------------------------------------------------------------------------------------------
 

@@ -1,9 +1,10 @@
 use vm_core::{
     program::{
-        blocks::{CodeBlock, Join, Loop, Span, Split},
-        Operation, Script,
+        blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split},
+        Script,
     },
-    BaseElement, FieldElement, ProgramInputs, StarkField, STACK_TOP_SIZE,
+    AdviceInjector, BaseElement, FieldElement, Operation, ProgramInputs, StarkField,
+    STACK_TOP_SIZE,
 };
 
 mod operations;

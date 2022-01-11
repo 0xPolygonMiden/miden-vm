@@ -53,36 +53,44 @@ impl Process {
     ///
     /// If the correct Merkle path was provided, the computed root and the provided root must be
     /// the same. This can be checked via subsequent operations.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The stack contains fewer than 10 elements.
+    /// - Merkle tree for the specified root cannot be found in the advice provider.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree
+    ///   identified by the specified root.
+    /// - Path to the node at the specified depth and index is not known to the advice provider.
     pub(super) fn op_mpverify(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(10, "MPVERIFY")?;
 
-        // read depth, index, leaf value, and root value from the stack
+        // read depth, index, node value, and root value from the stack
         let depth = self.stack.get(0);
         let index = self.stack.get(1);
-        let leaf = [
-            self.stack.get(2),
-            self.stack.get(3),
-            self.stack.get(4),
+        let node = [
             self.stack.get(5),
+            self.stack.get(4),
+            self.stack.get(3),
+            self.stack.get(2),
         ];
         let provided_root = [
-            self.stack.get(6),
-            self.stack.get(7),
-            self.stack.get(8),
             self.stack.get(9),
+            self.stack.get(8),
+            self.stack.get(7),
+            self.stack.get(6),
         ];
 
-        // get a Merkle path from the advice provider for the specified root and leaf index.
+        // get a Merkle path from the advice provider for the specified root and node index.
         // the path is expected to be of the specified depth.
         let path = self.advice.get_merkle_path(provided_root, depth, index)?;
 
         // use hasher to compute the Merkle root of the path
-        let (_addr, computed_root) = self.hasher.build_merkle_root(leaf, &path, index);
+        let (_addr, computed_root) = self.hasher.build_merkle_root(node, &path, index);
 
         // pop the depth off the stack, replace the leaf value with the computed root, and shift
         // the rest of the stack by one item to the left
         self.stack.set(0, index);
-        for (i, &value) in computed_root.iter().enumerate() {
+        for (i, &value) in computed_root.iter().rev().enumerate() {
             self.stack.set(i + 1, value);
         }
         self.stack.shift_left(6);
@@ -140,14 +148,14 @@ mod tests {
         let inti_stack = [
             tree.depth() as u64,
             0,
-            leaves[0][0].as_int(),
-            leaves[0][1].as_int(),
-            leaves[0][2].as_int(),
             leaves[0][3].as_int(),
-            tree.root()[0].as_int(),
-            tree.root()[1].as_int(),
-            tree.root()[2].as_int(),
+            leaves[0][2].as_int(),
+            leaves[0][1].as_int(),
+            leaves[0][0].as_int(),
             tree.root()[3].as_int(),
+            tree.root()[2].as_int(),
+            tree.root()[1].as_int(),
+            tree.root()[0].as_int(),
         ];
 
         let inputs = ProgramInputs::new(&inti_stack, &[], vec![tree.clone()]).unwrap();
@@ -156,14 +164,14 @@ mod tests {
         process.execute_op(Operation::MpVerify).unwrap();
         let expected = build_expected(&[
             BaseElement::new(0),
-            tree.root()[0],
-            tree.root()[1],
-            tree.root()[2],
             tree.root()[3],
-            tree.root()[0],
-            tree.root()[1],
             tree.root()[2],
+            tree.root()[1],
+            tree.root()[0],
             tree.root()[3],
+            tree.root()[2],
+            tree.root()[1],
+            tree.root()[0],
         ]);
         assert_eq!(expected, process.stack.trace_state());
     }
