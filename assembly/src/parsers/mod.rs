@@ -152,3 +152,38 @@ fn parse_element_param(op: &Token, param_idx: usize) -> Result<BaseElement, Asse
 
     Ok(BaseElement::new(result))
 }
+
+/// This is a helper function that validates the length of an assembly instruction and returns
+/// an error if the instruction is too short or too long.
+///
+/// `instr_parts` expects the number of non-parameter parts in the instruction, e.g. 2 for the
+/// "mem.pop" instruction. `min_params` and `max_params` expect the minimum and maximum number of
+/// parameters accepted by the operation respectively.
+///
+/// # Errors
+///
+/// This function will return an AssemblyError if the instruction part of the operation is
+/// too short or if too many or too few parameters are provided.
+fn validate_op_len(
+    op: &Token,
+    instr_parts: usize,
+    min_params: usize,
+    max_params: usize,
+) -> Result<(), AssemblyError> {
+    let num_parts = op.num_parts();
+
+    // token has too few parts to contain the full instruction
+    if num_parts < instr_parts {
+        return Err(AssemblyError::invalid_op(op));
+    }
+    // token has too few parts to contain the required parameters
+    if num_parts < instr_parts + min_params {
+        return Err(AssemblyError::missing_param(op));
+    }
+    // token has more than the maximum number of parts
+    if num_parts > instr_parts + max_params {
+        return Err(AssemblyError::extra_param(op));
+    }
+
+    Ok(())
+}

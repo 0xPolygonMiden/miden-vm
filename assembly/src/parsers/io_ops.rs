@@ -1,4 +1,7 @@
-use super::{parse_element_param, AssemblyError, BaseElement, FieldElement, Operation, Token};
+use super::{
+    parse_element_param, validate_op_len, AssemblyError, BaseElement, FieldElement, Operation,
+    Token,
+};
 
 // CONSTANT INPUTS
 // ================================================================================================
@@ -15,7 +18,7 @@ use super::{parse_element_param, AssemblyError, BaseElement, FieldElement, Opera
 /// element in decimal or hexadecimal representation. It will return an error if the immediate
 /// value is invalid or missing.
 pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_op_len(op, 2, 2)?;
+    validate_op_len(op, 1, 1, 1)?;
 
     let value = parse_element_param(op, 1)?;
     push_value(span_ops, value);
@@ -34,7 +37,7 @@ pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 /// in decimal or hexadecimal representation. It will return an error if the assembly instruction's
 /// immediate values are invalid.
 pub fn parse_pushw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_op_len(op, 5, 5)?;
+    validate_op_len(op, 1, 4, 4)?;
 
     for idx in 1..=4 {
         let value = parse_element_param(op, idx)?;
@@ -75,7 +78,7 @@ fn push_value(span_ops: &mut Vec<Operation>, value: BaseElement) {
 /// be handled. It will return an error if the assembly instruction is malformed or the environment
 /// input is unrecognized.
 pub fn parse_env(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_op_len(op, 2, 2)?;
+    validate_op_len(op, 2, 0, 0)?;
 
     match op.parts()[1] {
         "sdepth" => {
@@ -117,7 +120,7 @@ pub fn parse_readw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), As
 /// "mem.store" is a write operation that saves the top 4 elements of the stack to memory and
 /// leaves them on the stack.
 pub fn parse_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_op_len(op, 2, 3)?;
+    validate_op_len(op, 2, 0, 1)?;
 
     match op.parts()[1] {
         "push" | "load" => parse_mem_read(span_ops, op),
@@ -200,26 +203,6 @@ fn push_mem_addr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
     span_ops.push(Operation::Push(address));
 
     Ok(())
-}
-
-// HELPERS
-// ================================================================================================
-
-/// This is a helper function that validates the length of the assembly io instruction and returns
-/// an error if params are missing or there are extras.
-///
-/// The minimum and maximum number of valid instruction parts for the op are provided by the
-/// caller.
-///
-/// # Errors
-///
-/// This function will return an AssemblyError if the assembly op has too many or too few parts.
-fn validate_op_len(op: &Token, min_parts: usize, max_parts: usize) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        too_few if too_few < min_parts => Err(AssemblyError::missing_param(op)),
-        too_many if too_many > max_parts => Err(AssemblyError::extra_param(op)),
-        _ => Ok(()),
-    }
 }
 
 // TESTS
