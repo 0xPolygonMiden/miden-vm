@@ -1,9 +1,10 @@
 use vm_core::{
+    errors::AdviceSetError,
     program::{
         blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split},
         Script,
     },
-    AdviceInjector, BaseElement, FieldElement, Operation, ProgramInputs, StarkField,
+    AdviceInjector, BaseElement, FieldElement, Operation, ProgramInputs, StarkField, Word,
     STACK_TOP_SIZE,
 };
 
@@ -36,7 +37,6 @@ mod tests;
 // TYPE ALIASES
 // ================================================================================================
 
-type Word = [BaseElement; 4];
 type StackTrace = [Vec<BaseElement>; STACK_TOP_SIZE];
 
 // EXECUTOR

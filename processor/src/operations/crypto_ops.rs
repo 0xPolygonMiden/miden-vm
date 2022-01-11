@@ -87,13 +87,101 @@ impl Process {
         // use hasher to compute the Merkle root of the path
         let (_addr, computed_root) = self.hasher.build_merkle_root(node, &path, index);
 
-        // pop the depth off the stack, replace the leaf value with the computed root, and shift
+        // this can happen only if the advice provider returns a Merkle path inconsistent with
+        // the specified root. in general, programs using this operations should check that the
+        // computed root and the provided root are the same.
+        debug_assert_eq!(
+            provided_root, computed_root,
+            "inconsistent Merkle tree root"
+        );
+
+        // pop the depth off the stack, replace the node value with the computed root, and shift
         // the rest of the stack by one item to the left
         self.stack.set(0, index);
         for (i, &value) in computed_root.iter().rev().enumerate() {
             self.stack.set(i + 1, value);
         }
         self.stack.shift_left(6);
+        Ok(())
+    }
+
+    /// Computes a new root of a Merkle tree where a node at the specified position is updated to
+    /// the specified value. The stack is expected to be arranged as follows (from the top):
+    /// - depth of the node, 1 element
+    /// - index of the node, 1 element
+    /// - old value of the node, 4 element
+    /// - new value of the node, 4 element
+    /// - current root of the tree, 4 elements
+    ///
+    /// To perform the operation we do the following:
+    /// 1. Look up the Merkle path in the advice provider for the specified tree root.
+    /// 2. Use the hasher to update the root of the Merkle path for the specified node. For this
+    ///    we need to provide the old and the new node value.
+    /// 3. Replace the node value with the computed root.
+    /// 4. Pop the depth value off the stack.
+    ///
+    /// The Merkle path for the node is expected to be provided by the prover non-deterministically
+    /// (via advice sets). At the end of the operation, the old node value is replaced with the
+    /// old root value computed based on the provided path, the new node value is replaced by the
+    /// new root value computed based on the same path. Everything else remains the same.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The stack contains fewer than 14 elements.
+    /// - Merkle tree for the specified root cannot be found in the advice provider.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree
+    ///   identified by the specified root.
+    /// - Path to the node at the specified depth and index is not known to the advice provider.
+    pub(super) fn op_mrupdate(&mut self) -> Result<(), ExecutionError> {
+        self.stack.check_depth(14, "MRUPDATE")?;
+
+        // read depth, index, old and new node values, and tree root value from the stack
+        let depth = self.stack.get(0);
+        let index = self.stack.get(1);
+        let old_node = [
+            self.stack.get(5),
+            self.stack.get(4),
+            self.stack.get(3),
+            self.stack.get(2),
+        ];
+        let new_node = [
+            self.stack.get(9),
+            self.stack.get(8),
+            self.stack.get(7),
+            self.stack.get(6),
+        ];
+        let old_root = [
+            self.stack.get(13),
+            self.stack.get(12),
+            self.stack.get(11),
+            self.stack.get(10),
+        ];
+
+        // get a Merkle path from the advice provider for the old root and node index.
+        // the path is expected to be of the specified depth.
+        let path = self.advice.get_merkle_path(old_root, depth, index)?;
+
+        // use hasher to update the Merkle root
+        let (_addr, computed_old_root, new_root) = self
+            .hasher
+            .update_merkle_root(old_node, new_node, &path, index);
+
+        // this can happen only if the advice provider returns a Merkle path inconsistent with
+        // the specified root. in general, programs using this operations should check that the
+        // computed old root and the provided old root are the same.
+        debug_assert_eq!(old_root, computed_old_root, "inconsistent Merkle tree root");
+
+        // replace the node values with computed old and new roots; everything else stays the same
+        self.stack.set(0, index);
+        self.stack.set(1, index);
+        for (i, &value) in computed_old_root.iter().rev().enumerate() {
+            self.stack.set(i + 2, value);
+        }
+        for (i, &value) in new_root.iter().rev().enumerate() {
+            self.stack.set(i + 6, value);
+        }
+        self.stack.copy_state(10);
+
         Ok(())
     }
 }

@@ -125,6 +125,7 @@ impl Process {
             // ----- cryptographic operations -----------------------------------------------------
             Operation::RpPerm => self.op_rpperm()?,
             Operation::MpVerify => self.op_mpverify()?,
+            Operation::MrUpdate => self.op_mrupdate()?,
 
             // ----- decorators -------------------------------------------------------------------
             Operation::Debug => self.op_debug()?,

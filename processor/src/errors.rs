@@ -1,4 +1,4 @@
-use vm_core::{errors::AdviceSetError, program::blocks::CodeBlock, BaseElement};
+use super::{AdviceSetError, BaseElement, CodeBlock, Word};
 
 // EXECUTION ERROR
 // ================================================================================================
@@ -14,4 +14,5 @@ pub enum ExecutionError {
     EmptyAdviceTape(usize),
     AdviceSetNotFound([u8; 32]),
     AdviseSetLookupFailed(AdviceSetError),
+    InconsistentMerkleRoot(Word, Word),
 }
