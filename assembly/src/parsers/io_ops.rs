@@ -114,12 +114,7 @@ pub fn parse_env(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 // ================================================================================================
 
 /// TODO: implement
-pub fn parse_read(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
-}
-
-/// TODO: implement
-pub fn parse_readw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_adv(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
     unimplemented!()
 }
 

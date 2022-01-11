@@ -96,8 +96,7 @@ fn parse_op_token(op: &Token, span_ops: &mut Vec<Operation>) -> Result<(), Assem
         "push" => io_ops::parse_push(span_ops, op),
         "pushw" => io_ops::parse_pushw(span_ops, op),
         "env" => io_ops::parse_env(span_ops, op),
-        "read" => io_ops::parse_read(span_ops, op),
-        "readw" => io_ops::parse_readw(span_ops, op),
+        "adv" => io_ops::parse_adv(span_ops, op),
         "mem" => io_ops::parse_mem(span_ops, op),
 
         // ----- cryptographic operations ---------------------------------------------------------
