@@ -1,6 +1,6 @@
 use super::{
-    parse_element_param, validate_op_len, AssemblyError, BaseElement, FieldElement, Operation,
-    Token,
+    parse_element_param, parse_int_param, validate_op_len, AssemblyError, BaseElement,
+    FieldElement, Operation, Token,
 };
 
 // CONSTANT INPUTS
@@ -114,9 +114,57 @@ pub fn parse_env(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 // ================================================================================================
 const ADVICE_READ_LIMIT: u32 = 8;
 
-/// TODO: implement
-pub fn parse_adv(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Appends READW or READ operations to the span block, as specified by the operation.
+///
+/// "adv.push" appends the number of READ operations specified by the operation's immediate value
+/// to the span block. This pushes the specified number of items from the advice tape onto the
+/// stack. It limits the number of items that can be read from the advice tape at a time to the
+/// ADVICE_READ_LIMIT.
+///
+/// "adv.loadw" appends a READW operation to read a word from the advice tape and overwrite the
+/// top 4 elements of the stack.
+///
+/// # Errors
+///
+/// Returns an AssemblyError if the instruction is invalid, malformed, missing a required
+/// parameter, or does not match the expected operation. Returns an invalid_param AssemblyError if
+/// the parameter for adv.push is not a decimal value.
+pub fn parse_adv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    // do basic validation common to all advice operations
+    validate_op_len(op, 2, 0, 1)?;
+    if op.parts()[0] != "adv" {
+        return Err(AssemblyError::unexpected_token(op, "adv.{push.n|loadw}"));
+    }
+
+    match op.parts()[1] {
+        "push" => {
+            // check that a parameter exists
+            if op.num_parts() < 3 {
+                return Err(AssemblyError::missing_param(op));
+            }
+
+            // parse and validate the parameter as the number of items to read from the advice tape
+            // it must be between 1 and ADVICE_READ_LIMIT, inclusive, since adv.push.0 is a no-op
+            let n = parse_int_param(op, 2, 1, ADVICE_READ_LIMIT)?;
+
+            // read n items from the advice tape and push then onto the stack
+            for _ in 0..n {
+                span_ops.push(Operation::Read);
+            }
+        }
+        "loadw" => {
+            // ensure that no parameter exists
+            if op.num_parts() > 2 {
+                return Err(AssemblyError::extra_param(op));
+            }
+
+            // load a word from the advice tape
+            span_ops.push(Operation::ReadW);
+        }
+        _ => return Err(AssemblyError::invalid_op(op)),
+    }
+
+    Ok(())
 }
 
 // RANDOM ACCESS MEMORY

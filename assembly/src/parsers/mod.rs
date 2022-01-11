@@ -152,6 +152,43 @@ fn parse_element_param(op: &Token, param_idx: usize) -> Result<BaseElement, Asse
     Ok(BaseElement::new(result))
 }
 
+/// This is a helper function that parses the parameter at the specified op index as an integer and
+/// ensures that it falls within the bounds specified by the caller.
+///
+/// # Errors
+/// Returns an invalid param AssemblyError if:
+/// - the parsing attempt fails.
+/// - the parameter is outside the specified lower and upper bounds.
+fn parse_int_param(
+    op: &Token,
+    param_idx: usize,
+    lower_bound: u32,
+    upper_bound: u32,
+) -> Result<u32, AssemblyError> {
+    let param_value = op.parts()[param_idx];
+
+    // attempt to parse the parameter value as an integer
+    let result = match param_value.parse::<u32>() {
+        Ok(i) => i,
+        Err(_) => return Err(AssemblyError::invalid_param(op, param_idx)),
+    };
+
+    // check that the parameter is within the specified bounds
+    if result < lower_bound || result > upper_bound {
+        return Err(AssemblyError::invalid_param_with_reason(
+            op,
+            param_idx,
+            format!(
+                "parameter value must be greater than {} and less than than {}",
+                lower_bound, upper_bound
+            )
+            .as_str(),
+        ));
+    }
+
+    Ok(result)
+}
+
 /// This is a helper function that validates the length of an assembly instruction and returns
 /// an error if the instruction is too short or too long.
 ///
