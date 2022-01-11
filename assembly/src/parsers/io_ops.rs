@@ -16,10 +16,16 @@ use super::{
 ///
 /// This function expects an assembly op with exactly one immediate value that is a valid field
 /// element in decimal or hexadecimal representation. It will return an error if the immediate
-/// value is invalid or missing.
+/// value is invalid or missing. It will also return an error if the op token is malformed or
+/// doesn't match the expected instruction.
 pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    // validate op
     validate_op_len(op, 1, 1, 1)?;
+    if op.parts()[0] != "push" {
+        return Err(AssemblyError::unexpected_token(op, "push.{param}"));
+    }
 
+    // update the span block
     let value = parse_element_param(op, 1)?;
     push_value(span_ops, value);
 
@@ -35,10 +41,19 @@ pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 ///
 /// This function expects an assembly op with 4 immediate values that are valid field elements
 /// in decimal or hexadecimal representation. It will return an error if the assembly instruction's
-/// immediate values are invalid.
+/// immediate values are invalid. It will also return an error if the op token is malformed or
+/// doesn't match the expected instruction.
 pub fn parse_pushw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    // validate op
     validate_op_len(op, 1, 4, 4)?;
+    if op.parts()[0] != "pushw" {
+        return Err(AssemblyError::unexpected_token(
+            op,
+            "pushw.{param}.{param}.{param}.{param}",
+        ));
+    }
 
+    // update the span block
     for idx in 1..=4 {
         let value = parse_element_param(op, idx)?;
         push_value(span_ops, value);
@@ -78,8 +93,13 @@ fn push_value(span_ops: &mut Vec<Operation>, value: BaseElement) {
 /// be handled. It will return an error if the assembly instruction is malformed or the environment
 /// input is unrecognized.
 pub fn parse_env(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    // validate the operation
     validate_op_len(op, 2, 0, 0)?;
+    if op.parts()[0] != "env" {
+        return Err(AssemblyError::unexpected_token(op, "env.{param}"));
+    }
 
+    // update the span block
     match op.parts()[1] {
         "sdepth" => {
             span_ops.push(Operation::SDepth);
@@ -119,8 +139,20 @@ pub fn parse_readw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), As
 /// memory.
 /// "mem.store" is a write operation that saves the top 4 elements of the stack to memory and
 /// leaves them on the stack.
+///
+/// # Errors
+///
+/// Returns an AssemblyError if the op param is invalid, malformed, or doesn't match an expected
+/// memory instruction
 pub fn parse_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    // do basic validation common to all mem operations
     validate_op_len(op, 2, 0, 1)?;
+    if op.parts()[0] != "mem" {
+        return Err(AssemblyError::unexpected_token(
+            op,
+            "mem.{push|load|pop|store}",
+        ));
+    }
 
     match op.parts()[1] {
         "push" | "load" => parse_mem_read(span_ops, op),
