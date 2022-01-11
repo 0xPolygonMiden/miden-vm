@@ -259,16 +259,33 @@ mod tests {
         let param_idx = 0;
 
         // value missing
-        let op_no_val = Token::new("pushw", param_idx);
-        assert!(parse_push(&mut span_ops, &op_no_val).is_err());
+        let op_no_val = Token::new("push", param_idx);
+        let expected = AssemblyError::missing_param(&op_no_val);
+        assert_eq!(parse_push(&mut span_ops, &op_no_val).unwrap_err(), expected);
 
         // invalid value
         let op_val_invalid = Token::new("push.abc", param_idx);
-        assert!(parse_push(&mut span_ops, &op_val_invalid).is_err());
+        let expected = AssemblyError::invalid_param(&op_val_invalid, 1);
+        assert_eq!(
+            parse_push(&mut span_ops, &op_val_invalid).unwrap_err(),
+            expected
+        );
 
         // extra value
-        let op_extra_val = Token::new("pushw.0.1", param_idx);
-        assert!(parse_push(&mut span_ops, &op_extra_val).is_err());
+        let op_extra_val = Token::new("push.0.1", param_idx);
+        let expected = AssemblyError::extra_param(&op_extra_val);
+        assert_eq!(
+            parse_push(&mut span_ops, &op_extra_val).unwrap_err(),
+            expected
+        );
+
+        // wrong operation passed to parsing function
+        let op_mismatch = Token::new("pushw.0", param_idx);
+        let expected = AssemblyError::unexpected_token(&op_mismatch, "push.{param}");
+        assert_eq!(
+            parse_push(&mut span_ops, &op_mismatch).unwrap_err(),
+            expected
+        )
     }
 
     #[test]
@@ -296,19 +313,44 @@ mod tests {
 
         // no values
         let op_no_vals = Token::new("pushw", param_idx);
-        assert!(parse_pushw(&mut span_ops, &op_no_vals).is_err());
+        let expected = AssemblyError::missing_param(&op_no_vals);
+        assert_eq!(
+            parse_pushw(&mut span_ops, &op_no_vals).unwrap_err(),
+            expected
+        );
 
         // insufficient values provided
         let op_val_missing = Token::new("pushw.0.1.2", param_idx);
-        assert!(parse_pushw(&mut span_ops, &op_val_missing).is_err());
+        let expected = AssemblyError::missing_param(&op_val_missing);
+        assert_eq!(
+            parse_pushw(&mut span_ops, &op_val_missing).unwrap_err(),
+            expected
+        );
 
         // invalid value
-        let op_val_invalid = Token::new("push.0.1.2.abc", param_idx);
-        assert!(parse_pushw(&mut span_ops, &op_val_invalid).is_err());
+        let op_val_invalid = Token::new("pushw.0.1.2.abc", param_idx);
+        let expected = AssemblyError::invalid_param(&op_val_invalid, 4);
+        assert_eq!(
+            parse_pushw(&mut span_ops, &op_val_invalid).unwrap_err(),
+            expected
+        );
 
         // extra value
         let op_extra_val = Token::new("pushw.0.1.2.3.4", param_idx);
-        assert!(parse_pushw(&mut span_ops, &op_extra_val).is_err());
+        let expected = AssemblyError::extra_param(&op_extra_val);
+        assert_eq!(
+            parse_pushw(&mut span_ops, &op_extra_val).unwrap_err(),
+            expected
+        );
+
+        // wrong operation passed to parsing function
+        let op_mismatch = Token::new("push.0.1.2.3", param_idx);
+        let expected =
+            AssemblyError::unexpected_token(&op_mismatch, "pushw.{param}.{param}.{param}.{param}");
+        assert_eq!(
+            parse_pushw(&mut span_ops, &op_mismatch).unwrap_err(),
+            expected
+        )
     }
 
     #[test]
@@ -331,15 +373,32 @@ mod tests {
 
         // missing env var
         let op_no_val = Token::new("env", param_idx);
-        assert!(parse_mem(&mut span_ops, &op_no_val).is_err());
+        let expected = AssemblyError::invalid_op(&op_no_val);
+        assert_eq!(parse_env(&mut span_ops, &op_no_val).unwrap_err(), expected);
 
         // invalid env var
         let op_val_invalid = Token::new("env.invalid", param_idx);
-        assert!(parse_push(&mut span_ops, &op_val_invalid).is_err());
+        let expected = AssemblyError::invalid_op(&op_val_invalid);
+        assert_eq!(
+            parse_env(&mut span_ops, &op_val_invalid).unwrap_err(),
+            expected
+        );
 
         // extra value
         let op_extra_val = Token::new("env.sdepth.0", param_idx);
-        assert!(parse_push(&mut span_ops, &op_extra_val).is_err());
+        let expected = AssemblyError::extra_param(&op_extra_val);
+        assert_eq!(
+            parse_env(&mut span_ops, &op_extra_val).unwrap_err(),
+            expected
+        );
+
+        // wrong operation passed to parsing function
+        let op_mismatch = Token::new("push.sdepth", param_idx);
+        let expected = AssemblyError::unexpected_token(&op_mismatch, "env.{param}");
+        assert_eq!(
+            parse_env(&mut span_ops, &op_mismatch).unwrap_err(),
+            expected
+        )
     }
 
     #[test]
@@ -470,15 +529,37 @@ mod tests {
         let param_idx = 0;
 
         // missing variant
-        let op_no_val = Token::new("mem", param_idx);
-        assert!(parse_mem(&mut span_ops, &op_no_val).is_err());
+        let op_missing = Token::new("mem", param_idx);
+        let expected = AssemblyError::invalid_op(&op_missing);
+        assert_eq!(parse_mem(&mut span_ops, &op_missing).unwrap_err(), expected);
 
         // invalid variant
-        let op_val_invalid = Token::new("mem.abc", param_idx);
-        assert!(parse_push(&mut span_ops, &op_val_invalid).is_err());
+        let op_invalid = Token::new("mem.abc", param_idx);
+        let expected = AssemblyError::invalid_op(&op_invalid);
+        assert_eq!(parse_mem(&mut span_ops, &op_invalid).unwrap_err(), expected);
+
+        // invalid param
+        let op_val_invalid = Token::new("mem.push.a", param_idx);
+        let expected = AssemblyError::invalid_param(&op_val_invalid, 2);
+        assert_eq!(
+            parse_mem(&mut span_ops, &op_val_invalid).unwrap_err(),
+            expected
+        );
 
         // extra value
         let op_extra_val = Token::new("mem.push.0.1", param_idx);
-        assert!(parse_push(&mut span_ops, &op_extra_val).is_err());
+        let expected = AssemblyError::extra_param(&op_extra_val);
+        assert_eq!(
+            parse_mem(&mut span_ops, &op_extra_val).unwrap_err(),
+            expected
+        );
+
+        // wrong operation passed to parsing function
+        let op_mismatch = Token::new("adv.push.0", param_idx);
+        let expected = AssemblyError::unexpected_token(&op_mismatch, "mem.{push|load|pop|store}");
+        assert_eq!(
+            parse_mem(&mut span_ops, &op_mismatch).unwrap_err(),
+            expected
+        );
     }
 }
