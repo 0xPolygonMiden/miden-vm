@@ -4,7 +4,7 @@ pub mod utils;
 pub use math::{fields::f64::BaseElement, FieldElement, StarkField};
 
 mod operations;
-pub use operations::Operation;
+pub use operations::{AdviceInjector, Operation};
 
 mod inputs;
 pub use inputs::{AdviceSet, ProgramInputs};

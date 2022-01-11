@@ -1,4 +1,6 @@
-use super::{BaseElement, ExecutionError, FieldElement, Operation, Process, StarkField};
+use super::{
+    AdviceInjector, BaseElement, ExecutionError, FieldElement, Operation, Process, StarkField,
+};
 
 mod crypto_ops;
 mod decorators;
@@ -126,10 +128,13 @@ impl Process {
 
             // ----- decorators -------------------------------------------------------------------
             Operation::Debug => self.op_debug()?,
+            Operation::Advice(injector) => self.op_advice(injector)?,
         }
 
-        // increment the clock cycle
-        self.advance_clock();
+        // increment the clock cycle, unless we are processing a decorator
+        if !op.is_decorator() {
+            self.advance_clock();
+        }
 
         Ok(())
     }

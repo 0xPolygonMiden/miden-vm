@@ -1,6 +1,9 @@
 use super::BaseElement;
 use core::fmt;
 
+mod advice;
+pub use advice::AdviceInjector;
+
 // OPERATIONS
 // ================================================================================================
 
@@ -327,6 +330,11 @@ pub enum Operation {
     ///
     /// TODO: add debug options to specify what is to be printed out.
     Debug,
+
+    /// Injects zero or more values at the head of the advice tape as specified by the injector.
+    /// This operation affects only the advice tape, but has no effect on other VM components
+    /// (e.g., stack, memory), and does not advance VM clock.
+    Advice(AdviceInjector),
 }
 
 impl Operation {
@@ -431,6 +439,7 @@ impl Operation {
             Self::Span => Some(0b0111_1111),
 
             Self::Debug => None,
+            Self::Advice(_) => None,
         }
     }
 
@@ -449,7 +458,7 @@ impl Operation {
     ///
     /// Additionally, decorators do not have assigned op codes.
     pub fn is_decorator(&self) -> bool {
-        matches!(self, Self::Debug)
+        matches!(self, Self::Debug | Self::Advice(_))
     }
 }
 
@@ -561,6 +570,7 @@ impl fmt::Display for Operation {
 
             // ----- decorators -------------------------------------------------------------------
             Self::Debug => write!(f, "debug"),
+            Self::Advice(injector) => write!(f, "advice({})", injector),
         }
     }
 }
