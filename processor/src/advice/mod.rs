@@ -58,6 +58,12 @@ impl AdviceProvider {
     // ADVISE SETS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns true if the advice set with the specified root is present in this advice provider.
+    #[cfg(test)]
+    pub fn has_advice_set(&self, root: Word) -> bool {
+        self.sets.contains_key(&root.into_bytes())
+    }
+
     /// Returns a node at the specified index in a Merkle tree with the specified root.
     ///
     /// # Errors
@@ -73,16 +79,16 @@ impl AdviceProvider {
         depth: BaseElement,
         index: BaseElement,
     ) -> Result<Word, ExecutionError> {
-        // look up the advise set and return an error if none is found
-        let advise_set = self
+        // look up the advice set and return an error if none is found
+        let advice_set = self
             .sets
             .get(&root.into_bytes())
             .ok_or_else(|| ExecutionError::AdviceSetNotFound(root.into_bytes()))?;
 
-        // get the tree node from the advise set based on depth and index
-        let node = advise_set
+        // get the tree node from the advice set based on depth and index
+        let node = advice_set
             .get_node(depth.as_int() as u32, index.as_int())
-            .map_err(ExecutionError::AdviseSetLookupFailed)?;
+            .map_err(ExecutionError::AdviceSetLookupFailed)?;
 
         Ok(node)
     }
@@ -101,16 +107,66 @@ impl AdviceProvider {
         depth: BaseElement,
         index: BaseElement,
     ) -> Result<Vec<Word>, ExecutionError> {
-        // look up the advise set and return an error if none is found
-        let advise_set = self
+        // look up the advice set and return an error if none is found
+        let advice_set = self
             .sets
             .get(&root.into_bytes())
             .ok_or_else(|| ExecutionError::AdviceSetNotFound(root.into_bytes()))?;
 
-        // get the Merkle path from the advise set based on depth and index
-        let path = advise_set
+        // get the Merkle path from the advice set based on depth and index
+        let path = advice_set
             .get_path(depth.as_int() as u32, index.as_int())
-            .map_err(ExecutionError::AdviseSetLookupFailed)?;
+            .map_err(ExecutionError::AdviceSetLookupFailed)?;
+
+        Ok(path)
+    }
+
+    /// Updates a leaf at the specified index in the advice set with the specified root with the
+    /// provided value and returns a Merkle path to this leaf.
+    ///
+    /// If `update_in_copy` is set to true, the update is made in the copy of the specified advice
+    /// set, and the old advice set is retained in this provider. Otherwise, the old advice set is
+    /// removed from this provider.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - A Merkle tree for the specified root cannot be found in this advice provider.
+    /// - The specified depth is either zero or greater than the depth of the Merkle tree
+    ///   identified by the specified root.
+    /// - Path to the leaf at the specified index in the specified Merkle tree is not known to this
+    ///   advice provider.
+    pub fn update_advice_set_leaf(
+        &mut self,
+        root: Word,
+        index: BaseElement,
+        leaf_value: Word,
+        update_in_copy: bool,
+    ) -> Result<Vec<Word>, ExecutionError> {
+        // look up the advice set and return error if none is found. if we are updating a copy,
+        // clone the advice set; otherwise remove it from the map because the root will change,
+        // and we'll re-insert the set later under a different root.
+        let mut advice_set = if update_in_copy {
+            // look up the advice set and return an error if none is found
+            self.sets
+                .get(&root.into_bytes())
+                .ok_or_else(|| ExecutionError::AdviceSetNotFound(root.into_bytes()))?
+                .clone()
+        } else {
+            self.sets
+                .remove(&root.into_bytes())
+                .ok_or_else(|| ExecutionError::AdviceSetNotFound(root.into_bytes()))?
+        };
+
+        // get the Merkle path from the advice set for the leaf at the specified index
+        let path = advice_set
+            .get_path(advice_set.depth(), index.as_int())
+            .map_err(ExecutionError::AdviceSetLookupFailed)?;
+
+        // update the advice set and re-insert it into the map
+        advice_set
+            .update_leaf(index.as_int(), leaf_value)
+            .map_err(ExecutionError::AdviceSetLookupFailed)?;
+        self.sets.insert(advice_set.root().into_bytes(), advice_set);
 
         Ok(path)
     }

@@ -337,8 +337,13 @@ pub enum Operation {
     /// The Merkle path for the node is expected to be provided by the prover non-deterministically
     /// (via advice sets). At the end of the operation, the old node value is replaced with the
     /// old root value computed based on the provided path, the new node value is replaced by the
-    /// new root value computed based on the same path. Everything else remains the same.
-    MrUpdate,
+    /// new root value computed based on the same path. Everything else on the stack remains the
+    /// same.
+    ///
+    /// If the boolean parameter is set to false, at the end of the operation the advice set with
+    /// the, specified root will be removed from the advice provider. Otherwise, the advice
+    /// provider will keep track of both, the old and the new advice sets.
+    MrUpdate(bool),
 
     // ----- decorators ---------------------------------------------------------------------------
     /// Prints out the state of the VM. This operation has no effect on the VM state, and does not
@@ -445,7 +450,7 @@ impl Operation {
 
             Self::RpPerm => Some(0b0011_1111),
             Self::MpVerify => Some(0b0011_1110),
-            Self::MrUpdate => Some(0b0011_1110),
+            Self::MrUpdate(_) => Some(0b0011_1110),
 
             Self::End => Some(0b0111_0000),
             Self::Join => Some(0b0111_0001),
@@ -584,7 +589,13 @@ impl fmt::Display for Operation {
             // ----- cryptographic operations -----------------------------------------------------
             Self::RpPerm => write!(f, "rpperm"),
             Self::MpVerify => write!(f, "mpverify"),
-            Self::MrUpdate => write!(f, "mrupdate"),
+            Self::MrUpdate(copy) => {
+                if *copy {
+                    write!(f, "mrupdate(copy)")
+                } else {
+                    write!(f, "mrupdate(move)")
+                }
+            }
 
             // ----- decorators -------------------------------------------------------------------
             Self::Debug => write!(f, "debug"),

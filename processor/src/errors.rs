@@ -13,5 +13,6 @@ pub enum ExecutionError {
     FailedAssertion(usize),
     EmptyAdviceTape(usize),
     AdviceSetNotFound([u8; 32]),
-    AdviseSetLookupFailed(AdviceSetError),
+    AdviceSetLookupFailed(AdviceSetError),
+    AdviceSetUpdateFailed(AdviceSetError),
 }

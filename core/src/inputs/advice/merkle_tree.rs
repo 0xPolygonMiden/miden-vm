@@ -136,7 +136,6 @@ impl MerkleTree {
         for _ in 0..depth {
             index /= 2;
             self.nodes[index] = digest_into_node(Rp64_256::merge(&two_nodes[index]));
-            println!("index: {}", index);
         }
 
         Ok(())
