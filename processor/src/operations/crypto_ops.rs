@@ -175,7 +175,7 @@ impl Process {
         // and, thus, the assert on depth would not be needed.
         let path = self
             .advice
-            .update_advice_set_leaf(old_root, index, new_node, copy)?;
+            .update_merkle_leaf(old_root, index, new_node, copy)?;
         assert_eq!(path.len(), depth.as_int() as usize);
 
         // use hasher to update the Merkle root
@@ -209,7 +209,7 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{init_stack_with, BaseElement, FieldElement, Operation, StarkField},
+        super::{init_stack_with, Felt, FieldElement, Operation, StarkField},
         Process,
     };
     use crate::Word;
@@ -220,7 +220,7 @@ mod tests {
     #[test]
     fn op_rpperm() {
         // --- test hashing [ONE, ONE] ----------------------------------------
-        let expected = Rp64_256::hash_elements(&[BaseElement::ONE, BaseElement::ONE]);
+        let expected = Rp64_256::hash_elements(&[Felt::ONE, Felt::ONE]);
 
         let mut process = Process::new_dummy();
         init_stack_with(&mut process, &[2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1]);
@@ -229,12 +229,8 @@ mod tests {
 
         // --- test hashing 8 random values -----------------------------------
         let mut values = rand_vector::<u64>(8);
-        let expected = Rp64_256::hash_elements(
-            &values
-                .iter()
-                .map(|&v| BaseElement::new(v))
-                .collect::<Vec<_>>(),
-        );
+        let expected =
+            Rp64_256::hash_elements(&values.iter().map(|&v| Felt::new(v)).collect::<Vec<_>>());
 
         let mut process = Process::new_dummy();
         values.extend_from_slice(&[0, 0, 0, 8]);
@@ -269,8 +265,8 @@ mod tests {
 
         process.execute_op(Operation::MpVerify).unwrap();
         let expected = build_expected(&[
-            BaseElement::new(tree.depth() as u64),
-            BaseElement::new(index as u64),
+            Felt::new(tree.depth() as u64),
+            Felt::new(index as u64),
             tree.root()[3],
             tree.root()[2],
             tree.root()[1],
@@ -318,8 +314,8 @@ mod tests {
         // update the Merkle tree and discard the old copy
         process.execute_op(Operation::MrUpdate(false)).unwrap();
         let expected = build_expected(&[
-            BaseElement::new(tree.depth() as u64),
-            BaseElement::new(node_index as u64),
+            Felt::new(tree.depth() as u64),
+            Felt::new(node_index as u64),
             tree.root()[3],
             tree.root()[2],
             tree.root()[1],
@@ -375,8 +371,8 @@ mod tests {
         // update the Merkle tree but keep the old copy
         process.execute_op(Operation::MrUpdate(true)).unwrap();
         let expected = build_expected(&[
-            BaseElement::new(tree.depth() as u64),
-            BaseElement::new(node_index as u64),
+            Felt::new(tree.depth() as u64),
+            Felt::new(node_index as u64),
             tree.root()[3],
             tree.root()[2],
             tree.root()[1],
@@ -404,18 +400,13 @@ mod tests {
     }
 
     fn init_leaf(value: u64) -> Word {
-        [
-            BaseElement::new(value),
-            BaseElement::ZERO,
-            BaseElement::ZERO,
-            BaseElement::ZERO,
-        ]
+        [Felt::new(value), Felt::ZERO, Felt::ZERO, Felt::ZERO]
     }
 
-    fn build_expected(values: &[BaseElement]) -> [BaseElement; 16] {
-        let mut expected = [BaseElement::ZERO; 16];
+    fn build_expected(values: &[Felt]) -> [Felt; 16] {
+        let mut expected = [Felt::ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
-            *result = value
+            *result = value;
         }
         expected
     }

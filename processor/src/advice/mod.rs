@@ -1,4 +1,4 @@
-use super::{BaseElement, ExecutionError, ProgramInputs, Word};
+use super::{ExecutionError, Felt, ProgramInputs, Word};
 use vm_core::{utils::IntoBytes, AdviceSet, StarkField};
 use winter_utils::collections::{BTreeMap, Vec};
 
@@ -16,7 +16,7 @@ use winter_utils::collections::{BTreeMap, Vec};
 /// An advice provider can be instantiated from [ProgramInputs].
 pub struct AdviceProvider {
     step: usize,
-    tape: Vec<BaseElement>,
+    tape: Vec<Felt>,
     sets: BTreeMap<[u8; 32], AdviceSet>,
 }
 
@@ -44,14 +44,14 @@ impl AdviceProvider {
     ///
     /// # Errors
     /// Returns an error if the advice tape is empty.
-    pub fn read_tape(&mut self) -> Result<BaseElement, ExecutionError> {
+    pub fn read_tape(&mut self) -> Result<Felt, ExecutionError> {
         self.tape
             .pop()
             .ok_or(ExecutionError::EmptyAdviceTape(self.step))
     }
 
     /// Writes the provided value at the head of the advice tape.
-    pub fn write_tape(&mut self, value: BaseElement) {
+    pub fn write_tape(&mut self, value: Felt) {
         self.tape.push(value);
     }
 
@@ -76,8 +76,8 @@ impl AdviceProvider {
     pub fn get_tree_node(
         &mut self,
         root: Word,
-        depth: BaseElement,
-        index: BaseElement,
+        depth: Felt,
+        index: Felt,
     ) -> Result<Word, ExecutionError> {
         // look up the advice set and return an error if none is found
         let advice_set = self
@@ -104,8 +104,8 @@ impl AdviceProvider {
     pub fn get_merkle_path(
         &mut self,
         root: Word,
-        depth: BaseElement,
-        index: BaseElement,
+        depth: Felt,
+        index: Felt,
     ) -> Result<Vec<Word>, ExecutionError> {
         // look up the advice set and return an error if none is found
         let advice_set = self
@@ -135,10 +135,10 @@ impl AdviceProvider {
     ///   identified by the specified root.
     /// - Path to the leaf at the specified index in the specified Merkle tree is not known to this
     ///   advice provider.
-    pub fn update_advice_set_leaf(
+    pub fn update_merkle_leaf(
         &mut self,
         root: Word,
-        index: BaseElement,
+        index: Felt,
         leaf_value: Word,
         update_in_copy: bool,
     ) -> Result<Vec<Word>, ExecutionError> {

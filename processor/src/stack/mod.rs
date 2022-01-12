@@ -1,4 +1,4 @@
-use super::{BaseElement, ExecutionError, FieldElement, ProgramInputs, StackTrace, STACK_TOP_SIZE};
+use super::{ExecutionError, Felt, FieldElement, ProgramInputs, StackTrace, STACK_TOP_SIZE};
 use core::{cmp, convert::TryInto};
 
 // STACK
@@ -8,7 +8,7 @@ use core::{cmp, convert::TryInto};
 pub struct Stack {
     step: usize,
     trace: StackTrace,
-    overflow: Vec<BaseElement>,
+    overflow: Vec<Felt>,
     depth: usize,
 }
 
@@ -18,9 +18,9 @@ impl Stack {
     /// TODO: add comments
     pub fn new(inputs: &ProgramInputs, init_trace_length: usize) -> Self {
         let init_values = inputs.stack_init();
-        let mut trace: Vec<Vec<BaseElement>> = Vec::with_capacity(STACK_TOP_SIZE);
+        let mut trace: Vec<Vec<Felt>> = Vec::with_capacity(STACK_TOP_SIZE);
         for i in 0..STACK_TOP_SIZE {
-            let mut column = vec![BaseElement::ZERO; init_trace_length];
+            let mut column = vec![Felt::ZERO; init_trace_length];
             if i < init_values.len() {
                 column[0] = init_values[i];
             }
@@ -59,7 +59,7 @@ impl Stack {
     ///
     /// # Errors
     /// Returns an error if the stack is empty.
-    pub fn peek(&self) -> Result<BaseElement, ExecutionError> {
+    pub fn peek(&self) -> Result<Felt, ExecutionError> {
         if self.depth == 0 {
             return Err(ExecutionError::StackUnderflow("peek", self.step));
         }
@@ -72,8 +72,8 @@ impl Stack {
     /// Trace state is always 16 elements long and contains the top 16 values of the stack. When
     /// the stack depth is less than 16, the un-used slots contain ZEROs.
     #[allow(dead_code)]
-    pub fn trace_state(&self) -> [BaseElement; STACK_TOP_SIZE] {
-        let mut result = [BaseElement::ZERO; STACK_TOP_SIZE];
+    pub fn trace_state(&self) -> [Felt; STACK_TOP_SIZE] {
+        let mut result = [Felt::ZERO; STACK_TOP_SIZE];
         for (result, column) in result.iter_mut().zip(self.trace.iter()) {
             *result = column[self.step];
         }
@@ -89,13 +89,13 @@ impl Stack {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the value located at the specified position on the stack at the current clock cycle.
-    pub fn get(&self, pos: usize) -> BaseElement {
+    pub fn get(&self, pos: usize) -> Felt {
         debug_assert!(pos < self.depth, "stack underflow");
         self.trace[pos][self.step]
     }
 
     /// Sets the value at the specified position on the stack at the next clock cycle.
-    pub fn set(&mut self, pos: usize, value: BaseElement) {
+    pub fn set(&mut self, pos: usize, value: Felt) {
         debug_assert!(pos == 0 || pos < self.depth, "stack underflow");
         self.trace[pos][self.step + 1] = value;
     }
@@ -202,7 +202,7 @@ impl Stack {
         if self.step + 1 >= self.trace_length() {
             let new_length = self.trace_length() * 2;
             for register in self.trace.iter_mut() {
-                register.resize(new_length, BaseElement::ZERO);
+                register.resize(new_length, Felt::ZERO);
             }
         }
     }

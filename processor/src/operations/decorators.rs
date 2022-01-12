@@ -71,7 +71,7 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{BaseElement, FieldElement, Operation, StarkField},
+        super::{Felt, FieldElement, Operation, StarkField},
         Process,
     };
     use crate::Word;
@@ -110,8 +110,8 @@ mod tests {
             leaves[1][2],
             leaves[1][1],
             leaves[1][0],
-            BaseElement::new(2),
-            BaseElement::new(1),
+            Felt::new(2),
+            Felt::new(1),
             tree.root()[3],
             tree.root()[2],
             tree.root()[1],
@@ -123,16 +123,11 @@ mod tests {
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
     fn init_leaf(value: u64) -> Word {
-        [
-            BaseElement::new(value),
-            BaseElement::ZERO,
-            BaseElement::ZERO,
-            BaseElement::ZERO,
-        ]
+        [Felt::new(value), Felt::ZERO, Felt::ZERO, Felt::ZERO]
     }
 
-    fn build_expected(values: &[BaseElement]) -> [BaseElement; 16] {
-        let mut expected = [BaseElement::ZERO; 16];
+    fn build_expected(values: &[Felt]) -> [Felt; 16] {
+        let mut expected = [Felt::ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = value
         }

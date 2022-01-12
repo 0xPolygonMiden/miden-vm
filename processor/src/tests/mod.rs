@@ -1,4 +1,4 @@
-use super::{BaseElement, FieldElement, ProgramInputs, STACK_TOP_SIZE};
+use super::{Felt, FieldElement, ProgramInputs, STACK_TOP_SIZE};
 
 #[test]
 fn simple_program() {
@@ -18,10 +18,10 @@ fn simple_program() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn build_stack_state(values: &[u64]) -> [BaseElement; STACK_TOP_SIZE] {
-    let mut result = [BaseElement::ZERO; STACK_TOP_SIZE];
+fn build_stack_state(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
+    let mut result = [Felt::ZERO; STACK_TOP_SIZE];
     for (&value, result) in values.iter().zip(result.iter_mut()) {
-        *result = BaseElement::new(value);
+        *result = Felt::new(value);
     }
     result
 }

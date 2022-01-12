@@ -1,5 +1,4 @@
-use super::{BaseElement, Process, StackTrace, STACK_TOP_SIZE};
-use vm_core::FieldElement;
+use super::{Felt, FieldElement, Process, StackTrace, STACK_TOP_SIZE};
 use winterfell::Trace;
 
 // VM EXECUTION TRACE
@@ -41,15 +40,15 @@ impl ExecutionTrace {
     // --------------------------------------------------------------------------------------------
 
     /// TODO: add docs
-    pub fn init_stack_state(&self) -> [BaseElement; STACK_TOP_SIZE] {
-        let mut result = [BaseElement::ZERO; STACK_TOP_SIZE];
+    pub fn init_stack_state(&self) -> [Felt; STACK_TOP_SIZE] {
+        let mut result = [Felt::ZERO; STACK_TOP_SIZE];
         self.read_row_into(0, &mut result);
         result
     }
 
     /// TODO: add docs
-    pub fn last_stack_state(&self) -> [BaseElement; STACK_TOP_SIZE] {
-        let mut result = [BaseElement::ZERO; STACK_TOP_SIZE];
+    pub fn last_stack_state(&self) -> [Felt; STACK_TOP_SIZE] {
+        let mut result = [Felt::ZERO; STACK_TOP_SIZE];
         self.read_row_into(self.length() - 1, &mut result);
         result
     }
@@ -59,7 +58,7 @@ impl ExecutionTrace {
 // ================================================================================================
 
 impl Trace for ExecutionTrace {
-    type BaseField = BaseElement;
+    type BaseField = Felt;
 
     fn width(&self) -> usize {
         self.stack.len()
@@ -91,7 +90,7 @@ impl Trace for ExecutionTrace {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn finalize_column(column: &mut Vec<BaseElement>, step: usize) {
+fn finalize_column(column: &mut Vec<Felt>, step: usize) {
     let last_value = column[step];
     column[step..].fill(last_value);
 }

@@ -1,4 +1,4 @@
-use super::{BaseElement, Join, Loop, OpBatch, Operation, Span, Split};
+use super::{Felt, Join, Loop, OpBatch, Operation, Span, Split};
 
 // DECODER
 // ================================================================================================
@@ -19,14 +19,14 @@ impl Decoder {
     // SPLIT BLOCK
     // --------------------------------------------------------------------------------------------
 
-    pub fn start_split(&mut self, _block: &Split, _condition: BaseElement) {}
+    pub fn start_split(&mut self, _block: &Split, _condition: Felt) {}
 
     pub fn end_split(&mut self, _block: &Split) {}
 
     // LOOP BLOCK
     // --------------------------------------------------------------------------------------------
 
-    pub fn start_loop(&mut self, _block: &Loop, _condition: BaseElement) {}
+    pub fn start_loop(&mut self, _block: &Loop, _condition: Felt) {}
 
     pub fn repeat(&mut self, _block: &Loop) {}
 

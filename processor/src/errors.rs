@@ -1,4 +1,4 @@
-use super::{AdviceSetError, BaseElement, CodeBlock};
+use super::{AdviceSetError, CodeBlock, Felt};
 
 // EXECUTION ERROR
 // ================================================================================================
@@ -7,7 +7,7 @@ use super::{AdviceSetError, BaseElement, CodeBlock};
 pub enum ExecutionError {
     UnsupportedCodeBlock(CodeBlock),
     UnexecutableCodeBlock(CodeBlock),
-    NotBinaryValue(BaseElement),
+    NotBinaryValue(Felt),
     StackUnderflow(&'static str, usize),
     DivideByZero(usize),
     FailedAssertion(usize),

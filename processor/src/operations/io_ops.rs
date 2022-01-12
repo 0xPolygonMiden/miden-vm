@@ -1,4 +1,4 @@
-use super::{BaseElement, ExecutionError, Process};
+use super::{ExecutionError, Felt, Process};
 
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
@@ -10,7 +10,7 @@ impl Process {
     /// Pushes the provided value onto the stack.
     ///
     /// The original stack is shifted to the right by one item.
-    pub(super) fn op_push(&mut self, value: BaseElement) -> Result<(), ExecutionError> {
+    pub(super) fn op_push(&mut self, value: Felt) -> Result<(), ExecutionError> {
         self.stack.set(0, value);
         self.stack.shift_right(0);
         Ok(())
@@ -128,7 +128,7 @@ impl Process {
     /// the stack.
     pub(super) fn op_sdepth(&mut self) -> Result<(), ExecutionError> {
         let stack_depth = self.stack.depth();
-        self.stack.set(0, BaseElement::new(stack_depth as u64));
+        self.stack.set(0, Felt::new(stack_depth as u64));
         self.stack.shift_right(0);
         Ok(())
     }
@@ -141,7 +141,7 @@ impl Process {
 mod tests {
     use super::{
         super::{FieldElement, Operation},
-        BaseElement, Process,
+        Felt, Process,
     };
 
     #[test]
@@ -149,24 +149,24 @@ mod tests {
         let mut process = Process::new_dummy();
         assert_eq!(0, process.stack.depth());
         assert_eq!(0, process.stack.current_step());
-        assert_eq!([BaseElement::ZERO; 16], process.stack.trace_state());
+        assert_eq!([Felt::ZERO; 16], process.stack.trace_state());
 
         // push one item onto the stack
-        let op = Operation::Push(BaseElement::ONE);
+        let op = Operation::Push(Felt::ONE);
         process.execute_op(op).unwrap();
-        let mut expected = [BaseElement::ZERO; 16];
-        expected[0] = BaseElement::ONE;
+        let mut expected = [Felt::ZERO; 16];
+        expected[0] = Felt::ONE;
 
         assert_eq!(1, process.stack.depth());
         assert_eq!(1, process.stack.current_step());
         assert_eq!(expected, process.stack.trace_state());
 
         // push another item onto the stack
-        let op = Operation::Push(BaseElement::new(3));
+        let op = Operation::Push(Felt::new(3));
         process.execute_op(op).unwrap();
-        let mut expected = [BaseElement::ZERO; 16];
-        expected[0] = BaseElement::new(3);
-        expected[1] = BaseElement::ONE;
+        let mut expected = [Felt::ZERO; 16];
+        expected[0] = Felt::new(3);
+        expected[1] = Felt::ONE;
 
         assert_eq!(2, process.stack.depth());
         assert_eq!(2, process.stack.current_step());
@@ -182,12 +182,7 @@ mod tests {
         assert_eq!(0, process.memory.size());
 
         // push the first word onto the stack and save it at address 0
-        let word1 = [
-            BaseElement::new(1),
-            BaseElement::new(3),
-            BaseElement::new(5),
-            BaseElement::new(7),
-        ];
+        let word1 = [Felt::new(1), Felt::new(3), Felt::new(5), Felt::new(7)];
         store_value(&mut process, 0, word1);
 
         // check stack state
@@ -199,12 +194,7 @@ mod tests {
         assert_eq!(word1, process.memory.get_value(0).unwrap());
 
         // push the second word onto the stack and save it at address 3
-        let word2 = [
-            BaseElement::new(2),
-            BaseElement::new(4),
-            BaseElement::new(6),
-            BaseElement::new(8),
-        ];
+        let word2 = [Felt::new(2), Felt::new(4), Felt::new(6), Felt::new(8)];
         store_value(&mut process, 3, word2);
 
         // check stack state
@@ -223,12 +213,7 @@ mod tests {
         assert_eq!(0, process.memory.size());
 
         // push a word onto the stack and save it at address 1
-        let word = [
-            BaseElement::new(1),
-            BaseElement::new(3),
-            BaseElement::new(5),
-            BaseElement::new(7),
-        ];
+        let word = [Felt::new(1), Felt::new(3), Felt::new(5), Felt::new(7)];
         store_value(&mut process, 1, word);
 
         // push four zeros onto the stack
@@ -237,9 +222,7 @@ mod tests {
         }
 
         // push the address onto the stack and load the word
-        process
-            .execute_op(Operation::Push(BaseElement::ONE))
-            .unwrap();
+        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
         process.execute_op(Operation::LoadW).unwrap();
 
         let expected_stack = build_expected_stack(&[7, 5, 3, 1, 7, 5, 3, 1]);
@@ -257,9 +240,7 @@ mod tests {
     fn op_read() {
         // reading from tape should push the value onto the stack
         let mut process = Process::new_dummy_with_advice_tape(&[3]);
-        process
-            .execute_op(Operation::Push(BaseElement::ONE))
-            .unwrap();
+        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
         process.execute_op(Operation::Read).unwrap();
         let expected = build_expected_stack(&[3, 1]);
         assert_eq!(expected, process.stack.trace_state());
@@ -272,9 +253,7 @@ mod tests {
     fn op_readw() {
         // reading from tape should overwrite top 4 values
         let mut process = Process::new_dummy_with_advice_tape(&[3, 4, 5, 6]);
-        process
-            .execute_op(Operation::Push(BaseElement::ONE))
-            .unwrap();
+        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::Pad).unwrap();
@@ -288,9 +267,7 @@ mod tests {
 
         // should return an error if the stack has fewer than 4 values
         let mut process = Process::new_dummy_with_advice_tape(&[3, 4, 5, 6]);
-        process
-            .execute_op(Operation::Push(BaseElement::ONE))
-            .unwrap();
+        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::Pad).unwrap();
         assert!(process.execute_op(Operation::ReadW).is_err());
@@ -325,19 +302,19 @@ mod tests {
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
-    fn store_value(process: &mut Process, addr: u64, value: [BaseElement; 4]) {
+    fn store_value(process: &mut Process, addr: u64, value: [Felt; 4]) {
         for &value in value.iter() {
             process.execute_op(Operation::Push(value)).unwrap();
         }
-        let addr = BaseElement::new(addr);
+        let addr = Felt::new(addr);
         process.execute_op(Operation::Push(addr)).unwrap();
         process.execute_op(Operation::StoreW).unwrap();
     }
 
-    fn build_expected_stack(values: &[u64]) -> [BaseElement; 16] {
-        let mut expected = [BaseElement::ZERO; 16];
+    fn build_expected_stack(values: &[u64]) -> [Felt; 16] {
+        let mut expected = [Felt::ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
-            *result = BaseElement::new(value);
+            *result = Felt::new(value);
         }
         expected
     }
