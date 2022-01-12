@@ -406,7 +406,7 @@ mod tests {
     fn build_expected(values: &[Felt]) -> [Felt; 16] {
         let mut expected = [Felt::ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
-            *result = value
+            *result = value;
         }
         expected
     }

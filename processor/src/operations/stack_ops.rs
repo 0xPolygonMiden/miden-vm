@@ -253,6 +253,8 @@ impl Process {
 
 #[cfg(test)]
 mod tests {
+    use crate::operations::init_stack_with;
+
     use super::{
         super::{FieldElement, Operation, Process},
         Felt,
@@ -264,14 +266,12 @@ mod tests {
 
         // push one item onto the stack
         process.execute_op(Operation::Push(Felt::ONE)).unwrap();
-        let mut expected = [Felt::ZERO; 16];
-        expected[0] = Felt::ONE;
+        let expected = build_expected(&[1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // pad the stack
         process.execute_op(Operation::Pad).unwrap();
-        let mut expected = [Felt::ZERO; 16];
-        expected[1] = Felt::ONE;
+        let expected = build_expected(&[0, 1]);
 
         assert_eq!(2, process.stack.depth());
         assert_eq!(2, process.stack.current_step());
@@ -279,8 +279,7 @@ mod tests {
 
         // pad the stack again
         process.execute_op(Operation::Pad).unwrap();
-        let mut expected = [Felt::ZERO; 16];
-        expected[2] = Felt::ONE;
+        let expected = build_expected(&[0, 0, 1]);
 
         assert_eq!(3, process.stack.depth());
         assert_eq!(3, process.stack.current_step());
@@ -289,31 +288,24 @@ mod tests {
 
     #[test]
     fn op_drop() {
+        // push a few items onto the stack
         let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[1, 2]);
 
-        // push one item onto the stack
-        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
-        let mut expected = [Felt::ZERO; 16];
-        expected[0] = Felt::ONE;
+        // drop the first value
+        process.execute_op(Operation::Drop).unwrap();
+        let expected = build_expected(&[1]);
         assert_eq!(expected, process.stack.trace_state());
+        assert_eq!(1, process.stack.depth());
 
-        // pad the stack
-        process.execute_op(Operation::Pad).unwrap();
-        let mut expected = [Felt::ZERO; 16];
-        expected[1] = Felt::ONE;
-
-        assert_eq!(2, process.stack.depth());
-        assert_eq!(2, process.stack.current_step());
+        // drop the next value
+        process.execute_op(Operation::Drop).unwrap();
+        let expected = build_expected(&[]);
         assert_eq!(expected, process.stack.trace_state());
+        assert_eq!(0, process.stack.depth());
 
-        // pad the stack again
-        process.execute_op(Operation::Pad).unwrap();
-        let mut expected = [Felt::ZERO; 16];
-        expected[2] = Felt::ONE;
-
-        assert_eq!(3, process.stack.depth());
-        assert_eq!(3, process.stack.current_step());
-        assert_eq!(expected, process.stack.trace_state());
+        // the stack is empty, drop should result in an error
+        assert!(process.execute_op(Operation::Drop).is_err());
     }
 
     #[test]
@@ -325,18 +317,12 @@ mod tests {
 
         // push one item onto the stack
         process.execute_op(Operation::Push(Felt::ONE)).unwrap();
-        let mut expected = [Felt::ZERO; 16];
-        expected[0] = Felt::ONE;
+        let expected = build_expected(&[1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // duplicate it
         process.execute_op(Operation::Dup0).unwrap();
-        let mut expected = [Felt::ZERO; 16];
-        expected[0] = Felt::ONE;
-        expected[1] = Felt::ONE;
-
-        assert_eq!(2, process.stack.depth());
-        assert_eq!(2, process.stack.current_step());
+        let expected = build_expected(&[1, 1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // duplicating non-existent item should be an error
@@ -372,5 +358,216 @@ mod tests {
         assert_eq!(&expected[2..], &process.stack.trace_state()[..14]);
         assert_eq!(Felt::ONE, process.stack.trace_state()[14]);
         assert_eq!(Felt::ZERO, process.stack.trace_state()[15]);
+    }
+
+    #[test]
+    fn op_swap() {
+        // push a few items onto the stack
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[1, 2, 3]);
+
+        process.execute_op(Operation::Swap).unwrap();
+        let expected = build_expected(&[2, 3, 1]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // swapping fewer than 2 items should be an error
+        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop).unwrap();
+        assert!(process.execute_op(Operation::Swap).is_err());
+    }
+
+    #[test]
+    fn op_swapw() {
+        // push a few items onto the stack
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+        process.execute_op(Operation::SwapW).unwrap();
+        let expected = build_expected(&[5, 4, 3, 2, 9, 8, 7, 6, 1]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // swapping fewer than 8 items should be an error
+        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop).unwrap();
+        assert!(process.execute_op(Operation::SwapW).is_err());
+    }
+
+    #[test]
+    fn op_swapw2() {
+        // push a few items onto the stack
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+
+        process.execute_op(Operation::SwapW2).unwrap();
+        let expected = build_expected(&[5, 4, 3, 2, 9, 8, 7, 6, 13, 12, 11, 10, 1]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // swapping fewer than 12 items should be an error
+        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop).unwrap();
+        assert!(process.execute_op(Operation::SwapW2).is_err());
+    }
+
+    #[test]
+    fn op_swapw3() {
+        // push a few items onto the stack
+        let mut process = Process::new_dummy();
+        init_stack_with(
+            &mut process,
+            &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
+        );
+
+        process.execute_op(Operation::SwapW3).unwrap();
+        let expected = build_expected(&[5, 4, 3, 2, 13, 12, 11, 10, 9, 8, 7, 6, 17, 16, 15, 14]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // value should remain on the overflow table
+        process.execute_op(Operation::Drop).unwrap();
+        let expected = build_expected(&[4, 3, 2, 13, 12, 11, 10, 9, 8, 7, 6, 17, 16, 15, 14, 1]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // swapping fewer than 12 items should be an error
+        process.execute_op(Operation::Drop).unwrap();
+        assert!(process.execute_op(Operation::SwapW3).is_err());
+    }
+
+    #[test]
+    fn op_movup() {
+        // push a few items onto the stack
+        let mut process = Process::new_dummy();
+        init_stack_with(
+            &mut process,
+            &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+        );
+
+        // movup2
+        process.execute_op(Operation::MovUp2).unwrap();
+        let expected = build_expected(&[3, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // movup3
+        process.execute_op(Operation::MovUp3).unwrap();
+        let expected = build_expected(&[4, 3, 1, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // movup7
+        process.execute_op(Operation::MovUp7).unwrap();
+        let expected = build_expected(&[8, 4, 3, 1, 2, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // movup15
+        process.execute_op(Operation::MovUp15).unwrap();
+        let expected = build_expected(&[16, 8, 4, 3, 1, 2, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // error when not enough items on the stack
+        process.execute_op(Operation::Drop).unwrap();
+        assert!(process.execute_op(Operation::MovUp15).is_err());
+
+        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop).unwrap();
+        assert!(process.execute_op(Operation::MovUp13).is_err());
+    }
+
+    #[test]
+    fn op_movdn() {
+        // push a few items onto the stack
+        let mut process = Process::new_dummy();
+        init_stack_with(
+            &mut process,
+            &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+        );
+
+        // movdn2
+        process.execute_op(Operation::MovDn2).unwrap();
+        let expected = build_expected(&[2, 3, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // movdn3
+        process.execute_op(Operation::MovDn3).unwrap();
+        let expected = build_expected(&[3, 1, 4, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // movdn7
+        process.execute_op(Operation::MovDn7).unwrap();
+        let expected = build_expected(&[1, 4, 2, 5, 6, 7, 8, 3, 9, 10, 11, 12, 13, 14, 15, 16]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // movdn15
+        process.execute_op(Operation::MovDn15).unwrap();
+        let expected = build_expected(&[4, 2, 5, 6, 7, 8, 3, 9, 10, 11, 12, 13, 14, 15, 16, 1]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // error when not enough items on the stack
+        process.execute_op(Operation::Drop).unwrap();
+        assert!(process.execute_op(Operation::MovDn15).is_err());
+
+        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop).unwrap();
+        assert!(process.execute_op(Operation::MovDn13).is_err());
+    }
+
+    #[test]
+    fn op_cswap() {
+        // push a few items onto the stack
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[4, 3, 2, 1, 0]);
+
+        // no swap (top of the stack is 0)
+        process.execute_op(Operation::CSwap).unwrap();
+        let expected = build_expected(&[1, 2, 3, 4]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // swap (top of the stack is 1)
+        process.execute_op(Operation::CSwap).unwrap();
+        let expected = build_expected(&[3, 2, 4]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // error: top of the stack is not binary
+        assert!(process.execute_op(Operation::CSwap).is_err());
+
+        // error: not enough values on the stack
+        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Pad).unwrap();
+        assert!(process.execute_op(Operation::CSwap).is_err());
+    }
+
+    #[test]
+    fn op_cswapw() {
+        // push a few items onto the stack
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
+
+        // no swap (top of the stack is 0)
+        process.execute_op(Operation::CSwapW).unwrap();
+        let expected = build_expected(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // swap (top of the stack is 1)
+        process.execute_op(Operation::CSwapW).unwrap();
+        let expected = build_expected(&[6, 7, 8, 9, 2, 3, 4, 5, 10, 11]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // error: top of the stack is not binary
+        assert!(process.execute_op(Operation::CSwapW).is_err());
+
+        // error: not enough values on the stack
+        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Pad).unwrap();
+        assert!(process.execute_op(Operation::CSwapW).is_err());
+    }
+
+    // HELPER FUNCTIONS
+    // --------------------------------------------------------------------------------------------
+
+    fn build_expected(values: &[u64]) -> [Felt; 16] {
+        let mut expected = [Felt::ZERO; 16];
+        for (&value, result) in values.iter().zip(expected.iter_mut()) {
+            *result = Felt::new(value);
+        }
+        expected
     }
 }
