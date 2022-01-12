@@ -52,7 +52,6 @@ impl Process {
     /// 1. Look up the Merkle path in the advice provider for the specified tree root.
     /// 2. Use the hasher to compute the root of the Merkle path for the specified node.
     /// 3. Replace the node value with the computed root.
-    /// 4. Pop the depth value off the stack.
     ///
     /// If the correct Merkle path was provided, the computed root and the provided root must be
     /// the same. This can be checked via subsequent operations.
@@ -98,13 +97,13 @@ impl Process {
             "inconsistent Merkle tree root"
         );
 
-        // pop the depth off the stack, replace the node value with the computed root, and shift
-        // the rest of the stack by one item to the left
-        self.stack.set(0, index);
+        // replace the node value with the computed root; everything else remains the same
+        self.stack.set(0, depth);
+        self.stack.set(1, index);
         for (i, &value) in computed_root.iter().rev().enumerate() {
-            self.stack.set(i + 1, value);
+            self.stack.set(i + 2, value);
         }
-        self.stack.shift_left(6);
+        self.stack.copy_state(6);
         Ok(())
     }
 
@@ -255,6 +254,7 @@ mod tests {
 
         process.execute_op(Operation::MpVerify).unwrap();
         let expected = build_expected(&[
+            BaseElement::new(tree.depth() as u64),
             BaseElement::new(index as u64),
             tree.root()[3],
             tree.root()[2],

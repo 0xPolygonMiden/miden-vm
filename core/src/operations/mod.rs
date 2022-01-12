@@ -319,9 +319,9 @@ pub enum Operation {
     /// - root of the tree, 4 elements.
     ///
     /// The Merkle path itself is expected to be provided by the prover non-deterministically (via
-    /// advice sets). At the end of the operation, the depth is popped off the stack, and the node
-    /// values are replaced with the computed root. Thus, if the correct Merkle path was provided,
-    /// the computed root and the provided root must be the same.
+    /// advice sets). At the end of the operation, and the node values are replaced with the
+    /// computed root, but everything else remains the same. Thus, if the correct Merkle path was
+    /// provided, the computed root and the provided root must be the same.
     MpVerify,
 
     /// Computes a new root of a Merkle tree where a node at the specified position is updated to
