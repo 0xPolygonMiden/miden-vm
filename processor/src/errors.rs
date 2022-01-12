@@ -1,4 +1,4 @@
-use vm_core::{errors::AdviceSetError, program::blocks::CodeBlock, BaseElement};
+use super::{AdviceSetError, BaseElement, CodeBlock};
 
 // EXECUTION ERROR
 // ================================================================================================
@@ -13,5 +13,6 @@ pub enum ExecutionError {
     FailedAssertion(usize),
     EmptyAdviceTape(usize),
     AdviceSetNotFound([u8; 32]),
-    AdviseSetLookupFailed(AdviceSetError),
+    AdviceSetLookupFailed(AdviceSetError),
+    AdviceSetUpdateFailed(AdviceSetError),
 }

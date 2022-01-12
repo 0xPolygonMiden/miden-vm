@@ -57,6 +57,44 @@ impl Hasher {
         // TODO: return address of the hash table row
         (BaseElement::ZERO, root)
     }
+
+    pub fn update_merkle_root(
+        &mut self,
+        old_value: Word,
+        new_value: Word,
+        path: &[Word],
+        index: BaseElement,
+    ) -> (BaseElement, Word, Word) {
+        let mut old_root = old_value;
+        let mut new_root = new_value;
+        let mut index = index.as_int();
+
+        for sibling in path {
+            let (mut old_state, mut new_state) = if index & 1 == 0 {
+                (
+                    build_merge_state(&old_root, sibling),
+                    build_merge_state(&new_root, sibling),
+                )
+            } else {
+                (
+                    build_merge_state(sibling, &old_root),
+                    build_merge_state(sibling, &new_root),
+                )
+            };
+
+            for i in 0..NUM_ROUNDS {
+                // TODO: record state into a trace
+                apply_round(&mut old_state, i);
+                apply_round(&mut new_state, i);
+            }
+            old_root = [old_state[0], old_state[1], old_state[2], old_state[3]];
+            new_root = [new_state[0], new_state[1], new_state[2], new_state[3]];
+            index >>= 1;
+        }
+
+        // TODO: return address of the hash table row
+        (BaseElement::ZERO, old_root, new_root)
+    }
 }
 
 // HELPER FUNCTIONS

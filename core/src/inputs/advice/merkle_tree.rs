@@ -115,6 +115,31 @@ impl MerkleTree {
 
         Ok(path)
     }
+
+    /// Replaces the leaf at the specified index with the provided value.
+    ///
+    /// # Errors
+    /// Returns an error if the specified index is not a valid leaf index for this tree.
+    pub fn update_leaf(&mut self, index: u64, value: Word) -> Result<(), AdviceSetError> {
+        let depth = self.depth();
+        if index >= 2u64.pow(depth) {
+            return Err(AdviceSetError::InvalidIndex(depth, index));
+        }
+
+        let mut index = 2usize.pow(depth) + index as usize;
+        self.nodes[index] = value;
+
+        let n = self.nodes.len() / 2;
+        let two_nodes =
+            unsafe { slice::from_raw_parts(self.nodes.as_ptr() as *const [Digest; 2], n) };
+
+        for _ in 0..depth {
+            index /= 2;
+            self.nodes[index] = digest_into_node(Rp64_256::merge(&two_nodes[index]));
+        }
+
+        Ok(())
+    }
 }
 
 // HELPER FUNCTIONS
@@ -139,6 +164,17 @@ mod tests {
         int_to_node(2),
         int_to_node(3),
         int_to_node(4),
+    ];
+
+    const LEAVES8: [Word; 8] = [
+        int_to_node(1),
+        int_to_node(2),
+        int_to_node(3),
+        int_to_node(4),
+        int_to_node(5),
+        int_to_node(6),
+        int_to_node(7),
+        int_to_node(8),
     ];
 
     #[test]
@@ -192,6 +228,30 @@ mod tests {
         // check depth 1
         assert_eq!(vec![node3], tree.get_path(1, 0).unwrap());
         assert_eq!(vec![node2], tree.get_path(1, 1).unwrap());
+    }
+
+    #[test]
+    fn update_leaf() {
+        let mut tree = super::MerkleTree::new(LEAVES8.to_vec()).unwrap();
+
+        // update one leaf
+        let index = 3;
+        let new_node = int_to_node(9);
+        let mut expected_leaves = LEAVES8.to_vec();
+        expected_leaves[index as usize] = new_node;
+        let expected_tree = super::MerkleTree::new(expected_leaves.clone()).unwrap();
+
+        tree.update_leaf(index, new_node).unwrap();
+        assert_eq!(expected_tree.nodes, tree.nodes);
+
+        // update another leaf
+        let index = 6;
+        let new_node = int_to_node(10);
+        expected_leaves[index as usize] = new_node;
+        let expected_tree = super::MerkleTree::new(expected_leaves.clone()).unwrap();
+
+        tree.update_leaf(index, new_node).unwrap();
+        assert_eq!(expected_tree.nodes, tree.nodes);
     }
 
     // HELPER FUNCTIONS

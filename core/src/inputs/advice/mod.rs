@@ -68,4 +68,19 @@ impl AdviceSet {
             Self::MerkleTree(tree) => tree.get_path(depth, index),
         }
     }
+
+    // DATA MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Replaces the leaf at the specified index with the provided value.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The specified index is not a valid leaf index for this advice set.
+    /// - This advice set does not contain a leaf at the specified index.
+    pub fn update_leaf(&mut self, index: u64, value: Word) -> Result<(), AdviceSetError> {
+        match self {
+            Self::MerkleTree(tree) => tree.update_leaf(index, value),
+        }
+    }
 }
