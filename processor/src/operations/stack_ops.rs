@@ -3,21 +3,27 @@ use super::{super::STACK_TOP_SIZE, ExecutionError, Felt, FieldElement, Process, 
 impl Process {
     // STACK MANIPULATION
     // --------------------------------------------------------------------------------------------
-    /// Pushes a ZERO onto the process.stack.
+    /// Pushes a ZERO onto the stack.
     pub(super) fn op_pad(&mut self) -> Result<(), ExecutionError> {
         self.stack.set(0, Felt::ZERO);
         self.stack.shift_right(0);
         Ok(())
     }
 
-    /// Removes the top element off the process.stack.
+    /// Removes the top element off the stack.
+    ///
+    /// # Errors
+    /// Returns an error if the stack is empty.
     pub(super) fn op_drop(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(1, "DROP")?;
         self.stack.shift_left(1);
         Ok(())
     }
 
-    /// Pushes the copy the n-th item onto the process.stack.
+    /// Pushes the copy the n-th item onto the stack. n is 0-based.
+    ///
+    /// # Errors
+    /// Returns an error if the stack contains fewer than n + 1 values.
     pub(super) fn op_dup(&mut self, n: usize) -> Result<(), ExecutionError> {
         self.stack.check_depth(n + 1, "DUP")?;
         let value = self.stack.get(n);
@@ -26,7 +32,10 @@ impl Process {
         Ok(())
     }
 
-    /// TODO: add docs
+    /// Swaps stack elements 0 and 1.
+    ///
+    /// # Errors
+    /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_swap(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(2, "SWAP")?;
         let a = self.stack.get(0);
@@ -37,7 +46,10 @@ impl Process {
         Ok(())
     }
 
-    /// TODO: add docs
+    /// Swaps stack elements 0, 1, 2, and 3 with elements 4, 5, 6, and 7.
+    ///
+    /// # Errors
+    /// Returns an error if the stack contains fewer than 8 elements.
     pub(super) fn op_swapw(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(8, "SWAPW")?;
 
@@ -63,7 +75,10 @@ impl Process {
         Ok(())
     }
 
-    /// TODO: add docs
+    /// Swaps stack elements 0, 1, 2, and 3 with elements 8, 9, 10, and 11.
+    ///
+    /// # Errors
+    /// Returns an error if the stack contains fewer than 12 elements.
     pub(super) fn op_swapw2(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(12, "SWAPW2")?;
 
@@ -97,7 +112,10 @@ impl Process {
         Ok(())
     }
 
-    /// TODO: add docs
+    /// Swaps stack elements 0, 1, 2, and 3, with elements 12, 13, 14, and 15.
+    ///
+    /// # Errors
+    /// Returns an error if the stack contains fewer than 16 elements.
     pub(super) fn op_swapw3(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(16, "SWAPW3")?;
 
@@ -138,7 +156,12 @@ impl Process {
         Ok(())
     }
 
-    /// TODO: add docs
+    /// Moves n-th element to the top of the stack. n is 0-based.
+    ///
+    /// Elements between 0 and n are shifted right by one slot.
+    ///
+    /// # Errors
+    /// Returns an error if the stack contains fewer than n + 1 values.
     pub(super) fn op_movup(&mut self, n: usize) -> Result<(), ExecutionError> {
         self.stack.check_depth(n + 1, "MOVUP")?;
 
@@ -159,7 +182,12 @@ impl Process {
         Ok(())
     }
 
-    /// TODO: add docs
+    /// Moves element 0 to the n-th position on the stack. n is 0-based.
+    ///
+    /// Elements between 0 and n are shifted left by one slot.
+    ///
+    /// # Errors
+    /// Returns an error if the stack contains fewer than n + 1 values.
     pub(super) fn op_movdn(&mut self, n: usize) -> Result<(), ExecutionError> {
         self.stack.check_depth(n + 1, "MOVDN")?;
 
@@ -183,7 +211,13 @@ impl Process {
     // CONDITIONAL MANIPULATION
     // --------------------------------------------------------------------------------------------
 
-    /// TODO: add docs
+    /// Pops an element off the stack, and if the element is 1, swaps the top two elements on the
+    /// stack. If the popped element is 0, the stack remains unchanged.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The stack contains fewer than 3 elements.
+    /// - The top element of the stack is neither 0 nor 1.
     pub(super) fn op_cswap(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(3, "CSWAP")?;
         let c = self.stack.get(0);
@@ -206,7 +240,13 @@ impl Process {
         Ok(())
     }
 
-    /// TODO: add docs
+    /// Pops an element off the stack, and if the element is 1, swaps elements 0, 1, 2, and 3 with
+    /// elements 4, 5, 6, and 7. If the popped element is 0, the stack remains unchanged.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The stack contains fewer than 9 elements.
+    /// - The top element of the stack is neither 0 nor 1.
     pub(super) fn op_cswapw(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(9, "CSWAPW")?;
         let c = self.stack.get(0);
