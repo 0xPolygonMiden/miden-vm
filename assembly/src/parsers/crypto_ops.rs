@@ -1,4 +1,4 @@
-use super::{AssemblyError, Operation, Token};
+use super::{validate_op_len, AssemblyError, Operation, Token};
 
 // HASHING
 // ================================================================================================
@@ -8,9 +8,24 @@ pub fn parse_rphash(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), A
     unimplemented!()
 }
 
-/// TODO: implement
-pub fn parse_rpperm(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Appends an RPPERM operation to the span block, which performs a Rescue Prime permutation on the
+/// top 12 elements of the stack.
+///
+/// # Errors
+/// Returns an AssemblyError if:
+/// - the operation is malformed.
+/// - an unrecognized operation is received (anything other than rpperm).
+pub fn parse_rpperm(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    // validate the operation
+    validate_op_len(op, 1, 0, 0)?;
+    if op.parts()[0] != "rpperm" {
+        return Err(AssemblyError::unexpected_token(op, "rpperm"));
+    }
+
+    // append the machine op to the span block
+    span_ops.push(Operation::RpPerm);
+
+    Ok(())
 }
 
 // MERKLE TREES
