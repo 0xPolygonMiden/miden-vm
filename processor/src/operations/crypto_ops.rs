@@ -38,6 +38,9 @@ impl Process {
         Ok(())
     }
 
+    // MERKLE TREES
+    // --------------------------------------------------------------------------------------------
+
     /// Computes a root of a Merkle path for the specified node. The stack is expected to be
     /// arranged as follows (from the top):
     /// - depth of the path, 1 element.
@@ -172,7 +175,7 @@ impl Process {
         debug_assert_eq!(old_root, computed_old_root, "inconsistent Merkle tree root");
 
         // replace the node values with computed old and new roots; everything else stays the same
-        self.stack.set(0, index);
+        self.stack.set(0, depth);
         self.stack.set(1, index);
         for (i, &value) in computed_old_root.iter().rev().enumerate() {
             self.stack.set(i + 2, value);
@@ -230,16 +233,17 @@ mod tests {
 
     #[test]
     fn op_mpverify() {
-        let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
-
+        let index = 5usize;
+        let leaves = inti_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
         let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
+
         let inti_stack = [
             tree.depth() as u64,
-            0,
-            leaves[0][3].as_int(),
-            leaves[0][2].as_int(),
-            leaves[0][1].as_int(),
-            leaves[0][0].as_int(),
+            index as u64,
+            leaves[index][3].as_int(),
+            leaves[index][2].as_int(),
+            leaves[index][1].as_int(),
+            leaves[index][0].as_int(),
             tree.root()[3].as_int(),
             tree.root()[2].as_int(),
             tree.root()[1].as_int(),
@@ -251,7 +255,7 @@ mod tests {
 
         process.execute_op(Operation::MpVerify).unwrap();
         let expected = build_expected(&[
-            BaseElement::new(0),
+            BaseElement::new(index as u64),
             tree.root()[3],
             tree.root()[2],
             tree.root()[1],
@@ -264,8 +268,64 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
     }
 
+    #[test]
+    fn op_mrupdate() {
+        let leaves = inti_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+
+        let node_index = 1usize;
+        let new_node = init_leaf(9);
+        let mut new_leaves = leaves.clone();
+        new_leaves[node_index] = new_node;
+
+        let tree = AdviceSet::new_merkle_tree(leaves.clone()).unwrap();
+        let new_tree = AdviceSet::new_merkle_tree(new_leaves).unwrap();
+
+        let inti_stack = [
+            tree.depth() as u64,
+            node_index as u64,
+            leaves[node_index][3].as_int(),
+            leaves[node_index][2].as_int(),
+            leaves[node_index][1].as_int(),
+            leaves[node_index][0].as_int(),
+            new_node[3].as_int(),
+            new_node[2].as_int(),
+            new_node[1].as_int(),
+            new_node[0].as_int(),
+            tree.root()[3].as_int(),
+            tree.root()[2].as_int(),
+            tree.root()[1].as_int(),
+            tree.root()[0].as_int(),
+        ];
+
+        let inputs = ProgramInputs::new(&inti_stack, &[], vec![tree.clone()]).unwrap();
+        let mut process = Process::new(inputs);
+
+        process.execute_op(Operation::MrUpdate).unwrap();
+        let expected = build_expected(&[
+            BaseElement::new(tree.depth() as u64),
+            BaseElement::new(node_index as u64),
+            tree.root()[3],
+            tree.root()[2],
+            tree.root()[1],
+            tree.root()[0],
+            new_tree.root()[3],
+            new_tree.root()[2],
+            new_tree.root()[1],
+            new_tree.root()[0],
+            tree.root()[3],
+            tree.root()[2],
+            tree.root()[1],
+            tree.root()[0],
+        ]);
+        assert_eq!(expected, process.stack.trace_state());
+    }
+
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
+    fn inti_leaves(values: &[u64]) -> Vec<Word> {
+        values.iter().map(|&v| init_leaf(v)).collect()
+    }
+
     fn init_leaf(value: u64) -> Word {
         [
             BaseElement::new(value),

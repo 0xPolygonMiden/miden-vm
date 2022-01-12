@@ -1,4 +1,4 @@
-use super::{AdviceSetError, BaseElement, CodeBlock, Word};
+use super::{AdviceSetError, BaseElement, CodeBlock};
 
 // EXECUTION ERROR
 // ================================================================================================
@@ -14,5 +14,4 @@ pub enum ExecutionError {
     EmptyAdviceTape(usize),
     AdviceSetNotFound([u8; 32]),
     AdviseSetLookupFailed(AdviceSetError),
-    InconsistentMerkleRoot(Word, Word),
 }
