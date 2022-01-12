@@ -4,6 +4,7 @@ use core::fmt;
 // ASSEMBLY ERROR
 // ================================================================================================
 
+#[derive(Clone, PartialEq)]
 pub struct AssemblyError {
     message: String,
     step: usize,

@@ -1,4 +1,7 @@
-use super::{parse_element_param, AssemblyError, BaseElement, FieldElement, Operation, Token};
+use super::{
+    parse_element_param, parse_int_param, validate_op_len, AssemblyError, BaseElement,
+    FieldElement, Operation, Token,
+};
 
 // CONSTANT INPUTS
 // ================================================================================================
@@ -13,10 +16,16 @@ use super::{parse_element_param, AssemblyError, BaseElement, FieldElement, Opera
 ///
 /// This function expects an assembly op with exactly one immediate value that is a valid field
 /// element in decimal or hexadecimal representation. It will return an error if the immediate
-/// value is invalid or missing.
+/// value is invalid or missing. It will also return an error if the op token is malformed or
+/// doesn't match the expected instruction.
 pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_op_len(op, 2, 2)?;
+    // validate op
+    validate_op_len(op, 1, 1, 1)?;
+    if op.parts()[0] != "push" {
+        return Err(AssemblyError::unexpected_token(op, "push.{param}"));
+    }
 
+    // update the span block
     let value = parse_element_param(op, 1)?;
     push_value(span_ops, value);
 
@@ -32,10 +41,19 @@ pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 ///
 /// This function expects an assembly op with 4 immediate values that are valid field elements
 /// in decimal or hexadecimal representation. It will return an error if the assembly instruction's
-/// immediate values are invalid.
+/// immediate values are invalid. It will also return an error if the op token is malformed or
+/// doesn't match the expected instruction.
 pub fn parse_pushw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_op_len(op, 5, 5)?;
+    // validate op
+    validate_op_len(op, 1, 4, 4)?;
+    if op.parts()[0] != "pushw" {
+        return Err(AssemblyError::unexpected_token(
+            op,
+            "pushw.{param}.{param}.{param}.{param}",
+        ));
+    }
 
+    // update the span block
     for idx in 1..=4 {
         let value = parse_element_param(op, idx)?;
         push_value(span_ops, value);
@@ -75,8 +93,13 @@ fn push_value(span_ops: &mut Vec<Operation>, value: BaseElement) {
 /// be handled. It will return an error if the assembly instruction is malformed or the environment
 /// input is unrecognized.
 pub fn parse_env(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_op_len(op, 2, 2)?;
+    // validate the operation
+    validate_op_len(op, 2, 0, 0)?;
+    if op.parts()[0] != "env" {
+        return Err(AssemblyError::unexpected_token(op, "env.{param}"));
+    }
 
+    // update the span block
     match op.parts()[1] {
         "sdepth" => {
             span_ops.push(Operation::SDepth);
@@ -89,15 +112,59 @@ pub fn parse_env(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 
 // NON-DETERMINISTIC INPUTS
 // ================================================================================================
+const ADVICE_READ_LIMIT: u32 = 8;
 
-/// TODO: implement
-pub fn parse_read(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
-}
+/// Appends READW or READ operations to the span block, as specified by the operation.
+///
+/// "adv.push" appends the number of READ operations specified by the operation's immediate value
+/// to the span block. This pushes the specified number of items from the advice tape onto the
+/// stack. It limits the number of items that can be read from the advice tape at a time to the
+/// ADVICE_READ_LIMIT.
+///
+/// "adv.loadw" appends a READW operation to read a word from the advice tape and overwrite the
+/// top 4 elements of the stack.
+///
+/// # Errors
+///
+/// Returns an AssemblyError if the instruction is invalid, malformed, missing a required
+/// parameter, or does not match the expected operation. Returns an invalid_param AssemblyError if
+/// the parameter for adv.push is not a decimal value.
+pub fn parse_adv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    // do basic validation common to all advice operations
+    validate_op_len(op, 2, 0, 1)?;
+    if op.parts()[0] != "adv" {
+        return Err(AssemblyError::unexpected_token(op, "adv.{push.n|loadw}"));
+    }
 
-/// TODO: implement
-pub fn parse_readw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+    match op.parts()[1] {
+        "push" => {
+            // check that a parameter exists
+            if op.num_parts() < 3 {
+                return Err(AssemblyError::missing_param(op));
+            }
+
+            // parse and validate the parameter as the number of items to read from the advice tape
+            // it must be between 1 and ADVICE_READ_LIMIT, inclusive, since adv.push.0 is a no-op
+            let n = parse_int_param(op, 2, 1, ADVICE_READ_LIMIT)?;
+
+            // read n items from the advice tape and push then onto the stack
+            for _ in 0..n {
+                span_ops.push(Operation::Read);
+            }
+        }
+        "loadw" => {
+            // ensure that no parameter exists
+            if op.num_parts() > 2 {
+                return Err(AssemblyError::extra_param(op));
+            }
+
+            // load a word from the advice tape
+            span_ops.push(Operation::ReadW);
+        }
+        _ => return Err(AssemblyError::invalid_op(op)),
+    }
+
+    Ok(())
 }
 
 // RANDOM ACCESS MEMORY
@@ -116,8 +183,20 @@ pub fn parse_readw(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), As
 /// memory.
 /// "mem.store" is a write operation that saves the top 4 elements of the stack to memory and
 /// leaves them on the stack.
+///
+/// # Errors
+///
+/// Returns an AssemblyError if the op param is invalid, malformed, or doesn't match an expected
+/// memory instruction
 pub fn parse_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_op_len(op, 2, 3)?;
+    // do basic validation common to all mem operations
+    validate_op_len(op, 2, 0, 1)?;
+    if op.parts()[0] != "mem" {
+        return Err(AssemblyError::unexpected_token(
+            op,
+            "mem.{push|load|pop|store}",
+        ));
+    }
 
     match op.parts()[1] {
         "push" | "load" => parse_mem_read(span_ops, op),
@@ -202,26 +281,6 @@ fn push_mem_addr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
     Ok(())
 }
 
-// HELPERS
-// ================================================================================================
-
-/// This is a helper function that validates the length of the assembly io instruction and returns
-/// an error if params are missing or there are extras.
-///
-/// The minimum and maximum number of valid instruction parts for the op are provided by the
-/// caller.
-///
-/// # Errors
-///
-/// This function will return an AssemblyError if the assembly op has too many or too few parts.
-fn validate_op_len(op: &Token, min_parts: usize, max_parts: usize) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        too_few if too_few < min_parts => Err(AssemblyError::missing_param(op)),
-        too_many if too_many > max_parts => Err(AssemblyError::extra_param(op)),
-        _ => Ok(()),
-    }
-}
-
 // TESTS
 // ================================================================================================
 
@@ -259,16 +318,33 @@ mod tests {
         let param_idx = 0;
 
         // value missing
-        let op_no_val = Token::new("pushw", param_idx);
-        assert!(parse_push(&mut span_ops, &op_no_val).is_err());
+        let op_no_val = Token::new("push", param_idx);
+        let expected = AssemblyError::missing_param(&op_no_val);
+        assert_eq!(parse_push(&mut span_ops, &op_no_val).unwrap_err(), expected);
 
         // invalid value
         let op_val_invalid = Token::new("push.abc", param_idx);
-        assert!(parse_push(&mut span_ops, &op_val_invalid).is_err());
+        let expected = AssemblyError::invalid_param(&op_val_invalid, 1);
+        assert_eq!(
+            parse_push(&mut span_ops, &op_val_invalid).unwrap_err(),
+            expected
+        );
 
         // extra value
-        let op_extra_val = Token::new("pushw.0.1", param_idx);
-        assert!(parse_push(&mut span_ops, &op_extra_val).is_err());
+        let op_extra_val = Token::new("push.0.1", param_idx);
+        let expected = AssemblyError::extra_param(&op_extra_val);
+        assert_eq!(
+            parse_push(&mut span_ops, &op_extra_val).unwrap_err(),
+            expected
+        );
+
+        // wrong operation passed to parsing function
+        let op_mismatch = Token::new("pushw.0", param_idx);
+        let expected = AssemblyError::unexpected_token(&op_mismatch, "push.{param}");
+        assert_eq!(
+            parse_push(&mut span_ops, &op_mismatch).unwrap_err(),
+            expected
+        )
     }
 
     #[test]
@@ -296,19 +372,44 @@ mod tests {
 
         // no values
         let op_no_vals = Token::new("pushw", param_idx);
-        assert!(parse_pushw(&mut span_ops, &op_no_vals).is_err());
+        let expected = AssemblyError::missing_param(&op_no_vals);
+        assert_eq!(
+            parse_pushw(&mut span_ops, &op_no_vals).unwrap_err(),
+            expected
+        );
 
         // insufficient values provided
         let op_val_missing = Token::new("pushw.0.1.2", param_idx);
-        assert!(parse_pushw(&mut span_ops, &op_val_missing).is_err());
+        let expected = AssemblyError::missing_param(&op_val_missing);
+        assert_eq!(
+            parse_pushw(&mut span_ops, &op_val_missing).unwrap_err(),
+            expected
+        );
 
         // invalid value
-        let op_val_invalid = Token::new("push.0.1.2.abc", param_idx);
-        assert!(parse_pushw(&mut span_ops, &op_val_invalid).is_err());
+        let op_val_invalid = Token::new("pushw.0.1.2.abc", param_idx);
+        let expected = AssemblyError::invalid_param(&op_val_invalid, 4);
+        assert_eq!(
+            parse_pushw(&mut span_ops, &op_val_invalid).unwrap_err(),
+            expected
+        );
 
         // extra value
         let op_extra_val = Token::new("pushw.0.1.2.3.4", param_idx);
-        assert!(parse_pushw(&mut span_ops, &op_extra_val).is_err());
+        let expected = AssemblyError::extra_param(&op_extra_val);
+        assert_eq!(
+            parse_pushw(&mut span_ops, &op_extra_val).unwrap_err(),
+            expected
+        );
+
+        // wrong operation passed to parsing function
+        let op_mismatch = Token::new("push.0.1.2.3", param_idx);
+        let expected =
+            AssemblyError::unexpected_token(&op_mismatch, "pushw.{param}.{param}.{param}.{param}");
+        assert_eq!(
+            parse_pushw(&mut span_ops, &op_mismatch).unwrap_err(),
+            expected
+        )
     }
 
     #[test]
@@ -331,15 +432,151 @@ mod tests {
 
         // missing env var
         let op_no_val = Token::new("env", param_idx);
-        assert!(parse_mem(&mut span_ops, &op_no_val).is_err());
+        let expected = AssemblyError::invalid_op(&op_no_val);
+        assert_eq!(parse_env(&mut span_ops, &op_no_val).unwrap_err(), expected);
 
         // invalid env var
         let op_val_invalid = Token::new("env.invalid", param_idx);
-        assert!(parse_push(&mut span_ops, &op_val_invalid).is_err());
+        let expected = AssemblyError::invalid_op(&op_val_invalid);
+        assert_eq!(
+            parse_env(&mut span_ops, &op_val_invalid).unwrap_err(),
+            expected
+        );
 
         // extra value
         let op_extra_val = Token::new("env.sdepth.0", param_idx);
-        assert!(parse_push(&mut span_ops, &op_extra_val).is_err());
+        let expected = AssemblyError::extra_param(&op_extra_val);
+        assert_eq!(
+            parse_env(&mut span_ops, &op_extra_val).unwrap_err(),
+            expected
+        );
+
+        // wrong operation passed to parsing function
+        let op_mismatch = Token::new("push.sdepth", param_idx);
+        let expected = AssemblyError::unexpected_token(&op_mismatch, "env.{param}");
+        assert_eq!(
+            parse_env(&mut span_ops, &op_mismatch).unwrap_err(),
+            expected
+        )
+    }
+
+    #[test]
+    fn adv_push() {
+        // remove n items from the advice tape and push them onto the stack
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op = Token::new("adv.push.4", 0);
+        let expected = vec![Operation::Read; 4];
+
+        parse_adv(&mut span_ops, &op).expect("Failed to parse adv.push.4");
+        assert_eq!(span_ops, expected);
+    }
+
+    #[test]
+    fn adv_loadw() {
+        // replace the top 4 elements of the stack with 4 elements from the advice tape
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op = Token::new("adv.loadw", 0);
+        let expected = vec![Operation::ReadW];
+
+        parse_adv(&mut span_ops, &op).expect("Failed to parse adv.loadw");
+        assert_eq!(span_ops, expected);
+    }
+
+    #[test]
+    fn adv_invalid_instruction() {
+        // fails when the instruction is malformed or unrecognized
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let param_idx = 0;
+
+        // missing variant
+        let op_no_variant = Token::new("adv", param_idx);
+        let expected = AssemblyError::invalid_op(&op_no_variant);
+        assert_eq!(
+            parse_adv(&mut span_ops, &op_no_variant).unwrap_err(),
+            expected
+        );
+
+        // missing value
+        let op_no_val = Token::new("adv.push", param_idx);
+        let expected = AssemblyError::missing_param(&op_no_val);
+        assert_eq!(parse_adv(&mut span_ops, &op_no_val).unwrap_err(), expected);
+
+        // extra value to push
+        let op_extra_val = Token::new("adv.push.2.2", param_idx);
+        let expected = AssemblyError::extra_param(&op_extra_val);
+        assert_eq!(
+            parse_adv(&mut span_ops, &op_extra_val).unwrap_err(),
+            expected
+        );
+
+        // extra value to loadw
+        let op_extra_val = Token::new("adv.loadw.0", param_idx);
+        let expected = AssemblyError::extra_param(&op_extra_val);
+        assert_eq!(
+            parse_adv(&mut span_ops, &op_extra_val).unwrap_err(),
+            expected
+        );
+
+        // bad adv op variant passed to parsing function
+        let op_wrong_variant = Token::new("adv.read", param_idx);
+        let expected = AssemblyError::invalid_op(&op_wrong_variant);
+        assert_eq!(
+            parse_adv(&mut span_ops, &op_wrong_variant).unwrap_err(),
+            expected
+        );
+
+        // wrong prefix in op passed to pasing function
+        let op_wrong_prefix = Token::new("mem.push.2", param_idx);
+        let expected = AssemblyError::unexpected_token(&op_wrong_prefix, "adv.{push.n|loadw}");
+        assert_eq!(
+            parse_adv(&mut span_ops, &op_wrong_prefix).unwrap_err(),
+            expected
+        );
+    }
+
+    #[test]
+    fn adv_invalid_param() {
+        // fails when immediate value to advice push operation is invalid
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let param_idx = 0;
+
+        // invalid value - char
+        let op_invalid_char = Token::new("adv.push.a", param_idx);
+        let expected = AssemblyError::invalid_param(&op_invalid_char, 2);
+        assert_eq!(
+            parse_adv(&mut span_ops, &op_invalid_char).unwrap_err(),
+            expected
+        );
+
+        // invalid value - hexadecimal
+        let op_invalid_hex = Token::new("adv.push.0x10", param_idx);
+        let expected = AssemblyError::invalid_param(&op_invalid_hex, 2);
+        assert_eq!(
+            parse_adv(&mut span_ops, &op_invalid_hex).unwrap_err(),
+            expected
+        );
+
+        // parameter out of bounds
+        let reason = format!(
+            "parameter value must be greater than {} and less than than {}",
+            1, ADVICE_READ_LIMIT
+        );
+        // less than lower bound
+        let op_lower_bound = Token::new("adv.push.0", param_idx);
+        let expected = AssemblyError::invalid_param_with_reason(&op_lower_bound, 2, &reason);
+        assert_eq!(
+            parse_adv(&mut span_ops, &op_lower_bound).unwrap_err(),
+            expected
+        );
+
+        // greater than upper bound
+        let inst_str = format!("adv.push.{}", ADVICE_READ_LIMIT + 1);
+        let op_upper_bound = Token::new(&inst_str, param_idx);
+        let expected = AssemblyError::invalid_param_with_reason(&op_upper_bound, 2, &reason);
+        assert_eq!(
+            parse_adv(&mut span_ops, &op_upper_bound).unwrap_err(),
+            expected
+        );
     }
 
     #[test]
@@ -470,15 +707,37 @@ mod tests {
         let param_idx = 0;
 
         // missing variant
-        let op_no_val = Token::new("mem", param_idx);
-        assert!(parse_mem(&mut span_ops, &op_no_val).is_err());
+        let op_missing = Token::new("mem", param_idx);
+        let expected = AssemblyError::invalid_op(&op_missing);
+        assert_eq!(parse_mem(&mut span_ops, &op_missing).unwrap_err(), expected);
 
         // invalid variant
-        let op_val_invalid = Token::new("mem.abc", param_idx);
-        assert!(parse_push(&mut span_ops, &op_val_invalid).is_err());
+        let op_invalid = Token::new("mem.abc", param_idx);
+        let expected = AssemblyError::invalid_op(&op_invalid);
+        assert_eq!(parse_mem(&mut span_ops, &op_invalid).unwrap_err(), expected);
+
+        // invalid param
+        let op_val_invalid = Token::new("mem.push.a", param_idx);
+        let expected = AssemblyError::invalid_param(&op_val_invalid, 2);
+        assert_eq!(
+            parse_mem(&mut span_ops, &op_val_invalid).unwrap_err(),
+            expected
+        );
 
         // extra value
         let op_extra_val = Token::new("mem.push.0.1", param_idx);
-        assert!(parse_push(&mut span_ops, &op_extra_val).is_err());
+        let expected = AssemblyError::extra_param(&op_extra_val);
+        assert_eq!(
+            parse_mem(&mut span_ops, &op_extra_val).unwrap_err(),
+            expected
+        );
+
+        // wrong operation passed to parsing function
+        let op_mismatch = Token::new("adv.push.0", param_idx);
+        let expected = AssemblyError::unexpected_token(&op_mismatch, "mem.{push|load|pop|store}");
+        assert_eq!(
+            parse_mem(&mut span_ops, &op_mismatch).unwrap_err(),
+            expected
+        );
     }
 }

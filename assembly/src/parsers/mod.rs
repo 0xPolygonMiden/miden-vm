@@ -96,8 +96,7 @@ fn parse_op_token(op: &Token, span_ops: &mut Vec<Operation>) -> Result<(), Assem
         "push" => io_ops::parse_push(span_ops, op),
         "pushw" => io_ops::parse_pushw(span_ops, op),
         "env" => io_ops::parse_env(span_ops, op),
-        "read" => io_ops::parse_read(span_ops, op),
-        "readw" => io_ops::parse_readw(span_ops, op),
+        "adv" => io_ops::parse_adv(span_ops, op),
         "mem" => io_ops::parse_mem(span_ops, op),
 
         // ----- cryptographic operations ---------------------------------------------------------
@@ -151,4 +150,76 @@ fn parse_element_param(op: &Token, param_idx: usize) -> Result<BaseElement, Asse
     }
 
     Ok(BaseElement::new(result))
+}
+
+/// This is a helper function that parses the parameter at the specified op index as an integer and
+/// ensures that it falls within the bounds specified by the caller.
+///
+/// # Errors
+/// Returns an invalid param AssemblyError if:
+/// - the parsing attempt fails.
+/// - the parameter is outside the specified lower and upper bounds.
+fn parse_int_param(
+    op: &Token,
+    param_idx: usize,
+    lower_bound: u32,
+    upper_bound: u32,
+) -> Result<u32, AssemblyError> {
+    let param_value = op.parts()[param_idx];
+
+    // attempt to parse the parameter value as an integer
+    let result = match param_value.parse::<u32>() {
+        Ok(i) => i,
+        Err(_) => return Err(AssemblyError::invalid_param(op, param_idx)),
+    };
+
+    // check that the parameter is within the specified bounds
+    if result < lower_bound || result > upper_bound {
+        return Err(AssemblyError::invalid_param_with_reason(
+            op,
+            param_idx,
+            format!(
+                "parameter value must be greater than {} and less than than {}",
+                lower_bound, upper_bound
+            )
+            .as_str(),
+        ));
+    }
+
+    Ok(result)
+}
+
+/// This is a helper function that validates the length of an assembly instruction and returns
+/// an error if the instruction is too short or too long.
+///
+/// `instr_parts` expects the number of non-parameter parts in the instruction, e.g. 2 for the
+/// "mem.pop" instruction. `min_params` and `max_params` expect the minimum and maximum number of
+/// parameters accepted by the operation respectively.
+///
+/// # Errors
+///
+/// This function will return an AssemblyError if the instruction part of the operation is
+/// too short or if too many or too few parameters are provided.
+fn validate_op_len(
+    op: &Token,
+    instr_parts: usize,
+    min_params: usize,
+    max_params: usize,
+) -> Result<(), AssemblyError> {
+    let num_parts = op.num_parts();
+
+    // token has too few parts to contain the full instruction
+    if num_parts < instr_parts {
+        return Err(AssemblyError::invalid_op(op));
+    }
+    // token has too few parts to contain the required parameters
+    if num_parts < instr_parts + min_params {
+        return Err(AssemblyError::missing_param(op));
+    }
+    // token has more than the maximum number of parts
+    if num_parts > instr_parts + max_params {
+        return Err(AssemblyError::extra_param(op));
+    }
+
+    Ok(())
 }
