@@ -4,7 +4,7 @@ use vm_core::{
         blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split},
         Script,
     },
-    AdviceInjector, BaseElement, FieldElement, Operation, ProgramInputs, StarkField, Word,
+    AdviceInjector, BaseElement as Felt, FieldElement, Operation, ProgramInputs, StarkField, Word,
     STACK_TOP_SIZE,
 };
 
@@ -37,7 +37,7 @@ mod tests;
 // TYPE ALIASES
 // ================================================================================================
 
-type StackTrace = [Vec<BaseElement>; STACK_TOP_SIZE];
+type StackTrace = [Vec<Felt>; STACK_TOP_SIZE];
 
 // EXECUTOR
 // ================================================================================================
@@ -121,9 +121,9 @@ impl Process {
 
         // execute either the true or the false branch of the split block based on the condition
         // retrieved from the top of the stack
-        if condition == BaseElement::ONE {
+        if condition == Felt::ONE {
             self.execute_code_block(block.on_true())?;
-        } else if condition == BaseElement::ZERO {
+        } else if condition == Felt::ZERO {
             self.execute_code_block(block.on_false())?;
         } else {
             return Err(ExecutionError::NotBinaryValue(condition));
@@ -148,7 +148,7 @@ impl Process {
         // before we execute the loop body we drop the condition from the stack; when the loop
         // body is not executed, we keep the condition on the stack so that it can be dropped by
         // the END operation later.
-        if condition == BaseElement::ONE {
+        if condition == Felt::ONE {
             // drop the condition and execute the loop body at least once
             self.execute_op(Operation::Drop)?;
             self.execute_code_block(block.body())?;
@@ -156,13 +156,13 @@ impl Process {
             // keep executing the loop body until the condition on the top of the stack is no
             // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
             // which drops the condition from the stack
-            while self.stack.peek()? == BaseElement::ONE {
+            while self.stack.peek()? == Felt::ONE {
                 self.execute_op(Operation::Drop)?;
                 self.decoder.repeat(block);
 
                 self.execute_code_block(block.body())?;
             }
-        } else if condition == BaseElement::ZERO {
+        } else if condition == Felt::ZERO {
             self.execute_op(Operation::Noop)?
         } else {
             return Err(ExecutionError::NotBinaryValue(condition));
@@ -170,9 +170,9 @@ impl Process {
 
         // execute END operation; this can be done only if the top of the stack is ZERO, in which
         // case the top of the stack is dropped
-        if self.stack.peek()? == BaseElement::ZERO {
+        if self.stack.peek()? == Felt::ZERO {
             self.execute_op(Operation::Drop)?;
-        } else if condition == BaseElement::ONE {
+        } else if condition == Felt::ONE {
             unreachable!("top of the stack should not be ONE");
         } else {
             return Err(ExecutionError::NotBinaryValue(self.stack.peek()?));

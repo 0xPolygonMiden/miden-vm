@@ -1,4 +1,4 @@
-use super::{BaseElement, FieldElement, StarkField, Word};
+use super::{Felt, FieldElement, StarkField, Word};
 use std::collections::BTreeMap;
 
 // RANDOM ACCESS MEMORY
@@ -37,13 +37,13 @@ impl Memory {
     ///
     /// If the specified address hasn't been previously written to, 4 ZERO elements are returned.
     /// This effectively implies that memory is initialized to ZERO.
-    pub fn read(&mut self, addr: BaseElement) -> Word {
+    pub fn read(&mut self, addr: Felt) -> Word {
         let int_addr = addr.as_int();
-        *self.state.entry(int_addr).or_insert([BaseElement::ZERO; 4])
+        *self.state.entry(int_addr).or_insert([Felt::ZERO; 4])
     }
 
     /// Writes the provided words (4 elements) at the specified address.
-    pub fn write(&mut self, addr: BaseElement, value: Word) {
+    pub fn write(&mut self, addr: Felt, value: Word) {
         let int_addr = addr.as_int();
         self.state.insert(int_addr, value);
     }

@@ -1,10 +1,10 @@
-use super::{BaseElement, FieldElement, StarkField, Word};
+use super::{Felt, FieldElement, StarkField, Word};
 use vm_core::hasher::{apply_round, NUM_ROUNDS, STATE_WIDTH};
 
 // TYPE ALIASES
 // ================================================================================================
 
-type HasherState = [BaseElement; STATE_WIDTH];
+type HasherState = [Felt; STATE_WIDTH];
 
 // HASHER
 // ================================================================================================
@@ -19,23 +19,18 @@ impl Hasher {
     }
 
     /// TODO: add docs
-    pub fn permute(&mut self, mut state: HasherState) -> (BaseElement, HasherState) {
+    pub fn permute(&mut self, mut state: HasherState) -> (Felt, HasherState) {
         for i in 0..NUM_ROUNDS {
             // TODO: record state into a trace
             apply_round(&mut state, i);
         }
 
         // TODO: return address of the hash table row
-        (BaseElement::ZERO, state)
+        (Felt::ZERO, state)
     }
 
     /// TODO: add docs
-    pub fn build_merkle_root(
-        &mut self,
-        value: Word,
-        path: &[Word],
-        index: BaseElement,
-    ) -> (BaseElement, Word) {
+    pub fn build_merkle_root(&mut self, value: Word, path: &[Word], index: Felt) -> (Felt, Word) {
         let mut root = value;
         let mut index = index.as_int();
 
@@ -55,7 +50,7 @@ impl Hasher {
         }
 
         // TODO: return address of the hash table row
-        (BaseElement::ZERO, root)
+        (Felt::ZERO, root)
     }
 
     pub fn update_merkle_root(
@@ -63,8 +58,8 @@ impl Hasher {
         old_value: Word,
         new_value: Word,
         path: &[Word],
-        index: BaseElement,
-    ) -> (BaseElement, Word, Word) {
+        index: Felt,
+    ) -> (Felt, Word, Word) {
         let mut old_root = old_value;
         let mut new_root = new_value;
         let mut index = index.as_int();
@@ -93,7 +88,7 @@ impl Hasher {
         }
 
         // TODO: return address of the hash table row
-        (BaseElement::ZERO, old_root, new_root)
+        (Felt::ZERO, old_root, new_root)
     }
 }
 
@@ -110,9 +105,9 @@ fn build_merge_state(a: &Word, b: &Word) -> HasherState {
         b[1],
         b[2],
         b[3],
-        BaseElement::ZERO,
-        BaseElement::ZERO,
-        BaseElement::ZERO,
-        BaseElement::new(8),
+        Felt::ZERO,
+        Felt::ZERO,
+        Felt::ZERO,
+        Felt::new(8),
     ]
 }

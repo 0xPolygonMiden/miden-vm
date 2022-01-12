@@ -1,4 +1,4 @@
-use super::{utils::assert_binary, BaseElement, ExecutionError, Process, StarkField};
+use super::{utils::assert_binary, ExecutionError, Felt, Process, StarkField};
 
 impl Process {
     // CASTING OPERATIONS
@@ -56,7 +56,7 @@ impl Process {
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
         let c = assert_binary(self.stack.get(2))?.as_int();
-        let result = BaseElement::new(a + b + c);
+        let result = Felt::new(a + b + c);
         let (lo, hi) = split_element(result);
 
         self.stack.set(0, hi);
@@ -78,8 +78,8 @@ impl Process {
         let a = self.stack.get(1).as_int();
         let result = a.wrapping_sub(b);
 
-        self.stack.set(0, BaseElement::new(result >> 63));
-        self.stack.set(1, BaseElement::new((result as u32) as u64));
+        self.stack.set(0, Felt::new(result >> 63));
+        self.stack.set(1, Felt::new((result as u32) as u64));
         self.stack.copy_state(2);
         Ok(())
     }
@@ -94,7 +94,7 @@ impl Process {
 
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
-        let result = BaseElement::new(a * b);
+        let result = Felt::new(a * b);
         let (lo, hi) = split_element(result);
 
         self.stack.set(0, hi);
@@ -114,7 +114,7 @@ impl Process {
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
         let c = self.stack.get(2).as_int();
-        let result = BaseElement::new(a * b + c);
+        let result = Felt::new(a * b + c);
         let (lo, hi) = split_element(result);
 
         self.stack.set(0, hi);
@@ -137,8 +137,8 @@ impl Process {
         let q = a / b;
         let r = a - q * b;
 
-        self.stack.set(0, BaseElement::new(r));
-        self.stack.set(1, BaseElement::new(q));
+        self.stack.set(0, Felt::new(r));
+        self.stack.set(1, Felt::new(q));
         self.stack.copy_state(2);
         Ok(())
     }
@@ -156,7 +156,7 @@ impl Process {
 
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
-        let result = BaseElement::new(a & b);
+        let result = Felt::new(a & b);
 
         self.stack.set(0, result);
         self.stack.shift_left(2);
@@ -173,7 +173,7 @@ impl Process {
 
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
-        let result = BaseElement::new(a | b);
+        let result = Felt::new(a | b);
 
         self.stack.set(0, result);
         self.stack.shift_left(2);
@@ -190,7 +190,7 @@ impl Process {
 
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
-        let result = BaseElement::new(a ^ b);
+        let result = Felt::new(a ^ b);
 
         self.stack.set(0, result);
         self.stack.shift_left(2);
@@ -202,11 +202,11 @@ impl Process {
 // ================================================================================================
 
 #[inline(always)]
-fn split_element(value: BaseElement) -> (BaseElement, BaseElement) {
+fn split_element(value: Felt) -> (Felt, Felt) {
     let value = value.as_int();
     let lo = (value as u32) as u64;
     let hi = value >> 32;
-    (BaseElement::new(lo), BaseElement::new(hi))
+    (Felt::new(lo), Felt::new(hi))
 }
 
 // TESTS
@@ -215,7 +215,7 @@ fn split_element(value: BaseElement) -> (BaseElement, BaseElement) {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{init_stack_with, BaseElement, FieldElement, Operation},
+        super::{init_stack_with, Felt, FieldElement, Operation},
         Process,
     };
     use rand_utils::rand_value;
@@ -234,10 +234,10 @@ mod tests {
         let lo = (b as u32) as u64;
 
         process.execute_op(Operation::U32split).unwrap();
-        let mut expected = [BaseElement::ZERO; 16];
-        expected[0] = BaseElement::new(hi);
-        expected[1] = BaseElement::new(lo);
-        expected[2] = BaseElement::new(a);
+        let mut expected = [Felt::ZERO; 16];
+        expected[0] = Felt::new(hi);
+        expected[1] = Felt::new(lo);
+        expected[2] = Felt::new(a);
         assert_eq!(expected, process.stack.trace_state());
     }
 
@@ -406,10 +406,10 @@ mod tests {
         (d, c, b, a)
     }
 
-    fn build_expected(values: &[u32]) -> [BaseElement; 16] {
-        let mut expected = [BaseElement::ZERO; 16];
+    fn build_expected(values: &[u32]) -> [Felt; 16] {
+        let mut expected = [Felt::ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
-            *result = BaseElement::new(value as u64);
+            *result = Felt::new(value as u64);
         }
         expected
     }

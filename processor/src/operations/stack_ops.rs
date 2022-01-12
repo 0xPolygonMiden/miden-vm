@@ -1,25 +1,23 @@
-use super::{
-    super::STACK_TOP_SIZE, BaseElement, ExecutionError, FieldElement, Process, StarkField,
-};
+use super::{super::STACK_TOP_SIZE, ExecutionError, Felt, FieldElement, Process, StarkField};
 
 impl Process {
     // STACK MANIPULATION
     // --------------------------------------------------------------------------------------------
-    /// Pushes a ZERO onto the processor.stack.
+    /// Pushes a ZERO onto the process.stack.
     pub(super) fn op_pad(&mut self) -> Result<(), ExecutionError> {
-        self.stack.set(0, BaseElement::ZERO);
+        self.stack.set(0, Felt::ZERO);
         self.stack.shift_right(0);
         Ok(())
     }
 
-    /// Removes the top element off the processor.stack.
+    /// Removes the top element off the process.stack.
     pub(super) fn op_drop(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(1, "DROP")?;
         self.stack.shift_left(1);
         Ok(())
     }
 
-    /// Pushes the copy the n-th item onto the processor.stack.
+    /// Pushes the copy the n-th item onto the process.stack.
     pub(super) fn op_dup(&mut self, n: usize) -> Result<(), ExecutionError> {
         self.stack.check_depth(n + 1, "DUP")?;
         let value = self.stack.get(n);
@@ -257,130 +255,122 @@ impl Process {
 mod tests {
     use super::{
         super::{FieldElement, Operation, Process},
-        BaseElement,
+        Felt,
     };
 
     #[test]
     fn op_pad() {
-        let mut processor = Process::new_dummy();
+        let mut process = Process::new_dummy();
 
         // push one item onto the stack
-        processor
-            .execute_op(Operation::Push(BaseElement::ONE))
-            .unwrap();
-        let mut expected = [BaseElement::ZERO; 16];
-        expected[0] = BaseElement::ONE;
-        assert_eq!(expected, processor.stack.trace_state());
+        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
+        let mut expected = [Felt::ZERO; 16];
+        expected[0] = Felt::ONE;
+        assert_eq!(expected, process.stack.trace_state());
 
         // pad the stack
-        processor.execute_op(Operation::Pad).unwrap();
-        let mut expected = [BaseElement::ZERO; 16];
-        expected[1] = BaseElement::ONE;
+        process.execute_op(Operation::Pad).unwrap();
+        let mut expected = [Felt::ZERO; 16];
+        expected[1] = Felt::ONE;
 
-        assert_eq!(2, processor.stack.depth());
-        assert_eq!(2, processor.stack.current_step());
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(2, process.stack.depth());
+        assert_eq!(2, process.stack.current_step());
+        assert_eq!(expected, process.stack.trace_state());
 
         // pad the stack again
-        processor.execute_op(Operation::Pad).unwrap();
-        let mut expected = [BaseElement::ZERO; 16];
-        expected[2] = BaseElement::ONE;
+        process.execute_op(Operation::Pad).unwrap();
+        let mut expected = [Felt::ZERO; 16];
+        expected[2] = Felt::ONE;
 
-        assert_eq!(3, processor.stack.depth());
-        assert_eq!(3, processor.stack.current_step());
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(3, process.stack.depth());
+        assert_eq!(3, process.stack.current_step());
+        assert_eq!(expected, process.stack.trace_state());
     }
 
     #[test]
     fn op_drop() {
-        let mut processor = Process::new_dummy();
+        let mut process = Process::new_dummy();
 
         // push one item onto the stack
-        processor
-            .execute_op(Operation::Push(BaseElement::ONE))
-            .unwrap();
-        let mut expected = [BaseElement::ZERO; 16];
-        expected[0] = BaseElement::ONE;
-        assert_eq!(expected, processor.stack.trace_state());
+        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
+        let mut expected = [Felt::ZERO; 16];
+        expected[0] = Felt::ONE;
+        assert_eq!(expected, process.stack.trace_state());
 
         // pad the stack
-        processor.execute_op(Operation::Pad).unwrap();
-        let mut expected = [BaseElement::ZERO; 16];
-        expected[1] = BaseElement::ONE;
+        process.execute_op(Operation::Pad).unwrap();
+        let mut expected = [Felt::ZERO; 16];
+        expected[1] = Felt::ONE;
 
-        assert_eq!(2, processor.stack.depth());
-        assert_eq!(2, processor.stack.current_step());
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(2, process.stack.depth());
+        assert_eq!(2, process.stack.current_step());
+        assert_eq!(expected, process.stack.trace_state());
 
         // pad the stack again
-        processor.execute_op(Operation::Pad).unwrap();
-        let mut expected = [BaseElement::ZERO; 16];
-        expected[2] = BaseElement::ONE;
+        process.execute_op(Operation::Pad).unwrap();
+        let mut expected = [Felt::ZERO; 16];
+        expected[2] = Felt::ONE;
 
-        assert_eq!(3, processor.stack.depth());
-        assert_eq!(3, processor.stack.current_step());
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(3, process.stack.depth());
+        assert_eq!(3, process.stack.current_step());
+        assert_eq!(expected, process.stack.trace_state());
     }
 
     #[test]
     fn op_dup() {
-        let mut processor = Process::new_dummy();
+        let mut process = Process::new_dummy();
 
         // calling DUP on an empty stack should be an error
-        assert!(processor.execute_op(Operation::Dup0).is_err());
+        assert!(process.execute_op(Operation::Dup0).is_err());
 
         // push one item onto the stack
-        processor
-            .execute_op(Operation::Push(BaseElement::ONE))
-            .unwrap();
-        let mut expected = [BaseElement::ZERO; 16];
-        expected[0] = BaseElement::ONE;
-        assert_eq!(expected, processor.stack.trace_state());
+        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
+        let mut expected = [Felt::ZERO; 16];
+        expected[0] = Felt::ONE;
+        assert_eq!(expected, process.stack.trace_state());
 
         // duplicate it
-        processor.execute_op(Operation::Dup0).unwrap();
-        let mut expected = [BaseElement::ZERO; 16];
-        expected[0] = BaseElement::ONE;
-        expected[1] = BaseElement::ONE;
+        process.execute_op(Operation::Dup0).unwrap();
+        let mut expected = [Felt::ZERO; 16];
+        expected[0] = Felt::ONE;
+        expected[1] = Felt::ONE;
 
-        assert_eq!(2, processor.stack.depth());
-        assert_eq!(2, processor.stack.current_step());
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(2, process.stack.depth());
+        assert_eq!(2, process.stack.current_step());
+        assert_eq!(expected, process.stack.trace_state());
 
         // duplicating non-existent item should be an error
-        assert!(processor.execute_op(Operation::Dup2).is_err());
+        assert!(process.execute_op(Operation::Dup2).is_err());
 
         // put 15 more items onto the stack
-        let mut expected = [BaseElement::ONE; 16];
+        let mut expected = [Felt::ONE; 16];
         for i in 2..17 {
-            processor
-                .execute_op(Operation::Push(BaseElement::new(i)))
-                .unwrap();
-            expected[16 - i as usize] = BaseElement::new(i);
+            process.execute_op(Operation::Push(Felt::new(i))).unwrap();
+            expected[16 - i as usize] = Felt::new(i);
         }
-        assert_eq!(expected, processor.stack.trace_state());
+        assert_eq!(expected, process.stack.trace_state());
 
         // duplicate last stack item
-        processor.execute_op(Operation::Dup15).unwrap();
-        assert_eq!(BaseElement::ONE, processor.stack.trace_state()[0]);
-        assert_eq!(&expected[..15], &processor.stack.trace_state()[1..]);
+        process.execute_op(Operation::Dup15).unwrap();
+        assert_eq!(Felt::ONE, process.stack.trace_state()[0]);
+        assert_eq!(&expected[..15], &process.stack.trace_state()[1..]);
 
         // duplicate 8th stack item
-        processor.execute_op(Operation::Dup7).unwrap();
-        assert_eq!(BaseElement::new(10), processor.stack.trace_state()[0]);
-        assert_eq!(BaseElement::new(1), processor.stack.trace_state()[1]);
-        assert_eq!(&expected[..14], &processor.stack.trace_state()[2..]);
+        process.execute_op(Operation::Dup7).unwrap();
+        assert_eq!(Felt::new(10), process.stack.trace_state()[0]);
+        assert_eq!(Felt::new(1), process.stack.trace_state()[1]);
+        assert_eq!(&expected[..14], &process.stack.trace_state()[2..]);
 
         // remove 4 items off the stack
-        processor.execute_op(Operation::Drop).unwrap();
-        processor.execute_op(Operation::Drop).unwrap();
-        processor.execute_op(Operation::Drop).unwrap();
-        processor.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop).unwrap();
+        process.execute_op(Operation::Drop).unwrap();
 
-        assert_eq!(15, processor.stack.depth());
+        assert_eq!(15, process.stack.depth());
 
-        assert_eq!(&expected[2..], &processor.stack.trace_state()[..14]);
-        assert_eq!(BaseElement::ONE, processor.stack.trace_state()[14]);
-        assert_eq!(BaseElement::ZERO, processor.stack.trace_state()[15]);
+        assert_eq!(&expected[2..], &process.stack.trace_state()[..14]);
+        assert_eq!(Felt::ONE, process.stack.trace_state()[14]);
+        assert_eq!(Felt::ZERO, process.stack.trace_state()[15]);
     }
 }

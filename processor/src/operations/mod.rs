@@ -1,6 +1,4 @@
-use super::{
-    AdviceInjector, BaseElement, ExecutionError, FieldElement, Operation, Process, StarkField,
-};
+use super::{AdviceInjector, ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
 
 mod crypto_ops;
 mod decorators;
@@ -178,7 +176,7 @@ impl Process {
 #[cfg(test)]
 fn init_stack_with(process: &mut Process, values: &[u64]) {
     let mut result = Vec::with_capacity(values.len());
-    for value in values.iter().map(|&v| BaseElement::new(v)) {
+    for value in values.iter().map(|&v| Felt::new(v)) {
         process.execute_op(Operation::Push(value)).unwrap();
         result.push(value);
     }
