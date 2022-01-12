@@ -135,7 +135,7 @@ impl AdviceProvider {
     ///   identified by the specified root.
     /// - Path to the leaf at the specified index in the specified Merkle tree is not known to this
     ///   advice provider.
-    pub fn update_advice_set_leaf(
+    pub fn update_merkle_leaf(
         &mut self,
         root: Word,
         index: Felt,

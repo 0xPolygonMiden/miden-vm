@@ -175,7 +175,7 @@ impl Process {
         // and, thus, the assert on depth would not be needed.
         let path = self
             .advice
-            .update_advice_set_leaf(old_root, index, new_node, copy)?;
+            .update_merkle_leaf(old_root, index, new_node, copy)?;
         assert_eq!(path.len(), depth.as_int() as usize);
 
         // use hasher to update the Merkle root
