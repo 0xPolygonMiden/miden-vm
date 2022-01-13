@@ -341,7 +341,7 @@ pub enum Operation {
     /// same.
     ///
     /// If the boolean parameter is set to false, at the end of the operation the advice set with
-    /// the, specified root will be removed from the advice provider. Otherwise, the advice
+    /// the specified root will be removed from the advice provider. Otherwise, the advice
     /// provider will keep track of both, the old and the new advice sets.
     MrUpdate(bool),
 
@@ -475,8 +475,8 @@ impl Operation {
 
     /// Returns true if this operation is a decorator.
     ///
-    /// Decorators do not advance VM clock cycle and do not deterministic VM state (i.e., stack,
-    /// memory), but they can change non-deterministic components (e.g., advice tape).
+    /// Decorators do not advance VM clock cycle and do not affect deterministic VM state (i.e.,
+    /// stack, memory), but they can change non-deterministic components (e.g., advice tape).
     ///
     /// Additionally, decorators do not have assigned op codes.
     pub fn is_decorator(&self) -> bool {
