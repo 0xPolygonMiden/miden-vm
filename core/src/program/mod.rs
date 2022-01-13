@@ -1,7 +1,7 @@
 use super::{
     hasher::{self, Digest},
     utils::IntoBytes,
-    BaseElement, FieldElement, Operation, Word,
+    Felt, FieldElement, Operation, Word,
 };
 use core::fmt;
 use winter_utils::collections::BTreeMap;
@@ -84,9 +84,9 @@ impl Module {
         unimplemented!()
     }
 
-    pub fn load(&self, _index: BaseElement) -> [BaseElement; 4] {
+    pub fn load(&self, _index: Felt) -> [Felt; 4] {
         unimplemented!()
     }
 
-    pub fn store(&self, _index: usize, _value: [BaseElement; 4]) {}
+    pub fn store(&self, _index: usize, _value: [Felt; 4]) {}
 }

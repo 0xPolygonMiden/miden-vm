@@ -1,4 +1,4 @@
-use super::BaseElement;
+use super::Felt;
 use core::fmt;
 
 mod advice;
@@ -283,7 +283,7 @@ pub enum Operation {
 
     // ----- input / output -----------------------------------------------------------------------
     /// Pushes the immediate value onto the stack.
-    Push(BaseElement),
+    Push(Felt),
 
     /// Removes the next element from the advice tape and pushes it onto the stack.
     Read,
@@ -466,7 +466,7 @@ impl Operation {
     }
 
     /// Returns an immediate value carried by this operation.
-    pub fn imm_value(&self) -> Option<BaseElement> {
+    pub fn imm_value(&self) -> Option<Felt> {
         match self {
             Self::Push(imm) => Some(*imm),
             _ => None,

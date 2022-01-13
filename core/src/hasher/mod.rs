@@ -1,4 +1,4 @@
-use super::BaseElement;
+use super::Felt;
 use crypto::{hashers::Rp64_256, ElementHasher, Hasher};
 
 // TYPES ALIASES
@@ -26,12 +26,12 @@ pub fn merge(values: &[Digest; 2]) -> Digest {
 
 /// TODO: add docs
 #[inline(always)]
-pub fn hash_elements(elements: &[BaseElement]) -> Digest {
+pub fn hash_elements(elements: &[Felt]) -> Digest {
     Rp64_256::hash_elements(elements)
 }
 
 /// Rescue-XLIX round function.
 #[inline(always)]
-pub fn apply_round(state: &mut [BaseElement; STATE_WIDTH], round: usize) {
+pub fn apply_round(state: &mut [Felt; STATE_WIDTH], round: usize) {
     Rp64_256::apply_round(state, round)
 }

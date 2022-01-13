@@ -1,6 +1,6 @@
 use super::{
     hasher::{self, Digest},
-    AdviceSetError, BaseElement, FieldElement, Word,
+    AdviceSetError, Felt, FieldElement, Word,
 };
 use core::slice;
 use math::log2;
@@ -34,7 +34,7 @@ impl MerkleTree {
 
         // create un-initialized vector to hold all tree nodes
         let mut nodes = unsafe { uninit_vector(2 * n) };
-        nodes[0] = [BaseElement::ZERO; 4];
+        nodes[0] = [Felt::ZERO; 4];
 
         // copy leaves into the second part of the nodes vector
         nodes[n..].copy_from_slice(&leaves);
@@ -144,9 +144,8 @@ impl MerkleTree {
 
 #[cfg(test)]
 mod tests {
-    use super::Word;
+    use super::{Felt, FieldElement, Word};
     use crypto::{hashers::Rp64_256, ElementHasher, Hasher};
-    use math::{fields::f64::BaseElement, FieldElement};
 
     const LEAVES4: [Word; 4] = [
         int_to_node(1),
@@ -255,11 +254,6 @@ mod tests {
     }
 
     const fn int_to_node(value: u64) -> Word {
-        [
-            BaseElement::new(value),
-            BaseElement::ZERO,
-            BaseElement::ZERO,
-            BaseElement::ZERO,
-        ]
+        [Felt::new(value), Felt::ZERO, Felt::ZERO, Felt::ZERO]
     }
 }

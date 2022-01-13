@@ -1,21 +1,21 @@
-use super::{BaseElement, StarkField};
+use super::{Felt, StarkField};
 
 // TO ELEMENTS
 // ================================================================================================
 
 pub trait ToElements {
-    fn to_elements(&self) -> Vec<BaseElement>;
+    fn to_elements(&self) -> Vec<Felt>;
 }
 
 impl<const N: usize> ToElements for [u64; N] {
-    fn to_elements(&self) -> Vec<BaseElement> {
-        self.iter().map(|&v| BaseElement::new(v)).collect()
+    fn to_elements(&self) -> Vec<Felt> {
+        self.iter().map(|&v| Felt::new(v)).collect()
     }
 }
 
 impl ToElements for Vec<u64> {
-    fn to_elements(&self) -> Vec<BaseElement> {
-        self.iter().map(|&v| BaseElement::new(v)).collect()
+    fn to_elements(&self) -> Vec<Felt> {
+        self.iter().map(|&v| Felt::new(v)).collect()
     }
 }
 
@@ -26,7 +26,7 @@ pub trait IntoBytes<const N: usize> {
     fn into_bytes(self) -> [u8; N];
 }
 
-impl IntoBytes<32> for [BaseElement; 4] {
+impl IntoBytes<32> for [Felt; 4] {
     fn into_bytes(self) -> [u8; 32] {
         let mut result = [0; 32];
 
