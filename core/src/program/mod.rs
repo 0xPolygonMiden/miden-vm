@@ -1,15 +1,13 @@
-use super::{BaseElement, FieldElement, Operation};
+use super::{
+    hasher::{self, Digest},
+    utils::IntoBytes,
+    BaseElement, FieldElement, Operation, Word,
+};
 use core::fmt;
-use crypto::{hashers::Rp64_256 as RescueHasher, Digest as HasherDigest, ElementHasher, Hasher};
-use std::collections::BTreeMap;
+use winter_utils::collections::BTreeMap;
 
 pub mod blocks;
 use blocks::CodeBlock;
-
-// TYPES ALIASES
-// ================================================================================================
-
-type Digest = <RescueHasher as Hasher>::Digest;
 
 // SCRIPT
 // ================================================================================================
@@ -30,10 +28,10 @@ impl Script {
     // --------------------------------------------------------------------------------------------
     /// Constructs a new program from the specified code block.
     pub fn new(root: CodeBlock) -> Self {
-        let hash = RescueHasher::merge(&[root.hash(), Digest::default()]);
+        let hash: Word = hasher::merge(&[root.hash(), Digest::default()]).into();
         Self {
             root,
-            hash: hash.as_bytes(),
+            hash: hash.into_bytes(),
         }
     }
 

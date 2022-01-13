@@ -1,4 +1,4 @@
-use super::{fmt, CodeBlock, Digest, Hasher, RescueHasher};
+use super::{fmt, hasher, CodeBlock, Digest};
 
 // LOOP BLOCK
 // ================================================================================================
@@ -23,7 +23,7 @@ impl Loop {
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Loop] bock instantiated with the specified body.
     pub fn new(body: CodeBlock) -> Self {
-        let hash = RescueHasher::merge(&[body.hash(), Digest::default()]);
+        let hash = hasher::merge(&[body.hash(), Digest::default()]);
         Self {
             body: Box::new(body),
             hash,

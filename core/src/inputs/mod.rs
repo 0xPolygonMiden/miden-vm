@@ -1,7 +1,8 @@
 use super::{
     errors::{AdviceSetError, InputError},
+    hasher,
     utils::IntoBytes,
-    BaseElement, Word, STACK_TOP_SIZE,
+    BaseElement, FieldElement, Word, STACK_TOP_SIZE,
 };
 use core::convert::TryInto;
 use winter_utils::collections::{BTreeMap, Vec};

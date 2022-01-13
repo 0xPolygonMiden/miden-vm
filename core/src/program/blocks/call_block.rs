@@ -1,4 +1,4 @@
-use super::{fmt, Digest, Hasher, RescueHasher};
+use super::{fmt, hasher, Digest};
 
 // CALL BLOCK
 // ================================================================================================
@@ -22,7 +22,7 @@ impl Call {
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Call] block instantiated with the specified function body hash.
     pub fn new(fn_hash: Digest) -> Self {
-        let hash = RescueHasher::merge(&[fn_hash, Digest::default()]);
+        let hash = hasher::merge(&[fn_hash, Digest::default()]);
         Self { hash, fn_hash }
     }
 
