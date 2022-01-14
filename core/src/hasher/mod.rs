@@ -1,36 +1,51 @@
+//! TODO: add docs
+
 use super::Felt;
 use crypto::{hashers::Rp64_256, ElementHasher, Hasher};
 
 // TYPES ALIASES
 // ================================================================================================
 
+/// Output type of Rescue Prime hash function.
+///
+/// The digest consists of 4 field elements or 32 bytes.
 pub type Digest = <Rp64_256 as Hasher>::Digest;
 
 // CONSTANTS
 // ================================================================================================
 
-/// TODO: add docs
+/// Number of field element needed to represent the sponge state for the hash function.
+///
+/// This value is set to 12: 8 elements are reserved for rate and the remaining 4 elements are
+/// reserved for capacity. This configuration enables computation of 2-to-1 hash in a single
+/// permutation.
 pub const STATE_WIDTH: usize = Rp64_256::STATE_WIDTH;
 
-/// TODO: add docs
+/// Number of needed to complete a single permutation.
+///
+/// This value is set to 7 to target 128-bit security level with 40% security margin.
 pub const NUM_ROUNDS: usize = Rp64_256::NUM_ROUNDS;
 
 // PASS-THROUGH FUNCTIONS
 // ================================================================================================
 
-/// TODO: add docs
+/// Returns a hash of two digests. This method is intended for use in construction of Merkle trees.
 #[inline(always)]
 pub fn merge(values: &[Digest; 2]) -> Digest {
     Rp64_256::merge(values)
 }
 
-/// TODO: add docs
+/// Returns a hash of the provided list of field elements.
 #[inline(always)]
 pub fn hash_elements(elements: &[Felt]) -> Digest {
     Rp64_256::hash_elements(elements)
 }
 
-/// Rescue-XLIX round function.
+/// Applies Rescue-XLIX round function to the provided state.
+///
+/// The function takes sponge state as an input and applies a single Rescue-XLIX round to it. The
+/// round number must be specified via `round` parameter, which must be between 0 and 6 (both
+/// inclusive).
 #[inline(always)]
 pub fn apply_round(state: &mut [Felt; STATE_WIDTH], round: usize) {
     Rp64_256::apply_round(state, round)
