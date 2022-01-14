@@ -1,12 +1,13 @@
 use super::{ExecutionError, Felt, FieldElement, Process};
 
-// INPUT OPERATIONS
+// SYSTEM OPERATIONS
 // ================================================================================================
 
 impl Process {
-    /// Pushes the provided value onto the stack.
+    /// Pops a value off the stack and asserts that it is equal to ONE.
     ///
-    /// The original stack is shifted to the right by one item.
+    /// # Errors
+    /// Returns an error if the popped value is not ONE.
     pub(super) fn op_assert(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(1, "ASSERT")?;
         if self.stack.get(0) != Felt::ONE {
