@@ -1,11 +1,13 @@
-use super::{Felt, FieldElement, ProgramInputs, STACK_TOP_SIZE};
+use super::{Felt, FieldElement, ProgramInputs, Script, STACK_TOP_SIZE};
+
+mod flow_control;
+
+// TESTS
+// ================================================================================================
 
 #[test]
 fn simple_program() {
-    let assembler = assembly::Assembler::new();
-    let script = assembler
-        .compile_script("begin push.1 push.2 add end")
-        .unwrap();
+    let script = compile("begin push.1 push.2 add end");
 
     let inputs = ProgramInputs::none();
     let trace = super::execute(&script, &inputs).unwrap();
@@ -17,6 +19,15 @@ fn simple_program() {
 
 // HELPER FUNCTIONS
 // ================================================================================================
+
+fn compile(source: &str) -> Script {
+    let assembler = assembly::Assembler::new();
+    assembler.compile_script(source).unwrap()
+}
+
+fn build_inputs(stack_init: &[u64]) -> ProgramInputs {
+    ProgramInputs::new(stack_init, &[], vec![]).unwrap()
+}
 
 fn build_stack_state(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
     let mut result = [Felt::ZERO; STACK_TOP_SIZE];
