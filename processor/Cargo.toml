@@ -1,6 +1,6 @@
 [package]
 name = "miden-processor"
-version = "0.1.0"
+version = "0.2.0"
 description = "Miden VM processor"
 authors = ["miden contributors"]
 readme = "README.md"
@@ -19,10 +19,10 @@ default = ["std"]
 std = ["vm-core/std", "winterfell/std", "winter-utils/std"]
 
 [dependencies]
-vm-core = { package = "miden-core", path = "../core", version = "0.1", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.2", default-features = false }
 winterfell = { package = "winter-prover", version = "0.3", default-features = false }
 winter-utils = { package = "winter-utils", version = "0.3", default-features = false  }
 
 [dev-dependencies]
 rand-utils = { package = "winter-rand-utils", version = "0.3" }
-assembly = { package = "miden-assembly", path = "../assembly", version = "0.1", default-features = false }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.2", default-features = false }
