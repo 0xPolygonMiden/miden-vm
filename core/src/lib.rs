@@ -1,7 +1,7 @@
 pub mod hasher;
 pub mod program;
 pub mod utils;
-pub use math::{fields::f64::BaseElement, FieldElement, StarkField};
+pub use math::{fields::f64::BaseElement as Felt, FieldElement, StarkField};
 
 mod operations;
 pub use operations::{AdviceInjector, Operation};
@@ -14,7 +14,7 @@ pub mod errors;
 // TYPE ALIASES
 // ================================================================================================
 
-pub type Word = [BaseElement; 4];
+pub type Word = [Felt; 4];
 
 // CONSTANTS
 // ================================================================================================

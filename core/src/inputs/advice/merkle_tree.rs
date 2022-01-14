@@ -1,13 +1,10 @@
-use super::{AdviceSetError, Word};
-use core::{convert::TryInto, slice};
-use crypto::{hashers::Rp64_256, Hasher};
+use super::{
+    hasher::{self, Digest},
+    AdviceSetError, Felt, FieldElement, Word,
+};
+use core::slice;
 use math::log2;
 use winter_utils::uninit_vector;
-
-// TYPE ALIASES
-// ================================================================================================
-
-type Digest = <Rp64_256 as Hasher>::Digest;
 
 // MERKLE TREE
 // ================================================================================================
@@ -37,7 +34,7 @@ impl MerkleTree {
 
         // create un-initialized vector to hold all tree nodes
         let mut nodes = unsafe { uninit_vector(2 * n) };
-        nodes[0] = digest_into_node(Digest::default());
+        nodes[0] = [Felt::ZERO; 4];
 
         // copy leaves into the second part of the nodes vector
         nodes[n..].copy_from_slice(&leaves);
@@ -47,7 +44,7 @@ impl MerkleTree {
 
         // calculate all internal tree nodes
         for i in (1..n).rev() {
-            nodes[i] = digest_into_node(Rp64_256::merge(&two_nodes[i]));
+            nodes[i] = hasher::merge(&two_nodes[i]).into();
         }
 
         Ok(Self { nodes })
@@ -135,19 +132,11 @@ impl MerkleTree {
 
         for _ in 0..depth {
             index /= 2;
-            self.nodes[index] = digest_into_node(Rp64_256::merge(&two_nodes[index]));
+            self.nodes[index] = hasher::merge(&two_nodes[index]).into();
         }
 
         Ok(())
     }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-// TODO: should be part of ElementDigest
-fn digest_into_node(digest: Digest) -> Word {
-    digest.as_elements().try_into().unwrap()
 }
 
 // TESTS
@@ -155,9 +144,8 @@ fn digest_into_node(digest: Digest) -> Word {
 
 #[cfg(test)]
 mod tests {
-    use super::{digest_into_node, Word};
+    use super::{Felt, FieldElement, Word};
     use crypto::{hashers::Rp64_256, ElementHasher, Hasher};
-    use math::{fields::f64::BaseElement, FieldElement};
 
     const LEAVES4: [Word; 4] = [
         int_to_node(1),
@@ -262,19 +250,10 @@ mod tests {
         let node3 = Rp64_256::hash_elements(&[LEAVES4[2], LEAVES4[3]].concat());
         let root = Rp64_256::merge(&[node2, node3]);
 
-        (
-            digest_into_node(root),
-            digest_into_node(node2),
-            digest_into_node(node3),
-        )
+        (root.into(), node2.into(), node3.into())
     }
 
     const fn int_to_node(value: u64) -> Word {
-        [
-            BaseElement::new(value),
-            BaseElement::ZERO,
-            BaseElement::ZERO,
-            BaseElement::ZERO,
-        ]
+        [Felt::new(value), Felt::ZERO, Felt::ZERO, Felt::ZERO]
     }
 }

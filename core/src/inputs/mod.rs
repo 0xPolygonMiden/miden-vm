@@ -1,7 +1,8 @@
 use super::{
     errors::{AdviceSetError, InputError},
+    hasher,
     utils::IntoBytes,
-    BaseElement, Word, STACK_TOP_SIZE,
+    Felt, FieldElement, Word, STACK_TOP_SIZE,
 };
 use core::convert::TryInto;
 use winter_utils::collections::{BTreeMap, Vec};
@@ -28,8 +29,8 @@ pub use advice::AdviceSet;
 /// TODO: add more detailed explanation.
 #[derive(Clone, Debug)]
 pub struct ProgramInputs {
-    stack_init: Vec<BaseElement>,
-    advice_tape: Vec<BaseElement>,
+    stack_init: Vec<Felt>,
+    advice_tape: Vec<Felt>,
     advice_sets: BTreeMap<[u8; 32], AdviceSet>,
 }
 
@@ -102,12 +103,12 @@ impl ProgramInputs {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a reference to the initial stack values.
-    pub fn stack_init(&self) -> &[BaseElement] {
+    pub fn stack_init(&self) -> &[Felt] {
         &self.stack_init
     }
 
     /// Returns a reference to the advice tape.
-    pub fn advice_tape(&self) -> &[BaseElement] {
+    pub fn advice_tape(&self) -> &[Felt] {
         &self.advice_tape
     }
 
@@ -115,13 +116,7 @@ impl ProgramInputs {
     // --------------------------------------------------------------------------------------------
 
     /// Decomposes these [ProgramInputs] into their raw components.
-    pub fn into_parts(
-        self,
-    ) -> (
-        Vec<BaseElement>,
-        Vec<BaseElement>,
-        BTreeMap<[u8; 32], AdviceSet>,
-    ) {
+    pub fn into_parts(self) -> (Vec<Felt>, Vec<Felt>, BTreeMap<[u8; 32], AdviceSet>) {
         let Self {
             stack_init,
             advice_tape,

@@ -1,6 +1,8 @@
 use super::{AssemblyError, Token, TokenStream};
 pub use blocks::parse_code_blocks;
-use vm_core::{program::blocks::CodeBlock, BaseElement, FieldElement, Operation, StarkField};
+use vm_core::{
+    program::blocks::CodeBlock, Felt as BaseElement, FieldElement, Operation, StarkField,
+};
 
 mod blocks;
 mod crypto_ops;

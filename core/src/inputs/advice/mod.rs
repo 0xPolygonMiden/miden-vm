@@ -1,4 +1,4 @@
-use super::{AdviceSetError, Word};
+use super::{hasher, AdviceSetError, Felt, FieldElement, Word};
 
 mod merkle_tree;
 use merkle_tree::MerkleTree;
