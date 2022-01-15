@@ -89,3 +89,69 @@ fn counter_controlled_loop() {
     let expected_state = build_stack_state(&[1024]);
     assert_eq!(expected_state, last_state);
 }
+
+// NESTED CONTROL FLOW
+// ================================================================================================
+
+#[test]
+fn if_in_loop() {
+    let script = compile(
+        "
+            begin
+                dup push.0 movdn.2 neq.0
+                while.true
+                    dup movup.2 dup.1 eq.5
+                    if.true 
+                        mul
+                    else
+                        add
+                    end
+                    swap push.1 sub dup neq.0
+                end
+                drop
+            end",
+    );
+
+    let inputs = build_inputs(&[10]);
+    let trace = execute(&script, &inputs).unwrap();
+    let last_state = trace.last_stack_state();
+    let expected_state = build_stack_state(&[210]);
+    assert_eq!(expected_state, last_state);
+}
+
+#[test]
+fn if_in_loop_in_if() {
+    let script = compile(
+        "
+            begin
+                dup eq.10
+                if.true
+                    dup push.0 movdn.2 neq.0
+                    while.true
+                        dup movup.2 dup.1 eq.5
+                        if.true 
+                            mul
+                        else
+                            add
+                        end
+                        swap push.1 sub dup neq.0
+                    end
+                    drop
+                else
+                    dup mul
+                end
+            end",
+    );
+
+    let inputs = build_inputs(&[10]);
+    let trace = execute(&script, &inputs).unwrap();
+    let last_state = trace.last_stack_state();
+    let expected_state = build_stack_state(&[210]);
+    assert_eq!(expected_state, last_state);
+
+    let inputs = build_inputs(&[11]);
+    let trace = execute(&script, &inputs).unwrap();
+    let last_state = trace.last_stack_state();
+    let expected_state = build_stack_state(&[121]);
+    assert_eq!(expected_state, last_state);
+}
