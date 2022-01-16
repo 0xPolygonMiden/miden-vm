@@ -26,6 +26,7 @@ use advice::AdviceProvider;
 
 mod trace;
 pub use trace::ExecutionTrace;
+use trace::TraceFragment;
 
 mod errors;
 pub use errors::ExecutionError;
