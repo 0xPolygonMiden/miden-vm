@@ -167,4 +167,32 @@ mod tests {
             expected
         );
     }
+
+    #[test]
+    fn mtree_invalid() {
+        // parse_mtree should return an error if called with an invalid or incorrect operation
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_pos = 0;
+
+        let op_too_short = Token::new("mtree", op_pos);
+        let expected = AssemblyError::invalid_op(&op_too_short);
+        assert_eq!(
+            parse_mtree(&mut span_ops, &op_too_short).unwrap_err(),
+            expected
+        );
+
+        let op_too_long = Token::new("mtree.get.12", op_pos);
+        let expected = AssemblyError::extra_param(&op_too_long);
+        assert_eq!(
+            parse_mtree(&mut span_ops, &op_too_long).unwrap_err(),
+            expected
+        );
+
+        let op_mismatch = Token::new("rpperm.get", op_pos);
+        let expected = AssemblyError::unexpected_token(&op_mismatch, "mtree.{get|set|cwm}");
+        assert_eq!(
+            parse_mtree(&mut span_ops, &op_mismatch).unwrap_err(),
+            expected
+        );
+    }
 }
