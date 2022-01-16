@@ -87,6 +87,45 @@ impl Trace for ExecutionTrace {
     }
 }
 
+// TRACE FRAGMENT
+// ================================================================================================
+
+/// TODO: add docs
+pub struct TraceFragment<'a> {
+    data: Vec<&'a mut [Felt]>,
+}
+
+impl<'a> TraceFragment<'a> {
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns the number of rows in this execution trace fragment.
+    pub fn len(&self) -> usize {
+        self.data[0].len()
+    }
+
+    // DATA MUTATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Updates a single cell in this fragment with provided value.
+    #[inline(always)]
+    pub fn set(&mut self, row_idx: usize, col_idx: usize, value: Felt) {
+        self.data[col_idx][row_idx] = value;
+    }
+
+    // TEST METHODS
+    // --------------------------------------------------------------------------------------------
+
+    #[cfg(test)]
+    pub fn trace_to_fragment(trace: &'a mut [Vec<Felt>]) -> Self {
+        let mut data = Vec::new();
+        for column in trace.iter_mut() {
+            data.push(column.as_mut_slice());
+        }
+        Self { data }
+    }
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
