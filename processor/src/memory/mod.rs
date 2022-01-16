@@ -4,10 +4,56 @@ use winter_utils::collections::BTreeMap;
 #[cfg(test)]
 mod tests;
 
+// CONSTANTS
+// ================================================================================================
+
+/// Initial value of every memory cell.
+const INIT_MEM_VALUE: Word = [Felt::ZERO; 4];
+
 // RANDOM ACCESS MEMORY
 // ================================================================================================
 
-/// TODO: add comments
+/// Memory controller for the VM.
+///
+/// This component is responsible for tracking current memory state of the VM, as well as for
+/// building an execution trace of all memory accesses.
+///
+/// The memory is word-addressable. That is, four field elements are located at each memory
+/// address, and we can read and write elements to/from memory in batches of four.
+///
+/// Memory for a a given address is always initialized to zeros. That is, reading from an address
+/// before writing to it will return four ZERO elements.
+///
+/// ## Execution trace
+/// The layout of the memory access trace is shown below.
+///
+///   ctx   addr   clk   u0   u1   u2   u3   v0   v1   v2   v3   d0   d1   d_inv
+/// ├─────┴──────┴─────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴───────┤
+///
+/// In the above:
+/// - `ctx` contains context ID. Currently, context ID is always set to ZERO.
+/// - `addr` contains memory address. Values in this column must increase monotonically for a
+///   given context but there can be gaps between two consecutive values of up to 2^32. Also,
+///   two consecutive values can be the same.
+/// - `clk` contains clock cycle at which a memory operation happened. Values in this column must
+///   increase monotonically for a given context and memory address but there can be gaps between
+///   two consecutive values of up to 2^32.
+/// - Columns `u0`, `u1`, `u2`, `u3` contain field elements stored at a given context/address/clock
+///   cycle prior to a memory operation.
+/// - Columns `v0`, `v1`, `v2`, `v3` contain field elements stored at a given context/address/clock
+///   cycle after the memory operation. Notice that for a READ operation `u0` = `v0`, `u1` = `v1`
+///   etc.
+/// - Columns `d0` and `d1` contain lower and upper 16 bits of the delta between two consecutive
+///   context IDs, addresses, or clock cycles. Specifically:
+///   - When the context changes, these columns contain (`new_ctx` - `old_ctx`).
+///   - When the context remains the same but the address changes, these columns contain
+///     (`new_addr` - `old-addr`).
+///   - When both the context and the address remain the same, these columns contain
+///     (`new_clk` - `old_clk` - 1).
+/// - `d_inv` contains the inverse of the delta between two consecutive context IDs, addresses, or
+///   clock cycles computed as described above.
+///
+/// For the first row of the trace, values in `d0`, `d1`, and `d_inv` are set to zeros.
 pub struct Memory {
     /// Current clock cycle of the VM.
     step: u64,
@@ -46,7 +92,7 @@ impl Memory {
         self.num_trace_rows
     }
 
-    // TRACE ACCESSORS AND MUTATORS
+    // STATE ACCESSORS AND MUTATORS
     // --------------------------------------------------------------------------------------------
 
     /// Returns a word (4 elements) located in memory at the specified address.
@@ -66,7 +112,7 @@ impl Memory {
                 let last_value = addr_trace.last().expect("empty address trace").1;
                 addr_trace.push((clk, last_value));
             })
-            .or_insert_with(|| vec![(clk, [Felt::ZERO; 4])])
+            .or_insert_with(|| vec![(clk, INIT_MEM_VALUE)])
             .last()
             .expect("empty address trace")
             .1
@@ -93,13 +139,13 @@ impl Memory {
         self.step += 1;
     }
 
-    // TRACE COMPLETION
+    // EXECUTION TRACE GENERATION
     // --------------------------------------------------------------------------------------------
 
     /// Fills the provide trace fragment with trace data from this memory instance.
     #[allow(dead_code)]
     pub fn fill_trace(self, trace: &mut TraceFragment) {
-        debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace_length");
+        debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
 
         // set the pervious address and clock cycle to the first address and clock cycle of the
         // trace; we also adjust the clock cycle so that delta value for the first row would end
@@ -116,7 +162,7 @@ impl Memory {
             // when we start a new address, we set the previous value to all zeros. the effect of
             // this is that memory is always initialized to zero.
             let addr = Felt::new(addr);
-            let mut prev_value = [Felt::ZERO; 4];
+            let mut prev_value = INIT_MEM_VALUE;
             for (clk, value) in addr_trace {
                 trace.set(i, 0, Felt::ZERO); // ctx
                 trace.set(i, 1, addr);
