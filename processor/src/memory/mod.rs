@@ -143,11 +143,11 @@ impl Memory {
                 trace.set(i, 13, delta.inv());
 
                 // update values for the next iteration of the loop
-                i += 1;
+                prev_addr = addr;
                 prev_clk = clk;
                 prev_value = value;
+                i += 1;
             }
-            prev_addr = addr;
         }
     }
 
