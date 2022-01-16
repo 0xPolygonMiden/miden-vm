@@ -1,5 +1,7 @@
 use super::{Felt, FieldElement, ProgramInputs, Script, STACK_TOP_SIZE};
+use crate::Word;
 
+mod crypto_ops;
 mod flow_control;
 
 // TESTS
