@@ -30,7 +30,7 @@ const INIT_MEM_VALUE: Word = [Felt::ZERO; 4];
 ///   ctx   addr   clk   u0   u1   u2   u3   v0   v1   v2   v3   d0   d1   d_inv
 /// ├─────┴──────┴─────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴───────┤
 ///
-/// In the above:
+/// In the above, the meaning of the columns is as follows:
 /// - `ctx` contains context ID. Currently, context ID is always set to ZERO.
 /// - `addr` contains memory address. Values in this column must increase monotonically for a
 ///   given context but there can be gaps between two consecutive values of up to 2^32. Also,
@@ -87,7 +87,8 @@ impl Memory {
         self.trace.len()
     }
 
-    /// Returns length of execution trace required to describe this memory.
+    /// Returns length of execution trace required to describe all memory access operations
+    /// executed on the VM.
     pub fn trace_len(&self) -> usize {
         self.num_trace_rows
     }
