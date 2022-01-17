@@ -18,6 +18,9 @@ use stack::Stack;
 mod hasher;
 use hasher::Hasher;
 
+mod bitwise;
+use bitwise::Bitwise;
+
 mod memory;
 use memory::Memory;
 
@@ -58,6 +61,7 @@ struct Process {
     decoder: Decoder,
     stack: Stack,
     hasher: Hasher,
+    bitwise: Bitwise,
     memory: Memory,
     advice: AdviceProvider,
 }
@@ -69,6 +73,7 @@ impl Process {
             decoder: Decoder::new(),
             stack: Stack::new(&inputs, 4),
             hasher: Hasher::new(),
+            bitwise: Bitwise::new(),
             memory: Memory::new(),
             advice: AdviceProvider::new(inputs),
         }

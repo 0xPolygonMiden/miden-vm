@@ -154,9 +154,9 @@ impl Process {
     pub(super) fn op_u32and(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(2, "U32AND")?;
 
-        let b = self.stack.get(0).as_int();
-        let a = self.stack.get(1).as_int();
-        let result = Felt::new(a & b);
+        let b = self.stack.get(0);
+        let a = self.stack.get(1);
+        let (_addr, result) = self.bitwise.u32and(a, b)?;
 
         self.stack.set(0, result);
         self.stack.shift_left(2);
@@ -171,9 +171,9 @@ impl Process {
     pub(super) fn op_u32or(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(2, "U32OR")?;
 
-        let b = self.stack.get(0).as_int();
-        let a = self.stack.get(1).as_int();
-        let result = Felt::new(a | b);
+        let b = self.stack.get(0);
+        let a = self.stack.get(1);
+        let (_addr, result) = self.bitwise.u32or(a, b)?;
 
         self.stack.set(0, result);
         self.stack.shift_left(2);
@@ -188,9 +188,9 @@ impl Process {
     pub(super) fn op_u32xor(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(2, "U32XOR")?;
 
-        let b = self.stack.get(0).as_int();
-        let a = self.stack.get(1).as_int();
-        let result = Felt::new(a ^ b);
+        let b = self.stack.get(0);
+        let a = self.stack.get(1);
+        let (_addr, result) = self.bitwise.u32xor(a, b)?;
 
         self.stack.set(0, result);
         self.stack.shift_left(2);
