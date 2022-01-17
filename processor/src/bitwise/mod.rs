@@ -1,5 +1,8 @@
 use super::{ExecutionError, Felt, StarkField, TraceFragment};
 
+#[cfg(test)]
+mod tests;
+
 // CONSTANTS
 // ================================================================================================
 
