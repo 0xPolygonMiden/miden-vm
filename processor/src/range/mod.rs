@@ -32,20 +32,8 @@ impl RangeChecker {
     /// TODO: add docs
     pub fn trace_len(&self) -> usize {
         let (lookups_8bit, num_16bit_rows) = self.build_8bit_lookup();
-
-        let mut result = num_16bit_rows;
-
-        for (_, &num_lookups) in lookups_8bit.iter() {
-            if num_lookups == 0 {
-                result += 1;
-            } else {
-                let (num_rows4, num_lookups) = div_rem(num_lookups, 4);
-                let (num_rows2, num_rows1) = div_rem(num_lookups, 2);
-                result += num_rows4 + num_rows2 + num_rows1;
-            }
-        }
-
-        result
+        let num_8bit_rows = get_num_8bit_rows(&lookups_8bit);
+        num_8bit_rows + num_16bit_rows
     }
 
     // TRACE MUTATORS
@@ -65,7 +53,7 @@ impl RangeChecker {
     // --------------------------------------------------------------------------------------------
 
     /// TODO: add docs
-    pub fn build_trace(self, target_length: usize) -> Vec<Vec<Felt>> {
+    pub fn into_trace(self, target_length: usize) -> Vec<Vec<Felt>> {
         let mut trace = unsafe {
             vec![
                 uninit_vector(target_length),
@@ -75,12 +63,20 @@ impl RangeChecker {
             ]
         };
 
-        let (lookups_8bit, _) = self.build_8bit_lookup();
+        // determine the number of padding rows needed to get to target trace length
+        let (lookups_8bit, num_16_bit_rows) = self.build_8bit_lookup();
+        let num_8bit_rows = get_num_8bit_rows(&lookups_8bit);
+        let trace_length = num_8bit_rows + num_16_bit_rows;
 
-        let mut i = 0;
+        // pad the table with the required number of rows
+        let num_padding_rows = target_length - trace_length;
+        trace[1][..num_padding_rows].fill(Felt::ZERO);
+        trace[2][..num_padding_rows].fill(Felt::ZERO);
+        trace[3][..num_padding_rows].fill(Felt::ZERO);
 
         // build the 8-bit segment of the trace table
-        for (value, num_lookups) in lookups_8bit {
+        let mut i = num_padding_rows;
+        for (value, num_lookups) in lookups_8bit.into_iter().enumerate() {
             write_value(&mut trace, &mut i, num_lookups, value as u64);
         }
 
@@ -92,6 +88,7 @@ impl RangeChecker {
         // build the 16-bit segment of the trace table
         let mut prev_value = 0u16;
         for (&value, &num_lookups) in self.lookups.iter() {
+            // when the delta between two values is greater than 255, insert "bridge" rows
             for value in (prev_value..value).step_by(255).skip(1) {
                 write_value(&mut trace, &mut i, 0, value as u64);
             }
@@ -99,48 +96,35 @@ impl RangeChecker {
             prev_value = value;
         }
 
-        trace[1][i..].fill(Felt::ZERO);
-        trace[2][i..].fill(Felt::ZERO);
-        trace[3][i..].fill(Felt::ZERO);
-
         trace
     }
 
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
-    fn build_8bit_lookup(&self) -> (BTreeMap<u8, usize>, usize) {
-        let mut result = BTreeMap::new();
-        for i in 0u16..256 {
-            result.insert(i as u8, 0usize);
-        }
-
-        let prev_value = 0u16;
-
+    fn build_8bit_lookup(&self) -> ([usize; 256], usize) {
+        let mut result = [0; 256];
         let mut num_16bit_rows = 0;
 
+        let mut prev_value = 0u16;
         for (&value, &num_lookups) in self.lookups.iter() {
-            if num_lookups == 0 {
-                num_16bit_rows += 1;
-            } else {
-                let (num_rows4, num_lookups) = div_rem(num_lookups, 4);
-                let (num_rows2, num_rows1) = div_rem(num_lookups, 2);
-                let num_rows = num_rows4 + num_rows2 + num_rows1;
-
-                result.entry(0).and_modify(|count| *count += num_rows - 1);
-                num_16bit_rows += num_rows;
-            }
+            let num_rows = lookups_to_rows(num_lookups);
+            result[0] += num_rows - 1;
+            num_16bit_rows += num_rows;
 
             let delta = value - prev_value;
             let (delta_q, delta_r) = div_rem(delta as usize, 255);
-            num_16bit_rows += delta_q;
 
             if delta_q != 0 {
-                result.entry(255).and_modify(|count| *count += delta_q);
+                result[255] += delta_q;
+                let num_bridge_rows = if delta_r == 0 { delta_q - 1 } else { delta_q };
+                num_16bit_rows += num_bridge_rows;
             }
             if delta_r != 0 {
-                result.entry(delta_r as u8).and_modify(|count| *count += 1);
+                result[delta_r] += 1;
             }
+
+            prev_value = value;
         }
 
         (result, num_16bit_rows)
@@ -150,10 +134,28 @@ impl RangeChecker {
 // HELPER FUNCTIONS
 // ================================================================================================
 
+fn get_num_8bit_rows(lookups: &[usize]) -> usize {
+    let mut result = 0;
+    for &num_lookups in lookups.iter() {
+        result += lookups_to_rows(num_lookups);
+    }
+    result
+}
+
 fn div_rem(value: usize, divisor: usize) -> (usize, usize) {
     let q = value / divisor;
     let r = value % divisor;
     (q, r)
+}
+
+fn lookups_to_rows(num_lookups: usize) -> usize {
+    if num_lookups == 0 {
+        1
+    } else {
+        let (num_rows4, num_lookups) = div_rem(num_lookups, 4);
+        let (num_rows2, num_rows1) = div_rem(num_lookups, 2);
+        num_rows4 + num_rows2 + num_rows1
+    }
 }
 
 fn write_value(trace: &mut [Vec<Felt>], step: &mut usize, num_lookups: usize, value: u64) {
