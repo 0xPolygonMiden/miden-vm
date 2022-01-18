@@ -242,3 +242,104 @@ pub fn parse_gt(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), Assem
 pub fn parse_gte(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
     unimplemented!()
 }
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn eqw() {
+        // parse_eqw should return an error if called with an invalid or incorrect operation
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_pos = 0;
+
+        let op_too_long = Token::new("eqw.12", op_pos);
+        let expected = AssemblyError::extra_param(&op_too_long);
+        assert_eq!(
+            parse_eqw(&mut span_ops, &op_too_long).unwrap_err(),
+            expected
+        );
+
+        let op_mismatch = Token::new("eq", op_pos);
+        let expected = AssemblyError::unexpected_token(&op_mismatch, "eqw");
+        assert_eq!(
+            parse_eqw(&mut span_ops, &op_mismatch).unwrap_err(),
+            expected
+        );
+    }
+
+    #[test]
+    fn lt() {
+        // parse_lt should return an error if called with an invalid or incorrect operation
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_pos = 0;
+
+        let op_too_long = Token::new("lt.1", op_pos);
+        let expected = AssemblyError::extra_param(&op_too_long);
+        assert_eq!(parse_lt(&mut span_ops, &op_too_long).unwrap_err(), expected);
+
+        let op_mismatch = Token::new("eq", op_pos);
+        let expected = AssemblyError::unexpected_token(&op_mismatch, "lt");
+        assert_eq!(parse_lt(&mut span_ops, &op_mismatch).unwrap_err(), expected);
+    }
+
+    #[test]
+    fn lte() {
+        // parse_lte should return an error if called with an invalid or incorrect operation
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_pos = 0;
+
+        let op_too_long = Token::new("lte.5", op_pos);
+        let expected = AssemblyError::extra_param(&op_too_long);
+        assert_eq!(
+            parse_lte(&mut span_ops, &op_too_long).unwrap_err(),
+            expected
+        );
+
+        let op_mismatch = Token::new("lt", op_pos);
+        let expected = AssemblyError::unexpected_token(&op_mismatch, "lte");
+        assert_eq!(
+            parse_lte(&mut span_ops, &op_mismatch).unwrap_err(),
+            expected
+        );
+    }
+
+    #[test]
+    fn gt() {
+        // parse_gt should return an error if called with an invalid or incorrect operation
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_pos = 0;
+
+        let op_too_long = Token::new("gt.0x10", op_pos);
+        let expected = AssemblyError::extra_param(&op_too_long);
+        assert_eq!(parse_gt(&mut span_ops, &op_too_long).unwrap_err(), expected);
+
+        let op_mismatch = Token::new("lt", op_pos);
+        let expected = AssemblyError::unexpected_token(&op_mismatch, "gt");
+        assert_eq!(parse_gt(&mut span_ops, &op_mismatch).unwrap_err(), expected);
+    }
+
+    #[test]
+    fn gte() {
+        // parse_gte should return an error if called with an invalid or incorrect operation
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_pos = 0;
+
+        let op_too_long = Token::new("gte.25", op_pos);
+        let expected = AssemblyError::extra_param(&op_too_long);
+        assert_eq!(
+            parse_gte(&mut span_ops, &op_too_long).unwrap_err(),
+            expected
+        );
+
+        let op_mismatch = Token::new("lt", op_pos);
+        let expected = AssemblyError::unexpected_token(&op_mismatch, "gte");
+        assert_eq!(
+            parse_gte(&mut span_ops, &op_mismatch).unwrap_err(),
+            expected
+        );
+    }
+}
