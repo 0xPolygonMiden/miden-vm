@@ -214,13 +214,12 @@ mod tests {
     };
     use crate::Word;
     use rand_utils::rand_vector;
-    use vm_core::{AdviceSet, ProgramInputs};
-    use winterfell::crypto::{hashers::Rp64_256, ElementHasher};
+    use vm_core::{hasher::hash_elements, AdviceSet, ProgramInputs};
 
     #[test]
     fn op_rpperm() {
         // --- test hashing [ONE, ONE] ----------------------------------------
-        let expected = Rp64_256::hash_elements(&[Felt::ONE, Felt::ONE]);
+        let expected = hash_elements(&[Felt::ONE, Felt::ONE]);
 
         let mut process = Process::new_dummy();
         init_stack_with(&mut process, &[2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1]);
@@ -229,8 +228,7 @@ mod tests {
 
         // --- test hashing 8 random values -----------------------------------
         let mut values = rand_vector::<u64>(8);
-        let expected =
-            Rp64_256::hash_elements(&values.iter().map(|&v| Felt::new(v)).collect::<Vec<_>>());
+        let expected = hash_elements(&values.iter().map(|&v| Felt::new(v)).collect::<Vec<_>>());
 
         let mut process = Process::new_dummy();
         values.extend_from_slice(&[0, 0, 0, 8]);
