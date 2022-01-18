@@ -1,4 +1,4 @@
-use super::{AssemblyError, Operation, Token};
+use super::{parse_int_param, AssemblyError, BaseElement, Operation, Token};
 
 // CONVERSIONS AND TESTS
 // ================================================================================================
@@ -8,7 +8,10 @@ pub fn parse_u32test(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
+            span_ops.push(Operation::Dup0);
             span_ops.push(Operation::U32split);
+            span_ops.push(Operation::Swap);
+            span_ops.push(Operation::Drop);
             span_ops.push(Operation::Eqz);
         }
         _ => return Err(AssemblyError::extra_param(op)),
@@ -186,19 +189,74 @@ pub fn parse_u32xor(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
     Ok(())
 }
 
-/// TODO: implement
-pub fn parse_u32not(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates u32not assembly instruction to VM operation PUSH(2^32) SWAP INCR U32SUB.
+/// The reason this works is because 2^32 provides a bit mask of ones, which after
+/// subtracting the element, flips the bits of the original value to perform a bitwise NOT.
+pub fn parse_u32not(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => {
+            // Assert the value is u32
+            span_ops.push(Operation::U32split);
+            span_ops.push(Operation::Not);
+            span_ops.push(Operation::Assert);
+
+            span_ops.push(Operation::Push(BaseElement::new(2u64.pow(32))));
+            span_ops.push(Operation::Swap);
+            span_ops.push(Operation::Incr);
+            span_ops.push(Operation::U32sub);
+
+            // Drop the underflow flag
+            span_ops.push(Operation::Drop);
+        }
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
 }
 
-/// TODO: implement
-pub fn parse_u32shl(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates u32shl.x assembly instruction to VM operation PUSH(2^x) MUL U32SPLIT DROP.
+pub fn parse_u32shl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0..=1 => return Err(AssemblyError::missing_param(op)),
+        2 => {
+            // Assert the value is u32
+            span_ops.push(Operation::U32split);
+            span_ops.push(Operation::Not);
+            span_ops.push(Operation::Assert);
+
+            let x = parse_int_param(op, 1, 1, 31)?;
+            span_ops.push(Operation::Push(BaseElement::new(2u64.pow(x))));
+            span_ops.push(Operation::Mul);
+            span_ops.push(Operation::U32split);
+            span_ops.push(Operation::Drop);
+        }
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
 }
 
-/// TODO: implement
-pub fn parse_u32shr(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates u32shl.x assembly instruction to VM operation PUSH(2^x) U32DIV SWAP DROP.
+pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0..=1 => return Err(AssemblyError::missing_param(op)),
+        2 => {
+            // Assert the value is u32
+            span_ops.push(Operation::U32split);
+            span_ops.push(Operation::Not);
+            span_ops.push(Operation::Assert);
+
+            let x = parse_int_param(op, 1, 1, 31)?;
+            span_ops.push(Operation::Push(BaseElement::new(2u64.pow(x))));
+            span_ops.push(Operation::U32div);
+            span_ops.push(Operation::Swap);
+            span_ops.push(Operation::Drop);
+        }
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
 }
 
 /// TODO: implement
@@ -219,14 +277,59 @@ pub fn parse_u32revb(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), 
 // COMPARISON OPERATIONS
 // ================================================================================================
 
-/// TODO: implement
-pub fn parse_u32eq(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates u32eq assembly instruction to VM operations.
+/// Specifically we test the first two numbers to be u32 (U32SPLIT NOT ASSERT),
+/// then perform a EQ to check the equality.
+pub fn parse_u32eq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => {
+            // Check first number is u32
+            span_ops.push(Operation::U32split);
+            span_ops.push(Operation::Not);
+            span_ops.push(Operation::Assert);
+
+            span_ops.push(Operation::Swap);
+
+            // Check second number is u32
+            span_ops.push(Operation::U32split);
+            span_ops.push(Operation::Not);
+            span_ops.push(Operation::Assert);
+
+            span_ops.push(Operation::Eq);
+        }
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
 }
 
-/// TODO: implement
-pub fn parse_u32neq(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
-    unimplemented!()
+/// Translates u32neq assembly instruction to VM operations.
+/// Specifically we test the first two numbers to be u32 (U32SPLIT NOT ASSERT),
+/// then perform a EQ NOT to check the equality.
+pub fn parse_u32neq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => {
+            // Check first number is u32
+            span_ops.push(Operation::U32split);
+            span_ops.push(Operation::Not);
+            span_ops.push(Operation::Assert);
+
+            span_ops.push(Operation::Swap);
+
+            // Check second number is u32
+            span_ops.push(Operation::U32split);
+            span_ops.push(Operation::Not);
+            span_ops.push(Operation::Assert);
+
+            span_ops.push(Operation::Eq);
+            span_ops.push(Operation::Not);
+        }
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
 }
 
 /// TODO: implement

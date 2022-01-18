@@ -20,6 +20,6 @@ default = ["std"]
 std = ["math/std", "winter-utils/std"]
 
 [dependencies]
-crypto = { package = "winter-crypto", version = "0.3", default-features = false }
+crypto = { package = "winter-crypto", version = "0.3.1", default-features = false }
 math = { package = "winter-math", version = "0.3", default-features = false }
 winter-utils = { package = "winter-utils", version = "0.3", default-features = false }
