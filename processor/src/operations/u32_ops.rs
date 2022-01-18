@@ -24,7 +24,7 @@ impl Process {
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
 
-    /// Pops two element off the stack, adds them, splits the result into low and high 32-bit
+    /// Pops two elements off the stack, adds them, splits the result into low and high 32-bit
     /// values, and pushes these values back onto the stack.
     ///
     /// # Errors
@@ -43,7 +43,7 @@ impl Process {
         Ok(())
     }
 
-    /// Pops three element off the stack, adds them, splits the result into low and high 32-bit
+    /// Pops three elements off the stack, adds them, splits the result into low and high 32-bit
     /// values, and pushes these values back onto the stack.
     ///
     /// # Errors
@@ -84,7 +84,7 @@ impl Process {
         Ok(())
     }
 
-    /// Pops two element off the stack, multiplies them, splits the result into low and high
+    /// Pops two elements off the stack, multiplies them, splits the result into low and high
     /// 32-bit values, and pushes these values back onto the stack.
     ///
     /// # Errors
@@ -103,11 +103,12 @@ impl Process {
         Ok(())
     }
 
-    /// Pops two elements off the stack, divides the second element by the top element, and pushes
-    /// the quotient and the remainder back onto the stack.
+    /// Pops three elements off the stack, multiplies the first two and adds the third element to
+    /// the result, splits the result into low and high 32-bit values, and pushes these values
+    /// back onto the stack.
     ///
     /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
+    /// Returns an error if the stack contains fewer than three elements.
     pub(super) fn op_u32madd(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(3, "U32MADD")?;
 
@@ -123,12 +124,11 @@ impl Process {
         Ok(())
     }
 
-    /// Pops three element off the stack, multiplies the first two and adds the third element to
-    /// the result, splits the result into low and high 32-bit values, and pushes these values
-    /// back onto the stack.
+    /// Pops two elements off the stack, divides the second element by the top element, and pushes
+    /// the quotient and the remainder back onto the stack.
     ///
     /// # Errors
-    /// Returns an error if the stack contains fewer than three elements.
+    /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_u32div(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(2, "U32DIV")?;
 
@@ -146,7 +146,7 @@ impl Process {
     // BITWISE OPERATIONS
     // --------------------------------------------------------------------------------------------
 
-    /// Pops two element off the stack, computes their bitwise AND, splits the result into low and
+    /// Pops two elements off the stack, computes their bitwise AND, splits the result into low and
     /// high 32-bit values, and pushes these values back onto the stack.
     ///
     /// # Errors
@@ -163,7 +163,7 @@ impl Process {
         Ok(())
     }
 
-    /// Pops two element off the stack, computes their bitwise OR, splits the result into low and
+    /// Pops two elements off the stack, computes their bitwise OR, splits the result into low and
     /// high 32-bit values, and pushes these values back onto the stack.
     ///
     /// # Errors
@@ -180,7 +180,7 @@ impl Process {
         Ok(())
     }
 
-    /// Pops two element off the stack, computes their bitwise XOR, splits the result into low and
+    /// Pops two elements off the stack, computes their bitwise XOR, splits the result into low and
     /// high 32-bit values, and pushes these values back onto the stack.
     ///
     /// # Errors
