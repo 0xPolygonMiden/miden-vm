@@ -15,6 +15,8 @@ use decoder::Decoder;
 mod stack;
 use stack::Stack;
 
+mod range;
+
 mod hasher;
 use hasher::Hasher;
 
