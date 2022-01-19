@@ -65,7 +65,6 @@ fn parse_op_token(op: &Token, span_ops: &mut Vec<Operation>) -> Result<(), Assem
         "u32shl" => u32_ops::parse_u32shl(span_ops, op),
         "u32rotr" => u32_ops::parse_u32rotr(span_ops, op),
         "u32rotl" => u32_ops::parse_u32rotl(span_ops, op),
-        "u32revb" => u32_ops::parse_u32revb(span_ops, op),
 
         "u32eq" => u32_ops::parse_u32eq(span_ops, op),
         "u32neq" => u32_ops::parse_u32neq(span_ops, op),
