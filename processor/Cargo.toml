@@ -27,3 +27,4 @@ winter-utils = { package = "winter-utils", version = "0.3", default-features = f
 [dev-dependencies]
 rand-utils = { package = "winter-rand-utils", version = "0.3" }
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.2", default-features = false }
+proptest = "1.0.0"
