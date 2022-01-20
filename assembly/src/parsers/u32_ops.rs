@@ -1,5 +1,47 @@
 use super::{parse_int_param, AssemblyError, BaseElement, Operation, Token};
 
+// HELPER FUNCTIONS
+// ================================================================================================
+/// Assert if the current number is u32.
+fn assert_u32(span_ops: &mut Vec<Operation>) {
+    span_ops.push(Operation::U32split);
+    span_ops.push(Operation::Eqz);
+    span_ops.push(Operation::Assert);
+}
+
+/// Duplicate the first two numbers in the stack, check they are both u32,
+/// and determine the min and max between them.
+/// The maximum number will be at the top of the stack and  minimum will be at the 2nd index.
+fn compute_max_and_min(span_ops: &mut Vec<Operation>) {
+    // Check second number is u32
+    span_ops.push(Operation::Dup1);
+    assert_u32(span_ops);
+
+    // Check first number is u32
+    span_ops.push(Operation::Dup1);
+    assert_u32(span_ops);
+
+    span_ops.push(Operation::U32sub);
+    span_ops.push(Operation::Swap);
+    span_ops.push(Operation::Drop);
+    // Check the underflow flag, if it's zero
+    // then the second number is equal or larger than the first.
+    span_ops.push(Operation::Eqz);
+    span_ops.push(Operation::CSwap);
+}
+
+/// Inserts the VM operations to check if the second element is less than
+/// the top element.
+fn compute_lt(span_ops: &mut Vec<Operation>) {
+    span_ops.push(Operation::U32sub);
+    span_ops.push(Operation::Swap);
+    span_ops.push(Operation::Drop);
+
+    // Check the underflow flag
+    span_ops.push(Operation::Eqz);
+    span_ops.push(Operation::Not);
+}
+
 // CONVERSIONS AND TESTS
 // ================================================================================================
 
@@ -32,6 +74,7 @@ pub fn parse_u32testw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
             span_ops.push(Operation::Swap);
             span_ops.push(Operation::Drop);
             span_ops.push(Operation::Eqz);
+            span_ops.push(Operation::Not);
 
             // Test the third element
             span_ops.push(Operation::Dup3);
@@ -39,6 +82,7 @@ pub fn parse_u32testw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
             span_ops.push(Operation::Swap);
             span_ops.push(Operation::Drop);
             span_ops.push(Operation::Eqz);
+            span_ops.push(Operation::Not);
             span_ops.push(Operation::Or);
 
             // Test the second element
@@ -55,6 +99,7 @@ pub fn parse_u32testw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
             span_ops.push(Operation::Swap);
             span_ops.push(Operation::Drop);
             span_ops.push(Operation::Eqz);
+            span_ops.push(Operation::Not);
             span_ops.push(Operation::Or);
         }
         _ => return Err(AssemblyError::extra_param(op)),
@@ -68,9 +113,7 @@ pub fn parse_u32assert(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), 
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
         }
         _ => return Err(AssemblyError::extra_param(op)),
     }
@@ -85,27 +128,19 @@ pub fn parse_u32assertw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
             // Test the first element
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
             // Test the second element
             span_ops.push(Operation::Swap);
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
             // Test the third element
             span_ops.push(Operation::MovUp2);
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
             // Test the fourth element
             span_ops.push(Operation::MovUp3);
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
             // Move the elements back into place
             span_ops.push(Operation::Swap);
@@ -270,9 +305,7 @@ pub fn parse_u32not(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
             // Assert the value is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
             span_ops.push(Operation::Push(BaseElement::new(2u64.pow(32))));
             span_ops.push(Operation::Swap);
@@ -294,9 +327,7 @@ pub fn parse_u32shl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
         0..=1 => return Err(AssemblyError::missing_param(op)),
         2 => {
             // Assert the value is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
             let x = parse_int_param(op, 1, 1, 31)?;
             span_ops.push(Operation::Push(BaseElement::new(2u64.pow(x))));
@@ -315,10 +346,7 @@ pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
     match op.num_parts() {
         0..=1 => return Err(AssemblyError::missing_param(op)),
         2 => {
-            // Assert the value is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
             let x = parse_int_param(op, 1, 1, 31)?;
             span_ops.push(Operation::Push(BaseElement::new(2u64.pow(x))));
@@ -337,10 +365,7 @@ pub fn parse_u32rotl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
     match op.num_parts() {
         0..=1 => return Err(AssemblyError::missing_param(op)),
         2 => {
-            // Assert the value is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
             let x = parse_int_param(op, 1, 1, 31)?;
             span_ops.push(Operation::Push(BaseElement::new(2u64.pow(x))));
@@ -359,10 +384,7 @@ pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
     match op.num_parts() {
         0..=1 => return Err(AssemblyError::missing_param(op)),
         2 => {
-            // Assert the value is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
             let x = parse_int_param(op, 1, 1, 31)?;
             span_ops.push(Operation::Push(BaseElement::new(2u64.pow(32 - x))));
@@ -387,16 +409,12 @@ pub fn parse_u32eq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
             // Check first number is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
             span_ops.push(Operation::Swap);
 
             // Check second number is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
             span_ops.push(Operation::Eq);
         }
@@ -414,21 +432,15 @@ pub fn parse_u32neq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
             // Check first number is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
             span_ops.push(Operation::Swap);
 
             // Check second number is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
             span_ops.push(Operation::Eq);
             span_ops.push(Operation::Not);
-            span_ops.push(Operation::Swap);
-            span_ops.push(Operation::Drop);
         }
         _ => return Err(AssemblyError::extra_param(op)),
     }
@@ -444,25 +456,14 @@ pub fn parse_u32lt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
             // Check first number is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
-
+            assert_u32(span_ops);
             span_ops.push(Operation::Swap);
 
             // Check second number is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
-
+            assert_u32(span_ops);
             span_ops.push(Operation::Swap);
 
-            span_ops.push(Operation::U32sub);
-            span_ops.push(Operation::Swap);
-            span_ops.push(Operation::Drop);
-            // Check the underflow flag
-            span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::Not);
+            compute_lt(span_ops);
         }
         _ => return Err(AssemblyError::extra_param(op)),
     }
@@ -472,37 +473,23 @@ pub fn parse_u32lt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 
 /// Translates u32lte assembly instruction to VM operations.
 /// Specifically we test the first two numbers to be u32 (U32SPLIT NOT ASSERT),
-/// then perform a U32SUB EQZ NOT to check the underflow flag and EQZ to check the subtraction
-/// results.
+/// then perform a gt check and flip the results.
 pub fn parse_u32lte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
             // Check first number is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
-
+            assert_u32(span_ops);
             span_ops.push(Operation::Swap);
 
             // Check second number is u32
-            span_ops.push(Operation::U32split);
+            assert_u32(span_ops);
+
+            // Compute the lt with reversed number to get a gt check
+            compute_lt(span_ops);
+
+            // Flip the final results to get the lte results.
             span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
-
-            span_ops.push(Operation::Swap);
-
-            span_ops.push(Operation::U32sub);
-            // Check the underflow flag
-            span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::Not);
-
-            // Check the results if it's zero (so it's equal)
-            span_ops.push(Operation::Swap);
-            span_ops.push(Operation::Eqz);
-
-            // Combine the two checks
-            span_ops.push(Operation::Or);
         }
         _ => return Err(AssemblyError::extra_param(op)),
     }
@@ -512,29 +499,22 @@ pub fn parse_u32lte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 
 /// Translates u32gt assembly instruction to VM operations.
 /// Specifically we test the first two numbers to be u32 (U32SPLIT NOT ASSERT),
-/// then perform a U32SUB EQZ NOT to check the underflow flag.
+/// then perform a lt check with the numbers swapped.
 pub fn parse_u32gt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
             // Check first number is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
             span_ops.push(Operation::Swap);
 
             // Check second number is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
+            assert_u32(span_ops);
 
-            span_ops.push(Operation::U32sub);
-            span_ops.push(Operation::Swap);
-            span_ops.push(Operation::Drop);
-            // Check the underflow flag
-            span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::Not);
+            // We skip the swap which reverses the order of the numbers,
+            // so a lt check here becomes gt.
+            compute_lt(span_ops);
         }
         _ => return Err(AssemblyError::extra_param(op)),
     }
@@ -544,35 +524,21 @@ pub fn parse_u32gt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 
 /// Translates u32gte assembly instruction to VM operations.
 /// Specifically we test the first two numbers to be u32 (U32SPLIT NOT ASSERT),
-/// then perform a U32SUB EQZ NOT to check the underflow flag, and
-/// EQZ to check the subtraction results.
+/// then compute a lt check and flip the results.
 pub fn parse_u32gte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
             // Check first number is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
-
+            assert_u32(span_ops);
             span_ops.push(Operation::Swap);
 
             // Check second number is u32
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
-
-            span_ops.push(Operation::U32sub);
-            // Check the underflow flag
-            span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::Not);
-
-            // Check the results if it's zero (so it's equal)
+            assert_u32(span_ops);
             span_ops.push(Operation::Swap);
-            span_ops.push(Operation::Eqz);
 
-            // Combine the two checks
-            span_ops.push(Operation::Or);
+            compute_lt(span_ops);
+            span_ops.push(Operation::Not);
         }
         _ => return Err(AssemblyError::extra_param(op)),
     }
@@ -589,26 +555,7 @@ pub fn parse_u32min(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
-            // Check second number is u32
-            span_ops.push(Operation::Dup1);
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
-
-            // Check first number is u32
-            span_ops.push(Operation::Dup1);
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
-
-            span_ops.push(Operation::U32sub);
-            span_ops.push(Operation::Swap);
-            span_ops.push(Operation::Drop);
-            // Check the underflow flag, if it's zero
-            // then the second number is equal or larger than the first.
-            span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::CSwap);
-
+            compute_max_and_min(span_ops);
             // Drop the max and keep the min
             span_ops.push(Operation::Drop);
         }
@@ -627,25 +574,7 @@ pub fn parse_u32max(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
-            // Check second number is u32
-            span_ops.push(Operation::Dup1);
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
-
-            // Check first number is u32
-            span_ops.push(Operation::Dup1);
-            span_ops.push(Operation::U32split);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Assert);
-
-            span_ops.push(Operation::U32sub);
-            span_ops.push(Operation::Swap);
-            span_ops.push(Operation::Drop);
-            // Check the underflow flag, if it's zero
-            // then the second number is equal or larger than the first.
-            span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::CSwap);
+            compute_max_and_min(span_ops);
 
             // Drop the min and keep the max
             span_ops.push(Operation::Swap);
