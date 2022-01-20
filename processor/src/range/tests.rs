@@ -1,6 +1,6 @@
-use super::{BTreeMap, Felt, FieldElement, RangeChecker, StarkField};
+use super::{BTreeMap, Felt, FieldElement, RangeChecker};
 use rand_utils::rand_array;
-use vm_core::utils::ToElements;
+use vm_core::{utils::ToElements, StarkField};
 
 #[test]
 fn range_checks() {
@@ -9,7 +9,7 @@ fn range_checks() {
     let values = [0, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 100, 355, 620].to_elements();
 
     for &value in values.iter() {
-        checker.check(value)
+        checker.add_value(value.as_int() as u16)
     }
 
     let trace = checker.into_trace(1024);
@@ -44,7 +44,7 @@ fn range_checks_rand() {
         .collect::<Vec<_>>();
 
     for &value in values.iter() {
-        checker.check(value);
+        checker.add_value(value.as_int() as u16);
     }
 
     let trace_len = checker.trace_len().next_power_of_two();
