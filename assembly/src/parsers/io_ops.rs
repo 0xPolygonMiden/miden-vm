@@ -1,6 +1,6 @@
 use super::{
-    parse_element_param, parse_int_param, validate_op_len, AssemblyError, BaseElement,
-    FieldElement, Operation, Token,
+    parse_element_param, parse_int_param, push_value, validate_op_len, AssemblyError, Operation,
+    Token,
 };
 
 // CONSTANT INPUTS
@@ -60,22 +60,6 @@ pub fn parse_pushw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
     }
 
     Ok(())
-}
-
-/// This is a helper function that appends a PUSH operation to the span block which puts the
-/// provided value parameter onto the stack.
-///
-/// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
-/// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
-fn push_value(span_ops: &mut Vec<Operation>, value: BaseElement) {
-    if value == BaseElement::ZERO {
-        span_ops.push(Operation::Pad);
-    } else if value == BaseElement::ONE {
-        span_ops.push(Operation::Pad);
-        span_ops.push(Operation::Incr);
-    } else {
-        span_ops.push(Operation::Push(value));
-    }
 }
 
 // ENVIRONMENT INPUTS
@@ -287,6 +271,7 @@ fn push_mem_addr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::parsers::{BaseElement, FieldElement};
 
     #[test]
     fn push() {

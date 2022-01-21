@@ -1,4 +1,4 @@
-use super::{parse_int_param, AssemblyError, BaseElement, Operation, Token};
+use super::{parse_int_param, push_value, AssemblyError, BaseElement, Operation, Token};
 
 // HELPER FUNCTIONS
 // ================================================================================================
@@ -181,24 +181,81 @@ pub fn parse_u32split(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
 // ARITHMETIC OPERATIONS
 // ================================================================================================
 
-/// Translates u32add assembly instruction to VM operation U32ADD.
+/// Translates u32add assembly instruction to VM operations.
+/// Specifically handles these specific inputs per the spec.
+/// - Zero argument: Assert the top two elemenets are u32 and push the result after U32ADD to the stack
+/// - Single argument:
+///   - "unsafe" skips the assert check and direclty performs a U32ADD EQZ
+///   - "full" checks both numbers are u32 and perform the same operations as "unsafe"
+///   - Any number argument gets pushed to the stack, checked if both are u32 and performs a U32ADD.
 pub fn parse_u32add(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
+    // prepare the stack for the operation and determine if we need to check for overflow
+    let assert_u32_result = match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
-        1 => span_ops.push(Operation::U32add),
+        1 => {
+            // for simple u32add we need to make sure operands are u32 values, and we need to
+            // make sure that the result will be a u32 value as well
+            assert_u32(span_ops);
+            span_ops.push(Operation::Swap);
+            assert_u32(span_ops);
+            true
+        }
+        2 => match op.parts()[1] {
+            "unsafe" => false,
+            "full" => {
+                // for u32add.full we need to make sure operands are u32 values, but we don't
+                // need to check the result for overflow because we return both high and low bits
+                // of the result
+                assert_u32(span_ops);
+                span_ops.push(Operation::Swap);
+                assert_u32(span_ops);
+                false
+            }
+            _ => {
+                // for u32add.n (where n is the immediate value), we need to push the immediate
+                // value onto the stack, and make sure both operands are u32 values. we also want
+                // to make sure the result is a u32 value.
+                assert_u32(span_ops);
+                // TODO: We should investigate special case handling adding 0 or 1.
+                let value = parse_int_param(op, 1, 0, u32::MAX)?;
+                push_value(span_ops, BaseElement::new(value as u64));
+                true
+            }
+        },
         _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    // perform the operation
+    span_ops.push(Operation::U32add);
+
+    // make sure the result is a u32 value, and drop the high bits
+    if assert_u32_result {
+        span_ops.push(Operation::Eqz);
+        span_ops.push(Operation::Assert);
     }
 
     Ok(())
 }
 
-/// Translates u32addc assembly instruction to VM operation U32ADDC.
+/// Translates u32addc assembly instruction to VM operation U32ADDC EQZ.
+/// The unsafe version skips the u32 assert check.
 pub fn parse_u32addc(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
-        1 => span_ops.push(Operation::U32addc),
+        1 => {
+            assert_u32(span_ops);
+            span_ops.push(Operation::Swap);
+            assert_u32(span_ops);
+        }
+        2 => {
+            if op.parts()[1] != "unsafe" {
+                return Err(AssemblyError::invalid_param(op, 1));
+            }
+        }
         _ => return Err(AssemblyError::extra_param(op)),
     }
+
+    span_ops.push(Operation::U32addc);
 
     Ok(())
 }
