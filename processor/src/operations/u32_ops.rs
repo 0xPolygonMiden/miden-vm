@@ -15,9 +15,10 @@ impl Process {
         let a = self.stack.get(0);
         let (lo, hi) = split_element(a);
 
+        // shift right first so stack depth is increased before we attempt to set the output values
+        self.stack.shift_right(1);
         self.stack.set(0, hi);
         self.stack.set(1, lo);
-        self.stack.shift_right(1);
         Ok(())
     }
 
