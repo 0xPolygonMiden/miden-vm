@@ -225,9 +225,21 @@ mod tests {
 
     #[test]
     fn op_u32split() {
+        // --- test a random value ---------------------------------------------
         let a: u64 = rand_value();
-        let b: u64 = rand_value();
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[a]);
+        let hi = a >> 32;
+        let lo = (a as u32) as u64;
 
+        process.execute_op(Operation::U32split).unwrap();
+        let mut expected = [Felt::ZERO; 16];
+        expected[0] = Felt::new(hi);
+        expected[1] = Felt::new(lo);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- test the rest of the stack is not modified -----------------------
+        let b: u64 = rand_value();
         let mut process = Process::new_dummy();
         init_stack_with(&mut process, &[a, b]);
         let hi = b >> 32;
