@@ -1,4 +1,4 @@
-use super::{super::execute, build_inputs, build_stack_state, compile, Felt, FieldElement, Word};
+use super::{build_inputs, build_stack_state, compile, execute, Felt, FieldElement, Word};
 use rand_utils::rand_vector;
 use vm_core::{hasher::hash_elements, AdviceSet, ProgramInputs, StarkField};
 
