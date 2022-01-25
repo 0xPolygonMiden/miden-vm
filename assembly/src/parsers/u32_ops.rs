@@ -417,7 +417,7 @@ pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
             let x = parse_int_param(op, 1, 1, 31)?;
             span_ops.push(Operation::Push(BaseElement::new(2u64.pow(x))));
             span_ops.push(Operation::U32div);
-            span_ops.push(Operation::Swap);
+            // drop the remainder and keep the quotient
             span_ops.push(Operation::Drop);
         }
         _ => return Err(AssemblyError::extra_param(op)),

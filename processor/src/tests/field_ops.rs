@@ -1,4 +1,4 @@
-use super::{super::execute, build_inputs, build_stack_state, compile};
+use super::{build_inputs, build_stack_state, compile, execute};
 use proptest::prelude::*;
 use vm_core::{Felt, StarkField};
 
