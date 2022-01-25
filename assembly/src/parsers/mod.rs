@@ -224,3 +224,19 @@ fn validate_op_len(
 
     Ok(())
 }
+
+/// This is a helper function that appends a PUSH operation to the span block which puts the
+/// provided value parameter onto the stack.
+///
+/// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
+/// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
+fn push_value(span_ops: &mut Vec<Operation>, value: BaseElement) {
+    if value == BaseElement::ZERO {
+        span_ops.push(Operation::Pad);
+    } else if value == BaseElement::ONE {
+        span_ops.push(Operation::Pad);
+        span_ops.push(Operation::Incr);
+    } else {
+        span_ops.push(Operation::Push(value));
+    }
+}
