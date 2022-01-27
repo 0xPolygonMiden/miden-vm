@@ -24,7 +24,8 @@ pub fn parse_u32test(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
 
 /// Translates u32testw assembly instruction to VM operations.
 ///
-/// Implemented by executing `DUP U32SPLIT SWAP DROP EQZ` on each element in the word.
+/// Implemented by executing `DUP U32SPLIT SWAP DROP EQZ` on each element in the word,
+/// with a total of 28 VM cycles.
 pub fn parse_u32testw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
@@ -539,8 +540,8 @@ pub fn parse_u32lt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 /// u32lte: 13 cycles
 /// u32lte.unsafe: 7 cycles
 pub fn parse_u32lte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    handle_u32_and_unsafe_check(span_ops, op, false)?;
-    if op.num_parts() == 2 {
+    let order_changed = handle_u32_and_unsafe_check(span_ops, op, false)?;
+    if !order_changed {
         // Swap the order in unsafe mode since we only swap on u32 check.
         span_ops.push(Operation::Swap);
     }
@@ -563,8 +564,8 @@ pub fn parse_u32lte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// u32gt: 12 cycles
 /// u32gt.unsafe: 6 cycles
 pub fn parse_u32gt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    handle_u32_and_unsafe_check(span_ops, op, false)?;
-    if op.num_parts() == 2 {
+    let order_changed = handle_u32_and_unsafe_check(span_ops, op, false)?;
+    if !order_changed {
         // Swap the order in unsafe mode since we only swap on u32 check.
         span_ops.push(Operation::Swap);
     }
@@ -741,19 +742,23 @@ fn handle_u32_and_unsafe_check(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     preserve_order: bool,
-) -> Result<(), AssemblyError> {
-    match op.num_parts() {
+) -> Result<bool, AssemblyError> {
+    let order_changed = match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
-        1 => assert_u32_operands(span_ops, preserve_order),
+        1 => {
+            assert_u32_operands(span_ops, preserve_order);
+            !preserve_order
+        }
         2 => {
             if op.parts()[1] != "unsafe" {
                 return Err(AssemblyError::invalid_param(op, 1));
             }
+            false
         }
         _ => return Err(AssemblyError::extra_param(op)),
-    }
+    };
 
-    Ok(())
+    Ok(order_changed)
 }
 
 /// Handles arithmetic operation that needs support for unsafe, full, operation and operation.n
