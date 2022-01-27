@@ -288,7 +288,7 @@ pub enum Operation {
     /// Removes the next element from the advice tape and pushes it onto the stack.
     Read,
 
-    /// Returns a a word (4 elements) from the advice tape and overwrites the top four stack
+    /// Removes a a word (4 elements) from the advice tape and overwrites the top four stack
     /// elements with it.
     ReadW,
 
@@ -299,6 +299,13 @@ pub enum Operation {
     /// Pops an element off the stack, interprets it as a memory address, and writes the remaining
     /// 4 elements at the top of the stack into memory at the specified address.
     StoreW,
+
+    /// Pops an element off the stack, adds the current value of the `fmp` register to it, and
+    /// pushes the result back onto the stack.
+    FmpAdd,
+
+    /// Pops an element off the stack and adds it to the current value of `fmp` register.
+    FmpUpdate,
 
     /// Pushes the current depth of the stack onto the stack.
     SDepth,
@@ -446,6 +453,9 @@ impl Operation {
             Self::Read => Some(0b0011_1100),
             Self::ReadW => Some(0b0011_1101),
 
+            Self::FmpAdd => Some(0b0011_1101),
+            Self::FmpUpdate => Some(0b0011_1101),
+
             Self::SDepth => Some(0b0011_1101),
 
             Self::RpPerm => Some(0b0011_1111),
@@ -583,6 +593,9 @@ impl fmt::Display for Operation {
 
             Self::LoadW => write!(f, "loadw"),
             Self::StoreW => write!(f, "storew"),
+
+            Self::FmpAdd => write!(f, "fmpadd"),
+            Self::FmpUpdate => write!(f, "fmpupdate"),
 
             Self::SDepth => write!(f, "sdepth"),
 

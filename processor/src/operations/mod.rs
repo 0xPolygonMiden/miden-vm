@@ -118,6 +118,9 @@ impl Process {
             Operation::LoadW => self.op_loadw()?,
             Operation::StoreW => self.op_storew()?,
 
+            Operation::FmpAdd => self.op_fmpadd()?,
+            Operation::FmpUpdate => self.op_fmpupdate()?,
+
             Operation::SDepth => self.op_sdepth()?,
 
             // ----- cryptographic operations -----------------------------------------------------
