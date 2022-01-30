@@ -87,7 +87,7 @@ fn test_compilation_failure(asm_op: &str, err_substr: &str) {
 fn test_param_out_of_bounds(asm_op_base: &str, gt_max_value: u64) {
     let build_asm_op = |param: u64| format!("{}.{}", asm_op_base, param);
 
-    test_compilation_failure(build_asm_op(gt_max_value).as_str(), "parameter value");
+    test_compilation_failure(build_asm_op(gt_max_value).as_str(), "parameter");
 }
 
 // This is a proptest strategy for generating a random word with 4 values of type T.
