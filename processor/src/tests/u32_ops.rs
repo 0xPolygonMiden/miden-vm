@@ -1,13 +1,15 @@
+use std::cmp::Ordering;
+
 use super::{
-    super::StarkField, rand_word, test_execution, test_execution_failure, test_param_out_of_bounds,
-    Felt,
+    super::StarkField, build_inputs, compile, execute, rand_word, test_execution,
+    test_execution_failure, test_param_out_of_bounds, Felt,
 };
 use proptest::prelude::*;
 use rand_utils::rand_value;
 
 // CONSTANTS
 // ================================================================================================
-const U32_BOUND: u64 = 1_u64 << 32;
+const U32_BOUND: u64 = u32::MAX as u64 + 1;
 const WORD_LEN: usize = 4;
 
 // U32 OPERATIONS TESTS - MANUAL - CONVERSIONS AND TESTS
@@ -113,17 +115,8 @@ fn u32assertw_fail() {
     let asm_op = "u32assertw";
     let err = "FailedAssertion";
 
-    // --- 1st element >= 2^32 --------------------------------------------------------------------
-    test_execution_failure(asm_op, &[U32_BOUND, 1, 1, 1], err);
-
-    // --- 2nd element >= 2^32 --------------------------------------------------------------------
-    test_execution_failure(asm_op, &[1, U32_BOUND, 1, 1], err);
-
-    // --- 3rd element >= 2^32 --------------------------------------------------------------------
-    test_execution_failure(asm_op, &[1, 1, U32_BOUND, 1], err);
-
-    // --- 4th element >= 2^32 --------------------------------------------------------------------
-    test_execution_failure(asm_op, &[1, 1, 1, U32_BOUND], err);
+    // --- any one of the inputs inputs >= 2^32 (out of bounds) -----------------------------------
+    test_inputs_out_of_bounds(asm_op, WORD_LEN);
 
     // --- all elements out of range --------------------------------------------------------------
     test_execution_failure(asm_op, &[U32_BOUND; WORD_LEN], err);
@@ -552,21 +545,29 @@ fn u32eq() {
     test_execution(asm_op, &[1, 1], &[1]);
     test_execution(asm_op, &[1, 0], &[0]);
 
-    // --- random u32: equality -------------------------------------------------------------
+    // --- random u32: equality -------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     test_execution(asm_op, &[a as u64, a as u64], &[1]);
 
-    // --- random u32: inequality -------------------------------------------------------------
+    // --- random u32: probable inequality --------------------------------------------------------
     let b = rand_value::<u64>() as u32;
-    test_execution(asm_op, &[a as u64, b as u64], &[0]);
+    let expected = if a == b { 1 } else { 0 };
+    test_execution(asm_op, &[a as u64, b as u64], &[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(asm_op, &[a as u64, b as u64, c], &[0, c]);
+    test_execution(asm_op, &[a as u64, b as u64, c], &[expected, c]);
 }
 
 #[test]
-#[ignore = "unimplemented"]
+fn u32eq_fail() {
+    let asm_op = "u32eq";
+
+    // should fail if either one of 2 inputs is out of bounds
+    test_inputs_out_of_bounds(asm_op, 2);
+}
+
+#[test]
 fn u32eq_b() {
     let build_asm_op = |param: u32| format!("u32eq.{}", param);
 
@@ -574,33 +575,28 @@ fn u32eq_b() {
     test_execution(build_asm_op(1).as_str(), &[1], &[1]);
     test_execution(build_asm_op(0).as_str(), &[1], &[0]);
 
-    // --- random u32: equality -------------------------------------------------------------
+    // --- random u32: equality -------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     test_execution(build_asm_op(a).as_str(), &[a as u64], &[1]);
 
-    // --- random u32: inequality -------------------------------------------------------------
+    // --- random u32: probable inequality --------------------------------------------------------
     let b = rand_value::<u64>() as u32;
-    test_execution(build_asm_op(b).as_str(), &[a as u64], &[0]);
+    let expected = if a == b { 1 } else { 0 };
+    test_execution(build_asm_op(b).as_str(), &[a as u64], &[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(build_asm_op(b).as_str(), &[a as u64, c], &[0, c]);
+    test_execution(build_asm_op(b).as_str(), &[a as u64, c], &[expected, c]);
 }
 
 #[test]
-fn u32eq_fail() {
-    let asm_op = "u32eq";
-
-    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
-    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
-}
-
-#[test]
-#[ignore = "unimplemented"]
 fn u32eq_b_fail() {
     let asm_op_base = "u32eq";
 
+    // should fail when b is out of bounds and provided as a parameter
     test_param_out_of_bounds(asm_op_base, U32_BOUND);
+
+    // should fail when b is a valid parameter but a is out of bounds
     test_execution_failure(
         format!("{}.{}", asm_op_base, 1).as_str(),
         &[U32_BOUND],
@@ -609,45 +605,232 @@ fn u32eq_b_fail() {
 }
 
 #[test]
-#[ignore = "unimplemented"]
 fn u32neq() {
-    unimplemented!();
+    let asm_op = "u32neq";
+
+    // --- simple cases ---------------------------------------------------------------------------
+    test_execution(asm_op, &[1, 1], &[0]);
+    test_execution(asm_op, &[1, 0], &[1]);
+
+    // --- random u32: equality -------------------------------------------------------------------
+    let a = rand_value::<u64>() as u32;
+    test_execution(asm_op, &[a as u64, a as u64], &[0]);
+
+    // --- random u32: probable inequality --------------------------------------------------------
+    let b = rand_value::<u64>() as u32;
+    let expected = if a != b { 1 } else { 0 };
+    test_execution(asm_op, &[a as u64, b as u64], &[expected]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    test_execution(asm_op, &[a as u64, b as u64, c], &[expected, c]);
 }
 
 #[test]
-#[ignore = "unimplemented"]
+fn u32neq_fail() {
+    let asm_op = "u32neq";
+
+    // should fail if either one of 2 inputs is out of bounds
+    test_inputs_out_of_bounds(asm_op, 2);
+}
+
+#[test]
+fn u32neq_b() {
+    let build_asm_op = |param: u32| format!("u32neq.{}", param);
+
+    // --- simple cases ---------------------------------------------------------------------------
+    test_execution(build_asm_op(1).as_str(), &[1], &[0]);
+    test_execution(build_asm_op(0).as_str(), &[1], &[1]);
+
+    // --- random u32: equality -------------------------------------------------------------------
+    let a = rand_value::<u64>() as u32;
+    test_execution(build_asm_op(a).as_str(), &[a as u64], &[0]);
+
+    // --- random u32: probable inequality --------------------------------------------------------
+    let b = rand_value::<u64>() as u32;
+    let expected = if a != b { 1 } else { 0 };
+    test_execution(build_asm_op(b).as_str(), &[a as u64], &[expected]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    test_execution(build_asm_op(b).as_str(), &[a as u64, c], &[expected, c]);
+}
+
+#[test]
+fn u32neq_b_fail() {
+    let asm_op_base = "u32neq";
+
+    // should fail when b is out of bounds and provided as a parameter
+    test_param_out_of_bounds(asm_op_base, U32_BOUND);
+
+    // should fail when b is a valid parameter but a is out of bounds
+    test_execution_failure(
+        format!("{}.{}", asm_op_base, 1).as_str(),
+        &[U32_BOUND],
+        "FailedAssertion",
+    );
+}
+
+#[test]
 fn u32lt() {
-    unimplemented!();
+    let asm_op = "u32lt";
+
+    // should push 1 to the stack when a < b and 0 otherwise
+    test_comparison_op(asm_op, 1, 0, 0);
 }
 
 #[test]
-#[ignore = "unimplemented"]
+fn u32lt_fail() {
+    let asm_op = "u32lt";
+
+    // should fail if either one of 2 inputs is out of bounds
+    test_inputs_out_of_bounds(asm_op, 2);
+}
+
+#[test]
+fn u32lt_unsafe() {
+    let asm_op = "u32lt.unsafe";
+
+    // should push 1 to the stack when a < b and 0 otherwise
+    test_comparison_op(asm_op, 1, 0, 0);
+
+    // should not fail when inputs are out of bounds
+    test_unsafe_execution(asm_op, 2);
+}
+
+#[test]
 fn u32lte() {
-    unimplemented!();
+    let asm_op = "u32lte";
+
+    // should push 1 to the stack when a <= b and 0 otherwise
+    test_comparison_op(asm_op, 1, 1, 0);
 }
 
 #[test]
-#[ignore = "unimplemented"]
+fn u32lte_fail() {
+    let asm_op = "u32lte";
+
+    // should fail if either one of 2 inputs is out of bounds
+    test_inputs_out_of_bounds(asm_op, 2);
+}
+
+#[test]
+fn u32lte_unsafe() {
+    let asm_op = "u32lte.unsafe";
+
+    // should push 1 to the stack when a <= b and 0 otherwise
+    test_comparison_op(asm_op, 1, 1, 0);
+
+    // should not fail when inputs are out of bounds
+    test_unsafe_execution(asm_op, 2);
+}
+
+#[test]
 fn u32gt() {
-    unimplemented!();
+    let asm_op = "u32gt";
+
+    // should push 1 to the stack when a > b and 0 otherwise
+    test_comparison_op(asm_op, 0, 0, 1);
 }
 
 #[test]
-#[ignore = "unimplemented"]
+fn u32gt_fail() {
+    let asm_op = "u32gt";
+
+    // should fail if either one of 2 inputs is out of bounds
+    test_inputs_out_of_bounds(asm_op, 2);
+}
+
+#[test]
+fn u32gt_unsafe() {
+    let asm_op = "u32gt.unsafe";
+
+    // should push 1 to the stack when a > b and 0 otherwise
+    test_comparison_op(asm_op, 0, 0, 1);
+
+    // should not fail when inputs are out of bounds
+    test_unsafe_execution(asm_op, 2);
+}
+
+#[test]
 fn u32gte() {
-    unimplemented!();
+    let asm_op = "u32gte";
+
+    // should push 1 to the stack when a >= b and 0 otherwise
+    test_comparison_op(asm_op, 0, 1, 1);
 }
 
 #[test]
-#[ignore = "unimplemented"]
+fn u32gte_fail() {
+    let asm_op = "u32gte";
+
+    // should fail if either one of 2 inputs is out of bounds
+    test_inputs_out_of_bounds(asm_op, 2);
+}
+
+#[test]
+fn u32gte_unsafe() {
+    let asm_op = "u32gte.unsafe";
+
+    // should push 1 to the stack when a >= b and 0 otherwise
+    test_comparison_op(asm_op, 0, 1, 1);
+
+    // should not fail when inputs are out of bounds
+    test_unsafe_execution(asm_op, 2);
+}
+
+#[test]
 fn u32min() {
-    unimplemented!();
+    let asm_op = "u32min";
+
+    // should put the minimum of the 2 inputs on the stack
+    test_min(asm_op);
 }
 
 #[test]
-#[ignore = "unimplemented"]
+fn u32min_fail() {
+    let asm_op = "u32min";
+
+    // should fail if either one of 2 inputs is out of bounds
+    test_inputs_out_of_bounds(asm_op, 2);
+}
+
+#[test]
+fn u32min_unsafe() {
+    let asm_op = "u32min.unsafe";
+
+    // should put the minimum of the 2 inputs on the stack
+    test_min(asm_op);
+
+    // should not fail when inputs are out of bounds
+    test_unsafe_execution(asm_op, 2);
+}
+
+#[test]
 fn u32max() {
-    unimplemented!();
+    let asm_op = "u32max";
+
+    // should put the maximum of the 2 inputs on the stack
+    test_max(asm_op);
+}
+
+#[test]
+fn u32max_fail() {
+    let asm_op = "u32max";
+
+    // should fail if either one of 2 inputs is out of bounds
+    test_inputs_out_of_bounds(asm_op, 2);
+}
+
+#[test]
+fn u32max_unsafe() {
+    let asm_op = "u32max.unsafe";
+
+    // should put the maximum of the 2 inputs on the stack
+    test_max(asm_op);
+
+    // should not fail when inputs are out of bounds
+    test_unsafe_execution(asm_op, 2);
 }
 
 // U32 OPERATIONS TESTS - RANDOMIZED - CONVERSIONS AND TESTS
@@ -898,4 +1081,110 @@ proptest! {
 /// ensure that it fails when the input is >= 2^32.
 fn test_input_out_of_bounds(asm_op: &str) {
     test_execution_failure(asm_op, &[U32_BOUND], "FailedAssertion");
+}
+
+/// This helper function tests a provided u32 assembly operation, which takes multiple inputs, to
+/// ensure that it fails when any one of the inputs is >= 2^32. Each input is tested independently.
+fn test_inputs_out_of_bounds(asm_op: &str, input_count: usize) {
+    let inputs = vec![0_u64; input_count];
+
+    for i in 0..input_count {
+        let mut i_inputs = inputs.clone();
+        // should fail when the value of the input at index i is out of bounds
+        i_inputs[i] = U32_BOUND;
+        test_execution_failure(asm_op, &i_inputs, "FailedAssertion");
+    }
+}
+
+/// This helper function tests that when the given u32 assembly instruction is executed on
+/// out-of-bounds inputs it does not fail. Each input is tested independently.
+fn test_unsafe_execution(asm_op: &str, input_count: usize) {
+    let script = compile(format!("begin {} end", asm_op).as_str());
+    let values = vec![0_u64; input_count];
+
+    for i in 0..input_count {
+        let mut i_values = values.clone();
+        // should execute successfully when the value of the input at index i is out of bounds
+        i_values[i] = U32_BOUND;
+        let inputs = build_inputs(&i_values);
+        assert!(execute(&script, &inputs).is_ok());
+    }
+}
+
+/// This helper function tests that the provided assembly comparison operation pushes the expected
+/// value to the stack for each of the less than, equal to, or greater than comparisons tested.
+fn test_comparison_op(asm_op: &str, expected_lt: u64, expected_eq: u64, expected_gt: u64) {
+    // --- simple cases ---------------------------------------------------------------------------
+    // a < b should put the expected value on the stack for the less-than case
+    test_execution(asm_op, &[1, 0], &[expected_lt]);
+    // a = b should put the expected value on the stack for the equal-to case
+    test_execution(asm_op, &[0, 0], &[expected_eq]);
+    // a > b should put the expected value on the stack for the greater-than case
+    test_execution(asm_op, &[0, 1], &[expected_gt]);
+
+    // --- random u32 values ----------------------------------------------------------------------
+    let a = rand_value::<u64>() as u32;
+    let b = rand_value::<u64>() as u32;
+    let expected = match a.cmp(&b) {
+        Ordering::Less => expected_lt,
+        Ordering::Equal => expected_eq,
+        Ordering::Greater => expected_gt,
+    };
+    test_execution(asm_op, &[b as u64, a as u64], &[expected]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    test_execution(asm_op, &[b as u64, a as u64, c], &[expected, c]);
+}
+
+/// Tests a u32min assembly operation (u32min or u32min.unsafe) against a number of cases to ensure
+/// that the operation puts the minimum of 2 input values on the stack.
+fn test_min(asm_op: &str) {
+    // --- simple cases ---------------------------------------------------------------------------
+    // a < b should put a on the stack
+    test_execution(asm_op, &[1, 0], &[0]);
+    // a = b should put b on the stack
+    test_execution(asm_op, &[0, 0], &[0]);
+    // a > b should put b on the stack
+    test_execution(asm_op, &[0, 1], &[0]);
+
+    // --- random u32 values ----------------------------------------------------------------------
+    let a = rand_value::<u64>() as u32;
+    let b = rand_value::<u64>() as u32;
+    let expected = match a.cmp(&b) {
+        Ordering::Less => a,
+        Ordering::Equal => b,
+        Ordering::Greater => b,
+    };
+    test_execution(asm_op, &[b as u64, a as u64], &[expected as u64]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    test_execution(asm_op, &[b as u64, a as u64, c], &[expected as u64, c]);
+}
+
+/// Tests a u32max assembly operation (u32max or u32max.unsafe) against a number of cases to ensure
+/// that the operation puts the maximum of 2 input values on the stack.
+fn test_max(asm_op: &str) {
+    // --- simple cases ---------------------------------------------------------------------------
+    // a < b should put b on the stack
+    test_execution(asm_op, &[1, 0], &[1]);
+    // a = b should put b on the stack
+    test_execution(asm_op, &[0, 0], &[0]);
+    // a > b should put a on the stack
+    test_execution(asm_op, &[0, 1], &[1]);
+
+    // --- random u32 values ----------------------------------------------------------------------
+    let a = rand_value::<u64>() as u32;
+    let b = rand_value::<u64>() as u32;
+    let expected = match a.cmp(&b) {
+        Ordering::Less => b,
+        Ordering::Equal => b,
+        Ordering::Greater => a,
+    };
+    test_execution(asm_op, &[b as u64, a as u64], &[expected as u64]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    test_execution(asm_op, &[b as u64, a as u64, c], &[expected as u64, c]);
 }
