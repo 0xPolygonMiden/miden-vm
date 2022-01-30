@@ -90,7 +90,7 @@ fn test_param_out_of_bounds(asm_op_base: &str, gt_max_value: u64) {
     test_compilation_failure(build_asm_op(gt_max_value).as_str(), "parameter value");
 }
 
-// This is a proptest strategy for generating a random word of u64 values (4 u64 values).
-fn rand_word() -> impl Strategy<Value = Vec<u64>> {
-    prop::collection::vec(any::<u64>(), 4)
+// This is a proptest strategy for generating a random word with 4 values of type T.
+fn rand_word<T: proptest::arbitrary::Arbitrary>() -> impl Strategy<Value = Vec<T>> {
+    prop::collection::vec(any::<T>(), 4)
 }

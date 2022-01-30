@@ -662,60 +662,29 @@ proptest! {
     }
 
     #[test]
-    // issue: https://github.com/maticnetwork/miden/issues/71
-    fn u32testw_proptest(word in rand_word()) {
-        let mut values = Vec::new();
-
-        // test each element in the word to see if the values are all valid u32 values
-        let mut elements_are_u32 = true;
-        for a in word.iter(){
-            if *a % Felt::MODULUS >= U32_BOUND {
-                elements_are_u32 = false;
-            }
-            // add the values to the vector
-            values.push(*a);
-        }
-
+    fn u32testw_proptest(word in rand_word::<u32>()) {
+        // should leave a 1 on the stack since all values in the word are valid u32 values
+        let values: Vec<u64> = word.iter().map(|a| *a as u64).collect();
         let mut expected = values.clone();
-        // add the expected result to get the expected state
-        let expected_result = if elements_are_u32 { 1 } else { 0 };
-        expected.insert(0, expected_result);
+        expected.insert(0, 1);
 
         test_execution("u32testw", &values, &expected);
     }
 
     #[test]
-    fn u32assert_proptest(value in any::<u64>()) {
+    fn u32assert_proptest(value in any::<u32>()) {
         // assertion passes and leaves the stack unchanged if a < 2^32
         let asm_op = "u32assert";
-        if value < U32_BOUND {
-            test_execution(asm_op, &[value], &[value]);
-        } else {
-            test_execution_failure(asm_op, &[value], "FailedAssertion");
-        }
+        test_execution(asm_op, &[value as u64], &[value as u64]);
     }
 
     #[test]
-    fn u32assertw_proptest(word in rand_word()) {
-        // assertion passes and leaves the stack unchanged if a < 2^32
+    fn u32assertw_proptest(word in rand_word::<u32>()) {
+        // should pass and leave the stack unchanged if a < 2^32 for all values in the word
         let asm_op = "u32assertw";
-        let mut values = Vec::new();
+        let values: Vec<u64> = word.iter().map(|a| *a as u64).collect();
 
-        // test each element in the word to see if the values are all valid u32 values
-        let mut elements_are_u32 = true;
-        for a in word.iter(){
-            if *a % Felt::MODULUS >= U32_BOUND {
-                elements_are_u32 = false;
-            }
-            // add the values to the vector
-            values.push(*a);
-        }
-
-        if elements_are_u32 {
-            test_execution(asm_op, &values, &values);
-        } else {
-            test_execution_failure(asm_op, &values, "FailedAssertion");
-        }
+        test_execution(asm_op, &values, &values);
     }
 
     #[test]
@@ -744,121 +713,81 @@ proptest! {
 
 proptest! {
     #[test]
-    // issue: https://github.com/maticnetwork/miden/issues/74
-    fn u32and_proptest(a in any::<u64>(), b in any::<u64>()) {
+    fn u32and_proptest(a in any::<u32>(), b in any::<u32>()) {
         let asm_opcode = "u32and";
-        let values = [b, a];
+        let values = [b as u64, a as u64];
+        // should result in bitwise AND
+        let expected = (a & b) as u64;
 
-        if a >= U32_BOUND || b >= U32_BOUND {
-            // should fail
-            test_execution_failure(asm_opcode, &values, "FailedAssertion");
-        } else {
-            // should result in bitwise AND
-            test_execution(asm_opcode, &values, &[a & b])
-        }
+        test_execution(asm_opcode, &values, &[expected]);
     }
 
     #[test]
-    // issue: https://github.com/maticnetwork/miden/issues/74
-    fn u32or_proptest(a in any::<u64>(), b in any::<u64>()) {
+    fn u32or_proptest(a in any::<u32>(), b in any::<u32>()) {
         let asm_opcode = "u32or";
-        let values = [b, a];
+        let values = [b as u64, a as u64];
+        // should result in bitwise OR
+        let expected = (a | b) as u64;
 
-        if a >= U32_BOUND || b >= U32_BOUND {
-            // should fail
-            test_execution_failure(asm_opcode, &values, "FailedAssertion");
-        } else {
-            // should result in bitwise OR
-            test_execution(asm_opcode, &values, &[a | b])
-        }
+        test_execution(asm_opcode, &values, &[expected]);
     }
 
     #[test]
-    // issue: https://github.com/maticnetwork/miden/issues/74
-    fn u32xor_proptest(a in any::<u64>(), b in any::<u64>()) {
+    fn u32xor_proptest(a in any::<u32>(), b in any::<u32>()) {
         let asm_opcode = "u32xor";
-        let values = [b, a];
+        let values = [b as u64, a as u64];
+        // should result in bitwise XOR
+        let expected = (a ^ b) as u64;
 
-        if a >= U32_BOUND || b >= U32_BOUND {
-            // should fail
-            test_execution_failure(asm_opcode, &values, "FailedAssertion");
-        } else {
-            // should result in bitwise XOR
-            test_execution(asm_opcode, &values, &[a ^ b])
-        }
+        test_execution(asm_opcode, &values, &[expected]);
     }
 
     #[test]
-    fn u32not_proptest(value in any::<u64>()) {
+    fn u32not_proptest(value in any::<u32>()) {
         let asm_opcode = "u32not";
 
-        if value >= U32_BOUND {
-            // should fail
-            test_execution_failure(asm_opcode, &[value], "FailedAssertion");
-        } else {
-            // should result in bitwise NOT
-            test_execution(asm_opcode, &[value], &[!value])
-        }
+        // should result in bitwise NOT
+        test_execution(asm_opcode, &[value as u64], &[!value as u64]);
     }
 
     #[test]
     // https://github.com/maticnetwork/miden/issues/76
-    fn u32shl_proptest(a in any::<u64>(), b in 0_u32..32) {
+    fn u32shl_proptest(a in any::<u32>(), b in 0_u32..32) {
         let asm_opcode = format!("u32shl.{}", b);
 
-        if a >= U32_BOUND {
-            // should fail
-            test_execution_failure(&asm_opcode, &[a], "FailedAssertion");
-        } else {
-            // should execute left shift
-            let result =  (a << b) % U32_BOUND;
-            test_execution(&asm_opcode, &[a], &[result])
-        }
+        // should execute left shift
+        let expected =  a << b;
+        test_execution(&asm_opcode, &[a as u64], &[expected as u64]);
     }
 
     #[test]
     // https://github.com/maticnetwork/miden/issues/76
-    fn u32shr_proptest(a in any::<u64>(), b in 0_u32..32) {
+    fn u32shr_proptest(a in any::<u32>(), b in 0_u32..32) {
         let asm_opcode = format!("u32shr.{}", b);
 
-        if a >= U32_BOUND {
-            // should fail
-            test_execution_failure(&asm_opcode, &[a], "FailedAssertion");
-        } else {
-            // should execute right shift
-            let result =  a >> b;
-            test_execution(&asm_opcode, &[a], &[result])
-        }
+        // should execute right shift
+        let expected =  a >> b;
+        test_execution(&asm_opcode, &[a as u64], &[expected as u64]);
     }
 
     #[test]
     // https://github.com/maticnetwork/miden/issues/76
-    fn u32rotl_proptest(a in any::<u64>(), b in 0_u32..32) {
+    fn u32rotl_proptest(a in any::<u32>(), b in 0_u32..32) {
         let op_base = "u32rotl";
         let asm_opcode = format!("{}.{}", op_base, b);
 
-        if a >= U32_BOUND {
-            // should fail
-            test_execution_failure(&asm_opcode, &[a], "FailedAssertion");
-        } else {
-            // should execute left bit rotation
-            test_execution(&asm_opcode, &[a], &[(a as u32).rotate_left(b) as u64])
-        }
+        // should execute left bit rotation
+        test_execution(&asm_opcode, &[a as u64], &[a.rotate_left(b) as u64]);
     }
 
     #[test]
     // https://github.com/maticnetwork/miden/issues/76
-    fn u32rotr_proptest(a in any::<u64>(), b in 0_u32..32) {
+    fn u32rotr_proptest(a in any::<u32>(), b in 0_u32..32) {
         let op_base = "u32rotr";
         let asm_opcode = format!("{}.{}", op_base, b);
 
-        if a >= U32_BOUND {
-            // should fail
-            test_execution_failure(&asm_opcode, &[a], "FailedAssertion");
-        } else {
-            // should execute right bit rotation
-            test_execution(&asm_opcode, &[a], &[(a as u32).rotate_right(b) as u64])
-        }
+        // should execute right bit rotation
+        test_execution(&asm_opcode, &[a as u64], &[a.rotate_right(b) as u64]);
     }
 }
 
@@ -867,27 +796,16 @@ proptest! {
 
 proptest! {
     #[test]
-    #[ignore = "unimplemented"]
-    fn u32eq_proptest(a in any::<u64>(), b in any::<u64>()) {
-        let asm_opcode = "u32and";
-        let values = [b, a];
+    fn u32eq_proptest(a in any::<u32>(), b in any::<u32>()) {
+        let asm_op = "u32eq";
+        let values = [b as u64, a as u64];
 
-        if a >= U32_BOUND {
-            // should fail when a is out of bounds
-            test_execution_failure(asm_opcode, &values, "FailedAssertion");
-        } else if b >= U32_BOUND {
-            // should fail when b is out of bounds and provided as a parameter
-            test_param_out_of_bounds(asm_opcode, b);
-            // should fail when b is out of bounds and provided via the stack
-            test_execution_failure(asm_opcode, &values, "FailedAssertion");
-        } else {
-            // should test for equality
-            let expected = if a==b { 1 } else { 0 };
-            // b provided via the stack
-            test_execution(asm_opcode, &values, &[expected]);
-            // b provided as a parameter
-            test_execution(format!("{}.{}", asm_opcode, b).as_str(), &[a], &[expected]);
-        }
+        // should test for equality
+        let expected = if a == b { 1 } else { 0 };
+        // b provided via the stack
+        test_execution(asm_op, &values, &[expected]);
+        // b provided as a parameter
+        test_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
     }
 }
 
