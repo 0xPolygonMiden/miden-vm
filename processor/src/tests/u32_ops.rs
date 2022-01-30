@@ -1072,6 +1072,89 @@ proptest! {
             test_execution(format!("{}.{}", asm_opcode, b).as_str(), &[a], &[expected]);
         }
     }
+
+    #[test]
+    fn u32neq_proptest(a in any::<u32>(), b in any::<u32>()) {
+        let asm_op = "u32neq";
+        let values = [b as u64, a as u64];
+
+        // should test for inequality
+        let expected = if a != b { 1 } else { 0 };
+        // b provided via the stack
+        test_execution(asm_op, &values, &[expected]);
+        // b provided as a parameter
+        test_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
+    }
+
+    #[test]
+    fn u32lt_proptest(a in any::<u32>(), b in any::<u32>()) {
+        let expected = match a.cmp(&b) {
+            Ordering::Less => 1,
+            Ordering::Equal => 0,
+            Ordering::Greater => 0,
+        };
+
+        // safe and unsafe should produce the same result for valid values
+        test_execution("u32lt", &[b as u64, a as u64], &[expected]);
+        test_execution("u32lt.unsafe", &[b as u64, a as u64], &[expected]);
+    }
+
+    #[test]
+    fn u32lte_proptest(a in any::<u32>(), b in any::<u32>()) {
+        let expected = match a.cmp(&b) {
+            Ordering::Less => 1,
+            Ordering::Equal => 1,
+            Ordering::Greater => 0,
+        };
+
+        // safe and unsafe should produce the same result for valid values
+        test_execution("u32lte", &[b as u64, a as u64], &[expected]);
+        test_execution("u32lte.unsafe", &[b as u64, a as u64], &[expected]);
+    }
+
+    #[test]
+    fn u32gt_proptest(a in any::<u32>(), b in any::<u32>()) {
+        let expected = match a.cmp(&b) {
+            Ordering::Less => 0,
+            Ordering::Equal => 0,
+            Ordering::Greater => 1,
+        };
+
+        // safe and unsafe should produce the same result for valid values
+        test_execution("u32gt", &[b as u64, a as u64], &[expected]);
+        test_execution("u32gt.unsafe", &[b as u64, a as u64], &[expected]);
+    }
+
+    #[test]
+    fn u32gte_proptest(a in any::<u32>(), b in any::<u32>()) {
+        let expected = match a.cmp(&b) {
+            Ordering::Less => 0,
+            Ordering::Equal => 1,
+            Ordering::Greater => 1,
+        };
+
+        // safe and unsafe should produce the same result for valid values
+        test_execution("u32gte", &[b as u64, a as u64], &[expected]);
+        test_execution("u32gte.unsafe", &[b as u64, a as u64], &[expected]);
+    }
+
+    #[test]
+    fn u32min_proptest(a in any::<u32>(), b in any::<u32>()) {
+        let expected = if a < b { a } else { b };
+
+        // safe and unsafe should produce the same result for valid values
+        test_execution("u32min", &[b as u64, a as u64], &[expected as u64]);
+        test_execution("u32min.unsafe", &[b as u64, a as u64], &[expected as u64]);
+    }
+
+    #[test]
+    fn u32max_proptest(a in any::<u32>(), b in any::<u32>()) {
+        let expected = if a > b { a } else { b };
+
+        // safe and unsafe should produce the same result for valid values
+        test_execution("u32max", &[b as u64, a as u64], &[expected as u64]);
+        test_execution("u32max.unsafe", &[b as u64, a as u64], &[expected as u64]);
+    }
 }
 
 // HELPER FUNCTIONS
