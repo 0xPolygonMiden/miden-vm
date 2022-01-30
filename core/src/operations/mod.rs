@@ -311,8 +311,10 @@ pub enum Operation {
     SDepth,
 
     // ----- cryptographic operations -------------------------------------------------------------
-    /// Applies Rescue Prime permutation to the top 12 elements of the stack. The outer part of the
-    /// sponge is assumed to be at the top of the stack.
+    /// Applies Rescue Prime permutation to the top 12 elements of the stack. The rate part of the
+    /// sponge is assumed to be on top of the stack, and the capacity is expected to be deepest in
+    /// the stack, starting at stack[8]. For a Rescue Prime permutation of [A, B, C] where A is the
+    /// capacity, the stack should look like [C, B, A, ...] from the top.
     RpPerm,
 
     /// Computes a root of a Merkle path for the specified node. This operation can be used to

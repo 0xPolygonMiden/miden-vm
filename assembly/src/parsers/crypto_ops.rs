@@ -9,19 +9,22 @@ const RPHASH_NUM_ELEMENTS: u64 = 8;
 
 /// Appends RPPERM and stack manipulation operations to the span block as required to compute a
 /// 2-to-1 Rescue Prime hash. The top of the stack is expected to be arranged with 2 words
-/// (8 elements) to be hashed: [B, A, ...].
+/// (8 elements) to be hashed: [B, A, ...]. The resulting stack will contain the 2-to-1 hash result
+/// [E, ...].
 ///
 /// This assembly operation uses the VM operation RPPERM at its core, which permutes the top 12
 /// elements of the stack.
 ///
 /// To perform the operation, we do the following:
-/// 1. Prepare the stack with 12 elements for RPPERM by pushing 4 more elements, the last of which
-///    must equal the number of elements to be hashed (8).
-/// 2. Append the RPPERM operation, which performs a Rescue Prime permutation on the top 12
-///    elements and leaves an output of [E, D, C, ...] on the stack. E is our 2-to-1 hash result.
-/// 3. Prepare to drop D and C by moving E further down the stack. This can be achieved by
-///    swapping E and C with the SWAPW2 operation.
-/// 4. Drop the top 8 elements from the stack, leaving our hash result at the top: [E, ...].
+/// 1. Prepare the stack with 12 elements for RPPERM by pushing 4 more elements for the capacity,
+///    including the number of elements to be hashed (8), so the stack looks like [C, B, A, ...]
+///    where C is the capacity, and the number of elements is the deepest element in C.
+/// 2. Reorder the stack so the capacity is deepest in the stack [B, A, C, ...]
+/// 3. Append the RPPERM operation, which performs a Rescue Prime permutation on the top 12
+///    elements and leaves an output of [F, E, D, ...] on the stack. E is our 2-to-1 hash result.
+/// 4. Drop F and D to return our result [E, ...].
+///
+/// This operation takes 16 VM cycles.
 ///
 /// # Errors
 /// Returns an AssemblyError if:
@@ -34,21 +37,30 @@ pub fn parse_rphash(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
         return Err(AssemblyError::unexpected_token(op, "rphash"));
     }
 
-    // Add 4 elements to the stack to prepare for the Rescue Prime permutation
-    // The element on top of the stack should be the number of elements to be hashed
+    // Add 4 elements to the stack to prepare the capacity portion for the Rescue Prime permutation
+    // The capacity should start at stack[8], and the number of elements to be hashed should
+    // be deepest in the stack at stack[11]
+    span_ops.push(Operation::Push(BaseElement::new(RPHASH_NUM_ELEMENTS)));
     for _ in 0..3 {
         span_ops.push(Operation::Pad);
     }
-    span_ops.push(Operation::Push(BaseElement::new(RPHASH_NUM_ELEMENTS)));
+    span_ops.push(Operation::SwapW2);
+    // restore the order of the top 2 words to be hashed
+    span_ops.push(Operation::SwapW);
 
     // Do the Rescue Prime permutation on the top 12 elements in the stack
     span_ops.push(Operation::RpPerm);
 
-    // Swap the top word (our result) with the 3rd word so we can easily drop words 2 and 3
-    span_ops.push(Operation::SwapW2);
+    // Drop 4 elements (the part of the rate that doesn't have our result)
+    for _ in 0..4 {
+        span_ops.push(Operation::Drop);
+    }
 
-    // Drop 8 elements
-    for _ in 0..8 {
+    // Move the top word (our result) down the stack
+    span_ops.push(Operation::SwapW);
+
+    // Drop 4 elements (the capacity portion)
+    for _ in 0..4 {
         span_ops.push(Operation::Drop);
     }
 
@@ -57,6 +69,8 @@ pub fn parse_rphash(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 
 /// Appends an RPPERM operation to the span block, which performs a Rescue Prime permutation on the
 /// top 12 elements of the stack.
+///
+/// This operation takes 1 cycle.
 ///
 /// # Errors
 /// Returns an AssemblyError if:

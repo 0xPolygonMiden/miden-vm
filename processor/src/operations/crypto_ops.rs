@@ -8,8 +8,11 @@ use super::{ExecutionError, Process};
 impl Process {
     // HASHING OPERATIONS
     // --------------------------------------------------------------------------------------------
-    /// Applies Rescue Prime permutation to the top 12 elements of the stack. The outer part of the
-    /// state is assumed to be at the top of the stack.
+    /// Applies Rescue Prime permutation to the top 12 elements of the stack. The stack is assumed
+    /// to be arranged so that the 8 elements of the rate are at the top of the stack. The capacity
+    /// word follows, with the number of elements to be hashed at the deepest position in stack[11].
+    /// For a Rescue Prime permutation of [A, B, C] where A is the capacity, the stack should be
+    /// arranged (from the top) as [C, B, A, ...].
     ///
     /// # Errors
     /// Returns an error if the stack contains fewer than 12 elements.
@@ -17,23 +20,23 @@ impl Process {
         self.stack.check_depth(12, "RPPERM")?;
 
         let input_state = [
-            self.stack.get(0),
-            self.stack.get(1),
-            self.stack.get(2),
-            self.stack.get(3),
-            self.stack.get(4),
-            self.stack.get(5),
-            self.stack.get(6),
-            self.stack.get(7),
-            self.stack.get(8),
-            self.stack.get(9),
-            self.stack.get(10),
             self.stack.get(11),
+            self.stack.get(10),
+            self.stack.get(9),
+            self.stack.get(8),
+            self.stack.get(7),
+            self.stack.get(6),
+            self.stack.get(5),
+            self.stack.get(4),
+            self.stack.get(3),
+            self.stack.get(2),
+            self.stack.get(1),
+            self.stack.get(0),
         ];
 
         let (_addr, output_state) = self.hasher.permute(input_state);
 
-        for (i, &value) in output_state.iter().enumerate() {
+        for (i, &value) in output_state.iter().rev().enumerate() {
             self.stack.set(i, value);
         }
         self.stack.copy_state(12);

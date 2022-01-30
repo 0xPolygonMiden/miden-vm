@@ -45,7 +45,7 @@ impl Hasher {
                 // TODO: record state into a trace
                 apply_round(&mut state, i);
             }
-            root = [state[0], state[1], state[2], state[3]];
+            root = [state[4], state[5], state[6], state[7]];
             index >>= 1;
         }
 
@@ -82,8 +82,8 @@ impl Hasher {
                 apply_round(&mut old_state, i);
                 apply_round(&mut new_state, i);
             }
-            old_root = [old_state[0], old_state[1], old_state[2], old_state[3]];
-            new_root = [new_state[0], new_state[1], new_state[2], new_state[3]];
+            old_root = [old_state[4], old_state[5], old_state[6], old_state[7]];
+            new_root = [new_state[4], new_state[5], new_state[6], new_state[7]];
             index >>= 1;
         }
 
@@ -97,6 +97,10 @@ impl Hasher {
 
 fn build_merge_state(a: &Word, b: &Word) -> HasherState {
     [
+        Felt::new(8),
+        Felt::ZERO,
+        Felt::ZERO,
+        Felt::ZERO,
         a[0],
         a[1],
         a[2],
@@ -105,9 +109,5 @@ fn build_merge_state(a: &Word, b: &Word) -> HasherState {
         b[1],
         b[2],
         b[3],
-        Felt::ZERO,
-        Felt::ZERO,
-        Felt::ZERO,
-        Felt::new(8),
     ]
 }
