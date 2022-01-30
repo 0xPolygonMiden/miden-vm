@@ -18,7 +18,7 @@ impl ExecutionTrace {
     /// Builds an execution trace for the provided process.
     pub(super) fn new(process: Process) -> Self {
         let Process {
-            step,
+            system,
             decoder: _,
             stack,
             hasher: _,
@@ -27,6 +27,7 @@ impl ExecutionTrace {
             advice: _,
         } = process;
 
+        let step = system.clk();
         let mut stack_trace = stack.into_trace();
         for column in stack_trace.iter_mut() {
             finalize_column(column, step);

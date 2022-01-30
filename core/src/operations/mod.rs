@@ -17,6 +17,13 @@ pub enum Operation {
     /// Pops the stack; if the popped value is not 1, execution fails.
     Assert,
 
+    /// Pops an element off the stack, adds the current value of the `fmp` register to it, and
+    /// pushes the result back onto the stack.
+    FmpAdd,
+
+    /// Pops an element off the stack and adds it to the current value of `fmp` register.
+    FmpUpdate,
+
     // ----- flow control operations --------------------------------------------------------------
     /// Marks the beginning of a join block.
     Join,
@@ -300,13 +307,6 @@ pub enum Operation {
     /// 4 elements at the top of the stack into memory at the specified address.
     StoreW,
 
-    /// Pops an element off the stack, adds the current value of the `fmp` register to it, and
-    /// pushes the result back onto the stack.
-    FmpAdd,
-
-    /// Pops an element off the stack and adds it to the current value of `fmp` register.
-    FmpUpdate,
-
     /// Pushes the current depth of the stack onto the stack.
     SDepth,
 
@@ -373,6 +373,9 @@ impl Operation {
         match self {
             Self::Noop => Some(0b0000_0000),
             Self::Assert => Some(0b0000_0001),
+
+            Self::FmpAdd => Some(0b0011_1101),
+            Self::FmpUpdate => Some(0b0011_1101),
 
             Self::Push(_) => Some(0b0000_0010),
 
@@ -453,9 +456,6 @@ impl Operation {
             Self::Read => Some(0b0011_1100),
             Self::ReadW => Some(0b0011_1101),
 
-            Self::FmpAdd => Some(0b0011_1101),
-            Self::FmpUpdate => Some(0b0011_1101),
-
             Self::SDepth => Some(0b0011_1101),
 
             Self::RpPerm => Some(0b0011_1111),
@@ -500,6 +500,9 @@ impl fmt::Display for Operation {
             // ----- system operations ------------------------------------------------------------
             Self::Noop => write!(f, "noop"),
             Self::Assert => write!(f, "assert"),
+
+            Self::FmpAdd => write!(f, "fmpadd"),
+            Self::FmpUpdate => write!(f, "fmpupdate"),
 
             // ----- flow control operations ------------------------------------------------------
             Self::Join => write!(f, "join"),
@@ -593,9 +596,6 @@ impl fmt::Display for Operation {
 
             Self::LoadW => write!(f, "loadw"),
             Self::StoreW => write!(f, "storew"),
-
-            Self::FmpAdd => write!(f, "fmpadd"),
-            Self::FmpUpdate => write!(f, "fmpupdate"),
 
             Self::SDepth => write!(f, "sdepth"),
 

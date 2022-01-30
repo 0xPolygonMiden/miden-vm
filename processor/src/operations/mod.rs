@@ -143,7 +143,7 @@ impl Process {
 
     /// Increments the clock cycle for all components of the process.
     fn advance_clock(&mut self) {
-        self.step += 1;
+        self.system.advance_clock();
         self.stack.advance_clock();
         self.memory.advance_clock();
         self.advice.advance_clock();
@@ -151,6 +151,7 @@ impl Process {
 
     /// Makes sure there is enough memory allocated for the trace to accommodate a new clock cycle.
     fn ensure_trace_capacity(&mut self) {
+        self.system.ensure_trace_capacity();
         self.stack.ensure_trace_capacity();
     }
 
