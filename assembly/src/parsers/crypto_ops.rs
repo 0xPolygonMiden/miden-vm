@@ -377,33 +377,6 @@ mod tests {
     }
 
     #[test]
-    fn rphash() {
-        // adds a word to the stack specifying the number of elements to be hashed (8)
-        // does a rescue prime permutation
-        // keeps the top word as the result but drops the other 8 elements
-        let mut span_ops: Vec<Operation> = Vec::new();
-        let op = Token::new("rphash", 0);
-
-        // state of stack before permutation
-        let mut expected = vec![
-            Operation::Pad,
-            Operation::Pad,
-            Operation::Pad,
-            Operation::Push(BaseElement::new(8)),
-        ];
-        // rp permutation leaves stack as [A, B, C,...]
-        expected.push(Operation::RpPerm);
-        // swap A and C, since A is the result we want --> gives [C, B, A, ...]
-        expected.push(Operation::SwapW2);
-        // drop C, B
-        let drop8 = vec![Operation::Drop; 8];
-        expected.extend_from_slice(&drop8);
-
-        parse_rphash(&mut span_ops, &op).expect("Failed to parse rphash");
-        assert_eq!(span_ops, expected);
-    }
-
-    #[test]
     fn rphash_invalid() {
         // parse_rphash should return an error if called with an invalid or incorrect operation
         let mut span_ops: Vec<Operation> = Vec::new();

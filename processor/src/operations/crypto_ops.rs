@@ -217,29 +217,49 @@ mod tests {
     };
     use crate::Word;
     use rand_utils::rand_vector;
-    use vm_core::{hasher::hash_elements, AdviceSet, ProgramInputs};
+    use vm_core::{
+        hasher::{apply_permutation, STATE_WIDTH},
+        AdviceSet, ProgramInputs,
+    };
 
     #[test]
     fn op_rpperm() {
-        // --- test hashing [ONE, ONE] ----------------------------------------
-        let expected = hash_elements(&[Felt::ONE, Felt::ONE]);
-
+        // --- test hashing [ONE, ONE] ------------------------------------------------------------
         let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1]);
+        let inputs: [u64; STATE_WIDTH] = [2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
+        let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
+
+        init_stack_with(&mut process, &inputs);
         process.execute_op(Operation::RpPerm).unwrap();
-        assert_eq!(expected.as_elements(), &process.stack.trace_state()[..4]);
+        assert_eq!(expected, &process.stack.trace_state()[0..12]);
 
-        // --- test hashing 8 random values -----------------------------------
-        let mut values = rand_vector::<u64>(8);
-        let expected = hash_elements(&values.iter().map(|&v| Felt::new(v)).collect::<Vec<_>>());
-
+        // --- test hashing 8 random values -------------------------------------------------------
         let mut process = Process::new_dummy();
-        values.extend_from_slice(&[0, 0, 0, 8]);
-        // reverse the values so that the outer part of the state is at the top of the stack
-        values.reverse();
-        init_stack_with(&mut process, &values);
+        let values = rand_vector::<u64>(8);
+        // add the capacity to prepare the input vector
+        let mut inputs: Vec<u64> = vec![values.len() as u64, 0, 0, 0];
+        inputs.extend_from_slice(&values);
+        let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
+
+        init_stack_with(&mut process, &inputs);
         process.execute_op(Operation::RpPerm).unwrap();
-        assert_eq!(expected.as_elements(), &process.stack.trace_state()[..4]);
+
+        assert_eq!(expected, &process.stack.trace_state()[0..12]);
+
+        // --- test that the rest of the stack isn't affected -------------------------------------
+        let mut process = Process::new_dummy();
+        let mut inputs: Vec<u64> = vec![1, 2, 3, 4];
+        let expected = inputs
+            .iter()
+            .rev()
+            .map(|&v| Felt::new(v))
+            .collect::<Vec<Felt>>();
+        let values: Vec<u64> = vec![2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
+        inputs.extend_from_slice(&values);
+
+        init_stack_with(&mut process, &inputs);
+        process.execute_op(Operation::RpPerm).unwrap();
+        assert_eq!(expected, &process.stack.trace_state()[12..16]);
     }
 
     #[test]
@@ -409,6 +429,17 @@ mod tests {
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = value;
         }
+        expected
+    }
+
+    fn build_expected_perm(values: &[u64]) -> [Felt; STATE_WIDTH] {
+        let mut expected = [Felt::ZERO; STATE_WIDTH];
+        for (&value, result) in values.iter().zip(expected.iter_mut()) {
+            *result = Felt::new(value);
+        }
+        apply_permutation(&mut expected);
+        expected.reverse();
+
         expected
     }
 }

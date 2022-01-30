@@ -1,31 +1,90 @@
 use super::{build_inputs, build_stack_state, compile, execute, Felt, FieldElement, Word};
 use rand_utils::rand_vector;
-use vm_core::{hasher::hash_elements, AdviceSet, ProgramInputs, StarkField};
+use vm_core::{
+    hasher::{apply_permutation, hash_elements, STATE_WIDTH},
+    AdviceSet, ProgramInputs, StarkField,
+};
 
 // TESTS
 // ================================================================================================
 
 #[test]
 fn rpperm() {
-    // --- test hashing [ONE, ONE] ----------------------------------------
-    let expected = hash_elements(&[Felt::ONE, Felt::ONE]);
-    let inputs = build_inputs(&[1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2]);
     let script = compile("begin rpperm end");
-
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    assert_eq!(expected.as_elements(), &last_state[..4]);
-
-    // --- test hashing 8 random values -----------------------------------
-    let mut values = rand_vector::<u64>(8);
-    let expected = hash_elements(&values.iter().map(|&v| Felt::new(v)).collect::<Vec<_>>());
-    values.extend_from_slice(&[0, 0, 0, 8]);
+    // --- test hashing [ONE, ONE] ----------------------------------------------------------------
+    let mut values: Vec<u64> = vec![0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 2];
     let inputs = build_inputs(&values);
-    let script = compile("begin rpperm end");
+    values.reverse();
+    let expected = build_expected_perm(&values);
 
     let trace = execute(&script, &inputs).unwrap();
     let last_state = trace.last_stack_state();
-    assert_eq!(expected.as_elements(), &last_state[..4]);
+    assert_eq!(expected, &last_state[0..12]);
+
+    // --- test hashing 8 random values -----------------------------------------------------------
+    let mut values = rand_vector::<u64>(8);
+    let capacity: Vec<u64> = vec![0, 0, 0, 8];
+    values.extend_from_slice(&capacity);
+    let inputs = build_inputs(&values);
+    values.reverse();
+    let expected = build_expected_perm(&values);
+
+    let trace = execute(&script, &inputs).unwrap();
+    let last_state = trace.last_stack_state();
+    assert_eq!(expected, &last_state[0..12]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let mut values: Vec<u64> = vec![0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 2];
+    let rest_of_stack = [1, 2, 3, 4];
+    values.extend_from_slice(&rest_of_stack);
+    let inputs = build_inputs(&values);
+    let expected = rest_of_stack
+        .iter()
+        .map(|&v| Felt::new(v))
+        .collect::<Vec<Felt>>();
+
+    let trace = execute(&script, &inputs).unwrap();
+    let last_state = trace.last_stack_state();
+    assert_eq!(expected, &last_state[12..16]);
+}
+
+#[test]
+fn rphash() {
+    let script = compile("begin rphash end");
+
+    // --- test hashing [ONE, ONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO] ----------------------------
+    let mut values = [0, 0, 0, 0, 0, 0, 1, 1];
+    let inputs = build_inputs(&values);
+    values.reverse();
+    let expected = build_expected_hash(&values);
+
+    let trace = execute(&script, &inputs).unwrap();
+    let last_state = trace.last_stack_state();
+    assert_eq!(expected, &last_state[..4]);
+
+    // --- test hashing 8 random values -----------------------------------------------------------
+    let mut values = rand_vector::<u64>(8);
+    let inputs = build_inputs(&values);
+    values.reverse();
+    let expected = build_expected_hash(&values);
+
+    let trace = execute(&script, &inputs).unwrap();
+    let last_state = trace.last_stack_state();
+    assert_eq!(expected, &last_state[..4]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let mut values = vec![0, 0, 0, 0, 0, 0, 1, 1];
+    let rest_of_stack = [1, 2, 3, 4];
+    values.extend_from_slice(&rest_of_stack);
+    let inputs = build_inputs(&values);
+    let expected = rest_of_stack
+        .iter()
+        .map(|&v| Felt::new(v))
+        .collect::<Vec<Felt>>();
+
+    let trace = execute(&script, &inputs).unwrap();
+    let last_state = trace.last_stack_state();
+    assert_eq!(expected, &last_state[4..8]);
 }
 
 #[test]
@@ -136,6 +195,25 @@ fn mtree_update() {
 
 // HELPER FUNCTIONS
 // ================================================================================================
+
+fn build_expected_perm(values: &[u64]) -> [Felt; STATE_WIDTH] {
+    let mut expected = [Felt::ZERO; STATE_WIDTH];
+    for (&value, result) in values.iter().zip(expected.iter_mut()) {
+        *result = Felt::new(value);
+    }
+    apply_permutation(&mut expected);
+    expected.reverse();
+
+    expected
+}
+
+fn build_expected_hash(values: &[u64]) -> [Felt; 4] {
+    let digest = hash_elements(&values.iter().map(|&v| Felt::new(v)).collect::<Vec<_>>());
+    let mut expected: [Felt; 4] = digest.into();
+    expected.reverse();
+
+    expected
+}
 
 fn init_leaves(values: &[u64]) -> Vec<Word> {
     values.iter().map(|&v| init_leaf(v)).collect()
