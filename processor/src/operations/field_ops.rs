@@ -62,7 +62,7 @@ impl Process {
 
         let a = self.stack.get(0);
         if a == Felt::ZERO {
-            return Err(ExecutionError::DivideByZero(self.step));
+            return Err(ExecutionError::DivideByZero(self.system.clk()));
         }
 
         self.stack.set(0, a.inv());

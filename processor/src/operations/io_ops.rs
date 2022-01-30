@@ -83,17 +83,6 @@ impl Process {
         Ok(())
     }
 
-    // FREE MEMORY POINTER
-    // --------------------------------------------------------------------------------------------
-
-    pub(super) fn op_fmpadd(&mut self) -> Result<(), ExecutionError> {
-        unimplemented!()
-    }
-
-    pub(super) fn op_fmpupdate(&mut self) -> Result<(), ExecutionError> {
-        unimplemented!()
-    }
-
     // ADVICE INPUTS
     // --------------------------------------------------------------------------------------------
 

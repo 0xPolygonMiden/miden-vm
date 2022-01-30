@@ -50,7 +50,6 @@ impl Stack {
     }
 
     /// Returns execution trace length for this stack.
-    #[allow(dead_code)]
     pub fn trace_length(&self) -> usize {
         self.trace[0].len()
     }

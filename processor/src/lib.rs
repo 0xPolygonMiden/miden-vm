@@ -9,6 +9,9 @@ use vm_core::{
 
 mod operations;
 
+mod system;
+use system::System;
+
 mod decoder;
 use decoder::Decoder;
 
@@ -59,7 +62,7 @@ pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace
 // ================================================================================================
 
 struct Process {
-    step: usize,
+    system: System,
     decoder: Decoder,
     stack: Stack,
     hasher: Hasher,
@@ -71,7 +74,7 @@ struct Process {
 impl Process {
     pub fn new(inputs: ProgramInputs) -> Self {
         Self {
-            step: 0,
+            system: System::new(4),
             decoder: Decoder::new(),
             stack: Stack::new(&inputs, 4),
             hasher: Hasher::new(),
