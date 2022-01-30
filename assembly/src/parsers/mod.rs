@@ -180,7 +180,7 @@ fn parse_int_param(
             op,
             param_idx,
             format!(
-                "parameter value must be greater than {} and less than than {}",
+                "parameter value must be greater than or equal to {} and less than or equal to {}",
                 lower_bound, upper_bound
             )
             .as_str(),

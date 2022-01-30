@@ -543,7 +543,7 @@ mod tests {
 
         // parameter out of bounds
         let reason = format!(
-            "parameter value must be greater than {} and less than than {}",
+            "parameter value must be greater than or equal to {} and less than or equal to {}",
             1, ADVICE_READ_LIMIT
         );
         // less than lower bound
