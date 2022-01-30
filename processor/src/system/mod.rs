@@ -41,7 +41,7 @@ impl System {
         self.fmp
     }
 
-    /// Returns execution trace length of for a process.
+    /// Returns execution trace length for a process.
     #[inline(always)]
     pub fn trace_length(&self) -> usize {
         self.clk_trace.len()
