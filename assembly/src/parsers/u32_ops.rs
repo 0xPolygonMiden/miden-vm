@@ -24,8 +24,8 @@ pub fn parse_u32test(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
 
 /// Translates u32testw assembly instruction to VM operations.
 ///
-/// Implemented by executing `DUP U32SPLIT SWAP DROP EQZ` on each element in the word,
-/// with a total of 28 VM cycles.
+/// Implemented by executing DUP U32SPLIT SWAP DROP EQZ on each element in the word
+/// and combining the results using AND operation (total of 23 VM cycles)
 pub fn parse_u32testw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
@@ -36,7 +36,6 @@ pub fn parse_u32testw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
             span_ops.push(Operation::Swap);
             span_ops.push(Operation::Drop);
             span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::Not);
 
             // Test the third element
             span_ops.push(Operation::Dup3);
@@ -44,8 +43,7 @@ pub fn parse_u32testw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
             span_ops.push(Operation::Swap);
             span_ops.push(Operation::Drop);
             span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Or);
+            span_ops.push(Operation::And);
 
             // Test the second element
             span_ops.push(Operation::Dup2);
@@ -53,8 +51,7 @@ pub fn parse_u32testw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
             span_ops.push(Operation::Swap);
             span_ops.push(Operation::Drop);
             span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Or);
+            span_ops.push(Operation::And);
 
             // Test the first element
             span_ops.push(Operation::Dup1);
@@ -62,11 +59,7 @@ pub fn parse_u32testw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
             span_ops.push(Operation::Swap);
             span_ops.push(Operation::Drop);
             span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::Not);
-            span_ops.push(Operation::Or);
-
-            // Flip the result to return 1 if all results are u32
-            span_ops.push(Operation::Not);
+            span_ops.push(Operation::And);
         }
         _ => return Err(AssemblyError::extra_param(op)),
     }
