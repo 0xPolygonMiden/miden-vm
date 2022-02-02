@@ -1478,6 +1478,158 @@ proptest! {
     }
 }
 
+// U32 OPERATIONS TESTS - RANDOMIZED - ARITHMETIC OPERATIONS
+// ================================================================================================
+proptest! {
+    #[test]
+    fn u32add_proptest(a in any::<u16>(), b in any::<u16>()) {
+        let asm_op = "u32add";
+
+        let expected = a as u64 + b as u64;
+
+        // b provided via the stack
+        test_execution(asm_op, &[b as u64, a as u64], &[expected]);
+        // b provided as a parameter
+        test_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
+    }
+
+    #[test]
+    fn u32add_full_proptest(a in any::<u32>(), b in any::<u32>()) {
+        let asm_op = "u32add";
+
+        let (c, overflow) = a.overflowing_add(b);
+        let d = if overflow { 1 } else { 0 };
+
+        // full and unsafe should produce the same result for valid values
+        test_execution(format!("{}.full", asm_op).as_str(), &[b as u64, a as u64], &[d, c as u64]);
+        test_execution(format!("{}.unsafe", asm_op).as_str(), &[b as u64, a as u64], &[d, c as u64]);
+    }
+
+    #[test]
+    fn u32addc_proptest(a in any::<u32>(), b in any::<u32>(), c in 0_u32..1) {
+        let asm_op = "u32addc";
+
+        let (d, overflow_b) = a.overflowing_add(b);
+        let (d, overflow_c) = d.overflowing_add(c);
+        let e = if overflow_b || overflow_c { 1_u64 } else { 0_u64 };
+
+        // safe and unsafe should produce the same result for valid values
+        test_execution(asm_op, &[b as u64, a as u64, c as u64], &[e, d as u64]);
+        test_execution(format!("{}.unsafe", asm_op).as_str(), &[b as u64, a as u64, c as u64], &[e, d as u64]);
+    }
+
+    #[test]
+    fn u32sub_proptest(val1 in any::<u32>(), val2 in any::<u32>()) {
+        let asm_op = "u32sub";
+
+        // assign the larger value to a and the smaller value to b so all parameters are valid
+        let (a, b) = if val1 >= val2 {
+            (val1, val2)
+        } else {
+            (val2, val1)
+        };
+
+        let expected = a - b;
+        // b provided via the stack
+        test_execution(asm_op, &[b as u64, a as u64], &[expected as u64]);
+        // b provided as a parameter
+        test_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64]);
+    }
+
+    #[test]
+    fn u32sub_full_proptest(a in any::<u32>(), b in any::<u32>()) {
+        let asm_op = "u32sub";
+
+        // assign the larger value to a and the smaller value to b so all parameters are valid
+        let (c, overflow) = a.overflowing_sub(b);
+        let d = if overflow { 1 } else { 0 };
+
+        // full and unsafe should produce the same result for valid values
+        test_execution(format!("{}.full", asm_op).as_str(), &[b as u64, a as u64], &[d, c as u64]);
+        test_execution(format!("{}.unsafe", asm_op).as_str(), &[b as u64, a as u64], &[d, c as u64]);
+    }
+
+    #[test]
+    fn u32mul_proptest(a in any::<u16>(), b in any::<u16>()) {
+        let asm_op = "u32mul";
+
+        let expected = a as u64 * b as u64;
+
+        // b provided via the stack
+        test_execution(asm_op, &[b as u64, a as u64], &[expected]);
+        // b provided as a parameter
+        test_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
+    }
+
+    #[test]
+    fn u32mul_full_proptest(a in any::<u32>(), b in any::<u32>()) {
+        let asm_op = "u32mul";
+
+        let (c, overflow) = a.overflowing_mul(b);
+        let d = if !overflow {
+            0
+        } else {
+            (a as u64 * b as u64) / U32_BOUND
+        };
+
+        // full and unsafe should produce the same result for valid values
+        test_execution(format!("{}.full", asm_op).as_str(), &[b as u64, a as u64], &[d, c as u64]);
+        test_execution(format!("{}.unsafe", asm_op).as_str(), &[b as u64, a as u64], &[d, c as u64]);
+    }
+
+    #[test]
+    fn u32madd_proptest(a in any::<u32>(), b in any::<u32>(), c in any::<u32>()) {
+        let asm_op = "u32madd";
+
+        let madd = a as u64 * b as u64 + c as u64;
+        let d = madd % U32_BOUND;
+        let e = madd / U32_BOUND;
+
+        // safe and unsafe should produce the same result for valid values
+        test_execution(asm_op, &[b as u64, a as u64, c as u64], &[e, d as u64]);
+        test_execution(format!("{}.unsafe", asm_op).as_str(), &[b as u64, a as u64, c as u64], &[e, d as u64]);
+    }
+
+    #[test]
+    // issue: https://github.com/maticnetwork/miden/issues/94
+    fn u32div_proptest(a in any::<u32>(), b in 1..u32::MAX) {
+        let asm_op = "u32div";
+
+        let expected = a / b;
+
+        // b provided via the stack
+        test_execution(asm_op, &[b as u64, a as u64], &[expected as u64]);
+        // b provided as a parameter
+        test_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64]);
+    }
+
+    #[test]
+    fn u32div_full_proptest(a in any::<u32>(), b in 1..u32::MAX) {
+        let asm_op = "u32div";
+
+        let quot = (a / b) as u64;
+        let rem = (a % b) as u64;
+
+        // full and unsafe should produce the same result for valid values
+        test_execution(format!("{}.full", asm_op).as_str(), &[b as u64, a as u64], &[rem, quot]);
+        test_execution(format!("{}.unsafe", asm_op).as_str(), &[b as u64, a as u64], &[rem, quot]);
+    }
+
+    #[test]
+    fn u32mod_proptest(a in any::<u32>(), b in 1..u32::MAX) {
+        let asm_op = "u32mod";
+
+        let expected = a % b;
+
+        // b provided via the stack
+        test_execution(asm_op, &[b as u64, a as u64], &[expected as u64]);
+        // b provided as a parameter
+        test_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64]);
+        // safe and unsafe should produce the same result for valid values
+        test_execution(format!("{}.unsafe", asm_op).as_str(), &[b as u64, a as u64], &[expected as u64]);
+    }
+}
+
 // U32 OPERATIONS TESTS - RANDOMIZED - BITWISE OPERATIONS
 // ================================================================================================
 
