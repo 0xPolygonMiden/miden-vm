@@ -378,7 +378,7 @@ pub fn parse_u32shl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
             // assert the top of the stack is a u32 value
             assert_u32(span_ops);
 
-            let x = parse_int_param(op, 1, 1, 31)?;
+            let x = parse_int_param(op, 1, 0, 31)?;
             span_ops.push(Operation::Push(BaseElement::new(2u64.pow(x))));
             span_ops.push(Operation::Mul);
             span_ops.push(Operation::U32split);
@@ -403,7 +403,7 @@ pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
             // assert the top of the stack is a u32 value
             assert_u32(span_ops);
 
-            let x = parse_int_param(op, 1, 1, 31)?;
+            let x = parse_int_param(op, 1, 0, 31)?;
             span_ops.push(Operation::Push(BaseElement::new(2u64.pow(x))));
             span_ops.push(Operation::U32div);
             // drop the remainder and keep the quotient
@@ -428,7 +428,7 @@ pub fn parse_u32rotl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
             // assert the top of the stack is a u32 value
             assert_u32(span_ops);
 
-            let x = parse_int_param(op, 1, 1, 31)?;
+            let x = parse_int_param(op, 1, 0, 31)?;
             span_ops.push(Operation::Push(BaseElement::new(2u64.pow(x))));
             span_ops.push(Operation::Mul);
             span_ops.push(Operation::U32split);
@@ -453,7 +453,7 @@ pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
             // assert the top of the stack is a u32 value
             assert_u32(span_ops);
 
-            let x = parse_int_param(op, 1, 1, 31)?;
+            let x = parse_int_param(op, 1, 0, 31)?;
             span_ops.push(Operation::Push(BaseElement::new(2u64.pow(32 - x))));
             span_ops.push(Operation::Mul);
             span_ops.push(Operation::U32split);

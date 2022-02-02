@@ -13,6 +13,7 @@ const U32_BOUND: u64 = u32::MAX as u64 + 1;
 const WORD_LEN: usize = 4;
 
 // U32 OPERATIONS TESTS - MANUAL - CONVERSIONS AND TESTS
+
 // ================================================================================================
 
 #[test]
@@ -354,12 +355,13 @@ fn u32not_fail() {
 // https://github.com/maticnetwork/miden/issues/76
 fn u32shl() {
     // left shift: pops a from the stack and pushes (a * 2^b) mod 2^32 for a provided value b
-    let get_asm_op = |b: u64| format!("u32shl.{}", b);
+    let op_base = "u32shl";
+    let get_asm_op = |b: u32| format!("{}.{}", op_base, b);
     let get_result = |a, b| (a << b) % U32_BOUND;
 
     // --- test simple case -----------------------------------------------------------------------
     let a = 1_u64;
-    let b = 1_u64;
+    let b = 1_u32;
     test_execution(get_asm_op(b).as_str(), &[a], &[2]);
 
     // --- test max values of a and b -------------------------------------------------------------
@@ -372,12 +374,17 @@ fn u32shl() {
     );
 
     // --- test b = 0 -----------------------------------------------------------------------------
-    let a = rand_value::<u64>() as u64;
-    test_execution(get_asm_op(0).as_str(), &[a], &[a]);
+    let a = rand_value::<u64>() as u32;
+    let b = 0;
+    test_execution(
+        get_asm_op(b).as_str(),
+        &[a as u64],
+        &[get_result(a as u64, b)],
+    );
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
-    let b = rand_value::<u64>() % 32;
+    let b = (rand_value::<u64>() % 32) as u32;
     test_execution(
         get_asm_op(b).as_str(),
         &[a as u64],
@@ -397,12 +404,13 @@ fn u32shl_fail() {
 // https://github.com/maticnetwork/miden/issues/76
 fn u32shr() {
     // right shift: pops a from the stack and pushes a / 2^b for a provided value b
-    let get_asm_op = |b: u64| format!("u32shr.{}", b);
+    let op_base = "u32shr";
+    let get_asm_op = |b: u32| format!("{}.{}", op_base, b);
     let get_result = |a, b| a >> b;
 
     // --- test simple case -----------------------------------------------------------------------
     let a = 4_u64;
-    let b = 2_u64;
+    let b = 2_u32;
     test_execution(get_asm_op(b).as_str(), &[a], &[1]);
 
     // --- test max values of a and b -------------------------------------------------------------
@@ -415,12 +423,17 @@ fn u32shr() {
     );
 
     // --- test b = 0 ---------------------------------------------------------------------------
-    let a = rand_value::<u64>() as u64;
-    test_execution(get_asm_op(0).as_str(), &[a], &[a]);
+    let a = rand_value::<u64>() as u32;
+    let b = 0;
+    test_execution(
+        get_asm_op(b).as_str(),
+        &[a as u64],
+        &[get_result(a as u64, b)],
+    );
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
-    let b = rand_value::<u64>() % 32;
+    let b = (rand_value::<u64>() % 32) as u32;
     test_execution(
         get_asm_op(b).as_str(),
         &[a as u64],
@@ -464,8 +477,13 @@ fn u32rotl() {
     test_execution(get_asm_op(b).as_str(), &[a as u64], &[a as u64]);
 
     // --- test b = 0 ---------------------------------------------------------------------------
-    let a = rand_value::<u64>() as u64;
-    test_execution(get_asm_op(0).as_str(), &[a], &[a]);
+    let a = rand_value::<u64>() as u32;
+    let b = 0 as u32;
+    test_execution(
+        get_asm_op(b).as_str(),
+        &[a as u64],
+        &[a.rotate_left(b) as u64],
+    );
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
@@ -513,8 +531,13 @@ fn u32rotr() {
     test_execution(get_asm_op(b).as_str(), &[a as u64], &[a as u64]);
 
     // --- test b = 0 ---------------------------------------------------------------------------
-    let a = rand_value::<u64>() as u64;
-    test_execution(get_asm_op(0).as_str(), &[a], &[a]);
+    let a = rand_value::<u64>() as u32;
+    let b = 0 as u32;
+    test_execution(
+        get_asm_op(b).as_str(),
+        &[a as u64],
+        &[a.rotate_right(b) as u64],
+    );
 
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
