@@ -1,4 +1,9 @@
-use super::{AdviceInjector, ExecutionError, Process};
+use super::{AdviceInjector, DebugOptions, ExecutionError, Felt, Process, StarkField, Word};
+use core::ops::RangeInclusive;
+use log::info;
+
+#[cfg(test)]
+mod debug_tests;
 
 // DECORATORS
 // ================================================================================================
@@ -7,9 +12,89 @@ impl Process {
     // DEBUGGING
     // --------------------------------------------------------------------------------------------
 
-    /// TODO: implement
-    pub fn op_debug(&self) -> Result<(), ExecutionError> {
-        unimplemented!();
+    /// Prints out debugging information based on options passed.
+    pub fn op_debug(&mut self, options: DebugOptions) -> Result<(), ExecutionError> {
+        info!(
+            "---------------------cycle: {}---------------------",
+            self.system.clk()
+        );
+        match options {
+            DebugOptions::All => {
+                self.print_stack(None);
+                self.print_mem(None, None);
+                self.print_local();
+            }
+            DebugOptions::Stack(n) => self.print_stack(n),
+            DebugOptions::Memory(n, m) => self.print_mem(n, m),
+            DebugOptions::Local(_) => self.print_local(),
+        }
+
+        Ok(())
+    }
+
+    // DEBUG HELPER
+    // ---------------------------------------------------------------------------------
+
+    /// Prints stack information for debugging.
+    /// If n is passed, this prints the top n items in the stack.
+    fn print_stack(&self, n: Option<usize>) {
+        let states = self.stack.get_values(n);
+        let values = states
+            .iter()
+            .map(|v| v.as_int().to_string())
+            .collect::<Vec<String>>()
+            .join(", ");
+        let depth = self.stack.depth();
+        info!("stack ({} of {}) ---------", n.unwrap_or(depth), depth);
+        info!("{}", values);
+    }
+
+    /// Create the display string for printing a word.
+    /// Prints <empty> if no value exists.
+    fn fmt_word(word: Option<Word>) -> String {
+        let shorten = |v: Felt| format!("{:#016x}", v.as_int());
+        match word {
+            Some(v) => format!(
+                "[{}, {}, {}, {}]",
+                shorten(v[0]),
+                shorten(v[1]),
+                shorten(v[2]),
+                shorten(v[3])
+            ),
+            None => String::from("<empty>"),
+        }
+    }
+
+    /// Print the local variable that fmp pointer is referring to in memory.
+    fn print_local(&self) {
+        let local = self.memory.get_value(self.system.fmp().as_int());
+        info!("local: {}", Process::fmt_word(local));
+    }
+
+    /// Print memory with optional starting and ending addresses.
+    fn print_mem(&self, n: Option<u64>, m: Option<u64>) {
+        // Convert vec of words into options
+        let convert_vec = |v: Vec<(u64, Word)>| {
+            v.into_iter()
+                .map(|(k, v)| (k, Some(v)))
+                .collect::<Vec<(u64, Option<Word>)>>()
+        };
+        let values: Vec<(u64, Option<Word>)> = match (n, m) {
+            (Some(n), None) => {
+                let value = self.memory.get_value(n);
+                vec![(n, value)]
+            }
+            (Some(n), Some(m)) => convert_vec(self.memory.get_values(RangeInclusive::new(n, m))),
+            (None, None) => convert_vec(self.memory.get_all_values()),
+            _ => Vec::new(),
+        };
+
+        let size = values.iter().filter(|&n| n.1.is_some()).count();
+        info!("memory ({} of {}) ---------", size, self.memory.size());
+
+        for (address, value) in values {
+            info!("{:#016x}: {}", address, Process::fmt_word(value));
+        }
     }
 
     // ADVICE INJECTION
@@ -83,7 +168,7 @@ mod tests {
         let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
 
         let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
-        let inti_stack = [
+        let init_stack = [
             tree.depth() as u64,
             1,
             tree.root()[3].as_int(),
@@ -92,7 +177,7 @@ mod tests {
             tree.root()[0].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&inti_stack, &[], vec![tree.clone()]).unwrap();
+        let inputs = ProgramInputs::new(&init_stack, &[], vec![tree.clone()]).unwrap();
         let mut process = Process::new(inputs);
 
         // inject the node into the advice tape

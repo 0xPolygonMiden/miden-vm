@@ -3,6 +3,10 @@ use core::fmt;
 
 mod advice;
 pub use advice::AdviceInjector;
+mod debug;
+pub use debug::DebugOptions;
+#[cfg(test)]
+mod tests;
 
 // OPERATIONS
 // ================================================================================================
@@ -359,7 +363,7 @@ pub enum Operation {
     /// advance VM clock.
     ///
     /// TODO: add debug options to specify what is to be printed out.
-    Debug,
+    Debug(DebugOptions),
 
     /// Injects zero or more values at the head of the advice tape as specified by the injector.
     /// This operation affects only the advice tape, but has no effect on other VM components
@@ -472,7 +476,7 @@ impl Operation {
             Self::Respan => Some(0b0111_1000),
             Self::Span => Some(0b0111_1111),
 
-            Self::Debug => None,
+            Self::Debug(_) => None,
             Self::Advice(_) => None,
         }
     }
@@ -492,7 +496,7 @@ impl Operation {
     ///
     /// Additionally, decorators do not have assigned op codes.
     pub fn is_decorator(&self) -> bool {
-        matches!(self, Self::Debug | Self::Advice(_))
+        matches!(self, Self::Debug(_) | Self::Advice(_))
     }
 }
 
@@ -613,7 +617,7 @@ impl fmt::Display for Operation {
             }
 
             // ----- decorators -------------------------------------------------------------------
-            Self::Debug => write!(f, "debug"),
+            Self::Debug(options) => write!(f, "debug({})", options),
             Self::Advice(injector) => write!(f, "advice({})", injector),
         }
     }

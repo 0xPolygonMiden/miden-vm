@@ -4,7 +4,8 @@ use vm_core::{
         blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split},
         Script,
     },
-    AdviceInjector, Felt, FieldElement, Operation, ProgramInputs, StarkField, Word, STACK_TOP_SIZE,
+    AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StarkField, Word,
+    STACK_TOP_SIZE,
 };
 
 mod operations;

@@ -1,4 +1,5 @@
 use super::{Felt, FieldElement, StarkField, TraceFragment, Word};
+use core::ops::RangeInclusive;
 use winter_utils::collections::BTreeMap;
 
 #[cfg(test)]
@@ -82,7 +83,6 @@ impl Memory {
     // --------------------------------------------------------------------------------------------
 
     /// Returns current size of the memory (in words).
-    #[cfg(test)]
     pub fn size(&self) -> usize {
         self.trace.len()
     }
@@ -209,16 +209,31 @@ impl Memory {
         }
     }
 
-    // TEST METHODS
-    // --------------------------------------------------------------------------------------------
-
-    /// Instantiates a new processor for testing purposes.
-    #[cfg(test)]
+    /// Returns a word located at the specified address, or None if the address hasn't been
+    /// accessed previously.
+    /// Unlike read() that modifies the underlying map, get_value() only attempts to read
+    /// or return None when no value exists.
     pub fn get_value(&self, addr: u64) -> Option<Word> {
         match self.trace.get(&addr) {
             Some(addr_trace) => addr_trace.last().map(|(_, value)| *value),
             None => None,
         }
+    }
+
+    /// Returns all the addresses and values stored in memory.
+    pub fn get_all_values(&self) -> Vec<(u64, Word)> {
+        self.get_values(RangeInclusive::new(0, u64::MAX))
+    }
+
+    /// Returns values within a range of addresses.
+    pub fn get_values(&self, range: RangeInclusive<u64>) -> Vec<(u64, Word)> {
+        let mut data: Vec<(u64, Word)> = Vec::new();
+        for (&addr, addr_trace) in self.trace.range(range) {
+            let value = addr_trace.last().expect("empty address trace").1;
+            data.push((addr, value));
+        }
+
+        data
     }
 }
 

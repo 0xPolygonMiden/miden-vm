@@ -66,6 +66,23 @@ impl Stack {
         Ok(self.trace[0][self.step])
     }
 
+    /// Return states from the stack, which includes both the trace state and overflow table.
+    /// If n is not passed in, this returns all states.
+    pub fn get_values(&self, n: Option<usize>) -> Vec<Felt> {
+        let n = n.unwrap_or(usize::MAX);
+        let num_items = cmp::min(n, self.depth());
+
+        let num_top_items = cmp::min(STACK_TOP_SIZE, num_items);
+        let mut result = self.trace_state()[..num_top_items].to_vec();
+
+        if num_items > STACK_TOP_SIZE {
+            let num_overflow_items = num_items - STACK_TOP_SIZE;
+            result.extend_from_slice(&self.overflow[..num_overflow_items]);
+        }
+
+        result
+    }
+
     /// Returns trace state at the current step.
     ///
     /// Trace state is always 16 elements long and contains the top 16 values of the stack. When
