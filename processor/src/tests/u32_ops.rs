@@ -37,7 +37,6 @@ fn u32test() {
 }
 
 #[test]
-// issue: https://github.com/maticnetwork/miden/issues/71
 fn u32testw() {
     let asm_op = "u32testw";
 
@@ -939,25 +938,23 @@ fn u32not_fail() {
 }
 
 #[test]
-// https://github.com/maticnetwork/miden/issues/76
 fn u32shl() {
     // left shift: pops a from the stack and pushes (a * 2^b) mod 2^32 for a provided value b
     let op_base = "u32shl";
     let get_asm_op = |b: u32| format!("{}.{}", op_base, b);
-    let get_result = |a, b| (a << b) % U32_BOUND;
 
     // --- test simple case -----------------------------------------------------------------------
-    let a = 1_u64;
+    let a = 1_u32;
     let b = 1_u32;
-    test_execution(get_asm_op(b).as_str(), &[a], &[2]);
+    test_execution(get_asm_op(b).as_str(), &[a as u64], &[2]);
 
     // --- test max values of a and b -------------------------------------------------------------
-    let a = U32_BOUND - 1;
+    let a = (U32_BOUND - 1) as u32;
     let b = 31;
     test_execution(
         get_asm_op(b).as_str(),
         &[U32_BOUND - 1],
-        &[get_result(a, b)],
+        &[a.wrapping_shl(b) as u64],
     );
 
     // --- test b = 0 -----------------------------------------------------------------------------
@@ -966,7 +963,7 @@ fn u32shl() {
     test_execution(
         get_asm_op(b).as_str(),
         &[a as u64],
-        &[get_result(a as u64, b)],
+        &[a.wrapping_shl(b) as u64],
     );
 
     // --- test random values ---------------------------------------------------------------------
@@ -975,7 +972,7 @@ fn u32shl() {
     test_execution(
         get_asm_op(b).as_str(),
         &[a as u64],
-        &[get_result(a as u64, b)],
+        &[a.wrapping_shl(b) as u64],
     );
 }
 
@@ -988,25 +985,23 @@ fn u32shl_fail() {
 }
 
 #[test]
-// https://github.com/maticnetwork/miden/issues/76
 fn u32shr() {
     // right shift: pops a from the stack and pushes a / 2^b for a provided value b
     let op_base = "u32shr";
     let get_asm_op = |b: u32| format!("{}.{}", op_base, b);
-    let get_result = |a, b| a >> b;
 
     // --- test simple case -----------------------------------------------------------------------
-    let a = 4_u64;
+    let a = 4_u32;
     let b = 2_u32;
-    test_execution(get_asm_op(b).as_str(), &[a], &[1]);
+    test_execution(get_asm_op(b).as_str(), &[a as u64], &[1]);
 
     // --- test max values of a and b -------------------------------------------------------------
-    let a = U32_BOUND - 1;
+    let a = (U32_BOUND - 1) as u32;
     let b = 31;
     test_execution(
         get_asm_op(b).as_str(),
         &[U32_BOUND - 1],
-        &[get_result(a, b)],
+        &[a.wrapping_shr(b) as u64],
     );
 
     // --- test b = 0 ---------------------------------------------------------------------------
@@ -1015,7 +1010,7 @@ fn u32shr() {
     test_execution(
         get_asm_op(b).as_str(),
         &[a as u64],
-        &[get_result(a as u64, b)],
+        &[a.wrapping_shr(b) as u64],
     );
 
     // --- test random values ---------------------------------------------------------------------
@@ -1024,7 +1019,7 @@ fn u32shr() {
     test_execution(
         get_asm_op(b).as_str(),
         &[a as u64],
-        &[get_result(a as u64, b)],
+        &[a.wrapping_shr(b) as u64],
     );
 }
 
@@ -1037,7 +1032,6 @@ fn u32shr_fail() {
 }
 
 #[test]
-// https://github.com/maticnetwork/miden/issues/76
 fn u32rotl() {
     // Computes c by rotating a 32-bit representation of a to the left by b bits.
     let op_base = "u32rotl";
@@ -1091,7 +1085,6 @@ fn u32rotl_fail() {
 }
 
 #[test]
-// https://github.com/maticnetwork/miden/issues/76
 fn u32rotr() {
     // Computes c by rotating a 32-bit representation of a to the right by b bits.
     let op_base = "u32rotr";
@@ -1696,7 +1689,6 @@ proptest! {
     }
 
     #[test]
-    // https://github.com/maticnetwork/miden/issues/76
     fn u32shl_proptest(a in any::<u32>(), b in 0_u32..32) {
         let asm_opcode = format!("u32shl.{}", b);
 
@@ -1706,7 +1698,6 @@ proptest! {
     }
 
     #[test]
-    // https://github.com/maticnetwork/miden/issues/76
     fn u32shr_proptest(a in any::<u32>(), b in 0_u32..32) {
         let asm_opcode = format!("u32shr.{}", b);
 
@@ -1716,7 +1707,6 @@ proptest! {
     }
 
     #[test]
-    // https://github.com/maticnetwork/miden/issues/76
     fn u32rotl_proptest(a in any::<u32>(), b in 0_u32..32) {
         let op_base = "u32rotl";
         let asm_opcode = format!("{}.{}", op_base, b);
@@ -1726,7 +1716,6 @@ proptest! {
     }
 
     #[test]
-    // https://github.com/maticnetwork/miden/issues/76
     fn u32rotr_proptest(a in any::<u32>(), b in 0_u32..32) {
         let op_base = "u32rotr";
         let asm_opcode = format!("{}.{}", op_base, b);
