@@ -50,3 +50,9 @@ pub fn hash_elements(elements: &[Felt]) -> Digest {
 pub fn apply_round(state: &mut [Felt; STATE_WIDTH], round: usize) {
     Rp64_256::apply_round(state, round)
 }
+
+/// Applies Rescue-XLIX permutation (7 rounds) to the provided state.
+#[inline(always)]
+pub fn apply_permutation(state: &mut [Felt; STATE_WIDTH]) {
+    Rp64_256::apply_permutation(state)
+}
