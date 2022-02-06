@@ -96,9 +96,9 @@ fn parse_op_token(op: &Token, span_ops: &mut Vec<Operation>) -> Result<(), Assem
         // ----- input / output operations --------------------------------------------------------
         "push" => io_ops::parse_push(span_ops, op),
         "pushw" => io_ops::parse_pushw(span_ops, op),
-        "env" => io_ops::parse_env(span_ops, op),
-        "adv" => io_ops::parse_adv(span_ops, op),
-        "mem" => io_ops::parse_mem(span_ops, op),
+        "popw" => io_ops::parse_popw(span_ops, op),
+        "loadw" => io_ops::parse_loadw(span_ops, op),
+        "storew" => io_ops::parse_storew(span_ops, op),
 
         // ----- cryptographic operations ---------------------------------------------------------
         "rphash" => crypto_ops::parse_rphash(span_ops, op),
