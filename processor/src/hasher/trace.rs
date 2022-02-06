@@ -51,18 +51,19 @@ impl HasherTrace {
         state: &mut HasherState,
         init_selectors: Selectors,
         final_selectors: Selectors,
-        index: Felt,
+        init_index: Felt,
+        rest_index: Felt,
     ) {
-        self.append_row(init_selectors, state, index);
+        self.append_row(init_selectors, state, init_index);
 
         let next_selectors = [Felt::ZERO, init_selectors[1], init_selectors[2]];
         for i in 0..NUM_ROUNDS - 1 {
             apply_round(state, i);
-            self.append_row(next_selectors, state, index);
+            self.append_row(next_selectors, state, rest_index);
         }
 
         apply_round(state, NUM_ROUNDS - 1);
-        self.append_row(final_selectors, state, index);
+        self.append_row(final_selectors, state, rest_index);
     }
 
     /// Appends a new row to the execution trace based on the supplied parameters.

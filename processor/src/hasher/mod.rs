@@ -6,6 +6,9 @@ mod selectors;
 mod trace;
 use trace::HasherTrace;
 
+#[cfg(test)]
+mod tests;
+
 // CONSTANTS
 // ================================================================================================
 
@@ -59,6 +62,7 @@ impl Hasher {
             selectors::LINEAR_HASH,
             selectors::RETURN_STATE,
             Felt::ZERO,
+            Felt::ZERO,
         );
 
         (addr, state)
@@ -85,6 +89,15 @@ impl Hasher {
         let new_root = self.verify_merkle_path(new_value, path, index, MerklePathType::MrUpdateNew);
 
         (addr, old_root, new_root)
+    }
+
+    // TRACE GENERATION
+    // --------------------------------------------------------------------------------------------
+
+    /// Fills the provide trace fragment with trace data from this bitwise helper instance.
+    #[cfg(test)]
+    pub fn fill_trace(self, trace: &mut TraceFragment) {
+        self.trace.fill_trace(trace)
     }
 
     // HELPER METHODS
@@ -133,9 +146,19 @@ impl Hasher {
         let index_bit = *index & 1;
         let mut state = build_merge_state(&root, &sibling, index_bit);
 
-        let index_bit = Felt::new(index_bit);
-        self.trace
-            .append_permutation(&mut state, init_selectors, final_selectors, index_bit);
+        let (init_index, rest_index) = if init_selectors[0] == Felt::ZERO {
+            (Felt::new(*index >> 1), Felt::new(*index >> 1))
+        } else {
+            (Felt::new(*index), Felt::new(*index >> 1))
+        };
+
+        self.trace.append_permutation(
+            &mut state,
+            init_selectors,
+            final_selectors,
+            init_index,
+            rest_index,
+        );
 
         *index >>= 1;
         [state[4], state[5], state[6], state[7]]
