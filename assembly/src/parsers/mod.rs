@@ -96,6 +96,7 @@ fn parse_op_token(op: &Token, span_ops: &mut Vec<Operation>) -> Result<(), Assem
         // ----- input / output operations --------------------------------------------------------
         "push" => io_ops::parse_push(span_ops, op),
         "pushw" => io_ops::parse_pushw(span_ops, op),
+        "pop" => io_ops::parse_pop(span_ops, op),
         "popw" => io_ops::parse_popw(span_ops, op),
         "loadw" => io_ops::parse_loadw(span_ops, op),
         "storew" => io_ops::parse_storew(span_ops, op),
