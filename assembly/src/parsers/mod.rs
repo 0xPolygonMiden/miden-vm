@@ -116,6 +116,7 @@ fn parse_op_token(op: &Token, span_ops: &mut Vec<Operation>) -> Result<(), Assem
 // HELPER FUNCTIONS
 // ================================================================================================
 
+/// Parses a single parameter into a valid field element.
 fn parse_element_param(op: &Token, param_idx: usize) -> Result<BaseElement, AssemblyError> {
     // make sure that the parameter value is available
     if op.num_parts() <= param_idx {
@@ -123,22 +124,47 @@ fn parse_element_param(op: &Token, param_idx: usize) -> Result<BaseElement, Asse
     }
     let param_value = op.parts()[param_idx];
 
-    let result = if let Some(param_value) = param_value.strip_prefix("0x") {
+    if let Some(param_value) = param_value.strip_prefix("0x") {
         // parse hexadecimal number
-        match u64::from_str_radix(param_value, 16) {
-            Ok(i) => i,
-            Err(_) => return Err(AssemblyError::invalid_param(op, param_idx)),
-        }
+        parse_hex_param(op, param_idx, param_value)
     } else {
         // parse decimal number
-        match param_value.parse::<u64>() {
-            Ok(i) => i,
-            Err(_) => return Err(AssemblyError::invalid_param(op, param_idx)),
-        }
-    };
+        parse_decimal_param(op, param_idx, param_value)
+    }
+}
 
-    // make sure the value is a valid field element
-    if result >= BaseElement::MODULUS {
+/// Parses a decimal parameter value into valid a field element.
+fn parse_decimal_param(
+    op: &Token,
+    param_idx: usize,
+    param_str: &str,
+) -> Result<BaseElement, AssemblyError> {
+    match param_str.parse::<u64>() {
+        Ok(value) => get_valid_felt(op, param_idx, value),
+        Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
+    }
+}
+
+/// Parses a hexadecimal parameter value into a valid field element.
+fn parse_hex_param(
+    op: &Token,
+    param_idx: usize,
+    param_str: &str,
+) -> Result<BaseElement, AssemblyError> {
+    match u64::from_str_radix(param_str, 16) {
+        Ok(value) => get_valid_felt(op, param_idx, value),
+        Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
+    }
+}
+
+/// Checks that the u64 parameter value is a valid field element value and returns it as a field
+/// element.
+pub fn get_valid_felt(
+    op: &Token,
+    param_idx: usize,
+    param: u64,
+) -> Result<BaseElement, AssemblyError> {
+    if param >= BaseElement::MODULUS {
         return Err(AssemblyError::invalid_param_with_reason(
             op,
             param_idx,
@@ -150,7 +176,7 @@ fn parse_element_param(op: &Token, param_idx: usize) -> Result<BaseElement, Asse
         ));
     }
 
-    Ok(BaseElement::new(result))
+    Ok(BaseElement::new(param))
 }
 
 /// This is a helper function that parses the parameter at the specified op index as an integer and

@@ -1,7 +1,21 @@
 use super::{
-    parse_element_param, parse_int_param, push_value, validate_op_len, AssemblyError, Operation,
-    Token,
+    parse_decimal_param, parse_element_param, parse_hex_param, parse_int_param, push_value,
+    validate_op_len, AssemblyError, BaseElement, Operation, Token,
 };
+
+// CONSTANTS
+// ================================================================================================
+
+/// The maximum number of constant inputs allowed by `push` operation.
+const MAX_CONST_INPUTS: usize = 16;
+
+/// The required length of the hexadecimal representation for an input value when more than one hex
+/// input is provided to `push` without period separators.
+const HEX_CHUNK_SIZE: usize = 16;
+
+/// The maximum number of elements that can be read from the advice tape in a single `push`
+/// operation.
+const ADVICE_READ_LIMIT: u32 = 16;
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================
@@ -9,8 +23,12 @@ use super::{
 /// Pushes constant, environment, or non-deterministic (advice) inputs onto the stack as
 /// specified by the operation variant and its parameter(s).
 ///
-/// *CONSTANTS: `push.a`*
-/// Pushes the immediate value `a` onto the stack.
+/// *CONSTANTS: `push.a`, `push.a.b`, `push.a.b.c...`*
+/// Pushes immediate values `a`, `b`, `c`, etc onto the stack in the order in which they're
+/// provided. Up to 16 values can be specified. All values must be valid field elements in decimal
+/// (e.g. 123) or hexadecimal (e.g. 0x7b) representation. When specifying values in hexadecimal
+/// format, it is possible to omit the periods between individual values as long as the total number
+/// of specified bytes is a multiple of 8.
 ///
 /// *ENVIRONMENT: `push.env.{var}`*
 /// Pushes the value of the specified environment variable onto the top of the stack. Currently, the
@@ -31,7 +49,7 @@ pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
     if op.parts()[0] != "push" {
         return Err(AssemblyError::unexpected_token(
             op,
-            "push.{adv.n|env.var|a}",
+            "push.{adv.n|env.var|a|a.b|a.b.c...}",
         ));
     }
 
@@ -207,7 +225,15 @@ pub fn parse_storew(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 // HELPERS - CONSTANT INPUTS
 // ================================================================================================
 
-/// Appends a `PUSH` operation to the span block.
+/// Appends `PUSH` operations to the span block to push one or more provided constant values onto
+/// the stack, up to a maximum of 16 values.
+///
+/// Constant values may be specified in one of 2 formats:
+/// 1. A series of 1-16 valid field elements in decimal or hexadecimal representation separated by
+///    periods, e.g. push.0x1234.0xabcd
+/// 2. A hexadecimal string without period separators that represents a series of 1-16 elements
+///    where the total number of specified bytes is a multiple of 8, e.g.
+///    push.0x0000000000001234000000000000abcd
 ///
 /// In cases when the immediate value is 0, `PUSH` operation is replaced with `PAD`. Also, in cases
 /// when immediate value is 1, `PUSH` operation is replaced with `PAD INCR` because in most cases
@@ -215,22 +241,79 @@ pub fn parse_storew(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 ///
 /// # Errors
 ///
-/// This function expects an assembly op with exactly one immediate value that is a valid field
-/// element in decimal or hexadecimal representation. It will return an error if the immediate
-/// value is invalid or missing. It will also return an error if the op token is malformed or
-/// doesn't match the expected instruction.
+/// It will return an error if no immediate value is provided or if any of parameter formats are
+/// invalid. It will also return an error if the op token is malformed or doesn't match the expected
+/// instruction.
 fn parse_push_constant(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // validate op
-    validate_op_len(op, 1, 1, 1)?;
-    if op.parts()[0] != "push" {
-        return Err(AssemblyError::unexpected_token(op, "push.{param}"));
+    let param_idx = 1;
+    validate_op_len(op, param_idx, 1, MAX_CONST_INPUTS)?;
+
+    let param_count = op.num_parts() - param_idx;
+    // for multiple input parameters, parse & push each one onto the stack in order, then return
+    if param_count > 1 {
+        for param_idx in param_idx..=param_count {
+            let value = parse_element_param(op, param_idx)?;
+            push_value(span_ops, value);
+        }
+        return Ok(());
     }
 
-    // update the span block
-    let value = parse_element_param(op, 1)?;
-    push_value(span_ops, value);
+    // for a single input, there could be one value or there could be a series of many hexadecimal
+    // values without separators
+    let param_str = op.parts()[param_idx];
+    if let Some(param_str) = param_str.strip_prefix("0x") {
+        // parse 1 or more hexadecimal values
+        let values = parse_hex_params(op, param_idx, param_str)?;
+        // push each value onto the stack in order
+        for &value in values.iter() {
+            push_value(span_ops, value);
+        }
+    } else {
+        // parse 1 decimal value and push it onto the stack
+        let value = parse_decimal_param(op, param_idx, param_str)?;
+        push_value(span_ops, value);
+    }
 
     Ok(())
+}
+
+/// Parses a hexadecimal string into a vector of 1 or more field elements, up to 16 total. If more
+/// than one value is specified, then the total number of specified bytes must be a multiple of 8.
+fn parse_hex_params(
+    op: &Token,
+    param_idx: usize,
+    param_str: &str,
+) -> Result<Vec<BaseElement>, AssemblyError> {
+    // handle error cases where the hex string is poorly formed
+    let is_single_element = if param_str.len() <= HEX_CHUNK_SIZE {
+        if param_str.len() % 2 != 0 {
+            // parameter string is not a valid hex representation
+            return Err(AssemblyError::invalid_param(op, param_idx));
+        }
+        true
+    } else {
+        if param_str.len() % HEX_CHUNK_SIZE != 0 {
+            // hex string doesn't contain a valid number of bytes
+            return Err(AssemblyError::invalid_param(op, param_idx));
+        } else if param_str.len() > HEX_CHUNK_SIZE * MAX_CONST_INPUTS {
+            // hex string contains more than the maximum number of inputs
+            return Err(AssemblyError::extra_param(op));
+        }
+        false
+    };
+
+    // parse the hex string into one or more valid field elements
+    if is_single_element {
+        // parse a single element in hex representation
+        let parsed_param = parse_hex_param(op, param_idx, param_str)?;
+        Ok(vec![parsed_param])
+    } else {
+        // iterate over the multi-value hex string and parse each 8-byte chunk into a valid element
+        (0..param_str.len())
+            .step_by(HEX_CHUNK_SIZE)
+            .map(|i| parse_hex_param(op, param_idx, &param_str[i..i + HEX_CHUNK_SIZE]))
+            .collect()
+    }
 }
 
 // HELPERS - ENVIRONMENT INPUTS
@@ -267,7 +350,6 @@ fn parse_push_env(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 
 // HELPERS - NON-DETERMINISTIC INPUTS
 // ================================================================================================
-const ADVICE_READ_LIMIT: u32 = 16;
 
 /// Appends the number of `READ` operations specified by the operation's immediate value
 /// to the span block. This pushes the specified number of items from the advice tape onto the
