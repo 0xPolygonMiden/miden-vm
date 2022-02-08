@@ -705,8 +705,10 @@ mod tests {
 
         // wrong operation passed to parsing function
         let op_mismatch = Token::new("pushw.0", pos);
-        let expected =
-            AssemblyError::unexpected_token(&op_mismatch, "push.{adv.n|env.var|a|a.b|a.b.c...}");
+        let expected = AssemblyError::unexpected_token(
+            &op_mismatch,
+            "push.{adv.n|env.var|local.i|mem|mem.a|a|a.b|a.b.c...}",
+        );
         assert_eq!(
             parse_push(&mut span_ops, &op_mismatch).unwrap_err(),
             expected
@@ -853,6 +855,11 @@ mod tests {
     }
 
     #[test]
+    fn push_mem_invalid() {
+        test_parse_mem("push");
+    }
+
+    #[test]
     fn pushw_invalid() {
         test_parsew_base("pushw", "pushw.{mem|mem.a|local.i}");
     }
@@ -902,6 +909,11 @@ mod tests {
 
     // TESTS FOR REMOVING VALUES FROM THE STACK (POP)
     // ============================================================================================
+
+    #[test]
+    fn pop_mem_invalid() {
+        test_parse_mem("pop");
+    }
 
     #[test]
     fn popw_invalid() {
@@ -1076,10 +1088,11 @@ mod tests {
     }
 
     /// Test that an instruction for an absolute memory operation is properly formed. It can be used
-    /// to test parameter inputs for `pushw.mem`, `popw.mem`, `loadw.mem`, and `storew.mem`.
+    /// to test parameter inputs for `push.mem`, `pushw.mem`, `pop.mem`, `popw.mem`, `loadw.mem`,
+    /// and `storew.mem`.
     fn test_parse_mem(base_op: &str) {
-        // fails when immediate values to a {pushw|popw|loadw|storew}.mem.{a|} operation are
-        // invalid or missing
+        // fails when immediate values to a {push|pushw|pop|popw|loadw|storew}.mem.{a|} operation
+        // are invalid or missing
         let pos = 0;
 
         // invalid value provided to mem variant
@@ -1101,7 +1114,9 @@ mod tests {
         let mut span_ops: Vec<Operation> = Vec::new();
 
         match base_op {
+            "push" => parse_push(&mut span_ops, invalid_op).unwrap_err(),
             "pushw" => parse_pushw(&mut span_ops, invalid_op).unwrap_err(),
+            "pop" => parse_pop(&mut span_ops, invalid_op).unwrap_err(),
             "popw" => parse_popw(&mut span_ops, invalid_op).unwrap_err(),
             "loadw" => parse_loadw(&mut span_ops, invalid_op).unwrap_err(),
             "storew" => parse_storew(&mut span_ops, invalid_op).unwrap_err(),
