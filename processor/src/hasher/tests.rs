@@ -1,6 +1,6 @@
 use super::{
-    selectors::*, Felt, FieldElement, Hasher, HasherState, Selectors, TraceFragment, Word,
-    TRACE_WIDTH,
+    Felt, FieldElement, Hasher, HasherState, Selectors, TraceFragment, Word, LINEAR_HASH,
+    MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
 };
 use rand_utils::rand_array;
 use vm_core::{
@@ -218,6 +218,22 @@ fn hasher_update_merkle_root() {
     check_merkle_path(&trace, 120, new_leaf3_2, &path3_2, 3, MR_UPDATE_NEW);
 }
 
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Builds an execution trace for the provided hasher. The trace must have the number of rows
+/// specified by num_rows.
+fn build_trace(hasher: Hasher, num_rows: usize) -> Vec<Vec<Felt>> {
+    let mut trace = (0..TRACE_WIDTH)
+        .map(|_| vec![Felt::new(0); num_rows])
+        .collect::<Vec<_>>();
+    let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
+    hasher.fill_trace(&mut fragment);
+    trace
+}
+
+/// Makes sure that the provided trace is consistent with verifying the specified Merkle path
+/// in the context defined by init_selectors.
 fn check_merkle_path(
     trace: &[Vec<Felt>],
     row_idx: usize,
@@ -269,24 +285,16 @@ fn check_merkle_path(
     }
 }
 
-// HELPER FUNCTIONS
-// ================================================================================================
-
-fn build_trace(hasher: Hasher, num_rows: usize) -> Vec<Vec<Felt>> {
-    let mut trace = (0..TRACE_WIDTH)
-        .map(|_| vec![Felt::new(0); num_rows])
-        .collect::<Vec<_>>();
-    let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    hasher.fill_trace(&mut fragment);
-    trace
-}
-
+/// Makes sure that values in the row address column (column 3) start out at 0 and are incremented
+/// by 1 with every row.
 fn check_row_addr_trace(trace: &[Vec<Felt>]) {
     for (i, &addr) in trace[3].iter().enumerate() {
         assert_eq!(Felt::new(i as u64), addr);
     }
 }
 
+/// Makes sure that selector columns (columns 0, 1, 2) are valid for an 8-row cycle starting
+/// with row_idx.
 fn check_selector_trace(
     trace: &[Vec<Felt>],
     row_idx: usize,
@@ -303,6 +311,8 @@ fn check_selector_trace(
     assert_row_equal(trace, row_idx + NUM_ROUNDS, &final_selectors);
 }
 
+/// Makes sure hasher state columns (columns 4 through 15) are valid for an 8-row cycle starting
+/// with row_idx.
 fn check_hasher_state_trace(trace: &[Vec<Felt>], row_idx: usize, init_state: HasherState) {
     let trace = &trace[4..16];
     let mut state = init_state;
@@ -314,6 +324,8 @@ fn check_hasher_state_trace(trace: &[Vec<Felt>], row_idx: usize, init_state: Has
     }
 }
 
+/// Makes sure that a row in the provided trace is equal to the provided values at the specified
+/// row index.
 fn assert_row_equal(trace: &[Vec<Felt>], row_idx: usize, values: &[Felt]) {
     for (column, &value) in trace.iter().zip(values.iter()) {
         assert_eq!(column[row_idx], value);
@@ -349,11 +361,3 @@ fn hasher_merge_state(a: Word, b: Word) -> HasherState {
         b[3],
     ]
 }
-
-//fn print_row(trace: &[Vec<Felt>], row_idx: usize) {
-//    let row = trace
-//        .iter()
-//        .map(|c| c[row_idx].as_int())
-//        .collect::<Vec<_>>();
-//    println!("  {:?}", row);
-//}

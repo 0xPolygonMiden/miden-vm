@@ -4,7 +4,13 @@ use vm_core::hasher::{apply_round, NUM_ROUNDS, STATE_WIDTH};
 // HASHER TRACE
 // ================================================================================================
 
-/// TODO: add docs
+/// Execution trace of the hasher component.
+///
+/// The trace consists of 17 columns grouped logically as follows:
+/// - 3 selector columns.
+/// - 1 row address column.
+/// - 12 columns describing hasher state.
+/// - 1 node index column used for Merkle path related computations.
 pub struct HasherTrace {
     selectors: [Vec<Felt>; 3],
     row_addr: Vec<Felt>,
@@ -15,7 +21,7 @@ pub struct HasherTrace {
 impl HasherTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// TODO: add docs
+    /// Returns a [HasherTrace] instantiated with empty vectors for all columns.
     pub fn new() -> Self {
         let state = (0..STATE_WIDTH).map(|_| Vec::new()).collect::<Vec<_>>();
 
@@ -45,7 +51,15 @@ impl HasherTrace {
 
     /// Appends 8 rows to the execution trace describing a single permutation of the hash function.
     ///
-    /// TODO: add detail
+    /// The initial state of the hasher is provided via the `state` parameter. All subsequent
+    /// states are derived by applying a single round of the hash function to the previous state.
+    ///
+    /// Selector values for the first and last rows are provided via `init_selectors` and
+    /// `final_selectors` parameters. Selector values for all other rows are derived from the
+    /// selectors of the first row.
+    ///
+    /// Node index values are provided via `init_index` and `rest_index` parameters. The former is
+    /// used for the first row, and the latter for all subsequent rows.
     pub fn append_permutation(
         &mut self,
         state: &mut HasherState,
@@ -54,14 +68,20 @@ impl HasherTrace {
         init_index: Felt,
         rest_index: Felt,
     ) {
+        // append the first row of the permutation cycle
         self.append_row(init_selectors, state, init_index);
 
+        // append the next 6 rows of the permutation cycle. for these rows:
+        // - the last two selectors are carried over from row to row; the first selector is set
+        //   to ZERO.
+        // - hasher state is updated by applying a single round of the hash function for every row.
         let next_selectors = [Felt::ZERO, init_selectors[1], init_selectors[2]];
         for i in 0..NUM_ROUNDS - 1 {
             apply_round(state, i);
             self.append_row(next_selectors, state, rest_index);
         }
 
+        // apply the last round and append the last row to the trace
         apply_round(state, NUM_ROUNDS - 1);
         self.append_row(final_selectors, state, rest_index);
     }
@@ -81,7 +101,7 @@ impl HasherTrace {
     // EXECUTION TRACE GENERATION
     // --------------------------------------------------------------------------------------------
 
-    /// Fills the provide trace fragment with trace data from this bitwise helper instance.
+    /// Fills the provided trace fragment with trace data from this hasher trace instance.
     #[allow(dead_code)]
     pub fn fill_trace(self, trace: &mut TraceFragment) {
         // make sure fragment dimensions are consistent with the dimensions of this trace
