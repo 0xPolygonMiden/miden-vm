@@ -142,7 +142,7 @@ impl<'a> TraceFragment<'a> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn finalize_column(column: &mut Vec<Felt>, step: usize) {
+fn finalize_column(column: &mut [Felt], step: usize) {
     let last_value = column[step];
     column[step..].fill(last_value);
 }

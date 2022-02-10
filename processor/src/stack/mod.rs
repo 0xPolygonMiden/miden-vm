@@ -1,5 +1,5 @@
 use super::{ExecutionError, Felt, FieldElement, ProgramInputs, StackTrace, STACK_TOP_SIZE};
-use core::{cmp, convert::TryInto};
+use core::cmp;
 
 // STACK
 // ================================================================================================
