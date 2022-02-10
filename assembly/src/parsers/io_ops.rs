@@ -1,29 +1,54 @@
 use super::{
-    parse_element_param, parse_int_param, push_value, validate_op_len, AssemblyError, Operation,
-    Token,
+    parse_decimal_param, parse_element_param, parse_hex_param, parse_int_param, push_value,
+    validate_op_len, AssemblyError, BaseElement, Operation, Token,
 };
+
+// CONSTANTS
+// ================================================================================================
+
+/// The maximum number of constant inputs allowed by `push` operation.
+const MAX_CONST_INPUTS: usize = 16;
+
+/// The required length of the hexadecimal representation for an input value when more than one hex
+/// input is provided to `push` without period separators.
+const HEX_CHUNK_SIZE: usize = 16;
+
+/// The maximum number of elements that can be read from the advice tape in a single `push`
+/// operation.
+const ADVICE_READ_LIMIT: u32 = 16;
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================
 
-/// Pushes constant, environment, or non-deterministic (advice) inputs onto the stack as
+/// Pushes constant, environment, memory, or non-deterministic (advice) inputs onto the stack as
 /// specified by the operation variant and its parameter(s).
 ///
-/// *CONSTANTS: `push.a`*
-/// Pushes the immediate value `a` onto the stack.
-///
-/// *ENVIRONMENT: `push.env.{var}`*
-/// Pushes the value of the specified environment variable onto the top of the stack. Currently, the
-/// only environment input is `sdepth`.
+/// *CONSTANTS: `push.a`, `push.a.b`, `push.a.b.c...`*
+/// Pushes immediate values `a`, `b`, `c`, etc onto the stack in the order in which they're
+/// provided. Up to 16 values can be specified. All values must be valid field elements in decimal
+/// (e.g. 123) or hexadecimal (e.g. 0x7b) representation. When specifying values in hexadecimal
+/// format, it is possible to omit the periods between individual values as long as the total number
+/// of specified bytes is a multiple of 8.
 ///
 /// *NON-DETERMINISTIC (ADVICE): `push.adv.n`*
 /// Removes the next `n` values from the advice tape and pushes them onto the stack. The number of
 /// items that can be read from the advice tape is limited to 16.
 ///
+/// *ENVIRONMENT: `push.env.{var}`*
+/// Pushes the value of the specified environment variable onto the top of the stack. Currently, the
+/// only environment input is `sdepth`.
+///
+/// *RANDOM ACCESS MEMORY: `push.mem`, `push.mem.a`*
+/// Pushes the first element of the word at memory address `a` onto the stack. If no memory address
+/// is specified, it is assumed to be on top of the stack.
+///
+/// *LOCAL PROCEDURE VARIABLES: `push.local.i`*
+/// Pushes the first element of the word at the local memory address with index `i` onto the stack.
+///
 /// # Errors
 ///
 /// Returns an `AssemblyError` if the op param is invalid, malformed, or doesn't match an expected
-/// push instruction
+/// `push` instruction
 pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     if op.num_parts() < 2 {
         return Err(AssemblyError::invalid_op(op));
@@ -31,13 +56,15 @@ pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
     if op.parts()[0] != "push" {
         return Err(AssemblyError::unexpected_token(
             op,
-            "push.{adv.n|env.var|a}",
+            "push.{adv.n|env.var|local.i|mem|mem.a|a|a.b|a.b.c...}",
         ));
     }
 
     match op.parts()[1] {
         "adv" => parse_push_adv(span_ops, op),
         "env" => parse_push_env(span_ops, op),
+        "local" => parse_push_local(span_ops, op),
+        "mem" => parse_push_mem(span_ops, op),
         _ => parse_push_constant(span_ops, op),
     }
 }
@@ -69,7 +96,7 @@ pub fn parse_pushw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
     }
 
     match op.parts()[1] {
-        "mem" => parse_mem_read(span_ops, op),
+        "mem" => parse_mem_read(span_ops, op, true),
         "local" => parse_local_read(span_ops, op),
         _ => Err(AssemblyError::invalid_op(op)),
     }
@@ -77,6 +104,35 @@ pub fn parse_pushw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 
 // REMOVING VALUES FROM THE STACK (POP)
 // ================================================================================================
+
+/// Pops an element off the stack and saves it to the absolute or local memory location as
+/// specified by the operation variant and its parameter.
+///
+/// *RANDOM ACCESS MEMORY: `pop.mem`, `pop.mem.a`*
+/// Pops an element off the stack and saves it at memory address `a`. If no memory address is
+/// specified as part of the operation, then it is assumed to be on top of the stack.
+///
+/// *LOCAL PROCEDURE VARIABLES: `pop.local.i`*
+/// Pops an element off the stack and saves it to the local memory address with index `i`.
+///
+/// # Errors
+///
+/// Returns an `AssemblyError` if the op param is invalid, malformed, or doesn't match an expected
+/// `pop` instruction
+pub fn parse_pop(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    if op.num_parts() < 2 {
+        return Err(AssemblyError::invalid_op(op));
+    }
+    if op.parts()[0] != "pop" {
+        return Err(AssemblyError::unexpected_token(op, "pop.{mem|mem.a}"));
+    }
+
+    match op.parts()[1] {
+        "local" => parse_pop_local(span_ops, op),
+        "mem" => parse_pop_mem(span_ops, op),
+        _ => Err(AssemblyError::invalid_op(op)),
+    }
+}
 
 /// Pops a word (4 elements) from the stack and store it at an absolute memory location or in local
 /// procedure memory as specified by the operation variant and its parameter.
@@ -106,7 +162,7 @@ pub fn parse_popw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
     }
 
     match op.parts()[1] {
-        "mem" => parse_mem_write(span_ops, op),
+        "mem" => parse_mem_write(span_ops, op, false),
         "local" => parse_local_write(span_ops, op),
         _ => Err(AssemblyError::invalid_op(op)),
     }
@@ -159,7 +215,7 @@ pub fn parse_loadw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
             span_ops.push(Operation::ReadW);
             Ok(())
         }
-        "mem" => parse_mem_read(span_ops, op),
+        "mem" => parse_mem_read(span_ops, op, false),
         "local" => parse_local_read(span_ops, op),
         _ => Err(AssemblyError::invalid_op(op)),
     }
@@ -198,7 +254,7 @@ pub fn parse_storew(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
     }
 
     match op.parts()[1] {
-        "mem" => parse_mem_write(span_ops, op),
+        "mem" => parse_mem_write(span_ops, op, true),
         "local" => parse_local_write(span_ops, op),
         _ => Err(AssemblyError::invalid_op(op)),
     }
@@ -207,7 +263,15 @@ pub fn parse_storew(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 // HELPERS - CONSTANT INPUTS
 // ================================================================================================
 
-/// Appends a `PUSH` operation to the span block.
+/// Appends `PUSH` operations to the span block to push one or more provided constant values onto
+/// the stack, up to a maximum of 16 values.
+///
+/// Constant values may be specified in one of 2 formats:
+/// 1. A series of 1-16 valid field elements in decimal or hexadecimal representation separated by
+///    periods, e.g. push.0x1234.0xabcd
+/// 2. A hexadecimal string without period separators that represents a series of 1-16 elements
+///    where the total number of specified bytes is a multiple of 8, e.g.
+///    push.0x0000000000001234000000000000abcd
 ///
 /// In cases when the immediate value is 0, `PUSH` operation is replaced with `PAD`. Also, in cases
 /// when immediate value is 1, `PUSH` operation is replaced with `PAD INCR` because in most cases
@@ -215,22 +279,79 @@ pub fn parse_storew(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 ///
 /// # Errors
 ///
-/// This function expects an assembly op with exactly one immediate value that is a valid field
-/// element in decimal or hexadecimal representation. It will return an error if the immediate
-/// value is invalid or missing. It will also return an error if the op token is malformed or
-/// doesn't match the expected instruction.
+/// It will return an error if no immediate value is provided or if any of parameter formats are
+/// invalid. It will also return an error if the op token is malformed or doesn't match the expected
+/// instruction.
 fn parse_push_constant(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // validate op
-    validate_op_len(op, 1, 1, 1)?;
-    if op.parts()[0] != "push" {
-        return Err(AssemblyError::unexpected_token(op, "push.{param}"));
+    let param_idx = 1;
+    validate_op_len(op, param_idx, 1, MAX_CONST_INPUTS)?;
+
+    let param_count = op.num_parts() - param_idx;
+    // for multiple input parameters, parse & push each one onto the stack in order, then return
+    if param_count > 1 {
+        for param_idx in param_idx..=param_count {
+            let value = parse_element_param(op, param_idx)?;
+            push_value(span_ops, value);
+        }
+        return Ok(());
     }
 
-    // update the span block
-    let value = parse_element_param(op, 1)?;
-    push_value(span_ops, value);
+    // for a single input, there could be one value or there could be a series of many hexadecimal
+    // values without separators
+    let param_str = op.parts()[param_idx];
+    if let Some(param_str) = param_str.strip_prefix("0x") {
+        // parse 1 or more hexadecimal values
+        let values = parse_hex_params(op, param_idx, param_str)?;
+        // push each value onto the stack in order
+        for &value in values.iter() {
+            push_value(span_ops, value);
+        }
+    } else {
+        // parse 1 decimal value and push it onto the stack
+        let value = parse_decimal_param(op, param_idx, param_str)?;
+        push_value(span_ops, value);
+    }
 
     Ok(())
+}
+
+/// Parses a hexadecimal string into a vector of 1 or more field elements, up to 16 total. If more
+/// than one value is specified, then the total number of specified bytes must be a multiple of 8.
+fn parse_hex_params(
+    op: &Token,
+    param_idx: usize,
+    param_str: &str,
+) -> Result<Vec<BaseElement>, AssemblyError> {
+    // handle error cases where the hex string is poorly formed
+    let is_single_element = if param_str.len() <= HEX_CHUNK_SIZE {
+        if param_str.len() % 2 != 0 {
+            // parameter string is not a valid hex representation
+            return Err(AssemblyError::invalid_param(op, param_idx));
+        }
+        true
+    } else {
+        if param_str.len() % HEX_CHUNK_SIZE != 0 {
+            // hex string doesn't contain a valid number of bytes
+            return Err(AssemblyError::invalid_param(op, param_idx));
+        } else if param_str.len() > HEX_CHUNK_SIZE * MAX_CONST_INPUTS {
+            // hex string contains more than the maximum number of inputs
+            return Err(AssemblyError::extra_param(op));
+        }
+        false
+    };
+
+    // parse the hex string into one or more valid field elements
+    if is_single_element {
+        // parse a single element in hex representation
+        let parsed_param = parse_hex_param(op, param_idx, param_str)?;
+        Ok(vec![parsed_param])
+    } else {
+        // iterate over the multi-value hex string and parse each 8-byte chunk into a valid element
+        (0..param_str.len())
+            .step_by(HEX_CHUNK_SIZE)
+            .map(|i| parse_hex_param(op, param_idx, &param_str[i..i + HEX_CHUNK_SIZE]))
+            .collect()
+    }
 }
 
 // HELPERS - ENVIRONMENT INPUTS
@@ -267,7 +388,6 @@ fn parse_push_env(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 
 // HELPERS - NON-DETERMINISTIC INPUTS
 // ================================================================================================
-const ADVICE_READ_LIMIT: u32 = 16;
 
 /// Appends the number of `READ` operations specified by the operation's immediate value
 /// to the span block. This pushes the specified number of items from the advice tape onto the
@@ -300,6 +420,38 @@ fn parse_push_adv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 // HELPERS - RANDOM ACCESS MEMORY
 // ================================================================================================
 
+/// Pushes the first element of the word at the specified memory address onto the stack. The
+/// memory address may be provided directly as an immediate value or via the stack.
+fn parse_push_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    validate_op_len(op, 2, 0, 1)?;
+
+    parse_mem_read(span_ops, op, true)?;
+
+    for _ in 0..3 {
+        span_ops.push(Operation::Drop);
+    }
+
+    Ok(())
+}
+
+/// Pops the top element off the stack and saves it at the specified memory address. The memory
+/// address may be provided directly as an immediate value or via the stack.
+fn parse_pop_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    validate_op_len(op, 2, 0, 1)?;
+
+    // pad to word length before calling STOREW
+    for _ in 0..3 {
+        span_ops.push(Operation::Pad);
+    }
+
+    // if the destination memory address was on top of the stack, restore it to the top
+    if op.num_parts() == 2 {
+        span_ops.push(Operation::MovUp3);
+    }
+
+    parse_mem_write(span_ops, op, false)
+}
+
 /// Translates the `pushw.mem` and `loadw.mem` assembly ops to the system's `LOADW` memory read
 /// operation.
 ///
@@ -312,8 +464,12 @@ fn parse_push_adv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 ///
 /// This function expects a memory read assembly operation that has already been validated. If
 /// called without validation, it could yield incorrect results or return an `AssemblyError`.
-fn parse_mem_read(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    if op.parts()[0] == "pushw" {
+fn parse_mem_read(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    preserve_stack: bool,
+) -> Result<(), AssemblyError> {
+    if preserve_stack {
         // make space for the new elements
         for _ in 0..4 {
             span_ops.push(Operation::Pad);
@@ -349,14 +505,18 @@ fn parse_mem_read(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 ///
 /// This function expects a memory write assembly operation that has already been validated. If
 /// called without validation, it could yield incorrect results or return an `AssemblyError`.
-fn parse_mem_write(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+fn parse_mem_write(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    preserve_stack: bool,
+) -> Result<(), AssemblyError> {
     if op.num_parts() == 3 {
         push_mem_addr(span_ops, op)?;
     }
 
     span_ops.push(Operation::StoreW);
 
-    if op.parts()[0] == "popw" {
+    if !preserve_stack {
         for _ in 0..4 {
             span_ops.push(Operation::Drop);
         }
@@ -379,6 +539,14 @@ fn push_mem_addr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 
 // HELPERS - LOCAL MEMORY FOR PROCEDURE VARIABLES
 // ================================================================================================
+fn parse_push_local(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
+    unimplemented!();
+}
+
+fn parse_pop_local(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
+    unimplemented!();
+}
+
 fn parse_local_read(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
     unimplemented!();
 }
@@ -399,7 +567,7 @@ mod tests {
     // ============================================================================================
 
     #[test]
-    fn push() {
+    fn push_one() {
         let mut span_ops: Vec<Operation> = Vec::new();
         let op_0 = Token::new("push.0", 0);
         let op_1 = Token::new("push.1", 0);
@@ -422,6 +590,76 @@ mod tests {
     }
 
     #[test]
+    fn push_many() {
+        // --- push 4 decimal values --------------------------------------------------------------
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_4_dec = Token::new("push.4.5.6.7", 0);
+        let mut expected = Vec::with_capacity(4);
+        for a in 4..8 {
+            expected.push(Operation::Push(BaseElement::new(a)));
+        }
+        parse_push(&mut span_ops, &op_4_dec).expect("Failed to parse push.4.5.6.7");
+        assert_eq!(span_ops, expected);
+
+        // --- push the maximum number of decimal values (16) -------------------------------------
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_16_dec = Token::new("push.16.17.18.19.20.21.22.23.24.25.26.27.28.29.30.31", 0);
+        let mut expected = Vec::with_capacity(16);
+        for a in 16..32 {
+            expected.push(Operation::Push(BaseElement::new(a)));
+        }
+        parse_push(&mut span_ops, &op_16_dec)
+            .expect("Failed to parse push.16.17.18.19.20.21.22.23.24.25.26.27.28.29.30.31");
+        assert_eq!(span_ops, expected);
+
+        // --- push hexadecimal values with period separators between values ----------------------
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_5_hex = Token::new("push.0xA.0x64.0x3E8.0x2710.0x186A0", 0);
+        let mut expected = Vec::with_capacity(5);
+        for i in 1..=5 {
+            expected.push(Operation::Push(BaseElement::new(10_u64.pow(i))));
+        }
+        parse_push(&mut span_ops, &op_5_hex)
+            .expect("Failed to parse push.0xA.0x64.0x3EB.0x2710.0x186A0");
+        assert_eq!(span_ops, expected);
+
+        // --- push a mixture of decimal and single-element hexadecimal values --------------------
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_8_dec_hex = Token::new("push.2.4.8.0x10.0x20.0x40.128.0x100", 0);
+        let mut expected = Vec::with_capacity(8);
+        for i in 1_u32..=8 {
+            expected.push(Operation::Push(BaseElement::new(2_u64.pow(i))));
+        }
+        parse_push(&mut span_ops, &op_8_dec_hex)
+            .expect("Failed to parse push.2.4.8.0x10.0x20.0x40.128.0x100");
+        assert_eq!(span_ops, expected);
+    }
+
+    #[test]
+    fn push_without_separator() {
+        // --- push hexadecimal values with no period separators ----------------------------------
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let mut expected: Vec<Operation> = Vec::new();
+        let op_sep = Token::new("push.0x1234.0xabcd", 0);
+        let op_no_sep = Token::new("push.0x0000000000001234000000000000abcd", 0);
+        parse_push(&mut expected, &op_sep).expect("Failed to parse push.0x1234.0xabcd");
+        parse_push(&mut span_ops, &op_no_sep)
+            .expect("Failed to parse push.0x0000000000001234000000000000abcd");
+        assert_eq!(span_ops, expected);
+
+        // --- push the maximum number of hexadecimal values without separators (16) --------------
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let mut expected: Vec<Operation> = Vec::new();
+        let op_16_dec = Token::new("push.0.1.2.3.4.5.6.7.8.9.10.11.12.13.14.15", 0);
+        let op_16_no_sep = Token::new("push.0x0000000000000000000000000000000100000000000000020000000000000003000000000000000400000000000000050000000000000006000000000000000700000000000000080000000000000009000000000000000A000000000000000B000000000000000C000000000000000D000000000000000E000000000000000F", 0);
+        parse_push(&mut expected, &op_16_dec)
+            .expect("Failed to parse push.0.1.2.3.4.5.6.7.8.9.10.11.12.13.14.15");
+        parse_push(&mut span_ops, &op_16_no_sep)
+            .expect("Failed to parse push.0x0000000000000000000000000000000100000000000000020000000000000003000000000000000400000000000000050000000000000006000000000000000700000000000000080000000000000009000000000000000A000000000000000B000000000000000C000000000000000D000000000000000E000000000000000F");
+        assert_eq!(span_ops, expected);
+    }
+
+    #[test]
     fn push_invalid() {
         // fails when immediate value is invalid or missing
         let mut span_ops: Vec<Operation> = Vec::new();
@@ -440,8 +678,25 @@ mod tests {
             expected
         );
 
+        // --- separators for single values cannot be combined with multi-element hex inputs ------
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_mixed_sep = Token::new("push.4.5.0x0000000000001234000000000000abcd", 0);
+        let expected = AssemblyError::invalid_param(&op_mixed_sep, 3);
+        assert_eq!(
+            parse_push(&mut span_ops, &op_mixed_sep).unwrap_err(),
+            expected
+        );
+
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_mixed_sep = Token::new("push.0x0000000000001234000000000000abcd.4.5", 0);
+        let expected = AssemblyError::invalid_param(&op_mixed_sep, 1);
+        assert_eq!(
+            parse_push(&mut span_ops, &op_mixed_sep).unwrap_err(),
+            expected
+        );
+
         // extra value
-        let op_extra_val = Token::new("push.0.1", pos);
+        let op_extra_val = Token::new("push.0.1.2.3.4.5.6.7.8.9.10.11.12.13.14.15.16", pos);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
             parse_push(&mut span_ops, &op_extra_val).unwrap_err(),
@@ -450,11 +705,44 @@ mod tests {
 
         // wrong operation passed to parsing function
         let op_mismatch = Token::new("pushw.0", pos);
-        let expected = AssemblyError::unexpected_token(&op_mismatch, "push.{adv.n|env.var|a}");
+        let expected = AssemblyError::unexpected_token(
+            &op_mismatch,
+            "push.{adv.n|env.var|local.i|mem|mem.a|a|a.b|a.b.c...}",
+        );
         assert_eq!(
             parse_push(&mut span_ops, &op_mismatch).unwrap_err(),
             expected
         )
+    }
+
+    #[test]
+    fn push_invalid_hex() {
+        // --- no separators, and total number of bytes is not a multiple of 8 --------------------
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_bad_hex = Token::new("push.0x00000000000012340000abcd", 0);
+        let expected = AssemblyError::invalid_param(&op_bad_hex, 1);
+        assert_eq!(
+            parse_push(&mut span_ops, &op_bad_hex).unwrap_err(),
+            expected
+        );
+
+        // --- some period separators, but total number of bytes is not a multiple of 8 --------------------
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_bad_hex = Token::new("push.0x00001234000000000000abcd.0x5678.0x9ef0", 0);
+        let expected = AssemblyError::invalid_param(&op_bad_hex, 1);
+        assert_eq!(
+            parse_push(&mut span_ops, &op_bad_hex).unwrap_err(),
+            expected
+        );
+
+        // --- too many values provided in hex format without separators --------------
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_extra_val = Token::new("push.0x0000000000000000000000000000000100000000000000020000000000000003000000000000000400000000000000050000000000000006000000000000000700000000000000080000000000000009000000000000000A000000000000000B000000000000000C000000000000000D000000000000000E000000000000000F0000000000000010", 0);
+        let expected = AssemblyError::extra_param(&op_extra_val);
+        assert_eq!(
+            parse_push(&mut span_ops, &op_extra_val).unwrap_err(),
+            expected
+        );
     }
 
     #[test]
@@ -567,6 +855,11 @@ mod tests {
     }
 
     #[test]
+    fn push_mem_invalid() {
+        test_parse_mem("push");
+    }
+
+    #[test]
     fn pushw_invalid() {
         test_parsew_base("pushw", "pushw.{mem|mem.a|local.i}");
     }
@@ -616,6 +909,11 @@ mod tests {
 
     // TESTS FOR REMOVING VALUES FROM THE STACK (POP)
     // ============================================================================================
+
+    #[test]
+    fn pop_mem_invalid() {
+        test_parse_mem("pop");
+    }
 
     #[test]
     fn popw_invalid() {
@@ -790,10 +1088,11 @@ mod tests {
     }
 
     /// Test that an instruction for an absolute memory operation is properly formed. It can be used
-    /// to test parameter inputs for `pushw.mem`, `popw.mem`, `loadw.mem`, and `storew.mem`.
+    /// to test parameter inputs for `push.mem`, `pushw.mem`, `pop.mem`, `popw.mem`, `loadw.mem`,
+    /// and `storew.mem`.
     fn test_parse_mem(base_op: &str) {
-        // fails when immediate values to a {pushw|popw|loadw|storew}.mem.{a|} operation are
-        // invalid or missing
+        // fails when immediate values to a {push|pushw|pop|popw|loadw|storew}.mem.{a|} operation
+        // are invalid or missing
         let pos = 0;
 
         // invalid value provided to mem variant
@@ -815,7 +1114,9 @@ mod tests {
         let mut span_ops: Vec<Operation> = Vec::new();
 
         match base_op {
+            "push" => parse_push(&mut span_ops, invalid_op).unwrap_err(),
             "pushw" => parse_pushw(&mut span_ops, invalid_op).unwrap_err(),
+            "pop" => parse_pop(&mut span_ops, invalid_op).unwrap_err(),
             "popw" => parse_popw(&mut span_ops, invalid_op).unwrap_err(),
             "loadw" => parse_loadw(&mut span_ops, invalid_op).unwrap_err(),
             "storew" => parse_storew(&mut span_ops, invalid_op).unwrap_err(),
