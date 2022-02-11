@@ -1,6 +1,6 @@
 use super::{
-    rand_word, test_execution_failure, test_inputs_out_of_bounds, test_op_execution, Felt,
-    StarkField, U32_BOUND, WORD_LEN,
+    rand_word, test_execution_failure, test_inputs_out_of_bounds, test_op_execution,
+    test_op_execution_proptest, Felt, StarkField, U32_BOUND, WORD_LEN,
 };
 use proptest::prelude::*;
 use rand_utils::rand_value;
@@ -153,7 +153,7 @@ proptest! {
         // check to see if the value of the element will be a valid u32
         let expected_result = if value % Felt::MODULUS < U32_BOUND { 1 } else { 0 };
 
-        test_op_execution("u32test", &[value], &[expected_result, value]);
+        test_op_execution_proptest("u32test", &[value], &[expected_result, value])?;
     }
 
     #[test]
@@ -166,14 +166,14 @@ proptest! {
         // reverse the values to put the expected array in stack order
         expected.reverse();
 
-        test_op_execution("u32testw", &values, &expected);
+        test_op_execution_proptest("u32testw", &values, &expected)?;
     }
 
     #[test]
     fn u32assert_proptest(value in any::<u32>()) {
         // assertion passes and leaves the stack unchanged if a < 2^32
         let asm_op = "u32assert";
-        test_op_execution(asm_op, &[value as u64], &[value as u64]);
+        test_op_execution_proptest(asm_op, &[value as u64], &[value as u64])?;
     }
 
     #[test]
@@ -185,7 +185,7 @@ proptest! {
         // reverse the values to put the expected array in stack order
         expected.reverse();
 
-        test_op_execution(asm_op, &values, &expected);
+        test_op_execution_proptest(asm_op, &values, &expected)?;
     }
 
     #[test]
@@ -194,7 +194,7 @@ proptest! {
         // so the field modulus should be applied first
         let expected_result = value % Felt::MODULUS % U32_BOUND;
 
-        test_op_execution("u32cast", &[value], &[expected_result]);
+        test_op_execution_proptest("u32cast", &[value], &[expected_result])?;
     }
 
     #[test]
@@ -205,6 +205,6 @@ proptest! {
         let expected_b = felt_value >> 32;
         let expected_c = felt_value as u32 as u64;
 
-        test_op_execution("u32split", &[value, value], &[expected_b, expected_c, value]);
+        test_op_execution_proptest("u32split", &[value, value], &[expected_b, expected_c, value])?;
     }
 }

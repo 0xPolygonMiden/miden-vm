@@ -1,6 +1,6 @@
 use super::{
-    test_execution_failure, test_input_out_of_bounds, test_op_execution, test_param_out_of_bounds,
-    U32_BOUND,
+    test_execution_failure, test_input_out_of_bounds, test_op_execution,
+    test_op_execution_proptest, test_param_out_of_bounds, U32_BOUND,
 };
 use proptest::prelude::*;
 use rand_utils::rand_value;
@@ -344,7 +344,7 @@ proptest! {
         // should result in bitwise AND
         let expected = (a & b) as u64;
 
-        test_op_execution(asm_opcode, &values, &[expected]);
+        test_op_execution_proptest(asm_opcode, &values, &[expected])?;
     }
 
     #[test]
@@ -354,7 +354,7 @@ proptest! {
         // should result in bitwise OR
         let expected = (a | b) as u64;
 
-        test_op_execution(asm_opcode, &values, &[expected]);
+        test_op_execution_proptest(asm_opcode, &values, &[expected])?;
     }
 
     #[test]
@@ -364,7 +364,7 @@ proptest! {
         // should result in bitwise XOR
         let expected = (a ^ b) as u64;
 
-        test_op_execution(asm_opcode, &values, &[expected]);
+        test_op_execution_proptest(asm_opcode, &values, &[expected])?;
     }
 
     #[test]
@@ -372,7 +372,7 @@ proptest! {
         let asm_opcode = "u32not";
 
         // should result in bitwise NOT
-        test_op_execution(asm_opcode, &[value as u64], &[!value as u64]);
+        test_op_execution_proptest(asm_opcode, &[value as u64], &[!value as u64])?;
     }
 
     #[test]
@@ -381,7 +381,7 @@ proptest! {
 
         // should execute left shift
         let expected =  a << b;
-        test_op_execution(&asm_opcode, &[a as u64], &[expected as u64]);
+        test_op_execution_proptest(&asm_opcode, &[a as u64], &[expected as u64])?;
     }
 
     #[test]
@@ -390,7 +390,7 @@ proptest! {
 
         // should execute right shift
         let expected =  a >> b;
-        test_op_execution(&asm_opcode, &[a as u64], &[expected as u64]);
+        test_op_execution_proptest(&asm_opcode, &[a as u64], &[expected as u64])?;
     }
 
     #[test]
@@ -399,7 +399,7 @@ proptest! {
         let asm_opcode = format!("{}.{}", op_base, b);
 
         // should execute left bit rotation
-        test_op_execution(&asm_opcode, &[a as u64], &[a.rotate_left(b) as u64]);
+        test_op_execution_proptest(&asm_opcode, &[a as u64], &[a.rotate_left(b) as u64])?;
     }
 
     #[test]
@@ -408,6 +408,6 @@ proptest! {
         let asm_opcode = format!("{}.{}", op_base, b);
 
         // should execute right bit rotation
-        test_op_execution(&asm_opcode, &[a as u64], &[a.rotate_right(b) as u64]);
+        test_op_execution_proptest(&asm_opcode, &[a as u64], &[a.rotate_right(b) as u64])?;
     }
 }

@@ -1,4 +1,6 @@
-use super::{build_inputs, compile, execute, push_to_stack, test_op_execution};
+use super::{
+    build_inputs, compile, execute, push_to_stack, test_op_execution, test_op_execution_proptest,
+};
 use proptest::prelude::*;
 use vm_core::{Felt, StarkField};
 
@@ -149,18 +151,10 @@ fn rand_word() -> impl Strategy<Value = Vec<u64>> {
 proptest! {
     #[test]
     fn eq_proptest(a in any::<u64>(), b in any::<u64>()) {
-        // test the eq assembly operation with randomized inputs
-        let script = compile("begin eq end");
-
-        let inputs = build_inputs(&[a, b]);
-        let trace = execute(&script, &inputs).unwrap();
-        let last_state = trace.last_stack_state();
-
+        let asm_op = "eq";
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS == b % Felt::MODULUS { 1 } else { 0 };
-        let expected_state = push_to_stack(&[expected_result]);
-
-        prop_assert_eq!(expected_state, last_state);
+        test_op_execution_proptest(asm_op, &[a, b], &[expected_result])?;
     }
 
     #[test]
@@ -198,64 +192,36 @@ proptest! {
     #[test]
     fn lt_proptest(a in any::<u64>(), b in any::<u64>()) {
         // test the less-than assembly operation with randomized inputs
-        let script = compile("begin lt end");
-
-        let inputs = build_inputs(&[a, b]);
-        let trace = execute(&script, &inputs).unwrap();
-        let last_state = trace.last_stack_state();
-
+        let asm_op = "lt";
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS < b % Felt::MODULUS { 1 } else { 0 };
-        let expected_state = push_to_stack(&[expected_result]);
-
-        prop_assert_eq!(expected_state, last_state);
+        test_op_execution_proptest(asm_op, &[a, b], &[expected_result])?;
     }
 
     #[test]
     fn lte_proptest(a in any::<u64>(), b in any::<u64>()) {
         // test the less-than-or-equal assembly operation with randomized inputs
-        let script = compile("begin lte end");
-
-        let inputs = build_inputs(&[a, b]);
-        let trace = execute(&script, &inputs).unwrap();
-        let last_state = trace.last_stack_state();
-
+        let asm_op = "lte";
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS <= b % Felt::MODULUS { 1 } else { 0 };
-        let expected_state = push_to_stack(&[expected_result]);
-
-        prop_assert_eq!(expected_state, last_state);
+        test_op_execution_proptest(asm_op, &[a, b], &[expected_result])?;
     }
 
     #[test]
     fn gt_proptest(a in any::<u64>(), b in any::<u64>()) {
         // test the greater-than assembly operation with randomized inputs
-        let script = compile("begin gt end");
-
-        let inputs = build_inputs(&[a, b]);
-        let trace = execute(&script, &inputs).unwrap();
-        let last_state = trace.last_stack_state();
-
+        let asm_op = "gt";
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS > b % Felt::MODULUS { 1 } else { 0 };
-        let expected_state = push_to_stack(&[expected_result]);
-
-        prop_assert_eq!(expected_state, last_state);
+        test_op_execution_proptest(asm_op, &[a, b], &[expected_result])?;
     }
 
     #[test]
     fn gte_proptest(a in any::<u64>(), b in any::<u64>()) {
         // test the greater-than-or-equal assembly operation with randomized inputs
-        let script = compile("begin gte end");
-
-        let inputs = build_inputs(&[a, b]);
-        let trace = execute(&script, &inputs).unwrap();
-        let last_state = trace.last_stack_state();
-
+        let asm_op = "gte";
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS >= b % Felt::MODULUS { 1 } else { 0 };
-        let expected_state = push_to_stack(&[expected_result]);
-
-        prop_assert_eq!(expected_state, last_state);
+        test_op_execution_proptest(asm_op, &[a, b], &[expected_result])?;
     }
 }

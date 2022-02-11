@@ -1,6 +1,7 @@
 use super::{
     build_inputs, compile, execute, test_compilation_failure, test_execution_failure,
-    test_op_execution, test_param_out_of_bounds, test_unsafe_execution, U32_BOUND,
+    test_op_execution, test_op_execution_proptest, test_param_out_of_bounds, test_unsafe_execution,
+    U32_BOUND,
 };
 use proptest::prelude::*;
 use rand_utils::rand_value;
@@ -665,9 +666,9 @@ proptest! {
         let expected = a as u64 + b as u64;
 
         // b provided via the stack
-        test_op_execution(asm_op, &[b as u64, a as u64], &[expected]);
+        test_op_execution_proptest(asm_op, &[b as u64, a as u64], &[expected])?;
         // b provided as a parameter
-        test_op_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
+        test_op_execution_proptest(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected])?;
     }
 
     #[test]
@@ -678,8 +679,8 @@ proptest! {
         let d = if overflow { 1 } else { 0 };
 
         // full and unsafe should produce the same result for valid values
-        test_op_execution(format!("{}.full", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64]);
-        test_op_execution(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64]);
+        test_op_execution_proptest(format!("{}.full", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64])?;
+        test_op_execution_proptest(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64])?;
     }
 
     #[test]
@@ -691,8 +692,8 @@ proptest! {
         let e = if overflow_b || overflow_c { 1_u64 } else { 0_u64 };
 
         // safe and unsafe should produce the same result for valid values
-        test_op_execution(asm_op, &[c as u64, a as u64, b as u64], &[e, d as u64]);
-        test_op_execution(format!("{}.unsafe", asm_op).as_str(), &[c as u64, a as u64, b as u64], &[e, d as u64]);
+        test_op_execution_proptest(asm_op, &[c as u64, a as u64, b as u64], &[e, d as u64])?;
+        test_op_execution_proptest(format!("{}.unsafe", asm_op).as_str(), &[c as u64, a as u64, b as u64], &[e, d as u64])?;
     }
 
     #[test]
@@ -708,9 +709,9 @@ proptest! {
 
         let expected = a - b;
         // b provided via the stack
-        test_op_execution(asm_op, &[a as u64, b as u64], &[expected as u64]);
+        test_op_execution_proptest(asm_op, &[a as u64, b as u64], &[expected as u64])?;
         // b provided as a parameter
-        test_op_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64]);
+        test_op_execution_proptest(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64])?;
     }
 
     #[test]
@@ -722,8 +723,8 @@ proptest! {
         let d = if overflow { 1 } else { 0 };
 
         // full and unsafe should produce the same result for valid values
-        test_op_execution(format!("{}.full", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64]);
-        test_op_execution(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64]);
+        test_op_execution_proptest(format!("{}.full", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64])?;
+        test_op_execution_proptest(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64])?;
     }
 
     #[test]
@@ -733,9 +734,9 @@ proptest! {
         let expected = a as u64 * b as u64;
 
         // b provided via the stack
-        test_op_execution(asm_op, &[b as u64, a as u64], &[expected]);
+        test_op_execution_proptest(asm_op, &[b as u64, a as u64], &[expected])?;
         // b provided as a parameter
-        test_op_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
+        test_op_execution_proptest(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected])?;
     }
 
     #[test]
@@ -750,8 +751,8 @@ proptest! {
         };
 
         // full and unsafe should produce the same result for valid values
-        test_op_execution(format!("{}.full", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64]);
-        test_op_execution(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64]);
+        test_op_execution_proptest(format!("{}.full", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64])?;
+        test_op_execution_proptest(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64])?;
     }
 
     #[test]
@@ -763,8 +764,8 @@ proptest! {
         let e = madd / U32_BOUND;
 
         // safe and unsafe should produce the same result for valid values
-        test_op_execution(asm_op, &[c as u64, a as u64, b as u64], &[e, d as u64]);
-        test_op_execution(format!("{}.unsafe", asm_op).as_str(), &[c as u64, a as u64, b as u64], &[e, d as u64]);
+        test_op_execution_proptest(asm_op, &[c as u64, a as u64, b as u64], &[e, d as u64])?;
+        test_op_execution_proptest(format!("{}.unsafe", asm_op).as_str(), &[c as u64, a as u64, b as u64], &[e, d as u64])?;
     }
 
     #[test]
@@ -775,9 +776,9 @@ proptest! {
         let expected = a / b;
 
         // b provided via the stack
-        test_op_execution(asm_op, &[a as u64, b as u64], &[expected as u64]);
+        test_op_execution_proptest(asm_op, &[a as u64, b as u64], &[expected as u64])?;
         // b provided as a parameter
-        test_op_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64]);
+        test_op_execution_proptest(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64])?;
     }
 
     #[test]
@@ -788,8 +789,8 @@ proptest! {
         let rem = (a % b) as u64;
 
         // full and unsafe should produce the same result for valid values
-        test_op_execution(format!("{}.full", asm_op).as_str(), &[a as u64, b as u64], &[rem, quot]);
-        test_op_execution(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[rem, quot]);
+        test_op_execution_proptest(format!("{}.full", asm_op).as_str(), &[a as u64, b as u64], &[rem, quot])?;
+        test_op_execution_proptest(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[rem, quot])?;
     }
 
     #[test]
@@ -799,11 +800,11 @@ proptest! {
         let expected = a % b;
 
         // b provided via the stack
-        test_op_execution(asm_op, &[a as u64, b as u64], &[expected as u64]);
+        test_op_execution_proptest(asm_op, &[a as u64, b as u64], &[expected as u64])?;
         // b provided as a parameter
-        test_op_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64]);
+        test_op_execution_proptest(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64])?;
         // safe and unsafe should produce the same result for valid values
-        test_op_execution(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[expected as u64]);
+        test_op_execution_proptest(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[expected as u64])?;
     }
 }
 

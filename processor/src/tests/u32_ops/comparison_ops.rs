@@ -1,8 +1,8 @@
 use std::cmp::Ordering;
 
 use super::{
-    test_execution_failure, test_inputs_out_of_bounds, test_op_execution, test_param_out_of_bounds,
-    test_unsafe_execution, U32_BOUND,
+    test_execution_failure, test_inputs_out_of_bounds, test_op_execution,
+    test_op_execution_proptest, test_param_out_of_bounds, test_unsafe_execution, U32_BOUND,
 };
 use proptest::prelude::*;
 use rand_utils::rand_value;
@@ -318,9 +318,9 @@ proptest! {
         // should test for equality
         let expected = if a == b { 1 } else { 0 };
         // b provided via the stack
-        test_op_execution(asm_op, &values, &[expected]);
+        test_op_execution_proptest(asm_op, &values, &[expected])?;
         // b provided as a parameter
-        test_op_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
+        test_op_execution_proptest(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected])?;
     }
 
     #[test]
@@ -331,9 +331,9 @@ proptest! {
         // should test for inequality
         let expected = if a != b { 1 } else { 0 };
         // b provided via the stack
-        test_op_execution(asm_op, &values, &[expected]);
+        test_op_execution_proptest(asm_op, &values, &[expected])?;
         // b provided as a parameter
-        test_op_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
+        test_op_execution_proptest(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected])?;
     }
 
     #[test]
@@ -345,8 +345,8 @@ proptest! {
         };
 
         // safe and unsafe should produce the same result for valid values
-        test_op_execution("u32lt", &[a as u64, b as u64], &[expected]);
-        test_op_execution("u32lt.unsafe", &[a as u64, b as u64], &[expected]);
+        test_op_execution_proptest("u32lt", &[a as u64, b as u64], &[expected])?;
+        test_op_execution_proptest("u32lt.unsafe", &[a as u64, b as u64], &[expected])?;
     }
 
     #[test]
@@ -358,8 +358,8 @@ proptest! {
         };
 
         // safe and unsafe should produce the same result for valid values
-        test_op_execution("u32lte", &[a as u64, b as u64], &[expected]);
-        test_op_execution("u32lte.unsafe", &[a as u64, b as u64], &[expected]);
+        test_op_execution_proptest("u32lte", &[a as u64, b as u64], &[expected])?;
+        test_op_execution_proptest("u32lte.unsafe", &[a as u64, b as u64], &[expected])?;
     }
 
     #[test]
@@ -371,8 +371,8 @@ proptest! {
         };
 
         // safe and unsafe should produce the same result for valid values
-        test_op_execution("u32gt", &[a as u64, b as u64], &[expected]);
-        test_op_execution("u32gt.unsafe", &[a as u64, b as u64], &[expected]);
+        test_op_execution_proptest("u32gt", &[a as u64, b as u64], &[expected])?;
+        test_op_execution_proptest("u32gt.unsafe", &[a as u64, b as u64], &[expected])?;
     }
 
     #[test]
@@ -384,8 +384,8 @@ proptest! {
         };
 
         // safe and unsafe should produce the same result for valid values
-        test_op_execution("u32gte", &[a as u64, b as u64], &[expected]);
-        test_op_execution("u32gte.unsafe", &[a as u64, b as u64], &[expected]);
+        test_op_execution_proptest("u32gte", &[a as u64, b as u64], &[expected])?;
+        test_op_execution_proptest("u32gte.unsafe", &[a as u64, b as u64], &[expected])?;
     }
 
     #[test]
@@ -393,8 +393,8 @@ proptest! {
         let expected = if a < b { a } else { b };
 
         // safe and unsafe should produce the same result for valid values
-        test_op_execution("u32min", &[a as u64, b as u64], &[expected as u64]);
-        test_op_execution("u32min.unsafe", &[a as u64, b as u64], &[expected as u64]);
+        test_op_execution_proptest("u32min", &[a as u64, b as u64], &[expected as u64])?;
+        test_op_execution_proptest("u32min.unsafe", &[a as u64, b as u64], &[expected as u64])?;
     }
 
     #[test]
@@ -402,8 +402,8 @@ proptest! {
         let expected = if a > b { a } else { b };
 
         // safe and unsafe should produce the same result for valid values
-        test_op_execution("u32max", &[a as u64, b as u64], &[expected as u64]);
-        test_op_execution("u32max.unsafe", &[a as u64, b as u64], &[expected as u64]);
+        test_op_execution_proptest("u32max", &[a as u64, b as u64], &[expected as u64])?;
+        test_op_execution_proptest("u32max.unsafe", &[a as u64, b as u64], &[expected as u64])?;
     }
 }
 

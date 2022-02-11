@@ -1,6 +1,7 @@
 use super::{
     super::StarkField, build_inputs, compile, execute, rand_word, test_compilation_failure,
-    test_execution_failure, test_op_execution, test_param_out_of_bounds, Felt,
+    test_execution_failure, test_op_execution, test_op_execution_proptest,
+    test_param_out_of_bounds, Felt,
 };
 
 mod arithmetic_ops;

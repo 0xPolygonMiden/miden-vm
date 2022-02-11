@@ -54,6 +54,18 @@ fn push_to_stack(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
     result
 }
 
+/// This helper function tests that when the given assembly script is executed on the
+/// the provided inputs, it results in the specified final stack state.
+/// - `inputs` should be provided in "normal" order. They'll be pushed onto the stack, reversing
+/// their order.
+/// - `final_stack` should be ordered to match the expected order of the stack after execution,
+/// starting from the top.
+fn test_script_execution(script: &Script, inputs: &[u64], final_stack: &[u64]) {
+    let expected_stack = convert_to_stack(final_stack);
+    let last_state = run_test_execution(script, inputs);
+    assert_eq!(expected_stack, last_state);
+}
+
 /// This helper function tests that when the given assembly instruction is executed on the
 /// the provided inputs, it results in the specified final stack state.
 /// - `inputs` should be provided in "normal" order. They'll be pushed onto the stack, reversing
@@ -65,20 +77,29 @@ fn test_op_execution(asm_op: &str, inputs: &[u64], final_stack: &[u64]) {
     test_script_execution(&script, inputs, final_stack);
 }
 
-/// This helper function tests that when the given assembly script is executed on the
-/// the provided inputs, it results in the specified final stack state.
-/// - `inputs` should be provided in "normal" order. They'll be pushed onto the stack, reversing
-/// their order.
-/// - `final_stack` should be ordered to match the expected order of the stack after execution,
-/// starting from the top.
-fn test_script_execution(script: &Script, inputs: &[u64], final_stack: &[u64]) {
+/// This helper function is the same as `test_op_execution`, except that when it is used inside a
+/// proptest it will return a test failure instead of panicking if the assertion condition fails.
+fn test_op_execution_proptest(
+    asm_op: &str,
+    inputs: &[u64],
+    final_stack: &[u64],
+) -> Result<(), proptest::test_runner::TestCaseError> {
+    let script = compile(format!("begin {} end", asm_op).as_str());
+    let expected_stack = convert_to_stack(final_stack);
+    let last_state = run_test_execution(&script, inputs);
+
+    prop_assert_eq!(expected_stack, last_state);
+
+    Ok(())
+}
+
+/// Executes the given script over the provided inputs and returns the last state of the resulting
+/// stack for validation.
+fn run_test_execution(script: &Script, inputs: &[u64]) -> [Felt; STACK_TOP_SIZE] {
     let inputs = build_inputs(inputs);
     let trace = execute(script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
 
-    let expected_stack = convert_to_stack(final_stack);
-
-    assert_eq!(expected_stack, last_state);
+    trace.last_stack_state()
 }
 
 /// This helper function tests failures where the execution of a given assembly operation with the
