@@ -58,6 +58,14 @@ impl AssemblyError {
         }
     }
 
+    pub fn invalid_op_with_reason(token: &Token, reason: &str) -> Self {
+        AssemblyError {
+            message: format!("instruction '{}' is invalid: {}", token, reason),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
     pub fn missing_param(token: &Token) -> Self {
         AssemblyError {
             message: format!(

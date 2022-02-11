@@ -1,3 +1,5 @@
+use vm_core::Felt;
+
 use super::{
     parse_decimal_param, parse_element_param, parse_hex_param, parse_int_param, push_value,
     validate_op_len, AssemblyError, BaseElement, Operation, Token,
@@ -105,7 +107,7 @@ pub fn parse_pushw(
 
     match op.parts()[1] {
         "mem" => parse_mem_read(span_ops, op, true),
-        "local" => parse_local_read(span_ops, op, num_proc_locals),
+        "local" => parse_local_read(span_ops, op, num_proc_locals, true),
         _ => Err(AssemblyError::invalid_op(op)),
     }
 }
@@ -179,7 +181,7 @@ pub fn parse_popw(
 
     match op.parts()[1] {
         "mem" => parse_mem_write(span_ops, op, false),
-        "local" => parse_local_write(span_ops, op, num_proc_locals),
+        "local" => parse_local_write(span_ops, op, num_proc_locals, false),
         _ => Err(AssemblyError::invalid_op(op)),
     }
 }
@@ -236,7 +238,7 @@ pub fn parse_loadw(
             Ok(())
         }
         "mem" => parse_mem_read(span_ops, op, false),
-        "local" => parse_local_read(span_ops, op, num_proc_locals),
+        "local" => parse_local_read(span_ops, op, num_proc_locals, false),
         _ => Err(AssemblyError::invalid_op(op)),
     }
 }
@@ -279,7 +281,7 @@ pub fn parse_storew(
 
     match op.parts()[1] {
         "mem" => parse_mem_write(span_ops, op, true),
-        "local" => parse_local_write(span_ops, op, num_proc_locals),
+        "local" => parse_local_write(span_ops, op, num_proc_locals, true),
         _ => Err(AssemblyError::invalid_op(op)),
     }
 }
@@ -563,36 +565,111 @@ fn push_mem_addr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 
 // HELPERS - LOCAL MEMORY FOR PROCEDURE VARIABLES
 // ================================================================================================
+
+/// Pushes the first element of the word at the specified local procedure memory index onto the
+/// stack.
 fn parse_push_local(
-    _span_ops: &mut Vec<Operation>,
-    _op: &Token,
-    _num_proc_locals: u32,
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    num_proc_locals: u32,
 ) -> Result<(), AssemblyError> {
-    unimplemented!();
+    validate_op_len(op, 2, 1, 1)?;
+
+    parse_local_read(span_ops, op, num_proc_locals, true)?;
+
+    for _ in 0..3 {
+        span_ops.push(Operation::Drop);
+    }
+
+    Ok(())
 }
 
+/// Pops the top element off the stack and saves it at the specified local procedure memory index.
 fn parse_pop_local(
-    _span_ops: &mut Vec<Operation>,
-    _op: &Token,
-    _num_proc_locals: u32,
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    num_proc_locals: u32,
 ) -> Result<(), AssemblyError> {
-    unimplemented!();
+    validate_op_len(op, 2, 1, 1)?;
+
+    // pad to word length before calling STOREW
+    for _ in 0..3 {
+        span_ops.push(Operation::Pad);
+    }
+
+    parse_local_write(span_ops, op, num_proc_locals, false)
 }
 
 fn parse_local_read(
-    _span_ops: &mut Vec<Operation>,
-    _op: &Token,
-    _num_proc_locals: u32,
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    num_proc_locals: u32,
+    preserve_stack: bool,
 ) -> Result<(), AssemblyError> {
-    unimplemented!();
+    // check for parameter
+    if op.num_parts() < 3 {
+        return Err(AssemblyError::missing_param(op));
+    }
+
+    if preserve_stack {
+        // make space for the new elements
+        for _ in 0..4 {
+            span_ops.push(Operation::Pad);
+        }
+    }
+
+    push_local_addr(span_ops, op, num_proc_locals)?;
+    span_ops.push(Operation::LoadW);
+
+    Ok(())
 }
 
 fn parse_local_write(
-    _span_ops: &mut Vec<Operation>,
-    _op: &Token,
-    _num_proc_locals: u32,
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    num_proc_locals: u32,
+    preserve_stack: bool,
 ) -> Result<(), AssemblyError> {
-    unimplemented!();
+    // check for parameter
+    if op.num_parts() < 3 {
+        return Err(AssemblyError::missing_param(op));
+    }
+
+    push_local_addr(span_ops, op, num_proc_locals)?;
+    span_ops.push(Operation::StoreW);
+
+    if !preserve_stack {
+        for _ in 0..4 {
+            span_ops.push(Operation::Drop);
+        }
+    }
+
+    Ok(())
+}
+
+fn push_local_addr(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    num_proc_locals: u32,
+) -> Result<(), AssemblyError> {
+    if num_proc_locals == 0 {
+        // if no procedure locals were declared, then no local mem ops are allowed
+        return Err(AssemblyError::invalid_op_with_reason(
+            op,
+            "no procedure locals were declared",
+        ));
+    }
+
+    // parse the provided local memory index
+    let index = parse_int_param(op, 2, 0, num_proc_locals - 1)?;
+
+    // put the absolute memory address on the stack
+    // negate the value to use it as an offset from the fmp
+    // since the fmp value was incremented when locals were allocated
+    push_value(span_ops, -Felt::new(index as u64));
+    span_ops.push(Operation::FmpAdd);
+
+    Ok(())
 }
 
 // TESTS
