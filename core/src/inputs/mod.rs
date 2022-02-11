@@ -58,7 +58,7 @@ impl ProgramInputs {
 
         // convert initial stack values into field elements
         let mut init_stack_elements = Vec::with_capacity(stack_init.len());
-        for &value in stack_init {
+        for &value in stack_init.iter().rev() {
             let element = value
                 .try_into()
                 .map_err(|_| InputError::NotFieldElement(value, "initial stack value"))?;

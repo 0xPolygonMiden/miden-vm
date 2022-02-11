@@ -1,4 +1,4 @@
-use super::{build_inputs, build_stack_state, compile, execute};
+use super::{compile, test_script_execution};
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -8,32 +8,14 @@ fn conditional_execution() {
     // --- if without else ------------------------------------------------------------------------
     let script = compile("begin dup.1 dup.1 eq if.true add end end");
 
-    let inputs = build_inputs(&[2, 1]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    let expected_state = build_stack_state(&[2, 1]);
-    assert_eq!(expected_state, last_state);
-
-    let inputs = build_inputs(&[3, 3]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    let expected_state = build_stack_state(&[6]);
-    assert_eq!(expected_state, last_state);
+    test_script_execution(&script, &[1, 2], &[2, 1]);
+    test_script_execution(&script, &[3, 3], &[6]);
 
     // --- if with else ------------------------------------------------------------------------
     let script = compile("begin dup.1 dup.1 eq if.true add else mul end end");
 
-    let inputs = build_inputs(&[3, 2]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    let expected_state = build_stack_state(&[6]);
-    assert_eq!(expected_state, last_state);
-
-    let inputs = build_inputs(&[3, 3]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    let expected_state = build_stack_state(&[6]);
-    assert_eq!(expected_state, last_state);
+    test_script_execution(&script, &[2, 3], &[6]);
+    test_script_execution(&script, &[3, 3], &[6]);
 }
 
 #[test]
@@ -51,20 +33,12 @@ fn conditional_loop() {
         end",
     );
 
-    let inputs = build_inputs(&[10]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    let expected_state = build_stack_state(&[55]);
-    assert_eq!(expected_state, last_state);
+    test_script_execution(&script, &[10], &[55]);
 
     // --- skipping the loop ----------------------------------------------------------------------
     let script = compile("begin dup eq.0 while.true add end end");
 
-    let inputs = build_inputs(&[10]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    let expected_state = build_stack_state(&[10]);
-    assert_eq!(expected_state, last_state);
+    test_script_execution(&script, &[10], &[10]);
 }
 
 #[test]
@@ -83,11 +57,7 @@ fn counter_controlled_loop() {
         end",
     );
 
-    let inputs = build_inputs(&[]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    let expected_state = build_stack_state(&[1024]);
-    assert_eq!(expected_state, last_state);
+    test_script_execution(&script, &[], &[1024]);
 }
 
 // NESTED CONTROL FLOW
@@ -112,11 +82,7 @@ fn if_in_loop() {
             end",
     );
 
-    let inputs = build_inputs(&[10]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    let expected_state = build_stack_state(&[210]);
-    assert_eq!(expected_state, last_state);
+    test_script_execution(&script, &[10], &[210]);
 }
 
 #[test]
@@ -143,15 +109,6 @@ fn if_in_loop_in_if() {
             end",
     );
 
-    let inputs = build_inputs(&[10]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    let expected_state = build_stack_state(&[210]);
-    assert_eq!(expected_state, last_state);
-
-    let inputs = build_inputs(&[11]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    let expected_state = build_stack_state(&[121]);
-    assert_eq!(expected_state, last_state);
+    test_script_execution(&script, &[10], &[210]);
+    test_script_execution(&script, &[11], &[121]);
 }
