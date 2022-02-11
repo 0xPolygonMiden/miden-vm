@@ -164,11 +164,7 @@ fn parse_hex_param(
 
 /// Checks that the u64 parameter value is a valid field element value and returns it as a field
 /// element.
-pub fn get_valid_felt(
-    op: &Token,
-    param_idx: usize,
-    param: u64,
-) -> Result<BaseElement, AssemblyError> {
+fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<BaseElement, AssemblyError> {
     if param >= BaseElement::MODULUS {
         return Err(AssemblyError::invalid_param_with_reason(
             op,
