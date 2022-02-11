@@ -168,16 +168,16 @@ mod tests {
         let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
 
         let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
-        let init_stack = [
-            tree.depth() as u64,
-            1,
-            tree.root()[3].as_int(),
-            tree.root()[2].as_int(),
-            tree.root()[1].as_int(),
+        let stack_inputs = [
             tree.root()[0].as_int(),
+            tree.root()[1].as_int(),
+            tree.root()[2].as_int(),
+            tree.root()[3].as_int(),
+            1,
+            tree.depth() as u64,
         ];
 
-        let inputs = ProgramInputs::new(&init_stack, &[], vec![tree.clone()]).unwrap();
+        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
         let mut process = Process::new(inputs);
 
         // inject the node into the advice tape
@@ -190,7 +190,7 @@ mod tests {
         process.execute_op(Operation::Read).unwrap();
         process.execute_op(Operation::Read).unwrap();
 
-        let expected = build_expected(&[
+        let expected_stack = build_expected(&[
             leaves[1][3],
             leaves[1][2],
             leaves[1][1],
@@ -202,7 +202,7 @@ mod tests {
             tree.root()[1],
             tree.root()[0],
         ]);
-        assert_eq!(expected, process.stack.trace_state());
+        assert_eq!(expected_stack, process.stack.trace_state());
     }
 
     // HELPER FUNCTIONS

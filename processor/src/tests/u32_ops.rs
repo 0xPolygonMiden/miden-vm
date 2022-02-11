@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use super::{
     super::StarkField, build_inputs, compile, execute, rand_word, test_compilation_failure,
-    test_execution, test_execution_failure, test_param_out_of_bounds, Felt,
+    test_execution_failure, test_op_execution, test_param_out_of_bounds, Felt,
 };
 use proptest::prelude::*;
 use rand_utils::rand_value;
@@ -27,13 +27,13 @@ fn u32test() {
     let larger = equal + 1;
 
     // --- a < 2^32 -------------------------------------------------------------------------------
-    test_execution(asm_op, &[smaller], &[1, smaller]);
+    test_op_execution(asm_op, &[smaller], &[1, smaller]);
 
     // --- a = 2^32 -------------------------------------------------------------------------------
-    test_execution(asm_op, &[equal], &[0, equal]);
+    test_op_execution(asm_op, &[equal], &[0, equal]);
 
     // --- a > 2^32 -------------------------------------------------------------------------------
-    test_execution(asm_op, &[larger], &[0, larger]);
+    test_op_execution(asm_op, &[larger], &[0, larger]);
 }
 
 #[test]
@@ -41,40 +41,34 @@ fn u32testw() {
     let asm_op = "u32testw";
 
     // --- all elements in range ------------------------------------------------------------------
-    let values = vec![1; WORD_LEN];
-    let mut expected = values.clone();
-    expected.insert(0, 1);
-    test_execution(asm_op, &values, &expected);
+    let values = [1, 1, 1, 1];
+    let expected = [1, 1, 1, 1, 1];
+    test_op_execution(asm_op, &values, &expected);
 
     // --- 1st element >= 2^32 --------------------------------------------------------------------
-    let values = vec![U32_BOUND, 0, 0, 0];
-    let mut expected = values.clone();
-    expected.insert(0, 0);
-    test_execution(asm_op, &values, &expected);
+    let values = [U32_BOUND, 0, 0, 0];
+    let expected = [0, 0, 0, 0, U32_BOUND];
+    test_op_execution(asm_op, &values, &expected);
 
     // --- 2nd element >= 2^32 --------------------------------------------------------------------
-    let values = vec![0, U32_BOUND, 0, 0];
-    let mut expected = values.clone();
-    expected.insert(0, 0);
-    test_execution(asm_op, &values, &expected);
+    let values = [0, U32_BOUND, 0, 0];
+    let expected = [0, 0, 0, U32_BOUND, 0];
+    test_op_execution(asm_op, &values, &expected);
 
     // --- 3rd element >= 2^32 --------------------------------------------------------------------
-    let values = vec![0, 0, U32_BOUND, 0];
-    let mut expected = values.clone();
-    expected.insert(0, 0);
-    test_execution(asm_op, &values, &expected);
+    let values = [0, 0, U32_BOUND, 0];
+    let expected = [0, 0, U32_BOUND, 0, 0];
+    test_op_execution(asm_op, &values, &expected);
 
     // --- 4th element >= 2^32 --------------------------------------------------------------------
-    let values = vec![0, 0, 0, U32_BOUND];
-    let mut expected = values.clone();
-    expected.insert(0, 0);
-    test_execution(asm_op, &values, &expected);
+    let values = [0, 0, 0, U32_BOUND];
+    let expected = [0, U32_BOUND, 0, 0, 0];
+    test_op_execution(asm_op, &values, &expected);
 
     // --- all elements out of range --------------------------------------------------------------
-    let values = vec![U32_BOUND; WORD_LEN];
-    let mut expected = values.clone();
-    expected.insert(0, 0);
-    test_execution(asm_op, &values, &expected);
+    let values = [U32_BOUND, U32_BOUND, U32_BOUND, U32_BOUND];
+    let expected = [0, U32_BOUND, U32_BOUND, U32_BOUND, U32_BOUND];
+    test_op_execution(asm_op, &values, &expected);
 }
 
 #[test]
@@ -82,7 +76,7 @@ fn u32assert() {
     // assertion passes and leaves the stack unchanged if a < 2^32
     let asm_op = "u32assert";
     let value = 1_u64;
-    test_execution(asm_op, &[value], &[value]);
+    test_op_execution(asm_op, &[value], &[value]);
 }
 
 #[test]
@@ -106,7 +100,7 @@ fn u32assert_fail() {
 fn u32assertw() {
     // assertion passes and leaves the stack unchanged if each element of the word < 2^32
     let asm_op = "u32assertw";
-    test_execution(asm_op, &[2, 3, 4, 5], &[2, 3, 4, 5]);
+    test_op_execution(asm_op, &[2, 3, 4, 5], &[5, 4, 3, 2]);
 }
 
 #[test]
@@ -127,15 +121,15 @@ fn u32cast() {
     let asm_op = "u32cast";
 
     // --- a < 2^32 -------------------------------------------------------------------------------
-    test_execution(asm_op, &[1], &[1]);
+    test_op_execution(asm_op, &[1], &[1]);
 
     // --- a > 2^32 -------------------------------------------------------------------------------
-    test_execution(asm_op, &[U32_BOUND], &[0]);
+    test_op_execution(asm_op, &[U32_BOUND], &[0]);
 
     // --- rest of stack isn't affected -----------------------------------------------------------
     let a = rand_value();
     let b = rand_value();
-    test_execution(asm_op, &[a, b], &[a % U32_BOUND, b]);
+    test_op_execution(asm_op, &[a, b], &[b % U32_BOUND, a]);
 }
 
 #[test]
@@ -143,20 +137,20 @@ fn u32split() {
     let asm_op = "u32split";
 
     // --- low bits set, no high bits set ---------------------------------------------------------
-    test_execution(asm_op, &[1], &[0, 1]);
+    test_op_execution(asm_op, &[1], &[0, 1]);
 
     // --- high bits set, no low bits set ---------------------------------------------------------
-    test_execution(asm_op, &[U32_BOUND], &[1, 0]);
+    test_op_execution(asm_op, &[U32_BOUND], &[1, 0]);
 
     // --- high bits and low bits set -------------------------------------------------------------
-    test_execution(asm_op, &[U32_BOUND + 1], &[1, 1]);
+    test_op_execution(asm_op, &[U32_BOUND + 1], &[1, 1]);
 
     // --- rest of stack isn't affected -----------------------------------------------------------
     let a = rand_value();
     let b = rand_value();
-    let expected_hi = a >> 32;
-    let expected_lo = a % U32_BOUND;
-    test_execution(asm_op, &[a, b], &[expected_hi, expected_lo, b]);
+    let expected_hi = b >> 32;
+    let expected_lo = b % U32_BOUND;
+    test_op_execution(asm_op, &[a, b], &[expected_hi, expected_lo, a]);
 }
 
 // U32 OPERATIONS TESTS - MANUAL - ARITHMETIC OPERATIONS
@@ -167,7 +161,7 @@ fn u32add() {
     let asm_op = "u32add";
 
     // --- simple case ----------------------------------------------------------------------------
-    test_execution(asm_op, &[2, 1], &[3]);
+    test_op_execution(asm_op, &[1, 2], &[3]);
 
     // --- random values --------------------------------------------------------------------------
     // test using u16 values to ensure there's no overflow so the result is valid
@@ -175,11 +169,11 @@ fn u32add() {
     let b = rand_value::<u64>() as u16;
     let expected = a as u64 + b as u64;
 
-    test_execution(asm_op, &[b as u64, a as u64], &[expected]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(asm_op, &[b as u64, a as u64, c], &[expected, c]);
+    test_op_execution(asm_op, &[c, a as u64, b as u64], &[expected, c]);
 }
 
 #[test]
@@ -187,15 +181,15 @@ fn u32add_fail() {
     let asm_op = "u32add";
 
     // should fail if a >= 2^32
-    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
+    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
 
     // should fail if b >= 2^32
-    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
+    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
 
     // should fail if a + b >= 2^32
     let a = u32::MAX;
     let b = 1_u64;
-    test_execution_failure(asm_op, &[b, a as u64], "FailedAssertion");
+    test_execution_failure(asm_op, &[a as u64, b], "FailedAssertion");
 }
 
 #[test]
@@ -203,18 +197,18 @@ fn u32add_b() {
     let build_asm_op = |param: u16| format!("u32add.{}", param);
 
     // --- simple case ----------------------------------------------------------------------------
-    test_execution(build_asm_op(2).as_str(), &[1], &[3]);
+    test_op_execution(build_asm_op(2).as_str(), &[1], &[3]);
 
     // --- random values --------------------------------------------------------------------------
     // test using u16 values to ensure there's no overflow so the result is valid
     let a = rand_value::<u64>() as u16;
     let b = rand_value::<u64>() as u16;
     let expected = a as u64 + b as u64;
-    test_execution(build_asm_op(b).as_str(), &[a as u64], &[expected]);
+    test_op_execution(build_asm_op(b).as_str(), &[a as u64], &[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(build_asm_op(b).as_str(), &[a as u64, c], &[expected, c]);
+    test_op_execution(build_asm_op(b).as_str(), &[c, a as u64], &[expected, c]);
 }
 
 #[test]
@@ -247,10 +241,10 @@ fn u32add_full_fail() {
     let asm_op = "u32add.full";
 
     // should fail if a >= 2^32
-    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
+    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
 
     // should fail if b >= 2^32
-    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
+    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
 }
 
 #[test]
@@ -279,13 +273,13 @@ fn u32addc_fail() {
     let asm_op = "u32addc";
 
     // should fail if a >= 2^32
-    test_execution_failure(asm_op, &[0, U32_BOUND, 0], "FailedAssertion");
+    test_execution_failure(asm_op, &[0, 0, U32_BOUND, 0], "FailedAssertion");
 
     // should fail if b >= 2^32
-    test_execution_failure(asm_op, &[U32_BOUND, 0, 0], "FailedAssertion");
+    test_execution_failure(asm_op, &[0, U32_BOUND, 0], "FailedAssertion");
 
     // should fail if c > 1
-    test_execution_failure(asm_op, &[0, 0, 2], "NotBinaryValue");
+    test_execution_failure(asm_op, &[2, 0, 0], "NotBinaryValue");
 }
 
 #[test]
@@ -301,11 +295,11 @@ fn u32addc_unsafe() {
     let script = compile(format!("begin {} end", asm_op).as_str());
 
     // should not fail if a >= 2^32
-    let inputs = build_inputs(&[0, U32_BOUND, 0]);
+    let inputs = build_inputs(&[0, 0, U32_BOUND]);
     assert!(execute(&script, &inputs).is_ok());
 
     // should not fail if b >= 2^32
-    let inputs = build_inputs(&[U32_BOUND, 0, 0]);
+    let inputs = build_inputs(&[0, U32_BOUND, 0]);
     assert!(execute(&script, &inputs).is_ok());
 }
 
@@ -314,7 +308,7 @@ fn u32addc_unsafe_fail() {
     let asm_op = "u32addc.unsafe";
 
     // should fail if c > 1
-    test_execution_failure(asm_op, &[U32_BOUND, 0, 2], "NotBinaryValue");
+    test_execution_failure(asm_op, &[2, U32_BOUND, 0], "NotBinaryValue");
 }
 
 #[test]
@@ -322,8 +316,8 @@ fn u32sub() {
     let asm_op = "u32sub";
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(asm_op, &[1, 1], &[0]);
-    test_execution(asm_op, &[1, 2], &[1]);
+    test_op_execution(asm_op, &[1, 1], &[0]);
+    test_op_execution(asm_op, &[2, 1], &[1]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let val1 = rand_value::<u64>() as u32;
@@ -336,11 +330,11 @@ fn u32sub() {
     };
     let expected = a - b;
 
-    test_execution(asm_op, &[b as u64, a as u64], &[expected as u64]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[expected as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(asm_op, &[b as u64, a as u64, c], &[expected as u64, c]);
+    test_op_execution(asm_op, &[c, a as u64, b as u64], &[expected as u64, c]);
 }
 
 #[test]
@@ -348,15 +342,15 @@ fn u32sub_fail() {
     let asm_op = "u32sub";
 
     // should fail if a >= 2^32
-    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
+    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
 
     // should fail if b >= 2^32
-    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
+    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
 
     // should fail if a < b
     let a = 1_u64;
     let b = 2_u64;
-    test_execution_failure(asm_op, &[b, a], "FailedAssertion");
+    test_execution_failure(asm_op, &[a, b], "FailedAssertion");
 }
 
 #[test]
@@ -364,8 +358,8 @@ fn u32sub_b() {
     let build_asm_op = |param: u32| format!("u32sub.{}", param);
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(build_asm_op(1).as_str(), &[2], &[1]);
-    test_execution(build_asm_op(1).as_str(), &[1], &[0]);
+    test_op_execution(build_asm_op(1).as_str(), &[2], &[1]);
+    test_op_execution(build_asm_op(1).as_str(), &[1], &[0]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let val1 = rand_value::<u64>() as u32;
@@ -377,13 +371,13 @@ fn u32sub_b() {
         (val2, val1)
     };
     let expected = a - b;
-    test_execution(build_asm_op(b).as_str(), &[a as u64], &[expected as u64]);
+    test_op_execution(build_asm_op(b).as_str(), &[a as u64], &[expected as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(
+    test_op_execution(
         build_asm_op(b).as_str(),
-        &[a as u64, c],
+        &[c, a as u64],
         &[expected as u64, c],
     );
 }
@@ -418,10 +412,10 @@ fn u32sub_full_fail() {
     let asm_op = "u32sub.full";
 
     // should fail if a >= 2^32
-    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
+    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
 
     // should fail if b >= 2^32
-    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
+    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
 }
 
 #[test]
@@ -441,9 +435,9 @@ fn u32mul() {
     let asm_op = "u32mul";
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(asm_op, &[0, 1], &[0]);
-    test_execution(asm_op, &[1, 5], &[5]);
-    test_execution(asm_op, &[5, 2], &[10]);
+    test_op_execution(asm_op, &[1, 0], &[0]);
+    test_op_execution(asm_op, &[5, 1], &[5]);
+    test_op_execution(asm_op, &[2, 5], &[10]);
 
     // --- random values --------------------------------------------------------------------------
     // test using u16 values to ensure there's no overflow so the result is valid
@@ -451,11 +445,11 @@ fn u32mul() {
     let b = rand_value::<u64>() as u16;
 
     let expected: u64 = a as u64 * b as u64;
-    test_execution(asm_op, &[b as u64, a as u64], &[expected]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(asm_op, &[b as u64, a as u64, c], &[expected, c]);
+    test_op_execution(asm_op, &[c, a as u64, b as u64], &[expected, c]);
 }
 
 #[test]
@@ -463,15 +457,15 @@ fn u32mul_fail() {
     let asm_op = "u32mul";
 
     // should fail if a >= 2^32
-    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
+    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
 
     // should fail if b >= 2^32
-    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
+    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
 
     // should fail if a * b  >= 2^32
     let a = u32::MAX as u64;
     let b = 2_u64;
-    test_execution_failure(asm_op, &[b, a], "FailedAssertion");
+    test_execution_failure(asm_op, &[a, b], "FailedAssertion");
 }
 
 #[test]
@@ -479,9 +473,9 @@ fn u32mul_b() {
     let build_asm_op = |param: u16| format!("u32mul.{}", param);
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(build_asm_op(0).as_str(), &[1], &[0]);
-    test_execution(build_asm_op(1).as_str(), &[5], &[5]);
-    test_execution(build_asm_op(5).as_str(), &[2], &[10]);
+    test_op_execution(build_asm_op(0).as_str(), &[1], &[0]);
+    test_op_execution(build_asm_op(1).as_str(), &[5], &[5]);
+    test_op_execution(build_asm_op(5).as_str(), &[2], &[10]);
 
     // --- random values --------------------------------------------------------------------------
     // test using u16 values to ensure there's no overflow so the result is valid
@@ -489,11 +483,11 @@ fn u32mul_b() {
     let b = rand_value::<u64>() as u16;
 
     let expected: u64 = a as u64 * b as u64;
-    test_execution(build_asm_op(b).as_str(), &[a as u64], &[expected as u64]);
+    test_op_execution(build_asm_op(b).as_str(), &[a as u64], &[expected as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(build_asm_op(5).as_str(), &[10, c], &[50, c]);
+    test_op_execution(build_asm_op(5).as_str(), &[c, 10], &[50, c]);
 }
 
 #[test]
@@ -526,10 +520,10 @@ fn u32mul_full_fail() {
     let asm_op = "u32mul.full";
 
     // should fail if a >= 2^32
-    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
+    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
 
     // should fail if b >= 2^32
-    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
+    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
 }
 
 #[test]
@@ -558,13 +552,13 @@ fn u32madd_fail() {
     let asm_op = "u32madd";
 
     // should fail if a >= 2^32
-    test_execution_failure(asm_op, &[0, U32_BOUND, 0], "FailedAssertion");
+    test_execution_failure(asm_op, &[0, 0, U32_BOUND], "FailedAssertion");
 
     // should fail if b >= 2^32
-    test_execution_failure(asm_op, &[U32_BOUND, 0, 0], "FailedAssertion");
+    test_execution_failure(asm_op, &[0, U32_BOUND, 0], "FailedAssertion");
 
     // should fail if c  >= 2^32
-    test_execution_failure(asm_op, &[0, 0, U32_BOUND], "FailedAssertion");
+    test_execution_failure(asm_op, &[U32_BOUND, 0, 0], "FailedAssertion");
 }
 
 #[test]
@@ -585,21 +579,21 @@ fn u32div() {
     let asm_op = "u32div";
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(asm_op, &[1, 0], &[0]);
+    test_op_execution(asm_op, &[0, 1], &[0]);
     // division with no remainder
-    test_execution(asm_op, &[1, 2], &[2]);
+    test_op_execution(asm_op, &[2, 1], &[2]);
     // division with remainder
-    test_execution(asm_op, &[2, 1], &[0]);
+    test_op_execution(asm_op, &[1, 2], &[0]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     let b = rand_value::<u64>() as u32;
     let expected = a / b;
-    test_execution(asm_op, &[b as u64, a as u64], &[expected as u64]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[expected as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(asm_op, &[b as u64, a as u64, c], &[expected as u64, c]);
+    test_op_execution(asm_op, &[c, a as u64, b as u64], &[expected as u64, c]);
 }
 
 #[test]
@@ -607,17 +601,17 @@ fn u32div_fail() {
     let asm_op = "u32div";
 
     // should fail if a >= 2^32
-    test_execution_failure(asm_op, &[1, U32_BOUND], "FailedAssertion");
+    test_execution_failure(asm_op, &[U32_BOUND, 1], "FailedAssertion");
 
     // should fail if b >= 2^32
-    test_execution_failure(asm_op, &[U32_BOUND, 1], "FailedAssertion");
+    test_execution_failure(asm_op, &[1, U32_BOUND], "FailedAssertion");
 }
 
 #[test]
 #[should_panic = "divide by zero"]
 fn u32div_panic() {
     let script = compile("begin u32div end");
-    let inputs = build_inputs(&[0, 1]);
+    let inputs = build_inputs(&[1, 0]);
 
     // should panic if b = 0
     execute(&script, &inputs).unwrap();
@@ -629,23 +623,23 @@ fn u32div_b() {
     let build_asm_op = |param: u32| format!("u32div.{}", param);
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(build_asm_op(1).as_str(), &[0], &[0]);
+    test_op_execution(build_asm_op(1).as_str(), &[0], &[0]);
     // division with no remainder
-    test_execution(build_asm_op(1).as_str(), &[2], &[2]);
+    test_op_execution(build_asm_op(1).as_str(), &[2], &[2]);
     // division with remainder
-    test_execution(build_asm_op(2).as_str(), &[1], &[0]);
+    test_op_execution(build_asm_op(2).as_str(), &[1], &[0]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     let b = rand_value::<u64>() as u32;
     let expected = a / b;
-    test_execution(build_asm_op(b).as_str(), &[a as u64], &[expected as u64]);
+    test_op_execution(build_asm_op(b).as_str(), &[a as u64], &[expected as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(
+    test_op_execution(
         build_asm_op(b).as_str(),
-        &[a as u64, c],
+        &[c, a as u64],
         &[expected as u64, c],
     );
 }
@@ -679,17 +673,17 @@ fn u32div_full_fail() {
     let asm_op = "u32div.full";
 
     // should fail if a >= 2^32
-    test_execution_failure(asm_op, &[1, U32_BOUND], "FailedAssertion");
+    test_execution_failure(asm_op, &[U32_BOUND, 1], "FailedAssertion");
 
     // should fail if b >= 2^32
-    test_execution_failure(asm_op, &[U32_BOUND, 1], "FailedAssertion");
+    test_execution_failure(asm_op, &[1, U32_BOUND], "FailedAssertion");
 }
 
 #[test]
 #[should_panic = "divide by zero"]
 fn u32div_full_panic() {
     let script = compile("begin u32div.full end");
-    let inputs = build_inputs(&[0, 1]);
+    let inputs = build_inputs(&[1, 0]);
 
     // should panic if b = 0
     execute(&script, &inputs).unwrap();
@@ -711,7 +705,7 @@ fn u32div_unsafe() {
 #[should_panic = "divide by zero"]
 fn u32div_unsafe_panic() {
     let script = compile("begin u32div.unsafe end");
-    let inputs = build_inputs(&[0, 1]);
+    let inputs = build_inputs(&[1, 0]);
 
     // should panic if b = 0
     execute(&script, &inputs).unwrap();
@@ -730,17 +724,17 @@ fn u32mod_fail() {
     let asm_op = "u32mod";
 
     // should fail if a >= 2^32
-    test_execution_failure(asm_op, &[1, U32_BOUND], "FailedAssertion");
+    test_execution_failure(asm_op, &[U32_BOUND, 1], "FailedAssertion");
 
     // should fail if b >= 2^32
-    test_execution_failure(asm_op, &[U32_BOUND, 1], "FailedAssertion");
+    test_execution_failure(asm_op, &[1, U32_BOUND], "FailedAssertion");
 }
 
 #[test]
 #[should_panic = "divide by zero"]
 fn u32mod_panic() {
     let script = compile("begin u32mod end");
-    let inputs = build_inputs(&[0, 1]);
+    let inputs = build_inputs(&[1, 0]);
 
     // should panic if b = 0
     execute(&script, &inputs).unwrap();
@@ -751,9 +745,9 @@ fn u32mod_b() {
     let build_asm_op = |param: u32| format!("u32mod.{}", param);
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(build_asm_op(5).as_str(), &[10], &[0]);
-    test_execution(build_asm_op(5).as_str(), &[11], &[1]);
-    test_execution(build_asm_op(11).as_str(), &[5], &[5]);
+    test_op_execution(build_asm_op(5).as_str(), &[10], &[0]);
+    test_op_execution(build_asm_op(5).as_str(), &[11], &[1]);
+    test_op_execution(build_asm_op(11).as_str(), &[5], &[5]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
@@ -763,13 +757,13 @@ fn u32mod_b() {
         b += 1;
     }
     let expected = a % b;
-    test_execution(build_asm_op(b).as_str(), &[a as u64], &[expected as u64]);
+    test_op_execution(build_asm_op(b).as_str(), &[a as u64], &[expected as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(
+    test_op_execution(
         build_asm_op(b).as_str(),
-        &[a as u64, c],
+        &[c, a as u64],
         &[expected as u64, c],
     );
 }
@@ -803,7 +797,7 @@ fn u32mod_unsafe() {
 #[should_panic = "divide by zero"]
 fn u32mod_unsafe_panic() {
     let script = compile("begin u32mod.unsafe end");
-    let inputs = build_inputs(&[0, 1]);
+    let inputs = build_inputs(&[1, 0]);
 
     // should panic if b = 0
     execute(&script, &inputs).unwrap();
@@ -817,23 +811,23 @@ fn u32and() {
     let asm_op = "u32and";
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(asm_op, &[1, 1], &[1]);
-    test_execution(asm_op, &[0, 1], &[0]);
-    test_execution(asm_op, &[1, 0], &[0]);
-    test_execution(asm_op, &[0, 0], &[0]);
+    test_op_execution(asm_op, &[1, 1], &[1]);
+    test_op_execution(asm_op, &[0, 1], &[0]);
+    test_op_execution(asm_op, &[1, 0], &[0]);
+    test_op_execution(asm_op, &[0, 0], &[0]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     let b = rand_value::<u64>() as u32;
-    test_execution(asm_op, &[a as u64, b as u64], &[(a & b) as u64]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[(a & b) as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>() as u32;
     let d = rand_value::<u64>() as u32;
-    test_execution(
+    test_op_execution(
         asm_op,
-        &[a as u64, b as u64, c as u64, d as u64],
-        &[(a & b) as u64, c as u64, d as u64],
+        &[c as u64, d as u64, a as u64, b as u64],
+        &[(a & b) as u64, d as u64, c as u64],
     );
 }
 
@@ -851,23 +845,23 @@ fn u32or() {
     let asm_op = "u32or";
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(asm_op, &[1, 1], &[1]);
-    test_execution(asm_op, &[0, 1], &[1]);
-    test_execution(asm_op, &[1, 0], &[1]);
-    test_execution(asm_op, &[0, 0], &[0]);
+    test_op_execution(asm_op, &[1, 1], &[1]);
+    test_op_execution(asm_op, &[0, 1], &[1]);
+    test_op_execution(asm_op, &[1, 0], &[1]);
+    test_op_execution(asm_op, &[0, 0], &[0]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     let b = rand_value::<u64>() as u32;
-    test_execution(asm_op, &[a as u64, b as u64], &[(a | b) as u64]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[(a | b) as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>() as u32;
     let d = rand_value::<u64>() as u32;
-    test_execution(
+    test_op_execution(
         asm_op,
-        &[a as u64, b as u64, c as u64, d as u64],
-        &[(a | b) as u64, c as u64, d as u64],
+        &[c as u64, d as u64, a as u64, b as u64],
+        &[(a | b) as u64, d as u64, c as u64],
     );
 }
 
@@ -885,23 +879,23 @@ fn u32xor() {
     let asm_op = "u32xor";
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(asm_op, &[1, 1], &[0]);
-    test_execution(asm_op, &[0, 1], &[1]);
-    test_execution(asm_op, &[1, 0], &[1]);
-    test_execution(asm_op, &[0, 0], &[0]);
+    test_op_execution(asm_op, &[1, 1], &[0]);
+    test_op_execution(asm_op, &[0, 1], &[1]);
+    test_op_execution(asm_op, &[1, 0], &[1]);
+    test_op_execution(asm_op, &[0, 0], &[0]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     let b = rand_value::<u64>() as u32;
-    test_execution(asm_op, &[a as u64, b as u64], &[(a ^ b) as u64]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[(a ^ b) as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>() as u32;
     let d = rand_value::<u64>() as u32;
-    test_execution(
+    test_op_execution(
         asm_op,
-        &[a as u64, b as u64, c as u64, d as u64],
-        &[(a ^ b) as u64, c as u64, d as u64],
+        &[c as u64, d as u64, a as u64, b as u64],
+        &[(a ^ b) as u64, d as u64, c as u64],
     );
 }
 
@@ -919,16 +913,16 @@ fn u32not() {
     let asm_op = "u32not";
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(asm_op, &[U32_BOUND - 1], &[0]);
-    test_execution(asm_op, &[0], &[U32_BOUND - 1]);
+    test_op_execution(asm_op, &[U32_BOUND - 1], &[0]);
+    test_op_execution(asm_op, &[0], &[U32_BOUND - 1]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
-    test_execution(asm_op, &[a as u64], &[!a as u64]);
+    test_op_execution(asm_op, &[a as u64], &[!a as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let b = rand_value::<u64>() as u32;
-    test_execution(asm_op, &[a as u64, b as u64], &[!a as u64, b as u64]);
+    test_op_execution(asm_op, &[b as u64, a as u64], &[!a as u64, b as u64]);
 }
 
 #[test]
@@ -946,12 +940,12 @@ fn u32shl() {
     // --- test simple case -----------------------------------------------------------------------
     let a = 1_u32;
     let b = 1_u32;
-    test_execution(get_asm_op(b).as_str(), &[a as u64], &[2]);
+    test_op_execution(get_asm_op(b).as_str(), &[a as u64], &[2]);
 
     // --- test max values of a and b -------------------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 31;
-    test_execution(
+    test_op_execution(
         get_asm_op(b).as_str(),
         &[U32_BOUND - 1],
         &[a.wrapping_shl(b) as u64],
@@ -960,7 +954,7 @@ fn u32shl() {
     // --- test b = 0 -----------------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     let b = 0;
-    test_execution(
+    test_op_execution(
         get_asm_op(b).as_str(),
         &[a as u64],
         &[a.wrapping_shl(b) as u64],
@@ -969,7 +963,7 @@ fn u32shl() {
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     let b = (rand_value::<u64>() % 32) as u32;
-    test_execution(
+    test_op_execution(
         get_asm_op(b).as_str(),
         &[a as u64],
         &[a.wrapping_shl(b) as u64],
@@ -993,12 +987,12 @@ fn u32shr() {
     // --- test simple case -----------------------------------------------------------------------
     let a = 4_u32;
     let b = 2_u32;
-    test_execution(get_asm_op(b).as_str(), &[a as u64], &[1]);
+    test_op_execution(get_asm_op(b).as_str(), &[a as u64], &[1]);
 
     // --- test max values of a and b -------------------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 31;
-    test_execution(
+    test_op_execution(
         get_asm_op(b).as_str(),
         &[U32_BOUND - 1],
         &[a.wrapping_shr(b) as u64],
@@ -1007,7 +1001,7 @@ fn u32shr() {
     // --- test b = 0 ---------------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     let b = 0;
-    test_execution(
+    test_op_execution(
         get_asm_op(b).as_str(),
         &[a as u64],
         &[a.wrapping_shr(b) as u64],
@@ -1016,7 +1010,7 @@ fn u32shr() {
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     let b = (rand_value::<u64>() % 32) as u32;
-    test_execution(
+    test_op_execution(
         get_asm_op(b).as_str(),
         &[a as u64],
         &[a.wrapping_shr(b) as u64],
@@ -1040,27 +1034,27 @@ fn u32rotl() {
     // --- test simple case -----------------------------------------------------------------------
     let a = 1_u32;
     let b = 1_u32;
-    test_execution(get_asm_op(b).as_str(), &[a as u64], &[2]);
+    test_op_execution(get_asm_op(b).as_str(), &[a as u64], &[2]);
 
     // --- test simple wraparound case with large a -----------------------------------------------
     let a = (1_u64 << 31) as u32;
     let b: u32 = 1;
-    test_execution(get_asm_op(b).as_str(), &[a as u64], &[1]);
+    test_op_execution(get_asm_op(b).as_str(), &[a as u64], &[1]);
 
     // --- test simple case wraparound case with max b --------------------------------------------
     let a = 2_u32;
     let b: u32 = 31;
-    test_execution(get_asm_op(b).as_str(), &[a as u64], &[1]);
+    test_op_execution(get_asm_op(b).as_str(), &[a as u64], &[1]);
 
     // --- no change when a is max value (all 1s) -------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 2;
-    test_execution(get_asm_op(b).as_str(), &[a as u64], &[a as u64]);
+    test_op_execution(get_asm_op(b).as_str(), &[a as u64], &[a as u64]);
 
     // --- test b = 0 ---------------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
-    let b = 0 as u32;
-    test_execution(
+    let b = 0;
+    test_op_execution(
         get_asm_op(b).as_str(),
         &[a as u64],
         &[a.rotate_left(b) as u64],
@@ -1069,7 +1063,7 @@ fn u32rotl() {
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     let b = (rand_value::<u64>() % 32) as u32;
-    test_execution(
+    test_op_execution(
         get_asm_op(b).as_str(),
         &[a as u64],
         &[a.rotate_left(b) as u64],
@@ -1093,27 +1087,27 @@ fn u32rotr() {
     // --- test simple case -----------------------------------------------------------------------
     let a = 2_u32;
     let b = 1_u32;
-    test_execution(get_asm_op(b).as_str(), &[a as u64], &[1]);
+    test_op_execution(get_asm_op(b).as_str(), &[a as u64], &[1]);
 
     // --- test simple wraparound case with small a -----------------------------------------------
     let a = 1_u32;
     let b = 1_u32;
-    test_execution(get_asm_op(b).as_str(), &[a as u64], &[U32_BOUND >> 1]);
+    test_op_execution(get_asm_op(b).as_str(), &[a as u64], &[U32_BOUND >> 1]);
 
     // --- test simple case wraparound case with max b --------------------------------------------
     let a = 1_u32;
     let b: u32 = 31;
-    test_execution(get_asm_op(b).as_str(), &[a as u64], &[2]);
+    test_op_execution(get_asm_op(b).as_str(), &[a as u64], &[2]);
 
     // --- no change when a is max value (all 1s) -------------------------------------------------
     let a = (U32_BOUND - 1) as u32;
     let b = 2;
-    test_execution(get_asm_op(b).as_str(), &[a as u64], &[a as u64]);
+    test_op_execution(get_asm_op(b).as_str(), &[a as u64], &[a as u64]);
 
     // --- test b = 0 ---------------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
-    let b = 0 as u32;
-    test_execution(
+    let b = 0;
+    test_op_execution(
         get_asm_op(b).as_str(),
         &[a as u64],
         &[a.rotate_right(b) as u64],
@@ -1122,7 +1116,7 @@ fn u32rotr() {
     // --- test random values ---------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     let b = (rand_value::<u64>() % 32) as u32;
-    test_execution(
+    test_op_execution(
         get_asm_op(b).as_str(),
         &[a as u64],
         &[a.rotate_right(b) as u64],
@@ -1145,21 +1139,21 @@ fn u32eq() {
     let asm_op = "u32eq";
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(asm_op, &[1, 1], &[1]);
-    test_execution(asm_op, &[1, 0], &[0]);
+    test_op_execution(asm_op, &[1, 1], &[1]);
+    test_op_execution(asm_op, &[0, 1], &[0]);
 
     // --- random u32: equality -------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
-    test_execution(asm_op, &[a as u64, a as u64], &[1]);
+    test_op_execution(asm_op, &[a as u64, a as u64], &[1]);
 
     // --- random u32: probable inequality --------------------------------------------------------
     let b = rand_value::<u64>() as u32;
     let expected = if a == b { 1 } else { 0 };
-    test_execution(asm_op, &[a as u64, b as u64], &[expected]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(asm_op, &[a as u64, b as u64, c], &[expected, c]);
+    test_op_execution(asm_op, &[c, a as u64, b as u64], &[expected, c]);
 }
 
 #[test]
@@ -1175,21 +1169,21 @@ fn u32eq_b() {
     let build_asm_op = |param: u32| format!("u32eq.{}", param);
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(build_asm_op(1).as_str(), &[1], &[1]);
-    test_execution(build_asm_op(0).as_str(), &[1], &[0]);
+    test_op_execution(build_asm_op(1).as_str(), &[1], &[1]);
+    test_op_execution(build_asm_op(0).as_str(), &[1], &[0]);
 
     // --- random u32: equality -------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
-    test_execution(build_asm_op(a).as_str(), &[a as u64], &[1]);
+    test_op_execution(build_asm_op(a).as_str(), &[a as u64], &[1]);
 
     // --- random u32: probable inequality --------------------------------------------------------
     let b = rand_value::<u64>() as u32;
     let expected = if a == b { 1 } else { 0 };
-    test_execution(build_asm_op(b).as_str(), &[a as u64], &[expected]);
+    test_op_execution(build_asm_op(b).as_str(), &[a as u64], &[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(build_asm_op(b).as_str(), &[a as u64, c], &[expected, c]);
+    test_op_execution(build_asm_op(b).as_str(), &[c, a as u64], &[expected, c]);
 }
 
 #[test]
@@ -1212,21 +1206,21 @@ fn u32neq() {
     let asm_op = "u32neq";
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(asm_op, &[1, 1], &[0]);
-    test_execution(asm_op, &[1, 0], &[1]);
+    test_op_execution(asm_op, &[1, 1], &[0]);
+    test_op_execution(asm_op, &[0, 1], &[1]);
 
     // --- random u32: equality -------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
-    test_execution(asm_op, &[a as u64, a as u64], &[0]);
+    test_op_execution(asm_op, &[a as u64, a as u64], &[0]);
 
     // --- random u32: probable inequality --------------------------------------------------------
     let b = rand_value::<u64>() as u32;
     let expected = if a != b { 1 } else { 0 };
-    test_execution(asm_op, &[a as u64, b as u64], &[expected]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(asm_op, &[a as u64, b as u64, c], &[expected, c]);
+    test_op_execution(asm_op, &[c, a as u64, b as u64], &[expected, c]);
 }
 
 #[test]
@@ -1242,21 +1236,21 @@ fn u32neq_b() {
     let build_asm_op = |param: u32| format!("u32neq.{}", param);
 
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(build_asm_op(1).as_str(), &[1], &[0]);
-    test_execution(build_asm_op(0).as_str(), &[1], &[1]);
+    test_op_execution(build_asm_op(1).as_str(), &[1], &[0]);
+    test_op_execution(build_asm_op(0).as_str(), &[1], &[1]);
 
     // --- random u32: equality -------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
-    test_execution(build_asm_op(a).as_str(), &[a as u64], &[0]);
+    test_op_execution(build_asm_op(a).as_str(), &[a as u64], &[0]);
 
     // --- random u32: probable inequality --------------------------------------------------------
     let b = rand_value::<u64>() as u32;
     let expected = if a != b { 1 } else { 0 };
-    test_execution(build_asm_op(b).as_str(), &[a as u64], &[expected]);
+    test_op_execution(build_asm_op(b).as_str(), &[a as u64], &[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(build_asm_op(b).as_str(), &[a as u64, c], &[expected, c]);
+    test_op_execution(build_asm_op(b).as_str(), &[c, a as u64], &[expected, c]);
 }
 
 #[test]
@@ -1444,7 +1438,7 @@ proptest! {
         // check to see if the value of the element will be a valid u32
         let expected_result = if value % Felt::MODULUS < U32_BOUND { 1 } else { 0 };
 
-        test_execution("u32test", &[value], &[expected_result, value]);
+        test_op_execution("u32test", &[value], &[expected_result, value]);
     }
 
     #[test]
@@ -1452,16 +1446,19 @@ proptest! {
         // should leave a 1 on the stack since all values in the word are valid u32 values
         let values: Vec<u64> = word.iter().map(|a| *a as u64).collect();
         let mut expected = values.clone();
-        expected.insert(0, 1);
+        // push the expected result
+        expected.push(1);
+        // reverse the values to put the expected array in stack order
+        expected.reverse();
 
-        test_execution("u32testw", &values, &expected);
+        test_op_execution("u32testw", &values, &expected);
     }
 
     #[test]
     fn u32assert_proptest(value in any::<u32>()) {
         // assertion passes and leaves the stack unchanged if a < 2^32
         let asm_op = "u32assert";
-        test_execution(asm_op, &[value as u64], &[value as u64]);
+        test_op_execution(asm_op, &[value as u64], &[value as u64]);
     }
 
     #[test]
@@ -1469,8 +1466,11 @@ proptest! {
         // should pass and leave the stack unchanged if a < 2^32 for all values in the word
         let asm_op = "u32assertw";
         let values: Vec<u64> = word.iter().map(|a| *a as u64).collect();
+        let mut expected = values.clone();
+        // reverse the values to put the expected array in stack order
+        expected.reverse();
 
-        test_execution(asm_op, &values, &values);
+        test_op_execution(asm_op, &values, &expected);
     }
 
     #[test]
@@ -1479,7 +1479,7 @@ proptest! {
         // so the field modulus should be applied first
         let expected_result = value % Felt::MODULUS % U32_BOUND;
 
-        test_execution("u32cast", &[value], &[expected_result]);
+        test_op_execution("u32cast", &[value], &[expected_result]);
     }
 
     #[test]
@@ -1490,7 +1490,7 @@ proptest! {
         let expected_b = felt_value >> 32;
         let expected_c = felt_value as u32 as u64;
 
-        test_execution("u32split", &[value, value], &[expected_b, expected_c, value]);
+        test_op_execution("u32split", &[value, value], &[expected_b, expected_c, value]);
     }
 }
 
@@ -1504,9 +1504,9 @@ proptest! {
         let expected = a as u64 + b as u64;
 
         // b provided via the stack
-        test_execution(asm_op, &[b as u64, a as u64], &[expected]);
+        test_op_execution(asm_op, &[b as u64, a as u64], &[expected]);
         // b provided as a parameter
-        test_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
+        test_op_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
     }
 
     #[test]
@@ -1517,8 +1517,8 @@ proptest! {
         let d = if overflow { 1 } else { 0 };
 
         // full and unsafe should produce the same result for valid values
-        test_execution(format!("{}.full", asm_op).as_str(), &[b as u64, a as u64], &[d, c as u64]);
-        test_execution(format!("{}.unsafe", asm_op).as_str(), &[b as u64, a as u64], &[d, c as u64]);
+        test_op_execution(format!("{}.full", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64]);
+        test_op_execution(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64]);
     }
 
     #[test]
@@ -1530,8 +1530,8 @@ proptest! {
         let e = if overflow_b || overflow_c { 1_u64 } else { 0_u64 };
 
         // safe and unsafe should produce the same result for valid values
-        test_execution(asm_op, &[b as u64, a as u64, c as u64], &[e, d as u64]);
-        test_execution(format!("{}.unsafe", asm_op).as_str(), &[b as u64, a as u64, c as u64], &[e, d as u64]);
+        test_op_execution(asm_op, &[c as u64, a as u64, b as u64], &[e, d as u64]);
+        test_op_execution(format!("{}.unsafe", asm_op).as_str(), &[c as u64, a as u64, b as u64], &[e, d as u64]);
     }
 
     #[test]
@@ -1547,9 +1547,9 @@ proptest! {
 
         let expected = a - b;
         // b provided via the stack
-        test_execution(asm_op, &[b as u64, a as u64], &[expected as u64]);
+        test_op_execution(asm_op, &[a as u64, b as u64], &[expected as u64]);
         // b provided as a parameter
-        test_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64]);
+        test_op_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64]);
     }
 
     #[test]
@@ -1561,8 +1561,8 @@ proptest! {
         let d = if overflow { 1 } else { 0 };
 
         // full and unsafe should produce the same result for valid values
-        test_execution(format!("{}.full", asm_op).as_str(), &[b as u64, a as u64], &[d, c as u64]);
-        test_execution(format!("{}.unsafe", asm_op).as_str(), &[b as u64, a as u64], &[d, c as u64]);
+        test_op_execution(format!("{}.full", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64]);
+        test_op_execution(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64]);
     }
 
     #[test]
@@ -1572,9 +1572,9 @@ proptest! {
         let expected = a as u64 * b as u64;
 
         // b provided via the stack
-        test_execution(asm_op, &[b as u64, a as u64], &[expected]);
+        test_op_execution(asm_op, &[b as u64, a as u64], &[expected]);
         // b provided as a parameter
-        test_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
+        test_op_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
     }
 
     #[test]
@@ -1589,8 +1589,8 @@ proptest! {
         };
 
         // full and unsafe should produce the same result for valid values
-        test_execution(format!("{}.full", asm_op).as_str(), &[b as u64, a as u64], &[d, c as u64]);
-        test_execution(format!("{}.unsafe", asm_op).as_str(), &[b as u64, a as u64], &[d, c as u64]);
+        test_op_execution(format!("{}.full", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64]);
+        test_op_execution(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[d, c as u64]);
     }
 
     #[test]
@@ -1602,8 +1602,8 @@ proptest! {
         let e = madd / U32_BOUND;
 
         // safe and unsafe should produce the same result for valid values
-        test_execution(asm_op, &[b as u64, a as u64, c as u64], &[e, d as u64]);
-        test_execution(format!("{}.unsafe", asm_op).as_str(), &[b as u64, a as u64, c as u64], &[e, d as u64]);
+        test_op_execution(asm_op, &[c as u64, a as u64, b as u64], &[e, d as u64]);
+        test_op_execution(format!("{}.unsafe", asm_op).as_str(), &[c as u64, a as u64, b as u64], &[e, d as u64]);
     }
 
     #[test]
@@ -1614,9 +1614,9 @@ proptest! {
         let expected = a / b;
 
         // b provided via the stack
-        test_execution(asm_op, &[b as u64, a as u64], &[expected as u64]);
+        test_op_execution(asm_op, &[a as u64, b as u64], &[expected as u64]);
         // b provided as a parameter
-        test_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64]);
+        test_op_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64]);
     }
 
     #[test]
@@ -1627,8 +1627,8 @@ proptest! {
         let rem = (a % b) as u64;
 
         // full and unsafe should produce the same result for valid values
-        test_execution(format!("{}.full", asm_op).as_str(), &[b as u64, a as u64], &[rem, quot]);
-        test_execution(format!("{}.unsafe", asm_op).as_str(), &[b as u64, a as u64], &[rem, quot]);
+        test_op_execution(format!("{}.full", asm_op).as_str(), &[a as u64, b as u64], &[rem, quot]);
+        test_op_execution(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[rem, quot]);
     }
 
     #[test]
@@ -1638,11 +1638,11 @@ proptest! {
         let expected = a % b;
 
         // b provided via the stack
-        test_execution(asm_op, &[b as u64, a as u64], &[expected as u64]);
+        test_op_execution(asm_op, &[a as u64, b as u64], &[expected as u64]);
         // b provided as a parameter
-        test_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64]);
+        test_op_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected as u64]);
         // safe and unsafe should produce the same result for valid values
-        test_execution(format!("{}.unsafe", asm_op).as_str(), &[b as u64, a as u64], &[expected as u64]);
+        test_op_execution(format!("{}.unsafe", asm_op).as_str(), &[a as u64, b as u64], &[expected as u64]);
     }
 }
 
@@ -1653,31 +1653,31 @@ proptest! {
     #[test]
     fn u32and_proptest(a in any::<u32>(), b in any::<u32>()) {
         let asm_opcode = "u32and";
-        let values = [b as u64, a as u64];
+        let values = [a as u64, b as u64];
         // should result in bitwise AND
         let expected = (a & b) as u64;
 
-        test_execution(asm_opcode, &values, &[expected]);
+        test_op_execution(asm_opcode, &values, &[expected]);
     }
 
     #[test]
     fn u32or_proptest(a in any::<u32>(), b in any::<u32>()) {
         let asm_opcode = "u32or";
-        let values = [b as u64, a as u64];
+        let values = [a as u64, b as u64];
         // should result in bitwise OR
         let expected = (a | b) as u64;
 
-        test_execution(asm_opcode, &values, &[expected]);
+        test_op_execution(asm_opcode, &values, &[expected]);
     }
 
     #[test]
     fn u32xor_proptest(a in any::<u32>(), b in any::<u32>()) {
         let asm_opcode = "u32xor";
-        let values = [b as u64, a as u64];
+        let values = [a as u64, b as u64];
         // should result in bitwise XOR
         let expected = (a ^ b) as u64;
 
-        test_execution(asm_opcode, &values, &[expected]);
+        test_op_execution(asm_opcode, &values, &[expected]);
     }
 
     #[test]
@@ -1685,7 +1685,7 @@ proptest! {
         let asm_opcode = "u32not";
 
         // should result in bitwise NOT
-        test_execution(asm_opcode, &[value as u64], &[!value as u64]);
+        test_op_execution(asm_opcode, &[value as u64], &[!value as u64]);
     }
 
     #[test]
@@ -1694,7 +1694,7 @@ proptest! {
 
         // should execute left shift
         let expected =  a << b;
-        test_execution(&asm_opcode, &[a as u64], &[expected as u64]);
+        test_op_execution(&asm_opcode, &[a as u64], &[expected as u64]);
     }
 
     #[test]
@@ -1703,7 +1703,7 @@ proptest! {
 
         // should execute right shift
         let expected =  a >> b;
-        test_execution(&asm_opcode, &[a as u64], &[expected as u64]);
+        test_op_execution(&asm_opcode, &[a as u64], &[expected as u64]);
     }
 
     #[test]
@@ -1712,7 +1712,7 @@ proptest! {
         let asm_opcode = format!("{}.{}", op_base, b);
 
         // should execute left bit rotation
-        test_execution(&asm_opcode, &[a as u64], &[a.rotate_left(b) as u64]);
+        test_op_execution(&asm_opcode, &[a as u64], &[a.rotate_left(b) as u64]);
     }
 
     #[test]
@@ -1721,7 +1721,7 @@ proptest! {
         let asm_opcode = format!("{}.{}", op_base, b);
 
         // should execute right bit rotation
-        test_execution(&asm_opcode, &[a as u64], &[a.rotate_right(b) as u64]);
+        test_op_execution(&asm_opcode, &[a as u64], &[a.rotate_right(b) as u64]);
     }
 }
 
@@ -1737,9 +1737,9 @@ proptest! {
         // should test for equality
         let expected = if a == b { 1 } else { 0 };
         // b provided via the stack
-        test_execution(asm_op, &values, &[expected]);
+        test_op_execution(asm_op, &values, &[expected]);
         // b provided as a parameter
-        test_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
+        test_op_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
     }
 
     #[test]
@@ -1750,9 +1750,9 @@ proptest! {
         // should test for inequality
         let expected = if a != b { 1 } else { 0 };
         // b provided via the stack
-        test_execution(asm_op, &values, &[expected]);
+        test_op_execution(asm_op, &values, &[expected]);
         // b provided as a parameter
-        test_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
+        test_op_execution(format!("{}.{}", asm_op, b).as_str(), &[a as u64], &[expected]);
     }
 
     #[test]
@@ -1764,8 +1764,8 @@ proptest! {
         };
 
         // safe and unsafe should produce the same result for valid values
-        test_execution("u32lt", &[b as u64, a as u64], &[expected]);
-        test_execution("u32lt.unsafe", &[b as u64, a as u64], &[expected]);
+        test_op_execution("u32lt", &[a as u64, b as u64], &[expected]);
+        test_op_execution("u32lt.unsafe", &[a as u64, b as u64], &[expected]);
     }
 
     #[test]
@@ -1777,8 +1777,8 @@ proptest! {
         };
 
         // safe and unsafe should produce the same result for valid values
-        test_execution("u32lte", &[b as u64, a as u64], &[expected]);
-        test_execution("u32lte.unsafe", &[b as u64, a as u64], &[expected]);
+        test_op_execution("u32lte", &[a as u64, b as u64], &[expected]);
+        test_op_execution("u32lte.unsafe", &[a as u64, b as u64], &[expected]);
     }
 
     #[test]
@@ -1790,8 +1790,8 @@ proptest! {
         };
 
         // safe and unsafe should produce the same result for valid values
-        test_execution("u32gt", &[b as u64, a as u64], &[expected]);
-        test_execution("u32gt.unsafe", &[b as u64, a as u64], &[expected]);
+        test_op_execution("u32gt", &[a as u64, b as u64], &[expected]);
+        test_op_execution("u32gt.unsafe", &[a as u64, b as u64], &[expected]);
     }
 
     #[test]
@@ -1803,8 +1803,8 @@ proptest! {
         };
 
         // safe and unsafe should produce the same result for valid values
-        test_execution("u32gte", &[b as u64, a as u64], &[expected]);
-        test_execution("u32gte.unsafe", &[b as u64, a as u64], &[expected]);
+        test_op_execution("u32gte", &[a as u64, b as u64], &[expected]);
+        test_op_execution("u32gte.unsafe", &[a as u64, b as u64], &[expected]);
     }
 
     #[test]
@@ -1812,8 +1812,8 @@ proptest! {
         let expected = if a < b { a } else { b };
 
         // safe and unsafe should produce the same result for valid values
-        test_execution("u32min", &[b as u64, a as u64], &[expected as u64]);
-        test_execution("u32min.unsafe", &[b as u64, a as u64], &[expected as u64]);
+        test_op_execution("u32min", &[a as u64, b as u64], &[expected as u64]);
+        test_op_execution("u32min.unsafe", &[a as u64, b as u64], &[expected as u64]);
     }
 
     #[test]
@@ -1821,8 +1821,8 @@ proptest! {
         let expected = if a > b { a } else { b };
 
         // safe and unsafe should produce the same result for valid values
-        test_execution("u32max", &[b as u64, a as u64], &[expected as u64]);
-        test_execution("u32max.unsafe", &[b as u64, a as u64], &[expected as u64]);
+        test_op_execution("u32max", &[a as u64, b as u64], &[expected as u64]);
+        test_op_execution("u32max.unsafe", &[a as u64, b as u64], &[expected as u64]);
     }
 }
 
@@ -1870,30 +1870,30 @@ fn test_unsafe_execution(asm_op: &str, input_count: usize) {
 fn test_add_full(asm_op: &str) {
     // --- (a + b) < 2^32 -------------------------------------------------------------------------
     // c = a + b and d should be unset, since there was no overflow
-    test_execution(asm_op, &[2, 1], &[0, 3]);
+    test_op_execution(asm_op, &[1, 2], &[0, 3]);
 
     // --- (a + b) = 2^32 -------------------------------------------------------------------------
     let a = u32::MAX;
     let b = 1_u64;
     // c should be the sum mod 2^32 and d should be set to signal overflow
-    test_execution(asm_op, &[b, a as u64], &[1, 0]);
+    test_op_execution(asm_op, &[a as u64, b], &[1, 0]);
 
     // --- (a + b) > 2^32 -------------------------------------------------------------------------
     let a = 2_u64;
     let b = u32::MAX;
     // c should be the sum mod 2^32 and d should be set to signal overflow
-    test_execution(asm_op, &[b as u64, a], &[1, 1]);
+    test_op_execution(asm_op, &[a, b as u64], &[1, 1]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     let b = rand_value::<u64>() as u32;
     let (c, overflow) = a.overflowing_add(b);
     let d = if overflow { 1 } else { 0 };
-    test_execution(asm_op, &[b as u64, a as u64], &[d, c as u64]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[d, c as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let e = rand_value::<u64>();
-    test_execution(asm_op, &[b as u64, a as u64, e], &[d, c as u64, e]);
+    test_op_execution(asm_op, &[e, a as u64, b as u64], &[d, c as u64, e]);
 }
 
 /// This helper function tests overflowing add with carry for two u32 inputs a, b and one binary
@@ -1904,23 +1904,23 @@ fn test_add_full(asm_op: &str) {
 fn test_addc(asm_op: &str) {
     // --- (a + b + c) < 2^32 where c = 0 ---------------------------------------------------------
     // d = a + b + c and e should be unset, since there was no overflow
-    test_execution(asm_op, &[2, 1, 0], &[0, 3]);
+    test_op_execution(asm_op, &[0, 1, 2], &[0, 3]);
 
     // --- (a + b + c) < 2^32 where c = 1 ---------------------------------------------------------
     // d = a + b + c and e should be unset, since there was no overflow
-    test_execution(asm_op, &[3, 2, 1], &[0, 6]);
+    test_op_execution(asm_op, &[1, 2, 3], &[0, 6]);
 
     // --- (a + b + c) = 2^32 ---------------------------------------------------------------------
     let a = u32::MAX;
     let b = 1_u64;
     // d should be the sum mod 2^32 and e should be set to signal overflow
-    test_execution(asm_op, &[b, a as u64, 0], &[1, 0]);
+    test_op_execution(asm_op, &[0, a as u64, b], &[1, 0]);
 
     // --- (a + b + c) > 2^32 ---------------------------------------------------------------------
     let a = 1_u64;
     let b = u32::MAX;
     // d should be the sum mod 2^32 and e should be set to signal overflow
-    test_execution(asm_op, &[b as u64, a, 1], &[1, 1]);
+    test_op_execution(asm_op, &[1, a, b as u64], &[1, 1]);
 
     // --- random u32 values with c = 0 -----------------------------------------------------------
     let a = rand_value::<u64>() as u32;
@@ -1928,7 +1928,7 @@ fn test_addc(asm_op: &str) {
     let c = 0_u64;
     let (d, overflow) = a.overflowing_add(b);
     let e = if overflow { 1 } else { 0 };
-    test_execution(asm_op, &[b as u64, a as u64, c], &[e, d as u64]);
+    test_op_execution(asm_op, &[c, a as u64, b as u64], &[e, d as u64]);
 
     // --- random u32 values with c = 1 -----------------------------------------------------------
     let a = rand_value::<u64>() as u32;
@@ -1937,13 +1937,13 @@ fn test_addc(asm_op: &str) {
     let (d, overflow_b) = a.overflowing_add(b);
     let (d, overflow_c) = d.overflowing_add(c);
     let e = if overflow_b || overflow_c { 1 } else { 0 };
-    test_execution(asm_op, &[b as u64, a as u64, c as u64], &[e, d as u64]);
+    test_op_execution(asm_op, &[c as u64, a as u64, b as u64], &[e, d as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let f = rand_value::<u64>();
-    test_execution(
+    test_op_execution(
         asm_op,
-        &[b as u64, a as u64, c as u64, f],
+        &[f, c as u64, a as u64, b as u64],
         &[e, d as u64, f],
     );
 }
@@ -1955,15 +1955,15 @@ fn test_addc(asm_op: &str) {
 fn test_sub_full(asm_op: &str) {
     // --- a > b -------------------------------------------------------------------------
     // c = a - b and d should be unset, since there was no arithmetic overflow
-    test_execution(asm_op, &[1, 2], &[0, 1]);
+    test_op_execution(asm_op, &[2, 1], &[0, 1]);
 
     // --- a = b -------------------------------------------------------------------------
     // c = a - b and d should be unset, since there was no arithmetic overflow
-    test_execution(asm_op, &[1, 1], &[0, 0]);
+    test_op_execution(asm_op, &[1, 1], &[0, 0]);
 
     // --- a < b -------------------------------------------------------------------------
     // c = a - b % 2^32 and d should be set, since there was arithmetic overflow
-    test_execution(asm_op, &[2, 1], &[1, u32::MAX as u64]);
+    test_op_execution(asm_op, &[1, 2], &[1, u32::MAX as u64]);
 
     // --- random u32 values: a >= b --------------------------------------------------------------
     let val1 = rand_value::<u64>() as u32;
@@ -1974,7 +1974,7 @@ fn test_sub_full(asm_op: &str) {
         (val2, val1)
     };
     let c = a - b;
-    test_execution(asm_op, &[b as u64, a as u64], &[0, c as u64]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[0, c as u64]);
 
     // --- random u32 values: a < b ---------------------------------------------------------------
     let val1 = rand_value::<u64>() as u32;
@@ -1986,11 +1986,11 @@ fn test_sub_full(asm_op: &str) {
     };
     let (c, _) = a.overflowing_sub(b);
     let d = 1;
-    test_execution(asm_op, &[b as u64, a as u64], &[d, c as u64]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[d, c as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let e = rand_value::<u64>();
-    test_execution(asm_op, &[b as u64, a as u64, e], &[d, c as u64, e]);
+    test_op_execution(asm_op, &[e, a as u64, b as u64], &[d, c as u64, e]);
 }
 
 /// This helper function tests overflowing multiplication for two u32 inputs for a number of simple
@@ -2000,15 +2000,15 @@ fn test_sub_full(asm_op: &str) {
 fn test_mul_full(asm_op: &str) {
     // --- no overflow ----------------------------------------------------------------------------
     // c = a * b and d should be unset, since there was no arithmetic overflow
-    test_execution(asm_op, &[1, 2], &[0, 2]);
+    test_op_execution(asm_op, &[1, 2], &[0, 2]);
 
     // --- overflow once --------------------------------------------------------------------------
     // c = a * b and d = 1, since it overflows once
-    test_execution(asm_op, &[U32_BOUND / 2, 2], &[1, 0]);
+    test_op_execution(asm_op, &[U32_BOUND / 2, 2], &[1, 0]);
 
     // --- multiple overflows ---------------------------------------------------------------------
     // c = a * b and d = 2, since it overflows twice
-    test_execution(asm_op, &[U32_BOUND / 2, 4], &[2, 0]);
+    test_op_execution(asm_op, &[U32_BOUND / 2, 4], &[2, 0]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
@@ -2019,11 +2019,11 @@ fn test_mul_full(asm_op: &str) {
     } else {
         (a as u64 * b as u64) / U32_BOUND
     };
-    test_execution(asm_op, &[b as u64, a as u64], &[d, c as u64]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[d, c as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let e = rand_value::<u64>();
-    test_execution(asm_op, &[b as u64, a as u64, e], &[d, c as u64, e]);
+    test_op_execution(asm_op, &[e, a as u64, b as u64], &[d, c as u64, e]);
 }
 
 /// This helper function tests multiply and add for three u32 inputs for a number of simple cases
@@ -2033,16 +2033,16 @@ fn test_mul_full(asm_op: &str) {
 fn test_madd(asm_op: &str) {
     // --- no overflow ----------------------------------------------------------------------------
     // d = a * b + c and e should be unset, since there was no arithmetic overflow
-    test_execution(asm_op, &[0, 0, 1], &[0, 1]);
-    test_execution(asm_op, &[2, 1, 3], &[0, 5]);
+    test_op_execution(asm_op, &[1, 0, 0], &[0, 1]);
+    test_op_execution(asm_op, &[3, 1, 2], &[0, 5]);
 
     // --- overflow once --------------------------------------------------------------------------
     // c = a * b and d = 1, since it overflows once
-    test_execution(asm_op, &[U32_BOUND / 2, 2, 1], &[1, 1]);
+    test_op_execution(asm_op, &[1, U32_BOUND / 2, 2], &[1, 1]);
 
     // --- multiple overflows ---------------------------------------------------------------------
     // c = a * b and d = 2, since it overflows twice
-    test_execution(asm_op, &[U32_BOUND / 2, 4, 1], &[2, 1]);
+    test_op_execution(asm_op, &[1, U32_BOUND / 2, 4], &[2, 1]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
@@ -2051,11 +2051,11 @@ fn test_madd(asm_op: &str) {
     let madd = a as u64 * b as u64 + c as u64;
     let d = madd % U32_BOUND;
     let e = madd / U32_BOUND;
-    test_execution(asm_op, &[b as u64, a as u64, c as u64], &[e, d]);
+    test_op_execution(asm_op, &[c as u64, a as u64, b as u64], &[e, d]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let f = rand_value::<u64>();
-    test_execution(asm_op, &[b as u64, a as u64, c as u64, f], &[e, d, f]);
+    test_op_execution(asm_op, &[f, c as u64, a as u64, b as u64], &[e, d, f]);
 }
 
 /// This helper function tests division with remainder for two u32 inputs for a number of simple
@@ -2065,21 +2065,21 @@ fn test_madd(asm_op: &str) {
 fn test_div_full(asm_op: &str) {
     // --- simple cases ---------------------------------------------------------------------------
     // division with no remainder
-    test_execution(asm_op, &[1, 2], &[0, 2]);
+    test_op_execution(asm_op, &[2, 1], &[0, 2]);
     // division with remainder
-    test_execution(asm_op, &[2, 1], &[1, 0]);
-    test_execution(asm_op, &[2, 3], &[1, 1]);
+    test_op_execution(asm_op, &[1, 2], &[1, 0]);
+    test_op_execution(asm_op, &[3, 2], &[1, 1]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
     let b = rand_value::<u64>() as u32;
     let quot = (a / b) as u64;
     let rem = (a % b) as u64;
-    test_execution(asm_op, &[b as u64, a as u64], &[rem, quot]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[rem, quot]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let e = rand_value::<u64>();
-    test_execution(asm_op, &[b as u64, a as u64, e], &[rem, quot, e]);
+    test_op_execution(asm_op, &[e, a as u64, b as u64], &[rem, quot, e]);
 }
 
 /// This helper function tests the modulus operation for two u32 inputs for a number of simple
@@ -2087,9 +2087,9 @@ fn test_div_full(asm_op: &str) {
 /// ensures that the rest of the stack was unaffected.
 fn test_mod(asm_op: &str) {
     // --- simple cases ---------------------------------------------------------------------------
-    test_execution(asm_op, &[5, 10], &[0]);
-    test_execution(asm_op, &[5, 11], &[1]);
-    test_execution(asm_op, &[11, 5], &[5]);
+    test_op_execution(asm_op, &[10, 5], &[0]);
+    test_op_execution(asm_op, &[11, 5], &[1]);
+    test_op_execution(asm_op, &[5, 11], &[5]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
@@ -2099,11 +2099,11 @@ fn test_mod(asm_op: &str) {
         b += 1;
     }
     let expected = a % b;
-    test_execution(asm_op, &[b as u64, a as u64], &[expected as u64]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[expected as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(asm_op, &[b as u64, a as u64, c], &[expected as u64, c]);
+    test_op_execution(asm_op, &[c, a as u64, b as u64], &[expected as u64, c]);
 }
 
 /// This helper function tests that the provided assembly comparison operation pushes the expected
@@ -2111,11 +2111,11 @@ fn test_mod(asm_op: &str) {
 fn test_comparison_op(asm_op: &str, expected_lt: u64, expected_eq: u64, expected_gt: u64) {
     // --- simple cases ---------------------------------------------------------------------------
     // a < b should put the expected value on the stack for the less-than case
-    test_execution(asm_op, &[1, 0], &[expected_lt]);
+    test_op_execution(asm_op, &[0, 1], &[expected_lt]);
     // a = b should put the expected value on the stack for the equal-to case
-    test_execution(asm_op, &[0, 0], &[expected_eq]);
+    test_op_execution(asm_op, &[0, 0], &[expected_eq]);
     // a > b should put the expected value on the stack for the greater-than case
-    test_execution(asm_op, &[0, 1], &[expected_gt]);
+    test_op_execution(asm_op, &[1, 0], &[expected_gt]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
@@ -2125,11 +2125,11 @@ fn test_comparison_op(asm_op: &str, expected_lt: u64, expected_eq: u64, expected
         Ordering::Equal => expected_eq,
         Ordering::Greater => expected_gt,
     };
-    test_execution(asm_op, &[b as u64, a as u64], &[expected]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(asm_op, &[b as u64, a as u64, c], &[expected, c]);
+    test_op_execution(asm_op, &[c, a as u64, b as u64], &[expected, c]);
 }
 
 /// Tests a u32min assembly operation (u32min or u32min.unsafe) against a number of cases to ensure
@@ -2137,11 +2137,11 @@ fn test_comparison_op(asm_op: &str, expected_lt: u64, expected_eq: u64, expected
 fn test_min(asm_op: &str) {
     // --- simple cases ---------------------------------------------------------------------------
     // a < b should put a on the stack
-    test_execution(asm_op, &[1, 0], &[0]);
+    test_op_execution(asm_op, &[0, 1], &[0]);
     // a = b should put b on the stack
-    test_execution(asm_op, &[0, 0], &[0]);
+    test_op_execution(asm_op, &[0, 0], &[0]);
     // a > b should put b on the stack
-    test_execution(asm_op, &[0, 1], &[0]);
+    test_op_execution(asm_op, &[1, 0], &[0]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
@@ -2151,11 +2151,11 @@ fn test_min(asm_op: &str) {
         Ordering::Equal => b,
         Ordering::Greater => b,
     };
-    test_execution(asm_op, &[b as u64, a as u64], &[expected as u64]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[expected as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(asm_op, &[b as u64, a as u64, c], &[expected as u64, c]);
+    test_op_execution(asm_op, &[c, a as u64, b as u64], &[expected as u64, c]);
 }
 
 /// Tests a u32max assembly operation (u32max or u32max.unsafe) against a number of cases to ensure
@@ -2163,11 +2163,11 @@ fn test_min(asm_op: &str) {
 fn test_max(asm_op: &str) {
     // --- simple cases ---------------------------------------------------------------------------
     // a < b should put b on the stack
-    test_execution(asm_op, &[1, 0], &[1]);
+    test_op_execution(asm_op, &[0, 1], &[1]);
     // a = b should put b on the stack
-    test_execution(asm_op, &[0, 0], &[0]);
+    test_op_execution(asm_op, &[0, 0], &[0]);
     // a > b should put a on the stack
-    test_execution(asm_op, &[0, 1], &[1]);
+    test_op_execution(asm_op, &[1, 0], &[1]);
 
     // --- random u32 values ----------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
@@ -2177,9 +2177,9 @@ fn test_max(asm_op: &str) {
         Ordering::Equal => b,
         Ordering::Greater => a,
     };
-    test_execution(asm_op, &[b as u64, a as u64], &[expected as u64]);
+    test_op_execution(asm_op, &[a as u64, b as u64], &[expected as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
-    test_execution(asm_op, &[b as u64, a as u64, c], &[expected as u64, c]);
+    test_op_execution(asm_op, &[c, a as u64, b as u64], &[expected as u64, c]);
 }

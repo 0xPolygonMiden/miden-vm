@@ -120,15 +120,20 @@ fn test_print_mem(logger: &mut Logger) {
     assert_eq!(record.args(), "0x00000000000003: <empty>");
 }
 
-fn assert_stack(size: usize, depth: usize, logger: &mut Logger) {
+fn assert_stack(size: usize, depth: usize, expected_stack: &[u64], logger: &mut Logger) {
     assert_eq!(logger.len(), 2);
     let top_size = cmp::min(size, 16);
-    let mut v = (1..=top_size)
+
+    // build the expected debug string from the expected stack
+    let mut expected = expected_stack
+        .iter()
+        .take(top_size)
         .map(|x| x.to_string())
         .collect::<Vec<String>>()
         .join(", ");
+
     for _ in 0..(size - top_size) {
-        v += ", 16";
+        expected += ", 1";
     }
     let mut record = logger.pop().unwrap();
     assert_eq!(
@@ -136,13 +141,14 @@ fn assert_stack(size: usize, depth: usize, logger: &mut Logger) {
         format!("stack ({} of {}) ---------", size, depth)
     );
     record = logger.pop().unwrap();
-    assert_eq!(record.args(), v);
+    assert_eq!(record.args(), expected);
 }
 
 fn test_print_stack(logger: &mut Logger) {
     // Create a process with 4 items in the stack
-    let mut stack = (1..=4).collect::<Vec<_>>();
-    let mut inputs = ProgramInputs::new(&stack, &[], vec![]).unwrap();
+    let mut stack_inputs = (1..=4).collect::<Vec<_>>();
+    let mut inputs = ProgramInputs::new(&stack_inputs, &[], vec![]).unwrap();
+
     let mut process = Process::new(inputs);
 
     // Print all stack
@@ -151,10 +157,13 @@ fn test_print_stack(logger: &mut Logger) {
         .unwrap();
 
     assert_clock(&process, logger);
-    assert_stack(4, 4, logger);
+    // values are pushed onto the stack when ProgramInputs are created, so we expect them to be on
+    // the stack in reverse order from the original input order
+    stack_inputs.reverse();
+    assert_stack(4, 4, &stack_inputs, logger);
 
-    stack = (1..=16).collect::<Vec<_>>();
-    inputs = ProgramInputs::new(&stack, &[], vec![]).unwrap();
+    stack_inputs = (1..=16).collect::<Vec<_>>();
+    inputs = ProgramInputs::new(&stack_inputs, &[], vec![]).unwrap();
     process = Process::new(inputs);
     // Push two elements into the overflow table
     process.stack.shift_right(1);
@@ -165,21 +174,22 @@ fn test_print_stack(logger: &mut Logger) {
         .execute_op(Operation::Debug(DebugOptions::Stack(None)))
         .unwrap();
     assert_clock(&process, logger);
-    assert_stack(18, 18, logger);
+    stack_inputs.reverse();
+    assert_stack(18, 18, &stack_inputs, logger);
 
     // Print top 3 items in stack
     process
         .execute_op(Operation::Debug(DebugOptions::Stack(Some(3))))
         .unwrap();
     assert_clock(&process, logger);
-    assert_stack(3, 18, logger);
+    assert_stack(3, 18, &stack_inputs, logger);
 
     // Print top 18 items in stack (includes overflow)
     process
         .execute_op(Operation::Debug(DebugOptions::Stack(Some(18))))
         .unwrap();
     assert_clock(&process, logger);
-    assert_stack(18, 18, logger);
+    assert_stack(18, 18, &stack_inputs, logger);
 }
 
 fn test_print_local(logger: &mut Logger) {

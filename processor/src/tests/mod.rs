@@ -18,7 +18,7 @@ fn simple_program() {
     let trace = super::execute(&script, &inputs).unwrap();
 
     let last_state = trace.last_stack_state();
-    let expected_state = build_stack_state(&[3]);
+    let expected_state = convert_to_stack(&[3]);
     assert_eq!(expected_state, last_state);
 }
 
@@ -34,7 +34,9 @@ fn build_inputs(stack_init: &[u64]) -> ProgramInputs {
     ProgramInputs::new(stack_init, &[], vec![]).unwrap()
 }
 
-fn build_stack_state(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
+/// Takes an array of u64 values and builds a stack, perserving their order and converting them to
+/// field elements.
+fn convert_to_stack(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
     let mut result = [Felt::ZERO; STACK_TOP_SIZE];
     for (&value, result) in values.iter().zip(result.iter_mut()) {
         *result = Felt::new(value);
@@ -42,17 +44,41 @@ fn build_stack_state(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
     result
 }
 
-/// This helper function tests that when the given assembly instruction is executed on the
-/// the provided inputs, it results in the provided outputs.
-fn test_execution(asm_op: &str, inputs: &[u64], outputs: &[u64]) {
-    let script = compile(format!("begin {} end", asm_op).as_str());
+/// Takes an array of u64 values, converts them to elements, and pushes them onto a stack,
+/// reversing their order.
+fn push_to_stack(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
+    let mut result = [Felt::ZERO; STACK_TOP_SIZE];
+    for (&value, result) in values.iter().rev().zip(result.iter_mut()) {
+        *result = Felt::new(value);
+    }
+    result
+}
 
+/// This helper function tests that when the given assembly instruction is executed on the
+/// the provided inputs, it results in the specified final stack state.
+/// - `inputs` should be provided in "normal" order. They'll be pushed onto the stack, reversing
+/// their order.
+/// - `final_stack` should be ordered to match the expected order of the stack after execution,
+/// starting from the top.
+fn test_op_execution(asm_op: &str, inputs: &[u64], final_stack: &[u64]) {
+    let script = compile(format!("begin {} end", asm_op).as_str());
+    test_script_execution(&script, inputs, final_stack);
+}
+
+/// This helper function tests that when the given assembly script is executed on the
+/// the provided inputs, it results in the specified final stack state.
+/// - `inputs` should be provided in "normal" order. They'll be pushed onto the stack, reversing
+/// their order.
+/// - `final_stack` should be ordered to match the expected order of the stack after execution,
+/// starting from the top.
+fn test_script_execution(script: &Script, inputs: &[u64], final_stack: &[u64]) {
     let inputs = build_inputs(inputs);
-    let trace = execute(&script, &inputs).unwrap();
+    let trace = execute(script, &inputs).unwrap();
     let last_state = trace.last_stack_state();
 
-    let expected_state = build_stack_state(outputs);
-    assert_eq!(expected_state, last_state);
+    let expected_stack = convert_to_stack(final_stack);
+
+    assert_eq!(expected_stack, last_state);
 }
 
 /// This helper function tests failures where the execution of a given assembly operation with the

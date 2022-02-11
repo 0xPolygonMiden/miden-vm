@@ -268,24 +268,24 @@ mod tests {
         let leaves = inti_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
         let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
-        let inti_stack = [
-            tree.depth() as u64,
-            index as u64,
-            leaves[index][3].as_int(),
-            leaves[index][2].as_int(),
-            leaves[index][1].as_int(),
-            leaves[index][0].as_int(),
-            tree.root()[3].as_int(),
-            tree.root()[2].as_int(),
-            tree.root()[1].as_int(),
+        let stack_inputs = [
             tree.root()[0].as_int(),
+            tree.root()[1].as_int(),
+            tree.root()[2].as_int(),
+            tree.root()[3].as_int(),
+            leaves[index][0].as_int(),
+            leaves[index][1].as_int(),
+            leaves[index][2].as_int(),
+            leaves[index][3].as_int(),
+            index as u64,
+            tree.depth() as u64,
         ];
 
-        let inputs = ProgramInputs::new(&inti_stack, &[], vec![tree.clone()]).unwrap();
+        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
         let mut process = Process::new(inputs);
 
         process.execute_op(Operation::MpVerify).unwrap();
-        let expected = build_expected(&[
+        let expected_stack = build_expected(&[
             Felt::new(tree.depth() as u64),
             Felt::new(index as u64),
             tree.root()[3],
@@ -297,7 +297,7 @@ mod tests {
             tree.root()[1],
             tree.root()[0],
         ]);
-        assert_eq!(expected, process.stack.trace_state());
+        assert_eq!(expected_stack, process.stack.trace_state());
     }
 
     #[test]
@@ -312,29 +312,29 @@ mod tests {
         let tree = AdviceSet::new_merkle_tree(leaves.clone()).unwrap();
         let new_tree = AdviceSet::new_merkle_tree(new_leaves).unwrap();
 
-        let inti_stack = [
-            tree.depth() as u64,
-            node_index as u64,
-            leaves[node_index][3].as_int(),
-            leaves[node_index][2].as_int(),
-            leaves[node_index][1].as_int(),
-            leaves[node_index][0].as_int(),
-            new_node[3].as_int(),
-            new_node[2].as_int(),
-            new_node[1].as_int(),
-            new_node[0].as_int(),
-            tree.root()[3].as_int(),
-            tree.root()[2].as_int(),
-            tree.root()[1].as_int(),
+        let stack_inputs = [
             tree.root()[0].as_int(),
+            tree.root()[1].as_int(),
+            tree.root()[2].as_int(),
+            tree.root()[3].as_int(),
+            new_node[0].as_int(),
+            new_node[1].as_int(),
+            new_node[2].as_int(),
+            new_node[3].as_int(),
+            leaves[node_index][0].as_int(),
+            leaves[node_index][1].as_int(),
+            leaves[node_index][2].as_int(),
+            leaves[node_index][3].as_int(),
+            node_index as u64,
+            tree.depth() as u64,
         ];
 
-        let inputs = ProgramInputs::new(&inti_stack, &[], vec![tree.clone()]).unwrap();
+        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
         let mut process = Process::new(inputs);
 
         // update the Merkle tree and discard the old copy
         process.execute_op(Operation::MrUpdate(false)).unwrap();
-        let expected = build_expected(&[
+        let expected_stack = build_expected(&[
             Felt::new(tree.depth() as u64),
             Felt::new(node_index as u64),
             tree.root()[3],
@@ -350,7 +350,7 @@ mod tests {
             tree.root()[1],
             tree.root()[0],
         ]);
-        assert_eq!(expected, process.stack.trace_state());
+        assert_eq!(expected_stack, process.stack.trace_state());
 
         // make sure the old Merkle tree was discarded
         assert!(!process.advice.has_advice_set(tree.root()));
@@ -369,29 +369,29 @@ mod tests {
         let tree = AdviceSet::new_merkle_tree(leaves.clone()).unwrap();
         let new_tree = AdviceSet::new_merkle_tree(new_leaves).unwrap();
 
-        let inti_stack = [
-            tree.depth() as u64,
-            node_index as u64,
-            leaves[node_index][3].as_int(),
-            leaves[node_index][2].as_int(),
-            leaves[node_index][1].as_int(),
-            leaves[node_index][0].as_int(),
-            new_node[3].as_int(),
-            new_node[2].as_int(),
-            new_node[1].as_int(),
-            new_node[0].as_int(),
-            tree.root()[3].as_int(),
-            tree.root()[2].as_int(),
-            tree.root()[1].as_int(),
+        let stack_inputs = [
             tree.root()[0].as_int(),
+            tree.root()[1].as_int(),
+            tree.root()[2].as_int(),
+            tree.root()[3].as_int(),
+            new_node[0].as_int(),
+            new_node[1].as_int(),
+            new_node[2].as_int(),
+            new_node[3].as_int(),
+            leaves[node_index][0].as_int(),
+            leaves[node_index][1].as_int(),
+            leaves[node_index][2].as_int(),
+            leaves[node_index][3].as_int(),
+            node_index as u64,
+            tree.depth() as u64,
         ];
 
-        let inputs = ProgramInputs::new(&inti_stack, &[], vec![tree.clone()]).unwrap();
+        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
         let mut process = Process::new(inputs);
 
         // update the Merkle tree but keep the old copy
         process.execute_op(Operation::MrUpdate(true)).unwrap();
-        let expected = build_expected(&[
+        let expected_stack = build_expected(&[
             Felt::new(tree.depth() as u64),
             Felt::new(node_index as u64),
             tree.root()[3],
@@ -407,7 +407,7 @@ mod tests {
             tree.root()[1],
             tree.root()[0],
         ]);
-        assert_eq!(expected, process.stack.trace_state());
+        assert_eq!(expected_stack, process.stack.trace_state());
 
         // make sure both Merkle trees are still in the advice set
         assert!(process.advice.has_advice_set(tree.root()));

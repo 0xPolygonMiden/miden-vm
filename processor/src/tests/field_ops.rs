@@ -1,4 +1,4 @@
-use super::{build_inputs, build_stack_state, compile, execute};
+use super::{build_inputs, compile, execute, push_to_stack, test_op_execution};
 use proptest::prelude::*;
 use vm_core::{Felt, StarkField};
 
@@ -7,54 +7,42 @@ use vm_core::{Felt, StarkField};
 
 #[test]
 fn eq() {
-    let script = compile("begin eq end");
+    // let script = compile("begin eq end");
+    let asm_op = "eq";
 
     // --- test when two elements are equal ------------------------------------------------------
-    let inputs = build_inputs(&[100, 100]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    let expected_state = build_stack_state(&[1]);
-    assert_eq!(expected_state, last_state);
+    test_op_execution(asm_op, &[100, 100], &[1]);
 
     // --- test when two elements are unequal ----------------------------------------------------
-    let inputs = build_inputs(&[100, 25]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    let expected_state = build_stack_state(&[0]);
-    assert_eq!(expected_state, last_state);
+    test_op_execution(asm_op, &[25, 100], &[0]);
 
     // --- test when two u64s are unequal but their felts are equal ------------------------------
     let a = Felt::MODULUS + 1;
     let b = 1;
-
-    let inputs = build_inputs(&[b, a]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    let expected_state = build_stack_state(&[1]);
-    assert_eq!(expected_state, last_state);
+    test_op_execution(asm_op, &[a, b], &[1]);
 }
 
 #[test]
 fn eqw() {
-    let script = compile("begin eqw end");
+    let asm_op = "eqw";
 
     // --- test when top two words are equal ------------------------------------------------------
-    let mut values = vec![2, 3, 4, 5, 2, 3, 4, 5];
-    let inputs = build_inputs(&values);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    values.insert(0, 1);
-    let expected_state = build_stack_state(&values);
-    assert_eq!(expected_state, last_state);
+    let values = vec![5, 4, 3, 2, 5, 4, 3, 2];
+    let mut expected = values.clone();
+    // push the result
+    expected.push(1);
+    // put it in stack order
+    expected.reverse();
+    test_op_execution(asm_op, &values, &expected);
 
     // --- test when top two words are not equal --------------------------------------------------
-    let mut values = vec![1, 2, 3, 4, 5, 6, 7, 8];
-    let inputs = build_inputs(&values);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    values.insert(0, 0);
-    let expected_state = build_stack_state(&values);
-    assert_eq!(expected_state, last_state);
+    let values = vec![8, 7, 6, 5, 4, 3, 2, 1];
+    let mut expected = values.clone();
+    // push the result
+    expected.push(0);
+    // put it in stack order
+    expected.reverse();
+    test_op_execution(asm_op, &values, &expected);
 }
 
 #[test]
@@ -97,13 +85,6 @@ fn gte() {
 /// both the high and low 32 bits, the upper 32 bits must not be all 1s. Therefore, for testing
 /// it's sufficient to use elements with one high bit and one low bit set.
 fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, expect_if_gt: u64) {
-    let script = compile(format!("begin {} end", asm_op).as_str());
-
-    // prepare the expected states with the provided values
-    let expected_state_lt = build_stack_state(&[expect_if_lt]);
-    let expected_state_eq = build_stack_state(&[expect_if_eq]);
-    let expected_state_gt = build_stack_state(&[expect_if_gt]);
-
     // create vars with a variety of high and low bit relationships for testing
     let low_bit = 1;
     let high_bit = 1 << 48;
@@ -123,66 +104,36 @@ fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, e
 
     // --- a < b ----------------------------------------------------------------------------------
     // a is smaller in the low bits (equal in high bits)
-    let inputs = build_inputs(&[hi_eq_lo_gt, smaller]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    assert_eq!(expected_state_lt, last_state);
+    test_op_execution(asm_op, &[smaller, hi_eq_lo_gt], &[expect_if_lt]);
 
     // a is smaller in the high bits and equal in the low bits
-    let inputs = build_inputs(&[hi_gt_lo_eq, smaller]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    assert_eq!(expected_state_lt, last_state);
+    test_op_execution(asm_op, &[smaller, hi_gt_lo_eq], &[expect_if_lt]);
 
     // a is smaller in the high bits but bigger in the low bits
-    let inputs = build_inputs(&[hi_gt_lo_lt, smaller]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    assert_eq!(expected_state_lt, last_state);
+    test_op_execution(asm_op, &[smaller, hi_gt_lo_lt], &[expect_if_lt]);
 
     // compare values above and below the field modulus
-    let inputs = build_inputs(&[a + 1, a_mod]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    assert_eq!(expected_state_lt, last_state);
+    test_op_execution(asm_op, &[a_mod, a + 1], &[expect_if_lt]);
 
     // --- a = b ----------------------------------------------------------------------------------
     // high and low bits are both set
-    let inputs = build_inputs(&[hi_gt_lo_eq, hi_gt_lo_eq]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    assert_eq!(expected_state_eq, last_state);
+    test_op_execution(asm_op, &[hi_gt_lo_eq, hi_gt_lo_eq], &[expect_if_eq]);
 
     // compare values above and below the field modulus
-    let inputs = build_inputs(&[a, a_mod]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    assert_eq!(expected_state_eq, last_state);
+    test_op_execution(asm_op, &[a_mod, a], &[expect_if_eq]);
 
     // --- a > b ----------------------------------------------------------------------------------
     // a is bigger in the low bits (equal in high bits)
-    let inputs = build_inputs(&[smaller, hi_eq_lo_gt]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    assert_eq!(expected_state_gt, last_state);
+    test_op_execution(asm_op, &[hi_eq_lo_gt, smaller], &[expect_if_gt]);
 
     // a is bigger in the high bits and equal in the low bits
-    let inputs = build_inputs(&[smaller, hi_gt_lo_eq]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    assert_eq!(expected_state_gt, last_state);
+    test_op_execution(asm_op, &[hi_gt_lo_eq, smaller], &[expect_if_gt]);
 
     // a is bigger in the high bits but smaller in the low bits
-    let inputs = build_inputs(&[smaller, hi_gt_lo_lt]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    assert_eq!(expected_state_gt, last_state);
+    test_op_execution(asm_op, &[hi_gt_lo_lt, smaller], &[expect_if_gt]);
 
     // compare values above and below the field modulus
-    let inputs = build_inputs(&[a, a_mod + 1]);
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-    assert_eq!(expected_state_gt, last_state);
+    test_op_execution(asm_op, &[a_mod + 1, a], &[expect_if_gt]);
 }
 
 // FIELD OPS COMPARISON - RANDOMIZED TESTS
@@ -201,13 +152,13 @@ proptest! {
         // test the eq assembly operation with randomized inputs
         let script = compile("begin eq end");
 
-        let inputs = build_inputs(&[b, a]);
+        let inputs = build_inputs(&[a, b]);
         let trace = execute(&script, &inputs).unwrap();
         let last_state = trace.last_stack_state();
 
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS == b % Felt::MODULUS { 1 } else { 0 };
-        let expected_state = build_stack_state(&[expected_result]);
+        let expected_state = push_to_stack(&[expected_result]);
 
         prop_assert_eq!(expected_state, last_state);
     }
@@ -238,8 +189,8 @@ proptest! {
 
         // add the expected result to get the expected state
         let expected_result = if inputs_equal { 1 } else { 0 };
-        values.insert(0, expected_result);
-        let expected_state = build_stack_state(&values);
+        values.push(expected_result);
+        let expected_state = push_to_stack(&values);
 
         prop_assert_eq!(expected_state, last_state);
     }
@@ -249,13 +200,13 @@ proptest! {
         // test the less-than assembly operation with randomized inputs
         let script = compile("begin lt end");
 
-        let inputs = build_inputs(&[b, a]);
+        let inputs = build_inputs(&[a, b]);
         let trace = execute(&script, &inputs).unwrap();
         let last_state = trace.last_stack_state();
 
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS < b % Felt::MODULUS { 1 } else { 0 };
-        let expected_state = build_stack_state(&[expected_result]);
+        let expected_state = push_to_stack(&[expected_result]);
 
         prop_assert_eq!(expected_state, last_state);
     }
@@ -265,13 +216,13 @@ proptest! {
         // test the less-than-or-equal assembly operation with randomized inputs
         let script = compile("begin lte end");
 
-        let inputs = build_inputs(&[b, a]);
+        let inputs = build_inputs(&[a, b]);
         let trace = execute(&script, &inputs).unwrap();
         let last_state = trace.last_stack_state();
 
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS <= b % Felt::MODULUS { 1 } else { 0 };
-        let expected_state = build_stack_state(&[expected_result]);
+        let expected_state = push_to_stack(&[expected_result]);
 
         prop_assert_eq!(expected_state, last_state);
     }
@@ -281,13 +232,13 @@ proptest! {
         // test the greater-than assembly operation with randomized inputs
         let script = compile("begin gt end");
 
-        let inputs = build_inputs(&[b, a]);
+        let inputs = build_inputs(&[a, b]);
         let trace = execute(&script, &inputs).unwrap();
         let last_state = trace.last_stack_state();
 
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS > b % Felt::MODULUS { 1 } else { 0 };
-        let expected_state = build_stack_state(&[expected_result]);
+        let expected_state = push_to_stack(&[expected_result]);
 
         prop_assert_eq!(expected_state, last_state);
     }
@@ -297,13 +248,13 @@ proptest! {
         // test the greater-than-or-equal assembly operation with randomized inputs
         let script = compile("begin gte end");
 
-        let inputs = build_inputs(&[b, a]);
+        let inputs = build_inputs(&[a, b]);
         let trace = execute(&script, &inputs).unwrap();
         let last_state = trace.last_stack_state();
 
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS >= b % Felt::MODULUS { 1 } else { 0 };
-        let expected_state = build_stack_state(&[expected_result]);
+        let expected_state = push_to_stack(&[expected_result]);
 
         prop_assert_eq!(expected_state, last_state);
     }
