@@ -107,6 +107,36 @@ fn script_with_nested_procedure() {
     assert_eq!(expected, format!("{}", script));
 }
 
+#[test]
+fn script_with_proc_locals() {
+    let assembler = super::Assembler::new();
+    let source = "\
+        proc.foo.1 \
+            pop.local.0 \
+            add \
+            push.local.0 \
+            mul \
+        end \
+        begin \
+            push.4 push.3 push.2 \
+            exec.foo \
+        end";
+    let script = assembler.compile_script(source).unwrap();
+    let expected = "\
+        begin \
+            span \
+                push(4) push(3) push(2) \
+                push(1) fmpupdate \
+                pad pad pad pad fmpadd storew drop drop drop drop \
+                add \
+                pad pad pad pad pad fmpadd loadw drop drop drop \
+                mul \
+                push(18446744069414584320) fmpupdate \
+            end \
+        end";
+    assert_eq!(expected, format!("{}", script));
+}
+
 // COMMENTS
 // ================================================================================================
 
