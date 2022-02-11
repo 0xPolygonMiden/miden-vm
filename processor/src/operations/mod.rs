@@ -1,4 +1,7 @@
-use super::{AdviceInjector, ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
+use super::{
+    AdviceInjector, DebugOptions, ExecutionError, Felt, FieldElement, Operation, Process,
+    StarkField, Word,
+};
 
 mod crypto_ops;
 mod decorators;
@@ -129,7 +132,7 @@ impl Process {
             Operation::MrUpdate(copy) => self.op_mrupdate(copy)?,
 
             // ----- decorators -------------------------------------------------------------------
-            Operation::Debug => self.op_debug()?,
+            Operation::Debug(options) => self.op_debug(options)?,
             Operation::Advice(injector) => self.op_advice(injector)?,
         }
 
