@@ -191,6 +191,14 @@ impl AssemblyError {
         }
     }
 
+    pub fn invalid_proc_locals(token: &Token, locals: &str) -> Self {
+        AssemblyError {
+            message: format!("invalid procedure locals: {}", locals),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
     pub fn unmatched_proc(token: &Token) -> Self {
         AssemblyError {
             message: "proc without matching end".to_string(),

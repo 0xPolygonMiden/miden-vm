@@ -49,7 +49,11 @@ const ADVICE_READ_LIMIT: u32 = 16;
 ///
 /// Returns an `AssemblyError` if the op param is invalid, malformed, or doesn't match an expected
 /// `push` instruction
-pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_push(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    num_proc_locals: u32,
+) -> Result<(), AssemblyError> {
     if op.num_parts() < 2 {
         return Err(AssemblyError::invalid_op(op));
     }
@@ -63,7 +67,7 @@ pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
     match op.parts()[1] {
         "adv" => parse_push_adv(span_ops, op),
         "env" => parse_push_env(span_ops, op),
-        "local" => parse_push_local(span_ops, op),
+        "local" => parse_push_local(span_ops, op, num_proc_locals),
         "mem" => parse_push_mem(span_ops, op),
         _ => parse_push_constant(span_ops, op),
     }
@@ -85,7 +89,11 @@ pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 ///
 /// Returns an `AssemblyError` if the op param is invalid, malformed, or doesn't match an expected
 /// `pushw` instruction.
-pub fn parse_pushw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_pushw(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    num_proc_locals: u32,
+) -> Result<(), AssemblyError> {
     // validate op
     validate_op_len(op, 2, 0, 1)?;
     if op.parts()[0] != "pushw" {
@@ -97,7 +105,7 @@ pub fn parse_pushw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 
     match op.parts()[1] {
         "mem" => parse_mem_read(span_ops, op, true),
-        "local" => parse_local_read(span_ops, op),
+        "local" => parse_local_read(span_ops, op, num_proc_locals),
         _ => Err(AssemblyError::invalid_op(op)),
     }
 }
@@ -119,7 +127,11 @@ pub fn parse_pushw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 ///
 /// Returns an `AssemblyError` if the op param is invalid, malformed, or doesn't match an expected
 /// `pop` instruction
-pub fn parse_pop(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_pop(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    num_proc_locals: u32,
+) -> Result<(), AssemblyError> {
     if op.num_parts() < 2 {
         return Err(AssemblyError::invalid_op(op));
     }
@@ -128,7 +140,7 @@ pub fn parse_pop(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
     }
 
     match op.parts()[1] {
-        "local" => parse_pop_local(span_ops, op),
+        "local" => parse_pop_local(span_ops, op, num_proc_locals),
         "mem" => parse_pop_mem(span_ops, op),
         _ => Err(AssemblyError::invalid_op(op)),
     }
@@ -151,7 +163,11 @@ pub fn parse_pop(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 ///
 /// Returns an `AssemblyError` if the op param is invalid, malformed, or doesn't match an expected
 /// `popw` instruction.
-pub fn parse_popw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_popw(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    num_proc_locals: u32,
+) -> Result<(), AssemblyError> {
     // validate op
     validate_op_len(op, 2, 0, 1)?;
     if op.parts()[0] != "popw" {
@@ -163,7 +179,7 @@ pub fn parse_popw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 
     match op.parts()[1] {
         "mem" => parse_mem_write(span_ops, op, false),
-        "local" => parse_local_write(span_ops, op),
+        "local" => parse_local_write(span_ops, op, num_proc_locals),
         _ => Err(AssemblyError::invalid_op(op)),
     }
 }
@@ -194,7 +210,11 @@ pub fn parse_popw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 ///
 /// Returns an `AssemblyError` if the op param is invalid, malformed, or doesn't match an expected
 /// `loadw` instruction.
-pub fn parse_loadw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_loadw(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    num_proc_locals: u32,
+) -> Result<(), AssemblyError> {
     // validate op
     validate_op_len(op, 2, 0, 1)?;
     if op.parts()[0] != "loadw" {
@@ -216,7 +236,7 @@ pub fn parse_loadw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
             Ok(())
         }
         "mem" => parse_mem_read(span_ops, op, false),
-        "local" => parse_local_read(span_ops, op),
+        "local" => parse_local_read(span_ops, op, num_proc_locals),
         _ => Err(AssemblyError::invalid_op(op)),
     }
 }
@@ -243,7 +263,11 @@ pub fn parse_loadw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 ///
 /// Returns an `AssemblyError` if the op param is invalid, malformed, or doesn't match an expected
 /// `storew` instruction.
-pub fn parse_storew(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_storew(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    num_proc_locals: u32,
+) -> Result<(), AssemblyError> {
     // validate op
     validate_op_len(op, 2, 0, 1)?;
     if op.parts()[0] != "storew" {
@@ -255,7 +279,7 @@ pub fn parse_storew(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 
     match op.parts()[1] {
         "mem" => parse_mem_write(span_ops, op, true),
-        "local" => parse_local_write(span_ops, op),
+        "local" => parse_local_write(span_ops, op, num_proc_locals),
         _ => Err(AssemblyError::invalid_op(op)),
     }
 }
@@ -539,19 +563,35 @@ fn push_mem_addr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 
 // HELPERS - LOCAL MEMORY FOR PROCEDURE VARIABLES
 // ================================================================================================
-fn parse_push_local(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
+fn parse_push_local(
+    _span_ops: &mut Vec<Operation>,
+    _op: &Token,
+    _num_proc_locals: u32,
+) -> Result<(), AssemblyError> {
     unimplemented!();
 }
 
-fn parse_pop_local(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
+fn parse_pop_local(
+    _span_ops: &mut Vec<Operation>,
+    _op: &Token,
+    _num_proc_locals: u32,
+) -> Result<(), AssemblyError> {
     unimplemented!();
 }
 
-fn parse_local_read(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
+fn parse_local_read(
+    _span_ops: &mut Vec<Operation>,
+    _op: &Token,
+    _num_proc_locals: u32,
+) -> Result<(), AssemblyError> {
     unimplemented!();
 }
 
-fn parse_local_write(_span_ops: &mut Vec<Operation>, _op: &Token) -> Result<(), AssemblyError> {
+fn parse_local_write(
+    _span_ops: &mut Vec<Operation>,
+    _op: &Token,
+    _num_proc_locals: u32,
+) -> Result<(), AssemblyError> {
     unimplemented!();
 }
 

@@ -1,4 +1,5 @@
 use super::{parse_op_token, AssemblyError, CodeBlock, Operation, Token, TokenStream};
+use vm_core::Felt;
 use winter_utils::{
     collections::{BTreeMap, Vec},
     group_vector_elements,
@@ -11,6 +12,7 @@ use winter_utils::{
 pub fn parse_code_blocks(
     tokens: &mut TokenStream,
     proc_map: &BTreeMap<String, CodeBlock>,
+    num_proc_locals: u32,
 ) -> Result<CodeBlock, AssemblyError> {
     // make sure there is something to be read
     let start_pos = tokens.pos();
@@ -21,7 +23,7 @@ pub fn parse_code_blocks(
     // parse the sequence of blocks and add each block to the list
     let mut blocks = Vec::new();
     while let Some(parser) = BlockParser::next(tokens)? {
-        let block = parser.parse(tokens, proc_map)?;
+        let block = parser.parse(tokens, proc_map, num_proc_locals)?;
         blocks.push(block);
     }
 
@@ -33,6 +35,37 @@ pub fn parse_code_blocks(
         // build a binary tree out of the parsed list of blocks
         Ok(combine_blocks(blocks))
     }
+}
+
+pub fn parse_proc_blocks(
+    tokens: &mut TokenStream,
+    proc_map: &BTreeMap<String, CodeBlock>,
+    num_proc_locals: u32,
+) -> Result<CodeBlock, AssemblyError> {
+    // parse the procedure body
+    let body = parse_code_blocks(tokens, proc_map, num_proc_locals)?;
+
+    if num_proc_locals == 0 {
+        // if no allocation of locals is required, return the procedure body
+        return Ok(body);
+    }
+
+    let mut blocks = Vec::new();
+    let locals_felt = Felt::new(num_proc_locals as u64);
+
+    // allocate procedure locals before the procedure body
+    let alloc_ops = vec![Operation::Push(locals_felt), Operation::FmpUpdate];
+    blocks.push(CodeBlock::new_span(alloc_ops));
+
+    // add the procedure body code block
+    blocks.push(body);
+
+    // deallocate procedure locals after the procedure body
+    let dealloc_ops = vec![Operation::Push(-locals_felt), Operation::FmpUpdate];
+    blocks.push(CodeBlock::new_span(dealloc_ops));
+
+    // combine the local memory alloc/dealloc blocks with the procedure body code block
+    Ok(combine_blocks(blocks))
 }
 
 // CODE BLOCK PARSER
@@ -54,6 +87,7 @@ impl BlockParser {
         &self,
         tokens: &mut TokenStream,
         proc_map: &BTreeMap<String, CodeBlock>,
+        num_proc_locals: u32,
     ) -> Result<CodeBlock, AssemblyError> {
         match self {
             Self::Span => {
@@ -63,7 +97,7 @@ impl BlockParser {
                     if op.is_control_token() {
                         break;
                     }
-                    parse_op_token(op, &mut span_ops)?;
+                    parse_op_token(op, &mut span_ops, num_proc_locals)?;
                     tokens.advance();
                 }
                 Ok(CodeBlock::new_span(span_ops))
@@ -75,7 +109,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the `if` clause
-                let t_branch = parse_code_blocks(tokens, proc_map)?;
+                let t_branch = parse_code_blocks(tokens, proc_map, num_proc_locals)?;
 
                 // build the `else` clause; if the else clause is specified, then read it;
                 // otherwise, set to a Span with a single noop
@@ -88,7 +122,7 @@ impl BlockParser {
                             tokens.advance();
 
                             // parse the `false` branch
-                            let f_branch = parse_code_blocks(tokens, proc_map)?;
+                            let f_branch = parse_code_blocks(tokens, proc_map, num_proc_locals)?;
 
                             // consume the `end` token
                             match tokens.read() {
@@ -138,7 +172,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the loop body
-                let loop_body = parse_code_blocks(tokens, proc_map)?;
+                let loop_body = parse_code_blocks(tokens, proc_map, num_proc_locals)?;
 
                 // consume the `end` token
                 match tokens.read() {
@@ -164,7 +198,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the loop body
-                let loop_body = parse_code_blocks(tokens, proc_map)?;
+                let loop_body = parse_code_blocks(tokens, proc_map, num_proc_locals)?;
 
                 // consume the `end` token
                 match tokens.read() {
