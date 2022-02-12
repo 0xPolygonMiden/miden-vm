@@ -608,6 +608,8 @@ mod tests {
 
     #[test]
     fn push_one() {
+        let num_proc_locals = 0;
+
         let mut span_ops: Vec<Operation> = Vec::new();
         let op_0 = Token::new("push.0", 0);
         let op_1 = Token::new("push.1", 0);
@@ -621,16 +623,20 @@ mod tests {
             Operation::Push(BaseElement::new(123)),
         ];
 
-        parse_push(&mut span_ops, &op_0).expect("Failed to parse push.0");
-        parse_push(&mut span_ops, &op_1).expect("Failed to parse push.1");
-        parse_push(&mut span_ops, &op_dec).expect("Failed to parse push of decimal element 123");
-        parse_push(&mut span_ops, &op_hex).expect("Failed to parse push of hex element 0x7b");
+        parse_push(&mut span_ops, &op_0, num_proc_locals).expect("Failed to parse push.0");
+        parse_push(&mut span_ops, &op_1, num_proc_locals).expect("Failed to parse push.1");
+        parse_push(&mut span_ops, &op_dec, num_proc_locals)
+            .expect("Failed to parse push of decimal element 123");
+        parse_push(&mut span_ops, &op_hex, num_proc_locals)
+            .expect("Failed to parse push of hex element 0x7b");
 
         assert_eq!(span_ops, expected);
     }
 
     #[test]
     fn push_many() {
+        let num_proc_locals = 0;
+
         // --- push 4 decimal values --------------------------------------------------------------
         let mut span_ops: Vec<Operation> = Vec::new();
         let op_4_dec = Token::new("push.4.5.6.7", 0);
@@ -638,7 +644,8 @@ mod tests {
         for a in 4..8 {
             expected.push(Operation::Push(BaseElement::new(a)));
         }
-        parse_push(&mut span_ops, &op_4_dec).expect("Failed to parse push.4.5.6.7");
+        parse_push(&mut span_ops, &op_4_dec, num_proc_locals)
+            .expect("Failed to parse push.4.5.6.7");
         assert_eq!(span_ops, expected);
 
         // --- push the maximum number of decimal values (16) -------------------------------------
@@ -648,7 +655,7 @@ mod tests {
         for a in 16..32 {
             expected.push(Operation::Push(BaseElement::new(a)));
         }
-        parse_push(&mut span_ops, &op_16_dec)
+        parse_push(&mut span_ops, &op_16_dec, num_proc_locals)
             .expect("Failed to parse push.16.17.18.19.20.21.22.23.24.25.26.27.28.29.30.31");
         assert_eq!(span_ops, expected);
 
@@ -659,7 +666,7 @@ mod tests {
         for i in 1..=5 {
             expected.push(Operation::Push(BaseElement::new(10_u64.pow(i))));
         }
-        parse_push(&mut span_ops, &op_5_hex)
+        parse_push(&mut span_ops, &op_5_hex, num_proc_locals)
             .expect("Failed to parse push.0xA.0x64.0x3EB.0x2710.0x186A0");
         assert_eq!(span_ops, expected);
 
@@ -670,20 +677,23 @@ mod tests {
         for i in 1_u32..=8 {
             expected.push(Operation::Push(BaseElement::new(2_u64.pow(i))));
         }
-        parse_push(&mut span_ops, &op_8_dec_hex)
+        parse_push(&mut span_ops, &op_8_dec_hex, num_proc_locals)
             .expect("Failed to parse push.2.4.8.0x10.0x20.0x40.128.0x100");
         assert_eq!(span_ops, expected);
     }
 
     #[test]
     fn push_without_separator() {
+        let num_proc_locals = 0;
+
         // --- push hexadecimal values with no period separators ----------------------------------
         let mut span_ops: Vec<Operation> = Vec::new();
         let mut expected: Vec<Operation> = Vec::new();
         let op_sep = Token::new("push.0x1234.0xabcd", 0);
         let op_no_sep = Token::new("push.0x0000000000001234000000000000abcd", 0);
-        parse_push(&mut expected, &op_sep).expect("Failed to parse push.0x1234.0xabcd");
-        parse_push(&mut span_ops, &op_no_sep)
+        parse_push(&mut expected, &op_sep, num_proc_locals)
+            .expect("Failed to parse push.0x1234.0xabcd");
+        parse_push(&mut span_ops, &op_no_sep, num_proc_locals)
             .expect("Failed to parse push.0x0000000000001234000000000000abcd");
         assert_eq!(span_ops, expected);
 
@@ -692,15 +702,17 @@ mod tests {
         let mut expected: Vec<Operation> = Vec::new();
         let op_16_dec = Token::new("push.0.1.2.3.4.5.6.7.8.9.10.11.12.13.14.15", 0);
         let op_16_no_sep = Token::new("push.0x0000000000000000000000000000000100000000000000020000000000000003000000000000000400000000000000050000000000000006000000000000000700000000000000080000000000000009000000000000000A000000000000000B000000000000000C000000000000000D000000000000000E000000000000000F", 0);
-        parse_push(&mut expected, &op_16_dec)
+        parse_push(&mut expected, &op_16_dec, num_proc_locals)
             .expect("Failed to parse push.0.1.2.3.4.5.6.7.8.9.10.11.12.13.14.15");
-        parse_push(&mut span_ops, &op_16_no_sep)
+        parse_push(&mut span_ops, &op_16_no_sep,num_proc_locals)
             .expect("Failed to parse push.0x0000000000000000000000000000000100000000000000020000000000000003000000000000000400000000000000050000000000000006000000000000000700000000000000080000000000000009000000000000000A000000000000000B000000000000000C000000000000000D000000000000000E000000000000000F");
         assert_eq!(span_ops, expected);
     }
 
     #[test]
     fn push_invalid() {
+        let num_proc_locals = 0;
+
         // fails when immediate value is invalid or missing
         let mut span_ops: Vec<Operation> = Vec::new();
         let pos = 0;
@@ -708,13 +720,16 @@ mod tests {
         // missing value or variant
         let op_no_val = Token::new("push", pos);
         let expected = AssemblyError::invalid_op(&op_no_val);
-        assert_eq!(parse_push(&mut span_ops, &op_no_val).unwrap_err(), expected);
+        assert_eq!(
+            parse_push(&mut span_ops, &op_no_val, num_proc_locals).unwrap_err(),
+            expected
+        );
 
         // invalid value
         let op_val_invalid = Token::new("push.abc", pos);
         let expected = AssemblyError::invalid_param(&op_val_invalid, 1);
         assert_eq!(
-            parse_push(&mut span_ops, &op_val_invalid).unwrap_err(),
+            parse_push(&mut span_ops, &op_val_invalid, num_proc_locals).unwrap_err(),
             expected
         );
 
@@ -723,7 +738,7 @@ mod tests {
         let op_mixed_sep = Token::new("push.4.5.0x0000000000001234000000000000abcd", 0);
         let expected = AssemblyError::invalid_param(&op_mixed_sep, 3);
         assert_eq!(
-            parse_push(&mut span_ops, &op_mixed_sep).unwrap_err(),
+            parse_push(&mut span_ops, &op_mixed_sep, num_proc_locals).unwrap_err(),
             expected
         );
 
@@ -731,7 +746,7 @@ mod tests {
         let op_mixed_sep = Token::new("push.0x0000000000001234000000000000abcd.4.5", 0);
         let expected = AssemblyError::invalid_param(&op_mixed_sep, 1);
         assert_eq!(
-            parse_push(&mut span_ops, &op_mixed_sep).unwrap_err(),
+            parse_push(&mut span_ops, &op_mixed_sep, num_proc_locals).unwrap_err(),
             expected
         );
 
@@ -739,7 +754,7 @@ mod tests {
         let op_extra_val = Token::new("push.0.1.2.3.4.5.6.7.8.9.10.11.12.13.14.15.16", pos);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
-            parse_push(&mut span_ops, &op_extra_val).unwrap_err(),
+            parse_push(&mut span_ops, &op_extra_val, num_proc_locals).unwrap_err(),
             expected
         );
 
@@ -750,19 +765,21 @@ mod tests {
             "push.{adv.n|env.var|local.i|mem|mem.a|a|a.b|a.b.c...}",
         );
         assert_eq!(
-            parse_push(&mut span_ops, &op_mismatch).unwrap_err(),
+            parse_push(&mut span_ops, &op_mismatch, num_proc_locals).unwrap_err(),
             expected
         )
     }
 
     #[test]
     fn push_invalid_hex() {
+        let num_proc_locals = 0;
+
         // --- no separators, and total number of bytes is not a multiple of 8 --------------------
         let mut span_ops: Vec<Operation> = Vec::new();
         let op_bad_hex = Token::new("push.0x00000000000012340000abcd", 0);
         let expected = AssemblyError::invalid_param(&op_bad_hex, 1);
         assert_eq!(
-            parse_push(&mut span_ops, &op_bad_hex).unwrap_err(),
+            parse_push(&mut span_ops, &op_bad_hex, num_proc_locals).unwrap_err(),
             expected
         );
 
@@ -771,7 +788,7 @@ mod tests {
         let op_bad_hex = Token::new("push.0x00001234000000000000abcd.0x5678.0x9ef0", 0);
         let expected = AssemblyError::invalid_param(&op_bad_hex, 1);
         assert_eq!(
-            parse_push(&mut span_ops, &op_bad_hex).unwrap_err(),
+            parse_push(&mut span_ops, &op_bad_hex, num_proc_locals).unwrap_err(),
             expected
         );
 
@@ -780,25 +797,30 @@ mod tests {
         let op_extra_val = Token::new("push.0x0000000000000000000000000000000100000000000000020000000000000003000000000000000400000000000000050000000000000006000000000000000700000000000000080000000000000009000000000000000A000000000000000B000000000000000C000000000000000D000000000000000E000000000000000F0000000000000010", 0);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
-            parse_push(&mut span_ops, &op_extra_val).unwrap_err(),
+            parse_push(&mut span_ops, &op_extra_val, num_proc_locals).unwrap_err(),
             expected
         );
     }
 
     #[test]
     fn push_env_sdepth() {
+        let num_proc_locals = 0;
+
         // pushes the current depth of the stack onto the top of the stack
         let mut span_ops = vec![Operation::Push(BaseElement::ONE); 8];
         let op = Token::new("push.env.sdepth", 0);
         let mut expected = span_ops.clone();
         expected.push(Operation::SDepth);
 
-        parse_push(&mut span_ops, &op).expect("Failed to parse push.env.sdepth with empty stack");
+        parse_push(&mut span_ops, &op, num_proc_locals)
+            .expect("Failed to parse push.env.sdepth with empty stack");
         assert_eq!(span_ops, expected);
     }
 
     #[test]
     fn push_env_invalid() {
+        let num_proc_locals = 0;
+
         // fails when env op variant is invalid or missing or has too many immediate values
         let mut span_ops: Vec<Operation> = Vec::new();
         let pos = 0;
@@ -806,13 +828,16 @@ mod tests {
         // missing env var
         let op_no_val = Token::new("push.env", pos);
         let expected = AssemblyError::invalid_op(&op_no_val);
-        assert_eq!(parse_push(&mut span_ops, &op_no_val).unwrap_err(), expected);
+        assert_eq!(
+            parse_push(&mut span_ops, &op_no_val, num_proc_locals).unwrap_err(),
+            expected
+        );
 
         // invalid env var
         let op_val_invalid = Token::new("push.env.invalid", pos);
         let expected = AssemblyError::invalid_op(&op_val_invalid);
         assert_eq!(
-            parse_push(&mut span_ops, &op_val_invalid).unwrap_err(),
+            parse_push(&mut span_ops, &op_val_invalid, num_proc_locals).unwrap_err(),
             expected
         );
 
@@ -820,24 +845,28 @@ mod tests {
         let op_extra_val = Token::new("push.env.sdepth.0", pos);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
-            parse_push(&mut span_ops, &op_extra_val).unwrap_err(),
+            parse_push(&mut span_ops, &op_extra_val, num_proc_locals).unwrap_err(),
             expected
         );
     }
 
     #[test]
     fn push_adv() {
+        let num_proc_locals = 0;
+
         // remove n items from the advice tape and push them onto the stack
         let mut span_ops: Vec<Operation> = Vec::new();
         let op = Token::new("push.adv.4", 0);
         let expected = vec![Operation::Read; 4];
 
-        parse_push(&mut span_ops, &op).expect("Failed to parse push.adv.4");
+        parse_push(&mut span_ops, &op, num_proc_locals).expect("Failed to parse push.adv.4");
         assert_eq!(span_ops, expected);
     }
 
     #[test]
     fn push_adv_invalid() {
+        let num_proc_locals = 0;
+
         // fails when the instruction is malformed or unrecognized
         let mut span_ops: Vec<Operation> = Vec::new();
         let pos = 0;
@@ -845,13 +874,16 @@ mod tests {
         // missing value
         let op_no_val = Token::new("push.adv", pos);
         let expected = AssemblyError::missing_param(&op_no_val);
-        assert_eq!(parse_push(&mut span_ops, &op_no_val).unwrap_err(), expected);
+        assert_eq!(
+            parse_push(&mut span_ops, &op_no_val, num_proc_locals).unwrap_err(),
+            expected
+        );
 
         // extra value to push
         let op_extra_val = Token::new("push.adv.2.2", pos);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
-            parse_push(&mut span_ops, &op_extra_val).unwrap_err(),
+            parse_push(&mut span_ops, &op_extra_val, num_proc_locals).unwrap_err(),
             expected
         );
 
@@ -859,7 +891,7 @@ mod tests {
         let op_invalid_char = Token::new("push.adv.a", pos);
         let expected = AssemblyError::invalid_param(&op_invalid_char, 2);
         assert_eq!(
-            parse_push(&mut span_ops, &op_invalid_char).unwrap_err(),
+            parse_push(&mut span_ops, &op_invalid_char, num_proc_locals).unwrap_err(),
             expected
         );
 
@@ -867,7 +899,7 @@ mod tests {
         let op_invalid_hex = Token::new("push.adv.0x10", pos);
         let expected = AssemblyError::invalid_param(&op_invalid_hex, 2);
         assert_eq!(
-            parse_push(&mut span_ops, &op_invalid_hex).unwrap_err(),
+            parse_push(&mut span_ops, &op_invalid_hex, num_proc_locals).unwrap_err(),
             expected
         );
 
@@ -880,7 +912,7 @@ mod tests {
         let op_lower_bound = Token::new("push.adv.0", pos);
         let expected = AssemblyError::invalid_param_with_reason(&op_lower_bound, 2, &reason);
         assert_eq!(
-            parse_push(&mut span_ops, &op_lower_bound).unwrap_err(),
+            parse_push(&mut span_ops, &op_lower_bound, num_proc_locals).unwrap_err(),
             expected
         );
 
@@ -889,7 +921,7 @@ mod tests {
         let op_upper_bound = Token::new(&inst_str, pos);
         let expected = AssemblyError::invalid_param_with_reason(&op_upper_bound, 2, &reason);
         assert_eq!(
-            parse_push(&mut span_ops, &op_upper_bound).unwrap_err(),
+            parse_push(&mut span_ops, &op_upper_bound, num_proc_locals).unwrap_err(),
             expected
         );
     }
@@ -906,6 +938,7 @@ mod tests {
 
     #[test]
     fn pushw_mem() {
+        let num_proc_locals = 0;
         // reads a word from memory and pushes it onto the stack
 
         // test push with memory address on top of stack
@@ -920,7 +953,7 @@ mod tests {
             Operation::LoadW,
         ];
 
-        parse_pushw(&mut span_ops, &op_push).expect("Failed to parse pushw.mem");
+        parse_pushw(&mut span_ops, &op_push, num_proc_locals).expect("Failed to parse pushw.mem");
 
         assert_eq!(&span_ops, &expected);
 
@@ -936,7 +969,7 @@ mod tests {
             Operation::LoadW,
         ];
 
-        parse_pushw(&mut span_ops_addr, &op_push_addr)
+        parse_pushw(&mut span_ops_addr, &op_push_addr, num_proc_locals)
             .expect("Failed to parse pushw.mem.0 (address provided by op)");
 
         assert_eq!(&span_ops_addr, &expected_addr);
@@ -962,6 +995,8 @@ mod tests {
 
     #[test]
     fn popw_mem() {
+        let num_proc_locals = 0;
+
         // stores the top 4 elements of the stack in memory
         // then removes those 4 elements from the top of the stack
 
@@ -975,7 +1010,7 @@ mod tests {
             Operation::Drop,
             Operation::Drop,
         ];
-        parse_popw(&mut span_ops, &op_mem_pop).expect("Failed to parse popw.mem");
+        parse_popw(&mut span_ops, &op_mem_pop, num_proc_locals).expect("Failed to parse popw.mem");
         assert_eq!(&span_ops, &expected);
 
         // test pop with memory address provided directly (address 0)
@@ -990,7 +1025,8 @@ mod tests {
             Operation::Drop,
         ];
 
-        parse_popw(&mut span_ops_addr, &op_pop_addr).expect("Failed to parse popw.mem.0");
+        parse_popw(&mut span_ops_addr, &op_pop_addr, num_proc_locals)
+            .expect("Failed to parse popw.mem.0");
 
         assert_eq!(&span_ops_addr, &expected_addr);
     }
@@ -1010,17 +1046,21 @@ mod tests {
 
     #[test]
     fn loadw_adv() {
+        let num_proc_locals = 0;
+
         // replace the top 4 elements of the stack with 4 elements from the advice tape
         let mut span_ops: Vec<Operation> = Vec::new();
         let op = Token::new("loadw.adv", 0);
         let expected = vec![Operation::ReadW];
 
-        parse_loadw(&mut span_ops, &op).expect("Failed to parse loadw.adv");
+        parse_loadw(&mut span_ops, &op, num_proc_locals).expect("Failed to parse loadw.adv");
         assert_eq!(span_ops, expected);
     }
 
     #[test]
     fn loadw_adv_invalid() {
+        let num_proc_locals = 0;
+
         // fails when the instruction is malformed or unrecognized
         let mut span_ops: Vec<Operation> = Vec::new();
         let pos = 0;
@@ -1029,13 +1069,14 @@ mod tests {
         let op_extra_val = Token::new("loadw.adv.0", pos);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
-            parse_loadw(&mut span_ops, &op_extra_val).unwrap_err(),
+            parse_loadw(&mut span_ops, &op_extra_val, num_proc_locals).unwrap_err(),
             expected
         );
     }
 
     #[test]
     fn loadw_mem() {
+        let num_proc_locals = 0;
         // reads a word from memory and overwrites the top 4 stack elements
 
         // test load with memory address on top of stack
@@ -1043,7 +1084,7 @@ mod tests {
         let op_push = Token::new("loadw.mem", 0);
         let expected = vec![Operation::LoadW];
 
-        parse_loadw(&mut span_ops, &op_push).expect("Failed to parse loadw.mem");
+        parse_loadw(&mut span_ops, &op_push, num_proc_locals).expect("Failed to parse loadw.mem");
 
         assert_eq!(&span_ops, &expected);
 
@@ -1052,7 +1093,7 @@ mod tests {
         let op_load_addr = Token::new("loadw.mem.0", 0);
         let expected_addr = vec![Operation::Push(BaseElement::ZERO), Operation::LoadW];
 
-        parse_loadw(&mut span_ops_addr, &op_load_addr)
+        parse_loadw(&mut span_ops_addr, &op_load_addr, num_proc_locals)
             .expect("Failed to parse loadw.mem.0 (address provided by op)");
 
         assert_eq!(&span_ops_addr, &expected_addr);
@@ -1073,6 +1114,7 @@ mod tests {
 
     #[test]
     fn storew_mem() {
+        let num_proc_locals = 0;
         // stores the top 4 elements of the stack in memory
 
         // test store with memory address on top of the stack
@@ -1080,7 +1122,8 @@ mod tests {
         let op_store = Token::new("storew.mem", 0);
         let expected = vec![Operation::StoreW];
 
-        parse_storew(&mut span_ops, &op_store).expect("Failed to parse storew.mem");
+        parse_storew(&mut span_ops, &op_store, num_proc_locals)
+            .expect("Failed to parse storew.mem");
 
         assert_eq!(&span_ops, &expected);
 
@@ -1089,7 +1132,7 @@ mod tests {
         let op_store_addr = Token::new("storew.mem.0", 0);
         let expected_addr = vec![Operation::Push(BaseElement::ZERO), Operation::StoreW];
 
-        parse_storew(&mut span_ops_addr, &op_store_addr)
+        parse_storew(&mut span_ops_addr, &op_store_addr, num_proc_locals)
             .expect("Failed to parse storew.mem.0 with adddress (address provided by op)");
 
         assert_eq!(&span_ops_addr, &expected_addr);
@@ -1107,30 +1150,43 @@ mod tests {
     /// It can be used to test operation and variant validity for `pushw`, `popw`, `loadw`, and
     /// `storew`.
     fn test_parsew_base(base_op: &str, expected_token: &str) {
+        let num_proc_locals = 0;
+
         // fails when required variants are invalid or missing or the wrong operation is provided
         let pos = 0;
 
         // missing variant
         let op_no_variant = Token::new(base_op, pos);
         let expected = AssemblyError::invalid_op(&op_no_variant);
-        assert_eq!(get_parsing_error(base_op, &op_no_variant), expected);
+        assert_eq!(
+            get_parsing_error(base_op, &op_no_variant, num_proc_locals),
+            expected
+        );
 
         // invalid variant
         let op_str = format!("{}.invalid", base_op);
         let op_invalid = Token::new(&op_str, pos);
         let expected = AssemblyError::invalid_op(&op_invalid);
-        assert_eq!(get_parsing_error(base_op, &op_invalid), expected);
+        assert_eq!(
+            get_parsing_error(base_op, &op_invalid, num_proc_locals),
+            expected
+        );
 
         // wrong operation passed to parsing function
         let op_mismatch = Token::new("none.mem", pos);
         let expected = AssemblyError::unexpected_token(&op_mismatch, expected_token);
-        assert_eq!(get_parsing_error(base_op, &op_mismatch), expected)
+        assert_eq!(
+            get_parsing_error(base_op, &op_mismatch, num_proc_locals),
+            expected
+        )
     }
 
     /// Test that an instruction for an absolute memory operation is properly formed. It can be used
     /// to test parameter inputs for `push.mem`, `pushw.mem`, `pop.mem`, `popw.mem`, `loadw.mem`,
     /// and `storew.mem`.
     fn test_parse_mem(base_op: &str) {
+        let num_proc_locals = 0;
+
         // fails when immediate values to a {push|pushw|pop|popw|loadw|storew}.mem.{a|} operation
         // are invalid or missing
         let pos = 0;
@@ -1139,27 +1195,33 @@ mod tests {
         let op_str = format!("{}.mem.abc", base_op);
         let op_val_invalid = Token::new(&op_str, pos);
         let expected = AssemblyError::invalid_param(&op_val_invalid, 2);
-        assert_eq!(get_parsing_error(base_op, &op_val_invalid), expected);
+        assert_eq!(
+            get_parsing_error(base_op, &op_val_invalid, num_proc_locals),
+            expected
+        );
 
         // extra value provided to mem variant
         let op_str = format!("{}.mem.0.1", base_op);
         let op_extra_val = Token::new(&op_str, pos);
         let expected = AssemblyError::extra_param(&op_extra_val);
-        assert_eq!(get_parsing_error(base_op, &op_extra_val), expected);
+        assert_eq!(
+            get_parsing_error(base_op, &op_extra_val, num_proc_locals),
+            expected
+        );
     }
 
     /// Attempts to parse the specified operation, which is expected to be invalid, and returns the
     /// parsing error.
-    fn get_parsing_error(base_op: &str, invalid_op: &Token) -> AssemblyError {
+    fn get_parsing_error(base_op: &str, invalid_op: &Token, num_proc_locals: u32) -> AssemblyError {
         let mut span_ops: Vec<Operation> = Vec::new();
 
         match base_op {
-            "push" => parse_push(&mut span_ops, invalid_op).unwrap_err(),
-            "pushw" => parse_pushw(&mut span_ops, invalid_op).unwrap_err(),
-            "pop" => parse_pop(&mut span_ops, invalid_op).unwrap_err(),
-            "popw" => parse_popw(&mut span_ops, invalid_op).unwrap_err(),
-            "loadw" => parse_loadw(&mut span_ops, invalid_op).unwrap_err(),
-            "storew" => parse_storew(&mut span_ops, invalid_op).unwrap_err(),
+            "push" => parse_push(&mut span_ops, invalid_op, num_proc_locals).unwrap_err(),
+            "pushw" => parse_pushw(&mut span_ops, invalid_op, num_proc_locals).unwrap_err(),
+            "pop" => parse_pop(&mut span_ops, invalid_op, num_proc_locals).unwrap_err(),
+            "popw" => parse_popw(&mut span_ops, invalid_op, num_proc_locals).unwrap_err(),
+            "loadw" => parse_loadw(&mut span_ops, invalid_op, num_proc_locals).unwrap_err(),
+            "storew" => parse_storew(&mut span_ops, invalid_op, num_proc_locals).unwrap_err(),
             _ => panic!(),
         }
     }
