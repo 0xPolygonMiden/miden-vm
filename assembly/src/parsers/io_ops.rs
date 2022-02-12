@@ -1009,6 +1009,11 @@ mod tests {
     }
 
     #[test]
+    fn push_local_invalid() {
+        test_parse_local("push");
+    }
+
+    #[test]
     fn pushw_invalid() {
         test_parsew_base("pushw", "pushw.{mem|mem.a|local.i}");
     }
@@ -1057,12 +1062,22 @@ mod tests {
         test_parse_mem("pushw");
     }
 
+    #[test]
+    fn pushw_local_invalid() {
+        test_parse_local("pushw");
+    }
+
     // TESTS FOR REMOVING VALUES FROM THE STACK (POP)
     // ============================================================================================
 
     #[test]
     fn pop_mem_invalid() {
         test_parse_mem("pop");
+    }
+
+    #[test]
+    fn pop_local_invalid() {
+        test_parse_local("pop");
     }
 
     #[test]
@@ -1111,6 +1126,11 @@ mod tests {
     #[test]
     fn popw_mem_invalid() {
         test_parse_mem("popw");
+    }
+
+    #[test]
+    fn popw_local_invalid() {
+        test_parse_local("popw");
     }
 
     // TESTS FOR OVERWRITING VALUES ON THE STACK (LOAD)
@@ -1181,6 +1201,11 @@ mod tests {
         test_parse_mem("loadw");
     }
 
+    #[test]
+    fn loadw_local_invalid() {
+        test_parse_local("loadw");
+    }
+
     // TESTS FOR SAVING STACK VALUES WITHOUT REMOVING THEM (STORE)
     // ============================================================================================
 
@@ -1218,6 +1243,11 @@ mod tests {
     #[test]
     fn storew_mem_invalid() {
         test_parse_mem("storew");
+    }
+
+    #[test]
+    fn storew_local_invalid() {
+        test_parse_local("storew");
     }
 
     // TEST HELPERS
@@ -1279,6 +1309,69 @@ mod tests {
 
         // extra value provided to mem variant
         let op_str = format!("{}.mem.0.1", base_op);
+        let op_extra_val = Token::new(&op_str, pos);
+        let expected = AssemblyError::extra_param(&op_extra_val);
+        assert_eq!(
+            get_parsing_error(base_op, &op_extra_val, num_proc_locals),
+            expected
+        );
+    }
+
+    /// Test that an instruction for a local memory operation is properly formed. It can be used to
+    /// test parameter inputs for pushw.mem, popw.mem, loadw.mem, and storew.mem.
+    fn test_parse_local(base_op: &str) {
+        let num_proc_locals = 1;
+
+        // fails when immediate values to a {push|pushw|pop|popw|loadw|storew}.local.i operation are
+        // invalid or missing
+        let pos = 0;
+
+        // insufficient values provided
+        let op_str = format!("{}.local", base_op);
+        let op_val_missing = Token::new(&op_str, pos);
+        let expected = AssemblyError::missing_param(&op_val_missing);
+        assert_eq!(
+            get_parsing_error(base_op, &op_val_missing, num_proc_locals),
+            expected
+        );
+
+        // invalid value provided to local variant
+        let op_str = format!("{}.local.abc", base_op);
+        let op_val_invalid = Token::new(&op_str, pos);
+        let expected = AssemblyError::invalid_param(&op_val_invalid, 2);
+        assert_eq!(
+            get_parsing_error(base_op, &op_val_invalid, num_proc_locals),
+            expected
+        );
+
+        // no procedure locals declared
+        let op_str = format!("{}.local.{}", base_op, 1);
+        let op_no_locals = Token::new(&op_str, pos);
+        let expected = AssemblyError::invalid_op_with_reason(
+            &op_no_locals,
+            "no procedure locals were declared",
+        );
+        assert_eq!(get_parsing_error(base_op, &op_no_locals, 0), expected);
+
+        // provided local index is outside of the declared bounds of the procedure locals
+        let op_str = format!("{}.local.{}", base_op, num_proc_locals);
+        let op_val_invalid = Token::new(&op_str, pos);
+        let expected = AssemblyError::invalid_param_with_reason(
+            &op_val_invalid,
+            2,
+            format!(
+                "parameter value must be greater than or equal to 0 and less than or equal to {}",
+                num_proc_locals - 1
+            )
+            .as_str(),
+        );
+        assert_eq!(
+            get_parsing_error(base_op, &op_val_invalid, num_proc_locals),
+            expected
+        );
+
+        // extra value provided to local variant
+        let op_str = format!("{}.local.0.1", base_op);
         let op_extra_val = Token::new(&op_str, pos);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
