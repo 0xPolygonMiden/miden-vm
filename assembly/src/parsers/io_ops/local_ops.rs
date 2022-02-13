@@ -23,7 +23,7 @@ pub fn parse_push_local(
 }
 
 /// Pops the top element off the stack and saves it at the specified local procedure memory index as
-/// [top_element, 0, 0, 0]
+/// [top_element, 0, 0, 0].
 pub fn parse_pop_local(
     span_ops: &mut Vec<Operation>,
     op: &Token,
@@ -39,6 +39,18 @@ pub fn parse_pop_local(
     parse_write_local(span_ops, op, num_proc_locals, false)
 }
 
+/// Translates the `pushw.local.i` and `loadw.local.i` assembly ops to the system's `LOADW` memory
+/// read operation. When `overwrite_stack_top` is true, values should overwrite the top of the stack
+/// (as required by `loadw`). When `overwrite_stack_top` is false, values should be pushed onto the
+/// stack, leaving the rest of it unchanged (as required by `pushw`). This is achieved by first
+/// using `PAD` to make space for 4 new elements.
+///
+/// # Errors
+///
+/// This function expects a memory read assembly operation that has already been validated, except
+/// for its parameter. If called without validation, it could yield incorrect results or return an
+/// `AssemblyError`. It will also return an `AssemblyError` if the op does not have an index
+/// parameter specified.
 pub fn parse_read_local(
     span_ops: &mut Vec<Operation>,
     op: &Token,
@@ -63,6 +75,17 @@ pub fn parse_read_local(
     Ok(())
 }
 
+/// Translates the `popw.local.i` and `storew.local.i` assembly ops to the system's `STOREW` memory
+/// write operation. When `retain_stack_top` is true, values should be left on the stack after being
+/// written to memory (as required by `storew`). When `retain_stack_top` is false, values should be
+/// dropped from the stack after being written (as required by `popw`).
+///
+/// # Errors
+///
+/// This function expects a memory write assembly operation that has already been validated, except
+/// for its parameter. If called without validation, it could yield incorrect results or return an
+/// `AssemblyError`. It will also return an `AssemblyError` if the op does not have an index
+/// parameter specified.
 pub fn parse_write_local(
     span_ops: &mut Vec<Operation>,
     op: &Token,
@@ -86,6 +109,13 @@ pub fn parse_write_local(
     Ok(())
 }
 
+/// Parses a provided local memory index and pushes the corresponding absolute memory location onto
+/// the stack.
+///
+/// # Errors
+///
+/// This function will return an `AssemblyError` if the index parameter is greater than the number
+/// of locals declared by the procedure.
 fn push_local_addr(
     span_ops: &mut Vec<Operation>,
     op: &Token,

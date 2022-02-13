@@ -102,6 +102,7 @@ pub fn parse_pushw(
     }
 
     match op.parts()[1] {
+        // read from mem with overwrite_stack_top set to false so the rest of the stack is kept
         "mem" => parse_read_mem(span_ops, op, false),
         "local" => parse_read_local(span_ops, op, num_proc_locals, false),
         _ => Err(AssemblyError::invalid_op(op)),
@@ -176,6 +177,7 @@ pub fn parse_popw(
     }
 
     match op.parts()[1] {
+        // write to mem with retain_stack_top set to false so the 4 elements are dropped after writing
         "mem" => parse_write_mem(span_ops, op, false),
         "local" => parse_write_local(span_ops, op, num_proc_locals, false),
         _ => Err(AssemblyError::invalid_op(op)),
@@ -224,6 +226,7 @@ pub fn parse_loadw(
 
     match op.parts()[1] {
         "adv" => parse_loadw_adv(span_ops, op),
+        // read from mem with overwrite_stack_top set to true so the top 4 elements are overwritten
         "mem" => parse_read_mem(span_ops, op, true),
         "local" => parse_read_local(span_ops, op, num_proc_locals, true),
         _ => Err(AssemblyError::invalid_op(op)),
@@ -267,6 +270,7 @@ pub fn parse_storew(
     }
 
     match op.parts()[1] {
+        // write to mem with retain_stack_top set to true so the 4 elements are left on the stack
         "mem" => parse_write_mem(span_ops, op, true),
         "local" => parse_write_local(span_ops, op, num_proc_locals, true),
         _ => Err(AssemblyError::invalid_op(op)),

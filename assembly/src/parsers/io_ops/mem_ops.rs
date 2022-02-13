@@ -8,6 +8,7 @@ use super::{parse_element_param, validate_op_len, AssemblyError, Operation, Toke
 pub fn parse_push_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     validate_op_len(op, 2, 0, 1)?;
 
+    // read from memory with overwrite_stack_top set to false so the rest of the stack is kept
     parse_read_mem(span_ops, op, false)?;
 
     for _ in 0..3 {
@@ -39,9 +40,15 @@ pub fn parse_pop_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
 /// operation.
 ///
 /// If the op provides an address (e.g. `pushw.mem.a`), it must be pushed to the stack directly
-/// before the `LOADW` operation. For `loadw.mem`, `LOADW` can be used directly. For `pushw.mem`,
-/// space for 4 new elements on the stack must be made first, using `PAD`. Then, if the memory
-/// address was provided via the stack (not as part of the memory op) it must be moved to the top.
+/// before the `LOADW` operation. Whether provided directly or via the stack, the memory address
+/// will always be removed from the stack by `LOADW`.
+///
+/// When `overwrite_stack_top` is true, values should overwrite the top of the stack (as required by
+/// `loadw`). When `overwrite_stack_top` is false, values should be pushed onto the stack, leaving
+/// the rest of it unchanged (as required by `pushw`) except for the destination memory address
+/// removed by `LOADW`. This is achieved by first using `PAD` to make space for 4 new elements.
+/// Then, if the memory address was provided via the stack (not as part of the memory op) it must be
+/// moved to the top.
 ///
 /// # Errors
 ///
@@ -81,8 +88,13 @@ pub fn parse_read_mem(
 /// operation.
 ///
 /// If the op provides an address (e.g. `popw.mem.a`), it must be pushed to the stack directly
-/// before the `STOREW` operation. For `storew.mem`, `STOREW` can be used directly. For `popw.mem`,
-/// the stack must `DROP` the top 4 elements after they are written to memory.
+/// before the `STOREW` operation. Whether provided directly or via the stack, the memory address
+/// will always be removed from the stack by `STOREW`.
+///
+/// When `retain_stack_top` is true, the values should be left on the stack after the memory write,
+/// leaving the stack unchanged (as required by `storew`) except for the destination memory address,
+/// which is removed by `STOREW`. When `retain_stack_top` is false, values should be dropped from
+/// the stack (as required by `popw`).
 ///
 /// # Errors
 ///
