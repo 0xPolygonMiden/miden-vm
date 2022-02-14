@@ -4,8 +4,8 @@ use vm_core::{
         blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split},
         Script,
     },
-    AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StarkField, Word,
-    STACK_TOP_SIZE,
+    AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProcInfo, ProgramInputs,
+    StarkField, Word, STACK_TOP_SIZE,
 };
 
 mod operations;
@@ -70,6 +70,7 @@ struct Process {
     bitwise: Bitwise,
     memory: Memory,
     advice: AdviceProvider,
+    proc_stack: Vec<ProcInfo>,
 }
 
 impl Process {
@@ -82,6 +83,7 @@ impl Process {
             bitwise: Bitwise::new(),
             memory: Memory::new(),
             advice: AdviceProvider::new(inputs),
+            proc_stack: Vec::new(),
         }
     }
 
@@ -202,9 +204,9 @@ impl Process {
         self.execute_op(Operation::Noop)?;
 
         // execute the first operation batch
-        for &op in block.op_batches()[0].ops() {
-            self.execute_op(op)?;
-            self.decoder.execute_user_op(op);
+        for op in block.op_batches()[0].ops() {
+            self.execute_op(op.clone())?;
+            self.decoder.execute_user_op(op.clone());
         }
 
         // if the span contains more operation batches, execute them. each additional batch is
@@ -213,9 +215,9 @@ impl Process {
         for op_batch in block.op_batches().iter().skip(1) {
             self.decoder.respan(op_batch);
             self.execute_op(Operation::Noop)?;
-            for &op in op_batch.ops() {
-                self.execute_op(op)?;
-                self.decoder.execute_user_op(op);
+            for op in op_batch.ops() {
+                self.execute_op(op.clone())?;
+                self.decoder.execute_user_op(op.clone());
             }
         }
 

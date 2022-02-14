@@ -1,5 +1,5 @@
 use super::{
-    AdviceInjector, DebugOptions, ExecutionError, Felt, FieldElement, Operation, Process,
+    AdviceInjector, DebugOptions, ExecutionError, Felt, FieldElement, Operation, ProcInfo, Process,
     StarkField, Word,
 };
 
@@ -134,6 +134,8 @@ impl Process {
             // ----- decorators -------------------------------------------------------------------
             Operation::Debug(options) => self.op_debug(options)?,
             Operation::Advice(injector) => self.op_advice(injector)?,
+            Operation::ProcStart(ref info) => self.op_proc_start(info)?,
+            Operation::ProcEnd => self.op_proc_end()?,
         }
 
         // increment the clock cycle, unless we are processing a decorator

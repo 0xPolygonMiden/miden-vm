@@ -25,6 +25,7 @@ impl ExecutionTrace {
             bitwise: _,
             memory: _,
             advice: _,
+            proc_stack: _,
         } = process;
 
         let step = system.clk();

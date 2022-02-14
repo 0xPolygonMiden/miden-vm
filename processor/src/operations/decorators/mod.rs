@@ -1,4 +1,6 @@
-use super::{AdviceInjector, DebugOptions, ExecutionError, Felt, Process, StarkField, Word};
+use super::{
+    AdviceInjector, DebugOptions, ExecutionError, Felt, ProcInfo, Process, StarkField, Word,
+};
 use core::ops::RangeInclusive;
 use log::info;
 
@@ -11,6 +13,17 @@ mod debug_tests;
 impl Process {
     // DEBUGGING
     // --------------------------------------------------------------------------------------------
+
+    ///
+    pub fn op_proc_start(&mut self, info: &ProcInfo) -> Result<(), ExecutionError> {
+        self.proc_stack.push(info.clone());
+        Ok(())
+    }
+
+    pub fn op_proc_end(&mut self) -> Result<(), ExecutionError> {
+        self.proc_stack.pop().expect("no procedures in stack");
+        Ok(())
+    }
 
     /// Prints out debugging information based on options passed.
     pub fn op_debug(&mut self, options: DebugOptions) -> Result<(), ExecutionError> {
