@@ -458,16 +458,9 @@ fn u32div_fail() {
 
     // should fail if b >= 2^32
     test_execution_failure(asm_op, &[1, U32_BOUND], "FailedAssertion");
-}
 
-#[test]
-#[should_panic = "divide by zero"]
-fn u32div_panic() {
-    let script = compile("begin u32div end");
-    let inputs = build_inputs(&[1, 0]);
-
-    // should panic if b = 0
-    execute(&script, &inputs).unwrap();
+    // should fail if b == 0
+    test_execution_failure(asm_op, &[1, 0], "DivideByZero");
 }
 
 #[test]
@@ -530,16 +523,9 @@ fn u32div_full_fail() {
 
     // should fail if b >= 2^32
     test_execution_failure(asm_op, &[1, U32_BOUND], "FailedAssertion");
-}
 
-#[test]
-#[should_panic = "divide by zero"]
-fn u32div_full_panic() {
-    let script = compile("begin u32div.full end");
-    let inputs = build_inputs(&[1, 0]);
-
-    // should panic if b = 0
-    execute(&script, &inputs).unwrap();
+    // should fail if b == 0
+    test_execution_failure(asm_op, &[1, 0], "DivideByZero");
 }
 
 #[test]
@@ -555,13 +541,11 @@ fn u32div_unsafe() {
 }
 
 #[test]
-#[should_panic = "divide by zero"]
-fn u32div_unsafe_panic() {
-    let script = compile("begin u32div.unsafe end");
-    let inputs = build_inputs(&[1, 0]);
+fn u32div_unsafe_fail() {
+    let asm_op = "u32div.unsafe";
 
-    // should panic if b = 0
-    execute(&script, &inputs).unwrap();
+    // should fail if b == 0
+    test_execution_failure(asm_op, &[1, 0], "DivideByZero");
 }
 
 #[test]
@@ -581,16 +565,9 @@ fn u32mod_fail() {
 
     // should fail if b >= 2^32
     test_execution_failure(asm_op, &[1, U32_BOUND], "FailedAssertion");
-}
 
-#[test]
-#[should_panic = "divide by zero"]
-fn u32mod_panic() {
-    let script = compile("begin u32mod end");
-    let inputs = build_inputs(&[1, 0]);
-
-    // should panic if b = 0
-    execute(&script, &inputs).unwrap();
+    // should fail if b == 0
+    test_execution_failure(asm_op, &[1, 0], "DivideByZero");
 }
 
 #[test]
@@ -647,13 +624,11 @@ fn u32mod_unsafe() {
 }
 
 #[test]
-#[should_panic = "divide by zero"]
-fn u32mod_unsafe_panic() {
-    let script = compile("begin u32mod.unsafe end");
-    let inputs = build_inputs(&[1, 0]);
+fn u32mod_unsafe_fail() {
+    let asm_op = "u32mod.unsafe";
 
-    // should panic if b = 0
-    execute(&script, &inputs).unwrap();
+    // should fail if b == 0
+    test_execution_failure(asm_op, &[1, 0], "DivideByZero");
 }
 
 // U32 OPERATIONS TESTS - RANDOMIZED - ARITHMETIC OPERATIONS
