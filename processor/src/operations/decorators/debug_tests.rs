@@ -48,7 +48,6 @@ fn test_print_all(logger: &mut Logger) {
     assert_eq!(logger.len(), 7);
     for _ in 0..(logger.len()) {
         assert!(logger.pop().is_some());
-        //println!("{}", logger.pop().unwrap().args());
     }
 }
 

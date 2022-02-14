@@ -38,3 +38,17 @@ impl IntoBytes<32> for [Felt; 4] {
         result
     }
 }
+
+// PUSH MANY
+// ================================================================================================
+
+pub trait PushMany<T> {
+    fn push_many(&mut self, value: T, n: usize);
+}
+
+impl<T: Copy> PushMany<T> for Vec<T> {
+    fn push_many(&mut self, value: T, n: usize) {
+        let new_len = self.len() + n;
+        self.resize(new_len, value);
+    }
+}

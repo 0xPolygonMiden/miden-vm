@@ -1,5 +1,5 @@
-use super::{parse_int_param, push_value, validate_op_len, AssemblyError, Operation, Token};
-use vm_core::Felt;
+use super::{parse_int_param, push_value, validate_op_len, AssemblyError, Felt, Operation, Token};
+use vm_core::utils::PushMany;
 
 // LOCAL MEMORY FOR PROCEDURE VARIABLES
 // ================================================================================================
@@ -15,9 +15,7 @@ pub fn parse_push_local(
 
     parse_read_local(span_ops, op, num_proc_locals, false)?;
 
-    for _ in 0..3 {
-        span_ops.push(Operation::Drop);
-    }
+    span_ops.push_many(Operation::Drop, 3);
 
     Ok(())
 }
@@ -32,9 +30,7 @@ pub fn parse_pop_local(
     validate_op_len(op, 2, 1, 1)?;
 
     // pad to word length before calling STOREW
-    for _ in 0..3 {
-        span_ops.push(Operation::Pad);
-    }
+    span_ops.push_many(Operation::Pad, 3);
 
     parse_write_local(span_ops, op, num_proc_locals, false)
 }
@@ -64,9 +60,7 @@ pub fn parse_read_local(
 
     if !overwrite_stack_top {
         // make space for the new elements
-        for _ in 0..4 {
-            span_ops.push(Operation::Pad);
-        }
+        span_ops.push_many(Operation::Pad, 4);
     }
 
     push_local_addr(span_ops, op, num_proc_locals)?;
@@ -101,9 +95,7 @@ pub fn parse_write_local(
     span_ops.push(Operation::StoreW);
 
     if !retain_stack_top {
-        for _ in 0..4 {
-            span_ops.push(Operation::Drop);
-        }
+        span_ops.push_many(Operation::Drop, 4);
     }
 
     Ok(())

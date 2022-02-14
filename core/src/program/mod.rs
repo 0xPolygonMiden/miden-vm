@@ -1,7 +1,6 @@
 use super::{
     hasher::{self, Digest},
-    utils::IntoBytes,
-    Felt, FieldElement, Operation, Word,
+    Felt, FieldElement, Operation,
 };
 use core::fmt;
 use winter_utils::collections::BTreeMap;
@@ -28,11 +27,8 @@ impl Script {
     // --------------------------------------------------------------------------------------------
     /// Constructs a new program from the specified code block.
     pub fn new(root: CodeBlock) -> Self {
-        let hash: Word = hasher::merge(&[root.hash(), Digest::default()]).into();
-        Self {
-            root,
-            hash: hash.into_bytes(),
-        }
+        let hash = hasher::merge(&[root.hash(), Digest::default()]).into();
+        Self { root, hash }
     }
 
     // PUBLIC ACCESSORS

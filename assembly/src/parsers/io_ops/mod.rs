@@ -1,6 +1,6 @@
 use super::{
     parse_decimal_param, parse_element_param, parse_hex_param, parse_int_param, push_value,
-    validate_op_len, AssemblyError, BaseElement, Operation, Token,
+    validate_op_len, AssemblyError, Felt, Operation, Token,
 };
 
 mod adv_ops;

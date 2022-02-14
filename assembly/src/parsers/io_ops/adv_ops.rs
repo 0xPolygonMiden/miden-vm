@@ -1,4 +1,5 @@
 use super::{parse_int_param, validate_op_len, AssemblyError, Operation, Token};
+use vm_core::utils::PushMany;
 
 // CONSTANTS
 // ================================================================================================
@@ -31,9 +32,7 @@ pub fn parse_push_adv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
     let n = parse_int_param(op, 2, 1, ADVICE_READ_LIMIT)?;
 
     // read n items from the advice tape and push then onto the stack
-    for _ in 0..n {
-        span_ops.push(Operation::Read);
-    }
+    span_ops.push_many(Operation::Read, n as usize);
 
     Ok(())
 }

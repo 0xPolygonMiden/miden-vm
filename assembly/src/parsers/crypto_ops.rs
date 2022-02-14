@@ -1,6 +1,5 @@
-use vm_core::AdviceInjector;
-
-use super::{validate_op_len, AssemblyError, BaseElement, Operation, Token};
+use super::{validate_op_len, AssemblyError, Felt, Operation, Token};
+use vm_core::{utils::PushMany, AdviceInjector};
 
 // HASHING
 // ================================================================================================
@@ -40,10 +39,8 @@ pub fn parse_rphash(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
     // Add 4 elements to the stack to prepare the capacity portion for the Rescue Prime permutation
     // The capacity should start at stack[8], and the number of elements to be hashed should
     // be deepest in the stack at stack[11]
-    span_ops.push(Operation::Push(BaseElement::new(RPHASH_NUM_ELEMENTS)));
-    for _ in 0..3 {
-        span_ops.push(Operation::Pad);
-    }
+    span_ops.push(Operation::Push(Felt::new(RPHASH_NUM_ELEMENTS)));
+    span_ops.push_many(Operation::Pad, 3);
     span_ops.push(Operation::SwapW2);
     // restore the order of the top 2 words to be hashed
     span_ops.push(Operation::SwapW);
@@ -52,17 +49,13 @@ pub fn parse_rphash(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
     span_ops.push(Operation::RpPerm);
 
     // Drop 4 elements (the part of the rate that doesn't have our result)
-    for _ in 0..4 {
-        span_ops.push(Operation::Drop);
-    }
+    span_ops.push_many(Operation::Drop, 4);
 
     // Move the top word (our result) down the stack
     span_ops.push(Operation::SwapW);
 
     // Drop 4 elements (the capacity portion)
-    for _ in 0..4 {
-        span_ops.push(Operation::Drop);
-    }
+    span_ops.push_many(Operation::Drop, 4);
 
     Ok(())
 }
@@ -146,18 +139,14 @@ fn mtree_get(span_ops: &mut Vec<Operation>) {
     span_ops.push(Operation::MovDn5);
 
     // read node value from advice tape => [V, R, d, i, ...]
-    for _ in 0..4 {
-        span_ops.push(Operation::Read);
-    }
+    span_ops.push_many(Operation::Read, 4);
 
     // Duplicate the node value at the top of the stack and save a copy deeper in the stack. This
     // allows the new copy of the node to be used in MPVERIFY and keeps a copy to return at the end
     // swap root and node => [R, V, d, i, ...]
     span_ops.push(Operation::SwapW);
     // copy the node value for use in MPVERIFY => [V, R, V, d, i ...]
-    for _ in 0..4 {
-        span_ops.push(Operation::Dup7);
-    }
+    span_ops.push_many(Operation::Dup7, 4);
 
     // move d, i back to the top of the stack => [d, i, V, R, V, ...]
     span_ops.push(Operation::MovUp13);
@@ -206,9 +195,7 @@ fn mtree_set(span_ops: &mut Vec<Operation>) {
     validate_root_after_mrupdate(span_ops);
 
     // drop the old root => [R_new, V_new, ...]
-    for _ in 0..4 {
-        span_ops.push(Operation::Drop);
-    }
+    span_ops.push_many(Operation::Drop, 4);
 
     // move the new value to the top of the stack => [V_new, R_new, ...]
     span_ops.push(Operation::SwapW);
@@ -254,9 +241,7 @@ fn validate_and_drop_root(span_ops: &mut Vec<Operation>) {
     span_ops.push(Operation::Assert);
 
     // drop one of the duplicate roots
-    for _ in 0..4 {
-        span_ops.push(Operation::Drop);
-    }
+    span_ops.push_many(Operation::Drop, 4);
 }
 
 /// This is a helper function for assembly operations that update the Merkle tree. It preserves the
@@ -294,14 +279,10 @@ fn prep_stack_for_mrupdate(span_ops: &mut Vec<Operation>) {
     span_ops.push(Operation::Advice(AdviceInjector::MerkleNode));
 
     // copy the new node value for use in the MRUPDATE op => [V_new, d, i, R, V_new, ...]
-    for _ in 0..4 {
-        span_ops.push(Operation::Dup9);
-    }
+    span_ops.push_many(Operation::Dup9, 4);
 
     // read old node value from advice tape => [V_old, V_new, d, i,  R, V_new_0, V_new_1] (overflow)
-    for _ in 0..4 {
-        span_ops.push(Operation::Read);
-    }
+    span_ops.push_many(Operation::Read, 4);
 
     // move d, i to the top of the stack => [d, i, V_old, V_new, R, V_new_0, V_new_1]
     span_ops.push(Operation::MovUp9);
