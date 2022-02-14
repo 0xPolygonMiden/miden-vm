@@ -98,11 +98,19 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn parse_proc(&self) -> Result<String, AssemblyError> {
+    pub fn parse_proc(&self) -> Result<(String, u32), AssemblyError> {
         assert_eq!(Self::PROC, self.parts[0], "invalid procedure declaration");
         match self.num_parts() {
             1 => Err(AssemblyError::missing_param(self)),
-            2 => validate_proc_label(self.parts[1], self),
+            2 => {
+                let label = validate_proc_label(self.parts[1], self)?;
+                Ok((label, 0))
+            }
+            3 => {
+                let label = validate_proc_label(self.parts[1], self)?;
+                let num_locals = validate_proc_locals(self.parts[2], self)?;
+                Ok((label, num_locals))
+            }
             _ => Err(AssemblyError::extra_param(self)),
         }
     }
@@ -200,4 +208,16 @@ fn validate_proc_label(label: &str, token: &Token) -> Result<String, AssemblyErr
     }
 
     Ok(label.to_string())
+}
+
+fn validate_proc_locals(locals: &str, token: &Token) -> Result<u32, AssemblyError> {
+    match locals.parse::<u64>() {
+        Ok(num_locals) => {
+            if num_locals > u32::MAX as u64 {
+                return Err(AssemblyError::invalid_proc_locals(token, locals));
+            }
+            Ok(num_locals as u32)
+        }
+        Err(_) => Err(AssemblyError::invalid_proc_locals(token, locals)),
+    }
 }

@@ -58,6 +58,14 @@ impl AssemblyError {
         }
     }
 
+    pub fn invalid_op_with_reason(token: &Token, reason: &str) -> Self {
+        AssemblyError {
+            message: format!("instruction '{}' is invalid: {}", token, reason),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
     pub fn missing_param(token: &Token) -> Self {
         AssemblyError {
             message: format!(
@@ -186,6 +194,14 @@ impl AssemblyError {
     pub fn invalid_proc_label(token: &Token, label: &str) -> Self {
         AssemblyError {
             message: format!("invalid procedure label: {}", label),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn invalid_proc_locals(token: &Token, locals: &str) -> Self {
+        AssemblyError {
+            message: format!("invalid procedure locals: {}", locals),
             step: token.pos(),
             op: token.to_string(),
         }

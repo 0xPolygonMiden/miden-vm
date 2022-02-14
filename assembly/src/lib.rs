@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use vm_core::program::{blocks::CodeBlock, Script};
 
 mod parsers;
-use parsers::parse_code_blocks;
+use parsers::{parse_code_blocks, parse_proc_blocks};
 
 mod tokens;
 use tokens::{Token, TokenStream};
@@ -74,7 +74,7 @@ fn parse_script(
     tokens.advance();
 
     // parse the script body
-    let root = parse_code_blocks(tokens, proc_map)?;
+    let root = parse_code_blocks(tokens, proc_map, 0)?;
 
     // consume the 'end' token
     match tokens.read() {
@@ -108,14 +108,14 @@ fn parse_proc(
 
     // read procedure name and consume the procedure header token
     let header = tokens.read().expect("missing procedure header");
-    let label = header.parse_proc()?;
+    let (label, num_locals) = header.parse_proc()?;
     if proc_map.contains_key(&label) {
         return Err(AssemblyError::duplicate_proc_label(header, &label));
     }
     tokens.advance();
 
-    // parse procedure body
-    let root = parse_code_blocks(tokens, proc_map)?;
+    // parse procedure body, and handle memory allocation/deallocation of locals if any are declared
+    let root = parse_proc_blocks(tokens, proc_map, num_locals)?;
 
     // consume the 'end' token
     match tokens.read() {

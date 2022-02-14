@@ -1,5 +1,5 @@
 use super::{AssemblyError, Token, TokenStream};
-pub use blocks::parse_code_blocks;
+pub use blocks::{parse_code_blocks, parse_proc_blocks};
 use vm_core::{
     program::blocks::CodeBlock, Felt as BaseElement, FieldElement, Operation, StarkField,
 };
@@ -15,7 +15,11 @@ mod u32_ops;
 // ================================================================================================
 
 /// Transforms an assembly instruction into a sequence of one or more VM instructions.
-fn parse_op_token(op: &Token, span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
+fn parse_op_token(
+    op: &Token,
+    span_ops: &mut Vec<Operation>,
+    num_proc_locals: u32,
+) -> Result<(), AssemblyError> {
     // based on the instruction, invoke the correct parser for the operation
     match op.parts()[0] {
         // ----- field operations -----------------------------------------------------------------
@@ -94,12 +98,12 @@ fn parse_op_token(op: &Token, span_ops: &mut Vec<Operation>) -> Result<(), Assem
         "cdropw" => stack_ops::parse_cdropw(span_ops, op),
 
         // ----- input / output operations --------------------------------------------------------
-        "push" => io_ops::parse_push(span_ops, op),
-        "pushw" => io_ops::parse_pushw(span_ops, op),
-        "pop" => io_ops::parse_pop(span_ops, op),
-        "popw" => io_ops::parse_popw(span_ops, op),
-        "loadw" => io_ops::parse_loadw(span_ops, op),
-        "storew" => io_ops::parse_storew(span_ops, op),
+        "push" => io_ops::parse_push(span_ops, op, num_proc_locals),
+        "pushw" => io_ops::parse_pushw(span_ops, op, num_proc_locals),
+        "pop" => io_ops::parse_pop(span_ops, op, num_proc_locals),
+        "popw" => io_ops::parse_popw(span_ops, op, num_proc_locals),
+        "loadw" => io_ops::parse_loadw(span_ops, op, num_proc_locals),
+        "storew" => io_ops::parse_storew(span_ops, op, num_proc_locals),
 
         // ----- cryptographic operations ---------------------------------------------------------
         "rphash" => crypto_ops::parse_rphash(span_ops, op),
@@ -160,11 +164,7 @@ fn parse_hex_param(
 
 /// Checks that the u64 parameter value is a valid field element value and returns it as a field
 /// element.
-pub fn get_valid_felt(
-    op: &Token,
-    param_idx: usize,
-    param: u64,
-) -> Result<BaseElement, AssemblyError> {
+fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<BaseElement, AssemblyError> {
     if param >= BaseElement::MODULUS {
         return Err(AssemblyError::invalid_param_with_reason(
             op,
