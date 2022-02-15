@@ -129,12 +129,19 @@ impl Process {
     /// the quotient and the remainder back onto the stack.
     ///
     /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
+    /// Returns an error if:
+    /// * The stack contains fewer than two elements.
+    /// * The divisor is ZERO.
     pub(super) fn op_u32div(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(2, "U32DIV")?;
 
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
+
+        if b == 0 {
+            return Err(ExecutionError::DivideByZero(self.system.clk()));
+        }
+
         let q = a / b;
         let r = a - q * b;
 
