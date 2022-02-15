@@ -1,4 +1,4 @@
-use super::{Bitwise, Felt, StarkField, TraceFragment};
+use super::{Bitwise, Felt, StarkField, TraceFragment, BITWISE_AND, BITWISE_OR, BITWISE_XOR};
 use rand_utils::rand_value;
 
 #[test]
@@ -19,15 +19,20 @@ fn bitwise_and() {
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
-    let mut trace = (0..11)
+    let mut trace = (0..13)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
 
     bitwise.fill_trace(&mut fragment);
 
+    // make sure the selector values specify bitwise AND at each step in the trace
+    for row in 0..8 {
+        assert_eq!([trace[0][row], trace[1][row]], BITWISE_AND);
+    }
+
     // make sure result and result from the trace are the same
-    assert_eq!(result, trace[10][7]);
+    assert_eq!(result, trace[12][7]);
 
     // make sure values a and b were decomposed correctly
     check_decomposition(&trace, 0, a.as_int(), b.as_int());
@@ -36,14 +41,14 @@ fn bitwise_and() {
     let mut prev_result = Felt::new(0);
 
     for i in 0..8 {
-        let c0 = binary_and(trace[2][i], trace[6][i]);
-        let c1 = binary_and(trace[3][i], trace[7][i]);
-        let c2 = binary_and(trace[4][i], trace[8][i]);
-        let c3 = binary_and(trace[5][i], trace[9][i]);
+        let c0 = binary_and(trace[4][i], trace[8][i]);
+        let c1 = binary_and(trace[5][i], trace[9][i]);
+        let c2 = binary_and(trace[6][i], trace[10][i]);
+        let c3 = binary_and(trace[7][i], trace[11][i]);
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
-        assert_eq!(result, trace[10][i]);
+        assert_eq!(result, trace[12][i]);
 
         prev_result = result;
     }
@@ -61,15 +66,20 @@ fn bitwise_or() {
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
-    let mut trace = (0..11)
+    let mut trace = (0..13)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
 
     bitwise.fill_trace(&mut fragment);
 
+    // make sure the selector values specify bitwise OR at each step in the trace
+    for row in 0..8 {
+        assert_eq!([trace[0][row], trace[1][row]], BITWISE_OR);
+    }
+
     // make sure result and result from the trace are the same
-    assert_eq!(result, trace[10][7]);
+    assert_eq!(result, trace[12][7]);
 
     // make sure values a and b were decomposed correctly
     check_decomposition(&trace, 0, a.as_int(), b.as_int());
@@ -78,14 +88,14 @@ fn bitwise_or() {
     let mut prev_result = Felt::new(0);
 
     for i in 0..8 {
-        let c0 = binary_or(trace[2][i], trace[6][i]);
-        let c1 = binary_or(trace[3][i], trace[7][i]);
-        let c2 = binary_or(trace[4][i], trace[8][i]);
-        let c3 = binary_or(trace[5][i], trace[9][i]);
+        let c0 = binary_or(trace[4][i], trace[8][i]);
+        let c1 = binary_or(trace[5][i], trace[9][i]);
+        let c2 = binary_or(trace[6][i], trace[10][i]);
+        let c3 = binary_or(trace[7][i], trace[11][i]);
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
-        assert_eq!(result, trace[10][i]);
+        assert_eq!(result, trace[12][i]);
 
         prev_result = result;
     }
@@ -103,15 +113,20 @@ fn bitwise_xor() {
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
-    let mut trace = (0..11)
+    let mut trace = (0..13)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
 
     bitwise.fill_trace(&mut fragment);
 
+    // make sure the selector values specify bitwise XOR at each step in the trace
+    for row in 0..8 {
+        assert_eq!([trace[0][row], trace[1][row]], BITWISE_XOR);
+    }
+
     // make sure result and result from the trace are the same
-    assert_eq!(result, trace[10][7]);
+    assert_eq!(result, trace[12][7]);
 
     // make sure values a and b were decomposed correctly
     check_decomposition(&trace, 0, a.as_int(), b.as_int());
@@ -120,14 +135,14 @@ fn bitwise_xor() {
     let mut prev_result = Felt::new(0);
 
     for i in 0..8 {
-        let c0 = binary_xor(trace[2][i], trace[6][i]);
-        let c1 = binary_xor(trace[3][i], trace[7][i]);
-        let c2 = binary_xor(trace[4][i], trace[8][i]);
-        let c3 = binary_xor(trace[5][i], trace[9][i]);
+        let c0 = binary_xor(trace[4][i], trace[8][i]);
+        let c1 = binary_xor(trace[5][i], trace[9][i]);
+        let c2 = binary_xor(trace[6][i], trace[10][i]);
+        let c3 = binary_xor(trace[7][i], trace[11][i]);
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
-        assert_eq!(result, trace[10][i]);
+        assert_eq!(result, trace[12][i]);
 
         prev_result = result;
     }
@@ -158,7 +173,7 @@ fn bitwise_multiple() {
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 32;
-    let mut trace = (0..11)
+    let mut trace = (0..13)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
@@ -166,10 +181,10 @@ fn bitwise_multiple() {
     bitwise.fill_trace(&mut fragment);
 
     // make sure results and results from the trace are the same
-    assert_eq!(result0, trace[10][7]);
-    assert_eq!(result1, trace[10][15]);
-    assert_eq!(result2, trace[10][23]);
-    assert_eq!(result3, trace[10][31]);
+    assert_eq!(result0, trace[12][7]);
+    assert_eq!(result1, trace[12][15]);
+    assert_eq!(result2, trace[12][23]);
+    assert_eq!(result3, trace[12][31]);
 
     // make sure input values were decomposed correctly
     check_decomposition(&trace, 0, a[0].as_int(), b[0].as_int());
@@ -181,56 +196,56 @@ fn bitwise_multiple() {
 
     let mut prev_result = Felt::new(0);
     for i in 0..8 {
-        let c0 = binary_and(trace[2][i], trace[6][i]);
-        let c1 = binary_and(trace[3][i], trace[7][i]);
-        let c2 = binary_and(trace[4][i], trace[8][i]);
-        let c3 = binary_and(trace[5][i], trace[9][i]);
+        let c0 = binary_and(trace[4][i], trace[8][i]);
+        let c1 = binary_and(trace[5][i], trace[9][i]);
+        let c2 = binary_and(trace[6][i], trace[10][i]);
+        let c3 = binary_and(trace[7][i], trace[11][i]);
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
-        assert_eq!(result, trace[10][i]);
+        assert_eq!(result, trace[12][i]);
 
         prev_result = result;
     }
 
     let mut prev_result = Felt::new(0);
     for i in 8..16 {
-        let c0 = binary_or(trace[2][i], trace[6][i]);
-        let c1 = binary_or(trace[3][i], trace[7][i]);
-        let c2 = binary_or(trace[4][i], trace[8][i]);
-        let c3 = binary_or(trace[5][i], trace[9][i]);
+        let c0 = binary_or(trace[4][i], trace[8][i]);
+        let c1 = binary_or(trace[5][i], trace[9][i]);
+        let c2 = binary_or(trace[6][i], trace[10][i]);
+        let c3 = binary_or(trace[7][i], trace[11][i]);
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
-        assert_eq!(result, trace[10][i]);
+        assert_eq!(result, trace[12][i]);
 
         prev_result = result;
     }
 
     let mut prev_result = Felt::new(0);
     for i in 16..24 {
-        let c0 = binary_xor(trace[2][i], trace[6][i]);
-        let c1 = binary_xor(trace[3][i], trace[7][i]);
-        let c2 = binary_xor(trace[4][i], trace[8][i]);
-        let c3 = binary_xor(trace[5][i], trace[9][i]);
+        let c0 = binary_xor(trace[4][i], trace[8][i]);
+        let c1 = binary_xor(trace[5][i], trace[9][i]);
+        let c2 = binary_xor(trace[6][i], trace[10][i]);
+        let c3 = binary_xor(trace[7][i], trace[11][i]);
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
-        assert_eq!(result, trace[10][i]);
+        assert_eq!(result, trace[12][i]);
 
         prev_result = result;
     }
 
     let mut prev_result = Felt::new(0);
     for i in 24..32 {
-        let c0 = binary_and(trace[2][i], trace[6][i]);
-        let c1 = binary_and(trace[3][i], trace[7][i]);
-        let c2 = binary_and(trace[4][i], trace[8][i]);
-        let c3 = binary_and(trace[5][i], trace[9][i]);
+        let c0 = binary_and(trace[4][i], trace[8][i]);
+        let c1 = binary_and(trace[5][i], trace[9][i]);
+        let c2 = binary_and(trace[6][i], trace[10][i]);
+        let c3 = binary_and(trace[7][i], trace[11][i]);
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
-        assert_eq!(result, trace[10][i]);
+        assert_eq!(result, trace[12][i]);
 
         prev_result = result;
     }
@@ -246,18 +261,18 @@ fn check_decomposition(trace: &[Vec<Felt>], start: usize, a: u64, b: u64) {
         let a = a >> bit_offset;
         let b = b >> bit_offset;
 
-        assert_eq!(Felt::new(a), trace[0][i]);
-        assert_eq!(Felt::new(b), trace[1][i]);
+        assert_eq!(Felt::new(a), trace[2][i]);
+        assert_eq!(Felt::new(b), trace[3][i]);
 
-        assert_eq!(Felt::new(a & 1), trace[2][i]);
-        assert_eq!(Felt::new((a >> 1) & 1), trace[3][i]);
-        assert_eq!(Felt::new((a >> 2) & 1), trace[4][i]);
-        assert_eq!(Felt::new((a >> 3) & 1), trace[5][i]);
+        assert_eq!(Felt::new(a & 1), trace[4][i]);
+        assert_eq!(Felt::new((a >> 1) & 1), trace[5][i]);
+        assert_eq!(Felt::new((a >> 2) & 1), trace[6][i]);
+        assert_eq!(Felt::new((a >> 3) & 1), trace[7][i]);
 
-        assert_eq!(Felt::new(b & 1), trace[6][i]);
-        assert_eq!(Felt::new((b >> 1) & 1), trace[7][i]);
-        assert_eq!(Felt::new((b >> 2) & 1), trace[8][i]);
-        assert_eq!(Felt::new((b >> 3) & 1), trace[9][i]);
+        assert_eq!(Felt::new(b & 1), trace[8][i]);
+        assert_eq!(Felt::new((b >> 1) & 1), trace[9][i]);
+        assert_eq!(Felt::new((b >> 2) & 1), trace[10][i]);
+        assert_eq!(Felt::new((b >> 3) & 1), trace[11][i]);
 
         bit_offset -= 4;
     }
