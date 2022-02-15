@@ -1,4 +1,4 @@
-use super::{ExecutionError, Felt, StarkField, TraceFragment};
+use super::{ExecutionError, Felt, FieldElement, StarkField, TraceFragment};
 
 #[cfg(test)]
 mod tests;
@@ -6,11 +6,28 @@ mod tests;
 // CONSTANTS
 // ================================================================================================
 
+/// Number of selector columns in the trace.
+const NUM_SELECTORS: usize = 2;
+
 /// Number of columns needed to record an execution trace of the bitwise helper.
-const TRACE_WIDTH: usize = 11;
+const TRACE_WIDTH: usize = NUM_SELECTORS + 11;
 
 /// Initial capacity of each column.
 const INIT_TRACE_CAPACITY: usize = 128;
+
+/// Specifies a bitwise AND operation.
+const BITWISE_AND: Selectors = [Felt::ZERO, Felt::ZERO];
+
+/// Specifies a bitwise OR operation.
+const BITWISE_OR: Selectors = [Felt::ZERO, Felt::ONE];
+
+/// Specifies a bitwise XOR operation.
+const BITWISE_XOR: Selectors = [Felt::ONE, Felt::ZERO];
+
+// TYPE ALIASES
+// ================================================================================================
+
+type Selectors = [Felt; NUM_SELECTORS];
 
 // BITWISE HELPER
 // ================================================================================================
@@ -21,16 +38,17 @@ const INIT_TRACE_CAPACITY: usize = 128;
 /// values, as well as for building an execution trace of these operations.
 ///
 /// ## Execution trace
-/// Execution trace for each operation consists of 8 rows and 11 columns. At the hight level,
+/// Execution trace for each operation consists of 8 rows and 13 columns. At a high level,
 /// we break input values into 4-bit limbs, apply the bitwise operation to these limbs at every
 /// row starting with the most significant limb, and accumulate the result in the result column.
 ///
 /// The layout of the table is illustrated below.
 ///
-///    a     b      a0     a1     a2     a3     b0     b1     b2     b3     c
-/// ├─────┴─────┴───────┴──────┴──────┴──────┴──────┴──────┴──────┴──────┴─────┤
+///    s0    s1    a     b      a0     a1     a2     a3     b0     b1     b2     b3     c
+/// ├─────┴─────┴─────┴─────┴───────┴──────┴──────┴──────┴──────┴──────┴──────┴──────┴─────┤
 ///
 /// In the above, the meaning of the columns is as follows:
+/// - Selector columns s0 and s1 are used to specify the bitwise operator for each row.
 /// - Columns `a` and `b` contain accumulated 4-bit limbs of input values. Specifically, at the
 ///   first row, the values of columns `a` and `b` are set to the most significant 4-bit limb
 ///   of each input value. With all subsequent rows, the next most significant limb is appended
@@ -41,7 +59,7 @@ const INIT_TRACE_CAPACITY: usize = 128;
 /// - Column `c` contains the accumulated result of applying the bitwise operation to 4-bit limbs.
 ///   At the first row, column `c` contains the result of bitwise operation applied to the most
 ///   significant 4-bit limbs of the input values. With every subsequent row, the next most
-///   significant 4-bit limb of the result is appended to it. Thus, but the 8th row, column `c`
+///   significant 4-bit limb of the result is appended to it. Thus, by the 8th row, column `c`
 ///   contains the full result of the bitwise operation.
 pub struct Bitwise {
     trace: [Vec<Felt>; TRACE_WIDTH],
@@ -91,15 +109,15 @@ impl Bitwise {
 
             // add a new row to the trace table and populate it with binary decomposition of the 4
             // least significant bits of a and b.
-            self.add_trace_row(a, b);
+            self.add_trace_row(BITWISE_AND, a, b);
 
             // compute bitwise AND of the 4 least significant bits of a and b
             let result_4_bit = (a & b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 11th column of the trace.
+            // the 13th column of the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[10].push(Felt::new(result));
+            self.trace[12].push(Felt::new(result));
         }
 
         Ok(Felt::new(result))
@@ -124,15 +142,15 @@ impl Bitwise {
 
             // add a new row to the trace table and populate it with binary decomposition of the 4
             // least significant bits of a and b.
-            self.add_trace_row(a, b);
+            self.add_trace_row(BITWISE_OR, a, b);
 
             // compute bitwise OR of the 4 least significant bits of a and b
             let result_4_bit = (a | b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 11th column of the trace.
+            // the 13th column of the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[10].push(Felt::new(result));
+            self.trace[12].push(Felt::new(result));
         }
 
         Ok(Felt::new(result))
@@ -157,15 +175,15 @@ impl Bitwise {
 
             // add a new row to the trace table and populate it with binary decomposition of the 4
             // least significant bits of a and b.
-            self.add_trace_row(a, b);
+            self.add_trace_row(BITWISE_XOR, a, b);
 
             // compute bitwise XOR of the 4 least significant bits of a and b
             let result_4_bit = (a ^ b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 11th column of the trace.
+            // the 13th column of the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[10].push(Felt::new(result));
+            self.trace[12].push(Felt::new(result));
         }
 
         Ok(Felt::new(result))
@@ -191,23 +209,27 @@ impl Bitwise {
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Appends a new row to the trace table and populates the first 10 column of trace as follows:
-    /// - Column 0 is set to the current value of `a`.
-    /// - Column 1 is set to the current value of `b`.
-    /// - Columns 2 to 5 are set to the 4 least-significant bits of `a`.
-    /// - Columns 6 to 9 are set to the 4 least-significant bits of `b`.
-    fn add_trace_row(&mut self, a: u64, b: u64) {
-        self.trace[0].push(Felt::new(a));
-        self.trace[1].push(Felt::new(b));
+    /// Appends a new row to the trace table and populates the first 12 column of trace as follows:
+    /// - Columns 0 and 1 are set to the selector values for the bitwise operation being executed.
+    /// - Column 2 is set to the current value of `a`.
+    /// - Column 3 is set to the current value of `b`.
+    /// - Columns 4 to 7 are set to the 4 least-significant bits of `a`.
+    /// - Columns 8 to 11 are set to the 4 least-significant bits of `b`.
+    fn add_trace_row(&mut self, selectors: Selectors, a: u64, b: u64) {
+        self.trace[0].push(selectors[0]);
+        self.trace[1].push(selectors[1]);
 
-        self.trace[2].push(Felt::new(a & 1));
-        self.trace[3].push(Felt::new((a >> 1) & 1));
-        self.trace[4].push(Felt::new((a >> 2) & 1));
-        self.trace[5].push(Felt::new((a >> 3) & 1));
+        self.trace[2].push(Felt::new(a));
+        self.trace[3].push(Felt::new(b));
 
-        self.trace[6].push(Felt::new(b & 1));
-        self.trace[7].push(Felt::new((b >> 1) & 1));
-        self.trace[8].push(Felt::new((b >> 2) & 1));
-        self.trace[9].push(Felt::new((b >> 3) & 1));
+        self.trace[4].push(Felt::new(a & 1));
+        self.trace[5].push(Felt::new((a >> 1) & 1));
+        self.trace[6].push(Felt::new((a >> 2) & 1));
+        self.trace[7].push(Felt::new((a >> 3) & 1));
+
+        self.trace[8].push(Felt::new(b & 1));
+        self.trace[9].push(Felt::new((b >> 1) & 1));
+        self.trace[10].push(Felt::new((b >> 2) & 1));
+        self.trace[11].push(Felt::new((b >> 3) & 1));
     }
 }
