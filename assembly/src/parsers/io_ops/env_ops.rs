@@ -38,10 +38,9 @@ pub fn parse_push_env(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{parse_push, AssemblyError, BaseElement},
+        super::{super::FieldElement, parse_push, AssemblyError, Felt},
         Operation, Token,
     };
-    use crate::parsers::FieldElement;
 
     // TESTS FOR PUSHING VALUES ONTO THE STACK (PUSH)
     // ============================================================================================
@@ -51,7 +50,7 @@ mod tests {
         let num_proc_locals = 0;
 
         // pushes the current depth of the stack onto the top of the stack
-        let mut span_ops = vec![Operation::Push(BaseElement::ONE); 8];
+        let mut span_ops = vec![Operation::Push(Felt::ONE); 8];
         let op = Token::new("push.env.sdepth", 0);
         let mut expected = span_ops.clone();
         expected.push(Operation::SDepth);

@@ -1,4 +1,5 @@
 use super::{AssemblyError, Operation, Token};
+use vm_core::utils::PushMany;
 
 // STACK MANIPULATION
 // ================================================================================================
@@ -18,11 +19,7 @@ pub fn parse_drop(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 pub fn parse_dropw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
-        1 => {
-            for _ in 0..4 {
-                span_ops.push(Operation::Drop);
-            }
-        }
+        1 => span_ops.push_many(Operation::Drop, 4),
         _ => return Err(AssemblyError::extra_param(op)),
     }
 
@@ -33,11 +30,7 @@ pub fn parse_dropw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 pub fn parse_padw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
-        1 => {
-            for _ in 0..4 {
-                span_ops.push(Operation::Pad);
-            }
-        }
+        1 => span_ops.push_many(Operation::Pad, 4),
         _ => return Err(AssemblyError::extra_param(op)),
     }
 

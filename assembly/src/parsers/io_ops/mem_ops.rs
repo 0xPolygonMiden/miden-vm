@@ -1,4 +1,5 @@
 use super::{parse_element_param, validate_op_len, AssemblyError, Operation, Token};
+use vm_core::utils::PushMany;
 
 // RANDOM ACCESS MEMORY
 // ================================================================================================
@@ -11,9 +12,7 @@ pub fn parse_push_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
     // read from memory with overwrite_stack_top set to false so the rest of the stack is kept
     parse_read_mem(span_ops, op, false)?;
 
-    for _ in 0..3 {
-        span_ops.push(Operation::Drop);
-    }
+    span_ops.push_many(Operation::Drop, 3);
 
     Ok(())
 }
@@ -24,9 +23,7 @@ pub fn parse_pop_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
     validate_op_len(op, 2, 0, 1)?;
 
     // pad to word length before calling STOREW
-    for _ in 0..3 {
-        span_ops.push(Operation::Pad);
-    }
+    span_ops.push_many(Operation::Pad, 3);
 
     // if the destination memory address was on top of the stack, restore it to the top
     if op.num_parts() == 2 {
@@ -61,9 +58,7 @@ pub fn parse_read_mem(
 ) -> Result<(), AssemblyError> {
     if !overwrite_stack_top {
         // make space for the new elements
-        for _ in 0..4 {
-            span_ops.push(Operation::Pad);
-        }
+        span_ops.push_many(Operation::Pad, 4);
 
         // put the memory address on top of the stack
         if op.num_parts() == 2 {
@@ -112,9 +107,7 @@ pub fn parse_write_mem(
     span_ops.push(Operation::StoreW);
 
     if !retain_stack_top {
-        for _ in 0..4 {
-            span_ops.push(Operation::Drop);
-        }
+        span_ops.push_many(Operation::Drop, 4);
     }
 
     Ok(())
@@ -139,8 +132,7 @@ fn push_mem_addr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 mod tests {
     use super::{
         super::{
-            parse_loadw, parse_popw, parse_pushw, parse_storew, tests::get_parsing_error,
-            BaseElement,
+            parse_loadw, parse_popw, parse_pushw, parse_storew, tests::get_parsing_error, Felt,
         },
         AssemblyError, Operation, Token,
     };
@@ -183,7 +175,7 @@ mod tests {
             Operation::Pad,
             Operation::Pad,
             Operation::Pad,
-            Operation::Push(BaseElement::ZERO),
+            Operation::Push(Felt::ZERO),
             Operation::LoadW,
         ];
 
@@ -230,7 +222,7 @@ mod tests {
         let mut span_ops_addr: Vec<Operation> = Vec::new();
         let op_pop_addr = Token::new("popw.mem.0", 0);
         let expected_addr = vec![
-            Operation::Push(BaseElement::ZERO),
+            Operation::Push(Felt::ZERO),
             Operation::StoreW,
             Operation::Drop,
             Operation::Drop,
@@ -270,7 +262,7 @@ mod tests {
         // test load with memory address provided directly (address 0)
         let mut span_ops_addr: Vec<Operation> = Vec::new();
         let op_load_addr = Token::new("loadw.mem.0", 0);
-        let expected_addr = vec![Operation::Push(BaseElement::ZERO), Operation::LoadW];
+        let expected_addr = vec![Operation::Push(Felt::ZERO), Operation::LoadW];
 
         parse_loadw(&mut span_ops_addr, &op_load_addr, num_proc_locals)
             .expect("Failed to parse loadw.mem.0 (address provided by op)");
@@ -304,7 +296,7 @@ mod tests {
         // test store with memory address provided directly (address 0)
         let mut span_ops_addr: Vec<Operation> = Vec::new();
         let op_store_addr = Token::new("storew.mem.0", 0);
-        let expected_addr = vec![Operation::Push(BaseElement::ZERO), Operation::StoreW];
+        let expected_addr = vec![Operation::Push(Felt::ZERO), Operation::StoreW];
 
         parse_storew(&mut span_ops_addr, &op_store_addr, num_proc_locals)
             .expect("Failed to parse storew.mem.0 with adddress (address provided by op)");

@@ -1,5 +1,5 @@
-use std::collections::BTreeMap;
 use vm_core::program::{blocks::CodeBlock, Script};
+use winter_utils::collections::BTreeMap;
 
 mod parsers;
 use parsers::{parse_code_blocks, parse_proc_blocks};

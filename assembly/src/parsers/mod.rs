@@ -1,8 +1,6 @@
 use super::{AssemblyError, Token, TokenStream};
 pub use blocks::{parse_code_blocks, parse_proc_blocks};
-use vm_core::{
-    program::blocks::CodeBlock, Felt as BaseElement, FieldElement, Operation, StarkField,
-};
+use vm_core::{program::blocks::CodeBlock, Felt, FieldElement, Operation, StarkField};
 
 mod blocks;
 mod crypto_ops;
@@ -122,7 +120,7 @@ fn parse_op_token(
 // ================================================================================================
 
 /// Parses a single parameter into a valid field element.
-fn parse_element_param(op: &Token, param_idx: usize) -> Result<BaseElement, AssemblyError> {
+fn parse_element_param(op: &Token, param_idx: usize) -> Result<Felt, AssemblyError> {
     // make sure that the parameter value is available
     if op.num_parts() <= param_idx {
         return Err(AssemblyError::missing_param(op));
@@ -143,7 +141,7 @@ fn parse_decimal_param(
     op: &Token,
     param_idx: usize,
     param_str: &str,
-) -> Result<BaseElement, AssemblyError> {
+) -> Result<Felt, AssemblyError> {
     match param_str.parse::<u64>() {
         Ok(value) => get_valid_felt(op, param_idx, value),
         Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
@@ -151,11 +149,7 @@ fn parse_decimal_param(
 }
 
 /// Parses a hexadecimal parameter value into a valid field element.
-fn parse_hex_param(
-    op: &Token,
-    param_idx: usize,
-    param_str: &str,
-) -> Result<BaseElement, AssemblyError> {
+fn parse_hex_param(op: &Token, param_idx: usize, param_str: &str) -> Result<Felt, AssemblyError> {
     match u64::from_str_radix(param_str, 16) {
         Ok(value) => get_valid_felt(op, param_idx, value),
         Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
@@ -164,20 +158,16 @@ fn parse_hex_param(
 
 /// Checks that the u64 parameter value is a valid field element value and returns it as a field
 /// element.
-fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<BaseElement, AssemblyError> {
-    if param >= BaseElement::MODULUS {
+fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<Felt, AssemblyError> {
+    if param >= Felt::MODULUS {
         return Err(AssemblyError::invalid_param_with_reason(
             op,
             param_idx,
-            format!(
-                "parameter value must be smaller than {}",
-                BaseElement::MODULUS
-            )
-            .as_str(),
+            format!("parameter value must be smaller than {}", Felt::MODULUS).as_str(),
         ));
     }
 
-    Ok(BaseElement::new(param))
+    Ok(Felt::new(param))
 }
 
 /// This is a helper function that parses the parameter at the specified op index as an integer and
@@ -257,10 +247,10 @@ fn validate_op_len(
 ///
 /// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
 /// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
-fn push_value(span_ops: &mut Vec<Operation>, value: BaseElement) {
-    if value == BaseElement::ZERO {
+fn push_value(span_ops: &mut Vec<Operation>, value: Felt) {
+    if value == Felt::ZERO {
         span_ops.push(Operation::Pad);
-    } else if value == BaseElement::ONE {
+    } else if value == Felt::ONE {
         span_ops.push(Operation::Pad);
         span_ops.push(Operation::Incr);
     } else {

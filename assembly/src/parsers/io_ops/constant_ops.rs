@@ -1,6 +1,6 @@
 use super::{
     parse_decimal_param, parse_element_param, parse_hex_param, push_value, validate_op_len,
-    AssemblyError, BaseElement, Operation, Token,
+    AssemblyError, Felt, Operation, Token,
 };
 
 // CONSTANTS
@@ -74,7 +74,7 @@ fn parse_hex_params(
     op: &Token,
     param_idx: usize,
     param_str: &str,
-) -> Result<Vec<BaseElement>, AssemblyError> {
+) -> Result<Vec<Felt>, AssemblyError> {
     // handle error cases where the hex string is poorly formed
     let is_single_element = if param_str.len() <= HEX_CHUNK_SIZE {
         if param_str.len() % 2 != 0 {
@@ -112,7 +112,7 @@ fn parse_hex_params(
 
 #[cfg(test)]
 mod tests {
-    use super::{super::parse_push, AssemblyError, BaseElement, Operation, Token};
+    use super::{super::parse_push, AssemblyError, Felt, Operation, Token};
 
     // TESTS FOR PUSHING VALUES ONTO THE STACK (PUSH)
     // ============================================================================================
@@ -130,8 +130,8 @@ mod tests {
             Operation::Pad,
             Operation::Pad,
             Operation::Incr,
-            Operation::Push(BaseElement::new(135)),
-            Operation::Push(BaseElement::new(123)),
+            Operation::Push(Felt::new(135)),
+            Operation::Push(Felt::new(123)),
         ];
 
         parse_push(&mut span_ops, &op_0, num_proc_locals).expect("Failed to parse push.0");
@@ -153,7 +153,7 @@ mod tests {
         let op_4_dec = Token::new("push.4.5.6.7", 0);
         let mut expected = Vec::with_capacity(4);
         for a in 4..8 {
-            expected.push(Operation::Push(BaseElement::new(a)));
+            expected.push(Operation::Push(Felt::new(a)));
         }
         parse_push(&mut span_ops, &op_4_dec, num_proc_locals)
             .expect("Failed to parse push.4.5.6.7");
@@ -164,7 +164,7 @@ mod tests {
         let op_16_dec = Token::new("push.16.17.18.19.20.21.22.23.24.25.26.27.28.29.30.31", 0);
         let mut expected = Vec::with_capacity(16);
         for a in 16..32 {
-            expected.push(Operation::Push(BaseElement::new(a)));
+            expected.push(Operation::Push(Felt::new(a)));
         }
         parse_push(&mut span_ops, &op_16_dec, num_proc_locals)
             .expect("Failed to parse push.16.17.18.19.20.21.22.23.24.25.26.27.28.29.30.31");
@@ -175,7 +175,7 @@ mod tests {
         let op_5_hex = Token::new("push.0xA.0x64.0x3E8.0x2710.0x186A0", 0);
         let mut expected = Vec::with_capacity(5);
         for i in 1..=5 {
-            expected.push(Operation::Push(BaseElement::new(10_u64.pow(i))));
+            expected.push(Operation::Push(Felt::new(10_u64.pow(i))));
         }
         parse_push(&mut span_ops, &op_5_hex, num_proc_locals)
             .expect("Failed to parse push.0xA.0x64.0x3EB.0x2710.0x186A0");
@@ -186,7 +186,7 @@ mod tests {
         let op_8_dec_hex = Token::new("push.2.4.8.0x10.0x20.0x40.128.0x100", 0);
         let mut expected = Vec::with_capacity(8);
         for i in 1_u32..=8 {
-            expected.push(Operation::Push(BaseElement::new(2_u64.pow(i))));
+            expected.push(Operation::Push(Felt::new(2_u64.pow(i))));
         }
         parse_push(&mut span_ops, &op_8_dec_hex, num_proc_locals)
             .expect("Failed to parse push.2.4.8.0x10.0x20.0x40.128.0x100");

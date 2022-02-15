@@ -1,4 +1,4 @@
-use super::{parse_int_param, push_value, AssemblyError, BaseElement, Operation, Token};
+use super::{parse_int_param, push_value, AssemblyError, Felt, Operation, Token};
 
 // CONVERSIONS AND TESTS
 // ================================================================================================
@@ -351,7 +351,7 @@ pub fn parse_u32not(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
             assert_u32(span_ops);
 
             // perform the operation
-            span_ops.push(Operation::Push(BaseElement::new(2u64.pow(32))));
+            span_ops.push(Operation::Push(Felt::new(2u64.pow(32))));
             span_ops.push(Operation::Swap);
             span_ops.push(Operation::Incr);
             span_ops.push(Operation::U32sub);
@@ -379,7 +379,7 @@ pub fn parse_u32shl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
             assert_u32(span_ops);
 
             let x = parse_int_param(op, 1, 0, 31)?;
-            span_ops.push(Operation::Push(BaseElement::new(2u64.pow(x))));
+            span_ops.push(Operation::Push(Felt::new(2u64.pow(x))));
             span_ops.push(Operation::Mul);
             span_ops.push(Operation::U32split);
             span_ops.push(Operation::Drop);
@@ -404,7 +404,7 @@ pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
             assert_u32(span_ops);
 
             let x = parse_int_param(op, 1, 0, 31)?;
-            span_ops.push(Operation::Push(BaseElement::new(2u64.pow(x))));
+            span_ops.push(Operation::Push(Felt::new(2u64.pow(x))));
             span_ops.push(Operation::U32div);
             // drop the remainder and keep the quotient
             span_ops.push(Operation::Drop);
@@ -429,7 +429,7 @@ pub fn parse_u32rotl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
             assert_u32(span_ops);
 
             let x = parse_int_param(op, 1, 0, 31)?;
-            span_ops.push(Operation::Push(BaseElement::new(2u64.pow(x))));
+            span_ops.push(Operation::Push(Felt::new(2u64.pow(x))));
             span_ops.push(Operation::Mul);
             span_ops.push(Operation::U32split);
             span_ops.push(Operation::Add);
@@ -454,7 +454,7 @@ pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
             assert_u32(span_ops);
 
             let x = parse_int_param(op, 1, 0, 31)?;
-            span_ops.push(Operation::Push(BaseElement::new(2u64.pow(32 - x))));
+            span_ops.push(Operation::Push(Felt::new(2u64.pow(32 - x))));
             span_ops.push(Operation::Mul);
             span_ops.push(Operation::U32split);
             span_ops.push(Operation::Add);
@@ -686,7 +686,7 @@ fn assert_u32_and_push_u32_param(
     assert_u32(span_ops);
     // TODO: We should investigate special case handling adding 0 or 1.
     let value = parse_int_param(op, 1, lower_bound, u32::MAX)?;
-    push_value(span_ops, BaseElement::new(value as u64));
+    push_value(span_ops, Felt::new(value as u64));
 
     Ok(())
 }

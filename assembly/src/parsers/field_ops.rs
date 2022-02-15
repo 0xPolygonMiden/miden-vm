@@ -1,6 +1,5 @@
 use super::{
-    parse_element_param, validate_op_len, AssemblyError, BaseElement, FieldElement, Operation,
-    Token,
+    parse_element_param, validate_op_len, AssemblyError, Felt, FieldElement, Operation, Token,
 };
 
 // ASSERTIONS AND TESTS
@@ -37,7 +36,7 @@ pub fn parse_add(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
         1 => span_ops.push(Operation::Add),
         2 => {
             let imm = parse_element_param(op, 1)?;
-            if imm == BaseElement::ONE {
+            if imm == Felt::ONE {
                 span_ops.push(Operation::Incr);
             } else {
                 span_ops.push(Operation::Push(imm));
@@ -186,7 +185,7 @@ pub fn parse_eq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assembl
         1 => span_ops.push(Operation::Eq),
         2 => {
             let imm = parse_element_param(op, 1)?;
-            if imm == BaseElement::ZERO {
+            if imm == Felt::ZERO {
                 span_ops.push(Operation::Eqz);
             } else {
                 span_ops.push(Operation::Push(imm));
@@ -208,7 +207,7 @@ pub fn parse_neq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
         1 => span_ops.push(Operation::Eq),
         2 => {
             let imm = parse_element_param(op, 1)?;
-            if imm == BaseElement::ZERO {
+            if imm == Felt::ZERO {
                 span_ops.push(Operation::Eqz);
             } else {
                 span_ops.push(Operation::Push(imm));
