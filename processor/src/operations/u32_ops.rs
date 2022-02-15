@@ -129,8 +129,9 @@ impl Process {
     /// the quotient and the remainder back onto the stack.
     ///
     /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
-    /// Returns an error if the divisor is 0
+    /// Returns an error if:
+    /// * The stack contains fewer than two elements.
+    /// * The divisor is ZERO.
     pub(super) fn op_u32div(&mut self) -> Result<(), ExecutionError> {
         self.stack.check_depth(2, "U32DIV")?;
 
