@@ -110,7 +110,7 @@ impl Process {
     fn execute_join_block(&mut self, block: &Join) -> Result<(), ExecutionError> {
         // start JOIN block; state of the stack does not change
         self.decoder.start_join(block);
-        self.execute_op(Operation::Noop)?;
+        self.execute_op(&Operation::Noop)?;
 
         // execute first and then second child of the join block
         self.execute_code_block(block.first())?;
@@ -118,7 +118,7 @@ impl Process {
 
         // end JOIN block; state of the stack does not change
         self.decoder.end_join(block);
-        self.execute_op(Operation::Noop)?;
+        self.execute_op(&Operation::Noop)?;
 
         Ok(())
     }
@@ -130,7 +130,7 @@ impl Process {
         // the block should be executed.
         let condition = self.stack.peek()?;
         self.decoder.start_split(block, condition);
-        self.execute_op(Operation::Drop)?;
+        self.execute_op(&Operation::Drop)?;
 
         // execute either the true or the false branch of the split block based on the condition
         // retrieved from the top of the stack
@@ -144,7 +144,7 @@ impl Process {
 
         // end SPLIT block; state of the stack does not change
         self.decoder.end_split(block);
-        self.execute_op(Operation::Noop)?;
+        self.execute_op(&Operation::Noop)?;
 
         Ok(())
     }
@@ -163,20 +163,20 @@ impl Process {
         // the END operation later.
         if condition == Felt::ONE {
             // drop the condition and execute the loop body at least once
-            self.execute_op(Operation::Drop)?;
+            self.execute_op(&Operation::Drop)?;
             self.execute_code_block(block.body())?;
 
             // keep executing the loop body until the condition on the top of the stack is no
             // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
             // which drops the condition from the stack
             while self.stack.peek()? == Felt::ONE {
-                self.execute_op(Operation::Drop)?;
+                self.execute_op(&Operation::Drop)?;
                 self.decoder.repeat(block);
 
                 self.execute_code_block(block.body())?;
             }
         } else if condition == Felt::ZERO {
-            self.execute_op(Operation::Noop)?
+            self.execute_op(&Operation::Noop)?
         } else {
             return Err(ExecutionError::NotBinaryValue(condition));
         }
@@ -184,7 +184,7 @@ impl Process {
         // execute END operation; this can be done only if the top of the stack is ZERO, in which
         // case the top of the stack is dropped
         if self.stack.peek()? == Felt::ZERO {
-            self.execute_op(Operation::Drop)?;
+            self.execute_op(&Operation::Drop)?;
         } else if condition == Felt::ONE {
             unreachable!("top of the stack should not be ONE");
         } else {
@@ -201,12 +201,12 @@ impl Process {
         // start the SPAN block and get the first operation batch from it; when executing a SPAN
         // operation the state of the stack does not change
         self.decoder.start_span(block);
-        self.execute_op(Operation::Noop)?;
+        self.execute_op(&Operation::Noop)?;
 
         // execute the first operation batch
         for op in block.op_batches()[0].ops() {
-            self.execute_op(op.clone())?;
-            self.decoder.execute_user_op(op.clone());
+            self.execute_op(op)?;
+            self.decoder.execute_user_op(op);
         }
 
         // if the span contains more operation batches, execute them. each additional batch is
@@ -214,17 +214,17 @@ impl Process {
         // of the stack
         for op_batch in block.op_batches().iter().skip(1) {
             self.decoder.respan(op_batch);
-            self.execute_op(Operation::Noop)?;
+            self.execute_op(&Operation::Noop)?;
             for op in op_batch.ops() {
-                self.execute_op(op.clone())?;
-                self.decoder.execute_user_op(op.clone());
+                self.execute_op(op)?;
+                self.decoder.execute_user_op(op);
             }
         }
 
         // end the SPAN block; when executing an END operation the state of the stack does not
         // change
         self.decoder.end_span(block);
-        self.execute_op(Operation::Noop)?;
+        self.execute_op(&Operation::Noop)?;
 
         Ok(())
     }

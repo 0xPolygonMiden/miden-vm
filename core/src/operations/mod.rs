@@ -7,6 +7,7 @@ mod debug;
 pub use debug::DebugOptions;
 mod proc;
 pub use proc::ProcInfo;
+
 #[cfg(test)]
 mod tests;
 
@@ -370,8 +371,11 @@ pub enum Operation {
     /// (e.g., stack, memory), and does not advance VM clock.
     Advice(AdviceInjector),
 
+    /// Stores procedure information (name, number of locals, etc) in the stack at the start of
+    /// the procedure.
     ProcStart(ProcInfo),
 
+    /// Removes procedure information from the stack at the end of the procedure.
     ProcEnd,
 }
 

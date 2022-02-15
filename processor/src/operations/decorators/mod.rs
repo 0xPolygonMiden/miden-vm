@@ -14,12 +14,13 @@ impl Process {
     // DEBUGGING
     // --------------------------------------------------------------------------------------------
 
-    ///
+    /// Inject procedure information into the stack for tracking.
     pub fn op_proc_start(&mut self, info: &ProcInfo) -> Result<(), ExecutionError> {
         self.proc_stack.push(info.clone());
         Ok(())
     }
 
+    /// Remove procedure information from the stack on procedure exit.
     pub fn op_proc_end(&mut self) -> Result<(), ExecutionError> {
         self.proc_stack.pop().expect("no procedures in stack");
         Ok(())
@@ -195,13 +196,13 @@ mod tests {
 
         // inject the node into the advice tape
         process
-            .execute_op(Operation::Advice(AdviceInjector::MerkleNode))
+            .execute_op(&Operation::Advice(AdviceInjector::MerkleNode))
             .unwrap();
         // read the node from the tape onto the stack
-        process.execute_op(Operation::Read).unwrap();
-        process.execute_op(Operation::Read).unwrap();
-        process.execute_op(Operation::Read).unwrap();
-        process.execute_op(Operation::Read).unwrap();
+        process.execute_op(&Operation::Read).unwrap();
+        process.execute_op(&Operation::Read).unwrap();
+        process.execute_op(&Operation::Read).unwrap();
+        process.execute_op(&Operation::Read).unwrap();
 
         let expected_stack = build_expected(&[
             leaves[1][3],

@@ -1,15 +1,16 @@
 use core::fmt;
 
-/// Stores procedure information
+/// Contains procedure metadata (without procedure body)
 #[derive(Clone, Debug, PartialEq)]
 pub struct ProcInfo {
     name: String,
-    locals: usize,
+    num_locals: usize,
 }
 
 impl fmt::Display for ProcInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "proc.{}.{}", self.name, self.locals)?;
+        write!(f, "{}, {}", self.name, self.num_locals)?;
+
         Ok(())
     }
 }
