@@ -492,8 +492,8 @@ impl Operation {
 
             Self::Debug(_) => None,
             Self::Advice(_) => None,
-            Self::ProcStart(_) => None,
-            Self::ProcEnd => None,
+            Self::ProcStart(_) => Some(0b1111_0000),
+            Self::ProcEnd => Some(0b1111_0001),
         }
     }
 
