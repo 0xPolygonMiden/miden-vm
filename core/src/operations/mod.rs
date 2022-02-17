@@ -371,11 +371,17 @@ pub enum Operation {
     /// (e.g., stack, memory), and does not advance VM clock.
     Advice(AdviceInjector),
 
-    /// Stores procedure information (name, number of locals, etc) in the stack at the start of
-    /// the procedure.
+    /// Marks the start of a new procedure. This operation is used to make the VM aware of
+    /// procedure boundaries (primarily for debug purposes). The operation has no effect on
+    /// the VM state, and does not advance VM clock.
+    /// Internally in the VM, this operation pushes procedure information (name, number of locals,
+    ///  etc.) onto procedure stack.
     ProcStart(ProcInfo),
 
-    /// Removes procedure information from the stack at the end of the procedure.
+    /// Marks the end of the executing procedure. This operation is used to make the VM aware of
+    /// procedure boundaries (primarily for debug purposes). The operation has no effect on the VM
+    /// state, and does not advance VM clock. Internally in the VM, this operation pops procedure
+    /// information from the procedure stack.
     ProcEnd,
 }
 

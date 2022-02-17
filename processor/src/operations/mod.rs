@@ -132,7 +132,7 @@ impl Process {
             Operation::MrUpdate(copy) => self.op_mrupdate(*copy)?,
 
             // ----- decorators -------------------------------------------------------------------
-            Operation::Debug(options) => self.op_debug(*options)?,
+            Operation::Debug(options) => self.op_debug(options)?,
             Operation::Advice(injector) => self.op_advice(*injector)?,
             Operation::ProcStart(ref info) => self.op_proc_start(info)?,
             Operation::ProcEnd => self.op_proc_end()?,

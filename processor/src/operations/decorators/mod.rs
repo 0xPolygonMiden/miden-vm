@@ -14,33 +14,33 @@ impl Process {
     // DEBUGGING
     // --------------------------------------------------------------------------------------------
 
-    /// Inject procedure information into the stack for tracking.
+    /// Inject procedure information into the procedure stack for tracking.
     pub fn op_proc_start(&mut self, info: &ProcInfo) -> Result<(), ExecutionError> {
         self.proc_stack.push(info.clone());
         Ok(())
     }
 
-    /// Remove procedure information from the stack on procedure exit.
+    /// Remove procedure information from the procedure stack on procedure exit.
     pub fn op_proc_end(&mut self) -> Result<(), ExecutionError> {
         self.proc_stack.pop().expect("no procedures in stack");
         Ok(())
     }
 
     /// Prints out debugging information based on options passed.
-    pub fn op_debug(&mut self, options: DebugOptions) -> Result<(), ExecutionError> {
+    pub fn op_debug(&mut self, options: &DebugOptions) -> Result<(), ExecutionError> {
         info!(
             "---------------------cycle: {}---------------------",
             self.system.clk()
         );
         match options {
-            DebugOptions::All => {
+            &DebugOptions::All => {
                 self.print_stack(None);
                 self.print_mem(None, None);
                 self.print_local();
             }
-            DebugOptions::Stack(n) => self.print_stack(n),
-            DebugOptions::Memory(n, m) => self.print_mem(n, m),
-            DebugOptions::Local(_) => self.print_local(),
+            &DebugOptions::Stack(n) => self.print_stack(n),
+            &DebugOptions::Memory(n, m) => self.print_mem(n, m),
+            &DebugOptions::Local(_) => self.print_local(),
         }
 
         Ok(())

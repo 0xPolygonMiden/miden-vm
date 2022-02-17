@@ -3,8 +3,8 @@ use core::fmt;
 /// Contains procedure metadata (without procedure body)
 #[derive(Clone, Debug, PartialEq)]
 pub struct ProcInfo {
-    name: String,
-    num_locals: usize,
+    pub name: String,
+    pub num_locals: usize,
 }
 
 impl fmt::Display for ProcInfo {

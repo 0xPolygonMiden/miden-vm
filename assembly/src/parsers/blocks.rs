@@ -1,5 +1,5 @@
 use super::{parse_op_token, AssemblyError, CodeBlock, Operation, Token, TokenStream};
-use vm_core::Felt;
+use vm_core::{Felt, ProcInfo};
 use winter_utils::{
     collections::{BTreeMap, Vec},
     group_vector_elements,
@@ -40,6 +40,7 @@ pub fn parse_code_blocks(
 pub fn parse_proc_blocks(
     tokens: &mut TokenStream,
     proc_map: &BTreeMap<String, CodeBlock>,
+    proc_name: &String,
     num_proc_locals: u32,
 ) -> Result<CodeBlock, AssemblyError> {
     // parse the procedure body
@@ -53,15 +54,27 @@ pub fn parse_proc_blocks(
     let mut blocks = Vec::new();
     let locals_felt = Felt::new(num_proc_locals as u64);
 
+    let proc_info = ProcInfo {
+        num_locals: num_proc_locals as usize,
+        name: String::from(proc_name),
+    };
     // allocate procedure locals before the procedure body
-    let alloc_ops = vec![Operation::Push(locals_felt), Operation::FmpUpdate];
+    let alloc_ops = vec![
+        Operation::Push(locals_felt),
+        Operation::FmpUpdate,
+        Operation::ProcStart(proc_info),
+    ];
     blocks.push(CodeBlock::new_span(alloc_ops));
 
     // add the procedure body code block
     blocks.push(body);
 
     // deallocate procedure locals after the procedure body
-    let dealloc_ops = vec![Operation::Push(-locals_felt), Operation::FmpUpdate];
+    let dealloc_ops = vec![
+        Operation::Push(-locals_felt),
+        Operation::FmpUpdate,
+        Operation::ProcEnd,
+    ];
     blocks.push(CodeBlock::new_span(dealloc_ops));
 
     // combine the local memory alloc/dealloc blocks with the procedure body code block
