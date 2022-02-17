@@ -32,15 +32,15 @@ impl Process {
             "---------------------cycle: {}---------------------",
             self.system.clk()
         );
-        match options {
-            &DebugOptions::All => {
+        match *options {
+            DebugOptions::All => {
                 self.print_stack(None);
                 self.print_mem(None, None);
                 self.print_local();
             }
-            &DebugOptions::Stack(n) => self.print_stack(n),
-            &DebugOptions::Memory(n, m) => self.print_mem(n, m),
-            &DebugOptions::Local(_) => self.print_local(),
+            DebugOptions::Stack(n) => self.print_stack(n),
+            DebugOptions::Memory(n, m) => self.print_mem(n, m),
+            DebugOptions::Local(_) => self.print_local(),
         }
 
         Ok(())
