@@ -5,6 +5,7 @@ use proptest::prelude::*;
 mod crypto_ops;
 mod field_ops;
 mod flow_control;
+mod io_ops;
 mod u32_ops;
 
 // TESTS
@@ -102,19 +103,26 @@ fn run_test_execution(script: &Script, inputs: &[u64]) -> [Felt; STACK_TOP_SIZE]
     trace.last_stack_state()
 }
 
+/// This helper function tests failures where the execution of a given assembly script with the
+/// provided inputs is expected to panic. This function catches the panic and tests it against a
+/// provided string to make sure it contains the expected error string.
+fn test_script_execution_failure(script: &Script, inputs: &[u64], err_substr: &str) {
+    let inputs = build_inputs(inputs);
+    assert_eq!(
+        std::panic::catch_unwind(|| execute(script, &inputs).unwrap())
+            .err()
+            .and_then(|a| { a.downcast_ref::<String>().map(|s| s.contains(err_substr)) }),
+        Some(true)
+    );
+}
+
 /// This helper function tests failures where the execution of a given assembly operation with the
 /// provided inputs is expected to panic. This function catches the panic and tests it against a
 /// provided string to make sure it contains the expected error string.
 fn test_execution_failure(asm_op: &str, inputs: &[u64], err_substr: &str) {
     let script = compile(format!("begin {} end", asm_op).as_str());
 
-    let inputs = build_inputs(inputs);
-    assert_eq!(
-        std::panic::catch_unwind(|| execute(&script, &inputs).unwrap())
-            .err()
-            .and_then(|a| { a.downcast_ref::<String>().map(|s| s.contains(err_substr)) }),
-        Some(true)
-    );
+    test_script_execution_failure(&script, inputs, err_substr);
 }
 
 /// This helper function tests failures where the compilation of a given assembly operation is
