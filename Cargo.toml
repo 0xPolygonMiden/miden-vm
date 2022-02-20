@@ -6,6 +6,7 @@ members = [
   #"examples",
   #"miden",
   "processor",
+  "stdlib",
   #"verifier"
 ]
 

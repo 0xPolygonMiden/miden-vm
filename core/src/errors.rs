@@ -12,3 +12,8 @@ pub enum AdviceSetError {
     NumLeavesNotPowerOfTwo(usize),
     InvalidIndex(u32, u64),
 }
+
+#[derive(Clone, Debug)]
+pub enum LibraryError {
+    ModuleNotFound(String),
+}
