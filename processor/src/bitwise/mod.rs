@@ -16,13 +16,13 @@ const TRACE_WIDTH: usize = NUM_SELECTORS + 11;
 const INIT_TRACE_CAPACITY: usize = 128;
 
 /// Specifies a bitwise AND operation.
-const BITWISE_AND: Selectors = [Felt::ZERO, Felt::ZERO];
+pub const BITWISE_AND: Selectors = [Felt::ZERO, Felt::ZERO];
 
 /// Specifies a bitwise OR operation.
-const BITWISE_OR: Selectors = [Felt::ZERO, Felt::ONE];
+pub const BITWISE_OR: Selectors = [Felt::ZERO, Felt::ONE];
 
 /// Specifies a bitwise XOR operation.
-const BITWISE_XOR: Selectors = [Felt::ONE, Felt::ZERO];
+pub const BITWISE_XOR: Selectors = [Felt::ONE, Felt::ZERO];
 
 // TYPE ALIASES
 // ================================================================================================
