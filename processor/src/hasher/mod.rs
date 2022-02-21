@@ -183,7 +183,6 @@ impl Hasher {
     // --------------------------------------------------------------------------------------------
 
     /// Fills the provided trace fragment with trace data from this hasher trace instance.
-    #[cfg(test)]
     pub fn fill_trace(self, trace: &mut TraceFragment) {
         self.trace.fill_trace(trace)
     }

@@ -74,7 +74,7 @@ impl Bitwise {
             .map(|_| Vec::with_capacity(INIT_TRACE_CAPACITY))
             .collect::<Vec<_>>()
             .try_into()
-            .unwrap();
+            .expect("failed to convert vector to array");
         Self { trace }
     }
 
@@ -193,7 +193,6 @@ impl Bitwise {
     // --------------------------------------------------------------------------------------------
 
     /// Fills the provide trace fragment with trace data from this bitwise helper instance.
-    #[allow(dead_code)]
     pub fn fill_trace(self, trace: &mut TraceFragment) {
         // make sure fragment dimensions are consistent with the dimensions of this trace
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");

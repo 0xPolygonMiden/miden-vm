@@ -43,10 +43,15 @@ pub use errors::ExecutionError;
 #[cfg(test)]
 mod tests;
 
+// CONSTANTS
+// ================================================================================================
+const AUXILIARY_TABLE_WIDTH: usize = 18;
+
 // TYPE ALIASES
 // ================================================================================================
 
 type StackTrace = [Vec<Felt>; STACK_TOP_SIZE];
+type AuxiliaryTableTrace = [Vec<Felt>; AUXILIARY_TABLE_WIDTH];
 
 // EXECUTOR
 // ================================================================================================
