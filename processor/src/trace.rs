@@ -83,6 +83,18 @@ impl ExecutionTrace {
         self.read_row_into(self.length() - 1, &mut result);
         result
     }
+
+    // ACCESSORS FOR TESTING
+    // --------------------------------------------------------------------------------------------
+    #[cfg(test)]
+    pub fn aux_table(&self) -> &AuxiliaryTableTrace {
+        &self.aux_table
+    }
+
+    #[cfg(test)]
+    pub fn stack(&self) -> &StackTrace {
+        &self.stack
+    }
 }
 
 // TRACE TRAIT IMPLEMENTATION
