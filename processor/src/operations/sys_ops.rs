@@ -1,4 +1,7 @@
-use super::{ExecutionError, Felt, FieldElement, Process, StarkField};
+use super::{
+    super::system::{FMP_MAX, FMP_MIN},
+    ExecutionError, Felt, FieldElement, Process, StarkField,
+};
 
 // SYSTEM OPERATIONS
 // ================================================================================================
@@ -50,7 +53,7 @@ impl Process {
         let fmp = self.system.fmp();
 
         let new_fmp = fmp + offset;
-        if new_fmp.as_int() > u32::MAX as u64 {
+        if new_fmp.as_int() < FMP_MIN || new_fmp.as_int() > FMP_MAX {
             return Err(ExecutionError::InvalidFmpValue(fmp, new_fmp));
         }
 
