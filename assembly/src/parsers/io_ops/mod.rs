@@ -64,7 +64,7 @@ pub fn parse_push(
 
     match op.parts()[1] {
         "adv" => parse_push_adv(span_ops, op),
-        "env" => parse_push_env(span_ops, op),
+        "env" => parse_push_env(span_ops, op, num_proc_locals),
         "local" => parse_push_local(span_ops, op, num_proc_locals),
         "mem" => parse_push_mem(span_ops, op),
         _ => parse_push_constant(span_ops, op),

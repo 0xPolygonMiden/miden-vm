@@ -1,4 +1,6 @@
-use super::{validate_operation, AssemblyError, Operation, Token};
+use super::{
+    parse_int_param, push_value, validate_operation, AssemblyError, Felt, Operation, Token,
+};
 
 // ENVIRONMENT INPUTS
 // ================================================================================================
@@ -14,12 +16,30 @@ use super::{validate_operation, AssemblyError, Operation, Token};
 /// This function expects a valid assembly environment op that specifies the environment input to
 /// be handled. It will return an error if the assembly instruction is malformed or the environment
 /// input is unrecognized.
-pub fn parse_push_env(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_operation!(op, "push.env.sdepth", 0);
+pub fn parse_push_env(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    num_proc_locals: u32,
+) -> Result<(), AssemblyError> {
+    validate_operation!(op, "push.env.locaddr|sdepth");
 
     // update the span block
     match op.parts()[2] {
+        "locaddr" => {
+            if num_proc_locals == 0 {
+                return Err(AssemblyError::invalid_op_with_reason(
+                    op,
+                    "no procedure locals available in current context",
+                ));
+            }
+            validate_operation!(@only_params op, "push.env.locaddr", 1);
+            let index = parse_int_param(op, 3, 0, num_proc_locals - 1)?;
+
+            push_value(span_ops, -Felt::new(index as u64));
+            span_ops.push(Operation::FmpAdd);
+        }
         "sdepth" => {
+            validate_operation!(@only_params op, "push.env.sdepth", 0);
             span_ops.push(Operation::SDepth);
         }
         _ => return Err(AssemblyError::invalid_op(op)),
