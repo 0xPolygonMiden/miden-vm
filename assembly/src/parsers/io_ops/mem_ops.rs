@@ -1,4 +1,4 @@
-use super::{parse_element_param, validate_op_len, AssemblyError, Operation, Token};
+use super::{parse_element_param, validate_operation, AssemblyError, Operation, Token};
 use vm_core::utils::PushMany;
 
 // RANDOM ACCESS MEMORY
@@ -7,7 +7,7 @@ use vm_core::utils::PushMany;
 /// Pushes the first element of the word at the specified memory address onto the stack. The
 /// memory address may be provided directly as an immediate value or via the stack.
 pub fn parse_push_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_op_len(op, 2, 0, 1)?;
+    validate_operation!(op, "push.mem", 0..1);
 
     // read from memory with overwrite_stack_top set to false so the rest of the stack is kept
     parse_read_mem(span_ops, op, false)?;
@@ -20,7 +20,7 @@ pub fn parse_push_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
 /// Pops the top element off the stack and saves it at the specified memory address. The memory
 /// address may be provided directly as an immediate value or via the stack.
 pub fn parse_pop_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_op_len(op, 2, 0, 1)?;
+    validate_operation!(op, "pop.mem", 0..1);
 
     // pad to word length before calling STOREW
     span_ops.push_many(Operation::Pad, 3);
@@ -56,6 +56,8 @@ pub fn parse_read_mem(
     op: &Token,
     overwrite_stack_top: bool,
 ) -> Result<(), AssemblyError> {
+    validate_operation!(@only_params op, "push|pushw|loadw.mem", 0..1);
+
     if !overwrite_stack_top {
         // make space for the new elements
         span_ops.push_many(Operation::Pad, 4);
@@ -100,6 +102,8 @@ pub fn parse_write_mem(
     op: &Token,
     retain_stack_top: bool,
 ) -> Result<(), AssemblyError> {
+    validate_operation!(@only_params op, "pop|popw|storew.mem", 0..1);
+
     if op.num_parts() == 3 {
         push_mem_addr(span_ops, op)?;
     }

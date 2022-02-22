@@ -1,4 +1,4 @@
-use super::{validate_op_len, AssemblyError, Operation, Token};
+use super::{validate_operation, AssemblyError, Operation, Token};
 
 // ENVIRONMENT INPUTS
 // ================================================================================================
@@ -15,11 +15,7 @@ use super::{validate_op_len, AssemblyError, Operation, Token};
 /// be handled. It will return an error if the assembly instruction is malformed or the environment
 /// input is unrecognized.
 pub fn parse_push_env(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // validate the operation
-    validate_op_len(op, 3, 0, 0)?;
-    if op.parts()[1] != "env" {
-        return Err(AssemblyError::unexpected_token(op, "push.env.{var}"));
-    }
+    validate_operation!(op, "push.env.sdepth", 0);
 
     // update the span block
     match op.parts()[2] {
@@ -78,7 +74,7 @@ mod tests {
 
         // invalid env var
         let op_val_invalid = Token::new("push.env.invalid", pos);
-        let expected = AssemblyError::invalid_op(&op_val_invalid);
+        let expected = AssemblyError::unexpected_token(&op_val_invalid, "push.env.sdepth");
         assert_eq!(
             parse_push(&mut span_ops, &op_val_invalid, num_proc_locals).unwrap_err(),
             expected
