@@ -50,7 +50,7 @@ impl Stack {
     }
 
     /// Returns execution trace length for this stack.
-    pub fn trace_length(&self) -> usize {
+    pub fn trace_len(&self) -> usize {
         self.trace[0].len()
     }
 
@@ -215,8 +215,8 @@ impl Stack {
     ///
     /// Trace length is doubled every time it needs to be increased.
     pub fn ensure_trace_capacity(&mut self) {
-        if self.step + 1 >= self.trace_length() {
-            let new_length = self.trace_length() * 2;
+        if self.step + 1 >= self.trace_len() {
+            let new_length = self.trace_len() * 2;
             for register in self.trace.iter_mut() {
                 register.resize(new_length, Felt::ZERO);
             }

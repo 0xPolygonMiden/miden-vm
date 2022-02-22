@@ -2,6 +2,7 @@ use super::{execute, Felt, FieldElement, ProgramInputs, Script, STACK_TOP_SIZE};
 use crate::Word;
 use proptest::prelude::*;
 
+mod aux_table_trace;
 mod crypto_ops;
 mod field_ops;
 mod flow_control;

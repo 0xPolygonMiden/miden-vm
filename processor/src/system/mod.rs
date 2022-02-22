@@ -43,7 +43,7 @@ impl System {
 
     /// Returns execution trace length for a process.
     #[inline(always)]
-    pub fn trace_length(&self) -> usize {
+    pub fn trace_len(&self) -> usize {
         self.clk_trace.len()
     }
 
@@ -72,8 +72,8 @@ impl System {
     ///
     /// Trace length is doubled every time it needs to be increased.
     pub fn ensure_trace_capacity(&mut self) {
-        if self.clk + 1 >= self.trace_length() {
-            let new_length = self.trace_length() * 2;
+        if self.clk + 1 >= self.trace_len() {
+            let new_length = self.trace_len() * 2;
             self.clk_trace.resize(new_length, Felt::ZERO);
             self.fmp_trace.resize(new_length, Felt::ZERO);
         }

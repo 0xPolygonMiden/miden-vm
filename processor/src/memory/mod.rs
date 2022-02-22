@@ -144,7 +144,6 @@ impl Memory {
     // --------------------------------------------------------------------------------------------
 
     /// Fills the provide trace fragment with trace data from this memory instance.
-    #[allow(dead_code)]
     pub fn fill_trace(self, trace: &mut TraceFragment) {
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
 
