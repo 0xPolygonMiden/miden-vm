@@ -1,6 +1,6 @@
 use vm_core::program::{blocks::CodeBlock, Library, Script};
 use vm_stdlib::StdLibrary;
-use winter_utils::collections::{BTreeMap, Vec};
+use winter_utils::collections::BTreeMap;
 
 mod context;
 use context::AssemblyContext;
@@ -9,7 +9,7 @@ mod procedures;
 use procedures::Procedure;
 
 mod parsers;
-use parsers::{parse_code_blocks, parse_proc_blocks};
+use parsers::{combine_blocks, parse_code_blocks};
 
 mod tokens;
 use tokens::{Token, TokenStream};
@@ -67,13 +67,11 @@ impl Assembler {
         // parse locally defined procedures (if any), and add these procedures to the current
         // context
         while let Some(token) = tokens.read() {
-            match token.parts()[0] {
-                Token::PROC => {
-                    let proc = Procedure::parse(&mut tokens, &context)?;
-                    context.add_local_proc(proc);
-                }
+            let proc = match token.parts()[0] {
+                Token::PROC | Token::EXPORT => Procedure::parse(&mut tokens, &context, false)?,
                 _ => break,
-            }
+            };
+            context.add_local_proc(proc);
         }
 
         // make sure script body is present
@@ -120,7 +118,7 @@ impl Assembler {
 
                     // check if a module with the same path is currently being parsed somewhere up
                     // the chain; if it is, then we have a circular dependency.
-                    if let Some(_) = dep_chain.iter().position(|v| v == module_path) {
+                    if dep_chain.iter().any(|v| v == module_path) {
                         dep_chain.push(module_path.clone());
                         return Err(AssemblyError::circular_module_dependency(token, dep_chain));
                     }
@@ -185,13 +183,11 @@ impl Assembler {
         // parse procedures defined in the module, and add these procedures to the current
         // context
         while let Some(token) = tokens.read() {
-            match token.parts()[0] {
-                Token::PROC => {
-                    let proc = Procedure::parse(&mut tokens, &context)?;
-                    context.add_local_proc(proc);
-                }
+            let proc = match token.parts()[0] {
+                Token::PROC | Token::EXPORT => Procedure::parse(&mut tokens, &context, true)?,
                 _ => break,
-            }
+            };
+            context.add_local_proc(proc);
         }
 
         // make sure there are no dangling instructions after all procedures have been read
@@ -200,12 +196,14 @@ impl Assembler {
             return Err(AssemblyError::dangling_ops_after_module(token, path));
         }
 
-        // extract only the exported local procedures from the context, and insert them
-        // into `self.parsed_procedures`
-        let path = path.to_string();
-        let module_procs = context.into_local_procs();
+        // extract the exported local procedures from the context
+        let mut module_procs = context.into_local_procs();
+        module_procs.retain(|_, p| p.is_export());
+
+        // insert exported procedures into `self.parsed_procedures`
+        // TODO: figure out how to do this using interior mutability
         unsafe {
-            // TODO: figure out how to do this using interior mutability
+            let path = path.to_string();
             let mutable_self = &mut *(self as *const _ as *mut Assembler);
             mutable_self.parsed_modules.insert(path, module_procs);
         }

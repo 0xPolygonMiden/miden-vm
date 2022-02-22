@@ -58,7 +58,7 @@ fn read_modules(fs_path: &Path, ns_path: String, modules: &mut ModuleMap) -> Res
             let ns_path = format!("{}::{}", ns_path, dir_name);
             read_modules(path.as_path(), ns_path, modules)?;
         } else if path.is_file() {
-            // if the current path is a file, make sure it is a `.mams` file and red its contents
+            // if the current path is a file, make sure it is a `.masm` file and read its contents
             let extension = path
                 .extension()
                 .expect("failed to get file extension from path")

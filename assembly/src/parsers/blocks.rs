@@ -1,7 +1,6 @@
 use super::{
     parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, Token, TokenStream,
 };
-use vm_core::Felt;
 use winter_utils::{collections::Vec, group_vector_elements};
 
 // BLOCK PARSER
@@ -34,37 +33,6 @@ pub fn parse_code_blocks(
         // build a binary tree out of the parsed list of blocks
         Ok(combine_blocks(blocks))
     }
-}
-
-pub fn parse_proc_blocks(
-    tokens: &mut TokenStream,
-    context: &AssemblyContext,
-    num_proc_locals: u32,
-) -> Result<CodeBlock, AssemblyError> {
-    // parse the procedure body
-    let body = parse_code_blocks(tokens, context, num_proc_locals)?;
-
-    if num_proc_locals == 0 {
-        // if no allocation of locals is required, return the procedure body
-        return Ok(body);
-    }
-
-    let mut blocks = Vec::new();
-    let locals_felt = Felt::new(num_proc_locals as u64);
-
-    // allocate procedure locals before the procedure body
-    let alloc_ops = vec![Operation::Push(locals_felt), Operation::FmpUpdate];
-    blocks.push(CodeBlock::new_span(alloc_ops));
-
-    // add the procedure body code block
-    blocks.push(body);
-
-    // deallocate procedure locals after the procedure body
-    let dealloc_ops = vec![Operation::Push(-locals_felt), Operation::FmpUpdate];
-    blocks.push(CodeBlock::new_span(dealloc_ops));
-
-    // combine the local memory alloc/dealloc blocks with the procedure body code block
-    Ok(combine_blocks(blocks))
 }
 
 // CODE BLOCK PARSER
@@ -270,7 +238,7 @@ impl BlockParser {
                     token.validate_end()?;
                     None
                 }
-                Token::BEGIN | Token::PROC => None,
+                Token::USE | Token::EXPORT | Token::PROC | Token::BEGIN => None,
                 _ => Some(Self::Span),
             },
         };
@@ -279,10 +247,10 @@ impl BlockParser {
     }
 }
 
-// HELPER FUNCTIONS
+// UTILITY FUNCTIONS
 // ================================================================================================
 
-fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
+pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
     // merge consecutive Span blocks
     let mut merged_blocks: Vec<CodeBlock> = Vec::with_capacity(blocks.len());
     blocks.drain(0..).for_each(|block| {

@@ -8,7 +8,7 @@ pub const MODULES: [(&str, &str); 3] = [
 // ----- std::crypto::hashes::blake3 --------------------------------------------------------------
 ("std::crypto::hashes::blake3", ""),
 // ----- std::math::u256 --------------------------------------------------------------------------
-("std::math::u256", "proc.add_unsafe
+("std::math::u256", "export.add_unsafe
     swapw.3
     movup.3
     movup.7
@@ -40,7 +40,7 @@ pub const MODULES: [(&str, &str); 3] = [
     drop
 end
 
-proc.sub_unsafe
+export.sub_unsafe
     swapw.3
     movup.3
     movup.7
@@ -99,7 +99,7 @@ proc.sub_unsafe
     drop
 end
 
-proc.and
+export.and
     swapw.3
     movup.3
     movup.7
@@ -128,7 +128,7 @@ proc.and
     u32and
 end
 
-proc.or
+export.or
     swapw.3
     movup.3
     movup.7
@@ -157,7 +157,7 @@ proc.or
     u32or
 end
 
-proc.u256xor
+export.u256xor
     swapw.3
     movup.3
     movup.7
@@ -186,7 +186,7 @@ proc.u256xor
     u32xor
 end
 
-proc.iszero_unsafe
+export.iszero_unsafe
     eq.0
     repeat.7
         swap
@@ -195,7 +195,7 @@ proc.iszero_unsafe
     end
 end
 
-proc.eq_unsafe
+export.eq_unsafe
     swapw.3
     eqw
     movdn.8
@@ -209,7 +209,7 @@ proc.eq_unsafe
     and
 end"),
 // ----- std::math::u64 ---------------------------------------------------------------------------
-("std::math::u64", "proc.add_unsafe
+("std::math::u64", "export.add_unsafe
     swap
     movup.3
     u32add.unsafe

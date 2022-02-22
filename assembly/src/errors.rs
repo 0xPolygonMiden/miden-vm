@@ -223,6 +223,14 @@ impl AssemblyError {
         }
     }
 
+    pub fn prc_export_not_allowed(token: &Token, label: &str) -> Self {
+        AssemblyError {
+            message: format!("exported procedures not allowed in this context: {}", label),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
     // IMPORTS AND MODULES
     // --------------------------------------------------------------------------------------------
 
@@ -242,9 +250,20 @@ impl AssemblyError {
         }
     }
 
-    pub fn circular_module_dependency(token: &Token, module_stack: &[String]) -> Self {
+    pub fn circular_module_dependency(token: &Token, module_chain: &[String]) -> Self {
         AssemblyError {
-            message: format!("circular module dependency in the following chain: {:?}", module_stack),
+            message: format!(
+                "circular module dependency in the following chain: {:?}",
+                module_chain
+            ),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn invalid_module_path(token: &Token, module_path: &str) -> Self {
+        AssemblyError {
+            message: format!("invalid module import path: {}", module_path),
             step: token.pos(),
             op: token.to_string(),
         }

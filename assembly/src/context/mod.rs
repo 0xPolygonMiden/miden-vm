@@ -31,7 +31,7 @@ impl<'a> AssemblyContext<'a> {
     // STATE ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns true of a procedure with the specified label exists in this context.
+    /// Returns true if a procedure with the specified label exists in this context.
     pub fn contains_proc(&self, label: &str) -> bool {
         self.local_procs.contains_key(label) || self.imported_procs.contains_key(label)
     }

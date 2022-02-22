@@ -1,4 +1,4 @@
-proc.add_unsafe
+export.add_unsafe
     swap
     movup.3
     u32add.unsafe
