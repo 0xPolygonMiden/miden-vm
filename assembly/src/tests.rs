@@ -137,6 +137,36 @@ fn script_with_proc_locals() {
     assert_eq!(expected, format!("{}", script));
 }
 
+// IMPORTS
+// ================================================================================================
+
+#[test]
+fn script_with_one_import() {
+    let assembler = super::Assembler::new();
+    let source = "\
+        use.std::math::u256
+        begin \
+            push.4 push.3 \
+            exec.u256::iszero_unsafe \
+        end";
+    let script = assembler.compile_script(source).unwrap();
+    let expected = "\
+        begin \
+            span \
+                push(4) push(3) \
+                eqz \
+                swap eqz and \
+                swap eqz and \
+                swap eqz and \
+                swap eqz and \
+                swap eqz and \
+                swap eqz and \
+                swap eqz and \
+            end \
+        end";
+    assert_eq!(expected, format!("{}", script));
+}
+
 // COMMENTS
 // ================================================================================================
 

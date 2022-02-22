@@ -1,4 +1,4 @@
-use super::{parse_proc_blocks, AssemblyError, CodeBlock, ScriptContext, Token, TokenStream};
+use super::{parse_proc_blocks, AssemblyContext, AssemblyError, CodeBlock, Token, TokenStream};
 
 // PROCEDURE
 // ================================================================================================
@@ -6,21 +6,33 @@ use super::{parse_proc_blocks, AssemblyError, CodeBlock, ScriptContext, Token, T
 /// TODO: add docs
 pub struct Procedure {
     label: String,
+    #[allow(dead_code)]
     num_locals: u32,
     code_root: CodeBlock,
 }
 
 impl Procedure {
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a root of this procedure's MAST.
     pub fn code_root(&self) -> &CodeBlock {
         &self.code_root
     }
 
+    /// Returns a label of this procedure.
     pub fn label(&self) -> &str {
         &self.label
     }
 
+    // PARSER
+    // --------------------------------------------------------------------------------------------
+
     /// TODO: add docs
-    pub fn parse(tokens: &mut TokenStream, context: &ScriptContext) -> Result<Self, AssemblyError> {
+    pub fn parse(
+        tokens: &mut TokenStream,
+        context: &AssemblyContext,
+    ) -> Result<Self, AssemblyError> {
         let proc_start = tokens.pos();
 
         // read procedure name and consume the procedure header token
@@ -54,9 +66,5 @@ impl Procedure {
             num_locals,
             code_root,
         })
-    }
-
-    pub fn build_label(&self, prefix: &str) -> String {
-        format!("{}::{}", prefix, self.label)
     }
 }

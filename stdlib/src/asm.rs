@@ -4,11 +4,11 @@
 ///
 /// Entries in the array are tuples containing module namespace and module source code.
 #[rustfmt::skip]
-pub const MODULES: [(&str, &str); 2] = [
+pub const MODULES: [(&str, &str); 3] = [
 // ----- std::crypto::hashes::blake3 --------------------------------------------------------------
 ("std::crypto::hashes::blake3", ""),
 // ----- std::math::u256 --------------------------------------------------------------------------
-("std::math::u256", "proc.u256add_unsafe
+("std::math::u256", "proc.add_unsafe
     swapw.3
     movup.3
     movup.7
@@ -40,7 +40,7 @@ pub const MODULES: [(&str, &str); 2] = [
     drop
 end
 
-proc.u256sub_unsafe
+proc.sub_unsafe
     swapw.3
     movup.3
     movup.7
@@ -55,7 +55,7 @@ proc.u256sub_unsafe
     movup.6
     u32add.unsafe
     movup.5
-    movup2
+    movup.2
     u32sub.unsafe
     movup.2
     add
@@ -99,7 +99,7 @@ proc.u256sub_unsafe
     drop
 end
 
-proc.u256and
+proc.and
     swapw.3
     movup.3
     movup.7
@@ -128,7 +128,7 @@ proc.u256and
     u32and
 end
 
-proc.u256or
+proc.or
     swapw.3
     movup.3
     movup.7
@@ -186,7 +186,7 @@ proc.u256xor
     u32xor
 end
 
-proc.u256iszero_unsafe
+proc.iszero_unsafe
     eq.0
     repeat.7
         swap
@@ -195,7 +195,7 @@ proc.u256iszero_unsafe
     end
 end
 
-proc.u256eq_unsafe
+proc.eq_unsafe
     swapw.3
     eqw
     movdn.8
@@ -207,5 +207,15 @@ proc.u256eq_unsafe
     dropw
     dropw
     and
+end"),
+// ----- std::math::u64 ---------------------------------------------------------------------------
+("std::math::u64", "proc.add_unsafe
+    swap
+    movup.3
+    u32add.unsafe
+    movup.3
+    movup.3
+    u32addc
+    drop
 end"),
 ];

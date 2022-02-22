@@ -1,5 +1,5 @@
 use super::{
-    parse_op_token, AssemblyError, CodeBlock, Operation, ScriptContext, Token, TokenStream,
+    parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, Token, TokenStream,
 };
 use vm_core::Felt;
 use winter_utils::{collections::Vec, group_vector_elements};
@@ -10,7 +10,7 @@ use winter_utils::{collections::Vec, group_vector_elements};
 /// TODO: Add comments
 pub fn parse_code_blocks(
     tokens: &mut TokenStream,
-    context: &ScriptContext,
+    context: &AssemblyContext,
     num_proc_locals: u32,
 ) -> Result<CodeBlock, AssemblyError> {
     // make sure there is something to be read
@@ -38,7 +38,7 @@ pub fn parse_code_blocks(
 
 pub fn parse_proc_blocks(
     tokens: &mut TokenStream,
-    context: &ScriptContext,
+    context: &AssemblyContext,
     num_proc_locals: u32,
 ) -> Result<CodeBlock, AssemblyError> {
     // parse the procedure body
@@ -85,7 +85,7 @@ impl BlockParser {
     pub fn parse(
         &self,
         tokens: &mut TokenStream,
-        context: &ScriptContext,
+        context: &AssemblyContext,
         num_proc_locals: u32,
     ) -> Result<CodeBlock, AssemblyError> {
         match self {

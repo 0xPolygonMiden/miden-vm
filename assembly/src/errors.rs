@@ -223,6 +223,33 @@ impl AssemblyError {
         }
     }
 
+    // IMPORTS AND MODULES
+    // --------------------------------------------------------------------------------------------
+
+    pub fn missing_import_source(token: &Token, module_path: &str) -> Self {
+        AssemblyError {
+            message: format!("module source not found: {}", module_path),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn dangling_ops_after_module(token: &Token, module_path: &str) -> Self {
+        AssemblyError {
+            message: format!("dangling instructions after module end at {}", module_path),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn circular_module_dependency(token: &Token, module_stack: &[String]) -> Self {
+        AssemblyError {
+            message: format!("circular module dependency in the following chain: {:?}", module_stack),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
     pub fn message(&self) -> &String {
