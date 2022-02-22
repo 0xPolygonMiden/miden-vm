@@ -1,5 +1,10 @@
 use vm_core::program::{blocks::CodeBlock, Script};
-use winter_utils::collections::BTreeMap;
+
+mod context;
+use context::ScriptContext;
+
+mod procedures;
+use procedures::Procedure;
 
 mod parsers;
 use parsers::{parse_code_blocks, parse_proc_blocks};
@@ -20,21 +25,24 @@ mod tests;
 pub struct Assembler {}
 
 impl Assembler {
-    pub fn new() -> Assembler {
+    pub fn new() -> Self {
         Self {}
     }
 
     /// TODO: add comments
     pub fn compile_script(&self, source: &str) -> Result<Script, AssemblyError> {
         let mut tokens = TokenStream::new(source)?;
-        let mut proc_map = BTreeMap::new();
+        let mut context = ScriptContext::new();
 
         // parse procedures and add them to the procedure map; procedures are parsed in the order
         // in which they appear in the source, and thus, procedures which come later may invoke
         // preceding procedures
         while let Some(token) = tokens.read() {
             match token.parts()[0] {
-                Token::PROC => parse_proc(&mut tokens, &mut proc_map)?,
+                Token::PROC => {
+                    let proc = Procedure::parse(&mut tokens, &context)?;
+                    context.add_local_proc(proc);
+                }
                 _ => break,
             }
         }
@@ -48,7 +56,7 @@ impl Assembler {
         }
 
         // parse script body and return the resulting script
-        let script_root = parse_script(&mut tokens, &proc_map)?;
+        let script_root = parse_script(&mut tokens, &context)?;
         Ok(Script::new(script_root))
     }
 }
@@ -65,7 +73,7 @@ impl Default for Assembler {
 /// TODO: add comments
 fn parse_script(
     tokens: &mut TokenStream,
-    proc_map: &BTreeMap<String, CodeBlock>,
+    context: &ScriptContext,
 ) -> Result<CodeBlock, AssemblyError> {
     let script_start = tokens.pos();
     // consume the 'begin' token
@@ -74,7 +82,7 @@ fn parse_script(
     tokens.advance();
 
     // parse the script body
-    let root = parse_code_blocks(tokens, proc_map, 0)?;
+    let root = parse_code_blocks(tokens, context, 0)?;
 
     // consume the 'end' token
     match tokens.read() {
@@ -97,41 +105,4 @@ fn parse_script(
     }
 
     Ok(root)
-}
-
-/// TODO: add comments
-fn parse_proc(
-    tokens: &mut TokenStream,
-    proc_map: &mut BTreeMap<String, CodeBlock>,
-) -> Result<(), AssemblyError> {
-    let proc_start = tokens.pos();
-
-    // read procedure name and consume the procedure header token
-    let header = tokens.read().expect("missing procedure header");
-    let (label, num_locals) = header.parse_proc()?;
-    if proc_map.contains_key(&label) {
-        return Err(AssemblyError::duplicate_proc_label(header, &label));
-    }
-    tokens.advance();
-
-    // parse procedure body, and handle memory allocation/deallocation of locals if any are declared
-    let root = parse_proc_blocks(tokens, proc_map, num_locals)?;
-
-    // consume the 'end' token
-    match tokens.read() {
-        None => Err(AssemblyError::unmatched_proc(
-            tokens.read_at(proc_start).expect("no proc token"),
-        )),
-        Some(token) => match token.parts()[0] {
-            Token::END => token.validate_end(),
-            _ => Err(AssemblyError::unmatched_proc(
-                tokens.read_at(proc_start).expect("no proc token"),
-            )),
-        },
-    }?;
-    tokens.advance();
-
-    // add the procedure to the procedure map and return
-    proc_map.insert(label, root);
-    Ok(())
 }

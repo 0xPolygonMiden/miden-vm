@@ -17,6 +17,8 @@ impl<'a> Token<'a> {
     // CONTROL TOKENS
     // --------------------------------------------------------------------------------------------
 
+    pub const USE: &'static str = "use";
+
     pub const BEGIN: &'static str = "begin";
     pub const PROC: &'static str = "proc";
     pub const IF: &'static str = "if";
@@ -88,6 +90,18 @@ impl<'a> Token<'a> {
 
     // CONTROL TOKEN PARSERS / VALIDATORS
     // --------------------------------------------------------------------------------------------
+
+    pub fn parse_use(&self) -> Result<String, AssemblyError> {
+        assert_eq!(Self::USE, self.parts[0], "not a use");
+        match self.num_parts() {
+            1 => Err(AssemblyError::missing_param(self)),
+            2 => {
+                let ns_path = self.parts[1]; // TODO: validate
+                Ok(ns_path.to_string())
+            }
+            _ => Err(AssemblyError::extra_param(self)),
+        }
+    }
 
     pub fn validate_begin(&self) -> Result<(), AssemblyError> {
         assert_eq!(Self::BEGIN, self.parts[0], "not a begin");

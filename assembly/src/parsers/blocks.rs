@@ -1,9 +1,8 @@
-use super::{parse_op_token, AssemblyError, CodeBlock, Operation, Token, TokenStream};
-use vm_core::Felt;
-use winter_utils::{
-    collections::{BTreeMap, Vec},
-    group_vector_elements,
+use super::{
+    parse_op_token, AssemblyError, CodeBlock, Operation, ScriptContext, Token, TokenStream,
 };
+use vm_core::Felt;
+use winter_utils::{collections::Vec, group_vector_elements};
 
 // BLOCK PARSER
 // ================================================================================================
@@ -11,7 +10,7 @@ use winter_utils::{
 /// TODO: Add comments
 pub fn parse_code_blocks(
     tokens: &mut TokenStream,
-    proc_map: &BTreeMap<String, CodeBlock>,
+    context: &ScriptContext,
     num_proc_locals: u32,
 ) -> Result<CodeBlock, AssemblyError> {
     // make sure there is something to be read
@@ -23,7 +22,7 @@ pub fn parse_code_blocks(
     // parse the sequence of blocks and add each block to the list
     let mut blocks = Vec::new();
     while let Some(parser) = BlockParser::next(tokens)? {
-        let block = parser.parse(tokens, proc_map, num_proc_locals)?;
+        let block = parser.parse(tokens, context, num_proc_locals)?;
         blocks.push(block);
     }
 
@@ -39,11 +38,11 @@ pub fn parse_code_blocks(
 
 pub fn parse_proc_blocks(
     tokens: &mut TokenStream,
-    proc_map: &BTreeMap<String, CodeBlock>,
+    context: &ScriptContext,
     num_proc_locals: u32,
 ) -> Result<CodeBlock, AssemblyError> {
     // parse the procedure body
-    let body = parse_code_blocks(tokens, proc_map, num_proc_locals)?;
+    let body = parse_code_blocks(tokens, context, num_proc_locals)?;
 
     if num_proc_locals == 0 {
         // if no allocation of locals is required, return the procedure body
@@ -86,7 +85,7 @@ impl BlockParser {
     pub fn parse(
         &self,
         tokens: &mut TokenStream,
-        proc_map: &BTreeMap<String, CodeBlock>,
+        context: &ScriptContext,
         num_proc_locals: u32,
     ) -> Result<CodeBlock, AssemblyError> {
         match self {
@@ -109,7 +108,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the `if` clause
-                let t_branch = parse_code_blocks(tokens, proc_map, num_proc_locals)?;
+                let t_branch = parse_code_blocks(tokens, context, num_proc_locals)?;
 
                 // build the `else` clause; if the else clause is specified, then read it;
                 // otherwise, set to a Span with a single noop
@@ -122,7 +121,7 @@ impl BlockParser {
                             tokens.advance();
 
                             // parse the `false` branch
-                            let f_branch = parse_code_blocks(tokens, proc_map, num_proc_locals)?;
+                            let f_branch = parse_code_blocks(tokens, context, num_proc_locals)?;
 
                             // consume the `end` token
                             match tokens.read() {
@@ -172,7 +171,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the loop body
-                let loop_body = parse_code_blocks(tokens, proc_map, num_proc_locals)?;
+                let loop_body = parse_code_blocks(tokens, context, num_proc_locals)?;
 
                 // consume the `end` token
                 match tokens.read() {
@@ -198,7 +197,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the loop body
-                let loop_body = parse_code_blocks(tokens, proc_map, num_proc_locals)?;
+                let loop_body = parse_code_blocks(tokens, context, num_proc_locals)?;
 
                 // consume the `end` token
                 match tokens.read() {
@@ -230,8 +229,8 @@ impl BlockParser {
             Self::Exec(label) => {
                 // --------------------------------------------------------------------------------
                 // retrieve the procedure block from the proc map and consume the 'exec' token
-                let proc_root = proc_map
-                    .get(label)
+                let proc_root = context
+                    .get_proc_code(label)
                     .ok_or_else(|| {
                         AssemblyError::undefined_proc(tokens.read().expect("no exec token"), label)
                     })?
