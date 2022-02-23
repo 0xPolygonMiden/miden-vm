@@ -1,4 +1,4 @@
-use super::{parse_int_param, validate_op_len, AssemblyError, Operation, Token};
+use super::{parse_int_param, validate_operation, AssemblyError, Operation, Token};
 use vm_core::utils::PushMany;
 
 // CONSTANTS
@@ -21,11 +21,7 @@ const ADVICE_READ_LIMIT: u32 = 16;
 /// parameter, or does not match the expected operation. Returns an `invalid_param` `AssemblyError`
 /// if the parameter for `push.adv` is not a decimal value.
 pub fn parse_push_adv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // do basic validation common to all advice operations
-    validate_op_len(op, 2, 1, 1)?;
-    if op.parts()[1] != "adv" {
-        return Err(AssemblyError::unexpected_token(op, "push.adv.n"));
-    }
+    validate_operation!(op, "push.adv", 1);
 
     // parse and validate the parameter as the number of items to read from the advice tape
     // it must be between 1 and ADVICE_READ_LIMIT, inclusive, since adv.push.0 is a no-op
@@ -40,10 +36,7 @@ pub fn parse_push_adv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
 /// Reads a word from the advice tape and overwrites the top 4 elements of the stack with it. After
 /// validation, this operation uses the ```READW``` machine operation directly.
 pub fn parse_loadw_adv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // ensure that no parameter exists
-    if op.num_parts() > 2 {
-        return Err(AssemblyError::extra_param(op));
-    }
+    validate_operation!(op, "loadw.adv", 0);
 
     // load a word from the advice tape
     span_ops.push(Operation::ReadW);

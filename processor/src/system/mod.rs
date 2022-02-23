@@ -1,5 +1,13 @@
 use super::{Felt, FieldElement};
 
+// CONSTANTS
+// ================================================================================================
+
+// Memory addresses for procedure locals should start at 2^30 and not go below.
+pub const FMP_MIN: u64 = 2_u64.pow(30);
+// The total number of locals available to all procedures at runtime must be smaller than 2^32.
+pub const FMP_MAX: u64 = FMP_MIN + u32::MAX as u64;
+
 // SYSTEM INFO
 // ================================================================================================
 
@@ -17,11 +25,12 @@ impl System {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new [System] struct with execution traces instantiated with the specified length.
+    /// Initializes the free memory pointer `fmp` used for local memory offsets to 2^30.
     pub fn new(init_trace_length: usize) -> Self {
         Self {
             clk: 0,
             clk_trace: vec![Felt::ZERO; init_trace_length],
-            fmp: Felt::ZERO,
+            fmp: Felt::new(FMP_MIN),
             fmp_trace: vec![Felt::ZERO; init_trace_length],
         }
     }

@@ -1,4 +1,7 @@
-use super::{ExecutionError, Felt, FieldElement, Process, StarkField};
+use super::{
+    super::system::{FMP_MAX, FMP_MIN},
+    ExecutionError, Felt, FieldElement, Process, StarkField,
+};
 
 // SYSTEM OPERATIONS
 // ================================================================================================
@@ -50,7 +53,7 @@ impl Process {
         let fmp = self.system.fmp();
 
         let new_fmp = fmp + offset;
-        if new_fmp.as_int() > u32::MAX as u64 {
+        if new_fmp.as_int() < FMP_MIN || new_fmp.as_int() > FMP_MAX {
             return Err(ExecutionError::InvalidFmpValue(fmp, new_fmp));
         }
 
@@ -68,42 +71,42 @@ impl Process {
 mod tests {
     use super::{
         super::{init_stack_with, Operation},
-        Felt, FieldElement, Process,
+        Felt, FieldElement, Process, FMP_MAX, FMP_MIN,
     };
 
     #[test]
     fn op_fmpupdate() {
         let mut process = Process::new_dummy();
 
-        // initial value of fmp register should be zero
-        assert_eq!(Felt::ZERO, process.system.fmp());
+        // initial value of fmp register should be 2^30
+        assert_eq!(Felt::new(2_u64.pow(30)), process.system.fmp());
 
         // increment fmp register
         process.execute_op(Operation::Push(Felt::new(2))).unwrap();
         process.execute_op(Operation::FmpUpdate).unwrap();
-        assert_eq!(Felt::new(2), process.system.fmp());
+        assert_eq!(Felt::new(FMP_MIN + 2), process.system.fmp());
 
         // increment fmp register again
         process.execute_op(Operation::Push(Felt::new(3))).unwrap();
         process.execute_op(Operation::FmpUpdate).unwrap();
-        assert_eq!(Felt::new(5), process.system.fmp());
+        assert_eq!(Felt::new(FMP_MIN + 5), process.system.fmp());
 
         // decrement fmp register
         process.execute_op(Operation::Push(-Felt::new(3))).unwrap();
         process.execute_op(Operation::FmpUpdate).unwrap();
-        assert_eq!(Felt::new(2), process.system.fmp());
+        assert_eq!(Felt::new(FMP_MIN + 2), process.system.fmp());
 
-        // decrementing beyond zero should be an error
+        // decrementing beyond the minimum fmp value should be an error
         process.execute_op(Operation::Push(-Felt::new(3))).unwrap();
         assert!(process.execute_op(Operation::FmpUpdate).is_err());
 
-        // going up to u32::MAX should be OK
+        // going up to the max fmp value should be OK
         let mut process = Process::new_dummy();
         process
             .execute_op(Operation::Push(Felt::new(u32::MAX as u64)))
             .unwrap();
         process.execute_op(Operation::FmpUpdate).unwrap();
-        assert_eq!(Felt::new(u32::MAX as u64), process.system.fmp());
+        assert_eq!(Felt::new(FMP_MAX), process.system.fmp());
 
         // but going beyond that should be an error
         let mut process = Process::new_dummy();
@@ -133,14 +136,14 @@ mod tests {
         process.execute_op(Operation::Push(-Felt::new(1))).unwrap();
         process.execute_op(Operation::FmpAdd).unwrap();
 
-        let expected = build_expected(&[1]);
+        let expected = build_expected(&[FMP_MIN + 1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // compute address of second local (also make sure that rest of stack is not affected)
         process.execute_op(Operation::Push(-Felt::new(2))).unwrap();
         process.execute_op(Operation::FmpAdd).unwrap();
 
-        let expected = build_expected(&[0, 1]);
+        let expected = build_expected(&[FMP_MIN, FMP_MIN + 1]);
         assert_eq!(expected, process.stack.trace_state());
     }
 

@@ -1,6 +1,6 @@
 use super::{
-    parse_decimal_param, parse_element_param, parse_hex_param, parse_int_param, push_value,
-    validate_op_len, AssemblyError, Felt, Operation, Token,
+    super::validate_operation, parse_decimal_param, parse_element_param, parse_hex_param,
+    parse_int_param, push_value, AssemblyError, Felt, Operation, Token,
 };
 
 mod adv_ops;
@@ -64,7 +64,7 @@ pub fn parse_push(
 
     match op.parts()[1] {
         "adv" => parse_push_adv(span_ops, op),
-        "env" => parse_push_env(span_ops, op),
+        "env" => parse_push_env(span_ops, op, num_proc_locals),
         "local" => parse_push_local(span_ops, op, num_proc_locals),
         "mem" => parse_push_mem(span_ops, op),
         _ => parse_push_constant(span_ops, op),
@@ -92,14 +92,7 @@ pub fn parse_pushw(
     op: &Token,
     num_proc_locals: u32,
 ) -> Result<(), AssemblyError> {
-    // validate op
-    validate_op_len(op, 2, 0, 1)?;
-    if op.parts()[0] != "pushw" {
-        return Err(AssemblyError::unexpected_token(
-            op,
-            "pushw.{mem|mem.a|local.i}",
-        ));
-    }
+    validate_operation!(op, "pushw.local|mem");
 
     match op.parts()[1] {
         // read from mem with overwrite_stack_top set to false so the rest of the stack is kept
@@ -131,12 +124,7 @@ pub fn parse_pop(
     op: &Token,
     num_proc_locals: u32,
 ) -> Result<(), AssemblyError> {
-    if op.num_parts() < 2 {
-        return Err(AssemblyError::invalid_op(op));
-    }
-    if op.parts()[0] != "pop" {
-        return Err(AssemblyError::unexpected_token(op, "pop.{mem|mem.a}"));
-    }
+    validate_operation!(op, "pop.local|mem");
 
     match op.parts()[1] {
         "local" => parse_pop_local(span_ops, op, num_proc_locals),
@@ -167,14 +155,7 @@ pub fn parse_popw(
     op: &Token,
     num_proc_locals: u32,
 ) -> Result<(), AssemblyError> {
-    // validate op
-    validate_op_len(op, 2, 0, 1)?;
-    if op.parts()[0] != "popw" {
-        return Err(AssemblyError::unexpected_token(
-            op,
-            "popw.{mem|mem.a|local.i}",
-        ));
-    }
+    validate_operation!(op, "popw.local|mem");
 
     match op.parts()[1] {
         // write to mem with retain_stack_top set to false so the 4 elements are dropped after writing
@@ -215,14 +196,7 @@ pub fn parse_loadw(
     op: &Token,
     num_proc_locals: u32,
 ) -> Result<(), AssemblyError> {
-    // validate op
-    validate_op_len(op, 2, 0, 1)?;
-    if op.parts()[0] != "loadw" {
-        return Err(AssemblyError::unexpected_token(
-            op,
-            "loadw.{adv|mem|mem.a|local.i}",
-        ));
-    }
+    validate_operation!(op, "loadw.adv|local|mem");
 
     match op.parts()[1] {
         "adv" => parse_loadw_adv(span_ops, op),
@@ -260,14 +234,7 @@ pub fn parse_storew(
     op: &Token,
     num_proc_locals: u32,
 ) -> Result<(), AssemblyError> {
-    // validate op
-    validate_op_len(op, 2, 0, 1)?;
-    if op.parts()[0] != "storew" {
-        return Err(AssemblyError::unexpected_token(
-            op,
-            "storew.{mem|mem.a|local.i}",
-        ));
-    }
+    validate_operation!(op, "storew.local|mem");
 
     match op.parts()[1] {
         // write to mem with retain_stack_top set to true so the 4 elements are left on the stack
@@ -292,7 +259,7 @@ mod tests {
 
     #[test]
     fn pushw_invalid() {
-        test_parsew_base("pushw", "pushw.{mem|mem.a|local.i}");
+        test_parsew_base("pushw", "pushw.local|mem");
     }
 
     // TESTS FOR REMOVING VALUES FROM THE STACK (POP)
@@ -300,7 +267,7 @@ mod tests {
 
     #[test]
     fn popw_invalid() {
-        test_parsew_base("popw", "popw.{mem|mem.a|local.i}");
+        test_parsew_base("popw", "popw.local|mem");
     }
 
     // TESTS FOR OVERWRITING VALUES ON THE STACK (LOAD)
@@ -308,7 +275,7 @@ mod tests {
 
     #[test]
     fn loadw_invalid() {
-        test_parsew_base("loadw", "loadw.{adv|mem|mem.a|local.i}");
+        test_parsew_base("loadw", "loadw.adv|local|mem");
     }
 
     // TESTS FOR SAVING STACK VALUES WITHOUT REMOVING THEM (STORE)
@@ -316,7 +283,7 @@ mod tests {
 
     #[test]
     fn storew_invalid() {
-        test_parsew_base("storew", "storew.{mem|mem.a|local.i}");
+        test_parsew_base("storew", "storew.local|mem");
     }
 
     // TEST HELPERS
@@ -342,7 +309,7 @@ mod tests {
         // invalid variant
         let op_str = format!("{}.invalid", base_op);
         let op_invalid = Token::new(&op_str, pos);
-        let expected = AssemblyError::invalid_op(&op_invalid);
+        let expected = AssemblyError::unexpected_token(&op_invalid, expected_token);
         assert_eq!(
             get_parsing_error(base_op, &op_invalid, num_proc_locals),
             expected

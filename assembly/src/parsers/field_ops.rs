@@ -1,5 +1,6 @@
 use super::{
-    parse_element_param, validate_op_len, AssemblyError, Felt, FieldElement, Operation, Token,
+    super::validate_operation, parse_element_param, AssemblyError, Felt, FieldElement, Operation,
+    Token,
 };
 
 // ASSERTIONS AND TESTS
@@ -227,11 +228,7 @@ pub fn parse_neq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 /// # Errors
 /// Returns an error if the assembly operation token is malformed or incorrect.
 pub fn parse_eqw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // validate operation
-    validate_op_len(op, 1, 0, 0)?;
-    if op.parts()[0] != "eqw" {
-        return Err(AssemblyError::unexpected_token(op, "eqw"));
-    }
+    validate_operation!(op, "eqw", 0);
 
     span_ops.push(Operation::Eqw);
 
@@ -247,11 +244,7 @@ pub fn parse_eqw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 /// # Errors
 /// Returns an error if the assembly operation token is malformed or incorrect.
 pub fn parse_lt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // validate operation
-    validate_op_len(op, 1, 0, 0)?;
-    if op.parts()[0] != "lt" {
-        return Err(AssemblyError::unexpected_token(op, "lt"));
-    }
+    validate_operation!(op, "lt", 0);
 
     // Split both elements into high and low bits
     // 3 cycles
@@ -282,11 +275,7 @@ pub fn parse_lt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assembl
 /// # Errors
 /// Returns an error if the assembly operation token is malformed or incorrect.
 pub fn parse_lte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // validate operation
-    validate_op_len(op, 1, 0, 0)?;
-    if op.parts()[0] != "lte" {
-        return Err(AssemblyError::unexpected_token(op, "lte"));
-    }
+    validate_operation!(op, "lte", 0);
 
     // Split both elements into high and low bits
     // 3 cycles
@@ -317,11 +306,7 @@ pub fn parse_lte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 /// # Errors
 /// Returns an error if the assembly operation token is malformed or incorrect.
 pub fn parse_gt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // validate operation
-    validate_op_len(op, 1, 0, 0)?;
-    if op.parts()[0] != "gt" {
-        return Err(AssemblyError::unexpected_token(op, "gt"));
-    }
+    validate_operation!(op, "gt", 0);
 
     // Split both elements into high and low bits
     // 3 cycles
@@ -352,11 +337,7 @@ pub fn parse_gt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assembl
 /// # Errors
 /// Returns an error if the assembly operation token is malformed or incorrect.
 pub fn parse_gte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // validate operation
-    validate_op_len(op, 1, 0, 0)?;
-    if op.parts()[0] != "gte" {
-        return Err(AssemblyError::unexpected_token(op, "gte"));
-    }
+    validate_operation!(op, "gte", 0);
 
     // Split both elements into high and low bits
     // 3 cycles

@@ -1,4 +1,6 @@
-use super::{parse_int_param, push_value, validate_op_len, AssemblyError, Felt, Operation, Token};
+use super::{
+    parse_int_param, push_value, validate_operation, AssemblyError, Felt, Operation, Token,
+};
 use vm_core::utils::PushMany;
 
 // LOCAL MEMORY FOR PROCEDURE VARIABLES
@@ -11,7 +13,7 @@ pub fn parse_push_local(
     op: &Token,
     num_proc_locals: u32,
 ) -> Result<(), AssemblyError> {
-    validate_op_len(op, 2, 1, 1)?;
+    validate_operation!(op, "push.local", 1);
 
     parse_read_local(span_ops, op, num_proc_locals, false)?;
 
@@ -27,7 +29,7 @@ pub fn parse_pop_local(
     op: &Token,
     num_proc_locals: u32,
 ) -> Result<(), AssemblyError> {
-    validate_op_len(op, 2, 1, 1)?;
+    validate_operation!(op, "pop.local", 1);
 
     // pad to word length before calling STOREW
     span_ops.push_many(Operation::Pad, 3);
@@ -53,10 +55,7 @@ pub fn parse_read_local(
     num_proc_locals: u32,
     overwrite_stack_top: bool,
 ) -> Result<(), AssemblyError> {
-    // check for parameter
-    if op.num_parts() < 3 {
-        return Err(AssemblyError::missing_param(op));
-    }
+    validate_operation!(@only_params op, "pushw|loadw.local", 1);
 
     if !overwrite_stack_top {
         // make space for the new elements
@@ -86,10 +85,7 @@ pub fn parse_write_local(
     num_proc_locals: u32,
     retain_stack_top: bool,
 ) -> Result<(), AssemblyError> {
-    // check for parameter
-    if op.num_parts() < 3 {
-        return Err(AssemblyError::missing_param(op));
-    }
+    validate_operation!(@only_params op, "popw|storew.local", 1);
 
     push_local_addr(span_ops, op, num_proc_locals)?;
     span_ops.push(Operation::StoreW);
