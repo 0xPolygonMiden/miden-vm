@@ -1,5 +1,5 @@
-use super::{AssemblyError, Token, TokenStream};
-pub use blocks::{parse_code_blocks, parse_proc_blocks};
+use super::{AssemblyContext, AssemblyError, Token, TokenStream};
+pub use blocks::{combine_blocks, parse_code_blocks};
 use vm_core::{program::blocks::CodeBlock, Felt, FieldElement, Operation, StarkField};
 
 mod blocks;

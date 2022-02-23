@@ -1,0 +1,20 @@
+[package]
+name = "miden-stdlib"
+version = "0.1.0"
+description = "Miden VM standard library"
+authors = ["miden contributors"]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/maticnetwork/miden"
+categories = ["cryptography", "mathematics"]
+keywords = ["miden", "program", "stdlib"]
+edition = "2021"
+rust-version = "1.57"
+
+[lib]
+bench = false
+doctest = false
+
+[dependencies]
+vm-core = { package = "miden-core", path = "../core", version = "0.2" }
+winter-utils = { package = "winter-utils", version = "0.3" }

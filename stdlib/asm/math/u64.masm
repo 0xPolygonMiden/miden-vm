@@ -1,0 +1,9 @@
+export.add_unsafe
+    swap
+    movup.3
+    u32add.unsafe
+    movup.3
+    movup.3
+    u32addc
+    drop
+end

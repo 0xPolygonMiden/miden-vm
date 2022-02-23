@@ -8,6 +8,9 @@ use winter_utils::collections::BTreeMap;
 pub mod blocks;
 use blocks::CodeBlock;
 
+mod library;
+pub use library::Library;
+
 // SCRIPT
 // ================================================================================================
 /// A program which can be executed by the VM.
