@@ -8,7 +8,9 @@ use super::{
 /// Appends machine operations to the current span block according to the requested environment
 /// assembly instruction.
 ///
-/// `push.env.sdepth` pushes the current depth of the stack onto the top of the stack, which is
+/// - `push.env.locaddr.i` pushes the absolute address of the local variable at index `i` onto the
+/// stack.
+/// - `push.env.sdepth` pushes the current depth of the stack onto the top of the stack, which is
 /// handled directly by the `SDEPTH` operation.
 ///
 /// # Errors
