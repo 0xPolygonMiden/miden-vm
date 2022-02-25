@@ -235,7 +235,7 @@ pub fn parse_u32madd(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
     Ok(())
 }
 
-/// Translates u32addc assembly instruction to VM operations.
+/// Translates u32div assembly instruction to VM operations.
 ///
 /// The base operation is `U32DIV`, but depending on the mode, additional operations may be
 /// inserted. Please refer to the docs of `handle_arithmetic_operation` for more details.
@@ -660,7 +660,7 @@ fn assert_u32(span_ops: &mut Vec<Operation>) {
 
 /// Asserts that both values at the top of the stack are u32 values.
 ///
-/// When `preserve_order` is set to true, the stack state is preserved; otherwise the two two
+/// When `preserve_order` is set to true, the stack state is preserved; otherwise the two
 /// stack items are swapped.
 fn assert_u32_operands(span_ops: &mut Vec<Operation>, preserve_order: bool) {
     assert_u32(span_ops);
@@ -799,6 +799,14 @@ fn handle_arithmetic_operation(
                 // for operation.n (where n is the immediate value), we need to push the immediate
                 // value onto the stack, and make sure both operands are u32 values. we also want
                 // to make sure the result is a u32 value.
+                if op.parts()[0] == "u32div" && parse_int_param(op, 1, 0, u32::MAX)? == 0 {
+                    return Err(AssemblyError::invalid_param_with_reason(
+                        op,
+                        1,
+                        "division by 0",
+                    ));
+                }
+
                 assert_u32_and_push_u32_param(span_ops, op, 0)?;
                 true
             }
@@ -811,8 +819,12 @@ fn handle_arithmetic_operation(
 
     // make sure the result is a u32 value, and drop the high bits
     if assert_u32_result {
-        span_ops.push(Operation::Eqz);
-        span_ops.push(Operation::Assert);
+        if op.parts()[0] == "u32div" {
+            span_ops.push(Operation::Drop)
+        } else {
+            span_ops.push(Operation::Eqz);
+            span_ops.push(Operation::Assert);
+        }
     }
 
     Ok(())
