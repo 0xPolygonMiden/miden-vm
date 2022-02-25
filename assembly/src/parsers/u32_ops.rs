@@ -246,7 +246,41 @@ pub fn parse_u32madd(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
 /// - u32div.full: 9 cycles
 /// - u32div.unsafe: 1 cycle
 pub fn parse_u32div(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    handle_arithmetic_operation(span_ops, op, Operation::U32div, true)
+    let drop_remainder = match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => {
+            assert_u32_operands(span_ops, true);
+            true
+        }
+        2 => match op.parts()[1] {
+            "unsafe" => false,
+            "full" => {
+                assert_u32_operands(span_ops, true);
+                false
+            }
+            _ => {
+                if parse_int_param(op, 1, 0, u32::MAX)? == 0 {
+                    return Err(AssemblyError::invalid_param_with_reason(
+                        op,
+                        1,
+                        "division by 0",
+                    ));
+                }
+
+                assert_u32_and_push_u32_param(span_ops, op, 0)?;
+                true
+            }
+        },
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    span_ops.push(Operation::U32div);
+
+    if drop_remainder {
+        span_ops.push(Operation::Drop)
+    }
+
+    Ok(())
 }
 
 /// Translates u32mod assembly instruction to VM operations.
@@ -799,14 +833,6 @@ fn handle_arithmetic_operation(
                 // for operation.n (where n is the immediate value), we need to push the immediate
                 // value onto the stack, and make sure both operands are u32 values. we also want
                 // to make sure the result is a u32 value.
-                if op.parts()[0] == "u32div" && parse_int_param(op, 1, 0, u32::MAX)? == 0 {
-                    return Err(AssemblyError::invalid_param_with_reason(
-                        op,
-                        1,
-                        "division by 0",
-                    ));
-                }
-
                 assert_u32_and_push_u32_param(span_ops, op, 0)?;
                 true
             }
@@ -819,12 +845,8 @@ fn handle_arithmetic_operation(
 
     // make sure the result is a u32 value, and drop the high bits
     if assert_u32_result {
-        if op.parts()[0] == "u32div" {
-            span_ops.push(Operation::Drop)
-        } else {
-            span_ops.push(Operation::Eqz);
-            span_ops.push(Operation::Assert);
-        }
+        span_ops.push(Operation::Eqz);
+        span_ops.push(Operation::Assert);
     }
 
     Ok(())
