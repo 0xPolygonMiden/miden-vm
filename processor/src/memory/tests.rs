@@ -207,6 +207,36 @@ fn mem_write_read() {
     assert_eq!(expected, read_trace_row(&trace, 8));
 }
 
+#[test]
+fn mem_get_values_at() {
+    let mut mem = Memory::new();
+
+    // write 1 into address 5; clk = 1
+    mem.advance_clock();
+    let addr5 = Felt::new(5);
+    let value1 = [Felt::ONE, Felt::ZERO, Felt::ZERO, Felt::ZERO];
+    mem.write(addr5, value1);
+
+    // write 4 into address 2; clk = 2
+    mem.advance_clock();
+    let addr2 = Felt::new(2);
+    let value4 = [Felt::new(4), Felt::ZERO, Felt::ZERO, Felt::ZERO];
+    mem.write(addr2, value4);
+
+    // read a value from address 5; clk = 3
+    mem.advance_clock();
+    assert_eq!(vec![(5_u64, value1)], mem.get_values_at(0..=5, Some(1)));
+    assert_eq!(
+        vec![(2_u64, value4), (5_u64, value1)],
+        mem.get_values_at(0..=5, Some(2))
+    );
+    assert_eq!(
+        vec![(2_u64, value4), (5_u64, value1)],
+        mem.get_values_at(0..=5, Some(3))
+    );
+    assert_eq!(vec![(2_u64, value4)], mem.get_values_at(0..=4, Some(3)));
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 

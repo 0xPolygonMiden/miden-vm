@@ -64,6 +64,15 @@ impl OverflowTable {
         }
     }
 
+    /// Appends the state of the overflow table at the specified clock cycle to the provided vector.
+    pub fn append_state_into(&self, target: &mut Vec<Felt>, clk: usize) {
+        if let Some(x) = self.trace.range(0..=clk).last() {
+            for item in x.1.iter().rev() {
+                target.push(*item);
+            }
+        }
+    }
+
     /// Returns a vector consisting of just the value portion of each table row.
     fn get_values(&self) -> Vec<Felt> {
         self.rows.iter().map(|r| r.val).collect()

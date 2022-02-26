@@ -224,12 +224,38 @@ impl Memory {
         self.get_values(RangeInclusive::new(0, u64::MAX))
     }
 
-    /// Returns values within a range of addresses.
+    /// Returns values within a range of addresses at the last clock cycle.
     pub fn get_values(&self, range: RangeInclusive<u64>) -> Vec<(u64, Word)> {
+        self.get_values_at(range, None)
+    }
+
+    /// Returns values within a range of addresses, or optionally all values at a partciular step.
+    /// If no step is specified, then values at the last step are returned.
+    pub fn get_values_at(
+        &self,
+        range: RangeInclusive<u64>,
+        step: Option<usize>,
+    ) -> Vec<(u64, Word)> {
         let mut data: Vec<(u64, Word)> = Vec::new();
-        for (&addr, addr_trace) in self.trace.range(range) {
-            let value = addr_trace.last().expect("empty address trace").1;
-            data.push((addr, value));
+        if let Some(s) = step {
+            for (&addr, addr_trace) in self.trace.range(range) {
+                match addr_trace.binary_search_by(|(x, _)| x.as_int().cmp(&(s as u64))) {
+                    Ok(i) => data.push((addr, addr_trace[i].1)),
+                    Err(i) => {
+                        // Binary search would find the index the specified step should be in.
+                        // We decrement the index to get the equal or less than specified step
+                        // trace to insert into the results.
+                        if i > 0 {
+                            data.push((addr, addr_trace[i - 1].1));
+                        }
+                    }
+                }
+            }
+        } else {
+            for (&addr, addr_trace) in self.trace.range(range) {
+                let value = addr_trace.last().expect("empty address trace").1;
+                data.push((addr, value));
+            }
         }
 
         data

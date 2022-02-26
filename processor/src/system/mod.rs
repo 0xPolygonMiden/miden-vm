@@ -66,6 +66,12 @@ impl System {
         [self.clk_trace, self.fmp_trace]
     }
 
+    /// Returns free memory pointer at the specified clock cycle.
+    #[inline(always)]
+    pub fn get_fmp_at(&self, clk: usize) -> Felt {
+        self.fmp_trace[clk]
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
