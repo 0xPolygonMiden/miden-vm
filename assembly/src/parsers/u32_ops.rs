@@ -259,7 +259,8 @@ pub fn parse_u32div(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
                 false
             }
             _ => {
-                if parse_int_param(op, 1, 0, u32::MAX)? == 0 {
+                let divider: u32 = parse_int_param(op, 1, 0, u32::MAX)?;
+                if divider == 0 {
                     return Err(AssemblyError::invalid_param_with_reason(
                         op,
                         1,
@@ -267,7 +268,8 @@ pub fn parse_u32div(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
                     ));
                 }
 
-                assert_u32_and_push_u32_param(span_ops, op, 0)?;
+                assert_u32(span_ops);
+                push_value(span_ops, Felt::new(divider as u64));
                 true
             }
         },
@@ -303,7 +305,17 @@ pub fn parse_u32mod(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
             _ => {
                 // for u32mod.n (where n is the immediate value), we need to push the immediate
                 // value onto the stack, and make sure both operands are u32 values.
-                assert_u32_and_push_u32_param(span_ops, op, 1)?;
+                let divider: u32 = parse_int_param(op, 1, 0, u32::MAX)?;
+                if divider == 0 {
+                    return Err(AssemblyError::invalid_param_with_reason(
+                        op,
+                        1,
+                        "division by 0",
+                    ));
+                }
+
+                assert_u32(span_ops);
+                push_value(span_ops, Felt::new(divider as u64));
             }
         },
         _ => return Err(AssemblyError::extra_param(op)),
@@ -799,7 +811,7 @@ fn handle_u32_and_unsafe_check(
 ///   - Any number argument gets pushed to the stack, checked if both are u32 and performs the
 ///     operation.
 ///
-/// According to the spec this is currently U32ADD, U32SUB, U32DIV, U32MUL.
+/// According to the spec this is currently U32ADD, U32SUB, U32MUL.
 fn handle_arithmetic_operation(
     span_ops: &mut Vec<Operation>,
     op: &Token,
