@@ -259,8 +259,8 @@ pub fn parse_u32div(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
                 false
             }
             _ => {
-                let divider: u32 = parse_int_param(op, 1, 0, u32::MAX)?;
-                if divider == 0 {
+                let divisor: u32 = parse_int_param(op, 1, 0, u32::MAX)?;
+                if divisor == 0 {
                     return Err(AssemblyError::invalid_param_with_reason(
                         op,
                         1,
@@ -269,7 +269,7 @@ pub fn parse_u32div(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
                 }
 
                 assert_u32(span_ops);
-                push_value(span_ops, Felt::new(divider as u64));
+                push_value(span_ops, Felt::new(divisor as u64));
                 true
             }
         },
@@ -305,8 +305,8 @@ pub fn parse_u32mod(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
             _ => {
                 // for u32mod.n (where n is the immediate value), we need to push the immediate
                 // value onto the stack, and make sure both operands are u32 values.
-                let divider: u32 = parse_int_param(op, 1, 0, u32::MAX)?;
-                if divider == 0 {
+                let divisor: u32 = parse_int_param(op, 1, 0, u32::MAX)?;
+                if divisor == 0 {
                     return Err(AssemblyError::invalid_param_with_reason(
                         op,
                         1,
@@ -315,7 +315,7 @@ pub fn parse_u32mod(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
                 }
 
                 assert_u32(span_ops);
-                push_value(span_ops, Felt::new(divider as u64));
+                push_value(span_ops, Felt::new(divisor as u64));
             }
         },
         _ => return Err(AssemblyError::extra_param(op)),
