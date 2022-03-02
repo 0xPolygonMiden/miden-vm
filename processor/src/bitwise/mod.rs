@@ -2,6 +2,7 @@ use super::{ExecutionError, Felt, FieldElement, StarkField, TraceFragment};
 
 #[cfg(test)]
 mod tests;
+mod utils;
 
 // CONSTANTS
 // ================================================================================================
@@ -96,6 +97,8 @@ impl Bitwise {
     /// This also adds 8 rows to the internal execution trace table required for computing the
     /// operation.
     pub fn u32and(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
+        let a = utils::assert_u32(a)?;
+        let b = utils::assert_u32(b)?;
         let a = a.as_int();
         let b = b.as_int();
         let mut result = 0u64;
@@ -129,6 +132,8 @@ impl Bitwise {
     /// This also adds 8 rows to the internal execution trace table required for computing the
     /// operation.
     pub fn u32or(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
+        let a = utils::assert_u32(a)?;
+        let b = utils::assert_u32(b)?;
         let a = a.as_int();
         let b = b.as_int();
         let mut result = 0u64;
@@ -162,6 +167,8 @@ impl Bitwise {
     /// This also adds 8 rows to the internal execution trace table required for computing the
     /// operation.
     pub fn u32xor(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
+        let a = utils::assert_u32(a)?;
+        let b = utils::assert_u32(b)?;
         let a = a.as_int();
         let b = b.as_int();
         let mut result = 0u64;

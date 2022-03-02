@@ -38,8 +38,8 @@ fn u32and() {
 fn u32and_fail() {
     let asm_op = "u32and";
 
-    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
-    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
+    test_execution_failure(asm_op, &[U32_BOUND, 0], "NotU32Value");
+    test_execution_failure(asm_op, &[0, U32_BOUND], "NotU32Value");
 }
 
 #[test]
@@ -72,8 +72,8 @@ fn u32or() {
 fn u32or_fail() {
     let asm_op = "u32or";
 
-    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
-    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
+    test_execution_failure(asm_op, &[U32_BOUND, 0], "NotU32Value");
+    test_execution_failure(asm_op, &[0, U32_BOUND], "NotU32Value");
 }
 
 #[test]
@@ -106,8 +106,8 @@ fn u32xor() {
 fn u32xor_fail() {
     let asm_op = "u32xor";
 
-    test_execution_failure(asm_op, &[U32_BOUND, 0], "FailedAssertion");
-    test_execution_failure(asm_op, &[0, U32_BOUND], "FailedAssertion");
+    test_execution_failure(asm_op, &[U32_BOUND, 0], "NotU32Value");
+    test_execution_failure(asm_op, &[0, U32_BOUND], "NotU32Value");
 }
 
 #[test]
