@@ -2,7 +2,6 @@ use super::{ExecutionError, Felt, FieldElement, StarkField, TraceFragment};
 
 #[cfg(test)]
 mod tests;
-mod utils;
 
 // CONSTANTS
 // ================================================================================================
@@ -97,10 +96,8 @@ impl Bitwise {
     /// This also adds 8 rows to the internal execution trace table required for computing the
     /// operation.
     pub fn u32and(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
-        let a = utils::assert_u32(a)?;
-        let b = utils::assert_u32(b)?;
-        let a = a.as_int();
-        let b = b.as_int();
+        let a = assert_u32(a)?.as_int();
+        let b = assert_u32(b)?.as_int();
         let mut result = 0u64;
 
         // append 8 rows to the trace, each row computing bitwise AND in 4 bit limbs starting with
@@ -132,10 +129,8 @@ impl Bitwise {
     /// This also adds 8 rows to the internal execution trace table required for computing the
     /// operation.
     pub fn u32or(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
-        let a = utils::assert_u32(a)?;
-        let b = utils::assert_u32(b)?;
-        let a = a.as_int();
-        let b = b.as_int();
+        let a = assert_u32(a)?.as_int();
+        let b = assert_u32(b)?.as_int();
         let mut result = 0u64;
 
         // append 8 rows to the trace, each row computing bitwise OR in 4 bit limbs starting with
@@ -167,10 +162,8 @@ impl Bitwise {
     /// This also adds 8 rows to the internal execution trace table required for computing the
     /// operation.
     pub fn u32xor(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
-        let a = utils::assert_u32(a)?;
-        let b = utils::assert_u32(b)?;
-        let a = a.as_int();
-        let b = b.as_int();
+        let a = assert_u32(a)?.as_int();
+        let b = assert_u32(b)?.as_int();
         let mut result = 0u64;
 
         // append 8 rows to the trace, each row computing bitwise XOR in 4 bit limbs starting with
@@ -237,5 +230,17 @@ impl Bitwise {
         self.trace[9].push(Felt::new((b >> 1) & 1));
         self.trace[10].push(Felt::new((b >> 2) & 1));
         self.trace[11].push(Felt::new((b >> 3) & 1));
+    }
+}
+
+// HELPER FUNCTIONS
+// --------------------------------------------------------------------------------------------
+
+pub fn assert_u32(value: Felt) -> Result<Felt, ExecutionError> {
+    let val_u64 = value.as_int();
+    if val_u64 > u32::MAX.into() {
+        Err(ExecutionError::NotU32Value(value))
+    } else {
+        Ok(value)
     }
 }
