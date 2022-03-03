@@ -16,4 +16,5 @@ pub enum ExecutionError {
     AdviceSetLookupFailed(AdviceSetError),
     AdviceSetUpdateFailed(AdviceSetError),
     InvalidFmpValue(Felt, Felt),
+    NotU32Value(Felt),
 }
