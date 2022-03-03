@@ -147,7 +147,7 @@ export.or
     u32or
 end
 
-export.u256xor
+export.xor
     swapw.3
     movup.3
     movup.7

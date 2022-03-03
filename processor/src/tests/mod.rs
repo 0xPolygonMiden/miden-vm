@@ -7,6 +7,7 @@ mod crypto_ops;
 mod field_ops;
 mod flow_control;
 mod io_ops;
+mod stdlib;
 mod u32_ops;
 
 // TESTS
