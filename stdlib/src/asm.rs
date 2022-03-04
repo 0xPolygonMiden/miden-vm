@@ -157,7 +157,7 @@ export.or
     u32or
 end
 
-export.u256xor
+export.xor
     swapw.3
     movup.3
     movup.7
@@ -209,13 +209,35 @@ export.eq_unsafe
     and
 end"),
 // ----- std::math::u64 ---------------------------------------------------------------------------
-("std::math::u64", "export.add_unsafe
+("std::math::u64", "# Performs addition of two unsigned 64 bit integers discarding the overflow. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a + b) % 2^64 #
+export.add_unsafe
     swap
     movup.3
     u32add.unsafe
     movup.3
     movup.3
     u32addc
+    drop
+end
+
+# Performs multiplication of two unsigned 64 bit integers discarding the overflow. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a * b) % 2^64 #
+export.mul_unsafe
+    dup.3
+    dup.2
+    u32mul.unsafe
+    movup.4
+    movup.4
+    u32madd
+    drop
+    movup.3
+    movup.3
+    u32madd
     drop
 end"),
 ];
