@@ -9,12 +9,16 @@ pub enum AdviceInjector {
     /// - index of the node, 1 element
     /// - root of the tree, 4 elements
     MerkleNode,
+
+    /// TODO: add comments
+    DivResultU64,
 }
 
 impl fmt::Display for AdviceInjector {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MerkleNode => write!(f, "merkle_node"),
+            Self::DivResultU64 => write!(f, "div_result_u64"),
         }
     }
 }
