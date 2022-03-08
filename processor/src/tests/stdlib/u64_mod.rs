@@ -43,6 +43,31 @@ fn mul_unsafe() {
     test_script_execution(&script, &[a0, a1, b0, b1], &[c1, c0]);
 }
 
+#[test]
+fn div_unsafe() {
+    let a: u64 = rand_value();
+    let b: u64 = rand_value();
+    let c = a / b;
+
+    let script = compile(
+        "
+        use.std::math::u64
+        begin
+            exec.u64::div_unsafe
+        end",
+    );
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    let (c1, c0) = split_u64(c);
+
+    test_script_execution(&script, &[a0, a1, b0, b1], &[c1, c0]);
+
+    let d = a / b0;
+    let (d1, d0) = split_u64(d);
+    test_script_execution(&script, &[a0, a1, b0, 0], &[d1, d0]);
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
