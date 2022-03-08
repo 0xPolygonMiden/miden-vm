@@ -1,4 +1,4 @@
-use super::{compile, test_script_execution};
+use super::super::build_test;
 
 mod crypto;
 mod u64_mod;

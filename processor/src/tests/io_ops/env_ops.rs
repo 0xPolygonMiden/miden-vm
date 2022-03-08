@@ -1,4 +1,4 @@
-use super::{compile, test_op_execution, test_script_execution};
+use super::{build_op_test, build_test};
 use crate::system::FMP_MIN;
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
@@ -9,39 +9,37 @@ fn push_env_sdepth() {
     let test_op = "push.env.sdepth";
 
     // --- empty stack ----------------------------------------------------------------------------
-    test_op_execution(test_op, &[], &[0]);
+    let test = build_op_test!(test_op);
+    test.expect_stack(&[0]);
 
     // --- multi-element stack --------------------------------------------------------------------
-    test_op_execution(test_op, &[2, 4, 6, 8, 10], &[5, 10, 8, 6, 4, 2]);
+    let test = build_op_test!(test_op, &[2, 4, 6, 8, 10]);
+    test.expect_stack(&[5, 10, 8, 6, 4, 2]);
 
     // --- overflowed stack -----------------------------------------------------------------------
     // push 2 values to increase the lenth of the stack beyond 16
-    let setup_ops = "push.1 push.1";
-    test_op_execution(
-        format!("{} {}", setup_ops, test_op).as_str(),
-        &[0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7],
-        &[18, 1, 1, 7, 6, 5, 4, 3, 2, 1, 0, 7, 6, 5, 4, 3],
-    );
+    let source = format!("begin push.1 push.1 {} end", test_op);
+    let test = build_test!(&source, &[0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7]);
+    test.expect_stack(&[18, 1, 1, 7, 6, 5, 4, 3, 2, 1, 0, 7, 6, 5, 4, 3]);
 }
 
 #[test]
 fn push_env_locaddr() {
     // --- locaddr returns expected address -------------------------------------------------------
-    let script = compile(
-        "
+    let source = "
         proc.foo.2
             push.env.locaddr.0
             push.env.locaddr.1
         end
         begin
             exec.foo
-        end",
-    );
-    test_script_execution(&script, &[10], &[FMP_MIN + 1, FMP_MIN + 2, 10]);
+        end";
+
+    let test = build_test!(source, &[10]);
+    test.expect_stack(&[FMP_MIN + 1, FMP_MIN + 2, 10]);
 
     // --- accessing mem via locaddr updates the correct variables --------------------------------
-    let script = compile(
-        "
+    let source = "
         proc.foo.2
             push.env.locaddr.0
             pop.mem
@@ -52,13 +50,13 @@ fn push_env_locaddr() {
         end
         begin
             exec.foo
-        end",
-    );
-    test_script_execution(&script, &[10, 1, 2, 3, 4, 5], &[4, 3, 2, 1, 5, 10]);
+        end";
+
+    let test = build_test!(source, &[10, 1, 2, 3, 4, 5]);
+    test.expect_stack(&[4, 3, 2, 1, 5, 10]);
 
     // --- locaddr returns expected addresses in nested procedures --------------------------------
-    let script = compile(
-        "
+    let source = "
         proc.foo.3
             push.env.locaddr.0
             push.env.locaddr.1
@@ -72,28 +70,23 @@ fn push_env_locaddr() {
         begin
             exec.bar
             exec.foo
-        end",
-    );
+        end";
 
-    test_script_execution(
-        &script,
-        &[10],
-        &[
-            FMP_MIN + 1,
-            FMP_MIN + 2,
-            FMP_MIN + 3,
-            FMP_MIN + 1,
-            FMP_MIN + 3,
-            FMP_MIN + 4,
-            FMP_MIN + 5,
-            FMP_MIN + 2,
-            10,
-        ],
-    );
+    let test = build_test!(source, &[10]);
+    test.expect_stack(&[
+        FMP_MIN + 1,
+        FMP_MIN + 2,
+        FMP_MIN + 3,
+        FMP_MIN + 1,
+        FMP_MIN + 3,
+        FMP_MIN + 4,
+        FMP_MIN + 5,
+        FMP_MIN + 2,
+        10,
+    ]);
 
     // --- accessing mem via locaddr in nested procedures updates the correct variables -----------
-    let script = compile(
-        "
+    let source = "
         proc.foo.2
             push.env.locaddr.0
             pop.mem
@@ -113,12 +106,8 @@ fn push_env_locaddr() {
         end
         begin
             exec.bar
-        end",
-    );
+        end";
 
-    test_script_execution(
-        &script,
-        &[10, 1, 2, 3, 4, 5, 6, 7],
-        &[7, 6, 5, 4, 3, 2, 1, 10],
-    );
+    let test = build_test!(source, &[10, 1, 2, 3, 4, 5, 6, 7]);
+    test.expect_stack(&[7, 6, 5, 4, 3, 2, 1, 10]);
 }

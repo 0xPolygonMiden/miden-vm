@@ -1,5 +1,7 @@
-use super::{execute, Felt, FieldElement, ProgramInputs, Script, STACK_TOP_SIZE};
-use crate::Word;
+use super::{
+    execute, ExecutionError, ExecutionTrace, Felt, FieldElement, Process, ProgramInputs, Script,
+    Word, STACK_TOP_SIZE,
+};
 use proptest::prelude::*;
 
 mod aux_table_trace;
@@ -15,27 +17,150 @@ mod u32_ops;
 
 #[test]
 fn simple_program() {
-    let script = compile("begin push.1 push.2 add end");
+    let test = Test::new("begin push.1 push.2 add end");
+    test.expect_stack(&[3]);
+}
 
-    let inputs = ProgramInputs::none();
-    let trace = super::execute(&script, &inputs).unwrap();
+// TEST HANDLER
+// ================================================================================================
 
-    let last_state = trace.last_stack_state();
-    let expected_state = convert_to_stack(&[3]);
-    assert_eq!(expected_state, last_state);
+/// This is used to specify the expected error type when using Test to test errors.
+/// `Test::expect_error` will try to either compile or execute the test data, according to the
+/// provided TestError variant. Then it will validate that the resulting error contains the
+/// TestError variant's string slice.
+pub enum TestError<'a> {
+    AssemblyError(&'a str),
+    ExecutionError(&'a str),
+}
+
+/// This is a container for the data required to run tests, which allows for running several
+/// different types of tests.
+///
+/// Types of valid result tests:
+/// * - Execution test: check that running a script compiled from the given source has the specified
+/// results for the given (optional) inputs.
+/// * - Proptest: run an execution test inside a proptest.
+///
+/// Types of failure tests:
+/// * - Assembly error test: check that attempting to compile the given source causes an
+/// AssemblyError which contains the specified substring.
+/// * - Execution error test: check that running a script compiled from the given source causes an
+/// ExecutionError which contains the specified substring.
+pub struct Test {
+    source: String,
+    inputs: ProgramInputs,
+}
+
+impl Test {
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+
+    /// Creates the simplest possible new test, with only a source string and no inputs.
+    fn new(source: &str) -> Self {
+        Test {
+            source: String::from(source),
+            inputs: ProgramInputs::none(),
+        }
+    }
+
+    // TEST METHODS
+    // --------------------------------------------------------------------------------------------
+
+    /// Asserts that running the test for the expected TestError variant will result in an error
+    /// that contains the TestError's error substring in its error message.
+    fn expect_error(&self, error: TestError) {
+        match error {
+            TestError::AssemblyError(substr) => {
+                assert_eq!(
+                    std::panic::catch_unwind(|| self.compile())
+                        .err()
+                        .and_then(|a| { a.downcast_ref::<String>().map(|s| s.contains(substr)) }),
+                    Some(true)
+                );
+            }
+            TestError::ExecutionError(substr) => {
+                assert_eq!(
+                    std::panic::catch_unwind(|| self.execute().unwrap())
+                        .err()
+                        .and_then(|a| { a.downcast_ref::<String>().map(|s| s.contains(substr)) }),
+                    Some(true)
+                );
+            }
+        }
+    }
+
+    /// Builds a final stack from the provided stack-ordered array and asserts that executing the
+    /// test will result in the expected final stack state.
+    fn expect_stack(&self, final_stack: &[u64]) {
+        let expected = convert_to_stack(final_stack);
+        let result = self.get_last_stack_state();
+
+        assert_eq!(expected, result);
+    }
+
+    /// Executes the test and validates that the process memory has the elements of `expected_mem`
+    /// at address `mem_addr` and that the end of the stack execution trace matches the
+    /// `final_stack`.
+    fn expect_stack_and_memory(&self, final_stack: &[u64], mem_addr: u64, expected_mem: &[u64]) {
+        let mut process = Process::new(self.inputs.clone());
+
+        // execute the test
+        process.execute_code_block(self.compile().root()).unwrap();
+
+        // validate the memory state
+        let mem_state = process.memory.get_value(mem_addr).unwrap();
+        let expected_mem: Vec<Felt> = expected_mem.iter().map(|&v| Felt::new(v)).collect();
+        assert_eq!(expected_mem, mem_state);
+
+        // validate the stack state
+        let stack_state = ExecutionTrace::new(process).last_stack_state();
+        let expected_stack = convert_to_stack(final_stack);
+        assert_eq!(expected_stack, stack_state);
+    }
+
+    /// Asserts that executing the test inside a proptest results in the expected final stack state.
+    /// The proptest will return a test failure instead of panicking if the assertion condition
+    /// fails.
+    fn prop_expect_stack(
+        &self,
+        final_stack: &[u64],
+    ) -> Result<(), proptest::test_runner::TestCaseError> {
+        let expected = convert_to_stack(final_stack);
+        let result = self.get_last_stack_state();
+
+        prop_assert_eq!(expected, result);
+
+        Ok(())
+    }
+
+    // UTILITY METHODS
+    // --------------------------------------------------------------------------------------------
+
+    /// Compiles a test's source and returns the resulting Script.
+    fn compile(&self) -> Script {
+        let assembler = assembly::Assembler::new();
+        assembler
+            .compile_script(&self.source)
+            .expect("Failed to compile test source.")
+    }
+
+    /// Compiles the test's source to a Script and executes it with the tests inputs. Returns a
+    /// resulting execution trace or error.
+    fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
+        let script = self.compile();
+        execute(&script, &self.inputs)
+    }
+
+    /// Returns the last state of the stack after executing a test.
+    fn get_last_stack_state(&self) -> [Felt; STACK_TOP_SIZE] {
+        let trace = self.execute().unwrap();
+
+        trace.last_stack_state()
+    }
 }
 
 // HELPER FUNCTIONS
 // ================================================================================================
-
-fn compile(source: &str) -> Script {
-    let assembler = assembly::Assembler::new();
-    assembler.compile_script(source).unwrap()
-}
-
-fn build_inputs(stack_init: &[u64]) -> ProgramInputs {
-    ProgramInputs::new(stack_init, &[], vec![]).unwrap()
-}
 
 /// Takes an array of u64 values and builds a stack, perserving their order and converting them to
 /// field elements.
@@ -47,107 +172,71 @@ fn convert_to_stack(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
     result
 }
 
-/// Takes an array of u64 values, converts them to elements, and pushes them onto a stack,
-/// reversing their order.
-fn push_to_stack(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
-    let mut result = [Felt::ZERO; STACK_TOP_SIZE];
-    for (&value, result) in values.iter().rev().zip(result.iter_mut()) {
-        *result = Felt::new(value);
-    }
-    result
-}
-
-/// This helper function tests that when the given assembly script is executed on the
-/// the provided inputs, it results in the specified final stack state.
-/// - `inputs` should be provided in "normal" order. They'll be pushed onto the stack, reversing
-/// their order.
-/// - `final_stack` should be ordered to match the expected order of the stack after execution,
-/// starting from the top.
-fn test_script_execution(script: &Script, inputs: &[u64], final_stack: &[u64]) {
-    let expected_stack = convert_to_stack(final_stack);
-    let last_state = run_test_execution(script, inputs);
-    assert_eq!(expected_stack, last_state);
-}
-
-/// This helper function tests that when the given assembly instruction is executed on the
-/// the provided inputs, it results in the specified final stack state.
-/// - `inputs` should be provided in "normal" order. They'll be pushed onto the stack, reversing
-/// their order.
-/// - `final_stack` should be ordered to match the expected order of the stack after execution,
-/// starting from the top.
-fn test_op_execution(asm_op: &str, inputs: &[u64], final_stack: &[u64]) {
-    let script = compile(format!("begin {} end", asm_op).as_str());
-    test_script_execution(&script, inputs, final_stack);
-}
-
-/// This helper function is the same as `test_op_execution`, except that when it is used inside a
-/// proptest it will return a test failure instead of panicking if the assertion condition fails.
-fn test_op_execution_proptest(
-    asm_op: &str,
-    inputs: &[u64],
-    final_stack: &[u64],
-) -> Result<(), proptest::test_runner::TestCaseError> {
-    let script = compile(format!("begin {} end", asm_op).as_str());
-    let expected_stack = convert_to_stack(final_stack);
-    let last_state = run_test_execution(&script, inputs);
-
-    prop_assert_eq!(expected_stack, last_state);
-
-    Ok(())
-}
-
-/// Executes the given script over the provided inputs and returns the last state of the resulting
-/// stack for validation.
-fn run_test_execution(script: &Script, inputs: &[u64]) -> [Felt; STACK_TOP_SIZE] {
-    let inputs = build_inputs(inputs);
-    let trace = execute(script, &inputs).unwrap();
-
-    trace.last_stack_state()
-}
-
-/// This helper function tests failures where the execution of a given assembly script with the
-/// provided inputs is expected to panic. This function catches the panic and tests it against a
-/// provided string to make sure it contains the expected error string.
-fn test_script_execution_failure(script: &Script, inputs: &[u64], err_substr: &str) {
-    let inputs = build_inputs(inputs);
-    assert_eq!(
-        std::panic::catch_unwind(|| execute(script, &inputs).unwrap())
-            .err()
-            .and_then(|a| { a.downcast_ref::<String>().map(|s| s.contains(err_substr)) }),
-        Some(true)
-    );
-}
-
-/// This helper function tests failures where the execution of a given assembly operation with the
-/// provided inputs is expected to panic. This function catches the panic and tests it against a
-/// provided string to make sure it contains the expected error string.
-fn test_execution_failure(asm_op: &str, inputs: &[u64], err_substr: &str) {
-    let script = compile(format!("begin {} end", asm_op).as_str());
-
-    test_script_execution_failure(&script, inputs, err_substr);
-}
-
-/// This helper function tests failures where the compilation of a given assembly operation is
-/// expected to panic. This function catches the panic and tests it against a provided string to
-/// make sure it contains the expected error string.
-fn test_compilation_failure(asm_op: &str, err_substr: &str) {
-    assert_eq!(
-        std::panic::catch_unwind(|| compile(format!("begin {} end", asm_op).as_str()))
-            .err()
-            .and_then(|a| { a.downcast_ref::<String>().map(|s| s.contains(err_substr)) }),
-        Some(true)
-    );
-}
-
-/// This helper function tests a provided assembly operation which takes a single parameter
-/// to ensure that it fails when that parameter is over the maximum allowed value (out of bounds).
-fn test_param_out_of_bounds(asm_op_base: &str, gt_max_value: u64) {
-    let build_asm_op = |param: u64| format!("{}.{}", asm_op_base, param);
-
-    test_compilation_failure(build_asm_op(gt_max_value).as_str(), "parameter");
-}
-
 // This is a proptest strategy for generating a random word with 4 values of type T.
-fn rand_word<T: proptest::arbitrary::Arbitrary>() -> impl Strategy<Value = Vec<T>> {
+fn prop_randw<T: proptest::arbitrary::Arbitrary>() -> impl Strategy<Value = Vec<T>> {
     prop::collection::vec(any::<T>(), 4)
+}
+
+// MACROS
+// ================================================================================================
+
+/// Returns a Test struct from the provided source string and any specified stack and advice inputs.
+///
+/// Parameters are expected in the following order:
+/// `source`, `stack_inputs` (optional), `advice_tape` (optional), `advice_sets` (optional)
+///
+/// * `source`: a well-formed source string.
+/// * `stack_inputs` (optional): the initial inputs which must be at the top of the stack before
+/// executing the `source`. Stack inputs can be provided independently without any advice inputs.
+/// * `advice_tape` (optional): the initial advice tape values. When provided, `stack_inputs` and
+/// `advice_sets` are also expected.
+/// * `advice_sets` (optional): the initial advice set values. When provided, `stack_inputs` and
+/// `advice_tape` are also expected.
+#[macro_export]
+macro_rules! build_test {
+    ($source:expr) => {{
+        $crate::tests::Test::new($source)
+    }};
+    ($source:expr, $stack_inputs:expr) => {{
+        let inputs = $crate::tests::ProgramInputs::new($stack_inputs, &[], vec![]).unwrap();
+
+        $crate::tests::Test {
+            source: String::from($source),
+            inputs,
+        }
+    }};
+    ($source:expr, $stack_inputs:expr, $advice_tape:expr, $advice_sets:expr) => {{
+        let inputs =
+            $crate::tests::ProgramInputs::new($stack_inputs, $advice_tape, $advice_sets).unwrap();
+
+        $crate::tests::Test {
+            source: String::from($source),
+            inputs,
+        }
+    }};
+}
+
+/// Returns a Test struct from a string of one or more operations and any specified stack and advice
+/// inputs.
+///
+/// Parameters are expected in the following order:
+/// `source`, `stack_inputs` (optional), `advice_tape` (optional), `advice_sets` (optional)
+///
+/// * `source`: a well-formed source string.
+/// * `stack_inputs` (optional): the initial inputs which must be at the top of the stack before
+/// executing the `source`. Stack inputs can be provided independently without any advice inputs.
+/// * `advice_tape` (optional): the initial advice tape values. When provided, `stack_inputs` and
+/// `advice_sets` are also expected.
+/// * `advice_sets` (optional): the initial advice set values. When provided, `stack_inputs` and
+/// `advice_tape` are also expected.
+#[macro_export]
+macro_rules! build_op_test {
+    ($op_str:expr) => {{
+        let source = format!("begin {} end", $op_str);
+        $crate::build_test!(&source)
+    }};
+    ($op_str:expr, $($tail:tt)+) => {{
+        let source = format!("begin {} end", $op_str);
+        $crate::build_test!(&source, $($tail)+)
+    }};
 }
