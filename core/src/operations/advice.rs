@@ -10,7 +10,13 @@ pub enum AdviceInjector {
     /// - root of the tree, 4 elements
     MerkleNode,
 
-    /// TODO: add comments
+    /// Injects the result of u64 division (both the quotient and the remainder) at the head of
+    /// the advice tape. The stack is expected to be arranged as follows (from the top):
+    /// - divisor split into two 32-bit elements
+    /// - dividend split into two 32-bit elements
+    ///
+    /// The result is injected into the advice tape as follows: first the remainder is injected,
+    /// then the quotient is injected.
     DivResultU64,
 }
 

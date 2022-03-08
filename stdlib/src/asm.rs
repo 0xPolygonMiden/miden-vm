@@ -277,9 +277,9 @@ export.div_unsafe
     mul
     eq.0
     assert
-    swap
 
-    movup.3             # add remainder to the previous result; this also consumes the remainder #
+    swap                # add remainder to the previous result; this also consumes the remainder #
+    movup.3
     u32add.unsafe
     movup.3
     movup.3

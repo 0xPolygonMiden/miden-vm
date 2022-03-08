@@ -247,7 +247,14 @@ pub fn parse_storew(
 // ADVICE INJECTORS
 // ================================================================================================
 
-/// TODO: add doc comments
+/// Appends the appropriate advice injector operation to `span_ops`.
+///
+/// Advice injector operations insert one or more values at the head of the advice tape, but do
+/// not modify the VM state and do not advance the clock cycles. Currently, the following advice
+/// injectors can be invoked explicitly:
+/// - adv.u64div: this operation interprets four elements at the top of the stack as two 64-bit
+///   values (represented by 32-bit limbs), divides one value by another, and injects the quotient
+///   and the remainder into the advice tape.
 pub fn parse_adv_inject(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     validate_operation!(op, "adv.u64div");
     match op.parts()[1] {
