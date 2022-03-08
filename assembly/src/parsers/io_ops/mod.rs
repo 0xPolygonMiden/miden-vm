@@ -1,6 +1,6 @@
 use super::{
     super::validate_operation, parse_decimal_param, parse_element_param, parse_hex_param,
-    parse_int_param, push_value, AssemblyError, Felt, Operation, Token,
+    parse_int_param, push_value, AdviceInjector, AssemblyError, Felt, Operation, Token,
 };
 
 mod adv_ops;
@@ -242,6 +242,20 @@ pub fn parse_storew(
         "local" => parse_write_local(span_ops, op, num_proc_locals, true),
         _ => Err(AssemblyError::invalid_op(op)),
     }
+}
+
+// ADVICE INJECTORS
+// ================================================================================================
+
+/// TODO: add doc comments
+pub fn parse_adv_inject(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    validate_operation!(op, "adv.u64div");
+    match op.parts()[1] {
+        "u64div" => span_ops.push(Operation::Advice(AdviceInjector::DivResultU64)),
+        _ => return Err(AssemblyError::invalid_op(op)),
+    }
+
+    Ok(())
 }
 
 // TESTS
