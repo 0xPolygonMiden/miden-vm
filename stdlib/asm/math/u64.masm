@@ -29,3 +29,55 @@ export.mul_unsafe
     u32madd
     drop
 end
+
+# ===== DIVISION ================================================================================ #
+
+# Performs division of two unsigned 64 bit integers discarding the remainder. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a // b #
+export.div_unsafe
+    adv.u64div          # inject the quotient and the remainder into the advice tape #
+    
+    push.adv.1          # read the values from the advice tape and make sure they are u32's #
+    u32assert           # TODO: this can be optimized once we have u32assert2 instruction #
+    push.adv.1
+    u32assert
+    push.adv.1
+    u32assert
+    push.adv.1
+    u32assert
+
+    dup.5               # multiply quotient by the divisor; this also consumes the divisor #
+    dup.4
+    u32mul.unsafe
+    dup.6
+    dup.6
+    u32madd
+    eq.0
+    assert
+    movup.7
+    dup.5
+    u32madd
+    eq.0
+    assert
+    movup.6
+    dup.5
+    mul
+    eq.0
+    assert
+
+    swap                # add remainder to the previous result; this also consumes the remainder #
+    movup.3
+    u32add.unsafe
+    movup.3
+    movup.3
+    u32addc
+    eq.0
+    assert
+
+    movup.4             # make sure the result we got is equal to the dividend #
+    assert.eq
+    movup.3
+    assert.eq           # quotient remains on the stack #
+end

@@ -1,6 +1,8 @@
 use super::{AssemblyContext, AssemblyError, Token, TokenStream};
 pub use blocks::{combine_blocks, parse_code_blocks};
-use vm_core::{program::blocks::CodeBlock, Felt, FieldElement, Operation, StarkField};
+use vm_core::{
+    program::blocks::CodeBlock, AdviceInjector, Felt, FieldElement, Operation, StarkField,
+};
 
 mod blocks;
 mod crypto_ops;
@@ -102,6 +104,8 @@ fn parse_op_token(
         "popw" => io_ops::parse_popw(span_ops, op, num_proc_locals),
         "loadw" => io_ops::parse_loadw(span_ops, op, num_proc_locals),
         "storew" => io_ops::parse_storew(span_ops, op, num_proc_locals),
+
+        "adv" => io_ops::parse_adv_inject(span_ops, op),
 
         // ----- cryptographic operations ---------------------------------------------------------
         "rphash" => crypto_ops::parse_rphash(span_ops, op),
