@@ -40,7 +40,8 @@ impl ProgramInputs {
     /// Returns [ProgramInputs] instantiated with the specified initial stack values, advice tape
     /// values, and advice sets.
     ///
-    /// # Returns an error if:
+    /// # Errors
+    /// Returns an error if:
     /// - The number initial stack values is greater than 16.
     /// - Any of the initial stack values or the advice tape values are not valid field elements.
     /// - Any of the advice sets have the same root.

@@ -1,5 +1,5 @@
 use super::{
-    AuxiliaryTableTrace, Bitwise, Felt, FieldElement, Hasher, Memory, Process, StackTrace,
+    AuxiliaryTableTrace, Bitwise, Digest, Felt, FieldElement, Hasher, Memory, Process, StackTrace,
     AUXILIARY_TABLE_WIDTH, MIN_STACK_DEPTH,
 };
 use core::slice;
@@ -15,13 +15,15 @@ pub struct ExecutionTrace {
     stack: StackTrace,
     #[allow(dead_code)]
     aux_table: AuxiliaryTableTrace,
+    // TODO: program hash should be retrieved from decoder trace, but for now we store it explicitly
+    program_hash: Digest,
 }
 
 impl ExecutionTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
-    pub(super) fn new(process: Process) -> Self {
+    pub(super) fn new(process: Process, program_hash: Digest) -> Self {
         let Process {
             system,
             decoder: _,
@@ -64,11 +66,17 @@ impl ExecutionTrace {
             meta: Vec::new(),
             stack: stack_trace,
             aux_table: aux_table_trace,
+            program_hash,
         }
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
+
+    /// TODO: add docs
+    pub fn program_hash(&self) -> Digest {
+        self.program_hash
+    }
 
     /// TODO: add docs
     pub fn init_stack_state(&self) -> [Felt; MIN_STACK_DEPTH] {

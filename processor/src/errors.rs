@@ -1,4 +1,5 @@
 use super::{AdviceSetError, CodeBlock, Felt};
+use winterfell::ProverError;
 
 // EXECUTION ERROR
 // ================================================================================================
@@ -16,4 +17,5 @@ pub enum ExecutionError {
     AdviceSetUpdateFailed(AdviceSetError),
     InvalidFmpValue(Felt, Felt),
     NotU32Value(Felt),
+    ProverError(ProverError),
 }

@@ -1,5 +1,6 @@
 use vm_core::{
     errors::AdviceSetError,
+    hasher::Digest,
     program::{
         blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split},
         Script,
@@ -61,7 +62,7 @@ type AuxiliaryTableTrace = [Vec<Felt>; AUXILIARY_TABLE_WIDTH];
 pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace, ExecutionError> {
     let mut process = Process::new(inputs.clone());
     process.execute_code_block(script.root())?;
-    Ok(ExecutionTrace::new(process))
+    Ok(ExecutionTrace::new(process, *script.hash()))
 }
 
 // PROCESS
