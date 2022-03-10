@@ -1,4 +1,5 @@
 use super::build_test;
+use proptest::prelude::*;
 use rand_utils::rand_value;
 
 #[test]
@@ -41,6 +42,104 @@ fn mul_unsafe() {
     test.expect_stack(&[c1, c0]);
 }
 
+// COMPARISONS
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn lt_unsafe() {
+    // test a few manual cases; randomized tests are done using proptest
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::lt_unsafe
+        end";
+
+    // a = 0, b = 0
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0]);
+
+    // a = 0, b = 1
+    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[1]);
+
+    // a = 1, b = 0
+    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[0]);
+}
+
+#[test]
+fn lte_unsafe() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::lte_unsafe
+        end";
+
+    // a = 0, b = 0
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[1]);
+
+    // a = 0, b = 1
+    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[1]);
+
+    // a = 1, b = 0
+    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[0]);
+
+    // randomized test
+    let a: u64 = rand_value();
+    let b: u64 = rand_value();
+    let c = (a <= b) as u64;
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    build_test!(source, &[a0, a1, b0, b1]).expect_stack(&[c]);
+}
+
+#[test]
+fn gt_unsafe() {
+    // test a few manual cases; randomized tests are done using proptest
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::gt_unsafe
+        end";
+
+    // a = 0, b = 0
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0]);
+
+    // a = 0, b = 1
+    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[0]);
+
+    // a = 1, b = 0
+    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[1]);
+}
+
+#[test]
+fn gte_unsafe() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::gte_unsafe
+        end";
+
+    // a = 0, b = 0
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[1]);
+
+    // a = 0, b = 1
+    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[0]);
+
+    // a = 1, b = 0
+    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[1]);
+
+    // randomized test
+    let a: u64 = rand_value();
+    let b: u64 = rand_value();
+    let c = (a >= b) as u64;
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    build_test!(source, &[a0, a1, b0, b1]).expect_stack(&[c]);
+}
+
+// DIVISION
+// ------------------------------------------------------------------------------------------------
+
 #[test]
 fn div_unsafe() {
     let a: u64 = rand_value();
@@ -65,6 +164,44 @@ fn div_unsafe() {
 
     let test = build_test!(source, &[a0, a1, b0, 0]);
     test.expect_stack(&[d1, d0]);
+}
+
+// RANDOMIZED TESTS
+// ================================================================================================
+
+proptest! {
+    #[test]
+    fn lt_unsafe_proptest(a in any::<u64>(), b in any::<u64>()) {
+
+        let (a1, a0) = split_u64(a);
+        let (b1, b0) = split_u64(b);
+        let c = (a < b) as u64;
+
+        let source = "
+            use.std::math::u64
+            begin
+                exec.u64::lt_unsafe
+            end";
+
+        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c])?;
+    }
+
+    #[test]
+    fn gt_unsafe_proptest(a in any::<u64>(), b in any::<u64>()) {
+
+        let (a1, a0) = split_u64(a);
+        let (b1, b0) = split_u64(b);
+        let c = (a > b) as u64;
+
+        let source = "
+            use.std::math::u64
+            begin
+                exec.u64::gt_unsafe
+            end";
+
+        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c])?;
+    }
+
 }
 
 // HELPER FUNCTIONS

@@ -1542,6 +1542,62 @@ export.mul_unsafe
     drop
 end
 
+# ===== COMPARISONS ============================================================================= #
+
+# Performs less-than comparison of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> c, ...], where c = 1 when a < b, and 0 otherwise. #
+export.lt_unsafe
+    movup.3
+    movup.2
+    u32sub.unsafe
+    movdn.3
+    drop
+    u32sub.unsafe
+    swap
+    eq.0
+    movup.2
+    and
+    or
+end
+
+# Performs greater-than comparison of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> c, ...], where c = 1 when a > b, and 0 otherwise. #
+export.gt_unsafe
+    movup.2
+    u32sub.unsafe
+    movup.2
+    movup.3
+    u32sub.unsafe
+    swap
+    drop
+    movup.2
+    eq.0
+    and
+    or
+end
+
+# Performs less-than-or-equal comparison of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> c, ...], where c = 1 when a <= b, and 0 otherwise. #
+export.lte_unsafe
+    exec.gt_unsafe
+    not
+end
+
+# Performs greater-than-or-equal comparison of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> c, ...], where c = 1 when a >= b, and 0 otherwise. #
+export.gte_unsafe
+    exec.lt_unsafe
+    not
+end
+
 # ===== DIVISION ================================================================================ #
 
 # Performs division of two unsigned 64 bit integers discarding the remainder. #
