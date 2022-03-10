@@ -29,9 +29,6 @@ impl Process {
     /// - The top four elements of the stack are overwritten with values retried from memory.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than five elements.
     pub(super) fn op_loadw(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from memory
         let addr = self.stack.get(0);
@@ -54,9 +51,6 @@ impl Process {
     ///   removed from the stack.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than five elements.
     pub(super) fn op_storew(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and build the word to be saved from the stack values
         let addr = self.stack.get(0);
@@ -97,9 +91,7 @@ impl Process {
     /// elements with it.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// * The stack contains fewer than four elements.
-    /// * The advice tape contains fewer than four elements.
+    /// Returns an error if the advice tape contains fewer than four elements.
     pub(super) fn op_readw(&mut self) -> Result<(), ExecutionError> {
         let a = self.advice.read_tape()?;
         let b = self.advice.read_tape()?;

@@ -8,9 +8,6 @@ impl Process {
     // --------------------------------------------------------------------------------------------
     /// Pops two elements off the stack, adds them together, and pushes the result back onto the
     /// stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_add(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
@@ -21,9 +18,6 @@ impl Process {
 
     /// Pops an element off the stack, computes its additive inverse, and pushes the result back
     /// onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack is empty.
     pub(super) fn op_neg(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
         self.stack.set(0, -a);
@@ -33,9 +27,6 @@ impl Process {
 
     /// Pops two elements off the stack, multiplies them, and pushes the result back onto the
     /// stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_mul(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
@@ -48,9 +39,7 @@ impl Process {
     /// back onto the stack.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// * The stack is empty.
-    /// * The value on the top of the stack is ZERO.
+    /// Returns an error if the value on the top of the stack is ZERO.
     pub(super) fn op_inv(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
         if a == Felt::ZERO {
@@ -63,9 +52,6 @@ impl Process {
     }
 
     /// Pops an element off the stack, adds ONE to it, and pushes the result back onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack is empty.
     pub(super) fn op_incr(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
         self.stack.set(0, a + Felt::ONE);
@@ -80,9 +66,8 @@ impl Process {
     /// onto the stack.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// * The stack contains fewer than two elements.
-    /// * Either of the two elements on the top of the stack is not a binary value.
+    /// Returns an error if either of the two elements on the top of the stack is not a binary
+    /// value.
     pub(super) fn op_and(&mut self) -> Result<(), ExecutionError> {
         let b = assert_binary(self.stack.get(0))?;
         let a = assert_binary(self.stack.get(1))?;
@@ -99,9 +84,8 @@ impl Process {
     /// onto the stack.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// * The stack contains fewer than two elements.
-    /// * Either of the two elements on the top of the stack is not a binary value.
+    /// Returns an error if either of the two elements on the top of the stack is not a binary
+    /// value.
     pub(super) fn op_or(&mut self) -> Result<(), ExecutionError> {
         let b = assert_binary(self.stack.get(0))?;
         let a = assert_binary(self.stack.get(1))?;
@@ -118,9 +102,7 @@ impl Process {
     /// the stack.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// * The stack is empty.
-    /// * The value on the top of the stack is not a binary value.
+    /// Returns an error if the value on the top of the stack is not a binary value.
     pub(super) fn op_not(&mut self) -> Result<(), ExecutionError> {
         let a = assert_binary(self.stack.get(0))?;
         self.stack.set(0, Felt::ONE - a);
@@ -133,9 +115,6 @@ impl Process {
 
     /// Pops two elements off the stack and compares them. If the elements are equal, pushes ONE
     /// onto the stack, otherwise pushes ZERO onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_eq(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
@@ -150,9 +129,6 @@ impl Process {
 
     /// Pops an element off the stack and compares it to ZERO. If the element is ZERO, pushes ONE
     /// onto the stack, otherwise pushes ZERO onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack is empty.
     pub(super) fn op_eqz(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
         if a == Felt::ZERO {
@@ -166,9 +142,6 @@ impl Process {
 
     /// Compares the first word (four elements) with the second word on the stack, if the words are
     /// equal, pushes ONE onto the stack, otherwise pushes ZERO onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than 8 elements.
     pub(super) fn op_eqw(&mut self) -> Result<(), ExecutionError> {
         let b3 = self.stack.get(0);
         let b2 = self.stack.get(1);

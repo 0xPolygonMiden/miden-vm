@@ -13,9 +13,6 @@ impl Process {
     /// word follows, with the number of elements to be hashed at the deepest position in stack[11].
     /// For a Rescue Prime permutation of [A, B, C] where A is the capacity, the stack should be
     /// arranged (from the top) as [C, B, A, ...].
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than 12 elements.
     pub(super) fn op_rpperm(&mut self) -> Result<(), ExecutionError> {
         let input_state = [
             self.stack.get(11),
@@ -61,7 +58,6 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - The stack contains fewer than 10 elements.
     /// - Merkle tree for the specified root cannot be found in the advice provider.
     /// - The specified depth is either zero or greater than the depth of the Merkle tree
     ///   identified by the specified root.
@@ -137,7 +133,6 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - The stack contains fewer than 14 elements.
     /// - Merkle tree for the specified root cannot be found in the advice provider.
     /// - The specified depth is either zero or greater than the depth of the Merkle tree
     ///   identified by the specified root.

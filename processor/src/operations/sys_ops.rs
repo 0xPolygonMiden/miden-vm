@@ -24,9 +24,6 @@ impl Process {
 
     /// Pops an element off the stack, adds the current value of the `fmp` register to it, and
     /// pushes the result back onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack is empty.
     pub(super) fn op_fmpadd(&mut self) -> Result<(), ExecutionError> {
         let offset = self.stack.get(0);
         let fmp = self.system.fmp();
@@ -40,9 +37,7 @@ impl Process {
     /// Pops an element off the stack and adds it to the current value of `fmp` register.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// * The stack is empty.
-    /// * New value of `fmp` register is greater than or equal to 2^32.
+    /// Returns an error if the new value of `fmp` register is greater than or equal to 2^32.
     pub(super) fn op_fmpupdate(&mut self) -> Result<(), ExecutionError> {
         let offset = self.stack.get(0);
         let fmp = self.system.fmp();

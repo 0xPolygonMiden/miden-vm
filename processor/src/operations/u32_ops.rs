@@ -6,9 +6,6 @@ impl Process {
 
     /// Pops the top element off the stack, splits it into low and high 32-bit values, and pushes
     /// these values back onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack is empty.
     pub(super) fn op_u32split(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
         let (lo, hi) = split_element(a);
@@ -25,9 +22,6 @@ impl Process {
 
     /// Pops two elements off the stack, adds them, splits the result into low and high 32-bit
     /// values, and pushes these values back onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_u32add(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
@@ -44,9 +38,7 @@ impl Process {
     /// values, and pushes these values back onto the stack.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// * The stack contains fewer than three elements.
-    /// * The third element from the top fo the stack is not a binary value.
+    /// Returns an error if the third element from the top fo the stack is not a binary value.
     pub(super) fn op_u32addc(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
@@ -63,9 +55,6 @@ impl Process {
     /// Pops two elements off the stack, subtracts the top element from the second element, and
     /// pushes the result as well as a flag indicating whether there was underflow back onto the
     /// stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_u32sub(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
@@ -79,9 +68,6 @@ impl Process {
 
     /// Pops two elements off the stack, multiplies them, splits the result into low and high
     /// 32-bit values, and pushes these values back onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_u32mul(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
@@ -97,9 +83,6 @@ impl Process {
     /// Pops three elements off the stack, multiplies the first two and adds the third element to
     /// the result, splits the result into low and high 32-bit values, and pushes these values
     /// back onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than three elements.
     pub(super) fn op_u32madd(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
@@ -117,9 +100,7 @@ impl Process {
     /// the quotient and the remainder back onto the stack.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// * The stack contains fewer than two elements.
-    /// * The divisor is ZERO.
+    /// Returns an error if the divisor is ZERO.
     pub(super) fn op_u32div(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
@@ -140,11 +121,8 @@ impl Process {
     // BITWISE OPERATIONS
     // --------------------------------------------------------------------------------------------
 
-    /// Pops two elements off the stack, computes their bitwise AND, splits the result into low and
-    /// high 32-bit values, and pushes these values back onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
+    /// Pops two elements off the stack, computes their bitwise AND, and pushes the result back
+    /// onto the stack.
     pub(super) fn op_u32and(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
@@ -155,11 +133,8 @@ impl Process {
         Ok(())
     }
 
-    /// Pops two elements off the stack, computes their bitwise OR, splits the result into low and
-    /// high 32-bit values, and pushes these values back onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
+    /// Pops two elements off the stack, computes their bitwise OR, and pushes the result back onto
+    /// the stack.
     pub(super) fn op_u32or(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
@@ -170,11 +145,8 @@ impl Process {
         Ok(())
     }
 
-    /// Pops two elements off the stack, computes their bitwise XOR, splits the result into low and
-    /// high 32-bit values, and pushes these values back onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
+    /// Pops two elements off the stack, computes their bitwise XOR, and pushes the result back onto
+    /// the stack.
     pub(super) fn op_u32xor(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);

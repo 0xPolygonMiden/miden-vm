@@ -128,9 +128,6 @@ impl Stack {
     ///
     /// If the stack depth is greater than 16, an item is moved from the overflow stack to the
     /// "in-memory" portion of the stack.
-    ///
-    /// # Panics
-    /// Panics if the resulting stack depth would be less than the minimum stack depth.
     pub fn shift_left(&mut self, start_pos: usize) {
         debug_assert!(start_pos > 0, "start position must be greater than 0");
         debug_assert!(

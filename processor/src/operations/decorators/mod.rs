@@ -119,7 +119,6 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - The stack contains fewer than 6 elements.
     /// - Merkle tree for the specified root cannot be found in the advice provider.
     /// - The specified depth is either zero or greater than the depth of the Merkle tree
     ///   identified by the specified root.
