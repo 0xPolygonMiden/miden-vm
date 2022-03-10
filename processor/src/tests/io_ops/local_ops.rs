@@ -5,7 +5,6 @@ use super::{build_test, TestError};
 
 #[test]
 fn push_local() {
-    // --- read from uninitialized memory ---------------------------------------------------------
     let source = "
         proc.foo.1 
             push.local.0
@@ -14,17 +13,17 @@ fn push_local() {
             exec.foo
         end";
 
-    let test = build_test!(source);
-    test.expect_stack(&[0]);
+    // --- 1 value is pushed & the rest of the stack is unchanged ---------------------------------
+    let inputs = [1, 2, 3, 4];
+    // In general, there is no guarantee that reading from uninitialized memory will result in ZEROs
+    // but in this case since no other operations are executed, we do know it will push a ZERO.
+    let final_stack = [0, 4, 3, 2, 1];
 
-    // --- the rest of the stack is unchanged -----------------------------------------------------
-    let test = build_test!(source, &[1, 2, 3, 4]);
-    test.expect_stack(&[0, 4, 3, 2, 1]);
+    build_test!(source, &inputs).expect_stack(&final_stack);
 }
 
 #[test]
 fn pushw_local() {
-    // --- read from uninitialized memory ---------------------------------------------------------
     let source = "
         proc.foo.1 
             pushw.local.0
@@ -33,12 +32,13 @@ fn pushw_local() {
             exec.foo
         end";
 
-    let test = build_test!(source);
-    test.expect_stack(&[0, 0, 0, 0]);
+    // --- 4 values are pushed & the rest of the stack is unchanged -------------------------------
+    let inputs = [1, 2, 3, 4];
+    // In general, there is no guarantee that reading from uninitialized memory will result in ZEROs
+    // but in this case since no other operations are executed, we do know it will push ZEROs.
+    let final_stack = [0, 0, 0, 0, 4, 3, 2, 1];
 
-    // --- the rest of the stack is unchanged -----------------------------------------------------
-    let test = build_test!(source, &[1, 2, 3, 4]);
-    test.expect_stack(&[0, 0, 0, 0, 4, 3, 2, 1]);
+    build_test!(source, &inputs).expect_stack(&final_stack);
 }
 
 // REMOVING VALUES FROM THE STACK (POP)
@@ -145,7 +145,6 @@ fn popw_local_invalid() {
 
 #[test]
 fn loadw_local() {
-    // --- read from uninitialized memory ---------------------------------------------------------
     let source = "
         proc.foo.1 
             loadw.local.0
@@ -154,12 +153,13 @@ fn loadw_local() {
             exec.foo
         end";
 
-    let test = build_test!(source, &[5, 6, 7, 8]);
-    test.expect_stack(&[0, 0, 0, 0]);
+    // --- the top 4 values are overwritten & the rest of the stack is unchanged ------------------
+    let inputs = [1, 2, 3, 4, 5, 6, 7, 8];
+    // In general, there is no guarantee that reading from uninitialized memory will result in ZEROs
+    // but in this case since no other operations are executed, we do know it will load ZEROs.
+    let final_stack = [0, 0, 0, 0, 4, 3, 2, 1];
 
-    // --- the rest of the stack is unchanged -----------------------------------------------------
-    let test = build_test!(source, &[1, 2, 3, 4, 5, 6, 7, 8]);
-    test.expect_stack(&[0, 0, 0, 0, 4, 3, 2, 1]);
+    build_test!(source, &inputs).expect_stack(&final_stack);
 }
 
 // SAVING STACK VALUES WITHOUT REMOVING THEM (STORE)
