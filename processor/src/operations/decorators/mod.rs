@@ -125,8 +125,6 @@ impl Process {
     ///   identified by the specified root.
     /// - Value of the node at the specified depth and index is not known to the advice provider.
     fn inject_merkle_node(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(6, "INJMKNODE")?;
-
         // read node depth, node index, and tree root from the stack
         let depth = self.stack.get(0);
         let index = self.stack.get(1);

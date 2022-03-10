@@ -1,4 +1,4 @@
-use super::{super::STACK_TOP_SIZE, ExecutionError, Felt, FieldElement, Process, StarkField};
+use super::{super::MIN_STACK_DEPTH, ExecutionError, Felt, FieldElement, Process, StarkField};
 
 impl Process {
     // STACK MANIPULATION
@@ -15,7 +15,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack is empty.
     pub(super) fn op_drop(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "DROP")?;
         self.stack.shift_left(1);
         Ok(())
     }
@@ -25,7 +24,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than n + 1 values.
     pub(super) fn op_dup(&mut self, n: usize) -> Result<(), ExecutionError> {
-        self.stack.check_depth(n + 1, "DUP")?;
         let value = self.stack.get(n);
         self.stack.set(0, value);
         self.stack.shift_right(0);
@@ -37,7 +35,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_swap(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "SWAP")?;
         let a = self.stack.get(0);
         let b = self.stack.get(1);
         self.stack.set(0, b);
@@ -51,8 +48,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than 8 elements.
     pub(super) fn op_swapw(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(8, "SWAPW")?;
-
         let a0 = self.stack.get(0);
         let a1 = self.stack.get(1);
         let a2 = self.stack.get(2);
@@ -80,8 +75,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than 12 elements.
     pub(super) fn op_swapw2(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(12, "SWAPW2")?;
-
         let a0 = self.stack.get(0);
         let a1 = self.stack.get(1);
         let a2 = self.stack.get(2);
@@ -117,8 +110,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than 16 elements.
     pub(super) fn op_swapw3(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(16, "SWAPW3")?;
-
         let a0 = self.stack.get(0);
         let a1 = self.stack.get(1);
         let a2 = self.stack.get(2);
@@ -163,8 +154,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than n + 1 values.
     pub(super) fn op_movup(&mut self, n: usize) -> Result<(), ExecutionError> {
-        self.stack.check_depth(n + 1, "MOVUP")?;
-
         // move the nth value to the top of the stack
         let value = self.stack.get(n);
         self.stack.set(0, value);
@@ -176,7 +165,7 @@ impl Process {
         }
 
         // all other items on the stack remain in place
-        if (n + 1) < STACK_TOP_SIZE {
+        if (n + 1) < MIN_STACK_DEPTH {
             self.stack.copy_state(n + 1);
         }
         Ok(())
@@ -189,8 +178,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than n + 1 values.
     pub(super) fn op_movdn(&mut self, n: usize) -> Result<(), ExecutionError> {
-        self.stack.check_depth(n + 1, "MOVDN")?;
-
         // move the value at the top of the stack to the nth position
         let value = self.stack.get(0);
         self.stack.set(n, value);
@@ -202,7 +189,7 @@ impl Process {
         }
 
         // all other items on the stack remain in place
-        if (n + 1) < STACK_TOP_SIZE {
+        if (n + 1) < MIN_STACK_DEPTH {
             self.stack.copy_state(n + 1);
         }
         Ok(())
@@ -219,7 +206,6 @@ impl Process {
     /// - The stack contains fewer than 3 elements.
     /// - The top element of the stack is neither 0 nor 1.
     pub(super) fn op_cswap(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(3, "CSWAP")?;
         let c = self.stack.get(0);
         let b = self.stack.get(1);
         let a = self.stack.get(2);
@@ -248,7 +234,6 @@ impl Process {
     /// - The stack contains fewer than 9 elements.
     /// - The top element of the stack is neither 0 nor 1.
     pub(super) fn op_cswapw(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(9, "CSWAPW")?;
         let c = self.stack.get(0);
         let b0 = self.stack.get(1);
         let b1 = self.stack.get(2);

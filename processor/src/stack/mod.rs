@@ -1,4 +1,4 @@
-use super::{ExecutionError, Felt, FieldElement, ProgramInputs, StackTrace, STACK_TOP_SIZE};
+use super::{Felt, FieldElement, ProgramInputs, StackTrace, MIN_STACK_DEPTH};
 use core::cmp;
 
 // STACK
@@ -18,8 +18,8 @@ impl Stack {
     /// TODO: add comments
     pub fn new(inputs: &ProgramInputs, init_trace_length: usize) -> Self {
         let init_values = inputs.stack_init();
-        let mut trace: Vec<Vec<Felt>> = Vec::with_capacity(STACK_TOP_SIZE);
-        for i in 0..STACK_TOP_SIZE {
+        let mut trace: Vec<Vec<Felt>> = Vec::with_capacity(MIN_STACK_DEPTH);
+        for i in 0..MIN_STACK_DEPTH {
             let mut column = vec![Felt::ZERO; init_trace_length];
             if i < init_values.len() {
                 column[0] = init_values[i];
@@ -31,7 +31,7 @@ impl Stack {
             step: 0,
             trace: trace.try_into().expect("failed to convert vector to array"),
             overflow: Vec::new(),
-            depth: init_values.len(),
+            depth: MIN_STACK_DEPTH,
         }
     }
 
@@ -55,15 +55,8 @@ impl Stack {
     }
 
     /// Returns a copy of the item currently at the top of the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack is empty.
-    pub fn peek(&self) -> Result<Felt, ExecutionError> {
-        if self.depth == 0 {
-            return Err(ExecutionError::StackUnderflow("peek", self.step));
-        }
-
-        Ok(self.trace[0][self.step])
+    pub fn peek(&self) -> Felt {
+        self.trace[0][self.step]
     }
 
     /// Return states from the stack, which includes both the trace state and overflow table.
@@ -72,11 +65,11 @@ impl Stack {
         let n = n.unwrap_or(usize::MAX);
         let num_items = cmp::min(n, self.depth());
 
-        let num_top_items = cmp::min(STACK_TOP_SIZE, num_items);
+        let num_top_items = cmp::min(MIN_STACK_DEPTH, num_items);
         let mut result = self.trace_state()[..num_top_items].to_vec();
 
-        if num_items > STACK_TOP_SIZE {
-            let num_overflow_items = num_items - STACK_TOP_SIZE;
+        if num_items > MIN_STACK_DEPTH {
+            let num_overflow_items = num_items - MIN_STACK_DEPTH;
             result.extend_from_slice(&self.overflow[..num_overflow_items]);
         }
 
@@ -88,8 +81,8 @@ impl Stack {
     /// Trace state is always 16 elements long and contains the top 16 values of the stack. When
     /// the stack depth is less than 16, the un-used slots contain ZEROs.
     #[allow(dead_code)]
-    pub fn trace_state(&self) -> [Felt; STACK_TOP_SIZE] {
-        let mut result = [Felt::ZERO; STACK_TOP_SIZE];
+    pub fn trace_state(&self) -> [Felt; MIN_STACK_DEPTH] {
+        let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
         for (result, column) in result.iter_mut().zip(self.trace.iter()) {
             *result = column[self.step];
         }
@@ -120,11 +113,11 @@ impl Stack {
     /// same position at the next clock cycle.
     pub fn copy_state(&mut self, start_pos: usize) {
         debug_assert!(
-            start_pos < STACK_TOP_SIZE,
+            start_pos < MIN_STACK_DEPTH,
             "start cannot exceed stack top size"
         );
         debug_assert!(start_pos <= self.depth, "stack underflow");
-        let end_pos = cmp::min(self.depth, STACK_TOP_SIZE);
+        let end_pos = cmp::min(self.depth, MIN_STACK_DEPTH);
         for i in start_pos..end_pos {
             self.trace[i][self.step + 1] = self.trace[i][self.step];
         }
@@ -137,11 +130,11 @@ impl Stack {
     /// "in-memory" portion of the stack.
     ///
     /// # Panics
-    /// Panics if the stack is empty.
+    /// Panics if the resulting stack depth would be less than the minimum stack depth.
     pub fn shift_left(&mut self, start_pos: usize) {
         debug_assert!(start_pos > 0, "start position must be greater than 0");
         debug_assert!(
-            start_pos < STACK_TOP_SIZE,
+            start_pos < MIN_STACK_DEPTH,
             "start position cannot exceed stack top size"
         );
         debug_assert!(
@@ -149,23 +142,26 @@ impl Stack {
             "start position cannot exceed current depth"
         );
 
+        const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
         match self.depth {
-            0 => unreachable!("stack underflow"),
-            1..=16 => {
-                for i in start_pos..self.depth {
+            0..=MAX_TOP_IDX => unreachable!("stack underflow"),
+            MIN_STACK_DEPTH => {
+                for i in start_pos..=MAX_TOP_IDX {
                     self.trace[i - 1][self.step + 1] = self.trace[i][self.step];
                 }
+                // Shift in a ZERO to prevent depth shrinking below the minimum stack depth
+                self.trace[MAX_TOP_IDX][self.step + 1] = Felt::ZERO;
             }
             _ => {
-                for i in start_pos..STACK_TOP_SIZE {
+                for i in start_pos..=MAX_TOP_IDX {
                     self.trace[i - 1][self.step + 1] = self.trace[i][self.step];
                 }
                 let from_overflow = self.overflow.pop().expect("overflow stack is empty");
-                self.trace[STACK_TOP_SIZE - 1][self.step + 1] = from_overflow;
+                self.trace[MAX_TOP_IDX][self.step + 1] = from_overflow;
+
+                self.depth -= 1;
             }
         }
-
-        self.depth -= 1;
     }
 
     /// Copies stack values starting a the specified position at the current clock cycle to
@@ -175,7 +171,7 @@ impl Stack {
     /// stack.
     pub fn shift_right(&mut self, start_pos: usize) {
         debug_assert!(
-            start_pos < STACK_TOP_SIZE,
+            start_pos < MIN_STACK_DEPTH,
             "start position cannot exceed stack top size"
         );
         debug_assert!(
@@ -183,7 +179,7 @@ impl Stack {
             "start position cannot exceed current depth"
         );
 
-        const MAX_TOP_IDX: usize = STACK_TOP_SIZE - 1;
+        const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
         match self.depth {
             0 => {} // if the stack is empty, do nothing
             1..=MAX_TOP_IDX => {
@@ -220,18 +216,6 @@ impl Stack {
             for register in self.trace.iter_mut() {
                 register.resize(new_length, Felt::ZERO);
             }
-        }
-    }
-
-    /// Returns an error if the current stack depth is smaller than the specified required depth.
-    ///
-    /// The returned error includes the name of the operation (passed in as `op`) which triggered
-    /// the check.
-    pub fn check_depth(&self, req_depth: usize, op: &'static str) -> Result<(), ExecutionError> {
-        if self.depth < req_depth {
-            Err(ExecutionError::StackUnderflow(op, self.step))
-        } else {
-            Ok(())
         }
     }
 }

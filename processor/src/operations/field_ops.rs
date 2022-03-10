@@ -12,8 +12,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_add(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "ADD")?;
-
         let b = self.stack.get(0);
         let a = self.stack.get(1);
         self.stack.set(0, a + b);
@@ -27,8 +25,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack is empty.
     pub(super) fn op_neg(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "NEG")?;
-
         let a = self.stack.get(0);
         self.stack.set(0, -a);
         self.stack.copy_state(1);
@@ -41,8 +37,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_mul(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "MUL")?;
-
         let b = self.stack.get(0);
         let a = self.stack.get(1);
         self.stack.set(0, a * b);
@@ -58,8 +52,6 @@ impl Process {
     /// * The stack is empty.
     /// * The value on the top of the stack is ZERO.
     pub(super) fn op_inv(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "INV")?;
-
         let a = self.stack.get(0);
         if a == Felt::ZERO {
             return Err(ExecutionError::DivideByZero(self.system.clk()));
@@ -75,8 +67,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack is empty.
     pub(super) fn op_incr(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "INCR")?;
-
         let a = self.stack.get(0);
         self.stack.set(0, a + Felt::ONE);
         self.stack.copy_state(1);
@@ -94,8 +84,6 @@ impl Process {
     /// * The stack contains fewer than two elements.
     /// * Either of the two elements on the top of the stack is not a binary value.
     pub(super) fn op_and(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "AND")?;
-
         let b = assert_binary(self.stack.get(0))?;
         let a = assert_binary(self.stack.get(1))?;
         if a == Felt::ONE && b == Felt::ONE {
@@ -115,8 +103,6 @@ impl Process {
     /// * The stack contains fewer than two elements.
     /// * Either of the two elements on the top of the stack is not a binary value.
     pub(super) fn op_or(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "OR")?;
-
         let b = assert_binary(self.stack.get(0))?;
         let a = assert_binary(self.stack.get(1))?;
         if a == Felt::ONE || b == Felt::ONE {
@@ -136,8 +122,6 @@ impl Process {
     /// * The stack is empty.
     /// * The value on the top of the stack is not a binary value.
     pub(super) fn op_not(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "NOT")?;
-
         let a = assert_binary(self.stack.get(0))?;
         self.stack.set(0, Felt::ONE - a);
         self.stack.copy_state(1);
@@ -153,8 +137,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_eq(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "EQ")?;
-
         let b = self.stack.get(0);
         let a = self.stack.get(1);
         if a == b {
@@ -172,8 +154,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack is empty.
     pub(super) fn op_eqz(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "EQZ")?;
-
         let a = self.stack.get(0);
         if a == Felt::ZERO {
             self.stack.set(0, Felt::ONE);
@@ -190,8 +170,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than 8 elements.
     pub(super) fn op_eqw(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(8, "EQW")?;
-
         let b3 = self.stack.get(0);
         let b2 = self.stack.get(1);
         let b1 = self.stack.get(2);

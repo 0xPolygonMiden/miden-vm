@@ -17,8 +17,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than 12 elements.
     pub(super) fn op_rpperm(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(12, "RPPERM")?;
-
         let input_state = [
             self.stack.get(11),
             self.stack.get(10),
@@ -69,8 +67,6 @@ impl Process {
     ///   identified by the specified root.
     /// - Path to the node at the specified depth and index is not known to the advice provider.
     pub(super) fn op_mpverify(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(10, "MPVERIFY")?;
-
         // read depth, index, node value, and root value from the stack
         let depth = self.stack.get(0);
         let index = self.stack.get(1);
@@ -147,8 +143,6 @@ impl Process {
     ///   identified by the specified root.
     /// - Path to the node at the specified depth and index is not known to the advice provider.
     pub(super) fn op_mrupdate(&mut self, copy: bool) -> Result<(), ExecutionError> {
-        self.stack.check_depth(14, "MRUPDATE")?;
-
         // read depth, index, old and new node values, and tree root value from the stack
         let depth = self.stack.get(0);
         let index = self.stack.get(1);

@@ -33,8 +33,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than five elements.
     pub(super) fn op_loadw(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(5, "LOADW")?;
-
         // get the address from the stack and read the word from memory
         let addr = self.stack.get(0);
         let word = self.memory.read(addr);
@@ -60,8 +58,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than five elements.
     pub(super) fn op_storew(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(5, "STOREW")?;
-
         // get the address from the stack and build the word to be saved from the stack values
         let addr = self.stack.get(0);
         let word = [
@@ -105,8 +101,6 @@ impl Process {
     /// * The stack contains fewer than four elements.
     /// * The advice tape contains fewer than four elements.
     pub(super) fn op_readw(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(4, "READW")?;
-
         let a = self.advice.read_tape()?;
         let b = self.advice.read_tape()?;
         let c = self.advice.read_tape()?;

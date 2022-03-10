@@ -1,6 +1,6 @@
 use super::{
     execute, ExecutionError, ExecutionTrace, Felt, FieldElement, Process, ProgramInputs, Script,
-    Word, STACK_TOP_SIZE,
+    Word, MIN_STACK_DEPTH,
 };
 use proptest::prelude::*;
 
@@ -152,7 +152,7 @@ impl Test {
     }
 
     /// Returns the last state of the stack after executing a test.
-    fn get_last_stack_state(&self) -> [Felt; STACK_TOP_SIZE] {
+    fn get_last_stack_state(&self) -> [Felt; MIN_STACK_DEPTH] {
         let trace = self.execute().unwrap();
 
         trace.last_stack_state()
@@ -164,8 +164,8 @@ impl Test {
 
 /// Takes an array of u64 values and builds a stack, perserving their order and converting them to
 /// field elements.
-fn convert_to_stack(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
-    let mut result = [Felt::ZERO; STACK_TOP_SIZE];
+fn convert_to_stack(values: &[u64]) -> [Felt; MIN_STACK_DEPTH] {
+    let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
     for (&value, result) in values.iter().zip(result.iter_mut()) {
         *result = Felt::new(value);
     }

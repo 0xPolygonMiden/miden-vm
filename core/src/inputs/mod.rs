@@ -2,7 +2,7 @@ use super::{
     errors::{AdviceSetError, InputError},
     hasher,
     utils::IntoBytes,
-    Felt, FieldElement, Word, STACK_TOP_SIZE,
+    Felt, FieldElement, Word, MIN_STACK_DEPTH,
 };
 use core::convert::TryInto;
 use winter_utils::collections::{BTreeMap, Vec};
@@ -49,9 +49,9 @@ impl ProgramInputs {
         advice_tape: &[u64],
         advice_sets: Vec<AdviceSet>,
     ) -> Result<Self, InputError> {
-        if stack_init.len() > STACK_TOP_SIZE {
+        if stack_init.len() > MIN_STACK_DEPTH {
             return Err(InputError::TooManyStackValues(
-                STACK_TOP_SIZE,
+                MIN_STACK_DEPTH,
                 stack_init.len(),
             ));
         }

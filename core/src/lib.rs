@@ -19,5 +19,6 @@ pub type Word = [Felt; 4];
 // CONSTANTS
 // ================================================================================================
 
-/// Number of stack registers which can be accesses by the VM directly.
-pub const STACK_TOP_SIZE: usize = 16;
+/// The minimum stack depth enforced by the VM. This is also the number of stack registers which can
+/// be accessed by the VM directly.
+pub const MIN_STACK_DEPTH: usize = 16;

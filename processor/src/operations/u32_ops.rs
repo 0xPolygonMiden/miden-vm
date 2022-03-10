@@ -10,8 +10,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack is empty.
     pub(super) fn op_u32split(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "U32SPLIT")?;
-
         let a = self.stack.get(0);
         let (lo, hi) = split_element(a);
 
@@ -31,8 +29,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_u32add(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "U32ADD")?;
-
         let b = self.stack.get(0);
         let a = self.stack.get(1);
         let result = a + b;
@@ -52,8 +48,6 @@ impl Process {
     /// * The stack contains fewer than three elements.
     /// * The third element from the top fo the stack is not a binary value.
     pub(super) fn op_u32addc(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(3, "U32ADDC")?;
-
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
         let c = assert_binary(self.stack.get(2))?.as_int();
@@ -73,8 +67,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_u32sub(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "U32SUB")?;
-
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
         let result = a.wrapping_sub(b);
@@ -91,8 +83,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_u32mul(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "U32MUL")?;
-
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
         let result = Felt::new(a * b);
@@ -111,8 +101,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than three elements.
     pub(super) fn op_u32madd(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(3, "U32MADD")?;
-
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
         let c = self.stack.get(2).as_int();
@@ -133,8 +121,6 @@ impl Process {
     /// * The stack contains fewer than two elements.
     /// * The divisor is ZERO.
     pub(super) fn op_u32div(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "U32DIV")?;
-
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
 
@@ -160,8 +146,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_u32and(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "U32AND")?;
-
         let b = self.stack.get(0);
         let a = self.stack.get(1);
         let result = self.bitwise.u32and(a, b)?;
@@ -177,8 +161,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_u32or(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "U32OR")?;
-
         let b = self.stack.get(0);
         let a = self.stack.get(1);
         let result = self.bitwise.u32or(a, b)?;
@@ -194,8 +176,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_u32xor(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "U32XOR")?;
-
         let b = self.stack.get(0);
         let a = self.stack.get(1);
         let result = self.bitwise.u32xor(a, b)?;

@@ -12,7 +12,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the popped value is not ONE.
     pub(super) fn op_assert(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "ASSERT")?;
         if self.stack.get(0) != Felt::ONE {
             return Err(ExecutionError::FailedAssertion(self.system.clk()));
         }
@@ -29,8 +28,6 @@ impl Process {
     /// # Errors
     /// Returns an error if the stack is empty.
     pub(super) fn op_fmpadd(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "FMPADD")?;
-
         let offset = self.stack.get(0);
         let fmp = self.system.fmp();
 
@@ -47,8 +44,6 @@ impl Process {
     /// * The stack is empty.
     /// * New value of `fmp` register is greater than or equal to 2^32.
     pub(super) fn op_fmpupdate(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "FMPUPDATE")?;
-
         let offset = self.stack.get(0);
         let fmp = self.system.fmp();
 
