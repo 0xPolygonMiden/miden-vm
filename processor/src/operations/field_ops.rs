@@ -173,6 +173,7 @@ mod tests {
         Process,
     };
     use rand_utils::rand_value;
+    use vm_core::MIN_STACK_DEPTH;
 
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -187,9 +188,13 @@ mod tests {
         process.execute_op(Operation::Add).unwrap();
         let expected = build_expected(&[a + b, c]);
 
-        assert_eq!(2, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
         assert_eq!(4, process.stack.current_step());
         assert_eq!(expected, process.stack.trace_state());
+
+        // calling add with a stack of minimum depth is ok
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::Add).is_ok());
     }
 
     #[test]
@@ -203,7 +208,7 @@ mod tests {
         let expected = build_expected(&[-a, b, c]);
 
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(3, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
         assert_eq!(4, process.stack.current_step());
     }
 
@@ -217,9 +222,13 @@ mod tests {
         process.execute_op(Operation::Mul).unwrap();
         let expected = build_expected(&[a * b, c]);
 
-        assert_eq!(2, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
         assert_eq!(4, process.stack.current_step());
         assert_eq!(expected, process.stack.trace_state());
+
+        // calling mul with a stack of minimum depth is ok
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::Mul).is_ok());
     }
 
     #[test]
@@ -233,7 +242,7 @@ mod tests {
             process.execute_op(Operation::Inv).unwrap();
             let expected = build_expected(&[a.inv(), b, c]);
 
-            assert_eq!(3, process.stack.depth());
+            assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
             assert_eq!(4, process.stack.current_step());
             assert_eq!(expected, process.stack.trace_state());
         }
@@ -253,7 +262,7 @@ mod tests {
         process.execute_op(Operation::Incr).unwrap();
         let expected = build_expected(&[a + Felt::ONE, b, c]);
 
-        assert_eq!(3, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
         assert_eq!(4, process.stack.current_step());
         assert_eq!(expected, process.stack.trace_state());
     }
@@ -287,7 +296,7 @@ mod tests {
         let expected = build_expected(&[Felt::ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
-        // --- test 1 AND 0 ---------------------------------------------------
+        // --- test 1 AND 1 ---------------------------------------------------
         let mut process = Process::new_dummy();
         init_stack_with(&mut process, &[2, 1, 1]);
 
@@ -300,10 +309,63 @@ mod tests {
         init_stack_with(&mut process, &[2, 1, 2]);
         assert!(process.execute_op(Operation::And).is_err());
 
-        // --- second operand is not binary ------------------------------------
+        // --- second operand is not binary -----------------------------------
         let mut process = Process::new_dummy();
         init_stack_with(&mut process, &[2, 2, 1]);
         assert!(process.execute_op(Operation::And).is_err());
+
+        // --- calling AND with a stack of minimum depth is ok ----------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::And).is_ok());
+    }
+
+    #[test]
+    fn op_or() {
+        // --- test 0 OR 0 ---------------------------------------------------
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 0, 0]);
+
+        process.execute_op(Operation::Or).unwrap();
+        let expected = build_expected(&[Felt::ZERO, Felt::new(2)]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- test 1 OR 0 ---------------------------------------------------
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 0, 1]);
+
+        process.execute_op(Operation::Or).unwrap();
+        let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- test 0 OR 1 ---------------------------------------------------
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 1, 0]);
+
+        process.execute_op(Operation::Or).unwrap();
+        let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- test 1 OR 0 ---------------------------------------------------
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 1, 1]);
+
+        process.execute_op(Operation::Or).unwrap();
+        let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- first operand is not binary ------------------------------------
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 1, 2]);
+        assert!(process.execute_op(Operation::Or).is_err());
+
+        // --- second operand is not binary -----------------------------------
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 2, 1]);
+        assert!(process.execute_op(Operation::Or).is_err());
+
+        // --- calling OR with a stack of minimum depth is a ok ----------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::Or).is_ok());
     }
 
     #[test]
@@ -350,6 +412,10 @@ mod tests {
         process.execute_op(Operation::Eq).unwrap();
         let expected = build_expected(&[Felt::ZERO, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
+
+        // --- calling EQ with a stack of minimum depth is a ok ---------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::Eq).is_ok());
     }
 
     #[test]

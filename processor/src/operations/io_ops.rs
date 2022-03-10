@@ -129,11 +129,12 @@ mod tests {
         super::{FieldElement, Operation},
         Felt, Process,
     };
+    use vm_core::MIN_STACK_DEPTH;
 
     #[test]
     fn op_push() {
         let mut process = Process::new_dummy();
-        assert_eq!(0, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
         assert_eq!(0, process.stack.current_step());
         assert_eq!([Felt::ZERO; 16], process.stack.trace_state());
 
@@ -143,7 +144,7 @@ mod tests {
         let mut expected = [Felt::ZERO; 16];
         expected[0] = Felt::ONE;
 
-        assert_eq!(1, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
         assert_eq!(1, process.stack.current_step());
         assert_eq!(expected, process.stack.trace_state());
 
@@ -154,7 +155,7 @@ mod tests {
         expected[0] = Felt::new(3);
         expected[1] = Felt::ONE;
 
-        assert_eq!(2, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
         assert_eq!(2, process.stack.current_step());
         assert_eq!(expected, process.stack.trace_state());
     }
@@ -191,6 +192,10 @@ mod tests {
         assert_eq!(2, process.memory.size());
         assert_eq!(word1, process.memory.get_value(0).unwrap());
         assert_eq!(word2, process.memory.get_value(3).unwrap());
+
+        // --- calling STOREW with a stack of minimum depth is ok ----------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::StoreW).is_ok());
     }
 
     #[test]
@@ -217,6 +222,10 @@ mod tests {
         // check memory state
         assert_eq!(1, process.memory.size());
         assert_eq!(word, process.memory.get_value(1).unwrap());
+
+        // --- calling STOREW with a stack of minimum depth is ok ----------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::LoadW).is_ok());
     }
 
     // ADVICE INPUT TESTS
@@ -251,12 +260,14 @@ mod tests {
         // reading again should result in an error because advice tape is empty
         assert!(process.execute_op(Operation::ReadW).is_err());
 
-        // should return an error if the stack has fewer than 4 values
+        // should not return an error if the stack has fewer than 4 values
         let mut process = Process::new_dummy_with_advice_tape(&[3, 4, 5, 6]);
         process.execute_op(Operation::Push(Felt::ONE)).unwrap();
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::Pad).unwrap();
-        assert!(process.execute_op(Operation::ReadW).is_err());
+        assert!(process.execute_op(Operation::ReadW).is_ok());
+        let expected = build_expected_stack(&[6, 5, 4, 3]);
+        assert_eq!(expected, process.stack.trace_state());
     }
 
     // ENVIRONMENT INPUT TESTS
@@ -267,22 +278,27 @@ mod tests {
         // stack is empty
         let mut process = Process::new_dummy();
         process.execute_op(Operation::SDepth).unwrap();
-        let expected = build_expected_stack(&[0]);
+        let expected = build_expected_stack(&[MIN_STACK_DEPTH as u64]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(1, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
 
         // stack has one item
         process.execute_op(Operation::SDepth).unwrap();
-        let expected = build_expected_stack(&[1, 0]);
+        let expected = build_expected_stack(&[MIN_STACK_DEPTH as u64 + 1, MIN_STACK_DEPTH as u64]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(2, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
 
         // stack has 3 items
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::SDepth).unwrap();
-        let expected = build_expected_stack(&[3, 0, 1, 0]);
+        let expected = build_expected_stack(&[
+            MIN_STACK_DEPTH as u64 + 3,
+            0,
+            MIN_STACK_DEPTH as u64 + 1,
+            MIN_STACK_DEPTH as u64,
+        ]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(4, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 4, process.stack.depth());
     }
 
     // HELPER METHODS

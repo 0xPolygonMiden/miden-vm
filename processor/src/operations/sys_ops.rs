@@ -65,6 +65,17 @@ mod tests {
     };
 
     #[test]
+    fn op_assert() {
+        // calling assert with a minimum stack should be an ok, as long as the top value is ONE
+        let mut process = Process::new_dummy();
+        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
+        process.execute_op(Operation::Swap).unwrap();
+        process.execute_op(Operation::Drop).unwrap();
+
+        assert!(process.execute_op(Operation::Assert).is_ok());
+    }
+
+    #[test]
     fn op_fmpupdate() {
         let mut process = Process::new_dummy();
 
@@ -112,6 +123,10 @@ mod tests {
 
         let expected = build_expected(&[2]);
         assert_eq!(expected, process.stack.trace_state());
+
+        // calling fmpupdate with a minimum stack should be ok
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::FmpUpdate).is_ok());
     }
 
     #[test]

@@ -268,6 +268,10 @@ mod tests {
         let mut process = Process::new_dummy();
         init_stack_with(&mut process, &[c, b, a]);
         assert!(process.execute_op(Operation::U32addc).is_err());
+
+        // --- test with minimum stack depth ----------------------------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::U32addc).is_ok());
     }
 
     #[test]
@@ -318,6 +322,10 @@ mod tests {
         process.execute_op(Operation::U32madd).unwrap();
         let expected = build_expected(&[hi, lo, d]);
         assert_eq!(expected, process.stack.trace_state());
+
+        // --- test with minimum stack depth ----------------------------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::U32madd).is_ok());
     }
 
     #[test]
@@ -343,6 +351,10 @@ mod tests {
         process.execute_op(Operation::U32and).unwrap();
         let expected = build_expected(&[a & b, c, d]);
         assert_eq!(expected, process.stack.trace_state());
+
+        // --- test with minimum stack depth ----------------------------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::U32and).is_ok());
     }
 
     #[test]
@@ -353,6 +365,10 @@ mod tests {
         process.execute_op(Operation::U32or).unwrap();
         let expected = build_expected(&[a | b, c, d]);
         assert_eq!(expected, process.stack.trace_state());
+
+        // --- test with minimum stack depth ----------------------------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::U32or).is_ok());
     }
 
     #[test]
@@ -363,6 +379,10 @@ mod tests {
         process.execute_op(Operation::U32xor).unwrap();
         let expected = build_expected(&[a ^ b, c, d]);
         assert_eq!(expected, process.stack.trace_state());
+
+        // --- test with minimum stack depth ----------------------------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::U32xor).is_ok());
     }
 
     // HELPER FUNCTIONS
