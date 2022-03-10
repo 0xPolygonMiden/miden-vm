@@ -1,4 +1,4 @@
-use super::{build_op_test, build_test};
+use super::{build_op_test, build_test, MIN_STACK_DEPTH};
 use crate::system::FMP_MIN;
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
@@ -10,11 +10,11 @@ fn push_env_sdepth() {
 
     // --- empty stack ----------------------------------------------------------------------------
     let test = build_op_test!(test_op);
-    test.expect_stack(&[0]);
+    test.expect_stack(&[MIN_STACK_DEPTH as u64]);
 
     // --- multi-element stack --------------------------------------------------------------------
     let test = build_op_test!(test_op, &[2, 4, 6, 8, 10]);
-    test.expect_stack(&[5, 10, 8, 6, 4, 2]);
+    test.expect_stack(&[MIN_STACK_DEPTH as u64, 10, 8, 6, 4, 2]);
 
     // --- overflowed stack -----------------------------------------------------------------------
     // push 2 values to increase the lenth of the stack beyond 16

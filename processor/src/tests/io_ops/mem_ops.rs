@@ -1,4 +1,4 @@
-use super::{build_op_test, build_test, TestError};
+use super::{build_op_test, build_test};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================
@@ -61,15 +61,6 @@ fn pop_mem() {
 }
 
 #[test]
-fn pop_mem_invalid() {
-    let asm_op = "pop.mem.0";
-
-    // --- pop fails when stack is empty ----------------------------------------------------------
-    let test = build_op_test!(asm_op);
-    test.expect_error(TestError::ExecutionError("StackUnderflow"));
-}
-
-#[test]
 fn popw_mem() {
     let asm_op = "popw.mem";
     let addr = 0;
@@ -86,15 +77,6 @@ fn popw_mem() {
     // --- the rest of the stack is unchanged -----------------------------------------------------
     let test = build_op_test!(&asm_op, &[0, 1, 2, 3, 4]);
     test.expect_stack_and_memory(&[0], addr, &[1, 2, 3, 4]);
-}
-
-#[test]
-fn popw_mem_invalid() {
-    let asm_op = "popw.mem.0";
-
-    // --- popw fails when the stack doesn't contain a full word ----------------------------------------------------------
-    let test = build_op_test!(asm_op, &[1, 2]);
-    test.expect_error(TestError::ExecutionError("StackUnderflow"));
 }
 
 // OVERWRITING VALUES ON THE STACK (LOAD)
