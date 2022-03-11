@@ -1542,6 +1542,23 @@ export.mul_unsafe
     drop
 end
 
+# Performs subtraction of two unsigned 64 bit integers discarding the overflow. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a - b) % 2^64 #
+export.sub_unsafe
+    movup.3
+    movup.2
+    u32sub.unsafe
+    movup.3
+    movup.3
+    u32sub.unsafe
+    drop
+    swap
+    u32sub.unsafe
+    drop
+end
+
 # ===== DIVISION ================================================================================ #
 
 # Performs division of two unsigned 64 bit integers discarding the remainder. #
