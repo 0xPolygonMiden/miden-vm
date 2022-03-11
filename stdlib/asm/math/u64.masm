@@ -99,32 +99,40 @@ end
 export.div_unsafe
     adv.u64div          # inject the quotient and the remainder into the advice tape #
     
-    push.adv.1          # read the values from the advice tape and make sure they are u32's #
-    u32assert           # TODO: this can be optimized once we have u32assert2 instruction #
-    push.adv.1
+    push.adv.1          # read the quotient from the advice tape and make sure it consists of #
+    u32assert           # 32-bit limbs #
+    push.adv.1          # TODO: this can be optimized once we have u32assert2 instruction #
     u32assert
-    push.adv.1
-    u32assert
+
+    dup.3               # multiply quotient by the divisor and make sure the resulting value #
+    dup.2               # fits into 2 32-bit limbs #
+    u32mul.unsafe
+    dup.4
+    dup.4
+    u32madd
+    eq.0
+    assert
+    dup.5
+    dup.3
+    u32madd
+    eq.0
+    assert
+    dup.4
+    dup.3
+    mul
+    eq.0
+    assert
+
+    push.adv.1          # read the remainder from the advice tape and make sure it consists of #
+    u32assert           # 32-bit limbs #
     push.adv.1
     u32assert
 
-    dup.5               # multiply quotient by the divisor; this also consumes the divisor #
-    dup.4
-    u32mul.unsafe
-    dup.6
-    dup.6
-    u32madd
-    eq.0
-    assert
-    movup.7
-    dup.5
-    u32madd
-    eq.0
-    assert
-    movup.6
-    dup.5
-    mul
-    eq.0
+    movup.7             # make sure the divisor is greater than the remainder. this also consumes #
+    movup.7             # the divisor #
+    dup.3
+    dup.3
+    exec.gt_unsafe
     assert
 
     swap                # add remainder to the previous result; this also consumes the remainder #

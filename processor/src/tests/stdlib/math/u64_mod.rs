@@ -202,6 +202,23 @@ proptest! {
         build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c])?;
     }
 
+    #[test]
+    fn div_unsafe_proptest(a in any::<u64>(), b in any::<u64>()) {
+
+        let c = a / b;
+
+        let (a1, a0) = split_u64(a);
+        let (b1, b0) = split_u64(b);
+        let (c1, c0) = split_u64(c);
+
+        let source = "
+            use.std::math::u64
+            begin
+                exec.u64::div_unsafe
+            end";
+
+        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0])?;
+    }
 }
 
 // HELPER FUNCTIONS
