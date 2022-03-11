@@ -119,14 +119,11 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - The stack contains fewer than 6 elements.
     /// - Merkle tree for the specified root cannot be found in the advice provider.
     /// - The specified depth is either zero or greater than the depth of the Merkle tree
     ///   identified by the specified root.
     /// - Value of the node at the specified depth and index is not known to the advice provider.
     fn inject_merkle_node(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(6, "INJMKNODE")?;
-
         // read node depth, node index, and tree root from the stack
         let depth = self.stack.get(0);
         let index = self.stack.get(1);

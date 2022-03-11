@@ -5,7 +5,7 @@ use vm_core::{
         Script,
     },
     AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StarkField, Word,
-    STACK_TOP_SIZE,
+    MIN_STACK_DEPTH,
 };
 
 mod operations;
@@ -50,7 +50,7 @@ const AUXILIARY_TABLE_WIDTH: usize = 18;
 // TYPE ALIASES
 // ================================================================================================
 
-type StackTrace = [Vec<Felt>; STACK_TOP_SIZE];
+type StackTrace = [Vec<Felt>; MIN_STACK_DEPTH];
 type AuxiliaryTableTrace = [Vec<Felt>; AUXILIARY_TABLE_WIDTH];
 
 // EXECUTOR
@@ -131,7 +131,7 @@ impl Process {
     fn execute_split_block(&mut self, block: &Split) -> Result<(), ExecutionError> {
         // start SPLIT block; this also removes the top stack item to determine which branch of
         // the block should be executed.
-        let condition = self.stack.peek()?;
+        let condition = self.stack.peek();
         self.decoder.start_split(block, condition);
         self.execute_op(Operation::Drop)?;
 
@@ -157,7 +157,7 @@ impl Process {
     fn execute_loop_block(&mut self, block: &Loop) -> Result<(), ExecutionError> {
         // start LOOP block; this requires examining the top of the stack to determine whether
         // the loop's body should be executed.
-        let condition = self.stack.peek()?;
+        let condition = self.stack.peek();
         self.decoder.start_loop(block, condition);
 
         // if the top of the stack is ONE, execute the loop body; otherwise skip the loop body;
@@ -172,7 +172,7 @@ impl Process {
             // keep executing the loop body until the condition on the top of the stack is no
             // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
             // which drops the condition from the stack
-            while self.stack.peek()? == Felt::ONE {
+            while self.stack.peek() == Felt::ONE {
                 self.execute_op(Operation::Drop)?;
                 self.decoder.repeat(block);
 
@@ -186,12 +186,12 @@ impl Process {
 
         // execute END operation; this can be done only if the top of the stack is ZERO, in which
         // case the top of the stack is dropped
-        if self.stack.peek()? == Felt::ZERO {
+        if self.stack.peek() == Felt::ZERO {
             self.execute_op(Operation::Drop)?;
         } else if condition == Felt::ONE {
             unreachable!("top of the stack should not be ONE");
         } else {
-            return Err(ExecutionError::NotBinaryValue(self.stack.peek()?));
+            return Err(ExecutionError::NotBinaryValue(self.stack.peek()));
         }
         self.decoder.end_loop(block);
 

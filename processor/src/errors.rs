@@ -8,7 +8,6 @@ pub enum ExecutionError {
     UnsupportedCodeBlock(CodeBlock),
     UnexecutableCodeBlock(CodeBlock),
     NotBinaryValue(Felt),
-    StackUnderflow(&'static str, usize),
     DivideByZero(usize),
     FailedAssertion(usize),
     EmptyAdviceTape(usize),

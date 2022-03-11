@@ -1,5 +1,5 @@
 use super::{
-    super::{build_op_test, build_test},
+    super::{build_op_test, build_test, MIN_STACK_DEPTH},
     TestError,
 };
 

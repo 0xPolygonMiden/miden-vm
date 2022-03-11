@@ -1,6 +1,6 @@
 use super::{
     AuxiliaryTableTrace, Bitwise, Felt, FieldElement, Hasher, Memory, Process, StackTrace,
-    AUXILIARY_TABLE_WIDTH, STACK_TOP_SIZE,
+    AUXILIARY_TABLE_WIDTH, MIN_STACK_DEPTH,
 };
 use core::slice;
 use winterfell::Trace;
@@ -71,15 +71,15 @@ impl ExecutionTrace {
     // --------------------------------------------------------------------------------------------
 
     /// TODO: add docs
-    pub fn init_stack_state(&self) -> [Felt; STACK_TOP_SIZE] {
-        let mut result = [Felt::ZERO; STACK_TOP_SIZE];
+    pub fn init_stack_state(&self) -> [Felt; MIN_STACK_DEPTH] {
+        let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
         self.read_row_into(0, &mut result);
         result
     }
 
     /// TODO: add docs
-    pub fn last_stack_state(&self) -> [Felt; STACK_TOP_SIZE] {
-        let mut result = [Felt::ZERO; STACK_TOP_SIZE];
+    pub fn last_stack_state(&self) -> [Felt; MIN_STACK_DEPTH] {
+        let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
         self.read_row_into(self.length() - 1, &mut result);
         result
     }

@@ -1,4 +1,4 @@
-use crate::{execute, Felt, FieldElement, ProgramInputs, Script, STACK_TOP_SIZE};
+use crate::{execute, Felt, FieldElement, ProgramInputs, Script, MIN_STACK_DEPTH};
 use vm_core::utils::IntoBytes;
 
 #[test]
@@ -22,10 +22,10 @@ fn blake3_2_to_1_hash() {
     i_digest[32..].copy_from_slice(&i_digest_1);
 
     // allocate space on stack so that bytes can be converted to blake3 words
-    let mut i_words = [0u64; STACK_TOP_SIZE];
+    let mut i_words = [0u64; MIN_STACK_DEPTH];
 
     // convert each of four consecutive little endian bytes (of input) to blake3 words
-    for i in 0..STACK_TOP_SIZE {
+    for i in 0..MIN_STACK_DEPTH {
         i_words[i] = from_le_bytes_to_words(&i_digest[i * 4..(i + 1) * 4]) as u64;
     }
     i_words.reverse();
@@ -35,10 +35,10 @@ fn blake3_2_to_1_hash() {
 
     // prepare digest in desired blake3 word form so that assertion writing becomes easier
     let digest_bytes = digest.as_bytes();
-    let mut digest_words = [0u64; STACK_TOP_SIZE >> 1];
+    let mut digest_words = [0u64; MIN_STACK_DEPTH >> 1];
 
     // convert each of four consecutive little endian bytes (of digest) to blake3 words
-    for i in 0..(STACK_TOP_SIZE >> 1) {
+    for i in 0..(MIN_STACK_DEPTH >> 1) {
         digest_words[i] = from_le_bytes_to_words(&digest_bytes[i * 4..(i + 1) * 4]) as u64;
     }
 
@@ -63,8 +63,8 @@ fn compile(source: &str) -> Script {
 
 /// Takes an array of u64 values and builds a stack, perserving their order and converting them to
 /// field elements.
-fn convert_to_stack(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
-    let mut result = [Felt::ZERO; STACK_TOP_SIZE];
+fn convert_to_stack(values: &[u64]) -> [Felt; MIN_STACK_DEPTH] {
+    let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
     for (&value, result) in values.iter().zip(result.iter_mut()) {
         *result = Felt::new(value);
     }

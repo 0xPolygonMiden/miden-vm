@@ -1,4 +1,4 @@
-use super::{build_test, TestError};
+use super::build_test;
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================
@@ -78,21 +78,6 @@ fn pop_local() {
 }
 
 #[test]
-fn pop_local_invalid() {
-    let source = "
-        proc.foo.1 
-            pop.local.0
-        end 
-        begin
-            exec.foo
-        end";
-
-    // --- pop fails when stack is empty ----------------------------------------------------------
-    let test = build_test!(source);
-    test.expect_error(TestError::ExecutionError("StackUnderflow"));
-}
-
-#[test]
 fn popw_local() {
     // --- test write to local memory -------------------------------------------------------------
     let source = "
@@ -123,21 +108,6 @@ fn popw_local() {
 
     let test = build_test!(source, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
     test.expect_stack_and_memory(&[], mem_addr, &[5, 6, 7, 8]);
-}
-
-#[test]
-fn popw_local_invalid() {
-    let source = "
-        proc.foo.1 
-            popw.local.0
-        end 
-        begin
-            exec.foo
-        end";
-
-    // --- pop fails when stack is empty ----------------------------------------------------------
-    let test = build_test!(source, &[1, 2]);
-    test.expect_error(TestError::ExecutionError("StackUnderflow"));
 }
 
 // OVERWRITING VALUES ON THE STACK (LOAD)
@@ -198,21 +168,6 @@ fn storew_local() {
 
     let test = build_test!(source, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
     test.expect_stack_and_memory(&[4, 3, 2, 1], mem_addr, &[5, 6, 7, 8]);
-}
-
-#[test]
-fn storew_local_invalid() {
-    let source = "
-        proc.foo.1 
-            storew.local.0
-        end 
-        begin
-            exec.foo
-        end";
-
-    // --- pop fails when stack is empty ----------------------------------------------------------
-    let test = build_test!(source, &[1, 2]);
-    test.expect_error(TestError::ExecutionError("StackUnderflow"));
 }
 
 // NESTED PROCEDURES & PAIRED OPERATIONS (push/pop, pushw/popw, loadw/storew)
