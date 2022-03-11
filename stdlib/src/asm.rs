@@ -1522,7 +1522,7 @@ export.add_unsafe
     u32add.unsafe
     movup.3
     movup.3
-    u32addc
+    u32addc.unsafe
     drop
 end
 
@@ -1538,11 +1538,11 @@ export.mul_unsafe
     u32mul.unsafe
     movup.4
     movup.4
-    u32madd
+    u32madd.unsafe
     drop
     movup.3
     movup.3
-    u32madd
+    u32madd.unsafe
     drop
 end
 
@@ -1551,7 +1551,7 @@ end
 # Performs less-than comparison of two unsigned 64 bit integers. #
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
-# [b_hi, b_lo, a_hi, a_lo, ...] -> c, ...], where c = 1 when a < b, and 0 otherwise. #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a < b, and 0 otherwise. #
 export.lt_unsafe
     movup.3
     movup.2
@@ -1569,7 +1569,7 @@ end
 # Performs greater-than comparison of two unsigned 64 bit integers. #
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
-# [b_hi, b_lo, a_hi, a_lo, ...] -> c, ...], where c = 1 when a > b, and 0 otherwise. #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a > b, and 0 otherwise. #
 export.gt_unsafe
     movup.2
     u32sub.unsafe
@@ -1587,7 +1587,7 @@ end
 # Performs less-than-or-equal comparison of two unsigned 64 bit integers. #
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
-# [b_hi, b_lo, a_hi, a_lo, ...] -> c, ...], where c = 1 when a <= b, and 0 otherwise. #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a <= b, and 0 otherwise. #
 export.lte_unsafe
     exec.gt_unsafe
     not
@@ -1596,7 +1596,7 @@ end
 # Performs greater-than-or-equal comparison of two unsigned 64 bit integers. #
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
-# [b_hi, b_lo, a_hi, a_lo, ...] -> c, ...], where c = 1 when a >= b, and 0 otherwise. #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a >= b, and 0 otherwise. #
 export.gte_unsafe
     exec.lt_unsafe
     not
@@ -1621,12 +1621,12 @@ export.div_unsafe
     u32mul.unsafe
     dup.4
     dup.4
-    u32madd
+    u32madd.unsafe
     eq.0
     assert
     dup.5
     dup.3
-    u32madd
+    u32madd.unsafe
     eq.0
     assert
     dup.4
@@ -1652,7 +1652,7 @@ export.div_unsafe
     u32add.unsafe
     movup.3
     movup.3
-    u32addc
+    u32addc.unsafe
     eq.0
     assert
 

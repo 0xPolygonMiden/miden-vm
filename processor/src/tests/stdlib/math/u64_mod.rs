@@ -224,7 +224,7 @@ proptest! {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Split the provided u64 value into 32 hight and low bits.
+/// Split the provided u64 value into 32 high and low bits.
 fn split_u64(value: u64) -> (u64, u64) {
     (value >> 32, value as u32 as u64)
 }
