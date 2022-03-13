@@ -3,7 +3,7 @@ use super::{
         bitwise::BITWISE_OR,
         build_op_test, build_test,
         hasher::{LINEAR_HASH, RETURN_STATE},
-        AuxiliaryTableTrace, FieldElement,
+        AuxTableTrace, FieldElement,
     },
     Felt,
 };
@@ -117,7 +117,7 @@ fn stacked_aux_trace() {
 /// Validate the hasher trace output by the rpperm operation. The full hasher trace is tested in
 /// the Hasher module, so this just tests the AuxiliaryTableTrace selectors and the initial columns
 /// of the hasher trace.
-fn validate_hasher_trace(aux_table: &AuxiliaryTableTrace, start: usize, end: usize) {
+fn validate_hasher_trace(aux_table: &AuxTableTrace, start: usize, end: usize) {
     // The selectors should match the hasher selectors
     for row in start..end {
         // The selectors should match the selectors for the hasher segment
@@ -152,7 +152,7 @@ fn validate_hasher_trace(aux_table: &AuxiliaryTableTrace, start: usize, end: usi
 /// Validate the bitwise trace output by the u32or operation. The full bitwise trace is tested in
 /// the Bitwise module, so this just tests the AuxiliaryTableTrace selectors, the initial columns
 /// of the bitwise trace, and the final columns after the bitwise trace.
-fn validate_bitwise_trace(aux_table: &AuxiliaryTableTrace, start: usize, end: usize) {
+fn validate_bitwise_trace(aux_table: &AuxTableTrace, start: usize, end: usize) {
     // The selectors should match the bitwise selectors
     for row in start..end {
         // The selectors should match the selectors for the bitwise segment
@@ -172,7 +172,7 @@ fn validate_bitwise_trace(aux_table: &AuxiliaryTableTrace, start: usize, end: us
 /// Validate the bitwise trace output by the storew operation. The full memory trace is tested in
 /// the Memory module, so this just tests the AuxiliaryTableTrace selectors, the initial columns
 /// of the memory trace, and the final column after the memory trace.
-fn validate_memory_trace(aux_table: &AuxiliaryTableTrace, start: usize, end: usize, addr: u64) {
+fn validate_memory_trace(aux_table: &AuxTableTrace, start: usize, end: usize, addr: u64) {
     for row in start..end {
         // The selectors in the first row should match the memory selectors
         assert_eq!(Felt::ONE, aux_table[0][row]);
@@ -189,7 +189,7 @@ fn validate_memory_trace(aux_table: &AuxiliaryTableTrace, start: usize, end: usi
 }
 
 /// Checks that the end of the auxiliary trace table is padded and has the correct selectors.
-fn validate_padding(aux_table: &AuxiliaryTableTrace, start: usize, end: usize) {
+fn validate_padding(aux_table: &AuxTableTrace, start: usize, end: usize) {
     for row in start..end {
         // selectors
         assert_eq!(Felt::ONE, aux_table[0][row]);

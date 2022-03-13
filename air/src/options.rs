@@ -1,6 +1,7 @@
 use core::ops::Deref;
 use winter_air::{FieldExtension, HashFunction, ProofOptions as WinterProofOptions};
 
+/// TODO: add docs
 #[derive(Clone)]
 pub struct ProofOptions(WinterProofOptions);
 

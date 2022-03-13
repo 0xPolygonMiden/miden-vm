@@ -1,4 +1,4 @@
-use super::{Felt, FieldElement};
+use super::{Felt, FieldElement, SysTrace};
 
 // CONSTANTS
 // ================================================================================================
@@ -54,6 +54,11 @@ impl System {
     #[inline(always)]
     pub fn trace_len(&self) -> usize {
         self.clk_trace.len()
+    }
+
+    /// Returns an execution trace of this system info container.
+    pub fn into_trace(self) -> SysTrace {
+        [self.clk_trace, self.fmp_trace]
     }
 
     // STATE MUTATORS

@@ -1,11 +1,11 @@
-use vm_core::{hasher::Digest, MIN_STACK_DEPTH};
+use vm_core::{hasher::Digest, StackTopState, CLK_COL_IDX, FMP_COL_IDX, STACK_TRACE_OFFSET};
 use winter_air::{
     Air, AirContext, Assertion, EvaluationFrame, ProofOptions as WinterProofOptions, TraceInfo,
+    TransitionConstraintDegree,
 };
 use winter_utils::{ByteWriter, Serializable};
 
 mod options;
-//mod utils;
 
 // EXPORTS
 // ================================================================================================
@@ -17,33 +17,64 @@ pub use winter_air::{FieldExtension, HashFunction};
 // PROCESSOR AIR
 // ================================================================================================
 
+/// TODO: add docs
 pub struct ProcessorAir {
     context: AirContext<Felt>,
+    init_stack_state: StackTopState,
+    last_stack_state: StackTopState,
 }
 
 impl Air for ProcessorAir {
     type BaseField = Felt;
     type PublicInputs = PublicInputs;
 
-    fn new(
-        _trace_info: TraceInfo,
-        _pub_inputs: PublicInputs,
-        _options: WinterProofOptions,
-    ) -> Self {
-        unimplemented!()
+    fn new(trace_info: TraceInfo, pub_inputs: PublicInputs, options: WinterProofOptions) -> Self {
+        let degrees = vec![
+            TransitionConstraintDegree::new(1), // clk' = clk + 1
+        ];
+
+        Self {
+            context: AirContext::new(trace_info, degrees, options),
+            init_stack_state: pub_inputs.init_stack_state,
+            last_stack_state: pub_inputs.last_stack_state,
+        }
     }
 
+    #[allow(clippy::vec_init_then_push)]
     fn get_assertions(&self) -> Vec<Assertion<Felt>> {
-        unimplemented!()
+        let mut result = Vec::new();
+
+        // first value of clk is 0
+        result.push(Assertion::single(CLK_COL_IDX, 0, Felt::ZERO));
+
+        // first value of fmp is 2^30
+        result.push(Assertion::single(FMP_COL_IDX, 0, Felt::new(2u64.pow(30))));
+
+        // stack column at the first step should be set to init stack values
+        for (i, &value) in self.init_stack_state.iter().enumerate() {
+            result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, value));
+        }
+
+        // stack column at the last step should be set to last stack values
+        let last_step = self.trace_length() - 1;
+        for (i, &value) in self.last_stack_state.iter().enumerate() {
+            result.push(Assertion::single(STACK_TRACE_OFFSET + i, last_step, value));
+        }
+
+        result
     }
 
     fn evaluate_transition<E: FieldElement<BaseField = Felt>>(
         &self,
-        _frame: &EvaluationFrame<E>,
+        frame: &EvaluationFrame<E>,
         _periodic_values: &[E],
-        _result: &mut [E],
+        result: &mut [E],
     ) {
-        unimplemented!()
+        let current = frame.current();
+        let next = frame.next();
+
+        // clk' = clk + 1
+        result[0] = next[CLK_COL_IDX] - (current[CLK_COL_IDX] + E::ONE)
     }
 
     fn context(&self) -> &AirContext<Felt> {
@@ -56,15 +87,15 @@ impl Air for ProcessorAir {
 
 pub struct PublicInputs {
     program_hash: Digest,
-    init_stack_state: [Felt; MIN_STACK_DEPTH],
-    last_stack_state: [Felt; MIN_STACK_DEPTH],
+    init_stack_state: StackTopState,
+    last_stack_state: StackTopState,
 }
 
 impl PublicInputs {
     pub fn new(
         program_hash: Digest,
-        init_stack_state: [Felt; MIN_STACK_DEPTH],
-        last_stack_state: [Felt; MIN_STACK_DEPTH],
+        init_stack_state: StackTopState,
+        last_stack_state: StackTopState,
     ) -> Self {
         Self {
             program_hash,
@@ -79,21 +110,5 @@ impl Serializable for PublicInputs {
         target.write(self.program_hash.as_elements());
         target.write(self.init_stack_state.as_slice());
         target.write(self.last_stack_state.as_slice());
-    }
-}
-
-// TRACE METADATA
-// ================================================================================================
-
-pub struct TraceMetadata {
-    pub op_count: usize,
-    pub ctx_depth: usize,
-    pub loop_depth: usize,
-    pub stack_depth: usize,
-}
-
-impl TraceMetadata {
-    pub fn from_trace_info(_trace_info: &TraceInfo) -> Self {
-        unimplemented!()
     }
 }

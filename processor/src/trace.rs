@@ -1,20 +1,24 @@
 use super::{
-    AuxiliaryTableTrace, Bitwise, Digest, Felt, FieldElement, Hasher, Memory, Process, StackTrace,
-    AUXILIARY_TABLE_WIDTH, MIN_STACK_DEPTH,
+    AuxTableTrace, Bitwise, Digest, Felt, FieldElement, Hasher, Memory, Process, StackTopState,
+    StackTrace, SysTrace,
 };
 use core::slice;
+use vm_core::{
+    AUX_TRACE_OFFSET, AUX_TRACE_RANGE, AUX_TRACE_WIDTH, STACK_TRACE_OFFSET, STACK_TRACE_RANGE,
+    STACK_TRACE_WIDTH, SYS_TRACE_OFFSET, SYS_TRACE_RANGE, TRACE_WIDTH,
+};
 use winterfell::Trace;
 
 // VM EXECUTION TRACE
 // ================================================================================================
 
-/// TODO: for now this consists only of stack trace and auxiliary traces, but will need to
-/// include decoder trace, etc.
+/// TODO: for now this consists only of system register trace, stack trace, and auxiliary traces,
+/// but will also need to include decoder trace and range checker trace.
 pub struct ExecutionTrace {
     meta: Vec<u8>,
+    system: SysTrace,
     stack: StackTrace,
-    #[allow(dead_code)]
-    aux_table: AuxiliaryTableTrace,
+    aux_table: AuxTableTrace,
     // TODO: program hash should be retrieved from decoder trace, but for now we store it explicitly
     program_hash: Digest,
 }
@@ -46,7 +50,7 @@ impl ExecutionTrace {
         // note: it may be possible to optimize this by initializing with Felt::zeroed_vector,
         // depending on how the compiler reduces Felt(0) and whether initializing here + iterating
         // to update selector values is faster than using resize to initialize all values
-        let mut aux_table_trace: AuxiliaryTableTrace = (0..AUXILIARY_TABLE_WIDTH)
+        let mut aux_table_trace: AuxTableTrace = (0..AUX_TRACE_WIDTH)
             .map(|_| Vec::<Felt>::with_capacity(trace_len))
             .collect::<Vec<_>>()
             .try_into()
@@ -64,6 +68,7 @@ impl ExecutionTrace {
 
         Self {
             meta: Vec::new(),
+            system: system.into_trace(),
             stack: stack_trace,
             aux_table: aux_table_trace,
             program_hash,
@@ -79,23 +84,28 @@ impl ExecutionTrace {
     }
 
     /// TODO: add docs
-    pub fn init_stack_state(&self) -> [Felt; MIN_STACK_DEPTH] {
-        let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
-        self.read_row_into(0, &mut result);
+    pub fn init_stack_state(&self) -> StackTopState {
+        let mut result = [Felt::ZERO; STACK_TRACE_WIDTH];
+        for (result, column) in result.iter_mut().zip(self.stack.iter()) {
+            *result = column[0];
+        }
         result
     }
 
     /// TODO: add docs
-    pub fn last_stack_state(&self) -> [Felt; MIN_STACK_DEPTH] {
-        let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
-        self.read_row_into(self.length() - 1, &mut result);
+    pub fn last_stack_state(&self) -> StackTopState {
+        let last_step = self.length() - 1;
+        let mut result = [Felt::ZERO; STACK_TRACE_WIDTH];
+        for (result, column) in result.iter_mut().zip(self.stack.iter()) {
+            *result = column[last_step];
+        }
         result
     }
 
     // ACCESSORS FOR TESTING
     // --------------------------------------------------------------------------------------------
     #[cfg(test)]
-    pub fn aux_table(&self) -> &AuxiliaryTableTrace {
+    pub fn aux_table(&self) -> &AuxTableTrace {
         &self.aux_table
     }
 
@@ -112,29 +122,45 @@ impl Trace for ExecutionTrace {
     type BaseField = Felt;
 
     fn width(&self) -> usize {
-        self.stack.len()
+        TRACE_WIDTH
     }
 
     fn length(&self) -> usize {
-        self.stack[0].len()
+        self.system[0].len()
     }
 
-    fn get(&self, col_idx: usize, row_idx: usize) -> Self::BaseField {
-        self.stack[col_idx][row_idx]
+    fn get(&self, col_idx: usize, row_idx: usize) -> Felt {
+        match col_idx {
+            i if SYS_TRACE_RANGE.contains(&i) => self.system[i - SYS_TRACE_OFFSET][row_idx],
+            i if STACK_TRACE_RANGE.contains(&i) => self.stack[i - STACK_TRACE_OFFSET][row_idx],
+            i if AUX_TRACE_RANGE.contains(&i) => self.aux_table[i - AUX_TRACE_OFFSET][row_idx],
+            _ => panic!("invalid column index"),
+        }
     }
 
     fn meta(&self) -> &[u8] {
         &self.meta
     }
 
-    fn read_row_into(&self, step: usize, target: &mut [Self::BaseField]) {
-        for (i, register) in self.stack.iter().enumerate() {
-            target[i] = register[step];
+    fn read_row_into(&self, step: usize, target: &mut [Felt]) {
+        for (i, column) in self.system.iter().enumerate() {
+            target[i + SYS_TRACE_OFFSET] = column[step];
+        }
+
+        for (i, column) in self.stack.iter().enumerate() {
+            target[i + STACK_TRACE_OFFSET] = column[step];
+        }
+
+        for (i, column) in self.aux_table.iter().enumerate() {
+            target[i + AUX_TRACE_OFFSET] = column[step];
         }
     }
 
-    fn into_columns(self) -> Vec<Vec<Self::BaseField>> {
-        self.stack.into()
+    fn into_columns(self) -> Vec<Vec<Felt>> {
+        let mut result: Vec<Vec<Felt>> = self.system.into();
+        self.stack.into_iter().for_each(|v| result.push(v));
+        self.aux_table.into_iter().for_each(|v| result.push(v));
+        result
     }
 }
 
@@ -248,16 +274,16 @@ fn finalize_column(column: &mut Vec<Felt>, step: usize, trace_len: usize) {
 /// - columns 3-17: unused columns padded with ZERO
 ///
 fn fill_aux_columns(
-    aux_table_trace: &mut AuxiliaryTableTrace,
+    aux_table_trace: &mut AuxTableTrace,
     trace_len: usize,
     hasher: Hasher,
     bitwise: Bitwise,
     memory: Memory,
 ) {
     // allocate fragments to be filled with the respective execution traces of each coprocessor
-    let mut hasher_fragment = TraceFragment::new(AUXILIARY_TABLE_WIDTH);
-    let mut bitwise_fragment = TraceFragment::new(AUXILIARY_TABLE_WIDTH);
-    let mut memory_fragment = TraceFragment::new(AUXILIARY_TABLE_WIDTH);
+    let mut hasher_fragment = TraceFragment::new(AUX_TRACE_WIDTH);
+    let mut bitwise_fragment = TraceFragment::new(AUX_TRACE_WIDTH);
+    let mut memory_fragment = TraceFragment::new(AUX_TRACE_WIDTH);
 
     // set the selectors and padding as required by each column and segment
     // and add the hasher, bitwise, and memory segments to their respective fragments
