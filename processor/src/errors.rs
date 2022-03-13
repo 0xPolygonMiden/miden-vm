@@ -18,4 +18,5 @@ pub enum ExecutionError {
     InvalidFmpValue(Felt, Felt),
     NotU32Value(Felt),
     ProverError(ProverError),
+    TooManyStackOutputs(usize),
 }

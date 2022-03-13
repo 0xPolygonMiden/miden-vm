@@ -1,21 +1,20 @@
 use air::{ProcessorAir, PublicInputs};
 use processor::{ExecutionError, ExecutionTrace};
-use prover::{Prover, Trace};
+use prover::Prover;
 use vm_core::{Felt, StarkField, MIN_STACK_DEPTH};
 
 #[cfg(feature = "std")]
 use log::debug;
 #[cfg(feature = "std")]
+use prover::Trace;
+#[cfg(feature = "std")]
 use std::time::Instant;
-
-//#[cfg(test)]
-//mod tests;
 
 // EXPORTS
 // ================================================================================================
 
 pub use air::{FieldExtension, HashFunction, ProofOptions};
-pub use assembly;
+pub use assembly::{Assembler, AssemblyError};
 pub use prover::StarkProof;
 pub use verifier::{verify, VerificationError};
 pub use vm_core::{program::Script, ProgramInputs};
@@ -28,7 +27,8 @@ pub use vm_core::{program::Script, ProgramInputs};
 ///
 /// * `inputs` specifies the initial state of the stack as well as non-deterministic (secret)
 ///   inputs for the VM.
-/// * `num_outputs` specifies the number of elements from the top of the stack to be returned.
+/// * `num_stack_outputs` specifies the number of elements from the top of the stack to be
+///   returned.
 /// * `options` defines parameters for STARK proof generation.
 ///
 /// # Errors
@@ -36,15 +36,12 @@ pub use vm_core::{program::Script, ProgramInputs};
 pub fn execute(
     program: &Script,
     inputs: &ProgramInputs,
-    num_outputs: usize,
+    num_stack_outputs: usize,
     options: &ProofOptions,
 ) -> Result<(Vec<u64>, StarkProof), ExecutionError> {
-    assert!(
-        num_outputs <= MIN_STACK_DEPTH,
-        "cannot produce more than {} outputs, but requested {}",
-        MIN_STACK_DEPTH,
-        num_outputs
-    );
+    if num_stack_outputs > MIN_STACK_DEPTH {
+        return Err(ExecutionError::TooManyStackOutputs(num_stack_outputs));
+    }
 
     // execute the program to create an execution trace
     #[cfg(feature = "std")]
@@ -59,13 +56,14 @@ pub fn execute(
     );
 
     // copy the stack state at the last step to return as output
-    let outputs = trace.last_stack_state()[..num_outputs]
+    let outputs = trace.last_stack_state()[..num_stack_outputs]
         .iter()
         .map(|&v| v.as_int())
         .collect::<Vec<_>>();
 
     // generate STARK proof
-    let prover = ExecutionProver::new(options.clone());
+    let num_stack_inputs = inputs.stack_init().len();
+    let prover = ExecutionProver::new(options.clone(), num_stack_inputs, num_stack_outputs);
     let proof = prover.prove(trace).map_err(ExecutionError::ProverError)?;
 
     Ok((outputs, proof))
@@ -76,11 +74,17 @@ pub fn execute(
 
 struct ExecutionProver {
     options: ProofOptions,
+    num_stack_inputs: usize,
+    num_stack_outputs: usize,
 }
 
 impl ExecutionProver {
-    pub fn new(options: ProofOptions) -> Self {
-        Self { options }
+    pub fn new(options: ProofOptions, num_stack_inputs: usize, num_stack_outputs: usize) -> Self {
+        Self {
+            options,
+            num_stack_inputs,
+            num_stack_outputs,
+        }
     }
 }
 
@@ -96,8 +100,8 @@ impl Prover for ExecutionProver {
     fn get_pub_inputs(&self, trace: &ExecutionTrace) -> PublicInputs {
         PublicInputs::new(
             trace.program_hash(),
-            trace.init_stack_state(),
-            trace.last_stack_state(),
+            trace.init_stack_state()[..self.num_stack_inputs].to_vec(),
+            trace.last_stack_state()[..self.num_stack_outputs].to_vec(),
         )
     }
 }

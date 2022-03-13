@@ -1,5 +1,6 @@
 use air::{ProcessorAir, PublicInputs};
-use vm_core::{Felt, FieldElement, MIN_STACK_DEPTH};
+use core::fmt;
+use vm_core::MIN_STACK_DEPTH;
 use winterfell::VerifierError;
 
 // EXPORTS
@@ -21,42 +22,46 @@ pub use winterfell::StarkProof;
 /// Returns an error if the provided proof does not prove a correct execution of the program.
 pub fn verify(
     program_hash: Digest,
-    public_inputs: &[u64],
-    outputs: &[u64],
+    stack_inputs: &[u64],
+    stack_outputs: &[u64],
     proof: StarkProof,
 ) -> Result<(), VerificationError> {
-    // build initial stack state from public inputs
-    if public_inputs.len() > MIN_STACK_DEPTH {
+    if stack_inputs.len() > MIN_STACK_DEPTH {
         return Err(VerificationError::TooManyInputValues(
             MIN_STACK_DEPTH,
-            public_inputs.len(),
+            stack_inputs.len(),
         ));
     }
 
-    let mut init_stack_state = [Felt::ZERO; MIN_STACK_DEPTH];
-    for (element, &value) in init_stack_state.iter_mut().zip(public_inputs.iter().rev()) {
-        *element = value
-            .try_into()
-            .map_err(|_| VerificationError::InputNotFieldElement(value))?;
+    // convert stack inputs to field elements
+    let mut stack_input_felts = Vec::with_capacity(stack_inputs.len());
+    for &input in stack_inputs.iter().rev() {
+        stack_input_felts.push(
+            input
+                .try_into()
+                .map_err(|_| VerificationError::InputNotFieldElement(input))?,
+        );
     }
 
-    // build final stack state from outputs
-    if outputs.len() > MIN_STACK_DEPTH {
+    if stack_outputs.len() > MIN_STACK_DEPTH {
         return Err(VerificationError::TooManyOutputValues(
             MIN_STACK_DEPTH,
-            outputs.len(),
+            stack_outputs.len(),
         ));
     }
 
-    let mut last_stack_state = [Felt::ZERO; MIN_STACK_DEPTH];
-    for (element, &value) in last_stack_state.iter_mut().zip(outputs.iter().rev()) {
-        *element = value
-            .try_into()
-            .map_err(|_| VerificationError::OutputNotFieldElement(value))?;
+    // convert stack outputs to field elements
+    let mut stack_output_felts = Vec::with_capacity(stack_outputs.len());
+    for &output in stack_outputs.iter().rev() {
+        stack_output_felts.push(
+            output
+                .try_into()
+                .map_err(|_| VerificationError::OutputNotFieldElement(output))?,
+        );
     }
 
     // build public inputs and try to verify the proof
-    let pub_inputs = PublicInputs::new(program_hash, init_stack_state, last_stack_state);
+    let pub_inputs = PublicInputs::new(program_hash, stack_input_felts, stack_output_felts);
     winterfell::verify::<ProcessorAir>(proof, pub_inputs).map_err(VerificationError::VerifierError)
 }
 
@@ -71,4 +76,11 @@ pub enum VerificationError {
     TooManyInputValues(usize, usize),
     OutputNotFieldElement(u64),
     TooManyOutputValues(usize, usize),
+}
+
+impl fmt::Display for VerificationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // TODO: implement friendly messages
+        write!(f, "{:?}", self)
+    }
 }

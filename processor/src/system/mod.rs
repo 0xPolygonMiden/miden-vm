@@ -27,11 +27,16 @@ impl System {
     /// Returns a new [System] struct with execution traces instantiated with the specified length.
     /// Initializes the free memory pointer `fmp` used for local memory offsets to 2^30.
     pub fn new(init_trace_length: usize) -> Self {
+        // set the first value of the fmp trace to 2^30.
+        let fmp = Felt::new(FMP_MIN);
+        let mut fmp_trace = Felt::zeroed_vector(init_trace_length);
+        fmp_trace[0] = fmp;
+
         Self {
             clk: 0,
-            clk_trace: vec![Felt::ZERO; init_trace_length],
-            fmp: Felt::new(FMP_MIN),
-            fmp_trace: vec![Felt::ZERO; init_trace_length],
+            clk_trace: Felt::zeroed_vector(init_trace_length),
+            fmp,
+            fmp_trace,
         }
     }
 

@@ -4,16 +4,16 @@ use super::{
 };
 use core::slice;
 use vm_core::{
-    AUX_TRACE_OFFSET, AUX_TRACE_RANGE, AUX_TRACE_WIDTH, STACK_TRACE_OFFSET, STACK_TRACE_RANGE,
-    STACK_TRACE_WIDTH, SYS_TRACE_OFFSET, SYS_TRACE_RANGE, TRACE_WIDTH,
+    StarkField, AUX_TRACE_OFFSET, AUX_TRACE_RANGE, AUX_TRACE_WIDTH, STACK_TRACE_OFFSET,
+    STACK_TRACE_RANGE, STACK_TRACE_WIDTH, SYS_TRACE_OFFSET, SYS_TRACE_RANGE, TRACE_WIDTH,
 };
 use winterfell::Trace;
 
 // VM EXECUTION TRACE
 // ================================================================================================
 
-/// TODO: for now this consists only of system register trace, stack trace, and auxiliary traces,
-/// but will also need to include decoder trace and range checker trace.
+/// TODO: for now this consists only of system register trace, stack trace, and auxiliary table
+/// trace, but will also need to include decoder trace and range checker trace.
 pub struct ExecutionTrace {
     meta: Vec<u8>,
     system: SysTrace,
@@ -66,9 +66,14 @@ impl ExecutionTrace {
             finalize_column(column, step, trace_len);
         }
 
+        // finalize system trace
+        let mut system_trace = system.into_trace();
+        finalize_clk_column(&mut system_trace[0], step, trace_len);
+        finalize_column(&mut system_trace[1], step, trace_len);
+
         Self {
             meta: Vec::new(),
-            system: system.into_trace(),
+            system: system_trace,
             stack: stack_trace,
             aux_table: aux_table_trace,
             program_hash,
@@ -80,6 +85,7 @@ impl ExecutionTrace {
 
     /// TODO: add docs
     pub fn program_hash(&self) -> Digest {
+        // TODO: program hash should be read from the decoder trace
         self.program_hash
     }
 
@@ -112,6 +118,15 @@ impl ExecutionTrace {
     #[cfg(test)]
     pub fn stack(&self) -> &StackTrace {
         &self.stack
+    }
+
+    #[allow(dead_code)]
+    pub fn print(&self) {
+        let mut row = [Felt::ZERO; TRACE_WIDTH];
+        for i in 0..self.length() {
+            self.read_row_into(i, &mut row);
+            println!("{:?}", row.iter().map(|v| v.as_int()).collect::<Vec<_>>());
+        }
     }
 }
 
@@ -239,6 +254,16 @@ fn finalize_column(column: &mut Vec<Felt>, step: usize, trace_len: usize) {
     let last_value = column[step];
     column[step..].fill(last_value);
     column.resize(trace_len, last_value);
+}
+
+/// Completes the clk column by filling in all values after the specified step. The values
+/// in the clk column are equal to the index of the row in the trace table.
+fn finalize_clk_column(column: &mut Vec<Felt>, step: usize, trace_len: usize) {
+    column.resize(trace_len, Felt::ZERO);
+    for (i, clk) in column.iter_mut().enumerate().take(trace_len).skip(step) {
+        // converting from u32 is OK here because max trace length is 2^32
+        *clk = Felt::from(i as u32);
+    }
 }
 
 /// Fills the provided auxiliary table trace with the stacked execution traces of the Hasher,

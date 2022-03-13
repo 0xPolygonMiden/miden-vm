@@ -49,7 +49,7 @@ mod tests;
 
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 type StackTrace = [Vec<Felt>; MIN_STACK_DEPTH];
-type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH];
+type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
 
 // EXECUTOR
 // ================================================================================================
@@ -59,6 +59,7 @@ type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH];
 pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace, ExecutionError> {
     let mut process = Process::new(inputs.clone());
     process.execute_code_block(script.root())?;
+    // TODO: make sure program hash from script and trace are the same
     Ok(ExecutionTrace::new(process, *script.hash()))
 }
 

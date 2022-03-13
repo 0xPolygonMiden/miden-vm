@@ -115,7 +115,7 @@ fn stacked_aux_trace() {
 // ================================================================================================
 
 /// Validate the hasher trace output by the rpperm operation. The full hasher trace is tested in
-/// the Hasher module, so this just tests the AuxiliaryTableTrace selectors and the initial columns
+/// the Hasher module, so this just tests the AuxTableTrace selectors and the initial columns
 /// of the hasher trace.
 fn validate_hasher_trace(aux_table: &AuxTableTrace, start: usize, end: usize) {
     // The selectors should match the hasher selectors
@@ -150,7 +150,7 @@ fn validate_hasher_trace(aux_table: &AuxTableTrace, start: usize, end: usize) {
 }
 
 /// Validate the bitwise trace output by the u32or operation. The full bitwise trace is tested in
-/// the Bitwise module, so this just tests the AuxiliaryTableTrace selectors, the initial columns
+/// the Bitwise module, so this just tests the AuxTableTrace selectors, the initial columns
 /// of the bitwise trace, and the final columns after the bitwise trace.
 fn validate_bitwise_trace(aux_table: &AuxTableTrace, start: usize, end: usize) {
     // The selectors should match the bitwise selectors
@@ -170,7 +170,7 @@ fn validate_bitwise_trace(aux_table: &AuxTableTrace, start: usize, end: usize) {
 }
 
 /// Validate the bitwise trace output by the storew operation. The full memory trace is tested in
-/// the Memory module, so this just tests the AuxiliaryTableTrace selectors, the initial columns
+/// the Memory module, so this just tests the AuxTableTrace selectors, the initial columns
 /// of the memory trace, and the final column after the memory trace.
 fn validate_memory_trace(aux_table: &AuxTableTrace, start: usize, end: usize, addr: u64) {
     for row in start..end {

@@ -1,4 +1,4 @@
-use vm_core::{hasher::Digest, StackTopState, CLK_COL_IDX, FMP_COL_IDX, STACK_TRACE_OFFSET};
+use vm_core::{hasher::Digest, CLK_COL_IDX, FMP_COL_IDX, MIN_STACK_DEPTH, STACK_TRACE_OFFSET};
 use winter_air::{
     Air, AirContext, Assertion, EvaluationFrame, ProofOptions as WinterProofOptions, TraceInfo,
     TransitionConstraintDegree,
@@ -20,8 +20,8 @@ pub use winter_air::{FieldExtension, HashFunction};
 /// TODO: add docs
 pub struct ProcessorAir {
     context: AirContext<Felt>,
-    init_stack_state: StackTopState,
-    last_stack_state: StackTopState,
+    stack_inputs: Vec<Felt>,
+    stack_outputs: Vec<Felt>,
 }
 
 impl Air for ProcessorAir {
@@ -35,8 +35,8 @@ impl Air for ProcessorAir {
 
         Self {
             context: AirContext::new(trace_info, degrees, options),
-            init_stack_state: pub_inputs.init_stack_state,
-            last_stack_state: pub_inputs.last_stack_state,
+            stack_inputs: pub_inputs.stack_inputs,
+            stack_outputs: pub_inputs.stack_outputs,
         }
     }
 
@@ -44,20 +44,24 @@ impl Air for ProcessorAir {
     fn get_assertions(&self) -> Vec<Assertion<Felt>> {
         let mut result = Vec::new();
 
+        // --- set assertions for the first step --------------------------------------------------
+
         // first value of clk is 0
         result.push(Assertion::single(CLK_COL_IDX, 0, Felt::ZERO));
 
         // first value of fmp is 2^30
         result.push(Assertion::single(FMP_COL_IDX, 0, Felt::new(2u64.pow(30))));
 
-        // stack column at the first step should be set to init stack values
-        for (i, &value) in self.init_stack_state.iter().enumerate() {
+        // stack columns at the first step should be set to stack inputs
+        for (i, &value) in self.stack_inputs.iter().enumerate() {
             result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, value));
         }
 
-        // stack column at the last step should be set to last stack values
+        // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.trace_length() - 1;
-        for (i, &value) in self.last_stack_state.iter().enumerate() {
+
+        // stack columns at the last step should be set to stack outputs
+        for (i, &value) in self.stack_outputs.iter().enumerate() {
             result.push(Assertion::single(STACK_TRACE_OFFSET + i, last_step, value));
         }
 
@@ -85,22 +89,28 @@ impl Air for ProcessorAir {
 // PUBLIC INPUTS
 // ================================================================================================
 
+#[derive(Debug)]
 pub struct PublicInputs {
     program_hash: Digest,
-    init_stack_state: StackTopState,
-    last_stack_state: StackTopState,
+    stack_inputs: Vec<Felt>,
+    stack_outputs: Vec<Felt>,
 }
 
 impl PublicInputs {
-    pub fn new(
-        program_hash: Digest,
-        init_stack_state: StackTopState,
-        last_stack_state: StackTopState,
-    ) -> Self {
+    pub fn new(program_hash: Digest, stack_inputs: Vec<Felt>, stack_outputs: Vec<Felt>) -> Self {
+        assert!(
+            stack_inputs.len() <= MIN_STACK_DEPTH,
+            "too many stack inputs"
+        );
+        assert!(
+            stack_outputs.len() <= MIN_STACK_DEPTH,
+            "too many stack outputs"
+        );
+
         Self {
             program_hash,
-            init_stack_state,
-            last_stack_state,
+            stack_inputs,
+            stack_outputs,
         }
     }
 }
@@ -108,7 +118,7 @@ impl PublicInputs {
 impl Serializable for PublicInputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write(self.program_hash.as_elements());
-        target.write(self.init_stack_state.as_slice());
-        target.write(self.last_stack_state.as_slice());
+        target.write(self.stack_inputs.as_slice());
+        target.write(self.stack_outputs.as_slice());
     }
 }
