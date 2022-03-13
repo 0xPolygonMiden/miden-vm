@@ -1,6 +1,24 @@
 use super::{Felt, FieldElement, ProgramInputs, StackTrace, MIN_STACK_DEPTH};
 use core::cmp;
 
+// CONSTANTS
+// ================================================================================================
+
+/// Number of columns in the virtual overflow table.
+const NUM_OVERFLOW_COLS: usize = 3;
+
+/// The address column of the overflow table.
+const OVERFLOW_ADDR_IDX: usize = 0;
+
+/// The column of the overflow table that contains the overflowed values.
+const OVERFLOW_VAL_IDX: usize = 1;
+
+/// The column of the overflow table that has the addresses of each of the previous overflow rows.
+const OVERFLOW_PREV_ADDR_IDX: usize = 2;
+
+/// The last stack index accessible by the VM.
+const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
+
 // STACK
 // ================================================================================================
 
@@ -8,7 +26,7 @@ use core::cmp;
 pub struct Stack {
     step: usize,
     trace: StackTrace,
-    overflow: Vec<Felt>,
+    overflow: [Vec<Felt>; NUM_OVERFLOW_COLS],
     depth: usize,
 }
 
@@ -27,10 +45,12 @@ impl Stack {
             trace.push(column)
         }
 
+        let overflow = [Vec::new(), Vec::new(), Vec::new()];
+
         Self {
             step: 0,
             trace: trace.try_into().expect("failed to convert vector to array"),
-            overflow: Vec::new(),
+            overflow,
             depth: MIN_STACK_DEPTH,
         }
     }
@@ -70,7 +90,7 @@ impl Stack {
 
         if num_items > MIN_STACK_DEPTH {
             let num_overflow_items = num_items - MIN_STACK_DEPTH;
-            result.extend_from_slice(&self.overflow[..num_overflow_items]);
+            result.extend_from_slice(&self.overflow[OVERFLOW_VAL_IDX][..num_overflow_items]);
         }
 
         result
@@ -139,23 +159,24 @@ impl Stack {
             "start position cannot exceed current depth"
         );
 
-        const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
         match self.depth {
             0..=MAX_TOP_IDX => unreachable!("stack underflow"),
             MIN_STACK_DEPTH => {
                 for i in start_pos..=MAX_TOP_IDX {
                     self.trace[i - 1][self.step + 1] = self.trace[i][self.step];
                 }
-                // Shift in a ZERO to prevent depth shrinking below the minimum stack depth
+                // Shift in a ZERO to prevent depth shrinking below the minimum stack depth.
                 self.trace[MAX_TOP_IDX][self.step + 1] = Felt::ZERO;
             }
             _ => {
                 for i in start_pos..=MAX_TOP_IDX {
                     self.trace[i - 1][self.step + 1] = self.trace[i][self.step];
                 }
-                let from_overflow = self.overflow.pop().expect("overflow stack is empty");
-                self.trace[MAX_TOP_IDX][self.step + 1] = from_overflow;
 
+                let from_overflow = self.pop_overflow();
+                self.trace[MAX_TOP_IDX][self.step + 1] = from_overflow[OVERFLOW_VAL_IDX];
+
+                // Stack depth only decreases when it is greater than the minimum stack depth.
                 self.depth -= 1;
             }
         }
@@ -176,23 +197,16 @@ impl Stack {
             "start position cannot exceed current depth"
         );
 
-        const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
-        match self.depth {
-            0 => {} // if the stack is empty, do nothing
-            1..=MAX_TOP_IDX => {
-                for i in start_pos..self.depth {
-                    self.trace[i + 1][self.step + 1] = self.trace[i][self.step];
-                }
-            }
-            _ => {
-                for i in start_pos..MAX_TOP_IDX {
-                    self.trace[i + 1][self.step + 1] = self.trace[i][self.step];
-                }
-                let to_overflow = self.trace[MAX_TOP_IDX][self.step];
-                self.overflow.push(to_overflow)
-            }
+        // Update the stack.
+        for i in start_pos..MAX_TOP_IDX {
+            self.trace[i + 1][self.step + 1] = self.trace[i][self.step];
         }
 
+        // Update the overflow table.
+        let to_overflow = self.trace[MAX_TOP_IDX][self.step];
+        self.push_overflow(to_overflow);
+
+        // Stack depth always increases on right shift.
         self.depth += 1;
     }
 
@@ -214,5 +228,44 @@ impl Stack {
                 register.resize(new_length, Felt::ZERO);
             }
         }
+    }
+
+    /// Pushes a new row onto the overflow table that contains the value which has overflowed the
+    /// stack.
+    ///
+    /// Each row of the overflow table looks like ```[addr, value, prev_addr]```, where:
+    /// - `addr` is the address of the row, which is set to the current clock cycle.
+    /// - `value` is the overflowed value.
+    /// - `prev_addr` is the address of the previous row in the overflow table.
+    pub fn push_overflow(&mut self, value: Felt) {
+        let prev_addr = match self.overflow[OVERFLOW_ADDR_IDX].last() {
+            Some(addr) => *addr,
+            None => Felt::ZERO,
+        };
+        // Set the address of this overflow row to the current clock cycle.
+        self.overflow[OVERFLOW_ADDR_IDX].push(Felt::new(self.step as u64));
+        // Save the overflow value.
+        self.overflow[OVERFLOW_VAL_IDX].push(value);
+        // Save the address of the previous row.
+        self.overflow[OVERFLOW_PREV_ADDR_IDX].push(prev_addr)
+    }
+
+    /// Pops the last row off the overflow table and returns it.
+    ///
+    /// # Errors
+    /// This function will panic if the overflow table is empty.
+    pub fn pop_overflow(&mut self) -> [Felt; NUM_OVERFLOW_COLS] {
+        let mut row = [Felt::ZERO; 3];
+        row[OVERFLOW_ADDR_IDX] = self.overflow[OVERFLOW_ADDR_IDX]
+            .pop()
+            .expect("overflow stack is empty");
+        row[OVERFLOW_VAL_IDX] = self.overflow[OVERFLOW_VAL_IDX]
+            .pop()
+            .expect("overflow stack is empty");
+        row[OVERFLOW_PREV_ADDR_IDX] = self.overflow[OVERFLOW_PREV_ADDR_IDX]
+            .pop()
+            .expect("overflow stack is empty");
+
+        row
     }
 }
