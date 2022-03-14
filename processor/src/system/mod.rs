@@ -1,4 +1,4 @@
-use super::{Felt, FieldElement};
+use super::{Felt, FieldElement, SysTrace};
 
 // CONSTANTS
 // ================================================================================================
@@ -27,11 +27,16 @@ impl System {
     /// Returns a new [System] struct with execution traces instantiated with the specified length.
     /// Initializes the free memory pointer `fmp` used for local memory offsets to 2^30.
     pub fn new(init_trace_length: usize) -> Self {
+        // set the first value of the fmp trace to 2^30.
+        let fmp = Felt::new(FMP_MIN);
+        let mut fmp_trace = Felt::zeroed_vector(init_trace_length);
+        fmp_trace[0] = fmp;
+
         Self {
             clk: 0,
-            clk_trace: vec![Felt::ZERO; init_trace_length],
-            fmp: Felt::new(FMP_MIN),
-            fmp_trace: vec![Felt::ZERO; init_trace_length],
+            clk_trace: Felt::zeroed_vector(init_trace_length),
+            fmp,
+            fmp_trace,
         }
     }
 
@@ -54,6 +59,11 @@ impl System {
     #[inline(always)]
     pub fn trace_len(&self) -> usize {
         self.clk_trace.len()
+    }
+
+    /// Returns an execution trace of this system info container.
+    pub fn into_trace(self) -> SysTrace {
+        [self.clk_trace, self.fmp_trace]
     }
 
     // STATE MUTATORS

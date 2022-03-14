@@ -1,11 +1,12 @@
 use vm_core::{
     errors::AdviceSetError,
+    hasher::Digest,
     program::{
         blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split},
         Script,
     },
-    AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StarkField, Word,
-    MIN_STACK_DEPTH,
+    AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
+    StarkField, Word, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, SYS_TRACE_WIDTH,
 };
 
 mod operations;
@@ -43,15 +44,12 @@ pub use errors::ExecutionError;
 #[cfg(test)]
 mod tests;
 
-// CONSTANTS
-// ================================================================================================
-const AUXILIARY_TABLE_WIDTH: usize = 18;
-
 // TYPE ALIASES
 // ================================================================================================
 
+type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 type StackTrace = [Vec<Felt>; MIN_STACK_DEPTH];
-type AuxiliaryTableTrace = [Vec<Felt>; AUXILIARY_TABLE_WIDTH];
+type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
 
 // EXECUTOR
 // ================================================================================================
@@ -61,7 +59,8 @@ type AuxiliaryTableTrace = [Vec<Felt>; AUXILIARY_TABLE_WIDTH];
 pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace, ExecutionError> {
     let mut process = Process::new(inputs.clone());
     process.execute_code_block(script.root())?;
-    Ok(ExecutionTrace::new(process))
+    // TODO: make sure program hash from script and trace are the same
+    Ok(ExecutionTrace::new(process, *script.hash()))
 }
 
 // PROCESS

@@ -105,7 +105,8 @@ impl Test {
         let mut process = Process::new(self.inputs.clone());
 
         // execute the test
-        process.execute_code_block(self.compile().root()).unwrap();
+        let script = self.compile();
+        process.execute_code_block(script.root()).unwrap();
 
         // validate the memory state
         let mem_state = process.memory.get_value(mem_addr).unwrap();
@@ -113,7 +114,7 @@ impl Test {
         assert_eq!(expected_mem, mem_state);
 
         // validate the stack state
-        let stack_state = ExecutionTrace::new(process).last_stack_state();
+        let stack_state = ExecutionTrace::new(process, *script.hash()).last_stack_state();
         let expected_stack = convert_to_stack(final_stack);
         assert_eq!(expected_stack, stack_state);
     }

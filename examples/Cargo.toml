@@ -1,12 +1,13 @@
 [package]
 name = "examples"
-version = "0.1.0"
+version = "0.2.0"
 description = "Examples of using Miden VM"
 authors = ["miden contributors"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/maticnetwork/miden"
-edition = "2018"
+edition = "2021"
+rust-version = "1.57"
 
 [lib]
 bench = false
@@ -27,7 +28,7 @@ std = ["hex/std", "miden/std", "rand-utils", "vm-core/std"]
 env_logger = { version = "0.9", default-features = false }
 hex = { version = "0.4", optional = true }
 log = { version = "0.4", default-features = false }
-miden = { path = "../miden", version = "0.1", default-features = false }
+miden = { path = "../miden", version = "0.2", default-features = false }
 structopt = { version = "0.3", default-features = false }
-vm-core = { package = "miden-core", path = "../core", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.2", default-features = false }
 rand-utils = { package = "winter-rand-utils", version = "0.3", optional = true }

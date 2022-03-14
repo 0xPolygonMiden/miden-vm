@@ -1,4 +1,5 @@
 use super::{Felt, StarkField};
+use core::ops::Range;
 
 // TO ELEMENTS
 // ================================================================================================
@@ -50,5 +51,16 @@ impl<T: Copy> PushMany<T> for Vec<T> {
     fn push_many(&mut self, value: T, n: usize) {
         let new_len = self.len() + n;
         self.resize(new_len, value);
+    }
+}
+
+// RANGE
+// ================================================================================================
+
+/// Returns a [Range] initialized with the specified `start` and with `end` set to `start` + `len`.
+pub const fn range(start: usize, len: usize) -> Range<usize> {
+    Range {
+        start,
+        end: start + len,
     }
 }

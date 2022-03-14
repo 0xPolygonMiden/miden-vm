@@ -40,7 +40,8 @@ impl ProgramInputs {
     /// Returns [ProgramInputs] instantiated with the specified initial stack values, advice tape
     /// values, and advice sets.
     ///
-    /// # Returns an error if:
+    /// # Errors
+    /// Returns an error if:
     /// - The number initial stack values is greater than 16.
     /// - Any of the initial stack values or the advice tape values are not valid field elements.
     /// - Any of the advice sets have the same root.
@@ -88,6 +89,21 @@ impl ProgramInputs {
             advice_tape: advice_tape_elements,
             advice_sets: advice_map,
         })
+    }
+
+    /// Returns [ProgramInputs] initialized with stack inputs only.
+    ///
+    /// The provided inputs are pushed onto the stack one after the other. Thus, the first
+    /// element in the `stack_init` list will be the deepest in the stack.
+    ///
+    /// Advice tape and advice sets for the returned inputs are blank.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The number initial stack values is greater than 16.
+    /// - Any of the initial stack values is not valid field elements.
+    pub fn from_stack_inputs(stack_init: &[u64]) -> Result<Self, InputError> {
+        Self::new(stack_init, &[], vec![])
     }
 
     /// Returns [ProgramInputs] with no input values.

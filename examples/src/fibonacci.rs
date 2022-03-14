@@ -1,6 +1,7 @@
 use crate::Example;
 use log::debug;
-use miden::{assembly, BaseElement, FieldElement, Program, ProgramInputs, StarkField};
+use miden::{Assembler, ProgramInputs, Script};
+use vm_core::{Felt, FieldElement, StarkField};
 
 // EXAMPLE BUILDER
 // ================================================================================================
@@ -16,15 +17,15 @@ pub fn get_example(n: usize) -> Example {
 
     Example {
         program,
-        inputs: ProgramInputs::from_public(&[1, 0]),
-        pub_inputs: vec![1, 0],
+        inputs: ProgramInputs::from_stack_inputs(&[0, 1]).unwrap(),
+        pub_inputs: vec![0, 1],
         expected_result,
         num_outputs: 1,
     }
 }
 
 /// Generates a program to compute the `n`-th term of Fibonacci sequence
-fn generate_fibonacci_program(n: usize) -> Program {
+fn generate_fibonacci_program(n: usize) -> Script {
     // the program is a simple repetition of 4 stack operations:
     // the first operation moves the 2nd stack item to the top,
     // the second operation duplicates the top 2 stack items,
@@ -32,30 +33,28 @@ fn generate_fibonacci_program(n: usize) -> Program {
     // the last operation pops top 2 stack items, adds them, and pushes
     // the result back onto the stack
     let program = format!(
-        "
-    begin 
-        repeat.{}
-            swap dup.2 drop add
-        end
-    end",
+        "begin 
+            repeat.{}
+                swap dup.1 add
+            end
+        end",
         n - 1
     );
 
-    assembly::compile(&program).unwrap()
+    let assembler = Assembler::new();
+    assembler.compile_script(&program).unwrap()
 }
 
 /// Computes the `n`-th term of Fibonacci sequence
-fn compute_fibonacci(n: usize) -> BaseElement {
-    let mut n1 = BaseElement::ZERO;
-    let mut n2 = BaseElement::ONE;
+fn compute_fibonacci(n: usize) -> Felt {
+    let mut t0 = Felt::ZERO;
+    let mut t1 = Felt::ONE;
 
-    for _ in 0..(n - 1) {
-        let n3 = n1 + n2;
-        n1 = n2;
-        n2 = n3;
+    for _ in 0..n {
+        t1 = t0 + t1;
+        core::mem::swap(&mut t0, &mut t1);
     }
-
-    n2
+    t0
 }
 
 // EXAMPLE TESTER
