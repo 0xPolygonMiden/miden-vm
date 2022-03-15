@@ -22,6 +22,7 @@ mod stack;
 use stack::Stack;
 
 mod range;
+use range::RangeChecker;
 
 mod hasher;
 use hasher::Hasher;
@@ -71,6 +72,7 @@ struct Process {
     system: System,
     decoder: Decoder,
     stack: Stack,
+    range: RangeChecker,
     hasher: Hasher,
     bitwise: Bitwise,
     memory: Memory,
@@ -83,6 +85,7 @@ impl Process {
             system: System::new(4),
             decoder: Decoder::new(),
             stack: Stack::new(&inputs, 4),
+            range: RangeChecker::new(),
             hasher: Hasher::new(),
             bitwise: Bitwise::new(),
             memory: Memory::new(),
