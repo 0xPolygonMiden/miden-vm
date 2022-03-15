@@ -7,6 +7,9 @@ use core::cmp;
 mod trace;
 pub use trace::StackTrace;
 
+#[cfg(test)]
+mod tests;
+
 // CONSTANTS
 // ================================================================================================
 
