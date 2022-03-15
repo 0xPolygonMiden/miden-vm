@@ -28,7 +28,26 @@ const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
 // STACK
 // ================================================================================================
 
-/// TODO: add comments
+/// Stack for the VM.
+///
+/// This component is responsible for managing the state of the VM's stack, as well
+/// as building an execution trace for all stack transitions.
+///
+/// ## Execution trace
+/// The stack execution trace consists of 19 columns as illustrated below:
+///
+///   s0   s1   s2        s13   s14   s15   b0   b1   h0
+/// ├────┴────┴────┴ ... ┴────┴─────┴─────┴────┴────┴────┤
+///
+/// The meaning of the above columns is as follows:
+/// * - s0...s15 are the columns representing the top 16 slots of the stack.
+/// * - Bookkeeping column b0 contains the number of items on the stack (i.e., the stack depth).
+/// * - Bookkeeping column b1 contains an address of a row in the “overflow table” in which we’ll
+/// store the data that doesn’t fit into the top 16 slots. When b1=0, it means that all stack data
+/// fits into the top 16 slots of the stack.
+/// * - Helper column h0 is used to ensure that stack depth does not drop below 16. Values in this
+/// column are set by the prover non-deterministically to 1 / (b0−16) when b0 != 16, and to any
+/// other value otherwise.
 pub struct Stack {
     step: usize,
     trace: StackTrace,
@@ -39,7 +58,7 @@ pub struct Stack {
 impl Stack {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// TODO: add comments
+    /// Returns a [Stack] initialized with the specified program inputs.
     pub fn new(inputs: &ProgramInputs, init_trace_length: usize) -> Self {
         let trace = StackTrace::new(inputs, init_trace_length);
 

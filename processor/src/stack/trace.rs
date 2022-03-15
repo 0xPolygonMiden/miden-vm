@@ -14,6 +14,11 @@ const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
 // STACK TRACE
 // ================================================================================================
 
+/// Execution trace of the stack component.
+///
+/// The trace consists of 19 columns grouped logically as follows:
+/// - 16 stack columns holding the top of the stack.
+/// - 3 columns for bookkeeping and helper values that manage left and right shifts.
 pub struct StackTrace {
     stack: [Vec<Felt>; MIN_STACK_DEPTH],
     helpers: [Vec<Felt>; NUM_STACK_HELPER_COLS],
@@ -156,6 +161,15 @@ impl StackTrace {
         }
     }
 
+    /// Updates the bookkeeping and helper columns to manage a right shift at the specified clock
+    /// cycle.
+    ///
+    /// This function assumes that the stack depth has been increased by one and a new row has been
+    /// added to the overflow table. It makes the following changes to the helper columns.
+    ///
+    /// b0: Increment the stack depth by one.
+    /// b1: Save the address of the new top row in overflow table, which is the current clock cycle.
+    /// h0: Set the value to 1 / (depth - 16).
     pub fn helpers_shift_right_at(&mut self, step: usize) {
         // Increment b0 by one.
         let b0 = self.helpers[0][step] + Felt::ONE;
@@ -166,6 +180,17 @@ impl StackTrace {
         self.helpers[2][step + 1] = Felt::ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64));
     }
 
+    /// Updates the bookkeeping and helper columns to manage a left shift at the specified clock
+    /// cycle.
+    ///
+    /// This function assumes that the stack depth has been decreased by one and a row has been
+    /// removed from the overflow table. It makes the following changes to the helper columns.
+    ///
+    /// b0: Decrement the stack depth by one.
+    /// b1: Update the address of the top row in the overflow table to the specified
+    /// `next_overflow_addr`.
+    /// h0: Set the value to 1 / (depth - 16) if the depth is still greater than the minimum stack
+    /// depth, or to zero otherwise.
     pub fn helpers_shift_left_at(&mut self, step: usize, next_overflow_addr: Felt) {
         // Decrement b0 by one.
         let b0 = self.helpers[0][step] - Felt::ONE;
