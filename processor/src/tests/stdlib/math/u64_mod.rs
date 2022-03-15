@@ -23,6 +23,26 @@ fn add_unsafe() {
 }
 
 #[test]
+fn sub_unsafe() {
+    let a: u64 = rand_value();
+    let b: u64 = rand_value();
+    let c = a.wrapping_sub(b);
+
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::sub_unsafe
+        end";
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    let (c1, c0) = split_u64(c);
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_stack(&[c1, c0]);
+}
+
+#[test]
 fn mul_unsafe() {
     let a: u64 = rand_value();
     let b: u64 = rand_value();
@@ -139,26 +159,6 @@ fn gte_unsafe() {
 
 // DIVISION
 // ------------------------------------------------------------------------------------------------
-
-#[test]
-fn sub_unsafe() {
-    let a: u64 = rand_value();
-    let b: u64 = rand_value();
-    let c = a.wrapping_sub(b);
-
-    let source = "
-        use.std::math::u64
-        begin
-            exec.u64::sub_unsafe
-        end";
-
-    let (a1, a0) = split_u64(a);
-    let (b1, b0) = split_u64(b);
-    let (c1, c0) = split_u64(c);
-
-    let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_stack(&[c1, c0]);
-}
 
 #[test]
 fn div_unsafe() {
