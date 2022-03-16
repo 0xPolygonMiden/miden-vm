@@ -32,6 +32,7 @@ impl ExecutionTrace {
             system,
             decoder: _,
             stack,
+            range: _,
             hasher,
             bitwise,
             memory,
