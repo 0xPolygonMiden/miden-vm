@@ -43,9 +43,6 @@ use trace::TraceFragment;
 mod errors;
 pub use errors::ExecutionError;
 
-#[cfg(test)]
-mod tests;
-
 // TYPE ALIASES
 // ================================================================================================
 

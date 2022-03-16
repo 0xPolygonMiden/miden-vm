@@ -1,12 +1,7 @@
-use super::{
-    super::{
-        bitwise::BITWISE_OR,
-        build_op_test, build_test,
-        hasher::{LINEAR_HASH, RETURN_STATE},
-        AuxTableTrace, FieldElement,
-    },
-    Felt,
-};
+use processor::{AuxTableTrace, BITWISE_OR, LINEAR_HASH, RETURN_STATE};
+use vm_core::{Felt, FieldElement};
+
+use crate::{build_op_test, build_test};
 
 #[test]
 fn hasher_aux_trace() {

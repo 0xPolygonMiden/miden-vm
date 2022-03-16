@@ -1,9 +1,10 @@
-use super::{super::build_op_test, Felt, FieldElement, Word};
 use rand_utils::rand_vector;
 use vm_core::{
     hasher::{apply_permutation, hash_elements, STATE_WIDTH},
-    AdviceSet, StarkField,
+    AdviceSet, Felt, FieldElement, StarkField, Word,
 };
+
+use crate::build_op_test;
 
 // TESTS
 // ================================================================================================
