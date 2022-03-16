@@ -1,15 +1,9 @@
 use vm_core::StarkField;
 
 use super::{
-    Felt, FieldElement, ProgramInputs, StackTopState, MIN_STACK_DEPTH, NUM_STACK_HELPER_COLS,
-    STACK_TRACE_WIDTH,
+    Felt, FieldElement, ProgramInputs, StackTopState, MAX_TOP_IDX, MIN_STACK_DEPTH,
+    NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH,
 };
-
-// CONSTANTS
-// ================================================================================================
-
-// The largest stack index accessible by the VM.
-const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
 
 // STACK TRACE
 // ================================================================================================
@@ -61,6 +55,7 @@ impl StackTrace {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the length of the execution trace for this stack.
+    #[inline(always)]
     pub fn trace_len(&self) -> usize {
         self.stack[0].len()
     }
@@ -78,47 +73,51 @@ impl StackTrace {
     // STACK ACCESSORS AND MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a copy of the item at the top of the stack at the specified step
-    pub fn peek_at(&self, step: usize) -> Felt {
-        self.stack[0][step]
+    /// Returns a copy of the item at the top of the stack at the specified clock cycle.
+    #[inline(always)]
+    pub fn peek_at(&self, clk: usize) -> Felt {
+        self.stack[0][clk]
     }
 
     /// Returns the value located at the specified position on the stack at the specified clock
     /// cycle.
-    pub fn get_stack_value_at(&self, step: usize, pos: usize) -> Felt {
-        self.stack[pos][step]
+    #[inline(always)]
+    pub fn get_stack_value_at(&self, clk: usize, pos: usize) -> Felt {
+        self.stack[pos][clk]
     }
 
     /// Sets the value at the specified position on the stack at the specified cycle.
-    pub fn set_stack_value_at(&mut self, step: usize, pos: usize, value: Felt) {
-        self.stack[pos][step] = value;
+    #[inline(always)]
+    pub fn set_stack_value_at(&mut self, clk: usize, pos: usize, value: Felt) {
+        self.stack[pos][clk] = value;
     }
 
-    /// Return the specified number of states from the top of the stack at the specified step.
-    pub fn get_stack_values_at(&self, step: usize, num_items: usize) -> Vec<Felt> {
-        self.get_stack_state_at(step)[..num_items].to_vec()
+    /// Return the specified number of states from the top of the stack at the specified clock
+    /// cycle.
+    pub fn get_stack_values_at(&self, clk: usize, num_items: usize) -> Vec<Felt> {
+        self.get_stack_state_at(clk)[..num_items].to_vec()
     }
 
-    /// Returns the stack trace state at the specified step.
+    /// Returns the stack trace state at the specified clock cycle.
     ///
     /// Trace state is always 16 elements long and contains the top 16 values of the stack.
-    pub fn get_stack_state_at(&self, step: usize) -> StackTopState {
+    pub fn get_stack_state_at(&self, clk: usize) -> StackTopState {
         let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
         for (result, column) in result.iter_mut().zip(self.stack.iter()) {
-            *result = column[step];
+            *result = column[clk];
         }
         result
     }
 
     /// Copies the stack values starting at the specified position at the specified clock cycle to
     /// the same position at the next clock cycle.
-    pub fn copy_stack_state_at(&mut self, step: usize, start_pos: usize) {
+    pub fn copy_stack_state_at(&mut self, clk: usize, start_pos: usize) {
         debug_assert!(
             start_pos < MIN_STACK_DEPTH,
             "start cannot exceed stack top size"
         );
         for i in start_pos..MIN_STACK_DEPTH {
-            self.stack[i][step + 1] = self.stack[i][step];
+            self.stack[i][clk + 1] = self.stack[i][clk];
         }
     }
 
@@ -126,38 +125,38 @@ impl StackTrace {
     /// position - 1 at the next clock cycle.
     ///
     /// The final register is filled with the provided value in `last_value`.
-    pub fn stack_shift_left_at(&mut self, step: usize, start_pos: usize, last_value: Felt) {
+    pub fn stack_shift_left_at(&mut self, clk: usize, start_pos: usize, last_value: Felt) {
         for i in start_pos..=MAX_TOP_IDX {
-            self.stack[i - 1][step + 1] = self.stack[i][step];
+            self.stack[i - 1][clk + 1] = self.stack[i][clk];
         }
-        self.stack[MIN_STACK_DEPTH - 1][step + 1] = last_value;
+        self.stack[MAX_TOP_IDX][clk + 1] = last_value;
     }
 
     /// Copies stack values starting at the specified position at the specified clock cycle to
     /// position + 1 at the next clock cycle.
-    pub fn stack_shift_right_at(&mut self, step: usize, start_pos: usize) {
+    pub fn stack_shift_right_at(&mut self, clk: usize, start_pos: usize) {
         for i in start_pos..MAX_TOP_IDX {
-            self.stack[i + 1][step + 1] = self.stack[i][step];
+            self.stack[i + 1][clk + 1] = self.stack[i][clk];
         }
     }
 
     // BOOKKEEPING & HELPER COLUMN ACCESSORS AND MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the trace state of the stack helper columns at the specified step.
+    /// Returns the trace state of the stack helper columns at the specified clock cycle.
     #[allow(dead_code)]
-    pub fn get_helpers_state_at(&self, step: usize) -> [Felt; NUM_STACK_HELPER_COLS] {
+    pub fn get_helpers_state_at(&self, clk: usize) -> [Felt; NUM_STACK_HELPER_COLS] {
         let mut result = [Felt::ZERO; NUM_STACK_HELPER_COLS];
         for (result, column) in result.iter_mut().zip(self.helpers.iter()) {
-            *result = column[step];
+            *result = column[clk];
         }
         result
     }
 
     /// Copies the helper values at the specified clock cycle to the next clock cycle.
-    pub fn copy_helpers_at(&mut self, step: usize) {
+    pub fn copy_helpers_at(&mut self, clk: usize) {
         for i in 0..NUM_STACK_HELPER_COLS {
-            self.helpers[i][step + 1] = self.helpers[i][step];
+            self.helpers[i][clk + 1] = self.helpers[i][clk];
         }
     }
 
@@ -170,14 +169,14 @@ impl StackTrace {
     /// b0: Increment the stack depth by one.
     /// b1: Save the address of the new top row in overflow table, which is the current clock cycle.
     /// h0: Set the value to 1 / (depth - 16).
-    pub fn helpers_shift_right_at(&mut self, step: usize) {
+    pub fn helpers_shift_right_at(&mut self, clk: usize) {
         // Increment b0 by one.
-        let b0 = self.helpers[0][step] + Felt::ONE;
-        self.helpers[0][step + 1] = b0;
+        let b0 = self.helpers[0][clk] + Felt::ONE;
+        self.helpers[0][clk + 1] = b0;
         // Set b1 to the curren tclock cycle.
-        self.helpers[1][step + 1] = Felt::new(step as u64);
+        self.helpers[1][clk + 1] = Felt::new(clk as u64);
         // Update the helper column to 1 / (b0 - 16).
-        self.helpers[2][step + 1] = Felt::ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64));
+        self.helpers[2][clk + 1] = Felt::ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64));
     }
 
     /// Updates the bookkeeping and helper columns to manage a left shift at the specified clock
@@ -191,13 +190,13 @@ impl StackTrace {
     /// `next_overflow_addr`.
     /// h0: Set the value to 1 / (depth - 16) if the depth is still greater than the minimum stack
     /// depth, or to zero otherwise.
-    pub fn helpers_shift_left_at(&mut self, step: usize, next_overflow_addr: Felt) {
+    pub fn helpers_shift_left_at(&mut self, clk: usize, next_overflow_addr: Felt) {
         // Decrement b0 by one.
-        let b0 = self.helpers[0][step] - Felt::ONE;
-        self.helpers[0][step + 1] = b0;
+        let b0 = self.helpers[0][clk] - Felt::ONE;
+        self.helpers[0][clk + 1] = b0;
 
         // Set b1 to the overflow table address of the item at the top of the updated table.
-        self.helpers[1][step + 1] = next_overflow_addr;
+        self.helpers[1][clk + 1] = next_overflow_addr;
 
         // Update the helper column to 1 / (b0 - 16) if depth > MIN_STACK_DEPTH or 0 otherwise.
         let h0 = if b0.as_int() > MIN_STACK_DEPTH as u64 {
@@ -205,7 +204,7 @@ impl StackTrace {
         } else {
             Felt::ZERO
         };
-        self.helpers[2][step + 1] = h0;
+        self.helpers[2][clk + 1] = h0;
     }
 
     // UTILITY METHODS
@@ -214,8 +213,8 @@ impl StackTrace {
     /// Makes sure there is enough memory allocated for the trace to accommodate a new row.
     ///
     /// Trace length is doubled every time it needs to be increased.
-    pub fn ensure_trace_capacity(&mut self, step: usize) {
-        if step + 1 >= self.trace_len() {
+    pub fn ensure_trace_capacity(&mut self, clk: usize) {
+        if clk + 1 >= self.trace_len() {
             let new_length = self.trace_len() * 2;
             for register in self.stack.iter_mut().chain(self.helpers.iter_mut()) {
                 register.resize(new_length, Felt::ZERO);

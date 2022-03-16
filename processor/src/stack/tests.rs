@@ -19,7 +19,7 @@ fn initialize() {
 
     // Check the helper columns.
     assert_eq!(
-        stack.trace.get_helpers_state_at(stack.current_step()),
+        stack.trace.get_helpers_state_at(stack.current_clk()),
         expected_helpers
     );
 }
@@ -43,7 +43,7 @@ fn shift_left() {
 
     // Check the helper columns.
     assert_eq!(
-        stack.trace.get_helpers_state_at(stack.current_step()),
+        stack.trace.get_helpers_state_at(stack.current_clk()),
         expected_helpers
     );
 
@@ -51,7 +51,7 @@ fn shift_left() {
     let mut stack = Stack::new(&inputs, 4);
     // Shift right twice to add 2 items to the overflow table.
     stack.shift_right(0);
-    let prev_overflow_addr = stack.current_step();
+    let prev_overflow_addr = stack.current_clk();
     stack.advance_clock();
     stack.shift_right(0);
     stack.advance_clock();
@@ -69,7 +69,7 @@ fn shift_left() {
 
     // Check the helper columns.
     assert_eq!(
-        stack.trace.get_helpers_state_at(stack.current_step()),
+        stack.trace.get_helpers_state_at(stack.current_clk()),
         expected_helpers
     );
 
@@ -88,7 +88,7 @@ fn shift_left() {
 
     // Check the helper columns.
     assert_eq!(
-        stack.trace.get_helpers_state_at(stack.current_step()),
+        stack.trace.get_helpers_state_at(stack.current_clk()),
         expected_helpers
     );
 }
@@ -100,7 +100,7 @@ fn shift_right() {
 
     // ---- right shift an entire stack of minimum depth ------------------------------------------
     let expected_stack = build_stack(&[0, 4, 3, 2, 1]);
-    let expected_helpers = build_helpers_right(1, stack.current_step());
+    let expected_helpers = build_helpers_right(1, stack.current_clk());
 
     stack.shift_right(0);
     stack.advance_clock();
@@ -110,13 +110,13 @@ fn shift_right() {
 
     // Check the helper columns.
     assert_eq!(
-        stack.trace.get_helpers_state_at(stack.current_step()),
+        stack.trace.get_helpers_state_at(stack.current_clk()),
         expected_helpers
     );
 
     // ---- right shift when the overflow table is non-empty --------------------------------------
     let expected_stack = build_stack(&[0, 0, 4, 3, 2, 1]);
-    let expected_helpers = build_helpers_right(2, stack.current_step());
+    let expected_helpers = build_helpers_right(2, stack.current_clk());
 
     stack.shift_right(0);
     stack.advance_clock();
@@ -126,7 +126,7 @@ fn shift_right() {
 
     // Check the helper columns.
     assert_eq!(
-        stack.trace.get_helpers_state_at(stack.current_step()),
+        stack.trace.get_helpers_state_at(stack.current_clk()),
         expected_helpers
     );
 }
@@ -135,10 +135,10 @@ fn shift_right() {
 // ================================================================================================
 
 /// Builds the trace row of stack helpers expected as the result of a right shift at clock cycle
-/// `step` when there are `num_overflow` items in the overflow table.
-fn build_helpers_right(num_overflow: usize, step: usize) -> [Felt; NUM_STACK_HELPER_COLS] {
+/// `clk` when there are `num_overflow` items in the overflow table.
+fn build_helpers_right(num_overflow: usize, clk: usize) -> [Felt; NUM_STACK_HELPER_COLS] {
     let b0 = Felt::new((MIN_STACK_DEPTH + num_overflow) as u64);
-    let b1 = Felt::new(step as u64);
+    let b1 = Felt::new(clk as u64);
     let h0 = Felt::ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64));
 
     [b0, b1, h0]

@@ -189,7 +189,7 @@ mod tests {
         let expected = build_expected(&[a + b, c]);
 
         assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
-        assert_eq!(4, process.stack.current_step());
+        assert_eq!(4, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
         // calling add with a stack of minimum depth is ok
@@ -209,7 +209,7 @@ mod tests {
 
         assert_eq!(expected, process.stack.trace_state());
         assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
-        assert_eq!(4, process.stack.current_step());
+        assert_eq!(4, process.stack.current_clk());
     }
 
     #[test]
@@ -223,7 +223,7 @@ mod tests {
         let expected = build_expected(&[a * b, c]);
 
         assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
-        assert_eq!(4, process.stack.current_step());
+        assert_eq!(4, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
         // calling mul with a stack of minimum depth is ok
@@ -243,7 +243,7 @@ mod tests {
             let expected = build_expected(&[a.inv(), b, c]);
 
             assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
-            assert_eq!(4, process.stack.current_step());
+            assert_eq!(4, process.stack.current_clk());
             assert_eq!(expected, process.stack.trace_state());
         }
 
@@ -263,7 +263,7 @@ mod tests {
         let expected = build_expected(&[a + Felt::ONE, b, c]);
 
         assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
-        assert_eq!(4, process.stack.current_step());
+        assert_eq!(4, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }
 
