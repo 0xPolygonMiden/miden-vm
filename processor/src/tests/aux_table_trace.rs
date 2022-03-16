@@ -1,38 +1,31 @@
 use super::{
     super::{
         bitwise::BITWISE_OR,
+        build_op_test, build_test,
         hasher::{LINEAR_HASH, RETURN_STATE},
-        AuxiliaryTableTrace, ExecutionTrace, FieldElement, Process,
+        AuxTableTrace, FieldElement,
     },
-    build_inputs, compile, Felt,
+    Felt,
 };
 
 #[test]
 fn trace_len() {
     // --- final trace lengths are equal when stack trace is longer than aux trace ----------------
-    let script = compile("begin popw.mem.2 end");
-    let inputs = build_inputs(&[1, 2, 3, 4]);
-    let mut process = Process::new(inputs);
-    process.execute_code_block(script.root()).unwrap();
-    let trace = ExecutionTrace::new(process);
+    let test = build_op_test!("popw.mem.2", &[1, 2, 3, 4]);
+    let trace = test.execute().unwrap();
 
     assert_eq!(trace.aux_table()[0].len(), trace.stack()[0].len());
 
     // --- final trace lengths are equal when aux trace is longer than stack trace ----------------
-    let script = compile("begin u32and end");
-    let inputs = build_inputs(&[4, 8]);
-    let mut process = Process::new(inputs);
-    process.execute_code_block(script.root()).unwrap();
-    let trace = ExecutionTrace::new(process);
+    let test = build_op_test!("u32and", &[4, 8]);
+    let trace = test.execute().unwrap();
 
     assert_eq!(trace.aux_table()[0].len(), trace.stack()[0].len());
 
     // --- stack and aux trace lengths are equal after multi-processor aux trace ------------------
-    let script = compile("begin u32and pop.mem.0 u32or end");
-    let inputs = build_inputs(&[1, 2, 3, 4]);
-    let mut process = Process::new(inputs);
-    process.execute_code_block(script.root()).unwrap();
-    let trace = ExecutionTrace::new(process);
+    let source = "begin u32and pop.mem.0 u32or end";
+    let test = build_test!(source, &[1, 2, 3, 4]);
+    let trace = test.execute().unwrap();
 
     assert_eq!(trace.aux_table()[0].len(), trace.stack()[0].len());
 
@@ -43,12 +36,8 @@ fn trace_len() {
 #[test]
 fn hasher_aux_trace() {
     // --- single hasher permutation with no stack manipulation -----------------------------------
-    let script = compile("begin rpperm end");
-    let inputs = build_inputs(&[2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]);
-    let mut process = Process::new(inputs);
-
-    process.execute_code_block(script.root()).unwrap();
-    let trace = ExecutionTrace::new(process);
+    let test = build_op_test!("rpperm", &[2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]);
+    let trace = test.execute().unwrap();
     let aux_table = trace.aux_table();
 
     let expected_len = 8;
@@ -62,12 +51,8 @@ fn hasher_aux_trace() {
 #[test]
 fn bitwise_aux_trace() {
     // --- single bitwise operation with no stack manipulation ------------------------------------
-    let script = compile("begin u32or end");
-    let inputs = build_inputs(&[4, 8]);
-    let mut process = Process::new(inputs);
-
-    process.execute_code_block(script.root()).unwrap();
-    let trace = ExecutionTrace::new(process);
+    let test = build_op_test!("u32or", &[4, 8]);
+    let trace = test.execute().unwrap();
     let aux_table = trace.aux_table();
 
     let expected_len = 8;
@@ -81,12 +66,8 @@ fn bitwise_aux_trace() {
 #[test]
 fn memory_aux_trace() {
     // --- single memory operation with no stack manipulation -------------------------------------
-    let script = compile("begin storew.mem.2 end");
-    let inputs = build_inputs(&[1, 2, 3, 4]);
-    let mut process = Process::new(inputs);
-
-    process.execute_code_block(script.root()).unwrap();
-    let trace = ExecutionTrace::new(process);
+    let test = build_op_test!("storew.mem.2", &[1, 2, 3, 4]);
+    let trace = test.execute().unwrap();
     let aux_table = trace.aux_table();
 
     // the memory trace is only one row, so the length should match the stack trace length
@@ -106,12 +87,9 @@ fn memory_aux_trace() {
 #[test]
 fn stacked_aux_trace() {
     // --- operations in hasher, bitwise, and memory processors without stack manipulation --------
-    let script = compile("begin u32or storew.mem.0 rpperm end");
-    let inputs = build_inputs(&[8, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 1]);
-    let mut process = Process::new(inputs);
-
-    process.execute_code_block(script.root()).unwrap();
-    let trace = ExecutionTrace::new(process);
+    let source = "begin u32or storew.mem.0 rpperm end";
+    let test = build_test!(source, &[8, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 1]);
+    let trace = test.execute().unwrap();
     let aux_table = trace.aux_table();
 
     // expect 8 rows of hasher trace
@@ -137,9 +115,9 @@ fn stacked_aux_trace() {
 // ================================================================================================
 
 /// Validate the hasher trace output by the rpperm operation. The full hasher trace is tested in
-/// the Hasher module, so this just tests the AuxiliaryTableTrace selectors and the initial columns
+/// the Hasher module, so this just tests the AuxTableTrace selectors and the initial columns
 /// of the hasher trace.
-fn validate_hasher_trace(aux_table: &AuxiliaryTableTrace, start: usize, end: usize) {
+fn validate_hasher_trace(aux_table: &AuxTableTrace, start: usize, end: usize) {
     // The selectors should match the hasher selectors
     for row in start..end {
         // The selectors should match the selectors for the hasher segment
@@ -172,9 +150,9 @@ fn validate_hasher_trace(aux_table: &AuxiliaryTableTrace, start: usize, end: usi
 }
 
 /// Validate the bitwise trace output by the u32or operation. The full bitwise trace is tested in
-/// the Bitwise module, so this just tests the AuxiliaryTableTrace selectors, the initial columns
+/// the Bitwise module, so this just tests the AuxTableTrace selectors, the initial columns
 /// of the bitwise trace, and the final columns after the bitwise trace.
-fn validate_bitwise_trace(aux_table: &AuxiliaryTableTrace, start: usize, end: usize) {
+fn validate_bitwise_trace(aux_table: &AuxTableTrace, start: usize, end: usize) {
     // The selectors should match the bitwise selectors
     for row in start..end {
         // The selectors should match the selectors for the bitwise segment
@@ -192,9 +170,9 @@ fn validate_bitwise_trace(aux_table: &AuxiliaryTableTrace, start: usize, end: us
 }
 
 /// Validate the bitwise trace output by the storew operation. The full memory trace is tested in
-/// the Memory module, so this just tests the AuxiliaryTableTrace selectors, the initial columns
+/// the Memory module, so this just tests the AuxTableTrace selectors, the initial columns
 /// of the memory trace, and the final column after the memory trace.
-fn validate_memory_trace(aux_table: &AuxiliaryTableTrace, start: usize, end: usize, addr: u64) {
+fn validate_memory_trace(aux_table: &AuxTableTrace, start: usize, end: usize, addr: u64) {
     for row in start..end {
         // The selectors in the first row should match the memory selectors
         assert_eq!(Felt::ONE, aux_table[0][row]);
@@ -211,7 +189,7 @@ fn validate_memory_trace(aux_table: &AuxiliaryTableTrace, start: usize, end: usi
 }
 
 /// Checks that the end of the auxiliary trace table is padded and has the correct selectors.
-fn validate_padding(aux_table: &AuxiliaryTableTrace, start: usize, end: usize) {
+fn validate_padding(aux_table: &AuxTableTrace, start: usize, end: usize) {
     for row in start..end {
         // selectors
         assert_eq!(Felt::ONE, aux_table[0][row]);

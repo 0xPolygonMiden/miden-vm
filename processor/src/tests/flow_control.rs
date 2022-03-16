@@ -1,4 +1,4 @@
-use super::{compile, test_script_execution};
+use super::super::build_test;
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -6,47 +6,52 @@ use super::{compile, test_script_execution};
 #[test]
 fn conditional_execution() {
     // --- if without else ------------------------------------------------------------------------
-    let script = compile("begin dup.1 dup.1 eq if.true add end end");
+    let source = "begin dup.1 dup.1 eq if.true add end end";
 
-    test_script_execution(&script, &[1, 2], &[2, 1]);
-    test_script_execution(&script, &[3, 3], &[6]);
+    let test = build_test!(source, &[1, 2]);
+    test.expect_stack(&[2, 1]);
+
+    let test = build_test!(source, &[3, 3]);
+    test.expect_stack(&[6]);
 
     // --- if with else ------------------------------------------------------------------------
-    let script = compile("begin dup.1 dup.1 eq if.true add else mul end end");
+    let source = "begin dup.1 dup.1 eq if.true add else mul end end";
 
-    test_script_execution(&script, &[2, 3], &[6]);
-    test_script_execution(&script, &[3, 3], &[6]);
+    let test = build_test!(source, &[2, 3]);
+    test.expect_stack(&[6]);
+
+    let test = build_test!(source, &[3, 3]);
+    test.expect_stack(&[6]);
 }
 
 #[test]
 fn conditional_loop() {
     // --- entering the loop ----------------------------------------------------------------------
     // computes sum of values from 0 to the value at the top of the stack
-    let script = compile(
-        "
+    let source = "
         begin
             dup push.0 movdn.2 neq.0
             while.true
                 dup movup.2 add swap push.1 sub dup neq.0
             end
             drop
-        end",
-    );
+        end";
 
-    test_script_execution(&script, &[10], &[55]);
+    let test = build_test!(source, &[10]);
+    test.expect_stack(&[55]);
 
     // --- skipping the loop ----------------------------------------------------------------------
-    let script = compile("begin dup eq.0 while.true add end end");
+    let source = "begin dup eq.0 while.true add end end";
 
-    test_script_execution(&script, &[10], &[10]);
+    let test = build_test!(source, &[10]);
+    test.expect_stack(&[10]);
 }
 
 #[test]
 fn counter_controlled_loop() {
     // --- entering the loop ----------------------------------------------------------------------
     // compute 2^10
-    let script = compile(
-        "
+    let source = "
         begin
             push.2
             push.1
@@ -54,10 +59,10 @@ fn counter_controlled_loop() {
                 dup.1 mul
             end
             swap drop
-        end",
-    );
+        end";
 
-    test_script_execution(&script, &[], &[1024]);
+    let test = build_test!(source);
+    test.expect_stack(&[1024]);
 }
 
 // NESTED CONTROL FLOW
@@ -65,9 +70,31 @@ fn counter_controlled_loop() {
 
 #[test]
 fn if_in_loop() {
-    let script = compile(
-        "
-            begin
+    let source = "
+        begin
+            dup push.0 movdn.2 neq.0
+            while.true
+                dup movup.2 dup.1 eq.5
+                if.true 
+                    mul
+                else
+                    add
+                end
+                swap push.1 sub dup neq.0
+            end
+            drop
+        end";
+
+    let test = build_test!(source, &[10]);
+    test.expect_stack(&[210]);
+}
+
+#[test]
+fn if_in_loop_in_if() {
+    let source = "
+        begin
+            dup eq.10
+            if.true
                 dup push.0 movdn.2 neq.0
                 while.true
                     dup movup.2 dup.1 eq.5
@@ -79,36 +106,14 @@ fn if_in_loop() {
                     swap push.1 sub dup neq.0
                 end
                 drop
-            end",
-    );
+            else
+                dup mul
+            end
+        end";
 
-    test_script_execution(&script, &[10], &[210]);
-}
+    let test = build_test!(source, &[10]);
+    test.expect_stack(&[210]);
 
-#[test]
-fn if_in_loop_in_if() {
-    let script = compile(
-        "
-            begin
-                dup eq.10
-                if.true
-                    dup push.0 movdn.2 neq.0
-                    while.true
-                        dup movup.2 dup.1 eq.5
-                        if.true 
-                            mul
-                        else
-                            add
-                        end
-                        swap push.1 sub dup neq.0
-                    end
-                    drop
-                else
-                    dup mul
-                end
-            end",
-    );
-
-    test_script_execution(&script, &[10], &[210]);
-    test_script_execution(&script, &[11], &[121]);
+    let test = build_test!(source, &[11]);
+    test.expect_stack(&[121]);
 }

@@ -8,12 +8,7 @@ impl Process {
     // --------------------------------------------------------------------------------------------
     /// Pops two elements off the stack, adds them together, and pushes the result back onto the
     /// stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_add(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "ADD")?;
-
         let b = self.stack.get(0);
         let a = self.stack.get(1);
         self.stack.set(0, a + b);
@@ -23,12 +18,7 @@ impl Process {
 
     /// Pops an element off the stack, computes its additive inverse, and pushes the result back
     /// onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack is empty.
     pub(super) fn op_neg(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "NEG")?;
-
         let a = self.stack.get(0);
         self.stack.set(0, -a);
         self.stack.copy_state(1);
@@ -37,12 +27,7 @@ impl Process {
 
     /// Pops two elements off the stack, multiplies them, and pushes the result back onto the
     /// stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_mul(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "MUL")?;
-
         let b = self.stack.get(0);
         let a = self.stack.get(1);
         self.stack.set(0, a * b);
@@ -54,12 +39,8 @@ impl Process {
     /// back onto the stack.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// * The stack is empty.
-    /// * The value on the top of the stack is ZERO.
+    /// Returns an error if the value on the top of the stack is ZERO.
     pub(super) fn op_inv(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "INV")?;
-
         let a = self.stack.get(0);
         if a == Felt::ZERO {
             return Err(ExecutionError::DivideByZero(self.system.clk()));
@@ -71,12 +52,7 @@ impl Process {
     }
 
     /// Pops an element off the stack, adds ONE to it, and pushes the result back onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack is empty.
     pub(super) fn op_incr(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "INCR")?;
-
         let a = self.stack.get(0);
         self.stack.set(0, a + Felt::ONE);
         self.stack.copy_state(1);
@@ -90,12 +66,9 @@ impl Process {
     /// onto the stack.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// * The stack contains fewer than two elements.
-    /// * Either of the two elements on the top of the stack is not a binary value.
+    /// Returns an error if either of the two elements on the top of the stack is not a binary
+    /// value.
     pub(super) fn op_and(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "AND")?;
-
         let b = assert_binary(self.stack.get(0))?;
         let a = assert_binary(self.stack.get(1))?;
         if a == Felt::ONE && b == Felt::ONE {
@@ -111,12 +84,9 @@ impl Process {
     /// onto the stack.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// * The stack contains fewer than two elements.
-    /// * Either of the two elements on the top of the stack is not a binary value.
+    /// Returns an error if either of the two elements on the top of the stack is not a binary
+    /// value.
     pub(super) fn op_or(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "OR")?;
-
         let b = assert_binary(self.stack.get(0))?;
         let a = assert_binary(self.stack.get(1))?;
         if a == Felt::ONE || b == Felt::ONE {
@@ -132,12 +102,8 @@ impl Process {
     /// the stack.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// * The stack is empty.
-    /// * The value on the top of the stack is not a binary value.
+    /// Returns an error if the value on the top of the stack is not a binary value.
     pub(super) fn op_not(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "NOT")?;
-
         let a = assert_binary(self.stack.get(0))?;
         self.stack.set(0, Felt::ONE - a);
         self.stack.copy_state(1);
@@ -149,12 +115,7 @@ impl Process {
 
     /// Pops two elements off the stack and compares them. If the elements are equal, pushes ONE
     /// onto the stack, otherwise pushes ZERO onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than two elements.
     pub(super) fn op_eq(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(2, "EQ")?;
-
         let b = self.stack.get(0);
         let a = self.stack.get(1);
         if a == b {
@@ -168,12 +129,7 @@ impl Process {
 
     /// Pops an element off the stack and compares it to ZERO. If the element is ZERO, pushes ONE
     /// onto the stack, otherwise pushes ZERO onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack is empty.
     pub(super) fn op_eqz(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(1, "EQZ")?;
-
         let a = self.stack.get(0);
         if a == Felt::ZERO {
             self.stack.set(0, Felt::ONE);
@@ -186,12 +142,7 @@ impl Process {
 
     /// Compares the first word (four elements) with the second word on the stack, if the words are
     /// equal, pushes ONE onto the stack, otherwise pushes ZERO onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than 8 elements.
     pub(super) fn op_eqw(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(8, "EQW")?;
-
         let b3 = self.stack.get(0);
         let b2 = self.stack.get(1);
         let b1 = self.stack.get(2);
@@ -222,6 +173,7 @@ mod tests {
         Process,
     };
     use rand_utils::rand_value;
+    use vm_core::MIN_STACK_DEPTH;
 
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -236,9 +188,13 @@ mod tests {
         process.execute_op(Operation::Add).unwrap();
         let expected = build_expected(&[a + b, c]);
 
-        assert_eq!(2, process.stack.depth());
-        assert_eq!(4, process.stack.current_step());
+        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
+        assert_eq!(4, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
+
+        // calling add with a stack of minimum depth is ok
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::Add).is_ok());
     }
 
     #[test]
@@ -252,8 +208,8 @@ mod tests {
         let expected = build_expected(&[-a, b, c]);
 
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(3, process.stack.depth());
-        assert_eq!(4, process.stack.current_step());
+        assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
+        assert_eq!(4, process.stack.current_clk());
     }
 
     #[test]
@@ -266,9 +222,13 @@ mod tests {
         process.execute_op(Operation::Mul).unwrap();
         let expected = build_expected(&[a * b, c]);
 
-        assert_eq!(2, process.stack.depth());
-        assert_eq!(4, process.stack.current_step());
+        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
+        assert_eq!(4, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
+
+        // calling mul with a stack of minimum depth is ok
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::Mul).is_ok());
     }
 
     #[test]
@@ -282,8 +242,8 @@ mod tests {
             process.execute_op(Operation::Inv).unwrap();
             let expected = build_expected(&[a.inv(), b, c]);
 
-            assert_eq!(3, process.stack.depth());
-            assert_eq!(4, process.stack.current_step());
+            assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
+            assert_eq!(4, process.stack.current_clk());
             assert_eq!(expected, process.stack.trace_state());
         }
 
@@ -302,8 +262,8 @@ mod tests {
         process.execute_op(Operation::Incr).unwrap();
         let expected = build_expected(&[a + Felt::ONE, b, c]);
 
-        assert_eq!(3, process.stack.depth());
-        assert_eq!(4, process.stack.current_step());
+        assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
+        assert_eq!(4, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }
 
@@ -336,7 +296,7 @@ mod tests {
         let expected = build_expected(&[Felt::ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
-        // --- test 1 AND 0 ---------------------------------------------------
+        // --- test 1 AND 1 ---------------------------------------------------
         let mut process = Process::new_dummy();
         init_stack_with(&mut process, &[2, 1, 1]);
 
@@ -349,10 +309,63 @@ mod tests {
         init_stack_with(&mut process, &[2, 1, 2]);
         assert!(process.execute_op(Operation::And).is_err());
 
-        // --- second operand is not binary ------------------------------------
+        // --- second operand is not binary -----------------------------------
         let mut process = Process::new_dummy();
         init_stack_with(&mut process, &[2, 2, 1]);
         assert!(process.execute_op(Operation::And).is_err());
+
+        // --- calling AND with a stack of minimum depth is ok ----------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::And).is_ok());
+    }
+
+    #[test]
+    fn op_or() {
+        // --- test 0 OR 0 ---------------------------------------------------
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 0, 0]);
+
+        process.execute_op(Operation::Or).unwrap();
+        let expected = build_expected(&[Felt::ZERO, Felt::new(2)]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- test 1 OR 0 ---------------------------------------------------
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 0, 1]);
+
+        process.execute_op(Operation::Or).unwrap();
+        let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- test 0 OR 1 ---------------------------------------------------
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 1, 0]);
+
+        process.execute_op(Operation::Or).unwrap();
+        let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- test 1 OR 0 ---------------------------------------------------
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 1, 1]);
+
+        process.execute_op(Operation::Or).unwrap();
+        let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- first operand is not binary ------------------------------------
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 1, 2]);
+        assert!(process.execute_op(Operation::Or).is_err());
+
+        // --- second operand is not binary -----------------------------------
+        let mut process = Process::new_dummy();
+        init_stack_with(&mut process, &[2, 2, 1]);
+        assert!(process.execute_op(Operation::Or).is_err());
+
+        // --- calling OR with a stack of minimum depth is a ok ----------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::Or).is_ok());
     }
 
     #[test]
@@ -399,6 +412,10 @@ mod tests {
         process.execute_op(Operation::Eq).unwrap();
         let expected = build_expected(&[Felt::ZERO, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
+
+        // --- calling EQ with a stack of minimum depth is a ok ---------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::Eq).is_ok());
     }
 
     #[test]

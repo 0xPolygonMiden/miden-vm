@@ -1,6 +1,6 @@
 [package]
 name = "miden"
-version = "0.1.0"
+version = "0.2.0"
 description="Miden virtual machine"
 authors = ["miden contributors"]
 readme="README.md"
@@ -8,7 +8,8 @@ license = "MIT"
 repository = "https://github.com/maticnetwork/miden"
 categories = ["cryptography", "emulators", "no-std"]
 keywords = ["miden", "stark", "virtual-machine", "zkp"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.57"
 
 [lib]
 name = "miden"
@@ -22,10 +23,11 @@ default = ["std"]
 std = ["air/std", "assembly/std", "hex/std", "processor/std", "prover/std", "verifier/std"]
 
 [dependencies]
-air = { package = "miden-air", path = "../air", version = "0.1", default-features = false }
-assembly = { package = "miden-assembly", path = "../assembly", version = "0.1", default-features = false }
-processor = { package = "miden-processor", path = "../processor", version = "0.1", default-features = false }
+air = { package = "miden-air", path = "../air", version = "0.2", default-features = false }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.2", default-features = false }
+processor = { package = "miden-processor", path = "../processor", version = "0.2", default-features = false }
 prover = { package = "winter-prover", version = "0.3", default-features = false }
 hex = { version = "0.4", optional = true }
 log = { version = "0.4", default-features = false }
-verifier = { package = "miden-verifier", path = "../verifier", version = "0.1", default-features = false }
+verifier = { package = "miden-verifier", path = "../verifier", version = "0.2", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.2", default-features = false }

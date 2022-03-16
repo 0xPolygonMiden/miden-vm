@@ -1,13 +1,13 @@
 [workspace]
 members = [
-  #"air",
+  "air",
   "assembly",
   "core",
-  #"examples",
-  #"miden",
+  "examples",
+  "miden",
   "processor",
   "stdlib",
-  #"verifier"
+  "verifier"
 ]
 
 [profile.release]

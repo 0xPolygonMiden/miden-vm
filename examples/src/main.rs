@@ -21,13 +21,6 @@ fn main() {
     // instantiate and prepare the example
     let example = match options.example {
         ExampleType::Fib { sequence_length } => examples::fibonacci::get_example(sequence_length),
-        ExampleType::Collatz { start_value } => examples::collatz::get_example(start_value),
-        ExampleType::Comparison { value } => examples::comparison::get_example(value),
-        ExampleType::Conditional { value } => examples::conditional::get_example(value),
-        #[cfg(feature = "std")]
-        ExampleType::Merkle { tree_depth } => examples::merkle::get_example(tree_depth),
-        #[cfg(feature = "std")]
-        ExampleType::Range { num_values } => examples::range::get_example(num_values),
     };
 
     let Example {
@@ -45,10 +38,11 @@ fn main() {
     let now = Instant::now();
     let (outputs, proof) = miden::execute(&program, &inputs, num_outputs, &proof_options).unwrap();
     debug!("--------------------------------");
+
     #[cfg(feature = "std")]
     debug!(
-        "Executed program with hash {} in {} ms",
-        hex::encode(program.hash()),
+        "Executed program in {} ms",
+        //hex::encode(program.hash()), // TODO: include into message
         now.elapsed().as_millis()
     );
     debug!("Program output: {:?}", outputs);
@@ -72,6 +66,6 @@ fn main() {
     let now = Instant::now();
     match miden::verify(*program.hash(), &pub_inputs, &outputs, proof) {
         Ok(_) => debug!("Execution verified in {} ms", now.elapsed().as_millis()),
-        Err(msg) => debug!("Failed to verify execution: {}", msg),
+        Err(err) => debug!("Failed to verify execution: {}", err),
     }
 }
