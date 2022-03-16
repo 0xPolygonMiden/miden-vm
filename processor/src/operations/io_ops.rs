@@ -135,7 +135,7 @@ mod tests {
     fn op_push() {
         let mut process = Process::new_dummy();
         assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
-        assert_eq!(0, process.stack.current_step());
+        assert_eq!(0, process.stack.current_clk());
         assert_eq!([Felt::ZERO; 16], process.stack.trace_state());
 
         // push one item onto the stack
@@ -145,7 +145,7 @@ mod tests {
         expected[0] = Felt::ONE;
 
         assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
-        assert_eq!(1, process.stack.current_step());
+        assert_eq!(1, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
         // push another item onto the stack
@@ -156,7 +156,7 @@ mod tests {
         expected[1] = Felt::ONE;
 
         assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
-        assert_eq!(2, process.stack.current_step());
+        assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }
 

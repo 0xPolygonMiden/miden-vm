@@ -271,7 +271,7 @@ mod tests {
         let expected = build_expected(&[0, 1]);
 
         assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
-        assert_eq!(2, process.stack.current_step());
+        assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
         // pad the stack again
@@ -279,7 +279,7 @@ mod tests {
         let expected = build_expected(&[0, 0, 1]);
 
         assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
-        assert_eq!(3, process.stack.current_step());
+        assert_eq!(3, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }
 
