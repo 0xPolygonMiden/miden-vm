@@ -1,15 +1,9 @@
 use vm_core::StarkField;
 
 use super::{
-    Felt, FieldElement, ProgramInputs, StackTopState, MIN_STACK_DEPTH, NUM_STACK_HELPER_COLS,
-    STACK_TRACE_WIDTH,
+    Felt, FieldElement, ProgramInputs, StackTopState, MAX_TOP_IDX, MIN_STACK_DEPTH,
+    NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH,
 };
-
-// CONSTANTS
-// ================================================================================================
-
-// The largest stack index accessible by the VM.
-const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
 
 // STACK TRACE
 // ================================================================================================
@@ -61,6 +55,7 @@ impl StackTrace {
     // --------------------------------------------------------------------------------------------
 
     /// Returns the length of the execution trace for this stack.
+    #[inline(always)]
     pub fn trace_len(&self) -> usize {
         self.stack[0].len()
     }
@@ -79,17 +74,20 @@ impl StackTrace {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a copy of the item at the top of the stack at the specified step
+    #[inline(always)]
     pub fn peek_at(&self, step: usize) -> Felt {
         self.stack[0][step]
     }
 
     /// Returns the value located at the specified position on the stack at the specified clock
     /// cycle.
+    #[inline(always)]
     pub fn get_stack_value_at(&self, step: usize, pos: usize) -> Felt {
         self.stack[pos][step]
     }
 
     /// Sets the value at the specified position on the stack at the specified cycle.
+    #[inline(always)]
     pub fn set_stack_value_at(&mut self, step: usize, pos: usize, value: Felt) {
         self.stack[pos][step] = value;
     }
@@ -130,7 +128,7 @@ impl StackTrace {
         for i in start_pos..=MAX_TOP_IDX {
             self.stack[i - 1][step + 1] = self.stack[i][step];
         }
-        self.stack[MIN_STACK_DEPTH - 1][step + 1] = last_value;
+        self.stack[MAX_TOP_IDX][step + 1] = last_value;
     }
 
     /// Copies stack values starting at the specified position at the specified clock cycle to

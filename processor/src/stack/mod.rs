@@ -5,25 +5,16 @@ use super::{
 use core::cmp;
 
 mod trace;
-pub use trace::StackTrace;
+use trace::StackTrace;
+
+mod overflow;
+use overflow::OverflowTable;
 
 #[cfg(test)]
 mod tests;
 
 // CONSTANTS
 // ================================================================================================
-
-/// Number of columns in the virtual overflow table.
-const NUM_OVERFLOW_COLS: usize = 3;
-
-/// The address column of the overflow table.
-const OVERFLOW_ADDR_IDX: usize = 0;
-
-/// The column of the overflow table that contains the overflowed values.
-const OVERFLOW_VAL_IDX: usize = 1;
-
-/// The column of the overflow table that has the addresses of each of the previous overflow rows.
-const OVERFLOW_PREV_ADDR_IDX: usize = 2;
 
 /// The last stack index accessible by the VM.
 const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
@@ -33,8 +24,14 @@ const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
 
 /// Stack for the VM.
 ///
-/// This component is responsible for managing the state of the VM's stack, as well
-/// as building an execution trace for all stack transitions.
+/// This component is responsible for managing the state of the VM's stack, as well as building an
+/// execution trace for all stack transitions.
+///
+/// The state is separated into two parts: the top 16 slots of the stack (stored in the `trace`
+/// member), and items which don't fit into the top 16 slots (stored in the `overflow` member).
+///
+/// The depth of the stack can never drop below 16. If an item is removed from the stack when the
+/// depth is 16, a ZERO element is inserted into the 16th slot.
 ///
 /// ## Execution trace
 /// The stack execution trace consists of 19 columns as illustrated below:
@@ -43,18 +40,18 @@ const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
 /// ├────┴────┴────┴ ... ┴────┴─────┴─────┴────┴────┴────┤
 ///
 /// The meaning of the above columns is as follows:
-/// * - s0...s15 are the columns representing the top 16 slots of the stack.
-/// * - Bookkeeping column b0 contains the number of items on the stack (i.e., the stack depth).
-/// * - Bookkeeping column b1 contains an address of a row in the “overflow table” in which we’ll
-/// store the data that doesn’t fit into the top 16 slots. When b1=0, it means that all stack data
-/// fits into the top 16 slots of the stack.
-/// * - Helper column h0 is used to ensure that stack depth does not drop below 16. Values in this
-/// column are set by the prover non-deterministically to 1 / (b0−16) when b0 != 16, and to any
-/// other value otherwise.
+/// - s0...s15 are the columns representing the top 16 slots of the stack.
+/// - Bookkeeping column b0 contains the number of items on the stack (i.e., the stack depth).
+/// - Bookkeeping column b1 contains an address of a row in the “overflow table” in which we’ll
+///   store the data that doesn’t fit into the top 16 slots. When b1=0, it means that all stack
+///   data fits into the top 16 slots of the stack.
+/// - Helper column h0 is used to ensure that stack depth does not drop below 16. Values in this
+///   column are set by the prover non-deterministically to 1 / (b0−16) when b0 != 16, and to any
+///   other value otherwise.
 pub struct Stack {
     step: usize,
     trace: StackTrace,
-    overflow: [Vec<Felt>; NUM_OVERFLOW_COLS],
+    overflow: OverflowTable,
     depth: usize,
 }
 
@@ -63,14 +60,10 @@ impl Stack {
     // --------------------------------------------------------------------------------------------
     /// Returns a [Stack] initialized with the specified program inputs.
     pub fn new(inputs: &ProgramInputs, init_trace_length: usize) -> Self {
-        let trace = StackTrace::new(inputs, init_trace_length);
-
-        let overflow = [Vec::new(), Vec::new(), Vec::new()];
-
         Self {
             step: 0,
-            trace,
-            overflow,
+            trace: StackTrace::new(inputs, init_trace_length),
+            overflow: OverflowTable::new(true),
             depth: MIN_STACK_DEPTH,
         }
     }
@@ -99,8 +92,9 @@ impl Stack {
         self.trace.peek_at(self.step)
     }
 
-    /// Return states from the stack, which includes both the trace state and overflow table.
-    /// If n is not passed in, this returns all states.
+    /// Return n items from the top of the stack, including the values from the overflow table.
+    ///
+    /// If n is None, this returns the entire stack.
     pub fn get_values(&self, n: Option<usize>) -> Vec<Felt> {
         let n = n.unwrap_or(usize::MAX);
         let num_items = cmp::min(n, self.depth());
@@ -110,14 +104,13 @@ impl Stack {
 
         if num_items > MIN_STACK_DEPTH {
             let num_overflow_items = num_items - MIN_STACK_DEPTH;
-            result.extend_from_slice(&self.overflow[OVERFLOW_VAL_IDX][..num_overflow_items]);
+            self.overflow.append_into(&mut result, num_overflow_items);
         }
 
         result
     }
 
-    /// Returns an execution trace of the stack and helper columns from the StackTrace as a single
-    /// array.
+    /// Returns an execution trace of the top 16 stack slots and helper columns as a single array.
     pub fn into_trace(self) -> [Vec<Felt>; STACK_TRACE_WIDTH] {
         self.trace.into_array()
     }
@@ -127,23 +120,14 @@ impl Stack {
 
     /// Returns the value located at the specified position on the stack at the current clock cycle.
     pub fn get(&self, pos: usize) -> Felt {
-        debug_assert!(pos < self.depth, "stack underflow");
+        debug_assert!(pos < MIN_STACK_DEPTH, "stack underflow");
         self.trace.get_stack_value_at(self.step, pos)
     }
 
     /// Sets the value at the specified position on the stack at the next clock cycle.
     pub fn set(&mut self, pos: usize, value: Felt) {
-        debug_assert!(pos == 0 || pos < self.depth, "stack underflow");
+        debug_assert!(pos < MIN_STACK_DEPTH, "stack underflow");
         self.trace.set_stack_value_at(self.step + 1, pos, value);
-    }
-
-    /// Returns trace state at the current step.
-    ///
-    /// Trace state is always 16 elements long and contains the top 16 values of the stack. When
-    /// the stack depth is less than 16, the un-used slots contain ZEROs.
-    #[allow(dead_code)]
-    pub fn trace_state(&self) -> StackTopState {
-        self.trace.get_stack_state_at(self.step)
     }
 
     /// Copies stack values starting at the specified position at the current clock cycle to the
@@ -160,7 +144,8 @@ impl Stack {
     /// position - 1 at the next clock cycle.
     ///
     /// If the stack depth is greater than 16, an item is moved from the overflow stack to the
-    /// "in-memory" portion of the stack.
+    /// "in-memory" portion of the stack. If the stack depth is 16, the 16th element of the
+    /// stack is set to ZERO.
     pub fn shift_left(&mut self, start_pos: usize) {
         debug_assert!(start_pos > 0, "start position must be greater than 0");
         debug_assert!(
@@ -178,16 +163,12 @@ impl Stack {
             }
             _ => {
                 // Update the stack & overflow table.
-                let from_overflow = self.pop_overflow();
-                self.trace.stack_shift_left_at(
-                    self.step,
-                    start_pos,
-                    from_overflow[OVERFLOW_VAL_IDX],
-                );
+                let (from_overflow, prev_addr) = self.overflow.pop(self.step);
+                self.trace
+                    .stack_shift_left_at(self.step, start_pos, from_overflow);
 
                 // Update the bookkeeping & helper columns.
-                self.trace
-                    .helpers_shift_left_at(self.step, from_overflow[OVERFLOW_PREV_ADDR_IDX]);
+                self.trace.helpers_shift_left_at(self.step, prev_addr);
 
                 // Stack depth only decreases when it is greater than the minimum stack depth.
                 self.depth -= 1;
@@ -209,10 +190,8 @@ impl Stack {
         self.trace.stack_shift_right_at(self.step, start_pos);
 
         // Update the overflow table.
-        let to_overflow = self
-            .trace
-            .get_stack_value_at(self.step, MIN_STACK_DEPTH - 1);
-        self.push_overflow(to_overflow);
+        let to_overflow = self.trace.get_stack_value_at(self.step, MAX_TOP_IDX);
+        self.overflow.push(to_overflow, self.step);
 
         // Update the bookkeeping & helper columns.
         self.trace.helpers_shift_right_at(self.step);
@@ -236,42 +215,15 @@ impl Stack {
         self.trace.ensure_trace_capacity(self.step);
     }
 
-    /// Pushes a new row onto the overflow table that contains the value which has overflowed the
-    /// stack.
-    ///
-    /// Each row of the overflow table looks like ```[addr, value, prev_addr]```, where:
-    /// - `addr` is the address of the row, which is set to the current clock cycle.
-    /// - `value` is the overflowed value.
-    /// - `prev_addr` is the address of the previous row in the overflow table.
-    pub fn push_overflow(&mut self, value: Felt) {
-        let prev_addr = match self.overflow[OVERFLOW_ADDR_IDX].last() {
-            Some(addr) => *addr,
-            None => Felt::ZERO,
-        };
-        // Set the address of this overflow row to the current clock cycle.
-        self.overflow[OVERFLOW_ADDR_IDX].push(Felt::new(self.step as u64));
-        // Save the overflow value.
-        self.overflow[OVERFLOW_VAL_IDX].push(value);
-        // Save the address of the previous row.
-        self.overflow[OVERFLOW_PREV_ADDR_IDX].push(prev_addr)
-    }
+    // TEST HELPERS
+    // --------------------------------------------------------------------------------------------
 
-    /// Pops the last row off the overflow table and returns it.
+    /// Returns trace state at the current step.
     ///
-    /// # Errors
-    /// This function will panic if the overflow table is empty.
-    pub fn pop_overflow(&mut self) -> [Felt; NUM_OVERFLOW_COLS] {
-        let mut row = [Felt::ZERO; 3];
-        row[OVERFLOW_ADDR_IDX] = self.overflow[OVERFLOW_ADDR_IDX]
-            .pop()
-            .expect("overflow stack is empty");
-        row[OVERFLOW_VAL_IDX] = self.overflow[OVERFLOW_VAL_IDX]
-            .pop()
-            .expect("overflow stack is empty");
-        row[OVERFLOW_PREV_ADDR_IDX] = self.overflow[OVERFLOW_PREV_ADDR_IDX]
-            .pop()
-            .expect("overflow stack is empty");
-
-        row
+    /// Trace state is always 16 elements long and contains the top 16 values of the stack. When
+    /// the stack depth is less than 16, the un-used slots contain ZEROs.
+    #[cfg(test)]
+    pub fn trace_state(&self) -> StackTopState {
+        self.trace.get_stack_state_at(self.step)
     }
 }
