@@ -29,6 +29,9 @@ pub type StackTopState = [Felt; MIN_STACK_DEPTH];
 /// be accessed by the VM directly.
 pub const MIN_STACK_DEPTH: usize = 16;
 
+/// Number of bookkeeping and helper columns in the stack trace.
+pub const NUM_STACK_HELPER_COLS: usize = 3;
+
 // TRACE LAYOUT
 // ------------------------------------------------------------------------------------------------
 
@@ -47,7 +50,7 @@ pub const FMP_COL_IDX: usize = SYS_TRACE_OFFSET + 1;
 
 // Stack trace
 pub const STACK_TRACE_OFFSET: usize = SYS_TRACE_OFFSET + SYS_TRACE_WIDTH;
-pub const STACK_TRACE_WIDTH: usize = MIN_STACK_DEPTH; // TODO: add helper columns
+pub const STACK_TRACE_WIDTH: usize = MIN_STACK_DEPTH + NUM_STACK_HELPER_COLS;
 pub const STACK_TRACE_RANGE: Range<usize> = range(STACK_TRACE_OFFSET, STACK_TRACE_WIDTH);
 
 // TODO: range check trace

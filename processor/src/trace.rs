@@ -4,8 +4,8 @@ use super::{
 };
 use core::slice;
 use vm_core::{
-    StarkField, AUX_TRACE_OFFSET, AUX_TRACE_RANGE, AUX_TRACE_WIDTH, STACK_TRACE_OFFSET,
-    STACK_TRACE_RANGE, STACK_TRACE_WIDTH, SYS_TRACE_OFFSET, SYS_TRACE_RANGE, TRACE_WIDTH,
+    StarkField, AUX_TRACE_OFFSET, AUX_TRACE_RANGE, AUX_TRACE_WIDTH, MIN_STACK_DEPTH,
+    STACK_TRACE_OFFSET, STACK_TRACE_RANGE, SYS_TRACE_OFFSET, SYS_TRACE_RANGE, TRACE_WIDTH,
 };
 use winterfell::Trace;
 
@@ -42,9 +42,7 @@ impl ExecutionTrace {
         let aux_trace_len = hasher.trace_len() + bitwise.trace_len() + memory.trace_len();
         let mut trace_len = usize::max(stack.trace_len(), aux_trace_len);
         // pad the trace length to the next power of 2
-        if !trace_len.is_power_of_two() {
-            trace_len = trace_len.next_power_of_two();
-        }
+        trace_len = trace_len.next_power_of_two();
 
         // allocate columns for the trace of the auxiliary table
         // note: it may be possible to optimize this by initializing with Felt::zeroed_vector,
@@ -91,7 +89,7 @@ impl ExecutionTrace {
 
     /// TODO: add docs
     pub fn init_stack_state(&self) -> StackTopState {
-        let mut result = [Felt::ZERO; STACK_TRACE_WIDTH];
+        let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
         for (result, column) in result.iter_mut().zip(self.stack.iter()) {
             *result = column[0];
         }
@@ -101,7 +99,7 @@ impl ExecutionTrace {
     /// TODO: add docs
     pub fn last_stack_state(&self) -> StackTopState {
         let last_step = self.length() - 1;
-        let mut result = [Felt::ZERO; STACK_TRACE_WIDTH];
+        let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
         for (result, column) in result.iter_mut().zip(self.stack.iter()) {
             *result = column[last_step];
         }

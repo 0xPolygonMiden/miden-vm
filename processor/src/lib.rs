@@ -6,7 +6,8 @@ use vm_core::{
         Script,
     },
     AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
-    StarkField, Word, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, SYS_TRACE_WIDTH,
+    StarkField, Word, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH,
+    SYS_TRACE_WIDTH,
 };
 
 mod operations;
@@ -48,7 +49,7 @@ mod tests;
 // ================================================================================================
 
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
-type StackTrace = [Vec<Felt>; MIN_STACK_DEPTH];
+type StackTrace = [Vec<Felt>; STACK_TRACE_WIDTH];
 type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
 
 // EXECUTOR
