@@ -99,6 +99,14 @@ impl ExecutionTrace {
         self.program_hash
     }
 
+    pub fn aux_table(&self) -> &AuxTableTrace {
+        &self.aux_table
+    }
+
+    pub fn stack(&self) -> &StackTrace {
+        &self.stack
+    }
+
     /// TODO: add docs
     pub fn init_stack_state(&self) -> StackTopState {
         let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
@@ -120,15 +128,6 @@ impl ExecutionTrace {
 
     // ACCESSORS FOR TESTING
     // --------------------------------------------------------------------------------------------
-    #[cfg(test)]
-    pub fn aux_table(&self) -> &AuxTableTrace {
-        &self.aux_table
-    }
-
-    #[cfg(test)]
-    pub fn stack(&self) -> &StackTrace {
-        &self.stack
-    }
 
     #[allow(dead_code)]
     pub fn print(&self) {

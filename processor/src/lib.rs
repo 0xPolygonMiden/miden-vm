@@ -14,6 +14,7 @@ mod operations;
 
 mod system;
 use system::System;
+pub use system::FMP_MIN;
 
 mod decoder;
 use decoder::Decoder;
@@ -26,9 +27,11 @@ use range::RangeChecker;
 
 mod hasher;
 use hasher::Hasher;
+pub use hasher::{LINEAR_HASH, RETURN_STATE};
 
 mod bitwise;
 use bitwise::Bitwise;
+pub use bitwise::BITWISE_OR;
 
 mod memory;
 use memory::Memory;
@@ -49,7 +52,7 @@ pub use errors::ExecutionError;
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 type StackTrace = [Vec<Felt>; STACK_TRACE_WIDTH];
 type RangeCheckTrace = [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH];
-type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
+pub type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
 
 // EXECUTOR
 // ================================================================================================
@@ -66,7 +69,7 @@ pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace
 // PROCESS
 // ================================================================================================
 
-struct Process {
+pub struct Process {
     system: System,
     decoder: Decoder,
     stack: Stack,
@@ -98,7 +101,7 @@ impl Process {
     ///
     /// # Errors
     /// Returns an [ExecutionError] if executing the specified block fails for any reason.
-    fn execute_code_block(&mut self, block: &CodeBlock) -> Result<(), ExecutionError> {
+    pub fn execute_code_block(&mut self, block: &CodeBlock) -> Result<(), ExecutionError> {
         match block {
             CodeBlock::Join(block) => self.execute_join_block(block),
             CodeBlock::Split(block) => self.execute_split_block(block),
@@ -231,5 +234,11 @@ impl Process {
         self.execute_op(Operation::Noop)?;
 
         Ok(())
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+    pub fn get_memory_value(&self, addr: u64) -> Option<Word> {
+        self.memory.get_value(addr)
     }
 }
