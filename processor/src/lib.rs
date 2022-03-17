@@ -39,6 +39,9 @@ use memory::Memory;
 mod advice;
 use advice::AdviceProvider;
 
+mod aux_table;
+use aux_table::AuxTable;
+
 mod trace;
 pub use trace::ExecutionTrace;
 use trace::TraceFragment;
