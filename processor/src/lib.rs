@@ -6,7 +6,7 @@ use vm_core::{
         Script,
     },
     AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
-    StarkField, Word, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, NUM_STACK_HELPER_COLS,
+    StarkField, Word, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN, NUM_STACK_HELPER_COLS,
     RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH,
 };
 
@@ -83,9 +83,9 @@ struct Process {
 impl Process {
     pub fn new(inputs: ProgramInputs) -> Self {
         Self {
-            system: System::new(4),
+            system: System::new(MIN_TRACE_LEN),
             decoder: Decoder::new(),
-            stack: Stack::new(&inputs, 4),
+            stack: Stack::new(&inputs, MIN_TRACE_LEN),
             range: RangeChecker::new(),
             hasher: Hasher::new(),
             bitwise: Bitwise::new(),
