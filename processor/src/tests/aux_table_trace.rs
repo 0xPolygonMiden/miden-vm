@@ -9,31 +9,6 @@ use super::{
 };
 
 #[test]
-fn trace_len() {
-    // --- final trace lengths are equal when stack trace is longer than aux trace ----------------
-    let test = build_op_test!("popw.mem.2", &[1, 2, 3, 4]);
-    let trace = test.execute().unwrap();
-
-    assert_eq!(trace.aux_table()[0].len(), trace.stack()[0].len());
-
-    // --- final trace lengths are equal when aux trace is longer than stack trace ----------------
-    let test = build_op_test!("u32and", &[4, 8]);
-    let trace = test.execute().unwrap();
-
-    assert_eq!(trace.aux_table()[0].len(), trace.stack()[0].len());
-
-    // --- stack and aux trace lengths are equal after multi-processor aux trace ------------------
-    let source = "begin u32and pop.mem.0 u32or end";
-    let test = build_test!(source, &[1, 2, 3, 4]);
-    let trace = test.execute().unwrap();
-
-    assert_eq!(trace.aux_table()[0].len(), trace.stack()[0].len());
-
-    // --- trace len is power of 2 after multi-processor aux trace --------------------------------
-    assert!(trace.aux_table()[0].len().is_power_of_two());
-}
-
-#[test]
 fn hasher_aux_trace() {
     // --- single hasher permutation with no stack manipulation -----------------------------------
     let test = build_op_test!("rpperm", &[2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]);
@@ -43,9 +18,8 @@ fn hasher_aux_trace() {
     let expected_len = 8;
     validate_hasher_trace(aux_table, 0, expected_len);
 
-    // expect  no bitwise trace and no memory trace
-    // so the trace only consists of the hasher trace with length 8
-    assert_eq!(aux_table[0].len(), expected_len);
+    // expect the stack trace to be the same length
+    assert_eq!(aux_table[0].len(), trace.stack()[0].len());
 }
 
 #[test]
@@ -58,9 +32,8 @@ fn bitwise_aux_trace() {
     let expected_len = 8;
     validate_bitwise_trace(aux_table, 0, expected_len);
 
-    // expect no hasher trace and no memory trace,
-    // so the trace only consists of the bitwise trace
-    assert_eq!(aux_table[0].len(), expected_len);
+    // expect the stack trace to be the same length
+    assert_eq!(aux_table[0].len(), trace.stack()[0].len());
 }
 
 #[test]
@@ -79,9 +52,8 @@ fn memory_aux_trace() {
     // check that it was padded correctly
     validate_padding(aux_table, 1, expected_len);
 
-    // expect no bitwise trace and no hasher trace,
-    // so the trace consists of the memory trace and final section of padding
-    assert_eq!(aux_table[0].len(), expected_len);
+    // expect the stack trace to be the same length
+    assert_eq!(aux_table[0].len(), trace.stack()[0].len());
 }
 
 #[test]
@@ -104,10 +76,7 @@ fn stacked_aux_trace() {
     // expect 15 rows of padding, to pad to next power of 2
     validate_padding(aux_table, 17, 32);
 
-    // expect aux table trace length to be 32
-    assert_eq!(aux_table[0].len(), 32);
-
-    // expect the stack trace to be the same
+    // expect the stack trace to be the same length
     assert_eq!(aux_table[0].len(), trace.stack()[0].len());
 }
 
