@@ -1,23 +1,25 @@
 use super::{
-    AuxTableTrace, Bitwise, Digest, Felt, FieldElement, Hasher, Memory, Process, StackTopState,
-    StackTrace, SysTrace,
+    AuxTableTrace, Bitwise, Digest, Felt, FieldElement, Hasher, Memory, Process, RangeCheckTrace,
+    StackTopState, StackTrace, SysTrace,
 };
 use core::slice;
 use vm_core::{
     StarkField, AUX_TRACE_OFFSET, AUX_TRACE_RANGE, AUX_TRACE_WIDTH, MIN_STACK_DEPTH,
-    STACK_TRACE_OFFSET, STACK_TRACE_RANGE, SYS_TRACE_OFFSET, SYS_TRACE_RANGE, TRACE_WIDTH,
+    RANGE_CHECK_TRACE_OFFSET, RANGE_CHECK_TRACE_RANGE, STACK_TRACE_OFFSET, STACK_TRACE_RANGE,
+    SYS_TRACE_OFFSET, SYS_TRACE_RANGE, TRACE_WIDTH,
 };
 use winterfell::Trace;
 
 // VM EXECUTION TRACE
 // ================================================================================================
 
-/// TODO: for now this consists only of system register trace, stack trace, and auxiliary table
-/// trace, but will also need to include decoder trace and range checker trace.
+/// TODO: for now this consists only of system register trace, stack trace, range check trace, and
+/// auxiliary table trace, but will also need to include the decoder trace.
 pub struct ExecutionTrace {
     meta: Vec<u8>,
     system: SysTrace,
     stack: StackTrace,
+    range: RangeCheckTrace,
     aux_table: AuxTableTrace,
     // TODO: program hash should be retrieved from decoder trace, but for now we store it explicitly
     program_hash: Digest,
@@ -32,20 +34,40 @@ impl ExecutionTrace {
             system,
             decoder: _,
             stack,
-            range: _,
+            range,
             hasher,
             bitwise,
             memory,
             advice: _,
         } = process;
 
-        // get the length required to hold all execution trace steps
+        // Get the trace length required to hold all execution trace steps.
         let aux_trace_len = hasher.trace_len() + bitwise.trace_len() + memory.trace_len();
-        let mut trace_len = usize::max(stack.trace_len(), aux_trace_len);
-        // pad the trace length to the next power of 2
-        trace_len = trace_len.next_power_of_two();
+        let trace_len = vec![stack.trace_len(), range.trace_len(), aux_trace_len]
+            .iter()
+            .max()
+            .expect("failed to get max of component trace lengths")
+            .next_power_of_two();
 
-        // allocate columns for the trace of the auxiliary table
+        // Finalize the system trace.
+        let step = system.clk();
+        let mut system_trace = system.into_trace();
+        finalize_clk_column(&mut system_trace[0], step, trace_len);
+        finalize_column(&mut system_trace[1], step, trace_len);
+
+        // Finalize stack trace.
+        let mut stack_trace = stack.into_trace();
+        for column in stack_trace.iter_mut() {
+            finalize_column(column, step, trace_len);
+        }
+
+        // Finalize the range check trace.
+        let range_check_trace: RangeCheckTrace = range
+            .into_trace(trace_len)
+            .try_into()
+            .expect("failed to convert vector to array");
+
+        // Allocate columns for the trace of the auxiliary table.
         // note: it may be possible to optimize this by initializing with Felt::zeroed_vector,
         // depending on how the compiler reduces Felt(0) and whether initializing here + iterating
         // to update selector values is faster than using resize to initialize all values
@@ -55,25 +77,14 @@ impl ExecutionTrace {
             .try_into()
             .expect("failed to convert vector to array");
 
-        // fill the aux table with the column selectors and stacked coprocessor traces
+        // Fill the aux table with the column selectors and stacked coprocessor traces.
         fill_aux_columns(&mut aux_table_trace, trace_len, hasher, bitwise, memory);
-
-        // finalize stack trace and extend it to match the length of the auxiliary trace, if needed
-        let step = system.clk();
-        let mut stack_trace = stack.into_trace();
-        for column in stack_trace.iter_mut() {
-            finalize_column(column, step, trace_len);
-        }
-
-        // finalize system trace
-        let mut system_trace = system.into_trace();
-        finalize_clk_column(&mut system_trace[0], step, trace_len);
-        finalize_column(&mut system_trace[1], step, trace_len);
 
         Self {
             meta: Vec::new(),
             system: system_trace,
             stack: stack_trace,
+            range: range_check_trace,
             aux_table: aux_table_trace,
             program_hash,
         }
@@ -147,6 +158,9 @@ impl Trace for ExecutionTrace {
         match col_idx {
             i if SYS_TRACE_RANGE.contains(&i) => self.system[i - SYS_TRACE_OFFSET][row_idx],
             i if STACK_TRACE_RANGE.contains(&i) => self.stack[i - STACK_TRACE_OFFSET][row_idx],
+            i if RANGE_CHECK_TRACE_RANGE.contains(&i) => {
+                self.range[i - RANGE_CHECK_TRACE_OFFSET][row_idx]
+            }
             i if AUX_TRACE_RANGE.contains(&i) => self.aux_table[i - AUX_TRACE_OFFSET][row_idx],
             _ => panic!("invalid column index"),
         }
@@ -165,6 +179,10 @@ impl Trace for ExecutionTrace {
             target[i + STACK_TRACE_OFFSET] = column[step];
         }
 
+        for (i, column) in self.range.iter().enumerate() {
+            target[i + RANGE_CHECK_TRACE_OFFSET] = column[step];
+        }
+
         for (i, column) in self.aux_table.iter().enumerate() {
             target[i + AUX_TRACE_OFFSET] = column[step];
         }
@@ -173,6 +191,7 @@ impl Trace for ExecutionTrace {
     fn into_columns(self) -> Vec<Vec<Felt>> {
         let mut result: Vec<Vec<Felt>> = self.system.into();
         self.stack.into_iter().for_each(|v| result.push(v));
+        self.range.into_iter().for_each(|v| result.push(v));
         self.aux_table.into_iter().for_each(|v| result.push(v));
         result
     }
