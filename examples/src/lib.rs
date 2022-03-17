@@ -1,24 +1,17 @@
-use miden::{Program, ProgramInputs, ProofOptions};
+use miden::{ProgramInputs, ProofOptions, Script};
 use structopt::StructOpt;
 
-pub mod collatz;
-pub mod comparison;
-pub mod conditional;
 pub mod fibonacci;
-#[cfg(feature = "std")]
-pub mod merkle;
-#[cfg(feature = "std")]
-pub mod range;
 
 // EXAMPLE
 // ================================================================================================
 
 pub struct Example {
-    pub program: Program,
+    pub program: Script,
     pub inputs: ProgramInputs,
-    pub pub_inputs: Vec<u128>,
+    pub pub_inputs: Vec<u64>,
     pub num_outputs: usize,
-    pub expected_result: Vec<u128>,
+    pub expected_result: Vec<u64>,
 }
 
 // EXAMPLE OPTIONS
@@ -53,38 +46,6 @@ pub enum ExampleType {
         /// Length of Fibonacci sequence
         #[structopt(short = "n", default_value = "1024")]
         sequence_length: usize,
-    },
-    /// Compute a Collatz sequence from the specified starting value
-    Collatz {
-        /// Starting value of the Collatz sequence
-        #[structopt(short = "n", default_value = "511")]
-        start_value: usize,
-    },
-    /// If provided value is less than 9, multiplies it by 9; otherwise add 9 to it
-    Comparison {
-        /// Value to compare to 9
-        #[structopt(short = "n", default_value = "11")]
-        value: usize,
-    },
-    /// If provided value is 0, outputs 15; if provided value is 1, outputs 8
-    Conditional {
-        /// Value to compare to 9
-        #[structopt(short = "n", default_value = "1")]
-        value: usize,
-    },
-    /// Computes a root of a randomly generated Merkle branch of the specified depth
-    #[cfg(feature = "std")]
-    Merkle {
-        /// Depth of the Merkle tree
-        #[structopt(short = "n", default_value = "20")]
-        tree_depth: usize,
-    },
-    /// Determines how many of the randomly generated values are less than 2^63
-    #[cfg(feature = "std")]
-    Range {
-        /// Number of randomly generated 64-bit values
-        #[structopt(short = "n", default_value = "100")]
-        num_values: usize,
     },
 }
 

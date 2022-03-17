@@ -1,7 +1,7 @@
 use crate::{Felt, Operation, Process};
 use core::cmp;
 use logtest::Logger;
-use vm_core::{DebugOptions, ProgramInputs};
+use vm_core::{DebugOptions, ProgramInputs, MIN_STACK_DEPTH};
 
 #[test]
 fn test_debug() {
@@ -121,7 +121,7 @@ fn test_print_mem(logger: &mut Logger) {
 
 fn assert_stack(size: usize, depth: usize, expected_stack: &[u64], logger: &mut Logger) {
     assert_eq!(logger.len(), 2);
-    let top_size = cmp::min(size, 16);
+    let top_size = cmp::min(size, MIN_STACK_DEPTH);
 
     // build the expected debug string from the expected stack
     let mut expected = expected_stack
@@ -159,7 +159,10 @@ fn test_print_stack(logger: &mut Logger) {
     // values are pushed onto the stack when ProgramInputs are created, so we expect them to be on
     // the stack in reverse order from the original input order
     stack_inputs.reverse();
-    assert_stack(4, 4, &stack_inputs, logger);
+    // expect the stack to be padded with 0s if the number of inputs is less than min depth
+    let depth = cmp::max(stack_inputs.len(), MIN_STACK_DEPTH);
+    stack_inputs.resize(depth, 0);
+    assert_stack(depth, depth, &stack_inputs, logger);
 
     stack_inputs = (1..=16).collect::<Vec<_>>();
     inputs = ProgramInputs::new(&stack_inputs, &[], vec![]).unwrap();

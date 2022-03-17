@@ -1,7 +1,6 @@
 use super::{
-    super::StarkField, build_inputs, compile, execute, rand_word, test_compilation_failure,
-    test_execution_failure, test_op_execution, test_op_execution_proptest,
-    test_param_out_of_bounds, Felt,
+    super::{build_op_test, StarkField},
+    prop_randw, Felt, TestError,
 };
 
 mod arithmetic_ops;
@@ -20,7 +19,8 @@ const WORD_LEN: usize = 4;
 /// This helper function tests a provided u32 assembly operation, which takes a single input, to
 /// ensure that it fails when the input is >= 2^32.
 fn test_input_out_of_bounds(asm_op: &str) {
-    test_execution_failure(asm_op, &[U32_BOUND], "FailedAssertion");
+    let test = build_op_test!(asm_op, &[U32_BOUND]);
+    test.expect_error(TestError::ExecutionError("FailedAssertion"));
 }
 
 /// This helper function tests a provided u32 assembly operation, which takes multiple inputs, to
@@ -32,21 +32,31 @@ fn test_inputs_out_of_bounds(asm_op: &str, input_count: usize) {
         let mut i_inputs = inputs.clone();
         // should fail when the value of the input at index i is out of bounds
         i_inputs[i] = U32_BOUND;
-        test_execution_failure(asm_op, &i_inputs, "FailedAssertion");
+
+        let test = build_op_test!(asm_op, &i_inputs);
+        test.expect_error(TestError::ExecutionError("FailedAssertion"));
     }
+}
+
+/// This helper function tests a provided assembly operation which takes a single parameter
+/// to ensure that it fails when that parameter is over the maximum allowed value (out of bounds).
+fn test_param_out_of_bounds(asm_op_base: &str, gt_max_value: u64) {
+    let asm_op = format!("{}.{}", asm_op_base, gt_max_value);
+    let test = build_op_test!(&asm_op);
+    test.expect_error(TestError::AssemblyError("parameter"));
 }
 
 /// This helper function tests that when the given u32 assembly instruction is executed on
 /// out-of-bounds inputs it does not fail. Each input is tested independently.
 fn test_unsafe_execution(asm_op: &str, input_count: usize) {
-    let script = compile(format!("begin {} end", asm_op).as_str());
     let values = vec![1_u64; input_count];
 
     for i in 0..input_count {
         let mut i_values = values.clone();
         // should execute successfully when the value of the input at index i is out of bounds
         i_values[i] = U32_BOUND;
-        let inputs = build_inputs(&i_values);
-        assert!(execute(&script, &inputs).is_ok());
+
+        let test = build_op_test!(asm_op, &i_values);
+        assert!(test.execute().is_ok());
     }
 }

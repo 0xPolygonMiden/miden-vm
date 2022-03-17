@@ -17,8 +17,11 @@ impl<'a> Token<'a> {
     // CONTROL TOKENS
     // --------------------------------------------------------------------------------------------
 
-    pub const BEGIN: &'static str = "begin";
+    pub const USE: &'static str = "use";
     pub const PROC: &'static str = "proc";
+    pub const EXPORT: &'static str = "export";
+
+    pub const BEGIN: &'static str = "begin";
     pub const IF: &'static str = "if";
     pub const ELSE: &'static str = "else";
     pub const WHILE: &'static str = "while";
@@ -62,8 +65,10 @@ impl<'a> Token<'a> {
     pub fn is_control_token(&self) -> bool {
         matches!(
             self.parts()[0],
-            Self::BEGIN
+            Self::USE
                 | Self::PROC
+                | Self::EXPORT
+                | Self::BEGIN
                 | Self::IF
                 | Self::ELSE
                 | Self::WHILE
@@ -89,6 +94,15 @@ impl<'a> Token<'a> {
     // CONTROL TOKEN PARSERS / VALIDATORS
     // --------------------------------------------------------------------------------------------
 
+    pub fn parse_use(&self) -> Result<String, AssemblyError> {
+        assert_eq!(Self::USE, self.parts[0], "not a use");
+        match self.num_parts() {
+            1 => Err(AssemblyError::missing_param(self)),
+            2 => validate_import_path(self.parts[1], self),
+            _ => Err(AssemblyError::extra_param(self)),
+        }
+    }
+
     pub fn validate_begin(&self) -> Result<(), AssemblyError> {
         assert_eq!(Self::BEGIN, self.parts[0], "not a begin");
         if self.num_parts() > 1 {
@@ -98,18 +112,22 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn parse_proc(&self) -> Result<(String, u32), AssemblyError> {
-        assert_eq!(Self::PROC, self.parts[0], "invalid procedure declaration");
+    pub fn parse_proc(&self) -> Result<(String, u32, bool), AssemblyError> {
+        assert!(
+            self.parts[0] == Self::PROC || self.parts[0] == Self::EXPORT,
+            "invalid procedure declaration"
+        );
+        let is_export = self.parts[0] == Self::EXPORT;
         match self.num_parts() {
             1 => Err(AssemblyError::missing_param(self)),
             2 => {
-                let label = validate_proc_label(self.parts[1], self)?;
-                Ok((label, 0))
+                let label = validate_proc_declaration_label(self.parts[1], self)?;
+                Ok((label, 0, is_export))
             }
             3 => {
-                let label = validate_proc_label(self.parts[1], self)?;
+                let label = validate_proc_declaration_label(self.parts[1], self)?;
                 let num_locals = validate_proc_locals(self.parts[2], self)?;
-                Ok((label, num_locals))
+                Ok((label, num_locals, is_export))
             }
             _ => Err(AssemblyError::extra_param(self)),
         }
@@ -169,7 +187,7 @@ impl<'a> Token<'a> {
         assert_eq!(Self::EXEC, self.parts[0], "not an exec");
         match self.num_parts() {
             1 => Err(AssemblyError::missing_param(self)),
-            2 => validate_proc_label(self.parts[1], self),
+            2 => validate_proc_invocation_label(self.parts[1], self),
             _ => Err(AssemblyError::extra_param(self)),
         }
     }
@@ -193,13 +211,36 @@ impl<'a> fmt::Display for Token<'a> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn validate_proc_label(label: &str, token: &Token) -> Result<String, AssemblyError> {
-    // a label must start with an alphanumeric character
+/// Label of a declared procedure must comply with the following rules:
+/// - It must start with an ascii letter.
+/// - It can contain only ascii letters, numbers, or underscores.
+fn validate_proc_declaration_label(label: &str, token: &Token) -> Result<String, AssemblyError> {
+    // a label must start with a letter
     if label.is_empty() || !label.chars().next().unwrap().is_ascii_alphabetic() {
         return Err(AssemblyError::invalid_proc_label(token, label));
     }
 
-    // a label can contain only number, letters, underscores, and colons
+    // a declaration label can contain only letters, numbers, or underscores
+    if !label.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        return Err(AssemblyError::invalid_proc_label(token, label));
+    }
+
+    Ok(label.to_string())
+}
+
+/// A label of an invoked procedure must comply with the following rules:
+/// - It must start with an ascii letter.
+/// - It can contain only ascii letters, numbers, underscores, or colons.
+///
+/// As compared to procedure declaration label, colons are allowed here to support invocation
+/// of imported procedures.
+fn validate_proc_invocation_label(label: &str, token: &Token) -> Result<String, AssemblyError> {
+    // a label must start with a letter
+    if label.is_empty() || !label.chars().next().unwrap().is_ascii_alphabetic() {
+        return Err(AssemblyError::invalid_proc_label(token, label));
+    }
+
+    // a label can contain only letters, numbers, underscores, or colons
     if !label
         .chars()
         .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == ':')
@@ -220,4 +261,24 @@ fn validate_proc_locals(locals: &str, token: &Token) -> Result<u32, AssemblyErro
         }
         Err(_) => Err(AssemblyError::invalid_proc_locals(token, locals)),
     }
+}
+
+/// A module import path must comply with the following rules:
+/// - It must start with an ascii letter.
+/// - It can contain only ascii letters, numbers, underscores, or colons.
+fn validate_import_path(path: &str, token: &Token) -> Result<String, AssemblyError> {
+    // a path must start with a letter
+    if path.is_empty() || !path.chars().next().unwrap().is_ascii_alphabetic() {
+        return Err(AssemblyError::invalid_module_path(token, path));
+    }
+
+    // a path can contain only letters, numbers, underscores, or colons
+    if !path
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == ':')
+    {
+        return Err(AssemblyError::invalid_module_path(token, path));
+    }
+
+    Ok(path.to_string())
 }

@@ -104,6 +104,7 @@ impl Process {
     pub fn op_advice(&mut self, injector: AdviceInjector) -> Result<(), ExecutionError> {
         match injector {
             AdviceInjector::MerkleNode => self.inject_merkle_node(),
+            AdviceInjector::DivResultU64 => self.inject_div_result_u64(),
         }
     }
 
@@ -118,14 +119,11 @@ impl Process {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - The stack contains fewer than 6 elements.
     /// - Merkle tree for the specified root cannot be found in the advice provider.
     /// - The specified depth is either zero or greater than the depth of the Merkle tree
     ///   identified by the specified root.
     /// - Value of the node at the specified depth and index is not known to the advice provider.
     fn inject_merkle_node(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(6, "INJMKNODE")?;
-
         // read node depth, node index, and tree root from the stack
         let depth = self.stack.get(0);
         let index = self.stack.get(1);
@@ -148,6 +146,53 @@ impl Process {
 
         Ok(())
     }
+
+    /// Injects the result of u64 division (both the quotient and the remainder) at the head of
+    /// the advice tape. The stack is expected to be arranged as follows (from the top):
+    /// - divisor split into two 32-bit elements
+    /// - dividend split into two 32-bit elements
+    ///
+    /// The result is injected into the advice tape as follows: first the remainder is injected,
+    /// then the quotient is injected. This guarantees that when reading values from the advice
+    /// tape, first the quotient will be read, and then the remainder.
+    ///
+    /// # Errors
+    /// Returns an error if the divisor is ZERO.
+    fn inject_div_result_u64(&mut self) -> Result<(), ExecutionError> {
+        let divisor_hi = self.stack.get(0).as_int();
+        let divisor_lo = self.stack.get(1).as_int();
+        let divisor = (divisor_hi << 32) + divisor_lo;
+
+        if divisor == 0 {
+            return Err(ExecutionError::DivideByZero(self.system.clk()));
+        }
+
+        let dividend_hi = self.stack.get(2).as_int();
+        let dividend_lo = self.stack.get(3).as_int();
+        let dividend = (dividend_hi << 32) + dividend_lo;
+
+        let quotient = dividend / divisor;
+        let remainder = dividend - quotient * divisor;
+
+        let (q_hi, q_lo) = u64_to_u32_elements(quotient);
+        let (r_hi, r_lo) = u64_to_u32_elements(remainder);
+
+        self.advice.write_tape(r_hi);
+        self.advice.write_tape(r_lo);
+        self.advice.write_tape(q_hi);
+        self.advice.write_tape(q_lo);
+
+        Ok(())
+    }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
+    let hi = Felt::new(value >> 32);
+    let lo = Felt::new((value as u32) as u64);
+    (hi, lo)
 }
 
 // TESTS

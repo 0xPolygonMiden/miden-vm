@@ -1,6 +1,4 @@
-use super::{
-    build_inputs, compile, execute, push_to_stack, test_op_execution, test_op_execution_proptest,
-};
+use super::{super::build_op_test, prop_randw};
 use proptest::prelude::*;
 use vm_core::{Felt, StarkField};
 
@@ -9,19 +7,21 @@ use vm_core::{Felt, StarkField};
 
 #[test]
 fn eq() {
-    // let script = compile("begin eq end");
     let asm_op = "eq";
 
     // --- test when two elements are equal ------------------------------------------------------
-    test_op_execution(asm_op, &[100, 100], &[1]);
+    let test = build_op_test!(asm_op, &[100, 100]);
+    test.expect_stack(&[1]);
 
     // --- test when two elements are unequal ----------------------------------------------------
-    test_op_execution(asm_op, &[25, 100], &[0]);
+    let test = build_op_test!(asm_op, &[25, 100]);
+    test.expect_stack(&[0]);
 
     // --- test when two u64s are unequal but their felts are equal ------------------------------
     let a = Felt::MODULUS + 1;
     let b = 1;
-    test_op_execution(asm_op, &[a, b], &[1]);
+    let test = build_op_test!(asm_op, &[a, b]);
+    test.expect_stack(&[1]);
 }
 
 #[test]
@@ -35,7 +35,8 @@ fn eqw() {
     expected.push(1);
     // put it in stack order
     expected.reverse();
-    test_op_execution(asm_op, &values, &expected);
+    let test = build_op_test!(asm_op, &values);
+    test.expect_stack(&expected);
 
     // --- test when top two words are not equal --------------------------------------------------
     let values = vec![8, 7, 6, 5, 4, 3, 2, 1];
@@ -44,7 +45,8 @@ fn eqw() {
     expected.push(0);
     // put it in stack order
     expected.reverse();
-    test_op_execution(asm_op, &values, &expected);
+    let test = build_op_test!(asm_op, &values);
+    test.expect_stack(&expected);
 }
 
 #[test]
@@ -106,36 +108,46 @@ fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, e
 
     // --- a < b ----------------------------------------------------------------------------------
     // a is smaller in the low bits (equal in high bits)
-    test_op_execution(asm_op, &[smaller, hi_eq_lo_gt], &[expect_if_lt]);
+    let test = build_op_test!(asm_op, &[smaller, hi_eq_lo_gt]);
+    test.expect_stack(&[expect_if_lt]);
 
     // a is smaller in the high bits and equal in the low bits
-    test_op_execution(asm_op, &[smaller, hi_gt_lo_eq], &[expect_if_lt]);
+    let test = build_op_test!(asm_op, &[smaller, hi_gt_lo_eq]);
+    test.expect_stack(&[expect_if_lt]);
 
     // a is smaller in the high bits but bigger in the low bits
-    test_op_execution(asm_op, &[smaller, hi_gt_lo_lt], &[expect_if_lt]);
+    let test = build_op_test!(asm_op, &[smaller, hi_gt_lo_lt]);
+    test.expect_stack(&[expect_if_lt]);
 
     // compare values above and below the field modulus
-    test_op_execution(asm_op, &[a_mod, a + 1], &[expect_if_lt]);
+    let test = build_op_test!(asm_op, &[a_mod, a + 1]);
+    test.expect_stack(&[expect_if_lt]);
 
     // --- a = b ----------------------------------------------------------------------------------
     // high and low bits are both set
-    test_op_execution(asm_op, &[hi_gt_lo_eq, hi_gt_lo_eq], &[expect_if_eq]);
+    let test = build_op_test!(asm_op, &[hi_gt_lo_eq, hi_gt_lo_eq]);
+    test.expect_stack(&[expect_if_eq]);
 
     // compare values above and below the field modulus
-    test_op_execution(asm_op, &[a_mod, a], &[expect_if_eq]);
+    let test = build_op_test!(asm_op, &[a_mod, a]);
+    test.expect_stack(&[expect_if_eq]);
 
     // --- a > b ----------------------------------------------------------------------------------
     // a is bigger in the low bits (equal in high bits)
-    test_op_execution(asm_op, &[hi_eq_lo_gt, smaller], &[expect_if_gt]);
+    let test = build_op_test!(asm_op, &[hi_eq_lo_gt, smaller]);
+    test.expect_stack(&[expect_if_gt]);
 
     // a is bigger in the high bits and equal in the low bits
-    test_op_execution(asm_op, &[hi_gt_lo_eq, smaller], &[expect_if_gt]);
+    let test = build_op_test!(asm_op, &[hi_gt_lo_eq, smaller]);
+    test.expect_stack(&[expect_if_gt]);
 
     // a is bigger in the high bits but smaller in the low bits
-    test_op_execution(asm_op, &[hi_gt_lo_lt, smaller], &[expect_if_gt]);
+    let test = build_op_test!(asm_op, &[hi_gt_lo_lt, smaller]);
+    test.expect_stack(&[expect_if_gt]);
 
     // compare values above and below the field modulus
-    test_op_execution(asm_op, &[a_mod + 1, a], &[expect_if_gt]);
+    let test = build_op_test!(asm_op, &[a_mod + 1, a]);
+    test.expect_stack(&[expect_if_gt]);
 }
 
 // FIELD OPS COMPARISON - RANDOMIZED TESTS
@@ -143,24 +155,21 @@ fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, e
 
 const WORD_LEN: usize = 4;
 
-// This is a proptest strategy for generating a random word of u64 values.
-fn rand_word() -> impl Strategy<Value = Vec<u64>> {
-    prop::collection::vec(any::<u64>(), WORD_LEN)
-}
-
 proptest! {
     #[test]
     fn eq_proptest(a in any::<u64>(), b in any::<u64>()) {
         let asm_op = "eq";
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS == b % Felt::MODULUS { 1 } else { 0 };
-        test_op_execution_proptest(asm_op, &[a, b], &[expected_result])?;
+
+        let test = build_op_test!(asm_op, &[a,b]);
+        test.prop_expect_stack(&[expected_result])?;
     }
 
     #[test]
-    fn eqw_proptest(w1 in rand_word(), w2 in rand_word()) {
+    fn eqw_proptest(w1 in prop_randw(), w2 in prop_randw()) {
         // test the eqw assembly operation with randomized inputs
-        let script = compile("begin eqw end");
+        let asm_op = "eqw";
 
         // 2 words (8 values) for comparison and 1 for the result
         let mut values = vec![0; 2 * WORD_LEN + 1];
@@ -177,16 +186,14 @@ proptest! {
             values[i + WORD_LEN] = *b;
         }
 
-        let inputs = build_inputs(&values);
-        let trace = execute(&script, &inputs).unwrap();
-        let last_state = trace.last_stack_state();
+        let test = build_op_test!(asm_op, &values);
 
         // add the expected result to get the expected state
         let expected_result = if inputs_equal { 1 } else { 0 };
         values.push(expected_result);
-        let expected_state = push_to_stack(&values);
+        values.reverse();
 
-        prop_assert_eq!(expected_state, last_state);
+        test.prop_expect_stack(&values)?;
     }
 
     #[test]
@@ -195,7 +202,9 @@ proptest! {
         let asm_op = "lt";
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS < b % Felt::MODULUS { 1 } else { 0 };
-        test_op_execution_proptest(asm_op, &[a, b], &[expected_result])?;
+
+        let test = build_op_test!(asm_op, &[a,b]);
+        test.prop_expect_stack(&[expected_result])?;
     }
 
     #[test]
@@ -204,7 +213,9 @@ proptest! {
         let asm_op = "lte";
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS <= b % Felt::MODULUS { 1 } else { 0 };
-        test_op_execution_proptest(asm_op, &[a, b], &[expected_result])?;
+
+        let test = build_op_test!(asm_op, &[a,b]);
+        test.prop_expect_stack(&[expected_result])?;
     }
 
     #[test]
@@ -213,7 +224,9 @@ proptest! {
         let asm_op = "gt";
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS > b % Felt::MODULUS { 1 } else { 0 };
-        test_op_execution_proptest(asm_op, &[a, b], &[expected_result])?;
+
+        let test = build_op_test!(asm_op, &[a,b]);
+        test.prop_expect_stack(&[expected_result])?;
     }
 
     #[test]
@@ -222,6 +235,8 @@ proptest! {
         let asm_op = "gte";
         // compare the random a & b values modulo the field modulus to get the expected result
         let expected_result = if a % Felt::MODULUS >= b % Felt::MODULUS { 1 } else { 0 };
-        test_op_execution_proptest(asm_op, &[a, b], &[expected_result])?;
+
+        let test = build_op_test!(asm_op, &[a,b]);
+        test.prop_expect_stack(&[expected_result])?;
     }
 }

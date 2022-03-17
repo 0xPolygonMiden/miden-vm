@@ -235,7 +235,7 @@ pub fn parse_u32madd(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
     Ok(())
 }
 
-/// Translates u32addc assembly instruction to VM operations.
+/// Translates u32div assembly instruction to VM operations.
 ///
 /// The base operation is `U32DIV`, but depending on the mode, additional operations may be
 /// inserted. Please refer to the docs of `handle_arithmetic_operation` for more details.
@@ -246,7 +246,43 @@ pub fn parse_u32madd(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
 /// - u32div.full: 9 cycles
 /// - u32div.unsafe: 1 cycle
 pub fn parse_u32div(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    handle_arithmetic_operation(span_ops, op, Operation::U32div, true)
+    let drop_remainder = match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => {
+            assert_u32_operands(span_ops, true);
+            true
+        }
+        2 => match op.parts()[1] {
+            "unsafe" => false,
+            "full" => {
+                assert_u32_operands(span_ops, true);
+                false
+            }
+            _ => {
+                let divisor: u32 = parse_int_param(op, 1, 0, u32::MAX)?;
+                if divisor == 0 {
+                    return Err(AssemblyError::invalid_param_with_reason(
+                        op,
+                        1,
+                        "division by 0",
+                    ));
+                }
+
+                assert_u32(span_ops);
+                push_value(span_ops, Felt::new(divisor as u64));
+                true
+            }
+        },
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    span_ops.push(Operation::U32div);
+
+    if drop_remainder {
+        span_ops.push(Operation::Drop)
+    }
+
+    Ok(())
 }
 
 /// Translates u32mod assembly instruction to VM operations.
@@ -269,7 +305,17 @@ pub fn parse_u32mod(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
             _ => {
                 // for u32mod.n (where n is the immediate value), we need to push the immediate
                 // value onto the stack, and make sure both operands are u32 values.
-                assert_u32_and_push_u32_param(span_ops, op, 1)?;
+                let divisor: u32 = parse_int_param(op, 1, 0, u32::MAX)?;
+                if divisor == 0 {
+                    return Err(AssemblyError::invalid_param_with_reason(
+                        op,
+                        1,
+                        "division by 0",
+                    ));
+                }
+
+                assert_u32(span_ops);
+                push_value(span_ops, Felt::new(divisor as u64));
             }
         },
         _ => return Err(AssemblyError::extra_param(op)),
@@ -660,7 +706,7 @@ fn assert_u32(span_ops: &mut Vec<Operation>) {
 
 /// Asserts that both values at the top of the stack are u32 values.
 ///
-/// When `preserve_order` is set to true, the stack state is preserved; otherwise the two two
+/// When `preserve_order` is set to true, the stack state is preserved; otherwise the two
 /// stack items are swapped.
 fn assert_u32_operands(span_ops: &mut Vec<Operation>, preserve_order: bool) {
     assert_u32(span_ops);
@@ -765,7 +811,7 @@ fn handle_u32_and_unsafe_check(
 ///   - Any number argument gets pushed to the stack, checked if both are u32 and performs the
 ///     operation.
 ///
-/// According to the spec this is currently U32ADD, U32SUB, U32DIV, U32MUL.
+/// According to the spec this is currently U32ADD, U32SUB, U32MUL.
 fn handle_arithmetic_operation(
     span_ops: &mut Vec<Operation>,
     op: &Token,

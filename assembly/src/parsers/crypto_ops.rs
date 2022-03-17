@@ -1,4 +1,4 @@
-use super::{validate_op_len, AssemblyError, Felt, Operation, Token};
+use super::{super::validate_operation, AssemblyError, Felt, Operation, Token};
 use vm_core::{utils::PushMany, AdviceInjector};
 
 // HASHING
@@ -30,11 +30,7 @@ const RPHASH_NUM_ELEMENTS: u64 = 8;
 /// - the operation is malformed.
 /// - an unrecognized operation is received (anything other than rphash).
 pub fn parse_rphash(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // validate the operation
-    validate_op_len(op, 1, 0, 0)?;
-    if op.parts()[0] != "rphash" {
-        return Err(AssemblyError::unexpected_token(op, "rphash"));
-    }
+    validate_operation!(op, "rphash", 0);
 
     // Add 4 elements to the stack to prepare the capacity portion for the Rescue Prime permutation
     // The capacity should start at stack[8], and the number of elements to be hashed should
@@ -70,11 +66,7 @@ pub fn parse_rphash(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// - the operation is malformed.
 /// - an unrecognized operation is received (anything other than rpperm).
 pub fn parse_rpperm(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // validate the operation
-    validate_op_len(op, 1, 0, 0)?;
-    if op.parts()[0] != "rpperm" {
-        return Err(AssemblyError::unexpected_token(op, "rpperm"));
-    }
+    validate_operation!(op, "rpperm", 0);
 
     // append the machine op to the span block
     span_ops.push(Operation::RpPerm);
@@ -102,11 +94,7 @@ pub fn parse_rpperm(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// - an unrecognized operation is received (anything other than "mtree" with a valid variant of
 ///   "get", "set", or "cwm").
 pub fn parse_mtree(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // validate operation
-    validate_op_len(op, 2, 0, 0)?;
-    if op.parts()[0] != "mtree" {
-        return Err(AssemblyError::unexpected_token(op, "mtree.{get|set|cwm}"));
-    }
+    validate_operation!(op, "mtree.cwm|get|set", 0);
 
     match op.parts()[1] {
         "get" => mtree_get(span_ops),
@@ -399,7 +387,7 @@ mod tests {
         );
 
         let op_mismatch = Token::new("rpperm.get", op_pos);
-        let expected = AssemblyError::unexpected_token(&op_mismatch, "mtree.{get|set|cwm}");
+        let expected = AssemblyError::unexpected_token(&op_mismatch, "mtree.cwm|get|set");
         assert_eq!(
             parse_mtree(&mut span_ops, &op_mismatch).unwrap_err(),
             expected

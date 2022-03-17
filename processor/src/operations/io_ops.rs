@@ -29,12 +29,7 @@ impl Process {
     /// - The top four elements of the stack are overwritten with values retried from memory.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than five elements.
     pub(super) fn op_loadw(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(5, "LOADW")?;
-
         // get the address from the stack and read the word from memory
         let addr = self.stack.get(0);
         let word = self.memory.read(addr);
@@ -56,12 +51,7 @@ impl Process {
     ///   removed from the stack.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
-    ///
-    /// # Errors
-    /// Returns an error if the stack contains fewer than five elements.
     pub(super) fn op_storew(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(5, "STOREW")?;
-
         // get the address from the stack and build the word to be saved from the stack values
         let addr = self.stack.get(0);
         let word = [
@@ -101,12 +91,8 @@ impl Process {
     /// elements with it.
     ///
     /// # Errors
-    /// Returns an error if:
-    /// * The stack contains fewer than four elements.
-    /// * The advice tape contains fewer than four elements.
+    /// Returns an error if the advice tape contains fewer than four elements.
     pub(super) fn op_readw(&mut self) -> Result<(), ExecutionError> {
-        self.stack.check_depth(4, "READW")?;
-
         let a = self.advice.read_tape()?;
         let b = self.advice.read_tape()?;
         let c = self.advice.read_tape()?;
@@ -143,12 +129,13 @@ mod tests {
         super::{FieldElement, Operation},
         Felt, Process,
     };
+    use vm_core::MIN_STACK_DEPTH;
 
     #[test]
     fn op_push() {
         let mut process = Process::new_dummy();
-        assert_eq!(0, process.stack.depth());
-        assert_eq!(0, process.stack.current_step());
+        assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
+        assert_eq!(0, process.stack.current_clk());
         assert_eq!([Felt::ZERO; 16], process.stack.trace_state());
 
         // push one item onto the stack
@@ -157,8 +144,8 @@ mod tests {
         let mut expected = [Felt::ZERO; 16];
         expected[0] = Felt::ONE;
 
-        assert_eq!(1, process.stack.depth());
-        assert_eq!(1, process.stack.current_step());
+        assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
+        assert_eq!(1, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
         // push another item onto the stack
@@ -168,8 +155,8 @@ mod tests {
         expected[0] = Felt::new(3);
         expected[1] = Felt::ONE;
 
-        assert_eq!(2, process.stack.depth());
-        assert_eq!(2, process.stack.current_step());
+        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
+        assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }
 
@@ -205,6 +192,10 @@ mod tests {
         assert_eq!(2, process.memory.size());
         assert_eq!(word1, process.memory.get_value(0).unwrap());
         assert_eq!(word2, process.memory.get_value(3).unwrap());
+
+        // --- calling STOREW with a stack of minimum depth is ok ----------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::StoreW).is_ok());
     }
 
     #[test]
@@ -231,6 +222,10 @@ mod tests {
         // check memory state
         assert_eq!(1, process.memory.size());
         assert_eq!(word, process.memory.get_value(1).unwrap());
+
+        // --- calling STOREW with a stack of minimum depth is ok ----------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::LoadW).is_ok());
     }
 
     // ADVICE INPUT TESTS
@@ -265,12 +260,14 @@ mod tests {
         // reading again should result in an error because advice tape is empty
         assert!(process.execute_op(Operation::ReadW).is_err());
 
-        // should return an error if the stack has fewer than 4 values
+        // should not return an error if the stack has fewer than 4 values
         let mut process = Process::new_dummy_with_advice_tape(&[3, 4, 5, 6]);
         process.execute_op(Operation::Push(Felt::ONE)).unwrap();
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::Pad).unwrap();
-        assert!(process.execute_op(Operation::ReadW).is_err());
+        assert!(process.execute_op(Operation::ReadW).is_ok());
+        let expected = build_expected_stack(&[6, 5, 4, 3]);
+        assert_eq!(expected, process.stack.trace_state());
     }
 
     // ENVIRONMENT INPUT TESTS
@@ -281,22 +278,27 @@ mod tests {
         // stack is empty
         let mut process = Process::new_dummy();
         process.execute_op(Operation::SDepth).unwrap();
-        let expected = build_expected_stack(&[0]);
+        let expected = build_expected_stack(&[MIN_STACK_DEPTH as u64]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(1, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
 
         // stack has one item
         process.execute_op(Operation::SDepth).unwrap();
-        let expected = build_expected_stack(&[1, 0]);
+        let expected = build_expected_stack(&[MIN_STACK_DEPTH as u64 + 1, MIN_STACK_DEPTH as u64]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(2, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
 
         // stack has 3 items
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::SDepth).unwrap();
-        let expected = build_expected_stack(&[3, 0, 1, 0]);
+        let expected = build_expected_stack(&[
+            MIN_STACK_DEPTH as u64 + 3,
+            0,
+            MIN_STACK_DEPTH as u64 + 1,
+            MIN_STACK_DEPTH as u64,
+        ]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(4, process.stack.depth());
+        assert_eq!(MIN_STACK_DEPTH + 4, process.stack.depth());
     }
 
     // HELPER METHODS

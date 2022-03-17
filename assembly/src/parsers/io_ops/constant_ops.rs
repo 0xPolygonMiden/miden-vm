@@ -1,5 +1,5 @@
 use super::{
-    parse_decimal_param, parse_element_param, parse_hex_param, push_value, validate_op_len,
+    parse_decimal_param, parse_element_param, parse_hex_param, push_value, validate_operation,
     AssemblyError, Felt, Operation, Token,
 };
 
@@ -36,9 +36,9 @@ const HEX_CHUNK_SIZE: usize = 16;
 /// invalid. It will also return an error if the op token is malformed or doesn't match the expected
 /// instruction.
 pub fn parse_push_constant(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    let param_idx = 1;
-    validate_op_len(op, param_idx, 1, MAX_CONST_INPUTS)?;
+    validate_operation!(op, "push", 1..MAX_CONST_INPUTS);
 
+    let param_idx = 1;
     let param_count = op.num_parts() - param_idx;
     // for multiple input parameters, parse & push each one onto the stack in order, then return
     if param_count > 1 {
