@@ -1,4 +1,4 @@
-use super::super::build_test;
+use super::{super::build_test, TestError};
 
 mod crypto;
 mod math;

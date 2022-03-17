@@ -1621,6 +1621,71 @@ export.gte_unsafe
     not
 end
 
+# Performs equal comparison of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise. #
+export.eq_unsafe
+    movup.2
+    u32eq
+    swap
+    movup.2
+    u32eq
+    and
+end
+
+# Performs equal zero comparison of unsigned 64 bit integer. #
+# The input value is assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == 0, and 0 otherwise. #
+export.eqz_unsafe
+    u32eq.0
+    swap
+    u32eq.0
+    and
+end
+
+# ===== BITWISE OPERATIONS ====================================================================== #
+
+# Performs bitwise AND of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a AND b. #
+export.and
+    swap
+    movup.3
+    u32and
+    swap
+    movup.2
+    u32and
+end
+
+# Performs bitwise OR of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a OR b. #
+export.or
+    swap
+    movup.3
+    u32or
+    swap
+    movup.2
+    u32or
+end
+
+# Performs bitwise XOR of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a XOR b. #
+export.xor
+    swap
+    movup.3
+    u32xor
+    swap
+    movup.2
+    u32xor
+end
+
 # ===== DIVISION ================================================================================ #
 
 # Performs division of two unsigned 64 bit integers discarding the remainder. #
@@ -1679,6 +1744,21 @@ export.div_unsafe
     assert.eq
     movup.3
     assert.eq           # quotient remains on the stack #
+end
+
+# ===== HELPER FUNCTIONS ======================================================================== #
+
+# Asserts that both values at the top of the stack are u64 values. #
+# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
+export.u64assert2
+    u32assert
+    movup.3
+    u32assert
+    movup.3
+    u32assert
+    movup.3
+    u32assert
+    movup.3
 end
 "),
 ];
