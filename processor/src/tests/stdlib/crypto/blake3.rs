@@ -1,17 +1,16 @@
-use crate::{execute, Felt, FieldElement, ProgramInputs, Script, MIN_STACK_DEPTH};
+use super::build_test;
+use crate::{Felt, MIN_STACK_DEPTH};
 use vm_core::utils::IntoBytes;
 
 #[test]
 fn blake3_2_to_1_hash() {
-    let script = compile(
-        "
+    let source = "
     use.std::crypto::hashes::blake3
 
     begin
         exec.blake3::hash
     end
-    ",
-    );
+    ";
 
     // prepare random input byte array
     let i_digest_0: [u8; 32] = rand_utils::rand_array::<Felt, 4>().into_bytes();
@@ -43,33 +42,14 @@ fn blake3_2_to_1_hash() {
     }
 
     // finally execute miden program on VM
-    let inputs = ProgramInputs::new(&i_words, &[], Vec::new()).unwrap();
-    let trace = execute(&script, &inputs).unwrap();
-    let last_state = trace.last_stack_state();
-
-    // first 8 elements of stack top holds blake3 digest, while remaining 8 elements
-    // are zeroed
-    let digest_on_stack = convert_to_stack(&digest_words);
-    assert_eq!(digest_on_stack, last_state);
+    let test = build_test!(source, &i_words);
+    // first 8 elements of stack top holds blake3 digest,
+    // while remaining 8 elements are zeroed
+    test.expect_stack(&digest_words);
 }
 
 // HELPER FUNCTIONS
 // ================================================================================================
-
-fn compile(source: &str) -> Script {
-    let assembler = assembly::Assembler::new();
-    assembler.compile_script(source).unwrap()
-}
-
-/// Takes an array of u64 values and builds a stack, perserving their order and converting them to
-/// field elements.
-fn convert_to_stack(values: &[u64]) -> [Felt; MIN_STACK_DEPTH] {
-    let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
-    for (&value, result) in values.iter().zip(result.iter_mut()) {
-        *result = Felt::new(value);
-    }
-    result
-}
 
 /// Given a slice of four consecutive little endian bytes, interprets them as 32 -bit unsigned integer
 fn from_le_bytes_to_words(le_bytes: &[u8]) -> u32 {
