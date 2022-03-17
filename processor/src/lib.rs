@@ -6,8 +6,8 @@ use vm_core::{
         Script,
     },
     AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
-    StarkField, Word, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH,
-    SYS_TRACE_WIDTH,
+    StarkField, Word, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN, NUM_STACK_HELPER_COLS,
+    RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH,
 };
 
 mod operations;
@@ -51,6 +51,7 @@ mod tests;
 
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 type StackTrace = [Vec<Felt>; STACK_TRACE_WIDTH];
+type RangeCheckTrace = [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH];
 type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
 
 // EXECUTOR
@@ -82,9 +83,9 @@ struct Process {
 impl Process {
     pub fn new(inputs: ProgramInputs) -> Self {
         Self {
-            system: System::new(4),
+            system: System::new(MIN_TRACE_LEN),
             decoder: Decoder::new(),
-            stack: Stack::new(&inputs, 4),
+            stack: Stack::new(&inputs, MIN_TRACE_LEN),
             range: RangeChecker::new(),
             hasher: Hasher::new(),
             bitwise: Bitwise::new(),
