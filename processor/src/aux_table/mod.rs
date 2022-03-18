@@ -2,6 +2,9 @@ use super::{
     AuxTableTrace, Bitwise, Felt, FieldElement, Hasher, Memory, TraceFragment, AUX_TRACE_WIDTH,
 };
 
+#[cfg(test)]
+mod tests;
+
 // AUXILIARY TABLE
 // ================================================================================================
 

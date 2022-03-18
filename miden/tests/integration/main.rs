@@ -1,6 +1,5 @@
 mod helpers;
 
-mod aux_table_trace;
 mod flow_control;
 mod operations;
 mod stdlib;

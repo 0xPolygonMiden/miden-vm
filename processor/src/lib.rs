@@ -27,11 +27,9 @@ use range::RangeChecker;
 
 mod hasher;
 use hasher::Hasher;
-pub use hasher::{LINEAR_HASH, RETURN_STATE};
 
 mod bitwise;
 use bitwise::Bitwise;
-pub use bitwise::BITWISE_OR;
 
 mod memory;
 use memory::Memory;
@@ -55,7 +53,7 @@ pub use errors::ExecutionError;
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 type StackTrace = [Vec<Felt>; STACK_TRACE_WIDTH];
 type RangeCheckTrace = [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH];
-pub type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
+type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
 
 // EXECUTOR
 // ================================================================================================
