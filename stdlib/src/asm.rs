@@ -1510,7 +1510,22 @@ export.mul_unsafe.6
     swapw
 end"),
 // ----- std::math::u64 ---------------------------------------------------------------------------
-("std::math::u64", "# ===== ADDITION ================================================================================ #
+("std::math::u64", "# ===== HELPER FUNCTIONS ======================================================================== #
+
+# Asserts that both values at the top of the stack are u64 values. #
+# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
+proc.u64assert4
+    u32assert
+    movup.3
+    u32assert
+    movup.3
+    u32assert
+    movup.3
+    u32assert
+    movup.3
+end
+
+# ===== ADDITION ================================================================================ #
 
 # Performs addition of two unsigned 64 bit integers discarding the overflow. #
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
@@ -1621,7 +1636,7 @@ export.gte_unsafe
     not
 end
 
-# Performs equal comparison of two unsigned 64 bit integers. #
+# Performs equality comparison of two unsigned 64 bit integers. #
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise. #
@@ -1634,7 +1649,7 @@ export.eq_unsafe
     and
 end
 
-# Performs equal zero comparison of unsigned 64 bit integer. #
+# Performs comparison to zero of an unsigned 64 bit integer. #
 # The input value is assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
 # [a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == 0, and 0 otherwise. #
@@ -1744,21 +1759,6 @@ export.div_unsafe
     assert.eq
     movup.3
     assert.eq           # quotient remains on the stack #
-end
-
-# ===== HELPER FUNCTIONS ======================================================================== #
-
-# Asserts that both values at the top of the stack are u64 values. #
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
-export.u64assert2
-    u32assert
-    movup.3
-    u32assert
-    movup.3
-    u32assert
-    movup.3
-    u32assert
-    movup.3
 end
 "),
 ];

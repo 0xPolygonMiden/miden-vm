@@ -174,9 +174,6 @@ fn eq_unsafe() {
     // a = 1, b = 0
     build_test!(source, &[1, 0, 0, 0]).expect_stack(&[0]);
 
-    // a = 1, b = 1
-    build_test!(source, &[1, 0, 1, 0]).expect_stack(&[1]);
-
     // randomized test
     let a: u64 = rand_value();
     let b: u64 = rand_value();
