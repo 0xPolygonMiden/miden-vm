@@ -2291,6 +2291,416 @@ export.rho.4
     movup.4
     popw.mem # wrote state[48..50] #
 end
+
+# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's π function, which is 
+  implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L169-L207 #
+export.pi.17
+    popw.local.0
+    popw.local.1
+    popw.local.2
+    popw.local.3
+
+    pushw.local.0
+    repeat.2
+        swap
+        drop
+    end
+
+    swap
+    pushw.mem
+
+    exec.rev_4_elements
+
+    drop
+    drop
+    swap
+
+    movup.2
+    pushw.mem
+
+    exec.rev_4_elements
+
+    drop
+    drop
+    swap
+
+    popw.local.4 # wrote state[0..4] #
+
+    pushw.local.2
+
+    drop
+    repeat.2
+        swap
+        drop
+    end
+
+    pushw.mem
+
+    exec.rev_4_elements
+
+    drop
+    drop
+    swap
+
+    pushw.local.1
+    
+    drop
+    drop
+    swap
+    drop
+
+    pushw.mem
+
+    exec.rev_4_elements
+
+    drop
+    drop
+    swap
+
+    popw.local.5 # wrote state[4..8] #
+
+    pushw.local.0
+
+    drop
+    repeat.2
+        swap
+        drop
+    end
+
+    pushw.mem
+
+    drop
+    drop
+
+    pushw.local.3
+
+    repeat.3
+        swap
+        drop
+    end
+
+    pushw.mem
+
+    exec.rev_4_elements
+
+    drop
+    drop
+    swap
+
+    popw.local.6 # wrote state[8..12] #
+
+    pushw.local.1
+
+    exec.rev_4_elements
+
+    drop
+    drop
+
+    pushw.mem
+
+    exec.rev_4_elements
+
+    drop
+    drop
+    swap
+
+    movup.2
+
+    pushw.mem
+
+    drop
+    drop
+
+    popw.local.7 # wrote state[12..16] #
+
+    pushw.local.2
+
+    repeat.2
+        swap
+        drop
+    end
+
+    swap
+
+    pushw.mem
+
+    exec.rev_4_elements
+
+    drop
+    drop
+    swap
+
+    movup.2
+
+    pushw.mem
+
+    exec.rev_4_elements
+
+    drop
+    drop
+    swap
+
+    popw.local.8 # wrote state[16..20] #
+
+    pushw.local.0
+
+    repeat.2
+        swap
+        drop
+    end
+
+    swap
+
+    pushw.mem
+
+    drop
+    drop
+
+    movup.2
+
+    pushw.mem
+
+    drop
+    drop
+
+    popw.local.9 # wrote state[20..24] #
+
+    pushw.local.2
+
+    drop
+    repeat.2
+        swap
+        drop
+    end
+
+    pushw.mem
+
+    drop
+    drop
+
+    pushw.local.1
+
+    drop
+    drop
+    swap
+    drop
+
+    pushw.mem
+
+    drop
+    drop
+
+    popw.local.10 # wrote state[24..28] #
+
+    pushw.local.0
+
+    drop
+    drop
+    swap
+    drop
+
+    pushw.mem
+
+    exec.rev_4_elements
+
+    drop
+    drop
+    swap
+
+    pushw.local.2
+
+    drop
+    drop
+    swap
+    drop
+
+    pushw.mem
+
+    exec.rev_4_elements
+
+    drop
+    drop
+    swap
+
+    popw.local.11 # wrote state[28..32] #
+
+    pushw.local.1
+
+    drop
+    repeat.2
+        swap
+        drop
+    end
+
+    pushw.mem
+
+    drop
+    drop
+
+    pushw.local.0
+
+    drop
+    drop
+    swap
+    drop
+
+    pushw.mem
+
+    drop
+    drop
+
+    popw.local.12 # wrote state[32..36] #
+
+    pushw.local.2
+
+    repeat.2
+        swap
+        drop
+    end
+
+    swap
+
+    pushw.mem
+
+    drop
+    drop
+
+    movup.2
+
+    pushw.mem
+
+    drop
+    drop
+
+    popw.local.13 # wrote state[36..40] #
+
+    pushw.local.1
+
+    repeat.3
+        swap
+        drop
+    end
+
+    pushw.mem
+
+    exec.rev_4_elements
+
+    drop
+    drop
+    swap
+
+    pushw.local.0
+
+    drop
+    repeat.2
+        swap
+        drop
+    end
+
+    pushw.mem
+
+    exec.rev_4_elements
+
+    drop
+    drop
+    swap
+
+    popw.local.14 # wrote state[40..44] #
+
+    pushw.local.1
+
+    drop
+    drop
+    drop
+
+    pushw.mem
+
+    popw.local.15 # wrote state[44..48] #
+
+    pushw.local.2
+
+    drop
+    drop
+    swap
+    drop
+
+    pushw.mem
+
+    drop
+    drop
+    push.0.0
+
+    exec.rev_4_elements
+
+    swap
+
+    popw.local.16 # wrote state[48..50] #
+
+    pushw.local.0
+
+    pushw.local.4
+    movup.4
+    storew.mem # final write state[0..4] #
+
+    loadw.local.5
+    movup.4
+    storew.mem # final write state[4..8] #
+
+    loadw.local.6
+    movup.4
+    storew.mem # final write state[8..12] #
+
+    loadw.local.7
+    movup.4
+    storew.mem # final write state[12..16] #
+
+    loadw.local.1
+
+    pushw.local.8
+    movup.4
+    storew.mem # final write state[16..20] #
+
+    loadw.local.9
+    movup.4
+    storew.mem # final write state[20..24] #
+
+    loadw.local.10
+    movup.4
+    storew.mem # final write state[24..28] #
+
+    loadw.local.11
+    movup.4
+    storew.mem # final write state[28..32] #
+
+    loadw.local.2
+
+    pushw.local.12
+    movup.4
+    storew.mem # final write state[32..36] #
+
+    loadw.local.13
+    movup.4
+    storew.mem # final write state[36..40] #
+
+    loadw.local.14
+    movup.4
+    storew.mem # final write state[40..44] #
+
+    loadw.local.15
+    movup.4
+    storew.mem # final write state[44..48] #
+
+    loadw.local.16
+
+    pushw.local.3
+    repeat.3
+        swap
+        drop
+    end
+
+    storew.mem # final write state[48..50] #
+    dropw
+end
 "),
 // ----- std::crypto::hashes::sha256 --------------------------------------------------------------
 ("std::crypto::hashes::sha256", "# SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L73-L79 #
