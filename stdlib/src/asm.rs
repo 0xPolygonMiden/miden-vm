@@ -2045,6 +2045,252 @@ export.theta.7
     movup.4
     popw.mem
 end
+
+# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ρ ( rho ) function, which is 
+  implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L115-L147 #
+export.rho.4
+    popw.local.0
+    popw.local.1
+    popw.local.2
+    popw.local.3
+
+    pushw.local.0
+    dupw
+
+    pushw.mem
+    exec.rev_4_elements
+
+    u32rotl.1
+    swap
+
+    exec.rev_4_elements
+
+    movup.7
+    popw.mem # wrote state[0..4] #
+
+    pushw.mem
+
+    u32rotl.31
+    swap
+    u32rotl.31
+    swap
+
+    exec.rev_4_elements
+
+    u32rotl.14
+    swap
+    u32rotl.14
+    swap
+
+    exec.rev_4_elements
+
+    movup.6
+    popw.mem # wrote state[4..8] #
+
+    pushw.mem
+
+    u32rotl.13
+    swap
+    u32rotl.14
+
+    exec.rev_4_elements
+
+    u32rotl.18
+    swap
+    u32rotl.18
+    swap
+
+    exec.rev_4_elements
+    
+    movup.5
+    popw.mem # wrote state[8..12] #
+
+    pushw.mem
+
+    u32rotl.22
+    swap
+    u32rotl.22
+    swap
+
+    exec.rev_4_elements
+
+    u32rotl.3
+    swap
+    u32rotl.3
+    swap
+
+    exec.rev_4_elements
+
+    movup.4
+    popw.mem # wrote state[12..16] #
+
+    pushw.local.1
+    dupw
+
+    pushw.mem
+
+    u32rotl.27
+    swap
+    u32rotl.28
+
+    exec.rev_4_elements
+
+    u32rotl.10
+    swap
+    u32rotl.10
+    swap
+
+    exec.rev_4_elements
+
+    movup.7
+    popw.mem # wrote state[16..20] #
+
+    pushw.mem
+
+    u32rotl.1
+    swap
+    u32rotl.2
+
+    exec.rev_4_elements
+
+    u32rotl.5
+    swap
+    u32rotl.5
+    swap
+
+    exec.rev_4_elements
+
+    movup.6
+    popw.mem # wrote state[20..24] #
+
+    pushw.mem
+
+    u32rotl.21
+    swap
+    u32rotl.22
+
+    exec.rev_4_elements
+
+    u32rotl.13
+    swap
+    u32rotl.12
+
+    exec.rev_4_elements
+
+    movup.5
+    popw.mem # wrote state[24..28] #
+
+    pushw.mem
+
+    u32rotl.19
+    swap
+    u32rotl.20
+
+    exec.rev_4_elements
+
+    u32rotl.21
+    swap
+    u32rotl.20
+
+    exec.rev_4_elements
+
+    movup.4
+    popw.mem # wrote state[28..32] #
+
+    pushw.local.2
+    dupw
+
+    pushw.mem
+
+    u32rotl.22
+    swap
+    u32rotl.23
+
+    exec.rev_4_elements
+
+    u32rotl.8
+    swap
+    u32rotl.7
+
+    exec.rev_4_elements
+
+    movup.7
+    popw.mem # wrote state[32..36] #
+
+    pushw.mem
+
+    u32rotl.10
+    swap
+    u32rotl.11
+
+    exec.rev_4_elements
+
+    u32rotl.4
+    swap
+    u32rotl.4
+    swap
+
+    exec.rev_4_elements
+
+    movup.6
+    popw.mem # wrote state[36..40] #
+
+    pushw.mem
+
+    u32rotl.9
+    swap
+    u32rotl.9
+    swap
+
+    exec.rev_4_elements
+
+    u32rotl.1
+    swap
+    u32rotl.1
+    swap
+
+    exec.rev_4_elements
+
+    movup.5
+    popw.mem # wrote state[40..44] #
+
+    pushw.mem
+
+    u32rotl.30
+    swap
+    u32rotl.31
+
+    exec.rev_4_elements
+
+    u32rotl.28
+    swap
+    u32rotl.28
+    swap
+
+    exec.rev_4_elements
+
+    movup.4
+    popw.mem # wrote state[44..48] #
+
+    pushw.local.3
+
+    repeat.3
+        swap
+        drop
+    end
+
+    dup
+
+    pushw.mem
+
+    u32rotl.7
+    swap
+    u32rotl.7
+    swap
+
+    movup.4
+    popw.mem # wrote state[48..50] #
+end
 "),
 // ----- std::crypto::hashes::sha256 --------------------------------------------------------------
 ("std::crypto::hashes::sha256", "# SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L73-L79 #
