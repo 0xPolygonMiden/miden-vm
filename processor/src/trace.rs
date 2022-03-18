@@ -30,47 +30,8 @@ impl ExecutionTrace {
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
     pub(super) fn new(process: Process, program_hash: Digest) -> Self {
-        let Process {
-            system,
-            decoder: _,
-            stack,
-            range,
-            hasher,
-            bitwise,
-            memory,
-            advice: _,
-        } = process;
-
-        // Get the trace length required to hold all execution trace steps.
-        let aux_trace_len = hasher.trace_len() + bitwise.trace_len() + memory.trace_len();
-        let trace_len = vec![stack.trace_len(), range.trace_len(), aux_trace_len]
-            .iter()
-            .max()
-            .expect("failed to get max of component trace lengths")
-            .next_power_of_two();
-
-        // Finalize the system trace.
-        let step = system.clk();
-        let mut system_trace = system.into_trace();
-        finalize_clk_column(&mut system_trace[0], step, trace_len);
-        finalize_column(&mut system_trace[1], step, trace_len);
-
-        // Finalize stack trace.
-        let mut stack_trace = stack.into_trace();
-        for column in stack_trace.iter_mut() {
-            finalize_column(column, step, trace_len);
-        }
-
-        // Finalize the range check trace.
-        let range_check_trace: RangeCheckTrace = range
-            .into_trace(trace_len)
-            .try_into()
-            .expect("failed to convert vector to array");
-
-        // Finalize the auxilliary table trace.
-        let mut aux_table = AuxTable::new(trace_len);
-        aux_table.fill_columns(hasher, bitwise, memory);
-        let aux_table_trace = aux_table.into_trace();
+        let (system_trace, stack_trace, range_check_trace, aux_table_trace) =
+            Self::finalize_trace(process);
 
         Self {
             meta: Vec::new(),
@@ -118,6 +79,60 @@ impl ExecutionTrace {
         result
     }
 
+    // HELPER FUNCTIONS
+    // ================================================================================================
+
+    fn finalize_trace(process: Process) -> (SysTrace, StackTrace, RangeCheckTrace, AuxTableTrace) {
+        let Process {
+            system,
+            decoder: _,
+            stack,
+            range,
+            hasher,
+            bitwise,
+            memory,
+            advice: _,
+        } = process;
+
+        // Get the trace length required to hold all execution trace steps.
+        let aux_trace_len = hasher.trace_len() + bitwise.trace_len() + memory.trace_len();
+        let trace_len = vec![stack.trace_len(), range.trace_len(), aux_trace_len]
+            .iter()
+            .max()
+            .expect("failed to get max of component trace lengths")
+            .next_power_of_two();
+
+        // Finalize the system trace.
+        let step = system.clk();
+        let mut system_trace = system.into_trace();
+        finalize_clk_column(&mut system_trace[0], step, trace_len);
+        finalize_column(&mut system_trace[1], step, trace_len);
+
+        // Finalize stack trace.
+        let mut stack_trace = stack.into_trace();
+        for column in stack_trace.iter_mut() {
+            finalize_column(column, step, trace_len);
+        }
+
+        // Finalize the range check trace.
+        let range_check_trace: RangeCheckTrace = range
+            .into_trace(trace_len)
+            .try_into()
+            .expect("failed to convert vector to array");
+
+        // Finalize the auxilliary table trace.
+        let mut aux_table = AuxTable::new(trace_len);
+        aux_table.fill_columns(hasher, bitwise, memory);
+        let aux_table_trace = aux_table.into_trace();
+
+        (
+            system_trace,
+            stack_trace,
+            range_check_trace,
+            aux_table_trace,
+        )
+    }
+
     // ACCESSORS FOR TESTING
     // --------------------------------------------------------------------------------------------
 
@@ -128,6 +143,13 @@ impl ExecutionTrace {
             self.read_row_into(i, &mut row);
             println!("{:?}", row.iter().map(|v| v.as_int()).collect::<Vec<_>>());
         }
+    }
+
+    #[cfg(test)]
+    pub fn test_finalize_trace(
+        process: Process,
+    ) -> (SysTrace, StackTrace, RangeCheckTrace, AuxTableTrace) {
+        Self::finalize_trace(process)
     }
 }
 
