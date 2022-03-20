@@ -286,6 +286,31 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
     }
 
+    #[test]
+    fn op_pow2() {
+        // --- test 0 ----------------------------------------------------------------------------
+        let mut process = Process::new_dummy();
+        let p = 0;
+        init_stack_with(&mut process, &[p]);
+        process.execute_op(Operation::Pow2).unwrap();
+        let expected = build_expected(&[Felt::new(2_u64.pow(p as u32))]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- test 63 (maximum exponent value) --------------------------------------------------
+        let mut process = Process::new_dummy();
+        let p = 63;
+        init_stack_with(&mut process, &[p]);
+        process.execute_op(Operation::Pow2).unwrap();
+        let expected = build_expected(&[Felt::new(2_u64.pow(p as u32))]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- 2^64 should fail ------------------------------------------------------------------
+        let mut process = Process::new_dummy();
+        let p = 64;
+        init_stack_with(&mut process, &[p]);
+        assert!(process.execute_op(Operation::Pow2).is_err());
+    }
+
     // BOOLEAN OPERATIONS
     // --------------------------------------------------------------------------------------------
 

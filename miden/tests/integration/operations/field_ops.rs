@@ -2,7 +2,26 @@ use proptest::prelude::*;
 use vm_core::{Felt, StarkField};
 
 use crate::build_op_test;
-use crate::helpers::{prop_randw, WORD_LEN};
+use crate::helpers::{prop_randw, TestError, WORD_LEN};
+
+// FIELD OPS ARITHMETIC - MANUAL TESTS
+// ================================================================================================
+
+#[test]
+fn pow2() {
+    let asm_op = "pow2";
+
+    build_op_test!(asm_op, &[0]).expect_stack(&[1]);
+    build_op_test!(asm_op, &[31]).expect_stack(&[1 << 31]);
+    build_op_test!(asm_op, &[63]).expect_stack(&[1 << 63]);
+}
+
+#[test]
+fn pow2_fail() {
+    let asm_op = "pow2";
+
+    build_op_test!(asm_op, &[64]).expect_error(TestError::ExecutionError("InvalidPowerOfTwo"));
+}
 
 // FIELD OPS COMPARISON - MANUAL TESTS
 // ================================================================================================
@@ -75,81 +94,17 @@ fn gte() {
     test_felt_comparison_op("gte", 0, 1, 1);
 }
 
-// HELPER FUNCTIONS FOR MANUAL TESTS
+// FIELD OPS ARITHMETIC - RANDOMIZED TESTS
 // ================================================================================================
 
-/// This helper function runs an assembly field comparison operation (lt, lte, gt, gte) against a
-/// variety of field element pairs.
-//
-/// The assembly ops which compare multiple field elements work by splitting both elements and
-/// performing a comparison of the upper and lower 32-bit values for each element.
-/// Since we're working with a 64-bit field modulus, we need to ensure that valid field elements
-/// represented by > 32 bits are still compared properly, with high-bit values prioritized over low
-/// when they disagree.
-//
-/// In order for an encoded 64-bit value to be a valid field element while having bits set in
-/// both the high and low 32 bits, the upper 32 bits must not be all 1s. Therefore, for testing
-/// it's sufficient to use elements with one high bit and one low bit set.
-fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, expect_if_gt: u64) {
-    // create vars with a variety of high and low bit relationships for testing
-    let low_bit = 1;
-    let high_bit = 1 << 48;
+proptest! {
+    #[test]
+    fn pow2_proptest(b in 0_u32..64) {
+        let asm_op = "pow2";
+        let expected = 2_u64.wrapping_pow(b);
 
-    // a smaller field element with both a high and a low bit set
-    let smaller = high_bit + low_bit;
-    // element with high bits equal to "smaller" and low bits bigger
-    let hi_eq_lo_gt = smaller + low_bit;
-    // element with high bits bigger than "smaller" and low bits smaller
-    let hi_gt_lo_lt = high_bit << 1;
-    // element with high bits bigger than "smaller" and low bits equal
-    let hi_gt_lo_eq = hi_gt_lo_lt + low_bit;
-
-    // unequal integers expected to be equal as field elements
-    let a = Felt::MODULUS + 1;
-    let a_mod = 1_u64;
-
-    // --- a < b ----------------------------------------------------------------------------------
-    // a is smaller in the low bits (equal in high bits)
-    let test = build_op_test!(asm_op, &[smaller, hi_eq_lo_gt]);
-    test.expect_stack(&[expect_if_lt]);
-
-    // a is smaller in the high bits and equal in the low bits
-    let test = build_op_test!(asm_op, &[smaller, hi_gt_lo_eq]);
-    test.expect_stack(&[expect_if_lt]);
-
-    // a is smaller in the high bits but bigger in the low bits
-    let test = build_op_test!(asm_op, &[smaller, hi_gt_lo_lt]);
-    test.expect_stack(&[expect_if_lt]);
-
-    // compare values above and below the field modulus
-    let test = build_op_test!(asm_op, &[a_mod, a + 1]);
-    test.expect_stack(&[expect_if_lt]);
-
-    // --- a = b ----------------------------------------------------------------------------------
-    // high and low bits are both set
-    let test = build_op_test!(asm_op, &[hi_gt_lo_eq, hi_gt_lo_eq]);
-    test.expect_stack(&[expect_if_eq]);
-
-    // compare values above and below the field modulus
-    let test = build_op_test!(asm_op, &[a_mod, a]);
-    test.expect_stack(&[expect_if_eq]);
-
-    // --- a > b ----------------------------------------------------------------------------------
-    // a is bigger in the low bits (equal in high bits)
-    let test = build_op_test!(asm_op, &[hi_eq_lo_gt, smaller]);
-    test.expect_stack(&[expect_if_gt]);
-
-    // a is bigger in the high bits and equal in the low bits
-    let test = build_op_test!(asm_op, &[hi_gt_lo_eq, smaller]);
-    test.expect_stack(&[expect_if_gt]);
-
-    // a is bigger in the high bits but smaller in the low bits
-    let test = build_op_test!(asm_op, &[hi_gt_lo_lt, smaller]);
-    test.expect_stack(&[expect_if_gt]);
-
-    // compare values above and below the field modulus
-    let test = build_op_test!(asm_op, &[a_mod + 1, a]);
-    test.expect_stack(&[expect_if_gt]);
+        build_op_test!(asm_op, &[b as u64]).prop_expect_stack(&[expected as u64])?;
+    }
 }
 
 // FIELD OPS COMPARISON - RANDOMIZED TESTS
@@ -239,4 +194,81 @@ proptest! {
         let test = build_op_test!(asm_op, &[a,b]);
         test.prop_expect_stack(&[expected_result])?;
     }
+}
+
+// HELPER FUNCTIONS FOR MANUAL TESTS
+// ================================================================================================
+
+/// This helper function runs an assembly field comparison operation (lt, lte, gt, gte) against a
+/// variety of field element pairs.
+//
+/// The assembly ops which compare multiple field elements work by splitting both elements and
+/// performing a comparison of the upper and lower 32-bit values for each element.
+/// Since we're working with a 64-bit field modulus, we need to ensure that valid field elements
+/// represented by > 32 bits are still compared properly, with high-bit values prioritized over low
+/// when they disagree.
+//
+/// In order for an encoded 64-bit value to be a valid field element while having bits set in
+/// both the high and low 32 bits, the upper 32 bits must not be all 1s. Therefore, for testing
+/// it's sufficient to use elements with one high bit and one low bit set.
+fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, expect_if_gt: u64) {
+    // create vars with a variety of high and low bit relationships for testing
+    let low_bit = 1;
+    let high_bit = 1 << 48;
+
+    // a smaller field element with both a high and a low bit set
+    let smaller = high_bit + low_bit;
+    // element with high bits equal to "smaller" and low bits bigger
+    let hi_eq_lo_gt = smaller + low_bit;
+    // element with high bits bigger than "smaller" and low bits smaller
+    let hi_gt_lo_lt = high_bit << 1;
+    // element with high bits bigger than "smaller" and low bits equal
+    let hi_gt_lo_eq = hi_gt_lo_lt + low_bit;
+
+    // unequal integers expected to be equal as field elements
+    let a = Felt::MODULUS + 1;
+    let a_mod = 1_u64;
+
+    // --- a < b ----------------------------------------------------------------------------------
+    // a is smaller in the low bits (equal in high bits)
+    let test = build_op_test!(asm_op, &[smaller, hi_eq_lo_gt]);
+    test.expect_stack(&[expect_if_lt]);
+
+    // a is smaller in the high bits and equal in the low bits
+    let test = build_op_test!(asm_op, &[smaller, hi_gt_lo_eq]);
+    test.expect_stack(&[expect_if_lt]);
+
+    // a is smaller in the high bits but bigger in the low bits
+    let test = build_op_test!(asm_op, &[smaller, hi_gt_lo_lt]);
+    test.expect_stack(&[expect_if_lt]);
+
+    // compare values above and below the field modulus
+    let test = build_op_test!(asm_op, &[a_mod, a + 1]);
+    test.expect_stack(&[expect_if_lt]);
+
+    // --- a = b ----------------------------------------------------------------------------------
+    // high and low bits are both set
+    let test = build_op_test!(asm_op, &[hi_gt_lo_eq, hi_gt_lo_eq]);
+    test.expect_stack(&[expect_if_eq]);
+
+    // compare values above and below the field modulus
+    let test = build_op_test!(asm_op, &[a_mod, a]);
+    test.expect_stack(&[expect_if_eq]);
+
+    // --- a > b ----------------------------------------------------------------------------------
+    // a is bigger in the low bits (equal in high bits)
+    let test = build_op_test!(asm_op, &[hi_eq_lo_gt, smaller]);
+    test.expect_stack(&[expect_if_gt]);
+
+    // a is bigger in the high bits and equal in the low bits
+    let test = build_op_test!(asm_op, &[hi_gt_lo_eq, smaller]);
+    test.expect_stack(&[expect_if_gt]);
+
+    // a is bigger in the high bits but smaller in the low bits
+    let test = build_op_test!(asm_op, &[hi_gt_lo_lt, smaller]);
+    test.expect_stack(&[expect_if_gt]);
+
+    // compare values above and below the field modulus
+    let test = build_op_test!(asm_op, &[a_mod + 1, a]);
+    test.expect_stack(&[expect_if_gt]);
 }
