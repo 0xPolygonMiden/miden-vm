@@ -43,6 +43,7 @@ impl Process {
             Operation::Mul => self.op_mul()?,
             Operation::Inv => self.op_inv()?,
             Operation::Incr => self.op_incr()?,
+            Operation::Pow2 => self.op_pow2()?,
 
             Operation::And => self.op_and()?,
             Operation::Or => self.op_or()?,

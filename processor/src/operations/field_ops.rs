@@ -1,4 +1,4 @@
-use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Process};
+use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Process, StarkField};
 
 // FIELD OPERATIONS
 // ================================================================================================
@@ -55,6 +55,25 @@ impl Process {
     pub(super) fn op_incr(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
         self.stack.set(0, a + Felt::ONE);
+        self.stack.copy_state(1);
+        Ok(())
+    }
+
+    /// Pops one element `x` off the stack, computes 2^x, and pushes the power of two result back
+    /// onto the stack.
+    ///
+    /// # Errors
+    /// Returns an error if the exponent is greater than 63.
+    pub(super) fn op_pow2(&mut self) -> Result<(), ExecutionError> {
+        let b = self.stack.get(0);
+
+        if b.as_int() > 63 {
+            return Err(ExecutionError::InvalidPowerOfTwo(b));
+        }
+
+        let result = Felt::new(2_u64.wrapping_pow(b.as_int() as u32));
+
+        self.stack.set(0, result);
         self.stack.copy_state(1);
         Ok(())
     }
