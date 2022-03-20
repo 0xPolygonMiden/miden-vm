@@ -1,4 +1,4 @@
-use super::{super::TestError, build_test};
+use super::{build_test, TestError};
 use proptest::prelude::*;
 use rand_utils::rand_value;
 

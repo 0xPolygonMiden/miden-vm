@@ -1,7 +1,5 @@
-use super::{
-    super::{build_op_test, StarkField},
-    prop_randw, Felt, TestError,
-};
+use crate::build_op_test;
+use crate::helpers::{prop_randw, TestError, WORD_LEN};
 
 mod arithmetic_ops;
 mod bitwise_ops;
@@ -10,22 +8,21 @@ mod conversion_ops;
 
 // CONSTANTS
 // ================================================================================================
-const U32_BOUND: u64 = u32::MAX as u64 + 1;
-const WORD_LEN: usize = 4;
+pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 
 // HELPER FUNCTIONS
 // ================================================================================================
 
 /// This helper function tests a provided u32 assembly operation, which takes a single input, to
 /// ensure that it fails when the input is >= 2^32.
-fn test_input_out_of_bounds(asm_op: &str) {
+pub fn test_input_out_of_bounds(asm_op: &str) {
     let test = build_op_test!(asm_op, &[U32_BOUND]);
     test.expect_error(TestError::ExecutionError("FailedAssertion"));
 }
 
 /// This helper function tests a provided u32 assembly operation, which takes multiple inputs, to
 /// ensure that it fails when any one of the inputs is >= 2^32. Each input is tested independently.
-fn test_inputs_out_of_bounds(asm_op: &str, input_count: usize) {
+pub fn test_inputs_out_of_bounds(asm_op: &str, input_count: usize) {
     let inputs = vec![0_u64; input_count];
 
     for i in 0..input_count {
@@ -40,7 +37,7 @@ fn test_inputs_out_of_bounds(asm_op: &str, input_count: usize) {
 
 /// This helper function tests a provided assembly operation which takes a single parameter
 /// to ensure that it fails when that parameter is over the maximum allowed value (out of bounds).
-fn test_param_out_of_bounds(asm_op_base: &str, gt_max_value: u64) {
+pub fn test_param_out_of_bounds(asm_op_base: &str, gt_max_value: u64) {
     let asm_op = format!("{}.{}", asm_op_base, gt_max_value);
     let test = build_op_test!(&asm_op);
     test.expect_error(TestError::AssemblyError("parameter"));
@@ -48,7 +45,7 @@ fn test_param_out_of_bounds(asm_op_base: &str, gt_max_value: u64) {
 
 /// This helper function tests that when the given u32 assembly instruction is executed on
 /// out-of-bounds inputs it does not fail. Each input is tested independently.
-fn test_unsafe_execution(asm_op: &str, input_count: usize) {
+pub fn test_unsafe_execution(asm_op: &str, input_count: usize) {
     let values = vec![1_u64; input_count];
 
     for i in 0..input_count {
