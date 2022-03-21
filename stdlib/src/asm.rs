@@ -4850,6 +4850,1289 @@ export.keccak_p.13
     pushw.local.1
     pushw.local.0
 end
+
+# given two 32 -bit unsigned integers ( standard form ), representing upper and lower 
+  portion of a 64 -bit unsigned integer ( actually a keccak-[1600, 24] lane ),
+  this function converts them into bit interleaved representation, where two 32 -bit
+  unsigned integers ( even portion & then odd portion ) hold bits in even and odd 
+  indices of 64 -bit unsigned integer ( remember it's represented in terms of 
+  two 32 -bit elements )
+  
+  Read more about bit interleaved representation in section 2.1 of https://keccak.team/files/Keccak-implementation-3.2.pdf #
+export.to_bit_interleaved
+    dup.1
+
+    push.1
+    u32and
+
+    dup.2
+    u32shr.1
+    push.1
+    u32and
+
+    swap
+
+    dup.3
+
+    u32shr.2
+    push.1
+    u32and
+
+    u32shl.1
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.3
+    push.1
+    u32and
+
+    u32shl.1
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.4
+    push.1
+    u32and
+
+    u32shl.2
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.5
+    push.1
+    u32and
+
+    u32shl.2
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.6
+    push.1
+    u32and
+
+    u32shl.3
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.7
+    push.1
+    u32and
+
+    u32shl.3
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.8
+    push.1
+    u32and
+
+    u32shl.4
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.9
+    push.1
+    u32and
+
+    u32shl.4
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.10
+    push.1
+    u32and
+
+    u32shl.5
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.11
+    push.1
+    u32and
+
+    u32shl.5
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.12
+    push.1
+    u32and
+
+    u32shl.6
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.13
+    push.1
+    u32and
+
+    u32shl.6
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.14
+    push.1
+    u32and
+
+    u32shl.7
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.15
+    push.1
+    u32and
+
+    u32shl.7
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.16
+    push.1
+    u32and
+
+    u32shl.8
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.17
+    push.1
+    u32and
+
+    u32shl.8
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.18
+    push.1
+    u32and
+
+    u32shl.9
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.19
+    push.1
+    u32and
+
+    u32shl.9
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.20
+    push.1
+    u32and
+
+    u32shl.10
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.21
+    push.1
+    u32and
+
+    u32shl.10
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.22
+    push.1
+    u32and
+
+    u32shl.11
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.23
+    push.1
+    u32and
+
+    u32shl.11
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.24
+    push.1
+    u32and
+
+    u32shl.12
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.25
+    push.1
+    u32and
+
+    u32shl.12
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.26
+    push.1
+    u32and
+
+    u32shl.13
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.27
+    push.1
+    u32and
+
+    u32shl.13
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.28
+    push.1
+    u32and
+
+    u32shl.14
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.29
+    push.1
+    u32and
+
+    u32shl.14
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.30
+    push.1
+    u32and
+
+    u32shl.15
+    u32or
+
+    swap
+
+    dup.3
+
+    u32shr.31
+    push.1
+    u32and
+
+    u32shl.15
+    u32or
+
+    swap
+
+    dup.2
+
+    push.1
+    u32and
+
+    u32shl.16
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.1
+    push.1
+    u32and
+
+    u32shl.16
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.2
+    push.1
+    u32and
+
+    u32shl.17
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.3
+    push.1
+    u32and
+
+    u32shl.17
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.4
+    push.1
+    u32and
+
+    u32shl.18
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.5
+    push.1
+    u32and
+
+    u32shl.18
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.6
+    push.1
+    u32and
+
+    u32shl.19
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.7
+    push.1
+    u32and
+
+    u32shl.19
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.8
+    push.1
+    u32and
+
+    u32shl.20
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.9
+    push.1
+    u32and
+
+    u32shl.20
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.10
+    push.1
+    u32and
+
+    u32shl.21
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.11
+    push.1
+    u32and
+
+    u32shl.21
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.12
+    push.1
+    u32and
+
+    u32shl.22
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.13
+    push.1
+    u32and
+
+    u32shl.22
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.14
+    push.1
+    u32and
+
+    u32shl.23
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.15
+    push.1
+    u32and
+
+    u32shl.23
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.16
+    push.1
+    u32and
+
+    u32shl.24
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.17
+    push.1
+    u32and
+
+    u32shl.24
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.18
+    push.1
+    u32and
+
+    u32shl.25
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.19
+    push.1
+    u32and
+
+    u32shl.25
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.20
+    push.1
+    u32and
+
+    u32shl.26
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.21
+    push.1
+    u32and
+
+    u32shl.26
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.22
+    push.1
+    u32and
+
+    u32shl.27
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.23
+    push.1
+    u32and
+
+    u32shl.27
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.24
+    push.1
+    u32and
+
+    u32shl.28
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.25
+    push.1
+    u32and
+
+    u32shl.28
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.26
+    push.1
+    u32and
+
+    u32shl.29
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.27
+    push.1
+    u32and
+
+    u32shl.29
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.28
+    push.1
+    u32and
+
+    u32shl.30
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.29
+    push.1
+    u32and
+
+    u32shl.30
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.30
+    push.1
+    u32and
+
+    u32shl.31
+    u32or
+
+    swap
+
+    dup.2
+
+    u32shr.31
+    push.1
+    u32and
+
+    u32shl.31
+    u32or
+
+    swap
+end
+
+# given two 32 -bit unsigned integers ( bit interleaved form ), representing even and odd
+  positioned bits of a 64 -bit unsigned integer ( actually a keccak-[1600, 24] lane ),
+  this function converts them into standard representation, where two 32 -bit
+  unsigned integers hold higher ( 32 -bit ) and lower ( 32 -bit ) bits of standard
+  representation of 64 -bit unsigned integer ( remember it's represented in terms of 
+  two 32 -bit elements )
+
+  This function reverts the action done by `to_bit_interleaved` function implemented above.
+  
+  Read more about bit interleaved representation in section 2.1 of https://keccak.team/files/Keccak-implementation-3.2.pdf #
+export.from_bit_interleaved
+    dup
+
+    push.1
+    u32and
+
+    dup.2
+
+    push.1
+    u32and
+
+    u32shl.1
+    u32or
+
+    dup.1
+
+    u32shr.1
+    push.1
+    u32and
+
+    u32shl.2
+    u32or
+
+    dup.2
+
+    u32shr.1
+    push.1
+    u32and
+
+    u32shl.3
+    u32or
+
+    dup.1
+
+    u32shr.2
+    push.1
+    u32and
+
+    u32shl.4
+    u32or
+
+    dup.2
+
+    u32shr.2
+    push.1
+    u32and
+
+    u32shl.5
+    u32or
+
+    dup.1
+
+    u32shr.3
+    push.1
+    u32and
+
+    u32shl.6
+    u32or
+
+    dup.2
+
+    u32shr.3
+    push.1
+    u32and
+
+    u32shl.7
+    u32or
+
+    dup.1
+
+    u32shr.4
+    push.1
+    u32and
+
+    u32shl.8
+    u32or
+
+    dup.2
+
+    u32shr.4
+    push.1
+    u32and
+
+    u32shl.9
+    u32or
+
+    dup.1
+
+    u32shr.5
+    push.1
+    u32and
+
+    u32shl.10
+    u32or
+
+    dup.2
+
+    u32shr.5
+    push.1
+    u32and
+
+    u32shl.11
+    u32or
+
+    dup.1
+
+    u32shr.6
+    push.1
+    u32and
+
+    u32shl.12
+    u32or
+
+    dup.2
+
+    u32shr.6
+    push.1
+    u32and
+
+    u32shl.13
+    u32or
+
+    dup.1
+
+    u32shr.7
+    push.1
+    u32and
+
+    u32shl.14
+    u32or
+
+    dup.2
+
+    u32shr.7
+    push.1
+    u32and
+
+    u32shl.15
+    u32or
+
+    dup.1
+
+    u32shr.8
+    push.1
+    u32and
+
+    u32shl.16
+    u32or
+
+    dup.2
+
+    u32shr.8
+    push.1
+    u32and
+
+    u32shl.17
+    u32or
+
+    dup.1
+
+    u32shr.9
+    push.1
+    u32and
+
+    u32shl.18
+    u32or
+
+    dup.2
+
+    u32shr.9
+    push.1
+    u32and
+
+    u32shl.19
+    u32or
+
+    dup.1
+
+    u32shr.10
+    push.1
+    u32and
+
+    u32shl.20
+    u32or
+
+    dup.2
+
+    u32shr.10
+    push.1
+    u32and
+
+    u32shl.21
+    u32or
+
+    dup.1
+
+    u32shr.11
+    push.1
+    u32and
+
+    u32shl.22
+    u32or
+
+    dup.2
+
+    u32shr.11
+    push.1
+    u32and
+
+    u32shl.23
+    u32or
+
+    dup.1
+
+    u32shr.12
+    push.1
+    u32and
+
+    u32shl.24
+    u32or
+
+    dup.2
+
+    u32shr.12
+    push.1
+    u32and
+
+    u32shl.25
+    u32or
+
+    dup.1
+
+    u32shr.13
+    push.1
+    u32and
+
+    u32shl.26
+    u32or
+
+    dup.2
+
+    u32shr.13
+    push.1
+    u32and
+
+    u32shl.27
+    u32or
+
+    dup.1
+
+    u32shr.14
+    push.1
+    u32and
+
+    u32shl.28
+    u32or
+
+    dup.2
+
+    u32shr.14
+    push.1
+    u32and
+
+    u32shl.29
+    u32or
+
+    dup.1
+
+    u32shr.15
+    push.1
+    u32and
+
+    u32shl.30
+    u32or
+
+    dup.2
+
+    u32shr.15
+    push.1
+    u32and
+
+    u32shl.31
+    u32or
+
+    dup.1
+
+    u32shr.16
+    push.1
+    u32and
+
+    dup.3
+
+    u32shr.16
+    push.1
+    u32and
+
+    u32shl.1
+    u32or
+
+    dup.2
+
+    u32shr.17
+    push.1
+    u32and
+
+    u32shl.2
+    u32or
+
+    dup.3
+
+    u32shr.17
+    push.1
+    u32and
+
+    u32shl.3
+    u32or
+
+    dup.2
+
+    u32shr.18
+    push.1
+    u32and
+
+    u32shl.4
+    u32or
+
+    dup.3
+
+    u32shr.18
+    push.1
+    u32and
+
+    u32shl.5
+    u32or
+
+    dup.2
+
+    u32shr.19
+    push.1
+    u32and
+
+    u32shl.6
+    u32or
+
+    dup.3
+
+    u32shr.19
+    push.1
+    u32and
+
+    u32shl.7
+    u32or
+
+    dup.2
+
+    u32shr.20
+    push.1
+    u32and
+
+    u32shl.8
+    u32or
+
+    dup.3
+
+    u32shr.20
+    push.1
+    u32and
+
+    u32shl.9
+    u32or
+
+    dup.2
+
+    u32shr.21
+    push.1
+    u32and
+
+    u32shl.10
+    u32or
+
+    dup.3
+
+    u32shr.21
+    push.1
+    u32and
+
+    u32shl.11
+    u32or
+
+    dup.2
+
+    u32shr.22
+    push.1
+    u32and
+
+    u32shl.12
+    u32or
+
+    dup.3
+
+    u32shr.22
+    push.1
+    u32and
+
+    u32shl.13
+    u32or
+
+    dup.2
+
+    u32shr.23
+    push.1
+    u32and
+
+    u32shl.14
+    u32or
+
+    dup.3
+
+    u32shr.23
+    push.1
+    u32and
+
+    u32shl.15
+    u32or
+
+    dup.2
+
+    u32shr.24
+    push.1
+    u32and
+
+    u32shl.16
+    u32or
+
+    dup.3
+
+    u32shr.24
+    push.1
+    u32and
+
+    u32shl.17
+    u32or
+
+    dup.2
+
+    u32shr.25
+    push.1
+    u32and
+
+    u32shl.18
+    u32or
+
+    dup.3
+
+    u32shr.25
+    push.1
+    u32and
+
+    u32shl.19
+    u32or
+
+    dup.2
+
+    u32shr.26
+    push.1
+    u32and
+
+    u32shl.20
+    u32or
+
+    dup.3
+
+    u32shr.26
+    push.1
+    u32and
+
+    u32shl.21
+    u32or
+
+    dup.2
+
+    u32shr.27
+    push.1
+    u32and
+
+    u32shl.22
+    u32or
+
+    dup.3
+
+    u32shr.27
+    push.1
+    u32and
+
+    u32shl.23
+    u32or
+
+    dup.2
+
+    u32shr.28
+    push.1
+    u32and
+
+    u32shl.24
+    u32or
+
+    dup.3
+
+    u32shr.28
+    push.1
+    u32and
+
+    u32shl.25
+    u32or
+
+    dup.2
+
+    u32shr.29
+    push.1
+    u32and
+
+    u32shl.26
+    u32or
+
+    dup.3
+
+    u32shr.29
+    push.1
+    u32and
+
+    u32shl.27
+    u32or
+    
+    dup.2
+
+    u32shr.30
+    push.1
+    u32and
+
+    u32shl.28
+    u32or
+
+    dup.3
+
+    u32shr.30
+    push.1
+    u32and
+
+    u32shl.29
+    u32or
+
+    dup.2
+
+    u32shr.31
+    push.1
+    u32and
+
+    u32shl.30
+    u32or
+
+    dup.3
+
+    u32shr.31
+    push.1
+    u32and
+
+    u32shl.31
+    u32or
+end
 "),
 // ----- std::crypto::hashes::sha256 --------------------------------------------------------------
 ("std::crypto::hashes::sha256", "# SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L73-L79 #

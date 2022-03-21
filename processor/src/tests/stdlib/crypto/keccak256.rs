@@ -1,4 +1,29 @@
 use super::build_test;
+use crate::Felt;
+
+/// Equivalent to https://github.com/itzmeanjan/merklize-sha/blob/1d35aae/include/test_bit_interleaving.hpp#L12-L34
+#[test]
+fn keccak256_bit_interleaving() {
+    let source = "
+    use.std::crypto::hashes::keccak256
+
+    begin
+        exec.keccak256::to_bit_interleaved
+        exec.keccak256::from_bit_interleaved
+    end
+    ";
+
+    let word = rand_utils::rand_value::<u64>();
+
+    let high = (word >> 32) as u32 as u64;
+    let low = word as u32 as u64;
+
+    let test = build_test!(source, &[low, high]);
+    let stack = test.get_last_stack_state();
+
+    assert_eq!(stack[0], Felt::new(high));
+    assert_eq!(stack[1], Felt::new(low));
+}
 
 #[test]
 fn keccak256_2_to_1_hash() {
