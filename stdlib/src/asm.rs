@@ -4228,627 +4228,419 @@ end
   64 -bit lane is represented in bit interleaved form ( in terms of two 32 -bit words ).
   
   See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L379-L427 #
-export.keccak_p.13
-    # prepare input words; move them to memory #
-    push.1914386326.3144626199.4294028507.1959948167
+proc.keccak_p.4
     popw.local.0
-
-    push.1668744720.1330963950.1730042467.2198120490
     popw.local.1
-
-    push.2934427705.2397528473.8798881.2095810235
     popw.local.2
-
-    push.252470082.3937798160.2589089733.635863215
     popw.local.3
 
-    push.1618038182.3485882851.709384051.1721165114
-    popw.local.4
-
-    push.2288039584.4226858030.3333493765.3324831186
-    popw.local.5
-
-    push.154379440.230568340.3478518845.2371195348
-    popw.local.6
-
-    push.212124028.2194117658.2511544685.2248836976
-    popw.local.7
-
-    push.1409224893.2834939093.3321501499.777448701
-    popw.local.8
-
-    push.1724129065.3624601661.3759625198.1314715970
-    popw.local.9
-
-    push.1576977968.2918554202.1240708426.3938562828
-    popw.local.10
-
-    push.1773978049.3494754730.2812408036.1421943364
-    popw.local.11
-
-    push.0.0.3800496843.196387936
-    popw.local.12
-
     # permutation round 1 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_1
-
-    # permutation round 2 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_2
-
-    # permutation round 3 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_3
-
-    # permutation round 4 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_4
-
-    # permutation round 5 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_5
-
-    # permutation round 6 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_6
-
-    # permutation round 7 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_7
-
-    # permutation round 8 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_8
-
-    # permutation round 9 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_9
-
-    # permutation round 10 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_10
-
-    # permutation round 11 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_11
-
-    # permutation round 12 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_12
-
-    # permutation round 13 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_13
-
-    # permutation round 14 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_14
-
-    # permutation round 15 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_15
-
-    # permutation round 16 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_16
-
-    # permutation round 17 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_17
-
-    # permutation round 18 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_18
-
-    # permutation round 19 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_19
-
-    # permutation round 20 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_20
-
-    # permutation round 21 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_21
-
-    # permutation round 22 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_22
-
-    # permutation round 23 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_23
-
-    # permutation round 24 #
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.round
-
-    push.env.locaddr.0
-    exec.iota_round_24
-
     pushw.local.3
     pushw.local.2
     pushw.local.1
     pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_1
+
+    # permutation round 2 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_2
+
+    # permutation round 3 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_3
+
+    # permutation round 4 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_4
+
+    # permutation round 5 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_5
+
+    # permutation round 6 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_6
+
+    # permutation round 7 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_7
+
+    # permutation round 8 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_8
+
+    # permutation round 9 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_9
+
+    # permutation round 10 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_10
+
+    # permutation round 11 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_11
+
+    # permutation round 12 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_12
+
+    # permutation round 13 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_13
+
+    # permutation round 14 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_14
+
+    # permutation round 15 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_15
+
+    # permutation round 16 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_16
+
+    # permutation round 17 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_17
+
+    # permutation round 18 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_18
+
+    # permutation round 19 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_19
+
+    # permutation round 20 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_20
+
+    # permutation round 21 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_21
+
+    # permutation round 22 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_22
+
+    # permutation round 23 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_23
+
+    # permutation round 24 #
+    pushw.local.3
+    pushw.local.2
+    pushw.local.1
+    pushw.local.0
+
+    exec.round
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    exec.iota_round_24
 end
 
 # given two 32 -bit unsigned integers ( standard form ), representing upper and lower 
@@ -4858,7 +4650,9 @@ end
   indices of 64 -bit unsigned integer ( remember it's represented in terms of 
   two 32 -bit elements )
   
-  Read more about bit interleaved representation in section 2.1 of https://keccak.team/files/Keccak-implementation-3.2.pdf #
+  Read more about bit interleaved representation in section 2.1 of https://keccak.team/files/Keccak-implementation-3.2.pdf
+  
+  See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/utils.hpp#L123-L149 #
 export.to_bit_interleaved
     dup.1
 
@@ -5563,7 +5357,9 @@ end
 
   This function reverts the action done by `to_bit_interleaved` function implemented above.
   
-  Read more about bit interleaved representation in section 2.1 of https://keccak.team/files/Keccak-implementation-3.2.pdf #
+  Read more about bit interleaved representation in section 2.1 of https://keccak.team/files/Keccak-implementation-3.2.pdf 
+  
+  See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/utils.hpp#L151-L175 #
 export.from_bit_interleaved
     dup
 
@@ -6132,6 +5928,337 @@ export.from_bit_interleaved
 
     u32shl.31
     u32or
+end
+
+# given 64 -bytes input ( in terms of sixteen u32 elements on stack top ) to 2-to-1 
+  keccak256 hash function, this function prepares 5 x 5 x 64 keccak-p[1600, 24] state 
+  bit array such that each of twenty five 64 -bit wide lane is represented in bit 
+  interleaved form, using two 32 -bit integers. After completion of execution of
+  this function, state array should live in allocated memory ( fifty u32 elements ).
+  
+  See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L73-L153 #
+proc.to_state_array.4
+    popw.local.0
+    popw.local.1
+    popw.local.2
+    popw.local.3
+
+    exec.to_bit_interleaved
+
+    exec.rev_4_elements
+    drop
+    drop
+    swap
+
+    exec.rev_4_elements
+    swap
+
+    exec.to_bit_interleaved
+
+    exec.rev_4_elements
+    drop
+    drop
+    swap
+
+    movup.2
+    movup.3
+
+    pushw.local.0
+
+    repeat.3
+        swap
+        drop
+    end
+
+    popw.mem # write to state[0..4] #
+
+    exec.to_bit_interleaved
+
+    exec.rev_4_elements
+    drop
+    drop
+    swap
+
+    exec.rev_4_elements
+    swap
+
+    exec.to_bit_interleaved
+
+    exec.rev_4_elements
+    drop
+    drop
+    swap
+
+    movup.2
+    movup.3
+
+    pushw.local.0
+
+    drop
+    repeat.2
+        swap
+        drop
+    end
+
+    popw.mem # write to state[4..8] #
+
+    exec.to_bit_interleaved
+
+    exec.rev_4_elements
+    drop
+    drop
+    swap
+
+    exec.rev_4_elements
+    swap
+
+    exec.to_bit_interleaved
+
+    exec.rev_4_elements
+    drop
+    drop
+    swap
+
+    movup.2
+    movup.3
+
+    pushw.local.0
+
+    drop
+    drop
+    swap
+    drop
+
+    popw.mem # write to state[8..12] #
+
+    exec.to_bit_interleaved
+
+    exec.rev_4_elements
+    drop
+    drop
+    swap
+
+    exec.rev_4_elements
+    swap
+
+    exec.to_bit_interleaved
+
+    exec.rev_4_elements
+    drop
+    drop
+    swap
+
+    movup.2
+    movup.3
+
+    pushw.local.0
+
+    drop
+    drop
+    drop
+
+    popw.mem # write to state[12..16] #
+
+    push.0.0.0.1
+
+    pushw.local.1
+
+    repeat.3
+        swap
+        drop
+    end
+
+    popw.mem # write to state[16..20] #
+
+    push.0.0.0.0
+
+    pushw.local.1
+
+    drop
+    repeat.2
+        swap
+        drop
+    end
+
+    popw.mem # write to state[20..24] #
+
+    push.0.0.0.0
+
+    pushw.local.1
+
+    drop
+    drop
+    swap
+    drop
+
+    popw.mem # write to state[24..28] #
+
+    push.0.0.0.0
+
+    pushw.local.1
+
+    drop
+    drop
+    drop
+
+    popw.mem # write to state[28..32] #
+
+    push.0.0.2147483648.0
+
+    pushw.local.2
+
+    repeat.3
+        swap
+        drop
+    end
+
+    popw.mem # write to state[32..36] #
+
+    push.0.0.0.0
+
+    pushw.local.2
+
+    drop
+    repeat.2
+        swap
+        drop
+    end
+
+    popw.mem # write to state[36..40] #
+
+    push.0.0.0.0
+
+    pushw.local.2
+
+    drop
+    drop
+    swap
+    drop
+
+    popw.mem # write to state[40..44] #
+
+    push.0.0.0.0
+
+    pushw.local.2
+
+    drop
+    drop
+    drop
+
+    popw.mem # write to state[44..48] #
+
+    push.0.0.0.0
+
+    pushw.local.3
+
+    repeat.3
+        swap
+        drop
+    end
+
+    popw.mem # write to state[48..50] #
+end
+
+# given 32 -bytes digest ( in terms of eight u32 elements on stack top ) in bit interleaved form,
+  this function attempts to convert those into standard representation, where eight u32 elements
+  live on stack top, each pair of them hold higher and lower bits of 64 -bit unsigned 
+  integer ( lane of keccak-p[1600, 24] state array )
+  
+  See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L180-L209 #
+proc.to_digest
+    movup.7
+    movup.7
+
+    exec.from_bit_interleaved
+
+    exec.rev_4_elements
+    drop
+    drop
+    swap
+
+    movup.7
+    movup.7
+
+    exec.from_bit_interleaved
+
+    exec.rev_4_elements
+    drop
+    drop
+    swap
+
+    movup.7
+    movup.7
+
+    exec.from_bit_interleaved
+
+    exec.rev_4_elements
+    drop
+    drop
+    swap
+
+    movup.7
+    movup.7
+
+    exec.from_bit_interleaved
+
+    exec.rev_4_elements
+    drop
+    drop
+    swap
+end
+
+# given 64 -bytes input, in terms of sixteen 32 -bit unsigned integers, where each pair 
+  of them holding higher & lower 32 -bits of 64 -bit unsigned integer ( reinterpreted on 
+  host CPU from little endian byte array ) respectively, this function computes 32 -bytes
+  keccak256 digest, held on stack top, represented in terms of eight 32 -bit unsigned integers,
+  where each pair of them keeps higher and lower 32 -bits of 64 -bit unsigned integer respectively 
+  
+  See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L232-L257 #
+export.hash.13
+    push.0.0.0
+    push.env.locaddr.12
+
+    push.env.locaddr.11
+    push.env.locaddr.10
+    push.env.locaddr.9
+    push.env.locaddr.8
+
+    push.env.locaddr.7
+    push.env.locaddr.6
+    push.env.locaddr.5
+    push.env.locaddr.4
+
+    push.env.locaddr.3
+    push.env.locaddr.2
+    push.env.locaddr.1
+    push.env.locaddr.0
+
+    exec.to_state_array
+
+    push.0.0.0
+    push.env.locaddr.12
+
+    push.env.locaddr.11
+    push.env.locaddr.10
+    push.env.locaddr.9
+    push.env.locaddr.8
+
+    push.env.locaddr.7
+    push.env.locaddr.6
+    push.env.locaddr.5
+    push.env.locaddr.4
+
+    push.env.locaddr.3
+    push.env.locaddr.2
+    push.env.locaddr.1
+    push.env.locaddr.0
+
+    exec.keccak_p
+
+    pushw.local.1
+    pushw.local.0
+
+    exec.to_digest
 end
 "),
 // ----- std::crypto::hashes::sha256 --------------------------------------------------------------
