@@ -1,5 +1,6 @@
-use super::{build_op_test, build_test, MIN_STACK_DEPTH};
-use crate::system::FMP_MIN;
+use super::{build_op_test, build_test};
+use processor::FMP_MIN;
+use vm_core::MIN_STACK_DEPTH;
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
 // ================================================================================================

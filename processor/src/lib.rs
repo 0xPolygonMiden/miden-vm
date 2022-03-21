@@ -14,6 +14,7 @@ mod operations;
 
 mod system;
 use system::System;
+pub use system::FMP_MIN;
 
 mod decoder;
 use decoder::Decoder;
@@ -36,15 +37,15 @@ use memory::Memory;
 mod advice;
 use advice::AdviceProvider;
 
+mod aux_table;
+use aux_table::AuxTable;
+
 mod trace;
 pub use trace::ExecutionTrace;
 use trace::TraceFragment;
 
 mod errors;
 pub use errors::ExecutionError;
-
-#[cfg(test)]
-mod tests;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -69,7 +70,7 @@ pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace
 // PROCESS
 // ================================================================================================
 
-struct Process {
+pub struct Process {
     system: System,
     decoder: Decoder,
     stack: Stack,
@@ -101,7 +102,7 @@ impl Process {
     ///
     /// # Errors
     /// Returns an [ExecutionError] if executing the specified block fails for any reason.
-    fn execute_code_block(&mut self, block: &CodeBlock) -> Result<(), ExecutionError> {
+    pub fn execute_code_block(&mut self, block: &CodeBlock) -> Result<(), ExecutionError> {
         match block {
             CodeBlock::Join(block) => self.execute_join_block(block),
             CodeBlock::Split(block) => self.execute_split_block(block),
@@ -234,5 +235,11 @@ impl Process {
         self.execute_op(Operation::Noop)?;
 
         Ok(())
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+    pub fn get_memory_value(&self, addr: u64) -> Option<Word> {
+        self.memory.get_value(addr)
     }
 }

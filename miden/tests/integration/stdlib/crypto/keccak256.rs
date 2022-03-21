@@ -1,5 +1,4 @@
-use super::build_test;
-use crate::{Felt, MIN_STACK_DEPTH};
+use super::{build_test, Felt, MIN_STACK_DEPTH};
 use sha3::{Digest, Keccak256};
 use vm_core::utils::IntoBytes;
 

@@ -1,5 +1,4 @@
-use super::build_test;
-use crate::{Felt, MIN_STACK_DEPTH};
+use super::{build_test, Felt, MIN_STACK_DEPTH};
 use vm_core::utils::IntoBytes;
 
 #[test]
@@ -51,7 +50,8 @@ fn blake3_2_to_1_hash() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Given a slice of four consecutive little endian bytes, interprets them as 32 -bit unsigned integer
+/// Given a slice of four consecutive little endian bytes, interpret them as 32 -bit unsigned
+/// integer.
 fn from_le_bytes_to_words(le_bytes: &[u8]) -> u32 {
     ((le_bytes[3] as u32) << 24)
         | ((le_bytes[2] as u32) << 16)
