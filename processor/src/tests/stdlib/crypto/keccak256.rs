@@ -1,5 +1,7 @@
 use super::build_test;
-use crate::Felt;
+use crate::{Felt, MIN_STACK_DEPTH};
+use sha3::{Digest, Keccak256};
+use vm_core::utils::IntoBytes;
 
 /// Equivalent to https://github.com/itzmeanjan/merklize-sha/blob/1d35aae/include/test_bit_interleaving.hpp#L12-L34
 #[test]
@@ -31,173 +33,68 @@ fn keccak256_2_to_1_hash() {
     use.std::crypto::hashes::keccak256
 
     begin
-        exec.keccak256::keccak_p
+        exec.keccak256::hash
     end
     ";
 
-    let mut state = [
-        1959948167, 4294028507, 3144626199, 1914386326, 2198120490, 1730042467, 1330963950,
-        1668744720, 2095810235, 8798881, 2397528473, 2934427705, 635863215, 2589089733, 3937798160,
-        252470082, 1721165114, 709384051, 3485882851, 1618038182, 3324831186, 3333493765,
-        4226858030, 2288039584, 2371195348, 3478518845, 230568340, 154379440, 2248836976,
-        2511544685, 2194117658, 212124028, 777448701, 3321501499, 2834939093, 1409224893,
-        1314715970, 3759625198, 3624601661, 1724129065, 3938562828, 1240708426, 2918554202,
-        1576977968, 1421943364, 2812408036, 3494754730, 1773978049, 196387936, 3800496843,
-    ];
-    keccak_p(&mut state);
+    // prepare random input byte array
+    let i_digest_0: [u8; 32] = rand_utils::rand_array::<Felt, 4>().into_bytes();
+    let i_digest_1: [u8; 32] = rand_utils::rand_array::<Felt, 4>().into_bytes();
 
-    let test = build_test!(source);
-    test.expect_stack(&state[0..16]);
+    // 64 -bytes wide concatenated input digest
+    let mut i_digest = [0u8; 64];
+    i_digest[..32].copy_from_slice(&i_digest_0);
+    i_digest[32..].copy_from_slice(&i_digest_1);
+
+    // computing keccak256 of 64 -bytes input, on host CPU
+    let mut hasher = Keccak256::new();
+    hasher.update(&i_digest);
+    // producing 32 -bytes keccak256 digest
+    let digest = hasher.finalize();
+
+    // 32 -bytes digest represented in terms eight ( little endian )
+    // 32 -bit integers such that it's easy to compare against final stack trace
+    let mut expected_stack = [0u64; MIN_STACK_DEPTH >> 1];
+    to_stack(&digest, &mut expected_stack);
+
+    // 64 -bytes input represented in terms of sixteen ( little endian ) 32 -bit
+    // integers so that miden assembly implementation of keccak256 2-to-1 hash can
+    // consume it and produce 32 -bytes digest
+    let mut in_stack = [0u64; MIN_STACK_DEPTH];
+    to_stack(&i_digest, &mut in_stack);
+    in_stack.reverse();
+
+    let test = build_test!(source, &in_stack);
+    test.expect_stack(&expected_stack);
 }
 
-/// See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/utils.hpp#L31-L41
-#[inline]
-fn rotl(x: u32, n: usize) -> u32 {
-    if n == 0 {
-        x
-    } else {
-        (x << n) | (x >> (32 - n))
+/// Given N -many bytes ( such that N % 8 == 0 ), this function considers
+/// each block of contiguous 8 -bytes as little endian 64 -bit unsigned
+/// integer word and converts each u64 into two u32s such that first one holds
+/// higher 32 -bits of u64 word and second one holds remaining lower 32 -bits
+/// of u64 word.
+///
+/// Ensure that stack.len() == (i_digest.len() / 4) !
+fn to_stack(i_digest: &[u8], stack: &mut [u64]) {
+    for i in 0..(i_digest.len() >> 3) {
+        // byte array ( = 8 -bytes ) to little endian 64 -bit unsigned integer
+        let word = (i_digest[(i << 3) + 7] as u64) << 56
+            | (i_digest[(i << 3) + 6] as u64) << 48
+            | (i_digest[(i << 3) + 5] as u64) << 40
+            | (i_digest[(i << 3) + 4] as u64) << 32
+            | (i_digest[(i << 3) + 3] as u64) << 24
+            | (i_digest[(i << 3) + 2] as u64) << 16
+            | (i_digest[(i << 3) + 1] as u64) << 8
+            | (i_digest[(i << 3) + 0] as u64) << 0;
+
+        // split into higher/ lower bits of u64
+        let high = (word >> 32) as u32;
+        let low = word as u32;
+
+        // 64 -bit standard representation number kept as two 32 -bit numbers
+        // where first one holds higher 32 -bits and second one holds remaining lower
+        // 32 -bits of u64 word
+        stack[(i << 1) + 0] = high as u64;
+        stack[(i << 1) + 1] = low as u64;
     }
-}
-
-/// See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L55-L98
-fn theta(state: &mut [u64]) {
-    let mut c = [0u32; 10];
-    let mut d = [0u32; 10];
-
-    for i in 0..10 {
-        c[i] = state[i] as u32
-            ^ state[i + 10] as u32
-            ^ state[i + 20] as u32
-            ^ state[i + 30] as u32
-            ^ state[i + 40] as u32;
-    }
-
-    for i in 0..5 {
-        let p_idx = ((i + 4) % 5) << 1;
-        let n_idx = ((i + 1) % 5) << 1;
-        let c_idx = i << 1;
-
-        d[c_idx + 0] = c[p_idx + 0] ^ rotl(c[n_idx + 1], 1);
-        d[c_idx + 1] = c[p_idx + 1] ^ c[n_idx + 0];
-    }
-
-    for i in 0..50 {
-        state[i] = (state[i] as u32 ^ d[i % 10]) as u64;
-    }
-}
-
-/// See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L115-L147
-fn rho(state: &mut [u64]) {
-    let rot = [
-        1, 62, 28, 27, 36, 44, 6, 55, 20, 3, 10, 43, 25, 39, 41, 45, 15, 21, 8, 18, 2, 61, 56, 14,
-    ];
-
-    for i in 1..25 {
-        let c_idx = i << 1;
-        let offset = rot[i - 1];
-        // read section 2.1 of
-        // https://keccak.team/files/Keccak-implementation-3.2.pdf
-        //
-        if (offset & 0b1) == 0 {
-            // even
-            state[c_idx + 0] = rotl(state[c_idx + 0] as u32, offset >> 1) as u64;
-            state[c_idx + 1] = rotl(state[c_idx + 1] as u32, offset >> 1) as u64;
-        } else {
-            // odd
-            let even = rotl(state[c_idx + 1] as u32, (offset >> 1) + 1) as u64;
-            let odd = rotl(state[c_idx + 0] as u32, offset >> 1) as u64;
-
-            state[c_idx + 0] = even;
-            state[c_idx + 1] = odd;
-        }
-    }
-}
-
-/// See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L169-L207
-fn pi(state: &mut [u64]) {
-    let mut tmp = [0u64; 50];
-    for i in 0..50 {
-        tmp[i] = state[i];
-    }
-
-    for y in 0..5 {
-        for x in 0..5 {
-            let to_idx = (y * 5 + x) << 1;
-            let frm_idx = (5 * x + (x + 3 * y) % 5) << 1;
-
-            state[to_idx + 0] = tmp[frm_idx + 0];
-            state[to_idx + 1] = tmp[frm_idx + 1];
-        }
-    }
-}
-
-/// See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L233-L271
-fn chi(state: &mut [u64]) {
-    let mut c = [0u32; 10];
-
-    for y in 0..5 {
-        for x in 0..5 {
-            let x_0 = (y * 5 + (x + 1) % 5) << 1;
-            let x_1 = (y * 5 + (x + 2) % 5) << 1;
-
-            let rhs_0 = !(state[x_0 + 0] as u32) & state[x_1 + 0] as u32;
-            let rhs_1 = !(state[x_0 + 1] as u32) & state[x_1 + 1] as u32;
-
-            c[(x << 1) + 0] = rhs_0;
-            c[(x << 1) + 1] = rhs_1;
-        }
-
-        for x in 0..5 {
-            let idx = (y * 5 + x) << 1;
-
-            state[idx + 0] = (state[idx + 0] as u32 ^ c[(x << 1) + 0]) as u64;
-            state[idx + 1] = (state[idx + 1] as u32 ^ c[(x << 1) + 1]) as u64;
-        }
-    }
-}
-
-/// See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-#[inline]
-fn iota<const EVEN: u32, const ODD: u32>(state: &mut [u64]) {
-    state[0] = (state[0] as u32 ^ EVEN) as u64;
-    state[1] = (state[1] as u32 ^ ODD) as u64;
-}
-
-/// https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L325-L342
-#[inline]
-fn rnd<const EVEN: u32, const ODD: u32>(state: &mut [u64]) {
-    theta(state);
-    rho(state);
-    pi(state);
-    chi(state);
-    iota::<EVEN, ODD>(state);
-}
-
-/// See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L379-L427
-fn keccak_p(state: &mut [u64]) {
-    rnd::<1u32, 0u32>(state);
-    rnd::<0u32, 137u32>(state);
-    rnd::<0u32, 2147483787u32>(state);
-    rnd::<0u32, 2147516544u32>(state);
-    rnd::<1u32, 139u32>(state);
-    rnd::<1u32, 32768u32>(state);
-    rnd::<1u32, 2147516552u32>(state);
-    rnd::<1u32, 2147483778u32>(state);
-    rnd::<0u32, 11u32>(state);
-    rnd::<0u32, 10u32>(state);
-    rnd::<1u32, 32898u32>(state);
-    rnd::<0u32, 32771u32>(state);
-    rnd::<1u32, 32907u32>(state);
-    rnd::<1u32, 2147483659u32>(state);
-    rnd::<1u32, 2147483786u32>(state);
-    rnd::<1u32, 2147483777u32>(state);
-    rnd::<0u32, 2147483777u32>(state);
-    rnd::<0u32, 2147483656u32>(state);
-    rnd::<0u32, 131u32>(state);
-    rnd::<0u32, 2147516419u32>(state);
-    rnd::<1u32, 2147516552u32>(state);
-    rnd::<0u32, 2147483784u32>(state);
-    rnd::<1u32, 32768u32>(state);
-    rnd::<0u32, 2147516546u32>(state);
 }
