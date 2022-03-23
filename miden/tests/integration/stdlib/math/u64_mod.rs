@@ -235,6 +235,35 @@ fn div_unsafe() {
     test.expect_stack(&[d1, d0]);
 }
 
+// MODULO OPERATION
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn mod_unsafe() {
+    let a: u64 = rand_value();
+    let b: u64 = rand_value();
+    let c = a % b;
+
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::mod_unsafe
+        end";
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    let (c1, c0) = split_u64(c);
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_stack(&[c1, c0]);
+
+    let d = a % b0;
+    let (d1, d0) = split_u64(d);
+
+    let test = build_test!(source, &[a0, a1, b0, 0]);
+    test.expect_stack(&[d1, d0]);
+}
+
 // BITWISE OPERATIONS
 // ------------------------------------------------------------------------------------------------
 
@@ -401,6 +430,24 @@ proptest! {
             use.std::math::u64
             begin
                 exec.u64::div_unsafe
+            end";
+
+        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0])?;
+    }
+
+    #[test]
+    fn mod_unsafe_proptest(a in any::<u64>(), b in any::<u64>()) {
+
+        let c = a % b;
+
+        let (a1, a0) = split_u64(a);
+        let (b1, b0) = split_u64(b);
+        let (c1, c0) = split_u64(c);
+
+        let source = "
+            use.std::math::u64
+            begin
+                exec.u64::mod_unsafe
             end";
 
         build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0])?;
