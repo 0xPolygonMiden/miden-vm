@@ -38,3 +38,4 @@ num-bigint = "0.4"
 proptest = "1.0.0"
 rand-utils = { package = "winter-rand-utils", version = "0.3" }
 sha2 = "0.10.2"
+sha3 = "0.10.1"
