@@ -248,3 +248,63 @@ export.div_unsafe
     movup.3
     assert.eq           # quotient remains on the stack #
 end
+
+# ===== MODULO OPERATION ================================================================================ #
+
+# Performs modulo operation of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a % b #
+export.mod_unsafe
+    adv.u64div          # inject the quotient and the remainder into the advice tape #
+    
+    push.adv.1          # read the quotient from the advice tape and make sure it consists of #
+    u32assert           # 32-bit limbs #
+    push.adv.1          # TODO: this can be optimized once we have u32assert2 instruction #
+    u32assert
+
+    dup.3               # multiply quotient by the divisor and make sure the resulting value #
+    dup.2               # fits into 2 32-bit limbs #
+    u32mul.unsafe
+    dup.4
+    movup.4
+    u32madd.unsafe
+    eq.0
+    assert
+    dup.4
+    dup.3
+    u32madd.unsafe
+    eq.0
+    assert
+    dup.3
+    movup.3
+    mul
+    eq.0
+    assert
+
+    push.adv.1          # read the remainder from the advice tape and make sure it consists of #
+    u32assert           # 32-bit limbs #
+    push.adv.1
+    u32assert
+
+    movup.5             # make sure the divisor is greater than the remainder. this also consumes #
+    movup.5             # the divisor #
+    dup.3
+    dup.3
+    exec.gt_unsafe
+    assert
+
+    dup.1               # add remainder to the previous result #
+    movup.4
+    u32add.unsafe
+    movup.4
+    dup.3
+    u32addc.unsafe
+    eq.0
+    assert
+
+    movup.4             # make sure the result we got is equal to the dividend #
+    assert.eq
+    movup.3
+    assert.eq           # remainder remains on the stack #
+end
