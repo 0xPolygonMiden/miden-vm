@@ -267,17 +267,17 @@ export.mod_unsafe
     dup.2               # fits into 2 32-bit limbs #
     u32mul.unsafe
     dup.4
-    dup.4
-    u32madd.unsafe
-    eq.0
-    assert
-    dup.5
-    dup.3
+    movup.4
     u32madd.unsafe
     eq.0
     assert
     dup.4
     dup.3
+    u32madd.unsafe
+    eq.0
+    assert
+    dup.3
+    movup.3
     mul
     eq.0
     assert
@@ -287,25 +287,18 @@ export.mod_unsafe
     push.adv.1
     u32assert
 
-    movup.7             # make sure the divisor is greater than the remainder. this also consumes #
-    movup.7             # the divisor #
+    movup.5             # make sure the divisor is greater than the remainder. this also consumes #
+    movup.5             # the divisor #
     dup.3
     dup.3
     exec.gt_unsafe
     assert
 
-    dup.1               # change remaining on stack value from quotient to remainder #
-    dup.1
-    swap.6
-    drop
-    swap.6
-    drop
-
-    swap                # add remainder to the previous result; this also consumes the remainder #
-    movup.3
+    dup.1               # add remainder to the previous result #
+    movup.4
     u32add.unsafe
-    movup.3
-    movup.3
+    movup.4
+    dup.3
     u32addc.unsafe
     eq.0
     assert
