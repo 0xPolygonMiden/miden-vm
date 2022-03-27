@@ -1,118 +1,89 @@
 use super::{
     super::{
         bitwise::BITWISE_OR,
-        build_op_test, build_test,
         hasher::{LINEAR_HASH, RETURN_STATE},
-        AuxTableTrace, FieldElement,
+        ExecutionTrace, Operation, Process,
     },
-    Felt,
+    AuxTableTrace,
 };
-
-#[test]
-fn trace_len() {
-    // --- final trace lengths are equal when stack trace is longer than aux trace ----------------
-    let test = build_op_test!("popw.mem.2", &[1, 2, 3, 4]);
-    let trace = test.execute().unwrap();
-
-    assert_eq!(trace.aux_table()[0].len(), trace.stack()[0].len());
-
-    // --- final trace lengths are equal when aux trace is longer than stack trace ----------------
-    let test = build_op_test!("u32and", &[4, 8]);
-    let trace = test.execute().unwrap();
-
-    assert_eq!(trace.aux_table()[0].len(), trace.stack()[0].len());
-
-    // --- stack and aux trace lengths are equal after multi-processor aux trace ------------------
-    let source = "begin u32and pop.mem.0 u32or end";
-    let test = build_test!(source, &[1, 2, 3, 4]);
-    let trace = test.execute().unwrap();
-
-    assert_eq!(trace.aux_table()[0].len(), trace.stack()[0].len());
-
-    // --- trace len is power of 2 after multi-processor aux trace --------------------------------
-    assert!(trace.aux_table()[0].len().is_power_of_two());
-}
+use vm_core::{Felt, FieldElement, ProgramInputs, MIN_TRACE_LEN};
 
 #[test]
 fn hasher_aux_trace() {
     // --- single hasher permutation with no stack manipulation -----------------------------------
-    let test = build_op_test!("rpperm", &[2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]);
-    let trace = test.execute().unwrap();
-    let aux_table = trace.aux_table();
+    let stack = [2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
+    let operations = vec![Operation::RpPerm];
+    let aux_table_trace = build_trace(&stack, operations);
 
     let expected_len = 8;
-    validate_hasher_trace(aux_table, 0, expected_len);
-
-    // expect  no bitwise trace and no memory trace
-    // so the trace only consists of the hasher trace with length 8
-    assert_eq!(aux_table[0].len(), expected_len);
+    validate_hasher_trace(&aux_table_trace, 0, expected_len);
 }
 
 #[test]
 fn bitwise_aux_trace() {
     // --- single bitwise operation with no stack manipulation ------------------------------------
-    let test = build_op_test!("u32or", &[4, 8]);
-    let trace = test.execute().unwrap();
-    let aux_table = trace.aux_table();
+    let stack = [4, 8];
+    let operations = vec![Operation::U32or];
+    let aux_table_trace = build_trace(&stack, operations);
 
     let expected_len = 8;
-    validate_bitwise_trace(aux_table, 0, expected_len);
-
-    // expect no hasher trace and no memory trace,
-    // so the trace only consists of the bitwise trace
-    assert_eq!(aux_table[0].len(), expected_len);
+    validate_bitwise_trace(&aux_table_trace, 0, expected_len);
 }
 
 #[test]
 fn memory_aux_trace() {
     // --- single memory operation with no stack manipulation -------------------------------------
-    let test = build_op_test!("storew.mem.2", &[1, 2, 3, 4]);
-    let trace = test.execute().unwrap();
-    let aux_table = trace.aux_table();
-
-    // the memory trace is only one row, so the length should match the stack trace length
-    let expected_len = trace.stack()[0].len();
+    let stack = [1, 2, 3, 4];
+    let operations = vec![Operation::Push(Felt::new(2)), Operation::StoreW];
+    let aux_table_trace = build_trace(&stack, operations);
 
     // check the memory trace
-    validate_memory_trace(aux_table, 0, 1, 2);
+    validate_memory_trace(&aux_table_trace, 0, 1, 2);
 
     // check that it was padded correctly
-    validate_padding(aux_table, 1, expected_len);
-
-    // expect no bitwise trace and no hasher trace,
-    // so the trace consists of the memory trace and final section of padding
-    assert_eq!(aux_table[0].len(), expected_len);
+    validate_padding(&aux_table_trace, 1, MIN_TRACE_LEN);
 }
 
 #[test]
 fn stacked_aux_trace() {
     // --- operations in hasher, bitwise, and memory processors without stack manipulation --------
-    let source = "begin u32or storew.mem.0 rpperm end";
-    let test = build_test!(source, &[8, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 1]);
-    let trace = test.execute().unwrap();
-    let aux_table = trace.aux_table();
+    let stack = [8, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 1];
+    let operations = vec![
+        Operation::U32or,
+        Operation::Push(Felt::ZERO),
+        Operation::StoreW,
+        Operation::RpPerm,
+    ];
+    let aux_table_trace = build_trace(&stack, operations);
 
     // expect 8 rows of hasher trace
-    validate_hasher_trace(aux_table, 0, 8);
+    validate_hasher_trace(&aux_table_trace, 0, 8);
 
     // expect 8 rows of bitwise trace
-    validate_bitwise_trace(aux_table, 8, 16);
+    validate_bitwise_trace(&aux_table_trace, 8, 16);
 
     // expect 1 row of memory trace
-    validate_memory_trace(aux_table, 16, 17, 0);
+    validate_memory_trace(&aux_table_trace, 16, 17, 0);
 
     // expect 15 rows of padding, to pad to next power of 2
-    validate_padding(aux_table, 17, 32);
-
-    // expect aux table trace length to be 32
-    assert_eq!(aux_table[0].len(), 32);
-
-    // expect the stack trace to be the same
-    assert_eq!(aux_table[0].len(), trace.stack()[0].len());
+    validate_padding(&aux_table_trace, 17, 32);
 }
 
 // HELPER FUNCTIONS
 // ================================================================================================
+
+fn build_trace(stack: &[u64], operations: Vec<Operation>) -> AuxTableTrace {
+    let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
+    let mut process = Process::new(inputs);
+
+    for operation in operations.iter() {
+        process.execute_op(*operation).unwrap();
+    }
+
+    let (_, _, _, aux_table_trace) = ExecutionTrace::test_finalize_trace(process);
+
+    aux_table_trace
+}
 
 /// Validate the hasher trace output by the rpperm operation. The full hasher trace is tested in
 /// the Hasher module, so this just tests the AuxTableTrace selectors and the initial columns

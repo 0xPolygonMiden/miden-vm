@@ -1,4 +1,4 @@
-use super::super::build_test;
+use crate::build_test;
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================

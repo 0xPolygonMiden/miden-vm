@@ -6,14 +6,15 @@ use vm_core::{
         Script,
     },
     AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
-    StarkField, Word, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH,
-    SYS_TRACE_WIDTH,
+    StarkField, Word, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN, NUM_STACK_HELPER_COLS,
+    RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH,
 };
 
 mod operations;
 
 mod system;
 use system::System;
+pub use system::FMP_MIN;
 
 mod decoder;
 use decoder::Decoder;
@@ -22,6 +23,7 @@ mod stack;
 use stack::Stack;
 
 mod range;
+use range::RangeChecker;
 
 mod hasher;
 use hasher::Hasher;
@@ -35,6 +37,9 @@ use memory::Memory;
 mod advice;
 use advice::AdviceProvider;
 
+mod aux_table;
+use aux_table::AuxTable;
+
 mod trace;
 pub use trace::ExecutionTrace;
 use trace::TraceFragment;
@@ -42,14 +47,12 @@ use trace::TraceFragment;
 mod errors;
 pub use errors::ExecutionError;
 
-#[cfg(test)]
-mod tests;
-
 // TYPE ALIASES
 // ================================================================================================
 
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 type StackTrace = [Vec<Felt>; STACK_TRACE_WIDTH];
+type RangeCheckTrace = [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH];
 type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
 
 // EXECUTOR
@@ -67,10 +70,11 @@ pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace
 // PROCESS
 // ================================================================================================
 
-struct Process {
+pub struct Process {
     system: System,
     decoder: Decoder,
     stack: Stack,
+    range: RangeChecker,
     hasher: Hasher,
     bitwise: Bitwise,
     memory: Memory,
@@ -80,9 +84,10 @@ struct Process {
 impl Process {
     pub fn new(inputs: ProgramInputs) -> Self {
         Self {
-            system: System::new(4),
+            system: System::new(MIN_TRACE_LEN),
             decoder: Decoder::new(),
-            stack: Stack::new(&inputs, 4),
+            stack: Stack::new(&inputs, MIN_TRACE_LEN),
+            range: RangeChecker::new(),
             hasher: Hasher::new(),
             bitwise: Bitwise::new(),
             memory: Memory::new(),
@@ -97,7 +102,7 @@ impl Process {
     ///
     /// # Errors
     /// Returns an [ExecutionError] if executing the specified block fails for any reason.
-    fn execute_code_block(&mut self, block: &CodeBlock) -> Result<(), ExecutionError> {
+    pub fn execute_code_block(&mut self, block: &CodeBlock) -> Result<(), ExecutionError> {
         match block {
             CodeBlock::Join(block) => self.execute_join_block(block),
             CodeBlock::Split(block) => self.execute_split_block(block),
@@ -230,5 +235,11 @@ impl Process {
         self.execute_op(Operation::Noop)?;
 
         Ok(())
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+    pub fn get_memory_value(&self, addr: u64) -> Option<Word> {
+        self.memory.get_value(addr)
     }
 }

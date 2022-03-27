@@ -25,6 +25,9 @@ pub type StackTopState = [Felt; MIN_STACK_DEPTH];
 // CONSTANTS
 // ================================================================================================
 
+/// The minimum length of the execution trace. This is the minimum required to support range checks.
+pub const MIN_TRACE_LEN: usize = 1024;
+
 /// The minimum stack depth enforced by the VM. This is also the number of stack registers which can
 /// be accessed by the VM directly.
 pub const MIN_STACK_DEPTH: usize = 16;
@@ -53,10 +56,14 @@ pub const STACK_TRACE_OFFSET: usize = SYS_TRACE_OFFSET + SYS_TRACE_WIDTH;
 pub const STACK_TRACE_WIDTH: usize = MIN_STACK_DEPTH + NUM_STACK_HELPER_COLS;
 pub const STACK_TRACE_RANGE: Range<usize> = range(STACK_TRACE_OFFSET, STACK_TRACE_WIDTH);
 
-// TODO: range check trace
+// Range check trace
+pub const RANGE_CHECK_TRACE_OFFSET: usize = STACK_TRACE_OFFSET + STACK_TRACE_WIDTH;
+pub const RANGE_CHECK_TRACE_WIDTH: usize = 4;
+pub const RANGE_CHECK_TRACE_RANGE: Range<usize> =
+    range(RANGE_CHECK_TRACE_OFFSET, RANGE_CHECK_TRACE_WIDTH);
 
 // Auxiliary table trace
-pub const AUX_TRACE_OFFSET: usize = STACK_TRACE_OFFSET + STACK_TRACE_WIDTH;
+pub const AUX_TRACE_OFFSET: usize = RANGE_CHECK_TRACE_OFFSET + RANGE_CHECK_TRACE_WIDTH;
 pub const AUX_TRACE_WIDTH: usize = 18;
 pub const AUX_TRACE_RANGE: Range<usize> = range(AUX_TRACE_OFFSET, AUX_TRACE_WIDTH);
 

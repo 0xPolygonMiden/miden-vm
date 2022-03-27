@@ -1,6 +1,8 @@
-use super::{super::build_op_test, prop_randw};
 use proptest::prelude::*;
 use vm_core::{Felt, StarkField};
+
+use crate::build_op_test;
+use crate::helpers::{prop_randw, WORD_LEN};
 
 // FIELD OPS COMPARISON - MANUAL TESTS
 // ================================================================================================
@@ -152,8 +154,6 @@ fn test_felt_comparison_op(asm_op: &str, expect_if_lt: u64, expect_if_eq: u64, e
 
 // FIELD OPS COMPARISON - RANDOMIZED TESTS
 // ================================================================================================
-
-const WORD_LEN: usize = 4;
 
 proptest! {
     #[test]

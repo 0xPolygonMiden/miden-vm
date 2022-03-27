@@ -10,10 +10,11 @@ impl Process {
         let a = self.stack.get(0);
         let (lo, hi) = split_element(a);
 
-        // shift right first so stack depth is increased before we attempt to set the output values
-        self.stack.shift_right(1);
+        self.add_range_checks(lo, Some(hi));
+
         self.stack.set(0, hi);
         self.stack.set(1, lo);
+        self.stack.shift_right(1);
         Ok(())
     }
 
@@ -27,6 +28,8 @@ impl Process {
         let a = self.stack.get(1);
         let result = a + b;
         let (lo, hi) = split_element(result);
+
+        self.add_range_checks(lo, None);
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
@@ -46,6 +49,8 @@ impl Process {
         let result = Felt::new(a + b + c);
         let (lo, hi) = split_element(result);
 
+        self.add_range_checks(lo, None);
+
         self.stack.set(0, hi);
         self.stack.set(1, lo);
         self.stack.shift_left(3);
@@ -59,9 +64,13 @@ impl Process {
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
         let result = a.wrapping_sub(b);
+        let d = Felt::new(result >> 63);
+        let c = Felt::new((result as u32) as u64);
 
-        self.stack.set(0, Felt::new(result >> 63));
-        self.stack.set(1, Felt::new((result as u32) as u64));
+        self.add_range_checks(c, None);
+
+        self.stack.set(0, d);
+        self.stack.set(1, c);
         self.stack.copy_state(2);
         Ok(())
     }
@@ -73,6 +82,8 @@ impl Process {
         let a = self.stack.get(1).as_int();
         let result = Felt::new(a * b);
         let (lo, hi) = split_element(result);
+
+        self.add_range_checks(lo, Some(hi));
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
@@ -89,6 +100,8 @@ impl Process {
         let c = self.stack.get(2).as_int();
         let result = Felt::new(a * b + c);
         let (lo, hi) = split_element(result);
+
+        self.add_range_checks(lo, Some(hi));
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
@@ -111,6 +124,12 @@ impl Process {
 
         let q = a / b;
         let r = a - q * b;
+
+        // These range checks help enforce that q <= a.
+        let lo = Felt::new(a - q);
+        // These range checks help enforce that r < b.
+        let hi = Felt::new(b - r - 1);
+        self.add_range_checks(lo, Some(hi));
 
         self.stack.set(0, Felt::new(r));
         self.stack.set(1, Felt::new(q));
@@ -156,6 +175,20 @@ impl Process {
         self.stack.shift_left(2);
         Ok(())
     }
+
+    /// Adds 16-bit range checks to the RangeChecker for the high and low 16-bit limbs of one or two
+    /// field elements which are assumed to have 32-bit integer values.
+    fn add_range_checks(&mut self, lo: Felt, hi: Option<Felt>) {
+        let (t0, t1) = split_element_to_u16(lo);
+        self.range.add_value(t0);
+        self.range.add_value(t1);
+
+        if let Some(hi) = hi {
+            let (t2, t3) = split_element_to_u16(hi);
+            self.range.add_value(t2);
+            self.range.add_value(t3);
+        }
+    }
 }
 
 // HELPER FUNCTIONS
@@ -167,6 +200,15 @@ fn split_element(value: Felt) -> (Felt, Felt) {
     let lo = (value as u32) as u64;
     let hi = value >> 32;
     (Felt::new(lo), Felt::new(hi))
+}
+
+/// Splits an element into two 16 bit integer limbs. It assumes that the field element contains a
+/// valid 32-bit integer value.
+fn split_element_to_u16(value: Felt) -> (u16, u16) {
+    let value = value.as_int() as u32;
+    let lo = value as u16;
+    let hi = (value >> 16) as u16;
+    (lo, hi)
 }
 
 // TESTS
