@@ -2,6 +2,9 @@ use super::{build_test, TestError};
 use proptest::prelude::*;
 use rand_utils::rand_value;
 
+// ADDITION
+// ------------------------------------------------------------------------------------------------
+
 #[test]
 fn add_unsafe() {
     let a: u64 = rand_value();
@@ -21,6 +24,61 @@ fn add_unsafe() {
     let test = build_test!(source, &[a0, a1, b0, b1]);
     test.expect_stack(&[c1, c0]);
 }
+
+#[test]
+fn add() {
+    let source = "
+    use.std::math::u64
+    begin
+        exec.u64::add
+    end";
+
+    // --- simple case ----------------------------------------------------------------------------
+    let test = build_test!(source, &[1, 2, 3, 4]);
+    test.expect_stack(&[6, 4]);
+
+    // --- random values --------------------------------------------------------------------------
+    // test using u16 values to ensure there's no overflow so the result is valid
+    let a0 = rand_value::<u64>() as u16 as u64;
+    let b0 = rand_value::<u64>() as u16 as u64;
+    let a1 = rand_value::<u64>() as u16 as u64;
+    let b1 = rand_value::<u64>() as u16 as u64;
+    let c0 = a0 + b0;
+    let c1 = a1 + b1;
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_stack(&[c1, c0]);
+}
+
+#[test]
+fn add_fail() {
+    let source = "
+    use.std::math::u64
+    begin
+        exec.u64::add
+    end";
+
+    // result overflow
+    let a0 = rand_value::<u64>() as u32 as u64;
+    let b0 = rand_value::<u64>() as u32 as u64;
+    let a1 = u32::MAX as u64;
+    let b1 = u32::MAX as u64;
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+
+    //u32 limb assertion failure
+    let a0 = rand_value::<u64>();
+    let b0 = rand_value::<u64>();
+    let a1 = u32::MAX as u64 + 1;
+    let b1 = u32::MAX as u64 + 1;
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+}
+
+// SUBTRACTION
+// ------------------------------------------------------------------------------------------------
 
 #[test]
 fn sub_unsafe() {
@@ -43,6 +101,64 @@ fn sub_unsafe() {
 }
 
 #[test]
+fn sub() {
+    let source = "
+    use.std::math::u64
+    begin
+        exec.u64::sub
+    end";
+
+    // --- simple case ----------------------------------------------------------------------------
+    let test = build_test!(source, &[3, 4, 1, 2]);
+    test.expect_stack(&[2, 2]);
+
+    // --- random values --------------------------------------------------------------------------
+    let common = rand_value::<u64>();
+    let dif = rand_value::<u64>() as u16 as u64;
+
+    let a = common + dif;
+    let b = common;
+    let c = a - b;
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    let (c1, c0) = split_u64(c);
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_stack(&[c1, c0]);
+}
+
+#[test]
+fn sub_fail() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::sub
+        end";
+
+    // result underflow
+    let a0 = rand_value::<u64>() as u32 as u64;
+    let b0 = rand_value::<u64>() as u32 as u64;
+    let a1 = u16::MAX as u64;
+    let b1 = u32::MAX as u64;
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+
+    //u32 limb assertion failure
+    let a0 = rand_value::<u64>() as u64;
+    let b0 = rand_value::<u64>() as u64;
+    let a1 = u32::MAX as u64 + 1;
+    let b1 = u32::MAX as u64 + 1;
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+}
+
+// MULTIPLICATION
+// ------------------------------------------------------------------------------------------------
+
+#[test]
 fn mul_unsafe() {
     let a: u64 = rand_value();
     let b: u64 = rand_value();
@@ -60,6 +176,76 @@ fn mul_unsafe() {
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
     test.expect_stack(&[c1, c0]);
+}
+
+#[test]
+fn mul() {
+    let source = "
+    use.std::math::u64
+    begin
+        exec.u64::mul
+    end";
+
+    // --- simple cases ---------------------------------------------------------------------------
+    let test = build_test!(source, &[1, 2, 0, 0]);
+    test.expect_stack(&[0, 0]);
+
+    let test = build_test!(source, &[0, 0, 1, 2]);
+    test.expect_stack(&[0, 0]);
+
+    let test = build_test!(source, &[5, 1, 1, 0]);
+    test.expect_stack(&[1, 5]);
+
+    let test = build_test!(source, &[5, 2, 2, 0]);
+    test.expect_stack(&[4, 10]);
+
+    // --- random values --------------------------------------------------------------------------
+    let a0 = rand_value::<u64>() as u16 as u64;
+    let a1 = rand_value::<u64>() as u16 as u64;
+    let b0 = rand_value::<u64>() as u16 as u64;
+    let b1 = 0u64;
+    let c0 = a0 * b0;
+    let c1 = a1 * b0;
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_stack(&[c1, c0]);
+}
+
+#[test]
+fn mul_fail() {
+    let source = "
+    use.std::math::u64
+    begin
+        exec.u64::mul
+    end";
+
+    //u32 limb assertion failure
+    let a0 = u32::MAX as u64 + 1;
+    let b0 = u32::MAX as u64 + 1;
+    let a1 = u32::MAX as u64 + 1;
+    let b1 = u32::MAX as u64 + 1;
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+
+    // Higher bits assertion failure (a_hi * b_hi != 0)
+
+    let a0 = rand_value::<u64>() as u16 as u64;
+    let a1 = 2u64;
+    let b0 = rand_value::<u64>() as u16 as u64;
+    let b1 = 3u64;
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+
+    // result overflow
+    let a0 = rand_value::<u64>() as u32 as u64;
+    let a1 = u16::MAX as u64 + rand_value::<u64>() as u16 as u64;
+    let b0 = u16::MAX as u64 + rand_value::<u64>() as u16 as u64;
+    let b1 = 0u64;
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_error(TestError::ExecutionError("FailedAssertion"));
 }
 
 // COMPARISONS
