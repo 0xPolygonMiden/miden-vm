@@ -381,6 +381,212 @@ fn xor_fail() {
     test.expect_error(TestError::ExecutionError("NotU32Value"));
 }
 
+#[test]
+fn shl() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::shl
+        end";
+
+    // shift by 0
+    let a: u64 = rand_value();
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 0;
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[a1, a0, 5]);
+
+    // shift by 31 (max lower limb of b)
+    let b: u32 = 31;
+    let c = a.wrapping_shl(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+
+    // shift by 32 (min for upper limb of b)
+    let a = 1_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 32;
+    let c = a.wrapping_shl(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+
+    // shift by 33
+    let a = 1_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 33;
+    let c = a.wrapping_shl(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+
+    // shift 64 by 58
+    let a = 64_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 58;
+    let c = a.wrapping_shl(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+}
+
+#[test]
+fn shr() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::shr
+        end";
+
+    // shift by 0
+    let a: u64 = rand_value();
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 0;
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[a1, a0, 5]);
+
+    // simple right shift
+    build_test!(source, &[5, 1, 1, 1]).expect_stack(&[0, 2_u64.pow(31), 5]);
+
+    // simple right shift
+    build_test!(source, &[5, 3, 3, 1]).expect_stack(&[1, 2_u64.pow(31) + 1, 5]);
+
+    // shift by 31 (max lower limb of b)
+    let b: u32 = 31;
+    let c = a.wrapping_shr(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+
+    // shift by 32 (min for upper limb of b)
+    let a = 1_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 32;
+    let c = a.wrapping_shr(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+
+    // shift by 33
+    let a = 1_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 33;
+    let c = a.wrapping_shr(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+
+    // shift 4294967296 by 2
+    let a = 4294967296;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 2;
+    let c = a.wrapping_shr(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+}
+
+#[test]
+fn rotl() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::rotl
+        end";
+
+    // shift by 0
+    let a: u64 = rand_value();
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 0;
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[a1, a0, 5]);
+
+    // shift by 31 (max lower limb of b)
+    let b: u32 = 31;
+    let c = a.rotate_left(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+
+    // shift by 32 (min for upper limb of b)
+    let a = 1_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 32;
+    let c = a.rotate_left(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+
+    // shift by 33
+    let a = 1_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 33;
+    let c = a.rotate_left(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+
+    // shift 64 by 58
+    let a = 64_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 58;
+    let c = a.rotate_left(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+}
+
+#[test]
+fn rotr() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::rotr
+        end";
+
+    // shift by 0
+    let a: u64 = rand_value();
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 0;
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[a1, a0, 5]);
+
+    // shift by 31 (max lower limb of b)
+    let b: u32 = 31;
+    let c = a.rotate_right(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+
+    // shift by 32 (min for upper limb of b)
+    let a = 1_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 32;
+    let c = a.rotate_right(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+
+    // shift by 33
+    let a = 1_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 33;
+    let c = a.rotate_right(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+
+    // shift 64 by 58
+    let a = 64_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 58;
+    let c = a.rotate_right(b);
+    let (c1, c0) = split_u64(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[c1, c0, 5]);
+}
+
 // RANDOMIZED TESTS
 // ================================================================================================
 
@@ -451,6 +657,73 @@ proptest! {
             end";
 
         build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0])?;
+    }
+
+    fn shl_proptest(a in any::<u64>(), b in 0_u32..64) {
+
+        let c = a.wrapping_shl(b);
+
+        let (a1, a0) = split_u64(a);
+        let (c1, c0) = split_u64(c);
+
+        let source = "
+        use.std::math::u64
+        begin
+            exec.u64::shl
+        end";
+
+        build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5])?;
+    }
+
+    #[test]
+    fn shr_proptest(a in any::<u64>(), b in 0_u32..64) {
+
+        let c = a.wrapping_shr(b);
+
+        let (a1, a0) = split_u64(a);
+        let (c1, c0) = split_u64(c);
+
+        let source = "
+        use.std::math::u64
+        begin
+            exec.u64::shr
+        end";
+
+        build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5])?;
+    }
+
+    #[test]
+    fn rotl_proptest(a in any::<u64>(), b in 0_u32..64) {
+
+        let c = a.rotate_left(b);
+
+        let (a1, a0) = split_u64(a);
+        let (c1, c0) = split_u64(c);
+
+        let source = "
+        use.std::math::u64
+        begin
+            exec.u64::rotl
+        end";
+
+        build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5])?;
+    }
+
+    #[test]
+    fn rotr_proptest(a in any::<u64>(), b in 0_u32..64) {
+
+        let c = a.rotate_right(b);
+
+        let (a1, a0) = split_u64(a);
+        let (c1, c0) = split_u64(c);
+
+        let source = "
+        use.std::math::u64
+        begin
+            exec.u64::rotr
+        end";
+
+        build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5])?;
     }
 }
 

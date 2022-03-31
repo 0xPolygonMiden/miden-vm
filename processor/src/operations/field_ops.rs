@@ -1,4 +1,4 @@
-use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Process};
+use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Process, StarkField};
 
 // FIELD OPERATIONS
 // ================================================================================================
@@ -55,6 +55,25 @@ impl Process {
     pub(super) fn op_incr(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
         self.stack.set(0, a + Felt::ONE);
+        self.stack.copy_state(1);
+        Ok(())
+    }
+
+    /// Pops one element `x` off the stack, computes 2^x, and pushes the power of two result back
+    /// onto the stack.
+    ///
+    /// # Errors
+    /// Returns an error if the exponent is greater than 63.
+    pub(super) fn op_pow2(&mut self) -> Result<(), ExecutionError> {
+        let b = self.stack.get(0);
+
+        if b.as_int() > 63 {
+            return Err(ExecutionError::InvalidPowerOfTwo(b));
+        }
+
+        let result = Felt::new(2_u64.wrapping_pow(b.as_int() as u32));
+
+        self.stack.set(0, result);
         self.stack.copy_state(1);
         Ok(())
     }
@@ -265,6 +284,31 @@ mod tests {
         assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
         assert_eq!(4, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
+    }
+
+    #[test]
+    fn op_pow2() {
+        // --- test 0 ----------------------------------------------------------------------------
+        let mut process = Process::new_dummy();
+        let p = 0;
+        init_stack_with(&mut process, &[p]);
+        process.execute_op(Operation::Pow2).unwrap();
+        let expected = build_expected(&[Felt::new(2_u64.pow(p as u32))]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- test 63 (maximum exponent value) --------------------------------------------------
+        let mut process = Process::new_dummy();
+        let p = 63;
+        init_stack_with(&mut process, &[p]);
+        process.execute_op(Operation::Pow2).unwrap();
+        let expected = build_expected(&[Felt::new(2_u64.pow(p as u32))]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- 2^64 should fail ------------------------------------------------------------------
+        let mut process = Process::new_dummy();
+        let p = 64;
+        init_stack_with(&mut process, &[p]);
+        assert!(process.execute_op(Operation::Pow2).is_err());
     }
 
     // BOOLEAN OPERATIONS

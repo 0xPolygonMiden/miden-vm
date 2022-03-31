@@ -6,17 +6,18 @@ use winterfell::ProverError;
 
 #[derive(Debug)]
 pub enum ExecutionError {
-    UnsupportedCodeBlock(CodeBlock),
-    UnexecutableCodeBlock(CodeBlock),
-    NotBinaryValue(Felt),
-    DivideByZero(usize),
-    FailedAssertion(usize),
-    EmptyAdviceTape(usize),
-    AdviceSetNotFound([u8; 32]),
     AdviceSetLookupFailed(AdviceSetError),
+    AdviceSetNotFound([u8; 32]),
     AdviceSetUpdateFailed(AdviceSetError),
+    DivideByZero(usize),
+    EmptyAdviceTape(usize),
+    FailedAssertion(usize),
     InvalidFmpValue(Felt, Felt),
+    InvalidPowerOfTwo(Felt),
+    NotBinaryValue(Felt),
     NotU32Value(Felt),
     ProverError(ProverError),
     TooManyStackOutputs(usize),
+    UnexecutableCodeBlock(CodeBlock),
+    UnsupportedCodeBlock(CodeBlock),
 }

@@ -10050,47 +10050,6 @@ export.eqz_unsafe
     and
 end
 
-# ===== BITWISE OPERATIONS ====================================================================== #
-
-# Performs bitwise AND of two unsigned 64 bit integers. #
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
-# Stack transition looks as follows: #
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a AND b. #
-export.and
-    swap
-    movup.3
-    u32and
-    swap
-    movup.2
-    u32and
-end
-
-# Performs bitwise OR of two unsigned 64 bit integers. #
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
-# Stack transition looks as follows: #
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a OR b. #
-export.or
-    swap
-    movup.3
-    u32or
-    swap
-    movup.2
-    u32or
-end
-
-# Performs bitwise XOR of two unsigned 64 bit integers. #
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
-# Stack transition looks as follows: #
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a XOR b. #
-export.xor
-    swap
-    movup.3
-    u32xor
-    swap
-    movup.2
-    u32xor
-end
-
 # ===== DIVISION ================================================================================ #
 
 # Performs division of two unsigned 64 bit integers discarding the remainder. #
@@ -10209,6 +10168,176 @@ export.mod_unsafe
     assert.eq
     movup.3
     assert.eq           # remainder remains on the stack #
+end
+
+# ===== BITWISE OPERATIONS ====================================================================== #
+
+# Performs bitwise AND of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a AND b. #
+export.and
+    swap
+    movup.3
+    u32and
+    swap
+    movup.2
+    u32and
+end
+
+# Performs bitwise OR of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a OR b. #
+export.or
+    swap
+    movup.3
+    u32or
+    swap
+    movup.2
+    u32or
+end
+
+# Performs bitwise XOR of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a XOR b. #
+export.xor
+    swap
+    movup.3
+    u32xor
+    swap
+    movup.2
+    u32xor
+end
+
+# Performs left shift of one unsigned 64-bit integer using the pow2 operation. #
+# The input value to be shifted is assumed to be represented using 32 bit limbs. #
+# The shift value is assumed to be in the range [0, 64). #
+# Stack transition looks as follows: #
+# [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64. #
+# This takes 13 cycles. #
+export.shl
+    pow2
+    u32split
+    exec.mul_unsafe
+end
+
+# Performs right shift of one unsigned 64-bit integer using the pow2 operation. #
+# The input value to be shifted is assumed to be represented using 32 bit limbs. #
+# The shift value is assumed to be in the range [0, 64). #
+# Stack transition looks as follows: #
+# [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a >> b. #
+# This takes 29 cycles. #
+export.shr
+    pow2
+    u32split
+    
+    dup.1
+    add
+    movup.2
+    swap
+    u32div.unsafe
+    movup.3
+    movup.3
+    dup
+    eq.0
+    u32sub.unsafe
+    not
+    movdn.4
+    dup
+    movdn.4
+    u32div.unsafe
+    drop
+    push.4294967296
+    dup.5
+    mul
+    movup.4
+    div
+    movup.2
+    mul
+    add
+    movup.2
+    cswap
+end
+
+# Performs left rotation of one unsigned 64-bit integer using the pow2 operation. #
+# The input value to be shifted is assumed to be represented using 32 bit limbs. #
+# The shift value is assumed to be in the range [0, 64). #
+# Stack transition looks as follows: #
+# [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64. #
+# This takes 20 cycles. #
+export.rotl
+    push.31
+    dup.1
+    u32sub.unsafe
+    swap
+    drop
+    movdn.3
+    
+    # Shift the low limb. #
+    push.31
+    u32and
+    pow2
+    dup
+    movup.3
+    u32mul.unsafe
+
+    # Shift the high limb. #
+    movup.3
+    movup.3
+    u32madd.unsafe
+
+    # Carry the overflow shift to the low bits. #
+    movup.2
+    add
+    swap
+
+    # Conditionally select the limb order based on whether it's shifting by > 31 or not. #
+    movup.2
+    cswap
+end
+
+# Performs right rotation of one unsigned 64-bit integer using the pow2 operation. #
+# The input value to be shifted is assumed to be represented using 32 bit limbs. #
+# The shift value is assumed to be in the range [0, 64). #
+# Stack transition looks as follows: #
+# [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64. #
+# This takes 25 cycles. #
+export.rotr
+    push.31
+    dup.1
+    u32sub.unsafe
+    swap
+    drop
+    movdn.3
+    
+    # Shift the low limb left by 32-b. #
+    push.31
+    u32and
+    push.32
+    swap
+    u32sub.unsafe
+    drop
+    pow2
+    dup
+    movup.3
+    u32mul.unsafe
+
+    # Shift the high limb left by 32-b. #
+    movup.3
+    movup.3
+    u32madd.unsafe
+
+    # Carry the overflow shift to the low bits. #
+    movup.2
+    add
+    swap
+
+    # Conditionally select the limb order based on whether it's shifting by > 31 or not. #
+    movup.2
+    not
+    cswap
 end
 "),
 ];
