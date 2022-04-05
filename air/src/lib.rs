@@ -6,6 +6,8 @@ use winter_air::{
 use winter_utils::{ByteWriter, Serializable};
 
 mod options;
+mod range;
+mod utils;
 
 // EXPORTS
 // ================================================================================================
@@ -29,9 +31,12 @@ impl Air for ProcessorAir {
     type PublicInputs = PublicInputs;
 
     fn new(trace_info: TraceInfo, pub_inputs: PublicInputs, options: WinterProofOptions) -> Self {
-        let degrees = vec![
+        let mut degrees = vec![
             TransitionConstraintDegree::new(1), // clk' = clk + 1
         ];
+
+        // Add the range checker's constraint degrees.
+        degrees.append(&mut range::get_transition_constraint_degrees());
 
         Self {
             context: AirContext::new(trace_info, degrees, options),
@@ -57,6 +62,9 @@ impl Air for ProcessorAir {
             result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, value));
         }
 
+        // Add initial assertions for the range checker.
+        range::get_assertions_first_step(&mut result);
+
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.trace_length() - 1;
 
@@ -64,6 +72,9 @@ impl Air for ProcessorAir {
         for (i, &value) in self.stack_outputs.iter().enumerate() {
             result.push(Assertion::single(STACK_TRACE_OFFSET + i, last_step, value));
         }
+
+        // Add the range checker's assertions for the last step.
+        range::get_assertions_last_step(&mut result, last_step);
 
         result
     }
@@ -77,8 +88,12 @@ impl Air for ProcessorAir {
         let current = frame.current();
         let next = frame.next();
 
+        // --- system -----------------------------------------------------------------------------
         // clk' = clk + 1
-        result[0] = next[CLK_COL_IDX] - (current[CLK_COL_IDX] + E::ONE)
+        result[0] = next[CLK_COL_IDX] - (current[CLK_COL_IDX] + E::ONE);
+
+        // --- range checker ----------------------------------------------------------------------
+        range::enforce_constraints::<E>(frame, &mut result[1..]);
     }
 
     fn context(&self) -> &AirContext<Felt> {
