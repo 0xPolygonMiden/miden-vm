@@ -69,7 +69,7 @@ impl Iterator for VmStateIterator {
             memory: self
                 .process
                 .memory
-                .get_values_at(0..=u64::MAX, Some(self.clk)),
+                .get_values_at(0..=u64::MAX, self.clk as u64),
         }));
 
         self.clk += 1;
