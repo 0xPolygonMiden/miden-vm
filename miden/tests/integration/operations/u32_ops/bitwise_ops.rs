@@ -287,7 +287,7 @@ fn u32shl_unsafe() {
     let a = rand_value::<u64>() as u32;
     let b = (rand_value::<u64>() % 32) as u32;
     let c = a.wrapping_shl(b);
-    let d = a.wrapping_shr(32 - b);
+    let d = if b == 0 { 0 } else { a.wrapping_shr(32 - b) };
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
     test.expect_stack(&[d as u64, c as u64]);
@@ -416,7 +416,7 @@ fn u32shr_unsafe() {
     let a = rand_value::<u64>() as u32;
     let b = (rand_value::<u64>() % 32) as u32;
     let c = a.wrapping_shr(b);
-    let d = a.wrapping_shl(32 - b);
+    let d = if b == 0 { 0 } else { a.wrapping_shl(32 - b) };
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
     test.expect_stack(&[d as u64, c as u64]);
