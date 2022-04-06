@@ -6,7 +6,7 @@ use rand_utils::rand_value;
 // ------------------------------------------------------------------------------------------------
 
 #[test]
-fn add_unsafe() {
+fn wrapping_add() {
     let a: u64 = rand_value();
     let b: u64 = rand_value();
     let c = a.wrapping_add(b);
@@ -14,7 +14,7 @@ fn add_unsafe() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::add_unsafe
+            exec.u64::wrapping_add
         end";
 
     let (a1, a0) = split_u64(a);
@@ -26,11 +26,11 @@ fn add_unsafe() {
 }
 
 #[test]
-fn add() {
+fn checked_add() {
     let source = "
     use.std::math::u64
     begin
-        exec.u64::add
+        exec.u64::checked_add
     end";
 
     // --- simple case ----------------------------------------------------------------------------
@@ -51,11 +51,11 @@ fn add() {
 }
 
 #[test]
-fn add_fail() {
+fn checked_add_fail() {
     let source = "
     use.std::math::u64
     begin
-        exec.u64::add
+        exec.u64::checked_add
     end";
 
     // result overflow
@@ -77,11 +77,42 @@ fn add_fail() {
     test.expect_error(TestError::ExecutionError("FailedAssertion"));
 }
 
+#[test]
+fn overflowing_add() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::overflowing_add
+        end";
+
+    let a = rand_value::<u64>() as u32 as u64;
+    let b = rand_value::<u64>() as u32 as u64;
+    let (c, _) = a.overflowing_add(b);
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    let (c1, c0) = split_u64(c);
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_stack(&[0, c1, c0]);
+
+    let a = u64::MAX;
+    let b = rand_value::<u64>();
+    let (c, _) = a.overflowing_add(b);
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    let (c1, c0) = split_u64(c);
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_stack(&[1, c1, c0]);
+}
+
 // SUBTRACTION
 // ------------------------------------------------------------------------------------------------
 
 #[test]
-fn sub_unsafe() {
+fn wrapping_sub() {
     let a: u64 = rand_value();
     let b: u64 = rand_value();
     let c = a.wrapping_sub(b);
@@ -89,7 +120,7 @@ fn sub_unsafe() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::sub_unsafe
+            exec.u64::wrapping_sub
         end";
 
     let (a1, a0) = split_u64(a);
@@ -101,11 +132,11 @@ fn sub_unsafe() {
 }
 
 #[test]
-fn sub() {
+fn checked_sub() {
     let source = "
     use.std::math::u64
     begin
-        exec.u64::sub
+        exec.u64::checked_sub
     end";
 
     // --- simple case ----------------------------------------------------------------------------
@@ -129,11 +160,11 @@ fn sub() {
 }
 
 #[test]
-fn sub_fail() {
+fn checked_sub_fail() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::sub
+            exec.u64::checked_sub
         end";
 
     // result underflow
@@ -155,11 +186,59 @@ fn sub_fail() {
     test.expect_error(TestError::ExecutionError("FailedAssertion"));
 }
 
+#[test]
+fn overflowing_sub() {
+    let a: u64 = rand_value();
+    let b: u64 = rand_value();
+    let (c, flag) = a.overflowing_sub(b);
+
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::overflowing_sub
+        end";
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    let (c1, c0) = split_u64(c);
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_stack(&[flag as u64, c1, c0]);
+
+    let base = rand_value::<u64>() as u32 as u64;
+    let diff = rand_value::<u64>() as u32 as u64;
+
+    let a = base;
+    let b = base + diff;
+    let (c, _) = a.overflowing_sub(b);
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    let (c1, c0) = split_u64(c);
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_stack(&[1, c1, c0]);
+
+    let base = rand_value::<u64>() as u32 as u64;
+    let diff = rand_value::<u64>() as u32 as u64;
+
+    let a = base + diff;
+    let b = base;
+    let (c, _) = a.overflowing_sub(b);
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    let (c1, c0) = split_u64(c);
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_stack(&[0, c1, c0]);
+}
+
 // MULTIPLICATION
 // ------------------------------------------------------------------------------------------------
 
 #[test]
-fn mul_unsafe() {
+fn wrapping_mul() {
     let a: u64 = rand_value();
     let b: u64 = rand_value();
     let c = a.wrapping_mul(b);
@@ -167,7 +246,7 @@ fn mul_unsafe() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::mul_unsafe
+            exec.u64::wrapping_mul
         end";
 
     let (a1, a0) = split_u64(a);
@@ -179,11 +258,11 @@ fn mul_unsafe() {
 }
 
 #[test]
-fn mul() {
+fn checked_mul() {
     let source = "
     use.std::math::u64
     begin
-        exec.u64::mul
+        exec.u64::checked_mul
     end";
 
     // --- simple cases ---------------------------------------------------------------------------
@@ -212,11 +291,11 @@ fn mul() {
 }
 
 #[test]
-fn mul_fail() {
+fn checked_mul_fail() {
     let source = "
     use.std::math::u64
     begin
-        exec.u64::mul
+        exec.u64::checked_mul
     end";
 
     //u32 limb assertion failure
@@ -248,16 +327,53 @@ fn mul_fail() {
     test.expect_error(TestError::ExecutionError("FailedAssertion"));
 }
 
+#[test]
+fn overflowing_mul() {
+    let source = "
+    use.std::math::u64
+    begin
+        exec.u64::overflowing_mul
+    end";
+
+    let a = u64::MAX as u128;
+    let b = u64::MAX as u128;
+    let c = a.wrapping_mul(b);
+
+    let a = u64::MAX;
+    let b = u64::MAX;
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    let (c3, c2, c1, c0) = split_u128(c);
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_stack(&[c3, c2, c1, c0]);
+
+    let a = rand_value::<u64>() as u128;
+    let b = rand_value::<u64>() as u128;
+    let c = a.wrapping_mul(b);
+
+    let a = a as u64;
+    let b = b as u64;
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    let (c3, c2, c1, c0) = split_u128(c);
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_stack(&[c3, c2, c1, c0]);
+}
+
 // COMPARISONS
 // ------------------------------------------------------------------------------------------------
 
 #[test]
-fn lt_unsafe() {
+fn unchecked_lt() {
     // test a few manual cases; randomized tests are done using proptest
     let source = "
         use.std::math::u64
         begin
-            exec.u64::lt_unsafe
+            exec.u64::unchecked_lt
         end";
 
     // a = 0, b = 0
@@ -271,11 +387,11 @@ fn lt_unsafe() {
 }
 
 #[test]
-fn lte_unsafe() {
+fn unchecked_lte() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::lte_unsafe
+            exec.u64::unchecked_lte
         end";
 
     // a = 0, b = 0
@@ -298,12 +414,12 @@ fn lte_unsafe() {
 }
 
 #[test]
-fn gt_unsafe() {
+fn unchecked_gt() {
     // test a few manual cases; randomized tests are done using proptest
     let source = "
         use.std::math::u64
         begin
-            exec.u64::gt_unsafe
+            exec.u64::unchecked_gt
         end";
 
     // a = 0, b = 0
@@ -317,11 +433,11 @@ fn gt_unsafe() {
 }
 
 #[test]
-fn gte_unsafe() {
+fn unchecked_gte() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::gte_unsafe
+            exec.u64::unchecked_gte
         end";
 
     // a = 0, b = 0
@@ -344,11 +460,11 @@ fn gte_unsafe() {
 }
 
 #[test]
-fn eq_unsafe() {
+fn unchecked_eq() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::eq_unsafe
+            exec.u64::unchecked_eq
         end";
 
     // a = 0, b = 0
@@ -371,11 +487,38 @@ fn eq_unsafe() {
 }
 
 #[test]
-fn eqz_unsafe() {
+fn unchecked_neq() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::eqz_unsafe
+            exec.u64::unchecked_neq
+        end";
+
+    // a = 0, b = 0
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0]);
+
+    // a = 0, b = 1
+    build_test!(source, &[0, 0, 1, 0]).expect_stack(&[1]);
+
+    // a = 1, b = 0
+    build_test!(source, &[1, 0, 0, 0]).expect_stack(&[1]);
+
+    // randomized test
+    let a: u64 = rand_value();
+    let b: u64 = rand_value();
+    let c = (a != b) as u64;
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    build_test!(source, &[a0, a1, b0, b1]).expect_stack(&[c]);
+}
+
+#[test]
+fn unchecked_eqz() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::unchecked_eqz
         end";
 
     // a = 0
@@ -396,7 +539,7 @@ fn eqz_unsafe() {
 // ------------------------------------------------------------------------------------------------
 
 #[test]
-fn div_unsafe() {
+fn unchecked_div() {
     let a: u64 = rand_value();
     let b: u64 = rand_value();
     let c = a / b;
@@ -404,7 +547,7 @@ fn div_unsafe() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::div_unsafe
+            exec.u64::unchecked_div
         end";
 
     let (a1, a0) = split_u64(a);
@@ -425,7 +568,7 @@ fn div_unsafe() {
 // ------------------------------------------------------------------------------------------------
 
 #[test]
-fn mod_unsafe() {
+fn unchecked_mod() {
     let a: u64 = rand_value();
     let b: u64 = rand_value();
     let c = a % b;
@@ -433,7 +576,7 @@ fn mod_unsafe() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::mod_unsafe
+            exec.u64::unchecked_mod
         end";
 
     let (a1, a0) = split_u64(a);
@@ -450,11 +593,36 @@ fn mod_unsafe() {
     test.expect_stack(&[d1, d0]);
 }
 
+// DIVMOD OPERATION
+// ------------------------------------------------------------------------------------------------
+
+#[test]
+fn unchecked_divmod() {
+    let a: u64 = rand_value();
+    let b: u64 = rand_value();
+    let q = a / b;
+    let r = a % b;
+
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::unchecked_divmod
+        end";
+
+    let (a1, a0) = split_u64(a);
+    let (b1, b0) = split_u64(b);
+    let (q1, q0) = split_u64(q);
+    let (r1, r0) = split_u64(r);
+
+    let test = build_test!(source, &[a0, a1, b0, b1]);
+    test.expect_stack(&[r1, r0, q1, q0]);
+}
+
 // BITWISE OPERATIONS
 // ------------------------------------------------------------------------------------------------
 
 #[test]
-fn and() {
+fn checked_and() {
     let a: u64 = rand_value();
     let b: u64 = rand_value();
     let c = a & b;
@@ -462,7 +630,7 @@ fn and() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::and
+            exec.u64::checked_and
         end";
 
     let (a1, a0) = split_u64(a);
@@ -474,7 +642,7 @@ fn and() {
 }
 
 #[test]
-fn and_fail() {
+fn checked_and_fail() {
     let a0: u64 = rand_value();
     let b0: u64 = rand_value();
 
@@ -484,7 +652,7 @@ fn and_fail() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::and
+            exec.u64::checked_and
         end";
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
@@ -492,7 +660,7 @@ fn and_fail() {
 }
 
 #[test]
-fn or() {
+fn checked_or() {
     let a: u64 = rand_value();
     let b: u64 = rand_value();
     let c = a | b;
@@ -500,7 +668,7 @@ fn or() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::or
+            exec.u64::checked_or
         end";
 
     let (a1, a0) = split_u64(a);
@@ -512,7 +680,7 @@ fn or() {
 }
 
 #[test]
-fn or_fail() {
+fn checked_or_fail() {
     let a0: u64 = rand_value();
     let b0: u64 = rand_value();
 
@@ -522,7 +690,7 @@ fn or_fail() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::or
+            exec.u64::checked_or
         end";
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
@@ -530,7 +698,7 @@ fn or_fail() {
 }
 
 #[test]
-fn xor() {
+fn checked_xor() {
     let a: u64 = rand_value();
     let b: u64 = rand_value();
     let c = a ^ b;
@@ -538,7 +706,7 @@ fn xor() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::xor
+            exec.u64::checked_xor
         end";
 
     let (a1, a0) = split_u64(a);
@@ -550,7 +718,7 @@ fn xor() {
 }
 
 #[test]
-fn xor_fail() {
+fn checked_xor_fail() {
     let a0: u64 = rand_value();
     let b0: u64 = rand_value();
 
@@ -560,7 +728,7 @@ fn xor_fail() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::xor
+            exec.u64::checked_xor
         end";
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
@@ -568,11 +736,11 @@ fn xor_fail() {
 }
 
 #[test]
-fn shl() {
+fn unchecked_shl() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::shl
+            exec.u64::unchecked_shl
         end";
 
     // shift by 0
@@ -618,11 +786,11 @@ fn shl() {
 }
 
 #[test]
-fn shr() {
+fn unchecked_shr() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::shr
+            exec.u64::unchecked_shr
         end";
 
     // shift by 0
@@ -674,11 +842,11 @@ fn shr() {
 }
 
 #[test]
-fn rotl() {
+fn unchecked_rotl() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::rotl
+            exec.u64::unchecked_rotl
         end";
 
     // shift by 0
@@ -724,11 +892,11 @@ fn rotl() {
 }
 
 #[test]
-fn rotr() {
+fn unchecked_rotr() {
     let source = "
         use.std::math::u64
         begin
-            exec.u64::rotr
+            exec.u64::unchecked_rotr
         end";
 
     // shift by 0
@@ -778,7 +946,7 @@ fn rotr() {
 
 proptest! {
     #[test]
-    fn lt_unsafe_proptest(a in any::<u64>(), b in any::<u64>()) {
+    fn unchecked_lt_proptest(a in any::<u64>(), b in any::<u64>()) {
 
         let (a1, a0) = split_u64(a);
         let (b1, b0) = split_u64(b);
@@ -787,14 +955,14 @@ proptest! {
         let source = "
             use.std::math::u64
             begin
-                exec.u64::lt_unsafe
+                exec.u64::unchecked_lt
             end";
 
         build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c])?;
     }
 
     #[test]
-    fn gt_unsafe_proptest(a in any::<u64>(), b in any::<u64>()) {
+    fn unchecked_gt_proptest(a in any::<u64>(), b in any::<u64>()) {
 
         let (a1, a0) = split_u64(a);
         let (b1, b0) = split_u64(b);
@@ -803,14 +971,14 @@ proptest! {
         let source = "
             use.std::math::u64
             begin
-                exec.u64::gt_unsafe
+                exec.u64::unchecked_gt
             end";
 
         build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c])?;
     }
 
     #[test]
-    fn div_unsafe_proptest(a in any::<u64>(), b in any::<u64>()) {
+    fn unchecked_div_proptest(a in any::<u64>(), b in any::<u64>()) {
 
         let c = a / b;
 
@@ -821,14 +989,14 @@ proptest! {
         let source = "
             use.std::math::u64
             begin
-                exec.u64::div_unsafe
+                exec.u64::unchecked_div
             end";
 
         build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0])?;
     }
 
     #[test]
-    fn mod_unsafe_proptest(a in any::<u64>(), b in any::<u64>()) {
+    fn unchecked_mod_proptest(a in any::<u64>(), b in any::<u64>()) {
 
         let c = a % b;
 
@@ -839,7 +1007,7 @@ proptest! {
         let source = "
             use.std::math::u64
             begin
-                exec.u64::mod_unsafe
+                exec.u64::unchecked_mod
             end";
 
         build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0])?;
@@ -855,7 +1023,7 @@ proptest! {
         let source = "
         use.std::math::u64
         begin
-            exec.u64::shl
+            exec.u64::unchecked_shl
         end";
 
         build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5])?;
@@ -872,7 +1040,7 @@ proptest! {
         let source = "
         use.std::math::u64
         begin
-            exec.u64::shr
+            exec.u64::unchecked_shr
         end";
 
         build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5])?;
@@ -889,7 +1057,7 @@ proptest! {
         let source = "
         use.std::math::u64
         begin
-            exec.u64::rotl
+            exec.u64::unchecked_rotl
         end";
 
         build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5])?;
@@ -906,7 +1074,7 @@ proptest! {
         let source = "
         use.std::math::u64
         begin
-            exec.u64::rotr
+            exec.u64::unchecked_rotr
         end";
 
         build_test!(source, &[5, a0, a1, b as u64]).prop_expect_stack(&[c1, c0, 5])?;
@@ -919,4 +1087,13 @@ proptest! {
 /// Split the provided u64 value into 32 high and low bits.
 fn split_u64(value: u64) -> (u64, u64) {
     (value >> 32, value as u32 as u64)
+}
+
+fn split_u128(value: u128) -> (u64, u64, u64, u64) {
+    (
+        (value >> 96) as u64,
+        (value >> 64) as u32 as u64,
+        (value >> 32) as u32 as u64,
+        value as u32 as u64,
+    )
 }

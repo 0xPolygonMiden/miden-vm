@@ -9917,17 +9917,25 @@ end
 
 # ===== ADDITION ================================================================================ #
 
-# Performs addition of two unsigned 64 bit integers discarding the overflow. #
+# Performs addition of two unsigned 64 bit integers preserving the overflow. #
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a + b) % 2^64 #
-export.add_unsafe
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [overflowing_flag, c_hi, c_lo, ...], where c = (a + b) % 2^64 #
+export.overflowing_add
     swap
     movup.3
     u32add.unsafe
     movup.3
     movup.3
     u32addc.unsafe
+end
+
+# Performs addition of two unsigned 64 bit integers discarding the overflow. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a + b) % 2^64 #
+export.wrapping_add
+    exec.overflowing_add
     drop
 end
 
@@ -9935,14 +9943,9 @@ end
 # The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a + b) % 2^64 #
-export.add
+export.checked_add
     exec.u32assert4
-    swap
-    movup.3
-    u32add.unsafe
-    movup.3
-    movup.3
-    u32addc.unsafe
+    exec.overflowing_add
     eq.0
     assert
 end
@@ -9953,7 +9956,7 @@ end
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a - b) % 2^64 #
-export.sub_unsafe
+export.wrapping_sub
     movup.3
     movup.2
     u32sub.unsafe
@@ -9970,7 +9973,7 @@ end
 # The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a - b) % 2^64 #
-export.sub
+export.checked_sub
     exec.u32assert4
     movup.3
     movup.2
@@ -9986,13 +9989,31 @@ export.sub
     assert
 end
 
+# Performs subtraction of two unsigned 64 bit integers preserving the overflow. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [underflowing_flag, c_hi, c_lo, ...], where c = (a - b) % 2^64 #
+export.overflowing_sub
+    movup.3
+    movup.2
+    u32sub.unsafe
+    movup.3
+    movup.3
+    u32sub.unsafe
+    swap
+    movup.2
+    u32sub.unsafe
+    movup.2
+    or
+end
+
 # ===== MULTIPLICATION ========================================================================== #
 
 # Performs multiplication of two unsigned 64 bit integers discarding the overflow. #
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a * b) % 2^64 #
-export.mul_unsafe
+export.wrapping_mul
     dup.3
     dup.2
     u32mul.unsafe
@@ -10028,15 +10049,14 @@ export.overflowing_mul
     movup.2
     u32add.unsafe
     movup.2
-    u32add.unsafe
-    drop
+    add
 end
 
 # Performs multiplication of two unsigned 64 bit integers, fails when overflowing. #
 # The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a * b) % 2^64 #
-export.mul
+export.checked_mul
     exec.u32assert4
     exec.overflowing_mul
     u32or
@@ -10050,7 +10070,7 @@ end
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a < b, and 0 otherwise. #
-export.lt_unsafe
+export.unchecked_lt
     movup.3
     movup.2
     u32sub.unsafe
@@ -10068,16 +10088,16 @@ end
 # The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a < b, and 0 otherwise. #
-export.lt
+export.checked_lt
     exec.u32assert4
-    exec.lt_unsafe
+    exec.unchecked_lt
 end
 
 # Performs greater-than comparison of two unsigned 64 bit integers. #
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a > b, and 0 otherwise. #
-export.gt_unsafe
+export.unchecked_gt
     movup.2
     u32sub.unsafe
     movup.2
@@ -10095,17 +10115,17 @@ end
 # The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a > b, and 0 otherwise. #
-export.gt
+export.checked_gt
     exec.u32assert4
-    exec.gt_unsafe
+    exec.unchecked_gt
 end
 
 # Performs less-than-or-equal comparison of two unsigned 64 bit integers. #
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a <= b, and 0 otherwise. #
-export.lte_unsafe
-    exec.gt_unsafe
+export.unchecked_lte
+    exec.unchecked_gt
     not
 end
 
@@ -10113,9 +10133,9 @@ end
 # The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a <= b, and 0 otherwise. #
-export.lte
+export.checked_lte
     exec.u32assert4
-    exec.gt_unsafe
+    exec.unchecked_gt
     not
 end
 
@@ -10123,8 +10143,8 @@ end
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a >= b, and 0 otherwise. #
-export.gte_unsafe
-    exec.lt_unsafe
+export.unchecked_gte
+    exec.unchecked_lt
     not
 end
 
@@ -10132,9 +10152,9 @@ end
 # The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a >= b, and 0 otherwise. #
-export.gte
+export.checked_gte
     exec.u32assert4
-    exec.lt_unsafe
+    exec.unchecked_lt
     not
 end
 
@@ -10142,7 +10162,7 @@ end
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise. #
-export.eq_unsafe
+export.unchecked_eq
     movup.2
     u32eq
     swap
@@ -10155,19 +10175,41 @@ end
 # The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise. #
-export.eq
+export.checked_eq
     exec.u32assert4
-    exec.eq_unsafe
+    exec.unchecked_eq
+end
+
+# Performs inequality comparison of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a != b, and 0 otherwise. #
+export.unchecked_neq
+    movup.2
+    u32neq
+    swap
+    movup.2
+    u32neq
+    or
+end
+
+# Performs inequality comparison of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise. #
+export.checked_neq
+    exec.u32assert4
+    exec.unchecked_eq
 end
 
 # Performs comparison to zero of an unsigned 64 bit integer. #
 # The input value is assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
 # [a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == 0, and 0 otherwise. #
-export.eqz_unsafe
-    u32eq.0
+export.unchecked_eqz
+    eq.0
     swap
-    u32eq.0
+    eq.0
     and
 end
 
@@ -10175,14 +10217,14 @@ end
 # The input value is assumed to be represented using 32 bit limbs, fails if it is not. #
 # Stack transition looks as follows: #
 # [a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == 0, and 0 otherwise. #
-export.eqz
+export.checked_eqz
     u32assert
     swap
     u32assert
     swap
-    u32eq.0
+    eq.0
     swap
-    u32eq.0
+    eq.0
     and
 end
 
@@ -10192,7 +10234,7 @@ end
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a // b #
-export.div_unsafe
+export.unchecked_div
     adv.u64div          # inject the quotient and the remainder into the advice tape #
     
     push.adv.1          # read the quotient from the advice tape and make sure it consists of #
@@ -10228,7 +10270,7 @@ export.div_unsafe
     movup.7             # the divisor #
     dup.3
     dup.3
-    exec.gt_unsafe
+    exec.unchecked_gt
     assert
 
     swap                # add remainder to the previous result; this also consumes the remainder #
@@ -10247,21 +10289,21 @@ export.div_unsafe
 end
 
 # Performs division of two unsigned 64 bit integers discarding the remainder. #
-# The input values are assumed to be represented using 32 bit limbs, fails if it is not. #
+# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a // b #
-export.div
+export.checked_div
     exec.u32assert4
-    exec.div_unsafe
+    exec.unchecked_div
 end
 
-# ===== MODULO OPERATION ================================================================================ #
+# ===== MODULO OPERATION ======================================================================== #
 
 # Performs modulo operation of two unsigned 64 bit integers. #
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a % b #
-export.mod_unsafe
+export.unchecked_mod
     adv.u64div          # inject the quotient and the remainder into the advice tape #
     
     push.adv.1          # read the quotient from the advice tape and make sure it consists of #
@@ -10297,7 +10339,7 @@ export.mod_unsafe
     movup.5             # the divisor #
     dup.3
     dup.3
-    exec.gt_unsafe
+    exec.unchecked_gt
     assert
 
     dup.1               # add remainder to the previous result #
@@ -10316,21 +10358,90 @@ export.mod_unsafe
 end
 
 # Performs modulo operation of two unsigned 64 bit integers. #
-# The input values are assumed to be represented using 32 bit limbs, fails if it is not. #
+# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a % b #
-export.mod
+export.checked_mod
     exec.u32assert4
-    exec.mod_unsafe
+    exec.unchecked_mod
+end
+
+# ===== DIVMOD OPERATION ======================================================================== #
+
+# Performs divmod operation of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [r_hi, r_lo, q_hi, q_lo ...], where r = a % b, q = a / b #
+export.unchecked_divmod
+    adv.u64div          # inject the quotient and the remainder into the advice tape #
+    
+    push.adv.1          # read the quotient from the advice tape and make sure it consists of #
+    u32assert           # 32-bit limbs #
+    push.adv.1          # TODO: this can be optimized once we have u32assert2 instruction #
+    u32assert
+
+    dup.3               # multiply quotient by the divisor and make sure the resulting value #
+    dup.2               # fits into 2 32-bit limbs #
+    u32mul.unsafe
+    dup.4
+    dup.4
+    u32madd.unsafe
+    eq.0
+    assert
+    dup.5
+    dup.3
+    u32madd.unsafe
+    eq.0
+    assert
+    dup.4
+    dup.3
+    mul
+    eq.0
+    assert
+
+    push.adv.1          # read the remainder from the advice tape and make sure it consists of #
+    u32assert           # 32-bit limbs #
+    push.adv.1
+    u32assert
+
+    movup.7             # make sure the divisor is greater than the remainder. this also consumes #
+    movup.7             # the divisor #
+    dup.3
+    dup.3
+    exec.unchecked_gt
+    assert
+
+    dup.1               # add remainder to the previous result #
+    movup.4
+    u32add.unsafe
+    movup.4
+    dup.3
+    u32addc.unsafe
+    eq.0
+    assert
+
+    movup.6             # make sure the result we got is equal to the dividend #
+    assert.eq
+    movup.5
+    assert.eq           # remainder remains on the stack #
+end
+
+# Performs divmod operation of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
+# Stack transition looks as follows: #
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [r_hi, r_lo, q_hi, q_lo ...], where r = a % b, q = a / b #
+export.checked_divmod
+    exec.u32assert4
+    exec.unchecked_divmod
 end
 
 # ===== BITWISE OPERATIONS ====================================================================== #
 
-# Performs bitwise AND of two unsigned 64 bit integers. #
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
+# Performs divmod operation of two unsigned 64 bit integers. #
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
 # Stack transition looks as follows: #
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a AND b. #
-export.and
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [r_hi, r_lo, q_hi, q_lo ...], where r = a % b, q = a / b #
+export.checked_and
     swap
     movup.3
     u32and
@@ -10343,7 +10454,7 @@ end
 # The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a OR b. #
-export.or
+export.checked_or
     swap
     movup.3
     u32or
@@ -10356,7 +10467,7 @@ end
 # The input values are assumed to be represented using 32 bit limbs, fails if they are not. #
 # Stack transition looks as follows: #
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a XOR b. #
-export.xor
+export.checked_xor
     swap
     movup.3
     u32xor
@@ -10371,10 +10482,10 @@ end
 # Stack transition looks as follows: #
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64. #
 # This takes 13 cycles. #
-export.shl
+export.unchecked_shl
     pow2
     u32split
-    exec.mul_unsafe
+    exec.wrapping_mul
 end
 
 # Performs right shift of one unsigned 64-bit integer using the pow2 operation. #
@@ -10383,7 +10494,7 @@ end
 # Stack transition looks as follows: #
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a >> b. #
 # This takes 29 cycles. #
-export.shr
+export.unchecked_shr
     pow2
     u32split
     
@@ -10421,7 +10532,7 @@ end
 # Stack transition looks as follows: #
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64. #
 # This takes 20 cycles. #
-export.rotl
+export.unchecked_rotl
     push.31
     dup.1
     u32sub.unsafe
@@ -10458,7 +10569,7 @@ end
 # Stack transition looks as follows: #
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64. #
 # This takes 25 cycles. #
-export.rotr
+export.unchecked_rotr
     push.31
     dup.1
     u32sub.unsafe
@@ -10493,6 +10604,5 @@ export.rotr
     not
     cswap
 end
-
 "),
 ];
