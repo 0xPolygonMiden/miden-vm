@@ -914,12 +914,12 @@ proc.compress.1
 end
 
 # blake3 2-to-1 hash function
-
-Input: First 16 elements of stack ( i.e. stack top ) holds 64 -bytes input digest, 
-  which is two blake3 digests concatenated next to each other
-  
-Output: First 8 elements of stack holds 32 -bytes blake3 digest, 
-  while remaining 8 elements of stack top are zeroed #
+#
+# Input: First 16 elements of stack ( i.e. stack top ) holds 64 -bytes input digest, 
+#   which is two blake3 digests concatenated next to each other
+#  
+# Output: First 8 elements of stack holds 32 -bytes blake3 digest, 
+#   while remaining 8 elements of stack top are zeroed
 export.hash.4
     # initializing blake3 hash state for 2-to-1 hashing #
     push.env.locaddr.3
