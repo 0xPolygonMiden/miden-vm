@@ -23,11 +23,11 @@ impl<'a> TokenStream<'a> {
 
         let tokens = source
             .lines()
-            .map(|line| {
+            // Tokenize and remove comments
+            .flat_map(|line| {
                 line.split_whitespace()
                     .take_while(|&token| !token.starts_with('#'))
             })
-            .flatten()
             .collect::<Vec<_>>();
 
         if tokens.is_empty() {

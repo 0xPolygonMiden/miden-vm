@@ -203,7 +203,7 @@ fn script_with_import_errors() {
 #[test]
 fn comment_simple() {
     let assembler = super::Assembler::new();
-    let source = "begin push.1 push.2 add end # simple comment";
+    let source = "begin # simple comment \n push.1 push.2 add end";
     let script = assembler.compile_script(source).unwrap();
     let expected = "begin span pad incr push(2) add end end";
     assert_eq!(expected, format!("{}", script));
@@ -246,6 +246,15 @@ fn comment_in_nested_control_blocks() {
             span push(3) add end \
             end \
         end";
+    assert_eq!(expected, format!("{}", script));
+}
+
+#[test]
+fn comment_before_script() {
+    let assembler = super::Assembler::new();
+    let source = " # starting comment \n begin push.1 push.2 add end";
+    let script = assembler.compile_script(source).unwrap();
+    let expected = "begin span pad incr push(2) add end end";
     assert_eq!(expected, format!("{}", script));
 }
 
