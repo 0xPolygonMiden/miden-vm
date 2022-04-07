@@ -6,6 +6,13 @@ use super::{
 
 // CONSTANTS
 // ================================================================================================
+const NUM_CONSTRAINTS: usize = 7;
+const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
+    2, 2, 2, // Selector flags must be binary: t, s0, s1.
+    3, // Constrain the row transitions in the 8-bit section of the table.
+    2, // Transition from 8-bit to 16-bit section of range check table occurs at most once.
+    3, 3, // Enforce values of column v before and after 8-bit to 16-bit transition.
+];
 
 pub const T_COL_IDX: usize = RANGE_CHECK_TRACE_OFFSET;
 pub const S0_COL_IDX: usize = RANGE_CHECK_TRACE_OFFSET + 1;
@@ -18,19 +25,13 @@ pub const NUM_ASSERTIONS: usize = 2;
 // ================================================================================================
 
 pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
-    vec![
-        // Selector flags must be binary: t, s0, s1
-        TransitionConstraintDegree::new(2),
-        TransitionConstraintDegree::new(2),
-        TransitionConstraintDegree::new(2),
-        // Constrain the row transitions in the 8-bit section of the table.
-        TransitionConstraintDegree::new(3),
-        // Transition from 8-bit to 16-bit section of range check table occurs at most once.
-        TransitionConstraintDegree::new(2),
-        // Enforce values of column v before and after 8-bit to 16-bit transition.
-        TransitionConstraintDegree::new(3),
-        TransitionConstraintDegree::new(3),
-    ]
+    let mut result = Vec::new();
+
+    for &degree in CONSTRAINT_DEGREES.iter() {
+        result.push(TransitionConstraintDegree::new(degree));
+    }
+
+    result
 }
 
 // BOUNDARY CONSTRAINTS

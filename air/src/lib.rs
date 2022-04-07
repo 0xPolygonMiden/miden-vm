@@ -1,6 +1,7 @@
+use core::ops::Range;
 use vm_core::{
     hasher::Digest,
-    utils::{ByteWriter, Serializable},
+    utils::{range as create_range, ByteWriter, Serializable},
     CLK_COL_IDX, FMP_COL_IDX, MIN_STACK_DEPTH, STACK_TRACE_OFFSET,
 };
 use winter_air::{
@@ -8,6 +9,7 @@ use winter_air::{
     TransitionConstraintDegree,
 };
 
+mod memory;
 mod options;
 mod range;
 mod utils;
@@ -19,6 +21,11 @@ pub use options::ProofOptions;
 pub use vm_core::{utils::ToElements, Felt, FieldElement, StarkField};
 pub use winter_air::{FieldExtension, HashFunction};
 
+struct TransitionConstraintRange {
+    range: Range<usize>,
+    memory: Range<usize>,
+}
+
 // PROCESSOR AIR
 // ================================================================================================
 
@@ -27,6 +34,7 @@ pub struct ProcessorAir {
     context: AirContext<Felt>,
     stack_inputs: Vec<Felt>,
     stack_outputs: Vec<Felt>,
+    constraint_ranges: TransitionConstraintRange,
 }
 
 impl ProcessorAir {
@@ -41,12 +49,26 @@ impl Air for ProcessorAir {
     type PublicInputs = PublicInputs;
 
     fn new(trace_info: TraceInfo, pub_inputs: PublicInputs, options: WinterProofOptions) -> Self {
+        // --- system -----------------------------------------------------------------------------
         let mut degrees = vec![
             TransitionConstraintDegree::new(1), // clk' = clk + 1
         ];
 
-        // Add the range checker's constraint degrees.
-        degrees.append(&mut range::get_transition_constraint_degrees());
+        // --- range checker ----------------------------------------------------------------------
+        let mut range_checker_degrees = range::get_transition_constraint_degrees();
+        let range_checker_range = create_range(degrees.len(), range_checker_degrees.len());
+        degrees.append(&mut range_checker_degrees);
+
+        // --- memory -----------------------------------------------------------------------------
+        let mut memory_degrees = memory::get_transition_constraint_degrees();
+        let memory_range = create_range(range_checker_range.end, memory_degrees.len());
+        degrees.append(&mut memory_degrees);
+
+        // Define the transition constraint ranges.
+        let constraint_ranges = TransitionConstraintRange {
+            range: range_checker_range,
+            memory: memory_range,
+        };
 
         // TODO: determine dynamically
         let num_assertions = 2
@@ -63,6 +85,7 @@ impl Air for ProcessorAir {
             context,
             stack_inputs: pub_inputs.stack_inputs,
             stack_outputs: pub_inputs.stack_outputs,
+            constraint_ranges,
         }
     }
 
@@ -114,7 +137,10 @@ impl Air for ProcessorAir {
         result[0] = next[CLK_COL_IDX] - (current[CLK_COL_IDX] + E::ONE);
 
         // --- range checker ----------------------------------------------------------------------
-        range::enforce_constraints::<E>(frame, &mut result[1..]);
+        range::enforce_constraints::<E>(frame, &mut result[self.constraint_ranges.range.start..]);
+
+        // --- memory -----------------------------------------------------------------------------
+        memory::enforce_constraints::<E>(frame, &mut result[self.constraint_ranges.memory.start..]);
     }
 
     fn context(&self) -> &AirContext<Felt> {
