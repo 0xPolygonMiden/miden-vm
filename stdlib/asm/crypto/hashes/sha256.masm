@@ -2976,13 +2976,13 @@ proc.mix.4
 end
 
 # Computes SHA256 2-to-1 hash function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2_256.hpp#L121-L196
-
-Input: First 16 elements of stack ( i.e. stack top ) holds 64 -bytes input digest, 
-  which is two sha256 digests ( each digest 32 -bytes i.e. 8 stack elements ) concatenated 
-  next to each other
-  
-Output: First 8 elements of stack holds 32 -bytes blake3 digest, 
-  while remaining 8 elements of stack top are zeroed #
+#
+# Input: First 16 elements of stack ( i.e. stack top ) holds 64 -bytes input digest, 
+#   which is two sha256 digests ( each digest 32 -bytes i.e. 8 stack elements ) concatenated 
+#   next to each other
+#  
+# Output: First 8 elements of stack holds 32 -bytes blake3 digest, 
+#   while remaining 8 elements of stack top are zeroed
 export.hash.16
     push.env.locaddr.15
     push.env.locaddr.14
@@ -3033,11 +3033,11 @@ export.hash.16
     exec.mix
 
     # precompute message schedule for compile-time known 512 -bytes padding 
-    words ( see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2_256.hpp#L89-L99 ),
-    i.e. 64 sha256 words.
-    
-    message schedule computation happens in https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2_256.hpp#L144-L146,
-    note in following section, I'm precomputing message schedule for iteration `i = 1` ( see last hyperlink )
+    # words ( see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2_256.hpp#L89-L99 ),
+    # i.e. 64 sha256 words.
+    #
+    # message schedule computation happens in https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2_256.hpp#L144-L146,
+    # note in following section, I'm precomputing message schedule for iteration `i = 1` ( see last hyperlink )
     #
     push.0.0.0.2147483648
     popw.local.0
