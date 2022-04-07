@@ -1,12 +1,12 @@
 # if stack top has [d, c, b, a], after completion of execution of 
-  this procedure stack top should look like [a, b, c, d] #
+# this procedure stack top should look like [a, b, c, d]
 proc.rev_4_elements
     swap
     movup.2
     movup.3
 end
 
-# given four elements of from each of a, b sets, following procedure computes a[i] ^ b[i] ∀ i = [0, 3] #
+# given four elements of from each of a, b sets, following procedure computes a[i] ^ b[i] ∀ i = [0, 3]
 proc.xor_4_elements
     movup.7
     u32xor
@@ -27,16 +27,16 @@ end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's θ function, which is 
 # implemented in terms of 32 -bit word size; 
-# see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L55-L98 for original implementation #
+# see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L55-L98 for original implementation
 proc.theta.7
     popw.local.0
     popw.local.1
     popw.local.2
     popw.local.3
 
-    # --- begin https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L71-L79 --- #
+    # --- begin https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L71-L79 ---
 
-    # compute a[0] ^ a[10] ^ a[20] ^ a[30] ^ a[40] #
+    # compute a[0] ^ a[10] ^ a[20] ^ a[30] ^ a[40]
     loadw.local.0
     swap
     drop
@@ -93,9 +93,9 @@ proc.theta.7
 
     u32xor
 
-    # stack = [c_0] #
-    # --- #
-    # compute a[1] ^ a[11] ^ a[21] ^ a[31] ^ a[41] #
+    # stack = [c_0]
+    -----
+    # compute a[1] ^ a[11] ^ a[21] ^ a[31] ^ a[41]
 
     pushw.local.0
     swap
@@ -157,9 +157,9 @@ proc.theta.7
 
     u32xor
 
-    # stack = [c_1, c_0] #
-    # --- #
-    # compute a[2] ^ a[12] ^ a[22] ^ a[32] ^ a[42] #
+    # stack = [c_1, c_0]
+    -----
+    # compute a[2] ^ a[12] ^ a[22] ^ a[32] ^ a[42]
 
     pushw.local.0
     repeat.2
@@ -228,9 +228,9 @@ proc.theta.7
     u32xor
     u32xor
     
-    # stack = [c_2, c_1, c_0] #
-    # --- #
-    # compute a[3] ^ a[13] ^ a[23] ^ a[33] ^ a[43] #
+    # stack = [c_2, c_1, c_0]
+    -----
+    # compute a[3] ^ a[13] ^ a[23] ^ a[33] ^ a[43]
 
     pushw.local.0
 
@@ -299,9 +299,9 @@ proc.theta.7
     u32xor
     u32xor
 
-    # stack = [c_3, c_2, c_1, c_0] #
-    # --- #
-    # compute a[4] ^ a[14] ^ a[24] ^ a[34] ^ a[44] #
+    # stack = [c_3, c_2, c_1, c_0]
+    -----
+    # compute a[4] ^ a[14] ^ a[24] ^ a[34] ^ a[44]
 
     pushw.local.0
 
@@ -369,9 +369,9 @@ proc.theta.7
     u32xor
     u32xor
 
-    # stack = [c_4, c_3, c_2, c_1, c_0] #
-    # --- #
-    # compute a[5] ^ a[15] ^ a[25] ^ a[35] ^ a[45] #
+    # stack = [c_4, c_3, c_2, c_1, c_0]
+    -----
+    # compute a[5] ^ a[15] ^ a[25] ^ a[35] ^ a[45]
 
     pushw.local.0
 
@@ -440,9 +440,9 @@ proc.theta.7
     u32xor
     u32xor
 
-    # stack = [c_5, c_4, c_3, c_2, c_1, c_0] #
-    # --- #
-    # compute a[6] ^ a[16] ^ a[26] ^ a[36] ^ a[46] #
+    # stack = [c_5, c_4, c_3, c_2, c_1, c_0]
+    -----
+    # compute a[6] ^ a[16] ^ a[26] ^ a[36] ^ a[46]
 
     pushw.local.0
 
@@ -510,9 +510,9 @@ proc.theta.7
     u32xor
     u32xor
 
-    # stack = [c_6, c_5, c_4, c_3, c_2, c_1, c_0] #
-    # --- #
-    # compute a[7] ^ a[17] ^ a[27] ^ a[37] ^ a[47] #
+    # stack = [c_6, c_5, c_4, c_3, c_2, c_1, c_0]
+    -----
+    # compute a[7] ^ a[17] ^ a[27] ^ a[37] ^ a[47]
 
     pushw.local.0
 
@@ -579,9 +579,9 @@ proc.theta.7
     u32xor
     u32xor
 
-    # stack = [c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0] #
-    # --- #
-    # compute a[8] ^ a[18] ^ a[28] ^ a[38] ^ a[48] #
+    # stack = [c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0]
+    -----
+    # compute a[8] ^ a[18] ^ a[28] ^ a[38] ^ a[48]
 
     pushw.local.0
 
@@ -656,9 +656,9 @@ proc.theta.7
 
     u32xor
 
-    # stack = [c_8, c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0] #
-    # --- #
-    # compute a[9] ^ a[19] ^ a[29] ^ a[39] ^ a[49] #
+    # stack = [c_8, c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0]
+    -----
+    # compute a[9] ^ a[19] ^ a[29] ^ a[39] ^ a[49]
 
     pushw.local.0
 
@@ -735,20 +735,20 @@ proc.theta.7
 
     push.0.0
 
-    # stack = [0, 0, c_9, c_8, c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0] #
+    # stack = [0, 0, c_9, c_8, c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0]
 
     exec.rev_4_elements
-    popw.local.6 # -> to mem [c8, c9, 0, 0] #
+    popw.local.6 # -> to mem [c8, c9, 0, 0]
 
     exec.rev_4_elements
-    popw.local.5 # -> to mem [c4, c5, c6, c7] #
+    popw.local.5 # -> to mem [c4, c5, c6, c7]
 
     exec.rev_4_elements
-    popw.local.4 # -> to mem [c0, c1, c2, c3] #
+    popw.local.4 # -> to mem [c0, c1, c2, c3]
 
-    # --- end https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L71-L79 --- #
+    # --- end https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L71-L79 ---
 
-    # --- begin https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L81-L91 --- #
+    # --- begin https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L81-L91 ---
 
     pushw.local.6
     movup.3
@@ -770,7 +770,7 @@ proc.theta.7
     u32rotl.1
     u32xor
 
-    # stack = [d0, d1] #
+    # stack = [d0, d1]
 
     pushw.local.4
     movup.3
@@ -792,12 +792,12 @@ proc.theta.7
     movup.2
     u32xor
 
-    # stack = [d2, d3, d0, d1] #
+    # stack = [d2, d3, d0, d1]
 
     movup.3
     movup.3
 
-    # stack = [d0, d1, d2, d3] #
+    # stack = [d0, d1, d2, d3]
 
     pushw.local.4
     drop
@@ -815,7 +815,7 @@ proc.theta.7
     movup.2
     u32xor
 
-    # stack = [d4, d5, d0, d1, d2, d3] #
+    # stack = [d4, d5, d0, d1, d2, d3]
 
     pushw.local.5
     movup.3
@@ -837,12 +837,12 @@ proc.theta.7
     movup.2
     u32xor
 
-    # stack = [d6, d7, d4, d5, d0, d1, d2, d3] #
+    # stack = [d6, d7, d4, d5, d0, d1, d2, d3]
 
     movup.3
     movup.3
 
-    # stack = [d4, d5, d6, d7, d0, d1, d2, d3] #
+    # stack = [d4, d5, d6, d7, d0, d1, d2, d3]
 
     pushw.local.5
     drop
@@ -862,19 +862,19 @@ proc.theta.7
     movup.2
     u32xor
 
-    # stack = [d8, d9, d4, d5, d6, d7, d0, d1, d2, d3] #
+    # stack = [d8, d9, d4, d5, d6, d7, d0, d1, d2, d3]
 
     push.0.0
     movup.3
     movup.3
     
-    # stack = [d8, d9, 0, 0, d4, d5, d6, d7, d0, d1, d2, d3] #
+    # stack = [d8, d9, 0, 0, d4, d5, d6, d7, d0, d1, d2, d3]
 
-    popw.local.6 # -> to mem [d8, d9, 0, 0] #
-    popw.local.5 # -> to mem [d4, d5, d6, d7] #
-    popw.local.4 # -> to mem [d0, d1, d2, d3] #
+    popw.local.6 # -> to mem [d8, d9, 0, 0]
+    popw.local.5 # -> to mem [d4, d5, d6, d7]
+    popw.local.4 # -> to mem [d0, d1, d2, d3]
 
-    # --- end https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L81-L91 --- #
+    # --- end https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L81-L91 ---
 
     pushw.local.0
     dupw
@@ -884,7 +884,7 @@ proc.theta.7
     pushw.local.4
     exec.rev_4_elements
 
-    exec.xor_4_elements # compute state[0..4] #
+    exec.xor_4_elements # compute state[0..4]
 
     movup.7
     popw.mem
@@ -894,7 +894,7 @@ proc.theta.7
     pushw.local.5
     exec.rev_4_elements
 
-    exec.xor_4_elements # compute state[4..8] #
+    exec.xor_4_elements # compute state[4..8]
 
     movup.6
     popw.mem
@@ -913,7 +913,7 @@ proc.theta.7
     drop
     drop
 
-    exec.xor_4_elements # compute state[8..12] #
+    exec.xor_4_elements # compute state[8..12]
 
     movup.5
     popw.mem
@@ -931,7 +931,7 @@ proc.theta.7
     drop
     drop
 
-    exec.xor_4_elements # compute state[12..16] #
+    exec.xor_4_elements # compute state[12..16]
 
     movup.4
     popw.mem
@@ -952,7 +952,7 @@ proc.theta.7
     drop
     drop
 
-    exec.xor_4_elements # compute state[16..20] #
+    exec.xor_4_elements # compute state[16..20]
 
     movup.7
     popw.mem
@@ -962,7 +962,7 @@ proc.theta.7
     pushw.local.4
     exec.rev_4_elements
     
-    exec.xor_4_elements # compute state[20..24] #
+    exec.xor_4_elements # compute state[20..24]
 
     movup.6
     popw.mem
@@ -972,7 +972,7 @@ proc.theta.7
     pushw.local.5
     exec.rev_4_elements
 
-    exec.xor_4_elements # compute state[24..28] #
+    exec.xor_4_elements # compute state[24..28]
 
     movup.5
     popw.mem
@@ -991,7 +991,7 @@ proc.theta.7
     drop
     drop
 
-    exec.xor_4_elements # compute state[28..32] #
+    exec.xor_4_elements # compute state[28..32]
 
     movup.4
     popw.mem
@@ -1012,7 +1012,7 @@ proc.theta.7
     drop
     drop
 
-    exec.xor_4_elements # compute state[32..36] #
+    exec.xor_4_elements # compute state[32..36]
 
     movup.7
     popw.mem
@@ -1030,7 +1030,7 @@ proc.theta.7
     drop
     drop
 
-    exec.xor_4_elements # compute state[36..40] #
+    exec.xor_4_elements # compute state[36..40]
 
     movup.6
     popw.mem
@@ -1040,7 +1040,7 @@ proc.theta.7
     pushw.local.4
     exec.rev_4_elements
 
-    exec.xor_4_elements # compute state[40..44] #
+    exec.xor_4_elements # compute state[40..44]
 
     movup.5
     popw.mem
@@ -1050,7 +1050,7 @@ proc.theta.7
     pushw.local.5
     exec.rev_4_elements
 
-    exec.xor_4_elements # compute state[44..48] #
+    exec.xor_4_elements # compute state[44..48]
 
     movup.4
     popw.mem
@@ -1068,14 +1068,14 @@ proc.theta.7
     pushw.local.6
     exec.rev_4_elements
 
-    exec.xor_4_elements # compute state[48..50] #
+    exec.xor_4_elements # compute state[48..50]
 
     movup.4
     popw.mem
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ρ ( rho ) function, which is 
-  implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L115-L147 #
+  implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L115-L147
 proc.rho.4
     popw.local.0
     popw.local.1
@@ -1094,7 +1094,7 @@ proc.rho.4
     exec.rev_4_elements
 
     movup.7
-    popw.mem # wrote state[0..4] #
+    popw.mem # wrote state[0..4]
 
     pushw.mem
 
@@ -1113,7 +1113,7 @@ proc.rho.4
     exec.rev_4_elements
 
     movup.6
-    popw.mem # wrote state[4..8] #
+    popw.mem # wrote state[4..8]
 
     pushw.mem
 
@@ -1131,7 +1131,7 @@ proc.rho.4
     exec.rev_4_elements
     
     movup.5
-    popw.mem # wrote state[8..12] #
+    popw.mem # wrote state[8..12]
 
     pushw.mem
 
@@ -1150,7 +1150,7 @@ proc.rho.4
     exec.rev_4_elements
 
     movup.4
-    popw.mem # wrote state[12..16] #
+    popw.mem # wrote state[12..16]
 
     pushw.local.1
     dupw
@@ -1171,7 +1171,7 @@ proc.rho.4
     exec.rev_4_elements
 
     movup.7
-    popw.mem # wrote state[16..20] #
+    popw.mem # wrote state[16..20]
 
     pushw.mem
 
@@ -1189,7 +1189,7 @@ proc.rho.4
     exec.rev_4_elements
 
     movup.6
-    popw.mem # wrote state[20..24] #
+    popw.mem # wrote state[20..24]
 
     pushw.mem
 
@@ -1206,7 +1206,7 @@ proc.rho.4
     exec.rev_4_elements
 
     movup.5
-    popw.mem # wrote state[24..28] #
+    popw.mem # wrote state[24..28]
 
     pushw.mem
 
@@ -1223,7 +1223,7 @@ proc.rho.4
     exec.rev_4_elements
 
     movup.4
-    popw.mem # wrote state[28..32] #
+    popw.mem # wrote state[28..32]
 
     pushw.local.2
     dupw
@@ -1243,7 +1243,7 @@ proc.rho.4
     exec.rev_4_elements
 
     movup.7
-    popw.mem # wrote state[32..36] #
+    popw.mem # wrote state[32..36]
 
     pushw.mem
 
@@ -1261,7 +1261,7 @@ proc.rho.4
     exec.rev_4_elements
 
     movup.6
-    popw.mem # wrote state[36..40] #
+    popw.mem # wrote state[36..40]
 
     pushw.mem
 
@@ -1280,7 +1280,7 @@ proc.rho.4
     exec.rev_4_elements
 
     movup.5
-    popw.mem # wrote state[40..44] #
+    popw.mem # wrote state[40..44]
 
     pushw.mem
 
@@ -1298,7 +1298,7 @@ proc.rho.4
     exec.rev_4_elements
 
     movup.4
-    popw.mem # wrote state[44..48] #
+    popw.mem # wrote state[44..48]
 
     pushw.local.3
 
@@ -1317,11 +1317,11 @@ proc.rho.4
     swap
 
     movup.4
-    popw.mem # wrote state[48..50] #
+    popw.mem # wrote state[48..50]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's π function, which is 
-  implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L169-L207 #
+  implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L169-L207
 proc.pi.17
     popw.local.0
     popw.local.1
@@ -1352,7 +1352,7 @@ proc.pi.17
     drop
     swap
 
-    popw.local.4 # wrote state[0..4] #
+    popw.local.4 # wrote state[0..4]
 
     pushw.local.2
 
@@ -1385,7 +1385,7 @@ proc.pi.17
     drop
     swap
 
-    popw.local.5 # wrote state[4..8] #
+    popw.local.5 # wrote state[4..8]
 
     pushw.local.0
 
@@ -1415,7 +1415,7 @@ proc.pi.17
     drop
     swap
 
-    popw.local.6 # wrote state[8..12] #
+    popw.local.6 # wrote state[8..12]
 
     pushw.local.1
 
@@ -1439,7 +1439,7 @@ proc.pi.17
     drop
     drop
 
-    popw.local.7 # wrote state[12..16] #
+    popw.local.7 # wrote state[12..16]
 
     pushw.local.2
 
@@ -1468,7 +1468,7 @@ proc.pi.17
     drop
     swap
 
-    popw.local.8 # wrote state[16..20] #
+    popw.local.8 # wrote state[16..20]
 
     pushw.local.0
 
@@ -1491,7 +1491,7 @@ proc.pi.17
     drop
     drop
 
-    popw.local.9 # wrote state[20..24] #
+    popw.local.9 # wrote state[20..24]
 
     pushw.local.2
 
@@ -1518,7 +1518,7 @@ proc.pi.17
     drop
     drop
 
-    popw.local.10 # wrote state[24..28] #
+    popw.local.10 # wrote state[24..28]
 
     pushw.local.0
 
@@ -1550,7 +1550,7 @@ proc.pi.17
     drop
     swap
 
-    popw.local.11 # wrote state[28..32] #
+    popw.local.11 # wrote state[28..32]
 
     pushw.local.1
 
@@ -1577,7 +1577,7 @@ proc.pi.17
     drop
     drop
 
-    popw.local.12 # wrote state[32..36] #
+    popw.local.12 # wrote state[32..36]
 
     pushw.local.2
 
@@ -1600,7 +1600,7 @@ proc.pi.17
     drop
     drop
 
-    popw.local.13 # wrote state[36..40] #
+    popw.local.13 # wrote state[36..40]
 
     pushw.local.1
 
@@ -1633,7 +1633,7 @@ proc.pi.17
     drop
     swap
 
-    popw.local.14 # wrote state[40..44] #
+    popw.local.14 # wrote state[40..44]
 
     pushw.local.1
 
@@ -1643,7 +1643,7 @@ proc.pi.17
 
     pushw.mem
 
-    popw.local.15 # wrote state[44..48] #
+    popw.local.15 # wrote state[44..48]
 
     pushw.local.2
 
@@ -1662,61 +1662,61 @@ proc.pi.17
 
     swap
 
-    popw.local.16 # wrote state[48..50] #
+    popw.local.16 # wrote state[48..50]
 
     pushw.local.0
 
     pushw.local.4
     movup.4
-    storew.mem # final write state[0..4] #
+    storew.mem # final write state[0..4]
 
     loadw.local.5
     movup.4
-    storew.mem # final write state[4..8] #
+    storew.mem # final write state[4..8]
 
     loadw.local.6
     movup.4
-    storew.mem # final write state[8..12] #
+    storew.mem # final write state[8..12]
 
     loadw.local.7
     movup.4
-    storew.mem # final write state[12..16] #
+    storew.mem # final write state[12..16]
 
     loadw.local.1
 
     pushw.local.8
     movup.4
-    storew.mem # final write state[16..20] #
+    storew.mem # final write state[16..20]
 
     loadw.local.9
     movup.4
-    storew.mem # final write state[20..24] #
+    storew.mem # final write state[20..24]
 
     loadw.local.10
     movup.4
-    storew.mem # final write state[24..28] #
+    storew.mem # final write state[24..28]
 
     loadw.local.11
     movup.4
-    storew.mem # final write state[28..32] #
+    storew.mem # final write state[28..32]
 
     loadw.local.2
 
     pushw.local.12
     movup.4
-    storew.mem # final write state[32..36] #
+    storew.mem # final write state[32..36]
 
     loadw.local.13
     movup.4
-    storew.mem # final write state[36..40] #
+    storew.mem # final write state[36..40]
 
     loadw.local.14
     movup.4
-    storew.mem # final write state[40..44] #
+    storew.mem # final write state[40..44]
 
     loadw.local.15
     movup.4
-    storew.mem # final write state[44..48] #
+    storew.mem # final write state[44..48]
 
     loadw.local.16
 
@@ -1726,12 +1726,12 @@ proc.pi.17
         drop
     end
 
-    storew.mem # final write state[48..50] #
+    storew.mem # final write state[48..50]
     dropw
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's χ function, which is 
-# implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L233-L271 #
+# implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L233-L271
 proc.chi.7
     popw.local.0
     popw.local.1
@@ -1798,7 +1798,7 @@ proc.chi.7
     exec.rev_4_elements
     swap
 
-    popw.local.4 # write to c[0..4] #
+    popw.local.4 # write to c[0..4]
 
     pushw.local.0
 
@@ -1872,7 +1872,7 @@ proc.chi.7
     swap
     exec.rev_4_elements
 
-    popw.local.5 # write to c[4..8] #
+    popw.local.5 # write to c[4..8]
 
     pushw.local.0
 
@@ -1898,7 +1898,7 @@ proc.chi.7
     push.0.0
     exec.rev_4_elements
 
-    popw.local.6 # write to c[8..10] #
+    popw.local.6 # write to c[8..10]
 
     pushw.local.0
 
@@ -1914,7 +1914,7 @@ proc.chi.7
 
     movup.4
 
-    popw.mem # write to state[0..4]  #
+    popw.mem # write to state[0..4]
 
     dup
     pushw.mem
@@ -1925,7 +1925,7 @@ proc.chi.7
 
     movup.4
 
-    popw.mem # write to state[4..8]  #
+    popw.mem # write to state[4..8]
 
     dup
     pushw.mem
@@ -1936,7 +1936,7 @@ proc.chi.7
 
     movup.4
 
-    popw.mem # write to state[8..10]  #
+    popw.mem # write to state[8..10]
 
     pushw.local.0
 
@@ -1961,7 +1961,7 @@ proc.chi.7
     swap
     push.0.0
 
-    popw.local.4 # write to c[0..2] #
+    popw.local.4 # write to c[0..2]
 
     pushw.local.1
 
@@ -2022,7 +2022,7 @@ proc.chi.7
     u32and
 
     exec.rev_4_elements
-    popw.local.5 # write to c[2..6] #
+    popw.local.5 # write to c[2..6]
 
     pushw.local.1
 
@@ -2093,7 +2093,7 @@ proc.chi.7
     swap
 
     exec.rev_4_elements
-    popw.local.6 # write to c[6..10] #
+    popw.local.6 # write to c[6..10]
 
     pushw.local.0
 
@@ -2109,7 +2109,7 @@ proc.chi.7
     exec.xor_4_elements
 
     movup.4
-    popw.mem # write to state[10..12]  #
+    popw.mem # write to state[10..12]
 
     dup
     pushw.mem
@@ -2120,7 +2120,7 @@ proc.chi.7
     exec.xor_4_elements
 
     movup.4
-    popw.mem # write to state[12..16]  #
+    popw.mem # write to state[12..16]
 
     pushw.local.1
 
@@ -2138,7 +2138,7 @@ proc.chi.7
     exec.xor_4_elements
 
     movup.4
-    popw.mem # write to state[16..20]  #
+    popw.mem # write to state[16..20]
 
     pushw.local.1
 
@@ -2195,7 +2195,7 @@ proc.chi.7
     u32and
 
     exec.rev_4_elements
-    popw.local.4 # write to c[0..4] #
+    popw.local.4 # write to c[0..4]
 
     pushw.local.1
 
@@ -2270,7 +2270,7 @@ proc.chi.7
     swap
 
     exec.rev_4_elements
-    popw.local.5 # write to c[4..8] #
+    popw.local.5 # write to c[4..8]
 
     pushw.local.1
 
@@ -2297,7 +2297,7 @@ proc.chi.7
     push.0.0
     exec.rev_4_elements
 
-    popw.local.6 # write to c[8..10] #
+    popw.local.6 # write to c[8..10]
 
     pushw.local.1
 
@@ -2312,7 +2312,7 @@ proc.chi.7
     exec.xor_4_elements
 
     movup.4
-    popw.mem # write to state[20..24] #
+    popw.mem # write to state[20..24]
 
     dup
     pushw.mem
@@ -2323,7 +2323,7 @@ proc.chi.7
     exec.xor_4_elements
 
     movup.4
-    popw.mem # write to state[24..28] #
+    popw.mem # write to state[24..28]
 
     dup
     pushw.mem
@@ -2334,7 +2334,7 @@ proc.chi.7
     exec.xor_4_elements
 
     movup.4
-    popw.mem # write to state[28..30] #
+    popw.mem # write to state[28..30]
 
     pushw.local.2
 
@@ -2359,7 +2359,7 @@ proc.chi.7
     swap
 
     push.0.0
-    popw.local.4 # write to c[0..2] #
+    popw.local.4 # write to c[0..2]
 
     pushw.local.2
     movup.2
@@ -2410,7 +2410,7 @@ proc.chi.7
     u32and
 
     exec.rev_4_elements
-    popw.local.5 # write to c[2..6] #
+    popw.local.5 # write to c[2..6]
 
     pushw.local.2
 
@@ -2487,7 +2487,7 @@ proc.chi.7
     swap
 
     exec.rev_4_elements
-    popw.local.6 # write to c[6..10] #
+    popw.local.6 # write to c[6..10]
 
     pushw.local.1
 
@@ -2505,7 +2505,7 @@ proc.chi.7
     exec.xor_4_elements
 
     movup.4
-    popw.mem # write to state[30..32] #
+    popw.mem # write to state[30..32]
 
     pushw.local.2
 
@@ -2524,7 +2524,7 @@ proc.chi.7
     exec.xor_4_elements
     
     movup.4
-    popw.mem # write to state[32..36] #
+    popw.mem # write to state[32..36]
 
     dup
     pushw.mem
@@ -2535,7 +2535,7 @@ proc.chi.7
     exec.xor_4_elements
 
     movup.4
-    popw.mem # write to state[36..40] #
+    popw.mem # write to state[36..40]
 
     pushw.local.2
 
@@ -2590,7 +2590,7 @@ proc.chi.7
     u32and
 
     exec.rev_4_elements
-    popw.local.4 # write to c[0..4] #
+    popw.local.4 # write to c[0..4]
 
     pushw.local.2
 
@@ -2671,7 +2671,7 @@ proc.chi.7
     swap
 
     exec.rev_4_elements
-    popw.local.5 # write to c[4..8] #
+    popw.local.5 # write to c[4..8]
 
     pushw.local.2
 
@@ -2697,7 +2697,7 @@ proc.chi.7
     push.0.0
 
     exec.rev_4_elements
-    popw.local.6 # write to c[8..10] #
+    popw.local.6 # write to c[8..10]
 
     pushw.local.2
 
@@ -2713,7 +2713,7 @@ proc.chi.7
     exec.xor_4_elements
 
     movup.4
-    popw.mem # write to state[40..44] #
+    popw.mem # write to state[40..44]
 
     dup
     pushw.mem
@@ -2724,7 +2724,7 @@ proc.chi.7
     exec.xor_4_elements
 
     movup.4
-    popw.mem # write to state[44..48] #
+    popw.mem # write to state[44..48]
 
     pushw.local.3
 
@@ -2742,7 +2742,7 @@ proc.chi.7
     exec.xor_4_elements
 
     movup.4
-    popw.mem # write to state[48..50] #
+    popw.mem # write to state[48..50]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -2756,7 +2756,7 @@ proc.iota_round_1
     u32xor
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -2774,7 +2774,7 @@ proc.iota_round_2
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -2792,7 +2792,7 @@ proc.iota_round_3
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -2810,12 +2810,12 @@ proc.iota_round_4
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
-  implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-  invoked with (1u, 139u) as template arguments #
+# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
+# invoked with (1u, 139u) as template arguments
 proc.iota_round_5
     dup
     pushw.mem
@@ -2831,7 +2831,7 @@ proc.iota_round_5
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -2852,7 +2852,7 @@ proc.iota_round_6
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -2873,7 +2873,7 @@ proc.iota_round_7
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -2894,7 +2894,7 @@ proc.iota_round_8
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -2912,7 +2912,7 @@ proc.iota_round_9
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -2930,7 +2930,7 @@ proc.iota_round_10
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -2951,7 +2951,7 @@ proc.iota_round_11
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -2969,7 +2969,7 @@ proc.iota_round_12
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -2990,7 +2990,7 @@ proc.iota_round_13
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -3011,7 +3011,7 @@ proc.iota_round_14
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -3032,7 +3032,7 @@ proc.iota_round_15
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -3053,7 +3053,7 @@ proc.iota_round_16
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -3071,7 +3071,7 @@ proc.iota_round_17
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -3089,7 +3089,7 @@ proc.iota_round_18
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -3107,7 +3107,7 @@ proc.iota_round_19
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -3125,7 +3125,7 @@ proc.iota_round_20
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -3146,7 +3146,7 @@ proc.iota_round_21
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -3164,7 +3164,7 @@ proc.iota_round_22
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -3185,7 +3185,7 @@ proc.iota_round_23
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is 
@@ -3203,7 +3203,7 @@ proc.iota_round_24
     swap
 
     movup.4
-    popw.mem # write to state[0..2] #
+    popw.mem # write to state[0..2]
 end
 
 # keccak-p[b, n_r] permutation round, without `iota` function 
@@ -3223,7 +3223,7 @@ proc.round.4
     movupw.3
     storew.local.3
 
-    # reverse placement order of four VM words #
+    # reverse placement order of four VM words
     swapw
     movupw.2
     movupw.3
@@ -3262,7 +3262,7 @@ proc.keccak_p.4
     popw.local.2
     popw.local.3
 
-    # permutation round 1 #
+    # permutation round 1
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3279,7 +3279,7 @@ proc.keccak_p.4
 
     exec.iota_round_1
 
-    # permutation round 2 #
+    # permutation round 2
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3296,7 +3296,7 @@ proc.keccak_p.4
 
     exec.iota_round_2
 
-    # permutation round 3 #
+    # permutation round 3
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3313,7 +3313,7 @@ proc.keccak_p.4
 
     exec.iota_round_3
 
-    # permutation round 4 #
+    # permutation round 4
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3330,7 +3330,7 @@ proc.keccak_p.4
 
     exec.iota_round_4
 
-    # permutation round 5 #
+    # permutation round 5
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3347,7 +3347,7 @@ proc.keccak_p.4
 
     exec.iota_round_5
 
-    # permutation round 6 #
+    # permutation round 6
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3364,7 +3364,7 @@ proc.keccak_p.4
 
     exec.iota_round_6
 
-    # permutation round 7 #
+    # permutation round 7
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3381,7 +3381,7 @@ proc.keccak_p.4
 
     exec.iota_round_7
 
-    # permutation round 8 #
+    # permutation round 8
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3398,7 +3398,7 @@ proc.keccak_p.4
 
     exec.iota_round_8
 
-    # permutation round 9 #
+    # permutation round 9
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3415,7 +3415,7 @@ proc.keccak_p.4
 
     exec.iota_round_9
 
-    # permutation round 10 #
+    # permutation round 10
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3432,7 +3432,7 @@ proc.keccak_p.4
 
     exec.iota_round_10
 
-    # permutation round 11 #
+    # permutation round 11
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3449,7 +3449,7 @@ proc.keccak_p.4
 
     exec.iota_round_11
 
-    # permutation round 12 #
+    # permutation round 12
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3466,7 +3466,7 @@ proc.keccak_p.4
 
     exec.iota_round_12
 
-    # permutation round 13 #
+    # permutation round 13
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3483,7 +3483,7 @@ proc.keccak_p.4
 
     exec.iota_round_13
 
-    # permutation round 14 #
+    # permutation round 14
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3500,7 +3500,7 @@ proc.keccak_p.4
 
     exec.iota_round_14
 
-    # permutation round 15 #
+    # permutation round 15
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3517,7 +3517,7 @@ proc.keccak_p.4
 
     exec.iota_round_15
 
-    # permutation round 16 #
+    # permutation round 16
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3534,7 +3534,7 @@ proc.keccak_p.4
 
     exec.iota_round_16
 
-    # permutation round 17 #
+    # permutation round 17
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3551,7 +3551,7 @@ proc.keccak_p.4
 
     exec.iota_round_17
 
-    # permutation round 18 #
+    # permutation round 18
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3568,7 +3568,7 @@ proc.keccak_p.4
 
     exec.iota_round_18
 
-    # permutation round 19 #
+    # permutation round 19
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3585,7 +3585,7 @@ proc.keccak_p.4
 
     exec.iota_round_19
 
-    # permutation round 20 #
+    # permutation round 20
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3602,7 +3602,7 @@ proc.keccak_p.4
 
     exec.iota_round_20
 
-    # permutation round 21 #
+    # permutation round 21
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3619,7 +3619,7 @@ proc.keccak_p.4
 
     exec.iota_round_21
 
-    # permutation round 22 #
+    # permutation round 22
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3636,7 +3636,7 @@ proc.keccak_p.4
 
     exec.iota_round_22
 
-    # permutation round 23 #
+    # permutation round 23
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -3653,7 +3653,7 @@ proc.keccak_p.4
 
     exec.iota_round_23
 
-    # permutation round 24 #
+    # permutation round 24
     pushw.local.3
     pushw.local.2
     pushw.local.1
@@ -4998,7 +4998,7 @@ proc.to_state_array.4
         drop
     end
 
-    popw.mem # write to state[0..4] #
+    popw.mem # write to state[0..4]
 
     exec.to_bit_interleaved
 
@@ -5028,7 +5028,7 @@ proc.to_state_array.4
         drop
     end
 
-    popw.mem # write to state[4..8] #
+    popw.mem # write to state[4..8]
 
     exec.to_bit_interleaved
 
@@ -5057,7 +5057,7 @@ proc.to_state_array.4
     swap
     drop
 
-    popw.mem # write to state[8..12] #
+    popw.mem # write to state[8..12]
 
     exec.to_bit_interleaved
 
@@ -5085,7 +5085,7 @@ proc.to_state_array.4
     drop
     drop
 
-    popw.mem # write to state[12..16] #
+    popw.mem # write to state[12..16]
 
     push.0.0.0.1
 
@@ -5096,7 +5096,7 @@ proc.to_state_array.4
         drop
     end
 
-    popw.mem # write to state[16..20] #
+    popw.mem # write to state[16..20]
 
     push.0.0.0.0
 
@@ -5108,7 +5108,7 @@ proc.to_state_array.4
         drop
     end
 
-    popw.mem # write to state[20..24] #
+    popw.mem # write to state[20..24]
 
     push.0.0.0.0
 
@@ -5119,7 +5119,7 @@ proc.to_state_array.4
     swap
     drop
 
-    popw.mem # write to state[24..28] #
+    popw.mem # write to state[24..28]
 
     push.0.0.0.0
 
@@ -5129,7 +5129,7 @@ proc.to_state_array.4
     drop
     drop
 
-    popw.mem # write to state[28..32] #
+    popw.mem # write to state[28..32]
 
     push.0.0.2147483648.0
 
@@ -5140,7 +5140,7 @@ proc.to_state_array.4
         drop
     end
 
-    popw.mem # write to state[32..36] #
+    popw.mem # write to state[32..36]
 
     push.0.0.0.0
 
@@ -5152,7 +5152,7 @@ proc.to_state_array.4
         drop
     end
 
-    popw.mem # write to state[36..40] #
+    popw.mem # write to state[36..40]
 
     push.0.0.0.0
 
@@ -5163,7 +5163,7 @@ proc.to_state_array.4
     swap
     drop
 
-    popw.mem # write to state[40..44] #
+    popw.mem # write to state[40..44]
 
     push.0.0.0.0
 
@@ -5173,7 +5173,7 @@ proc.to_state_array.4
     drop
     drop
 
-    popw.mem # write to state[44..48] #
+    popw.mem # write to state[44..48]
 
     push.0.0.0.0
 
@@ -5184,7 +5184,7 @@ proc.to_state_array.4
         drop
     end
 
-    popw.mem # write to state[48..50] #
+    popw.mem # write to state[48..50]
 end
 
 # given 32 -bytes digest ( in terms of eight u32 elements on stack top ) in bit interleaved form,
