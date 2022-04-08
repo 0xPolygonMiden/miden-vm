@@ -1,7 +1,8 @@
 use vm_core::RANGE_CHECK_TRACE_OFFSET;
 
 use super::{
-    utils::is_binary, Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree,
+    utils::{is_binary, ColumnTransition},
+    Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree,
 };
 
 // CONSTANTS
@@ -52,27 +53,50 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
 ) {
-    let current = frame.current();
-    let next = frame.next();
-
     // --- Constrain the selector flags. ----------------------------------------------------------
+    enforce_flags(frame, result);
+
+    // --- Constrain the row transitions in the 8-bit section of the table. -----------------------
+    enforce_8bit(frame, &mut result[3..]);
+
+    // --- Constrain the transition from 8-bit to 16-bit section of the table. --------------------
+    enforce_16bit(frame, &mut result[4..]);
+}
+
+// TRANSITION CONSTRAINT HELPERS
+// ================================================================================================
+
+/// Constrain the selector flags.
+fn enforce_flags<E: FieldElement<BaseField = Felt>>(frame: &EvaluationFrame<E>, result: &mut [E]) {
+    let current = frame.current();
+
     result[0] = is_binary(current[T_COL_IDX]);
     result[1] = is_binary(current[S0_COL_IDX]);
     result[2] = is_binary(current[S1_COL_IDX]);
+}
 
-    // --- Constrain the row transitions in the 8-bit section of the table. -----------------------
-    let row_diff = next[V_COL_IDX] - current[V_COL_IDX];
-    result[3] = (E::ONE - next[T_COL_IDX]) * (row_diff) * (row_diff - E::ONE);
+/// Constrain the row transitions in the 8-bit section of the table.
+fn enforce_8bit<E: FieldElement<BaseField = Felt>>(frame: &EvaluationFrame<E>, result: &mut [E]) {
+    let next = frame.next();
 
-    // --- Constrain the transition from 8-bit to 16-bit section of the table. --------------------
-    let flip = (E::ONE - current[T_COL_IDX]) * next[T_COL_IDX];
+    let change = frame.change(V_COL_IDX);
+    result[0] = (E::ONE - next[T_COL_IDX]) * (change) * (change - E::ONE);
+}
+
+/// Constrain the transition from 8-bit to 16-bit section of the table.
+fn enforce_16bit<E: FieldElement<BaseField = Felt>>(frame: &EvaluationFrame<E>, result: &mut [E]) {
+    let current = frame.current();
+    let next = frame.next();
+    let t = current[T_COL_IDX];
+    let t_next = next[T_COL_IDX];
+    let flip = (E::ONE - t) * t_next;
 
     // Values in column t can "flip" from 0 to 1 only once.
-    result[4] = current[T_COL_IDX] * (E::ONE - next[T_COL_IDX]);
+    result[0] = t * (E::ONE - t_next);
 
     // When column t "flips", column v must equal 255.
-    result[5] = flip * (current[V_COL_IDX] - E::from(255_u8));
+    result[1] = flip * (current[V_COL_IDX] - E::from(255_u8));
 
     // When column t "flips", the next value column v must be reset to 0.
-    result[6] = flip * next[V_COL_IDX];
+    result[2] = flip * next[V_COL_IDX];
 }

@@ -9,7 +9,7 @@ use winter_air::{
     TransitionConstraintDegree,
 };
 
-mod memory;
+mod aux_table;
 mod options;
 mod range;
 mod utils;
@@ -23,7 +23,7 @@ pub use winter_air::{FieldExtension, HashFunction};
 
 struct TransitionConstraintRange {
     range: Range<usize>,
-    memory: Range<usize>,
+    aux_table: Range<usize>,
 }
 
 // PROCESSOR AIR
@@ -59,15 +59,15 @@ impl Air for ProcessorAir {
         let range_checker_range = create_range(degrees.len(), range_checker_degrees.len());
         degrees.append(&mut range_checker_degrees);
 
-        // --- memory -----------------------------------------------------------------------------
-        let mut memory_degrees = memory::get_transition_constraint_degrees();
-        let memory_range = create_range(range_checker_range.end, memory_degrees.len());
-        degrees.append(&mut memory_degrees);
+        // --- auxiliary table of co-processors (hasher, bitwise, memory) -------------------------
+        let mut aux_table_degrees = aux_table::get_transition_constraint_degrees();
+        let aux_table_range = create_range(range_checker_range.end, aux_table_degrees.len());
+        degrees.append(&mut aux_table_degrees);
 
         // Define the transition constraint ranges.
         let constraint_ranges = TransitionConstraintRange {
             range: range_checker_range,
-            memory: memory_range,
+            aux_table: aux_table_range,
         };
 
         // TODO: determine dynamically
@@ -139,8 +139,11 @@ impl Air for ProcessorAir {
         // --- range checker ----------------------------------------------------------------------
         range::enforce_constraints::<E>(frame, &mut result[self.constraint_ranges.range.start..]);
 
-        // --- memory -----------------------------------------------------------------------------
-        memory::enforce_constraints::<E>(frame, &mut result[self.constraint_ranges.memory.start..]);
+        // --- auxiliary table of co-processors (hasher, bitwise, memory) -------------------------
+        aux_table::enforce_constraints::<E>(
+            frame,
+            &mut result[self.constraint_ranges.aux_table.start..],
+        );
     }
 
     fn context(&self) -> &AirContext<Felt> {

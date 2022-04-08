@@ -29,7 +29,7 @@ impl ProofOptions {
     pub fn with_96_bit_security() -> Self {
         Self(WinterProofOptions::new(
             27,
-            8,
+            16,
             16,
             HashFunction::Blake3_192,
             FieldExtension::Quadratic,
