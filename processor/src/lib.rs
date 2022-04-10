@@ -47,6 +47,9 @@ use trace::TraceFragment;
 mod errors;
 pub use errors::ExecutionError;
 
+mod debug;
+pub use debug::{VmState, VmStateIterator};
+
 // TYPE ALIASES
 // ================================================================================================
 
@@ -67,6 +70,14 @@ pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace
     Ok(ExecutionTrace::new(process, *script.hash()))
 }
 
+/// Returns an iterator that allows callers to step through each exceution and inspect
+/// vm state information along side.
+pub fn execute_iter(script: &Script, inputs: &ProgramInputs) -> VmStateIterator {
+    let mut process = Process::new_debug(inputs.clone());
+    let result = process.execute_code_block(script.root());
+    VmStateIterator::new(process, result)
+}
+
 // PROCESS
 // ================================================================================================
 
@@ -82,17 +93,27 @@ pub struct Process {
 }
 
 impl Process {
-    pub fn new(inputs: ProgramInputs) -> Self {
+    fn initialize(inputs: ProgramInputs, keep_overflow_trace: bool) -> Self {
         Self {
             system: System::new(MIN_TRACE_LEN),
             decoder: Decoder::new(),
-            stack: Stack::new(&inputs, MIN_TRACE_LEN),
+            stack: Stack::new(&inputs, MIN_TRACE_LEN, keep_overflow_trace),
             range: RangeChecker::new(),
             hasher: Hasher::new(),
             bitwise: Bitwise::new(),
             memory: Memory::new(),
             advice: AdviceProvider::new(inputs),
         }
+    }
+
+    /// Creates a new process with the provided inputs.
+    pub fn new(inputs: ProgramInputs) -> Self {
+        Self::initialize(inputs, false)
+    }
+
+    /// Creates a new process with provided inputs and debug options enabled.
+    pub fn new_debug(inputs: ProgramInputs) -> Self {
+        Self::initialize(inputs, true)
     }
 
     // CODE BLOCK EXECUTORS

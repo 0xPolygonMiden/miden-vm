@@ -7,7 +7,7 @@ fn initialize() {
     // initialize a new stack with some initial values
     let mut stack_inputs = [1, 2, 3, 4];
     let inputs = ProgramInputs::new(&stack_inputs, &[], vec![]).unwrap();
-    let stack = Stack::new(&inputs, 4);
+    let stack = Stack::new(&inputs, 4, false);
 
     // Prepare the expected results.
     stack_inputs.reverse();
@@ -27,7 +27,7 @@ fn initialize() {
 #[test]
 fn shift_left() {
     let inputs = ProgramInputs::new(&[1, 2, 3, 4], &[], vec![]).unwrap();
-    let mut stack = Stack::new(&inputs, 4);
+    let mut stack = Stack::new(&inputs, 4, false);
 
     // ---- left shift an entire stack of minimum depth -------------------------------------------
     // Prepare the expected results.
@@ -48,7 +48,7 @@ fn shift_left() {
     );
 
     // ---- left shift an entire stack with multiple overflow items -------------------------------
-    let mut stack = Stack::new(&inputs, 4);
+    let mut stack = Stack::new(&inputs, 4, false);
     // Shift right twice to add 2 items to the overflow table.
     stack.shift_right(0);
     let prev_overflow_addr = stack.current_clk();
@@ -96,7 +96,7 @@ fn shift_left() {
 #[test]
 fn shift_right() {
     let inputs = ProgramInputs::new(&[1, 2, 3, 4], &[], vec![]).unwrap();
-    let mut stack = Stack::new(&inputs, 4);
+    let mut stack = Stack::new(&inputs, 4, false);
 
     // ---- right shift an entire stack of minimum depth ------------------------------------------
     let expected_stack = build_stack(&[0, 4, 3, 2, 1]);

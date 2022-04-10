@@ -224,12 +224,44 @@ impl Memory {
         self.get_values(RangeInclusive::new(0, u64::MAX))
     }
 
-    /// Returns values within a range of addresses.
+    /// Returns values within a range of addresses at the last clock cycle.
     pub fn get_values(&self, range: RangeInclusive<u64>) -> Vec<(u64, Word)> {
         let mut data: Vec<(u64, Word)> = Vec::new();
+
         for (&addr, addr_trace) in self.trace.range(range) {
             let value = addr_trace.last().expect("empty address trace").1;
             data.push((addr, value));
+        }
+
+        data
+    }
+
+    /// Returns values within a range of addresses, or optionally all values at the beginning of.
+    /// the specified cycle.
+    pub fn get_values_at(&self, range: RangeInclusive<u64>, step: u64) -> Vec<(u64, Word)> {
+        let mut data: Vec<(u64, Word)> = Vec::new();
+
+        if step == 0 {
+            return data;
+        }
+
+        // Because we want to view the memory state at the beginning of the specified cycle, we
+        // view the memory state at the previous cycle, as the current memory state is at the
+        // end of the current cycle.
+        let search_step = step - 1;
+
+        for (&addr, addr_trace) in self.trace.range(range) {
+            match addr_trace.binary_search_by(|(x, _)| x.as_int().cmp(&search_step)) {
+                Ok(i) => data.push((addr, addr_trace[i].1)),
+                Err(i) => {
+                    // Binary search would find the index the specified step should be in.
+                    // We decrement the index to get the equal or less than specified step
+                    // trace to insert into the results.
+                    if i > 0 {
+                        data.push((addr, addr_trace[i - 1].1));
+                    }
+                }
+            }
         }
 
         data

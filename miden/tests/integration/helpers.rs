@@ -1,4 +1,4 @@
-use processor::{ExecutionError, ExecutionTrace, Process};
+use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
 pub use vm_core::{program::Script, Felt, FieldElement, ProgramInputs, MIN_STACK_DEPTH};
 
@@ -138,6 +138,14 @@ impl Test {
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let script = self.compile();
         processor::execute(&script, &self.inputs)
+    }
+
+    /// Compiles the test's source to a Script and executes it with the tests inputs. Returns a
+    /// VmStateIterator that allows us to iterate through each clock cycle and inpsect the process
+    /// state.
+    pub fn execute_iter(&self) -> VmStateIterator {
+        let script = self.compile();
+        processor::execute_iter(&script, &self.inputs)
     }
 
     /// Returns the last state of the stack after executing a test.
