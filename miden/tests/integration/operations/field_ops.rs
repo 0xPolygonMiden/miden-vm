@@ -1,11 +1,256 @@
 use proptest::prelude::*;
-use vm_core::{Felt, StarkField};
+use rand_utils::rand_value;
+use vm_core::{Felt, FieldElement, StarkField};
 
 use crate::build_op_test;
 use crate::helpers::{prop_randw, TestError, WORD_LEN};
 
 // FIELD OPS ARITHMETIC - MANUAL TESTS
 // ================================================================================================
+
+#[test]
+fn add() {
+    let asm_op = "add";
+
+    // --- simple case ----------------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[1, 2]);
+    test.expect_stack(&[3]);
+
+    let test = build_op_test!(asm_op, &[5, 8]);
+    test.expect_stack(&[13]);
+
+    // --- test overflow --------------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[Felt::MODULUS, 8]);
+    test.expect_stack(&[8]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    let test = build_op_test!(asm_op, &[c, 5, 2]);
+    test.expect_stack(&[7, c]);
+}
+
+#[test]
+fn add_b() {
+    let build_asm_op = |param: u64| format!("add.{}", param);
+
+    // --- simple case ----------------------------------------------------------------------------
+    let test = build_op_test!(build_asm_op(2), &[1]);
+    test.expect_stack(&[3]);
+
+    let test = build_op_test!(build_asm_op(8), &[5]);
+    test.expect_stack(&[13]);
+
+    // --- test overflow --------------------------------------------------------------------------
+    let test = build_op_test!(build_asm_op(8), &[Felt::MODULUS]);
+    test.expect_stack(&[8]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    let test = build_op_test!(build_asm_op(2), &[c, 5]);
+    test.expect_stack(&[7, c]);
+}
+
+#[test]
+fn sub() {
+    let asm_op = "sub";
+
+    // --- simple case ----------------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[3, 2]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(asm_op, &[10, 7]);
+    test.expect_stack(&[3]);
+
+    // --- test underflow -------------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[0, 1]);
+    test.expect_stack(&[Felt::MODULUS - 1]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    let test = build_op_test!(asm_op, &[c, 2, 2]);
+    test.expect_stack(&[0, c]);
+}
+
+#[test]
+fn sub_b() {
+    let build_asm_op = |param: u64| format!("sub.{}", param);
+
+    // --- simple case ----------------------------------------------------------------------------
+    let test = build_op_test!(build_asm_op(2), &[3]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(build_asm_op(7), &[10]);
+    test.expect_stack(&[3]);
+
+    // --- test underflow -------------------------------------------------------------------------
+    let test = build_op_test!(build_asm_op(1), &[0]);
+    test.expect_stack(&[Felt::MODULUS - 1]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    let test = build_op_test!(build_asm_op(2), &[c, 2]);
+    test.expect_stack(&[0, c]);
+}
+
+#[test]
+fn mul() {
+    let asm_op = "mul";
+
+    // --- simple cases ---------------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[1, 0]);
+    test.expect_stack(&[0]);
+
+    let test = build_op_test!(asm_op, &[1, 5]);
+    test.expect_stack(&[5]);
+
+    // --- test overflow --------------------------------------------------------------------------
+    let high_number = Felt::MODULUS - 1;
+    let test = build_op_test!(asm_op, &[high_number, 2]);
+    let expected = high_number as u128 * 2_u128 % Felt::MODULUS as u128;
+    test.expect_stack(&[expected as u64]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    let test = build_op_test!(asm_op, &[c, 2, 2]);
+    test.expect_stack(&[4, c]);
+}
+
+#[test]
+fn mul_b() {
+    let build_asm_op = |param: u64| format!("mul.{}", param);
+
+    // --- simple cases ---------------------------------------------------------------------------
+    let test = build_op_test!(build_asm_op(0), &[1]);
+    test.expect_stack(&[0]);
+
+    let test = build_op_test!(build_asm_op(1), &[5]);
+    test.expect_stack(&[5]);
+
+    // --- test overflow --------------------------------------------------------------------------
+    let high_number = Felt::MODULUS - 1;
+    let test = build_op_test!(build_asm_op(2), &[high_number]);
+    let expected = high_number as u128 * 2_u128 % Felt::MODULUS as u128;
+    test.expect_stack(&[expected as u64]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    let test = build_op_test!(build_asm_op(2), &[c, 2]);
+    test.expect_stack(&[4, c]);
+}
+
+#[test]
+fn div() {
+    let asm_op = "div";
+
+    // --- simple cases ---------------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[0, 1]);
+    test.expect_stack(&[0]);
+
+    let test = build_op_test!(asm_op, &[2, 1]);
+    test.expect_stack(&[2]);
+
+    // --- test remainder -------------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[5, 2]);
+    let expected = (Felt::new(2).inv().as_int() as u128 * 5_u128) % Felt::MODULUS as u128;
+    test.expect_stack(&[expected as u64]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    let test = build_op_test!(asm_op, &[c, 10, 5]);
+    test.expect_stack(&[2, c]);
+}
+
+#[test]
+fn div_b() {
+    let build_asm_op = |param: u64| format!("div.{}", param);
+
+    // --- simple cases ---------------------------------------------------------------------------
+    let test = build_op_test!(build_asm_op(1), &[0]);
+    test.expect_stack(&[0]);
+
+    let test = build_op_test!(build_asm_op(2), &[4]);
+    test.expect_stack(&[2]);
+
+    // --- test remainder -------------------------------------------------------------------------
+    let test = build_op_test!(build_asm_op(2), &[5]);
+    let expected = (Felt::new(2).inv().as_int() as u128 * 5_u128) % Felt::MODULUS as u128;
+    test.expect_stack(&[expected as u64]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    let test = build_op_test!(build_asm_op(5), &[c, 10]);
+    test.expect_stack(&[2, c]);
+}
+
+#[test]
+fn div_fail() {
+    let asm_op = "div";
+
+    // --- test divide by zero --------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[1, 0]);
+    test.expect_error(TestError::ExecutionError("DivideByZero"));
+}
+
+#[test]
+fn neg() {
+    let asm_op = "neg";
+
+    // --- simple cases ---------------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[1]);
+    test.expect_stack(&[Felt::MODULUS - 1]);
+
+    let test = build_op_test!(asm_op, &[64]);
+    test.expect_stack(&[Felt::MODULUS - 64]);
+
+    let test = build_op_test!(asm_op, &[0]);
+    test.expect_stack(&[0]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    let test = build_op_test!(asm_op, &[c, 5]);
+    test.expect_stack(&[Felt::MODULUS - 5, c]);
+}
+
+#[test]
+fn neg_fail() {
+    let asm_op = "neg.1";
+
+    // --- test illegal argument -------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[1]);
+    test.expect_error(TestError::AssemblyError("neg"));
+}
+
+#[test]
+fn inv() {
+    let asm_op = "inv";
+
+    // --- simple cases ---------------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[1]);
+    test.expect_stack(&[Felt::new(1).inv().as_int()]);
+
+    let test = build_op_test!(asm_op, &[64]);
+    test.expect_stack(&[Felt::new(64).inv().as_int()]);
+
+    // --- test that the rest of the stack isn't affected -----------------------------------------
+    let c = rand_value::<u64>();
+    let test = build_op_test!(asm_op, &[c, 5]);
+    test.expect_stack(&[Felt::new(5).inv().as_int(), c]);
+}
+
+#[test]
+fn inv_fail() {
+    let asm_op = "inv";
+
+    // --- test no inv on 0 -----------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[0]);
+    test.expect_error(TestError::ExecutionError("DivideByZero"));
+
+    let asm_op = "inv.1";
+
+    // --- test illegal argument -----------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[1]);
+    test.expect_error(TestError::AssemblyError("inv"));
+}
 
 #[test]
 fn pow2() {
@@ -98,6 +343,113 @@ fn gte() {
 // ================================================================================================
 
 proptest! {
+    #[test]
+    fn add_proptest(a in any::<u64>(), b in any::<u64>()) {
+        let asm_op = "add";
+
+        // allow a possible overflow then mod by the Felt Modulus
+        let expected = (a as u128 + b as u128) % Felt::MODULUS as u128;
+
+        // b provided via the stack
+        let test = build_op_test!(asm_op, &[a, b]);
+        test.prop_expect_stack(&[expected as u64])?;
+
+        // b provided as a parameter
+        let asm_op = format!("{}.{}", asm_op, b);
+        let test = build_op_test!(&asm_op, &[a]);
+        test.prop_expect_stack(&[expected as u64])?;
+    }
+
+    #[test]
+    fn sub_proptest(val1 in any::<u64>(), val2 in any::<u64>()) {
+        let asm_op = "sub";
+
+        // assign the larger value to a and the smaller value to b
+        let (a, b) = if val1 >= val2 {
+            (val1, val2)
+        } else {
+            (val2, val1)
+        };
+
+        let expected = a - b;
+
+        // b provided via the stack
+        let test = build_op_test!(asm_op, &[a, b]);
+        test.prop_expect_stack(&[expected])?;
+
+        // underflow by a provided via the stack
+        let test = build_op_test!(asm_op, &[b, a]);
+        test.prop_expect_stack(&[Felt::MODULUS - expected])?;
+
+        // b provided as a parameter
+        let asm_op_b = format!("{}.{}", asm_op, b);
+        let test = build_op_test!(&asm_op_b, &[a]);
+        test.prop_expect_stack(&[expected])?;
+
+        // underflow by a provided as a parameter
+        let asm_op_b = format!("{}.{}", asm_op, a);
+        let test = build_op_test!(asm_op_b, &[b]);
+        test.prop_expect_stack(&[Felt::MODULUS - expected])?;
+    }
+
+    #[test]
+    fn mul_proptest(a in any::<u64>(), b in any::<u64>()) {
+        let asm_op = "mul";
+
+        // allow a possible overflow then mod by the Felt Modulus
+        let expected = (a as u128 * b as u128) % Felt::MODULUS as u128;
+
+        // b provided via the stack
+        let test = build_op_test!(asm_op, &[a, b]);
+        test.prop_expect_stack(&[expected as u64])?;
+
+        // b provided as a parameter
+        let asm_op = format!("{}.{}", asm_op, b);
+        let test = build_op_test!(&asm_op, &[a]);
+        test.prop_expect_stack(&[expected as u64])?;
+    }
+
+    #[test]
+    fn div_proptest(a in any::<u64>(), b in 1..u64::MAX) {
+        let asm_op = "div";
+
+        // allow a possible overflow then mod by the Felt Modulus
+        let expected = (Felt::new(b).inv().as_int() as u128 * a as u128) % Felt::MODULUS as u128;
+
+        // b provided via the stack
+        let test = build_op_test!(asm_op, &[a, b]);
+        test.prop_expect_stack(&[expected as u64])?;
+
+        // b provided as a parameter
+        let asm_op = format!("{}.{}", asm_op, b);
+        let test = build_op_test!(&asm_op, &[a]);
+        test.prop_expect_stack(&[expected as u64])?;
+    }
+
+    #[test]
+    fn neg_proptest(a in any::<u64>()) {
+        let asm_op = "neg";
+
+        let expected = if a > 0 {
+            Felt::MODULUS - a
+        } else {
+            0
+        };
+
+        let test = build_op_test!(asm_op, &[a]);
+        test.prop_expect_stack(&[expected])?;
+    }
+
+    #[test]
+    fn inv_proptest(a in 1..u64::MAX) {
+        let asm_op = "inv";
+
+        let expected = Felt::new(a).inv().as_int();
+
+        let test = build_op_test!(asm_op, &[a]);
+        test.prop_expect_stack(&[expected])?;
+    }
+
     #[test]
     fn pow2_proptest(b in 0_u32..64) {
         let asm_op = "pow2";
