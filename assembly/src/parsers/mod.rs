@@ -88,6 +88,7 @@ fn parse_op_token(
         "dupw" => stack_ops::parse_dupw(span_ops, op),
         "swap" => stack_ops::parse_swap(span_ops, op),
         "swapw" => stack_ops::parse_swapw(span_ops, op),
+        "swapdw" => stack_ops::parse_swapdw(span_ops, op),
         "movup" => stack_ops::parse_movup(span_ops, op),
         "movupw" => stack_ops::parse_movupw(span_ops, op),
         "movdn" => stack_ops::parse_movdn(span_ops, op),
