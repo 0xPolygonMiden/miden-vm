@@ -2,6 +2,10 @@ use super::{Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraint
 
 // PROCESSOR CONSTRAINTS
 // ================================================================================================
+
+/// Information about a single boundary constraint, specifying the column index and the boundary
+/// value. It currently only supports single assertions, but it can be used for either first step or
+/// last step assertions.
 pub struct ColumnBoundary {
     column: usize,
     value: Felt,
@@ -17,6 +21,7 @@ impl ColumnBoundary {
     }
 }
 
+/// The basic transition constraint information for a processor.
 pub struct TransitionConstraints {
     count: usize,
     degrees: Vec<usize>,
@@ -36,6 +41,9 @@ impl TransitionConstraints {
     }
 }
 
+/// Trait to manage interactions with constraint information for individual processing sections of
+/// the trace so that boundary and transition constraint information can be accessed easily for each
+/// processor.
 pub trait ProcessorConstraints {
     fn first_step(&self) -> &[ColumnBoundary];
     fn last_step(&self) -> &[ColumnBoundary];
@@ -80,18 +88,6 @@ pub fn is_binary<E: FieldElement>(v: E) -> E {
 #[inline(always)]
 pub fn binary_not<E: FieldElement>(v: E) -> E {
     E::ONE - v
-}
-
-// TRAIT TO SIMPLIFY COLUMN TRANSITIONS
-// ================================================================================================
-pub trait ColumnTransition<E: FieldElement> {
-    fn change(&self, column: usize) -> E;
-}
-
-impl<E: FieldElement> ColumnTransition<E> for EvaluationFrame<E> {
-    fn change(&self, column: usize) -> E {
-        self.next()[column] - self.current()[column]
-    }
 }
 
 // TRAIT TO SIMPLIFY CONSTRAINT AGGREGATION

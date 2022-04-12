@@ -155,6 +155,9 @@ impl Air for ProcessorAir {
 
 // TRANSITION CONSTRAINT RANGE
 // ================================================================================================
+
+/// Manages the starting index and length of transition constraints for individual processors so
+/// indices can be handled easily during transition evaluation.
 struct TransitionConstraintRange {
     range_checker: Range<usize>,
     aux_table: Range<usize>,
