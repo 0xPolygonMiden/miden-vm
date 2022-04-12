@@ -1,4 +1,73 @@
-use super::{EvaluationFrame, FieldElement};
+use super::{Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree};
+
+// PROCESSOR CONSTRAINTS
+// ================================================================================================
+pub struct ColumnBoundary {
+    column: usize,
+    value: Felt,
+}
+
+impl ColumnBoundary {
+    pub fn new(column: usize, value: Felt) -> Self {
+        Self { column, value }
+    }
+
+    pub fn get_constraint(&self, step: usize) -> Assertion<Felt> {
+        Assertion::single(self.column, step, self.value)
+    }
+}
+
+pub struct TransitionConstraints {
+    count: usize,
+    degrees: Vec<usize>,
+}
+
+impl TransitionConstraints {
+    pub fn new(count: usize, degrees: Vec<usize>) -> Self {
+        Self { count, degrees }
+    }
+
+    pub fn count(&self) -> usize {
+        self.count
+    }
+
+    pub fn degrees(&self) -> &Vec<usize> {
+        &self.degrees
+    }
+}
+
+pub trait ProcessorConstraints {
+    fn first_step(&self) -> &[ColumnBoundary];
+    fn last_step(&self) -> &[ColumnBoundary];
+    fn transitions(&self) -> &TransitionConstraints;
+    fn enforce_constraints<E: FieldElement>(&self, frame: &EvaluationFrame<E>, result: &mut [E]);
+
+    // --- BOUNDARY CONSTRAINTS -------------------------------------------------------------------
+    fn get_assertions_first_step(&self, result: &mut Vec<Assertion<Felt>>) {
+        self.first_step()
+            .iter()
+            .for_each(|boundary| result.push(boundary.get_constraint(0)));
+    }
+
+    fn get_assertions_last_step(&self, result: &mut Vec<Assertion<Felt>>, step: usize) {
+        self.last_step()
+            .iter()
+            .for_each(|boundary| result.push(boundary.get_constraint(step)));
+    }
+
+    // --- TRANSITION CONSTRAINTS -----------------------------------------------------------------
+    fn get_transition_constraint_count(&self) -> usize {
+        self.transitions().count
+    }
+
+    fn get_transition_constraint_degrees(&self) -> Vec<TransitionConstraintDegree> {
+        self.transitions()
+            .degrees
+            .iter()
+            .map(|&degree| TransitionConstraintDegree::new(degree))
+            .collect()
+    }
+}
 
 // BASIC CONSTRAINT OPERATORS
 // ================================================================================================
@@ -13,15 +82,15 @@ pub fn binary_not<E: FieldElement>(v: E) -> E {
     E::ONE - v
 }
 
+// TRAIT TO SIMPLIFY COLUMN TRANSITIONS
+// ================================================================================================
 pub trait ColumnTransition<E: FieldElement> {
     fn change(&self, column: usize) -> E;
 }
 
 impl<E: FieldElement> ColumnTransition<E> for EvaluationFrame<E> {
     fn change(&self, column: usize) -> E {
-        let current = self.current();
-        let next = self.next();
-        next[column] - current[column]
+        self.next()[column] - self.current()[column]
     }
 }
 
