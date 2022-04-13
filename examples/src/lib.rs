@@ -64,7 +64,7 @@ pub fn test_example(example: Example, fail: bool) {
 
     let options = ProofOptions::new(
         32,
-        8,
+        16,
         0,
         miden::HashFunction::Blake3_256,
         miden::FieldExtension::None,
