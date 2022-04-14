@@ -22,6 +22,12 @@ jobs:
         with:
           mdbook-version: 'latest'
 
+      - name: Install mdbook-katex
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: mdbook-katex
+
       - name: Build miden book
         run: mdbook build docs/
 
@@ -29,4 +35,4 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/book
+          publish_dir: ./docs/book/html
