@@ -1,5 +1,5 @@
 # User Documentation
 
 
-- [Miden Assembly](./miden_assembly.md)
-- [Miden Standard Library](./miden_stdlib.md)
+- [Miden Assembly](./assembly/main.md)
+- [Miden Standard Library](./stdlib/main.md)
