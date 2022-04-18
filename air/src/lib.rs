@@ -140,12 +140,14 @@ impl Air for ProcessorAir {
         // --- range checker ----------------------------------------------------------------------
         self.range_checker.enforce_constraints::<E>(
             frame,
-            &mut result[self.constraint_ranges.range_checker.clone()],
+            select_result_range!(result, self.constraint_ranges.range_checker),
         );
 
         // --- auxiliary table of co-processors (hasher, bitwise, memory) -------------------------
-        self.aux_table
-            .enforce_constraints::<E>(frame, &mut result[self.constraint_ranges.aux_table.clone()]);
+        self.aux_table.enforce_constraints::<E>(
+            frame,
+            select_result_range!(result, self.constraint_ranges.aux_table),
+        );
     }
 
     fn context(&self) -> &AirContext<Felt> {

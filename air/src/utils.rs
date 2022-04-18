@@ -108,3 +108,13 @@ impl<E: FieldElement> EvaluationResult<E> for Vec<E> {
         self[index] += flag * value;
     }
 }
+
+// MACRO TO SIMPLIFY RANGE HANDLING
+// ================================================================================================
+/// Select an array range from a mutable result array and a specified range.
+#[macro_export]
+macro_rules! select_result_range {
+    ($result:expr, $range:expr) => {
+        &mut $result[$range.start..$range.end]
+    };
+}
