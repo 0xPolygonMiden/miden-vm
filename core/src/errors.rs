@@ -1,3 +1,5 @@
+use super::Word;
+
 #[derive(Clone, Debug)]
 pub enum InputError {
     NotFieldElement(u64, &'static str),
@@ -11,6 +13,9 @@ pub enum AdviceSetError {
     DepthTooBig(u32),
     NumLeavesNotPowerOfTwo(usize),
     InvalidIndex(u32, u64),
+    InvalidDepth(u32, u32),
+    InvalidPath(Vec<Word>),
+    NodeNotInSet(u64),
 }
 
 #[derive(Clone, Debug)]

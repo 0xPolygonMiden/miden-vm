@@ -85,7 +85,7 @@ impl MerkleTree {
         Ok(self.nodes[pos])
     }
 
-    /// Returns a Merkle path to the node at the specified depth and index. The note itself is
+    /// Returns a Merkle path to the node at the specified depth and index. The node itself is
     /// not included in the path.
     ///
     /// # Errors
