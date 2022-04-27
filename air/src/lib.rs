@@ -1,7 +1,6 @@
-use core::ops::Range;
 use vm_core::{
     hasher::Digest,
-    utils::{range as create_range, ByteWriter, Serializable},
+    utils::{ByteWriter, Serializable},
     CLK_COL_IDX, FMP_COL_IDX, MIN_STACK_DEPTH, STACK_TRACE_OFFSET,
 };
 use winter_air::{
@@ -10,12 +9,10 @@ use winter_air::{
 };
 
 mod aux_table;
-use aux_table::AuxTableConstraints;
 mod options;
 mod range;
-use range::RangeCheckerConstraints;
 mod utils;
-use utils::ProcessorConstraints;
+use utils::TransitionConstraintRange;
 
 // EXPORTS
 // ================================================================================================
@@ -33,8 +30,6 @@ pub struct ProcessorAir {
     stack_inputs: Vec<Felt>,
     stack_outputs: Vec<Felt>,
     constraint_ranges: TransitionConstraintRange,
-    range_checker: RangeCheckerConstraints,
-    aux_table: AuxTableConstraints,
 }
 
 impl ProcessorAir {
@@ -55,18 +50,18 @@ impl Air for ProcessorAir {
         ];
 
         // --- range checker ----------------------------------------------------------------------
-        let range_checker = RangeCheckerConstraints::new();
-        degrees.append(&mut range_checker.get_transition_constraint_degrees());
+        let mut range_checker_degrees = range::get_transition_constraint_degrees();
+        degrees.append(&mut range_checker_degrees);
 
         // --- auxiliary table of co-processors (hasher, bitwise, memory) -------------------------
-        let aux_table = AuxTableConstraints::new();
-        degrees.append(&mut aux_table.get_transition_constraint_degrees());
+        let mut aux_table_degrees = aux_table::get_transition_constraint_degrees();
+        degrees.append(&mut aux_table_degrees);
 
         // Define the transition constraint ranges.
         let constraint_ranges = TransitionConstraintRange::new(
             1,
-            range_checker.get_transition_constraint_count(),
-            aux_table.get_transition_constraint_count(),
+            range::get_transition_constraint_count(),
+            aux_table::get_transition_constraint_count(),
         );
 
         // TODO: determine dynamically
@@ -85,8 +80,6 @@ impl Air for ProcessorAir {
             stack_inputs: pub_inputs.stack_inputs,
             stack_outputs: pub_inputs.stack_outputs,
             constraint_ranges,
-            range_checker,
-            aux_table,
         }
     }
 
@@ -107,7 +100,7 @@ impl Air for ProcessorAir {
         }
 
         // Add initial assertions for the range checker.
-        self.range_checker.get_assertions_first_step(&mut result);
+        range::get_assertions_first_step(&mut result);
 
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.last_step();
@@ -118,8 +111,7 @@ impl Air for ProcessorAir {
         }
 
         // Add the range checker's assertions for the last step.
-        self.range_checker
-            .get_assertions_last_step(&mut result, last_step);
+        range::get_assertions_last_step(&mut result, last_step);
 
         result
     }
@@ -138,13 +130,13 @@ impl Air for ProcessorAir {
         result[0] = next[CLK_COL_IDX] - (current[CLK_COL_IDX] + E::ONE);
 
         // --- range checker ----------------------------------------------------------------------
-        self.range_checker.enforce_constraints::<E>(
+        range::enforce_constraints::<E>(
             frame,
             select_result_range!(result, self.constraint_ranges.range_checker),
         );
 
         // --- auxiliary table of co-processors (hasher, bitwise, memory) -------------------------
-        self.aux_table.enforce_constraints::<E>(
+        aux_table::enforce_constraints::<E>(
             frame,
             select_result_range!(result, self.constraint_ranges.aux_table),
         );
@@ -152,28 +144,6 @@ impl Air for ProcessorAir {
 
     fn context(&self) -> &AirContext<Felt> {
         &self.context
-    }
-}
-
-// TRANSITION CONSTRAINT RANGE
-// ================================================================================================
-
-/// Manages the starting index and length of transition constraints for individual processors so
-/// indices can be handled easily during transition evaluation.
-struct TransitionConstraintRange {
-    range_checker: Range<usize>,
-    aux_table: Range<usize>,
-}
-
-impl TransitionConstraintRange {
-    fn new(sys: usize, range_checker_len: usize, aux_table_len: usize) -> Self {
-        let range_checker = create_range(sys, range_checker_len);
-        let aux_table = create_range(range_checker.end, aux_table_len);
-
-        Self {
-            range_checker,
-            aux_table,
-        }
     }
 }
 

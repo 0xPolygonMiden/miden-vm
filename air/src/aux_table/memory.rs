@@ -1,16 +1,12 @@
-use super::{
-    EvaluationFrame, EvaluationFrameExt as EvaluationFrameAuxTableExt, FieldElement,
-    MEMORY_TRACE_OFFSET,
-};
-use crate::utils::{
-    binary_not, is_binary, ColumnBoundary, EvaluationResult, ProcessorConstraints,
-    TransitionConstraints,
-};
+use super::{EvaluationFrame, FieldElement, MEMORY_TRACE_OFFSET};
+use crate::utils::{binary_not, is_binary, EvaluationResult};
 use core::ops::Range;
 use vm_core::utils::range as create_range;
+use winter_air::TransitionConstraintDegree;
 
 // CONSTANTS
 // ================================================================================================
+
 /// The number of constraints on the management of the memory co-processor.
 pub const NUM_CONSTRAINTS: usize = 13;
 /// The degrees of constraints on the management of the memory co-processor.
@@ -47,58 +43,36 @@ const D1_COL_IDX: usize = D0_COL_IDX + 1;
 /// cycles, used to enforce that changes are correctly constrained.
 const D_INV_COL_IDX: usize = D1_COL_IDX + 1;
 
-// MEMORY CONSTRAINTS
+// MEMORY TRANSITION CONSTRAINTS
 // ================================================================================================
-pub struct MemoryConstraints {
-    first_step: Vec<ColumnBoundary>,
-    last_step: Vec<ColumnBoundary>,
-    transitions: TransitionConstraints,
+
+/// Builds the transition constraint degrees for the memory co-processor.
+pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
+    CONSTRAINT_DEGREES
+        .iter()
+        .map(|&degree| TransitionConstraintDegree::new(degree))
+        .collect()
 }
 
-impl MemoryConstraints {
-    pub fn new() -> Self {
-        // Define the boundary constraints.
-        let first_step = vec![];
-        let last_step = vec![];
-
-        // Define the transition constraints.
-        let transitions = TransitionConstraints::new(NUM_CONSTRAINTS, CONSTRAINT_DEGREES.to_vec());
-
-        Self {
-            first_step,
-            last_step,
-            transitions,
-        }
-    }
+/// Returns the number of transition constraints for the memory co-processor.
+pub fn get_transition_constraint_count() -> usize {
+    NUM_CONSTRAINTS
 }
 
-impl ProcessorConstraints for MemoryConstraints {
-    // --- BOUNDARY CONSTRAINTS -------------------------------------------------------------------
+/// Enforces constraints for the memory co-processor.
+pub fn enforce_constraints<E: FieldElement>(
+    frame: &EvaluationFrame<E>,
+    result: &mut [E],
+    memory_flag: E,
+) {
+    // Constrain the values in the d inverse column.
+    let mut index = enforce_d_inv(frame, result, memory_flag);
 
-    fn first_step(&self) -> &[ColumnBoundary] {
-        &self.first_step
-    }
+    // Enforce values in ctx, addr, clk transition correctly.
+    index += enforce_delta(frame, &mut result[index..], memory_flag);
 
-    fn last_step(&self) -> &[ColumnBoundary] {
-        &self.last_step
-    }
-
-    // --- TRANSITION CONSTRAINTS -----------------------------------------------------------------
-
-    fn transitions(&self) -> &TransitionConstraints {
-        &self.transitions
-    }
-
-    fn enforce_constraints<E: FieldElement>(&self, frame: &EvaluationFrame<E>, result: &mut [E]) {
-        // Constrain the values in the d inverse column.
-        let mut index = enforce_d_inv(frame, result);
-
-        // Enforce values in ctx, addr, clk transition correctly.
-        index += enforce_delta(frame, &mut result[index..]);
-
-        // Constrain the memory values.
-        enforce_values(frame, &mut result[index..]);
-    }
+    // Constrain the memory values.
+    enforce_values(frame, &mut result[index..], memory_flag);
 }
 
 // TRANSITION CONSTRAINT HELPERS
@@ -107,19 +81,19 @@ impl ProcessorConstraints for MemoryConstraints {
 /// A constraint evaluation function to enforce that the `d_inv` "delta inverse" column used to
 /// constrain the delta between two consecutive contexts, addresses, or clock cycles is updated
 /// correctly.
-fn enforce_d_inv<E: FieldElement>(frame: &EvaluationFrame<E>, result: &mut [E]) -> usize {
+fn enforce_d_inv<E: FieldElement>(
+    frame: &EvaluationFrame<E>,
+    result: &mut [E],
+    memory_flag: E,
+) -> usize {
     let constraint_count = 4;
 
-    result.agg_constraint(0, frame.memory_flag(), is_binary(frame.n0()));
-    result.agg_constraint(1, frame.memory_flag() * frame.not_n0(), frame.ctx_change());
-    result.agg_constraint(
-        2,
-        frame.memory_flag() * frame.not_n0(),
-        is_binary(frame.n1()),
-    );
+    result.agg_constraint(0, memory_flag, is_binary(frame.n0()));
+    result.agg_constraint(1, memory_flag * frame.not_n0(), frame.ctx_change());
+    result.agg_constraint(2, memory_flag * frame.not_n0(), is_binary(frame.n1()));
     result.agg_constraint(
         3,
-        frame.memory_flag() * frame.not_n0() * frame.not_n1(),
+        memory_flag * frame.not_n0() * frame.not_n1(),
         frame.addr_change(),
     );
 
@@ -128,41 +102,45 @@ fn enforce_d_inv<E: FieldElement>(frame: &EvaluationFrame<E>, result: &mut [E]) 
 
 /// A constraint evaluation function to enforce that the delta between two consecutive context IDs,
 /// addresses, or clock cycles is updated and decomposed into the `d1` and `d0` columns correctly.
-fn enforce_delta<E: FieldElement>(frame: &EvaluationFrame<E>, result: &mut [E]) -> usize {
+fn enforce_delta<E: FieldElement>(
+    frame: &EvaluationFrame<E>,
+    result: &mut [E],
+    memory_flag: E,
+) -> usize {
     let constraint_count = 1;
 
     // If the context changed, include the difference.
-    result.agg_constraint(0, frame.memory_flag() * frame.n0(), frame.ctx_change());
+    result.agg_constraint(0, memory_flag * frame.n0(), frame.ctx_change());
     // If the context is the same, include the address difference if it changed or else include the
     // clock change.
     result.agg_constraint(
         0,
-        frame.memory_flag() * frame.not_n0(),
+        memory_flag * frame.not_n0(),
         frame.n1() * frame.addr_change() + frame.not_n1() * frame.clk_change(),
     );
     // Always subtract the delta. It should offset the other changes.
-    result.agg_constraint(0, frame.memory_flag(), -frame.delta());
+    result.agg_constraint(0, memory_flag, -frame.delta());
 
     constraint_count
 }
 
 /// A constraint evaluation function to enforce that memory is initialized to zero and that when
 /// memory is accessed again the old values are always set to equal the previous new values.
-fn enforce_values<E: FieldElement>(frame: &EvaluationFrame<E>, result: &mut [E]) -> usize {
+fn enforce_values<E: FieldElement>(
+    frame: &EvaluationFrame<E>,
+    result: &mut [E],
+    memory_flag: E,
+) -> usize {
     let constraint_count = NUM_ELEMENTS * 2;
 
     for i in 0..NUM_ELEMENTS {
         // Memory must be initialized to zero.
-        result.agg_constraint(
-            i,
-            frame.memory_flag() * frame.init_memory_flag(),
-            frame.u_next(i),
-        );
+        result.agg_constraint(i, memory_flag * frame.init_memory_flag(), frame.u_next(i));
 
         // The next old values must equal the current new values when ctx and addr don't change.
         result.agg_constraint(
             NUM_ELEMENTS + i,
-            frame.memory_flag() * frame.copy_memory_flag(),
+            memory_flag * frame.copy_memory_flag(),
             frame.u_next(i) - frame.v(i),
         );
     }

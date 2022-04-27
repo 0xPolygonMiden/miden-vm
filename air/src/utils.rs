@@ -1,81 +1,6 @@
-use super::{Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree};
-
-// PROCESSOR CONSTRAINTS
-// ================================================================================================
-
-/// Information about a single boundary constraint, specifying the column index and the boundary
-/// value. It currently only supports single assertions, but it can be used for either first step or
-/// last step assertions.
-pub struct ColumnBoundary {
-    column: usize,
-    value: Felt,
-}
-
-impl ColumnBoundary {
-    pub fn new(column: usize, value: Felt) -> Self {
-        Self { column, value }
-    }
-
-    pub fn get_constraint(&self, step: usize) -> Assertion<Felt> {
-        Assertion::single(self.column, step, self.value)
-    }
-}
-
-/// The basic transition constraint information for a processor.
-pub struct TransitionConstraints {
-    count: usize,
-    degrees: Vec<usize>,
-}
-
-impl TransitionConstraints {
-    pub fn new(count: usize, degrees: Vec<usize>) -> Self {
-        Self { count, degrees }
-    }
-
-    pub fn count(&self) -> usize {
-        self.count
-    }
-
-    pub fn degrees(&self) -> &Vec<usize> {
-        &self.degrees
-    }
-}
-
-/// Trait to manage interactions with constraint information for individual processing sections of
-/// the trace so that boundary and transition constraint information can be accessed easily for each
-/// processor.
-pub trait ProcessorConstraints {
-    fn first_step(&self) -> &[ColumnBoundary];
-    fn last_step(&self) -> &[ColumnBoundary];
-    fn transitions(&self) -> &TransitionConstraints;
-    fn enforce_constraints<E: FieldElement>(&self, frame: &EvaluationFrame<E>, result: &mut [E]);
-
-    // --- BOUNDARY CONSTRAINTS -------------------------------------------------------------------
-    fn get_assertions_first_step(&self, result: &mut Vec<Assertion<Felt>>) {
-        self.first_step()
-            .iter()
-            .for_each(|boundary| result.push(boundary.get_constraint(0)));
-    }
-
-    fn get_assertions_last_step(&self, result: &mut Vec<Assertion<Felt>>, step: usize) {
-        self.last_step()
-            .iter()
-            .for_each(|boundary| result.push(boundary.get_constraint(step)));
-    }
-
-    // --- TRANSITION CONSTRAINTS -----------------------------------------------------------------
-    fn get_transition_constraint_count(&self) -> usize {
-        self.transitions().count
-    }
-
-    fn get_transition_constraint_degrees(&self) -> Vec<TransitionConstraintDegree> {
-        self.transitions()
-            .degrees
-            .iter()
-            .map(|&degree| TransitionConstraintDegree::new(degree))
-            .collect()
-    }
-}
+use super::FieldElement;
+use core::ops::Range;
+use vm_core::utils::range as create_range;
 
 // BASIC CONSTRAINT OPERATORS
 // ================================================================================================
@@ -106,6 +31,29 @@ impl<E: FieldElement> EvaluationResult<E> for [E] {
 impl<E: FieldElement> EvaluationResult<E> for Vec<E> {
     fn agg_constraint(&mut self, index: usize, flag: E, value: E) {
         self[index] += flag * value;
+    }
+}
+
+// TRANSITION CONSTRAINT RANGE
+// ================================================================================================
+
+/// Manages the starting index and length of transition constraints for individual processors so
+/// indices can be handled easily during transition evaluation.
+#[derive(Debug)]
+pub struct TransitionConstraintRange {
+    pub(super) range_checker: Range<usize>,
+    pub(super) aux_table: Range<usize>,
+}
+
+impl TransitionConstraintRange {
+    pub fn new(sys: usize, range_checker_len: usize, aux_table_len: usize) -> Self {
+        let range_checker = create_range(sys, range_checker_len);
+        let aux_table = create_range(range_checker.end, aux_table_len);
+
+        Self {
+            range_checker,
+            aux_table,
+        }
     }
 }
 

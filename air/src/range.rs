@@ -1,12 +1,13 @@
 use vm_core::RANGE_CHECK_TRACE_OFFSET;
 
 use super::{
-    utils::{binary_not, is_binary, ColumnBoundary, ProcessorConstraints, TransitionConstraints},
-    EvaluationFrame, Felt, FieldElement,
+    utils::{binary_not, is_binary},
+    Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree,
 };
 
 // CONSTANTS
 // ================================================================================================
+
 /// The number of constraints required by the Range Checker.
 pub const NUM_CONSTRAINTS: usize = 7;
 /// The degrees of the range checker's constraints, in the order they'll be added to the the result
@@ -31,58 +32,46 @@ pub const V_COL_IDX: usize = RANGE_CHECK_TRACE_OFFSET + 3;
 
 pub const NUM_ASSERTIONS: usize = 2;
 
-// CONSTRAINT DEGREES
+// BOUNDARY CONSTRAINTS
 // ================================================================================================
-pub struct RangeCheckerConstraints {
-    first_step: Vec<ColumnBoundary>,
-    last_step: Vec<ColumnBoundary>,
-    transitions: TransitionConstraints,
+
+/// Returns the range checker's boundary assertions for the first step.
+pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>) {
+    let step = 0;
+    result.push(Assertion::single(V_COL_IDX, step, Felt::ZERO));
 }
 
-impl RangeCheckerConstraints {
-    pub fn new() -> Self {
-        // Define the boundary constraints.
-        let first_step = vec![ColumnBoundary::new(V_COL_IDX, Felt::ZERO)];
-        let last_step = vec![ColumnBoundary::new(V_COL_IDX, Felt::new(65535))];
-
-        // Define the transition constraints.
-        let transitions = TransitionConstraints::new(NUM_CONSTRAINTS, CONSTRAINT_DEGREES.to_vec());
-
-        Self {
-            first_step,
-            last_step,
-            transitions,
-        }
-    }
+/// Returns the range checker's boundary assertions for the last step.
+pub fn get_assertions_last_step(result: &mut Vec<Assertion<Felt>>, step: usize) {
+    result.push(Assertion::single(V_COL_IDX, step, Felt::new(65535)));
 }
 
-impl ProcessorConstraints for RangeCheckerConstraints {
-    // --- BOUNDARY CONSTRAINTS -------------------------------------------------------------------
+// TRANSITION CONSTRAINTS
+// ================================================================================================
 
-    fn first_step(&self) -> &[ColumnBoundary] {
-        &self.first_step
-    }
+/// Builds the transition constraint degrees for the range checker.
+pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
+    CONSTRAINT_DEGREES
+        .iter()
+        .map(|&degree| TransitionConstraintDegree::new(degree))
+        .collect()
+}
 
-    fn last_step(&self) -> &[ColumnBoundary] {
-        &self.last_step
-    }
+/// Returns the number of transition constraints for the range checker.
+pub fn get_transition_constraint_count() -> usize {
+    NUM_CONSTRAINTS
+}
 
-    // --- TRANSITION CONSTRAINTS -----------------------------------------------------------------
+/// Enforces constraints for the range checker.
+pub fn enforce_constraints<E: FieldElement>(frame: &EvaluationFrame<E>, result: &mut [E]) {
+    // Constrain the selector flags.
+    let mut index = enforce_flags(frame, result);
 
-    fn transitions(&self) -> &TransitionConstraints {
-        &self.transitions
-    }
+    // Constrain the row transitions in the 8-bit section of the table.
+    index += enforce_8bit(frame, &mut result[index..]);
 
-    fn enforce_constraints<E: FieldElement>(&self, frame: &EvaluationFrame<E>, result: &mut [E]) {
-        // Constrain the selector flags.
-        let mut index = enforce_flags(frame, result);
-
-        // Constrain the row transitions in the 8-bit section of the table.
-        index += enforce_8bit(frame, &mut result[index..]);
-
-        // Constrain the transition from 8-bit to 16-bit section of the table.
-        enforce_16bit(frame, &mut result[index..]);
-    }
+    // Constrain the transition from 8-bit to 16-bit section of the table.
+    enforce_16bit(frame, &mut result[index..]);
 }
 
 // TRANSITION CONSTRAINT HELPERS

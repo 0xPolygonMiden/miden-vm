@@ -1,11 +1,8 @@
-use super::{Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree};
-use crate::utils::{
-    binary_not, is_binary, ColumnBoundary, ProcessorConstraints, TransitionConstraints,
-};
+use super::{EvaluationFrame, FieldElement, TransitionConstraintDegree};
+use crate::utils::{binary_not, is_binary};
 use vm_core::AUX_TRACE_OFFSET;
 
 mod memory;
-use memory::MemoryConstraints;
 
 // CONSTANTS
 // ================================================================================================
@@ -29,96 +26,34 @@ pub const S2_COL_IDX: usize = AUX_TRACE_OFFSET + 2;
 /// The first column of the memory co-processor.
 pub const MEMORY_TRACE_OFFSET: usize = S2_COL_IDX + 1;
 
-// AUXILIARY TABLE CONSTRAINTS
+// AUXILIARY TABLE TRANSITION CONSTRAINTS
 // ================================================================================================
 
-pub struct AuxTableConstraints {
-    first_step: Vec<ColumnBoundary>,
-    last_step: Vec<ColumnBoundary>,
-    transitions: TransitionConstraints,
-    memory: MemoryConstraints,
+/// Builds the transition constraint degrees for the auxiliary table and all of its co-processors.
+pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
+    let mut degrees: Vec<TransitionConstraintDegree> = CONSTRAINT_DEGREES
+        .iter()
+        .map(|&degree| TransitionConstraintDegree::new(degree))
+        .collect();
+
+    degrees.append(&mut memory::get_transition_constraint_degrees());
+
+    degrees
 }
 
-impl AuxTableConstraints {
-    pub fn new() -> Self {
-        // Initialize the co-processors.
-        let memory = MemoryConstraints::new();
-
-        // Define the boundary constraints for the auxiliary table.
-        let first_step = vec![];
-        let last_step = vec![];
-
-        // Define the transition constraints for the auxiliary table.
-        let transitions = TransitionConstraints::new(NUM_CONSTRAINTS, CONSTRAINT_DEGREES.to_vec());
-
-        Self {
-            first_step,
-            last_step,
-            transitions,
-            memory,
-        }
-    }
+/// Returns the number of transition constraints for the auxiliary table and all of its
+/// co-processors.
+pub fn get_transition_constraint_count() -> usize {
+    NUM_CONSTRAINTS + memory::get_transition_constraint_count()
 }
 
-impl ProcessorConstraints for AuxTableConstraints {
-    // --- BOUNDARY CONSTRAINTS -------------------------------------------------------------------
+/// Enforces constraints for the auxiliary table and all of its co-processors.
+pub fn enforce_constraints<E: FieldElement>(frame: &EvaluationFrame<E>, result: &mut [E]) {
+    // auxiliary table transition constraints
+    enforce_selectors(frame, result);
 
-    fn first_step(&self) -> &[ColumnBoundary] {
-        &self.first_step
-    }
-
-    fn last_step(&self) -> &[ColumnBoundary] {
-        &self.last_step
-    }
-
-    fn get_assertions_first_step(&self, result: &mut Vec<Assertion<Felt>>) {
-        // Auxiliary table assertions
-        self.first_step()
-            .iter()
-            .for_each(|boundary| result.push(boundary.get_constraint(0)));
-
-        // Co-processor assertions
-    }
-
-    fn get_assertions_last_step(&self, result: &mut Vec<Assertion<Felt>>, step: usize) {
-        // Auxiliary table assertions
-        self.last_step()
-            .iter()
-            .for_each(|boundary| result.push(boundary.get_constraint(step)));
-
-        // Co-processor assertions
-    }
-
-    // --- TRANSITION CONSTRAINTS -----------------------------------------------------------------
-
-    fn transitions(&self) -> &TransitionConstraints {
-        &self.transitions
-    }
-
-    fn get_transition_constraint_count(&self) -> usize {
-        self.transitions.count() + self.memory.get_transition_constraint_count()
-    }
-
-    fn get_transition_constraint_degrees(&self) -> Vec<TransitionConstraintDegree> {
-        let mut aux_table_degrees: Vec<TransitionConstraintDegree> = self
-            .transitions
-            .degrees()
-            .iter()
-            .map(|&degree| TransitionConstraintDegree::new(degree))
-            .collect();
-        aux_table_degrees.append(&mut self.memory.get_transition_constraint_degrees());
-
-        aux_table_degrees
-    }
-
-    fn enforce_constraints<E: FieldElement>(&self, frame: &EvaluationFrame<E>, result: &mut [E]) {
-        // auxiliary table transition constraints
-        enforce_selectors(frame, result);
-
-        // memory transition constraints
-        self.memory
-            .enforce_constraints(frame, &mut result[self.transitions.count()..]);
-    }
+    // memory transition constraints
+    memory::enforce_constraints(frame, &mut result[NUM_CONSTRAINTS..], frame.memory_flag());
 }
 
 // TRANSITION CONSTRAINT HELPERS
