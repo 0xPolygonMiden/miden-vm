@@ -66,3 +66,58 @@ macro_rules! select_result_range {
         &mut $result[$range.start..$range.end]
     };
 }
+
+// TESTS
+// ================================================================================================
+#[cfg(test)]
+mod tests {
+    use super::TransitionConstraintRange;
+    use vm_core::utils::range as create_range;
+
+    #[test]
+    fn transition_constraint_ranges() {
+        let sys_constraints_len = 1;
+        let range_constraints_len = 2;
+        let aux_constraints_len = 3;
+
+        let constraint_ranges = TransitionConstraintRange::new(
+            sys_constraints_len,
+            range_constraints_len,
+            aux_constraints_len,
+        );
+
+        assert_eq!(constraint_ranges.range_checker.start, sys_constraints_len);
+        assert_eq!(
+            constraint_ranges.range_checker.end,
+            sys_constraints_len + range_constraints_len
+        );
+        assert_eq!(
+            constraint_ranges.aux_table.start,
+            sys_constraints_len + range_constraints_len
+        );
+        assert_eq!(
+            constraint_ranges.aux_table.end,
+            sys_constraints_len + range_constraints_len + aux_constraints_len
+        );
+    }
+
+    #[test]
+    fn result_range() {
+        let mut result: [u64; 6] = [1, 2, 3, 4, 5, 6];
+
+        // Select the beginning.
+        let range = create_range(0, 3);
+        let selected_range = select_result_range!(&mut result, range);
+        assert_eq!(selected_range, [1, 2, 3]);
+
+        // Select the middle.
+        let range = create_range(1, 2);
+        let selected_range = select_result_range!(&mut result, range);
+        assert_eq!(selected_range, [2, 3]);
+
+        // Select the end.
+        let range = create_range(5, 1);
+        let selected_range = select_result_range!(&mut result, range);
+        assert_eq!(selected_range, [6]);
+    }
+}
