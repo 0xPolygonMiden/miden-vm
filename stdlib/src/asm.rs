@@ -10227,6 +10227,69 @@ export.checked_eqz
     and
 end
 
+# Performs less-than comparison of two unsigned 64 bit integers and return min value.
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+# Stack transition looks as follows:
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = a when a < b, and b otherwise.
+export.unchecked_min
+    dup.3
+    dup.3
+    dup.3
+    dup.3
+    exec.unchecked_lt
+    dup.0
+    movup.4
+    movup.3
+    movup.2
+    not
+    cdrop
+    movdn.3
+    not
+    cdrop
+    swap
+end
+
+# Performs less-than comparison of two unsigned 64 bit integers and return min value.
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+# Stack transition looks as follows:
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = a when a < b, and b otherwise.
+export.checked_min
+    exec.u32assert4
+    exec.unchecked_min
+end
+
+# Performs greater-than comparison of two unsigned 64 bit integers and return max value.
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+# Stack transition looks as follows:
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = a when a > b, and b otherwise.
+export.unchecked_max
+    dup.3
+    dup.3
+    dup.3
+    dup.3
+    exec.unchecked_gt
+    dup.0
+    movup.4
+    movup.3
+    movup.2
+    not
+    cdrop
+    movdn.3
+    not
+    cdrop
+    swap
+end
+
+# Performs greater-than comparison of two unsigned 64 bit integers and return max value.
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+# Stack transition looks as follows:
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = a when a > b, and b otherwise.
+export.checked_max
+    exec.u32assert4
+    exec.unchecked_max
+end
+
+
 # ===== DIVISION ==================================================================================
 
 # Performs division of two unsigned 64 bit integers discarding the remainder.
@@ -10235,7 +10298,7 @@ end
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a // b
 export.unchecked_div
     adv.u64div          # inject the quotient and the remainder into the advice tape
-    
+
     push.adv.1          # read the quotient from the advice tape and make sure it consists of
     u32assert           # 32-bit limbs
     push.adv.1          # TODO: this can be optimized once we have u32assert2 instruction
@@ -10304,7 +10367,7 @@ end
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a % b
 export.unchecked_mod
     adv.u64div          # inject the quotient and the remainder into the advice tape
-    
+
     push.adv.1          # read the quotient from the advice tape and make sure it consists of
     u32assert           # 32-bit limbs
     push.adv.1          # TODO: this can be optimized once we have u32assert2 instruction
@@ -10373,7 +10436,7 @@ end
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [r_hi, r_lo, q_hi, q_lo ...], where r = a % b, q = a / b
 export.unchecked_divmod
     adv.u64div          # inject the quotient and the remainder into the advice tape
-    
+
     push.adv.1          # read the quotient from the advice tape and make sure it consists of
     u32assert           # 32-bit limbs
     push.adv.1          # TODO: this can be optimized once we have u32assert2 instruction
@@ -10496,7 +10559,7 @@ end
 export.unchecked_shr
     pow2
     u32split
-    
+
     dup.1
     add
     movup.2
@@ -10538,7 +10601,7 @@ export.unchecked_rotl
     swap
     drop
     movdn.3
-    
+
     # Shift the low limb.
     push.31
     u32and
@@ -10575,7 +10638,7 @@ export.unchecked_rotr
     swap
     drop
     movdn.3
-    
+
     # Shift the low limb left by 32-b.
     push.31
     u32and

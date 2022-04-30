@@ -1,6 +1,7 @@
 use super::{build_test, TestError};
 use proptest::prelude::*;
 use rand_utils::rand_value;
+use std::cmp;
 
 // ADDITION
 // ------------------------------------------------------------------------------------------------
@@ -457,6 +458,44 @@ fn unchecked_gte() {
     let (a1, a0) = split_u64(a);
     let (b1, b0) = split_u64(b);
     build_test!(source, &[a0, a1, b0, b1]).expect_stack(&[c]);
+}
+
+#[test]
+fn unchecked_min() {
+    // test a few manual cases; randomized tests are done using proptest
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::unchecked_min
+        end";
+
+    // a = 0, b = 0
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0, 0]);
+
+    // a = 0, b = 1
+    build_test!(source, &[1, 0, 2, 0]).expect_stack(&[0, 1]);
+
+    // a = 1, b = 0
+    build_test!(source, &[3, 0, 2, 0]).expect_stack(&[0, 2]);
+}
+
+#[test]
+fn unchecked_max() {
+    // test a few manual cases; randomized tests are done using proptest
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::unchecked_max
+        end";
+
+    // a = 0, b = 0
+    build_test!(source, &[0, 0, 0, 0]).expect_stack(&[0, 0]);
+
+    // a = 0, b = 1
+    build_test!(source, &[1, 0, 2, 0]).expect_stack(&[0, 2]);
+
+    // a = 1, b = 0
+    build_test!(source, &[3, 0, 2, 0]).expect_stack(&[0, 3]);
 }
 
 #[test]
@@ -975,6 +1014,38 @@ proptest! {
             end";
 
         build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c])?;
+    }
+
+    #[test]
+    fn unchecked_min_proptest(a in any::<u64>(), b in any::<u64>()) {
+
+        let (a1, a0) = split_u64(a);
+        let (b1, b0) = split_u64(b);
+        let c = cmp::min(a, b) as u64;
+        let (c1, c0) = split_u64(c);
+        let source = "
+            use.std::math::u64
+            begin
+                exec.u64::unchecked_min
+            end";
+
+        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0])?;
+    }
+
+    #[test]
+    fn unchecked_max_proptest(a in any::<u64>(), b in any::<u64>()) {
+
+        let (a1, a0) = split_u64(a);
+        let (b1, b0) = split_u64(b);
+        let c = cmp::max(a, b) as u64;
+        let (c1, c0) = split_u64(c);
+        let source = "
+            use.std::math::u64
+            begin
+                exec.u64::unchecked_max
+            end";
+
+        build_test!(source, &[a0, a1, b0, b1]).prop_expect_stack(&[c1, c0])?;
     }
 
     #[test]
