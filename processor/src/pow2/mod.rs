@@ -145,3 +145,54 @@ impl PowerOfTwo {
         self.trace[AGG_OUTPUT_COL].push(*agg_output);
     }
 }
+
+// TESTS
+// ------------------------------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::{Felt, FieldElement, PowerOfTwo, AGG_OUTPUT_COL};
+
+    #[test]
+    fn pow2() {
+        let mut power_of_two = PowerOfTwo::new();
+
+        // --- ensure correct results -------------------------------------------------------------
+        // Minimum exponent value.
+        let result = power_of_two.pow2(Felt::ZERO).unwrap();
+        let trace_result = power_of_two.trace[AGG_OUTPUT_COL].last().unwrap();
+        assert_eq!(result, Felt::ONE);
+        assert_eq!(trace_result, &result);
+
+        // Power decomposition ends at end of row.
+        let result = power_of_two.pow2(Felt::new(8)).unwrap();
+        let trace_result = power_of_two.trace[AGG_OUTPUT_COL].last().unwrap();
+        assert_eq!(result, Felt::new(2_u64.pow(8)));
+        assert_eq!(trace_result, &result);
+
+        // Power decomposition ends at start of row.
+        let result = power_of_two.pow2(Felt::new(9)).unwrap();
+        let trace_result = power_of_two.trace[AGG_OUTPUT_COL].last().unwrap();
+        assert_eq!(result, Felt::new(2_u64.pow(9)));
+        assert_eq!(trace_result, &result);
+
+        // Maximumm exponent value.
+        let result = power_of_two.pow2(Felt::new(63)).unwrap();
+        let trace_result = power_of_two.trace[AGG_OUTPUT_COL].last().unwrap();
+        assert_eq!(result, Felt::new(2_u64.pow(63)));
+        assert_eq!(trace_result, &result);
+
+        // --- check the trace --------------------------------------------------------------------
+        // The trace length should equal four full power-of-two operation cycles.
+        assert_eq!(power_of_two.trace_len(), 32);
+    }
+
+    #[test]
+    fn pow2_fail() {
+        let mut power_of_two = PowerOfTwo::new();
+
+        // --- ensure failure with out-of-bounds exponent -----------------------------------------
+        let result = power_of_two.pow2(Felt::new(64));
+        assert!(result.is_err());
+    }
+}
