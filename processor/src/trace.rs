@@ -207,7 +207,6 @@ fn finalize_trace(process: Process) -> (SysTrace, StackTrace, RangeCheckTrace, A
         hasher,
         bitwise,
         memory,
-        pow2: _,
         advice: _,
     } = process;
 

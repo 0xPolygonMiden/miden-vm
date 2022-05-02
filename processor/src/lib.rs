@@ -28,14 +28,11 @@ use range::RangeChecker;
 mod hasher;
 use hasher::Hasher;
 
-mod memory;
-use memory::Memory;
-
 mod bitwise;
 use bitwise::Bitwise;
 
-mod pow2;
-use pow2::PowerOfTwo;
+mod memory;
+use memory::Memory;
 
 mod advice;
 use advice::AdviceProvider;
@@ -92,7 +89,6 @@ pub struct Process {
     hasher: Hasher,
     bitwise: Bitwise,
     memory: Memory,
-    pow2: PowerOfTwo,
     advice: AdviceProvider,
 }
 
@@ -106,7 +102,6 @@ impl Process {
             hasher: Hasher::new(),
             bitwise: Bitwise::new(),
             memory: Memory::new(),
-            pow2: PowerOfTwo::new(),
             advice: AdviceProvider::new(inputs),
         }
     }

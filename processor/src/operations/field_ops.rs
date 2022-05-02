@@ -66,7 +66,7 @@ impl Process {
     /// Returns an error if the exponent is greater than 63.
     pub(super) fn op_pow2(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
-        let result = self.pow2.pow2(a)?;
+        let result = self.bitwise.pow2(a)?;
 
         self.stack.set(0, result);
         self.stack.copy_state(1);
