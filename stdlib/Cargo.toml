@@ -9,7 +9,7 @@ repository = "https://github.com/maticnetwork/miden"
 categories = ["cryptography", "mathematics"]
 keywords = ["miden", "program", "stdlib"]
 edition = "2021"
-rust-version = "1.57"
+rust-version = "1.60"
 
 [lib]
 bench = false
@@ -17,4 +17,3 @@ doctest = false
 
 [dependencies]
 vm-core = { package = "miden-core", path = "../core", version = "0.2" }
-winter-utils = { package = "winter-utils", version = "0.3" }

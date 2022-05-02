@@ -1,6 +1,11 @@
 use super::{ExecutionError, Felt, ProgramInputs, Word};
-use vm_core::{utils::IntoBytes, AdviceSet, StarkField};
-use winter_utils::collections::{BTreeMap, Vec};
+use vm_core::{
+    utils::{
+        collections::{BTreeMap, Vec},
+        IntoBytes,
+    },
+    AdviceSet, StarkField,
+};
 
 // ADVICE PROVIDER
 // ================================================================================================

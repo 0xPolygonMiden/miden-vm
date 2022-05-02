@@ -12,6 +12,8 @@ pub const S0_COL_IDX: usize = RANGE_CHECK_TRACE_OFFSET + 1;
 pub const S1_COL_IDX: usize = RANGE_CHECK_TRACE_OFFSET + 2;
 pub const V_COL_IDX: usize = RANGE_CHECK_TRACE_OFFSET + 3;
 
+pub const NUM_ASSERTIONS: usize = 2;
+
 // CONSTRAINT DEGREES
 // ================================================================================================
 

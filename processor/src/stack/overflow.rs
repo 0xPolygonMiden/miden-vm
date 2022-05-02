@@ -1,5 +1,5 @@
 use super::{Felt, FieldElement};
-use winter_utils::collections::BTreeMap;
+use vm_core::utils::collections::BTreeMap;
 
 // OVERFLOW TABLE
 // ================================================================================================

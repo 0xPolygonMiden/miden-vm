@@ -9,7 +9,7 @@ repository = "https://github.com/maticnetwork/miden"
 categories = ["cryptography", "no-std"]
 keywords = ["miden", "stark", "verifier", "zkp"]
 edition = "2021"
-rust-version = "1.57"
+rust-version = "1.60"
 
 [lib]
 bench = false
@@ -23,4 +23,4 @@ std = ["air/std", "assembly/std", "winterfell/std"]
 air = { package = "miden-air", path = "../air", version = "0.2", default-features = false }
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.2", default-features = false }
 vm-core = { package = "miden-core", path = "../core", version = "0.2", default-features = false }
-winterfell = { package = "winter-verifier", version = "0.3", default-features = false }
+winterfell = { package = "winter-verifier", version = "0.4", default-features = false }
