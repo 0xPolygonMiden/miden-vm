@@ -1,9 +1,12 @@
-use vm_core::{hasher::Digest, CLK_COL_IDX, FMP_COL_IDX, MIN_STACK_DEPTH, STACK_TRACE_OFFSET};
+use vm_core::{
+    hasher::Digest,
+    utils::{ByteWriter, Serializable},
+    CLK_COL_IDX, FMP_COL_IDX, MIN_STACK_DEPTH, STACK_TRACE_OFFSET,
+};
 use winter_air::{
     Air, AirContext, Assertion, EvaluationFrame, ProofOptions as WinterProofOptions, TraceInfo,
     TransitionConstraintDegree,
 };
-use winter_utils::{ByteWriter, Serializable};
 
 mod options;
 mod range;
@@ -38,8 +41,14 @@ impl Air for ProcessorAir {
         // Add the range checker's constraint degrees.
         degrees.append(&mut range::get_transition_constraint_degrees());
 
+        // TODO: determine dynamically
+        let num_assertions = 2
+            + pub_inputs.stack_inputs.len()
+            + pub_inputs.stack_outputs.len()
+            + range::NUM_ASSERTIONS;
+
         Self {
-            context: AirContext::new(trace_info, degrees, options),
+            context: AirContext::new(trace_info, degrees, num_assertions, options),
             stack_inputs: pub_inputs.stack_inputs,
             stack_outputs: pub_inputs.stack_outputs,
         }

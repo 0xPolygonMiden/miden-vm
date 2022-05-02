@@ -1,5 +1,4 @@
-use vm_core::{errors::LibraryError, program::Library};
-use winter_utils::collections::BTreeMap;
+use vm_core::{errors::LibraryError, program::Library, utils::collections::BTreeMap};
 
 mod asm;
 use asm::MODULES;

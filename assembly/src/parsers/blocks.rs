@@ -1,7 +1,7 @@
 use super::{
     parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, Token, TokenStream,
 };
-use winter_utils::{collections::Vec, group_vector_elements};
+use vm_core::utils::{collections::Vec, group_vector_elements};
 
 // BLOCK PARSER
 // ================================================================================================

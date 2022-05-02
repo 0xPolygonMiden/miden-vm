@@ -1,5 +1,5 @@
 use super::{Felt, FieldElement};
-use winter_utils::{collections::BTreeMap, uninit_vector};
+use vm_core::utils::{collections::BTreeMap, uninit_vector};
 
 #[cfg(test)]
 mod tests;

@@ -9,7 +9,7 @@ repository = "https://github.com/maticnetwork/miden"
 categories = ["emulators", "no-std"]
 keywords = ["miden", "virtual-machine"]
 edition = "2021"
-rust-version = "1.57"
+rust-version = "1.60"
 
 [lib]
 bench = false
@@ -17,14 +17,13 @@ doctest = false
 
 [features]
 default = ["std"]
-std = ["vm-core/std", "winterfell/std", "winter-utils/std"]
+std = ["vm-core/std", "winterfell/std"]
 
 [dependencies]
 log = "0.4.14"
 vm-core = { package = "miden-core", path = "../core", version = "0.2", default-features = false }
-winterfell = { package = "winter-prover", version = "0.3", default-features = false }
-winter-utils = { package = "winter-utils", version = "0.3", default-features = false  }
+winterfell = { package = "winter-prover", version = "0.4", default-features = false }
 
 [dev-dependencies]
 logtest = { version = "2.0.0", default-features = false  }
-rand-utils = { package = "winter-rand-utils", version = "0.3" }
+rand-utils = { package = "winter-rand-utils", version = "0.4" }
