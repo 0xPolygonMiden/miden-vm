@@ -1,6 +1,6 @@
 use super::{
     Bitwise, Felt, FieldElement, StarkField, TraceFragment, BITWISE_AND, BITWISE_OR, BITWISE_XOR,
-    POW2_AGG_OUTPUT_COL,
+    POW2_AGG_OUTPUT_COL, TRACE_WIDTH,
 };
 use rand_utils::rand_value;
 
@@ -22,7 +22,7 @@ fn bitwise_and() {
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
-    let mut trace = (0..13)
+    let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
@@ -69,7 +69,7 @@ fn bitwise_or() {
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
-    let mut trace = (0..13)
+    let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
@@ -116,7 +116,7 @@ fn bitwise_xor() {
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
-    let mut trace = (0..13)
+    let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
@@ -176,7 +176,7 @@ fn bitwise_multiple() {
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 32;
-    let mut trace = (0..13)
+    let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
