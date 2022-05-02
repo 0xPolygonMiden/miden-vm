@@ -17,6 +17,37 @@ const POW_256_COL: usize = AGG_POWER_COL + 1;
 /// Column index for the aggregated result of the power of two operation.
 const AGG_OUTPUT_COL: usize = POW_256_COL + 1;
 
+// POWER OF TWO HELPER
+// ================================================================================================
+
+/// Helper for the VM that computes power of two operations 2^a for an exponent a < 64. It also
+/// builds an execution trace of this operation.
+///
+/// ## Execution trace
+/// The execution trace for each operation consists of 8 rows and 12 columns.
+///
+/// The layout of the table is illustrated below.
+///
+///   a0    a1     a2    a3    a4   a5     a6   a7     h     a     p     z
+/// ├─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┤
+///
+/// In the above, the meaning of the columns is as follows:
+/// - Columns `a0` through `a7` contain binary values representing a single power of two. The values
+///   are set by decomposing the input exponent `a` one power at a time until the entire exponent
+///   `a` is represented in the `a0` through `a7` trace columns. Between one cell and the next the
+///   values can change from 1 -> 0 or stay the same. 0 -> 1 is always an invalid transition. Thus,
+///   by the end of the operation, the number of 1's in the `a0` to `a7` columns over all 8 columns
+///   will equal the input value `a`.
+/// - Column `h` contains a binary value that helps decompose `a` correctly into the columns `a0`
+///   through `a7`. `h` must always equal the value of `a0` on the next row, except in the 8th row
+///   of the operation trace, where it must equal 0.
+/// - Column `a` contains the aggregated exponent value that has been processed in the `a0` to `a7`
+///   trace columns so far. Thus, by the 8th row, column `a` contains the full input value for the
+///   power of two operation.
+/// - Column `p` contains increasing powers of 256, starting from 256^0, which are used to aggregate
+///   the output of the power of two operation.
+/// - Column `z` contains the aggregated result of the power of two operation that has been
+///   computed so far. Thus, by the 8th row, column `z` contains `2^a` for input value `a`.
 pub struct PowerOfTwo {
     trace: [Vec<Felt>; TRACE_WIDTH],
 }
