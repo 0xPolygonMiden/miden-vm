@@ -4,7 +4,7 @@
 ///
 /// Entries in the array are tuples containing module namespace and module source code.
 #[rustfmt::skip]
-pub const MODULES: [(&str, &str); 4] = [
+pub const MODULES: [(&str, &str); 5] = [
 // ----- std::crypto::hashes::blake3 --------------------------------------------------------------
 ("std::crypto::hashes::blake3", "proc.from_mem_to_stack.1
     storew.local.0
@@ -4065,6 +4065,29 @@ export.hash.16
     push.env.locaddr.0
 
     exec.mix
+end
+"),
+// ----- std::math::secp256k1 ---------------------------------------------------------------------
+("std::math::secp256k1", "# Given [a, b, c, carry] on stack top, following function computes 
+
+  tmp = a + (b * c) + carry
+  hi = tmp >> 32
+  lo = tmp & 0xffff_ffff
+  return (hi, lo)
+  
+  At end of execution of this function, stack top should look like [hi, lo] #
+export.mac
+  swap
+  movup.2
+  u32madd.unsafe
+  
+  swap
+  movup.2
+  u32add.unsafe
+
+  movup.2
+  u32add.unsafe
+  drop
 end
 "),
 // ----- std::math::u256 --------------------------------------------------------------------------

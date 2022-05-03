@@ -1,0 +1,21 @@
+# Given [a, b, c, carry] on stack top, following function computes 
+
+  tmp = a + (b * c) + carry
+  hi = tmp >> 32
+  lo = tmp & 0xffff_ffff
+  return (hi, lo)
+  
+  At end of execution of this function, stack top should look like [hi, lo] #
+export.mac
+  swap
+  movup.2
+  u32madd.unsafe
+  
+  swap
+  movup.2
+  u32add.unsafe
+
+  movup.2
+  u32add.unsafe
+  drop
+end
