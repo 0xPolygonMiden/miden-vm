@@ -4089,6 +4089,80 @@ export.mac
   u32add.unsafe
   drop
 end
+
+# Given [a0, a1, a2, a3, a4, a5, a6, a7, b, c_0_addr, c_1_addr] on stack top,
+  this function computes a multiplication of u256 by u32, while also
+  considering u256 computed during previous round.
+
+  - Multiplicand u256 in this context is kept in memory, whose 8 limbs can be loaded
+  into stack by pushing content at memory location `c_1_addr` & `c_0_addr`, in order.
+  - Multiplier u32 is `b` i.e. stack[8] element.
+  - Note, previous round's u256 is kept in first 8 stack elements.
+
+  After finishing execution of this function, stack top should hold u288 i.e.
+
+  [a0, a1, a2, a3, a4, a5, a6, a7, a8] | a8 = carry
+#
+export.u256xu32
+  dup.9
+  pushw.mem
+  dup.12
+
+  push.0
+  swap
+  movup.2
+  swap
+  movup.6
+  exec.mac
+
+  movup.2
+  dup.12
+  movup.6
+  exec.mac
+
+  movup.3
+  dup.11
+  movup.6
+  exec.mac
+
+  movup.4
+  dup.10
+  movup.6
+  exec.mac
+
+  dup.11
+  pushw.mem
+
+  movup.4
+  swap
+  dup.13
+  movup.10
+  exec.mac
+
+  movup.2
+  dup.12
+  movup.10
+  exec.mac
+
+  movup.3
+  dup.11
+  movup.10
+  exec.mac
+
+  movup.4
+  dup.10
+  movup.10
+  exec.mac
+
+  swap
+  movup.2
+  movup.3
+  movup.4
+  movup.5
+  movup.6
+  movup.7
+  movup.8
+end
 "),
 // ----- std::math::u256 --------------------------------------------------------------------------
 ("std::math::u256", "export.add_unsafe
