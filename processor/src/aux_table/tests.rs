@@ -134,7 +134,6 @@ fn validate_bitwise_trace(aux_table: &AuxTableTrace, start: usize, end: usize) {
         assert_eq!(BITWISE_OR, [aux_table[2][row], aux_table[3][row]]);
 
         // the final columns should be padded
-        assert_eq!(Felt::ZERO, aux_table[15][row]);
         assert_eq!(Felt::ZERO, aux_table[16][row]);
         assert_eq!(Felt::ZERO, aux_table[17][row]);
     }

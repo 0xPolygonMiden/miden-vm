@@ -120,7 +120,7 @@ impl AuxTable {
                     // add bitwise segment to the bitwise fragment to be filled from the bitwise trace
                     bitwise_fragment.push_column_slice(rest_of_column, bitwise.trace_len());
                 }
-                15 | 16 => {
+                16 => {
                     // initialize hasher & memory segments and pad bitwise & final segments with ZERO
                     column.resize(trace_len, Felt::ZERO);
                     // add hasher segment to the hasher fragment to be filled from the hasher trace

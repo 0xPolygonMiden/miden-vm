@@ -1,4 +1,7 @@
-use super::{Bitwise, Felt, StarkField, TraceFragment, BITWISE_AND, BITWISE_OR, BITWISE_XOR};
+use super::{
+    Bitwise, Felt, FieldElement, StarkField, TraceFragment, BITWISE_AND, BITWISE_OR, BITWISE_XOR,
+    POW2_AGG_OUTPUT_COL, TRACE_WIDTH,
+};
 use rand_utils::rand_value;
 
 #[test]
@@ -19,7 +22,7 @@ fn bitwise_and() {
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
-    let mut trace = (0..13)
+    let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
@@ -66,7 +69,7 @@ fn bitwise_or() {
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
-    let mut trace = (0..13)
+    let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
@@ -113,7 +116,7 @@ fn bitwise_xor() {
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
-    let mut trace = (0..13)
+    let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
@@ -173,7 +176,7 @@ fn bitwise_multiple() {
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 32;
-    let mut trace = (0..13)
+    let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
@@ -249,6 +252,49 @@ fn bitwise_multiple() {
 
         prev_result = result;
     }
+}
+
+#[test]
+fn pow2() {
+    let mut power_of_two = Bitwise::new();
+
+    // --- ensure correct results -------------------------------------------------------------
+    // Minimum exponent value.
+    let result = power_of_two.pow2(Felt::ZERO).unwrap();
+    let trace_result = power_of_two.trace[POW2_AGG_OUTPUT_COL].last().unwrap();
+    assert_eq!(result, Felt::ONE);
+    assert_eq!(trace_result, &result);
+
+    // Power decomposition ends at end of row.
+    let result = power_of_two.pow2(Felt::new(8)).unwrap();
+    let trace_result = power_of_two.trace[POW2_AGG_OUTPUT_COL].last().unwrap();
+    assert_eq!(result, Felt::new(2_u64.pow(8)));
+    assert_eq!(trace_result, &result);
+
+    // Power decomposition ends at start of row.
+    let result = power_of_two.pow2(Felt::new(9)).unwrap();
+    let trace_result = power_of_two.trace[POW2_AGG_OUTPUT_COL].last().unwrap();
+    assert_eq!(result, Felt::new(2_u64.pow(9)));
+    assert_eq!(trace_result, &result);
+
+    // Maximumm exponent value.
+    let result = power_of_two.pow2(Felt::new(63)).unwrap();
+    let trace_result = power_of_two.trace[POW2_AGG_OUTPUT_COL].last().unwrap();
+    assert_eq!(result, Felt::new(2_u64.pow(63)));
+    assert_eq!(trace_result, &result);
+
+    // --- check the trace --------------------------------------------------------------------
+    // The trace length should equal four full power-of-two operation cycles.
+    assert_eq!(power_of_two.trace_len(), 32);
+}
+
+#[test]
+fn pow2_fail() {
+    let mut power_of_two = Bitwise::new();
+
+    // --- ensure failure with out-of-bounds exponent -----------------------------------------
+    let result = power_of_two.pow2(Felt::new(64));
+    assert!(result.is_err());
 }
 
 // HELPER FUNCTIONS
