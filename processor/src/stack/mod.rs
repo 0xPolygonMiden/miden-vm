@@ -59,11 +59,15 @@ impl Stack {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a [Stack] initialized with the specified program inputs.
-    pub fn new(inputs: &ProgramInputs, init_trace_length: usize) -> Self {
+    pub fn new(
+        inputs: &ProgramInputs,
+        init_trace_length: usize,
+        keep_overflow_trace: bool,
+    ) -> Self {
         Self {
             clk: 0,
             trace: StackTrace::new(inputs, init_trace_length),
-            overflow: OverflowTable::new(true),
+            overflow: OverflowTable::new(keep_overflow_trace),
             depth: MIN_STACK_DEPTH,
         }
     }
@@ -113,6 +117,16 @@ impl Stack {
     /// Returns an execution trace of the top 16 stack slots and helper columns as a single array.
     pub fn into_trace(self) -> [Vec<Felt>; STACK_TRACE_WIDTH] {
         self.trace.into_array()
+    }
+
+    /// Returns stack state at the specified clock cycle.
+    ///
+    /// This includes the stack + overflow entries.
+    pub fn get_state_at(&self, clk: usize) -> Vec<Felt> {
+        let mut result = self.trace.get_stack_state_at(clk).to_vec();
+        self.overflow.append_state_into(&mut result, clk);
+
+        result
     }
 
     // TRACE ACCESSORS AND MUTATORS

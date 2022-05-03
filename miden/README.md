@@ -1,4 +1,7 @@
 # Miden VM
+
+> This documentation has some deprecated snippets, this means that should be use just as reference to study purpose. It'll be rewritten in a near future.
+
 This crate contains an implementation of Miden VM. It can be used to execute Miden VM programs and to verify correctness of program execution.
 
 ## Overview
@@ -14,7 +17,7 @@ All arithmetic operations (e.g., addition, multiplication) happen in the same pr
 Besides being field elements, values in Miden VM are untyped. However, some operations expect binary values and will fail if you attempt to execute them using non-binary values. Binary values are values which are either `0` or `1`.
 
 ### Programs
-Programs in Miden VM are structured as an [execution graph](../core/doc/programs.md) of program blocks each consisting of a sequence of VM [instructions](../core/doc/isa.md). There are two ways of constructing such a graph:
+Programs in Miden VM are structured as an [execution graph (deprecated documentation)](/../main/core/doc/programs.md) of program blocks each consisting of a sequence of VM [instructions (deprecated documentation)](/../main/core/doc/isa.md). There are two ways of constructing such a graph:
 
 1. You can manually build it from blocks of raw Miden VM instructions.
 2. You can compile [Miden assembly](../assembly) source code into it.
@@ -34,7 +37,7 @@ Values remaining on the stack after a program is executed can be returned as pro
 Currently, Miden VM has no random access memory - all values live on the stack. However, a memory module will be added in the future to enable saving values to and reading values from RAM.
 
 ### Program hash
-All Miden programs can be reduced to a single 32-byte value, called program hash. Once a `Program` object is constructed (e.g. by compiling assembly code), you can access this hash via `Program::hash()` method. This hash value is used by a verifier when they verify program execution. This ensure that the verifier verifies execution of a specific program (e.g. a program which the prover had committed to previously). The methodology for computing program hash is described [here](../core/doc/programs.md#Program-hash).
+All Miden programs can be reduced to a single 32-byte value, called program hash. Once a `Program` object is constructed (e.g. by compiling assembly code), you can access this hash via `Program::hash()` method. This hash value is used by a verifier when they verify program execution. This ensure that the verifier verifies execution of a specific program (e.g. a program which the prover had committed to previously). The methodology for computing program hash is described [here (deprecated documentation)](/../main/core/doc/programs.md#Program-hash).
 
 ## Usage
 Miden crate exposes `execute()` and `verify()` functions which can be used to execute programs and verify their execution. Both are explained below, but you can also take a look at several working examples [here](../examples).

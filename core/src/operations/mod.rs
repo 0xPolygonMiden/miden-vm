@@ -54,7 +54,7 @@ pub enum Operation {
     /// Pops two elements off the stack, adds them, and pushes the result back onto the stack.
     Add,
 
-    //// Pops an element off the stack, negates it, and pushes the result back onto the stack.
+    /// Pops an element off the stack, negates it, and pushes the result back onto the stack.
     Neg,
 
     /// Pops two elements off the stack, multiplies them, and pushes the result back onto the stack.
@@ -66,6 +66,12 @@ pub enum Operation {
 
     /// Pops an element off the stack, adds 1 to it, and pushes the result back onto the stack.
     Incr,
+
+    /// Pops one element `x` off the stack, computes the power of 2^x, and pushes the result back
+    /// onto the stack.
+    ///
+    /// If the element is greater than or equal to 64, execution fails.
+    Pow2,
 
     /// Pops two elements off the stack, multiplies them, and pushes the result back onto the stack.
     ///
@@ -394,6 +400,7 @@ impl Operation {
             Self::Mul => Some(0b0000_0111),
             Self::Inv => Some(0b0000_1000),
             Self::Incr => Some(0b0000_1001),
+            Self::Pow2 => Some(0b0000_1001),
             Self::And => Some(0b0000_1010),
             Self::Or => Some(0b0000_1011),
             Self::Not => Some(0b0000_1100),
@@ -525,6 +532,7 @@ impl fmt::Display for Operation {
             Self::Mul => write!(f, "mul"),
             Self::Inv => write!(f, "inv"),
             Self::Incr => write!(f, "incr"),
+            Self::Pow2 => write!(f, "pow2"),
 
             Self::And => write!(f, "and"),
             Self::Or => write!(f, "or"),

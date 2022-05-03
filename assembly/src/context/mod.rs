@@ -1,5 +1,5 @@
 use super::{CodeBlock, ProcMap, Procedure, MODULE_PATH_DELIM};
-use winter_utils::collections::BTreeMap;
+use vm_core::utils::collections::BTreeMap;
 
 // ASSEMBLY CONTEXT
 // ================================================================================================

@@ -4,3 +4,8 @@ language = "en"
 multilingual = false
 src = "src"
 title = "Miden VM"
+
+[output.katex]
+[output.html]
+
+[preprocessor.katex]

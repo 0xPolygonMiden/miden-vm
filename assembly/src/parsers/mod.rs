@@ -31,6 +31,7 @@ fn parse_op_token(
         "div" => field_ops::parse_div(span_ops, op),
         "neg" => field_ops::parse_neg(span_ops, op),
         "inv" => field_ops::parse_inv(span_ops, op),
+        "pow2" => field_ops::parse_pow2(span_ops, op),
 
         "not" => field_ops::parse_not(span_ops, op),
         "and" => field_ops::parse_and(span_ops, op),
@@ -87,6 +88,7 @@ fn parse_op_token(
         "dupw" => stack_ops::parse_dupw(span_ops, op),
         "swap" => stack_ops::parse_swap(span_ops, op),
         "swapw" => stack_ops::parse_swapw(span_ops, op),
+        "swapdw" => stack_ops::parse_swapdw(span_ops, op),
         "movup" => stack_ops::parse_movup(span_ops, op),
         "movupw" => stack_ops::parse_movupw(span_ops, op),
         "movdn" => stack_ops::parse_movdn(span_ops, op),

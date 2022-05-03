@@ -235,6 +235,22 @@ pub fn parse_swapw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
     Ok(())
 }
 
+/// Translates swapdw assembly instruction to four VM SWAPW operations
+pub fn parse_swapdw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => {
+            span_ops.push(Operation::SwapW);
+            span_ops.push(Operation::SwapW3);
+            span_ops.push(Operation::SwapW);
+            span_ops.push(Operation::SwapW2)
+        }
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
+}
+
 /// Translates movup.x assembly instruction to VM operations.
 /// We specifically utilize the MovUpX VM operations for indexes that match
 /// exactly with the assembly instruction.

@@ -7,7 +7,7 @@ readme = "README.md"
 license = "MIT"
 repository = "https://github.com/maticnetwork/miden"
 edition = "2021"
-rust-version = "1.57"
+rust-version = "1.60"
 
 [lib]
 bench = false
@@ -31,4 +31,4 @@ log = { version = "0.4", default-features = false }
 miden = { path = "../miden", version = "0.2", default-features = false }
 structopt = { version = "0.3", default-features = false }
 vm-core = { package = "miden-core", path = "../core", version = "0.2", default-features = false }
-rand-utils = { package = "winter-rand-utils", version = "0.3", optional = true }
+rand-utils = { package = "winter-rand-utils", version = "0.4", optional = true }

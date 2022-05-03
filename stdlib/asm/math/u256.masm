@@ -199,7 +199,7 @@ export.eq_unsafe
     and
 end
 
-# ===== MULTIPLICATION ========================================================================== #
+# ===== MULTIPLICATION ============================================================================
 proc.mulstep
     movdn.2
     u32madd.unsafe
@@ -213,7 +213,7 @@ proc.mulstep4
     movup.12
     dup.1
     movup.10
-    push.0 # start k at 0 #
+    push.0 # start k at 0
     exec.mulstep
     swap
     movdn.9
@@ -240,31 +240,31 @@ proc.mulstep4
     movdn.6
 end
 
-# Performs addition of two unsigned 256 bit integers discarding the overflow. #
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked. #
-# Stack transition looks as follows: #
-# [b7, b6, b5, b4, b3, b2, b1, b0, a7, a6, a5, a4, a3, a2, a1, a0, ...] -> [c7, c6, c5, c4, c3, c2, c1, c0, ...] #
-# where c = (a * b) % 2^256, and a0, b0, and c0 are least significant 32-bit limbs of a, b, and c respectively. #
+# Performs addition of two unsigned 256 bit integers discarding the overflow.
+# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+# Stack transition looks as follows:
+# [b7, b6, b5, b4, b3, b2, b1, b0, a7, a6, a5, a4, a3, a2, a1, a0, ...] -> [c7, c6, c5, c4, c3, c2, c1, c0, ...]
+# where c = (a * b) % 2^256, and a0, b0, and c0 are least significant 32-bit limbs of a, b, and c respectively.
 export.mul_unsafe.6
-    # Memory storing setup #
+    # Memory storing setup
     popw.local.0
-    # b[5-8] at 0 #
+    # b[5-8] at 0
     storew.local.1
-    # b[0-4] at 1 #
+    # b[0-4] at 1
     push.0 dropw
-    # b[0] at top of stack, followed by a[0-7] #
+    # b[0] at top of stack, followed by a[0-7]
     movdn.8
     storew.local.2
-    # a[0-4] at 2 #
+    # a[0-4] at 2
     swapw
     storew.local.3
-    # a[5-8] at 3 #
+    # a[5-8] at 3
     padw
     storew.local.4
     storew.local.5
-    # p at 4 and 5 #
+    # p at 4 and 5
 
-    # b[0] #
+    # b[0]
     dropw
     swapw
     pushw.local.4
@@ -312,16 +312,16 @@ export.mul_unsafe.6
     drop
     popw.local.5
 
-    # b[1] #
+    # b[1]
     pushw.local.4
     pushw.local.5
     movup.7
     dropw
-    pushw.local.3 pushw.local.2 # load the xs #
+    pushw.local.3 pushw.local.2 # load the xs
     pushw.local.1
     movup.2
     movdn.3
-    push.0 dropw # only need b[1] #
+    push.0 dropw # only need b[1]
 
     exec.mulstep4
 
@@ -330,9 +330,9 @@ export.mul_unsafe.6
     swapw
     movdn.3
     pushw.local.4
-    push.0 dropw # only need p[0] #
+    push.0 dropw # only need p[0]
     movdn.3
-    # save p[0-3] to memory, not needed any more #
+    # save p[0-3] to memory, not needed any more
     popw.local.4
 
     pushw.local.5
@@ -367,17 +367,17 @@ export.mul_unsafe.6
     drop
     popw.local.5
 
-    # b[2] #
+    # b[2]
     pushw.local.4
     pushw.local.5
     movup.7
     movup.7
     dropw
-    pushw.local.3 pushw.local.2 # load the xs #
+    pushw.local.3 pushw.local.2 # load the xs
     pushw.local.1
     swap
     movdn.3
-    push.0 dropw # only need b[1] #
+    push.0 dropw # only need b[1]
 
     exec.mulstep4
 
@@ -419,7 +419,7 @@ export.mul_unsafe.6
     drop drop drop
     popw.local.5
 
-    # b[3] #
+    # b[3]
     pushw.local.4
     pushw.local.5
 
@@ -460,17 +460,17 @@ export.mul_unsafe.6
     movdn.3
     push.0 dropw
 
-    # b[4] #
-    pushw.local.3 pushw.local.2 # load the xs #
-    # OPTIM: don't need a[4-7] #, but can't use mulstep4 if we don't load #
+    # b[4]
+    pushw.local.3 pushw.local.2 # load the xs
+    # OPTIM: don't need a[4-7], but can't use mulstep4 if we don't load
 
     pushw.local.0
-    push.0 dropw # b[4] #
+    push.0 dropw # b[4]
 
     exec.mulstep4
-    dropw drop drop # OPTIM: don't need a[4-7] #, but can't use mulstep4 if we don't load #
+    dropw drop drop # OPTIM: don't need a[4-7], but can't use mulstep4 if we don't load
 
-    # b[5] #
+    # b[5]
     pushw.local.3
     pushw.local.0
     movup.2 movdn.3
@@ -498,7 +498,7 @@ export.mul_unsafe.6
     swap
     drop
 
-    # b[6] #
+    # b[6]
     pushw.local.3
     pushw.local.0
     swap
@@ -520,7 +520,7 @@ export.mul_unsafe.6
     movdn.2
     drop drop
 
-    # b[7] #
+    # b[7]
     pushw.local.3
     pushw.local.0
 

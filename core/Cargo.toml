@@ -9,7 +9,7 @@ repository = "https://github.com/maticnetwork/miden"
 categories = ["emulators", "no-std"]
 keywords = ["instruction-set", "miden", "program"]
 edition = "2021"
-rust-version = "1.57"
+rust-version = "1.60"
 
 [lib]
 bench = false
@@ -20,6 +20,6 @@ default = ["std"]
 std = ["math/std", "winter-utils/std"]
 
 [dependencies]
-crypto = { package = "winter-crypto", version = "0.3.2", default-features = false }
-math = { package = "winter-math", version = "0.3", default-features = false }
-winter-utils = { package = "winter-utils", version = "0.3", default-features = false }
+crypto = { package = "winter-crypto", version = "0.4", default-features = false }
+math = { package = "winter-math", version = "0.4", default-features = false }
+winter-utils = { package = "winter-utils", version = "0.4", default-features = false }
