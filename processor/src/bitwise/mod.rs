@@ -384,6 +384,12 @@ impl Bitwise {
     }
 }
 
+impl Default for Bitwise {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------
 

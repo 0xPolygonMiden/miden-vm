@@ -61,12 +61,12 @@ impl Stack {
     /// Returns a [Stack] initialized with the specified program inputs.
     pub fn new(
         inputs: &ProgramInputs,
-        init_trace_length: usize,
+        init_trace_capacity: usize,
         keep_overflow_trace: bool,
     ) -> Self {
         Self {
             clk: 0,
-            trace: StackTrace::new(inputs, init_trace_length),
+            trace: StackTrace::new(inputs, init_trace_capacity),
             overflow: OverflowTable::new(keep_overflow_trace),
             depth: MIN_STACK_DEPTH,
         }
@@ -87,8 +87,10 @@ impl Stack {
     }
 
     /// Returns execution trace length for this stack.
+    ///
+    /// Trace length of the stack is equal to the number of cycles executed by the VM.
     pub fn trace_len(&self) -> usize {
-        self.trace.trace_len()
+        self.clk
     }
 
     /// Returns a copy of the item currently at the top of the stack.

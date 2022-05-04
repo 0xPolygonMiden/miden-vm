@@ -42,46 +42,55 @@ mod tests;
 /// - columns 3-17: unused columns padded with ZERO
 ///
 pub struct AuxTable {
-    trace: AuxTableTrace,
+    hasher: Hasher,
+    bitwise: Bitwise,
+    memory: Memory,
 }
 
 impl AuxTable {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-
-    /// Returns an [AuxTable] initialized with its co-processor components and an empty trace.
-    pub fn new(target_length: usize) -> Self {
-        // Allocate columns for the trace of the auxiliary table.
-        // note: it may be possible to optimize this by initializing with Felt::zeroed_vector,
-        // depending on how the compiler reduces Felt(0) and whether initializing here + iterating
-        // to update selector values is faster than using resize to initialize all values
-        let trace = (0..AUX_TRACE_WIDTH)
-            .map(|_| Vec::<Felt>::with_capacity(target_length))
-            .collect::<Vec<_>>()
-            .try_into()
-            .expect("failed to convert vector to array");
-
-        Self { trace }
+    /// Returns an [AuxTable] initialized with its co-processor components.
+    pub fn new(hasher: Hasher, bitwise: Bitwise, memory: Memory) -> Self {
+        Self {
+            hasher,
+            bitwise,
+            memory,
+        }
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns an execution trace of the auxiliary table containing the stacked traces of the
-    /// Hasher, Bitwise, and Memory coprocessors.
-    pub fn into_trace(self) -> AuxTableTrace {
-        self.trace
+    pub fn trace_len(&self) -> usize {
+        self.hasher.trace_len() + self.bitwise.trace_len() + self.memory.trace_len()
     }
 
-    // TRACE MUTATORS
+    /// Returns an execution trace of the auxiliary table containing the stacked traces of the
+    /// Hasher, Bitwise, and Memory coprocessors.
+    pub fn into_trace(self, trace_len: usize) -> AuxTableTrace {
+        // Allocate columns for the trace of the auxiliary table.
+        // note: it may be possible to optimize this by initializing with Felt::zeroed_vector,
+        // depending on how the compiler reduces Felt(0) and whether initializing here + iterating
+        // to update selector values is faster than using resize to initialize all values
+        let mut trace: AuxTableTrace = (0..AUX_TRACE_WIDTH)
+            .map(|_| Vec::<Felt>::with_capacity(trace_len))
+            .collect::<Vec<_>>()
+            .try_into()
+            .expect("failed to convert vector to array");
+
+        self.fill_trace(&mut trace, trace_len);
+
+        trace
+    }
+
+    // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
     /// Fills the provided auxiliary table trace with the stacked execution traces of the Hasher,
     /// Bitwise, and Memory coprocessors, along with selector columns to identify each coprocessor
     /// trace and padding to fill the rest of the table.
-    pub fn fill_columns(&mut self, hasher: Hasher, bitwise: Bitwise, memory: Memory) {
-        let trace_len = self.trace[0].capacity();
-
+    fn fill_trace(self, trace: &mut AuxTableTrace, trace_len: usize) {
         // allocate fragments to be filled with the respective execution traces of each coprocessor
         let mut hasher_fragment = TraceFragment::new(AUX_TRACE_WIDTH);
         let mut bitwise_fragment = TraceFragment::new(AUX_TRACE_WIDTH);
@@ -90,72 +99,77 @@ impl AuxTable {
         // set the selectors and padding as required by each column and segment
         // and add the hasher, bitwise, and memory segments to their respective fragments
         // so they can be filled with the coprocessor traces
-        for (column_num, column) in self.trace.iter_mut().enumerate() {
+        for (column_num, column) in trace.iter_mut().enumerate() {
             match column_num {
                 0 => {
                     // set the selector value for the hasher segment to ZERO
-                    column.resize(hasher.trace_len(), Felt::ZERO);
+                    column.resize(self.hasher.trace_len(), Felt::ZERO);
                     // set the selector value for all other segments ONE
                     column.resize(trace_len, Felt::ONE);
                 }
                 1 => {
                     // initialize hasher segment and set bitwise segment selector value to ZERO
-                    column.resize(hasher.trace_len() + bitwise.trace_len(), Felt::ZERO);
+                    column.resize(
+                        self.hasher.trace_len() + self.bitwise.trace_len(),
+                        Felt::ZERO,
+                    );
                     // set selector value for all other segments to ONE
                     column.resize(trace_len, Felt::ONE);
                     // add hasher segment to the hasher fragment to be filled from the hasher trace
-                    hasher_fragment.push_column_slice(column, hasher.trace_len());
+                    hasher_fragment.push_column_slice(column, self.hasher.trace_len());
                 }
                 2 => {
                     // initialize hasher and bitwise segments and set memory segment selector to ZERO
                     column.resize(
-                        hasher.trace_len() + bitwise.trace_len() + memory.trace_len(),
+                        self.hasher.trace_len()
+                            + self.bitwise.trace_len()
+                            + self.memory.trace_len(),
                         Felt::ZERO,
                     );
                     // set selector value for the final segment to ONE
                     column.resize(trace_len, Felt::ONE);
                     // add hasher segment to the hasher fragment to be filled from the hasher trace
                     let rest_of_column =
-                        hasher_fragment.push_column_slice(column, hasher.trace_len());
+                        hasher_fragment.push_column_slice(column, self.hasher.trace_len());
                     // add bitwise segment to the bitwise fragment to be filled from the bitwise trace
-                    bitwise_fragment.push_column_slice(rest_of_column, bitwise.trace_len());
+                    bitwise_fragment.push_column_slice(rest_of_column, self.bitwise.trace_len());
                 }
                 16 => {
                     // initialize hasher & memory segments and pad bitwise & final segments with ZERO
                     column.resize(trace_len, Felt::ZERO);
                     // add hasher segment to the hasher fragment to be filled from the hasher trace
                     let rest_of_column =
-                        hasher_fragment.push_column_slice(column, hasher.trace_len());
+                        hasher_fragment.push_column_slice(column, self.hasher.trace_len());
                     // split the column again to skip the bitwise segment, which has already been padded
-                    let (_, rest_of_column) = rest_of_column.split_at_mut(bitwise.trace_len());
+                    let (_, rest_of_column) = rest_of_column.split_at_mut(self.bitwise.trace_len());
                     // add memory segment to the memory fragment to be filled from the memory trace
-                    memory_fragment.push_column_slice(rest_of_column, memory.trace_len());
+                    memory_fragment.push_column_slice(rest_of_column, self.memory.trace_len());
                 }
                 17 => {
                     // initialize hasher segment and pad bitwise, memory, and final segments with ZERO
                     column.resize(trace_len, Felt::ZERO);
                     // add hasher segment to the hasher fragment to be filled from the hasher trace
-                    hasher_fragment.push_column_slice(column, hasher.trace_len());
+                    hasher_fragment.push_column_slice(column, self.hasher.trace_len());
                 }
                 _ => {
                     // initialize hasher, bitwise, memory segments and pad the final segment with ZERO
                     column.resize(trace_len, Felt::ZERO);
                     // add hasher segment to the hasher fragment to be filled from the hasher trace
                     let rest_of_column =
-                        hasher_fragment.push_column_slice(column, hasher.trace_len());
+                        hasher_fragment.push_column_slice(column, self.hasher.trace_len());
                     // add bitwise segment to the bitwise fragment to be filled from the bitwise trace
-                    let rest_of_column =
-                        bitwise_fragment.push_column_slice(rest_of_column, bitwise.trace_len());
+                    let rest_of_column = bitwise_fragment
+                        .push_column_slice(rest_of_column, self.bitwise.trace_len());
                     // add memory segment to the memory fragment to be filled from the memory trace
-                    memory_fragment.push_column_slice(rest_of_column, memory.trace_len());
+                    memory_fragment.push_column_slice(rest_of_column, self.memory.trace_len());
                 }
             }
         }
 
         // fill the fragments with the execution trace from each coprocessor
         // TODO: this can be parallelized to fill the traces in multiple threads
-        hasher.fill_trace(&mut hasher_fragment);
-        bitwise.fill_trace(&mut bitwise_fragment);
-        memory.fill_trace(&mut memory_fragment);
+        self.hasher.fill_trace(&mut hasher_fragment);
+        self.bitwise.fill_trace(&mut bitwise_fragment);
+        self.memory.fill_trace(&mut memory_fragment);
     }
 }

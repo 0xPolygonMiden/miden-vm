@@ -282,6 +282,12 @@ impl Hasher {
     }
 }
 
+impl Default for Hasher {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // MERKLE PATH CONTEXT
 // ================================================================================================
 

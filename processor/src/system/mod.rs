@@ -26,15 +26,15 @@ impl System {
     // --------------------------------------------------------------------------------------------
     /// Returns a new [System] struct with execution traces instantiated with the specified length.
     /// Initializes the free memory pointer `fmp` used for local memory offsets to 2^30.
-    pub fn new(init_trace_length: usize) -> Self {
+    pub fn new(init_trace_capacity: usize) -> Self {
         // set the first value of the fmp trace to 2^30.
         let fmp = Felt::new(FMP_MIN);
-        let mut fmp_trace = Felt::zeroed_vector(init_trace_length);
+        let mut fmp_trace = Felt::zeroed_vector(init_trace_capacity);
         fmp_trace[0] = fmp;
 
         Self {
             clk: 0,
-            clk_trace: Felt::zeroed_vector(init_trace_length),
+            clk_trace: Felt::zeroed_vector(init_trace_capacity),
             fmp,
             fmp_trace,
         }
@@ -55,10 +55,12 @@ impl System {
         self.fmp
     }
 
-    /// Returns execution trace length for a process.
+    /// Returns execution trace length for the systems columns of the process.
+    ///
+    /// Trace length of the system columns is equal to the number of cycles executed by the VM.
     #[inline(always)]
     pub fn trace_len(&self) -> usize {
-        self.clk_trace.len()
+        self.clk
     }
 
     /// Returns an execution trace of this system info container.
@@ -97,8 +99,9 @@ impl System {
     ///
     /// Trace length is doubled every time it needs to be increased.
     pub fn ensure_trace_capacity(&mut self) {
-        if self.clk + 1 >= self.trace_len() {
-            let new_length = self.trace_len() * 2;
+        let current_capacity = self.clk_trace.len();
+        if self.clk + 1 >= current_capacity {
+            let new_length = current_capacity * 2;
             self.clk_trace.resize(new_length, Felt::ZERO);
             self.fmp_trace.resize(new_length, Felt::ZERO);
         }

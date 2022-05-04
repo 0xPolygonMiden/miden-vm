@@ -206,6 +206,12 @@ impl RangeChecker {
     }
 }
 
+impl Default for RangeChecker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 

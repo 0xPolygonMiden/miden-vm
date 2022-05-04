@@ -1,7 +1,9 @@
 //! TODO: add docs
 
 use super::Felt;
-use crypto::{hashers::Rp64_256, ElementHasher, Hasher};
+use crypto::{ElementHasher, Hasher as HashFn};
+
+pub use crypto::hashers::Rp64_256 as Hasher;
 
 // TYPES ALIASES
 // ================================================================================================
@@ -9,7 +11,7 @@ use crypto::{hashers::Rp64_256, ElementHasher, Hasher};
 /// Output type of Rescue Prime hash function.
 ///
 /// The digest consists of 4 field elements or 32 bytes.
-pub type Digest = <Rp64_256 as Hasher>::Digest;
+pub type Digest = <Hasher as HashFn>::Digest;
 
 // CONSTANTS
 // ================================================================================================
@@ -19,12 +21,12 @@ pub type Digest = <Rp64_256 as Hasher>::Digest;
 /// This value is set to 12: 8 elements are reserved for rate and the remaining 4 elements are
 /// reserved for capacity. This configuration enables computation of 2-to-1 hash in a single
 /// permutation.
-pub const STATE_WIDTH: usize = Rp64_256::STATE_WIDTH;
+pub const STATE_WIDTH: usize = Hasher::STATE_WIDTH;
 
 /// Number of needed to complete a single permutation.
 ///
 /// This value is set to 7 to target 128-bit security level with 40% security margin.
-pub const NUM_ROUNDS: usize = Rp64_256::NUM_ROUNDS;
+pub const NUM_ROUNDS: usize = Hasher::NUM_ROUNDS;
 
 // PASS-THROUGH FUNCTIONS
 // ================================================================================================
@@ -32,13 +34,13 @@ pub const NUM_ROUNDS: usize = Rp64_256::NUM_ROUNDS;
 /// Returns a hash of two digests. This method is intended for use in construction of Merkle trees.
 #[inline(always)]
 pub fn merge(values: &[Digest; 2]) -> Digest {
-    Rp64_256::merge(values)
+    Hasher::merge(values)
 }
 
 /// Returns a hash of the provided list of field elements.
 #[inline(always)]
 pub fn hash_elements(elements: &[Felt]) -> Digest {
-    Rp64_256::hash_elements(elements)
+    Hasher::hash_elements(elements)
 }
 
 /// Applies Rescue-XLIX round function to the provided state.
@@ -48,11 +50,11 @@ pub fn hash_elements(elements: &[Felt]) -> Digest {
 /// inclusive).
 #[inline(always)]
 pub fn apply_round(state: &mut [Felt; STATE_WIDTH], round: usize) {
-    Rp64_256::apply_round(state, round)
+    Hasher::apply_round(state, round)
 }
 
 /// Applies Rescue-XLIX permutation (7 rounds) to the provided state.
 #[inline(always)]
 pub fn apply_permutation(state: &mut [Felt; STATE_WIDTH]) {
-    Rp64_256::apply_permutation(state)
+    Hasher::apply_permutation(state)
 }

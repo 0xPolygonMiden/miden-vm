@@ -22,12 +22,12 @@ impl StackTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a [StackTrace] instantiated with empty vectors for all columns.
-    pub fn new(inputs: &ProgramInputs, init_trace_length: usize) -> Self {
+    pub fn new(inputs: &ProgramInputs, init_trace_capacity: usize) -> Self {
         // Initialize the stack.
         let init_values = inputs.stack_init();
         let mut stack: Vec<Vec<Felt>> = Vec::with_capacity(MIN_STACK_DEPTH);
         for i in 0..MIN_STACK_DEPTH {
-            let mut column = Felt::zeroed_vector(init_trace_length);
+            let mut column = Felt::zeroed_vector(init_trace_capacity);
             if i < init_values.len() {
                 column[0] = init_values[i];
             }
@@ -35,12 +35,12 @@ impl StackTrace {
         }
 
         // Initialize the bookkeeping & helper columns.
-        let mut b0 = Felt::zeroed_vector(init_trace_length);
+        let mut b0 = Felt::zeroed_vector(init_trace_capacity);
         b0[0] = Felt::new(MIN_STACK_DEPTH as u64);
         let helpers: [Vec<Felt>; 3] = [
             b0,
-            Felt::zeroed_vector(init_trace_length),
-            Felt::zeroed_vector(init_trace_length),
+            Felt::zeroed_vector(init_trace_capacity),
+            Felt::zeroed_vector(init_trace_capacity),
         ];
 
         StackTrace {
@@ -53,12 +53,6 @@ impl StackTrace {
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
-
-    /// Returns the length of the execution trace for this stack.
-    #[inline(always)]
-    pub fn trace_len(&self) -> usize {
-        self.stack[0].len()
-    }
 
     pub fn into_array(self) -> [Vec<Felt>; STACK_TRACE_WIDTH] {
         let mut trace = Vec::with_capacity(STACK_TRACE_WIDTH);
@@ -214,8 +208,9 @@ impl StackTrace {
     ///
     /// Trace length is doubled every time it needs to be increased.
     pub fn ensure_trace_capacity(&mut self, clk: usize) {
-        if clk + 1 >= self.trace_len() {
-            let new_length = self.trace_len() * 2;
+        let current_capacity = self.stack[0].len();
+        if clk + 1 >= current_capacity {
+            let new_length = current_capacity * 2;
             for register in self.stack.iter_mut().chain(self.helpers.iter_mut()) {
                 register.resize(new_length, Felt::ZERO);
             }

@@ -29,6 +29,13 @@ pub struct ProcessorAir {
     stack_outputs: Vec<Felt>,
 }
 
+impl ProcessorAir {
+    /// Returns last step of the execution trace.
+    pub fn last_step(&self) -> usize {
+        self.trace_length() - self.context().num_transition_exemptions()
+    }
+}
+
 impl Air for ProcessorAir {
     type BaseField = Felt;
     type PublicInputs = PublicInputs;
@@ -75,7 +82,7 @@ impl Air for ProcessorAir {
         range::get_assertions_first_step(&mut result);
 
         // --- set assertions for the last step ---------------------------------------------------
-        let last_step = self.trace_length() - 1;
+        let last_step = self.last_step();
 
         // stack columns at the last step should be set to stack outputs
         for (i, &value) in self.stack_outputs.iter().enumerate() {
