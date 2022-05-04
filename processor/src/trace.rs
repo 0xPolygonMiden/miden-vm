@@ -1,16 +1,18 @@
-use super::{
-    AuxTableTrace, Digest, Felt, FieldElement, Process, RangeCheckTrace, StackTopState, StackTrace,
-    SysTrace,
-};
+use super::{Digest, Felt, FieldElement, Process, StackTopState};
 use core::slice;
 use vm_core::{StarkField, MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH};
-use winterfell::{EvaluationFrame, Matrix, Trace, TraceLayout};
+use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
 
 // CONSTANTS
 // ================================================================================================
 
 /// Number of rows at the end of an execution trace which are injected with random values.
 const NUM_RAND_ROWS: usize = 1;
+
+// TYPE ALIASES
+// ================================================================================================
+
+type RandomCoin = vm_core::utils::RandomCoin<Felt, vm_core::hasher::Hasher>;
 
 // VM EXECUTION TRACE
 // ================================================================================================
@@ -30,15 +32,12 @@ impl ExecutionTrace {
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
     pub(super) fn new(process: Process, program_hash: Digest) -> Self {
-        let (system_trace, stack_trace, range_check_trace, aux_table_trace) =
-            finalize_trace(process);
-
-        let main_trace = system_trace
-            .into_iter()
-            .chain(stack_trace)
-            .chain(range_check_trace)
-            .chain(aux_table_trace)
-            .collect::<Vec<_>>();
+        // use program hash to initialize random element generator; this generator will be used
+        // to inject random values at the end of the trace; using program hash here is OK because
+        // we are using random values only to stabilize constraint degree, and not to achieve
+        // perfect zero knowledge.
+        let rng = RandomCoin::new(&program_hash.to_bytes());
+        let main_trace = finalize_trace(process, rng);
 
         Self {
             meta: Vec::new(),
@@ -89,10 +88,9 @@ impl ExecutionTrace {
     }
 
     #[cfg(test)]
-    pub fn test_finalize_trace(
-        process: Process,
-    ) -> (SysTrace, StackTrace, RangeCheckTrace, AuxTableTrace) {
-        finalize_trace(process)
+    pub fn test_finalize_trace(process: Process) -> Vec<Vec<Felt>> {
+        let rng = RandomCoin::new(&[0; 32]);
+        finalize_trace(process, rng)
     }
 }
 
@@ -211,7 +209,7 @@ impl<'a> TraceFragment<'a> {
 /// - Inserting random values in the last row of all columns. This helps ensure that there
 ///   are no repeating patterns in each column and each column contains a least two distinct
 ///   values. Thus, in turn, ensures that polynomial degrees of all columns are stable.
-fn finalize_trace(process: Process) -> (SysTrace, StackTrace, RangeCheckTrace, AuxTableTrace) {
+fn finalize_trace(process: Process, mut rng: RandomCoin) -> Vec<Vec<Felt>> {
     let (system, stack, range, aux_table) = process.to_components();
 
     let clk = system.clk();
@@ -236,16 +234,25 @@ fn finalize_trace(process: Process) -> (SysTrace, StackTrace, RangeCheckTrace, A
         trace_len
     );
 
-    // finalize component traces
+    // combine all trace segments into the main trace
     let system_trace = system.into_trace(trace_len, NUM_RAND_ROWS);
     let stack_trace = stack.into_trace(trace_len, NUM_RAND_ROWS);
     let range_check_trace = range.into_trace(trace_len, NUM_RAND_ROWS);
     let aux_table_trace = aux_table.into_trace(trace_len, NUM_RAND_ROWS);
 
-    (
-        system_trace,
-        stack_trace,
-        range_check_trace,
-        aux_table_trace,
-    )
+    let mut trace = system_trace
+        .into_iter()
+        .chain(stack_trace)
+        .chain(range_check_trace)
+        .chain(aux_table_trace)
+        .collect::<Vec<_>>();
+
+    // inject random values into the last rows of the trace
+    for i in trace_len - NUM_RAND_ROWS..trace_len {
+        for column in trace.iter_mut() {
+            column[i] = rng.draw().expect("failed to draw a random value");
+        }
+    }
+
+    trace
 }
