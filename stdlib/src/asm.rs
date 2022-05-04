@@ -4,7 +4,7 @@
 ///
 /// Entries in the array are tuples containing module namespace and module source code.
 #[rustfmt::skip]
-pub const MODULES: [(&str, &str); 5] = [
+pub const MODULES: [(&str, &str); 6] = [
 // ----- std::crypto::hashes::blake3 --------------------------------------------------------------
 ("std::crypto::hashes::blake3", "proc.from_mem_to_stack.1
     storew.local.0
@@ -9359,14 +9359,14 @@ export.hash.16
 end
 "),
 // ----- std::math::secp256k1 ---------------------------------------------------------------------
-("std::math::secp256k1", "# Given [a, b, c, carry] on stack top, following function computes 
-
-  tmp = a + (b * c) + carry
-  hi = tmp >> 32
-  lo = tmp & 0xffff_ffff
-  return (hi, lo)
-  
-  At end of execution of this function, stack top should look like [hi, lo] #
+("std::math::secp256k1", "# Given [a, b, c, carry] on stack top, following function computes
+#
+#  tmp = a + (b * c) + carry
+#  hi = tmp >> 32
+#  lo = tmp & 0xffff_ffff
+#  return (hi, lo)
+#
+#  At end of execution of this function, stack top should look like [hi, lo]
 export.mac
   swap
   movup.2
@@ -9377,23 +9377,21 @@ export.mac
   u32add.unsafe
 
   movup.2
-  u32add.unsafe
-  drop
+  add
 end
 
 # Given [a0, a1, a2, a3, a4, a5, a6, a7, b, c_0_addr, c_1_addr] on stack top,
-  this function computes a multiplication of u256 by u32, while also
-  considering u256 computed during previous round.
-
-  - Multiplicand u256 in this context is kept in memory, whose 8 limbs can be loaded
-  into stack by pushing content at memory location `c_1_addr` & `c_0_addr`, in order.
-  - Multiplier u32 is `b` i.e. stack[8] element.
-  - Note, previous round's u256 is kept in first 8 stack elements.
-
-  After finishing execution of this function, stack top should hold u288 i.e.
-
-  [a0, a1, a2, a3, a4, a5, a6, a7, a8] | a8 = carry
+#  this function computes a multiplication of u256 by u32, while also
+#  considering u256 computed during previous round.
 #
+#  - Multiplicand u256 in this context is kept in memory, whose 8 limbs can be loaded
+#  into stack by pushing content at memory location `c_1_addr` & `c_0_addr`, in order.
+#  - Multiplier u32 is `b` i.e. stack[8] element.
+#  - Note, previous round's u256 is kept in first 8 stack elements.
+#
+#  After finishing execution of this function, stack top should hold u288 i.e.
+#
+#  [a0, a1, a2, a3, a4, a5, a6, a7, a8] | a8 = carry
 export.u256xu32
   dup.9
   pushw.mem
