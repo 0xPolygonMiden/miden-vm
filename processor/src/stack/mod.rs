@@ -61,12 +61,12 @@ impl Stack {
     /// Returns a [Stack] initialized with the specified program inputs.
     pub fn new(
         inputs: &ProgramInputs,
-        init_trace_length: usize,
+        init_trace_capacity: usize,
         keep_overflow_trace: bool,
     ) -> Self {
         Self {
             clk: 0,
-            trace: StackTrace::new(inputs, init_trace_length),
+            trace: StackTrace::new(inputs, init_trace_capacity),
             overflow: OverflowTable::new(keep_overflow_trace),
             depth: MIN_STACK_DEPTH,
         }
@@ -81,14 +81,15 @@ impl Stack {
     }
 
     /// Returns the current clock cycle of the execution trace.
-    #[allow(dead_code)]
     pub fn current_clk(&self) -> usize {
         self.clk
     }
 
     /// Returns execution trace length for this stack.
+    ///
+    /// Trace length of the stack is equal to the number of cycles executed by the VM.
     pub fn trace_len(&self) -> usize {
-        self.trace.trace_len()
+        self.clk
     }
 
     /// Returns a copy of the item currently at the top of the stack.
@@ -115,8 +116,30 @@ impl Stack {
     }
 
     /// Returns an execution trace of the top 16 stack slots and helper columns as a single array.
-    pub fn into_trace(self) -> [Vec<Felt>; STACK_TRACE_WIDTH] {
-        self.trace.into_array()
+    ///
+    /// If the stack trace is smaller than the specified `trace_len`, last value in each column is
+    /// duplicated until the length of the columns reaches `trace_len`.
+    ///
+    /// `num_rand_rows` indicates the number of rows at the end of the trace which will be
+    /// overwritten with random values. This parameter is unused because last rows are just
+    /// duplicates of the prior rows and thus can be safely overwritten.
+    pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> super::StackTrace {
+        let clk = self.current_clk();
+        // make sure that only the duplicate rows will be overwritten with random values
+        assert!(
+            clk + num_rand_rows <= trace_len,
+            "target trace length too small"
+        );
+
+        // fill in all trace columns after the last clock cycle with the value at the last clock
+        // cycle
+        let mut trace = self.trace.into_array();
+        for column in trace.iter_mut() {
+            let last_value = column[clk];
+            column[clk..].fill(last_value);
+            column.resize(trace_len, last_value);
+        }
+        trace
     }
 
     /// Returns stack state at the specified clock cycle.

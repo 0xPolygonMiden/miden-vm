@@ -6,7 +6,7 @@ use super::{
     },
     AuxTableTrace,
 };
-use vm_core::{Felt, FieldElement, ProgramInputs, MIN_TRACE_LEN};
+use vm_core::{Felt, FieldElement, ProgramInputs, AUX_TRACE_RANGE};
 
 #[test]
 fn hasher_aux_trace() {
@@ -14,9 +14,13 @@ fn hasher_aux_trace() {
     let stack = [2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
     let operations = vec![Operation::RpPerm];
     let aux_table_trace = build_trace(&stack, operations);
+    let trace_len = aux_table_trace[0].len();
 
     let expected_len = 8;
     validate_hasher_trace(&aux_table_trace, 0, expected_len);
+
+    // validate that the table was padded correctly (accounting for random row)
+    validate_padding(&aux_table_trace, 8, trace_len - 1);
 }
 
 #[test]
@@ -25,9 +29,13 @@ fn bitwise_aux_trace() {
     let stack = [4, 8];
     let operations = vec![Operation::U32or];
     let aux_table_trace = build_trace(&stack, operations);
+    let trace_len = aux_table_trace[0].len();
 
     let expected_len = 8;
     validate_bitwise_trace(&aux_table_trace, 0, expected_len);
+
+    // validate that the table was padded correctly (accounting for random row)
+    validate_padding(&aux_table_trace, 8, trace_len - 1);
 }
 
 #[test]
@@ -36,12 +44,13 @@ fn memory_aux_trace() {
     let stack = [1, 2, 3, 4];
     let operations = vec![Operation::Push(Felt::new(2)), Operation::StoreW];
     let aux_table_trace = build_trace(&stack, operations);
+    let trace_len = aux_table_trace[0].len();
 
     // check the memory trace
     validate_memory_trace(&aux_table_trace, 0, 1, 2);
 
-    // check that it was padded correctly
-    validate_padding(&aux_table_trace, 1, MIN_TRACE_LEN);
+    // validate that the table was padded correctly (accounting for random row)
+    validate_padding(&aux_table_trace, 1, trace_len - 1);
 }
 
 #[test]
@@ -55,6 +64,7 @@ fn stacked_aux_trace() {
         Operation::RpPerm,
     ];
     let aux_table_trace = build_trace(&stack, operations);
+    let trace_len = aux_table_trace[0].len();
 
     // expect 8 rows of hasher trace
     validate_hasher_trace(&aux_table_trace, 0, 8);
@@ -65,8 +75,8 @@ fn stacked_aux_trace() {
     // expect 1 row of memory trace
     validate_memory_trace(&aux_table_trace, 16, 17, 0);
 
-    // expect 15 rows of padding, to pad to next power of 2
-    validate_padding(&aux_table_trace, 17, 32);
+    // validate that the table was padded correctly (accounting for random row)
+    validate_padding(&aux_table_trace, 17, trace_len - 1);
 }
 
 // HELPER FUNCTIONS
@@ -80,9 +90,11 @@ fn build_trace(stack: &[u64], operations: Vec<Operation>) -> AuxTableTrace {
         process.execute_op(*operation).unwrap();
     }
 
-    let (_, _, _, aux_table_trace) = ExecutionTrace::test_finalize_trace(process);
-
-    aux_table_trace
+    let trace = ExecutionTrace::test_finalize_trace(process);
+    trace[AUX_TRACE_RANGE]
+        .to_vec()
+        .try_into()
+        .expect("failed to convert vector to array")
 }
 
 /// Validate the hasher trace output by the rpperm operation. The full hasher trace is tested in

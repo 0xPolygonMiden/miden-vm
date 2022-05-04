@@ -9,6 +9,8 @@ pub use winter_utils::{
     DeserializationError, Serializable, SliceReader,
 };
 
+pub use crypto::{RandomCoin, RandomCoinError};
+
 // TO ELEMENTS
 // ================================================================================================
 

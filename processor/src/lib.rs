@@ -263,4 +263,9 @@ impl Process {
     pub fn get_memory_value(&self, addr: u64) -> Option<Word> {
         self.memory.get_value(addr)
     }
+
+    pub fn to_components(self) -> (System, Stack, RangeChecker, AuxTable) {
+        let aux_table = AuxTable::new(self.hasher, self.bitwise, self.memory);
+        (self.system, self.stack, self.range, aux_table)
+    }
 }

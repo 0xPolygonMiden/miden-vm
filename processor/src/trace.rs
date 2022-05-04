@@ -1,11 +1,18 @@
-use super::{
-    AuxTable, AuxTableTrace, Digest, Felt, FieldElement, Process, RangeCheckTrace, StackTopState,
-    StackTrace, SysTrace,
-};
+use super::{Digest, Felt, FieldElement, Process, StackTopState};
 use core::slice;
-use vm_core::{StarkField, MIN_STACK_DEPTH, STACK_TRACE_OFFSET, TRACE_WIDTH};
-use winterfell::Trace;
-use winterfell::{EvaluationFrame, Matrix, TraceLayout};
+use vm_core::{StarkField, MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH};
+use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
+
+// CONSTANTS
+// ================================================================================================
+
+/// Number of rows at the end of an execution trace which are injected with random values.
+const NUM_RAND_ROWS: usize = 1;
+
+// TYPE ALIASES
+// ================================================================================================
+
+type RandomCoin = vm_core::utils::RandomCoin<Felt, vm_core::hasher::Hasher>;
 
 // VM EXECUTION TRACE
 // ================================================================================================
@@ -25,15 +32,12 @@ impl ExecutionTrace {
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
     pub(super) fn new(process: Process, program_hash: Digest) -> Self {
-        let (system_trace, stack_trace, range_check_trace, aux_table_trace) =
-            finalize_trace(process);
-
-        let main_trace = system_trace
-            .into_iter()
-            .chain(stack_trace)
-            .chain(range_check_trace)
-            .chain(aux_table_trace)
-            .collect::<Vec<_>>();
+        // use program hash to initialize random element generator; this generator will be used
+        // to inject random values at the end of the trace; using program hash here is OK because
+        // we are using random values only to stabilize constraint degree, and not to achieve
+        // perfect zero knowledge.
+        let rng = RandomCoin::new(&program_hash.to_bytes());
+        let main_trace = finalize_trace(process, rng);
 
         Self {
             meta: Vec::new(),
@@ -63,7 +67,7 @@ impl ExecutionTrace {
 
     /// Returns the final state of the top 16 stack registers.
     pub fn last_stack_state(&self) -> StackTopState {
-        let last_step = self.length() - 1;
+        let last_step = self.length() - NUM_RAND_ROWS - 1;
         let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[last_step];
@@ -84,10 +88,9 @@ impl ExecutionTrace {
     }
 
     #[cfg(test)]
-    pub fn test_finalize_trace(
-        process: Process,
-    ) -> (SysTrace, StackTrace, RangeCheckTrace, AuxTableTrace) {
-        finalize_trace(process)
+    pub fn test_finalize_trace(process: Process) -> Vec<Vec<Felt>> {
+        let rng = RandomCoin::new(&[0; 32]);
+        finalize_trace(process, rng)
     }
 }
 
@@ -198,72 +201,58 @@ impl<'a> TraceFragment<'a> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn finalize_trace(process: Process) -> (SysTrace, StackTrace, RangeCheckTrace, AuxTableTrace) {
-    let Process {
-        system,
-        decoder: _,
-        stack,
-        range,
-        hasher,
-        bitwise,
-        memory,
-        advice: _,
-    } = process;
+/// Converts a process into a set of execution trace columns for each component of the trace.
+///
+/// The process includes:
+/// - Determining the length of the trace required to accommodate the longest trace column.
+/// - Padding the columns to make sure all columns are of the same length.
+/// - Inserting random values in the last row of all columns. This helps ensure that there
+///   are no repeating patterns in each column and each column contains a least two distinct
+///   values. This, in turn, ensures that polynomial degrees of all columns are stable.
+fn finalize_trace(process: Process, mut rng: RandomCoin) -> Vec<Vec<Felt>> {
+    let (system, stack, range, aux_table) = process.to_components();
+
+    let clk = system.clk();
+
+    // trace lengths of system and stack components must be equal to the number of executed cycles
+    assert_eq!(clk, system.trace_len(), "inconsistent system trace lengths");
+    assert_eq!(clk, stack.trace_len(), "inconsistent stack trace lengths");
 
     // Get the trace length required to hold all execution trace steps.
-    let aux_trace_len = hasher.trace_len() + bitwise.trace_len() + memory.trace_len();
-    let trace_len = vec![stack.trace_len(), range.trace_len(), aux_trace_len]
-        .iter()
+    let max_len = [clk, range.trace_len(), aux_table.trace_len()]
+        .into_iter()
         .max()
-        .expect("failed to get max of component trace lengths")
-        .next_power_of_two();
+        .expect("failed to get max of component trace lengths");
 
-    // Finalize the system trace.
-    let step = system.clk();
-    let mut system_trace = system.into_trace();
-    finalize_clk_column(&mut system_trace[0], step, trace_len);
-    finalize_column(&mut system_trace[1], step, trace_len);
+    // pad the trace length to the next power of two and ensure that there is space for the
+    // rows to hold random values
+    let trace_len = (max_len + NUM_RAND_ROWS).next_power_of_two();
+    assert!(
+        trace_len >= MIN_TRACE_LEN,
+        "trace length must be at least {}, but was {}",
+        MIN_TRACE_LEN,
+        trace_len
+    );
 
-    // Finalize stack trace.
-    let mut stack_trace = stack.into_trace();
-    for column in stack_trace.iter_mut() {
-        finalize_column(column, step, trace_len);
+    // combine all trace segments into the main trace
+    let system_trace = system.into_trace(trace_len, NUM_RAND_ROWS);
+    let stack_trace = stack.into_trace(trace_len, NUM_RAND_ROWS);
+    let range_check_trace = range.into_trace(trace_len, NUM_RAND_ROWS);
+    let aux_table_trace = aux_table.into_trace(trace_len, NUM_RAND_ROWS);
+
+    let mut trace = system_trace
+        .into_iter()
+        .chain(stack_trace)
+        .chain(range_check_trace)
+        .chain(aux_table_trace)
+        .collect::<Vec<_>>();
+
+    // inject random values into the last rows of the trace
+    for i in trace_len - NUM_RAND_ROWS..trace_len {
+        for column in trace.iter_mut() {
+            column[i] = rng.draw().expect("failed to draw a random value");
+        }
     }
 
-    // Finalize the range check trace.
-    let range_check_trace: RangeCheckTrace = range
-        .into_trace(trace_len)
-        .try_into()
-        .expect("failed to convert vector to array");
-
-    // Finalize the auxilliary table trace.
-    let mut aux_table = AuxTable::new(trace_len);
-    aux_table.fill_columns(hasher, bitwise, memory);
-    let aux_table_trace = aux_table.into_trace();
-
-    (
-        system_trace,
-        stack_trace,
-        range_check_trace,
-        aux_table_trace,
-    )
-}
-
-/// Copies the final output value down to the end of the stack trace, then extends the column to
-/// the length of the execution trace, if it's longer than the stack trace, and copies the last
-/// value to the end of that as well.
-fn finalize_column(column: &mut Vec<Felt>, step: usize, trace_len: usize) {
-    let last_value = column[step];
-    column[step..].fill(last_value);
-    column.resize(trace_len, last_value);
-}
-
-/// Completes the clk column by filling in all values after the specified step. The values
-/// in the clk column are equal to the index of the row in the trace table.
-fn finalize_clk_column(column: &mut Vec<Felt>, step: usize, trace_len: usize) {
-    column.resize(trace_len, Felt::ZERO);
-    for (i, clk) in column.iter_mut().enumerate().take(trace_len).skip(step) {
-        // converting from u32 is OK here because max trace length is 2^32
-        *clk = Felt::from(i as u32);
-    }
+    trace
 }

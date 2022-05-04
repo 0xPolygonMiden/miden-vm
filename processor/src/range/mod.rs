@@ -1,3 +1,5 @@
+use crate::RangeCheckTrace;
+
 use super::{Felt, FieldElement};
 use vm_core::utils::{collections::BTreeMap, uninit_vector};
 
@@ -96,45 +98,52 @@ impl RangeChecker {
     // --------------------------------------------------------------------------------------------
 
     /// Converts this [RangeChecker] into an execution trace with 4 columns and the number of rows
-    /// specified by the `target_length` parameter.
+    /// specified by the `target_len` parameter.
     ///
     /// If the number of rows need to represent execution trace of this range checker is smaller
-    /// than `target_length` parameter, the trace is padded with extra rows.
+    /// than `target_len` parameter, the trace is padded with extra rows.
+    ///
+    /// `num_rand_rows` indicates the number of rows at the end of the trace which will be
+    /// overwritten with random values. Values in these rows are not initialized.
     ///
     /// # Panics
-    /// Panics if `target_length` is not a power of two or is smaller than the trace length needed
+    /// Panics if `target_len` is not a power of two or is smaller than the trace length needed
     /// to represent all lookups in this range checker.
-    pub fn into_trace(self, target_length: usize) -> Vec<Vec<Felt>> {
+    pub fn into_trace(self, target_len: usize, num_rand_rows: usize) -> RangeCheckTrace {
         assert!(
-            target_length.is_power_of_two(),
+            target_len.is_power_of_two(),
             "target trace length is not a power of two"
         );
 
         // determine the length of the trace required to support all the lookups in this range
-        // checker, and make sure this length is smaller than or equal to the target trace length.
+        // checker, and make sure this length is smaller than or equal to the target trace length,
+        // accounting for rows with random values.
         //
         // we do the trace length computation here instead of using Self::trace_len() because we
         // need to use lookups_8bit table later in this function, and we don't want to create it
         // twice.
         let (lookups_8bit, num_16_bit_rows) = self.build_8bit_lookup();
         let num_8bit_rows = get_num_8bit_rows(&lookups_8bit);
-        let trace_length = num_8bit_rows + num_16_bit_rows;
-        assert!(trace_length <= target_length, "target trace too small");
+        let trace_len = num_8bit_rows + num_16_bit_rows;
+        assert!(
+            trace_len + num_rand_rows <= target_len,
+            "target trace length too small"
+        );
 
         // allocated memory for the trace; this memory is un-initialized but this is not a problem
         // because we'll overwrite all values in it anyway.
         let mut trace = unsafe {
-            vec![
-                uninit_vector(target_length),
-                uninit_vector(target_length),
-                uninit_vector(target_length),
-                uninit_vector(target_length),
+            [
+                uninit_vector(target_len),
+                uninit_vector(target_len),
+                uninit_vector(target_len),
+                uninit_vector(target_len),
             ]
         };
 
         // determine the number of padding rows needed to get to target trace length and pad the
         // table with the required number of rows.
-        let num_padding_rows = target_length - trace_length;
+        let num_padding_rows = target_len - trace_len - num_rand_rows;
         trace[1][..num_padding_rows].fill(Felt::ZERO);
         trace[2][..num_padding_rows].fill(Felt::ZERO);
         trace[3][..num_padding_rows].fill(Felt::ZERO);
@@ -203,6 +212,12 @@ impl RangeChecker {
         }
 
         (result, num_16bit_rows)
+    }
+}
+
+impl Default for RangeChecker {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
