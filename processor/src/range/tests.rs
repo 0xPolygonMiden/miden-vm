@@ -12,7 +12,7 @@ fn range_checks() {
         checker.add_value(value.as_int() as u16)
     }
 
-    let trace = checker.into_trace(1024);
+    let trace = checker.into_trace(1024, 0);
     validate_trace(&trace, &values);
 
     // skip the 8-bit portion of the trace
@@ -48,7 +48,7 @@ fn range_checks_rand() {
     }
 
     let trace_len = checker.trace_len().next_power_of_two();
-    let trace = checker.into_trace(trace_len);
+    let trace = checker.into_trace(trace_len, 0);
     validate_trace(&trace, &values);
 }
 

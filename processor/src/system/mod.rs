@@ -69,8 +69,17 @@ impl System {
     /// extended to match the specified length as follows:
     /// - the remainder of the `clk` column is filled in with increasing values of `clk`.
     /// - the remainder of the `fmp` column is filled in with the last value in the column.
-    pub fn into_trace(mut self, trace_len: usize) -> SysTrace {
+    ///
+    /// `num_rand_rows` indicates the number of rows at the end of the trace which will be
+    /// overwritten with random values. This parameter is unused because last rows are just
+    /// duplicates of the prior rows and thus can be safely overwritten.
+    pub fn into_trace(mut self, trace_len: usize, num_rand_rows: usize) -> SysTrace {
         let clk = self.clk();
+        // make sure that only the duplicate rows will be overwritten with random values
+        assert!(
+            clk + num_rand_rows <= trace_len,
+            "target trace length too small"
+        );
 
         // complete the clk column by filling in all values after the last clock cycle. The values
         // in the clk column are equal to the index of the row in the trace table.

@@ -54,8 +54,13 @@ impl Air for ProcessorAir {
             + pub_inputs.stack_outputs.len()
             + range::NUM_ASSERTIONS;
 
+        // create the context and set the number of transition constraint exemptions to two; this
+        // allows us to inject random values into the last row of the execution trace
+        let context = AirContext::new(trace_info, degrees, num_assertions, options)
+            .set_num_transition_exemptions(2);
+
         Self {
-            context: AirContext::new(trace_info, degrees, num_assertions, options),
+            context,
             stack_inputs: pub_inputs.stack_inputs,
             stack_outputs: pub_inputs.stack_outputs,
         }

@@ -6,6 +6,12 @@ use core::slice;
 use vm_core::{StarkField, MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH};
 use winterfell::{EvaluationFrame, Matrix, Trace, TraceLayout};
 
+// CONSTANTS
+// ================================================================================================
+
+/// Number of rows at the end of an execution trace which are injected with random values.
+const NUM_RAND_ROWS: usize = 1;
+
 // VM EXECUTION TRACE
 // ================================================================================================
 
@@ -62,7 +68,7 @@ impl ExecutionTrace {
 
     /// Returns the final state of the top 16 stack registers.
     pub fn last_stack_state(&self) -> StackTopState {
-        let last_step = self.length() - 1;
+        let last_step = self.length() - NUM_RAND_ROWS - 1;
         let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[last_step];
@@ -215,12 +221,14 @@ fn finalize_trace(process: Process) -> (SysTrace, StackTrace, RangeCheckTrace, A
     assert_eq!(clk, stack.trace_len(), "inconsistent stack trace lengths");
 
     // Get the trace length required to hold all execution trace steps.
-    let trace_len = [clk, range.trace_len(), aux_table.trace_len()]
+    let max_len = [clk, range.trace_len(), aux_table.trace_len()]
         .into_iter()
         .max()
-        .expect("failed to get max of component trace lengths")
-        .next_power_of_two();
+        .expect("failed to get max of component trace lengths");
 
+    // pad the trace length to the next power of two and ensure that there is space for the
+    // rows to hold random values
+    let trace_len = (max_len + NUM_RAND_ROWS).next_power_of_two();
     assert!(
         trace_len >= MIN_TRACE_LEN,
         "trace length must be at least {}, but was {}",
@@ -229,10 +237,10 @@ fn finalize_trace(process: Process) -> (SysTrace, StackTrace, RangeCheckTrace, A
     );
 
     // finalize component traces
-    let system_trace = system.into_trace(trace_len);
-    let stack_trace = stack.into_trace(trace_len);
-    let range_check_trace = range.into_trace(trace_len);
-    let aux_table_trace = aux_table.into_trace(trace_len);
+    let system_trace = system.into_trace(trace_len, NUM_RAND_ROWS);
+    let stack_trace = stack.into_trace(trace_len, NUM_RAND_ROWS);
+    let range_check_trace = range.into_trace(trace_len, NUM_RAND_ROWS);
+    let aux_table_trace = aux_table.into_trace(trace_len, NUM_RAND_ROWS);
 
     (
         system_trace,

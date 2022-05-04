@@ -68,7 +68,17 @@ impl AuxTable {
 
     /// Returns an execution trace of the auxiliary table containing the stacked traces of the
     /// Hasher, Bitwise, and Memory coprocessors.
-    pub fn into_trace(self, trace_len: usize) -> AuxTableTrace {
+    ///
+    /// `num_rand_rows` indicates the number of rows at the end of the trace which will be
+    /// overwritten with random values. This parameter is unused because last rows should be
+    /// padding rows which can be safely overwritten.
+    pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> AuxTableTrace {
+        // make sure that only padding rows will be overwritten by random values
+        assert!(
+            self.trace_len() + num_rand_rows <= trace_len,
+            "target trace length too small"
+        );
+
         // Allocate columns for the trace of the auxiliary table.
         // note: it may be possible to optimize this by initializing with Felt::zeroed_vector,
         // depending on how the compiler reduces Felt(0) and whether initializing here + iterating
