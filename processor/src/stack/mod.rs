@@ -81,7 +81,6 @@ impl Stack {
     }
 
     /// Returns the current clock cycle of the execution trace.
-    #[allow(dead_code)]
     pub fn current_clk(&self) -> usize {
         self.clk
     }
@@ -117,8 +116,21 @@ impl Stack {
     }
 
     /// Returns an execution trace of the top 16 stack slots and helper columns as a single array.
-    pub fn into_trace(self) -> [Vec<Felt>; STACK_TRACE_WIDTH] {
-        self.trace.into_array()
+    ///
+    /// If the stack trace is smaller than the specified `trace_len`, last value in each column is
+    /// duplicated until the length of the columns reaches `trace_len`.
+    pub fn into_trace(self, trace_len: usize) -> [Vec<Felt>; STACK_TRACE_WIDTH] {
+        let clk = self.current_clk();
+        let mut trace = self.trace.into_array();
+
+        // fill in all trace columns after the last clock cycle with the value at the last clock
+        // cycle
+        for column in trace.iter_mut() {
+            let last_value = column[clk];
+            column[clk..].fill(last_value);
+            column.resize(trace_len, last_value);
+        }
+        trace
     }
 
     /// Returns stack state at the specified clock cycle.

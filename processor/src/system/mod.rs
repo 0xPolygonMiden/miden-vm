@@ -64,7 +64,28 @@ impl System {
     }
 
     /// Returns an execution trace of this system info container.
-    pub fn into_trace(self) -> SysTrace {
+    ///
+    /// If the trace is smaller than the specified `trace_len`, the columns of the trace are
+    /// extended to match the specified length as follows:
+    /// - the remainder of the `clk` column is filled in with increasing values of `clk`.
+    /// - the remainder of the `fmp` column is filled in with the last value in the column.
+    pub fn into_trace(mut self, trace_len: usize) -> SysTrace {
+        let clk = self.clk();
+
+        // complete the clk column by filling in all values after the last clock cycle. The values
+        // in the clk column are equal to the index of the row in the trace table.
+        self.clk_trace.resize(trace_len, Felt::ZERO);
+        for (i, clk) in self.clk_trace.iter_mut().enumerate().skip(clk) {
+            // converting from u32 is OK here because max trace length is 2^32
+            *clk = Felt::from(i as u32);
+        }
+
+        // complete the fmp column by filling in all values after the last clock cycle with the
+        // value in the column at the last clock cycle.
+        let last_value = self.fmp_trace[clk];
+        self.fmp_trace[clk..].fill(last_value);
+        self.fmp_trace.resize(trace_len, last_value);
+
         [self.clk_trace, self.fmp_trace]
     }
 

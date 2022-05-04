@@ -228,24 +228,10 @@ fn finalize_trace(process: Process) -> (SysTrace, StackTrace, RangeCheckTrace, A
         trace_len
     );
 
-    // Finalize the system trace.
-    let mut system_trace = system.into_trace();
-    finalize_clk_column(&mut system_trace[0], clk, trace_len);
-    finalize_column(&mut system_trace[1], clk, trace_len);
-
-    // Finalize stack trace.
-    let mut stack_trace = stack.into_trace();
-    for column in stack_trace.iter_mut() {
-        finalize_column(column, clk, trace_len);
-    }
-
-    // Finalize the range check trace.
-    let range_check_trace: RangeCheckTrace = range
-        .into_trace(trace_len)
-        .try_into()
-        .expect("failed to convert vector to array");
-
-    // Finalize the auxiliary table trace.
+    // finalize component traces
+    let system_trace = system.into_trace(trace_len);
+    let stack_trace = stack.into_trace(trace_len);
+    let range_check_trace = range.into_trace(trace_len);
     let aux_table_trace = aux_table.into_trace(trace_len);
 
     (
@@ -254,23 +240,4 @@ fn finalize_trace(process: Process) -> (SysTrace, StackTrace, RangeCheckTrace, A
         range_check_trace,
         aux_table_trace,
     )
-}
-
-/// Copies the final output value down to the end of the stack trace, then extends the column to
-/// the length of the execution trace, if it's longer than the stack trace, and copies the last
-/// value to the end of that as well.
-fn finalize_column(column: &mut Vec<Felt>, clk: usize, trace_len: usize) {
-    let last_value = column[clk];
-    column[clk..].fill(last_value);
-    column.resize(trace_len, last_value);
-}
-
-/// Completes the clk column by filling in all values after the specified clock cycle. The values
-/// in the clk column are equal to the index of the row in the trace table.
-fn finalize_clk_column(column: &mut Vec<Felt>, clk: usize, trace_len: usize) {
-    column.resize(trace_len, Felt::ZERO);
-    for (i, clk) in column.iter_mut().enumerate().take(trace_len).skip(clk) {
-        // converting from u32 is OK here because max trace length is 2^32
-        *clk = Felt::from(i as u32);
-    }
 }

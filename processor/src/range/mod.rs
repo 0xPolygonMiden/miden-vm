@@ -1,3 +1,5 @@
+use crate::RangeCheckTrace;
+
 use super::{Felt, FieldElement};
 use vm_core::utils::{collections::BTreeMap, uninit_vector};
 
@@ -96,17 +98,17 @@ impl RangeChecker {
     // --------------------------------------------------------------------------------------------
 
     /// Converts this [RangeChecker] into an execution trace with 4 columns and the number of rows
-    /// specified by the `target_length` parameter.
+    /// specified by the `target_len` parameter.
     ///
     /// If the number of rows need to represent execution trace of this range checker is smaller
-    /// than `target_length` parameter, the trace is padded with extra rows.
+    /// than `target_len` parameter, the trace is padded with extra rows.
     ///
     /// # Panics
-    /// Panics if `target_length` is not a power of two or is smaller than the trace length needed
+    /// Panics if `target_len` is not a power of two or is smaller than the trace length needed
     /// to represent all lookups in this range checker.
-    pub fn into_trace(self, target_length: usize) -> Vec<Vec<Felt>> {
+    pub fn into_trace(self, target_len: usize) -> RangeCheckTrace {
         assert!(
-            target_length.is_power_of_two(),
+            target_len.is_power_of_two(),
             "target trace length is not a power of two"
         );
 
@@ -119,22 +121,22 @@ impl RangeChecker {
         let (lookups_8bit, num_16_bit_rows) = self.build_8bit_lookup();
         let num_8bit_rows = get_num_8bit_rows(&lookups_8bit);
         let trace_length = num_8bit_rows + num_16_bit_rows;
-        assert!(trace_length <= target_length, "target trace too small");
+        assert!(trace_length <= target_len, "target trace too small");
 
         // allocated memory for the trace; this memory is un-initialized but this is not a problem
         // because we'll overwrite all values in it anyway.
         let mut trace = unsafe {
-            vec![
-                uninit_vector(target_length),
-                uninit_vector(target_length),
-                uninit_vector(target_length),
-                uninit_vector(target_length),
+            [
+                uninit_vector(target_len),
+                uninit_vector(target_len),
+                uninit_vector(target_len),
+                uninit_vector(target_len),
             ]
         };
 
         // determine the number of padding rows needed to get to target trace length and pad the
         // table with the required number of rows.
-        let num_padding_rows = target_length - trace_length;
+        let num_padding_rows = target_len - trace_length;
         trace[1][..num_padding_rows].fill(Felt::ZERO);
         trace[2][..num_padding_rows].fill(Felt::ZERO);
         trace[3][..num_padding_rows].fill(Felt::ZERO);
