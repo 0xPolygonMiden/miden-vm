@@ -8,9 +8,11 @@ use winter_air::{
     TransitionConstraintDegree,
 };
 
+mod aux_table;
 mod options;
 mod range;
 mod utils;
+use utils::TransitionConstraintRange;
 
 // EXPORTS
 // ================================================================================================
@@ -27,6 +29,7 @@ pub struct ProcessorAir {
     context: AirContext<Felt>,
     stack_inputs: Vec<Felt>,
     stack_outputs: Vec<Felt>,
+    constraint_ranges: TransitionConstraintRange,
 }
 
 impl ProcessorAir {
@@ -41,12 +44,25 @@ impl Air for ProcessorAir {
     type PublicInputs = PublicInputs;
 
     fn new(trace_info: TraceInfo, pub_inputs: PublicInputs, options: WinterProofOptions) -> Self {
+        // --- system -----------------------------------------------------------------------------
         let mut degrees = vec![
             TransitionConstraintDegree::new(1), // clk' = clk + 1
         ];
 
-        // Add the range checker's constraint degrees.
-        degrees.append(&mut range::get_transition_constraint_degrees());
+        // --- range checker ----------------------------------------------------------------------
+        let mut range_checker_degrees = range::get_transition_constraint_degrees();
+        degrees.append(&mut range_checker_degrees);
+
+        // --- auxiliary table of co-processors (hasher, bitwise, memory) -------------------------
+        let mut aux_table_degrees = aux_table::get_transition_constraint_degrees();
+        degrees.append(&mut aux_table_degrees);
+
+        // Define the transition constraint ranges.
+        let constraint_ranges = TransitionConstraintRange::new(
+            1,
+            range::get_transition_constraint_count(),
+            aux_table::get_transition_constraint_count(),
+        );
 
         // TODO: determine dynamically
         let num_assertions = 2
@@ -63,6 +79,7 @@ impl Air for ProcessorAir {
             context,
             stack_inputs: pub_inputs.stack_inputs,
             stack_outputs: pub_inputs.stack_outputs,
+            constraint_ranges,
         }
     }
 
@@ -71,7 +88,6 @@ impl Air for ProcessorAir {
         let mut result = Vec::new();
 
         // --- set assertions for the first step --------------------------------------------------
-
         // first value of clk is 0
         result.push(Assertion::single(CLK_COL_IDX, 0, Felt::ZERO));
 
@@ -114,7 +130,16 @@ impl Air for ProcessorAir {
         result[0] = next[CLK_COL_IDX] - (current[CLK_COL_IDX] + E::ONE);
 
         // --- range checker ----------------------------------------------------------------------
-        range::enforce_constraints::<E>(frame, &mut result[1..]);
+        range::enforce_constraints::<E>(
+            frame,
+            select_result_range!(result, self.constraint_ranges.range_checker),
+        );
+
+        // --- auxiliary table of co-processors (hasher, bitwise, memory) -------------------------
+        aux_table::enforce_constraints::<E>(
+            frame,
+            select_result_range!(result, self.constraint_ranges.aux_table),
+        );
     }
 
     fn context(&self) -> &AirContext<Felt> {
