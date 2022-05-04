@@ -62,6 +62,8 @@ impl AuxTable {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns the length of the trace required to accommodate co-processor components (excluding
+    /// the padding component).
     pub fn trace_len(&self) -> usize {
         self.hasher.trace_len() + self.bitwise.trace_len() + self.memory.trace_len()
     }

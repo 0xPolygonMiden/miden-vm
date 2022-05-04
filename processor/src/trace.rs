@@ -208,7 +208,7 @@ impl<'a> TraceFragment<'a> {
 /// - Padding the columns to make sure all columns are of the same length.
 /// - Inserting random values in the last row of all columns. This helps ensure that there
 ///   are no repeating patterns in each column and each column contains a least two distinct
-///   values. Thus, in turn, ensures that polynomial degrees of all columns are stable.
+///   values. This, in turn, ensures that polynomial degrees of all columns are stable.
 fn finalize_trace(process: Process, mut rng: RandomCoin) -> Vec<Vec<Felt>> {
     let (system, stack, range, aux_table) = process.to_components();
 
