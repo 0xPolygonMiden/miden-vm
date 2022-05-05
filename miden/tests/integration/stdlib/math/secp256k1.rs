@@ -253,3 +253,102 @@ fn test_u288_reduce() {
         assert_eq!(Felt::new(d[i] as u64), strace[i])
     }
 }
+
+fn u256xu256_mod_mult(a: &[u32], b: &[u32]) -> [u32; 8] {
+    assert_eq!(a.len(), 8);
+    assert_eq!(a.len(), b.len());
+
+    let mut c = [0u32; 16];
+    let mut pc = 0u32;
+
+    u256xu32(&mut c[0..9], b[0], &a);
+
+    let d = u288_reduce(&c[0..9], pc);
+    pc = d[8];
+    c[1..9].copy_from_slice(&d[0..8]);
+
+    u256xu32(&mut c[1..10], b[1], &a);
+
+    let d = u288_reduce(&c[1..10], pc);
+    pc = d[8];
+    c[2..10].copy_from_slice(&d[0..8]);
+
+    u256xu32(&mut c[2..11], b[2], &a);
+
+    let d = u288_reduce(&c[2..11], pc);
+    pc = d[8];
+    c[3..11].copy_from_slice(&d[0..8]);
+
+    u256xu32(&mut c[3..12], b[3], &a);
+
+    let d = u288_reduce(&c[3..12], pc);
+    pc = d[8];
+    c[4..12].copy_from_slice(&d[0..8]);
+
+    u256xu32(&mut c[4..13], b[4], &a);
+
+    let d = u288_reduce(&c[4..13], pc);
+    pc = d[8];
+    c[5..13].copy_from_slice(&d[0..8]);
+
+    u256xu32(&mut c[5..14], b[5], &a);
+
+    let d = u288_reduce(&c[5..14], pc);
+    pc = d[8];
+    c[6..14].copy_from_slice(&d[0..8]);
+
+    u256xu32(&mut c[6..15], b[6], &a);
+
+    let d = u288_reduce(&c[6..15], pc);
+    pc = d[8];
+    c[7..15].copy_from_slice(&d[0..8]);
+
+    u256xu32(&mut c[7..16], b[7], &a);
+
+    let d = u288_reduce(&c[7..16], pc);
+    pc = d[8];
+    c[8..16].copy_from_slice(&d[0..8]);
+
+    c[8] += pc * 977;
+    c[9] += pc;
+
+    c[8..16].try_into().expect("incorrect length")
+}
+
+#[test]
+fn test_u256xu256_mod_mult() {
+    let source = "
+    use.std::math::secp256k1
+
+    begin
+        exec.secp256k1::u256xu256_mod_mult
+    end";
+
+    let mut stack = [0u64; 16];
+    for i in 0..8 {
+        let a = rand_utils::rand_value::<u64>() as u32 as u64;
+        let b = rand_utils::rand_value::<u64>() as u32 as u64;
+
+        stack[i] = a;
+        stack[i ^ 8] = b;
+    }
+
+    let mut a = [0u32; 8];
+    let mut b = [0u32; 8];
+
+    for i in 0..8 {
+        a[i] = stack[i] as u32;
+        b[i] = stack[i ^ 8] as u32;
+    }
+
+    let expected = u256xu256_mod_mult(&a, &b);
+
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    for i in 0..8 {
+        assert_eq!(Felt::new(expected[i] as u64), strace[i]);
+    }
+}

@@ -95,7 +95,7 @@ export.u256xu32
   exec.mac
 
   movup.4
-  dup.10
+  movup.10
   movup.10
   exec.mac
 
@@ -182,4 +182,129 @@ export.u288_reduce
   movup.6
   movup.7
   movup.8
+end
+
+# Given two 256 -bit numbers on stack, where each number is represented in
+# radix-2^32 form ( i.e. each number having eight 32 -bit limbs ), following function
+# computes modular multiplication of those two operands, computing 256 -bit result.
+#
+# Stack expected as below, holding input
+#
+# [a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7] | a[0..8], b[0..8] are 256 -bit numbers
+#
+# After finishing execution of this function, stack should look like
+#
+# [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a 256 -bit number
+#
+# Note, for computing modular multiplication of a[0..8] & b[0..8],
+# school book multiplication equipped with montgomery reduction technique
+# is used, which is why a[0..8], b[0..8] are expected to be in montgomery form,
+# while computed c[0..8] will also be in montgomery form.
+export.u256xu256_mod_mult.2
+  popw.local.0
+  popw.local.1
+
+  push.env.locaddr.1
+  push.env.locaddr.0
+  movup.2
+  push.0.0.0.0
+  push.0.0.0.0
+
+  exec.u256xu32
+  
+  push.0
+  movdn.9
+
+  exec.u288_reduce
+
+  movup.8
+  swap.11
+  movdn.8
+
+  exec.u256xu32
+
+  movup.11
+  movdn.9
+
+  exec.u288_reduce
+
+  movup.8
+  swap.11
+  movdn.8
+
+  exec.u256xu32
+
+  movup.11
+  movdn.9
+
+  exec.u288_reduce
+
+  movup.8
+  swap.11
+  movdn.8
+
+  exec.u256xu32
+
+  movup.11
+  movdn.9
+
+  exec.u288_reduce
+
+  movup.8
+  swap.11
+  movdn.8
+
+  exec.u256xu32
+
+  movup.11
+  movdn.9
+
+  exec.u288_reduce
+
+  movup.8
+  swap.11
+  movdn.8
+
+  exec.u256xu32
+
+  movup.11
+  movdn.9
+
+  exec.u288_reduce
+
+  movup.8
+  swap.11
+  movdn.8
+
+  exec.u256xu32
+
+  movup.11
+  movdn.9
+
+  exec.u288_reduce
+
+  movup.8
+  swap.11
+  movdn.8
+
+  exec.u256xu32
+
+  movup.11
+  movdn.9
+
+  exec.u288_reduce
+
+  dup.8
+  movup.2
+  add
+  swap
+
+  movup.8
+  mul.977
+  add
+
+  movup.8
+  drop
+  movup.8
+  drop
 end
