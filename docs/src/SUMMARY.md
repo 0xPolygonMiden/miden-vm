@@ -1,6 +1,6 @@
 # Summary
 
-[Miden](./README.md)
+[Miden](./main.md)
 
 - [Introduction](./intro.md)
 - [User Documentation](./user_docs/main.md)

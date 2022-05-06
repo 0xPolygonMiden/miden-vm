@@ -16,7 +16,6 @@ jobs:
             toolchain: nightly
             override: true
 
-
       - name: Setup mdBook
         uses: peaceiris/actions-mdbook@v1
         with:
@@ -27,6 +26,12 @@ jobs:
         with:
           command: install
           args: mdbook-katex
+
+      - name: Install mdbook-linkcheck
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: mdbook-linkcheck
 
       - name: Build miden book
         run: mdbook build docs/
