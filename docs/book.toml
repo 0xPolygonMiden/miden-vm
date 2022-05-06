@@ -8,4 +8,7 @@ title = "Miden VM"
 [output.katex]
 [output.html]
 
+[output.linkcheck]
+warning-policy = "ignore"
+
 [preprocessor.katex]
