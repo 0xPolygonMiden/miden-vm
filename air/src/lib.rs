@@ -21,12 +21,6 @@ pub use options::ProofOptions;
 pub use vm_core::{utils::ToElements, Felt, FieldElement, StarkField};
 pub use winter_air::{FieldExtension, HashFunction};
 
-// CONSTANTS
-// ================================================================================================
-
-/// The length of a cycle in the periodic columns.
-pub const PERIODIC_CYCLE_LEN: usize = 8;
-
 // PROCESSOR AIR
 // ================================================================================================
 
@@ -98,7 +92,10 @@ impl Air for ProcessorAir {
     /// - k0 column, which has a repeating pattern of a single one followed by 7 zeros.
     /// - k1 column, which has a repeating pattern of a 7 ones followed by a single zero.
     fn get_periodic_column_values(&self) -> Vec<Vec<Felt>> {
-        vec![K0_MASK.to_vec(), K1_MASK.to_vec()]
+        vec![
+            aux_table::BITWISE_POW2_K0_MASK.to_vec(),
+            aux_table::BITWISE_POW2_K1_MASK.to_vec(),
+        ]
     }
 
     // ASSERTIONS
@@ -208,27 +205,3 @@ impl Serializable for PublicInputs {
         target.write(self.stack_outputs.as_slice());
     }
 }
-
-// CYCLE MASKS
-// ================================================================================================
-pub const K0_MASK: [Felt; PERIODIC_CYCLE_LEN] = [
-    Felt::ONE,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-    Felt::ZERO,
-];
-
-pub const K1_MASK: [Felt; PERIODIC_CYCLE_LEN] = [
-    Felt::ONE,
-    Felt::ONE,
-    Felt::ONE,
-    Felt::ONE,
-    Felt::ONE,
-    Felt::ONE,
-    Felt::ONE,
-    Felt::ZERO,
-];

@@ -9,11 +9,13 @@ use winter_air::TransitionConstraintDegree;
 
 /// The number of transition constraints on the bitwise co-processor.
 pub const NUM_CONSTRAINTS: usize = 8;
-/// The degrees of constraints on the bitwise co-processor.
+/// The degrees of constraints on the bitwise co-processor. The degree of all
+/// constraints is increased by 4 due to the co-processor selector flag from the auxiliary table
+/// (degree 2) and the selector flag specifying the bitwise operation (degree 2).
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
-    4, 4, // Input decomposition values should be binary.
-    4, 4, // Enforce correct initial values of a and b columns.
-    4, 4, // Enforce correct aggregation of a and b columns during transitions.
+    6, 6, // Input decomposition values should be binary.
+    6, 6, // Enforce correct initial values of a and b columns.
+    6, 6, // Enforce correct aggregation of a and b columns during transitions.
     7, 7, // Ensure correct output aggregation
 ];
 
