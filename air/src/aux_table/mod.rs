@@ -128,7 +128,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
         self.current()[S0_COL_IDX]
     }
     fn s1(&self) -> E {
-        self.next()[S1_COL_IDX]
+        self.current()[S1_COL_IDX]
     }
     fn s2(&self) -> E {
         self.current()[S2_COL_IDX]
