@@ -1,6 +1,40 @@
 use super::{build_test, Felt};
 
 #[test]
+fn test_to_and_from_mont_repr() {
+    let source = "
+    use.std::math::secp256k1
+
+    begin
+        exec.secp256k1::to_mont
+        exec.secp256k1::from_mont
+    end";
+
+    let mut num = [0u32; 8];
+    for i in 0..4 {
+        let a = rand_utils::rand_value::<u32>();
+        let b = rand_utils::rand_value::<u32>();
+
+        num[i] = a;
+        num[i ^ 4] = b;
+    }
+
+    let mut stack = [0u64; 8];
+    for i in 0..4 {
+        stack[i] = num[i] as u64;
+        stack[i ^ 4] = num[i ^ 4] as u64;
+    }
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    for i in 0..8 {
+        assert_eq!(Felt::new(num[i] as u64), strace[i]);
+    }
+}
+
+#[test]
 fn test_u256xu256_mod_mult() {
     let source = "
     use.std::math::secp256k1

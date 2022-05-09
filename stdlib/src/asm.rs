@@ -9669,6 +9669,48 @@ export.u256xu256_mod_mult.2
   movup.8
   drop
 end
+
+# Given a 256 -bit number on stack, represented in radix-2^32 
+# form i.e. eight 32 -bit limbs, this routine computes Montgomery
+# representation of provided radix-2^32 number.
+#
+# - u256 radix-2^32 form input expected on stack as
+#
+#  [a0, a1, a2, a3, a4, a5, a6, a7]
+#
+# - u256 montgomery form output on stack
+#
+# [a0`, a1`, a2`, a3`, a4`, a5`, a6`, a7`]
+#
+# See section 2.2 of https://eprint.iacr.org/2017/1057.pdf
+export.to_mont
+  push.0.0.0.0
+  push.0.1.1954.954529 # pushed R2's radix-2^32 form;
+                       # see https://gist.github.com/itzmeanjan/d4853347dfdfa853993f5ea059824de6
+
+  exec.u256xu256_mod_mult
+end
+
+# Given a 256 -bit number on stack, represented in Montgomery 
+# form i.e. eight 32 -bit limbs, this routine computes radix-2^32
+# representation of provided u256 number.
+#
+# - u256 montgomery form input on stack expected
+#
+#  [a0, a1, a2, a3, a4, a5, a6, a7]
+#
+# - u256 radix-2^32 form output on stack as
+#
+# [a0`, a1`, a2`, a3`, a4`, a5`, a6`, a7`]
+#
+# See section 2.2 of https://eprint.iacr.org/2017/1057.pdf
+export.from_mont
+  push.0.0.0.0
+  push.0.0.0.1 # pushed 1's radix-2^32 form;
+               # see https://gist.github.com/itzmeanjan/d4853347dfdfa853993f5ea059824de6
+
+  exec.u256xu256_mod_mult
+end
 "),
 // ----- std::math::u256 --------------------------------------------------------------------------
 ("std::math::u256", "export.add_unsafe
