@@ -4,7 +4,7 @@
 ///
 /// Entries in the array are tuples containing module namespace and module source code.
 #[rustfmt::skip]
-pub const MODULES: [(&str, &str); 5] = [
+pub const MODULES: [(&str, &str); 6] = [
 // ----- std::crypto::hashes::blake3 --------------------------------------------------------------
 ("std::crypto::hashes::blake3", "proc.from_mem_to_stack.1
     storew.local.0
@@ -10651,6 +10651,31 @@ export.unchecked_rotr
     movup.2
     not
     cswap
+end
+"),
+// ----- std::sys ---------------------------------------------------------------------------------
+("std::sys", "# Clears the stack overflow table and ensures the stack top remains unchanged
+# Input: Stack top with 16 elements + overflow table with greater than or equal to 0 number of elements.
+# Output: Stack top with original 16 elements
+export.finalize_stack.16
+    popw.local.0
+    popw.local.1
+    popw.local.2
+    popw.local.3
+    push.env.sdepth
+    neq.16
+    while.true
+        dropw
+        push.env.sdepth
+        neq.16
+    end
+    loadw.local.3
+    swapw.3
+    loadw.local.2
+    swapw.2
+    loadw.local.1
+    swapw.1
+    loadw.local.0
 end
 "),
 ];
