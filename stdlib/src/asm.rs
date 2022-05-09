@@ -9380,23 +9380,6 @@ proc.mac
   add
 end
 
-# Given [a, b, carry] on stack top, following function computes
-#
-#  tmp = a + b + carry
-#  hi = tmp >> 32
-#  lo = tmp & 0xffff_ffff
-#  return (hi, lo)
-#
-#  At end of execution of this function, stack top should look like [hi, lo]
-proc.adc
-  u32add.unsafe
-  swap
-  movup.2
-  u32add.unsafe
-  movup.2
-  add
-end
-
 # Given [a0, a1, a2, a3, a4, a5, a6, a7, b, c_0_addr, c_1_addr] on stack top,
 #  this function computes a multiplication of u256 by u32, while also
 #  considering u256 computed during previous round.
@@ -9532,8 +9515,9 @@ proc.u288_reduce
   exec.mac
 
   movup.9
+  swap
   movup.9
-  exec.adc
+  u32addc.unsafe
 
   swap
   movup.2
