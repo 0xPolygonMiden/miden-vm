@@ -8,11 +8,11 @@ use winter_air::TransitionConstraintDegree;
 // CONSTANTS
 // ================================================================================================
 
-/// The number of constraints on the management of the power of two co-processor.
+/// The number of constraints on the power of two co-processor.
 pub const NUM_CONSTRAINTS: usize = 24;
-/// The degrees of constraints on the management of the power of two co-processor. The degree of all
-/// constraints is increased by 4 due to the co-processor selector flag from the auxiliary table
-/// (degree 2) and the power of two operation selector flag (degree 2).
+/// The degrees of constraints on the power of two co-processor. The degree of all constraints is
+/// increased by 4 due to the co-processor selector flag from the auxiliary table (degree 2) and the
+/// power of two operation selector flag (degree 2).
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     // --- INPUT DECOMPOSITION --------------------------------------------------------------------
     6, 6, 6, 6, 6, 6, 6, 6, // All power decomposition columns are binary.
@@ -29,10 +29,18 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
 /// Index of CONSTRAINT_DEGREES array after which all constraints use periodic columns.
 const PERIODIC_CONSTRAINTS_START: usize = 17;
 
+/// The index range of the columns containing the power decomposition of the input exponent a. These
+/// are the columns a0 to a7.
 const A_POWERS_COL_RANGE: Range<usize> = create_range(POW2_TRACE_OFFSET, POW2_POWERS_PER_ROW);
+/// The index of the helper column `h` used to validate correct input decomposition and correctly
+/// aggregate the output result.
 const H_COL_IDX: usize = A_POWERS_COL_RANGE.end;
+/// The index of the column containing the aggregated value of the powers of the input exponent that
+/// have been decomposed into the trace.
 const A_AGG_COL_IDX: usize = H_COL_IDX + 1;
+/// The column `p` holding increasing powers of 256.
 const P_COL_IDX: usize = A_AGG_COL_IDX + 1;
+/// The index of the output column `z`.
 const Z_AGG_COL_IDX: usize = P_COL_IDX + 1;
 
 // POWER OF TWO TRANSITION CONSTRAINTS
@@ -83,6 +91,10 @@ pub fn enforce_constraints<E: FieldElement>(
 // TRANSITION CONSTRAINT HELPERS
 // ================================================================================================
 
+/// Enforces that the input value specifying the exponent for the power of two operation is
+/// decomposed correctly into individual powers of two in the columns a0 to a7. It also enforces
+/// constraints on the helper column h, used for output aggregation, and on the maximum exponent
+/// value allowed as an input to the operation.
 fn enforce_input_decomposition<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     periodic_values: &[E],
@@ -127,6 +139,8 @@ fn enforce_input_decomposition<E: FieldElement>(
     num_constraints
 }
 
+/// Enforces that the value in column `a` equals the aggregation of all powers that have been
+/// decomposed into the decomposition columns a0 to a7 since the beginning of the periodic cycle.
 fn enforce_input_aggregation<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     periodic_values: &[E],
@@ -146,6 +160,8 @@ fn enforce_input_aggregation<E: FieldElement>(
     num_constraints
 }
 
+/// Enforces that column `p` contains powers of 256 starting from 1 in the first row of each
+/// periodic cycle and increasing by a factor of 256 in each subsequent row of the cycle.
 fn enforce_powers_of_256<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     periodic_values: &[E],
@@ -162,6 +178,11 @@ fn enforce_powers_of_256<E: FieldElement>(
     num_constraints
 }
 
+/// The constraints to enforce correct aggregation of the output value. The constraints enforce:
+/// - If the power decomposition ends in the first row, then the aggregated output of the decomposed
+///   powers equals the value in the output column.
+/// - For all rows except the last, the output value in the next row will equal the value in the
+///   current row plus the next row's power of 256 times the aggregation of its decomposed powers.
 fn enforce_output_aggregation<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     periodic_values: &[E],
@@ -191,22 +212,37 @@ fn enforce_output_aggregation<E: FieldElement>(
 trait EvaluationFrameExt<E: FieldElement> {
     // --- Column accessors -----------------------------------------------------------------------
 
+    /// The value in the power decomposition column with the specified index in the current row.
     fn a_power(&self, index: usize) -> E;
+    /// The value in the power decomposition column with the specified index in the next row.
     fn a_power_next(&self, index: usize) -> E;
+    /// The value in the helper column in the current row.
     fn h(&self) -> E;
+    /// The value in the helper column in the next row.
     fn h_next(&self) -> E;
+    /// The aggregated value of the input that has been decomposed so far in the current row.
     fn a(&self) -> E;
+    /// The aggregated value of the input that has been decomposed so far in the next row.
     fn a_next(&self) -> E;
+    /// The power of 256 in the current row.
     fn p(&self) -> E;
+    /// The power of 256 in the next row.
     fn p_next(&self) -> E;
+    /// The aggregated output value in the current row.
     fn z(&self) -> E;
+    /// The aggregated output value in the next row.
     fn z_next(&self) -> E;
 
     // --- Intermediate variables & helpers -------------------------------------------------------
-    fn a_output(&self, index: usize) -> E;
-    fn a_output_next(&self, index: usize) -> E;
 
-    // --- Flags ----------------------------------------------------------------------------------
+    /// The aggregated output value at the specified index in the "virtual row" for the current row,
+    /// where the virtual row is composed of the differences of adjacent values in the trace row and
+    /// is used to track the end of the power decomposition, where the output should be aggregated.
+    fn a_output(&self, index: usize) -> E;
+    /// The aggregated output value at the specified index in the "virtual row" for the next row,
+    /// where the virtual row is composed of the differences of adjacent values in the trace row and
+    /// is used to track the end of the power decomposition, where the output should be aggregated.
+    fn a_output_next(&self, index: usize) -> E;
 }
 
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
@@ -262,6 +298,4 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
             }
         }
     }
-
-    // --- Flags ----------------------------------------------------------------------------------
 }
