@@ -9367,7 +9367,7 @@ end
 #  return (hi, lo)
 #
 #  At end of execution of this function, stack top should look like [hi, lo]
-export.mac
+proc.mac
   swap
   movup.2
   u32madd.unsafe
@@ -9388,7 +9388,7 @@ end
 #  return (hi, lo)
 #
 #  At end of execution of this function, stack top should look like [hi, lo]
-export.adc
+proc.adc
   u32add.unsafe
   swap
   movup.2
@@ -9409,7 +9409,7 @@ end
 #  After finishing execution of this function, stack top should hold u288 i.e.
 #
 #  [a0, a1, a2, a3, a4, a5, a6, a7, a8] | a8 = carry
-export.u256xu32
+proc.u256xu32
   dup.9
   pushw.mem
   dup.12
@@ -9481,7 +9481,7 @@ end
 # After finishing execution of this function, stack top should look like
 #
 # [c0, c1, c2, c3, c4, c5, c6, c7, pc] | pc = next round's carry
-export.u288_reduce
+proc.u288_reduce
   dup
   push.3525653809
   u32mul.unsafe
