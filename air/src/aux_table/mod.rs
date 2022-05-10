@@ -148,6 +148,6 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
         self.s0() * binary_not(self.s1())
     }
     fn memory_flag(&self) -> E {
-        self.s0() * self.s1() * binary_not(self.s2())
+        self.s0() * self.s1() * self.s2()
     }
 }
