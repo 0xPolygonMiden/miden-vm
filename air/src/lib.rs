@@ -21,6 +21,12 @@ pub use options::ProofOptions;
 pub use vm_core::{utils::ToElements, Felt, FieldElement, StarkField};
 pub use winter_air::{FieldExtension, HashFunction};
 
+// CONSTANTS
+// ================================================================================================
+
+/// The length of a cycle in the periodic columns.
+pub const PERIODIC_CYCLE_LEN: usize = 8;
+
 // PROCESSOR AIR
 // ================================================================================================
 
@@ -83,6 +89,21 @@ impl Air for ProcessorAir {
         }
     }
 
+    // PERIODIC COLUMNS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a set of periodic columns for the ProcessorAir.
+    ///
+    /// The columns consist of:
+    /// - k0 column, which has a repeating pattern of a single one followed by 7 zeros.
+    /// - k1 column, which has a repeating pattern of a 7 ones followed by a single zero.
+    fn get_periodic_column_values(&self) -> Vec<Vec<Felt>> {
+        vec![K0_MASK.to_vec(), K1_MASK.to_vec()]
+    }
+
+    // ASSERTIONS
+    // --------------------------------------------------------------------------------------------
+
     #[allow(clippy::vec_init_then_push)]
     fn get_assertions(&self) -> Vec<Assertion<Felt>> {
         let mut result = Vec::new();
@@ -116,10 +137,13 @@ impl Air for ProcessorAir {
         result
     }
 
+    // TRANSITION CONSTRAINTS
+    // --------------------------------------------------------------------------------------------
+
     fn evaluate_transition<E: FieldElement<BaseField = Felt>>(
         &self,
         frame: &EvaluationFrame<E>,
-        _periodic_values: &[E],
+        periodic_values: &[E],
         result: &mut [E],
     ) {
         let current = frame.current();
@@ -138,6 +162,7 @@ impl Air for ProcessorAir {
         // --- auxiliary table of co-processors (hasher, bitwise, memory) -------------------------
         aux_table::enforce_constraints::<E>(
             frame,
+            periodic_values,
             select_result_range!(result, self.constraint_ranges.aux_table),
         );
     }
@@ -183,3 +208,27 @@ impl Serializable for PublicInputs {
         target.write(self.stack_outputs.as_slice());
     }
 }
+
+// CYCLE MASKS
+// ================================================================================================
+pub const K0_MASK: [Felt; PERIODIC_CYCLE_LEN] = [
+    Felt::ONE,
+    Felt::ZERO,
+    Felt::ZERO,
+    Felt::ZERO,
+    Felt::ZERO,
+    Felt::ZERO,
+    Felt::ZERO,
+    Felt::ZERO,
+];
+
+pub const K1_MASK: [Felt; PERIODIC_CYCLE_LEN] = [
+    Felt::ONE,
+    Felt::ONE,
+    Felt::ONE,
+    Felt::ONE,
+    Felt::ONE,
+    Felt::ONE,
+    Felt::ONE,
+    Felt::ZERO,
+];
