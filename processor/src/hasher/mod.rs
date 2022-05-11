@@ -83,6 +83,14 @@ impl Hasher {
     // HASHING METHODS
     // --------------------------------------------------------------------------------------------
 
+    /// TODO: add docs
+    pub fn hash(&mut self, mut state: HasherState) -> (Felt, HasherState) {
+        let addr = self.trace.next_row_addr();
+        self.trace
+            .append_permutation(&mut state, LINEAR_HASH, RETURN_HASH, Felt::ZERO, Felt::ZERO);
+        (addr, state)
+    }
+
     /// Applies a single permutation of the hash function to the provided state and records the
     /// execution trace of this computation.
     ///

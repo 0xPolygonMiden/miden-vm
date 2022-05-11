@@ -40,7 +40,7 @@ pub const NUM_STACK_HELPER_COLS: usize = 3;
 // ------------------------------------------------------------------------------------------------
 
 //      system          decoder           stack      range checks    auxiliary table
-//    (2 columns)     (22 columns)    (19 columns)    (4 columns)     (18 columns)
+//    (2 columns)     (18 columns)    (19 columns)    (4 columns)     (18 columns)
 // ├───────────────┴───────────────┴───────────────┴───────────────┴─────────────────┤
 
 pub const SYS_TRACE_OFFSET: usize = 0;
@@ -50,10 +50,13 @@ pub const SYS_TRACE_RANGE: Range<usize> = range(SYS_TRACE_OFFSET, SYS_TRACE_WIDT
 pub const CLK_COL_IDX: usize = SYS_TRACE_OFFSET;
 pub const FMP_COL_IDX: usize = SYS_TRACE_OFFSET + 1;
 
-// TODO: decoder column trace
+// decoder trace
+pub const DECODER_TRACE_OFFSET: usize = SYS_TRACE_OFFSET + SYS_TRACE_WIDTH;
+pub const DECODER_TRACE_WIDTH: usize = 19;
+pub const DECODER_TRACE_RANGE: Range<usize> = range(DECODER_TRACE_OFFSET, DECODER_TRACE_WIDTH);
 
 // Stack trace
-pub const STACK_TRACE_OFFSET: usize = SYS_TRACE_OFFSET + SYS_TRACE_WIDTH;
+pub const STACK_TRACE_OFFSET: usize = DECODER_TRACE_OFFSET + DECODER_TRACE_WIDTH;
 pub const STACK_TRACE_WIDTH: usize = MIN_STACK_DEPTH + NUM_STACK_HELPER_COLS;
 pub const STACK_TRACE_RANGE: Range<usize> = range(STACK_TRACE_OFFSET, STACK_TRACE_WIDTH);
 
