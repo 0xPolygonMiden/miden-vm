@@ -4,6 +4,9 @@ use core::ops::Range;
 use vm_core::utils::range as create_range;
 use winter_air::TransitionConstraintDegree;
 
+#[cfg(test)]
+mod tests;
+
 // CONSTANTS
 // ================================================================================================
 
