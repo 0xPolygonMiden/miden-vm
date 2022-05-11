@@ -1,3 +1,4 @@
+pub use miden::{ProofOptions, StarkProof};
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
 pub use vm_core::{program::Script, Felt, FieldElement, ProgramInputs, MIN_STACK_DEPTH};
@@ -138,6 +139,32 @@ impl Test {
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let script = self.compile();
         processor::execute(&script, &self.inputs)
+    }
+
+    /// Compiles the test's code into a script, then generates and verifies a proof of execution
+    /// using the given public inputs and the specified number of stack outputs. When `test_fail`
+    /// is true, this function will force a failure by modifying the first output.
+    pub fn prove_and_verify(
+        &self,
+        pub_inputs: Vec<u64>,
+        num_stack_outputs: usize,
+        test_fail: bool,
+    ) {
+        let script = self.compile();
+        let (mut outputs, proof) = miden::execute(
+            &script,
+            &self.inputs,
+            num_stack_outputs,
+            &ProofOptions::default(),
+        )
+        .unwrap();
+
+        if test_fail {
+            outputs[0] += 1;
+            assert!(miden::verify(*script.hash(), &pub_inputs, &outputs, proof).is_err());
+        } else {
+            assert!(miden::verify(*script.hash(), &pub_inputs, &outputs, proof).is_ok());
+        }
     }
 
     /// Compiles the test's source to a Script and executes it with the tests inputs. Returns a
