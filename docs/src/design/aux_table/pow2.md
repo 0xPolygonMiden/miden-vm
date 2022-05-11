@@ -129,24 +129,27 @@ $$k_1 \cdot (p' - 256 \cdot p) = 0$$
 
 ### Output aggregation
 
-To aggregate the output into column $z$, we'll make use of intermediate helper variables from the "virtual rows" described above. These variables will be used for the constraints on column $z$.
+To aggregate the output into column $z$, we'll enforce the following conditions using a validity constraint for the first row and a transition constraint for the rest of the rows in the cycle.
+
+1. In the first row of each 8-row cycle, the value in $z$ aggregates over the current row.
+2. For all rows in the cycle except the last, the value of $z$ in the next row must equal the aggregation of the output in the next row plus the value of $z$ in the current row.
+
+To enforce these constraints on column $z$, we can make use of intermediate helper variables from the "virtual rows" described above.
 
 Let $t_i$ be a value in our virtual row computed from values $a_i$ and $h$ in the corresponding trace row, such that:
 
-- $t_0 = k_0 \cdot (1 - a_0)$
+- $t_0 = (1 - a_0)$ in the first row, to ensure correct output aggregation when the input value is 0.
+- $t_0 = 0$ for all other rows in the cycle.
 - $t_i = a_{i-1} - a_i$ for $i \in \{1, 2, ..., 7\}$
 - $t_8 = a_7 - h$
 
-The output column $z$ must be constrained such that:
+We can use selector $k_0$ to turn on the validity constraint for the first row and selector $k_1$ to apply the transition constraint to all but the last row in the cycle. This gives us the following constraints.
 
-1. The first row in each 8-row cycle aggregates over only the current row.
-2. Each other row in the cycle aggregates over the current row and the previous value of column $z$.
+$$k_0 \cdot \left(z - (\sum\limits_{i=0}^8 t_i \cdot 2^i)\right) = 0$$
 
-We can modify our output equation from above to selectively include or exclude the previously aggregated value of z by use of the selector column $k_1$. This gives us the following constraint:
+$$k_1 \cdot \left(z' - (p' \cdot \sum\limits_{i=0}^8 t_i' \cdot 2^i + z)\right) = 0$$
 
-$$z' - (\sum\limits_{i=0}^8 p' \cdot t_i' \cdot 2^i + k_1 \cdot z) = 0$$
-
-This ensures that in the first row of each cycle $z$ only aggregates powers from that row, while for all other rows in the cycle the previous value of $z$ is also included.
+The first constraint ensures that in the first row of each cycle $z$ only aggregates powers from that row, while the second one ensures that for all other rows in the cycle the previous value of $z$ is also included.
 
 ## Permutation Product
 
