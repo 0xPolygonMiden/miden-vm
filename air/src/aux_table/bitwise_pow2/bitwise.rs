@@ -365,3 +365,81 @@ fn agg_bits<E: FieldElement>(row: &[E], start_idx: usize) -> E {
     }
     result
 }
+
+// TEST HELPER FUNCTIONS
+// ================================================================================================
+#[cfg(test)]
+use super::PERIODIC_CYCLE_LEN;
+#[cfg(test)]
+use vm_core::{
+    bitwise::{Selectors, BITWISE_AND, BITWISE_OR, BITWISE_XOR},
+    Felt, TRACE_WIDTH,
+};
+
+/// Generates the correct current and next rows for the specified operation, inputs, and current
+/// cycle row number and returns an EvaluationFrame for testing. It only tests frames within a
+/// cycle.
+///
+/// # Errors
+/// It expects the specified `cycle_row_num` for the current row to be such that the next row will
+/// still be in the same cycle. It will fail with a row number input.
+#[cfg(test)]
+pub fn get_test_frame(
+    operation: Selectors,
+    a: u32,
+    b: u32,
+    cycle_row_num: usize,
+) -> EvaluationFrame<Felt> {
+    assert!(
+        cycle_row_num < PERIODIC_CYCLE_LEN - 1,
+        "Failed to build test EvaluationFrame for bitwise operation. The next row would be in a new cycle."
+    );
+
+    // Initialize the rows.
+    let mut current = vec![Felt::ZERO; TRACE_WIDTH];
+    let mut next = vec![Felt::ZERO; TRACE_WIDTH];
+
+    // Define the shift amounts for the specified rows.
+    let current_shift = NUM_DECOMP_BITS * (PERIODIC_CYCLE_LEN - cycle_row_num - 1);
+    let next_shift = current_shift - NUM_DECOMP_BITS;
+
+    // Set the operation selectors.
+    for idx in 0..NUM_SELECTORS {
+        current[SELECTOR_COL_RANGE.start + idx] = operation[idx];
+        next[SELECTOR_COL_RANGE.start + idx] = operation[idx];
+    }
+
+    // Set the input aggregation values.
+    let current_a = (a >> current_shift) as u64;
+    let current_b = (b >> current_shift) as u64;
+    let next_a = (a >> next_shift) as u64;
+    let next_b = (b >> next_shift) as u64;
+
+    current[A_COL_IDX] = Felt::new(current_a);
+    next[A_COL_IDX] = Felt::new(next_a);
+    current[B_COL_IDX] = Felt::new(current_b);
+    next[B_COL_IDX] = Felt::new(next_b);
+
+    // Set the input decomposition values.
+    for idx in 0..NUM_DECOMP_BITS {
+        current[A_COL_RANGE.start + idx] = Felt::new((current_a >> idx) & 1);
+        current[B_COL_RANGE.start + idx] = Felt::new((current_b >> idx) & 1);
+        next[A_COL_RANGE.start + idx] = Felt::new((next_a >> idx) & 1);
+        next[B_COL_RANGE.start + idx] = Felt::new((next_b >> idx) & 1);
+    }
+
+    // Set the output.
+    let output = if operation == BITWISE_AND {
+        a & b
+    } else if operation == BITWISE_OR {
+        a | b
+    } else if operation == BITWISE_XOR {
+        a ^ b
+    } else {
+        panic!("Test bitwise EvaluationFrame requested for unrecognized operation.");
+    };
+    current[OUTPUT_COL_IDX] = Felt::new((output >> current_shift) as u64);
+    next[OUTPUT_COL_IDX] = Felt::new((output >> next_shift) as u64);
+
+    EvaluationFrame::<Felt>::from_rows(current, next)
+}

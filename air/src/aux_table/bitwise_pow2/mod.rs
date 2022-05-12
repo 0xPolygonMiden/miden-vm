@@ -6,6 +6,9 @@ use vm_core::{bitwise::NUM_SELECTORS, utils::range as create_range, Felt};
 mod bitwise;
 mod pow2;
 
+#[cfg(test)]
+mod tests;
+
 // CONSTANTS
 // ================================================================================================
 
