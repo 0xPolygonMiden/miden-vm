@@ -129,8 +129,8 @@ This new column `ctx` should behave similarly to the address column: values in i
 To simplify description of constraints, we'll define two variables $n_0$ and $n_1$ as follows:
 
 $$
-n_0 = (c' - c) \cdot t \\
-n_1 = (a' - a) \cdot t
+n_0 = (c' - c) \cdot t' \\
+n_1 = (a' - a) \cdot t'
 $$
 
 Thus, $n_0 = 1$ when the context changes, and $0$ otherwise. Also, $(1 - n_0) \cdot n_1 = 1$ when context remains the same and address changes, and $0$ otherwise.
