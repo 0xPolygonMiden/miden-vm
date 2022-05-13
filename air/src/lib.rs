@@ -83,6 +83,24 @@ impl Air for ProcessorAir {
         }
     }
 
+    // PERIODIC COLUMNS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a set of periodic columns for the ProcessorAir.
+    ///
+    /// The columns consist of:
+    /// - k0 column, which has a repeating pattern of a single one followed by 7 zeros.
+    /// - k1 column, which has a repeating pattern of a 7 ones followed by a single zero.
+    fn get_periodic_column_values(&self) -> Vec<Vec<Felt>> {
+        vec![
+            aux_table::BITWISE_POW2_K0_MASK.to_vec(),
+            aux_table::BITWISE_POW2_K1_MASK.to_vec(),
+        ]
+    }
+
+    // ASSERTIONS
+    // --------------------------------------------------------------------------------------------
+
     #[allow(clippy::vec_init_then_push)]
     fn get_assertions(&self) -> Vec<Assertion<Felt>> {
         let mut result = Vec::new();
@@ -116,10 +134,13 @@ impl Air for ProcessorAir {
         result
     }
 
+    // TRANSITION CONSTRAINTS
+    // --------------------------------------------------------------------------------------------
+
     fn evaluate_transition<E: FieldElement<BaseField = Felt>>(
         &self,
         frame: &EvaluationFrame<E>,
-        _periodic_values: &[E],
+        periodic_values: &[E],
         result: &mut [E],
     ) {
         let current = frame.current();
@@ -138,6 +159,7 @@ impl Air for ProcessorAir {
         // --- auxiliary table of co-processors (hasher, bitwise, memory) -------------------------
         aux_table::enforce_constraints::<E>(
             frame,
+            periodic_values,
             select_result_range!(result, self.constraint_ranges.aux_table),
         );
     }

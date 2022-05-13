@@ -1,5 +1,6 @@
 use core::ops::Range;
 
+pub mod bitwise;
 pub mod hasher;
 pub mod program;
 pub use math::{fields::f64::BaseElement as Felt, FieldElement, StarkField};

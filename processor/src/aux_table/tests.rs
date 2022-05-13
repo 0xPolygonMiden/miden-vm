@@ -1,12 +1,11 @@
 use super::{
     super::{
-        bitwise::BITWISE_OR,
         hasher::{LINEAR_HASH, RETURN_STATE},
         ExecutionTrace, Operation, Process,
     },
     AuxTableTrace,
 };
-use vm_core::{Felt, FieldElement, ProgramInputs, AUX_TRACE_RANGE};
+use vm_core::{bitwise::BITWISE_OR, Felt, FieldElement, ProgramInputs, AUX_TRACE_RANGE};
 
 #[test]
 fn hasher_aux_trace() {

@@ -2,7 +2,12 @@ use super::{EvaluationFrame, FieldElement, TransitionConstraintDegree};
 use crate::utils::{binary_not, is_binary};
 use vm_core::AUX_TRACE_OFFSET;
 
+mod bitwise_pow2;
 mod memory;
+
+// EXPORTS
+// ================================================================================================
+pub use bitwise_pow2::{BITWISE_POW2_K0_MASK, BITWISE_POW2_K1_MASK};
 
 // CONSTANTS
 // ================================================================================================
@@ -15,6 +20,7 @@ pub const NUM_CONSTRAINTS: usize = 3;
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     2, 3, 4, // Selector flags must be binary.
 ];
+
 /// The first selector column, used as a selector for the entire auxiliary table.
 pub const S0_COL_IDX: usize = AUX_TRACE_OFFSET;
 /// The second selector column, used as a selector for the bitwise, memory, and padding segments
@@ -23,6 +29,9 @@ pub const S1_COL_IDX: usize = AUX_TRACE_OFFSET + 1;
 /// The third selector column, used as a selector for the memory and padding segments after the
 /// bitwise trace ends.
 pub const S2_COL_IDX: usize = AUX_TRACE_OFFSET + 2;
+
+/// The first column of the bitwise co-processor.
+pub const BITWISE_TRACE_OFFSET: usize = S1_COL_IDX + 1;
 /// The first column of the memory co-processor.
 pub const MEMORY_TRACE_OFFSET: usize = S2_COL_IDX + 1;
 
@@ -36,6 +45,8 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
         .map(|&degree| TransitionConstraintDegree::new(degree))
         .collect();
 
+    degrees.append(&mut bitwise_pow2::get_transition_constraint_degrees());
+
     degrees.append(&mut memory::get_transition_constraint_degrees());
 
     degrees
@@ -44,16 +55,32 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
 /// Returns the number of transition constraints for the auxiliary table and all of its
 /// co-processors.
 pub fn get_transition_constraint_count() -> usize {
-    NUM_CONSTRAINTS + memory::get_transition_constraint_count()
+    NUM_CONSTRAINTS
+        + bitwise_pow2::get_transition_constraint_count()
+        + memory::get_transition_constraint_count()
 }
 
 /// Enforces constraints for the auxiliary table and all of its co-processors.
-pub fn enforce_constraints<E: FieldElement>(frame: &EvaluationFrame<E>, result: &mut [E]) {
+pub fn enforce_constraints<E: FieldElement>(
+    frame: &EvaluationFrame<E>,
+    periodic_values: &[E],
+    result: &mut [E],
+) {
     // auxiliary table transition constraints
     enforce_selectors(frame, result);
 
+    let mut constraint_offset = NUM_CONSTRAINTS;
+    // bitwise transition constraints
+    bitwise_pow2::enforce_constraints(
+        frame,
+        periodic_values,
+        &mut result[constraint_offset..],
+        frame.bitwise_flag(),
+    );
+    constraint_offset += bitwise_pow2::get_transition_constraint_count();
+
     // memory transition constraints
-    memory::enforce_constraints(frame, &mut result[NUM_CONSTRAINTS..], frame.memory_flag());
+    memory::enforce_constraints(frame, &mut result[constraint_offset..], frame.memory_flag());
 }
 
 // TRANSITION CONSTRAINT HELPERS
@@ -107,7 +134,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
         self.current()[S0_COL_IDX]
     }
     fn s1(&self) -> E {
-        self.next()[S1_COL_IDX]
+        self.current()[S1_COL_IDX]
     }
     fn s2(&self) -> E {
         self.current()[S2_COL_IDX]
