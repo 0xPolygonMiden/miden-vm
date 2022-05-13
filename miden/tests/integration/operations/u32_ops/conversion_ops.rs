@@ -81,8 +81,13 @@ fn u32testw() {
 fn u32assert() {
     // assertion passes and leaves the stack unchanged if a < 2^32
     let asm_op = "u32assert";
+    let asm_op_1 = "u32assert.1";
+
     let value = 1_u64;
     let test = build_op_test!(asm_op, &[value]);
+    test.expect_stack(&[value]);
+
+    let test = build_op_test!(asm_op_1, &[value]);
     test.expect_stack(&[value]);
 }
 
@@ -90,6 +95,7 @@ fn u32assert() {
 fn u32assert_fail() {
     // assertion fails if a >= 2^32
     let asm_op = "u32assert";
+    let asm_op_1 = "u32assert.1";
     let err = "FailedAssertion";
 
     // vars to test
@@ -100,9 +106,63 @@ fn u32assert_fail() {
     let test = build_op_test!(asm_op, &[equal]);
     test.expect_error(TestError::ExecutionError(err));
 
+    let test_1 = build_op_test!(asm_op_1, &[equal]);
+    test_1.expect_error(TestError::ExecutionError(err));
+
     // --- test when a > 2^32 ---------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[larger]);
     test.expect_error(TestError::ExecutionError(err));
+
+    let test_1 = build_op_test!(asm_op_1, &[larger]);
+    test_1.expect_error(TestError::ExecutionError(err));
+}
+
+#[test]
+fn u32assert2() {
+    // assertion passes and leaves the stack unchanged if a < 2^32 and b < 2^32
+    let asm_op = "u32assert.2";
+    let value_a = 1_u64;
+    let value_b = 2_u64;
+    let test = build_op_test!(asm_op, &[value_a, value_b]);
+    test.expect_stack(&[value_b, value_a]);
+
+    let value_a = rand_value::<u32>() as u64;
+    let value_b = rand_value::<u32>() as u64;
+    let test = build_op_test!(asm_op, &[value_a, value_b]);
+    test.expect_stack(&[value_b, value_a]);
+}
+
+#[test]
+fn u32assert2_fail() {
+    let asm_op = "u32assert.2";
+    let err = "FailedAssertion";
+
+    // vars to test
+    // -------- Case 1: a > 2^32 and b > 2^32 ---------------------------------------------------
+    let value_a = 1_u64 << 32 + 1;
+    let value_b = value_a + 2;
+    let test = build_op_test!(asm_op, &[value_a, value_b]);
+    test.expect_error(TestError::ExecutionError(err));
+
+    // -------- Case 2: a > 2^32 and b < 2^32 ---------------------------------------------------
+    let value_a = 1_u64 << 32 + 1;
+    let value_b = 1_u64;
+    let test = build_op_test!(asm_op, &[value_a, value_b]);
+    test.expect_error(TestError::ExecutionError(err));
+
+    // --------- Case 3: a < 2^32 and b > 2^32 --------------------------------------------------
+    let value_b = 1_u64 << 32 + 1;
+    let value_a = 1_u64;
+    let test = build_op_test!(asm_op, &[value_a, value_b]);
+    test.expect_error(TestError::ExecutionError(err));
+}
+
+#[test]
+fn u32assertn_fail() {
+    let asm_op = "u32assert.3";
+
+    let test = build_op_test!(asm_op, &[2, 1]);
+    test.expect_error(TestError::AssemblyError("parameter"));
 }
 
 #[test]
