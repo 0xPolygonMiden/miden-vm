@@ -74,6 +74,16 @@ pub fn parse_u32assert(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), 
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => assert_u32(span_ops),
+        2 => match op.parts()[1] {
+            "1" => assert_u32(span_ops),
+            "2" => {
+                assert_u32(span_ops);
+                span_ops.push(Operation::Swap);
+                assert_u32(span_ops);
+                span_ops.push(Operation::Swap);
+            }
+            _ => return Err(AssemblyError::invalid_param(op, 1)),
+        },
         _ => return Err(AssemblyError::extra_param(op)),
     }
 
@@ -804,8 +814,6 @@ fn assert_u32(span_ops: &mut Vec<Operation>) {
     span_ops.push(Operation::Assert);
 }
 
-/// Asserts that both values at the top of the stack are u32 values.
-///
 /// When `preserve_order` is set to true, the stack state is preserved; otherwise the two
 /// stack items are swapped.
 ///

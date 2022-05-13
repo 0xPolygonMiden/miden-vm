@@ -458,7 +458,6 @@ impl Operation {
             Self::U32mul => Some(0b0011_0100),
             Self::U32madd => Some(0b0011_0101),
             Self::U32div => Some(0b0011_0110),
-
             Self::U32and => Some(0b0011_0111),
             Self::U32or => Some(0b0011_1000),
             Self::U32xor => Some(0b0011_1001),
