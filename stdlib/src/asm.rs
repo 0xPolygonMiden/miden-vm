@@ -9561,6 +9561,7 @@ export.eq_unsafe
 end
 
 # ===== MULTIPLICATION ============================================================================
+
 proc.mulstep
     movdn.2
     u32madd.unsafe
