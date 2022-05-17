@@ -25,3 +25,4 @@ winter-air = { package = "winter-air", version = "0.4", default-features = false
 
 [dev-dependencies]
 proptest = "1.0.0"
+rand-utils = { package = "winter-rand-utils", version = "0.4" }

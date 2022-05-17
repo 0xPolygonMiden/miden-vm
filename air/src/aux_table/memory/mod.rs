@@ -4,6 +4,9 @@ use core::ops::Range;
 use vm_core::utils::range as create_range;
 use winter_air::TransitionConstraintDegree;
 
+#[cfg(test)]
+mod tests;
+
 // CONSTANTS
 // ================================================================================================
 
@@ -119,7 +122,7 @@ fn enforce_delta<E: FieldElement>(
         frame.n1() * frame.addr_change() + frame.not_n1() * frame.clk_change(),
     );
     // Always subtract the delta. It should offset the other changes.
-    result.agg_constraint(0, memory_flag, -frame.delta());
+    result[0] -= memory_flag * frame.delta_next();
 
     constraint_count
 }
@@ -176,8 +179,8 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// The next value of the upper 16-bits of the delta value being tracked between two consecutive
     /// context IDs, addresses, or clock cycles.
     fn d1_next(&self) -> E;
-    /// The current value of the column tracking the inverse delta used for constraint evaluations.
-    fn d_inv(&self) -> E;
+    /// The next value of the column tracking the inverse delta used for constraint evaluations.
+    fn d_inv_next(&self) -> E;
 
     // --- Intermediate variables & helpers -------------------------------------------------------
 
@@ -201,7 +204,7 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// The difference between the next clock value and the current one, minus 1.
     fn clk_change(&self) -> E;
     /// The delta between two consecutive context IDs, addresses, or clock cycles.
-    fn delta(&self) -> E;
+    fn delta_next(&self) -> E;
 
     // --- Flags ----------------------------------------------------------------------------------
 
@@ -242,8 +245,8 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     fn d1_next(&self) -> E {
         self.next()[D1_COL_IDX]
     }
-    fn d_inv(&self) -> E {
-        self.current()[D_INV_COL_IDX]
+    fn d_inv_next(&self) -> E {
+        self.next()[D_INV_COL_IDX]
     }
 
     // --- Intermediate variables & helpers -------------------------------------------------------
@@ -253,7 +256,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     }
 
     fn n0(&self) -> E {
-        self.change(CTX_COL_IDX) * self.d_inv()
+        self.change(CTX_COL_IDX) * self.d_inv_next()
     }
 
     fn not_n0(&self) -> E {
@@ -261,7 +264,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     }
 
     fn n1(&self) -> E {
-        self.change(ADDR_COL_IDX) * self.d_inv()
+        self.change(ADDR_COL_IDX) * self.d_inv_next()
     }
 
     fn not_n1(&self) -> E {
@@ -280,7 +283,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
         self.change(CLK_COL_IDX) - E::ONE
     }
 
-    fn delta(&self) -> E {
+    fn delta_next(&self) -> E {
         E::from(2_u32.pow(16)) * self.d1_next() + self.d0_next()
     }
 

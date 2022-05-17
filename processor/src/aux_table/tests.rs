@@ -44,12 +44,19 @@ fn memory_aux_trace() {
     let operations = vec![Operation::Push(Felt::new(2)), Operation::StoreW];
     let aux_table_trace = build_trace(&stack, operations);
     let trace_len = aux_table_trace[0].len();
-
-    // check the memory trace
-    validate_memory_trace(&aux_table_trace, 0, 1, 2);
+    let memory_trace_len = 1;
 
     // validate that the table was padded correctly (accounting for random row)
-    validate_padding(&aux_table_trace, 1, trace_len - 1);
+    let padding_end = trace_len - memory_trace_len - 1;
+    validate_padding(&aux_table_trace, 0, padding_end);
+
+    // check the memory trace
+    validate_memory_trace(
+        &aux_table_trace,
+        padding_end,
+        padding_end + memory_trace_len,
+        2,
+    );
 }
 
 #[test]
@@ -64,18 +71,22 @@ fn stacked_aux_trace() {
     ];
     let aux_table_trace = build_trace(&stack, operations);
     let trace_len = aux_table_trace[0].len();
+    let memory_len = 1;
 
     // expect 8 rows of hasher trace
-    validate_hasher_trace(&aux_table_trace, 0, 8);
+    let hasher_end = 8;
+    validate_hasher_trace(&aux_table_trace, 0, hasher_end);
 
     // expect 8 rows of bitwise trace
-    validate_bitwise_trace(&aux_table_trace, 8, 16);
-
-    // expect 1 row of memory trace
-    validate_memory_trace(&aux_table_trace, 16, 17, 0);
+    let bitwise_end = hasher_end + 8;
+    validate_bitwise_trace(&aux_table_trace, hasher_end, bitwise_end);
 
     // validate that the table was padded correctly (accounting for random row)
-    validate_padding(&aux_table_trace, 17, trace_len - 1);
+    let padding_end = trace_len - memory_len - 1;
+    validate_padding(&aux_table_trace, bitwise_end, padding_end);
+
+    // expect 1 row of memory trace
+    validate_memory_trace(&aux_table_trace, padding_end, padding_end + memory_len, 0);
 }
 
 // HELPER FUNCTIONS
@@ -158,7 +169,7 @@ fn validate_memory_trace(aux_table: &AuxTableTrace, start: usize, end: usize, ad
         // The selectors in the first row should match the memory selectors
         assert_eq!(Felt::ONE, aux_table[0][row]);
         assert_eq!(Felt::ONE, aux_table[1][row]);
-        assert_eq!(Felt::ZERO, aux_table[2][row]);
+        assert_eq!(Felt::ONE, aux_table[2][row]);
 
         // the expected start of the memory trace should hold the memory ctx and addr
         assert_eq!(Felt::ZERO, aux_table[3][row]);
@@ -175,7 +186,7 @@ fn validate_padding(aux_table: &AuxTableTrace, start: usize, end: usize) {
         // selectors
         assert_eq!(Felt::ONE, aux_table[0][row]);
         assert_eq!(Felt::ONE, aux_table[1][row]);
-        assert_eq!(Felt::ONE, aux_table[2][row]);
+        assert_eq!(Felt::ZERO, aux_table[2][row]);
 
         // padding
         aux_table.iter().skip(3).for_each(|column| {

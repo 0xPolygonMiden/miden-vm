@@ -27,19 +27,22 @@ mod tests;
 /// - columns 2-14: execution trace of bitwise coprocessor
 /// - columns 15-17: unused columns padded with ZERO
 ///
-/// * Memory segment: contains the memory trace and selectors *
-/// This segment begins at the end of the bitwise segment and fills the next rows of the table for
-/// the `trace_len` of the memory coprocessor.
+/// * Padding segment: unused *
+/// This segment begins at the end of the bitwise segment and fills as many rows in the table as
+/// required to ensure that the next and final segment of the trace, containing the memory, will end
+/// at the full length of the execution trace minus the number of random rows.
 /// - column 0-1: selector columns with values set to ONE
 /// - column 2: selector column with values set to ZERO
+/// - columns 3-17: unused columns padded with ZERO
+///
+/// * Memory segment: contains the memory trace and selectors *
+/// This segment begins at the end of the padding segment and fills the next rows of the table for
+/// the `trace_len` of the memory coprocessor. When it finishes, the execution trace should have
+/// exactly enough rows remaining for the specified number of random rows. The memory segment is
+/// placed at the end of the auxiliary table to simplify transition constraints.
+/// - columns 0-2: selector columns with values set to ONE
 /// - columns 3-16: execution trace of memory coprocessor
 /// - column 17: unused column padded with ZERO
-///
-/// * Final segment: unused *
-/// This segment begins at the end of the memory segment and fills the rest of the rows in the table
-/// up to the full length of the execution trace.
-/// - columns 0-2: selector columns with values set to ONE
-/// - columns 3-17: unused columns padded with ZERO
 ///
 pub struct AuxTable {
     hasher: Hasher,
@@ -72,8 +75,7 @@ impl AuxTable {
     /// Hasher, Bitwise, and Memory coprocessors.
     ///
     /// `num_rand_rows` indicates the number of rows at the end of the trace which will be
-    /// overwritten with random values. This parameter is unused because last rows should be
-    /// padding rows which can be safely overwritten.
+    /// overwritten with random values.
     pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> AuxTableTrace {
         // make sure that only padding rows will be overwritten by random values
         assert!(
@@ -91,7 +93,7 @@ impl AuxTable {
             .try_into()
             .expect("failed to convert vector to array");
 
-        self.fill_trace(&mut trace, trace_len);
+        self.fill_trace(&mut trace, trace_len, num_rand_rows);
 
         trace
     }
@@ -102,11 +104,13 @@ impl AuxTable {
     /// Fills the provided auxiliary table trace with the stacked execution traces of the Hasher,
     /// Bitwise, and Memory coprocessors, along with selector columns to identify each coprocessor
     /// trace and padding to fill the rest of the table.
-    fn fill_trace(self, trace: &mut AuxTableTrace, trace_len: usize) {
+    fn fill_trace(self, trace: &mut AuxTableTrace, trace_len: usize, num_rand_rows: usize) {
         // allocate fragments to be filled with the respective execution traces of each coprocessor
         let mut hasher_fragment = TraceFragment::new(AUX_TRACE_WIDTH);
         let mut bitwise_fragment = TraceFragment::new(AUX_TRACE_WIDTH);
         let mut memory_fragment = TraceFragment::new(AUX_TRACE_WIDTH);
+        // The length of the padded segment accounting for the final random rows.
+        let padding_len = trace_len - self.trace_len() - num_rand_rows;
 
         // set the selectors and padding as required by each column and segment
         // and add the hasher, bitwise, and memory segments to their respective fragments
@@ -131,11 +135,9 @@ impl AuxTable {
                     hasher_fragment.push_column_slice(column, self.hasher.trace_len());
                 }
                 2 => {
-                    // initialize hasher and bitwise segments and set memory segment selector to ZERO
+                    // initialize hasher and bitwise segments and set padding segment selector to ZERO
                     column.resize(
-                        self.hasher.trace_len()
-                            + self.bitwise.trace_len()
-                            + self.memory.trace_len(),
+                        self.hasher.trace_len() + self.bitwise.trace_len() + padding_len,
                         Felt::ZERO,
                     );
                     // set selector value for the final segment to ONE
@@ -147,24 +149,26 @@ impl AuxTable {
                     bitwise_fragment.push_column_slice(rest_of_column, self.bitwise.trace_len());
                 }
                 16 => {
-                    // initialize hasher & memory segments and pad bitwise & final segments with ZERO
+                    // initialize hasher & memory segments and pad other segments with ZERO
                     column.resize(trace_len, Felt::ZERO);
                     // add hasher segment to the hasher fragment to be filled from the hasher trace
                     let rest_of_column =
                         hasher_fragment.push_column_slice(column, self.hasher.trace_len());
-                    // split the column again to skip the bitwise segment, which has already been padded
-                    let (_, rest_of_column) = rest_of_column.split_at_mut(self.bitwise.trace_len());
+                    // split the column again to skip the bitwise and padding segments which have
+                    // already been padded
+                    let (_, rest_of_column) =
+                        rest_of_column.split_at_mut(self.bitwise.trace_len() + padding_len);
                     // add memory segment to the memory fragment to be filled from the memory trace
                     memory_fragment.push_column_slice(rest_of_column, self.memory.trace_len());
                 }
                 17 => {
-                    // initialize hasher segment and pad bitwise, memory, and final segments with ZERO
+                    // initialize hasher segment and pad bitwise, memory, padding segments with ZERO
                     column.resize(trace_len, Felt::ZERO);
                     // add hasher segment to the hasher fragment to be filled from the hasher trace
                     hasher_fragment.push_column_slice(column, self.hasher.trace_len());
                 }
                 _ => {
-                    // initialize hasher, bitwise, memory segments and pad the final segment with ZERO
+                    // initialize hasher, bitwise, memory segments and pad the rest with ZERO
                     column.resize(trace_len, Felt::ZERO);
                     // add hasher segment to the hasher fragment to be filled from the hasher trace
                     let rest_of_column =
@@ -172,6 +176,8 @@ impl AuxTable {
                     // add bitwise segment to the bitwise fragment to be filled from the bitwise trace
                     let rest_of_column = bitwise_fragment
                         .push_column_slice(rest_of_column, self.bitwise.trace_len());
+                    // Split the column again to skip the padding segment.
+                    let (_, rest_of_column) = rest_of_column.split_at_mut(padding_len);
                     // add memory segment to the memory fragment to be filled from the memory trace
                     memory_fragment.push_column_slice(rest_of_column, self.memory.trace_len());
                 }
