@@ -132,14 +132,6 @@ pub struct OpBatch {
 }
 
 impl OpBatch {
-    /// Returns a new operation batch.
-    fn new() -> Self {
-        Self {
-            ops: Vec::new(),
-            groups: [Felt::ZERO; BATCH_SIZE],
-        }
-    }
-
     /// Returns a list of operations contained in this batch.
     pub fn ops(&self) -> &[Operation] {
         &self.ops
@@ -153,91 +145,146 @@ impl OpBatch {
     }
 }
 
+/// An accumulator used in construction of operation batches.
+struct OpBatchAccumulator {
+    ops: Vec<Operation>,
+    groups: [Felt; BATCH_SIZE],
+    /// Value of the currently active op group.
+    group: u64,
+    /// Index of the next opcode in the current group.
+    op_idx: usize,
+    /// index of the current group in the batch.
+    group_idx: usize,
+    // Index of the next free group in the batch.
+    next_group_idx: usize,
+}
+
+impl OpBatchAccumulator {
+    /// Returns a blank [OpBatchAccumulator].
+    pub fn new() -> Self {
+        Self {
+            ops: Vec::new(),
+            groups: [Felt::ZERO; BATCH_SIZE],
+            group: 0,
+            op_idx: 0,
+            group_idx: 0,
+            next_group_idx: 1,
+        }
+    }
+
+    /// Returns true if this accumulator does not contain any operations.
+    pub fn is_empty(&self) -> bool {
+        self.ops.is_empty()
+    }
+
+    /// Returns true if this accumulator can accept the specified operation.
+    pub fn can_accept_op(&self, op: Operation) -> bool {
+        // if the current group is full and the batch is full, return false
+        let next_group_idx = if self.op_idx == GROUP_SIZE {
+            if self.next_group_idx >= BATCH_SIZE {
+                return false;
+            }
+            self.next_group_idx + 1
+        } else {
+            self.next_group_idx
+        };
+
+        // if the operation carries an immediate value, there must be enough room for it
+        !(op.imm_value().is_some() && next_group_idx >= BATCH_SIZE)
+    }
+
+    /// Adds the specified operation to this accumulator. It is expected that the specified
+    /// operation is not a decorator and that (can_accept_op())[OpBatchAccumulator::can_accept_op]
+    /// is called before this function to make sure that the specified operation can be added to
+    /// the accumulator.
+    pub fn add_op(&mut self, op: Operation) {
+        debug_assert!(!op.is_decorator(), "must not be a decorator");
+
+        // if the current op group is full, save it to the list of op groups, advance current
+        // and next group pointers, and reset the group content.
+        if self.op_idx == GROUP_SIZE {
+            self.groups[self.group_idx] = Felt::new(self.group);
+            self.group_idx = self.next_group_idx;
+            self.next_group_idx = self.group_idx + 1;
+
+            self.op_idx = 0;
+            self.group = 0;
+        }
+
+        // if the operation contains immediate value, save it at the next group pointer
+        if let Some(imm) = op.imm_value() {
+            self.groups[self.next_group_idx] = imm;
+            self.next_group_idx += 1;
+
+            // operation carrying an immediate value cannot be the first one in the group except
+            // for the first group of a batch; so, we just add a noop in front of it
+            if self.op_idx == 0 && self.group_idx != 0 {
+                self.ops.push(Operation::Noop);
+                self.op_idx += 1;
+            }
+        }
+
+        // add the opcode to the group
+        let opcode = op.op_code().expect("no opcode") as u64;
+        self.group |= opcode << (Operation::OP_BITS * self.op_idx);
+        self.ops.push(op);
+        self.op_idx += 1;
+    }
+
+    /// Adds the specified operation to the list of operations without accumulating the operation
+    /// into op groups. It is expected that the operation is a decorator.
+    pub fn add_decorator(&mut self, op: Operation) {
+        debug_assert!(op.is_decorator(), "must be a decorator");
+        self.ops.push(op);
+    }
+
+    /// Convert the accumulator into an [OpBatch].
+    pub fn into_batch(mut self) -> OpBatch {
+        // make sure the last group gets added to the group array
+        if self.group != 0 {
+            self.groups[self.group_idx] = Felt::new(self.group);
+        }
+
+        OpBatch {
+            ops: self.ops,
+            groups: self.groups,
+        }
+    }
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
 fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
-    // encodes a group of opcodes; up to 7 opcodes can fit into one group
-    let mut op_group = 0u64;
-
-    // index of the next opcode in the current group; valued range of values is [0, 8)
-    let mut op_idx = 0;
-
-    // indexes of the current group in the batch, and the next free group in the batch; these
-    // could be different by more than 1 if some operations in the batch carry immediate values.
-    let mut group_idx = 0;
-    let mut next_group_idx = 1;
-
-    // current batch of operations; each batch can contain a combination of op groups and immediate
-    // values; total number of slots in a batch is 8.
-    let mut batch = OpBatch::new();
+    let mut batch_acc = OpBatchAccumulator::new();
     let mut batches = Vec::<OpBatch>::new();
     let mut batch_groups = Vec::<[Felt; BATCH_SIZE]>::new();
 
     for op in ops {
-        // if the operator is a decorator we add it to the list of batch ops, but don't process it
-        // further (i.e., the operation will not affect program hash).
+        // if the operator is a decorator we add it to the accumulator as a decorator, but don't
+        // process it further (i.e., the operation will not affect program hash).
         if op.is_decorator() {
-            batch.ops.push(op);
+            batch_acc.add_decorator(op);
             continue;
         }
 
-        // if the operation carries immediate value, process it first
-        if let Some(imm) = op.imm_value() {
-            // check if the batch has room for the immediate value, and if not start another batch
-            if next_group_idx >= BATCH_SIZE {
-                batch_groups.push(batch.groups());
-                batches.push(batch);
-                batch = OpBatch::new();
-                op_group = 0;
-                group_idx = 0;
-                next_group_idx = 1;
-                op_idx = 0;
-            }
+        // if the operation cannot be accepted into the current accumulator, add the contents of
+        // the accumulator to the list of batches and start a new accumulator
+        if !batch_acc.can_accept_op(op) {
+            let batch = batch_acc.into_batch();
+            batch_acc = OpBatchAccumulator::new();
 
-            // operation carrying an immediate value cannot be the first one in the group except
-            // for the first group of a batch; so, we just add a noop in front of it
-            if op_idx == 0 && group_idx != 0 {
-                batch.ops.push(Operation::Noop);
-                op_group = Operation::Noop.op_code().expect("no opcode") as u64;
-                op_idx += 1;
-            }
-
-            // put the immediate value into the next available slot
-            batch.groups[next_group_idx] = imm;
-            next_group_idx += 1;
+            batch_groups.push(batch.groups());
+            batches.push(batch);
         }
 
-        // add the opcode to the group; the operation should have an opcode because we filter
-        // out decorators at the beginning of the loop.
-        op_group |= (op.op_code().expect("no opcode") as u64) << (Operation::OP_BITS * op_idx);
-        batch.ops.push(op);
-        op_idx += 1;
-
-        // if the group is full, put it into the batch and start another group
-        if op_idx == GROUP_SIZE {
-            batch.groups[group_idx] = Felt::new(op_group);
-            op_idx = 0;
-            op_group = 0;
-            group_idx = next_group_idx;
-            next_group_idx += 1;
-
-            // if the batch is full, start another batch
-            if next_group_idx >= BATCH_SIZE {
-                batch_groups.push(batch.groups());
-                batches.push(batch);
-                batch = OpBatch::new();
-                group_idx = 0;
-                next_group_idx = 1;
-            }
-        }
+        // add the operation to the accumulator
+        batch_acc.add_op(op);
     }
 
     // make sure we finished processing the last batch
-    if group_idx != 0 || op_idx != 0 {
-        if op_group != 0 {
-            batch.groups[group_idx] = Felt::new(op_group);
-        }
+    if !batch_acc.is_empty() {
+        let batch = batch_acc.into_batch();
         batch_groups.push(batch.groups());
         batches.push(batch);
     }
