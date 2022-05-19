@@ -26,23 +26,23 @@ fn assert_fail() {
 
 #[test]
 fn assert_eq() {
-    let build_asm_op = |param: String| format!("assert.{}", param);
-    
-    let test = build_op_test!(build_asm_op("eq".to_string()), &[1, 1]);
+    let asm_op = "assert.eq";
+
+    let test = build_op_test!(asm_op, &[1, 1]);
     test.expect_stack(&[]);
 
-    let test = build_op_test!(build_asm_op("eq".to_string()), &[3, 3]);
+    let test = build_op_test!(asm_op, &[3, 3]);
     test.expect_stack(&[]);
 }
 
 #[test]
 fn assert_eq_fail() {
-    let build_asm_op = |param: String| format!("assert.{}", param);
-    
-    let test = build_op_test!(build_asm_op("eq".to_string()), &[2, 1]);
+    let asm_op = "assert.eq";
+
+    let test = build_op_test!(asm_op, &[2, 1]);
     test.expect_error(TestError::ExecutionError("FailedAssertion"));
 
-    let test = build_op_test!(build_asm_op("eq".to_string()), &[1, 4]);
+    let test = build_op_test!(asm_op, &[1, 4]);
     test.expect_error(TestError::ExecutionError("FailedAssertion"));
 }
 
@@ -309,6 +309,9 @@ fn pow2_fail() {
     build_op_test!(asm_op, &[64]).expect_error(TestError::ExecutionError("InvalidPowerOfTwo"));
 }
 
+// FIELD OPS BOOLEAN - MANUAL TESTS
+// ================================================================================================
+
 #[test]
 fn not() {
     let asm_op = "not";
@@ -335,13 +338,13 @@ fn and() {
 
     let test = build_op_test!(asm_op, &[1, 1]);
     test.expect_stack(&[1]);
-    
+
     let test = build_op_test!(asm_op, &[0, 1]);
     test.expect_stack(&[0]);
-    
+
     let test = build_op_test!(asm_op, &[1, 0]);
     test.expect_stack(&[0]);
-    
+
     let test = build_op_test!(asm_op, &[0, 0]);
     test.expect_stack(&[0]);
 }
@@ -367,13 +370,13 @@ fn or() {
 
     let test = build_op_test!(asm_op, &[1, 1]);
     test.expect_stack(&[1]);
-    
+
     let test = build_op_test!(asm_op, &[0, 1]);
     test.expect_stack(&[1]);
-    
+
     let test = build_op_test!(asm_op, &[1, 0]);
     test.expect_stack(&[1]);
-    
+
     let test = build_op_test!(asm_op, &[0, 0]);
     test.expect_stack(&[0]);
 }
@@ -613,42 +616,6 @@ proptest! {
         let expected = 2_u64.wrapping_pow(b);
 
         build_op_test!(asm_op, &[b as u64]).prop_expect_stack(&[expected as u64])?;
-    }
-
-    #[test]
-    fn not_proptest(a in any::<bool>()) {
-        let asm_op = "not";
-        let expected_result = a;
-
-        let test = build_op_test!(asm_op, &[a as u64]);
-        test.prop_expect_stack(&[!expected_result as u64])?;
-    }
-
-    #[test]
-    fn and_proptest(a in any::<bool>(), b in any::<bool>()) {
-        let asm_op = "and";
-        let expected_result = (a & b) as u64;
-
-        let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected_result])?;
-    }
-
-    #[test]
-    fn or_proptest(a in any::<bool>(), b in any::<bool>()) {
-        let asm_op = "or";
-        let expected_result = (a | b) as u64;
-
-        let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected_result])?;
-    }
-
-    #[test]
-    fn xor_proptest(a in any::<bool>(), b in any::<bool>()) {
-        let asm_op = "xor";
-        let expected_result = (a ^ b) as u64;
-
-        let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected_result])?;
     }
 }
 
