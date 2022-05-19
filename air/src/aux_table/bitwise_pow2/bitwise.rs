@@ -22,7 +22,7 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
 /// Index of CONSTRAINT_DEGREES array after which all constraints use periodic columns.
 pub const PERIODIC_CONSTRAINTS_START: usize = 2;
 /// The number of bits decomposed per row.
-const NUM_DECOMP_BITS: usize = 4;
+pub const NUM_DECOMP_BITS: usize = 4;
 
 /// The range of the selector columns in the trace.
 const SELECTOR_COL_RANGE: Range<usize> = create_range(BITWISE_TRACE_OFFSET, NUM_SELECTORS);
@@ -196,7 +196,7 @@ fn enforce_output_aggregation<E: FieldElement>(
 
 /// Calculates the result of bitwise AND applied to the decomposed values provided as a bit array.
 /// The result will be the AND of the first 4 bits in the provided array with the latter 4 bits.
-fn bitwise_and<E: FieldElement>(decomposed_values: &[E]) -> E {
+pub fn bitwise_and<E: FieldElement>(decomposed_values: &[E]) -> E {
     let mut result = E::ZERO;
     // Aggregate the result of the bitwise AND over the decomposed bits in the row.
     for idx in 0..NUM_DECOMP_BITS {
@@ -209,7 +209,7 @@ fn bitwise_and<E: FieldElement>(decomposed_values: &[E]) -> E {
 
 /// Calculates the result of bitwise OR applied to the decomposed values provided as a bit array.
 /// The result will be the OR of the first 4 bits in the provided array with the latter 4 bits.
-fn bitwise_or<E: FieldElement>(decomposed_values: &[E]) -> E {
+pub fn bitwise_or<E: FieldElement>(decomposed_values: &[E]) -> E {
     let mut result = E::ZERO;
     // Aggregate the result of the bitwise OR over the decomposed bits in the row.
     for idx in 0..NUM_DECOMP_BITS {
@@ -222,7 +222,7 @@ fn bitwise_or<E: FieldElement>(decomposed_values: &[E]) -> E {
 
 /// Calculates the result of bitwise XOR applied to the decomposed values provided as a bit array.
 /// The result will be the XOR of the first 4 bits in the provided array with the latter 4 bits.
-fn bitwise_xor<E: FieldElement>(decomposed_values: &[E]) -> E {
+pub fn bitwise_xor<E: FieldElement>(decomposed_values: &[E]) -> E {
     let mut result = E::ZERO;
     // Aggregate the result of the bitwise XOR over the decomposed bits in the row.
     for idx in 0..NUM_DECOMP_BITS {
@@ -354,7 +354,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 // ================================================================================================
 /// Aggregate 4 decomposed bits representing a 4-bit binary value into a decimal value, starting
 /// from `start_idx` in the provided row.
-fn agg_bits<E: FieldElement>(row: &[E], start_idx: usize) -> E {
+pub fn agg_bits<E: FieldElement>(row: &[E], start_idx: usize) -> E {
     let mut result = E::ZERO;
     // TODO: this can be optimized.
     // From Bobbin: "we are multiplying by a small power of two and then summing up the results -
