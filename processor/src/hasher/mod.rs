@@ -1,6 +1,9 @@
 use super::{Felt, FieldElement, StarkField, TraceFragment, Word};
 use core::ops::Range;
-use vm_core::hasher::STATE_WIDTH;
+use vm_core::hasher::{
+    Selectors, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE,
+    STATE_WIDTH, TRACE_WIDTH,
+};
 
 mod trace;
 use trace::HasherTrace;
@@ -14,43 +17,10 @@ mod tests;
 /// Elements of the hasher state which are returned as hash result.
 const HASH_RESULT_RANGE: Range<usize> = Range { start: 4, end: 8 };
 
-/// Number of selector columns in the trace.
-const NUM_SELECTORS: usize = 3;
-
-/// Number of columns in Hasher execution trace. Additional two columns are for row address and
-/// node index columns.
-const TRACE_WIDTH: usize = NUM_SELECTORS + STATE_WIDTH + 2;
-
-/// Specifies a start of a new linear hash computation or absorption of new elements into an
-/// executing linear hash computation. These selectors can also be used for a simple 2-to-1 hash
-/// computation.
-pub const LINEAR_HASH: Selectors = [Felt::ONE, Felt::ZERO, Felt::ZERO];
-
-/// Specifies a start of Merkle path verification computation or absorption of a new path node
-/// into the hasher state.
-pub const MP_VERIFY: Selectors = [Felt::ONE, Felt::ZERO, Felt::ONE];
-
-/// Specifies a start of Merkle path verification or absorption of a new path node into the hasher
-/// state for the "old" node value during Merkle root update computation.
-pub const MR_UPDATE_OLD: Selectors = [Felt::ONE, Felt::ONE, Felt::ZERO];
-
-/// Specifies a start of Merkle path verification or absorption of a new path node into the hasher
-/// state for the "new" node value during Merkle root update computation.
-pub const MR_UPDATE_NEW: Selectors = [Felt::ONE, Felt::ONE, Felt::ONE];
-
-/// Specifies a completion of a computation such that only the hash result (values in h0, h1, h2
-/// h3) is returned.
-pub const RETURN_HASH: Selectors = [Felt::ZERO, Felt::ZERO, Felt::ZERO];
-
-/// Specifies a completion of a computation such that the entire hasher state (values in h0 through
-/// h11) is returned.
-pub const RETURN_STATE: Selectors = [Felt::ZERO, Felt::ZERO, Felt::ONE];
-
 // TYPE ALIASES
 // ================================================================================================
 
 type HasherState = [Felt; STATE_WIDTH];
-type Selectors = [Felt; NUM_SELECTORS];
 
 // HASH PROCESSOR
 // ================================================================================================
