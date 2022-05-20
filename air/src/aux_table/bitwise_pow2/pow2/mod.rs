@@ -104,42 +104,43 @@ fn enforce_input_decomposition<E: FieldElement>(
     result: &mut [E],
     processor_flag: E,
 ) -> usize {
-    let num_constraints = 19;
+    let mut constraint_offset = 0;
     let k1 = periodic_values[1];
 
     // Values in power decomposition columns are all binary.
-    for (idx, result) in result.iter_mut().enumerate().take(POW2_POWERS_PER_ROW) {
+    for (idx, result) in result.iter_mut().take(POW2_POWERS_PER_ROW).enumerate() {
         *result = processor_flag * is_binary(frame.a_power(idx));
     }
-    let mut constraint_index = POW2_POWERS_PER_ROW;
+    constraint_offset += POW2_POWERS_PER_ROW;
 
     // Adjacent cells in decomposition columns can stay the same or transition from 1 -> 0.
-    for (idx, result) in result[constraint_index..]
+    for (idx, result) in result[constraint_offset..]
         .iter_mut()
-        .enumerate()
         .take(POW2_POWERS_PER_ROW - 1)
+        .enumerate()
     {
         *result = processor_flag * binary_not(frame.a_power(idx)) * frame.a_power(idx + 1);
     }
-    constraint_index += POW2_POWERS_PER_ROW - 1;
+    constraint_offset += POW2_POWERS_PER_ROW - 1;
 
     // The helper column is binary.
-    result[constraint_index] = processor_flag * is_binary(frame.h());
-    constraint_index += 1;
+    result[constraint_offset] = processor_flag * is_binary(frame.h());
+    constraint_offset += 1;
 
     // The transition from a7 to the helper column can stay the same or change from 1 -> 0.
-    result[constraint_index] = processor_flag * binary_not(frame.a_power(7)) * frame.h();
-    constraint_index += 1;
+    result[constraint_offset] = processor_flag * binary_not(frame.a_power(7)) * frame.h();
+    constraint_offset += 1;
 
     // The helper column value equals the value of a0 in the next row for all rows except the last.
-    result[constraint_index] = processor_flag * k1 * (frame.a_power_next(0) - frame.h());
-    constraint_index += 1;
+    result[constraint_offset] = processor_flag * k1 * (frame.a_power_next(0) - frame.h());
+    constraint_offset += 1;
 
     // Ensure input is never greater than the maximum exponent of the table by enforcing that the
     // last power decomposition cell is always zero.
-    result[constraint_index] = processor_flag * binary_not(k1) * frame.a_power(7);
+    result[constraint_offset] = processor_flag * binary_not(k1) * frame.a_power(7);
+    constraint_offset += 1;
 
-    num_constraints
+    constraint_offset
 }
 
 /// Enforces that the value in column `a` equals the aggregation of all powers that have been
@@ -150,7 +151,7 @@ fn enforce_input_aggregation<E: FieldElement>(
     result: &mut [E],
     processor_flag: E,
 ) -> usize {
-    let num_constraints = 1;
+    let mut constraint_offset = 0;
     let k1 = periodic_values[1];
 
     // Aggregate the next row's decomposed powers.
@@ -158,9 +159,11 @@ fn enforce_input_aggregation<E: FieldElement>(
         (0..POW2_POWERS_PER_ROW).fold(E::ZERO, |r, idx| r + frame.a_power_next(idx));
 
     // Ensure the decomposed input is aggregated into column a.
-    result[0] = processor_flag * (frame.a_next() - (agg_row_powers + k1 * frame.a()));
+    result[constraint_offset] =
+        processor_flag * (frame.a_next() - (agg_row_powers + k1 * frame.a()));
+    constraint_offset += 1;
 
-    num_constraints
+    constraint_offset
 }
 
 /// Enforces that column `p` contains powers of 256 starting from 1 in the first row of each
@@ -171,14 +174,18 @@ fn enforce_powers_of_256<E: FieldElement>(
     result: &mut [E],
     processor_flag: E,
 ) -> usize {
-    let num_constraints = 2;
+    let mut constraint_offset = 0;
     let k0 = periodic_values[0];
     let k1 = periodic_values[1];
 
-    result[0] = processor_flag * k0 * (frame.p() - E::ONE);
-    result[1] = processor_flag * k1 * (frame.p_next() - E::from(256_u16) * frame.p());
+    result[constraint_offset] = processor_flag * k0 * (frame.p() - E::ONE);
+    constraint_offset += 1;
 
-    num_constraints
+    result[constraint_offset] =
+        processor_flag * k1 * (frame.p_next() - E::from(256_u16) * frame.p());
+    constraint_offset += 1;
+
+    constraint_offset
 }
 
 /// The constraints to enforce correct aggregation of the output value. The constraints enforce:
@@ -192,22 +199,24 @@ fn enforce_output_aggregation<E: FieldElement>(
     result: &mut [E],
     processor_flag: E,
 ) -> usize {
-    let num_constraints = 2;
+    let mut constraint_offset = 0;
     let k0 = periodic_values[0];
     let k1 = periodic_values[1];
 
     // Enforce correct output aggregation in the first row.
     let agg_row_output = (0..=POW2_POWERS_PER_ROW).fold(E::ZERO, |r, idx| r + frame.a_output(idx));
-    result[0] = processor_flag * k0 * (frame.z() - agg_row_output);
+    result[constraint_offset] = processor_flag * k0 * (frame.z() - agg_row_output);
+    constraint_offset += 1;
 
     // For all rows except the last, enforce the next row's output is the aggregation of the
     // decomposed powers in the next row and the output value in the current row.
     let agg_next_row_output =
         (0..=POW2_POWERS_PER_ROW).fold(E::ZERO, |r, idx| r + frame.a_output_next(idx));
-    result[1] =
+    result[constraint_offset] =
         processor_flag * k1 * (frame.z_next() - (frame.p_next() * agg_next_row_output + frame.z()));
+    constraint_offset += 1;
 
-    num_constraints
+    constraint_offset
 }
 
 // BITWISE FRAME EXTENSION TRAIT
