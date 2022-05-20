@@ -1,5 +1,5 @@
 use super::{
-    super::{get_periodic_values, PERIODIC_CYCLE_LEN},
+    super::{get_periodic_values, OP_CYCLE_LEN},
     agg_bits, bitwise_and, bitwise_or, bitwise_xor, enforce_constraints, EvaluationFrame,
     A_COL_IDX, A_COL_RANGE, BITWISE_TRACE_OFFSET, B_COL_IDX, B_COL_RANGE, NUM_CONSTRAINTS,
     NUM_DECOMP_BITS, OUTPUT_COL_IDX, SELECTOR_COL_RANGE,
@@ -77,17 +77,17 @@ fn test_bitwise_selectors_fail() {
 
 proptest! {
     #[test]
-    fn test_bitwise_and(a in any::<u32>(), b in any::<u32>(), cycle_row in 0..(PERIODIC_CYCLE_LEN - 1)) {
+    fn test_bitwise_and(a in any::<u32>(), b in any::<u32>(), cycle_row in 0..(OP_CYCLE_LEN - 1)) {
         test_bitwise_frame(BITWISE_AND, a, b, cycle_row);
     }
 
     #[test]
-    fn test_bitwise_or(a in any::<u32>(), b in any::<u32>(), cycle_row in 0..(PERIODIC_CYCLE_LEN - 1)) {
+    fn test_bitwise_or(a in any::<u32>(), b in any::<u32>(), cycle_row in 0..(OP_CYCLE_LEN - 1)) {
         test_bitwise_frame(BITWISE_OR, a, b, cycle_row);
     }
 
     #[test]
-    fn test_bitwise_xor(a in any::<u32>(), b in any::<u32>(), cycle_row in 0..(PERIODIC_CYCLE_LEN - 1)) {
+    fn test_bitwise_xor(a in any::<u32>(), b in any::<u32>(), cycle_row in 0..(OP_CYCLE_LEN - 1)) {
         test_bitwise_frame(BITWISE_XOR, a, b, cycle_row);
     }
 }
@@ -132,7 +132,7 @@ pub fn get_test_frame(
     cycle_row_num: usize,
 ) -> EvaluationFrame<Felt> {
     assert!(
-        cycle_row_num < PERIODIC_CYCLE_LEN - 1,
+        cycle_row_num < OP_CYCLE_LEN - 1,
         "Failed to build test EvaluationFrame for bitwise operation. The next row would be in a new cycle."
     );
 
@@ -141,7 +141,7 @@ pub fn get_test_frame(
     let mut next = vec![Felt::ZERO; TRACE_WIDTH];
 
     // Define the shift amounts for the specified rows.
-    let current_shift = NUM_DECOMP_BITS * (PERIODIC_CYCLE_LEN - cycle_row_num - 1);
+    let current_shift = NUM_DECOMP_BITS * (OP_CYCLE_LEN - cycle_row_num - 1);
     let next_shift = current_shift - NUM_DECOMP_BITS;
 
     // Set the operation selectors.

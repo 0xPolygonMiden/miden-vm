@@ -1,4 +1,4 @@
-use super::{EvaluationFrame, FieldElement, BITWISE_TRACE_OFFSET};
+use super::{EvaluationFrame, FieldElement, BITWISE_TRACE_OFFSET, OP_CYCLE_LEN};
 use crate::utils::{binary_not, is_binary, EvaluationResult};
 use core::ops::Range;
 use vm_core::{
@@ -60,7 +60,7 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
     degrees.append(
         &mut CONSTRAINT_DEGREES[PERIODIC_CONSTRAINTS_START..]
             .iter()
-            .map(|&degree| TransitionConstraintDegree::with_cycles(degree - 1, vec![8]))
+            .map(|&degree| TransitionConstraintDegree::with_cycles(degree - 1, vec![OP_CYCLE_LEN]))
             .collect(),
     );
 

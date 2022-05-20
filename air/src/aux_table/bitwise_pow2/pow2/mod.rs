@@ -1,6 +1,6 @@
 use crate::utils::{binary_not, is_binary};
 
-use super::{EvaluationFrame, FieldElement, POW2_TRACE_OFFSET};
+use super::{EvaluationFrame, FieldElement, OP_CYCLE_LEN, POW2_TRACE_OFFSET};
 use core::ops::Range;
 use vm_core::{bitwise::POW2_POWERS_PER_ROW, utils::range as create_range};
 use winter_air::TransitionConstraintDegree;
@@ -62,7 +62,7 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
     degrees.append(
         &mut CONSTRAINT_DEGREES[PERIODIC_CONSTRAINTS_START..]
             .iter()
-            .map(|&degree| TransitionConstraintDegree::with_cycles(degree - 1, vec![8]))
+            .map(|&degree| TransitionConstraintDegree::with_cycles(degree - 1, vec![OP_CYCLE_LEN]))
             .collect(),
     );
 

@@ -1,6 +1,6 @@
 use super::{
     super::{
-        get_periodic_values, EvaluationFrame, NUM_SELECTORS, PERIODIC_CYCLE_LEN, SELECTOR_COL_RANGE,
+        get_periodic_values, EvaluationFrame, NUM_SELECTORS, OP_CYCLE_LEN, SELECTOR_COL_RANGE,
     },
     enforce_constraints, A_AGG_COL_IDX, A_POWERS_COL_RANGE, H_COL_IDX, NUM_CONSTRAINTS,
     POW2_POWERS_PER_ROW, P_COL_IDX, Z_AGG_COL_IDX,
@@ -12,7 +12,7 @@ use proptest::prelude::*;
 proptest! {
 
     #[test]
-    fn test_pow2(exponent in 0_u32..64, cycle_row in 0..(PERIODIC_CYCLE_LEN - 1)) {
+    fn test_pow2(exponent in 0_u32..64, cycle_row in 0..(OP_CYCLE_LEN - 1)) {
         test_pow2_frame(exponent, cycle_row);
     }
 }
@@ -97,7 +97,7 @@ fn set_pre_output_agg_row(row_num: usize, frame_row: &mut [Felt]) {
     frame_row[A_AGG_COL_IDX] = Felt::new((POW2_POWERS_PER_ROW * (row_num + 1)) as u64);
 
     // Set the power of 256 column value.
-    frame_row[P_COL_IDX] = Felt::new(256_u64.pow((row_num % PERIODIC_CYCLE_LEN) as u32));
+    frame_row[P_COL_IDX] = Felt::new(256_u64.pow((row_num % OP_CYCLE_LEN) as u32));
 
     // The output is zero before it is aggregated.
 }
@@ -117,7 +117,7 @@ fn set_output_agg_row(exponent: u32, row_num: usize, frame_row: &mut [Felt]) {
     frame_row[A_AGG_COL_IDX] = Felt::new(exponent as u64);
 
     // Set the power of 256 column value.
-    frame_row[P_COL_IDX] = Felt::new(256_u64.pow((row_num % PERIODIC_CYCLE_LEN) as u32));
+    frame_row[P_COL_IDX] = Felt::new(256_u64.pow((row_num % OP_CYCLE_LEN) as u32));
 
     // After aggregation, the output is the result.
     frame_row[Z_AGG_COL_IDX] = Felt::new(2_u64.pow(exponent));
@@ -133,7 +133,7 @@ fn set_post_output_agg_row(exponent: u32, row_num: usize, frame_row: &mut [Felt]
     frame_row[A_AGG_COL_IDX] = Felt::new(exponent as u64);
 
     // Set the power of 256 column value.
-    frame_row[P_COL_IDX] = Felt::new(256_u64.pow((row_num % PERIODIC_CYCLE_LEN) as u32));
+    frame_row[P_COL_IDX] = Felt::new(256_u64.pow((row_num % OP_CYCLE_LEN) as u32));
 
     // After aggregation, the output is the result.
     frame_row[Z_AGG_COL_IDX] = Felt::new(2_u64.pow(exponent));

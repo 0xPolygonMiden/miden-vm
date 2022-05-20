@@ -9,8 +9,8 @@ mod pow2;
 // CONSTANTS
 // ================================================================================================
 
-/// The length of a periodic cycle in the Bitwise & Power of Two co-processor.
-pub const PERIODIC_CYCLE_LEN: usize = 8;
+/// The number of rows required to compute an operation in the Bitwise & Power of Two co-processor.
+pub const OP_CYCLE_LEN: usize = 8;
 /// The number of shared constraints on the combined trace of the Bitwise and Power of Two
 /// operation execution traces.
 pub const NUM_CONSTRAINTS: usize = 2;
@@ -130,7 +130,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 
 // CYCLE MASKS
 // ================================================================================================
-pub const BITWISE_POW2_K0_MASK: [Felt; PERIODIC_CYCLE_LEN] = [
+pub const BITWISE_POW2_K0_MASK: [Felt; OP_CYCLE_LEN] = [
     Felt::ONE,
     Felt::ZERO,
     Felt::ZERO,
@@ -141,7 +141,7 @@ pub const BITWISE_POW2_K0_MASK: [Felt; PERIODIC_CYCLE_LEN] = [
     Felt::ZERO,
 ];
 
-pub const BITWISE_POW2_K1_MASK: [Felt; PERIODIC_CYCLE_LEN] = [
+pub const BITWISE_POW2_K1_MASK: [Felt; OP_CYCLE_LEN] = [
     Felt::ONE,
     Felt::ONE,
     Felt::ONE,
