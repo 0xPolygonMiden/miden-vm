@@ -9,28 +9,31 @@ use vm_core::{bitwise::POWER_OF_TWO, Felt, FieldElement, TRACE_WIDTH};
 
 use proptest::prelude::*;
 
-proptest! {
+// RANDOMIZED TESTS
+// ================================================================================================
 
+proptest! {
     #[test]
     fn test_pow2(exponent in 0_u32..64, cycle_row in 0..(OP_CYCLE_LEN - 1)) {
-        test_pow2_frame(exponent, cycle_row);
+        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let frame = get_test_frame(exponent, cycle_row);
+        let result = get_constraint_evaluation(frame, cycle_row);
+        assert_eq!(expected, result);
     }
 }
 
 // TEST HELPERS
 // ================================================================================================
 
-/// Generates the specified trace frame for the specified power of two operation, then asserts
-/// that applying the constraints to this frame yields valid results (all zeros).
-fn test_pow2_frame(exponent: u32, cycle_row: usize) {
-    let frame = get_test_frame(exponent, cycle_row);
-    let periodic_values = get_periodic_values(cycle_row);
+/// Returns the result of Power of Two constraint evaluations on the provided frame starting at the
+/// specified row.
+fn get_constraint_evaluation(frame: EvaluationFrame<Felt>, row: usize) -> [Felt; NUM_CONSTRAINTS] {
+    let periodic_values = get_periodic_values(row);
     let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
-    let expected = result;
 
     enforce_constraints(&frame, &periodic_values, &mut result, Felt::ONE);
 
-    assert_eq!(expected, result);
+    result
 }
 
 /// Generates the correct current and next rows for the power of two operation with the specified
@@ -39,7 +42,7 @@ fn test_pow2_frame(exponent: u32, cycle_row: usize) {
 ///
 /// # Errors
 /// It expects the specified `cycle_row_num` for the current row to be such that the next row will
-/// still be in the same cycle. It will fail with a row number input.
+/// still be in the same cycle. It will fail if the row number input is >= OP_CYCLE_LEN - 1.
 pub fn get_test_frame(exponent: u32, cycle_row_num: usize) -> EvaluationFrame<Felt> {
     let mut current = vec![Felt::ZERO; TRACE_WIDTH];
     let mut next = vec![Felt::ZERO; TRACE_WIDTH];

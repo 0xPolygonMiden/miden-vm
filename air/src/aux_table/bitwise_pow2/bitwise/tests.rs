@@ -17,16 +17,16 @@ use proptest::prelude::*;
 // CONSTANTS
 // ================================================================================================
 
-/// The index of the column from where the input decomposition starts in a cycle row.
+/// The index of the column where the input decomposition starts in the bitwise execution trace.
 const BITWISE_DECOMPOSITION_OFFSET: usize = BITWISE_B_COL_IDX + 1;
-/// Number of columns needed for input decomposition of `a` & `b` in a cycle row.
+/// Number of columns needed for input decomposition of `a` & `b` in the bitwise execution trace.
 const BITWISE_DECOMPOSITION_LEN: usize = 2 * NUM_DECOMP_BITS;
 
 // UNIT TESTS
 // ================================================================================================
 
-/// Takes two custom consecutive row cycle state of bitwise decompostion with two distinct selectors. Outputs failure
-/// as all constraint are not zero (not satisfied)
+/// Tests that the bitwise constraints do not all evaluate to zero if the operation selectors change
+/// within a cycle.
 #[test]
 fn test_bitwise_selectors_fail() {
     let current_bitwise = vec![
@@ -57,7 +57,7 @@ fn test_bitwise_selectors_fail() {
 
     let frame =
         get_test_frame_with_two_selectors(&current_bitwise, &next_bitwise, BITWISE_AND, BITWISE_OR);
-    let result = get_bitwise_frame_result(frame, cycle);
+    let result = get_constraint_evaluation(frame, cycle);
     assert_ne!(result, expected);
 
     let frame = get_test_frame_with_two_selectors(
@@ -66,54 +66,60 @@ fn test_bitwise_selectors_fail() {
         BITWISE_XOR,
         BITWISE_AND,
     );
-    let result = get_bitwise_frame_result(frame, cycle);
+    let result = get_constraint_evaluation(frame, cycle);
     assert_ne!(result, expected);
 
     let frame =
         get_test_frame_with_two_selectors(&current_bitwise, &next_bitwise, BITWISE_OR, BITWISE_XOR);
-    let result = get_bitwise_frame_result(frame, cycle);
+    let result = get_constraint_evaluation(frame, cycle);
     assert_ne!(result, expected);
 }
 
+// RANDOMIZED TESTS
+// ================================================================================================
+
 proptest! {
+    /// Tests that the bitwise constraints evaluate to zero on valid frames within a cycle which
+    /// compute the bitwise AND operation.
     #[test]
     fn test_bitwise_and(a in any::<u32>(), b in any::<u32>(), cycle_row in 0..(OP_CYCLE_LEN - 1)) {
-        test_bitwise_frame(BITWISE_AND, a, b, cycle_row);
+        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let frame = get_test_frame(BITWISE_AND, a, b, cycle_row);
+        let result = get_constraint_evaluation(frame, cycle_row);
+        assert_eq!(expected, result);
     }
 
+    /// Tests that the bitwise constraints evaluate to zero on valid frames within a cycle which
+    /// compute the bitwise OR operation.
     #[test]
     fn test_bitwise_or(a in any::<u32>(), b in any::<u32>(), cycle_row in 0..(OP_CYCLE_LEN - 1)) {
-        test_bitwise_frame(BITWISE_OR, a, b, cycle_row);
+        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let frame = get_test_frame(BITWISE_OR, a, b, cycle_row);
+        let result = get_constraint_evaluation(frame, cycle_row);
+        assert_eq!(expected, result);
     }
 
+    /// Tests that the bitwise constraints evaluate to zero on valid frames within a cycle which
+    /// compute the bitwise XOR operation.
     #[test]
     fn test_bitwise_xor(a in any::<u32>(), b in any::<u32>(), cycle_row in 0..(OP_CYCLE_LEN - 1)) {
-        test_bitwise_frame(BITWISE_XOR, a, b, cycle_row);
+        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let frame = get_test_frame(BITWISE_XOR, a, b, cycle_row);
+        let result = get_constraint_evaluation(frame, cycle_row);
+        assert_eq!(expected, result);
     }
 }
 
 // TEST HELPERS
 // ================================================================================================
 
-/// Generates the specified trace frame for the specified bitwise operation and inputs, then asserts
-/// that applying the constraints to this frame yields valid results (all zeros).
-fn test_bitwise_frame(operation: Selectors, a: u32, b: u32, cycle_row: usize) {
-    let frame = get_test_frame(operation, a, b, cycle_row);
-    let periodic_values = get_periodic_values(cycle_row);
+/// Returns the result of Bitwise constraint evaluations on the provided frame starting at the
+/// specified row.
+fn get_constraint_evaluation(frame: EvaluationFrame<Felt>, row: usize) -> [Felt; NUM_CONSTRAINTS] {
+    let periodic_values = get_periodic_values(row);
     let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
-    let expected = result;
 
     enforce_constraints(&frame, &periodic_values, &mut result, Felt::ONE);
-
-    assert_eq!(expected, result);
-}
-
-/// Generates the expected and calculated constraint result on an input frame.
-fn get_bitwise_frame_result(frame: EvaluationFrame<Felt>, row: usize) -> [Felt; NUM_CONSTRAINTS] {
-    let cycle_row = get_periodic_values(row);
-    let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
-
-    enforce_constraints(&frame, &cycle_row, &mut result, Felt::ONE);
 
     result
 }
@@ -124,7 +130,7 @@ fn get_bitwise_frame_result(frame: EvaluationFrame<Felt>, row: usize) -> [Felt; 
 ///
 /// # Errors
 /// It expects the specified `cycle_row_num` for the current row to be such that the next row will
-/// still be in the same cycle. It will fail with a row number input.
+/// still be in the same cycle. It will fail if the row number input is >= OP_CYCLE_LEN - 1.
 pub fn get_test_frame(
     operation: Selectors,
     a: u32,
@@ -219,8 +225,8 @@ fn get_test_frame_with_two_selectors(
 
     // First two columns would be selector.
     // Assign operation2 and operation1 to the current and next cycle row respectively.
-    current_bitstate[..NUM_SELECTORS].copy_from_slice(&operation2[..NUM_SELECTORS]);
-    next_bitstate[..NUM_SELECTORS].copy_from_slice(&operation1[..NUM_SELECTORS]);
+    current_bitstate[..NUM_SELECTORS].copy_from_slice(&operation2);
+    next_bitstate[..NUM_SELECTORS].copy_from_slice(&operation1);
 
     current_bitstate[BITWISE_A_COL_IDX] = input_curr_a;
     current_bitstate[BITWISE_B_COL_IDX] = input_curr_b;

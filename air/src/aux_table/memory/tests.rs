@@ -12,26 +12,34 @@ use rand_utils::rand_value;
 
 #[test]
 fn test_memory_write() {
+    let expected = [Felt::ZERO; memory::NUM_CONSTRAINTS];
+
     let old_values = vec![0, 0, 0, 0];
     let new_values = vec![1, 0, 0, 0];
 
     // Write to a new context.
-    test_memory(MemoryTestDeltaType::Context, &old_values, &new_values);
+    let result = get_constraint_evaluation(MemoryTestDeltaType::Context, &old_values, &new_values);
+    assert_eq!(expected, result);
 
     // Write to a new address in the same context.
-    test_memory(MemoryTestDeltaType::Address, &old_values, &new_values);
+    let result = get_constraint_evaluation(MemoryTestDeltaType::Address, &old_values, &new_values);
+    assert_eq!(expected, result);
 
     // Write to the same context and address at a new clock cycle.
-    test_memory(MemoryTestDeltaType::Clock, &old_values, &new_values);
+    let result = get_constraint_evaluation(MemoryTestDeltaType::Clock, &old_values, &new_values);
+    assert_eq!(expected, result);
 }
 
 #[test]
 fn test_memory_read() {
+    let expected = [Felt::ZERO; memory::NUM_CONSTRAINTS];
+
     let old_values = vec![1, 0, 0, 0];
     let new_values = vec![1, 0, 0, 0];
 
     // Memory reads only happen when neither the context nor the address have changed.
-    test_memory(MemoryTestDeltaType::Clock, &old_values, &new_values);
+    let result = get_constraint_evaluation(MemoryTestDeltaType::Clock, &old_values, &new_values);
+    assert_eq!(expected, result);
 }
 
 // TEST HELPERS
@@ -48,23 +56,26 @@ enum MemoryTestDeltaType {
 }
 
 /// Generates a frame that reads or writes memory with the specified old and new values and a change
-/// in the  specified column (context, address, or clock), then asserts that the memory constraints
-/// evaluate to zero on this frame.
+/// in the  specified column (context, address, or clock), then returns the evaluation of the memory
+/// constraints on this frame.
 ///
 /// - To test a valid write, the MemoryTestDeltaType must be Context or Address and the `old_values` and
 /// `new_values` must change.
 /// - To test a valid read, the `delta_type` must be Clock and the `old_values` and `new_values`
 /// must be equal.
-fn test_memory(delta_type: MemoryTestDeltaType, old_values: &[u32], new_values: &[u32]) {
+fn get_constraint_evaluation(
+    delta_type: MemoryTestDeltaType,
+    old_values: &[u32],
+    new_values: &[u32],
+) -> [Felt; memory::NUM_CONSTRAINTS] {
     let delta_row = get_test_delta_row(&delta_type);
     let frame = get_test_frame(&delta_type, &delta_row, old_values, new_values);
 
     let mut result = [Felt::ZERO; memory::NUM_CONSTRAINTS];
-    let expected = result;
 
     memory::enforce_constraints(&frame, &mut result, Felt::ONE);
 
-    assert_eq!(expected, result);
+    result
 }
 
 /// Generates an EvaluationFrame with memory trace data as specified by the inputs. The frame treats
