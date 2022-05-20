@@ -1,4 +1,4 @@
-# Hash processor
+# Hash Processor
 
 This note assumes some familiarity with [permutation checks](https://hackmd.io/@arielg/ByFgSDA7D).
 
@@ -28,13 +28,13 @@ The processor can be thought of as having a small instruction set of $11$ instru
 
 ## Processor trace
 
-Execution trace table of the processor consists of $17$ trace columns and $2$ periodic columns. The structure of the table is such that a single permutation of the hash function can be computed using $8$ table rows. The layout of the table is illustrated below.
+Execution trace table of the processor consists of $17$ trace columns and $3$ periodic columns. The structure of the table is such that a single permutation of the hash function can be computed using $8$ table rows. The layout of the table is illustrated below.
 
-![](https://hackmd.io/_uploads/HyMaT4URt.png)
+![](https://i.imgur.com/g2oeXQ9.png)
 
 The meaning of the columns is as follows:
 
-- Two periodic columns $k_0$ and $k_1$ are used to help select the instruction executed at a given row. Both of these columns contain patterns which repeats every $8$ rows. For $k_0$ the pattern is $7$ zeros followed by $1$ one. For $k_1$ the pattern is one $1$ followed by $7$ zeros.
+- Three periodic columns $k_0$, $k_1$, and $k_2$ are used to help select the instruction executed at a given row. All of these columns contain patterns which repeat every $8$ rows. For $k_0$ the pattern is $7$ zeros followed by $1$ one, helping us identify the last row in the cycle. For $k_1$ the pattern is $6$ zeros, $1$ one, and $1$ zero, which can be used to identify the second-to-last row in a cycle. For $k_2$ the pattern is $1$ one followed by $7$ zeros, which can identify the first row in the cycle.
 - Three selector columns $s_0$, $s_1$, and $s_2$. These columns can contain only binary values (ones or zeros), and they are also used to help select the instruction to execute at a given row.
 - One row address column $r$. This column starts out at $0$ and gets incremented by $1$ with every row.
 - Twelve hasher state columns $h_0, ..., h_{11}$. These columns are used to hold the hasher state for each round of Rescue Prime permutation. The state is laid out as follows:
@@ -54,10 +54,10 @@ As mentioned above, processor instructions are encoded using a combination of pe
 | Flag       | Value                                                 | Notes                                                                                             |
 | ---------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | $f_{rpr}$  | $1 - k_0$                                             | Set to $1$ on the first $7$ steps of every $8$-step cycle.                                        |
-| $f_{bp}$   | $k_1 \cdot s_0 \cdot (1 - s_1) \cdot (1 - s_2)$       | Set to $1$ when selector flags are $(1, 0, 0)$ on rows which are multiples of $8$.                |
-| $f_{mp}$   | $k_1 \cdot s_0 \cdot (1 - s_1) \cdot s_2$             | Set to $1$ when selector flags are $(1, 0, 1)$ on rows which are multiples of $8$.                |
-| $f_{mv}$   | $k_1 \cdot s_0 \cdot s_1 \cdot (1 - s_2)$             | Set to $1$ when selector flags are $(1, 1, 0)$ on rows which are multiples of $8$.                |
-| $f_{mu}$   | $k_1 \cdot s_0 \cdot s_1 \cdot s_2$                   | Set to $1$ when selector flags are $(1, 1, 1)$ on rows which are multiples of $8$.                |
+| $f_{bp}$   | $k_2 \cdot s_0 \cdot (1 - s_1) \cdot (1 - s_2)$       | Set to $1$ when selector flags are $(1, 0, 0)$ on rows which are multiples of $8$.                |
+| $f_{mp}$   | $k_2 \cdot s_0 \cdot (1 - s_1) \cdot s_2$             | Set to $1$ when selector flags are $(1, 0, 1)$ on rows which are multiples of $8$.                |
+| $f_{mv}$   | $k_2 \cdot s_0 \cdot s_1 \cdot (1 - s_2)$             | Set to $1$ when selector flags are $(1, 1, 0)$ on rows which are multiples of $8$.                |
+| $f_{mu}$   | $k_2 \cdot s_0 \cdot s_1 \cdot s_2$                   | Set to $1$ when selector flags are $(1, 1, 1)$ on rows which are multiples of $8$.                |
 | $f_{hout}$ | $k_0 \cdot (1 - s_0) \cdot (1 - s_1) \cdot (1 - s_2)$ | Set to $1$ when selector flags are $(0, 0, 0)$ on rows which are $1$ less than a multiple of $8$. |
 | $f_{sout}$ | $k_0 \cdot (1 - s_0) \cdot (1 - s_1) \cdot s_2$       | Set to $1$ when selector flags are $(0, 0, 1)$ on rows which are $1$ less than a multiple of $8$. |
 | $f_{abp}$  | $k_0 \cdot s_0 \cdot (1 - s_1) \cdot (1 - s_2)$       | Set to $1$ when selector flags are $(1, 0, 0)$ on rows which are $1$ less than a multiple of $8$. |
@@ -69,11 +69,12 @@ A few additional notes about flag values:
 
 - With the exception of $f_{rpr}$, all flags are mutually exclusive. That is, if one flag is set to $1$, all other flats are set to $0$.
 - With the exception of $f_{rpr}$, computing flag values involves $3$ multiplications, and thus the degree of these flags is $4$.
-- We can also define a flag $f_{out} = k_0 \cdot (1 - s_0) \cdot (1 - s_1)$. This flag will be set to $1$ when either $f_{hout}=1$ or $f_{sout}=1$.
+- We can also define a flag $f_{out} = k_0 \cdot (1 - s_0) \cdot (1 - s_1)$. This flag will be set to $1$ when either $f_{hout}=1$ or $f_{sout}=1$ in the current row.
+- We can define a flag $f_{out}' = k_1 \cdot (1 - s_0') \cdot (1 - s_1')$. This flag will be set to $1$ when either $f_{hout}=1$ or $f_{sout}=1$ in the next row.
 
 We also impose the following restrictions on how values in selector columns can be updated:
 
-- Values in columns $s_1$ and $s_2$ must be copied over from one row to the next, unless $f_{out} = 1$ for the current or the next row.
+- Values in columns $s_1$ and $s_2$ must be copied over from one row to the next, unless $f_{out} = 1$ or $f_{out}' = 1$ indicating the `hout` or `sout` flag is set for the current or the next row.
 - Value in $s_0$ must be set to $1$ if $f_{out}=1$ for the previous row, and to $0$ if any of the flags $f_{abp}$, $f_{mpa}$, $f_{mva}$, or $f_{mua}$ are set to $1$ for the previous row.
 
 The above rules ensure that we must finish one computation before starting another, and we can't change the type of the computation before the computation is finished.
@@ -98,7 +99,7 @@ SOUT                     // return the entire state as output
 
 Execution trace for this computation would look as illustrated below.
 
-![](https://hackmd.io/_uploads/rkrZJhD0F.png)
+![](https://i.imgur.com/RqnZvwH.png)
 
 In the above $\{a_0, ..., a_{11}\}$ is the input state of the hasher, and $\{b_0, ..., b_{11}\}$ is the output state of the hasher.
 
@@ -120,7 +121,7 @@ HOUT                     // return elements 4, 5, 6, 7 of the state as output
 
 Execution trace for this computation would look as illustrated below.
 
-![](https://hackmd.io/_uploads/Hyb1RE8RF.png)
+![](https://i.imgur.com/nECz9UF.png)
 
 In the above, we compute the following:
 
@@ -150,7 +151,7 @@ HOUT                        // return elements 4, 5, 6, 7 of the state as output
 
 Execution trace for this computation would look as illustrated below.
 
-![](https://hackmd.io/_uploads/Hy_xAEUAF.png)
+![](https://i.imgur.com/JEFSHJg.png)
 
 In the above, the value absorbed into hasher state between rows $7$ and $8$ is the delta between values $t_i$ and $s_i$. Thus, if we define $b_i = t_i - s_i$ for $i \in \{0, ..., 7\}$, the above computes the following:
 
@@ -194,7 +195,7 @@ $$
 
 And if $r = g$, we can be convinced that $d$ is in fact in the tree at position $3$. Execution trace for this computation would look as illustrated below.
 
-![](https://hackmd.io/_uploads/rkPdgK40t.png)
+![](https://i.imgur.com/uZdqicd.png)
 
 In the above, the prover provides values for nodes $c$ and $e$ non-deterministically.
 
@@ -243,6 +244,16 @@ $$
 r' - r - 1 = 0
 $$
 
+This constraint should not be applied to the very last row of the hasher execution trace, since we do not want to enforce a value that would conflict with the first row of a subsequent co-processor in the Auxiliary Table. Therefore we can create a special virtual flag for this constraint using the $s_0$ selector column from the Auxiliary Table that selects for the hash co-processor. (This is _not_ one of the hasher's internal selector columns which are desribed above.)
+
+The modified row address constraint which should be applied is the following:
+
+$$
+(1 - s_0') \cdot (r' - r - 1) = 0
+$$
+
+_Note: this constraint should also be multiplied Auxiliary Table's selector flag $s_0$, as is true for all constraints in this co-processor._
+
 ### Selector columns constraints
 
 For selector columns, first we must ensure that only binary values are allowed in these columns. This can be done with the following constraints:
@@ -253,17 +264,17 @@ s_1^2 - s_1 = 0 \\
 s_2^2 - s_2 = 0
 $$
 
-Next, we need to make sure that unless $f_{out}=1$ at the current or at the next row, the values in columns $s_1$ and $s_2$ are copied over to the next row. This can be done with the following constraints:
+Next, we need to make sure that unless $f_{out}=1$ or $f_{out}'=1$, the values in columns $s_1$ and $s_2$ are copied over to the next row. This can be done with the following constraints:
 
 $$
 (s_1' - s_1) \cdot (1 - f_{out}') \cdot (1 - f_{out}) = 0 \\
 (s_2' - s_2) \cdot (1 - f_{out}') \cdot (1 - f_{out})= 0
 $$
 
-Next, we need to enforce when $f_{out}=1$ the next value of $s_0$ is unconstrained, but if any of $f_{abp}, f_{mpa}, f_{mva}, f_{mua}$ flags is set to $1$, the next value of $s_0$ must be $0$. This can be done with the following constraint:
+Next, we need to enforce that if any of $f_{abp}, f_{mpa}, f_{mva}, f_{mua}$ flags is set to $1$, the next value of $s_0$ is $0$. In all other cases, $s_0$ should be unconstrained. These flags will only be set for rows that are 1 less than a multiple of 8 (the last row of each cycle). This can be done with the following constraint:
 
 $$
-s_0' \cdot (f_{abp} + f_{mpa} + f_{mva} + f_{mua} + 1 - f_{out})= 0
+s_0' \cdot (f_{abp} + f_{mpa} + f_{mva} + f_{mua})= 0
 $$
 
 Lastly, we need to make sure that no invalid combinations of flags are allowed. This can be done with the following constraints:
@@ -344,7 +355,7 @@ This section describes constraints which enforce updates for permutation product
 To simplify description of constraints, we define the following variables. Below $\alpha$ and $\beta$ are random values sent by the verifier to the prover after the prover commits to the execution trace described by the main $17$ columns.
 
 $$
-m = k_0 + 2 \cdot k_1 + \sum_{j=0}^2 (2^{j+2} \cdot s_j) \\
+m = k_0 + 2 \cdot k_2 + \sum_{j=0}^2 (2^{j+2} \cdot s_j) \\
 v_h = \beta + \alpha \cdot m + \alpha^2 \cdot r + \alpha^3 \cdot i \\
 v_a = \sum_{j=0}^{3}(\alpha^{j+4} \cdot h_j) \\
 v_b = \sum_{j=4}^{7}(\alpha^{j+4} \cdot h_j) \\
