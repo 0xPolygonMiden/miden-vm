@@ -25,6 +25,18 @@ const SELECTOR_COL_RANGE: Range<usize> = create_range(BITWISE_TRACE_OFFSET, NUM_
 /// The starting index of the trace for the power of two operation.
 const POW2_TRACE_OFFSET: usize = SELECTOR_COL_RANGE.end;
 
+// PERIODIC COLUMNS
+// ================================================================================================
+
+/// Returns the set of periodic columns required by the Bitwise & Power of Two co-processor.
+///
+/// The columns consist of:
+/// - k0 column, which has a repeating pattern of a single one followed by 7 zeros.
+/// - k1 column, which has a repeating pattern of a 7 ones followed by a single zero.
+pub fn get_periodic_column_values() -> Vec<Vec<Felt>> {
+    vec![BITWISE_POW2_K0_MASK.to_vec(), BITWISE_POW2_K1_MASK.to_vec()]
+}
+
 // AUXILIARY TABLE TRANSITION CONSTRAINTS
 // ================================================================================================
 

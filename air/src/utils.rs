@@ -5,6 +5,11 @@ use vm_core::utils::range as create_range;
 // BASIC CONSTRAINT OPERATORS
 // ================================================================================================
 
+/// Returns zero only when a == b.
+pub fn are_equal<E: FieldElement>(a: E, b: E) -> E {
+    a - b
+}
+
 #[inline(always)]
 pub fn is_binary<E: FieldElement>(v: E) -> E {
     v.square() - v
