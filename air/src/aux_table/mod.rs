@@ -130,23 +130,31 @@ trait EvaluationFrameExt<E: FieldElement> {
 
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Column accessors -----------------------------------------------------------------------
+
+    #[inline(always)]
     fn s0(&self) -> E {
         self.current()[S0_COL_IDX]
     }
+    #[inline(always)]
     fn s1(&self) -> E {
         self.current()[S1_COL_IDX]
     }
+    #[inline(always)]
     fn s2(&self) -> E {
         self.current()[S2_COL_IDX]
     }
 
     // --- Co-processor selector flags ------------------------------------------------------------
+
+    #[inline(always)]
     fn hasher_flag(&self) -> E {
         binary_not(self.s0())
     }
+    #[inline(always)]
     fn bitwise_flag(&self) -> E {
         self.s0() * binary_not(self.s1())
     }
+    #[inline(always)]
     fn memory_flag(&self) -> E {
         self.s0() * self.s1() * self.s2()
     }

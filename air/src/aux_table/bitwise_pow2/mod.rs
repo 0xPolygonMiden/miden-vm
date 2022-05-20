@@ -117,12 +117,14 @@ trait EvaluationFrameExt<E: FieldElement> {
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Column accessors -----------------------------------------------------------------------
 
+    #[inline(always)]
     fn selector(&self, index: usize) -> E {
         self.current()[SELECTOR_COL_RANGE.start + index]
     }
 
     // --- Co-processor selector flags ------------------------------------------------------------
 
+    #[inline(always)]
     fn pow2_flag(&self) -> E {
         self.selector(0) * self.selector(1)
     }

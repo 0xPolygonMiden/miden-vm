@@ -260,39 +260,50 @@ trait EvaluationFrameExt<E: FieldElement> {
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Column accessors -----------------------------------------------------------------------
 
+    #[inline(always)]
     fn a_power(&self, index: usize) -> E {
         self.current()[A_POWERS_COL_RANGE.start + index]
     }
+    #[inline(always)]
     fn a_power_next(&self, index: usize) -> E {
         self.next()[A_POWERS_COL_RANGE.start + index]
     }
+    #[inline(always)]
     fn h(&self) -> E {
         self.current()[H_COL_IDX]
     }
+    #[inline(always)]
     fn h_next(&self) -> E {
         self.next()[H_COL_IDX]
     }
+    #[inline(always)]
     fn a(&self) -> E {
         self.current()[A_AGG_COL_IDX]
     }
+    #[inline(always)]
     fn a_next(&self) -> E {
         self.next()[A_AGG_COL_IDX]
     }
+    #[inline(always)]
     fn p(&self) -> E {
         self.current()[P_COL_IDX]
     }
+    #[inline(always)]
     fn p_next(&self) -> E {
         self.next()[P_COL_IDX]
     }
+    #[inline(always)]
     fn z(&self) -> E {
         self.current()[Z_AGG_COL_IDX]
     }
+    #[inline(always)]
     fn z_next(&self) -> E {
         self.next()[Z_AGG_COL_IDX]
     }
 
     // --- Intermediate variables & helpers -------------------------------------------------------
 
+    #[inline(always)]
     fn a_output(&self, index: usize) -> E {
         match index {
             0 => binary_not(self.a_power(0)),
@@ -300,6 +311,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
             _ => (self.a_power(index - 1) - self.a_power(index)) * E::from(2_u64.pow(index as u32)),
         }
     }
+    #[inline(always)]
     fn a_output_next(&self, index: usize) -> E {
         match index {
             0 => E::ZERO,

@@ -309,65 +309,84 @@ trait EvaluationFrameExt<E: FieldElement> {
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Column accessors -----------------------------------------------------------------------
 
+    #[inline(always)]
     fn selector(&self, index: usize) -> E {
         self.current()[SELECTOR_COL_RANGE.start + index]
     }
+    #[inline(always)]
     fn a(&self) -> E {
         self.current()[A_COL_IDX]
     }
+    #[inline(always)]
     fn a_next(&self) -> E {
         self.next()[A_COL_IDX]
     }
+    #[inline(always)]
     fn a_bit(&self, index: usize) -> E {
         self.current()[A_COL_RANGE.start + index]
     }
+    #[inline(always)]
     fn b(&self) -> E {
         self.current()[B_COL_IDX]
     }
+    #[inline(always)]
     fn b_next(&self) -> E {
         self.next()[B_COL_IDX]
     }
+    #[inline(always)]
     fn b_bit(&self, index: usize) -> E {
         self.current()[B_COL_RANGE.start + index]
     }
+    #[inline(always)]
     fn bit_decomp(&self) -> &[E] {
         &self.current()[A_COL_RANGE.start..B_COL_RANGE.end]
     }
+    #[inline(always)]
     fn bit_decomp_next(&self) -> &[E] {
         &self.next()[A_COL_RANGE.start..B_COL_RANGE.end]
     }
+    #[inline(always)]
     fn output(&self) -> E {
         self.current()[OUTPUT_COL_IDX]
     }
+    #[inline(always)]
     fn output_next(&self) -> E {
         self.next()[OUTPUT_COL_IDX]
     }
 
     // --- Intermediate variables & helpers -------------------------------------------------------
+    #[inline(always)]
     fn a_agg_bits(&self) -> E {
         agg_bits(self.current(), A_COL_RANGE.start)
     }
+    #[inline(always)]
     fn a_agg_bits_next(&self) -> E {
         agg_bits(self.next(), A_COL_RANGE.start)
     }
+    #[inline(always)]
     fn b_agg_bits(&self) -> E {
         agg_bits(self.current(), B_COL_RANGE.start)
     }
+    #[inline(always)]
     fn b_agg_bits_next(&self) -> E {
         agg_bits(self.next(), B_COL_RANGE.start)
     }
 
     // --- Flags ----------------------------------------------------------------------------------
 
+    #[inline(always)]
     fn bitwise_op_flag(&self) -> E {
         binary_not(self.selector(0) * self.selector(1))
     }
+    #[inline(always)]
     fn bitwise_and_flag(&self) -> E {
         binary_not(self.selector(0)) * binary_not(self.selector(1))
     }
+    #[inline(always)]
     fn bitwise_or_flag(&self) -> E {
         binary_not(self.selector(0)) * self.selector(1)
     }
+    #[inline(always)]
     fn bitwise_xor_flag(&self) -> E {
         self.selector(0) * binary_not(self.selector(1))
     }
