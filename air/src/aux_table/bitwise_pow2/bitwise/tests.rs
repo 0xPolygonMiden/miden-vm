@@ -1,12 +1,15 @@
-use super::bitwise::{NUM_CONSTRAINTS, NUM_DECOMP_BITS};
-use super::{bitwise, pow2, EvaluationFrame, BITWISE_TRACE_OFFSET, PERIODIC_CYCLE_LEN};
-use crate::{Felt, FieldElement};
+use super::{
+    super::{get_periodic_values, PERIODIC_CYCLE_LEN},
+    agg_bits, bitwise_and, bitwise_or, bitwise_xor, enforce_constraints, EvaluationFrame,
+    A_COL_IDX, A_COL_RANGE, BITWISE_TRACE_OFFSET, B_COL_IDX, B_COL_RANGE, NUM_CONSTRAINTS,
+    NUM_DECOMP_BITS, OUTPUT_COL_IDX, SELECTOR_COL_RANGE,
+};
 use vm_core::{
     bitwise::{
-        Selectors, BITWISE_AND, BITWISE_OR, BITWISE_XOR, NUM_SELECTORS,
-        TRACE_WIDTH as BITWISE_TRACE_WIDTH,
+        Selectors, BITWISE_AND, BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OR,
+        BITWISE_OUTPUT_COL_IDX, BITWISE_XOR, NUM_SELECTORS, TRACE_WIDTH as BITWISE_TRACE_WIDTH,
     },
-    TRACE_WIDTH,
+    Felt, FieldElement, TRACE_WIDTH,
 };
 
 use proptest::prelude::*;
@@ -14,16 +17,10 @@ use proptest::prelude::*;
 // CONSTANTS
 // ================================================================================================
 
-/// The index of the column holding the aggregated value of input `a`.
-const A_COL_IDX: usize = 2;
-/// The index of the column holding the aggregated value of input `b`.
-const B_COL_IDX: usize = 3;
-/// The index of the column containing the aggregated output value.
-const OUTPUT_COL_IDX: usize = 12;
 /// The index of the column from where the input decomposition starts in a cycle row.
-const BITWISE_DECOMPOSITION_OFFSET: usize = 4;
+const BITWISE_DECOMPOSITION_OFFSET: usize = BITWISE_B_COL_IDX + 1;
 /// Number of columns needed for input decomposition of `a` & `b` in a cycle row.
-const BITWISE_DECOMPOSITION_SIZE: usize = 8;
+const BITWISE_DECOMPOSITION_LEN: usize = 2 * NUM_DECOMP_BITS;
 
 // UNIT TESTS
 // ================================================================================================
@@ -56,7 +53,7 @@ fn test_bitwise_selectors_fail() {
         Felt::ONE,
     ];
     let cycle = 1;
-    let expected = [Felt::ZERO; bitwise::NUM_CONSTRAINTS];
+    let expected = [Felt::ZERO; NUM_CONSTRAINTS];
 
     let frame =
         get_test_frame_with_two_selectors(&current_bitwise, &next_bitwise, BITWISE_AND, BITWISE_OR);
@@ -93,37 +90,99 @@ proptest! {
     fn test_bitwise_xor(a in any::<u32>(), b in any::<u32>(), cycle_row in 0..(PERIODIC_CYCLE_LEN - 1)) {
         test_bitwise_frame(BITWISE_XOR, a, b, cycle_row);
     }
-
-    #[test]
-    fn test_pow2(exponent in 0_u32..64, cycle_row in 0..(PERIODIC_CYCLE_LEN - 1)) {
-        test_pow2_frame(exponent, cycle_row);
-    }
 }
 
 // TEST HELPERS
 // ================================================================================================
 
-/// Returns the values from the shared bitwise & power of two processor's periodic columns for the
-/// specified cycle row.
-fn get_test_periodic_values(cycle_row: usize) -> [Felt; 2] {
-    match cycle_row {
-        0 => [Felt::ONE, Felt::ONE],
-        8 => [Felt::ZERO, Felt::ZERO],
-        _ => [Felt::ZERO, Felt::ONE],
-    }
-}
-
 /// Generates the specified trace frame for the specified bitwise operation and inputs, then asserts
 /// that applying the constraints to this frame yields valid results (all zeros).
 fn test_bitwise_frame(operation: Selectors, a: u32, b: u32, cycle_row: usize) {
-    let frame = bitwise::get_test_frame(operation, a, b, cycle_row);
-    let periodic_values = get_test_periodic_values(cycle_row);
-    let mut result = [Felt::ZERO; bitwise::NUM_CONSTRAINTS];
+    let frame = get_test_frame(operation, a, b, cycle_row);
+    let periodic_values = get_periodic_values(cycle_row);
+    let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
     let expected = result;
 
-    bitwise::enforce_constraints(&frame, &periodic_values, &mut result, Felt::ONE);
+    enforce_constraints(&frame, &periodic_values, &mut result, Felt::ONE);
 
     assert_eq!(expected, result);
+}
+
+/// Generates the expected and calculated constraint result on an input frame.
+fn get_bitwise_frame_result(frame: EvaluationFrame<Felt>, row: usize) -> [Felt; NUM_CONSTRAINTS] {
+    let cycle_row = get_periodic_values(row);
+    let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
+
+    enforce_constraints(&frame, &cycle_row, &mut result, Felt::ONE);
+
+    result
+}
+
+/// Generates the correct current and next rows for the specified operation, inputs, and current
+/// cycle row number and returns an EvaluationFrame for testing. It only tests frames within a
+/// cycle.
+///
+/// # Errors
+/// It expects the specified `cycle_row_num` for the current row to be such that the next row will
+/// still be in the same cycle. It will fail with a row number input.
+pub fn get_test_frame(
+    operation: Selectors,
+    a: u32,
+    b: u32,
+    cycle_row_num: usize,
+) -> EvaluationFrame<Felt> {
+    assert!(
+        cycle_row_num < PERIODIC_CYCLE_LEN - 1,
+        "Failed to build test EvaluationFrame for bitwise operation. The next row would be in a new cycle."
+    );
+
+    // Initialize the rows.
+    let mut current = vec![Felt::ZERO; TRACE_WIDTH];
+    let mut next = vec![Felt::ZERO; TRACE_WIDTH];
+
+    // Define the shift amounts for the specified rows.
+    let current_shift = NUM_DECOMP_BITS * (PERIODIC_CYCLE_LEN - cycle_row_num - 1);
+    let next_shift = current_shift - NUM_DECOMP_BITS;
+
+    // Set the operation selectors.
+    for idx in 0..NUM_SELECTORS {
+        current[SELECTOR_COL_RANGE.start + idx] = operation[idx];
+        next[SELECTOR_COL_RANGE.start + idx] = operation[idx];
+    }
+
+    // Set the input aggregation values.
+    let current_a = (a >> current_shift) as u64;
+    let current_b = (b >> current_shift) as u64;
+    let next_a = (a >> next_shift) as u64;
+    let next_b = (b >> next_shift) as u64;
+
+    current[A_COL_IDX] = Felt::new(current_a);
+    next[A_COL_IDX] = Felt::new(next_a);
+    current[B_COL_IDX] = Felt::new(current_b);
+    next[B_COL_IDX] = Felt::new(next_b);
+
+    // Set the input decomposition values.
+    for idx in 0..NUM_DECOMP_BITS {
+        current[A_COL_RANGE.start + idx] = Felt::new((current_a >> idx) & 1);
+        current[B_COL_RANGE.start + idx] = Felt::new((current_b >> idx) & 1);
+        next[A_COL_RANGE.start + idx] = Felt::new((next_a >> idx) & 1);
+        next[B_COL_RANGE.start + idx] = Felt::new((next_b >> idx) & 1);
+    }
+
+    // Set the output.
+    let output = if operation == BITWISE_AND {
+        a & b
+    } else if operation == BITWISE_OR {
+        a | b
+    } else if operation == BITWISE_XOR {
+        a ^ b
+    } else {
+        panic!("Test bitwise EvaluationFrame requested for unrecognized operation.");
+    };
+    current[OUTPUT_COL_IDX] = Felt::new((output >> current_shift) as u64);
+    next[OUTPUT_COL_IDX] = Felt::new((output >> next_shift) as u64);
+
+    EvaluationFrame::<Felt>::from_rows(current, next)
 }
 
 /// Generates the trace frame of an customised two consecutive cycle row. Accepts decomposed input
@@ -155,80 +214,53 @@ fn get_test_frame_with_two_selectors(
         aggregate_input_bits(&next[NUM_DECOMP_BITS..NUM_DECOMP_BITS * 2], input_curr_b);
 
     // calculating the ouptut values of current and next cycle row.
-    let output_agg_curr_op1 = aggregate_row_output(&curr, operation1, prev_output);
-    let output_agg_next_op1 = aggregate_row_output(&next, operation1, output_agg_curr_op1);
+    let output_agg_curr_op1 = aggregate_row_output(curr, operation1, prev_output);
+    let output_agg_next_op1 = aggregate_row_output(next, operation1, output_agg_curr_op1);
 
     // First two columns would be selector.
     // Assign operation2 and operation1 to the current and next cycle row respectively.
-    for idx in 0..NUM_SELECTORS {
-        current_bitstate[idx] = operation2[idx];
-        next_bitstate[idx] = operation1[idx];
-    }
+    current_bitstate[..NUM_SELECTORS].copy_from_slice(&operation2[..NUM_SELECTORS]);
+    next_bitstate[..NUM_SELECTORS].copy_from_slice(&operation1[..NUM_SELECTORS]);
 
-    current_bitstate[A_COL_IDX] = input_curr_a;
-    current_bitstate[B_COL_IDX] = input_curr_b;
-    next_bitstate[A_COL_IDX] = input_next_a;
-    next_bitstate[B_COL_IDX] = input_next_b;
+    current_bitstate[BITWISE_A_COL_IDX] = input_curr_a;
+    current_bitstate[BITWISE_B_COL_IDX] = input_curr_b;
+    next_bitstate[BITWISE_A_COL_IDX] = input_next_a;
+    next_bitstate[BITWISE_B_COL_IDX] = input_next_b;
 
     current_bitstate
-        [BITWISE_DECOMPOSITION_OFFSET..BITWISE_DECOMPOSITION_OFFSET + BITWISE_DECOMPOSITION_SIZE]
-        .copy_from_slice(&curr);
+        [BITWISE_DECOMPOSITION_OFFSET..BITWISE_DECOMPOSITION_OFFSET + BITWISE_DECOMPOSITION_LEN]
+        .copy_from_slice(curr);
     next_bitstate
-        [BITWISE_DECOMPOSITION_OFFSET..BITWISE_DECOMPOSITION_OFFSET + BITWISE_DECOMPOSITION_SIZE]
-        .copy_from_slice(&next);
+        [BITWISE_DECOMPOSITION_OFFSET..BITWISE_DECOMPOSITION_OFFSET + BITWISE_DECOMPOSITION_LEN]
+        .copy_from_slice(next);
 
-    current_bitstate[OUTPUT_COL_IDX] = output_agg_curr_op1;
-    next_bitstate[OUTPUT_COL_IDX] = output_agg_next_op1;
+    current_bitstate[BITWISE_OUTPUT_COL_IDX] = output_agg_curr_op1;
+    next_bitstate[BITWISE_OUTPUT_COL_IDX] = output_agg_next_op1;
 
     current_cycle_row[BITWISE_TRACE_OFFSET..BITWISE_TRACE_OFFSET + BITWISE_TRACE_WIDTH]
         .copy_from_slice(&current_bitstate);
     next_cycle_row[BITWISE_TRACE_OFFSET..BITWISE_TRACE_OFFSET + BITWISE_TRACE_WIDTH]
         .copy_from_slice(&next_bitstate);
 
-    let frame = EvaluationFrame::<Felt>::from_rows(current_cycle_row, next_cycle_row);
-
-    frame
-}
-
-/// Generates the expected and calculated constraint result on an input frame.
-fn get_bitwise_frame_result(frame: EvaluationFrame<Felt>, row: usize) -> [Felt; NUM_CONSTRAINTS] {
-    let cycle_row = get_test_periodic_values(row);
-    let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
-
-    bitwise::enforce_constraints(&frame, &cycle_row, &mut result, Felt::ONE);
-
-    result
+    EvaluationFrame::<Felt>::from_rows(current_cycle_row, next_cycle_row)
 }
 
 /// Aggregates the decomposed value of input bits.
 fn aggregate_input_bits(bits_array: &[Felt], prev_input: Felt) -> Felt {
-    bitwise::agg_bits(bits_array, 0) + prev_input * Felt::new(2_u64.pow(4))
+    agg_bits(bits_array, 0) + prev_input * Felt::new(2_u64.pow(4))
 }
 
 /// Generates the output value from decomposed input using a specified input operation (AND, OR, XOR)
 fn aggregate_row_output(bits_array: &[Felt], operation: Selectors, prev_output: Felt) -> Felt {
     let output = if operation == BITWISE_AND {
-        bitwise::bitwise_and(bits_array) + prev_output * Felt::new(2_u64.pow(4))
+        bitwise_and(bits_array) + prev_output * Felt::new(2_u64.pow(4))
     } else if operation == BITWISE_OR {
-        bitwise::bitwise_or(bits_array) + prev_output * Felt::new(2_u64.pow(4))
+        bitwise_or(bits_array) + prev_output * Felt::new(2_u64.pow(4))
     } else if operation == BITWISE_XOR {
-        bitwise::bitwise_xor(bits_array) + prev_output * Felt::new(2_u64.pow(4))
+        bitwise_xor(bits_array) + prev_output * Felt::new(2_u64.pow(4))
     } else {
         panic!("unrecognized operation.");
     };
 
     output
-}
-
-/// Generates the specified trace frame for the specified power of two operation, then asserts
-/// that applying the constraints to this frame yields valid results (all zeros).
-fn test_pow2_frame(exponent: u32, cycle_row: usize) {
-    let frame = pow2::get_test_frame(exponent, cycle_row);
-    let periodic_values = get_test_periodic_values(cycle_row);
-    let mut result = [Felt::ZERO; pow2::NUM_CONSTRAINTS];
-    let expected = result;
-
-    pow2::enforce_constraints(&frame, &periodic_values, &mut result, Felt::ONE);
-
-    assert_eq!(expected, result);
 }
