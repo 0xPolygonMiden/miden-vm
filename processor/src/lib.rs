@@ -2,7 +2,7 @@ use vm_core::{
     errors::AdviceSetError,
     hasher::Digest,
     program::{
-        blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split},
+        blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split, OP_GROUP_SIZE},
         Script,
     },
     AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
@@ -137,29 +137,22 @@ impl Process {
     /// Executes the specified [Join] block.
     #[inline(always)]
     fn execute_join_block(&mut self, block: &Join) -> Result<(), ExecutionError> {
-        // start JOIN block; state of the stack does not change
-        self.decoder.start_join(block);
-        self.execute_op(Operation::Noop)?;
+        self.start_join_block(block)?;
 
         // execute first and then second child of the join block
         self.execute_code_block(block.first())?;
         self.execute_code_block(block.second())?;
 
-        // end JOIN block; state of the stack does not change
-        self.decoder.end_join(block);
-        self.execute_op(Operation::Noop)?;
-
-        Ok(())
+        self.end_join_block(block)
     }
 
     /// Executes the specified [Split] block.
     #[inline(always)]
     fn execute_split_block(&mut self, block: &Split) -> Result<(), ExecutionError> {
-        // start SPLIT block; this also removes the top stack item to determine which branch of
-        // the block should be executed.
+        // get the top element from the stack here because starting a SPLIT block removes it from
+        // the stack
         let condition = self.stack.peek();
-        self.decoder.start_split(block, condition);
-        self.execute_op(Operation::Drop)?;
+        self.start_split_block(block)?;
 
         // execute either the true or the false branch of the split block based on the condition
         // retrieved from the top of the stack
@@ -171,11 +164,7 @@ impl Process {
             return Err(ExecutionError::NotBinaryValue(condition));
         }
 
-        // end SPLIT block; state of the stack does not change
-        self.decoder.end_split(block);
-        self.execute_op(Operation::Noop)?;
-
-        Ok(())
+        self.end_split_block(block)
     }
 
     /// Executes the specified [Loop] block.
@@ -227,16 +216,10 @@ impl Process {
     /// Executes the specified [Span] block.
     #[inline(always)]
     fn execute_span_block(&mut self, block: &Span) -> Result<(), ExecutionError> {
-        // start the SPAN block and get the first operation batch from it; when executing a SPAN
-        // operation the state of the stack does not change
-        self.decoder.start_span(block);
-        self.execute_op(Operation::Noop)?;
+        self.start_span_block(block)?;
 
         // execute the first operation batch
-        for &op in block.op_batches()[0].ops() {
-            self.execute_op(op)?;
-            self.decoder.execute_user_op(op);
-        }
+        self.execute_op_batch(&block.op_batches()[0])?;
 
         // if the span contains more operation batches, execute them. each additional batch is
         // preceded by a RESPAN operation; executing RESPAN operation does not change the state
@@ -244,16 +227,75 @@ impl Process {
         for op_batch in block.op_batches().iter().skip(1) {
             self.decoder.respan(op_batch);
             self.execute_op(Operation::Noop)?;
-            for &op in op_batch.ops() {
+            self.execute_op_batch(op_batch)?;
+        }
+
+        self.end_span_block(block)
+    }
+
+    /// Executes all operations in an [OpBatch]. This also ensures that all alignment rules are
+    /// satisfied by executing NOOPs as needed. Specifically:
+    /// - If an operation group ends with an operation carrying an immediate value, a NOOP is
+    ///   executed after it.
+    /// - If the number of groups in a batch is not a power of 2, NOOPs are executed (one per
+    ///   group) to bring it up to the next power of two (e.g., 3 -> 4, 5 -> 8).
+    #[inline(always)]
+    fn execute_op_batch(&mut self, batch: &OpBatch) -> Result<(), ExecutionError> {
+        let op_counts = batch.op_counts();
+        let mut op_idx = 0;
+        let mut group_idx = 0;
+        let mut next_group_idx = 1;
+
+        // execute operations in the batch one by one
+        for &op in batch.ops() {
+            if op.is_decorator() {
+                // if the operation is a decorator, it has no side effects and, thus, we don't
+                // need to decode it
                 self.execute_op(op)?;
-                self.decoder.execute_user_op(op);
+                continue;
+            }
+
+            // decode and execute the operation
+            self.decoder.execute_user_op(op);
+            self.execute_op(op)?;
+
+            // if the operation carries an immediate value, the value is stored at the next group
+            // pointer; so, we advance the pointer to the following group
+            let has_imm = op.imm_value().is_some();
+            if has_imm {
+                next_group_idx += 1;
+            }
+
+            // determine if we've executed all non-decorator operations in a group
+            if op_idx == op_counts[group_idx] - 1 {
+                // if we are at the end of the group, first check if the operation carries an
+                // immediate value
+                if has_imm {
+                    // an operation with an immediate value cannot be the last operation in a group
+                    // so, we need execute a NOOP after it. the assert also makes sure that there
+                    // is enough room in the group to execute a NOOP (if there isn't, there is a
+                    // bug somewhere in the assembler)
+                    debug_assert!(op_idx < OP_GROUP_SIZE - 1, "invalid op index");
+                    self.decoder.execute_user_op(Operation::Noop);
+                    self.execute_op(Operation::Noop)?;
+                }
+
+                // then, move to the next group and reset operation index
+                group_idx = next_group_idx;
+                next_group_idx += 1;
+                op_idx = 0;
+            } else {
+                // if we are not at the end of the group, just increment the operation index
+                op_idx += 1;
             }
         }
 
-        // end the SPAN block; when executing an END operation the state of the stack does not
-        // change
-        self.decoder.end_span(block);
-        self.execute_op(Operation::Noop)?;
+        // for each operation batch we must execute number of groups which is a power of 2; so
+        // if the number of groups is not a power of 2, we pad each missing group with a NOOP
+        for _ in group_idx..batch.num_groups().next_power_of_two() {
+            self.decoder.execute_user_op(Operation::Noop);
+            self.execute_op(Operation::Noop)?;
+        }
 
         Ok(())
     }

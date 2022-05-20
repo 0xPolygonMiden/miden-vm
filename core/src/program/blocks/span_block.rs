@@ -5,10 +5,10 @@ use winter_utils::flatten_slice_elements;
 // ================================================================================================
 
 /// Maximum number of operations per group.
-const GROUP_SIZE: usize = 9;
+pub const GROUP_SIZE: usize = 9;
 
 /// Maximum number of groups per batch.
-const BATCH_SIZE: usize = 8;
+pub const BATCH_SIZE: usize = 8;
 
 /// Maximum number of operations which can fit into a single operation batch.
 const MAX_OPS_PER_BATCH: usize = GROUP_SIZE * BATCH_SIZE;
@@ -20,6 +20,7 @@ const MAX_OPS_PER_BATCH: usize = GROUP_SIZE * BATCH_SIZE;
 /// When the VM executes a Span block, it breaks the sequence of operations into batches and
 /// groups according to the following rules:
 /// - A group may contain up to 9 operations or a single immediate value.
+/// - An operation carrying an immediate value cannot be in the 9th position in a group.
 /// - A batch may contain up to 8 groups.
 /// - There is no limit on the number of batches contained within a single span.
 ///
@@ -31,9 +32,6 @@ const MAX_OPS_PER_BATCH: usize = GROUP_SIZE * BATCH_SIZE;
 ///
 /// If a sequence of operations does not have any operations which carry immediate values, then
 /// up to 72 operations can fit into a single batch.
-///
-/// From the user's perspective, all operations are executed in order, however, the assembler may
-/// insert NOOPs to ensure proper alignment of all operations in the sequence.
 ///
 /// TODO: describe how Span hash is computed.
 #[derive(Clone, Debug)]
@@ -129,6 +127,8 @@ impl fmt::Display for Span {
 pub struct OpBatch {
     ops: Vec<Operation>,
     groups: [Felt; BATCH_SIZE],
+    op_counts: [usize; BATCH_SIZE],
+    num_groups: usize,
 }
 
 impl OpBatch {
@@ -140,15 +140,32 @@ impl OpBatch {
     /// Returns a list of operation groups contained in this batch.
     ///
     /// Each group is represented by a single field element.
-    pub fn groups(&self) -> [Felt; BATCH_SIZE] {
-        self.groups
+    pub fn groups(&self) -> &[Felt; BATCH_SIZE] {
+        &self.groups
+    }
+
+    /// Returns the number of non-decorator operations for each operation group.
+    ///
+    /// Number of operations for groups containing immediate values is set to 0.
+    pub fn op_counts(&self) -> &[usize; BATCH_SIZE] {
+        &self.op_counts
+    }
+
+    /// Returns the number of groups in this batch.
+    pub fn num_groups(&self) -> usize {
+        self.num_groups
     }
 }
 
 /// An accumulator used in construction of operation batches.
 struct OpBatchAccumulator {
+    /// A list of operations in this batch, including decorators.
     ops: Vec<Operation>,
+    /// Values of operation groups, including immediate values.
     groups: [Felt; BATCH_SIZE],
+    /// Number of non-decorator operations in each operation group. Operation count for groups
+    /// with immediate values is set to 0.
+    op_counts: [usize; BATCH_SIZE],
     /// Value of the currently active op group.
     group: u64,
     /// Index of the next opcode in the current group.
@@ -165,6 +182,7 @@ impl OpBatchAccumulator {
         Self {
             ops: Vec::new(),
             groups: [Felt::ZERO; BATCH_SIZE],
+            op_counts: [0; BATCH_SIZE],
             group: 0,
             op_idx: 0,
             group_idx: 0,
@@ -178,19 +196,29 @@ impl OpBatchAccumulator {
     }
 
     /// Returns true if this accumulator can accept the specified operation.
+    ///
+    /// An accumulator may not be able accept an operation for the following reasons:
+    /// - There is no more space in the underlying batch (e.g., the 8th group of the batch
+    ///   already contains 9 operations).
+    /// - There is no space for the immediate value carried by the operation (e.g., the 8th
+    ///   group is only partially full, but we are trying to add a PUSH operation).
+    /// - The alignment rules require that the operation overflows into the next group, and
+    ///   if this happens, there will be no space for the operation or its immediate value.
     pub fn can_accept_op(&self, op: Operation) -> bool {
-        // if the current group is full and the batch is full, return false
-        let next_group_idx = if self.op_idx == GROUP_SIZE {
-            if self.next_group_idx >= BATCH_SIZE {
-                return false;
+        if op.imm_value().is_some() {
+            // an operation carrying an immediate value cannot be the last one in a group; so, we
+            // check if we need to move the operation to the next group. in either case, we need
+            // to make sure there is enough space for the immediate value as well.
+            if self.op_idx < GROUP_SIZE - 1 {
+                self.next_group_idx < BATCH_SIZE
+            } else {
+                self.next_group_idx + 1 < BATCH_SIZE
             }
-            self.next_group_idx + 1
         } else {
-            self.next_group_idx
-        };
-
-        // if the operation carries an immediate value, there must be enough room for it
-        !(op.imm_value().is_some() && next_group_idx >= BATCH_SIZE)
+            // check if there is space for the operation in the current group, or if there isn't,
+            // whether we can add another group
+            self.op_idx < GROUP_SIZE || self.next_group_idx < BATCH_SIZE
+        }
     }
 
     /// Adds the specified operation to this accumulator. It is expected that the specified
@@ -200,31 +228,25 @@ impl OpBatchAccumulator {
     pub fn add_op(&mut self, op: Operation) {
         debug_assert!(!op.is_decorator(), "must not be a decorator");
 
-        // if the current op group is full, save it to the list of op groups, advance current
-        // and next group pointers, and reset the group content.
+        // if the group is full, finalize it and start a new group
         if self.op_idx == GROUP_SIZE {
-            self.groups[self.group_idx] = Felt::new(self.group);
-            self.group_idx = self.next_group_idx;
-            self.next_group_idx = self.group_idx + 1;
-
-            self.op_idx = 0;
-            self.group = 0;
+            self.finalize_op_group();
         }
 
-        // if the operation contains immediate value, save it at the next group pointer
+        // for operations with immediate values, we need to do a few more things
         if let Some(imm) = op.imm_value() {
+            // since an operation with an immediate value cannot be the last one in a group, if
+            // the operation would be the last one in the group, we need to start a new group
+            if self.op_idx == GROUP_SIZE - 1 {
+                self.finalize_op_group();
+            }
+
+            // save the immediate value at the next group index and advance the next group pointer
             self.groups[self.next_group_idx] = imm;
             self.next_group_idx += 1;
-
-            // operation carrying an immediate value cannot be the first one in the group except
-            // for the first group of a batch; so, we just add a noop in front of it
-            if self.op_idx == 0 && self.group_idx != 0 {
-                self.ops.push(Operation::Noop);
-                self.op_idx += 1;
-            }
         }
 
-        // add the opcode to the group
+        // add the opcode to the group and increment the op index pointer
         let opcode = op.op_code().expect("no opcode") as u64;
         self.group |= opcode << (Operation::OP_BITS * self.op_idx);
         self.ops.push(op);
@@ -240,21 +262,45 @@ impl OpBatchAccumulator {
 
     /// Convert the accumulator into an [OpBatch].
     pub fn into_batch(mut self) -> OpBatch {
-        // make sure the last group gets added to the group array
-        if self.group != 0 {
+        // make sure the last group gets added to the group array; we also check the op_idx to
+        // handle the case when a group contains a single NOOP operation.
+        if self.group != 0 || self.op_idx != 0 {
             self.groups[self.group_idx] = Felt::new(self.group);
+            self.op_counts[self.group_idx] = self.op_idx;
         }
 
         OpBatch {
             ops: self.ops,
             groups: self.groups,
+            op_counts: self.op_counts,
+            num_groups: self.next_group_idx,
         }
+    }
+
+    // HELPER METHODS
+    // --------------------------------------------------------------------------------------------
+
+    /// Saves the current group into the group array, advances current and next group pointers,
+    /// and resets group content.
+    fn finalize_op_group(&mut self) {
+        self.groups[self.group_idx] = Felt::new(self.group);
+        self.op_counts[self.group_idx] = self.op_idx;
+
+        self.group_idx = self.next_group_idx;
+        self.next_group_idx = self.group_idx + 1;
+
+        self.op_idx = 0;
+        self.group = 0;
     }
 }
 
 // HELPER FUNCTIONS
 // ================================================================================================
 
+/// Groups the provided operations into batches as described in the docs for this module (i.e.,
+/// up to 9 operations per group, and up to 8 groups per batch).
+///
+/// After the operations have been grouped, computes the hash of the block.
 fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
     let mut batch_acc = OpBatchAccumulator::new();
     let mut batches = Vec::<OpBatch>::new();
@@ -274,7 +320,7 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
             let batch = batch_acc.into_batch();
             batch_acc = OpBatchAccumulator::new();
 
-            batch_groups.push(batch.groups());
+            batch_groups.push(*batch.groups());
             batches.push(batch);
         }
 
@@ -285,7 +331,7 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
     // make sure we finished processing the last batch
     if !batch_acc.is_empty() {
         let batch = batch_acc.into_batch();
-        batch_groups.push(batch.groups());
+        batch_groups.push(*batch.groups());
         batches.push(batch);
     }
 
@@ -304,43 +350,57 @@ mod tests {
 
     #[test]
     fn batch_ops() {
-        // one operation
+        // --- one operation ----------------------------------------------------------------------
         let ops = vec![Operation::Add];
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
+
         let batch = &batches[0];
         assert_eq!(ops, batch.ops);
+        assert_eq!(1, batch.num_groups());
+
         let mut batch_groups = [Felt::ZERO; BATCH_SIZE];
         batch_groups[0] = build_group(&ops);
+
         assert_eq!(batch_groups, batch.groups);
+        assert_eq!([1_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
 
-        // two operations
+        // --- two operations ---------------------------------------------------------------------
         let ops = vec![Operation::Add, Operation::Mul];
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
+
         let batch = &batches[0];
         assert_eq!(ops, batch.ops);
+        assert_eq!(1, batch.num_groups());
+
         let mut batch_groups = [Felt::ZERO; BATCH_SIZE];
         batch_groups[0] = build_group(&ops);
+
         assert_eq!(batch_groups, batch.groups);
+        assert_eq!([2_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
 
-        // one group with one immediate value
+        // --- one group with one immediate value -------------------------------------------------
         let ops = vec![Operation::Add, Operation::Push(Felt::new(12345678))];
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
+
         let batch = &batches[0];
         assert_eq!(ops, batch.ops);
+        assert_eq!(2, batch.num_groups());
+
         let mut batch_groups = [Felt::ZERO; BATCH_SIZE];
         batch_groups[0] = build_group(&ops);
         batch_groups[1] = Felt::new(12345678);
+
         assert_eq!(batch_groups, batch.groups);
+        assert_eq!([2_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
 
-        // one group with 7 immediate values
+        // --- one group with 7 immediate values --------------------------------------------------
         let ops = vec![
-            Operation::Add,
             Operation::Push(Felt::new(1)),
             Operation::Push(Felt::new(2)),
             Operation::Push(Felt::new(3)),
@@ -348,11 +408,15 @@ mod tests {
             Operation::Push(Felt::new(5)),
             Operation::Push(Felt::new(6)),
             Operation::Push(Felt::new(7)),
+            Operation::Add,
         ];
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
+
         let batch = &batches[0];
         assert_eq!(ops, batch.ops);
+        assert_eq!(8, batch.num_groups());
+
         let batch_groups = [
             build_group(&ops),
             Felt::new(1),
@@ -363,26 +427,30 @@ mod tests {
             Felt::new(6),
             Felt::new(7),
         ];
+
         assert_eq!(batch_groups, batch.groups);
+        assert_eq!([8_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
 
-        // two groups with 7 immediate values; the last push overflows to the second batch
+        // --- two groups with 7 immediate values; the last push overflows to the second batch ----
         let ops = vec![
             Operation::Add,
             Operation::Mul,
-            Operation::Add,
             Operation::Push(Felt::new(1)),
             Operation::Push(Felt::new(2)),
             Operation::Push(Felt::new(3)),
             Operation::Push(Felt::new(4)),
             Operation::Push(Felt::new(5)),
             Operation::Push(Felt::new(6)),
+            Operation::Add,
             Operation::Push(Felt::new(7)),
         ];
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(2, batches.len());
+
         let batch0 = &batches[0];
         assert_eq!(ops[..9], batch0.ops);
+        assert_eq!(7, batch0.num_groups());
 
         let batch0_groups = [
             build_group(&ops[..9]),
@@ -394,19 +462,25 @@ mod tests {
             Felt::new(6),
             Felt::ZERO,
         ];
+
         assert_eq!(batch0_groups, batch0.groups);
+        assert_eq!([9_usize, 0, 0, 0, 0, 0, 0, 0], batch0.op_counts);
 
         let batch1 = &batches[1];
         assert_eq!(vec![ops[9]], batch1.ops);
+        assert_eq!(2, batch1.num_groups());
+
         let mut batch1_groups = [Felt::ZERO; BATCH_SIZE];
         batch1_groups[0] = build_group(&[ops[9]]);
         batch1_groups[1] = Felt::new(7);
+
+        assert_eq!([1_usize, 0, 0, 0, 0, 0, 0, 0], batch1.op_counts);
         assert_eq!(batch1_groups, batch1.groups);
 
         let all_groups = [batch0_groups, batch1_groups].concat();
         assert_eq!(hasher::hash_elements(&all_groups), hash);
 
-        // immediate values in-between groups
+        // --- immediate values in-between groups -------------------------------------------------
         let ops = vec![
             Operation::Add,
             Operation::Mul,
@@ -422,8 +496,10 @@ mod tests {
 
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
+
         let batch = &batches[0];
         assert_eq!(ops, batch.ops);
+        assert_eq!(4, batch.num_groups());
 
         let batch_groups = [
             build_group(&ops[..9]),
@@ -435,10 +511,12 @@ mod tests {
             Felt::ZERO,
             Felt::ZERO,
         ];
+
+        assert_eq!([9_usize, 0, 0, 1, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(batch_groups, batch.groups);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
 
-        // push at start of second group; assembler inserts a NOOP in front of PUSH
+        // --- push at the end of a group is moved into the next group ----------------------------
         let ops = vec![
             Operation::Add,
             Operation::Mul,
@@ -448,18 +526,18 @@ mod tests {
             Operation::Mul,
             Operation::Mul,
             Operation::Add,
-            Operation::Add,
             Operation::Push(Felt::new(11)),
         ];
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
+
         let batch = &batches[0];
-        let mut expected_ops = ops.clone();
-        expected_ops.insert(9, Operation::Noop);
-        assert_eq!(expected_ops, batch.ops);
+        assert_eq!(ops, batch.ops);
+        assert_eq!(3, batch.num_groups());
+
         let batch_groups = [
-            build_group(&ops[..9]),
-            build_group(&[Operation::Noop, ops[9]]),
+            build_group(&ops[..8]),
+            build_group(&[ops[8]]),
             Felt::new(11),
             Felt::ZERO,
             Felt::ZERO,
@@ -467,8 +545,108 @@ mod tests {
             Felt::ZERO,
             Felt::ZERO,
         ];
+
         assert_eq!(batch_groups, batch.groups);
+        assert_eq!([8_usize, 1, 0, 0, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(hasher::hash_elements(&batch_groups), hash);
+
+        // --- push at the end of a group is moved into the next group ----------------------------
+        let ops = vec![
+            Operation::Add,
+            Operation::Mul,
+            Operation::Add,
+            Operation::Add,
+            Operation::Add,
+            Operation::Mul,
+            Operation::Mul,
+            Operation::Push(Felt::new(1)),
+            Operation::Push(Felt::new(2)),
+        ];
+        let (batches, hash) = super::batch_ops(ops.clone());
+        assert_eq!(1, batches.len());
+
+        let batch = &batches[0];
+        assert_eq!(ops, batch.ops);
+        assert_eq!(4, batch.num_groups());
+
+        let batch_groups = [
+            build_group(&ops[..8]),
+            Felt::new(1),
+            build_group(&[ops[8]]),
+            Felt::new(2),
+            Felt::ZERO,
+            Felt::ZERO,
+            Felt::ZERO,
+            Felt::ZERO,
+        ];
+
+        assert_eq!(batch_groups, batch.groups);
+        assert_eq!([8_usize, 0, 1, 0, 0, 0, 0, 0], batch.op_counts);
+        assert_eq!(hasher::hash_elements(&batch_groups), hash);
+
+        // --- push at the end of the 7th group overflows to the next batch -----------------------
+        let ops = vec![
+            Operation::Add,
+            Operation::Mul,
+            Operation::Push(Felt::new(1)),
+            Operation::Push(Felt::new(2)),
+            Operation::Push(Felt::new(3)),
+            Operation::Push(Felt::new(4)),
+            Operation::Push(Felt::new(5)),
+            Operation::Add,
+            Operation::Mul,
+            Operation::Add,
+            Operation::Mul,
+            Operation::Add,
+            Operation::Mul,
+            Operation::Add,
+            Operation::Mul,
+            Operation::Add,
+            Operation::Mul,
+            Operation::Push(Felt::new(6)),
+            Operation::Pad,
+        ];
+
+        let (batches, hash) = super::batch_ops(ops.clone());
+        assert_eq!(2, batches.len());
+
+        let batch0 = &batches[0];
+        assert_eq!(ops[..17], batch0.ops);
+        assert_eq!(7, batch0.num_groups());
+
+        let batch0_groups = [
+            build_group(&ops[..9]),
+            Felt::new(1),
+            Felt::new(2),
+            Felt::new(3),
+            Felt::new(4),
+            Felt::new(5),
+            build_group(&ops[9..17]),
+            Felt::ZERO,
+        ];
+
+        assert_eq!(batch0_groups, batch0.groups);
+        assert_eq!([9_usize, 0, 0, 0, 0, 0, 8, 0], batch0.op_counts);
+
+        let batch1 = &batches[1];
+        assert_eq!(ops[17..], batch1.ops);
+        assert_eq!(2, batch1.num_groups());
+
+        let batch1_groups = [
+            build_group(&ops[17..]),
+            Felt::new(6),
+            Felt::ZERO,
+            Felt::ZERO,
+            Felt::ZERO,
+            Felt::ZERO,
+            Felt::ZERO,
+            Felt::ZERO,
+        ];
+        assert_eq!(batch1_groups, batch1.groups);
+        assert_eq!([2_usize, 0, 0, 0, 0, 0, 0, 0], batch1.op_counts);
+
+        let all_groups = [batch0_groups, batch1_groups].concat();
+        assert_eq!(hasher::hash_elements(&all_groups), hash);
     }
 
     #[test]
