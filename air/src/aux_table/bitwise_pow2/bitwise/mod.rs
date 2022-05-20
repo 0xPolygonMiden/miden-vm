@@ -17,19 +17,19 @@ mod tests;
 // ================================================================================================
 
 /// The number of transition constraints on the bitwise co-processor.
-pub const NUM_CONSTRAINTS: usize = 8;
+pub const NUM_CONSTRAINTS: usize = 14;
 /// The degrees of constraints on the bitwise co-processor. The degree of all
 /// constraints is increased by 4 due to the co-processor selector flag from the auxiliary table
 /// (degree 2) and the selector flag specifying the bitwise operation (degree 2).
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
-    6, 6, // Input decomposition values should be binary.
+    6, 6, 6, 6, 6, 6, 6, 6, // Input decomposition values should be binary.
     6, 6, // Enforce correct initial values of a and b columns.
     6, 6, // Enforce correct aggregation of a and b columns during transitions.
     7, 7, // Ensure correct output aggregation
 ];
 
 /// Index of CONSTRAINT_DEGREES array after which all constraints use periodic columns.
-pub const PERIODIC_CONSTRAINTS_START: usize = 2;
+const PERIODIC_CONSTRAINTS_START: usize = 8;
 
 /// The range of the selector columns in the trace.
 const SELECTOR_COL_RANGE: Range<usize> = create_range(BITWISE_TRACE_OFFSET, NUM_SELECTORS);
@@ -103,38 +103,52 @@ fn enforce_input_decomposition<E: FieldElement>(
     result: &mut [E],
     processor_flag: E,
 ) -> usize {
-    let constraint_count = 6;
+    let mut constraint_offset = 0;
     // Flag that enforces these constraints when this co-processor segment is selected in the
     // auxiliary table and the co-processor's selectors specify a bitwise operation.
     let bitwise_op_flag = processor_flag * frame.bitwise_op_flag();
 
-    // Values in bit decomposition columns a0..a3 and b0..b3 should be binary.
-    for idx in 0..NUM_DECOMP_BITS {
-        result.agg_constraint(0, bitwise_op_flag, is_binary(frame.a_bit(idx)));
-        result.agg_constraint(1, bitwise_op_flag, is_binary(frame.b_bit(idx)));
+    // Values in bit decomposition columns a0..a3 should be binary.
+    for (idx, result) in result.iter_mut().take(NUM_DECOMP_BITS).enumerate() {
+        *result = bitwise_op_flag * is_binary(frame.a_bit(idx));
     }
+    constraint_offset += NUM_DECOMP_BITS;
 
-    // The values in columns a and b in the first row should be the aggregation of the decomposed
-    // bit columns a0..a3 and b0..b3.
+    // Values in bit decomposition columns b0..b3 should be binary.
+    for (idx, result) in result[constraint_offset..]
+        .iter_mut()
+        .take(NUM_DECOMP_BITS)
+        .enumerate()
+    {
+        *result = bitwise_op_flag * is_binary(frame.b_bit(idx));
+    }
+    constraint_offset += NUM_DECOMP_BITS;
+
+    // The values in column a in the first row should be the aggregation of the decomposed bit
+    // columns a0..a3.
     let first_row_flag = bitwise_op_flag * periodic_values[0];
-    result.agg_constraint(2, first_row_flag, frame.a() - frame.a_agg_bits());
-    result.agg_constraint(3, first_row_flag, frame.b() - frame.b_agg_bits());
+    result[constraint_offset] = first_row_flag * (frame.a() - frame.a_agg_bits());
+    constraint_offset += 1;
 
-    // During a transition between rows, the next value in the a or b columns should be 16 times the
+    // The values in column b in the first row should be the aggregation of the decomposed bit
+    // columns b0..b3.
+    result[constraint_offset] = first_row_flag * (frame.b() - frame.b_agg_bits());
+    constraint_offset += 1;
+
+    // During a transition between rows, the next value in the a column should be 16 times the
     // previous value plus the aggregation of the next row's bit values.
     let transition_flag = bitwise_op_flag * periodic_values[1];
-    result.agg_constraint(
-        4,
-        transition_flag,
-        frame.a_next() - (E::from(16_u8) * frame.a() + frame.a_agg_bits_next()),
-    );
-    result.agg_constraint(
-        5,
-        transition_flag,
-        frame.b_next() - (E::from(16_u8) * frame.b() + frame.b_agg_bits_next()),
-    );
+    result[constraint_offset] =
+        transition_flag * (frame.a_next() - (E::from(16_u8) * frame.a() + frame.a_agg_bits_next()));
+    constraint_offset += 1;
 
-    constraint_count
+    // During a transition between rows, the next value in the b column should be 16 times the
+    // previous value plus the aggregation of the next row's bit values.
+    result[constraint_offset] =
+        transition_flag * (frame.b_next() - (E::from(16_u8) * frame.b() + frame.b_agg_bits_next()));
+    constraint_offset += 1;
+
+    constraint_offset
 }
 
 /// Enforces correct output aggregation for the operation. This requires the following 2 constraints
@@ -152,7 +166,7 @@ fn enforce_output_aggregation<E: FieldElement>(
     result: &mut [E],
     processor_flag: E,
 ) -> usize {
-    let constraint_count = 2;
+    let mut constraint_offset = 0;
     // Periodic column flags
     let k0_flag = periodic_values[0];
     let k1_flag = periodic_values[1];
@@ -164,41 +178,43 @@ fn enforce_output_aggregation<E: FieldElement>(
     // The value in the output column in the first row must be exactly equal to the the aggregated
     // value of the operation applied to the bitwise decomposition columns a0..a3 and b0..b3.
     result.agg_constraint(
-        0,
+        constraint_offset,
         k0_flag * bitwise_and_flag,
         frame.output() - bitwise_and(frame.bit_decomp()),
     );
     result.agg_constraint(
-        0,
+        constraint_offset,
         k0_flag * bitwise_or_flag,
         frame.output() - bitwise_or(frame.bit_decomp()),
     );
     result.agg_constraint(
-        0,
+        constraint_offset,
         k0_flag * bitwise_xor_flag,
         frame.output() - bitwise_xor(frame.bit_decomp()),
     );
+    constraint_offset += 1;
 
     // During a transition between rows, the next value in the output column should be 16 times the
     // previous value plus the aggregation of the next row's operation output.
     let shifted_output = frame.output() * E::from(16_u8);
     result.agg_constraint(
-        1,
+        constraint_offset,
         k1_flag * bitwise_and_flag,
         frame.output_next() - (shifted_output + bitwise_and(frame.bit_decomp_next())),
     );
     result.agg_constraint(
-        1,
+        constraint_offset,
         k1_flag * bitwise_or_flag,
         frame.output_next() - (shifted_output + bitwise_or(frame.bit_decomp_next())),
     );
     result.agg_constraint(
-        1,
+        constraint_offset,
         k1_flag * bitwise_xor_flag,
         frame.output_next() - (shifted_output + bitwise_xor(frame.bit_decomp_next())),
     );
+    constraint_offset += 1;
 
-    constraint_count
+    constraint_offset
 }
 
 /// Calculates the result of bitwise AND applied to the decomposed values provided as a bit array.
