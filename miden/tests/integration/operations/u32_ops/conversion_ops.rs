@@ -135,7 +135,7 @@ fn u32assert2() {
 #[test]
 fn u32assert2_fail() {
     let asm_op = "u32assert.2";
-    let err = "FailedAssertion";
+    let err = "NotU32Value";
 
     // vars to test
     // -------- Case 1: a > 2^32 and b > 2^32 ---------------------------------------------------

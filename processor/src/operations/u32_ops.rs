@@ -1,4 +1,4 @@
-use super::{utils::assert_binary, ExecutionError, Felt, Process, StarkField};
+use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Process, StarkField};
 
 impl Process {
     // CASTING OPERATIONS
@@ -15,6 +15,30 @@ impl Process {
         self.stack.set(0, hi);
         self.stack.set(1, lo);
         self.stack.shift_right(1);
+        Ok(())
+    }
+
+    /// Pops top two element off the stack, splits both into low and high 32-bit values, checks if both
+    /// high are equal to 0, if it passes, put both of them onto the stack, else throws an execution error
+    pub(super) fn op_u32assert2(&mut self) -> Result<(), ExecutionError> {
+        let a = self.stack.get(0);
+        let b = self.stack.get(1);
+
+        let (lo_a, hi_a) = split_element(a);
+        let (lo_b, hi_b) = split_element(b);
+
+        if hi_a != Felt::ZERO {
+            return Err(ExecutionError::NotU32Value(a));
+        }
+
+        if hi_b != Felt::ZERO {
+            return Err(ExecutionError::NotU32Value(b));
+        }
+
+        self.add_range_checks(lo_a, Some(hi_a));
+        self.add_range_checks(lo_b, Some(hi_b));
+
+        self.stack.copy_state(0);
         Ok(())
     }
 
@@ -252,6 +276,17 @@ mod tests {
         expected[0] = Felt::new(hi);
         expected[1] = Felt::new(lo);
         expected[2] = Felt::new(a);
+        assert_eq!(expected, process.stack.trace_state());
+    }
+
+    #[test]
+    fn op_u32assert2() {
+        // --- test random values ensuring other elements are still values are still intact ----------
+        let mut process = Process::new_dummy();
+        let (a, b, c, d) = init_stack_rand(&mut process);
+
+        process.execute_op(Operation::U32assert2).unwrap();
+        let expected = build_expected(&[a, b, c, d]);
         assert_eq!(expected, process.stack.trace_state());
     }
 

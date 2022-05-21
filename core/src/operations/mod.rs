@@ -115,6 +115,10 @@ pub enum Operation {
     /// operation is undefined.
     U32add,
 
+    /// Pops two elements off the stack and checks if each of them represents a 32-bit value.
+    /// If both of them are, they are pushed back onto the stack, otherwise an error is returned.
+    U32assert2,
+
     /// Pops three elements off the stack, adds them together, and splits the result into upper
     /// and lower 32-bit values. Then pushes the result back onto the stack.
     ///
@@ -461,6 +465,7 @@ impl Operation {
             Self::U32and => Some(0b0011_0111),
             Self::U32or => Some(0b0011_1000),
             Self::U32xor => Some(0b0011_1001),
+            Self::U32assert2 => Some(0b0111_1001),
 
             Self::LoadW => Some(0b0011_1010),
             Self::StoreW => Some(0b0011_1011),
@@ -553,6 +558,7 @@ impl fmt::Display for Operation {
             Self::U32and => write!(f, "u32and"),
             Self::U32or => write!(f, "u32or"),
             Self::U32xor => write!(f, "u32xor"),
+            Self::U32assert2 => write!(f, "u32assert2"),
 
             // ----- stack manipulation -----------------------------------------------------------
             Self::Drop => write!(f, "drop"),

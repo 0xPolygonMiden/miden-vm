@@ -69,19 +69,15 @@ pub fn parse_u32testw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
 
 /// Translates u32assert assembly instruction to VM operations.
 ///
-/// Implemented as: `U32SPLIT EQZ ASSERT` (3 VM cycles).
+/// u32assert, u32assert.1: Implemented as: `U32SPLIT EQZ ASSERT` (3 VM cycles).
+/// u32assert.2: Implemented as: ``U32assert2` (1 VM cycles).
 pub fn parse_u32assert(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => assert_u32(span_ops),
         2 => match op.parts()[1] {
             "1" => assert_u32(span_ops),
-            "2" => {
-                assert_u32(span_ops);
-                span_ops.push(Operation::Swap);
-                assert_u32(span_ops);
-                span_ops.push(Operation::Swap);
-            }
+            "2" => span_ops.push(Operation::U32assert2),
             _ => return Err(AssemblyError::invalid_param(op, 1)),
         },
         _ => return Err(AssemblyError::extra_param(op)),
