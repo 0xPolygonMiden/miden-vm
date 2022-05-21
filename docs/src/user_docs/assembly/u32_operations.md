@@ -13,7 +13,8 @@ For instructions where one or more operands can be provided as immediate paramet
 | ------------- | ----------- | ------------- | ------------------------------------------ |
 | u32test       | [a, ...]    | [b, a, ...]   | $b \leftarrow \begin{cases} 1, & \text{if}\ a < 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$ |
 | u32testw      | [A, ...]    | [b, A, ...]   | $b \leftarrow \begin{cases} 1, & \text{if}\ \forall\ i \in \{0, 1, 2, 3\}\ a_i < 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$ |
-| u32assert     | [a, ...]    | [a, ...]      | Fails if $a \ge 2^{32}$ |
+| u32assert <br> u32assert.1 | [a, ...]    | [a, ...]  | Fails if $a \ge 2^{32}$ |
+| u32assert.2   | [b, a,...]  | [b, a,...] | Fails if $a \ge 2^{32}$ or $b \ge 2^{32}$ |
 | u32assertw    | [A, ...]    | [A, ...]      | Fails if $\exists\ i \in \{0, 1, 2, 3\} \ni a_i \ge 2^{32}$ |
 | u32cast       | [a, ...]    | [b, ...]      | $b \leftarrow a \mod 2^{32}$ |
 | u32split      | [a, ...]    | [c, b, ...]   | $b \leftarrow a \mod 2^{32}$, $c \leftarrow \lfloor{a / 2^{32}}\rfloor$ |
