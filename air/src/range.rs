@@ -149,38 +149,46 @@ trait EvaluationFrameExt<E: FieldElement> {
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Column accessors -----------------------------------------------------------------------
 
+    #[inline(always)]
     fn t(&self) -> E {
         self.current()[T_COL_IDX]
     }
 
+    #[inline(always)]
     fn t_next(&self) -> E {
         self.next()[T_COL_IDX]
     }
 
+    #[inline(always)]
     fn s0(&self) -> E {
         self.current()[S0_COL_IDX]
     }
 
+    #[inline(always)]
     fn s1(&self) -> E {
         self.current()[S1_COL_IDX]
     }
 
+    #[inline(always)]
     fn v(&self) -> E {
         self.current()[V_COL_IDX]
     }
 
+    #[inline(always)]
     fn v_next(&self) -> E {
         self.next()[V_COL_IDX]
     }
 
     // --- Intermediate variables & helpers -------------------------------------------------------
 
+    #[inline(always)]
     fn change(&self, column: usize) -> E {
         self.next()[column] - self.current()[column]
     }
 
     // --- Flags -------------------------------------------------------------------------
 
+    #[inline(always)]
     fn flip_to_16bit_flag(&self) -> E {
         binary_not(self.t()) * self.t_next()
     }

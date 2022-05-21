@@ -218,81 +218,102 @@ trait EvaluationFrameExt<E: FieldElement> {
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Column accessors -----------------------------------------------------------------------
 
+    #[inline(always)]
     fn ctx(&self) -> E {
         self.current()[CTX_COL_IDX]
     }
+    #[inline(always)]
     fn addr(&self) -> E {
         self.next()[ADDR_COL_IDX]
     }
+    #[inline(always)]
     fn clk(&self) -> E {
         self.current()[CLK_COL_IDX]
     }
+    #[inline(always)]
     fn clk_next(&self) -> E {
         self.next()[CLK_COL_IDX]
     }
+    #[inline(always)]
     fn u(&self, index: usize) -> E {
         self.current()[U_COL_RANGE.start + index]
     }
+    #[inline(always)]
     fn u_next(&self, index: usize) -> E {
         self.next()[U_COL_RANGE.start + index]
     }
+    #[inline(always)]
     fn v(&self, index: usize) -> E {
         self.current()[V_COL_RANGE.start + index]
     }
+    #[inline(always)]
     fn d0_next(&self) -> E {
         self.next()[D0_COL_IDX]
     }
+    #[inline(always)]
     fn d1_next(&self) -> E {
         self.next()[D1_COL_IDX]
     }
+    #[inline(always)]
     fn d_inv_next(&self) -> E {
         self.next()[D_INV_COL_IDX]
     }
 
     // --- Intermediate variables & helpers -------------------------------------------------------
 
+    #[inline(always)]
     fn change(&self, column: usize) -> E {
         self.next()[column] - self.current()[column]
     }
 
+    #[inline(always)]
     fn n0(&self) -> E {
         self.change(CTX_COL_IDX) * self.d_inv_next()
     }
 
+    #[inline(always)]
     fn not_n0(&self) -> E {
         binary_not(self.n0())
     }
 
+    #[inline(always)]
     fn n1(&self) -> E {
         self.change(ADDR_COL_IDX) * self.d_inv_next()
     }
 
+    #[inline(always)]
     fn not_n1(&self) -> E {
         binary_not(self.n1())
     }
 
+    #[inline(always)]
     fn ctx_change(&self) -> E {
         self.change(CTX_COL_IDX)
     }
 
+    #[inline(always)]
     fn addr_change(&self) -> E {
         self.change(ADDR_COL_IDX)
     }
 
+    #[inline(always)]
     fn clk_change(&self) -> E {
         self.change(CLK_COL_IDX) - E::ONE
     }
 
+    #[inline(always)]
     fn delta_next(&self) -> E {
         E::from(2_u32.pow(16)) * self.d1_next() + self.d0_next()
     }
 
     // --- Flags ----------------------------------------------------------------------------------
 
+    #[inline(always)]
     fn init_memory_flag(&self) -> E {
         self.n0() + self.not_n0() * self.n1()
     }
 
+    #[inline(always)]
     fn copy_memory_flag(&self) -> E {
         self.not_n0() * self.not_n1()
     }
