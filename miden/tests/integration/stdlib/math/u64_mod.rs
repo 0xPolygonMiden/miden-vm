@@ -75,7 +75,7 @@ fn checked_add_fail() {
     let b1 = u32::MAX as u64 + 1;
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 }
 
 #[test]
@@ -184,7 +184,7 @@ fn checked_sub_fail() {
     let b1 = u32::MAX as u64 + 1;
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 }
 
 #[test]
@@ -306,7 +306,7 @@ fn checked_mul_fail() {
     let b1 = u32::MAX as u64 + 1;
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // Higher bits assertion failure (a_hi * b_hi != 0)
 

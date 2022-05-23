@@ -34,11 +34,11 @@ fn u32add_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b >= 2^32
     let test = build_op_test!(asm_op, &[0, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if a + b >= 2^32
     let a = u32::MAX;
@@ -77,7 +77,7 @@ fn u32add_b_fail() {
 
     // should fail during execution if a >= 2^32
     let test = build_op_test!(build_asm_op(0).as_str(), &[U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail during compilation if b >= 2^32
     test_param_out_of_bounds(build_asm_op(U32_BOUND).as_str(), U32_BOUND);
@@ -105,11 +105,11 @@ fn u32add_full_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b >= 2^32
     let test = build_op_test!(asm_op, &[0, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 }
 
 #[test]
@@ -139,11 +139,11 @@ fn u32addc_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[0, 0, U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b >= 2^32
     let test = build_op_test!(asm_op, &[0, U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if c > 1
     let test = build_op_test!(asm_op, &[2, 0, 0]);
@@ -217,11 +217,11 @@ fn u32sub_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b >= 2^32
     let test = build_op_test!(asm_op, &[0, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if a < b
     let a = 1_u64;
@@ -268,7 +268,7 @@ fn u32sub_b_fail() {
 
     // should fail during execution if a >= 2^32
     let test = build_op_test!(build_asm_op(0).as_str(), &[U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail during compilation if b >= 2^32
     test_param_out_of_bounds(build_asm_op(U32_BOUND).as_str(), U32_BOUND);
@@ -295,11 +295,11 @@ fn u32sub_full_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b >= 2^32
     let test = build_op_test!(asm_op, &[0, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 }
 
 #[test]
@@ -349,11 +349,11 @@ fn u32mul_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b >= 2^32
     let test = build_op_test!(asm_op, &[0, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if a * b  >= 2^32
     let a = u32::MAX as u64;
@@ -397,7 +397,7 @@ fn u32mul_b_fail() {
 
     // should fail during execution if a >= 2^32
     let test = build_op_test!(build_asm_op(0).as_str(), &[U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail during compilation if b >= 2^32
     test_param_out_of_bounds(build_asm_op(U32_BOUND).as_str(), U32_BOUND);
@@ -424,11 +424,11 @@ fn u32mul_full_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b >= 2^32
     let test = build_op_test!(asm_op, &[0, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 }
 
 #[test]
@@ -458,15 +458,15 @@ fn u32madd_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[0, 0, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b >= 2^32
     let test = build_op_test!(asm_op, &[0, U32_BOUND, 0]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if c  >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 0, 0]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 }
 
 #[test]
@@ -518,11 +518,11 @@ fn u32div_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b >= 2^32
     let test = build_op_test!(asm_op, &[1, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b == 0
     let test = build_op_test!(asm_op, &[1, 0]);
@@ -568,7 +568,7 @@ fn u32div_b_fail() {
 
     // should fail during execution if a >= 2^32
     let test = build_op_test!(build_asm_op(1).as_str(), &[U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail during compilation if b >= 2^32
     test_param_out_of_bounds(build_asm_op(U32_BOUND).as_str(), U32_BOUND);
@@ -593,11 +593,11 @@ fn u32div_full_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b >= 2^32
     let test = build_op_test!(asm_op, &[1, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b == 0
     let test = build_op_test!(asm_op, &[1, 0]);
@@ -639,11 +639,11 @@ fn u32mod_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b >= 2^32
     let test = build_op_test!(asm_op, &[1, U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b == 0
     let test = build_op_test!(asm_op, &[1, 0]);
@@ -687,9 +687,9 @@ fn u32mod_b() {
 fn u32mod_b_fail() {
     let build_asm_op = |param: u64| format!("u32mod.{}", param);
 
-    // should fail during exeuction if a >= 2^32
+    // should fail during execution if a >= 2^32
     let test = build_op_test!(build_asm_op(1).as_str(), &[U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail during compilation if b >= 2^32
     test_param_out_of_bounds(build_asm_op(U32_BOUND).as_str(), U32_BOUND);
