@@ -69,8 +69,8 @@ pub fn parse_u32testw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
 
 /// Translates u32assert assembly instruction to VM operations.
 ///
-/// u32assert, u32assert.1: Implemented as: `U32SPLIT EQZ ASSERT` (3 VM cycles).
-/// u32assert.2: Implemented as: ``U32assert2` (1 VM cycles).
+/// u32assert, u32assert.1: Implemented as: `PAD U32ASSERT2 DROP` (3 VM cycles).
+/// u32assert.2: Implemented as: `U32assert2` (1 VM cycles).
 pub fn parse_u32assert(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
@@ -88,29 +88,23 @@ pub fn parse_u32assert(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), 
 
 /// Translates u32assert assembly instruction to VM operations.
 ///
-/// Implemented by executing `U32SPLIT EQZ ASSERT` on each element in the word.
+/// Implemented by executing `PAD U32ASSERT2 DROP` on each pair of elements in the word.
 pub fn parse_u32assertw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
-            // Test the first element
-            assert_u32(span_ops);
+            // Test the first and the second elements
+            span_ops.push(Operation::U32assert2);
 
-            // Test the second element
-            span_ops.push(Operation::Swap);
-            assert_u32(span_ops);
-
-            // Test the third element
-            span_ops.push(Operation::MovUp2);
-            assert_u32(span_ops);
-
-            // Test the fourth element
+            // Move 3 and 4 to the top of the stack
             span_ops.push(Operation::MovUp3);
-            assert_u32(span_ops);
+            span_ops.push(Operation::MovUp3);
+
+            // Test them
+            span_ops.push(Operation::U32assert2);
 
             // Move the elements back into place
-            span_ops.push(Operation::Swap);
-            span_ops.push(Operation::MovUp2);
+            span_ops.push(Operation::MovUp3);
             span_ops.push(Operation::MovUp3);
         }
         _ => return Err(AssemblyError::extra_param(op)),
@@ -803,11 +797,11 @@ pub fn parse_u32max(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 // ================================================================================================
 /// Asserts that the value on the top of the stack is a u32.
 ///
-/// Implemented as: `U32SPLIT EQZ ASSERT` (takes 3 VM cycles).
+/// Implemented as: `PAD U32ASSERT2 DROP` (takes 3 VM cycles).
 fn assert_u32(span_ops: &mut Vec<Operation>) {
-    span_ops.push(Operation::U32split);
-    span_ops.push(Operation::Eqz);
-    span_ops.push(Operation::Assert);
+    span_ops.push(Operation::Pad);
+    span_ops.push(Operation::U32assert2);
+    span_ops.push(Operation::Drop);
 }
 
 /// When `preserve_order` is set to true, the stack state is preserved; otherwise the two

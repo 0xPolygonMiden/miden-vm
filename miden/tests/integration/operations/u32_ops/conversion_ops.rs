@@ -96,7 +96,7 @@ fn u32assert_fail() {
     // assertion fails if a >= 2^32
     let asm_op = "u32assert";
     let asm_op_1 = "u32assert.1";
-    let err = "FailedAssertion";
+    let err = "NotU32Value";
 
     // vars to test
     let equal = 1_u64 << 32;
@@ -178,7 +178,7 @@ fn u32assertw() {
 fn u32assertw_fail() {
     // fails if any element in the word >= 2^32
     let asm_op = "u32assertw";
-    let err = "FailedAssertion";
+    let err = "NotU32Value";
 
     // --- any one of the inputs inputs >= 2^32 (out of bounds) -----------------------------------
     test_inputs_out_of_bounds(asm_op, WORD_LEN);
