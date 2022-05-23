@@ -36,6 +36,7 @@ impl Process {
             Operation::Span => unreachable!("control flow operation"),
             Operation::Respan => unreachable!("control flow operation"),
             Operation::End => unreachable!("control flow operation"),
+            Operation::Halt => unreachable!("control flow operation"),
 
             // ----- field operations -------------------------------------------------------------
             Operation::Add => self.op_add()?,
