@@ -22,39 +22,6 @@ const IN_SPAN_IDX: usize = 8;
 const HASHER_STATE_OFFSET: usize = 9;
 const HASHER_STATE_RANGE: Range<usize> = range(HASHER_STATE_OFFSET, HASHER_WIDTH);
 
-// TESTS
-// ================================================================================================
-
-#[test]
-fn join_block() {
-    let value1 = Felt::new(3);
-    let value2 = Felt::new(5);
-    let span1 = CodeBlock::new_span(vec![Operation::Push(value1), Operation::Mul]);
-    let span2 = CodeBlock::new_span(vec![Operation::Push(value2), Operation::Add]);
-    let program = CodeBlock::new_join([span1, span2]);
-
-    let (trace, _trace_len) = build_trace(&[], &program);
-
-    // --- test op bits columns -----------------------------------------------
-
-    // opcodes should be: JOIN SPAN PUSH END SPAN DROP END END
-    assert!(contains_op(&trace, 0, Operation::Join));
-    assert!(contains_op(&trace, 1, Operation::Span));
-    assert!(contains_op(&trace, 2, Operation::Push(value1)));
-    assert!(contains_op(&trace, 3, Operation::Mul));
-    assert!(contains_op(&trace, 4, Operation::End));
-    assert!(contains_op(&trace, 5, Operation::Span));
-    assert!(contains_op(&trace, 6, Operation::Push(value2)));
-    assert!(contains_op(&trace, 7, Operation::Add));
-    assert!(contains_op(&trace, 8, Operation::End));
-    assert!(contains_op(&trace, 9, Operation::End));
-
-    //for i in 0..12 {
-    //    print_row(&trace, i);
-    //}
-    //assert!(false, "all good!");
-}
-
 // SPAN BLOCK TESTS
 // ================================================================================================
 
@@ -77,9 +44,9 @@ fn span_block() {
 
     let (trace, trace_len) = build_trace(&[], &program);
 
-    for i in 0..20 {
-        print_row(&trace, i);
-    }
+    //for i in 0..20 {
+    //    print_row(&trace, i);
+    //}
 
     // --- test op bits columns -----------------------------------------------
     // two NOOPs are inserted by the processor:
@@ -113,6 +80,8 @@ fn span_block() {
     for i in 15..trace_len {
         assert_eq!(Felt::ZERO, trace[IN_SPAN_IDX][i]);
     }
+
+    //assert!(false, "all good!");
 }
 
 #[test]
@@ -146,6 +115,172 @@ fn span_block_with_respan() {
 
     // --- test op bits columns -----------------------------------------------
     assert!(contains_op(&trace, 0, Operation::Span));
+}
+
+// JOIN BLOCK TESTS
+// ================================================================================================
+
+#[test]
+fn join_block() {
+    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add]);
+    let program = CodeBlock::new_join([span1.clone(), span2.clone()]);
+
+    let (trace, trace_len) = build_trace(&[], &program);
+
+    // --- check block address column -------------------------------------------------------------
+    let init_addr = ZERO;
+
+    assert_eq!(trace[ADDR_IDX][0], ZERO);
+    assert_eq!(trace[ADDR_IDX][1], init_addr); // SPAN
+    assert_eq!(trace[ADDR_IDX][2], init_addr + Felt::new(8));
+    assert_eq!(trace[ADDR_IDX][3], init_addr + Felt::new(8));
+    assert_eq!(trace[ADDR_IDX][4], init_addr); // SPAN
+    assert_eq!(trace[ADDR_IDX][5], init_addr + Felt::new(16));
+    assert_eq!(trace[ADDR_IDX][6], init_addr + Felt::new(16));
+    assert_eq!(trace[ADDR_IDX][7], init_addr);
+    for i in 8..trace_len {
+        assert_eq!(trace[ADDR_IDX][i], ZERO);
+    }
+
+    // --- test op bits columns -------------------------------------------------------------------
+
+    // opcodes should be: JOIN SPAN MUL END SPAN ADD END END
+    assert!(contains_op(&trace, 0, Operation::Join));
+    assert!(contains_op(&trace, 1, Operation::Span));
+    assert!(contains_op(&trace, 2, Operation::Mul));
+    assert!(contains_op(&trace, 3, Operation::End));
+    assert!(contains_op(&trace, 4, Operation::Span));
+    assert!(contains_op(&trace, 5, Operation::Add));
+    assert!(contains_op(&trace, 6, Operation::End));
+    assert!(contains_op(&trace, 7, Operation::End));
+    for i in 8..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+    }
+
+    // --- check hasher state columns -------------------------------------------------------------
+
+    // in the first row, the hasher state is set to hashes of both child nodes
+    let span1_hash: Word = span1.hash().into();
+    let span2_hash: Word = span2.hash().into();
+    assert_eq!(span1_hash, get_hasher_state1(&trace, 0));
+    assert_eq!(span2_hash, get_hasher_state2(&trace, 0));
+
+    // at the end of the first SPAN, the hasher state is set to the hash of the first child
+    assert_eq!(span1_hash, get_hasher_state1(&trace, 3));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 3));
+
+    // at the end of the second SPAN, the hasher state is set to the hash of the second child
+    assert_eq!(span2_hash, get_hasher_state1(&trace, 6));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 6));
+
+    // at the end of the program, the hasher state is set to the hash of the entire program
+    let program_hash: Word = program.hash().into();
+    assert_eq!(program_hash, get_hasher_state1(&trace, 7));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 7));
+}
+
+// SPLIT BLOCK TESTS
+// ================================================================================================
+
+#[test]
+fn split_block_true() {
+    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add]);
+    let program = CodeBlock::new_split(span1.clone(), span2.clone());
+
+    let (trace, trace_len) = build_trace(&[1], &program);
+
+    // --- check block address column -------------------------------------------------------------
+    let init_addr = ZERO;
+
+    assert_eq!(trace[ADDR_IDX][0], ZERO);
+    assert_eq!(trace[ADDR_IDX][1], init_addr); // SPAN
+    assert_eq!(trace[ADDR_IDX][2], init_addr + Felt::new(8));
+    assert_eq!(trace[ADDR_IDX][3], init_addr + Felt::new(8));
+    assert_eq!(trace[ADDR_IDX][4], init_addr);
+    for i in 5..trace_len {
+        assert_eq!(trace[ADDR_IDX][i], ZERO);
+    }
+
+    // --- test op bits columns -------------------------------------------------------------------
+
+    // opcodes should be: SPLIT SPAN MUL END END
+    assert!(contains_op(&trace, 0, Operation::Split));
+    assert!(contains_op(&trace, 1, Operation::Span));
+    assert!(contains_op(&trace, 2, Operation::Mul));
+    assert!(contains_op(&trace, 3, Operation::End));
+    assert!(contains_op(&trace, 4, Operation::End));
+    for i in 5..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+    }
+
+    // --- check hasher state columns -------------------------------------------------------------
+
+    // in the first row, the hasher state is set to hashes of both child nodes
+    let span1_hash: Word = span1.hash().into();
+    let span2_hash: Word = span2.hash().into();
+    assert_eq!(span1_hash, get_hasher_state1(&trace, 0));
+    assert_eq!(span2_hash, get_hasher_state2(&trace, 0));
+
+    // at the end of the SPAN, the hasher state is set to the hash of the first child
+    assert_eq!(span1_hash, get_hasher_state1(&trace, 3));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 3));
+
+    // at the end of the program, the hasher state is set to the hash of the entire program
+    let program_hash: Word = program.hash().into();
+    assert_eq!(program_hash, get_hasher_state1(&trace, 4));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 4));
+}
+
+#[test]
+fn split_block_false() {
+    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add]);
+    let program = CodeBlock::new_split(span1.clone(), span2.clone());
+
+    let (trace, trace_len) = build_trace(&[0], &program);
+
+    // --- check block address column -------------------------------------------------------------
+    let init_addr = ZERO;
+
+    assert_eq!(trace[ADDR_IDX][0], ZERO);
+    assert_eq!(trace[ADDR_IDX][1], init_addr); // SPAN
+    assert_eq!(trace[ADDR_IDX][2], init_addr + Felt::new(8));
+    assert_eq!(trace[ADDR_IDX][3], init_addr + Felt::new(8));
+    assert_eq!(trace[ADDR_IDX][4], init_addr);
+    for i in 5..trace_len {
+        assert_eq!(trace[ADDR_IDX][i], ZERO);
+    }
+
+    // --- test op bits columns -------------------------------------------------------------------
+
+    // opcodes should be: SPLIT SPAN MUL END END
+    assert!(contains_op(&trace, 0, Operation::Split));
+    assert!(contains_op(&trace, 1, Operation::Span));
+    assert!(contains_op(&trace, 2, Operation::Add));
+    assert!(contains_op(&trace, 3, Operation::End));
+    assert!(contains_op(&trace, 4, Operation::End));
+    for i in 5..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+    }
+
+    // --- check hasher state columns -------------------------------------------------------------
+
+    // in the first row, the hasher state is set to hashes of both child nodes
+    let span1_hash: Word = span1.hash().into();
+    let span2_hash: Word = span2.hash().into();
+    assert_eq!(span1_hash, get_hasher_state1(&trace, 0));
+    assert_eq!(span2_hash, get_hasher_state2(&trace, 0));
+
+    // at the end of the SPAN, the hasher state is set to the hash of the second child
+    assert_eq!(span2_hash, get_hasher_state1(&trace, 3));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 3));
+
+    // at the end of the program, the hasher state is set to the hash of the entire program
+    let program_hash: Word = program.hash().into();
+    assert_eq!(program_hash, get_hasher_state1(&trace, 4));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 4));
 }
 
 // LOOP BLOCK TESTS
