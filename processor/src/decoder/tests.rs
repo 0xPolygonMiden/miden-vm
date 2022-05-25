@@ -1,4 +1,4 @@
-use super::{super::DecoderTrace, Felt, Operation, NUM_OP_BITS};
+use super::{super::DecoderTrace, Felt, Operation, Word, HASHER_WIDTH, NUM_OP_BITS};
 use crate::{ExecutionTrace, Process, ProgramInputs};
 use core::ops::Range;
 use vm_core::{
@@ -8,11 +8,19 @@ use vm_core::{
 // CONSTANTS
 // ================================================================================================
 
+const ONE: Felt = Felt::ONE;
+const ZERO: Felt = Felt::ZERO;
+
+const ADDR_IDX: usize = 0;
+
 /// TODO: move to core?
 const OP_BITS_OFFSET: usize = 1;
 const OP_BITS_RANGE: Range<usize> = range(OP_BITS_OFFSET, NUM_OP_BITS);
 
 const IN_SPAN_IDX: usize = 8;
+
+const HASHER_STATE_OFFSET: usize = 9;
+const HASHER_STATE_RANGE: Range<usize> = range(HASHER_STATE_OFFSET, HASHER_WIDTH);
 
 // TESTS
 // ================================================================================================
@@ -40,6 +48,11 @@ fn join_block() {
     assert!(contains_op(&trace, 7, Operation::Add));
     assert!(contains_op(&trace, 8, Operation::End));
     assert!(contains_op(&trace, 9, Operation::End));
+
+    //for i in 0..12 {
+    //    print_row(&trace, i);
+    //}
+    //assert!(false, "all good!");
 }
 
 // SPAN BLOCK TESTS
@@ -141,11 +154,25 @@ fn span_block_with_respan() {
 #[test]
 fn loop_block() {
     let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
-    let program = CodeBlock::new_loop(loop_body);
+    let program = CodeBlock::new_loop(loop_body.clone());
 
     let (trace, trace_len) = build_trace(&[0, 1], &program);
 
-    // --- test op bits columns -----------------------------------------------
+    // --- check block address column -------------------------------------------------------------
+    let init_addr = ZERO;
+
+    assert_eq!(trace[ADDR_IDX][0], ZERO);
+    assert_eq!(trace[ADDR_IDX][1], init_addr);
+    assert_eq!(trace[ADDR_IDX][2], init_addr + Felt::new(8));
+    assert_eq!(trace[ADDR_IDX][3], init_addr + Felt::new(8));
+    assert_eq!(trace[ADDR_IDX][4], init_addr + Felt::new(8));
+    assert_eq!(trace[ADDR_IDX][5], init_addr);
+    for i in 6..trace_len {
+        assert_eq!(trace[ADDR_IDX][i], ZERO);
+    }
+
+    // --- check op bits columns ------------------------------------------------------------------
+
     assert!(contains_op(&trace, 0, Operation::Loop));
     assert!(contains_op(&trace, 1, Operation::Span));
     assert!(contains_op(&trace, 2, Operation::Pad));
@@ -155,29 +182,88 @@ fn loop_block() {
     for i in 6..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
     }
+
+    // --- check hasher state columns -------------------------------------------------------------
+
+    // in the first row, the hasher state is set to the hash of the loop's body
+    let loop_body_hash: Word = loop_body.hash().into();
+    assert_eq!(loop_body_hash, get_hasher_state1(&trace, 0));
+    assert_eq!([ZERO; 4], get_hasher_state2(&trace, 0));
+
+    // at the end of the SPAN block, the hasher state is also set to the hash of the loops body,
+    // and is_loop_body flag is also set to ONE
+    assert_eq!(loop_body_hash, get_hasher_state1(&trace, 4));
+    assert_eq!([ONE, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 4));
+
+    // the hash of the program is located in the last END row; this row should also have is_loop
+    // flag set to ONE
+    let program_hash: Word = program.hash().into();
+    assert_eq!(program_hash, get_hasher_state1(&trace, 5));
+    assert_eq!([ZERO, ONE, ZERO, ZERO], get_hasher_state2(&trace, 5));
 }
 
 #[test]
 fn loop_block_skip() {
     let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
-    let program = CodeBlock::new_loop(loop_body);
+    let program = CodeBlock::new_loop(loop_body.clone());
 
     let (trace, trace_len) = build_trace(&[0], &program);
 
-    // --- test op bits columns -----------------------------------------------
+    // --- check block address column -------------------------------------------------------------
+    let init_addr = ZERO;
+
+    assert_eq!(trace[ADDR_IDX][0], ZERO);
+    assert_eq!(trace[ADDR_IDX][1], init_addr);
+    assert_eq!(trace[ADDR_IDX][2], init_addr);
+    for i in 2..trace_len {
+        assert_eq!(trace[ADDR_IDX][i], ZERO);
+    }
+
+    // --- test op bits columns -------------------------------------------------------------------
     assert!(contains_op(&trace, 0, Operation::Loop));
     assert!(contains_op(&trace, 1, Operation::End));
     for i in 2..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
     }
+
+    // --- check hasher state columns -------------------------------------------------------------
+
+    // in the first row, the hasher state is set to the hash of the loop's body
+    let loop_body_hash: Word = loop_body.hash().into();
+    assert_eq!(loop_body_hash, get_hasher_state1(&trace, 0));
+    assert_eq!([ZERO; 4], get_hasher_state2(&trace, 0));
+
+    // the hash of the program is located in the last END row; is_loop is not set to ONE because
+    // we didn't entre the loop's body
+    let program_hash: Word = program.hash().into();
+    assert_eq!(program_hash, get_hasher_state1(&trace, 1));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 1));
 }
 
 #[test]
 fn loop_block_repeat() {
     let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
-    let program = CodeBlock::new_loop(loop_body);
+    let program = CodeBlock::new_loop(loop_body.clone());
 
     let (trace, trace_len) = build_trace(&[0, 1, 1], &program);
+
+    // --- check block address column -------------------------------------------------------------
+    let init_addr = ZERO;
+
+    assert_eq!(trace[ADDR_IDX][0], ZERO);
+    assert_eq!(trace[ADDR_IDX][1], init_addr);
+    assert_eq!(trace[ADDR_IDX][2], init_addr + Felt::new(8));
+    assert_eq!(trace[ADDR_IDX][3], init_addr + Felt::new(8));
+    assert_eq!(trace[ADDR_IDX][4], init_addr + Felt::new(8));
+    assert_eq!(trace[ADDR_IDX][5], init_addr); // REPEAT
+    assert_eq!(trace[ADDR_IDX][6], init_addr);
+    assert_eq!(trace[ADDR_IDX][7], init_addr + Felt::new(16));
+    assert_eq!(trace[ADDR_IDX][8], init_addr + Felt::new(16));
+    assert_eq!(trace[ADDR_IDX][9], init_addr + Felt::new(16));
+    assert_eq!(trace[ADDR_IDX][10], init_addr);
+    for i in 11..trace_len {
+        assert_eq!(trace[ADDR_IDX][i], ZERO);
+    }
 
     // --- test op bits columns -----------------------------------------------
     assert!(contains_op(&trace, 0, Operation::Loop));
@@ -195,10 +281,32 @@ fn loop_block_repeat() {
         assert!(contains_op(&trace, i, Operation::Halt));
     }
 
-    //for i in 0..12 {
-    //    print_row(&trace, i);
-    //}
-    //assert!(false, "all good!");
+    // --- check hasher state columns -------------------------------------------------------------
+
+    // in the first row, the hasher state is set to the hash of the loop's body
+    let loop_body_hash: Word = loop_body.hash().into();
+    assert_eq!(loop_body_hash, get_hasher_state1(&trace, 0));
+    assert_eq!([ZERO; 4], get_hasher_state2(&trace, 0));
+
+    // at the end of the first iteration, the hasher state is also set to the hash of the loops
+    // body, and is_loop_body flag is also set to ONE
+    assert_eq!(loop_body_hash, get_hasher_state1(&trace, 4));
+    assert_eq!([ONE, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 4));
+
+    // at the RESPAN row hasher state is copied over from the previous row
+    assert_eq!(loop_body_hash, get_hasher_state1(&trace, 5));
+    assert_eq!([ONE, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 5));
+
+    // at the end of the second iteration, the hasher state is again set to the hash of the loops
+    // body, and is_loop_body flag is also set to ONE
+    assert_eq!(loop_body_hash, get_hasher_state1(&trace, 9));
+    assert_eq!([ONE, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 9));
+
+    // the hash of the program is located in the last END row; this row should also have is_loop
+    // flag set to ONE
+    let program_hash: Word = program.hash().into();
+    assert_eq!(program_hash, get_hasher_state1(&trace, 10));
+    assert_eq!([ZERO, ONE, ZERO, ZERO], get_hasher_state2(&trace, 10));
 }
 
 // HELPER FUNCTIONS
@@ -238,6 +346,25 @@ fn read_opcode(trace: &DecoderTrace, row_idx: usize) -> u8 {
         result += op_bit << i;
     }
     result as u8
+}
+
+fn get_hasher_state1(trace: &DecoderTrace, row_idx: usize) -> Word {
+    let mut result = [ZERO; 4];
+    for (result, column) in result.iter_mut().zip(trace[HASHER_STATE_RANGE].iter()) {
+        *result = column[row_idx];
+    }
+    result
+}
+
+fn get_hasher_state2(trace: &DecoderTrace, row_idx: usize) -> Word {
+    let mut result = [ZERO; 4];
+    for (result, column) in result
+        .iter_mut()
+        .zip(trace[HASHER_STATE_RANGE].iter().skip(4))
+    {
+        *result = column[row_idx];
+    }
+    result
 }
 
 #[allow(dead_code)]

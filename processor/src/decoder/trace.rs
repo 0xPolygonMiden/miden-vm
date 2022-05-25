@@ -77,18 +77,24 @@ impl DecoderTrace {
     /// Appends a trace row marking the end of a flow control block (JOIN, SPLIT, LOOP).
     ///
     /// When a control block is ending, we do the following:
-    /// - Copy over the block address from the previous row.
+    /// - Set the block address to the specified address.
     /// - Set op_bits to END opcode.
     /// - Set in_span to ZERO.
     /// - Put the provided block hash into the first 4 elements of the hasher state.
     /// - Set the remaining 4 elements of the hasher state to [is_loop_body, is_loop, 0, 0].
     /// - Copy over op group count from the previous row. This group count must be ZERO.
     /// - Set operation index register to ZERO.
-    pub fn append_block_end(&mut self, block_hash: Word, is_loop_body: Felt, is_loop: Felt) {
+    pub fn append_block_end(
+        &mut self,
+        block_addr: Felt,
+        block_hash: Word,
+        is_loop_body: Felt,
+        is_loop: Felt,
+    ) {
         debug_assert!(is_loop_body.as_int() <= 1, "invalid loop body");
         debug_assert!(is_loop.as_int() <= 1, "invalid is loop");
 
-        self.addr_trace.push(self.last_addr());
+        self.addr_trace.push(block_addr);
         self.append_opcode(Operation::End);
         self.in_span_trace.push(Felt::ZERO);
 

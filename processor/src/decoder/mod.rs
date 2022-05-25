@@ -192,8 +192,12 @@ impl Decoder {
 
     pub fn end_control_block(&mut self, block_hash: Word) {
         let block_info = self.block_stack.pop();
-        self.trace
-            .append_block_end(block_hash, block_info.is_loop_body, block_info.is_loop);
+        self.trace.append_block_end(
+            block_info.addr,
+            block_hash,
+            block_info.is_loop_body,
+            block_info.is_loop,
+        );
     }
 
     // SPAN BLOCK
