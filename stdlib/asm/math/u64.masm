@@ -25,7 +25,7 @@ export.overflowing_add
     u32add.unsafe
     movup.3
     movup.3
-    u32addc.unsafe
+    u32add3.unsafe
 end
 
 # Performs addition of two unsigned 64 bit integers discarding the overflow.
@@ -427,7 +427,7 @@ export.unchecked_div
     u32add.unsafe
     movup.3
     movup.3
-    u32addc.unsafe
+    u32add3.unsafe
     eq.0
     assert
 
@@ -496,7 +496,7 @@ export.unchecked_mod
     u32add.unsafe
     movup.4
     dup.3
-    u32addc.unsafe
+    u32add3.unsafe
     eq.0
     assert
 
@@ -565,7 +565,7 @@ export.unchecked_divmod
     u32add.unsafe
     movup.4
     dup.3
-    u32addc.unsafe
+    u32add3.unsafe
     eq.0
     assert
 

@@ -159,18 +159,33 @@ pub fn parse_u32add(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
     handle_arithmetic_operation(span_ops, op, Operation::U32add, false)
 }
 
-/// Translates u32addc assembly instruction to VM operations.
+/// Translates u32add3 assembly instruction to VM operations.
 ///
-/// In the unsafe mode this translates directly to `U32ADDC` operation. In the safe mode,
-/// we also assert that both inputs are u32 values.
+/// In the unsafe mode this translates directly to `U32ADD3` operation. In the safe mode,
+/// we also assert that all three inputs are u32 values.
 ///
 /// VM cycles per mode:
-/// - u32addc: 8 cycles
-/// - u32addc.unsafe: 1 cycle
-pub fn parse_u32addc(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    handle_u32_and_unsafe_check(span_ops, op, false)?;
+/// - u32add3: 4 cycles
+/// - u32add3.unsafe: 1 cycle
+pub fn parse_u32add3(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    // handle_u32_and_unsafe_check(span_ops, op, false)?;
 
-    span_ops.push(Operation::U32addc);
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => {
+            span_ops.push(Operation::U32assert2);
+            span_ops.push(Operation::MovUp2);
+            span_ops.push(Operation::U32assert2);
+        }
+        2 => {
+            if op.parts()[1] != "unsafe" {
+                return Err(AssemblyError::invalid_param(op, 1));
+            }
+        }
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    span_ops.push(Operation::U32add3);
 
     Ok(())
 }

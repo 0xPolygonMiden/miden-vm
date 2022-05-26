@@ -57,7 +57,7 @@ impl Process {
             // ----- u32 operations ---------------------------------------------------------------
             Operation::U32split => self.op_u32split()?,
             Operation::U32add => self.op_u32add()?,
-            Operation::U32addc => self.op_u32addc()?,
+            Operation::U32add3 => self.op_u32add3()?,
             Operation::U32sub => self.op_u32sub()?,
             Operation::U32mul => self.op_u32mul()?,
             Operation::U32madd => self.op_u32madd()?,

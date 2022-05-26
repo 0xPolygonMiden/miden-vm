@@ -5,28 +5,28 @@ export.add_unsafe
     u32add.unsafe
     movup.4
     movup.7
-    u32addc.unsafe
+    u32add3.unsafe
     movup.4
     movup.6
-    u32addc.unsafe
+    u32add3.unsafe
     movup.4
     movup.5
-    u32addc.unsafe
+    u32add3.unsafe
     movdn.12
     swapw.2
     movup.12
     movup.4
     movup.8
-    u32addc.unsafe
+    u32add3.unsafe
     movup.4
     movup.7
-    u32addc.unsafe
+    u32add3.unsafe
     movup.4
     movup.6
-    u32addc.unsafe
+    u32add3.unsafe
     movup.4
     movup.5
-    u32addc.unsafe
+    u32add3.unsafe
     drop
 end
 

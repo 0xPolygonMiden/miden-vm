@@ -126,10 +126,7 @@ pub enum Operation {
 
     /// Pops three elements off the stack, adds them together, and splits the result into upper
     /// and lower 32-bit values. Then pushes the result back onto the stack.
-    ///
-    /// If either of the top two elements is greater than or equal to 2^32, the result of this
-    /// operation is undefined. If the third element is greater than 1, execution fails.
-    U32addc,
+    U32add3,
 
     /// Pops two elements off the stack and subtracts the first element from the second. Then,
     /// the result, together with a flag indicating whether subtraction underflowed is pushed
@@ -463,7 +460,7 @@ impl Operation {
             Self::U32assert2 => Some(57),
             Self::U32split => Some(58),
             Self::U32add => Some(59),
-            Self::U32addc => Some(60),
+            Self::U32add3 => Some(60),
             Self::U32sub => Some(61),
             Self::U32mul => Some(62),
             Self::U32madd => Some(63),
@@ -558,7 +555,7 @@ impl fmt::Display for Operation {
             Self::U32assert2 => write!(f, "u32assert2"),
             Self::U32split => write!(f, "u32split"),
             Self::U32add => write!(f, "u32add"),
-            Self::U32addc => write!(f, "u32addc"),
+            Self::U32add3 => write!(f, "u32add3"),
             Self::U32sub => write!(f, "u32sub"),
             Self::U32mul => write!(f, "u32mul"),
             Self::U32madd => write!(f, "u32madd"),
