@@ -2046,7 +2046,7 @@ proc.theta.7
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ρ ( rho ) function, which is
-  implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L115-L147
+# implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L115-L147
 proc.rho.4
     popw.local.0
     popw.local.1
@@ -2292,7 +2292,7 @@ proc.rho.4
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's π function, which is
-  implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L169-L207
+# implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L169-L207
 proc.pi.17
     popw.local.0
     popw.local.1
