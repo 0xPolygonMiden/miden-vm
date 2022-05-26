@@ -87,15 +87,8 @@ impl Air for ProcessorAir {
     // --------------------------------------------------------------------------------------------
 
     /// Returns a set of periodic columns for the ProcessorAir.
-    ///
-    /// The columns consist of:
-    /// - k0 column, which has a repeating pattern of a single one followed by 7 zeros.
-    /// - k1 column, which has a repeating pattern of a 7 ones followed by a single zero.
     fn get_periodic_column_values(&self) -> Vec<Vec<Felt>> {
-        vec![
-            aux_table::BITWISE_POW2_K0_MASK.to_vec(),
-            aux_table::BITWISE_POW2_K1_MASK.to_vec(),
-        ]
+        aux_table::get_periodic_column_values()
     }
 
     // ASSERTIONS

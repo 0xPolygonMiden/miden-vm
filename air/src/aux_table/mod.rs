@@ -1,13 +1,10 @@
-use super::{EvaluationFrame, FieldElement, TransitionConstraintDegree};
+use super::{EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree};
 use crate::utils::{binary_not, is_binary};
 use vm_core::AUX_TRACE_OFFSET;
 
 mod bitwise_pow2;
+mod hasher;
 mod memory;
-
-// EXPORTS
-// ================================================================================================
-pub use bitwise_pow2::{BITWISE_POW2_K0_MASK, BITWISE_POW2_K1_MASK};
 
 // CONSTANTS
 // ================================================================================================
@@ -32,8 +29,20 @@ pub const S2_COL_IDX: usize = AUX_TRACE_OFFSET + 2;
 
 /// The first column of the bitwise co-processor.
 pub const BITWISE_TRACE_OFFSET: usize = S1_COL_IDX + 1;
+/// The first column of the hasher co-processor.
+pub const HASHER_TRACE_OFFSET: usize = S0_COL_IDX + 1;
 /// The first column of the memory co-processor.
 pub const MEMORY_TRACE_OFFSET: usize = S2_COL_IDX + 1;
+
+// PERIODIC COLUMNS
+// ================================================================================================
+
+/// Returns the set of periodic columns required by the co-processors in the Auxiliary Table.
+pub fn get_periodic_column_values() -> Vec<Vec<Felt>> {
+    let mut result = hasher::get_periodic_column_values();
+    result.append(&mut bitwise_pow2::get_periodic_column_values());
+    result
+}
 
 // AUXILIARY TABLE TRANSITION CONSTRAINTS
 // ================================================================================================
@@ -44,6 +53,8 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
         .iter()
         .map(|&degree| TransitionConstraintDegree::new(degree))
         .collect();
+
+    degrees.append(&mut hasher::get_transition_constraint_degrees());
 
     degrees.append(&mut bitwise_pow2::get_transition_constraint_degrees());
 
@@ -56,24 +67,35 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
 /// co-processors.
 pub fn get_transition_constraint_count() -> usize {
     NUM_CONSTRAINTS
+        + hasher::get_transition_constraint_count()
         + bitwise_pow2::get_transition_constraint_count()
         + memory::get_transition_constraint_count()
 }
 
 /// Enforces constraints for the auxiliary table and all of its co-processors.
-pub fn enforce_constraints<E: FieldElement>(
+pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     periodic_values: &[E],
     result: &mut [E],
 ) {
     // auxiliary table transition constraints
     enforce_selectors(frame, result);
-
     let mut constraint_offset = NUM_CONSTRAINTS;
+
+    // hasher transition constraints
+    hasher::enforce_constraints(
+        frame,
+        &periodic_values[..hasher::NUM_PERIODIC_COLUMNS],
+        &mut result[constraint_offset..],
+        frame.hasher_flag(),
+        binary_not(frame.s0_next()),
+    );
+    constraint_offset += hasher::get_transition_constraint_count();
+
     // bitwise transition constraints
     bitwise_pow2::enforce_constraints(
         frame,
-        periodic_values,
+        &periodic_values[hasher::NUM_PERIODIC_COLUMNS..],
         &mut result[constraint_offset..],
         frame.bitwise_flag(),
     );
@@ -110,6 +132,9 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// Current value of the S0 selector column.
     fn s0(&self) -> E;
 
+    /// Value of the S0 selector column in the next row.
+    fn s0_next(&self) -> E;
+
     /// Current value of the S1 selector column.
     fn s1(&self) -> E;
 
@@ -134,6 +159,10 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     #[inline(always)]
     fn s0(&self) -> E {
         self.current()[S0_COL_IDX]
+    }
+    #[inline(always)]
+    fn s0_next(&self) -> E {
+        self.next()[S0_COL_IDX]
     }
     #[inline(always)]
     fn s1(&self) -> E {

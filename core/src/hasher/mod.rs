@@ -1,6 +1,8 @@
 //! TODO: add docs
 
-use super::Felt;
+use std::ops::Range;
+
+use super::{Felt, FieldElement};
 use crypto::{ElementHasher, Hasher as HashFn};
 
 pub use crypto::hashers::Rp64_256 as Hasher;
@@ -13,6 +15,8 @@ pub use crypto::hashers::Rp64_256 as Hasher;
 /// The digest consists of 4 field elements or 32 bytes.
 pub type Digest = <Hasher as HashFn>::Digest;
 
+pub type Selectors = [Felt; NUM_SELECTORS];
+
 // CONSTANTS
 // ================================================================================================
 
@@ -23,10 +27,51 @@ pub type Digest = <Hasher as HashFn>::Digest;
 /// permutation.
 pub const STATE_WIDTH: usize = Hasher::STATE_WIDTH;
 
+/// The length of the capacity portion of the hash state.
+pub const CAPACITY_LEN: usize = 4;
+
+// The length of the output portion of the hash state.
+pub const DIGEST_LEN: usize = 4;
+
+/// The output portion of the hash state, located in state elements 4, 5, 6, and 7.
+pub const DIGEST_RANGE: Range<usize> = Hasher::DIGEST_RANGE;
+
 /// Number of needed to complete a single permutation.
 ///
 /// This value is set to 7 to target 128-bit security level with 40% security margin.
 pub const NUM_ROUNDS: usize = Hasher::NUM_ROUNDS;
+
+/// Number of selector columns in the trace.
+pub const NUM_SELECTORS: usize = 3;
+
+/// Number of columns in Hasher execution trace. Additional two columns are for row address and
+/// node index columns.
+pub const TRACE_WIDTH: usize = NUM_SELECTORS + STATE_WIDTH + 2;
+
+/// Specifies a start of a new linear hash computation or absorption of new elements into an
+/// executing linear hash computation. These selectors can also be used for a simple 2-to-1 hash
+/// computation.
+pub const LINEAR_HASH: Selectors = [Felt::ONE, Felt::ZERO, Felt::ZERO];
+
+/// Specifies a start of Merkle path verification computation or absorption of a new path node
+/// into the hasher state.
+pub const MP_VERIFY: Selectors = [Felt::ONE, Felt::ZERO, Felt::ONE];
+
+/// Specifies a start of Merkle path verification or absorption of a new path node into the hasher
+/// state for the "old" node value during Merkle root update computation.
+pub const MR_UPDATE_OLD: Selectors = [Felt::ONE, Felt::ONE, Felt::ZERO];
+
+/// Specifies a start of Merkle path verification or absorption of a new path node into the hasher
+/// state for the "new" node value during Merkle root update computation.
+pub const MR_UPDATE_NEW: Selectors = [Felt::ONE, Felt::ONE, Felt::ONE];
+
+/// Specifies a completion of a computation such that only the hash result (values in h0, h1, h2
+/// h3) is returned.
+pub const RETURN_HASH: Selectors = [Felt::ZERO, Felt::ZERO, Felt::ZERO];
+
+/// Specifies a completion of a computation such that the entire hasher state (values in h0 through
+/// h11) is returned.
+pub const RETURN_STATE: Selectors = [Felt::ZERO, Felt::ZERO, Felt::ONE];
 
 // PASS-THROUGH FUNCTIONS
 // ================================================================================================

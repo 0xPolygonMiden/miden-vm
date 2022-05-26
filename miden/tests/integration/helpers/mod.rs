@@ -3,6 +3,8 @@ use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
 pub use vm_core::{program::Script, Felt, FieldElement, ProgramInputs, MIN_STACK_DEPTH};
 
+pub mod crypto;
+
 // CONSTANTS
 // ================================================================================================
 pub const WORD_LEN: usize = 4;

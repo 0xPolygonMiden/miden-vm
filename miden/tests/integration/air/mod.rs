@@ -2,6 +2,7 @@ use crate::build_test;
 use rand_utils::rand_vector;
 
 mod bitwise;
+mod hasher;
 mod memory;
 
 #[test]
