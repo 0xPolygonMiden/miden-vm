@@ -1,7 +1,4 @@
-use super::{
-    AdviceInjector, ExecutionError, Felt, FieldElement, Operation, Process,
-    StarkField, Word,
-};
+use super::{AdviceInjector, ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
 
 mod crypto_ops;
 mod decorators;

@@ -650,11 +650,7 @@ mod tests {
 
     #[test]
     fn batch_ops_with_decorator() {
-        let ops = vec![
-            Operation::Push(Felt::ONE),
-            Operation::Add,
-            Operation::Mul,
-        ];
+        let ops = vec![Operation::Push(Felt::ONE), Operation::Add, Operation::Mul];
         let (batches, hash) = super::batch_ops(ops.clone());
         assert_eq!(1, batches.len());
         let batch = &batches[0];

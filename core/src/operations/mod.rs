@@ -4,7 +4,6 @@ use core::fmt;
 mod advice;
 pub use advice::AdviceInjector;
 
-
 // OPERATIONS
 // ================================================================================================
 
@@ -371,7 +370,6 @@ pub enum Operation {
     MrUpdate(bool),
 
     // ----- decorators ---------------------------------------------------------------------------
-
     /// Injects zero or more values at the head of the advice tape as specified by the injector.
     /// This operation affects only the advice tape, but has no effect on other VM components
     /// (e.g., stack, memory), and does not advance VM clock.
