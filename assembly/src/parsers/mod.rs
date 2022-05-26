@@ -55,7 +55,7 @@ fn parse_op_token(
         "u32split" => u32_ops::parse_u32split(span_ops, op),
 
         "u32add" => u32_ops::parse_u32add(span_ops, op),
-        "u32addc" => u32_ops::parse_u32addc(span_ops, op),
+        "u32add3" => u32_ops::parse_u32add3(span_ops, op),
         "u32sub" => u32_ops::parse_u32sub(span_ops, op),
         "u32mul" => u32_ops::parse_u32mul(span_ops, op),
         "u32madd" => u32_ops::parse_u32madd(span_ops, op),

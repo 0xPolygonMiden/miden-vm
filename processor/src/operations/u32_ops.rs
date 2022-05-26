@@ -1,4 +1,4 @@
-use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Process, StarkField};
+use super::{ExecutionError, Felt, FieldElement, Process, StarkField};
 
 impl Process {
     // CASTING OPERATIONS
@@ -63,17 +63,14 @@ impl Process {
 
     /// Pops three elements off the stack, adds them, splits the result into low and high 32-bit
     /// values, and pushes these values back onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the third element from the top fo the stack is not a binary value.
-    pub(super) fn op_u32addc(&mut self) -> Result<(), ExecutionError> {
-        let b = self.stack.get(0).as_int();
-        let a = self.stack.get(1).as_int();
-        let c = assert_binary(self.stack.get(2))?.as_int();
+    pub(super) fn op_u32add3(&mut self) -> Result<(), ExecutionError> {
+        let c = self.stack.get(0).as_int();
+        let b = self.stack.get(1).as_int();
+        let a = self.stack.get(2).as_int();
         let result = Felt::new(a + b + c);
         let (lo, hi) = split_element(result);
 
-        self.add_range_checks(lo, None);
+        self.add_range_checks(lo, Some(hi));
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
@@ -318,12 +315,11 @@ mod tests {
     }
 
     #[test]
-    fn op_u32addc() {
-        // --- test c = 1 -----------------------------------------------------
-        let a = (rand_value::<u64>() as u32) as u64;
-        let b = (rand_value::<u64>() as u32) as u64;
-        let c = 1u64;
-        let d = (rand_value::<u64>() as u32) as u64;
+    fn op_u32add3() {
+        let a = rand_value::<u32>() as u64;
+        let b = rand_value::<u32>() as u64;
+        let c = rand_value::<u32>() as u64;
+        let d = rand_value::<u32>() as u64;
 
         let mut process = Process::new_dummy();
         init_stack_with(&mut process, &[d, c, b, a]);
@@ -331,24 +327,15 @@ mod tests {
         let result = a + b + c;
         let hi = (result >> 32) as u32;
         let lo = result as u32;
-        assert!(hi <= 1);
+        assert!(hi <= 2);
 
-        process.execute_op(Operation::U32addc).unwrap();
+        process.execute_op(Operation::U32add3).unwrap();
         let expected = build_expected(&[hi, lo, d as u32]);
         assert_eq!(expected, process.stack.trace_state());
 
-        // --- test c > 1 -----------------------------------------------------
-        let a = (rand_value::<u64>() as u32) as u64;
-        let b = (rand_value::<u64>() as u32) as u64;
-        let c = 2u64;
-
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[c, b, a]);
-        assert!(process.execute_op(Operation::U32addc).is_err());
-
         // --- test with minimum stack depth ----------------------------------
         let mut process = Process::new_dummy();
-        assert!(process.execute_op(Operation::U32addc).is_ok());
+        assert!(process.execute_op(Operation::U32add3).is_ok());
     }
 
     #[test]
