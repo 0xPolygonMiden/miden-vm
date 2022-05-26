@@ -28,7 +28,7 @@ impl fmt::Display for VmState {
 }
 
 /// Iterator that iterates through vm state at each step of the execution.
-/// This allows debuging or replaying ability to view various process state
+/// This allows debugging or replaying ability to view various process state
 /// at each clock cycle.
 /// If the execution returned an error, it returns that error on the clock cycle
 /// it stopped.
