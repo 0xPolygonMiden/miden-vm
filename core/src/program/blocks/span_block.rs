@@ -346,7 +346,6 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
 #[cfg(test)]
 mod tests {
     use super::{hasher, Felt, FieldElement, Operation, BATCH_SIZE};
-    use crate::DebugOptions;
 
     #[test]
     fn batch_ops() {
@@ -654,7 +653,6 @@ mod tests {
         let ops = vec![
             Operation::Push(Felt::ONE),
             Operation::Add,
-            Operation::Debug(DebugOptions::All),
             Operation::Mul,
         ];
         let (batches, hash) = super::batch_ops(ops.clone());

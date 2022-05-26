@@ -5,7 +5,7 @@ use vm_core::{
         blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split, OP_GROUP_SIZE},
         Script,
     },
-    AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
+    AdviceInjector, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
     StarkField, Word, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN, NUM_STACK_HELPER_COLS,
     RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH,
 };

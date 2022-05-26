@@ -1,54 +1,11 @@
-use super::{AdviceInjector, DebugOptions, ExecutionError, Felt, Process, StarkField, Word};
+use super::{AdviceInjector, ExecutionError, Felt, Process, StarkField, Word};
 use core::ops::RangeInclusive;
 use log::info;
-
-#[cfg(test)]
-mod debug_tests;
 
 // DECORATORS
 // ================================================================================================
 
 impl Process {
-    // DEBUGGING
-    // --------------------------------------------------------------------------------------------
-
-    /// Prints out debugging information based on options passed.
-    pub fn op_debug(&mut self, options: DebugOptions) -> Result<(), ExecutionError> {
-        info!(
-            "---------------------cycle: {}---------------------",
-            self.system.clk()
-        );
-        match options {
-            DebugOptions::All => {
-                self.print_stack(None);
-                self.print_mem(None, None);
-                self.print_local();
-            }
-            DebugOptions::Stack(n) => self.print_stack(n),
-            DebugOptions::Memory(n, m) => self.print_mem(n, m),
-            DebugOptions::Local(_) => self.print_local(),
-        }
-
-        Ok(())
-    }
-
-    // DEBUG HELPER
-    // ---------------------------------------------------------------------------------
-
-    /// Prints stack information for debugging.
-    /// If n is passed, this prints the top n items in the stack.
-    fn print_stack(&self, n: Option<usize>) {
-        let states = self.stack.get_values(n);
-        let values = states
-            .iter()
-            .map(|v| v.as_int().to_string())
-            .collect::<Vec<String>>()
-            .join(", ");
-        let depth = self.stack.depth();
-        info!("stack ({} of {}) ---------", n.unwrap_or(depth), depth);
-        info!("{}", values);
-    }
-
     /// Create the display string for printing a word.
     /// Prints <empty> if no value exists.
     fn fmt_word(word: Option<Word>) -> String {
