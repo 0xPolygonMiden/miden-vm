@@ -1,5 +1,5 @@
 use vm_core::{
-    range::{P0_COL_IDX, S0_COL_IDX, S1_COL_IDX, T_COL_IDX, V_COL_IDX},
+    range::{P0_COL_IDX, P1_COL_IDX, S0_COL_IDX, S1_COL_IDX, T_COL_IDX, V_COL_IDX},
     ExtensionOf,
 };
 use winter_air::AuxTraceRandElements;
@@ -30,11 +30,11 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
 // --- Auxiliary column constraints for multiset checks -------------------------------------------
 
 /// The number of auxiliary assertions for multiset checks.
-pub const NUM_AUX_ASSERTIONS: usize = 2;
+pub const NUM_AUX_ASSERTIONS: usize = 3;
 /// The number of transition constraints required by multiset checks for the Range Checker.
-pub const NUM_AUX_CONSTRAINTS: usize = 1;
+pub const NUM_AUX_CONSTRAINTS: usize = 2;
 /// The degrees of the Range Checker's auxiliary column constraints, used for multiset checks.
-pub const AUX_CONSTRAINT_DEGREES: [usize; NUM_AUX_CONSTRAINTS] = [8];
+pub const AUX_CONSTRAINT_DEGREES: [usize; NUM_AUX_CONSTRAINTS] = [8, 8];
 
 // BOUNDARY CONSTRAINTS
 // ================================================================================================
@@ -58,11 +58,14 @@ pub fn get_assertions_last_step(result: &mut Vec<Assertion<Felt>>, step: usize) 
 pub fn get_aux_assertions_first_step<E: FieldElement>(result: &mut Vec<Assertion<E>>) {
     let step = 0;
     result.push(Assertion::single(P0_COL_IDX, step, E::ONE));
+    result.push(Assertion::single(P1_COL_IDX, step, E::ONE));
 }
 
 /// Returns the range checker's boundary assertions for auxiliary columns at the last step.
 pub fn get_aux_assertions_last_step<E: FieldElement>(result: &mut Vec<Assertion<E>>, step: usize) {
     result.push(Assertion::single(P0_COL_IDX, step, E::ONE));
+    // TODO: Add assertion that p1 is ONE at the last step after changes to update p1 from the
+    // operations processor are completed.
 }
 
 // TRANSITION CONSTRAINTS
@@ -116,10 +119,19 @@ pub fn enforce_aux_constraints<F, E>(
     F: FieldElement<BaseField = Felt>,
     E: FieldElement<BaseField = Felt> + ExtensionOf<F>,
 {
+    // Get the first random element for this segment.
     let alpha = aux_rand_elements.get_segment_elements(0)[0];
 
     // Enforce p0.
-    enforce_running_product_p0(main_frame, aux_frame, alpha, result);
+    let constraint_offset = enforce_running_product_p0(main_frame, aux_frame, alpha, result);
+
+    // Enforce p1.
+    enforce_running_product_p1(
+        main_frame,
+        aux_frame,
+        alpha,
+        &mut result[constraint_offset..],
+    );
 }
 
 // TRANSITION CONSTRAINT HELPERS
@@ -196,6 +208,25 @@ where
     constraint_offset
 }
 
+/// Ensures that the 16-bit running product is computed correctly in the column `p1`. It enforces
+/// that the value only changes during the 16-bit section of the table, where the value of `z` is
+/// included at each step, ensuring that the values in the 16-bit section are multiplied into `p1`
+/// 0, 1, 2, or 4 times, according to the selector flags.
+fn enforce_running_product_p1<E, F>(
+    main_frame: &EvaluationFrame<F>,
+    aux_frame: &EvaluationFrame<E>,
+    alpha: E,
+    result: &mut [E],
+) where
+    F: FieldElement<BaseField = Felt>,
+    E: FieldElement<BaseField = Felt> + ExtensionOf<F>,
+{
+    let z = get_z(main_frame, alpha);
+    let t: E = main_frame.t().into();
+
+    result[0] = aux_frame.p1_next() - aux_frame.p1() * (z * t - t + E::ONE);
+}
+
 /// Returns the value `z` which is included in the running product columns at each step. `z` causes
 /// the row's value to be included 0, 1, 2, or 4 times, according to the row's selector flags row.
 fn get_z<E, F>(main_frame: &EvaluationFrame<F>, alpha: E) -> E
@@ -245,6 +276,10 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn p0(&self) -> E;
     /// The next value in auxiliary column p0.
     fn p0_next(&self) -> E;
+    /// The current value in auxiliary column p1.
+    fn p1(&self) -> E;
+    /// The next value in auxiliary column p1.
+    fn p1_next(&self) -> E;
 
     // --- Intermediate variables & helpers -------------------------------------------------------
 
@@ -300,6 +335,16 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     #[inline(always)]
     fn p0_next(&self) -> E {
         self.next()[P0_COL_IDX]
+    }
+
+    #[inline(always)]
+    fn p1(&self) -> E {
+        self.current()[P1_COL_IDX]
+    }
+
+    #[inline(always)]
+    fn p1_next(&self) -> E {
+        self.next()[P1_COL_IDX]
     }
 
     // --- Intermediate variables & helpers -------------------------------------------------------
