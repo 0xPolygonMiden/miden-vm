@@ -56,8 +56,12 @@ pub use debug::{VmState, VmStateIterator};
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 type DecoderTrace = [Vec<Felt>; DECODER_TRACE_WIDTH];
 type StackTrace = [Vec<Felt>; STACK_TRACE_WIDTH];
-type RangeCheckTrace = [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH];
 type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
+
+pub struct RangeCheckTrace {
+    trace: [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH],
+    aux_trace_hints: range::AuxTraceHints,
+}
 
 // EXECUTOR
 // ================================================================================================
