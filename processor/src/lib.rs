@@ -2,7 +2,7 @@ use vm_core::{
     errors::AdviceSetError,
     hasher::Digest,
     program::{
-        blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split, OP_GROUP_SIZE},
+        blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE},
         Script,
     },
     AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
@@ -180,7 +180,7 @@ impl Process {
             // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
             // which drops the condition from the stack
             while self.stack.peek() == Felt::ONE {
-                self.decoder.repeat(block);
+                self.decoder.repeat();
                 self.execute_op(Operation::Drop)?;
                 self.execute_code_block(block.body())?;
             }
@@ -248,12 +248,10 @@ impl Process {
             self.execute_op(op)?;
 
             // if the operation carries an immediate value, the value is stored at the next group
-            // pointer; so, we advance the pointer to the following group and also update the
-            // number of remaining operation groups in the span
+            // pointer; so, we advance the pointer to the following group
             let has_imm = op.imm_value().is_some();
             if has_imm {
                 next_group_idx += 1;
-                self.decoder.consume_imm_value();
             }
 
             // determine if we've executed all non-decorator operations in a group

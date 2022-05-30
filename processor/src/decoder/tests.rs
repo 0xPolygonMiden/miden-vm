@@ -26,6 +26,25 @@ const HASHER_STATE_RANGE: Range<usize> = range(HASHER_STATE_OFFSET, HASHER_WIDTH
 // ================================================================================================
 
 #[test]
+fn span_block_small() {
+    let program = CodeBlock::new_span(vec![
+        Operation::Push(Felt::new(1)),
+        Operation::Push(Felt::new(2)),
+        Operation::Add,
+    ]);
+
+    let (trace, _trace_len) = build_trace(&[], &program);
+
+    // --- test op bits columns -------------------------------------------------------------------
+    assert!(contains_op(&trace, 0, Operation::Span));
+    assert!(contains_op(&trace, 1, Operation::Push(Felt::new(1))));
+    assert!(contains_op(&trace, 2, Operation::Push(Felt::new(2))));
+    assert!(contains_op(&trace, 3, Operation::Add));
+    assert!(contains_op(&trace, 4, Operation::Noop));
+    assert!(contains_op(&trace, 5, Operation::End));
+}
+
+#[test]
 fn span_block() {
     let program = CodeBlock::new_span(vec![
         Operation::Push(Felt::new(1)),
@@ -43,10 +62,6 @@ fn span_block() {
     ]);
 
     let (trace, trace_len) = build_trace(&[], &program);
-
-    //for i in 0..20 {
-    //    print_row(&trace, i);
-    //}
 
     // --- test op bits columns -----------------------------------------------
     // two NOOPs are inserted by the processor:
@@ -80,8 +95,6 @@ fn span_block() {
     for i in 15..trace_len {
         assert_eq!(Felt::ZERO, trace[IN_SPAN_IDX][i]);
     }
-
-    //assert!(false, "all good!");
 }
 
 #[test]
@@ -106,8 +119,6 @@ fn span_block_with_respan() {
         Operation::Push(Felt::new(8)),
         Operation::Pow2,
         Operation::Push(Felt::new(9)),
-        Operation::Pow2,
-        Operation::Push(Felt::new(63)),
         Operation::Pow2,
     ]);
 

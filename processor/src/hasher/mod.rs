@@ -1,8 +1,11 @@
 use super::{Felt, FieldElement, StarkField, TraceFragment, Word};
 use core::ops::Range;
-use vm_core::hasher::{
-    Selectors, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE,
-    STATE_WIDTH, TRACE_WIDTH,
+use vm_core::{
+    hasher::{
+        Selectors, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE,
+        STATE_WIDTH, TRACE_WIDTH,
+    },
+    program::blocks::{OpBatch, OP_BATCH_SIZE},
 };
 
 mod trace;
@@ -16,6 +19,8 @@ mod tests;
 
 /// Elements of the hasher state which are returned as hash result.
 const HASH_RESULT_RANGE: Range<usize> = Range { start: 4, end: 8 };
+
+const ZERO: Felt = Felt::ZERO;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -83,14 +88,6 @@ impl Hasher {
     // HASHING METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// TODO: add docs
-    pub fn hash(&mut self, mut state: HasherState) -> (Felt, HasherState) {
-        let addr = self.trace.next_row_addr();
-        self.trace
-            .append_permutation(&mut state, LINEAR_HASH, RETURN_HASH, Felt::ZERO, Felt::ZERO);
-        (addr, state)
-    }
-
     /// Applies a single permutation of the hash function to the provided state and records the
     /// execution trace of this computation.
     ///
@@ -98,14 +95,55 @@ impl Hasher {
     /// execution trace at which the permutation started.
     pub fn permute(&mut self, mut state: HasherState) -> (Felt, HasherState) {
         let addr = self.trace.next_row_addr();
-        self.trace.append_permutation(
-            &mut state,
-            LINEAR_HASH,
-            RETURN_STATE,
-            Felt::ZERO,
-            Felt::ZERO,
-        );
+        self.trace
+            .append_permutation(&mut state, LINEAR_HASH, RETURN_STATE);
         (addr, state)
+    }
+
+    /// TODO: add docs
+    pub fn hash_2to1(&mut self, h1: Word, h2: Word) -> (Felt, Word) {
+        let addr = self.trace.next_row_addr();
+        // TODO: use more specialized function
+        let mut state = build_merge_state(&h1, &h2, 0);
+        self.trace
+            .append_permutation(&mut state, LINEAR_HASH, RETURN_HASH);
+        let result = state[HASH_RESULT_RANGE]
+            .try_into()
+            .expect("failed to get result from hasher state");
+        (addr, result)
+    }
+
+    /// TODO: add docs
+    pub fn hash_span_block(&mut self, op_batches: &[OpBatch]) -> (Felt, Word) {
+        let addr = self.trace.next_row_addr();
+
+        let num_elements = op_batches.len() * OP_BATCH_SIZE;
+        let mut state = init_state(op_batches[0].groups(), num_elements);
+
+        // TODO: make more readable
+        let num_batches = op_batches.len();
+        if num_batches == 1 {
+            self.trace
+                .append_permutation(&mut state, LINEAR_HASH, RETURN_HASH);
+        } else {
+            self.trace
+                .append_permutation(&mut state, LINEAR_HASH, LINEAR_HASH);
+
+            for batch in op_batches.iter().take(num_batches - 1).skip(1) {
+                absorb_into_state(&mut state, batch.groups());
+                self.trace
+                    .append_permutation(&mut state, RETURN_HASH, LINEAR_HASH);
+            }
+            absorb_into_state(&mut state, op_batches[num_batches - 1].groups());
+            self.trace
+                .append_permutation(&mut state, RETURN_HASH, RETURN_HASH);
+        }
+
+        let result = state[HASH_RESULT_RANGE]
+            .try_into()
+            .expect("failed to get result from hasher state");
+
+        (addr, result)
     }
 
     /// Performs Merkle path verification computation and records its execution trace.
@@ -237,14 +275,14 @@ impl Hasher {
         // of init_selectors is not ZERO (i.e., we are processing the first leg of the Merkle
         // path), the index for the first row is different from the index for the other rows;
         // otherwise, indexes are the same.
-        let (init_index, rest_index) = if init_selectors[0] == Felt::ZERO {
+        let (init_index, rest_index) = if init_selectors[0] == ZERO {
             (Felt::new(*index >> 1), Felt::new(*index >> 1))
         } else {
             (Felt::new(*index), Felt::new(*index >> 1))
         };
 
         // apply the permutation to the state and record its trace
-        self.trace.append_permutation(
+        self.trace.append_permutation_with_index(
             &mut state,
             init_selectors,
             final_selectors,
@@ -295,7 +333,7 @@ impl MerklePathContext {
     /// from selector values by replacing the first selector with ZERO.
     pub fn part_selectors(&self) -> Selectors {
         let selectors = self.main_selectors();
-        [Felt::ZERO, selectors[1], selectors[2]]
+        [ZERO, selectors[1], selectors[2]]
     }
 }
 
@@ -311,7 +349,6 @@ impl MerklePathContext {
 /// followed by 3 zeros.
 fn build_merge_state(a: &Word, b: &Word, index_bit: u64) -> HasherState {
     const EIGHT: Felt = Felt::new(8);
-    const ZERO: Felt = Felt::ZERO;
     match index_bit {
         0 => [
             EIGHT, ZERO, ZERO, ZERO, a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3],
@@ -321,4 +358,33 @@ fn build_merge_state(a: &Word, b: &Word, index_bit: u64) -> HasherState {
         ],
         _ => panic!("index bit is not a binary value"),
     }
+}
+
+fn init_state(init_values: &[Felt; 8], num_elements: usize) -> HasherState {
+    [
+        Felt::new(num_elements as u64),
+        ZERO,
+        ZERO,
+        ZERO,
+        init_values[0],
+        init_values[1],
+        init_values[2],
+        init_values[3],
+        init_values[4],
+        init_values[5],
+        init_values[6],
+        init_values[7],
+    ]
+}
+
+/// TODO: add comments
+fn absorb_into_state(state: &mut HasherState, values: &[Felt; 8]) {
+    state[4] += values[0];
+    state[5] += values[1];
+    state[6] += values[2];
+    state[7] += values[3];
+    state[8] += values[4];
+    state[9] += values[5];
+    state[10] += values[6];
+    state[11] += values[7];
 }

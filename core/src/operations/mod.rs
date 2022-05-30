@@ -12,7 +12,7 @@ mod tests;
 // ================================================================================================
 
 /// TODO: add docs
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Operation {
     // ----- system operations --------------------------------------------------------------------
     /// Advances cycle counter, but does not change the state of user stack.
