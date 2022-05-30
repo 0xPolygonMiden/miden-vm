@@ -1,4 +1,4 @@
-use vm_core::RANGE_CHECK_TRACE_OFFSET;
+use vm_core::range::{S0_COL_IDX, S1_COL_IDX, T_COL_IDX, V_COL_IDX};
 
 use super::{
     utils::{binary_not, is_binary},
@@ -18,17 +18,6 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     2, // Transition from 8-bit to 16-bit section of range check table occurs at most once.
     3, 3, // Enforce values of column v before and after 8-bit to 16-bit transition.
 ];
-/// A binary selector column to track whether a transition currently in the 8-bit or 16-bit portion
-/// of the range checker table.
-pub const T_COL_IDX: usize = RANGE_CHECK_TRACE_OFFSET;
-/// A binary selector column to help specify whether or not the value should be included in the
-/// running product.
-pub const S0_COL_IDX: usize = RANGE_CHECK_TRACE_OFFSET + 1;
-/// A binary selector column to help specify whether or not the value should be included in the
-/// running product.
-pub const S1_COL_IDX: usize = RANGE_CHECK_TRACE_OFFSET + 2;
-/// A column to hold the values being range-checked.
-pub const V_COL_IDX: usize = RANGE_CHECK_TRACE_OFFSET + 3;
 
 pub const NUM_ASSERTIONS: usize = 2;
 

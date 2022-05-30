@@ -2,9 +2,12 @@ use core::ops::Range;
 
 pub mod bitwise;
 pub mod decoder;
+pub mod errors;
 pub mod hasher;
 pub mod program;
-pub use math::{fields::f64::BaseElement as Felt, FieldElement, StarkField};
+pub mod range;
+
+pub use math::{fields::f64::BaseElement as Felt, ExtensionOf, FieldElement, StarkField};
 
 mod operations;
 pub use operations::{AdviceInjector, DebugOptions, Operation};
@@ -14,8 +17,6 @@ pub use inputs::{AdviceSet, ProgramInputs};
 
 pub mod utils;
 use utils::range;
-
-pub mod errors;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -37,7 +38,7 @@ pub const MIN_STACK_DEPTH: usize = 16;
 /// Number of bookkeeping and helper columns in the stack trace.
 pub const NUM_STACK_HELPER_COLS: usize = 3;
 
-// TRACE LAYOUT
+// MAIN TRACE LAYOUT
 // ------------------------------------------------------------------------------------------------
 
 //      system          decoder           stack      range checks    auxiliary table
@@ -73,3 +74,13 @@ pub const AUX_TRACE_WIDTH: usize = 18;
 pub const AUX_TRACE_RANGE: Range<usize> = range(AUX_TRACE_OFFSET, AUX_TRACE_WIDTH);
 
 pub const TRACE_WIDTH: usize = AUX_TRACE_OFFSET + AUX_TRACE_WIDTH;
+
+// AUXILIARY COLUMNS LAYOUT
+// ------------------------------------------------------------------------------------------------
+
+//   range checks
+//    (2 columns)
+// ├───────────────┤
+
+// Range check auxiliary columns
+pub const RANGE_CHECK_AUX_TRACE_OFFSET: usize = 0;
