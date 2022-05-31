@@ -172,6 +172,10 @@ impl Process {
 // DECODER
 // ================================================================================================
 /// TODO: add docs
+///
+///  addr  b0  b1  b2  b3  b4  b5  b6 in_span  h0  h1  h2  h3  h4  h5  h6  h7 g_count op_idx
+/// ├────┴───┴───┴───┴───┴───┴───┴───┴───────┴───┴───┴───┴───┴───┴───┴───┴───┴───────┴───────┤
+///
 pub struct Decoder {
     block_stack: BlockStack,
     span_context: Option<SpanContext>,
