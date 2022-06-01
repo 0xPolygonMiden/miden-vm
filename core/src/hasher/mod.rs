@@ -48,8 +48,9 @@ pub const NUM_ROUNDS: usize = Hasher::NUM_ROUNDS;
 /// Number of selector columns in the trace.
 pub const NUM_SELECTORS: usize = 3;
 
-/// Number of execution trace rows needed to fully describe one permutation of the hash function.
-pub const TRACE_CYCLE_LEN: usize = NUM_ROUNDS + 1;
+/// The number of rows in the execution trace required to compute a Rescue Prime permutation. This
+/// is equal to 8.
+pub const HASH_CYCLE_LEN: usize = NUM_ROUNDS.next_power_of_two();
 
 /// Number of columns in Hasher execution trace. Additional two columns are for row address and
 /// node index columns.
@@ -135,7 +136,7 @@ pub fn init_state(init_values: &[Felt; RATE_LEN], num_elements: usize) -> [Felt;
 }
 
 /// Initializes hasher state with the elements from the provided words. The number of elements
-/// to be hashes is set to 8.
+/// to be hashed is set to 8.
 #[inline(always)]
 pub fn init_state_from_words(w1: &Word, w2: &Word) -> [Felt; STATE_WIDTH] {
     [
@@ -168,7 +169,7 @@ pub fn absorb_into_state(state: &mut [Felt; STATE_WIDTH], values: &[Felt; RATE_L
     state[11] += values[7];
 }
 
-/// Returns elements representing the digest portion of the provide hasher's state.
+/// Returns elements representing the digest portion of the provided hasher's state.
 pub fn get_digest(state: &[Felt; STATE_WIDTH]) -> [Felt; DIGEST_LEN] {
     state[DIGEST_RANGE]
         .try_into()

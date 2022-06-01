@@ -10,7 +10,18 @@ const ONE: Felt = Felt::ONE;
 // DECODER TRACE
 // ================================================================================================
 
-/// TODO: add docs
+/// Execution trace of the decoder.
+///
+/// The trace currently consists of 19 columns grouped logically as follows:
+/// - 1 column for code block ID / related hasher table row address.
+/// - 7 columns for the binary representation of an opcode.
+/// - 1 column for the flag indicating whether we are in a SPAN block or not.
+/// - 8 columns used for providing inputs to, and reading results from the hasher, but also used
+///   for other purposes when inside a SPAN block.
+/// - 1 column to keep track of the number of operation groups left to decode in the current
+///   SPAN block.
+/// - 1 column to keep track of the index of a currently executing operation within an operation
+///   group.
 pub struct DecoderTrace {
     addr_trace: Vec<Felt>,
     op_bits_trace: [Vec<Felt>; NUM_OP_BITS],
@@ -123,7 +134,7 @@ impl DecoderTrace {
 
     /// Appends a trace row marking the beginning of a new loop iteration.
     ///
-    /// When we starting a new loop iteration, we do the following:
+    /// When we start a new loop iteration, we do the following:
     /// - Set the block address to the address of the loop block.
     /// - Set op_bits to REPEAT opcode.
     /// - Set in_span to ZERO.
@@ -176,7 +187,7 @@ impl DecoderTrace {
     /// Appends a trace row marking a RESPAN operation.
     ///
     /// When a RESPAN operation is executed, we do the following:
-    /// - Copy over the block address from the previous row. The SPAN address will be update in
+    /// - Copy over the block address from the previous row. The SPAN address will be updated in
     ///   the following row.
     /// - Set op_bits to RESPAN opcode.
     /// - Set in_span to ONE.
@@ -207,7 +218,7 @@ impl DecoderTrace {
     /// - Set the number of groups remaining to be processed. This number of groups changes if
     ///   in the previous row an operation with an immediate value was executed or if this
     ///   operation is a start of a new operation group.
-    /// - Set the operation's index withing the current operation group.
+    /// - Set the operation's index within the current operation group.
     pub fn append_user_op(
         &mut self,
         op: Operation,
@@ -296,7 +307,7 @@ impl DecoderTrace {
         self.addr_trace.resize(trace_len, ZERO);
         trace.push(self.addr_trace);
 
-        // insert HALT opcode into the unfilled rows of ob_bits columns
+        // insert HALT opcode into the unfilled rows of op_bits columns
         let halt_opcode = Operation::Halt.op_code().expect("missing opcode");
         for (i, mut column) in self.op_bits_trace.into_iter().enumerate() {
             debug_assert_eq!(own_len, column.len());

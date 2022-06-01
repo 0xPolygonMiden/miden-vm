@@ -118,7 +118,7 @@ impl Hasher {
         const START: Selectors = LINEAR_HASH;
         const RETURN: Selectors = RETURN_HASH;
         // absorb selectors are the same as linear hash selectors, but absorb selectors are
-        // applies on the last row of a permutation cycle, while linear hash selectors are
+        // applied on the last row of a permutation cycle, while linear hash selectors are
         // applied on the first row of a permutation cycle.
         const ABSORB: Selectors = LINEAR_HASH;
         // to continue linear hash we need retain the 2nd and 3rd selector flags and set the

@@ -469,7 +469,7 @@ fn loop_block_skip() {
     assert_eq!([ZERO; 4], get_hasher_state2(&trace, 0));
 
     // the hash of the program is located in the last END row; is_loop is not set to ONE because
-    // we didn't entre the loop's body
+    // we didn't enter the loop's body
     let program_hash: Word = program.hash().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 1));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 1));
@@ -546,7 +546,7 @@ fn loop_block_repeat() {
 fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, usize) {
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(inputs);
-    process.execute_code_block(&program).unwrap();
+    process.execute_code_block(program).unwrap();
 
     let trace = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace.len() - ExecutionTrace::NUM_RAND_ROWS;
@@ -573,7 +573,7 @@ fn check_op_decoding(
     in_span: u64,
 ) {
     assert_eq!(trace[ADDR_COL_IDX][row_idx], addr);
-    assert!(contains_op(&trace, row_idx, op));
+    assert!(contains_op(trace, row_idx, op));
     assert_eq!(trace[GROUP_COUNT_COL_IDX][row_idx], Felt::new(group_count));
     assert_eq!(trace[OP_INDEX_COL_IDX][row_idx], Felt::new(op_idx));
     assert_eq!(trace[IN_SPAN_COL_IDX][row_idx], Felt::new(in_span));

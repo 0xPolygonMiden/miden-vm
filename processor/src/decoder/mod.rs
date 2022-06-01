@@ -14,7 +14,7 @@ mod tests;
 // ================================================================================================
 
 const NUM_OP_BITS: usize = Operation::OP_BITS;
-const HASHER_CYCLE_LEN: Felt = Felt::new(vm_core::hasher::TRACE_CYCLE_LEN as u64);
+const HASH_CYCLE_LEN: Felt = Felt::new(vm_core::hasher::HASH_CYCLE_LEN as u64);
 
 // DECODER PROCESS EXTENSION
 // ================================================================================================
@@ -151,7 +151,7 @@ impl Process {
         debug_assert_eq!(block.hash(), _result.into());
 
         // start decoding the first operation batch; this also appends a row with SPAN operation
-        // to th decoder trace. we also need the total number of operation groups so that we can
+        // to the decoder trace. we also need the total number of operation groups so that we can
         // set the value of the group_count register at the beginning of the SPAN.
         let num_op_groups = Felt::new((op_batches.len() * OP_BATCH_SIZE) as u64);
         self.decoder.start_span(&op_batches[0], num_op_groups, addr);
@@ -169,11 +169,41 @@ impl Process {
 
 // DECODER
 // ================================================================================================
-/// TODO: add docs
+
+/// Program decoder for the VM.
+///
+/// This component is responsible for decoding operations executed on the VM, computing the hash
+/// of the executed program, as well as building an execution trace for these computations.
+///
+/// ## Execution trace
+/// Decoder execution trace currently consists of 19 columns as illustrated below (this will
+/// be increased to 24 columns in the future):
 ///
 ///  addr  b0  b1  b2  b3  b4  b5  b6 in_span  h0  h1  h2  h3  h4  h5  h6  h7 g_count op_idx
 /// ├────┴───┴───┴───┴───┴───┴───┴───┴───────┴───┴───┴───┴───┴───┴───┴───┴───┴───────┴───────┤
 ///
+/// In the above, the meaning of the columns is as follows:
+/// * addr column contains address of the hasher for the current block (row index from the
+///   auxiliary hashing table). It also serves the role of unique block identifiers. This is
+///   convenient, because hasher addresses are guaranteed to be unique.
+/// * op_bits columns b0 through b6 are used to encode an operation to be executed by the VM.
+///   Each of these columns contains a single binary value, which together form a single opcode.
+/// * in_span column is a binary flag set to ONE when we are inside a SPAN block, and to ZERO
+///   otherwise.
+/// * Hasher state columns h0 through h7. These are multi purpose columns used as follows:
+///   - When starting decoding of a new code block (e.g., via JOIN, SPLIT, LOOP, SPAN operations)
+///    these columns are used for providing inputs for the current block's hash computations.
+///   - When finishing decoding of a code block (i.e., via END operation), these columns are
+///     used to record the result of the hash computation.
+///   - Inside a SPAN block, the first two columns are used to keep track of un-executed
+///     operations in the current operation group, as well as the address of the parent code
+///     block. The remaining 6 columns are unused by the decoder and, thus, can be used by the
+///     VM as helper columns.
+/// * operation group count column is used to keep track of the number of un-executed operation
+///   groups in the current SPAN block.
+/// * operation index column is used to keep track of the indexes of the currently executing
+///   operations within an operation group. Values in this column could be between 0 and 8
+///   (both inclusive) as there could be at most 9 operations in an operation group.
 pub struct Decoder {
     block_stack: BlockStack,
     span_context: Option<SpanContext>,
@@ -239,7 +269,7 @@ impl Decoder {
 
     /// Starts decoding another iteration of a loop.
     ///
-    /// This appending execution of a REPEAT operation to the trace.
+    /// This appends an execution of a REPEAT operation to the trace.
     pub fn repeat(&mut self) {
         let block_info = self.block_stack.peek();
         debug_assert_eq!(Felt::ONE, block_info.is_loop);
@@ -248,7 +278,7 @@ impl Decoder {
 
     /// Ends decoding of a control block (i.e., a non-SPAN block).
     ///
-    /// This appending execution of an END operation to the trace. The top block on the block
+    /// This appends an execution of an END operation to the trace. The top block on the block
     /// stack is also popped.
     pub fn end_control_block(&mut self, block_hash: Word) {
         let block_info = self.block_stack.pop();
@@ -292,7 +322,7 @@ impl Decoder {
         // we also need to increment block address by 8 because hashing every additional operation
         // batch requires 8 rows of the hasher trace.
         let block_info = self.block_stack.peek_mut();
-        block_info.addr += HASHER_CYCLE_LEN;
+        block_info.addr += HASH_CYCLE_LEN;
 
         // after RESPAN operation is executed, we decrement the number of remaining groups by the
         // number of unused groups in the batch + 1. We add one because executing RESPAN consumes
@@ -348,7 +378,7 @@ impl Decoder {
     // TRACE GENERATIONS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns an columns of the execution trace for this decoder.
+    /// Returns an array of columns containing an execution trace of this decoder.
     ///
     /// The columns are extended to match the specified trace length.
     pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> super::DecoderTrace {
