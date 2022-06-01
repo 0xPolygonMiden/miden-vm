@@ -13,10 +13,8 @@ mod tests;
 // ================================================================================================
 
 const NUM_OP_BITS: usize = Operation::OP_BITS;
-
-// TODO: get from core
-const HASHER_WIDTH: usize = 8;
-const HASHER_CYCLE_LEN: Felt = Felt::new(8);
+const HASHER_CYCLE_LEN: Felt = Felt::new(vm_core::hasher::TRACE_CYCLE_LEN as u64);
+const NUM_HASHER_COLUMNS: usize = 8;
 
 // DECODER PROCESS EXTENSION
 // ================================================================================================
@@ -32,7 +30,7 @@ impl Process {
         // row addr + 7.
         let child1_hash = block.first().hash().into();
         let child2_hash = block.second().hash().into();
-        let (addr, _result) = self.hasher.hash_2to1(child1_hash, child2_hash);
+        let (addr, _result) = self.hasher.merge(child1_hash, child2_hash);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(block.hash(), _result.into());
@@ -64,7 +62,7 @@ impl Process {
         // row addr + 7.
         let child1_hash = block.on_true().hash().into();
         let child2_hash = block.on_false().hash().into();
-        let (addr, _result) = self.hasher.hash_2to1(child1_hash, child2_hash);
+        let (addr, _result) = self.hasher.merge(child1_hash, child2_hash);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(block.hash(), _result.into());
@@ -97,7 +95,7 @@ impl Process {
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
         let body_hash = block.body().hash().into();
-        let (addr, _result) = self.hasher.hash_2to1(body_hash, [Felt::ZERO; 4]);
+        let (addr, _result) = self.hasher.merge(body_hash, [Felt::ZERO; 4]);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(block.hash(), _result.into());

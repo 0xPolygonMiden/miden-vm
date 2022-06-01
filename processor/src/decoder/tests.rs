@@ -1,4 +1,4 @@
-use super::{super::DecoderTrace, Felt, Operation, Word, HASHER_WIDTH, NUM_OP_BITS};
+use super::{super::DecoderTrace, Felt, Operation, Word, NUM_HASHER_COLUMNS, NUM_OP_BITS};
 use crate::{ExecutionTrace, Process, ProgramInputs};
 use core::ops::Range;
 use vm_core::{
@@ -24,7 +24,7 @@ const GROUP_COUNT_IDX: usize = 17;
 const OP_INDEX_IDX: usize = 18;
 
 const HASHER_STATE_OFFSET: usize = 9;
-const HASHER_STATE_RANGE: Range<usize> = range(HASHER_STATE_OFFSET, HASHER_WIDTH);
+const HASHER_STATE_RANGE: Range<usize> = range(HASHER_STATE_OFFSET, NUM_HASHER_COLUMNS);
 
 const INIT_ADDR: Felt = Felt::ZERO;
 

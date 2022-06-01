@@ -1,4 +1,4 @@
-use super::{Felt, Operation, Word, HASHER_WIDTH, MIN_TRACE_LEN, NUM_OP_BITS};
+use super::{Felt, Operation, Word, MIN_TRACE_LEN, NUM_HASHER_COLUMNS, NUM_OP_BITS};
 use vm_core::{program::blocks::OP_BATCH_SIZE, utils::new_array_vec, FieldElement, StarkField};
 
 // DECODER TRACE
@@ -9,7 +9,7 @@ pub struct DecoderTrace {
     addr_trace: Vec<Felt>,
     op_bits_trace: [Vec<Felt>; NUM_OP_BITS],
     in_span_trace: Vec<Felt>,
-    hasher_trace: [Vec<Felt>; HASHER_WIDTH],
+    hasher_trace: [Vec<Felt>; NUM_HASHER_COLUMNS],
     group_count_trace: Vec<Felt>,
     op_idx_trace: Vec<Felt>,
 }
