@@ -1,6 +1,7 @@
 use core::ops::Range;
 
 pub mod bitwise;
+pub mod decoder;
 pub mod hasher;
 pub mod program;
 pub use math::{fields::f64::BaseElement as Felt, FieldElement, StarkField};
@@ -40,7 +41,7 @@ pub const NUM_STACK_HELPER_COLS: usize = 3;
 // ------------------------------------------------------------------------------------------------
 
 //      system          decoder           stack      range checks    auxiliary table
-//    (2 columns)     (18 columns)    (19 columns)    (4 columns)     (18 columns)
+//    (2 columns)     (19 columns)    (19 columns)    (4 columns)     (18 columns)
 // ├───────────────┴───────────────┴───────────────┴───────────────┴─────────────────┤
 
 pub const SYS_TRACE_OFFSET: usize = 0;

@@ -2,6 +2,7 @@ use super::{
     ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation, Process, Span, Split,
     StarkField, Word, MIN_TRACE_LEN, OP_BATCH_SIZE,
 };
+use vm_core::decoder::NUM_HASHER_COLUMNS;
 
 mod trace;
 use trace::DecoderTrace;
@@ -14,7 +15,6 @@ mod tests;
 
 const NUM_OP_BITS: usize = Operation::OP_BITS;
 const HASHER_CYCLE_LEN: Felt = Felt::new(vm_core::hasher::TRACE_CYCLE_LEN as u64);
-const NUM_HASHER_COLUMNS: usize = 8;
 
 // DECODER PROCESS EXTENSION
 // ================================================================================================

@@ -20,8 +20,8 @@ fn hasher_permute() {
     let init_state: HasherState = rand_array();
     let (addr, final_state) = hasher.permute(init_state);
 
-    // address of the permutation should be zero
-    assert_eq!(Felt::ZERO, addr);
+    // address of the permutation should be ONE (as hasher address starts at ONE)
+    assert_eq!(Felt::ONE, addr);
 
     // make sure the result is correct
     let expected_state = apply_permutation(init_state);
@@ -46,9 +46,9 @@ fn hasher_permute() {
     let init_state2: HasherState = rand_array();
     let (addr2, final_state2) = hasher.permute(init_state2);
 
-    // make sure the returned addresses are correct
-    assert_eq!(Felt::ZERO, addr1);
-    assert_eq!(Felt::new(8), addr2);
+    // make sure the returned addresses are correct (they must be 8 rows apart)
+    assert_eq!(Felt::ONE, addr1);
+    assert_eq!(Felt::new(9), addr2);
 
     // make sure the results are correct
     let expected_state1 = apply_permutation(init_state1);
@@ -285,11 +285,11 @@ fn check_merkle_path(
     }
 }
 
-/// Makes sure that values in the row address column (column 3) start out at 0 and are incremented
+/// Makes sure that values in the row address column (column 3) start out at 1 and are incremented
 /// by 1 with every row.
 fn check_row_addr_trace(trace: &[Vec<Felt>]) {
     for (i, &addr) in trace[3].iter().enumerate() {
-        assert_eq!(Felt::new(i as u64), addr);
+        assert_eq!(Felt::new(i as u64 + 1), addr);
     }
 }
 

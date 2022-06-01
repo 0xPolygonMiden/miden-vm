@@ -41,9 +41,13 @@ impl HasherTrace {
         self.row_addr.len()
     }
 
-    /// Returns next row address. The address is equal to the current trace length.
+    /// Returns next row address. The address is equal to the current trace length + 1.
+    ///
+    /// The above means that row addresses start at ONE (rather than ZERO), and are incremented by
+    /// ONE at every row. Starting at ONE is needed for the decoder so that the address of the
+    /// first code block is a non-zero value.
     pub fn next_row_addr(&self) -> Felt {
-        Felt::new(self.trace_len() as u64)
+        Felt::new(self.trace_len() as u64 + 1)
     }
 
     // TRACE MUTATORS

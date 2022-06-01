@@ -1,9 +1,11 @@
-use super::{super::DecoderTrace, Felt, Operation, Word, NUM_HASHER_COLUMNS, NUM_OP_BITS};
+use super::{super::DecoderTrace, Felt, Operation, Word, NUM_OP_BITS};
 use crate::{ExecutionTrace, Process, ProgramInputs};
-use core::ops::Range;
 use vm_core::{
+    decoder::{
+        ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, OP_BITS_OFFSET,
+        OP_BITS_RANGE, OP_INDEX_COL_IDX,
+    },
     program::blocks::{CodeBlock, Span},
-    utils::range,
     FieldElement, StarkField, DECODER_TRACE_RANGE,
 };
 
@@ -12,21 +14,7 @@ use vm_core::{
 
 const ONE: Felt = Felt::ONE;
 const ZERO: Felt = Felt::ZERO;
-
-const ADDR_IDX: usize = 0;
-
-/// TODO: move to core?
-const OP_BITS_OFFSET: usize = 1;
-const OP_BITS_RANGE: Range<usize> = range(OP_BITS_OFFSET, NUM_OP_BITS);
-
-const IN_SPAN_IDX: usize = 8;
-const GROUP_COUNT_IDX: usize = 17;
-const OP_INDEX_IDX: usize = 18;
-
-const HASHER_STATE_OFFSET: usize = 9;
-const HASHER_STATE_RANGE: Range<usize> = range(HASHER_STATE_OFFSET, NUM_HASHER_COLUMNS);
-
-const INIT_ADDR: Felt = Felt::ZERO;
+const INIT_ADDR: Felt = ONE;
 
 // SPAN BLOCK TESTS
 // ================================================================================================
@@ -584,11 +572,11 @@ fn check_op_decoding(
     op_idx: u64,
     in_span: u64,
 ) {
-    assert_eq!(trace[ADDR_IDX][row_idx], addr);
+    assert_eq!(trace[ADDR_COL_IDX][row_idx], addr);
     assert!(contains_op(&trace, row_idx, op));
-    assert_eq!(trace[GROUP_COUNT_IDX][row_idx], Felt::new(group_count));
-    assert_eq!(trace[OP_INDEX_IDX][row_idx], Felt::new(op_idx));
-    assert_eq!(trace[IN_SPAN_IDX][row_idx], Felt::new(in_span));
+    assert_eq!(trace[GROUP_COUNT_COL_IDX][row_idx], Felt::new(group_count));
+    assert_eq!(trace[OP_INDEX_COL_IDX][row_idx], Felt::new(op_idx));
+    assert_eq!(trace[IN_SPAN_COL_IDX][row_idx], Felt::new(in_span));
 }
 
 fn contains_op(trace: &DecoderTrace, row_idx: usize, op: Operation) -> bool {
