@@ -37,7 +37,7 @@ fn span_block_one_group() {
     let span = Span::new(ops.clone());
     let program = CodeBlock::new_span(ops.clone());
 
-    let (trace, _trace_len) = build_trace(&[], &program);
+    let (trace, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Span, 8, 0, 0);
@@ -53,12 +53,18 @@ fn span_block_one_group() {
         &trace,
         vec![
             span.op_batches()[0].groups().to_vec(), // first group should contain op batch
-            vec![build_group(&ops[1..])],
-            vec![build_group(&ops[2..])],
+            vec![build_op_group(&ops[1..])],
+            vec![build_op_group(&ops[2..])],
             vec![],
             program_hash.to_vec(), // last row should contain program hash
         ],
     );
+
+    // HALT opcode and program hash gets propagated to the last row
+    for i in 6..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(program_hash, get_hasher_state1(&trace, i));
+    }
 }
 
 #[test]
@@ -72,7 +78,7 @@ fn span_block_small() {
     let span = Span::new(ops.clone());
     let program = CodeBlock::new_span(ops.clone());
 
-    let (trace, _trace_len) = build_trace(&[], &program);
+    let (trace, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Span, 8, 0, 0);
@@ -91,13 +97,19 @@ fn span_block_small() {
         &trace,
         vec![
             span.op_batches()[0].groups().to_vec(),
-            vec![build_group(&ops[1..])],
-            vec![build_group(&ops[2..])],
+            vec![build_op_group(&ops[1..])],
+            vec![build_op_group(&ops[2..])],
             vec![],
             vec![],
             program_hash.to_vec(), // last row should contain program hash
         ],
     );
+
+    // HALT opcode and program hash gets propagated to the last row
+    for i in 7..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(program_hash, get_hasher_state1(&trace, i));
+    }
 }
 
 #[test]
@@ -125,7 +137,7 @@ fn span_block() {
     ];
     let span = Span::new(ops.clone());
     let program = CodeBlock::new_span(ops.clone());
-    let (trace, _trace_len) = build_trace(&[], &program);
+    let (trace, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Span, 8, 0, 0);
@@ -155,23 +167,29 @@ fn span_block() {
         &trace,
         vec![
             span.op_batches()[0].groups().to_vec(),
-            vec![build_group(&ops[1..8])], // first group starts
-            vec![build_group(&ops[2..8])],
-            vec![build_group(&ops[3..8])],
-            vec![build_group(&ops[4..8])],
-            vec![build_group(&ops[5..8])],
-            vec![build_group(&ops[6..8])],
-            vec![build_group(&ops[7..8])],
+            vec![build_op_group(&ops[1..8])], // first group starts
+            vec![build_op_group(&ops[2..8])],
+            vec![build_op_group(&ops[3..8])],
+            vec![build_op_group(&ops[4..8])],
+            vec![build_op_group(&ops[5..8])],
+            vec![build_op_group(&ops[6..8])],
+            vec![build_op_group(&ops[7..8])],
             vec![], // NOOP inserted after push
             vec![],
-            vec![build_group(&ops[9..])], // next group starts
-            vec![build_group(&ops[10..])],
-            vec![build_group(&ops[11..])],
+            vec![build_op_group(&ops[9..])], // next group starts
+            vec![build_op_group(&ops[10..])],
+            vec![build_op_group(&ops[11..])],
             vec![],
             vec![],                // a group with single NOOP added at the end
             program_hash.to_vec(), // last row should contain program hash
         ],
     );
+
+    // HALT opcode and program hash gets propagated to the last row
+    for i in 17..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(program_hash, get_hasher_state1(&trace, i));
+    }
 }
 
 #[test]
@@ -202,7 +220,7 @@ fn span_block_with_respan() {
     ];
     let span = Span::new(ops.clone());
     let program = CodeBlock::new_span(ops.clone());
-    let (trace, _trace_len) = build_trace(&[], &program);
+    let (trace, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Span, 16, 0, 0);
@@ -234,23 +252,29 @@ fn span_block_with_respan() {
         &trace,
         vec![
             span.op_batches()[0].groups().to_vec(),
-            vec![build_group(&ops[1..7])], // first group starts
-            vec![build_group(&ops[2..7])],
-            vec![build_group(&ops[3..7])],
-            vec![build_group(&ops[4..7])],
-            vec![build_group(&ops[5..7])],
-            vec![build_group(&ops[6..7])],
+            vec![build_op_group(&ops[1..7])], // first group starts
+            vec![build_op_group(&ops[2..7])],
+            vec![build_op_group(&ops[3..7])],
+            vec![build_op_group(&ops[4..7])],
+            vec![build_op_group(&ops[5..7])],
+            vec![build_op_group(&ops[6..7])],
             vec![],
             vec![], // a NOOP inserted after last PUSH
             span.op_batches()[1].groups().to_vec(),
-            vec![build_group(&ops[8..])], // next group starts
-            vec![build_group(&ops[9..])],
+            vec![build_op_group(&ops[8..])], // next group starts
+            vec![build_op_group(&ops[9..])],
             vec![],
             vec![],                // a NOOP is inserted after last PUSH
             vec![],                // a group with single NOOP added at the end
             program_hash.to_vec(), // last row should contain program hash
         ],
     );
+
+    // HALT opcode and program hash gets propagated to the last row
+    for i in 17..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(program_hash, get_hasher_state1(&trace, i));
+    }
 }
 
 // JOIN BLOCK TESTS
@@ -262,7 +286,7 @@ fn join_block() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_join([span1.clone(), span2.clone()]);
 
-    let (trace, _trace_len) = build_trace(&[], &program);
+    let (trace, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Join, 0, 0, 0);
@@ -299,6 +323,12 @@ fn join_block() {
     let program_hash: Word = program.hash().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 7));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 7));
+
+    // HALT opcode and program hash gets propagated to the last row
+    for i in 9..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(program_hash, get_hasher_state1(&trace, i));
+    }
 }
 
 // SPLIT BLOCK TESTS
@@ -310,7 +340,7 @@ fn split_block_true() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1.clone(), span2.clone());
 
-    let (trace, _trace_len) = build_trace(&[1], &program);
+    let (trace, trace_len) = build_trace(&[1], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let span_addr = INIT_ADDR + Felt::new(8);
@@ -337,6 +367,12 @@ fn split_block_true() {
     let program_hash: Word = program.hash().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 4));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 4));
+
+    // HALT opcode and program hash gets propagated to the last row
+    for i in 6..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(program_hash, get_hasher_state1(&trace, i));
+    }
 }
 
 #[test]
@@ -345,7 +381,7 @@ fn split_block_false() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1.clone(), span2.clone());
 
-    let (trace, _trace_len) = build_trace(&[0], &program);
+    let (trace, trace_len) = build_trace(&[0], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let span_addr = INIT_ADDR + Felt::new(8);
@@ -372,6 +408,12 @@ fn split_block_false() {
     let program_hash: Word = program.hash().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 4));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 4));
+
+    // HALT opcode and program hash gets propagated to the last row
+    for i in 6..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(program_hash, get_hasher_state1(&trace, i));
+    }
 }
 
 // LOOP BLOCK TESTS
@@ -382,7 +424,7 @@ fn loop_block() {
     let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
     let program = CodeBlock::new_loop(loop_body.clone());
 
-    let (trace, _trace_len) = build_trace(&[0, 1], &program);
+    let (trace, trace_len) = build_trace(&[0, 1], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let body_addr = INIT_ADDR + Felt::new(8);
@@ -411,6 +453,12 @@ fn loop_block() {
     let program_hash: Word = program.hash().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 5));
     assert_eq!([ZERO, ONE, ZERO, ZERO], get_hasher_state2(&trace, 5));
+
+    // HALT opcode and program hash gets propagated to the last row
+    for i in 7..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(program_hash, get_hasher_state1(&trace, i));
+    }
 }
 
 #[test]
@@ -418,7 +466,7 @@ fn loop_block_skip() {
     let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
     let program = CodeBlock::new_loop(loop_body.clone());
 
-    let (trace, _trace_len) = build_trace(&[0], &program);
+    let (trace, trace_len) = build_trace(&[0], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Loop, 0, 0, 0);
@@ -437,6 +485,12 @@ fn loop_block_skip() {
     let program_hash: Word = program.hash().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 1));
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&trace, 1));
+
+    // HALT opcode and program hash gets propagated to the last row
+    for i in 3..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(program_hash, get_hasher_state1(&trace, i));
+    }
 }
 
 #[test]
@@ -444,7 +498,7 @@ fn loop_block_repeat() {
     let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
     let program = CodeBlock::new_loop(loop_body.clone());
 
-    let (trace, _trace_len) = build_trace(&[0, 1, 1], &program);
+    let (trace, trace_len) = build_trace(&[0, 1, 1], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let iter1_addr = INIT_ADDR + Felt::new(8);
@@ -490,6 +544,12 @@ fn loop_block_repeat() {
     let program_hash: Word = program.hash().into();
     assert_eq!(program_hash, get_hasher_state1(&trace, 10));
     assert_eq!([ZERO, ONE, ZERO, ZERO], get_hasher_state2(&trace, 10));
+
+    // HALT opcode and program hash gets propagated to the last row
+    for i in 12..trace_len {
+        assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(program_hash, get_hasher_state1(&trace, i));
+    }
 }
 
 // HELPER FUNCTIONS
@@ -512,6 +572,25 @@ fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, usize) {
     )
 }
 
+// OPCODES
+// ------------------------------------------------------------------------------------------------
+
+fn check_op_decoding(
+    trace: &DecoderTrace,
+    row_idx: usize,
+    addr: Felt,
+    op: Operation,
+    group_count: u64,
+    op_idx: u64,
+    in_span: u64,
+) {
+    assert_eq!(trace[ADDR_IDX][row_idx], addr);
+    assert!(contains_op(&trace, row_idx, op));
+    assert_eq!(trace[GROUP_COUNT_IDX][row_idx], Felt::new(group_count));
+    assert_eq!(trace[OP_INDEX_IDX][row_idx], Felt::new(op_idx));
+    assert_eq!(trace[IN_SPAN_IDX][row_idx], Felt::new(in_span));
+}
+
 fn contains_op(trace: &DecoderTrace, row_idx: usize, op: Operation) -> bool {
     op.op_code().unwrap() == read_opcode(trace, row_idx)
 }
@@ -529,6 +608,36 @@ fn read_opcode(trace: &DecoderTrace, row_idx: usize) -> u8 {
         result += op_bit << i;
     }
     result as u8
+}
+
+fn build_op_group(ops: &[Operation]) -> Felt {
+    let mut group = 0u64;
+    let mut i = 0;
+    for op in ops.iter() {
+        if !op.is_decorator() {
+            group |= (op.op_code().unwrap() as u64) << (Operation::OP_BITS * i);
+            i += 1;
+        }
+    }
+    Felt::new(group)
+}
+
+// HASHER STATE
+// ------------------------------------------------------------------------------------------------
+
+fn check_hasher_state(trace: &DecoderTrace, expected: Vec<Vec<Felt>>) {
+    for (i, expected) in expected.iter().enumerate() {
+        let expected = build_expected_hasher_state(expected);
+        assert_eq!(expected, get_hasher_state(trace, i));
+    }
+}
+
+fn get_hasher_state(trace: &DecoderTrace, row_idx: usize) -> [Felt; 8] {
+    let mut result = [ZERO; 8];
+    for (result, column) in result.iter_mut().zip(trace[HASHER_STATE_RANGE].iter()) {
+        *result = column[row_idx];
+    }
+    result
 }
 
 fn get_hasher_state1(trace: &DecoderTrace, row_idx: usize) -> Word {
@@ -550,55 +659,12 @@ fn get_hasher_state2(trace: &DecoderTrace, row_idx: usize) -> Word {
     result
 }
 
-fn get_hasher_state(trace: &DecoderTrace, row_idx: usize) -> [Felt; 8] {
-    let mut result = [ZERO; 8];
-    for (result, column) in result.iter_mut().zip(trace[HASHER_STATE_RANGE].iter()) {
-        *result = column[row_idx];
-    }
-    result
-}
-
-fn build_group(ops: &[Operation]) -> Felt {
-    let mut group = 0u64;
-    let mut i = 0;
-    for op in ops.iter() {
-        if !op.is_decorator() {
-            group |= (op.op_code().unwrap() as u64) << (Operation::OP_BITS * i);
-            i += 1;
-        }
-    }
-    Felt::new(group)
-}
-
-fn check_hasher_state(trace: &DecoderTrace, expected: Vec<Vec<Felt>>) {
-    for (i, expected) in expected.iter().enumerate() {
-        let expected = build_expected_hasher_state(expected);
-        assert_eq!(expected, get_hasher_state(trace, i));
-    }
-}
-
 fn build_expected_hasher_state(values: &[Felt]) -> [Felt; 8] {
     let mut result = [ZERO; 8];
     for (i, value) in values.iter().enumerate() {
         result[i] = *value;
     }
     result
-}
-
-fn check_op_decoding(
-    trace: &DecoderTrace,
-    row_idx: usize,
-    addr: Felt,
-    op: Operation,
-    group_count: u64,
-    op_idx: u64,
-    in_span: u64,
-) {
-    assert_eq!(trace[ADDR_IDX][row_idx], addr);
-    assert!(contains_op(&trace, row_idx, op));
-    assert_eq!(trace[GROUP_COUNT_IDX][row_idx], Felt::new(group_count));
-    assert_eq!(trace[OP_INDEX_IDX][row_idx], Felt::new(op_idx));
-    assert_eq!(trace[IN_SPAN_IDX][row_idx], Felt::new(in_span));
 }
 
 #[allow(dead_code)]

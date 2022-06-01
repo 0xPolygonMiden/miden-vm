@@ -1,6 +1,12 @@
 use super::{Felt, Operation, Word, MIN_TRACE_LEN, NUM_HASHER_COLUMNS, NUM_OP_BITS};
 use vm_core::{program::blocks::OP_BATCH_SIZE, utils::new_array_vec, FieldElement, StarkField};
 
+// CONSTANTS
+// ================================================================================================
+
+const ZERO: Felt = Felt::ZERO;
+const ONE: Felt = Felt::ONE;
+
 // DECODER TRACE
 // ================================================================================================
 
@@ -58,7 +64,7 @@ impl DecoderTrace {
     pub fn append_block_start(&mut self, parent_addr: Felt, op: Operation, h1: Word, h2: Word) {
         self.addr_trace.push(parent_addr);
         self.append_opcode(op);
-        self.in_span_trace.push(Felt::ZERO);
+        self.in_span_trace.push(ZERO);
 
         self.hasher_trace[0].push(h1[0]);
         self.hasher_trace[1].push(h1[1]);
@@ -70,8 +76,8 @@ impl DecoderTrace {
         self.hasher_trace[6].push(h2[2]);
         self.hasher_trace[7].push(h2[3]);
 
-        self.group_count_trace.push(Felt::ZERO);
-        self.op_idx_trace.push(Felt::ZERO);
+        self.group_count_trace.push(ZERO);
+        self.op_idx_trace.push(ZERO);
     }
 
     /// Appends a trace row marking the end of a flow control block (JOIN, SPLIT, LOOP).
@@ -96,7 +102,7 @@ impl DecoderTrace {
 
         self.addr_trace.push(block_addr);
         self.append_opcode(Operation::End);
-        self.in_span_trace.push(Felt::ZERO);
+        self.in_span_trace.push(ZERO);
 
         self.hasher_trace[0].push(block_hash[0]);
         self.hasher_trace[1].push(block_hash[1]);
@@ -105,14 +111,14 @@ impl DecoderTrace {
 
         self.hasher_trace[4].push(is_loop_body);
         self.hasher_trace[5].push(is_loop);
-        self.hasher_trace[6].push(Felt::ZERO);
-        self.hasher_trace[7].push(Felt::ZERO);
+        self.hasher_trace[6].push(ZERO);
+        self.hasher_trace[7].push(ZERO);
 
         let last_group_count = self.last_group_count();
-        debug_assert!(last_group_count == Felt::ZERO, "group count not zero");
+        debug_assert!(last_group_count == ZERO, "group count not zero");
         self.group_count_trace.push(last_group_count);
 
-        self.op_idx_trace.push(Felt::ZERO);
+        self.op_idx_trace.push(ZERO);
     }
 
     /// Appends a trace row marking the beginning of a new loop iteration.
@@ -129,15 +135,15 @@ impl DecoderTrace {
     pub fn append_loop_repeat(&mut self, loop_addr: Felt) {
         self.addr_trace.push(loop_addr);
         self.append_opcode(Operation::Repeat);
-        self.in_span_trace.push(Felt::ZERO);
+        self.in_span_trace.push(ZERO);
 
         let last_row = self.hasher_trace[0].len() - 1;
         for column in self.hasher_trace.iter_mut() {
             column.push(column[last_row]);
         }
 
-        self.group_count_trace.push(Felt::ZERO);
-        self.op_idx_trace.push(Felt::ZERO);
+        self.group_count_trace.push(ZERO);
+        self.op_idx_trace.push(ZERO);
     }
 
     /// Appends a trace row marking the start of a SPAN block.
@@ -159,12 +165,12 @@ impl DecoderTrace {
     ) {
         self.addr_trace.push(parent_addr);
         self.append_opcode(Operation::Span);
-        self.in_span_trace.push(Felt::ZERO);
+        self.in_span_trace.push(ZERO);
         for (i, &op_group) in first_op_batch.iter().enumerate() {
             self.hasher_trace[i].push(op_group);
         }
         self.group_count_trace.push(num_op_groups);
-        self.op_idx_trace.push(Felt::ZERO);
+        self.op_idx_trace.push(ZERO);
     }
 
     /// Appends a trace row marking a RESPAN operation.
@@ -180,12 +186,12 @@ impl DecoderTrace {
     pub fn append_respan(&mut self, op_batch: &[Felt; OP_BATCH_SIZE]) {
         self.addr_trace.push(self.last_addr());
         self.append_opcode(Operation::Respan);
-        self.in_span_trace.push(Felt::ONE);
+        self.in_span_trace.push(ONE);
         for (i, &op_group) in op_batch.iter().enumerate() {
             self.hasher_trace[i].push(op_group);
         }
         self.group_count_trace.push(self.last_group_count());
-        self.op_idx_trace.push(Felt::ZERO);
+        self.op_idx_trace.push(ZERO);
     }
 
     /// Appends a trace row for a user operation.
@@ -213,16 +219,16 @@ impl DecoderTrace {
     ) {
         self.addr_trace.push(span_addr);
         self.append_opcode(op);
-        self.in_span_trace.push(Felt::ONE);
+        self.in_span_trace.push(ONE);
 
         self.hasher_trace[0].push(group_ops_left);
         self.hasher_trace[1].push(parent_addr);
-        self.hasher_trace[2].push(Felt::ZERO);
-        self.hasher_trace[3].push(Felt::ZERO);
-        self.hasher_trace[4].push(Felt::ZERO);
-        self.hasher_trace[5].push(Felt::ZERO);
-        self.hasher_trace[6].push(Felt::ZERO);
-        self.hasher_trace[7].push(Felt::ZERO);
+        self.hasher_trace[2].push(ZERO);
+        self.hasher_trace[3].push(ZERO);
+        self.hasher_trace[4].push(ZERO);
+        self.hasher_trace[5].push(ZERO);
+        self.hasher_trace[6].push(ZERO);
+        self.hasher_trace[7].push(ZERO);
 
         self.group_count_trace.push(num_groups_left);
         self.op_idx_trace.push(op_idx);
@@ -244,7 +250,7 @@ impl DecoderTrace {
 
         self.addr_trace.push(self.last_addr());
         self.append_opcode(Operation::End);
-        self.in_span_trace.push(Felt::ZERO);
+        self.in_span_trace.push(ZERO);
 
         self.hasher_trace[0].push(span_hash[0]);
         self.hasher_trace[1].push(span_hash[1]);
@@ -253,15 +259,15 @@ impl DecoderTrace {
 
         // we don't need to set is_loop here because we know we are not in a loop block
         self.hasher_trace[4].push(is_loop_body);
-        self.hasher_trace[5].push(Felt::ZERO);
-        self.hasher_trace[6].push(Felt::ZERO);
-        self.hasher_trace[7].push(Felt::ZERO);
+        self.hasher_trace[5].push(ZERO);
+        self.hasher_trace[6].push(ZERO);
+        self.hasher_trace[7].push(ZERO);
 
         let last_group_count = self.last_group_count();
-        debug_assert!(last_group_count == Felt::ZERO, "group count not zero");
+        debug_assert!(last_group_count == ZERO, "group count not zero");
         self.group_count_trace.push(last_group_count);
 
-        self.op_idx_trace.push(Felt::ZERO);
+        self.op_idx_trace.push(ZERO);
     }
 
     // TRACE GENERATION
@@ -270,8 +276,12 @@ impl DecoderTrace {
     /// Returns vector of columns of this execution trace.
     ///
     /// Each column in the trace is extended to the specified trace length. The extension is done
-    /// by inserting ZEROs into the unfilled rows of most columns. The only exceptions are the
-    /// op_bits columns where the unfilled rows are filled with the opcode of the HALT operation.
+    /// by inserting ZEROs into the unfilled rows of most columns. The only exceptions are:
+    /// - The op_bits columns, where the unfilled rows are filled with the opcode of the HALT
+    ///   operation.
+    /// - The first 4 columns of the hasher state, where the unfilled rows are filled with the
+    ///   values from the last filled row. This is done so that the hash of the program is
+    ///   propagated to the last row.
     pub fn into_vec(mut self, trace_len: usize, num_rand_rows: usize) -> Vec<Vec<Felt>> {
         let own_len = self.trace_len();
         // make sure that only the duplicate rows will be overwritten with random values
@@ -283,7 +293,7 @@ impl DecoderTrace {
         let mut trace = Vec::new();
 
         // put ZEROs into the unfilled rows of block address column
-        self.addr_trace.resize(trace_len, Felt::ZERO);
+        self.addr_trace.resize(trace_len, ZERO);
         trace.push(self.addr_trace);
 
         // insert HALT opcode into the unfilled rows of ob_bits columns
@@ -297,24 +307,33 @@ impl DecoderTrace {
 
         // put ZEROs into the unfilled rows of in_span column
         debug_assert_eq!(own_len, self.in_span_trace.len());
-        self.in_span_trace.resize(trace_len, Felt::ZERO);
+        self.in_span_trace.resize(trace_len, ZERO);
         trace.push(self.in_span_trace);
 
-        // put ZEROs into the unfilled rows of hasher state columns
-        for mut column in self.hasher_trace {
+        // for unfilled rows of hasher state columns, copy over values from the last row for the
+        // first 4 columns, and pad the other 4 columns with ZEROs
+        for (i, mut column) in self.hasher_trace.into_iter().enumerate() {
             debug_assert_eq!(own_len, column.len());
-            column.resize(trace_len, Felt::ZERO);
+            if i < 4 {
+                // TODO: ideally, we should use `expect()` instead of `unwrap_or()` but aux_table
+                // unit tests fail if we do that as they don't expect build the decoder portion of
+                // the trace. in the future we should refactor aux_table unit tests.
+                let last_value = *column.last().unwrap_or(&ZERO);
+                column.resize(trace_len, last_value);
+            } else {
+                column.resize(trace_len, ZERO);
+            }
             trace.push(column);
         }
 
         // put ZEROs into the unfilled rows of operation group count column
         debug_assert_eq!(own_len, self.group_count_trace.len());
-        self.group_count_trace.resize(trace_len, Felt::ZERO);
+        self.group_count_trace.resize(trace_len, ZERO);
         trace.push(self.group_count_trace);
 
         // put ZEROs into the unfilled rows of operation index column
         debug_assert_eq!(own_len, self.op_idx_trace.len());
-        self.op_idx_trace.resize(trace_len, Felt::ZERO);
+        self.op_idx_trace.resize(trace_len, ZERO);
         trace.push(self.op_idx_trace);
 
         trace
