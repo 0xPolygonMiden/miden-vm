@@ -3,7 +3,7 @@ use core::fmt;
 use vm_core::Word;
 
 /// VmState holds a current process state information at a specific clock cycle.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VmState {
     pub clk: usize,
     pub fmp: Felt,

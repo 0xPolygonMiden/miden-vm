@@ -4,7 +4,7 @@ use super::{EvaluationFrame, Felt, FieldElement, HASHER_TRACE_OFFSET};
 use core::ops::Range;
 use vm_core::{
     hasher::{
-        Hasher, CAPACITY_LEN, DIGEST_LEN, DIGEST_RANGE, NUM_ROUNDS, NUM_SELECTORS, STATE_WIDTH,
+        Hasher, CAPACITY_LEN, DIGEST_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, NUM_SELECTORS, STATE_WIDTH,
     },
     utils::range as create_range,
 };
@@ -16,9 +16,6 @@ mod tests;
 // CONSTANTs
 // ================================================================================================
 
-/// The number of rows in the execution trace required to compute a Rescue Prime permutation. This
-/// is equal to 8.
-pub const HASH_CYCLE_LEN: usize = NUM_ROUNDS.next_power_of_two();
 /// The number of constraints on the management of the hasher co-processor.
 pub const NUM_CONSTRAINTS: usize = 31;
 

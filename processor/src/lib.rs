@@ -2,12 +2,12 @@ use vm_core::{
     errors::AdviceSetError,
     hasher::Digest,
     program::{
-        blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split, OP_GROUP_SIZE},
+        blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE},
         Script,
     },
     AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
-    StarkField, Word, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN, NUM_STACK_HELPER_COLS,
-    RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH,
+    StarkField, Word, AUX_TRACE_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN,
+    NUM_STACK_HELPER_COLS, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH,
 };
 
 mod operations;
@@ -54,6 +54,7 @@ pub use debug::{VmState, VmStateIterator};
 // ================================================================================================
 
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
+type DecoderTrace = [Vec<Felt>; DECODER_TRACE_WIDTH];
 type StackTrace = [Vec<Felt>; STACK_TRACE_WIDTH];
 type RangeCheckTrace = [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH];
 type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
@@ -70,7 +71,7 @@ pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace
     Ok(ExecutionTrace::new(process, *script.hash()))
 }
 
-/// Returns an iterator that allows callers to step through each exceution and inspect
+/// Returns an iterator that allows callers to step through each execution and inspect
 /// vm state information along side.
 pub fn execute_iter(script: &Script, inputs: &ProgramInputs) -> VmStateIterator {
     let mut process = Process::new_debug(inputs.clone());
@@ -149,13 +150,10 @@ impl Process {
     /// Executes the specified [Split] block.
     #[inline(always)]
     fn execute_split_block(&mut self, block: &Split) -> Result<(), ExecutionError> {
-        // get the top element from the stack here because starting a SPLIT block removes it from
-        // the stack
-        let condition = self.stack.peek();
-        self.start_split_block(block)?;
+        // start the SPLIT block; this also pops the stack and returns the popped element
+        let condition = self.start_split_block(block)?;
 
         // execute either the true or the false branch of the split block based on the condition
-        // retrieved from the top of the stack
         if condition == Felt::ONE {
             self.execute_code_block(block.on_true())?;
         } else if condition == Felt::ZERO {
@@ -170,47 +168,32 @@ impl Process {
     /// Executes the specified [Loop] block.
     #[inline(always)]
     fn execute_loop_block(&mut self, block: &Loop) -> Result<(), ExecutionError> {
-        // start LOOP block; this requires examining the top of the stack to determine whether
-        // the loop's body should be executed.
-        let condition = self.stack.peek();
-        self.decoder.start_loop(block, condition);
+        // start the LOOP block; this also pops the stack and returns the popped element
+        let condition = self.start_loop_block(block)?;
 
-        // if the top of the stack is ONE, execute the loop body; otherwise skip the loop body;
-        // before we execute the loop body we drop the condition from the stack; when the loop
-        // body is not executed, we keep the condition on the stack so that it can be dropped by
-        // the END operation later.
+        // if the top of the stack is ONE, execute the loop body; otherwise skip the loop body
         if condition == Felt::ONE {
-            // drop the condition and execute the loop body at least once
-            self.execute_op(Operation::Drop)?;
+            // execute the loop body at least once
             self.execute_code_block(block.body())?;
 
             // keep executing the loop body until the condition on the top of the stack is no
             // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
             // which drops the condition from the stack
             while self.stack.peek() == Felt::ONE {
+                self.decoder.repeat();
                 self.execute_op(Operation::Drop)?;
-                self.decoder.repeat(block);
-
                 self.execute_code_block(block.body())?;
             }
+
+            // end the LOOP block and drop the condition from the stack
+            self.end_loop_block(block, true)
         } else if condition == Felt::ZERO {
-            self.execute_op(Operation::Noop)?
+            // end the LOOP block, but don't drop the condition from the stack because it was
+            // already dropped when we started the LOOP block
+            self.end_loop_block(block, false)
         } else {
-            return Err(ExecutionError::NotBinaryValue(condition));
+            Err(ExecutionError::NotBinaryValue(condition))
         }
-
-        // execute END operation; this can be done only if the top of the stack is ZERO, in which
-        // case the top of the stack is dropped
-        if self.stack.peek() == Felt::ZERO {
-            self.execute_op(Operation::Drop)?;
-        } else if condition == Felt::ONE {
-            unreachable!("top of the stack should not be ONE");
-        } else {
-            return Err(ExecutionError::NotBinaryValue(self.stack.peek()));
-        }
-        self.decoder.end_loop(block);
-
-        Ok(())
     }
 
     /// Executes the specified [Span] block.
@@ -246,6 +229,11 @@ impl Process {
         let mut group_idx = 0;
         let mut next_group_idx = 1;
 
+        // round up the number of groups to be processed to the next power of two; we do this
+        // because the processor requires the number of groups to be either 1, 2, 4, or 8; if
+        // the actual number of groups is smaller, we'll pad the batch with NOOPs at the end
+        let num_batch_groups = batch.num_groups().next_power_of_two();
+
         // execute operations in the batch one by one
         for &op in batch.ops() {
             if op.is_decorator() {
@@ -256,7 +244,7 @@ impl Process {
             }
 
             // decode and execute the operation
-            self.decoder.execute_user_op(op);
+            self.decoder.execute_user_op(op, op_idx);
             self.execute_op(op)?;
 
             // if the operation carries an immediate value, the value is stored at the next group
@@ -276,7 +264,7 @@ impl Process {
                     // is enough room in the group to execute a NOOP (if there isn't, there is a
                     // bug somewhere in the assembler)
                     debug_assert!(op_idx < OP_GROUP_SIZE - 1, "invalid op index");
-                    self.decoder.execute_user_op(Operation::Noop);
+                    self.decoder.execute_user_op(Operation::Noop, op_idx + 1);
                     self.execute_op(Operation::Noop)?;
                 }
 
@@ -284,17 +272,30 @@ impl Process {
                 group_idx = next_group_idx;
                 next_group_idx += 1;
                 op_idx = 0;
+
+                // if we haven't reached the end of the batch yet, set up the decoder for
+                // decoding the next operation group
+                if group_idx < num_batch_groups {
+                    self.decoder.start_op_group(batch.groups()[group_idx]);
+                }
             } else {
                 // if we are not at the end of the group, just increment the operation index
                 op_idx += 1;
             }
         }
 
-        // for each operation batch we must execute number of groups which is a power of 2; so
-        // if the number of groups is not a power of 2, we pad each missing group with a NOOP
-        for _ in group_idx..batch.num_groups().next_power_of_two() {
-            self.decoder.execute_user_op(Operation::Noop);
+        // make sure we execute the required number of operation groups; this would happen when
+        // the actual number of operation groups was not a power of two
+        for group_idx in group_idx..num_batch_groups {
+            self.decoder.execute_user_op(Operation::Noop, 0);
             self.execute_op(Operation::Noop)?;
+
+            // if we are not at the last group yet, set up the decoder for decoding the next
+            // operation groups. the groups were are processing are just NOOPs - so, the op group
+            // value is ZERO
+            if group_idx < num_batch_groups - 1 {
+                self.decoder.start_op_group(Felt::ZERO);
+            }
         }
 
         Ok(())
@@ -306,8 +307,8 @@ impl Process {
         self.memory.get_value(addr)
     }
 
-    pub fn to_components(self) -> (System, Stack, RangeChecker, AuxTable) {
+    pub fn to_components(self) -> (System, Decoder, Stack, RangeChecker, AuxTable) {
         let aux_table = AuxTable::new(self.hasher, self.bitwise, self.memory);
-        (self.system, self.stack, self.range, aux_table)
+        (self.system, self.decoder, self.stack, self.range, aux_table)
     }
 }

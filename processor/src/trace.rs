@@ -28,6 +28,12 @@ pub struct ExecutionTrace {
 }
 
 impl ExecutionTrace {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+
+    /// Number of rows at the end of an execution trace which are injected with random values.
+    pub const NUM_RAND_ROWS: usize = NUM_RAND_ROWS;
+
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
@@ -210,12 +216,13 @@ impl<'a> TraceFragment<'a> {
 ///   are no repeating patterns in each column and each column contains a least two distinct
 ///   values. This, in turn, ensures that polynomial degrees of all columns are stable.
 fn finalize_trace(process: Process, mut rng: RandomCoin) -> Vec<Vec<Felt>> {
-    let (system, stack, range, aux_table) = process.to_components();
+    let (system, decoder, stack, range, aux_table) = process.to_components();
 
     let clk = system.clk();
 
     // trace lengths of system and stack components must be equal to the number of executed cycles
     assert_eq!(clk, system.trace_len(), "inconsistent system trace lengths");
+    // TODO: check decoder trace length
     assert_eq!(clk, stack.trace_len(), "inconsistent stack trace lengths");
 
     // Get the trace length required to hold all execution trace steps.
@@ -236,12 +243,14 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> Vec<Vec<Felt>> {
 
     // combine all trace segments into the main trace
     let system_trace = system.into_trace(trace_len, NUM_RAND_ROWS);
+    let decoder_trace = decoder.into_trace(trace_len, NUM_RAND_ROWS);
     let stack_trace = stack.into_trace(trace_len, NUM_RAND_ROWS);
     let range_check_trace = range.into_trace(trace_len, NUM_RAND_ROWS);
     let aux_table_trace = aux_table.into_trace(trace_len, NUM_RAND_ROWS);
 
     let mut trace = system_trace
         .into_iter()
+        .chain(decoder_trace)
         .chain(stack_trace)
         .chain(range_check_trace)
         .chain(aux_table_trace)

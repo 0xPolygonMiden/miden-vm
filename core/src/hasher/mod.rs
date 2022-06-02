@@ -1,9 +1,8 @@
 //! TODO: add docs
 
-use std::ops::Range;
-
-use super::{Felt, FieldElement};
+use super::{Felt, FieldElement, Word};
 use crypto::{ElementHasher, Hasher as HashFn};
+use std::ops::Range;
 
 pub use crypto::hashers::Rp64_256 as Hasher;
 
@@ -15,6 +14,8 @@ pub use crypto::hashers::Rp64_256 as Hasher;
 /// The digest consists of 4 field elements or 32 bytes.
 pub type Digest = <Hasher as HashFn>::Digest;
 
+/// Type for Hasher trace selector. These selectors are used to define which transition function
+/// is to be applied at a specific row of the hasher execution trace.
 pub type Selectors = [Felt; NUM_SELECTORS];
 
 // CONSTANTS
@@ -27,8 +28,11 @@ pub type Selectors = [Felt; NUM_SELECTORS];
 /// permutation.
 pub const STATE_WIDTH: usize = Hasher::STATE_WIDTH;
 
-/// The length of the capacity portion of the hash state.
-pub const CAPACITY_LEN: usize = 4;
+/// Number of field elements in the rate portion of the hasher's state.
+pub const RATE_LEN: usize = 8;
+
+/// Number of field elements in the capacity portion of the hasher's state.
+pub const CAPACITY_LEN: usize = STATE_WIDTH - RATE_LEN;
 
 // The length of the output portion of the hash state.
 pub const DIGEST_LEN: usize = 4;
@@ -43,6 +47,10 @@ pub const NUM_ROUNDS: usize = Hasher::NUM_ROUNDS;
 
 /// Number of selector columns in the trace.
 pub const NUM_SELECTORS: usize = 3;
+
+/// The number of rows in the execution trace required to compute a Rescue Prime permutation. This
+/// is equal to 8.
+pub const HASH_CYCLE_LEN: usize = NUM_ROUNDS.next_power_of_two();
 
 /// Number of columns in Hasher execution trace. Additional two columns are for row address and
 /// node index columns.
@@ -102,4 +110,68 @@ pub fn apply_round(state: &mut [Felt; STATE_WIDTH], round: usize) {
 #[inline(always)]
 pub fn apply_permutation(state: &mut [Felt; STATE_WIDTH]) {
     Hasher::apply_permutation(state)
+}
+
+// HASHER STATE MUTATORS
+// ================================================================================================
+
+/// Initializes hasher state with the first 8 elements to be absorbed and the specified total
+/// number of elements to be absorbed.
+#[inline(always)]
+pub fn init_state(init_values: &[Felt; RATE_LEN], num_elements: usize) -> [Felt; STATE_WIDTH] {
+    [
+        Felt::new(num_elements as u64),
+        Felt::ZERO,
+        Felt::ZERO,
+        Felt::ZERO,
+        init_values[0],
+        init_values[1],
+        init_values[2],
+        init_values[3],
+        init_values[4],
+        init_values[5],
+        init_values[6],
+        init_values[7],
+    ]
+}
+
+/// Initializes hasher state with the elements from the provided words. The number of elements
+/// to be hashed is set to 8.
+#[inline(always)]
+pub fn init_state_from_words(w1: &Word, w2: &Word) -> [Felt; STATE_WIDTH] {
+    [
+        Felt::from(8_u8),
+        Felt::ZERO,
+        Felt::ZERO,
+        Felt::ZERO,
+        w1[0],
+        w1[1],
+        w1[2],
+        w1[3],
+        w2[0],
+        w2[1],
+        w2[2],
+        w2[3],
+    ]
+}
+
+/// Absorbs the specified values into the provided state by adding values to corresponding
+/// elements in the rate portion of the state.
+#[inline(always)]
+pub fn absorb_into_state(state: &mut [Felt; STATE_WIDTH], values: &[Felt; RATE_LEN]) {
+    state[4] += values[0];
+    state[5] += values[1];
+    state[6] += values[2];
+    state[7] += values[3];
+    state[8] += values[4];
+    state[9] += values[5];
+    state[10] += values[6];
+    state[11] += values[7];
+}
+
+/// Returns elements representing the digest portion of the provided hasher's state.
+pub fn get_digest(state: &[Felt; STATE_WIDTH]) -> [Felt; DIGEST_LEN] {
+    state[DIGEST_RANGE]
+        .try_into()
+        .expect("failed to get digest from hasher state")
 }
