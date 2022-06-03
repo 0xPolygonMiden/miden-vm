@@ -126,8 +126,10 @@ impl Process {
         // operation was executed.
         if pop_stack {
             #[cfg(debug_assertions)]
-            let condition = self.stack.peek();
-            debug_assert_eq!(Felt::ZERO, condition);
+            {
+                let condition = self.stack.peek();
+                debug_assert_eq!(Felt::ZERO, condition);
+            }
 
             self.execute_op(Operation::Drop)
         } else {
