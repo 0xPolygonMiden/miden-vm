@@ -95,9 +95,11 @@ The selectors for each operation are as follows:
 - `U32XOR`: $s_0 = 1$, $s_1 = 0$
 - `POW2`: $s_0 = 1$, $s_1 = 1$
 
-The constraints must require that the selectors be binary:
+The constraints must require that the selectors be binary and stay the same throughout the cycle:
 $$s_0^2 - s_0 = 0$$
 $$s_1^2 - s_1 = 0$$
+$$s_{0,i}' -s_{0,i} = 0\  \forall\ i \in \{0, 1, ..., 6\}$$
+$$s_{1,i}' -s_{1,i} = 0\  \forall\ i \in \{0, 1, ..., 6\}$$
 
 ## Challenge: the last row problem
 

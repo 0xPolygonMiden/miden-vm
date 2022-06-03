@@ -194,7 +194,7 @@ pub fn get_test_frame(
 /// Generates the trace frame of an customised two consecutive cycle row. Accepts decomposed input
 /// containing bits wise component of both a and b for the consecutive cycle row and two selectors.
 /// Returns the frame with these two consecutive cycle row.  
-fn get_test_frame_with_two_selectors(
+pub fn get_test_frame_with_two_selectors(
     curr: &[Felt],
     next: &[Felt],
     operation1: Selectors,
