@@ -213,7 +213,7 @@ $$
 p'_0 \cdot ((\alpha + v' - v) \cdot t - t + 1) = p_0 \cdot (z - z \cdot t + t)
 $$
 
-Thsu, when $t = 0$ (we are in the 8-bit section), the above expression reduces to:
+Thus, when $t = 0$ (we are in the 8-bit section), the above expression reduces to:
 
 $$
 p'_0 = p_0 \cdot z

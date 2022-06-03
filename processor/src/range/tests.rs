@@ -1,3 +1,5 @@
+use crate::RangeCheckTrace;
+
 use super::{BTreeMap, Felt, FieldElement, RangeChecker};
 use rand_utils::rand_array;
 use vm_core::{utils::ToElements, StarkField};
@@ -12,7 +14,10 @@ fn range_checks() {
         checker.add_value(value.as_int() as u16)
     }
 
-    let trace = checker.into_trace(1024, 0);
+    let RangeCheckTrace {
+        trace,
+        aux_trace_hints: _,
+    } = checker.into_trace(1024, 0);
     validate_trace(&trace, &values);
 
     // skip the 8-bit portion of the trace
@@ -48,7 +53,10 @@ fn range_checks_rand() {
     }
 
     let trace_len = checker.trace_len().next_power_of_two();
-    let trace = checker.into_trace(trace_len, 0);
+    let RangeCheckTrace {
+        trace,
+        aux_trace_hints: _,
+    } = checker.into_trace(trace_len, 0);
     validate_trace(&trace, &values);
 }
 
@@ -99,7 +107,7 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
         assert!(delta <= 1);
 
         // keep track of lookup count for each value
-        let count = get_lookup_count(&trace, i);
+        let count = get_lookup_count(trace, i);
         lookups_8bit
             .entry(value)
             .and_modify(|value| *value += count)
@@ -122,7 +130,7 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
 
     // process the first row
     assert_eq!(Felt::ZERO, trace[3][i]);
-    let count = get_lookup_count(&trace, i);
+    let count = get_lookup_count(trace, i);
     lookups_16bit.insert(0u16, count);
     i += 1;
 
@@ -148,7 +156,7 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
         });
 
         // keep track of lookup count for each value
-        let count = get_lookup_count(&trace, i);
+        let count = get_lookup_count(trace, i);
         lookups_16bit
             .entry(value)
             .and_modify(|value| *value += count)

@@ -101,7 +101,7 @@ fn build_trace(stack: &[u64], operations: Vec<Operation>) -> AuxTableTrace {
         process.execute_op(*operation).unwrap();
     }
 
-    let trace = ExecutionTrace::test_finalize_trace(process);
+    let (trace, _) = ExecutionTrace::test_finalize_trace(process);
     trace[AUX_TRACE_RANGE]
         .to_vec()
         .try_into()

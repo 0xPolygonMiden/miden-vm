@@ -4,6 +4,7 @@ use rand_utils::rand_vector;
 mod bitwise;
 mod hasher;
 mod memory;
+mod range;
 
 #[test]
 fn aux_table() {
