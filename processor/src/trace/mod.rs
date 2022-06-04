@@ -57,7 +57,7 @@ impl ExecutionTrace {
 
         Self {
             meta: Vec::new(),
-            layout: TraceLayout::new(TRACE_WIDTH, [1], [1]),
+            layout: TraceLayout::new(TRACE_WIDTH, [2], [1]),
             main_trace: Matrix::new(main_trace),
             aux_trace_hints,
             program_hash,
@@ -143,17 +143,15 @@ impl Trace for ExecutionTrace {
             return None;
         }
 
-        let mut aux_columns = vec![vec![E::ZERO; self.length()]; self.aux_trace_width()];
-
-        // Add the range checker's running product column p0.
-        range::build_aux_col_p0(
-            &mut aux_columns[range::P0_COL_IDX],
+        // Add the range checker's running product columns.
+        let mut aux_columns = range::build_aux_columns(
+            self.length(),
             &self.aux_trace_hints.range,
             rand_elements,
             self.main_trace.get_column(range::V_COL_IDX),
         );
 
-        // Inject random values into the last rows of the trace.
+        // inject random values into the last rows of the trace
         let mut rng = RandomCoin::new(&self.program_hash.to_bytes());
         for i in self.length() - NUM_RAND_ROWS..self.length() {
             for column in aux_columns.iter_mut() {

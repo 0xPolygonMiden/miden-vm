@@ -6,19 +6,39 @@ pub use vm_core::range::{P0_COL_IDX, P1_COL_IDX, T_COL_IDX, V_COL_IDX};
 #[cfg(test)]
 mod tests;
 
+// RANGE CHECKER AUXILIARY TRACE COLUMNS
+// ================================================================================================
+
+/// Returns the range checker's auxiliary execution trace with its two auxiliary running product
+/// columns `p0` and `p1`.
+pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
+    trace_len: usize,
+    aux_trace_hints: &AuxTraceHints,
+    rand_elements: &[E],
+    v_col: &[Felt],
+) -> Vec<Vec<E>> {
+    let p0 = build_aux_col_p0(trace_len, aux_trace_hints, rand_elements, v_col);
+    let p1 = build_aux_col_p1(trace_len, aux_trace_hints, rand_elements, v_col);
+
+    vec![p0, p1]
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
 /// Builds the execution trace of the range checker's `p0` auxiliary column used for multiset
 /// checks. The running product is built up in the 8-bit section of the table and reduced in the
 /// 16-bit section of the table so that the starting and ending value are both one.
-pub fn build_aux_col_p0<E: FieldElement<BaseField = Felt>>(
-    aux_column: &mut [E],
+fn build_aux_col_p0<E: FieldElement<BaseField = Felt>>(
+    trace_len: usize,
     aux_trace_hints: &AuxTraceHints,
     rand_elements: &[E],
     v_col: &[Felt],
-) {
+) -> Vec<E> {
+    let mut aux_column = E::zeroed_vector(trace_len);
     let alpha = rand_elements[0];
+
+    // Set the starting value to one.
     aux_column[0] = E::ONE;
 
     // Build the execution trace of the 8-bit running product.
@@ -30,15 +50,7 @@ pub fn build_aux_col_p0<E: FieldElement<BaseField = Felt>>(
     {
         // This is the 8-bit section, where the running product must be built up.
         let v: E = v_col[row_idx].into();
-
-        // Define variable z as: z = f3​*(α+v)^4 + f2*(α+v)^2 ​+ f1*(α+v) ​+ f0​
-        let z = match hint {
-            AuxColumnHint::F0 => E::ONE,
-            AuxColumnHint::F1 => v + alpha,
-            AuxColumnHint::F2 => (v + alpha).square(),
-            AuxColumnHint::F3 => ((v + alpha).square()).square(),
-        };
-
+        let z = get_z(hint, alpha, v);
         aux_column[row_idx + 1] = aux_column[row_idx] * z;
     }
 
@@ -79,5 +91,50 @@ pub fn build_aux_col_p0<E: FieldElement<BaseField = Felt>>(
         if diff_values[idx] != E::ZERO {
             acc *= diff_values[idx];
         }
+    }
+
+    aux_column
+}
+
+/// Builds the execution trace of the range checker's `p1` auxiliary column used for multiset
+/// checks.
+fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
+    trace_len: usize,
+    aux_trace_hints: &AuxTraceHints,
+    rand_elements: &[E],
+    v_col: &[Felt],
+) -> Vec<E> {
+    let mut aux_column = Vec::with_capacity(trace_len);
+    let alpha = rand_elements[0];
+
+    // For the 8-bit section of the table, the starting value and all "next" values should be set to
+    // one, since the value does not change.
+    aux_column.resize(aux_trace_hints.start_16bit + 1, E::ONE);
+
+    // For the 16-bit section of the range checker table, include `z` in the running product at each
+    // step.
+    for (row_idx, hint) in aux_trace_hints
+        .aux_column_hints
+        .iter()
+        .enumerate()
+        .take(v_col.len() - 1)
+        .skip(aux_trace_hints.start_16bit)
+    {
+        let v = v_col[row_idx].into();
+        let z = get_z(hint, alpha, v);
+        aux_column.push(aux_column[row_idx] * z);
+    }
+
+    aux_column
+}
+
+/// Get the variable `z` to be included in the running product.
+/// `z` is defined as: z=(α+v)4⋅f3​+(α+v)2⋅f2​+(α+v)⋅f1​+f0​.
+fn get_z<E: FieldElement<BaseField = Felt>>(hint: &AuxColumnHint, alpha: E, v: E) -> E {
+    match hint {
+        AuxColumnHint::F0 => E::ONE,
+        AuxColumnHint::F1 => v + alpha,
+        AuxColumnHint::F2 => (v + alpha).square(),
+        AuxColumnHint::F3 => ((v + alpha).square()).square(),
     }
 }
