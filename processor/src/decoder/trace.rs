@@ -1,4 +1,5 @@
 use super::{Felt, Operation, Word, MIN_TRACE_LEN, NUM_HASHER_COLUMNS, NUM_OP_BITS};
+use std::ops::Range;
 use vm_core::{program::blocks::OP_BATCH_SIZE, utils::new_array_vec, FieldElement, StarkField};
 
 // CONSTANTS
@@ -6,6 +7,13 @@ use vm_core::{program::blocks::OP_BATCH_SIZE, utils::new_array_vec, FieldElement
 
 const ZERO: Felt = Felt::ZERO;
 const ONE: Felt = Felt::ONE;
+
+/// The range of columns in the decoder's `hasher_trace` which is available for use as helper
+/// registers during user operations.
+pub const USER_OP_HELPERS: Range<usize> = Range {
+    start: 2,
+    end: NUM_HASHER_COLUMNS,
+};
 
 // DECODER TRACE
 // ================================================================================================
@@ -234,12 +242,10 @@ impl DecoderTrace {
 
         self.hasher_trace[0].push(group_ops_left);
         self.hasher_trace[1].push(parent_addr);
-        self.hasher_trace[2].push(ZERO);
-        self.hasher_trace[3].push(ZERO);
-        self.hasher_trace[4].push(ZERO);
-        self.hasher_trace[5].push(ZERO);
-        self.hasher_trace[6].push(ZERO);
-        self.hasher_trace[7].push(ZERO);
+
+        for idx in USER_OP_HELPERS {
+            self.hasher_trace[idx].push(ZERO);
+        }
 
         self.group_count_trace.push(num_groups_left);
         self.op_idx_trace.push(op_idx);
@@ -363,12 +369,37 @@ impl DecoderTrace {
         *self.group_count_trace.last().expect("no group count")
     }
 
+    /// Returns a reference to the last value in the helper register at the specified index.
+    fn last_helper_mut(&mut self, idx: usize) -> &mut Felt {
+        debug_assert!(idx < USER_OP_HELPERS.len(), "invalid helper register index");
+
+        self.hasher_trace[USER_OP_HELPERS.start + idx]
+            .last_mut()
+            .expect("no last helper value")
+    }
+
     /// Populates op_bits registers for the next row with the opcode of the provided operation.
     fn append_opcode(&mut self, op: Operation) {
         let op_code = op.op_code().expect("missing opcode");
         for i in 0..NUM_OP_BITS {
             let bit = Felt::from((op_code >> i) & 1);
             self.op_bits_trace[i].push(bit);
+        }
+    }
+
+    /// Add all provided values to the helper registers in the order provided, starting from the
+    /// first hasher register that is available for user operation helper values.
+    ///
+    /// The specified USER_OP_HELPERS in the `hasher_trace` are used as helper registers, since they
+    /// are not required for hashing during execution of user operations.
+    pub fn set_user_op_helpers(&mut self, values: &[Felt]) {
+        assert!(
+            values.len() <= USER_OP_HELPERS.len(),
+            "too many values for helper columns"
+        );
+
+        for (idx, value) in values.iter().enumerate() {
+            *self.last_helper_mut(idx) = *value;
         }
     }
 }

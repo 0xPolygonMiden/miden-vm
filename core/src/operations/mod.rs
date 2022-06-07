@@ -520,6 +520,21 @@ impl Operation {
     pub fn is_decorator(&self) -> bool {
         matches!(self, Self::Debug(_) | Self::Advice(_))
     }
+
+    /// Returns true if this operation is a control operation.
+    pub fn is_control_op(&self) -> bool {
+        matches!(
+            self,
+            Self::End
+                | Self::Join
+                | Self::Split
+                | Self::Loop
+                | Self::Repeat
+                | Self::Respan
+                | Self::Span
+                | Self::Halt
+        )
+    }
 }
 
 impl fmt::Display for Operation {
