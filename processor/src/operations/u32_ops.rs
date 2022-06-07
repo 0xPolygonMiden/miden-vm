@@ -10,7 +10,7 @@ impl Process {
         let a = self.stack.get(0);
         let (lo, hi) = split_element(a);
 
-        self.add_range_checks(lo, Some(hi));
+        self.add_range_checks(lo, hi);
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
@@ -35,8 +35,8 @@ impl Process {
             return Err(ExecutionError::NotU32Value(b));
         }
 
-        self.add_range_checks(lo_a, Some(hi_a));
-        self.add_range_checks(lo_b, Some(hi_b));
+        self.add_range_checks(lo_a, hi_a);
+        self.add_range_checks(lo_b, hi_b);
 
         self.stack.copy_state(0);
         Ok(())
@@ -53,7 +53,10 @@ impl Process {
         let result = a + b;
         let (lo, hi) = split_element(result);
 
-        self.add_range_checks(lo, None);
+        // Force this operation to consume 4 range checks, even though only `lo` is needed.
+        // This is required for making the constraints more uniform and grouping the opcodes of
+        // operations requiring range checks under a common degree-4 prefix.
+        self.add_range_checks(lo, Felt::ZERO);
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
@@ -70,7 +73,7 @@ impl Process {
         let result = Felt::new(a + b + c);
         let (lo, hi) = split_element(result);
 
-        self.add_range_checks(lo, Some(hi));
+        self.add_range_checks(lo, hi);
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
@@ -88,7 +91,10 @@ impl Process {
         let d = Felt::new(result >> 63);
         let c = Felt::new((result as u32) as u64);
 
-        self.add_range_checks(c, None);
+        // Force this operation to consume 4 range checks, even though only `lo` is needed.
+        // This is required for making the constraints more uniform and grouping the opcodes of
+        // operations requiring range checks under a common degree-4 prefix.
+        self.add_range_checks(c, Felt::ZERO);
 
         self.stack.set(0, d);
         self.stack.set(1, c);
@@ -104,7 +110,7 @@ impl Process {
         let result = Felt::new(a * b);
         let (lo, hi) = split_element(result);
 
-        self.add_range_checks(lo, Some(hi));
+        self.add_range_checks(lo, hi);
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
@@ -122,7 +128,7 @@ impl Process {
         let result = Felt::new(a * b + c);
         let (lo, hi) = split_element(result);
 
-        self.add_range_checks(lo, Some(hi));
+        self.add_range_checks(lo, hi);
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
@@ -150,7 +156,7 @@ impl Process {
         let lo = Felt::new(a - q);
         // These range checks help enforce that r < b.
         let hi = Felt::new(b - r - 1);
-        self.add_range_checks(lo, Some(hi));
+        self.add_range_checks(lo, hi);
 
         self.stack.set(0, Felt::new(r));
         self.stack.set(1, Felt::new(q));
@@ -197,18 +203,16 @@ impl Process {
         Ok(())
     }
 
-    /// Adds 16-bit range checks to the RangeChecker for the high and low 16-bit limbs of one or two
-    /// field elements which are assumed to have 32-bit integer values.
-    fn add_range_checks(&mut self, lo: Felt, hi: Option<Felt>) {
+    /// Adds 16-bit range checks to the RangeChecker for the high and low 16-bit limbs of two field
+    /// elements which are assumed to have 32-bit integer values. This results in 4 range checks.
+    fn add_range_checks(&mut self, lo: Felt, hi: Felt) {
         let (t0, t1) = split_element_to_u16(lo);
+        let (t2, t3) = split_element_to_u16(hi);
+
         self.range.add_value(t0);
         self.range.add_value(t1);
-
-        if let Some(hi) = hi {
-            let (t2, t3) = split_element_to_u16(hi);
-            self.range.add_value(t2);
-            self.range.add_value(t3);
-        }
+        self.range.add_value(t2);
+        self.range.add_value(t3);
     }
 }
 
