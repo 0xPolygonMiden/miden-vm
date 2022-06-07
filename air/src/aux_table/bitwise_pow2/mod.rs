@@ -1,7 +1,11 @@
 use super::{EvaluationFrame, FieldElement, TransitionConstraintDegree, BITWISE_TRACE_OFFSET};
 use crate::utils::is_binary;
 use core::ops::Range;
-use vm_core::{bitwise::NUM_SELECTORS, utils::range as create_range, Felt};
+use vm_core::{
+    bitwise::{NUM_SELECTORS, OP_CYCLE_LEN},
+    utils::range as create_range,
+    Felt,
+};
 
 mod bitwise;
 mod pow2;
@@ -12,8 +16,6 @@ pub mod tests;
 // CONSTANTS
 // ================================================================================================
 
-/// The number of rows required to compute an operation in the Bitwise & Power of Two co-processor.
-pub const OP_CYCLE_LEN: usize = 8;
 /// Index of CONSTRAINT_DEGREES array after which all constraints use periodic columns.
 const PERIODIC_CONSTRAINTS_START: usize = 2;
 /// The number of shared constraints on the combined trace of the Bitwise and Power of Two

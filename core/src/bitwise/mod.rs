@@ -9,6 +9,9 @@ pub const NUM_SELECTORS: usize = 2;
 /// Number of columns needed to record an execution trace of the bitwise and power of two helper.
 pub const TRACE_WIDTH: usize = NUM_SELECTORS + 12;
 
+/// The number of rows required to compute an operation in the Bitwise & Power of Two co-processor.
+pub const OP_CYCLE_LEN: usize = 8;
+
 // --- OPERATION SELECTORS ------------------------------------------------------------------------
 
 /// Specifies a bitwise AND operation.
