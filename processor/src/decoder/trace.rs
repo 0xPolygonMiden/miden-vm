@@ -332,10 +332,7 @@ impl DecoderTrace {
         for (i, mut column) in self.hasher_trace.into_iter().enumerate() {
             debug_assert_eq!(own_len, column.len());
             if i < 4 {
-                // TODO: ideally, we should use `expect()` instead of `unwrap_or()` but aux_table
-                // unit tests fail if we do that as they don't expect build the decoder portion of
-                // the trace. in the future we should refactor aux_table unit tests.
-                let last_value = *column.last().unwrap_or(&ZERO);
+                let last_value = *column.last().expect("no last hasher trace value");
                 column.resize(trace_len, last_value);
             } else {
                 column.resize(trace_len, ZERO);
