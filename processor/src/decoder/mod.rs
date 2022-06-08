@@ -399,6 +399,15 @@ impl Decoder {
             .try_into()
             .expect("failed to convert vector to array")
     }
+
+    // TEST METHODS
+    // --------------------------------------------------------------------------------------------
+
+    /// Adds a row of zeros to the decoder trace for testing purposes.
+    #[cfg(test)]
+    pub fn add_dummy_trace_row(&mut self) {
+        self.trace.add_dummy_row();
+    }
 }
 
 impl Default for Decoder {

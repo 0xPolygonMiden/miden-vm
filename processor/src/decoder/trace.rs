@@ -402,4 +402,22 @@ impl DecoderTrace {
             *self.last_helper_mut(idx) = *value;
         }
     }
+
+    // TEST METHODS
+    // --------------------------------------------------------------------------------------------
+
+    /// Adds a new decoder trace row of zeros for testing purposes.
+    #[cfg(test)]
+    pub fn add_dummy_row(&mut self) {
+        self.addr_trace.push(ZERO);
+        for column in self.op_bits_trace.iter_mut() {
+            column.push(ZERO);
+        }
+        self.in_span_trace.push(ZERO);
+        for column in self.hasher_trace.iter_mut() {
+            column.push(ZERO);
+        }
+        self.group_count_trace.push(ZERO);
+        self.op_idx_trace.push(ZERO);
+    }
 }
