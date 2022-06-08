@@ -598,7 +598,7 @@ fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, usize) {
     process.execute_code_block(program).unwrap();
 
     let (trace, _) = ExecutionTrace::test_finalize_trace(process);
-    let trace_len = trace.len() - ExecutionTrace::NUM_RAND_ROWS;
+    let trace_len = trace[0].len() - ExecutionTrace::NUM_RAND_ROWS;
 
     (
         trace[DECODER_TRACE_RANGE]
