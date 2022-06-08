@@ -24,19 +24,14 @@ impl Process {
         let a = self.stack.get(0);
         let b = self.stack.get(1);
 
-        let (lo_a, hi_a) = split_element(a);
-        let (lo_b, hi_b) = split_element(b);
-
-        if hi_a != Felt::ZERO {
+        if a.as_int() >> 32 != 0 {
             return Err(ExecutionError::NotU32Value(a));
         }
-
-        if hi_b != Felt::ZERO {
+        if b.as_int() >> 32 != 0 {
             return Err(ExecutionError::NotU32Value(b));
         }
 
-        self.add_range_checks(Operation::U32assert2, lo_a, hi_a, false);
-        self.add_range_checks(Operation::U32assert2, lo_b, hi_b, false);
+        self.add_range_checks(Operation::U32assert2, a, b, false);
 
         self.stack.copy_state(0);
         Ok(())
