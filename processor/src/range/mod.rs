@@ -1,5 +1,7 @@
+use crate::RangeCheckTrace;
+
 use super::{Felt, FieldElement};
-use winter_utils::{collections::BTreeMap, uninit_vector};
+use vm_core::utils::{collections::BTreeMap, uninit_vector};
 
 #[cfg(test)]
 mod tests;
@@ -96,53 +98,72 @@ impl RangeChecker {
     // --------------------------------------------------------------------------------------------
 
     /// Converts this [RangeChecker] into an execution trace with 4 columns and the number of rows
-    /// specified by the `target_length` parameter.
+    /// specified by the `target_len` parameter.
     ///
     /// If the number of rows need to represent execution trace of this range checker is smaller
-    /// than `target_length` parameter, the trace is padded with extra rows.
+    /// than `target_len` parameter, the trace is padded with extra rows.
+    ///
+    /// `num_rand_rows` indicates the number of rows at the end of the trace which will be
+    /// overwritten with random values. Values in these rows are not initialized.
     ///
     /// # Panics
-    /// Panics if `target_length` is not a power of two or is smaller than the trace length needed
+    /// Panics if `target_len` is not a power of two or is smaller than the trace length needed
     /// to represent all lookups in this range checker.
-    pub fn into_trace(self, target_length: usize) -> Vec<Vec<Felt>> {
+    pub fn into_trace(self, target_len: usize, num_rand_rows: usize) -> RangeCheckTrace {
         assert!(
-            target_length.is_power_of_two(),
+            target_len.is_power_of_two(),
             "target trace length is not a power of two"
         );
 
         // determine the length of the trace required to support all the lookups in this range
-        // checker, and make sure this length is smaller than or equal to the target trace length.
+        // checker, and make sure this length is smaller than or equal to the target trace length,
+        // accounting for rows with random values.
         //
         // we do the trace length computation here instead of using Self::trace_len() because we
         // need to use lookups_8bit table later in this function, and we don't want to create it
         // twice.
         let (lookups_8bit, num_16_bit_rows) = self.build_8bit_lookup();
         let num_8bit_rows = get_num_8bit_rows(&lookups_8bit);
-        let trace_length = num_8bit_rows + num_16_bit_rows;
-        assert!(trace_length <= target_length, "target trace too small");
+        let trace_len = num_8bit_rows + num_16_bit_rows;
+        assert!(
+            trace_len + num_rand_rows <= target_len,
+            "target trace length too small"
+        );
 
         // allocated memory for the trace; this memory is un-initialized but this is not a problem
         // because we'll overwrite all values in it anyway.
         let mut trace = unsafe {
-            vec![
-                uninit_vector(target_length),
-                uninit_vector(target_length),
-                uninit_vector(target_length),
-                uninit_vector(target_length),
+            [
+                uninit_vector(target_len),
+                uninit_vector(target_len),
+                uninit_vector(target_len),
+                uninit_vector(target_len),
             ]
         };
+        // Allocate uninitialized memory for accumulating the precomputed auxiliary column hints.
+        let mut aux_column_hints = unsafe { uninit_vector(target_len) };
 
         // determine the number of padding rows needed to get to target trace length and pad the
         // table with the required number of rows.
-        let num_padding_rows = target_length - trace_length;
+        let num_padding_rows = target_len - trace_len - num_rand_rows;
         trace[1][..num_padding_rows].fill(Felt::ZERO);
         trace[2][..num_padding_rows].fill(Felt::ZERO);
         trace[3][..num_padding_rows].fill(Felt::ZERO);
 
+        // Initialize the padded rows of the auxiliary column hints with the default flag, F0,
+        // indicating s0 = s1 = ZERO.
+        aux_column_hints[..num_padding_rows].fill(AuxColumnHint::F0);
+
         // build the 8-bit segment of the trace table
         let mut i = num_padding_rows;
         for (value, num_lookups) in lookups_8bit.into_iter().enumerate() {
-            write_value(&mut trace, &mut i, num_lookups, value as u64);
+            write_value(
+                &mut trace,
+                &mut aux_column_hints,
+                &mut i,
+                num_lookups,
+                value as u64,
+            );
         }
 
         // fill in the first column to indicate where the 8-bit segment ends and where the
@@ -151,17 +172,33 @@ impl RangeChecker {
         trace[0][i..].fill(Felt::ONE);
 
         // build the 16-bit segment of the trace table
+        let start_16bit = i;
         let mut prev_value = 0u16;
         for (&value, &num_lookups) in self.lookups.iter() {
             // when the delta between two values is greater than 255, insert "bridge" rows
             for value in (prev_value..value).step_by(255).skip(1) {
-                write_value(&mut trace, &mut i, 0, value as u64);
+                write_value(&mut trace, &mut aux_column_hints, &mut i, 0, value as u64);
             }
-            write_value(&mut trace, &mut i, num_lookups, value as u64);
+            write_value(
+                &mut trace,
+                &mut aux_column_hints,
+                &mut i,
+                num_lookups,
+                value as u64,
+            );
             prev_value = value;
         }
 
-        trace
+        // Create the hints for the auxiliary trace.
+        let aux_trace_hints = AuxTraceHints {
+            aux_column_hints,
+            start_16bit,
+        };
+
+        RangeCheckTrace {
+            trace,
+            aux_trace_hints,
+        }
     }
 
     // HELPER METHODS
@@ -206,6 +243,35 @@ impl RangeChecker {
     }
 }
 
+impl Default for RangeChecker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// AUXILIARY TRACE HINTS
+// ================================================================================================
+
+/// A precomputed hint value that can be used to help construct the execution trace for the
+/// auxiliary columns p0 and p1 used for multiset checks. The hint is a precomputed flag value based
+/// on the selectors s0 and s1 in the trace.
+#[derive(Debug, Clone)]
+pub enum AuxColumnHint {
+    F0,
+    F1,
+    F2,
+    F3,
+}
+
+/// A struct with information to help construct the auxiliary columnrs `p0` and `p1` used for
+/// multiset checks. It contains a vector of precomputed flag values for each row in the Range
+/// Checker's execution trace and the index where the 16-bit section of the Range Checker's trace
+/// starts.
+pub struct AuxTraceHints {
+    pub(super) aux_column_hints: Vec<AuxColumnHint>,
+    pub(super) start_16bit: usize,
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -240,9 +306,16 @@ fn get_num_8bit_rows(lookups: &[usize; 256]) -> usize {
 
 /// Populates the trace with the rows needed to support the specified number of lookups against
 /// the specified value.
-fn write_value(trace: &mut [Vec<Felt>], step: &mut usize, num_lookups: usize, value: u64) {
+fn write_value(
+    trace: &mut [Vec<Felt>],
+    aux_column_hints: &mut [AuxColumnHint],
+    step: &mut usize,
+    num_lookups: usize,
+    value: u64,
+) {
     // if the number of lookups is 0, only one trace row is required
     if num_lookups == 0 {
+        aux_column_hints[*step] = AuxColumnHint::F0;
         write_trace_row(trace, step, Felt::ZERO, Felt::ZERO, value as u64);
         return;
     }
@@ -250,17 +323,20 @@ fn write_value(trace: &mut [Vec<Felt>], step: &mut usize, num_lookups: usize, va
     // write rows which can support 4 lookups per row
     let (num_rows, num_lookups) = div_rem(num_lookups, 4);
     for _ in 0..num_rows {
+        aux_column_hints[*step] = AuxColumnHint::F3;
         write_trace_row(trace, step, Felt::ONE, Felt::ONE, value as u64);
     }
 
     // write rows which can support 2 lookups per row
     let (num_rows, num_lookups) = div_rem(num_lookups, 2);
     for _ in 0..num_rows {
+        aux_column_hints[*step] = AuxColumnHint::F2;
         write_trace_row(trace, step, Felt::ZERO, Felt::ONE, value as u64);
     }
 
     // write rows which can support only one lookup per row
     for _ in 0..num_lookups {
+        aux_column_hints[*step] = AuxColumnHint::F1;
         write_trace_row(trace, step, Felt::ONE, Felt::ZERO, value as u64);
     }
 }

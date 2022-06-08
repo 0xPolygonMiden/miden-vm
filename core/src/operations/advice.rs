@@ -1,7 +1,7 @@
 use core::fmt;
 
 /// TODO: add docs
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum AdviceInjector {
     /// Injects a node of the Merkle tree specified by the values on the stack at the head of the
     /// advice tape. The stack is expected to be arranged as follows (from the top):

@@ -1,5 +1,5 @@
 use super::{Felt, FieldElement};
-use winter_utils::collections::BTreeMap;
+use vm_core::utils::collections::BTreeMap;
 
 // OVERFLOW TABLE
 // ================================================================================================
@@ -61,6 +61,15 @@ impl OverflowTable {
     pub fn append_into(&self, target: &mut Vec<Felt>, n: usize) {
         for row in self.rows.iter().rev().take(n) {
             target.push(row.val);
+        }
+    }
+
+    /// Appends the state of the overflow table at the specified clock cycle to the provided vector.
+    pub fn append_state_into(&self, target: &mut Vec<Felt>, clk: usize) {
+        if let Some(x) = self.trace.range(0..=clk).last() {
+            for item in x.1.iter().rev() {
+                target.push(*item);
+            }
         }
     }
 

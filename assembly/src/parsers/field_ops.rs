@@ -124,6 +124,20 @@ pub fn parse_inv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
     Ok(())
 }
 
+/// Translates pow2 assembly instruction to VM operations. Pow2 accepts an exponent value in the
+/// range [0, 63]
+///
+/// This takes 1 cycle.
+pub fn parse_pow2(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => span_ops.push(Operation::Pow2),
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
+}
+
 // BOOLEAN OPERATIONS
 // ================================================================================================
 

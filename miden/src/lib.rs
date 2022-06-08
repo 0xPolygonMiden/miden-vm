@@ -50,7 +50,7 @@ pub fn execute(
     #[cfg(feature = "std")]
     debug!(
         "Generated execution trace of {} columns and {} steps in {} ms",
-        trace.width(),
+        trace.layout().main_trace_width(),
         trace.length(),
         now.elapsed().as_millis()
     );

@@ -1,4 +1,4 @@
-use super::{utils::assert_binary, ExecutionError, Felt, Process, StarkField};
+use super::{ExecutionError, Felt, FieldElement, Process, StarkField};
 
 impl Process {
     // CASTING OPERATIONS
@@ -10,11 +10,35 @@ impl Process {
         let a = self.stack.get(0);
         let (lo, hi) = split_element(a);
 
-        self.add_range_checks(lo, Some(hi));
+        self.add_range_checks(lo, hi);
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
         self.stack.shift_right(1);
+        Ok(())
+    }
+
+    /// Pops top two element off the stack, splits both into low and high 32-bit values, checks if both
+    /// high are equal to 0, if it passes, put both of them onto the stack, else throws an execution error
+    pub(super) fn op_u32assert2(&mut self) -> Result<(), ExecutionError> {
+        let a = self.stack.get(0);
+        let b = self.stack.get(1);
+
+        let (lo_a, hi_a) = split_element(a);
+        let (lo_b, hi_b) = split_element(b);
+
+        if hi_a != Felt::ZERO {
+            return Err(ExecutionError::NotU32Value(a));
+        }
+
+        if hi_b != Felt::ZERO {
+            return Err(ExecutionError::NotU32Value(b));
+        }
+
+        self.add_range_checks(lo_a, hi_a);
+        self.add_range_checks(lo_b, hi_b);
+
+        self.stack.copy_state(0);
         Ok(())
     }
 
@@ -29,7 +53,10 @@ impl Process {
         let result = a + b;
         let (lo, hi) = split_element(result);
 
-        self.add_range_checks(lo, None);
+        // Force this operation to consume 4 range checks, even though only `lo` is needed.
+        // This is required for making the constraints more uniform and grouping the opcodes of
+        // operations requiring range checks under a common degree-4 prefix.
+        self.add_range_checks(lo, Felt::ZERO);
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
@@ -39,17 +66,14 @@ impl Process {
 
     /// Pops three elements off the stack, adds them, splits the result into low and high 32-bit
     /// values, and pushes these values back onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the third element from the top fo the stack is not a binary value.
-    pub(super) fn op_u32addc(&mut self) -> Result<(), ExecutionError> {
-        let b = self.stack.get(0).as_int();
-        let a = self.stack.get(1).as_int();
-        let c = assert_binary(self.stack.get(2))?.as_int();
+    pub(super) fn op_u32add3(&mut self) -> Result<(), ExecutionError> {
+        let c = self.stack.get(0).as_int();
+        let b = self.stack.get(1).as_int();
+        let a = self.stack.get(2).as_int();
         let result = Felt::new(a + b + c);
         let (lo, hi) = split_element(result);
 
-        self.add_range_checks(lo, None);
+        self.add_range_checks(lo, hi);
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
@@ -67,7 +91,10 @@ impl Process {
         let d = Felt::new(result >> 63);
         let c = Felt::new((result as u32) as u64);
 
-        self.add_range_checks(c, None);
+        // Force this operation to consume 4 range checks, even though only `lo` is needed.
+        // This is required for making the constraints more uniform and grouping the opcodes of
+        // operations requiring range checks under a common degree-4 prefix.
+        self.add_range_checks(c, Felt::ZERO);
 
         self.stack.set(0, d);
         self.stack.set(1, c);
@@ -83,7 +110,7 @@ impl Process {
         let result = Felt::new(a * b);
         let (lo, hi) = split_element(result);
 
-        self.add_range_checks(lo, Some(hi));
+        self.add_range_checks(lo, hi);
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
@@ -101,7 +128,7 @@ impl Process {
         let result = Felt::new(a * b + c);
         let (lo, hi) = split_element(result);
 
-        self.add_range_checks(lo, Some(hi));
+        self.add_range_checks(lo, hi);
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
@@ -129,7 +156,7 @@ impl Process {
         let lo = Felt::new(a - q);
         // These range checks help enforce that r < b.
         let hi = Felt::new(b - r - 1);
-        self.add_range_checks(lo, Some(hi));
+        self.add_range_checks(lo, hi);
 
         self.stack.set(0, Felt::new(r));
         self.stack.set(1, Felt::new(q));
@@ -176,18 +203,16 @@ impl Process {
         Ok(())
     }
 
-    /// Adds 16-bit range checks to the RangeChecker for the high and low 16-bit limbs of one or two
-    /// field elements which are assumed to have 32-bit integer values.
-    fn add_range_checks(&mut self, lo: Felt, hi: Option<Felt>) {
+    /// Adds 16-bit range checks to the RangeChecker for the high and low 16-bit limbs of two field
+    /// elements which are assumed to have 32-bit integer values. This results in 4 range checks.
+    fn add_range_checks(&mut self, lo: Felt, hi: Felt) {
         let (t0, t1) = split_element_to_u16(lo);
+        let (t2, t3) = split_element_to_u16(hi);
+
         self.range.add_value(t0);
         self.range.add_value(t1);
-
-        if let Some(hi) = hi {
-            let (t2, t3) = split_element_to_u16(hi);
-            self.range.add_value(t2);
-            self.range.add_value(t3);
-        }
+        self.range.add_value(t2);
+        self.range.add_value(t3);
     }
 }
 
@@ -255,6 +280,17 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
     }
 
+    #[test]
+    fn op_u32assert2() {
+        // --- test random values ensuring other elements are still values are still intact ----------
+        let mut process = Process::new_dummy();
+        let (a, b, c, d) = init_stack_rand(&mut process);
+
+        process.execute_op(Operation::U32assert2).unwrap();
+        let expected = build_expected(&[a, b, c, d]);
+        assert_eq!(expected, process.stack.trace_state());
+    }
+
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
 
@@ -283,12 +319,11 @@ mod tests {
     }
 
     #[test]
-    fn op_u32addc() {
-        // --- test c = 1 -----------------------------------------------------
-        let a = (rand_value::<u64>() as u32) as u64;
-        let b = (rand_value::<u64>() as u32) as u64;
-        let c = 1u64;
-        let d = (rand_value::<u64>() as u32) as u64;
+    fn op_u32add3() {
+        let a = rand_value::<u32>() as u64;
+        let b = rand_value::<u32>() as u64;
+        let c = rand_value::<u32>() as u64;
+        let d = rand_value::<u32>() as u64;
 
         let mut process = Process::new_dummy();
         init_stack_with(&mut process, &[d, c, b, a]);
@@ -296,24 +331,15 @@ mod tests {
         let result = a + b + c;
         let hi = (result >> 32) as u32;
         let lo = result as u32;
-        assert!(hi <= 1);
+        assert!(hi <= 2);
 
-        process.execute_op(Operation::U32addc).unwrap();
+        process.execute_op(Operation::U32add3).unwrap();
         let expected = build_expected(&[hi, lo, d as u32]);
         assert_eq!(expected, process.stack.trace_state());
 
-        // --- test c > 1 -----------------------------------------------------
-        let a = (rand_value::<u64>() as u32) as u64;
-        let b = (rand_value::<u64>() as u32) as u64;
-        let c = 2u64;
-
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[c, b, a]);
-        assert!(process.execute_op(Operation::U32addc).is_err());
-
         // --- test with minimum stack depth ----------------------------------
         let mut process = Process::new_dummy();
-        assert!(process.execute_op(Operation::U32addc).is_ok());
+        assert!(process.execute_op(Operation::U32add3).is_ok());
     }
 
     #[test]

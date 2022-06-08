@@ -2,6 +2,8 @@ use super::{hasher, AdviceSetError, Felt, FieldElement, Word};
 
 mod merkle_tree;
 use merkle_tree::MerkleTree;
+mod merkle_path_set;
+use merkle_path_set::MerklePathSet;
 
 // ADVICE SET
 // ================================================================================================
@@ -10,6 +12,7 @@ use merkle_tree::MerkleTree;
 #[derive(Clone, Debug)]
 pub enum AdviceSet {
     MerkleTree(MerkleTree),
+    MerklePathSet(MerklePathSet),
 }
 
 impl AdviceSet {
@@ -32,6 +35,7 @@ impl AdviceSet {
     pub fn root(&self) -> Word {
         match self {
             Self::MerkleTree(tree) => tree.root(),
+            Self::MerklePathSet(set) => set.root(),
         }
     }
 
@@ -39,6 +43,7 @@ impl AdviceSet {
     pub fn depth(&self) -> u32 {
         match self {
             Self::MerkleTree(tree) => tree.depth(),
+            Self::MerklePathSet(set) => set.depth(),
         }
     }
 
@@ -52,6 +57,7 @@ impl AdviceSet {
     pub fn get_node(&self, depth: u32, index: u64) -> Result<Word, AdviceSetError> {
         match self {
             Self::MerkleTree(tree) => tree.get_node(depth, index),
+            Self::MerklePathSet(set) => set.get_node(depth, index),
         }
     }
 
@@ -66,6 +72,7 @@ impl AdviceSet {
     pub fn get_path(&self, depth: u32, index: u64) -> Result<Vec<Word>, AdviceSetError> {
         match self {
             Self::MerkleTree(tree) => tree.get_path(depth, index),
+            Self::MerklePathSet(set) => set.get_path(depth, index),
         }
     }
 
@@ -81,6 +88,7 @@ impl AdviceSet {
     pub fn update_leaf(&mut self, index: u64, value: Word) -> Result<(), AdviceSetError> {
         match self {
             Self::MerkleTree(tree) => tree.update_leaf(index, value),
+            Self::MerklePathSet(set) => set.update_leaf(index, value),
         }
     }
 }

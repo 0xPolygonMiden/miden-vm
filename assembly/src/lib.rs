@@ -1,6 +1,8 @@
-use vm_core::program::{blocks::CodeBlock, Library, Script};
+use vm_core::{
+    program::{blocks::CodeBlock, Library, Script},
+    utils::collections::BTreeMap,
+};
 use vm_stdlib::StdLibrary;
-use winter_utils::collections::BTreeMap;
 
 mod context;
 use context::AssemblyContext;

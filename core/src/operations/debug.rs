@@ -1,7 +1,7 @@
 use core::fmt;
 
 /// TODO: add docs
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DebugOptions {
     All,
     Stack(Option<usize>),

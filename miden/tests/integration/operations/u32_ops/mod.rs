@@ -17,7 +17,7 @@ pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 /// ensure that it fails when the input is >= 2^32.
 pub fn test_input_out_of_bounds(asm_op: &str) {
     let test = build_op_test!(asm_op, &[U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 }
 
 /// This helper function tests a provided u32 assembly operation, which takes multiple inputs, to
@@ -31,7 +31,7 @@ pub fn test_inputs_out_of_bounds(asm_op: &str, input_count: usize) {
         i_inputs[i] = U32_BOUND;
 
         let test = build_op_test!(asm_op, &i_inputs);
-        test.expect_error(TestError::ExecutionError("FailedAssertion"));
+        test.expect_error(TestError::ExecutionError("NotU32Value"));
     }
 }
 

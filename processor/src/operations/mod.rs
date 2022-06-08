@@ -36,6 +36,7 @@ impl Process {
             Operation::Span => unreachable!("control flow operation"),
             Operation::Respan => unreachable!("control flow operation"),
             Operation::End => unreachable!("control flow operation"),
+            Operation::Halt => unreachable!("control flow operation"),
 
             // ----- field operations -------------------------------------------------------------
             Operation::Add => self.op_add()?,
@@ -43,6 +44,7 @@ impl Process {
             Operation::Mul => self.op_mul()?,
             Operation::Inv => self.op_inv()?,
             Operation::Incr => self.op_incr()?,
+            Operation::Pow2 => self.op_pow2()?,
 
             Operation::And => self.op_and()?,
             Operation::Or => self.op_or()?,
@@ -55,7 +57,7 @@ impl Process {
             // ----- u32 operations ---------------------------------------------------------------
             Operation::U32split => self.op_u32split()?,
             Operation::U32add => self.op_u32add()?,
-            Operation::U32addc => self.op_u32addc()?,
+            Operation::U32add3 => self.op_u32add3()?,
             Operation::U32sub => self.op_u32sub()?,
             Operation::U32mul => self.op_u32mul()?,
             Operation::U32madd => self.op_u32madd()?,
@@ -64,6 +66,7 @@ impl Process {
             Operation::U32and => self.op_u32and()?,
             Operation::U32or => self.op_u32or()?,
             Operation::U32xor => self.op_u32xor()?,
+            Operation::U32assert2 => self.op_u32assert2()?,
 
             // ----- stack manipulation -----------------------------------------------------------
             Operation::Pad => self.op_pad()?,
