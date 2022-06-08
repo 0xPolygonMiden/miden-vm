@@ -1,11 +1,11 @@
 # Miden VM decoder
 
-Miden VM program decoder is responsible for ensuring that a program with a given [MAST root](https://hackmd.io/yr-ieh7SSKOzWw7Kdo9gnA) is executed by the VM. As the VM executes a program, the decoder does the following:
+Miden VM program decoder is responsible for ensuring that a program with a given [MAST root](/miden/design/programs.html) is executed by the VM. As the VM executes a program, the decoder does the following:
 
 1. Decodes a sequence of field elements supplied by the prover into individual operation codes (or *opcodes* for short).
-2. Organizes the sequence of field elements into code blocks, and computes the hash of the program according to the methodology described [here](https://hackmd.io/yr-ieh7SSKOzWw7Kdo9gnA#Program-hash-computation).
+2. Organizes the sequence of field elements into code blocks, and computes the hash of the program according to the methodology described [here](/miden/design/programs.html#Program-hash-computation).
 
-At the end of program execution, the decoder outputs the computed program hash. This hash binds the sequence of opcodes executed by the VM to a program the prover claims to have executed. The verifier uses this hash during the STARK proof verification process to verify that the proof attests to a correct execution of a specific program (i.e., the prover didn't execute program $A$ while in fact executing a different program $B$).
+At the end of program execution, the decoder outputs the computed program hash. This hash binds the sequence of opcodes executed by the VM to a program the prover claims to have executed. The verifier uses this hash during the STARK proof verification process to verify that the proof attests to a correct execution of a specific program (i.e., the prover didn't claim to execute program $A$ while in fact executing a different program $B$).
 
 The sections below describe how Miden VM decoder works. Throughout these sections we make the following assumptions:
 1. An opcode requires $7$ bits to represent.
@@ -20,11 +20,11 @@ Managing control flow in the VM is accomplished by executing control flow operat
 
 | Operation | Description |
 | --------- | ----------- |
-| `JOIN`    | Initiates processing of a new [Join block](https://hackmd.io/yr-ieh7SSKOzWw7Kdo9gnA#Join-block). |
-| `SPLIT`   | Initiates processing of a new [Split block](https://hackmd.io/yr-ieh7SSKOzWw7Kdo9gnA#Split-block). |
-| `LOOP`    | Initiates processing of a new [Loop block](https://hackmd.io/yr-ieh7SSKOzWw7Kdo9gnA#Loop-block). |
+| `JOIN`    | Initiates processing of a new [Join block](/miden/design/programs.html#Join-block). |
+| `SPLIT`   | Initiates processing of a new [Split block](/miden/design/programs.html#Split-block). |
+| `LOOP`    | Initiates processing of a new [Loop block](/miden/design/programs.html#Loop-block). |
 | `REPEAT`  | Initiates a new iteration of an executing loop. |
-| `SPAN`    | Initiates processing of a new [Span block](https://hackmd.io/yr-ieh7SSKOzWw7Kdo9gnA#Span-block). |
+| `SPAN`    | Initiates processing of a new [Span block](/miden/design/programs.html#Span-block). |
 | `RESPAN`  | Initiates processing of a new operation batch within a span block. |
 | `END`     | Marks the end of a program block. |
 | `HALT`    | Marks the end of the entire program. |
@@ -86,14 +86,14 @@ END
 END
 HALT
 ```
-The main task of the decoder is to output exactly the same program hash, regardless of which one of the two possible execution paths was taken. However, before we can describe how this is achieved, we need to given an overview of the overall decoder structure.
+The main task of the decoder is to output exactly the same program hash, regardless of which one of the two possible execution paths was taken. However, before we can describe how this is achieved, we need to give an overview of the overall decoder structure.
 
 ## Decoder structure
 The decoder is one of the more complex parts of the VM. It consists of the following components:
 
-* Main execution trace consisting of $24$ trace columns which contain the state of the decoder at a given cycle of a computation.
-* $3$ virtual tables (implemented via multi-set checks), which keep track of code blocks and operations executing on the VM.
-* Connection to the [hash co-processor](/miden/design/aux_table/hasher.html), which is used to offload hash computations from the decoder.
+* Main [execution trace](#Decoder-trace) consisting of $24$ trace columns which contain the state of the decoder at a given cycle of a computation.
+* Connection to the hash co-processor, which is used to offload [hash computations](#Program-block-hashing) from the decoder.
+* $3$ [virtual tables](#Control-flow-tables) (implemented via multi-set checks), which keep track of code blocks and operations executing on the VM.
 
 ### Decoder trace
 Decoder trace columns can be grouped into several logical sets of registers as illustrated below.
@@ -103,7 +103,7 @@ Decoder trace columns can be grouped into several logical sets of registers as i
 These registers have the following meanings:
 1. Block address register $a$. This register contains address of the hasher for the current block (row index from the auxiliary hashing table). It also serves the role of unique block identifiers. This is convenient, because hasher addresses are guaranteed to be unique.
 2. Registers $b_0, ..., b_6$, which encode opcodes for operation to be executed by the VM. Each of these registers can contain a single binary value (either $1$ or $0$). And together these values describe a single opcode.
-3. Hasher registers $h_0, ..., h_7$. When control flow operations are executed, these registers facilitate computation of program block hashes. However, when regular operations are executed, $2$ of these registers are used to hold help with op group decoding, and the remaining $6$ can be used to hold operation-specific helper variables.
+3. Hasher registers $h_0, ..., h_7$. When control flow operations are executed, these registers facilitate computation of program block hashes. However, when regular operations are executed, $2$ of these registers are used to help with op group decoding, and the remaining $6$ can be used to hold operation-specific helper variables.
 4. Register $sp$ which contains a binary flag indicating whether the VM is currently executing instructions inside a *span* block. The flag is set to $1$ when the VM executes non-control flow instructions, and is set to $0$ otherwise.
 5. Register $gc$ which keep track of the number of unprocessed operation groups in a given *span* block.
 6. Register $ox$ which keeps track of a currently executing operation's index within its operation group.
@@ -111,10 +111,10 @@ These registers have the following meanings:
 8. Two additional registers (not shown) used primarily for constraint degree reduction.
 
 ### Program block hashing
-To compute hashes of program blocks, the decoder relies on the hash co-processor. Specifically, the decoder needs to perform two types of hashing operations:
+To compute hashes of program blocks, the decoder relies on the [hash co-processor](/miden/design/aux_table/hasher.html). Specifically, the decoder needs to perform two types of hashing operations:
 
 1. A simple 2-to-1 hash, where we provide a sequence of $8$ field elements, and get back $4$ field elements representing the result. Computing such a hash requires $8$ rows in the hash co-processor.
-2. A sequential hash of $n$ elements. Computing such a hash requires multiple absorption steps, and at each step $8$ field elements are absorbed into the hasher. Thus, commuting a sequential hash of $n$ elements requires $\lceil {n/8} \rceil$ rows in the hash co-processor. At the end, we also get $4$ field elements representing the result.
+2. A sequential hash of $n$ elements. Computing such a hash requires multiple absorption steps, and at each step $8$ field elements are absorbed into the hasher. Thus, computing a sequential hash of $n$ elements requires $\lceil {n/8} \rceil$ rows in the hash co-processor. At the end, we also get $4$ field elements representing the result.
 
 We denote the running product column used to keep track of hash co-processor state as $p_0$. To make hashing requests to the hash co-processor and to read the results from it, we will need to divide out relevant values from this column as described below.
 
@@ -126,7 +126,7 @@ $$
 $$
 
 where:
-* $m_{bp}$ is a label indicating beginning of a new permutation.
+* $m_{bp}$ is a label indicating beginning of a new permutation. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](/miden/design/aux_table/hasher.html#permutation-product-constraints).
 * $r$ is the address of the row at which the hashing begins.
 * $\alpha_4 \cdot 8$ indicates that we are hashing a total of $8$ elements.
 
@@ -137,7 +137,7 @@ $$
 $$
 
 where:
-* $m_{hout}$ is a label indicating return of the hash value.
+* $m_{hout}$ is a label indicating return of the hash value. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](/miden/design/aux_table/hasher.html#permutation-product-constraints).
 * $r$ is the address of the row at which the hashing began.
 
 #### Sequential hash
@@ -153,13 +153,15 @@ $$
 \alpha_0 + \alpha_1 \cdot m_{abp} + \alpha_2 \cdot (r + 7) + \sum_{i=0}^7 (\alpha_{i+8} \cdot v_{i + 8})
 $$
 
+Where $m_{abp}$ is a label indicating absorption of more elements into the hasher state. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](/miden/design/aux_table/hasher.html#permutation-product-constraints).
+
 We can keep absorbing elements into the hasher in the similar manner until all elements have been absorbed. Then, to read the result (e.g., $u_0, ..., u_3$), we need to divide $p_0$ by the following value:
 
 $$
 \alpha_0 + \alpha_1 \cdot m_{hout} + \alpha_2 \cdot (r + \lceil n / 8 \rceil \cdot 8  - 1) + \sum_{i=0}^3 (\alpha_{i+8} \cdot u_i)
 $$
 
-Thus, for example, if $n = 16$, the result will of the hash will be available at hasher row $r + 15$.
+Thus, for example, if $n = 14$, the result will of the hash will be available at hasher row $r + 15$.
 
 ### Control flow tables
 
@@ -211,7 +213,7 @@ $$
 Where $\alpha_0, ..., \alpha_7$ are the random values provided by the verifier.
 
 #### Op group table
-*Op group* table is used in decoding of *span* blocks, which are leaves in a program's MAST. As described [here](https://hackmd.io/yr-ieh7SSKOzWw7Kdo9gnA#Span-block), a *span* block can contain one or more operation batches, each batch containing up to $8$ operation groups.
+*Op group* table is used in decoding of *span* blocks, which are leaves in a program's MAST. As described [here](/miden/design/programs.html#Span-block), a *span* block can contain one or more operation batches, each batch containing up to $8$ operation groups.
 
 When the VM starts executing a new batch of operations, it adds all operation groups within a batch, except for the first one, to the *op group* table. Then, as the VM start executing an operation group, it removes the group from the table. Thus, by the time all operation groups in a batch have been executed, the *op group* table must be empty.
 
@@ -403,7 +405,7 @@ Moreover, since we've set the `is_loop` flag to $0$, executing the `END` operati
 
 ### SPAN block decoding
 
-As described [here](https://hackmd.io/yr-ieh7SSKOzWw7Kdo9gnA#Span-block), a *span* block can contain one or more operation batches, each batch containing up to $8$ operation groups. At the high level, decoding of a span block is done as follows:
+As described [here](/miden/design/programs.html#Span-block), a *span* block can contain one or more operation batches, each batch containing up to $8$ operation groups. At the high level, decoding of a span block is done as follows:
 
 1. At the beginning of the block, we make a request to the hash co-processor which initiates the hasher, absorbs the first operation batch ($8$ field elements) into the hasher, and returns the row address of the hasher, which we use the unique ID for the *span* block (see [here](#Sequential-hash)).
 2. We then add groups of the operation batch, as spcified by op batch flags (but always skipping the first one) to the op group table.
@@ -417,7 +419,7 @@ Overall, three control flow operations are used when decoding a *span* block:
 3. `END` operation is used to end the decoding of a span block and retrieve it hash from the hash co-processor.
 
 #### Operation group decoding
-As described [here](https://hackmd.io/yr-ieh7SSKOzWw7Kdo9gnA#Span-block), an operation group is a sequence of operations which can be encoded into a single field element. For a field element of $64$ bits, we can fit up to $9$ operations into a group. We do this by concatenating binary representations of opcodes together with the first operation located in the least significant position.
+As described [here](/miden/design/programs.html#Span-block), an operation group is a sequence of operations which can be encoded into a single field element. For a field element of $64$ bits, we can fit up to $9$ operations into a group. We do this by concatenating binary representations of opcodes together with the first operation located in the least significant position.
 
 We can read opcodes from the group by simply subtracting them from the op group value and then dividing the result by $2^7$. Once the value of the op group reaches $0$, we know that all opcodes have been read. Graphically, this can be illustrated like so:
 
