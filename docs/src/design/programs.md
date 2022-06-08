@@ -50,7 +50,7 @@ Thus, for example, executing 8 pushes in a row will result in two operation batc
 If a sequence of operations does not have any operations which carry immediate values, up to 72 operations can fit into a single batch.
 
 From the user's perspective, all operations are executed in order, however, the VM may insert occasional `NOOP`s to ensure proper alignment of all operations in the sequence. Currently, the alignment requirements are as follows:
-* An operation carrying an immediate value cannot be the first operation in a group. Thus, for example, if a `PUSH` operation is the last operation in a group, the VM will insert a `NOOP` after it.
+* An operation carrying an immediate value cannot be the last operation in a group. Thus, for example, if a `PUSH` operation is the last operation in a group, the VM will insert a `NOOP` after it.
 
 A *span* block does not have any children, and thus, must be leaf node in the tree.
 
@@ -87,7 +87,7 @@ Execution of this program would proceed as follows:
 8. If the VM does enter the loop, then after operation $d_n$ is executed, the VM will pop the value off the top of the stack again. If the popped value is $1$, the VM will execute block $d$ again, and again until the top of the stack becomes $0$. Once the top of the stack becomes $0$, the VM will exit the loop and will move up the tree executing first block $e$, then $f$.
 
 ## Program hash computation
-Every Miden VM program can be reduced to a unique hash value. Specifically, it is infeasible to find two Miden VM programs with distinct semantics which hash to the same value. Padding a program with `NOOP`s does not change a program's execution semantics, and thus, programs which differ only in the number and/or placement of `NOOP`s may hash to the same value.
+Every Miden VM program can be reduced to a unique hash value. Specifically, it is infeasible to find two Miden VM programs with distinct semantics which hash to the same value. Padding a program with `NOOP`s does not change a program's execution semantics, and thus, programs which differ only in the number and/or placement of `NOOP`s may hash to the same value, although in most cases padding with `NOOP` should not affect program hash.
 
 Below we denote $hash$ to be an arithmetization-friendly hash function with $4$-element output and capable of absorbing $8$ elements in a single permutation.
 
