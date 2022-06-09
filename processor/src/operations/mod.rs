@@ -176,6 +176,15 @@ impl Process {
         let inputs = super::ProgramInputs::new(&[], advice_tape, vec![]).unwrap();
         Self::new(inputs)
     }
+
+    /// Instantiates a new blank process with one decoder trace row for testing purposes. This
+    /// allows for setting helpers in the decoder when executing operations during tests.
+    #[cfg(test)]
+    fn new_dummy_with_decoder_helpers() -> Self {
+        let mut process = Self::new(super::ProgramInputs::none());
+        process.decoder.add_dummy_trace_row();
+        process
+    }
 }
 
 // TEST HELPERS
