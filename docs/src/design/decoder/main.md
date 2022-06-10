@@ -1,9 +1,9 @@
 # Miden VM decoder
 
-Miden VM program decoder is responsible for ensuring that a program with a given [MAST root](/miden/design/programs.html) is executed by the VM. As the VM executes a program, the decoder does the following:
+Miden VM program decoder is responsible for ensuring that a program with a given [MAST root](../programs.md) is executed by the VM. As the VM executes a program, the decoder does the following:
 
 1. Decodes a sequence of field elements supplied by the prover into individual operation codes (or *opcodes* for short).
-2. Organizes the sequence of field elements into code blocks, and computes the hash of the program according to the methodology described [here](/miden/design/programs.html#Program-hash-computation).
+2. Organizes the sequence of field elements into code blocks, and computes the hash of the program according to the methodology described [here](../programs.md#Program-hash-computation).
 
 At the end of program execution, the decoder outputs the computed program hash. This hash binds the sequence of opcodes executed by the VM to a program the prover claims to have executed. The verifier uses this hash during the STARK proof verification process to verify that the proof attests to a correct execution of a specific program (i.e., the prover didn't claim to execute program $A$ while in fact executing a different program $B$).
 
@@ -20,11 +20,11 @@ Managing control flow in the VM is accomplished by executing control flow operat
 
 | Operation | Description |
 | --------- | ----------- |
-| `JOIN`    | Initiates processing of a new [Join block](/miden/design/programs.html#Join-block). |
-| `SPLIT`   | Initiates processing of a new [Split block](/miden/design/programs.html#Split-block). |
-| `LOOP`    | Initiates processing of a new [Loop block](/miden/design/programs.html#Loop-block). |
+| `JOIN`    | Initiates processing of a new [Join block](../programs.md#Join-block). |
+| `SPLIT`   | Initiates processing of a new [Split block](../programs.md#Split-block). |
+| `LOOP`    | Initiates processing of a new [Loop block](../programs.md#Loop-block). |
 | `REPEAT`  | Initiates a new iteration of an executing loop. |
-| `SPAN`    | Initiates processing of a new [Span block](/miden/design/programs.html#Span-block). |
+| `SPAN`    | Initiates processing of a new [Span block](../programs.md#Span-block). |
 | `RESPAN`  | Initiates processing of a new operation batch within a span block. |
 | `END`     | Marks the end of a program block. |
 | `HALT`    | Marks the end of the entire program. |
@@ -111,7 +111,7 @@ These registers have the following meanings:
 8. Two additional registers (not shown) used primarily for constraint degree reduction.
 
 ### Program block hashing
-To compute hashes of program blocks, the decoder relies on the [hash co-processor](/miden/design/aux_table/hasher.html). Specifically, the decoder needs to perform two types of hashing operations:
+To compute hashes of program blocks, the decoder relies on the [hash co-processor](../programs.md). Specifically, the decoder needs to perform two types of hashing operations:
 
 1. A simple 2-to-1 hash, where we provide a sequence of $8$ field elements, and get back $4$ field elements representing the result. Computing such a hash requires $8$ rows in the hash co-processor.
 2. A sequential hash of $n$ elements. Computing such a hash requires multiple absorption steps, and at each step $8$ field elements are absorbed into the hasher. Thus, computing a sequential hash of $n$ elements requires $\lceil {n/8} \rceil$ rows in the hash co-processor. At the end, we also get $4$ field elements representing the result.
@@ -126,10 +126,10 @@ $$
 $$
 
 where:
-* $m_{bp}$ is a label indicating beginning of a new permutation. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](/miden/design/aux_table/hasher.html#permutation-product-constraints).
+* $m_{bp}$ is a label indicating beginning of a new permutation. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](../programs.md#permutation-product-constraints).
 * $r$ is the address of the row at which the hashing begins.
 * $\alpha_4 \cdot 8$ indicates that we are hashing a total of $8$ elements.
-* Some $\alpha$ values are skipped in the above (e.g., $\alpha_3$) because of the specifics of how auxiliary hasher table rows are reduces to field elements (described [here](/miden/design/aux_table/hasher.html#permutation-product-constraints)). For example, $a_3$ is used a  coefficient for node index values during Merkle path computations in the hasher, and thus, is not relevant in this case.
+* Some $\alpha$ values are skipped in the above (e.g., $\alpha_3$) because of the specifics of how auxiliary hasher table rows are reduces to field elements (described [here](../programs.md#permutation-product-constraints)). For example, $a_3$ is used a  coefficient for node index values during Merkle path computations in the hasher, and thus, is not relevant in this case.
 
 To read the $4$-element result ($u_0, ..., u_3$), we need to divide $p_0$ by the following value:
 
@@ -138,7 +138,7 @@ $$
 $$
 
 where:
-* $m_{hout}$ is a label indicating return of the hash value. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](/miden/design/aux_table/hasher.html#permutation-product-constraints).
+* $m_{hout}$ is a label indicating return of the hash value. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](../programs.md#permutation-product-constraints).
 * $r$ is the address of the row at which the hashing began.
 
 #### Sequential hash
@@ -154,7 +154,7 @@ $$
 \alpha_0 + \alpha_1 \cdot m_{abp} + \alpha_2 \cdot (r + 7) + \sum_{i=0}^7 (\alpha_{i+8} \cdot v_{i + 8})
 $$
 
-Where $m_{abp}$ is a label indicating absorption of more elements into the hasher state. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](/miden/design/aux_table/hasher.html#permutation-product-constraints).
+Where $m_{abp}$ is a label indicating absorption of more elements into the hasher state. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](../programs.md#permutation-product-constraints).
 
 We can keep absorbing elements into the hasher in the similar manner until all elements have been absorbed. Then, to read the result (e.g., $u_0, ..., u_3$), we need to divide $p_0$ by the following value:
 
@@ -218,7 +218,7 @@ Unlike other virtual tables, block hash table does not start out in an empty sta
 Initialization of the block hash table is done by setting the initial value of $p_2$ to the value of the row containing the hash of a program's root block.
 
 #### Op group table
-*Op group* table is used in decoding of *span* blocks, which are leaves in a program's MAST. As described [here](/miden/design/programs.html#Span-block), a *span* block can contain one or more operation batches, each batch containing up to $8$ operation groups.
+*Op group* table is used in decoding of *span* blocks, which are leaves in a program's MAST. As described [here](../programs.md#Span-block), a *span* block can contain one or more operation batches, each batch containing up to $8$ operation groups.
 
 When the VM starts executing a new batch of operations, it adds all operation groups within a batch, except for the first one, to the *op group* table. Then, as the VM starts executing an operation group, it removes the group from the table. Thus, by the time all operation groups in a batch have been executed, the *op group* table must be empty.
 
@@ -410,7 +410,7 @@ Moreover, since we've set the `is_loop` flag to $0$, executing the `END` operati
 
 ### SPAN block decoding
 
-As described [here](/miden/design/programs.html#Span-block), a *span* block can contain one or more operation batches, each batch containing up to $8$ operation groups. At the high level, decoding of a span block is done as follows:
+As described [here](../programs.md#Span-block), a *span* block can contain one or more operation batches, each batch containing up to $8$ operation groups. At the high level, decoding of a span block is done as follows:
 
 1. At the beginning of the block, we make a request to the hash co-processor which initiates the hasher, absorbs the first operation batch ($8$ field elements) into the hasher, and returns the row address of the hasher, which we use as the unique ID for the *span* block (see [here](#Sequential-hash)).
 2. We then add groups of the operation batch, as specified by op batch flags (but always skipping the first one) to the op group table.
@@ -424,7 +424,7 @@ Overall, three control flow operations are used when decoding a *span* block:
 3. `END` operation is used to end the decoding of a span block and retrieve its hash from the hash co-processor.
 
 #### Operation group decoding
-As described [here](/miden/design/programs.html#Span-block), an operation group is a sequence of operations which can be encoded into a single field element. For a field element of $64$ bits, we can fit up to $9$ operations into a group. We do this by concatenating binary representations of opcodes together with the first operation located in the least significant position.
+As described [here](../programs.md#Span-block), an operation group is a sequence of operations which can be encoded into a single field element. For a field element of $64$ bits, we can fit up to $9$ operations into a group. We do this by concatenating binary representations of opcodes together with the first operation located in the least significant position.
 
 We can read opcodes from the group by simply subtracting them from the op group value and then dividing the result by $2^7$. Once the value of the op group reaches $0$, we know that all opcodes have been read. Graphically, this can be illustrated like so:
 
