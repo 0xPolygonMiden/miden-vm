@@ -15,6 +15,8 @@
     - [Debugging](./user_docs/assembly/debugging.md)
   - [Miden Standard Library](./user_docs/stdlib/main.md)
 - [Design](./design/main.md)
+  - [Programs](./design/programs.md)
+  - [Decoder](./design/decoder/main.md)
   - [Range Checker](./design/range.md)
   - [Auxiliary Table](./design/aux_table/main.md)
     - [Hash Processor](./design/aux_table/hasher.md)
