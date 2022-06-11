@@ -20,6 +20,11 @@ pub fn binary_not<E: FieldElement>(v: E) -> E {
     E::ONE - v
 }
 
+#[inline(always)]
+pub fn is_zero<E: FieldElement>(v: E) -> E {
+    v
+}
+
 // TRAIT TO SIMPLIFY CONSTRAINT AGGREGATION
 // ================================================================================================
 
