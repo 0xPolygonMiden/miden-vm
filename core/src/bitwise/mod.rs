@@ -7,7 +7,7 @@ use super::{Felt, FieldElement};
 pub const NUM_SELECTORS: usize = 2;
 
 /// Number of columns needed to record an execution trace of the bitwise and power of two helper.
-pub const TRACE_WIDTH: usize = NUM_SELECTORS + 12;
+pub const TRACE_WIDTH: usize = NUM_SELECTORS + 13;
 
 // --- OPERATION SELECTORS ------------------------------------------------------------------------
 
