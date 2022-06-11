@@ -370,6 +370,16 @@ impl Decoder {
         }
     }
 
+    /// Sets the helper registers in the trace to the user-provided helper values. This is expected
+    /// to be called during the execution of a user operation.
+    ///
+    /// TODO: it might be better to get the operation information from the decoder trace, rather
+    /// than passing it in as a parameter.
+    pub fn set_user_op_helpers(&mut self, op: Operation, values: &[Felt]) {
+        debug_assert!(!op.is_control_op(), "op is a control operation");
+        self.trace.set_user_op_helpers(values);
+    }
+
     /// Ends decoding of a SPAN block.
     pub fn end_span(&mut self, block_hash: Word) {
         let is_loop_body = self.block_stack.pop().is_loop_body;
@@ -388,6 +398,15 @@ impl Decoder {
             .into_vec(trace_len, num_rand_rows)
             .try_into()
             .expect("failed to convert vector to array")
+    }
+
+    // TEST METHODS
+    // --------------------------------------------------------------------------------------------
+
+    /// Adds a row of zeros to the decoder trace for testing purposes.
+    #[cfg(test)]
+    pub fn add_dummy_trace_row(&mut self) {
+        self.trace.add_dummy_row();
     }
 }
 
