@@ -1,9 +1,9 @@
-# Miden VM decoder
+# Miden VM Program decoder
 
 Miden VM program decoder is responsible for ensuring that a program with a given [MAST root](../programs.md) is executed by the VM. As the VM executes a program, the decoder does the following:
 
 1. Decodes a sequence of field elements supplied by the prover into individual operation codes (or *opcodes* for short).
-2. Organizes the sequence of field elements into code blocks, and computes the hash of the program according to the methodology described [here](../programs.md#Program-hash-computation).
+2. Organizes the sequence of field elements into code blocks, and computes the hash of the program according to the methodology described [here](../programs.md#program-hash-computation).
 
 At the end of program execution, the decoder outputs the computed program hash. This hash binds the sequence of opcodes executed by the VM to a program the prover claims to have executed. The verifier uses this hash during the STARK proof verification process to verify that the proof attests to a correct execution of a specific program (i.e., the prover didn't claim to execute program $A$ while in fact executing a different program $B$).
 
@@ -20,11 +20,11 @@ Managing control flow in the VM is accomplished by executing control flow operat
 
 | Operation | Description |
 | --------- | ----------- |
-| `JOIN`    | Initiates processing of a new [Join block](../programs.md#Join-block). |
-| `SPLIT`   | Initiates processing of a new [Split block](../programs.md#Split-block). |
-| `LOOP`    | Initiates processing of a new [Loop block](../programs.md#Loop-block). |
+| `JOIN`    | Initiates processing of a new [Join block](../programs.md#join-block). |
+| `SPLIT`   | Initiates processing of a new [Split block](../programs.md#split-block). |
+| `LOOP`    | Initiates processing of a new [Loop block](../programs.md#loop-block). |
 | `REPEAT`  | Initiates a new iteration of an executing loop. |
-| `SPAN`    | Initiates processing of a new [Span block](../programs.md#Span-block). |
+| `SPAN`    | Initiates processing of a new [Span block](../programs.md#span-block). |
 | `RESPAN`  | Initiates processing of a new operation batch within a span block. |
 | `END`     | Marks the end of a program block. |
 | `HALT`    | Marks the end of the entire program. |

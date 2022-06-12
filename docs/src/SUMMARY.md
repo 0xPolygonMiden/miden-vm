@@ -1,6 +1,6 @@
 # Summary
 
-[Miden](./main.md)
+[Miden VM](./main.md)
 
 - [Introduction](./intro.md)
 - [User Documentation](./user_docs/main.md)
@@ -16,7 +16,8 @@
   - [Miden Standard Library](./user_docs/stdlib/main.md)
 - [Design](./design/main.md)
   - [Programs](./design/programs.md)
-  - [Decoder](./design/decoder/main.md)
+  - [Program decoder](./design/decoder/main.md)
+    - [Decoder constraints](./design/decoder/constraints.md)
   - [Range Checker](./design/range.md)
   - [Auxiliary Table](./design/aux_table/main.md)
     - [Hash Processor](./design/aux_table/hasher.md)

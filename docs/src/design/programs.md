@@ -26,13 +26,6 @@ After the body of the loop is executed, the VM checks the top of the stack again
 
 A *loop* block must always have one child, and thus, cannot be a leaf node in the tree.
 
-### Call block
-A **call** block is used to describe a function call. When the VM encounters a *call* block, it executes a program which hashes to the target specified by the call block. Thus, to execute a *call* block the VM must be aware of a program with the specified hash. Otherwise, the execution fails.
-
-![](https://i.imgur.com/UX0LObx.png)
-
-A *call* block does not have any children, and thus, must be leaf node in the tree.
-
 ### Span block
 A **span** block is used to describe a linear sequence of operations. When the VM encounters a *span* block, it breaks the sequence of operations into batches and groups according to the following rules:
 * A group is represented by a single field element. Thus, assuming a single operation can be encoded using 7 bits, and assuming we are using a 64-bit field, a single group may encode up to 9 operations or a single immediate value.
