@@ -567,12 +567,14 @@ pub fn parse_u32rotl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
 ///
 /// VM cycles per mode:
 /// - u32rotr: 16 cycles
-/// - u32rotr.b: 4 cycles
+/// - u32rotr.b: 6 cycles
 /// - u32rotr.unsafe: 7 cycles
 pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::invalid_op(op)),
         1 => {
+            // Verify both b and a are u32.
+            span_ops.push(Operation::U32assert2);
             // Calculate 32 - b and assert that the shift value b <= 31.
             span_ops.push(Operation::Push(Felt::new(31)));
             span_ops.push(Operation::Dup1);
@@ -587,9 +589,7 @@ pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
             span_ops.push(Operation::CSwap);
             span_ops.push(Operation::Drop);
             span_ops.push(Operation::Pow2);
-            // Assert the value to be shifted is a u32 value.
             span_ops.push(Operation::Swap);
-            span_ops.push(Operation::U32assert2);
         }
         2 => match op.parts()[1] {
             "unsafe" => {
@@ -600,9 +600,13 @@ pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
                 span_ops.push(Operation::Pow2);
             }
             _ => {
+                // Assert the top of the stack is a u32 value.
+                // NOTE: We cannot use U32Assert2 since we are potentially pushing a number larger
+                // than u32 for b.
+                assert_u32(span_ops);
+
                 let x = parse_int_param(op, 1, 0, 31)?;
                 span_ops.push(Operation::Push(Felt::new(2u64.pow(32 - x))));
-                span_ops.push(Operation::U32assert2);
             }
         },
         _ => return Err(AssemblyError::extra_param(op)),
