@@ -1,6 +1,6 @@
 use crate::utils::{binary_not, is_binary};
 
-use super::{EvaluationFrame, FieldElement, OP_CYCLE_LEN, POW2_TRACE_OFFSET};
+use super::{EvaluationFrame, FieldElement, Vec, OP_CYCLE_LEN, POW2_TRACE_OFFSET};
 use core::ops::Range;
 use vm_core::{bitwise::POW2_POWERS_PER_ROW, utils::range as create_range};
 use winter_air::TransitionConstraintDegree;

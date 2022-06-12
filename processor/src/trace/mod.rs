@@ -1,10 +1,13 @@
 use super::{
     range::AuxTraceHints as RangeCheckerAuxTraceHints, Digest, Felt, FieldElement, Process,
-    StackTopState,
+    StackTopState, Vec,
 };
 use core::slice;
-use vm_core::{StarkField, MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH};
+use vm_core::{MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH};
 use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
+
+#[cfg(feature = "std")]
+use vm_core::StarkField;
 
 mod range;
 
@@ -94,7 +97,7 @@ impl ExecutionTrace {
 
     // TEST HELPERS
     // --------------------------------------------------------------------------------------------
-
+    #[cfg(feature = "std")]
     #[allow(dead_code)]
     pub fn print(&self) {
         let mut row = [Felt::ZERO; TRACE_WIDTH];

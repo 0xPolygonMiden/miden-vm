@@ -1,4 +1,4 @@
-use super::{EvaluationFrame, FieldElement, BITWISE_TRACE_OFFSET, OP_CYCLE_LEN};
+use super::{EvaluationFrame, FieldElement, Vec, BITWISE_TRACE_OFFSET, OP_CYCLE_LEN};
 use crate::utils::{binary_not, is_binary, EvaluationResult};
 use core::ops::Range;
 use vm_core::{

@@ -1,4 +1,5 @@
 use super::{hasher, AdviceSetError, Felt, FieldElement, Word};
+use crate::utils::collections::Vec;
 
 mod merkle_tree;
 use merkle_tree::MerkleTree;

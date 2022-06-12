@@ -1,4 +1,4 @@
-use super::{Felt, FieldElement, HasherState, Selectors, TraceFragment, TRACE_WIDTH};
+use super::{Felt, FieldElement, HasherState, Selectors, TraceFragment, Vec, TRACE_WIDTH};
 use vm_core::hasher::{apply_round, NUM_ROUNDS, STATE_WIDTH};
 
 // HASHER TRACE

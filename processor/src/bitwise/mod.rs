@@ -1,4 +1,4 @@
-use super::{ExecutionError, Felt, FieldElement, StarkField, TraceFragment};
+use super::{ExecutionError, Felt, FieldElement, StarkField, TraceFragment, Vec};
 use vm_core::bitwise::{
     BITWISE_AND, BITWISE_OR, BITWISE_XOR, NUM_SELECTORS, POW2_POWERS_PER_ROW, POWER_OF_TWO,
     TRACE_WIDTH,

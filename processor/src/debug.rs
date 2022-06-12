@@ -1,4 +1,4 @@
-use crate::{ExecutionError, Felt, Process, StarkField};
+use crate::{ExecutionError, Felt, Process, StarkField, Vec};
 use core::fmt;
 use vm_core::Word;
 

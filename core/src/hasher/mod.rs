@@ -1,8 +1,8 @@
 //! TODO: add docs
 
 use super::{Felt, FieldElement, Word};
+use core::ops::Range;
 use crypto::{ElementHasher, Hasher as HashFn};
-use std::ops::Range;
 
 pub use crypto::hashers::Rp64_256 as Hasher;
 

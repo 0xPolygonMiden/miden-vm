@@ -1,9 +1,8 @@
-use vm_core::StarkField;
-
 use super::{
-    Felt, FieldElement, ProgramInputs, StackTopState, MAX_TOP_IDX, MIN_STACK_DEPTH,
+    Felt, FieldElement, ProgramInputs, StackTopState, Vec, MAX_TOP_IDX, MIN_STACK_DEPTH,
     NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH,
 };
+use vm_core::StarkField;
 
 // STACK TRACE
 // ================================================================================================

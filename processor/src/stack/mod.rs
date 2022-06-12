@@ -1,6 +1,6 @@
 use super::{
-    Felt, FieldElement, ProgramInputs, StackTopState, MIN_STACK_DEPTH, NUM_STACK_HELPER_COLS,
-    STACK_TRACE_WIDTH,
+    BTreeMap, Felt, FieldElement, ProgramInputs, StackTopState, Vec, MIN_STACK_DEPTH,
+    NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH,
 };
 use core::cmp;
 

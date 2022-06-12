@@ -1,5 +1,5 @@
 use super::{range, Operation};
-use std::ops::Range;
+use core::ops::Range;
 
 // CONSTANTS
 // ================================================================================================

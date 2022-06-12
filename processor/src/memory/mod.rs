@@ -1,6 +1,5 @@
-use super::{Felt, FieldElement, StarkField, TraceFragment, Word};
+use super::{BTreeMap, Felt, FieldElement, StarkField, TraceFragment, Vec, Word};
 use core::ops::RangeInclusive;
-use vm_core::utils::collections::BTreeMap;
 
 #[cfg(test)]
 mod tests;

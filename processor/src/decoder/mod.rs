@@ -1,6 +1,6 @@
 use super::{
     ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation, Process, Span, Split,
-    StarkField, Word, MIN_TRACE_LEN, OP_BATCH_SIZE,
+    StarkField, Vec, Word, MIN_TRACE_LEN, OP_BATCH_SIZE,
 };
 use vm_core::decoder::NUM_HASHER_COLUMNS;
 

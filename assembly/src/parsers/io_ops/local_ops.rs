@@ -1,5 +1,5 @@
 use super::{
-    parse_int_param, push_value, validate_operation, AssemblyError, Felt, Operation, Token,
+    parse_int_param, push_value, validate_operation, AssemblyError, Felt, Operation, Token, Vec,
 };
 use vm_core::utils::PushMany;
 

@@ -1,4 +1,4 @@
-use super::{parse_element_param, validate_operation, AssemblyError, Operation, Token};
+use super::{parse_element_param, validate_operation, AssemblyError, Operation, Token, Vec};
 use vm_core::utils::PushMany;
 
 // RANDOM ACCESS MEMORY

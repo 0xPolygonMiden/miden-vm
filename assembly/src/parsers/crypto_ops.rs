@@ -1,4 +1,4 @@
-use super::{super::validate_operation, AssemblyError, Felt, Operation, Token};
+use super::{super::validate_operation, AssemblyError, Felt, Operation, Token, Vec};
 use vm_core::{utils::PushMany, AdviceInjector};
 
 // HASHING
