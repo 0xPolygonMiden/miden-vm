@@ -88,7 +88,8 @@ pub fn parse_u32assert(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), 
 
 /// Translates u32assert assembly instruction to VM operations.
 ///
-/// Implemented by executing `PAD U32ASSERT2 DROP` on each pair of elements in the word.
+/// Implemented by executing `U32ASSERT2` on each pair of elements in the word.
+/// Total of 6 VM cycles.
 pub fn parse_u32assertw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
@@ -151,12 +152,12 @@ pub fn parse_u32split(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
 /// inserted. Please refer to the docs of `handle_arithmetic_operation` for more details.
 ///
 /// VM cycles per mode:
-/// - u32add: 10 cycles
-/// - u32add.b: 7 cycles
-/// - u32add.full: 8 cycles
+/// - u32add: 4 cycles
+/// - u32add.b: 5 cycles
+/// - u32add.full: 2 cycles
 /// - u32add.unsafe: 1 cycle
 pub fn parse_u32add(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    handle_arithmetic_operation(span_ops, op, Operation::U32add, false)
+    handle_arithmetic_operation(span_ops, op, Operation::U32add)
 }
 
 /// Translates u32add3 assembly instruction to VM operations.
@@ -168,8 +169,6 @@ pub fn parse_u32add(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// - u32add3: 4 cycles
 /// - u32add3.unsafe: 1 cycle
 pub fn parse_u32add3(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // handle_u32_and_unsafe_check(span_ops, op, false)?;
-
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
@@ -196,12 +195,12 @@ pub fn parse_u32add3(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
 /// inserted. Please refer to the docs of `handle_arithmetic_operation` for more details.
 ///
 /// VM cycles per mode:
-/// - u32sub: 11 cycles
-/// - u32sub.b: 7 cycles
-/// - u32sub.full: 9 cycles
+/// - u32sub: 4 cycles
+/// - u32sub.b: 5 cycles
+/// - u32sub.full: 2 cycles
 /// - u32sub.unsafe: 1 cycle
 pub fn parse_u32sub(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    handle_arithmetic_operation(span_ops, op, Operation::U32sub, true)
+    handle_arithmetic_operation(span_ops, op, Operation::U32sub)
 }
 
 /// Translates u32mul assembly instruction to VM operations.
@@ -210,12 +209,12 @@ pub fn parse_u32sub(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// inserted. Please refer to the docs of `handle_arithmetic_operation` for more details.
 ///
 /// VM cycles per mode:
-/// - u32mul: 10 cycles
-/// - u32mul.b: 7 cycles
-/// - u32mul.full: 8 cycles
+/// - u32mul: 4 cycles
+/// - u32mul.b: 5 cycles
+/// - u32mul.full: 2 cycles
 /// - u32mul.unsafe: 1 cycle
 pub fn parse_u32mul(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    handle_arithmetic_operation(span_ops, op, Operation::U32mul, false)
+    handle_arithmetic_operation(span_ops, op, Operation::U32mul)
 }
 
 /// Translates u32madd assembly instruction to VM operations.
@@ -224,7 +223,7 @@ pub fn parse_u32mul(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// we also assert that all three inputs are u32 values.
 ///
 /// VM cycles per mode:
-/// - u32madd: 12 cycles
+/// - u32madd: 5 cycles
 /// - u32madd.unsafe: 1 cycle
 pub fn parse_u32madd(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
@@ -232,9 +231,9 @@ pub fn parse_u32madd(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
         1 => {
             // make sure all 3 values at the top of the stack are u32 values; swapping the order
             // of the first two values is ok, but the 3rd value should remain in place.
-            assert_u32_operands(span_ops, false);
+            span_ops.push(Operation::U32assert2);
             span_ops.push(Operation::MovUp2);
-            assert_u32(span_ops);
+            span_ops.push(Operation::U32assert2);
             span_ops.push(Operation::MovDn2);
         }
         2 => {
@@ -256,21 +255,21 @@ pub fn parse_u32madd(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
 /// inserted.
 ///
 /// VM cycles per mode:
-/// - u32div: 11 cycles
-/// - u32div.b: 7 cycles
-/// - u32div.full: 9 cycles
+/// - u32div: 3 cycles
+/// - u32div.b: 4 cycles
+/// - u32div.full: 2 cycles
 /// - u32div.unsafe: 1 cycle
 pub fn parse_u32div(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     let drop_remainder = match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
-            assert_u32_operands(span_ops, true);
+            span_ops.push(Operation::U32assert2);
             true
         }
         2 => match op.parts()[1] {
             "unsafe" => false,
             "full" => {
-                assert_u32_operands(span_ops, true);
+                span_ops.push(Operation::U32assert2);
                 false
             }
             _ => {
@@ -283,8 +282,8 @@ pub fn parse_u32div(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
                     ));
                 }
 
-                assert_u32(span_ops);
                 push_value(span_ops, Felt::new(divisor as u64));
+                span_ops.push(Operation::U32assert2);
                 true
             }
         },
@@ -306,14 +305,14 @@ pub fn parse_u32div(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// we also assert that both inputs are u32 values.
 ///
 /// VM cycles per mode:
-/// - u32mod: 12 cycles
-/// - u32mod.b: 8 cycles
+/// - u32mod: 4 cycles
+/// - u32mod.b: 5 cycles
 /// - u32mod.unsafe: 3 cycles
 pub fn parse_u32mod(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     // prepare the stack for the operation and determine if we need to check for overflow
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
-        1 => assert_u32_operands(span_ops, true),
+        1 => span_ops.push(Operation::U32assert2),
         2 => match op.parts()[1] {
             // skip u32 check in unsafe mode
             "unsafe" => (),
@@ -329,8 +328,8 @@ pub fn parse_u32mod(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
                     ));
                 }
 
-                assert_u32(span_ops);
                 push_value(span_ops, Felt::new(divisor as u64));
+                span_ops.push(Operation::U32assert2);
             }
         },
         _ => return Err(AssemblyError::extra_param(op)),
@@ -397,24 +396,19 @@ pub fn parse_u32xor(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 
 /// Translates u32not assembly instruction to VM operations.
 ///
-/// The base operation is implemented as `PUSH(2^32) SWAP INCR U32SUB DROP`.
+/// The operation is implemented as `PUSH(2^32 - 1) U32ASSERT2 SWAP U32SUB DROP`,
+/// total to 5 cycles.
 ///
 /// The reason this method works is because 2^32 provides a bit mask of ones, which after
 /// subtracting the element, flips the bits of the original value to perform a bitwise NOT.
-///
-/// We also need to make sure that the top of the stack contains a u32 value. With the checks
-/// included, the total number of VM cycles needed is 7.
 pub fn parse_u32not(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
-            // assert the top of the stack is a u32 value
-            assert_u32(span_ops);
-
             // perform the operation
-            span_ops.push(Operation::Push(Felt::new(2u64.pow(32))));
+            span_ops.push(Operation::Push(Felt::new(2u64.pow(32) - 1)));
+            span_ops.push(Operation::U32assert2);
             span_ops.push(Operation::Swap);
-            span_ops.push(Operation::Incr);
             span_ops.push(Operation::U32sub);
 
             // Drop the underflow flag
@@ -435,8 +429,8 @@ pub fn parse_u32not(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32shl: 10 cycles
-/// - u32shl.b: 6 cycles
+/// - u32shl: 4 cycles
+/// - u32shl.b: 4 cycles
 /// - u32shl.unsafe: 2 cycles
 pub fn parse_u32shl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     let drop_remainder = match op.num_parts() {
@@ -444,7 +438,7 @@ pub fn parse_u32shl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
         1 => {
             // Assume the dynamic shift value b is on top of the stack.
             span_ops.push(Operation::Pow2);
-            assert_u32_operands(span_ops, false);
+            span_ops.push(Operation::U32assert2);
             true
         }
         2 => match op.parts()[1] {
@@ -453,10 +447,9 @@ pub fn parse_u32shl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
                 false
             }
             _ => {
-                assert_u32(span_ops);
-
                 let x = parse_int_param(op, 1, 0, 31)?;
                 span_ops.push(Operation::Push(Felt::new(2u64.pow(x))));
+                span_ops.push(Operation::U32assert2);
                 true
             }
         },
@@ -481,8 +474,8 @@ pub fn parse_u32shl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// be shifted is asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32shr: 11 cycles
-/// - u32shr.b: 6 cycles
+/// - u32shr: 4 cycles
+/// - u32shr.b: 4 cycles
 /// - u32shr.unsafe: 7 cycles
 pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     let drop_remainder = match op.num_parts() {
@@ -490,7 +483,7 @@ pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
         1 => {
             // Assume the dynamic shift value b is on top of the stack.
             span_ops.push(Operation::Pow2);
-            assert_u32_operands(span_ops, true);
+            span_ops.push(Operation::U32assert2);
             true
         }
         2 => match op.parts()[1] {
@@ -507,10 +500,9 @@ pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
                 false
             }
             _ => {
-                assert_u32(span_ops);
-
                 let x = parse_int_param(op, 1, 0, 31)?;
                 span_ops.push(Operation::Push(Felt::new(2u64.pow(x))));
+                span_ops.push(Operation::U32assert2);
                 true
             }
         },
@@ -536,8 +528,8 @@ pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// between 0-31 and the value to be shifted is asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32rotl: 11 cycles
-/// - u32rotl.b: 6 cycles
+/// - u32rotl: 4 cycles
+/// - u32rotl.b: 4 cycles
 /// - u32rotl.unsafe: 3 cycles
 pub fn parse_u32rotl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
@@ -545,18 +537,16 @@ pub fn parse_u32rotl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
         1 => {
             // Assume the dynamic shift value b is on top of the stack.
             span_ops.push(Operation::Pow2);
-            assert_u32_operands(span_ops, true);
+            span_ops.push(Operation::U32assert2);
         }
         2 => match op.parts()[1] {
             "unsafe" => {
                 span_ops.push(Operation::Pow2);
             }
             _ => {
-                // assert the top of the stack is a u32 value
-                assert_u32(span_ops);
-
                 let x = parse_int_param(op, 1, 0, 31)?;
                 span_ops.push(Operation::Push(Felt::new(2u64.pow(x))));
+                span_ops.push(Operation::U32assert2);
             }
         },
         _ => return Err(AssemblyError::extra_param(op)),
@@ -576,13 +566,15 @@ pub fn parse_u32rotl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
 /// 0-31 and the value to be shifted is asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32rotr: 18 cycles
+/// - u32rotr: 16 cycles
 /// - u32rotr.b: 6 cycles
 /// - u32rotr.unsafe: 7 cycles
 pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::invalid_op(op)),
         1 => {
+            // Verify both b and a are u32.
+            span_ops.push(Operation::U32assert2);
             // Calculate 32 - b and assert that the shift value b <= 31.
             span_ops.push(Operation::Push(Felt::new(31)));
             span_ops.push(Operation::Dup1);
@@ -597,9 +589,7 @@ pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
             span_ops.push(Operation::CSwap);
             span_ops.push(Operation::Drop);
             span_ops.push(Operation::Pow2);
-            // Assert the value to be shifted is a u32 value.
             span_ops.push(Operation::Swap);
-            assert_u32(span_ops);
         }
         2 => match op.parts()[1] {
             "unsafe" => {
@@ -611,6 +601,8 @@ pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
             }
             _ => {
                 // Assert the top of the stack is a u32 value.
+                // NOTE: We cannot use U32Assert2 since we are potentially pushing a number larger
+                // than u32 for b.
                 assert_u32(span_ops);
 
                 let x = parse_int_param(op, 1, 0, 31)?;
@@ -634,13 +626,13 @@ pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
 /// Specifically we test the first two numbers to be u32, then perform a EQ to check the equality.
 ///
 /// VM cycles per mode:
-/// u32eq: 8 cycles
-/// u32eq.b: 5 cycles
+/// u32eq: 2 cycles
+/// u32eq.b: 3 cycles
 pub fn parse_u32eq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
-        1 => assert_u32_operands(span_ops, false),
-        2 => assert_u32_and_push_u32_param(span_ops, op, 0)?,
+        1 => span_ops.push(Operation::U32assert2),
+        2 => assert_and_push_u32_param(span_ops, op, 0)?,
         _ => return Err(AssemblyError::extra_param(op)),
     }
 
@@ -654,13 +646,13 @@ pub fn parse_u32eq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 /// Specifically we test the first two numbers to be u32, then perform a `EQ NOT` to check the
 /// equality.
 ///
-/// u32neq: 9 cycles
-/// u32neq.b: 6 cycles
+/// u32neq: 3 cycles
+/// u32neq.b: 4 cycles
 pub fn parse_u32neq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
-        1 => assert_u32_operands(span_ops, false),
-        2 => assert_u32_and_push_u32_param(span_ops, op, 0)?,
+        1 => span_ops.push(Operation::U32assert2),
+        2 => assert_and_push_u32_param(span_ops, op, 0)?,
         _ => return Err(AssemblyError::extra_param(op)),
     }
 
@@ -676,10 +668,10 @@ pub fn parse_u32neq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// the underflow flag.
 ///
 /// VM cycles per mode:
-/// u32lt: 13 cycles
+/// u32lt: 6 cycles
 /// u32lt.unsafe: 5 cycles
 pub fn parse_u32lt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    handle_u32_and_unsafe_check(span_ops, op, true)?;
+    handle_u32_and_unsafe_check(span_ops, op)?;
     compute_lt(span_ops);
 
     Ok(())
@@ -691,16 +683,13 @@ pub fn parse_u32lt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 /// results.
 ///
 /// VM cycles per mode:
-/// u32lte: 13 cycles
+/// u32lte: 8 cycles
 /// u32lte.unsafe: 7 cycles
 pub fn parse_u32lte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    let order_changed = handle_u32_and_unsafe_check(span_ops, op, false)?;
-    if !order_changed {
-        // Swap the order in unsafe mode since we only swap on u32 check.
-        span_ops.push(Operation::Swap);
-    }
+    handle_u32_and_unsafe_check(span_ops, op)?;
 
     // Compute the lt with reversed number to get a gt check
+    span_ops.push(Operation::Swap);
     compute_lt(span_ops);
 
     // Flip the final results to get the lte results.
@@ -715,16 +704,14 @@ pub fn parse_u32lte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// numbers swapped.
 ///
 /// VM cycles per mode:
-/// u32gt: 12 cycles
+/// u32gt: 7 cycles
 /// u32gt.unsafe: 6 cycles
 pub fn parse_u32gt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    let order_changed = handle_u32_and_unsafe_check(span_ops, op, false)?;
-    if !order_changed {
-        // Swap the order in unsafe mode since we only swap on u32 check.
-        span_ops.push(Operation::Swap);
-    }
+    handle_u32_and_unsafe_check(span_ops, op)?;
 
-    // Compute the lt with reversed number to get a gt check
+    // Reverse the numbers so we can get a gt check.
+    span_ops.push(Operation::Swap);
+
     compute_lt(span_ops);
 
     Ok(())
@@ -736,10 +723,10 @@ pub fn parse_u32gt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 /// results.
 ///
 /// VM cycles per mode:
-/// u32gte: 14 cycles
-/// u32gte.unsafe: 7 cycles
+/// u32gte: 7 cycles
+/// u32gte.unsafe: 6 cycles
 pub fn parse_u32gte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    handle_u32_and_unsafe_check(span_ops, op, true)?;
+    handle_u32_and_unsafe_check(span_ops, op)?;
 
     compute_lt(span_ops);
 
@@ -757,8 +744,8 @@ pub fn parse_u32gte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// to keep the min.
 ///
 /// VM cycles per mode:
-/// u32min: 14 cycles
-/// u32min.unsafe: 7 cycles
+/// u32min: 9 cycles
+/// u32min.unsafe: 8 cycles
 pub fn parse_u32min(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     let unsafe_mode = match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
@@ -786,8 +773,8 @@ pub fn parse_u32min(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// element to keep the max.
 ///
 /// VM cycles per mode:
-/// u32max: 15 cycles
-/// u32max.unsafe: 8 cycles
+/// u32max: 10 cycles
+/// u32max.unsafe: 9 cycles
 pub fn parse_u32max(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     let unsafe_mode = match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
@@ -819,54 +806,37 @@ fn assert_u32(span_ops: &mut Vec<Operation>) {
     span_ops.push(Operation::Drop);
 }
 
-/// When `preserve_order` is set to true, the stack state is preserved; otherwise the two
-/// stack items are swapped.
-///
-/// This operation takes 7 cycles when not preserving order or 8 cycles to preserve order.
-fn assert_u32_operands(span_ops: &mut Vec<Operation>, preserve_order: bool) {
-    assert_u32(span_ops);
-    span_ops.push(Operation::Swap);
-    assert_u32(span_ops);
-    if preserve_order {
-        span_ops.push(Operation::Swap);
-    }
-}
-
 /// Asserts that the value on the top of the stack is a u32 and pushes the first param of the `op`
 /// as a u32 value onto the stack.
 ///
 /// # Errors
 /// Returns an error if the first parameter of the `op` is not a u32 value or is greater than
 /// `lower_bound`.
-fn assert_u32_and_push_u32_param(
+fn assert_and_push_u32_param(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     lower_bound: u32,
 ) -> Result<(), AssemblyError> {
-    // assert first number is u32.
-    assert_u32(span_ops);
     // TODO: We should investigate special case handling adding 0 or 1.
     let value = parse_int_param(op, 1, lower_bound, u32::MAX)?;
     push_value(span_ops, Felt::new(value as u64));
 
+    // Assert both nmbers are u32.
+    span_ops.push(Operation::U32assert2);
+
     Ok(())
 }
 
-/// Duplicate the first two values on the stack, check they are both u32, and determine the min
+/// Duplicate the top two elements in the stack and check both are u32, and determine the min
 /// and max between them.
 ///
 /// The maximum number will be at the top of the stack and minimum will be at the 2nd index.
 fn compute_max_and_min(span_ops: &mut Vec<Operation>, unsafe_mode: bool) {
+    // Copy top two elements of the stack.
+    span_ops.push(Operation::Dup1);
     span_ops.push(Operation::Dup1);
     if !unsafe_mode {
-        // Check second number is u32
-        assert_u32(span_ops);
-    }
-
-    span_ops.push(Operation::Dup1);
-    if !unsafe_mode {
-        // Check first number is u32
-        assert_u32(span_ops);
+        span_ops.push(Operation::U32assert2);
     }
 
     span_ops.push(Operation::U32sub);
@@ -880,7 +850,7 @@ fn compute_max_and_min(span_ops: &mut Vec<Operation>, unsafe_mode: bool) {
 }
 
 /// Inserts the VM operations to check if the second element is less than
-/// the top element.
+/// the top element. This takes 5 cycles.
 fn compute_lt(span_ops: &mut Vec<Operation>) {
     span_ops.push(Operation::U32sub);
     span_ops.push(Operation::Swap);
@@ -895,24 +865,21 @@ fn compute_lt(span_ops: &mut Vec<Operation>) {
 fn handle_u32_and_unsafe_check(
     span_ops: &mut Vec<Operation>,
     op: &Token,
-    preserve_order: bool,
-) -> Result<bool, AssemblyError> {
-    let order_changed = match op.num_parts() {
+) -> Result<(), AssemblyError> {
+    match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
-            assert_u32_operands(span_ops, preserve_order);
-            !preserve_order
+            span_ops.push(Operation::U32assert2);
         }
         2 => {
             if op.parts()[1] != "unsafe" {
                 return Err(AssemblyError::invalid_param(op, 1));
             }
-            false
         }
         _ => return Err(AssemblyError::extra_param(op)),
     };
 
-    Ok(order_changed)
+    Ok(())
 }
 
 /// Handles arithmetic operation that needs support for unsafe, full, operation and operation.n
@@ -931,7 +898,6 @@ fn handle_arithmetic_operation(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     arithmetic_op: Operation,
-    preserve_order: bool,
 ) -> Result<(), AssemblyError> {
     // prepare the stack for the operation and determine if we need to check for overflow
     let assert_u32_result = match op.num_parts() {
@@ -939,12 +905,7 @@ fn handle_arithmetic_operation(
         1 => {
             // for simple arithmetic operation we need to make sure operands are u32 values,
             // and we need to make sure that the result will be a u32 value as well
-            assert_u32(span_ops);
-            span_ops.push(Operation::Swap);
-            assert_u32(span_ops);
-            if preserve_order {
-                span_ops.push(Operation::Swap);
-            }
+            span_ops.push(Operation::U32assert2);
             true
         }
         2 => match op.parts()[1] {
@@ -953,14 +914,14 @@ fn handle_arithmetic_operation(
                 // for the full  mode we need to make sure operands are u32 values, but we don't
                 // need to check the result for overflow because we return both high and low bits
                 // of the result
-                assert_u32_operands(span_ops, preserve_order);
+                span_ops.push(Operation::U32assert2);
                 false
             }
             _ => {
                 // for operation.n (where n is the immediate value), we need to push the immediate
                 // value onto the stack, and make sure both operands are u32 values. we also want
                 // to make sure the result is a u32 value.
-                assert_u32_and_push_u32_param(span_ops, op, 0)?;
+                assert_and_push_u32_param(span_ops, op, 0)?;
                 true
             }
         },
