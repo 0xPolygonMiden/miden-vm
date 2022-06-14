@@ -3,8 +3,8 @@ use rand_utils::rand_value;
 use vm_core::{
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
-        NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_FLAGS_RANGE, OP_BITS_OFFSET, OP_BITS_RANGE,
-        OP_INDEX_COL_IDX,
+        NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS,
+        OP_BATCH_8_GROUPS, OP_BATCH_FLAGS_RANGE, OP_BITS_OFFSET, OP_BITS_RANGE, OP_INDEX_COL_IDX,
     },
     program::blocks::{CodeBlock, Span, OP_BATCH_SIZE},
     utils::collections::Vec,
@@ -223,7 +223,7 @@ fn span_block_with_respan() {
     check_op_decoding(&trace, 8, INIT_ADDR, Operation::Noop, 4, 7, 1);
     // RESPAN since the previous batch is full
     let next_addr = INIT_ADDR + Felt::new(8);
-    check_op_decoding(&trace, 9, INIT_ADDR, Operation::Respan, 4, 0, 1);
+    check_op_decoding(&trace, 9, INIT_ADDR, Operation::Respan, 4, 0, 0);
     check_op_decoding(&trace, 10, next_addr, Operation::Push(iv[7]), 3, 0, 1);
     check_op_decoding(&trace, 11, next_addr, Operation::Add, 2, 1, 1);
     check_op_decoding(&trace, 12, next_addr, Operation::Push(iv[8]), 2, 2, 1);
@@ -671,10 +671,10 @@ fn build_op_group(ops: &[Operation]) -> Felt {
 
 fn build_op_batch_flags(num_groups: usize) -> [Felt; NUM_OP_BATCH_FLAGS] {
     match num_groups {
-        1 => [ZERO, ONE, ONE],
-        2 => [ZERO, ZERO, ONE],
-        4 => [ZERO, ONE, ZERO],
-        8 => [ONE, ZERO, ZERO],
+        1 => OP_BATCH_1_GROUPS,
+        2 => OP_BATCH_2_GROUPS,
+        4 => OP_BATCH_4_GROUPS,
+        8 => OP_BATCH_8_GROUPS,
         _ => panic!("invalid num groups: {}", num_groups),
     }
 }

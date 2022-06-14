@@ -1,6 +1,6 @@
 use super::{
     Felt, Operation, Vec, Word, MIN_TRACE_LEN, NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS,
-    ONE, ZERO,
+    ONE, ZERO, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS
 };
 use core::ops::Range;
 use vm_core::{program::blocks::OP_BATCH_SIZE, utils::new_array_vec, StarkField};
@@ -225,7 +225,7 @@ impl DecoderTrace {
     ///   the following row.
     /// - Set op_bits to RESPAN opcode.
     /// - Set hasher state to op groups of the next op batch of the SPAN.
-    /// - Set in_span to ONE.
+    /// - Set in_span to ZERO.
     /// - Copy over op group count from the previous row.
     /// - Set operation index register to ZERO.
     /// - Set the op_batch_flags based on the current operation group count.
@@ -237,7 +237,7 @@ impl DecoderTrace {
         }
 
         let group_count = self.last_group_count();
-        self.in_span_trace.push(ONE);
+        self.in_span_trace.push(ZERO);
         self.group_count_trace.push(group_count);
         self.op_idx_trace.push(ZERO);
 
@@ -479,10 +479,10 @@ impl DecoderTrace {
 fn get_op_batch_flags(group_count: Felt) -> [Felt; NUM_OP_BATCH_FLAGS] {
     let num_groups = core::cmp::min(group_count.as_int() as usize, OP_BATCH_SIZE);
     match num_groups {
-        8 => [ONE, ZERO, ZERO],
-        4 => [ZERO, ONE, ZERO],
-        2 => [ZERO, ZERO, ONE],
-        1 => [ZERO, ONE, ONE],
+        8 => OP_BATCH_8_GROUPS,
+        4 => OP_BATCH_4_GROUPS,
+        2 => OP_BATCH_2_GROUPS,
+        1 => OP_BATCH_1_GROUPS,
         _ => panic!(
             "invalid number of groups in a batch: {}, group count: {}",
             num_groups, group_count

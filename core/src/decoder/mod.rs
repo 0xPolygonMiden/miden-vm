@@ -1,4 +1,4 @@
-use super::{range, Operation};
+use super::{range, Felt, Operation, ONE, ZERO};
 use core::ops::Range;
 
 // CONSTANTS
@@ -44,3 +44,15 @@ pub const NUM_OP_BATCH_FLAGS: usize = 3;
 
 /// Location of operation batch flag columns in the decoder trace.
 pub const OP_BATCH_FLAGS_RANGE: Range<usize> = range(OP_BATCH_FLAGS_OFFSET, NUM_OP_BATCH_FLAGS);
+
+/// Operation batch consists of 8 operation groups.
+pub const OP_BATCH_8_GROUPS: [Felt; NUM_OP_BATCH_FLAGS] = [ONE, ZERO, ZERO];
+
+/// Operation batch consists of 4 operation groups.
+pub const OP_BATCH_4_GROUPS: [Felt; NUM_OP_BATCH_FLAGS] = [ZERO, ONE, ZERO];
+
+/// Operation batch consists of 2 operation groups.
+pub const OP_BATCH_2_GROUPS: [Felt; NUM_OP_BATCH_FLAGS] = [ZERO, ZERO, ONE];
+
+/// Operation batch consists of 1 operation group.
+pub const OP_BATCH_1_GROUPS: [Felt; NUM_OP_BATCH_FLAGS] = [ZERO, ONE, ONE];
