@@ -34,6 +34,12 @@ pub type StackTopState = [Felt; MIN_STACK_DEPTH];
 // CONSTANTS
 // ================================================================================================
 
+/// Field element representing ZERO in the base field of the VM.
+pub const ZERO: Felt = Felt::ZERO;
+
+/// Field element representing ONE in the base field of the VM.
+pub const ONE: Felt = Felt::ONE;
+
 /// The minimum length of the execution trace. This is the minimum required to support range checks.
 pub const MIN_TRACE_LEN: usize = 1024;
 
@@ -48,7 +54,7 @@ pub const NUM_STACK_HELPER_COLS: usize = 3;
 // ------------------------------------------------------------------------------------------------
 
 //      system          decoder           stack      range checks    auxiliary table
-//    (2 columns)     (19 columns)    (19 columns)    (4 columns)     (18 columns)
+//    (2 columns)     (22 columns)    (19 columns)    (4 columns)     (18 columns)
 // ├───────────────┴───────────────┴───────────────┴───────────────┴─────────────────┤
 
 pub const SYS_TRACE_OFFSET: usize = 0;
@@ -60,7 +66,7 @@ pub const FMP_COL_IDX: usize = SYS_TRACE_OFFSET + 1;
 
 // decoder trace
 pub const DECODER_TRACE_OFFSET: usize = SYS_TRACE_OFFSET + SYS_TRACE_WIDTH;
-pub const DECODER_TRACE_WIDTH: usize = 19;
+pub const DECODER_TRACE_WIDTH: usize = 22;
 pub const DECODER_TRACE_RANGE: Range<usize> = range(DECODER_TRACE_OFFSET, DECODER_TRACE_WIDTH);
 
 // Stack trace

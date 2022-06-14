@@ -5,7 +5,7 @@ use vm_core::{
         MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, STATE_WIDTH,
         TRACE_WIDTH,
     },
-    program::blocks::{OpBatch, OP_BATCH_SIZE},
+    program::blocks::OpBatch,
 };
 
 mod trace;
@@ -114,7 +114,11 @@ impl Hasher {
     ///
     /// The returned tuple also contains the row address of the execution trace at which hash
     /// computation started.
-    pub fn hash_span_block(&mut self, op_batches: &[OpBatch]) -> (Felt, Word) {
+    pub fn hash_span_block(
+        &mut self,
+        op_batches: &[OpBatch],
+        num_op_groups: usize,
+    ) -> (Felt, Word) {
         const START: Selectors = LINEAR_HASH;
         const RETURN: Selectors = RETURN_HASH;
         // absorb selectors are the same as linear hash selectors, but absorb selectors are
@@ -128,8 +132,7 @@ impl Hasher {
         let addr = self.trace.next_row_addr();
 
         // initialize the state and absorb the first operation batch into it
-        let num_elements = op_batches.len() * OP_BATCH_SIZE;
-        let mut state = init_state(op_batches[0].groups(), num_elements);
+        let mut state = init_state(op_batches[0].groups(), num_op_groups);
 
         let num_batches = op_batches.len();
         if num_batches == 1 {
