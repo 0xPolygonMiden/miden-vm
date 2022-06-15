@@ -327,22 +327,27 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
         batches.push(batch);
     }
 
-    // compute total number of operation groups in all batches. This is done as follows:
-    // - For all batches but the last one we set the number of groups to 8, regardless of the
-    //   actual number of groups in the batch. The reason for this is that when operation
-    //   batches are concatenated together each batch contributes 8 elements to the hash.
-    // - For the last batch, we take the number of actual batches and round it up to the next
-    //   power of two. The reason for rounding is that the VM always executes a number of
-    //   operation groups which is a power of two.
-    let num_batches = batches.len();
-    let last_batch_num_groups = batches[num_batches - 1].num_groups().next_power_of_two();
-    let num_op_groups = (num_batches - 1) * BATCH_SIZE + last_batch_num_groups;
-
     // compute the hash of all operation groups
+    let num_op_groups = get_span_op_group_count(&batches);
     let op_groups = &flatten_slice_elements(&batch_groups)[..num_op_groups];
     let hash = hasher::hash_elements(op_groups);
 
     (batches, hash)
+}
+
+/// Returns the total number of operation groups in a span defined by the provides list of
+/// operation batches.
+///
+/// Then number of operation groups is computed as follows:
+/// - For all batches but the last one we set the number of groups to 8, regardless of the
+///   actual number of groups in the batch. The reason for this is that when operation
+///   batches are concatenated together each batch contributes 8 elements to the hash.
+/// - For the last batch, we take the number of actual batches and round it up to the next
+///   power of two. The reason for rounding is that the VM always executes a number of
+///   operation groups which is a power of two.
+pub fn get_span_op_group_count(op_batches: &[OpBatch]) -> usize {
+    let last_batch_num_groups = op_batches.last().expect("no last group").num_groups();
+    (op_batches.len() - 1) * BATCH_SIZE + last_batch_num_groups.next_power_of_two()
 }
 
 // TESTS

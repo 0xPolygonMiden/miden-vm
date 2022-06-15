@@ -3,7 +3,7 @@ use super::{
     StackTopState, Vec,
 };
 use core::slice;
-use vm_core::{MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH};
+use vm_core::{MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO};
 use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
 
 #[cfg(feature = "std")]
@@ -29,14 +29,18 @@ pub struct AuxTraceHints {
     range: RangeCheckerAuxTraceHints,
 }
 
-/// TODO: for now this consists only of system register trace, stack trace, range check trace, and
-/// auxiliary table trace, but will also need to include the decoder trace.
+/// Execution trace which is generated when a program is executed on the VM.
+///
+/// The trace consists of the following components:
+/// - Main traces of System, Decoder, Operand Stack, Range Checker, and Auxiliary Co-Processor
+///   components.
+/// - Hints used during auxiliary trace segment construction.
+/// - Metadata needed by the STARK prover.
 pub struct ExecutionTrace {
     meta: Vec<u8>,
     layout: TraceLayout,
     main_trace: Matrix<Felt>,
     aux_trace_hints: AuxTraceHints,
-    // TODO: program hash should be retrieved from decoder trace, but for now we store it explicitly
     program_hash: Digest,
 }
 
@@ -50,11 +54,12 @@ impl ExecutionTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
-    pub(super) fn new(process: Process, program_hash: Digest) -> Self {
+    pub(super) fn new(process: Process) -> Self {
         // use program hash to initialize random element generator; this generator will be used
         // to inject random values at the end of the trace; using program hash here is OK because
-        // we are using random values only to stabilize constraint degree, and not to achieve
+        // we are using random values only to stabilize constraint degrees, and not to achieve
         // perfect zero knowledge.
+        let program_hash: Digest = process.decoder.program_hash().into();
         let rng = RandomCoin::new(&program_hash.to_bytes());
         let (main_trace, aux_trace_hints) = finalize_trace(process, rng);
 
@@ -70,15 +75,14 @@ impl ExecutionTrace {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// TODO: add docs
+    /// Returns hash of the program execution of which resulted in this execution trace.
     pub fn program_hash(&self) -> Digest {
-        // TODO: program hash should be read from the decoder trace
         self.program_hash
     }
 
     /// Returns the initial state of the top 16 stack registers.
     pub fn init_stack_state(&self) -> StackTopState {
-        let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
+        let mut result = [ZERO; MIN_STACK_DEPTH];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[0];
         }
@@ -87,12 +91,20 @@ impl ExecutionTrace {
 
     /// Returns the final state of the top 16 stack registers.
     pub fn last_stack_state(&self) -> StackTopState {
-        let last_step = self.length() - NUM_RAND_ROWS - 1;
-        let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
+        let last_step = self.last_step();
+        let mut result = [ZERO; MIN_STACK_DEPTH];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[last_step];
         }
         result
+    }
+
+    // HELPER METHODS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns the index of the last row in the trace.
+    fn last_step(&self) -> usize {
+        self.length() - NUM_RAND_ROWS - 1
     }
 
     // TEST HELPERS
@@ -100,7 +112,7 @@ impl ExecutionTrace {
     #[cfg(feature = "std")]
     #[allow(dead_code)]
     pub fn print(&self) {
-        let mut row = [Felt::ZERO; TRACE_WIDTH];
+        let mut row = [ZERO; TRACE_WIDTH];
         for i in 0..self.length() {
             self.main_trace.read_row_into(i, &mut row);
             println!("{:?}", row.iter().map(|v| v.as_int()).collect::<Vec<_>>());
@@ -256,7 +268,11 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
 
     // trace lengths of system and stack components must be equal to the number of executed cycles
     assert_eq!(clk, system.trace_len(), "inconsistent system trace lengths");
-    // TODO: check decoder trace length
+    assert_eq!(
+        clk,
+        decoder.trace_len(),
+        "inconsistent decoder trace length"
+    );
     assert_eq!(clk, stack.trace_len(), "inconsistent stack trace lengths");
 
     // Get the trace length required to hold all execution trace steps.

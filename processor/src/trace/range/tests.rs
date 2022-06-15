@@ -1,5 +1,5 @@
 use super::{
-    super::{Digest, ExecutionTrace, Process, NUM_RAND_ROWS},
+    super::{ExecutionTrace, Process, NUM_RAND_ROWS},
     Felt, FieldElement, P0_COL_IDX, P1_COL_IDX,
 };
 use rand_utils::rand_value;
@@ -108,5 +108,5 @@ fn build_trace(stack: &[u64], operations: Vec<Operation>) -> ExecutionTrace {
     let program = CodeBlock::new_span(operations);
     process.execute_code_block(&program).unwrap();
 
-    ExecutionTrace::new(process, Digest::new([Felt::ZERO; 4]))
+    ExecutionTrace::new(process)
 }

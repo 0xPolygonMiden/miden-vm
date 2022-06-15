@@ -10,7 +10,7 @@ pub const ADDR_COL_IDX: usize = 0;
 /// Index at which operation bit columns start in the decoder trace.
 pub const OP_BITS_OFFSET: usize = ADDR_COL_IDX + 1;
 
-/// Number of columns needed to hold a binary representation of of opcodes.
+/// Number of columns needed to hold a binary representation of opcodes.
 pub const NUM_OP_BITS: usize = Operation::OP_BITS;
 
 /// Location of operation bits columns in the decoder trace.

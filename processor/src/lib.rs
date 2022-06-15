@@ -14,7 +14,7 @@ use vm_core::{
     utils::collections::{BTreeMap, Vec},
     AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
     StarkField, Word, AUX_TRACE_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN,
-    NUM_STACK_HELPER_COLS, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH,
+    NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
 
 mod operations;
@@ -78,8 +78,13 @@ pub struct RangeCheckTrace {
 pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace, ExecutionError> {
     let mut process = Process::new(inputs.clone());
     process.execute_code_block(script.root())?;
-    // TODO: make sure program hash from script and trace are the same
-    Ok(ExecutionTrace::new(process, *script.hash()))
+    let trace = ExecutionTrace::new(process);
+    assert_eq!(
+        script.hash(),
+        trace.program_hash(),
+        "inconsistent program hash"
+    );
+    Ok(trace)
 }
 
 /// Returns an iterator that allows callers to step through each execution and inspect
@@ -87,6 +92,13 @@ pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace
 pub fn execute_iter(script: &Script, inputs: &ProgramInputs) -> VmStateIterator {
     let mut process = Process::new_debug(inputs.clone());
     let result = process.execute_code_block(script.root());
+    if result.is_ok() {
+        assert_eq!(
+            script.hash(),
+            process.decoder.program_hash().into(),
+            "inconsistent program hash"
+        );
+    }
     VmStateIterator::new(process, result)
 }
 
@@ -105,6 +117,18 @@ pub struct Process {
 }
 
 impl Process {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+    /// Creates a new process with the provided inputs.
+    pub fn new(inputs: ProgramInputs) -> Self {
+        Self::initialize(inputs, false)
+    }
+
+    /// Creates a new process with provided inputs and debug options enabled.
+    pub fn new_debug(inputs: ProgramInputs) -> Self {
+        Self::initialize(inputs, true)
+    }
+
     fn initialize(inputs: ProgramInputs, in_debug_mode: bool) -> Self {
         Self {
             system: System::new(MIN_TRACE_LEN),
@@ -116,16 +140,6 @@ impl Process {
             memory: Memory::new(),
             advice: AdviceProvider::new(inputs),
         }
-    }
-
-    /// Creates a new process with the provided inputs.
-    pub fn new(inputs: ProgramInputs) -> Self {
-        Self::initialize(inputs, false)
-    }
-
-    /// Creates a new process with provided inputs and debug options enabled.
-    pub fn new_debug(inputs: ProgramInputs) -> Self {
-        Self::initialize(inputs, true)
     }
 
     // CODE BLOCK EXECUTORS
@@ -165,9 +179,9 @@ impl Process {
         let condition = self.start_split_block(block)?;
 
         // execute either the true or the false branch of the split block based on the condition
-        if condition == Felt::ONE {
+        if condition == ONE {
             self.execute_code_block(block.on_true())?;
-        } else if condition == Felt::ZERO {
+        } else if condition == ZERO {
             self.execute_code_block(block.on_false())?;
         } else {
             return Err(ExecutionError::NotBinaryValue(condition));
@@ -183,14 +197,14 @@ impl Process {
         let condition = self.start_loop_block(block)?;
 
         // if the top of the stack is ONE, execute the loop body; otherwise skip the loop body
-        if condition == Felt::ONE {
+        if condition == ONE {
             // execute the loop body at least once
             self.execute_code_block(block.body())?;
 
             // keep executing the loop body until the condition on the top of the stack is no
             // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
             // which drops the condition from the stack
-            while self.stack.peek() == Felt::ONE {
+            while self.stack.peek() == ONE {
                 self.decoder.repeat();
                 self.execute_op(Operation::Drop)?;
                 self.execute_code_block(block.body())?;
@@ -198,7 +212,7 @@ impl Process {
 
             // end the LOOP block and drop the condition from the stack
             self.end_loop_block(block, true)
-        } else if condition == Felt::ZERO {
+        } else if condition == ZERO {
             // end the LOOP block, but don't drop the condition from the stack because it was
             // already dropped when we started the LOOP block
             self.end_loop_block(block, false)
@@ -305,7 +319,7 @@ impl Process {
             // operation groups. the groups were are processing are just NOOPs - so, the op group
             // value is ZERO
             if group_idx < num_batch_groups - 1 {
-                self.decoder.start_op_group(Felt::ZERO);
+                self.decoder.start_op_group(ZERO);
             }
         }
 

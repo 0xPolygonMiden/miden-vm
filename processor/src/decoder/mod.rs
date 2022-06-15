@@ -1,13 +1,14 @@
 use super::{
     ExecutionError, Felt, Join, Loop, OpBatch, Operation, Process, Span, Split, StarkField, Vec,
-    Word, MIN_TRACE_LEN, OP_BATCH_SIZE,
+    Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
 use vm_core::{
     decoder::{
         NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS,
         OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
     },
-    ONE, ZERO,
+    hasher::DIGEST_LEN,
+    program::blocks::get_span_op_group_count,
 };
 
 mod trace;
@@ -237,6 +238,22 @@ impl Decoder {
             operations: Vec::<Operation>::new(),
             in_debug_mode,
         }
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns execution trace length for this decoder.
+    pub fn trace_len(&self) -> usize {
+        self.trace.trace_len()
+    }
+
+    /// Hash of the program decoded by this decoder.
+    ///
+    /// Hash of the program is taken from the last row of first 4 registers of the hasher section
+    /// of the decoder trace (i.e., columns 8 - 12).
+    pub fn program_hash(&self) -> [Felt; DIGEST_LEN] {
+        self.trace.program_hash()
     }
 
     // CONTROL BLOCKS
@@ -540,20 +557,6 @@ impl Default for SpanContext {
 
 // HELPER FUNCTIONS
 // ================================================================================================
-
-/// Returns the total number of operation groups in sequence of operation batches.
-///
-/// The number of groups is computed as follows:
-/// - For all batches except for the last one we set the number of groups to 8.
-/// - For the last batch, we take the number of groups and round it up to the next power of two.
-fn get_span_op_group_count(op_batches: &[OpBatch]) -> usize {
-    let last_batch_num_groups = op_batches
-        .last()
-        .expect("no last group")
-        .num_groups()
-        .next_power_of_two();
-    (op_batches.len() - 1) * OP_BATCH_SIZE + last_batch_num_groups
-}
 
 /// Removes the specified operation from the op group and returns the resulting op group.
 fn remove_opcode_from_group(op_group: Felt, op: Operation) -> Felt {

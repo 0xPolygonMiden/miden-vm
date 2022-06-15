@@ -72,8 +72,8 @@ pub fn test_example(example: Example, fail: bool) {
 
     if fail {
         outputs[0] += 1;
-        assert!(miden::verify(*program.hash(), &pub_inputs, &outputs, proof).is_err())
+        assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_err())
     } else {
-        assert!(miden::verify(*program.hash(), &pub_inputs, &outputs, proof).is_ok());
+        assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_ok());
     }
 }
