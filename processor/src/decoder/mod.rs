@@ -206,21 +206,27 @@ impl Process {
 /// * operation index column is used to keep track of the indexes of the currently executing
 ///   operations within an operation group. Values in this column could be between 0 and 8
 ///   (both inclusive) as there could be at most 9 operations in an operation group.
+///
+/// Also keeps track of operations executed when run in debug mode.
 pub struct Decoder {
     block_stack: BlockStack,
     span_context: Option<SpanContext>,
     trace: DecoderTrace,
+    operations: Vec<Operation>,
+    in_debug_mode: bool,
 }
 
 impl Decoder {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns an empty instance of [Decoder].
-    pub fn new() -> Self {
+    pub fn new(in_debug_mode: bool) -> Self {
         Self {
             block_stack: BlockStack::new(),
             span_context: None,
             trace: DecoderTrace::new(),
+            operations: Vec::<Operation>::new(),
+            in_debug_mode,
         }
     }
 
@@ -239,6 +245,8 @@ impl Decoder {
             left_child_hash,
             right_child_hash,
         );
+
+        self.append_operation(Operation::Join);
     }
 
     /// Starts decoding of a SPLIT block.
@@ -253,6 +261,8 @@ impl Decoder {
             left_child_hash,
             right_child_hash,
         );
+
+        self.append_operation(Operation::Split);
     }
 
     /// Starts decoding of a LOOP block.
@@ -267,6 +277,8 @@ impl Decoder {
             loop_body_hash,
             [Felt::ZERO; 4],
         );
+
+        self.append_operation(Operation::Loop);
     }
 
     /// Starts decoding another iteration of a loop.
@@ -276,6 +288,8 @@ impl Decoder {
         let block_info = self.block_stack.peek();
         debug_assert_eq!(Felt::ONE, block_info.is_loop);
         self.trace.append_loop_repeat(block_info.addr);
+
+        self.append_operation(Operation::Repeat);
     }
 
     /// Ends decoding of a control block (i.e., a non-SPAN block).
@@ -290,6 +304,8 @@ impl Decoder {
             block_info.is_loop_body,
             block_info.is_loop,
         );
+
+        self.append_operation(Operation::End);
     }
 
     // SPAN BLOCK
@@ -314,6 +330,8 @@ impl Decoder {
             num_groups_left: num_op_groups - consumed_op_groups,
             group_ops_left: first_op_batch.groups()[0],
         });
+
+        self.append_operation(Operation::Span);
     }
 
     /// Starts decoding of the next operation batch in the current SPAN.
@@ -335,6 +353,8 @@ impl Decoder {
         let ctx = self.span_context.as_mut().expect("not in span");
         ctx.num_groups_left -= consumed_op_groups;
         ctx.group_ops_left = op_batch.groups()[0];
+
+        self.append_operation(Operation::Respan);
     }
 
     /// Starts decoding a new operation group.
@@ -368,6 +388,8 @@ impl Decoder {
         if op.imm_value().is_some() {
             ctx.num_groups_left -= Felt::ONE
         }
+
+        self.append_operation(op);
     }
 
     /// Sets the helper registers in the trace to the user-provided helper values. This is expected
@@ -385,6 +407,13 @@ impl Decoder {
         let is_loop_body = self.block_stack.pop().is_loop_body;
         self.trace.append_span_end(block_hash, is_loop_body);
         self.span_context = None;
+
+        self.append_operation(Operation::End);
+    }
+
+    /// Get operation at a particular clock cycle. Only applicable in debug mode.
+    pub fn get_operation_at(&self, clk: usize) -> Operation {
+        self.operations[clk]
     }
 
     // TRACE GENERATIONS
@@ -400,6 +429,17 @@ impl Decoder {
             .expect("failed to convert vector to array")
     }
 
+    // TRACE GENERATIONS
+    // --------------------------------------------------------------------------------------------
+
+    /// Adds an operation to the operations vector in debug mode.
+    #[inline(always)]
+    fn append_operation(&mut self, op: Operation) {
+        if self.in_debug_mode {
+            self.operations.push(op);
+        }
+    }
+
     // TEST METHODS
     // --------------------------------------------------------------------------------------------
 
@@ -412,7 +452,7 @@ impl Decoder {
 
 impl Default for Decoder {
     fn default() -> Self {
-        Self::new()
+        Self::new(false)
     }
 }
 

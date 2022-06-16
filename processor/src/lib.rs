@@ -98,11 +98,11 @@ pub struct Process {
 }
 
 impl Process {
-    fn initialize(inputs: ProgramInputs, keep_overflow_trace: bool) -> Self {
+    fn initialize(inputs: ProgramInputs, in_debug_mode: bool) -> Self {
         Self {
             system: System::new(MIN_TRACE_LEN),
-            decoder: Decoder::new(),
-            stack: Stack::new(&inputs, MIN_TRACE_LEN, keep_overflow_trace),
+            decoder: Decoder::new(in_debug_mode),
+            stack: Stack::new(&inputs, MIN_TRACE_LEN, in_debug_mode),
             range: RangeChecker::new(),
             hasher: Hasher::new(),
             bitwise: Bitwise::new(),
