@@ -56,8 +56,12 @@ pub use debug::{VmState, VmStateIterator};
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
 type DecoderTrace = [Vec<Felt>; DECODER_TRACE_WIDTH];
 type StackTrace = [Vec<Felt>; STACK_TRACE_WIDTH];
-type RangeCheckTrace = [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH];
 type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
+
+pub struct RangeCheckTrace {
+    trace: [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH],
+    aux_trace_hints: range::AuxTraceHints,
+}
 
 // EXECUTOR
 // ================================================================================================
@@ -94,11 +98,11 @@ pub struct Process {
 }
 
 impl Process {
-    fn initialize(inputs: ProgramInputs, keep_overflow_trace: bool) -> Self {
+    fn initialize(inputs: ProgramInputs, in_debug_mode: bool) -> Self {
         Self {
             system: System::new(MIN_TRACE_LEN),
-            decoder: Decoder::new(),
-            stack: Stack::new(&inputs, MIN_TRACE_LEN, keep_overflow_trace),
+            decoder: Decoder::new(in_debug_mode),
+            stack: Stack::new(&inputs, MIN_TRACE_LEN, in_debug_mode),
             range: RangeChecker::new(),
             hasher: Hasher::new(),
             bitwise: Bitwise::new(),

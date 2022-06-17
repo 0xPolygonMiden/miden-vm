@@ -11,7 +11,7 @@ use vm_core::{
 use winter_air::TransitionConstraintDegree;
 
 #[cfg(test)]
-mod tests;
+pub mod tests;
 
 // CONSTANTS
 // ================================================================================================

@@ -387,6 +387,13 @@ impl Operation {
     pub const OP_BITS: usize = 7;
 
     /// Returns the opcode of this operation.
+    ///
+    /// Opcode patterns have the following meanings:
+    /// - 1001xxx: operations that result in a stack left shift from index 2, but do not require
+    ///   range checks. These are the left shifting u32 and field ops without range checks.
+    /// - 1000xxx: operations that consume four range checks.
+    ///   - 100010x: an operation that consumes four range checks and shifts the stack left.
+    ///   - 1000110: an operation that consumes four range checks and shifts the stack right.
     pub fn op_code(&self) -> Option<u8> {
         match self {
             Self::Noop => Some(0),
@@ -397,95 +404,95 @@ impl Operation {
 
             Self::Push(_) => Some(4),
 
-            Self::Eq => Some(5),
-            Self::Eqz => Some(6),
-            Self::Eqw => Some(7),
+            Self::Eq => Some(0b0100_1001),
+            Self::Eqz => Some(5),
+            Self::Eqw => Some(6),
 
-            Self::Add => Some(8),
-            Self::Neg => Some(9),
-            Self::Mul => Some(10),
-            Self::Inv => Some(11),
-            Self::Incr => Some(12),
-            Self::Pow2 => Some(13),
-            Self::And => Some(14),
-            Self::Or => Some(15),
-            Self::Not => Some(16),
+            Self::Add => Some(0b0100_1000),
+            Self::Neg => Some(7),
+            Self::Mul => Some(0b0100_1010),
+            Self::Inv => Some(8),
+            Self::Incr => Some(9),
+            Self::Pow2 => Some(10),
+            Self::And => Some(0b0100_1011),
+            Self::Or => Some(0b0100_1100),
+            Self::Not => Some(11),
 
-            Self::Pad => Some(17),
-            Self::Drop => Some(18),
+            Self::Pad => Some(12),
+            Self::Drop => Some(13),
 
-            Self::Dup0 => Some(19),
-            Self::Dup1 => Some(20),
-            Self::Dup2 => Some(21),
-            Self::Dup3 => Some(22),
-            Self::Dup4 => Some(23),
-            Self::Dup5 => Some(24),
-            Self::Dup6 => Some(25),
-            Self::Dup7 => Some(26),
-            Self::Dup9 => Some(27),
-            Self::Dup11 => Some(28),
-            Self::Dup13 => Some(29),
-            Self::Dup15 => Some(30),
+            Self::Dup0 => Some(14),
+            Self::Dup1 => Some(15),
+            Self::Dup2 => Some(16),
+            Self::Dup3 => Some(17),
+            Self::Dup4 => Some(18),
+            Self::Dup5 => Some(19),
+            Self::Dup6 => Some(20),
+            Self::Dup7 => Some(21),
+            Self::Dup9 => Some(22),
+            Self::Dup11 => Some(23),
+            Self::Dup13 => Some(24),
+            Self::Dup15 => Some(25),
 
-            Self::Swap => Some(31),
-            Self::SwapW => Some(32),
-            Self::SwapW2 => Some(33),
-            Self::SwapW3 => Some(34),
+            Self::Swap => Some(26),
+            Self::SwapW => Some(27),
+            Self::SwapW2 => Some(28),
+            Self::SwapW3 => Some(29),
 
-            Self::MovUp2 => Some(35),
-            Self::MovUp3 => Some(36),
-            Self::MovUp4 => Some(37),
-            Self::MovUp5 => Some(38),
-            Self::MovUp6 => Some(39),
-            Self::MovUp7 => Some(40),
-            Self::MovUp9 => Some(41),
-            Self::MovUp11 => Some(42),
-            Self::MovUp13 => Some(43),
-            Self::MovUp15 => Some(44),
+            Self::MovUp2 => Some(30),
+            Self::MovUp3 => Some(31),
+            Self::MovUp4 => Some(32),
+            Self::MovUp5 => Some(33),
+            Self::MovUp6 => Some(34),
+            Self::MovUp7 => Some(35),
+            Self::MovUp9 => Some(36),
+            Self::MovUp11 => Some(37),
+            Self::MovUp13 => Some(38),
+            Self::MovUp15 => Some(39),
 
-            Self::MovDn2 => Some(45),
-            Self::MovDn3 => Some(46),
-            Self::MovDn4 => Some(47),
-            Self::MovDn5 => Some(48),
-            Self::MovDn6 => Some(49),
-            Self::MovDn7 => Some(50),
-            Self::MovDn9 => Some(51),
-            Self::MovDn11 => Some(52),
-            Self::MovDn13 => Some(53),
-            Self::MovDn15 => Some(54),
+            Self::MovDn2 => Some(40),
+            Self::MovDn3 => Some(41),
+            Self::MovDn4 => Some(42),
+            Self::MovDn5 => Some(43),
+            Self::MovDn6 => Some(44),
+            Self::MovDn7 => Some(45),
+            Self::MovDn9 => Some(46),
+            Self::MovDn11 => Some(47),
+            Self::MovDn13 => Some(48),
+            Self::MovDn15 => Some(49),
 
-            Self::CSwap => Some(55),
-            Self::CSwapW => Some(56),
+            Self::CSwap => Some(50),
+            Self::CSwapW => Some(51),
 
-            Self::U32assert2 => Some(57),
-            Self::U32split => Some(58),
-            Self::U32add => Some(59),
-            Self::U32add3 => Some(60),
-            Self::U32sub => Some(61),
-            Self::U32mul => Some(62),
-            Self::U32madd => Some(63),
-            Self::U32div => Some(64),
+            Self::U32add => Some(0b0100_0000),
+            Self::U32sub => Some(0b0100_0001),
+            Self::U32mul => Some(0b0100_0010),
+            Self::U32div => Some(0b0100_0011),
+            Self::U32add3 => Some(0b0100_0100),
+            Self::U32madd => Some(0b0100_0101),
+            Self::U32split => Some(0b0100_0110),
+            Self::U32assert2 => Some(0b0100_0111),
 
-            Self::U32and => Some(65),
-            Self::U32or => Some(66),
-            Self::U32xor => Some(67),
+            Self::U32and => Some(0b0100_1101),
+            Self::U32or => Some(0b0100_1110),
+            Self::U32xor => Some(0b0100_1111),
 
-            Self::LoadW => Some(68),
-            Self::StoreW => Some(69),
+            Self::LoadW => Some(52),
+            Self::StoreW => Some(53),
 
-            Self::Read => Some(70),
-            Self::ReadW => Some(71),
+            Self::Read => Some(54),
+            Self::ReadW => Some(55),
 
-            Self::SDepth => Some(72),
+            Self::SDepth => Some(56),
 
-            Self::RpPerm => Some(73),
-            Self::MpVerify => Some(74),
-            Self::MrUpdate(_) => Some(75),
+            Self::RpPerm => Some(57),
+            Self::MpVerify => Some(58),
+            Self::MrUpdate(_) => Some(59),
 
-            Self::End => Some(76),
-            Self::Join => Some(77),
-            Self::Split => Some(78),
-            Self::Loop => Some(79),
+            Self::End => Some(60),
+            Self::Join => Some(61),
+            Self::Split => Some(62),
+            Self::Loop => Some(63),
             Self::Repeat => Some(80),
             Self::Respan => Some(81),
             Self::Span => Some(82),
@@ -512,6 +519,21 @@ impl Operation {
     /// Additionally, decorators do not have assigned op codes.
     pub fn is_decorator(&self) -> bool {
         matches!(self, Self::Debug(_) | Self::Advice(_))
+    }
+
+    /// Returns true if this operation is a control operation.
+    pub fn is_control_op(&self) -> bool {
+        matches!(
+            self,
+            Self::End
+                | Self::Join
+                | Self::Split
+                | Self::Loop
+                | Self::Repeat
+                | Self::Respan
+                | Self::Span
+                | Self::Halt
+        )
     }
 }
 
