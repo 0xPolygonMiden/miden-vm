@@ -1,5 +1,5 @@
 use super::{
-    AuxTableTrace, Bitwise, Felt, FieldElement, Hasher, Memory, TraceFragment, AUX_TRACE_WIDTH,
+    AuxTableTrace, Bitwise, Felt, FieldElement, Hasher, Memory, TraceFragment, Vec, AUX_TRACE_WIDTH,
 };
 
 #[cfg(test)]

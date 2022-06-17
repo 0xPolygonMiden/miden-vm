@@ -1,5 +1,5 @@
-use super::{Felt, Operation, Word, MIN_TRACE_LEN, NUM_HASHER_COLUMNS, NUM_OP_BITS};
-use std::ops::Range;
+use super::{Felt, Operation, Vec, Word, MIN_TRACE_LEN, NUM_HASHER_COLUMNS, NUM_OP_BITS};
+use core::ops::Range;
 use vm_core::{program::blocks::OP_BATCH_SIZE, utils::new_array_vec, FieldElement, StarkField};
 
 // CONSTANTS

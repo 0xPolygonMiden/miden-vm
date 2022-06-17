@@ -1,4 +1,4 @@
-use super::{Felt, FieldElement, NUM_RAND_ROWS};
+use super::{Felt, FieldElement, Vec, NUM_RAND_ROWS};
 use crate::range::{AuxColumnHint, AuxTraceHints};
 
 pub use vm_core::range::{P0_COL_IDX, P1_COL_IDX, T_COL_IDX, V_COL_IDX};

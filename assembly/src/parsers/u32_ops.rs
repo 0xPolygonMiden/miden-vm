@@ -1,4 +1,4 @@
-use super::{parse_int_param, push_value, AssemblyError, Felt, Operation, Token};
+use super::{parse_int_param, push_value, AssemblyError, Felt, Operation, Token, Vec};
 
 // CONVERSIONS AND TESTS
 // ================================================================================================

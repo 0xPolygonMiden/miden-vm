@@ -1,9 +1,12 @@
 use super::{
     hasher::{self, Digest},
+    utils::{
+        collections::{BTreeMap, Vec},
+        Box,
+    },
     Felt, FieldElement, Operation,
 };
 use core::fmt;
-use winter_utils::collections::BTreeMap;
 
 pub mod blocks;
 use blocks::CodeBlock;

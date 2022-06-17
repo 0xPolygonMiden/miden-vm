@@ -1,7 +1,9 @@
 use super::{AssemblyContext, AssemblyError, Token, TokenStream};
 pub use blocks::{combine_blocks, parse_code_blocks};
 use vm_core::{
-    program::blocks::CodeBlock, AdviceInjector, Felt, FieldElement, Operation, StarkField,
+    program::blocks::CodeBlock,
+    utils::{collections::Vec, string::String},
+    AdviceInjector, Felt, FieldElement, Operation, StarkField,
 };
 
 mod blocks;

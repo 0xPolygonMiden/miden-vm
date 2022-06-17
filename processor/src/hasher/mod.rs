@@ -1,4 +1,4 @@
-use super::{Felt, FieldElement, StarkField, TraceFragment, Word};
+use super::{Felt, FieldElement, StarkField, TraceFragment, Vec, Word};
 use vm_core::{
     hasher::{
         absorb_into_state, get_digest, init_state, init_state_from_words, Selectors, LINEAR_HASH,

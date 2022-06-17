@@ -1,4 +1,4 @@
-use super::{AssemblyError, Operation, Token};
+use super::{AssemblyError, Operation, Token, Vec};
 use vm_core::utils::PushMany;
 
 // STACK MANIPULATION
