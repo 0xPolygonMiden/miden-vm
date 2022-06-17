@@ -6,7 +6,7 @@ The general approach is to decompose the exponent value $a$ into 1's, representi
 
 To perform this operation, we'll use a table with 13 columns and two periodic columns, as shown below. Computing a power of $2^a$ for input $a$ where $0 \leq a < 64$ will require 8 table rows.
 
-![pow2](../../../assets/pow2_aux_table.png)
+![pow2](../../assets/pow2_aux_table.png)
 
 The columns shown above have the following meanings:
 
@@ -58,11 +58,11 @@ Let's illustrate the entire construction with an example. For simplicity, we'll 
 
 For our example, let's set our exponent input value as $a=23$.
 
-| p       | $a_0$ | $a_1$ | $a_2$ | $a_3$ | $a_4$ | $a_5$ | $a_6$ | $a_7$ | h   | a   | zp                |  z                 |
-| ------- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | --- | --- | ----------------- | ----------------- |
+| p       | $a_0$ | $a_1$ | $a_2$ | $a_3$ | $a_4$ | $a_5$ | $a_6$ | $a_7$ | h   | a   | zp                | z                 |
+| ------- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | --- | --- | ----------------- | ----------------- | --- |
 | 1       | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1   | 8   | 0                 | 0                 |
 | 256     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1   | 16  | 0                 | 0                 |
-| $256^2$ | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 0     | 0   | 23  | 0                 | $256^2 \cdot 2^7$ |                  |
+| $256^2$ | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 0     | 0   | 23  | 0                 | $256^2 \cdot 2^7$ |     |
 | $256^3$ | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0   | 23  | $256^2 \cdot 2^7$ | $256^2 \cdot 2^7$ |
 
 Now we can use the same example to demonstrate the "virtual rows" we use to help aggregate the output value in $z$. The virtual rows are shaded below, and are not included in the trace.
@@ -132,9 +132,9 @@ $$k_1 \cdot (p' - 256 \cdot p) = 0$$
 
 To aggregate the output into column $z$, we'll enforce the following conditions using a validity constraint for the first row and a transition constraint for the rest of the rows in the cycle.
 
-1. In the first row of each 8-row cycle, $zp$ should be set to 0. 
+1. In the first row of each 8-row cycle, $zp$ should be set to 0.
 2. For all the rows except the last one, the next value of $zp$ should be the same as the current value of $z$ .
-3. For all rows except the last one, the current output $z$ should equal the output value copied from previous row $zp$ plus the current row $p$ times the aggregation of the decomposed powers in the current row. 
+3. For all rows except the last one, the current output $z$ should equal the output value copied from previous row $zp$ plus the current row $p$ times the aggregation of the decomposed powers in the current row.
 
 To enforce these constraints on column $z$, we can make use of intermediate helper variables from the "virtual rows" described above.
 
@@ -151,7 +151,7 @@ $$k_0 \cdot zp = 0$$
 
 $$k_1 \cdot (zp' - z) = 0$$
 
-$$ z - (p \cdot \sum\limits_{i=0}^8 t_i \cdot 2^i + zp) = 0$$
+$$ z - (p \cdot \sum\limits\_{i=0}^8 t_i \cdot 2^i + zp) = 0$$
 
 The first constraint ensures that in the first row of each cycle $zp$ is set to 0, the second one ensures that for all other rows in the cycle the next value of $zp$ is same as the current value of $z$, while the last constraint ensures that for all rows $z$ is the sum of the aggregation of the powers in that row and the value $zp$.
 
