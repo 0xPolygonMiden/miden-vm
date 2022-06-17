@@ -57,7 +57,7 @@ For simplicity, all of the "cyclic" co-processors which operate in multi-row cyc
 
 To fulfill the requirements above, we'll start by placing the Hasher at the top of the Auxiliary Table with a single selector column beside it where $s_0 = 0$ selects the Hasher. The third requirement for the hasher can easily be resolved with a virtual flag excluding the last row, since the row address constraint is only degree 2.
 
-![](https://i.imgur.com/40eKeih.png)
+![hasher](../../assets/hasher.png)
 
 Next, we would like to include the other cyclic co-processors: the Bitwise and Power of Two processors.
 
