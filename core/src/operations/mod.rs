@@ -381,6 +381,9 @@ pub enum Operation {
     /// This operation affects only the advice tape, but has no effect on other VM components
     /// (e.g., stack, memory), and does not advance VM clock.
     Advice(AdviceInjector),
+
+    /// Added to the top of VmStateIterator
+    None,
 }
 
 impl Operation {
@@ -500,6 +503,7 @@ impl Operation {
 
             Self::Debug(_) => None,
             Self::Advice(_) => None,
+            Self::None => None,
         }
     }
 
@@ -659,6 +663,8 @@ impl fmt::Display for Operation {
             // ----- decorators -------------------------------------------------------------------
             Self::Debug(options) => write!(f, "debug({})", options),
             Self::Advice(injector) => write!(f, "advice({})", injector),
+
+            Self::None => write!(f, "none"),
         }
     }
 }

@@ -413,7 +413,11 @@ impl Decoder {
 
     /// Get operation at a particular clock cycle. Only applicable in debug mode.
     pub fn get_operation_at(&self, clk: usize) -> Operation {
-        self.operations[clk]
+        if clk == 0 {
+            Operation::None
+        } else {
+            self.operations[clk - 1]
+        }
     }
 
     // TRACE GENERATIONS

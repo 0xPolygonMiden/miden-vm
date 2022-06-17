@@ -19,28 +19,28 @@ fn test_exec_iter() {
     let expected_states = vec![
         VmState {
             clk: 0,
-            op: Operation::Span,
+            op: Operation::None,
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
             fmp: fmp,
             memory: Vec::new(),
         },
         VmState {
             clk: 1,
-            op: Operation::Push(Felt::new(1)),
+            op: Operation::Span,
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1].to_elements(),
             fmp: fmp,
             memory: Vec::new(),
         },
         VmState {
             clk: 2,
-            op: Operation::StoreW,
+            op: Operation::Push(Felt::new(1)),
             stack: [1, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2].to_elements(),
             fmp: fmp,
             memory: Vec::new(),
         },
         VmState {
             clk: 3,
-            op: Operation::Drop,
+            op: Operation::StoreW,
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
             fmp: fmp,
             memory: mem.clone(),
@@ -68,28 +68,28 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 7,
-            op: Operation::Push(Felt::new(17)),
+            op: Operation::Drop,
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp: fmp,
             memory: mem.clone(),
         },
         VmState {
             clk: 8,
-            op: Operation::Push(Felt::new(1)),
+            op: Operation::Push(Felt::new(17)),
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp: fmp,
             memory: mem.clone(),
         },
         VmState {
             clk: 9,
-            op: Operation::FmpUpdate,
+            op: Operation::Push(Felt::new(1)),
             stack: [1, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp: fmp,
             memory: mem.clone(),
         },
         VmState {
             clk: 10,
-            op: Operation::Pad,
+            op: Operation::FmpUpdate,
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp: next_fmp,
             memory: mem.clone(),
@@ -123,7 +123,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 14,
-            op: Operation::FmpAdd,
+            op: Operation::Pad,
             stack: [
                 0, 0, 0, 0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0,
             ]
@@ -133,7 +133,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 15,
-            op: Operation::StoreW,
+            op: Operation::FmpAdd,
             stack: [
                 2u64.pow(30) + 1,
                 0,
@@ -162,7 +162,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 16,
-            op: Operation::Drop,
+            op: Operation::StoreW,
             stack: [0, 0, 0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp: next_fmp,
             memory: vec![
