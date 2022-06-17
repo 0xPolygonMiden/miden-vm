@@ -89,6 +89,7 @@ impl Process {
             Operation::SwapW => self.op_swapw()?,
             Operation::SwapW2 => self.op_swapw2()?,
             Operation::SwapW3 => self.op_swapw3()?,
+            Operation::SwapDW => self.op_swapdw()?,
 
             Operation::MovUp2 => self.op_movup(2)?,
             Operation::MovUp3 => self.op_movup(3)?,
@@ -96,10 +97,7 @@ impl Process {
             Operation::MovUp5 => self.op_movup(5)?,
             Operation::MovUp6 => self.op_movup(6)?,
             Operation::MovUp7 => self.op_movup(7)?,
-            Operation::MovUp9 => self.op_movup(9)?,
-            Operation::MovUp11 => self.op_movup(11)?,
-            Operation::MovUp13 => self.op_movup(13)?,
-            Operation::MovUp15 => self.op_movup(15)?,
+            Operation::MovUp8 => self.op_movup(8)?,
 
             Operation::MovDn2 => self.op_movdn(2)?,
             Operation::MovDn3 => self.op_movdn(3)?,
@@ -107,10 +105,7 @@ impl Process {
             Operation::MovDn5 => self.op_movdn(5)?,
             Operation::MovDn6 => self.op_movdn(6)?,
             Operation::MovDn7 => self.op_movdn(7)?,
-            Operation::MovDn9 => self.op_movdn(9)?,
-            Operation::MovDn11 => self.op_movdn(11)?,
-            Operation::MovDn13 => self.op_movdn(13)?,
-            Operation::MovDn15 => self.op_movdn(15)?,
+            Operation::MovDn8 => self.op_movdn(8)?,
 
             Operation::CSwap => self.op_cswap()?,
             Operation::CSwapW => self.op_cswapw()?,
