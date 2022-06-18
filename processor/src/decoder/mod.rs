@@ -411,13 +411,9 @@ impl Decoder {
         self.append_operation(Operation::End);
     }
 
-    /// Get operation at a particular clock cycle. Only applicable in debug mode.
+    /// Returns an operation to be executed at the specified clock cycle. Only applicable in debug mode.
     pub fn get_operation_at(&self, clk: usize) -> Operation {
-        if clk == 0 {
-            Operation::None
-        } else {
-            self.operations[clk - 1]
-        }
+        self.operations[clk]
     }
 
     // TRACE GENERATIONS
@@ -433,7 +429,7 @@ impl Decoder {
             .expect("failed to convert vector to array")
     }
 
-    // TRACE GENERATIONS
+    // HELPERS
     // --------------------------------------------------------------------------------------------
 
     /// Adds an operation to the operations vector in debug mode.

@@ -137,8 +137,6 @@ impl Process {
             // ----- decorators -------------------------------------------------------------------
             Operation::Debug(options) => self.op_debug(options)?,
             Operation::Advice(injector) => self.op_advice(injector)?,
-
-            Operation::None => (),
         }
 
         // increment the clock cycle, unless we are processing a decorator
