@@ -4,7 +4,6 @@ use vm_core::utils::IntoBytes;
 
 /// Equivalent to https://github.com/itzmeanjan/merklize-sha/blob/1d35aae/include/test_bit_interleaving.hpp#L12-L34
 #[test]
-#[ignore]
 fn keccak256_bit_interleaving() {
     let source = "
     use.std::crypto::hashes::keccak256
@@ -28,7 +27,6 @@ fn keccak256_bit_interleaving() {
 }
 
 #[test]
-#[ignore]
 fn keccak256_2_to_1_hash() {
     let source = "
     use.std::crypto::hashes::keccak256
