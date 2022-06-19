@@ -1,6 +1,6 @@
 use crate::utils::{are_equal, binary_not, is_binary, EvaluationResult};
 
-use super::{EvaluationFrame, Felt, FieldElement, HASHER_TRACE_OFFSET};
+use super::{EvaluationFrame, Felt, FieldElement, Vec, HASHER_TRACE_OFFSET};
 use core::ops::Range;
 use vm_core::{
     hasher::{

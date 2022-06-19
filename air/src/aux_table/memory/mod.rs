@@ -1,4 +1,4 @@
-use super::{EvaluationFrame, FieldElement, MEMORY_TRACE_OFFSET};
+use super::{EvaluationFrame, FieldElement, Vec, MEMORY_TRACE_OFFSET};
 use crate::utils::{binary_not, is_binary, EvaluationResult};
 use core::ops::Range;
 use vm_core::utils::range as create_range;

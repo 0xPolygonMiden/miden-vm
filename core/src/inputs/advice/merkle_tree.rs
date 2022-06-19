@@ -2,6 +2,7 @@ use super::{
     hasher::{self, Digest},
     AdviceSetError, Felt, FieldElement, Word,
 };
+use crate::utils::collections::Vec;
 use core::slice;
 use math::log2;
 use winter_utils::uninit_vector;

@@ -1,5 +1,4 @@
-use super::{CodeBlock, ProcMap, Procedure, MODULE_PATH_DELIM};
-use vm_core::utils::collections::BTreeMap;
+use super::{BTreeMap, CodeBlock, ProcMap, Procedure, String, ToString, MODULE_PATH_DELIM};
 
 // ASSEMBLY CONTEXT
 // ================================================================================================

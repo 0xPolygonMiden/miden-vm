@@ -1,4 +1,4 @@
-use super::{hasher, Digest, Felt, FieldElement, Operation};
+use super::{hasher, Box, Digest, Felt, FieldElement, Operation, Vec};
 use core::fmt;
 
 mod call_block;

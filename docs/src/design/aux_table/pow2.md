@@ -4,9 +4,9 @@ In this note, we describe how to compute a 32-bit or 64-bit power of two, $2^a$,
 
 The general approach is to decompose the exponent value $a$ into 1's, representing single powers of two, and then re-aggregate the value of $a$ while also aggregating the powers of two into the output result $z = 2^a$.
 
-To perform this operation, we'll use a table with 12 columns and two periodic columns, as shown below. Computing a power of $2^a$ for input $a$ where $0 \leq a < 64$ will require 8 table rows.
+To perform this operation, we'll use a table with 13 columns and two periodic columns, as shown below. Computing a power of $2^a$ for input $a$ where $0 \leq a < 64$ will require 8 table rows.
 
-![](https://i.imgur.com/LkzpCxW.png)
+![pow2](../../assets/pow2_aux_table.png)
 
 The columns shown above have the following meanings:
 
@@ -15,7 +15,8 @@ The columns shown above have the following meanings:
 - **Helper column $h$** is used to help aggregate the powers of two into the output column and to ensure correctness of the transition of $a_i$ values from one row to the next.
 - **Input column $a$** will contain the aggregated sum of the $a_i$ values in each row plus the previous value in column $a$. By the final row of the 8-row cycle, the value in column $a$ will be the input value of the exponent $a$.
 - **Column $p$** will contain increasing powers of 256, which will be used in the aggregation of the output result in column $z$. This represents the 8 powers of two that can be accumulated in each row by the 8 $a_i$ columns.
-- **Output column $z$** will contain the aggregated output over each row plus the previous value of $z$. By the final row of the 8-row cycle, the value in column $z$ will be the result of $2^a$.
+- **Output column $zp$** will contain the aggregated output over all rows excluding the current row.
+- **Output column $z$** will contain the aggregated output over the current row plus the previous value of $z$ i.e. current value of $zp$. By the final row of the 8-row cycle, the value in column $z$ will be the result of $2^a$.
 
 In addition to these columns, the table also depends on one running product column $p_0$ which is used for permutation checks and shared across multiple co-processors. The purpose here is the same as in the [hash processor](https://hackmd.io/Rpxt26PkScKltE469_nhRA?view).
 
@@ -57,25 +58,25 @@ Let's illustrate the entire construction with an example. For simplicity, we'll 
 
 For our example, let's set our exponent input value as $a=23$.
 
-| p       | $a_0$ | $a_1$ | $a_2$ | $a_3$ | $a_4$ | $a_5$ | $a_6$ | $a_7$ | h   | a   | z                 |
-| ------- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | --- | --- | ----------------- |
-| 1       | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1   | 8   | 0                 |
-| 256     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1   | 16  | 0                 |
-| $256^2$ | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 0     | 0   | 23  | $256^2 \cdot 2^7$ |
-| $256^3$ | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0   | 23  | $256^2 \cdot 2^7$ |
+| p       | $a_0$ | $a_1$ | $a_2$ | $a_3$ | $a_4$ | $a_5$ | $a_6$ | $a_7$ | h   | a   | zp                | z                 |
+| ------- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | --- | --- | ----------------- | ----------------- | --- |
+| 1       | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1   | 8   | 0                 | 0                 |
+| 256     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1   | 16  | 0                 | 0                 |
+| $256^2$ | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 0     | 0   | 23  | 0                 | $256^2 \cdot 2^7$ |     |
+| $256^3$ | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0   | 23  | $256^2 \cdot 2^7$ | $256^2 \cdot 2^7$ |
 
 Now we can use the same example to demonstrate the "virtual rows" we use to help aggregate the output value in $z$. The virtual rows are shaded below, and are not included in the trace.
 
-| p       | $a_0$ | $a_1$ | $a_2$ | $a_3$ | $a_4$ | $a_5$ | $a_6$ | $a_7$ | h   | a   | z                 |
-| ------- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | --- | --- | ----------------- |
-| 1       | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1   | 8   | 0                 |
-| -       | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0   | -   | -                 |
-| 256     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1   | 16  | 0                 |
-| -       | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0   | -   | -                 |
-| $256^2$ | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 0     | 0   | 23  | $256^2 \cdot 2^7$ |
-| -       | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 1     | 0   | -   | -                 |
-| $256^3$ | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0   | 23  | $256^2 \cdot 2^7$ |
-| -       | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0   | -   | -                 |
+| p       | $a_0$ | $a_1$ | $a_2$ | $a_3$ | $a_4$ | $a_5$ | $a_6$ | $a_7$ | h   | a   | zp                | z                 |
+| ------- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | --- | --- | ----------------- | ----------------- |
+| 1       | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1   | 8   | 0                 | 0                 |
+| -       | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0   | -   | -                 | -                 |
+| 256     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1   | 16  | 0                 | 0                 |
+| -       | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0   | -   | -                 | -                 |
+| $256^2$ | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 0     | 0   | 23  | 0                 | $256^2 \cdot 2^7$ |
+| -       | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 1     | 0   | -   | -                 | -                 |
+| $256^3$ | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0   | 23  | $256^2 \cdot 2^7$ | $256^2 \cdot 2^7$ |
+| -       | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0   | -   | -                 | -                 |
 
 In this example, the third virtual row has a 1 in the $a_7$ column, so the value in $z$ is the value of $p$ in the third trace row ($256^2$) multiplied by $2^7$.
 
@@ -131,8 +132,9 @@ $$k_1 \cdot (p' - 256 \cdot p) = 0$$
 
 To aggregate the output into column $z$, we'll enforce the following conditions using a validity constraint for the first row and a transition constraint for the rest of the rows in the cycle.
 
-1. In the first row of each 8-row cycle, the value in $z$ aggregates over the current row.
-2. For all rows in the cycle except the last, the value of $z$ in the next row must equal the aggregation of the output in the next row plus the value of $z$ in the current row.
+1. In the first row of each 8-row cycle, $zp$ should be set to 0.
+2. For all the rows except the last one, the next value of $zp$ should be the same as the current value of $z$ .
+3. For all rows except the last one, the current output $z$ should equal the output value copied from previous row $zp$ plus the current row $p$ times the aggregation of the decomposed powers in the current row.
 
 To enforce these constraints on column $z$, we can make use of intermediate helper variables from the "virtual rows" described above.
 
@@ -143,13 +145,15 @@ Let $t_i$ be a value in our virtual row computed from values $a_i$ and $h$ in th
 - $t_i = a_{i-1} - a_i$ for $i \in \{1, 2, ..., 7\}$
 - $t_8 = a_7 - h$
 
-We can use selector $k_0$ to turn on the validity constraint for the first row and selector $k_1$ to apply the transition constraint to all but the last row in the cycle. This gives us the following constraints.
+We can use selector $k_0$ to turn on the constraint for the first row of $zp$ and selector $k_1$ to apply the transition constraint to all but the last row in the cycle. This gives us the following constraints.
 
-$$k_0 \cdot \left(z - (\sum\limits_{i=0}^8 t_i \cdot 2^i)\right) = 0$$
+$$k_0 \cdot zp = 0$$
 
-$$k_1 \cdot \left(z' - (p' \cdot \sum\limits_{i=0}^8 t_i' \cdot 2^i + z)\right) = 0$$
+$$k_1 \cdot (zp' - z) = 0$$
 
-The first constraint ensures that in the first row of each cycle $z$ only aggregates powers from that row, while the second one ensures that for all other rows in the cycle the previous value of $z$ is also included.
+$$ z - (p \cdot \sum\limits\_{i=0}^8 t_i \cdot 2^i + zp) = 0$$
+
+The first constraint ensures that in the first row of each cycle $zp$ is set to 0, the second one ensures that for all other rows in the cycle the next value of $zp$ is same as the current value of $z$, while the last constraint ensures that for all rows $z$ is the sum of the aggregation of the powers in that row and the value $zp$.
 
 ## Permutation Product
 

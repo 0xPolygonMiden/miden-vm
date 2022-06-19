@@ -9,7 +9,7 @@ The co-processors in the auxiliary table are:
 - [Hash Processor](./hasher.md) (17 columns; degree 8)
 - Bitwise & Power of Two Processor, which combines 2 co-processors:
   - [Bitwise Processor](./bitwise.md) (13 columns; degree 6)
-  - [Power of Two Processor](./pow2.md) (12 columns; degree 3)
+  - [Power of Two Processor](./pow2.md) (13 columns; degree 3)
 - [Memory Processor](./memory.md) (14 columns; degree 6)
 
 Each co-processor is identified by a set of selector columns which identify its segment in the auxiliary table and cause its constraints to be selectively applied.
@@ -41,7 +41,7 @@ Note: If the bitwise co-processor is [refactored](https://github.com/maticnetwor
 ### Power of two
 
 - The constraints for the power of two co-processor have degree 3, so its selector flag cannot exceed degree 6.
-- The power of two co-processor requires 12 columns, so it can have at most 6 selector columns.
+- The power of two co-processor requires 13 columns, so it can have at most 5 selector columns.
 - The power of two operations is completed in an 8-row cycle that must begin at a row number equal to $0\mod8$, so the Power of Two processor's trace must begin on a row number equal to $0\mod8$.
 - As described in the Challenge section below, the input and output aggregation constraints must not be applied to the last row.
 
@@ -57,15 +57,15 @@ For simplicity, all of the "cyclic" co-processors which operate in multi-row cyc
 
 To fulfill the requirements above, we'll start by placing the Hasher at the top of the Auxiliary Table with a single selector column beside it where $s_0 = 0$ selects the Hasher. The third requirement for the hasher can easily be resolved with a virtual flag excluding the last row, since the row address constraint is only degree 2.
 
-![](https://i.imgur.com/40eKeih.png)
+![hasher](../../assets/hasher.png)
 
 Next, we would like to include the other cyclic co-processors: the Bitwise and Power of Two processors.
 
 That would leave the Memory co-processor to go last. However, if we use a selector column for each of 4 co-processors and also put the Memory co-processor at the end, then the selectors will cause us to exceed the maximum degree for the Memory co-processor's constraints.
 
-We can get around this problem by combining the Bitwise and Power of Two processors into a single co-processor with a shared trace, so that the Power of Two processor becomes an additional operation in the Bitwise processor which will be selected by the Bitwise processor's internal selector columns. We'll need to add one additional column to the Bitwise trace in order for the Power of Two operation to fit. The degree of the combined processor will be 6, and the selector flag from the two selector columns will push it to degree 8, which is fine.
+We can get around this problem by combining the Bitwise and Power of Two processors into a single co-processor with a shared trace, so that the Power of Two processor becomes an additional operation in the Bitwise processor which will be selected by the Bitwise processor's internal selector columns. We'll need to add two columns to the Bitwise trace in order for the Power of Two operation to fit. The degree of the combined processor will be 6, and the selector flag from the two selector columns will push it to degree 8, which is fine.
 
-![](https://i.imgur.com/TQ25pFR.png)
+![hasher_bitwise](../../assets/hasher_bitwise_pow2.png)
 
 Finally, we come to the Memory co-processor, where we still need to deal with the "last row problem" (described below). The three selector flags for the Memory section mean that the constraint degree is already at the maximum of 9, which gives us 2 options:
 
@@ -74,7 +74,7 @@ Finally, we come to the Memory co-processor, where we still need to deal with th
 
 For now, we'll place the Memory co-processor last after the padding to keep the implementation simple.
 
-![](https://i.imgur.com/1DoTUih.png)
+![aux_table](../../assets/aux_table.png)
 
 ## Auxiliary Table constraints
 
@@ -138,7 +138,7 @@ CONFLICT: our transition constraint from Processor A will require that this be 4
 - [Power of 2](./pow2.md) - the input aggregation constraint (degree 2) and the output aggregation constraint (degree 4), which are:
   $$a' - (a_0' + a_1'+a_2'+ ... + a_7' + k_1 \cdot a) = 0$$
 
-$$z' - (\sum\limits_{i=0}^8 p' \cdot t_i' \cdot 2^i + k_1 \cdot z) = 0$$
+$$k_1 \cdot (zp' - z) = 0$$
 
 ### Possible solutions
 

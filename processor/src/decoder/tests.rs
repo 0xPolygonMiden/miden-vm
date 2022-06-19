@@ -1,9 +1,10 @@
 use super::{super::DecoderTrace, Felt, Operation, Word, NUM_OP_BITS};
 use crate::{ExecutionTrace, Process, ProgramInputs};
+use rand_utils::rand_value;
 use vm_core::{
     decoder::{
-        ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, OP_BITS_OFFSET,
-        OP_BITS_RANGE, OP_INDEX_COL_IDX,
+        ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
+        OP_BITS_OFFSET, OP_BITS_RANGE, OP_INDEX_COL_IDX,
     },
     program::blocks::{CodeBlock, Span},
     FieldElement, StarkField, DECODER_TRACE_RANGE,
@@ -540,6 +541,54 @@ fn loop_block_repeat() {
     }
 }
 
+// HELPER REGISTERS TESTS
+// ================================================================================================
+#[test]
+fn set_user_op_helpers_one() {
+    // --- user operation with 1 helper value -----------------------------------------------------
+    let ops = vec![Operation::U32and, Operation::U32and];
+    let program = CodeBlock::new_span(ops);
+    let (trace, _) = build_trace(&[2, 6, 1], &program);
+
+    // Check the hasher state of the final user operation which was executed.
+    let hasher_state = get_hasher_state(&trace, 2);
+
+    // h0 holds the number of ops left in the group, which is 0. h1 holds the parent addr, which is
+    // ZERO. h2 holds one helper value, which is the lookup row in the bitwise trace. everything
+    // else is unused.
+    let expected = build_expected_hasher_state(&[ZERO, ZERO, Felt::new(15)]);
+
+    assert_eq!(expected, hasher_state);
+}
+
+#[test]
+fn set_user_op_helpers_many() {
+    // --- user operation with 4 helper values ----------------------------------------------------
+    let program = CodeBlock::new_span(vec![Operation::U32div]);
+    let a = rand_value();
+    let b = rand_value();
+    let (dividend, divisor) = if a > b { (a, b) } else { (b, a) };
+    let (trace, _) = build_trace(&[dividend, divisor], &program);
+    let hasher_state = get_hasher_state(&trace, 1);
+
+    // Check the hasher state of the user operation which was executed.
+    // h2 to h5 are expected to hold the values for range checks.
+    let quot = dividend / divisor;
+    let rem = dividend - quot * divisor;
+    let check_1 = dividend - quot;
+    let check_2 = divisor - rem - 1;
+    let expected = build_expected_hasher_state(&[
+        ZERO,
+        ZERO,
+        Felt::new((check_1 as u16).into()),
+        Felt::new(((check_1 >> 16) as u16).into()),
+        Felt::new((check_2 as u16).into()),
+        Felt::new(((check_2 >> 16) as u16).into()),
+    ]);
+
+    assert_eq!(expected, hasher_state);
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -549,7 +598,7 @@ fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, usize) {
     process.execute_code_block(program).unwrap();
 
     let (trace, _) = ExecutionTrace::test_finalize_trace(process);
-    let trace_len = trace.len() - ExecutionTrace::NUM_RAND_ROWS;
+    let trace_len = trace[0].len() - ExecutionTrace::NUM_RAND_ROWS;
 
     (
         trace[DECODER_TRACE_RANGE]
@@ -620,8 +669,8 @@ fn check_hasher_state(trace: &DecoderTrace, expected: Vec<Vec<Felt>>) {
     }
 }
 
-fn get_hasher_state(trace: &DecoderTrace, row_idx: usize) -> [Felt; 8] {
-    let mut result = [ZERO; 8];
+fn get_hasher_state(trace: &DecoderTrace, row_idx: usize) -> [Felt; NUM_HASHER_COLUMNS] {
+    let mut result = [ZERO; NUM_HASHER_COLUMNS];
     for (result, column) in result.iter_mut().zip(trace[HASHER_STATE_RANGE].iter()) {
         *result = column[row_idx];
     }
@@ -647,8 +696,8 @@ fn get_hasher_state2(trace: &DecoderTrace, row_idx: usize) -> Word {
     result
 }
 
-fn build_expected_hasher_state(values: &[Felt]) -> [Felt; 8] {
-    let mut result = [ZERO; 8];
+fn build_expected_hasher_state(values: &[Felt]) -> [Felt; NUM_HASHER_COLUMNS] {
+    let mut result = [ZERO; NUM_HASHER_COLUMNS];
     for (i, value) in values.iter().enumerate() {
         result[i] = *value;
     }

@@ -3,7 +3,7 @@ use super::{
         get_periodic_values, EvaluationFrame, NUM_SELECTORS, OP_CYCLE_LEN, SELECTOR_COL_RANGE,
     },
     enforce_constraints, A_AGG_COL_IDX, A_POWERS_COL_RANGE, H_COL_IDX, NUM_CONSTRAINTS,
-    POW2_POWERS_PER_ROW, P_COL_IDX, Z_AGG_COL_IDX,
+    POW2_POWERS_PER_ROW, P_COL_IDX, Z_AGG_COL_IDX, Z_AGG_PREV_COL_IDX,
 };
 use vm_core::{bitwise::POWER_OF_TWO, Felt, FieldElement, TRACE_WIDTH};
 
@@ -122,6 +122,8 @@ fn set_output_agg_row(exponent: u32, row_num: usize, frame_row: &mut [Felt]) {
     // Set the power of 256 column value.
     frame_row[P_COL_IDX] = Felt::new(256_u64.pow((row_num % OP_CYCLE_LEN) as u32));
 
+    // The output at the previous row is zero before it is aggregated.
+
     // After aggregation, the output is the result.
     frame_row[Z_AGG_COL_IDX] = Felt::new(2_u64.pow(exponent));
 }
@@ -137,6 +139,9 @@ fn set_post_output_agg_row(exponent: u32, row_num: usize, frame_row: &mut [Felt]
 
     // Set the power of 256 column value.
     frame_row[P_COL_IDX] = Felt::new(256_u64.pow((row_num % OP_CYCLE_LEN) as u32));
+
+    // After aggregation, the output at previous row should be equal to output.
+    frame_row[Z_AGG_PREV_COL_IDX] = Felt::new(2_u64.pow(exponent));
 
     // After aggregation, the output is the result.
     frame_row[Z_AGG_COL_IDX] = Felt::new(2_u64.pow(exponent));

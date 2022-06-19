@@ -20,7 +20,7 @@ doctest = false
 [features]
 concurrent = ["prover/concurrent", "std"]
 default = ["std"]
-std = ["air/std", "assembly/std", "hex/std", "processor/std", "prover/std", "verifier/std"]
+std = ["air/std", "assembly/std", "processor/std", "prover/std", "hex/std", "log/std", "verifier/std", "vm-core/std"]
 
 [dependencies]
 air = { package = "miden-air", path = "../air", version = "0.2", default-features = false }

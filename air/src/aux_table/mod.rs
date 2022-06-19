@@ -1,4 +1,4 @@
-use super::{EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree};
+use super::{EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec};
 use crate::utils::{binary_not, is_binary};
 use vm_core::AUX_TRACE_OFFSET;
 

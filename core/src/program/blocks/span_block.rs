@@ -1,4 +1,4 @@
-use super::{fmt, hasher, Digest, Felt, FieldElement, Operation};
+use super::{fmt, hasher, Digest, Felt, FieldElement, Operation, Vec};
 use winter_utils::flatten_slice_elements;
 
 // CONSTANTS

@@ -1,7 +1,8 @@
 use super::{
-    parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, Token, TokenStream,
+    parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, String, Token,
+    TokenStream, Vec,
 };
-use vm_core::utils::{collections::Vec, group_vector_elements};
+use vm_core::utils::group_vector_elements;
 
 // BLOCK PARSER
 // ================================================================================================

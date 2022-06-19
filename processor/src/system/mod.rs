@@ -1,4 +1,4 @@
-use super::{Felt, FieldElement, SysTrace};
+use super::{Felt, FieldElement, SysTrace, Vec};
 
 // CONSTANTS
 // ================================================================================================

@@ -1,16 +1,12 @@
 # Miden Assembly
-###### tags: `specs` `assembly` `draft`
-
-Version: v0.2
-
 Miden assembly is a simple, low-level language for writing programs for Miden VM. It stands just above raw Miden VM instruction set, and in fact, many instructions of Miden assembly map directly to raw instructions of Miden VM.
 
-Before Miden assembly can be executed on Miden VM, it needs to be compiled into a [Program MAST](https://hackmd.io/yr-ieh7SSKOzWw7Kdo9gnA) (Merkelized Abstract Syntax Tree) which is a binary tree of code blocks each containing raw Miden VM instructions.
+Before Miden assembly can be executed on Miden VM, it needs to be compiled into a [Program MAST](../../design/programs.md) (Merkelized Abstract Syntax Tree) which is a binary tree of code blocks each containing raw Miden VM instructions.
 
 ![](https://i.imgur.com/NnV0bwN.png)
 
 As compared to raw Miden VM instructions, Miden assembly has several advantages:
-1. Miden assembly is intended to be a more stable external interface for the VM. That is, while we plan to make signficant changes to the underlying VM to optimize it for stability, performance etc., we intend to make very few breaking changes to Miden assembly.
+1. Miden assembly is intended to be a more stable external interface for the VM. That is, while we plan to make significant changes to the underlying VM to optimize it for stability, performance etc., we intend to make very few breaking changes to Miden assembly.
 2. Miden assembly natively supports control flow expressions which the assembler automatically transforms into a program MAST. This greatly simplifies writing programs with complex execution logic.
 3. Miden assembly supports *macro instructions*. These instructions expand into short sequences of raw Miden VM instructions making it easier to encode common operations.
 4. Miden assembly supports *procedures*. These are stand-alone blocks of code which the assembler inlines into program MAST at compile time. This improves program modularity and code organization.

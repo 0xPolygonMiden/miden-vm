@@ -1,3 +1,9 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(not(feature = "std"))]
+#[macro_use]
+extern crate alloc;
+
 use vm_core::{
     errors::AdviceSetError,
     hasher::Digest,
@@ -5,6 +11,7 @@ use vm_core::{
         blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE},
         Script,
     },
+    utils::collections::{BTreeMap, Vec},
     AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
     StarkField, Word, AUX_TRACE_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN,
     NUM_STACK_HELPER_COLS, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH,
@@ -98,11 +105,11 @@ pub struct Process {
 }
 
 impl Process {
-    fn initialize(inputs: ProgramInputs, keep_overflow_trace: bool) -> Self {
+    fn initialize(inputs: ProgramInputs, in_debug_mode: bool) -> Self {
         Self {
             system: System::new(MIN_TRACE_LEN),
-            decoder: Decoder::new(),
-            stack: Stack::new(&inputs, MIN_TRACE_LEN, keep_overflow_trace),
+            decoder: Decoder::new(in_debug_mode),
+            stack: Stack::new(&inputs, MIN_TRACE_LEN, in_debug_mode),
             range: RangeChecker::new(),
             hasher: Hasher::new(),
             bitwise: Bitwise::new(),
