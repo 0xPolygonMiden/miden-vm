@@ -44,7 +44,7 @@ type HasherState = [Felt; STATE_WIDTH];
 /// In the above, the meaning of the columns is as follows:
 /// * Selector columns s0, s1, and s2 used to help select transition function for a given row.
 /// * Row address column addr used to uniquely identify each row in the table. Values in this
-///   column start at 0 and are incremented by one with every subsequent row.
+///   column start at 1 and are incremented by one with every subsequent row.
 /// * Hasher state columns h0 through h11 used to hold the hasher state for each round of hash
 ///   computation. The state is laid out as follows:
 ///   - The first four columns are reserved for capacity elements of the state. When the state

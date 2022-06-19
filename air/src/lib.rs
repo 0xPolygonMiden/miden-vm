@@ -77,7 +77,8 @@ impl Air for ProcessorAir {
         let num_main_assertions = 2
             + pub_inputs.stack_inputs.len()
             + pub_inputs.stack_outputs.len()
-            + range::NUM_ASSERTIONS;
+            + range::NUM_ASSERTIONS
+            + aux_table::NUM_ASSERTIONS;
 
         // Define the number of boundary constraints for the auxiliary execution trace segment (used
         // for multiset checks).
@@ -132,6 +133,9 @@ impl Air for ProcessorAir {
 
         // Add initial assertions for the range checker.
         range::get_assertions_first_step(&mut result);
+
+        // Add initial assertions for the auxiliary table.
+        aux_table::get_assertions_first_step(&mut result);
 
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.last_step();
