@@ -1,4 +1,4 @@
-use super::{AuxTraceHints, BTreeMap, OpGroupTableRow, OpGroupTableUpdate};
+use super::{build_op_group, AuxTraceHints, BTreeMap, OpGroupTableRow, OpGroupTableUpdate};
 use crate::{ExecutionTrace, Felt, Operation, Process, ProgramInputs, Word};
 use rand_utils::rand_value;
 use vm_core::{
@@ -61,7 +61,6 @@ fn span_block_one_group() {
     }
 
     // --- check op_group table hints -------------------------------------------------------------
-
     // op_group table should not have been touched
     assert!(&aux_hints.op_group_table_hints().is_empty());
     assert!(aux_hints.op_group_table_rows().is_empty());
@@ -123,9 +122,9 @@ fn span_block_small() {
 
     // the groups are imm(1), imm(2), and op group with a single NOOP
     let expected_ogt_rows = vec![
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(3), iv[0]),
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(2), iv[1]),
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(1), ZERO),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(3), iv[0]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(2), iv[1]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(1), ZERO),
     ];
     assert_eq!(expected_ogt_rows, aux_hints.op_group_table_rows());
 }
@@ -224,13 +223,13 @@ fn span_block() {
 
     let batch0_groups = &span.op_batches()[0].groups();
     let expected_ogt_rows = vec![
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(7), batch0_groups[1]),
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(6), batch0_groups[2]),
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(5), batch0_groups[3]),
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(4), batch0_groups[4]),
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(3), batch0_groups[5]),
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(2), batch0_groups[6]),
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(1), batch0_groups[7]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(7), batch0_groups[1]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(6), batch0_groups[2]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(5), batch0_groups[3]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(4), batch0_groups[4]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(3), batch0_groups[5]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(2), batch0_groups[6]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(1), batch0_groups[7]),
     ];
     assert_eq!(expected_ogt_rows, aux_hints.op_group_table_rows());
 }
@@ -339,17 +338,17 @@ fn span_block_with_respan() {
     let batch0_groups = &span.op_batches()[0].groups();
     let batch1_groups = &span.op_batches()[1].groups();
     let expected_ogt_rows = vec![
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(11), batch0_groups[1]),
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(10), batch0_groups[2]),
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(9), batch0_groups[3]),
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(8), batch0_groups[4]),
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(7), batch0_groups[5]),
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(6), batch0_groups[6]),
-        OpGroupTableRow::new_test(INIT_ADDR, Felt::new(5), batch0_groups[7]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(11), batch0_groups[1]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(10), batch0_groups[2]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(9), batch0_groups[3]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(8), batch0_groups[4]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(7), batch0_groups[5]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(6), batch0_groups[6]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(5), batch0_groups[7]),
         // skipping the first group of batch 1
-        OpGroupTableRow::new_test(batch1_addr, Felt::new(3), batch1_groups[1]),
-        OpGroupTableRow::new_test(batch1_addr, Felt::new(2), batch1_groups[2]),
-        OpGroupTableRow::new_test(batch1_addr, Felt::new(1), batch1_groups[3]),
+        OpGroupTableRow::new(batch1_addr, Felt::new(3), batch1_groups[1]),
+        OpGroupTableRow::new(batch1_addr, Felt::new(2), batch1_groups[2]),
+        OpGroupTableRow::new(batch1_addr, Felt::new(1), batch1_groups[3]),
     ];
     assert_eq!(expected_ogt_rows, aux_hints.op_group_table_rows());
 }
@@ -363,7 +362,7 @@ fn join_block() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_join([span1.clone(), span2.clone()]);
 
-    let (trace, _, trace_len) = build_trace(&[], &program);
+    let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Join, 0, 0, 0);
@@ -406,6 +405,11 @@ fn join_block() {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+
+    // --- check op_group table hints -------------------------------------------------------------
+    // op_group table should not have been touched
+    assert!(&aux_hints.op_group_table_hints().is_empty());
+    assert!(aux_hints.op_group_table_rows().is_empty());
 }
 
 // SPLIT BLOCK TESTS
@@ -417,7 +421,7 @@ fn split_block_true() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1.clone(), span2.clone());
 
-    let (trace, _, trace_len) = build_trace(&[1], &program);
+    let (trace, aux_hints, trace_len) = build_trace(&[1], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let span_addr = INIT_ADDR + Felt::new(8);
@@ -450,6 +454,11 @@ fn split_block_true() {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+
+    // --- check op_group table hints -------------------------------------------------------------
+    // op_group table should not have been touched
+    assert!(&aux_hints.op_group_table_hints().is_empty());
+    assert!(aux_hints.op_group_table_rows().is_empty());
 }
 
 #[test]
@@ -458,7 +467,7 @@ fn split_block_false() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1.clone(), span2.clone());
 
-    let (trace, _, trace_len) = build_trace(&[0], &program);
+    let (trace, aux_hints, trace_len) = build_trace(&[0], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let span_addr = INIT_ADDR + Felt::new(8);
@@ -491,6 +500,11 @@ fn split_block_false() {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+
+    // --- check op_group table hints -------------------------------------------------------------
+    // op_group table should not have been touched
+    assert!(&aux_hints.op_group_table_hints().is_empty());
+    assert!(aux_hints.op_group_table_rows().is_empty());
 }
 
 // LOOP BLOCK TESTS
@@ -501,7 +515,7 @@ fn loop_block() {
     let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
     let program = CodeBlock::new_loop(loop_body.clone());
 
-    let (trace, _, trace_len) = build_trace(&[0, 1], &program);
+    let (trace, aux_hints, trace_len) = build_trace(&[0, 1], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let body_addr = INIT_ADDR + Felt::new(8);
@@ -536,6 +550,11 @@ fn loop_block() {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+
+    // --- check op_group table hints -------------------------------------------------------------
+    // op_group table should not have been touched
+    assert!(&aux_hints.op_group_table_hints().is_empty());
+    assert!(aux_hints.op_group_table_rows().is_empty());
 }
 
 #[test]
@@ -575,7 +594,7 @@ fn loop_block_repeat() {
     let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
     let program = CodeBlock::new_loop(loop_body.clone());
 
-    let (trace, _, trace_len) = build_trace(&[0, 1, 1], &program);
+    let (trace, aux_hints, trace_len) = build_trace(&[0, 1, 1], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let iter1_addr = INIT_ADDR + Felt::new(8);
@@ -627,6 +646,11 @@ fn loop_block_repeat() {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+
+    // --- check op_group table hints -------------------------------------------------------------
+    // op_group table should not have been touched
+    assert!(&aux_hints.op_group_table_hints().is_empty());
+    assert!(aux_hints.op_group_table_rows().is_empty());
 }
 
 // HELPER REGISTERS TESTS
@@ -745,18 +769,6 @@ fn read_opcode(trace: &DecoderTrace, row_idx: usize) -> u8 {
         result += op_bit << i;
     }
     result as u8
-}
-
-fn build_op_group(ops: &[Operation]) -> Felt {
-    let mut group = 0u64;
-    let mut i = 0;
-    for op in ops.iter() {
-        if !op.is_decorator() {
-            group |= (op.op_code().unwrap() as u64) << (Operation::OP_BITS * i);
-            i += 1;
-        }
-    }
-    Felt::new(group)
 }
 
 fn build_op_batch_flags(num_groups: usize) -> [Felt; NUM_OP_BATCH_FLAGS] {

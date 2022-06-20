@@ -619,3 +619,31 @@ fn remove_opcode_from_group(op_group: Felt, op: Operation) -> Felt {
     debug_assert!(op_group.as_int() >= result.as_int(), "op group underflow");
     result
 }
+
+/// Returns the number of op groups in the next batch based on how many total groups are left to
+/// process in a span.
+///
+/// This is computed as the min of number of groups left and max batch size. Thus, if the number
+/// of groups left is > 8, the number of groups will be 8; otherwise, it will be equal to the
+/// number of groups left to process.
+fn get_num_groups_in_next_batch(num_groups_left: Felt) -> usize {
+    core::cmp::min(num_groups_left.as_int() as usize, OP_BATCH_SIZE)
+}
+
+// TEST HELPERS
+// ================================================================================================
+
+/// Build an operation group from the specified list of operations.
+#[cfg(test)]
+pub fn build_op_group(ops: &[Operation]) -> Felt {
+    let mut group = 0u64;
+    let mut i = 0;
+    for op in ops.iter() {
+        if !op.is_decorator() {
+            group |= (op.op_code().unwrap() as u64) << (Operation::OP_BITS * i);
+            i += 1;
+        }
+    }
+    assert!(i <= super::OP_GROUP_SIZE, "too many ops");
+    Felt::new(group)
+}

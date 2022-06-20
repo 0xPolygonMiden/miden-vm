@@ -1,6 +1,6 @@
 use super::{EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec};
 use crate::utils::{binary_not, is_binary};
-use vm_core::AUX_TRACE_OFFSET;
+use vm_core::AUX_TABLE_OFFSET;
 
 mod bitwise_pow2;
 mod hasher;
@@ -19,13 +19,13 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
 ];
 
 /// The first selector column, used as a selector for the entire auxiliary table.
-pub const S0_COL_IDX: usize = AUX_TRACE_OFFSET;
+pub const S0_COL_IDX: usize = AUX_TABLE_OFFSET;
 /// The second selector column, used as a selector for the bitwise, memory, and padding segments
 /// after the hasher trace ends.
-pub const S1_COL_IDX: usize = AUX_TRACE_OFFSET + 1;
+pub const S1_COL_IDX: usize = AUX_TABLE_OFFSET + 1;
 /// The third selector column, used as a selector for the memory and padding segments after the
 /// bitwise trace ends.
-pub const S2_COL_IDX: usize = AUX_TRACE_OFFSET + 2;
+pub const S2_COL_IDX: usize = AUX_TABLE_OFFSET + 2;
 
 /// The first column of the bitwise co-processor.
 pub const BITWISE_TRACE_OFFSET: usize = S1_COL_IDX + 1;

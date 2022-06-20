@@ -1,4 +1,4 @@
-use super::{range, Felt, Operation, ONE, ZERO};
+use super::{range, Felt, Operation, DECODER_AUX_TRACE_OFFSET, ONE, ZERO};
 use core::ops::Range;
 
 // CONSTANTS
@@ -56,3 +56,14 @@ pub const OP_BATCH_2_GROUPS: [Felt; NUM_OP_BATCH_FLAGS] = [ZERO, ZERO, ONE];
 
 /// Operation batch consists of 1 operation group.
 pub const OP_BATCH_1_GROUPS: [Felt; NUM_OP_BATCH_FLAGS] = [ZERO, ONE, ONE];
+
+// --- Column accessors in the auxiliary columns --------------------------------------------------
+
+/// Running product column representing block stack table.
+pub const P1_COL_IDX: usize = DECODER_AUX_TRACE_OFFSET;
+
+/// Running product column representing block hash table
+pub const P2_COL_IDX: usize = DECODER_AUX_TRACE_OFFSET + 1;
+
+/// Running product column representing op group table.
+pub const P3_COL_IDX: usize = DECODER_AUX_TRACE_OFFSET + 2;

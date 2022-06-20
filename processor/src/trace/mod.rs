@@ -3,12 +3,17 @@ use super::{
     range::AuxTraceHints as RangeCheckerAuxTraceHints, Digest, Felt, FieldElement, Process,
     StackTopState, Vec,
 };
-use core::slice;
-use vm_core::{MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO};
+use vm_core::{
+    AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET,
+    TRACE_WIDTH, ZERO,
+};
 use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
 
 #[cfg(feature = "std")]
 use vm_core::StarkField;
+
+mod utils;
+pub use utils::TraceFragment;
 
 mod decoder;
 mod range;
@@ -68,7 +73,7 @@ impl ExecutionTrace {
 
         Self {
             meta: Vec::new(),
-            layout: TraceLayout::new(TRACE_WIDTH, [2], [1]),
+            layout: TraceLayout::new(TRACE_WIDTH, [AUX_TRACE_WIDTH], [AUX_TRACE_RAND_ELEMENTS]),
             main_trace: Matrix::new(main_trace),
             aux_trace_hints,
             program_hash,
@@ -163,6 +168,13 @@ impl Trace for ExecutionTrace {
 
         // TODO: build auxiliary columns in multiple threads
 
+        // Add decoder's running product columns
+        let decoder_aux_columns = decoder::build_aux_columns(
+            &self.main_trace,
+            &self.aux_trace_hints.decoder,
+            rand_elements,
+        );
+
         // add the range checker's running product columns
         let range_aux_columns = range::build_aux_columns(
             self.length(),
@@ -171,17 +183,10 @@ impl Trace for ExecutionTrace {
             self.main_trace.get_column(range::V_COL_IDX),
         );
 
-        // Add decoder's running product columns
-        let decoder_aux_columns = decoder::build_aux_columns(
-            &self.main_trace,
-            &self.aux_trace_hints.decoder,
-            rand_elements,
-        );
-
         // combine all auxiliary columns into a single vector
-        let mut aux_columns = range_aux_columns
+        let mut aux_columns = decoder_aux_columns
             .into_iter()
-            .chain(decoder_aux_columns)
+            .chain(range_aux_columns)
             .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
@@ -200,71 +205,6 @@ impl Trace for ExecutionTrace {
         self.main_trace.read_row_into(row_idx, frame.current_mut());
         self.main_trace
             .read_row_into(next_row_idx, frame.next_mut());
-    }
-}
-
-// TRACE FRAGMENT
-// ================================================================================================
-
-/// TODO: add docs
-pub struct TraceFragment<'a> {
-    data: Vec<&'a mut [Felt]>,
-}
-
-impl<'a> TraceFragment<'a> {
-    /// Creates a new TraceFragment with its data allocated to the specified capacity.
-    pub fn new(capacity: usize) -> Self {
-        TraceFragment {
-            data: Vec::with_capacity(capacity),
-        }
-    }
-
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns the number of columns in this execution trace fragment.
-    pub fn width(&self) -> usize {
-        self.data.len()
-    }
-
-    /// Returns the number of rows in this execution trace fragment.
-    pub fn len(&self) -> usize {
-        self.data[0].len()
-    }
-
-    // DATA MUTATORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Updates a single cell in this fragment with provided value.
-    #[inline(always)]
-    pub fn set(&mut self, row_idx: usize, col_idx: usize, value: Felt) {
-        self.data[col_idx][row_idx] = value;
-    }
-
-    /// Returns a mutable iterator the the columns of this fragment.
-    pub fn columns(&mut self) -> slice::IterMut<'_, &'a mut [Felt]> {
-        self.data.iter_mut()
-    }
-
-    /// Adds a new column to this fragment by pushing a mutable slice with the first `len`
-    /// elements of the provided column. Returns the rest of the provided column as a separate
-    /// mutable slice.
-    pub fn push_column_slice(&mut self, column: &'a mut [Felt], len: usize) -> &'a mut [Felt] {
-        let (column_fragment, rest) = column.split_at_mut(len);
-        self.data.push(column_fragment);
-        rest
-    }
-
-    // TEST METHODS
-    // --------------------------------------------------------------------------------------------
-
-    #[cfg(test)]
-    pub fn trace_to_fragment(trace: &'a mut [Vec<Felt>]) -> Self {
-        let mut data = Vec::new();
-        for column in trace.iter_mut() {
-            data.push(column.as_mut_slice());
-        }
-        Self { data }
     }
 }
 
