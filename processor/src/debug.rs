@@ -6,7 +6,7 @@ use vm_core::{Operation, Word};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VmState {
     pub clk: usize,
-    pub op: Operation,
+    pub op: Option<Operation>,
     pub fmp: Felt,
     pub stack: Vec<Felt>,
     pub memory: Vec<(u64, Word)>,
@@ -65,7 +65,11 @@ impl Iterator for VmStateIterator {
 
         let result = Some(Ok(VmState {
             clk: self.clk,
-            op: self.process.decoder.get_operation_at(self.clk),
+            op: if self.clk == 0 {
+                None
+            } else {
+                Some(self.process.decoder.get_operation_at(self.clk - 1))
+            },
             fmp: self.process.system.get_fmp_at(self.clk),
             stack: self.process.stack.get_state_at(self.clk),
             memory: self
