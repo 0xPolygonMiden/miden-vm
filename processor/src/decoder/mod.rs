@@ -1,6 +1,6 @@
 use super::{
-    ExecutionError, Felt, Join, Loop, OpBatch, Operation, Process, Span, Split, StarkField, Vec,
-    Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
+    BTreeMap, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation, Process, Span,
+    Split, StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
 use vm_core::{
     decoder::{
@@ -13,6 +13,9 @@ use vm_core::{
 
 mod trace;
 use trace::DecoderTrace;
+
+mod aux_hints;
+pub use aux_hints::{AuxTraceHints, OpGroupTableRow, OpGroupTableUpdate};
 
 #[cfg(test)]
 mod tests;
@@ -217,13 +220,17 @@ impl Process {
 ///   a given operation batch. These flags are set only for SPAN or RESPAN operations, and are
 ///   set to ZEROs otherwise.
 ///
-/// Also keeps track of operations executed when run in debug mode.
+/// In addition to the execution trace, the decoder also contains the following:
+/// - A list of operations executed on the VM. This list is populated only when `in_debug_mode`
+///   is set to true.
+/// - A set of hints used in construction of decoder-related columns in auxiliary trace segment.
 pub struct Decoder {
     block_stack: BlockStack,
     span_context: Option<SpanContext>,
     trace: DecoderTrace,
     operations: Vec<Operation>,
     in_debug_mode: bool,
+    aux_hints: AuxTraceHints,
 }
 
 impl Decoder {
@@ -237,6 +244,7 @@ impl Decoder {
             trace: DecoderTrace::new(),
             operations: Vec::<Operation>::new(),
             in_debug_mode,
+            aux_hints: AuxTraceHints::new(),
         }
     }
 
@@ -338,6 +346,9 @@ impl Decoder {
         debug_assert!(self.span_context.is_none(), "already in span");
         let parent_addr = self.block_stack.push(addr, ZERO);
 
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
+
         // add a SPAN row to the trace
         self.trace
             .append_span_start(parent_addr, first_op_batch.groups(), num_op_groups);
@@ -349,11 +360,18 @@ impl Decoder {
             group_ops_left: first_op_batch.groups()[0],
         });
 
+        // mark the current cycle as a cycle at which an operation batch may have been inserted
+        // into the op_group table
+        self.aux_hints.insert_op_batch(clk, num_op_groups);
+
         self.append_operation(Operation::Span);
     }
 
     /// Starts decoding of the next operation batch in the current SPAN.
     pub fn respan(&mut self, op_batch: &OpBatch) {
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
+
         // add RESPAN row to the trace
         self.trace.append_respan(op_batch.groups());
 
@@ -363,6 +381,10 @@ impl Decoder {
         block_info.addr += HASH_CYCLE_LEN;
 
         let ctx = self.span_context.as_mut().expect("not in span");
+
+        // mark the current cycle as a cycle at which an operation batch may have been inserted
+        // into the op_group table
+        self.aux_hints.insert_op_batch(clk, ctx.num_groups_left);
 
         // after RESPAN operation is executed, we decrement the number of remaining groups by ONE
         // because executing RESPAN consumes the first group of the batch
@@ -374,7 +396,22 @@ impl Decoder {
 
     /// Starts decoding a new operation group.
     pub fn start_op_group(&mut self, op_group: Felt) {
+        let clk = self.trace_len();
         let ctx = self.span_context.as_mut().expect("not in span");
+
+        // mark the cycle of the last operation as a cycle at which an operation group was
+        // removed from the op_group table. decoding of the removed operation will begin
+        // at the current cycle.
+        let group_pos = ctx.num_groups_left;
+        let batch_id = self.block_stack.peek().addr;
+        self.aux_hints
+            .remove_op_group(clk - 1, batch_id, group_pos, op_group);
+
+        // reset the current group value and decrement the number of left groups by ONE
+        debug_assert_eq!(
+            ZERO, ctx.group_ops_left,
+            "not all ops executed in current group"
+        );
         ctx.group_ops_left = op_group;
         ctx.num_groups_left -= ONE;
     }
@@ -382,6 +419,10 @@ impl Decoder {
     /// Decodes a user operation (i.e., not a control flow operation).
     pub fn execute_user_op(&mut self, op: Operation, op_idx: usize) {
         debug_assert!(!op.is_decorator(), "op is a decorator");
+
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
+
         let block = self.block_stack.peek();
         let ctx = self.span_context.as_mut().expect("not in span");
 
@@ -399,9 +440,15 @@ impl Decoder {
         );
 
         // if the operation carries an immediate value, decrement the number of  operation
-        // groups left to decode. this number will be inserted into the trace in the next row
-        if op.imm_value().is_some() {
-            ctx.num_groups_left -= ONE
+        // groups left to decode. this number will be inserted into the trace in the next row.
+        // we also mark the current clock cycle as a cycle at which the immediate value was
+        // removed from the op_group table.
+        if let Some(imm_value) = op.imm_value() {
+            let group_pos = ctx.num_groups_left;
+            self.aux_hints
+                .remove_op_group(clk, block.addr, group_pos, imm_value);
+
+            ctx.num_groups_left -= ONE;
         }
 
         self.append_operation(op);
@@ -434,14 +481,21 @@ impl Decoder {
     // TRACE GENERATIONS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns an array of columns containing an execution trace of this decoder.
+    /// Returns an array of columns containing an execution trace of this decoder together with
+    /// hints to be used in construction of decoder-related auxiliary trace segment columns.
     ///
-    /// The columns are extended to match the specified trace length.
+    /// Trace columns are extended to match the specified trace length.
     pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> super::DecoderTrace {
-        self.trace
+        let trace = self
+            .trace
             .into_vec(trace_len, num_rand_rows)
             .try_into()
-            .expect("failed to convert vector to array")
+            .expect("failed to convert vector to array");
+
+        super::DecoderTrace {
+            trace,
+            aux_trace_hints: self.aux_hints,
+        }
     }
 
     // HELPERS

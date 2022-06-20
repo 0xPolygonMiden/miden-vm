@@ -1,4 +1,5 @@
 use super::{
+    decoder::AuxTraceHints as DecoderAuxTraceHints,
     range::AuxTraceHints as RangeCheckerAuxTraceHints, Digest, Felt, FieldElement, Process,
     StackTopState, Vec,
 };
@@ -9,6 +10,7 @@ use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
 #[cfg(feature = "std")]
 use vm_core::StarkField;
 
+mod decoder;
 mod range;
 
 // CONSTANTS
@@ -26,7 +28,8 @@ type RandomCoin = vm_core::utils::RandomCoin<Felt, vm_core::hasher::Hasher>;
 // ================================================================================================
 
 pub struct AuxTraceHints {
-    range: RangeCheckerAuxTraceHints,
+    pub(crate) decoder: DecoderAuxTraceHints,
+    pub(crate) range: RangeCheckerAuxTraceHints,
 }
 
 /// Execution trace which is generated when a program is executed on the VM.
@@ -153,18 +156,33 @@ impl Trace for ExecutionTrace {
         aux_segments: &[Matrix<E>],
         rand_elements: &[E],
     ) -> Option<Matrix<E>> {
-        // We only have one auxiliary segment.
+        // we only have one auxiliary segment
         if !aux_segments.is_empty() {
             return None;
         }
 
-        // Add the range checker's running product columns.
-        let mut aux_columns = range::build_aux_columns(
+        // TODO: build auxiliary columns in multiple threads
+
+        // add the range checker's running product columns
+        let range_aux_columns = range::build_aux_columns(
             self.length(),
             &self.aux_trace_hints.range,
             rand_elements,
             self.main_trace.get_column(range::V_COL_IDX),
         );
+
+        // Add decoder's running product columns
+        let decoder_aux_columns = decoder::build_aux_columns(
+            &self.main_trace,
+            &self.aux_trace_hints.decoder,
+            rand_elements,
+        );
+
+        // combine all auxiliary columns into a single vector
+        let mut aux_columns = range_aux_columns
+            .into_iter()
+            .chain(decoder_aux_columns)
+            .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
         let mut rng = RandomCoin::new(&self.program_hash.to_bytes());
@@ -300,7 +318,7 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
 
     let mut trace = system_trace
         .into_iter()
-        .chain(decoder_trace)
+        .chain(decoder_trace.trace)
         .chain(stack_trace)
         .chain(range_check_trace.trace)
         .chain(aux_table_trace)
@@ -314,6 +332,7 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     }
 
     let aux_trace_hints = AuxTraceHints {
+        decoder: decoder_trace.aux_trace_hints,
         range: range_check_trace.aux_trace_hints,
     };
 
