@@ -1,8 +1,15 @@
 use super::{
-    ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation, Process, Span, Split,
-    StarkField, Vec, Word, MIN_TRACE_LEN, OP_BATCH_SIZE,
+    ExecutionError, Felt, Join, Loop, OpBatch, Operation, Process, Span, Split, StarkField, Vec,
+    Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
-use vm_core::decoder::NUM_HASHER_COLUMNS;
+use vm_core::{
+    decoder::{
+        NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS,
+        OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
+    },
+    hasher::DIGEST_LEN,
+    program::blocks::get_span_op_group_count,
+};
 
 mod trace;
 use trace::DecoderTrace;
@@ -13,7 +20,6 @@ mod tests;
 // CONSTANTS
 // ================================================================================================
 
-const NUM_OP_BITS: usize = Operation::OP_BITS;
 const HASH_CYCLE_LEN: Felt = Felt::new(vm_core::hasher::HASH_CYCLE_LEN as u64);
 
 // DECODER PROCESS EXTENSION
@@ -95,7 +101,7 @@ impl Process {
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
         let body_hash = block.body().hash().into();
-        let (addr, _result) = self.hasher.merge(body_hash, [Felt::ZERO; 4]);
+        let (addr, _result) = self.hasher.merge(body_hash, [ZERO; 4]);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(block.hash(), _result.into());
@@ -128,7 +134,7 @@ impl Process {
             #[cfg(debug_assertions)]
             {
                 let condition = self.stack.peek();
-                debug_assert_eq!(Felt::ZERO, condition);
+                debug_assert_eq!(ZERO, condition);
             }
 
             self.execute_op(Operation::Drop)
@@ -147,7 +153,8 @@ impl Process {
         // hashing operation batches. Thus, the result of the hash is expected to be in row
         // addr + (num_batches * 8) - 1.
         let op_batches = block.op_batches();
-        let (addr, _result) = self.hasher.hash_span_block(op_batches);
+        let num_op_groups = get_span_op_group_count(op_batches);
+        let (addr, _result) = self.hasher.hash_span_block(op_batches, num_op_groups);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(block.hash(), _result.into());
@@ -155,8 +162,8 @@ impl Process {
         // start decoding the first operation batch; this also appends a row with SPAN operation
         // to the decoder trace. we also need the total number of operation groups so that we can
         // set the value of the group_count register at the beginning of the SPAN.
-        let num_op_groups = Felt::new((op_batches.len() * OP_BATCH_SIZE) as u64);
-        self.decoder.start_span(&op_batches[0], num_op_groups, addr);
+        self.decoder
+            .start_span(&op_batches[0], Felt::new(num_op_groups as u64), addr);
         self.execute_op(Operation::Noop)
     }
 
@@ -181,8 +188,8 @@ impl Process {
 /// Decoder execution trace currently consists of 19 columns as illustrated below (this will
 /// be increased to 24 columns in the future):
 ///
-///  addr  b0  b1  b2  b3  b4  b5  b6 in_span  h0  h1  h2  h3  h4  h5  h6  h7 g_count op_idx
-/// ├────┴───┴───┴───┴───┴───┴───┴───┴───────┴───┴───┴───┴───┴───┴───┴───┴───┴───────┴───────┤
+///  addr b0 b1 b2 b3 b4 b5 b6 h0 h1 h2 h3 h4 h5 h6 h7 in_span g_count op_idx c0 c1 c2
+/// ├────┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴───────┴───────┴──────┴──┴──┴──┤
 ///
 /// In the above, the meaning of the columns is as follows:
 /// * addr column contains address of the hasher for the current block (row index from the
@@ -190,8 +197,6 @@ impl Process {
 ///   convenient, because hasher addresses are guaranteed to be unique.
 /// * op_bits columns b0 through b6 are used to encode an operation to be executed by the VM.
 ///   Each of these columns contains a single binary value, which together form a single opcode.
-/// * in_span column is a binary flag set to ONE when we are inside a SPAN block, and to ZERO
-///   otherwise.
 /// * Hasher state columns h0 through h7. These are multi purpose columns used as follows:
 ///   - When starting decoding of a new code block (e.g., via JOIN, SPLIT, LOOP, SPAN operations)
 ///    these columns are used for providing inputs for the current block's hash computations.
@@ -201,11 +206,16 @@ impl Process {
 ///     operations in the current operation group, as well as the address of the parent code
 ///     block. The remaining 6 columns are unused by the decoder and, thus, can be used by the
 ///     VM as helper columns.
-/// * operation group count column is used to keep track of the number of un-executed operation
+/// * in_span column is a binary flag set to ONE when we are inside a SPAN block, and to ZERO
+///   otherwise.
+/// * Operation group count column is used to keep track of the number of un-executed operation
 ///   groups in the current SPAN block.
-/// * operation index column is used to keep track of the indexes of the currently executing
+/// * Operation index column is used to keep track of the indexes of the currently executing
 ///   operations within an operation group. Values in this column could be between 0 and 8
 ///   (both inclusive) as there could be at most 9 operations in an operation group.
+/// * Operation batch flag columns c0, c1, c2 which indicate how many operation groups are in
+///   a given operation batch. These flags are set only for SPAN or RESPAN operations, and are
+///   set to ZEROs otherwise.
 ///
 /// Also keeps track of operations executed when run in debug mode.
 pub struct Decoder {
@@ -230,6 +240,22 @@ impl Decoder {
         }
     }
 
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns execution trace length for this decoder.
+    pub fn trace_len(&self) -> usize {
+        self.trace.trace_len()
+    }
+
+    /// Hash of the program decoded by this decoder.
+    ///
+    /// Hash of the program is taken from the last row of first 4 registers of the hasher section
+    /// of the decoder trace (i.e., columns 8 - 12).
+    pub fn program_hash(&self) -> [Felt; DIGEST_LEN] {
+        self.trace.program_hash()
+    }
+
     // CONTROL BLOCKS
     // --------------------------------------------------------------------------------------------
 
@@ -238,7 +264,7 @@ impl Decoder {
     /// This pushes a block with ID=addr onto the block stack and appending execution of a JOIN
     /// operation to the trace.
     pub fn start_join(&mut self, left_child_hash: Word, right_child_hash: Word, addr: Felt) {
-        let parent_addr = self.block_stack.push(addr, Felt::ZERO);
+        let parent_addr = self.block_stack.push(addr, ZERO);
         self.trace.append_block_start(
             parent_addr,
             Operation::Join,
@@ -254,7 +280,7 @@ impl Decoder {
     /// This pushes a block with ID=addr onto the block stack and appending execution of a SPLIT
     /// operation to the trace.
     pub fn start_split(&mut self, left_child_hash: Word, right_child_hash: Word, addr: Felt) {
-        let parent_addr = self.block_stack.push(addr, Felt::ZERO);
+        let parent_addr = self.block_stack.push(addr, ZERO);
         self.trace.append_block_start(
             parent_addr,
             Operation::Split,
@@ -271,12 +297,8 @@ impl Decoder {
     /// operation to the trace. A block is marked as a loop block only if is_loop = ONE.
     pub fn start_loop(&mut self, loop_body_hash: Word, addr: Felt, is_loop: Felt) {
         let parent_addr = self.block_stack.push(addr, is_loop);
-        self.trace.append_block_start(
-            parent_addr,
-            Operation::Loop,
-            loop_body_hash,
-            [Felt::ZERO; 4],
-        );
+        self.trace
+            .append_block_start(parent_addr, Operation::Loop, loop_body_hash, [ZERO; 4]);
 
         self.append_operation(Operation::Loop);
     }
@@ -286,7 +308,7 @@ impl Decoder {
     /// This appends an execution of a REPEAT operation to the trace.
     pub fn repeat(&mut self) {
         let block_info = self.block_stack.peek();
-        debug_assert_eq!(Felt::ONE, block_info.is_loop);
+        debug_assert_eq!(ONE, block_info.is_loop);
         self.trace.append_loop_repeat(block_info.addr);
 
         self.append_operation(Operation::Repeat);
@@ -314,20 +336,16 @@ impl Decoder {
     /// Starts decoding of a SPAN block defined by the specified operation batches.
     pub fn start_span(&mut self, first_op_batch: &OpBatch, num_op_groups: Felt, addr: Felt) {
         debug_assert!(self.span_context.is_none(), "already in span");
-        let parent_addr = self.block_stack.push(addr, Felt::ZERO);
+        let parent_addr = self.block_stack.push(addr, ZERO);
 
         // add a SPAN row to the trace
         self.trace
             .append_span_start(parent_addr, first_op_batch.groups(), num_op_groups);
 
-        // after SPAN operation is executed, we decrement the number of remaining groups by the
-        // number of unused groups in the batch + 1. We add one because executing SPAN consumes
-        // the first group of the batch.
-        let num_unused_groups = get_num_unused_groups(first_op_batch);
-        let consumed_op_groups = Felt::from(num_unused_groups + 1);
-
+        // after SPAN operation is executed, we decrement the number of remaining groups by ONE
+        // because executing SPAN consumes the first group of the batch.
         self.span_context = Some(SpanContext {
-            num_groups_left: num_op_groups - consumed_op_groups,
+            num_groups_left: num_op_groups - ONE,
             group_ops_left: first_op_batch.groups()[0],
         });
 
@@ -344,14 +362,11 @@ impl Decoder {
         let block_info = self.block_stack.peek_mut();
         block_info.addr += HASH_CYCLE_LEN;
 
-        // after RESPAN operation is executed, we decrement the number of remaining groups by the
-        // number of unused groups in the batch + 1. We add one because executing RESPAN consumes
-        // the first group of the batch.
-        let num_unused_groups = get_num_unused_groups(op_batch);
-        let consumed_op_groups = Felt::from(num_unused_groups + 1);
-
         let ctx = self.span_context.as_mut().expect("not in span");
-        ctx.num_groups_left -= consumed_op_groups;
+
+        // after RESPAN operation is executed, we decrement the number of remaining groups by ONE
+        // because executing RESPAN consumes the first group of the batch
+        ctx.num_groups_left -= ONE;
         ctx.group_ops_left = op_batch.groups()[0];
 
         self.append_operation(Operation::Respan);
@@ -361,7 +376,7 @@ impl Decoder {
     pub fn start_op_group(&mut self, op_group: Felt) {
         let ctx = self.span_context.as_mut().expect("not in span");
         ctx.group_ops_left = op_group;
-        ctx.num_groups_left -= Felt::ONE;
+        ctx.num_groups_left -= ONE;
     }
 
     /// Decodes a user operation (i.e., not a control flow operation).
@@ -386,7 +401,7 @@ impl Decoder {
         // if the operation carries an immediate value, decrement the number of  operation
         // groups left to decode. this number will be inserted into the trace in the next row
         if op.imm_value().is_some() {
-            ctx.num_groups_left -= Felt::ONE
+            ctx.num_groups_left -= ONE
         }
 
         self.append_operation(op);
@@ -478,7 +493,7 @@ impl BlockStack {
     pub fn push(&mut self, addr: Felt, is_loop: Felt) -> Felt {
         let (parent_addr, is_loop_body) = if self.blocks.is_empty() {
             // if the stack is empty, the new block has no parent and cannot be a body of a LOOP
-            (Felt::ZERO, Felt::ZERO)
+            (ZERO, ZERO)
         } else {
             let parent = &self.blocks[self.blocks.len() - 1];
             (parent.addr, parent.is_loop)
@@ -534,26 +549,14 @@ struct SpanContext {
 impl Default for SpanContext {
     fn default() -> Self {
         Self {
-            group_ops_left: Felt::ZERO,
-            num_groups_left: Felt::ZERO,
+            group_ops_left: ZERO,
+            num_groups_left: ZERO,
         }
     }
 }
 
 // HELPER FUNCTIONS
 // ================================================================================================
-
-/// Returns the number of unused operation groups in the specified batch.
-///
-/// The number of unused groups is computed as follows:
-/// - Number of op groups in the batch is rounded to the next power of two. This is done because
-///   the processor pads these op groups with NOOPs.
-/// - Next, the number of op groups is subtracted from max batch size.
-///
-/// Thus, for example, if a batch contains 3 op groups, the number of unused op groups will be 4.
-fn get_num_unused_groups(op_batch: &OpBatch) -> u8 {
-    (OP_BATCH_SIZE - op_batch.num_groups().next_power_of_two()) as u8
-}
 
 /// Removes the specified operation from the op group and returns the resulting op group.
 fn remove_opcode_from_group(op_group: Felt, op: Operation) -> Felt {

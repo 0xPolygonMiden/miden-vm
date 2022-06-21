@@ -1,12 +1,13 @@
-use super::{Felt, Operation, Vec, Word, MIN_TRACE_LEN, NUM_HASHER_COLUMNS, NUM_OP_BITS};
+use super::{
+    Felt, Operation, StarkField, Vec, Word, DIGEST_LEN, MIN_TRACE_LEN, NUM_HASHER_COLUMNS,
+    NUM_OP_BATCH_FLAGS, NUM_OP_BITS, ONE, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS,
+    OP_BATCH_8_GROUPS, OP_BATCH_SIZE, ZERO,
+};
 use core::ops::Range;
-use vm_core::{program::blocks::OP_BATCH_SIZE, utils::new_array_vec, FieldElement, StarkField};
+use vm_core::utils::new_array_vec;
 
 // CONSTANTS
 // ================================================================================================
-
-const ZERO: Felt = Felt::ZERO;
-const ONE: Felt = Felt::ONE;
 
 /// The range of columns in the decoder's `hasher_trace` which is available for use as helper
 /// registers during user operations.
@@ -20,23 +21,25 @@ pub const USER_OP_HELPERS: Range<usize> = Range {
 
 /// Execution trace of the decoder.
 ///
-/// The trace currently consists of 19 columns grouped logically as follows:
+/// The trace currently consists of 22 columns grouped logically as follows:
 /// - 1 column for code block ID / related hasher table row address.
 /// - 7 columns for the binary representation of an opcode.
-/// - 1 column for the flag indicating whether we are in a SPAN block or not.
 /// - 8 columns used for providing inputs to, and reading results from the hasher, but also used
 ///   for other purposes when inside a SPAN block.
+/// - 1 column for the flag indicating whether we are in a SPAN block or not.
 /// - 1 column to keep track of the number of operation groups left to decode in the current
 ///   SPAN block.
 /// - 1 column to keep track of the index of a currently executing operation within an operation
 ///   group.
+/// - 3 columns for keeping track of operation batch flags.
 pub struct DecoderTrace {
     addr_trace: Vec<Felt>,
     op_bits_trace: [Vec<Felt>; NUM_OP_BITS],
-    in_span_trace: Vec<Felt>,
     hasher_trace: [Vec<Felt>; NUM_HASHER_COLUMNS],
+    in_span_trace: Vec<Felt>,
     group_count_trace: Vec<Felt>,
     op_idx_trace: Vec<Felt>,
+    op_batch_flag_trace: [Vec<Felt>; NUM_OP_BATCH_FLAGS],
 }
 
 impl DecoderTrace {
@@ -47,10 +50,11 @@ impl DecoderTrace {
         Self {
             addr_trace: Vec::with_capacity(MIN_TRACE_LEN),
             op_bits_trace: new_array_vec(MIN_TRACE_LEN),
-            in_span_trace: Vec::with_capacity(MIN_TRACE_LEN),
             hasher_trace: new_array_vec(MIN_TRACE_LEN),
             group_count_trace: Vec::with_capacity(MIN_TRACE_LEN),
+            in_span_trace: Vec::with_capacity(MIN_TRACE_LEN),
             op_idx_trace: Vec::with_capacity(MIN_TRACE_LEN),
+            op_batch_flag_trace: new_array_vec(MIN_TRACE_LEN),
         }
     }
 
@@ -60,6 +64,15 @@ impl DecoderTrace {
     /// Returns the current length of columns in this trace.
     pub fn trace_len(&self) -> usize {
         self.addr_trace.len()
+    }
+
+    /// Returns the contents of the first 4 registers of the hasher state at the last row.
+    pub fn program_hash(&self) -> [Felt; DIGEST_LEN] {
+        let mut result = [ZERO; DIGEST_LEN];
+        for (i, element) in result.iter_mut().enumerate() {
+            *element = self.last_hasher_value(i);
+        }
+        result
     }
 
     // TRACE MUTATORS
@@ -72,18 +85,18 @@ impl DecoderTrace {
     ///   address from the previous row because in a SPLIT block, the second child follows the
     ///   first child, rather than the parent.
     /// - Set op_bits to opcode of the specified block (e.g., JOIN, SPLIT, LOOP).
-    /// - Set is_span to ZERO.
     /// - Set the first half of the hasher state to the h1 parameter. For JOIN and SPLIT blocks
     ///   this will contain the hash of the left child; for LOOP block this will contain hash of
     ///   the loop's body.
     /// - Set the second half of the hasher state to the h2 parameter. For JOIN and SPLIT blocks
     ///   this will contain hash of the right child.
+    /// - Set is_span to ZERO.
     /// - Set op group count register to the ZERO.
     /// - Set operation index register to ZERO.
+    /// - Set op_batch_flags to ZEROs.
     pub fn append_block_start(&mut self, parent_addr: Felt, op: Operation, h1: Word, h2: Word) {
         self.addr_trace.push(parent_addr);
         self.append_opcode(op);
-        self.in_span_trace.push(ZERO);
 
         self.hasher_trace[0].push(h1[0]);
         self.hasher_trace[1].push(h1[1]);
@@ -95,8 +108,13 @@ impl DecoderTrace {
         self.hasher_trace[6].push(h2[2]);
         self.hasher_trace[7].push(h2[3]);
 
+        self.in_span_trace.push(ZERO);
         self.group_count_trace.push(ZERO);
         self.op_idx_trace.push(ZERO);
+
+        self.op_batch_flag_trace[0].push(ZERO);
+        self.op_batch_flag_trace[1].push(ZERO);
+        self.op_batch_flag_trace[2].push(ZERO);
     }
 
     /// Appends a trace row marking the end of a flow control block (JOIN, SPLIT, LOOP).
@@ -104,11 +122,12 @@ impl DecoderTrace {
     /// When a control block is ending, we do the following:
     /// - Set the block address to the specified address.
     /// - Set op_bits to END opcode.
-    /// - Set in_span to ZERO.
     /// - Put the provided block hash into the first 4 elements of the hasher state.
     /// - Set the remaining 4 elements of the hasher state to [is_loop_body, is_loop, 0, 0].
+    /// - Set in_span to ZERO.
     /// - Copy over op group count from the previous row. This group count must be ZERO.
     /// - Set operation index register to ZERO.
+    /// - Set op_batch_flags to ZEROs.
     pub fn append_block_end(
         &mut self,
         block_addr: Felt,
@@ -121,7 +140,6 @@ impl DecoderTrace {
 
         self.addr_trace.push(block_addr);
         self.append_opcode(Operation::End);
-        self.in_span_trace.push(ZERO);
 
         self.hasher_trace[0].push(block_hash[0]);
         self.hasher_trace[1].push(block_hash[1]);
@@ -133,11 +151,17 @@ impl DecoderTrace {
         self.hasher_trace[6].push(ZERO);
         self.hasher_trace[7].push(ZERO);
 
+        self.in_span_trace.push(ZERO);
+
         let last_group_count = self.last_group_count();
         debug_assert!(last_group_count == ZERO, "group count not zero");
         self.group_count_trace.push(last_group_count);
 
         self.op_idx_trace.push(ZERO);
+
+        self.op_batch_flag_trace[0].push(ZERO);
+        self.op_batch_flag_trace[1].push(ZERO);
+        self.op_batch_flag_trace[2].push(ZERO);
     }
 
     /// Appends a trace row marking the beginning of a new loop iteration.
@@ -145,24 +169,29 @@ impl DecoderTrace {
     /// When we start a new loop iteration, we do the following:
     /// - Set the block address to the address of the loop block.
     /// - Set op_bits to REPEAT opcode.
-    /// - Set in_span to ZERO.
     /// - Copy over the hasher state from the previous row. Technically, we need to copy over
     ///   only the first 5 elements of the hasher state, but it is easier to copy over the whole
     ///   row.
+    /// - Set in_span to ZERO.
     /// - Set op group count register to the ZERO.
     /// - Set operation index register to ZERO.
+    /// - Set op_batch_flags to ZEROs.
     pub fn append_loop_repeat(&mut self, loop_addr: Felt) {
         self.addr_trace.push(loop_addr);
         self.append_opcode(Operation::Repeat);
-        self.in_span_trace.push(ZERO);
 
         let last_row = self.hasher_trace[0].len() - 1;
         for column in self.hasher_trace.iter_mut() {
             column.push(column[last_row]);
         }
 
+        self.in_span_trace.push(ZERO);
         self.group_count_trace.push(ZERO);
         self.op_idx_trace.push(ZERO);
+
+        self.op_batch_flag_trace[0].push(ZERO);
+        self.op_batch_flag_trace[1].push(ZERO);
+        self.op_batch_flag_trace[2].push(ZERO);
     }
 
     /// Appends a trace row marking the start of a SPAN block.
@@ -172,10 +201,11 @@ impl DecoderTrace {
     ///   address from the previous row because in a SPLIT block, the second child follows the
     ///   first child, rather than the parent.
     /// - Set op_bits to SPAN opcode.
-    /// - Set is_span to ZERO. is_span will be set to one in the following row.
     /// - Set hasher state to op groups of the first op batch of the SPAN.
+    /// - Set is_span to ZERO. is_span will be set to one in the following row.
     /// - Set op group count to the total number of op groups in the SPAN.
     /// - Set operation index register to ZERO.
+    /// - Set the op_batch_flags based on the specified number of operation groups.
     pub fn append_span_start(
         &mut self,
         parent_addr: Felt,
@@ -184,12 +214,18 @@ impl DecoderTrace {
     ) {
         self.addr_trace.push(parent_addr);
         self.append_opcode(Operation::Span);
-        self.in_span_trace.push(ZERO);
         for (i, &op_group) in first_op_batch.iter().enumerate() {
             self.hasher_trace[i].push(op_group);
         }
+
+        self.in_span_trace.push(ZERO);
         self.group_count_trace.push(num_op_groups);
         self.op_idx_trace.push(ZERO);
+
+        let op_batch_flags = get_op_batch_flags(num_op_groups);
+        self.op_batch_flag_trace[0].push(op_batch_flags[0]);
+        self.op_batch_flag_trace[1].push(op_batch_flags[1]);
+        self.op_batch_flag_trace[2].push(op_batch_flags[2]);
     }
 
     /// Appends a trace row marking a RESPAN operation.
@@ -198,19 +234,27 @@ impl DecoderTrace {
     /// - Copy over the block address from the previous row. The SPAN address will be updated in
     ///   the following row.
     /// - Set op_bits to RESPAN opcode.
-    /// - Set in_span to ONE.
     /// - Set hasher state to op groups of the next op batch of the SPAN.
+    /// - Set in_span to ZERO.
     /// - Copy over op group count from the previous row.
     /// - Set operation index register to ZERO.
+    /// - Set the op_batch_flags based on the current operation group count.
     pub fn append_respan(&mut self, op_batch: &[Felt; OP_BATCH_SIZE]) {
         self.addr_trace.push(self.last_addr());
         self.append_opcode(Operation::Respan);
-        self.in_span_trace.push(ONE);
         for (i, &op_group) in op_batch.iter().enumerate() {
             self.hasher_trace[i].push(op_group);
         }
-        self.group_count_trace.push(self.last_group_count());
+
+        let group_count = self.last_group_count();
+        self.in_span_trace.push(ZERO);
+        self.group_count_trace.push(group_count);
         self.op_idx_trace.push(ZERO);
+
+        let op_batch_flags = get_op_batch_flags(group_count);
+        self.op_batch_flag_trace[0].push(op_batch_flags[0]);
+        self.op_batch_flag_trace[1].push(op_batch_flags[1]);
+        self.op_batch_flag_trace[2].push(op_batch_flags[2]);
     }
 
     /// Appends a trace row for a user operation.
@@ -218,15 +262,16 @@ impl DecoderTrace {
     /// When we execute a user operation in a SPAN block, we do the following:
     /// - Set the address of the row to the address of the span block.
     /// - Set op_bits to the opcode of the executed operation.
-    /// - Set is_span to ONE.
     /// - Set the first hasher state register to the aggregation of remaining operations to be
     ///   executed in the current operation group.
     /// - Set the second hasher state register to the address of the SPAN's parent block.
     /// - Set the remaining hasher state registers to ZEROs.
+    /// - Set is_span to ONE.
     /// - Set the number of groups remaining to be processed. This number of groups changes if
     ///   in the previous row an operation with an immediate value was executed or if this
     ///   operation is a start of a new operation group.
     /// - Set the operation's index within the current operation group.
+    /// - Set op_batch_flags to ZEROs.
     pub fn append_user_op(
         &mut self,
         op: Operation,
@@ -238,7 +283,6 @@ impl DecoderTrace {
     ) {
         self.addr_trace.push(span_addr);
         self.append_opcode(op);
-        self.in_span_trace.push(ONE);
 
         self.hasher_trace[0].push(group_ops_left);
         self.hasher_trace[1].push(parent_addr);
@@ -247,8 +291,13 @@ impl DecoderTrace {
             self.hasher_trace[idx].push(ZERO);
         }
 
+        self.in_span_trace.push(ONE);
         self.group_count_trace.push(num_groups_left);
         self.op_idx_trace.push(op_idx);
+
+        self.op_batch_flag_trace[0].push(ZERO);
+        self.op_batch_flag_trace[1].push(ZERO);
+        self.op_batch_flag_trace[2].push(ZERO);
     }
 
     /// Appends a trace row marking the end of a SPAN block.
@@ -256,18 +305,18 @@ impl DecoderTrace {
     /// When the SPAN block is ending, we do the following:
     /// - Copy over the block address from the previous row.
     /// - Set op_bits to END opcode.
-    /// - Set in_span to ZERO to indicate that the span block is completed.
     /// - Put the hash of the span block into the first 4 registers of the hasher state.
     /// - Put a flag indicating whether the SPAN block was a body of a loop into the 5th
     ///   register of the hasher state.
+    /// - Set in_span to ZERO to indicate that the span block is completed.
     /// - Copy over op group count from the previous row. This group count must be ZERO.
     /// - Set operation index register to ZERO.
+    /// - Set op_batch_flags to ZEROs.
     pub fn append_span_end(&mut self, span_hash: Word, is_loop_body: Felt) {
         debug_assert!(is_loop_body.as_int() <= 1, "invalid loop body");
 
         self.addr_trace.push(self.last_addr());
         self.append_opcode(Operation::End);
-        self.in_span_trace.push(ZERO);
 
         self.hasher_trace[0].push(span_hash[0]);
         self.hasher_trace[1].push(span_hash[1]);
@@ -280,11 +329,17 @@ impl DecoderTrace {
         self.hasher_trace[6].push(ZERO);
         self.hasher_trace[7].push(ZERO);
 
+        self.in_span_trace.push(ZERO);
+
         let last_group_count = self.last_group_count();
         debug_assert!(last_group_count == ZERO, "group count not zero");
         self.group_count_trace.push(last_group_count);
 
         self.op_idx_trace.push(ZERO);
+
+        self.op_batch_flag_trace[0].push(ZERO);
+        self.op_batch_flag_trace[1].push(ZERO);
+        self.op_batch_flag_trace[2].push(ZERO);
     }
 
     // TRACE GENERATION
@@ -322,11 +377,6 @@ impl DecoderTrace {
             trace.push(column);
         }
 
-        // put ZEROs into the unfilled rows of in_span column
-        debug_assert_eq!(own_len, self.in_span_trace.len());
-        self.in_span_trace.resize(trace_len, ZERO);
-        trace.push(self.in_span_trace);
-
         // for unfilled rows of hasher state columns, copy over values from the last row for the
         // first 4 columns, and pad the other 4 columns with ZEROs
         for (i, mut column) in self.hasher_trace.into_iter().enumerate() {
@@ -340,6 +390,11 @@ impl DecoderTrace {
             trace.push(column);
         }
 
+        // put ZEROs into the unfilled rows of in_span column
+        debug_assert_eq!(own_len, self.in_span_trace.len());
+        self.in_span_trace.resize(trace_len, ZERO);
+        trace.push(self.in_span_trace);
+
         // put ZEROs into the unfilled rows of operation group count column
         debug_assert_eq!(own_len, self.group_count_trace.len());
         self.group_count_trace.resize(trace_len, ZERO);
@@ -349,6 +404,13 @@ impl DecoderTrace {
         debug_assert_eq!(own_len, self.op_idx_trace.len());
         self.op_idx_trace.resize(trace_len, ZERO);
         trace.push(self.op_idx_trace);
+
+        // put ZEROs into the unfilled rows of op_batch_flags columns
+        for mut column in self.op_batch_flag_trace.into_iter() {
+            debug_assert_eq!(own_len, column.len());
+            column.resize(trace_len, ZERO);
+            trace.push(column);
+        }
 
         trace
     }
@@ -364,6 +426,12 @@ impl DecoderTrace {
     /// Returns the last value of the operation group count.
     fn last_group_count(&self) -> Felt {
         *self.group_count_trace.last().expect("no group count")
+    }
+
+    /// Returns the last value in the specified hasher column.
+    fn last_hasher_value(&self, idx: usize) -> Felt {
+        debug_assert!(idx < NUM_HASHER_COLUMNS, "invalid hasher register index");
+        *self.hasher_trace[idx].last().expect("no last hasher value")
     }
 
     /// Returns a reference to the last value in the helper register at the specified index.
@@ -416,5 +484,24 @@ impl DecoderTrace {
         }
         self.group_count_trace.push(ZERO);
         self.op_idx_trace.push(ZERO);
+    }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Returns op batch flags for the specified group count. If the group count is greater than 8,
+/// we assume that the operation batch is full - i.e., has 8 operation groups.
+fn get_op_batch_flags(group_count: Felt) -> [Felt; NUM_OP_BATCH_FLAGS] {
+    let num_groups = core::cmp::min(group_count.as_int() as usize, OP_BATCH_SIZE);
+    match num_groups {
+        8 => OP_BATCH_8_GROUPS,
+        4 => OP_BATCH_4_GROUPS,
+        2 => OP_BATCH_2_GROUPS,
+        1 => OP_BATCH_1_GROUPS,
+        _ => panic!(
+            "invalid number of groups in a batch: {}, group count: {}",
+            num_groups, group_count
+        ),
     }
 }

@@ -64,7 +64,7 @@ fn main() {
     // results in the expected output
     let proof = StarkProof::from_bytes(&proof_bytes).unwrap();
     let now = Instant::now();
-    match miden::verify(*program.hash(), &pub_inputs, &outputs, proof) {
+    match miden::verify(program.hash(), &pub_inputs, &outputs, proof) {
         Ok(_) => debug!("Execution verified in {} ms", now.elapsed().as_millis()),
         Err(err) => debug!("Failed to verify execution: {}", err),
     }

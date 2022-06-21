@@ -163,9 +163,9 @@ impl Test {
 
         if test_fail {
             outputs[0] += 1;
-            assert!(miden::verify(*script.hash(), &pub_inputs, &outputs, proof).is_err());
+            assert!(miden::verify(script.hash(), &pub_inputs, &outputs, proof).is_err());
         } else {
-            assert!(miden::verify(*script.hash(), &pub_inputs, &outputs, proof).is_ok());
+            assert!(miden::verify(script.hash(), &pub_inputs, &outputs, proof).is_ok());
         }
     }
 
