@@ -356,7 +356,6 @@ pub fn get_span_op_group_count(op_batches: &[OpBatch]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::{hasher, Felt, FieldElement, Operation, BATCH_SIZE};
-    use crate::DebugOptions;
 
     #[test]
     fn batch_ops() {
@@ -657,25 +656,6 @@ mod tests {
 
         let all_groups = [batch0_groups, batch1_groups].concat();
         assert_eq!(hasher::hash_elements(&all_groups[..10]), hash);
-    }
-
-    #[test]
-    fn batch_ops_with_decorator() {
-        let ops = vec![
-            Operation::Push(Felt::ONE),
-            Operation::Add,
-            Operation::Debug(DebugOptions::All),
-            Operation::Mul,
-        ];
-        let (batches, hash) = super::batch_ops(ops.clone());
-        assert_eq!(1, batches.len());
-        let batch = &batches[0];
-        assert_eq!(ops, batch.ops);
-        let mut batch_groups = [Felt::ZERO; BATCH_SIZE];
-        batch_groups[0] = build_group(&ops);
-        batch_groups[1] = Felt::ONE;
-        assert_eq!(batch_groups, batch.groups);
-        assert_eq!(hasher::hash_elements(&batch_groups[..2]), hash);
     }
 
     // TEST HELPERS

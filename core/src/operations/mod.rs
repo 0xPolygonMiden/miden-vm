@@ -3,10 +3,8 @@ use core::fmt;
 
 mod advice;
 pub use advice::AdviceInjector;
-mod debug;
-pub use debug::DebugOptions;
-#[cfg(test)]
-mod tests;
+mod decorator;
+pub use decorator::Decorator;
 
 // OPERATIONS
 // ================================================================================================
@@ -356,12 +354,6 @@ pub enum Operation {
     MrUpdate(bool),
 
     // ----- decorators ---------------------------------------------------------------------------
-    /// Prints out the state of the VM. This operation has no effect on the VM state, and does not
-    /// advance VM clock.
-    ///
-    /// TODO: add debug options to specify what is to be printed out.
-    Debug(DebugOptions),
-
     /// Injects zero or more values at the head of the advice tape as specified by the injector.
     /// This operation affects only the advice tape, but has no effect on other VM components
     /// (e.g., stack, memory), and does not advance VM clock.
@@ -478,7 +470,6 @@ impl Operation {
             Self::Span => Some(82),
             Self::Halt => Some(83),
 
-            Self::Debug(_) => None,
             Self::Advice(_) => None,
         }
     }
@@ -498,7 +489,7 @@ impl Operation {
     ///
     /// Additionally, decorators do not have assigned op codes.
     pub fn is_decorator(&self) -> bool {
-        matches!(self, Self::Debug(_) | Self::Advice(_))
+        matches!(self, Self::Advice(_))
     }
 
     /// Returns true if this operation is a control operation.
@@ -632,7 +623,6 @@ impl fmt::Display for Operation {
             }
 
             // ----- decorators -------------------------------------------------------------------
-            Self::Debug(options) => write!(f, "debug({})", options),
             Self::Advice(injector) => write!(f, "advice({})", injector),
         }
     }

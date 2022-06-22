@@ -12,9 +12,9 @@ use vm_core::{
         Script,
     },
     utils::collections::{BTreeMap, Vec},
-    AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
-    StarkField, Word, AUX_TRACE_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN,
-    NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
+    AdviceInjector, Felt, FieldElement, Operation, ProgramInputs, StackTopState, StarkField, Word,
+    AUX_TRACE_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN, NUM_STACK_HELPER_COLS,
+    ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
 
 mod operations;

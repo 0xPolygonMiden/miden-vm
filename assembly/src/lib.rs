@@ -10,6 +10,7 @@ use vm_core::{
         collections::{BTreeMap, Vec},
         string::{String, ToString},
     },
+    Decorator,
 };
 use vm_stdlib::StdLibrary;
 
@@ -41,6 +42,7 @@ const MODULE_PATH_DELIM: &str = "::";
 
 type ProcMap = BTreeMap<String, Procedure>;
 type ModuleMap = BTreeMap<String, ProcMap>;
+type DecoratorMap = BTreeMap<usize, Decorator>;
 
 // ASSEMBLER
 // ================================================================================================
