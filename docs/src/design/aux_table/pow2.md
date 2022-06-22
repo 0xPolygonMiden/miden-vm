@@ -59,10 +59,10 @@ Let's illustrate the entire construction with an example. For simplicity, we'll 
 For our example, let's set our exponent input value as $a=23$.
 
 | p       | $a_0$ | $a_1$ | $a_2$ | $a_3$ | $a_4$ | $a_5$ | $a_6$ | $a_7$ | h   | a   | zp                | z                 |
-| ------- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | --- | --- | ----------------- | ----------------- | --- |
+| ------- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | ----- | --- | --- | ----------------- | ----------------- | 
 | 1       | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1   | 8   | 0                 | 0                 |
 | 256     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 1   | 16  | 0                 | 0                 |
-| $256^2$ | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 0     | 0   | 23  | 0                 | $256^2 \cdot 2^7$ |     |
+| $256^2$ | 1     | 1     | 1     | 1     | 1     | 1     | 1     | 0     | 0   | 23  | 0                 | $256^2 \cdot 2^7$ |
 | $256^3$ | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0   | 23  | $256^2 \cdot 2^7$ | $256^2 \cdot 2^7$ |
 
 Now we can use the same example to demonstrate the "virtual rows" we use to help aggregate the output value in $z$. The virtual rows are shaded below, and are not included in the trace.
@@ -151,7 +151,7 @@ $$k_0 \cdot zp = 0$$
 
 $$k_1 \cdot (zp' - z) = 0$$
 
-$$ z - (p \cdot \sum\limits\_{i=0}^8 t_i \cdot 2^i + zp) = 0$$
+$$ z - (p \cdot \sum_{i=0}^8t_i \cdot 2^i + zp) = 0$$
 
 The first constraint ensures that in the first row of each cycle $zp$ is set to 0, the second one ensures that for all other rows in the cycle the next value of $zp$ is same as the current value of $z$, while the last constraint ensures that for all rows $z$ is the sum of the aggregation of the powers in that row and the value $zp$.
 
