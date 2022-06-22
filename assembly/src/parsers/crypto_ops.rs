@@ -59,7 +59,7 @@ pub fn parse_rphash(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// Appends an RPPERM operation to the span block, which performs a Rescue Prime permutation on the
 /// top 12 elements of the stack.
 ///
-/// This operation takes 1 cycle.
+/// This operation takes 1 VM cycle.
 ///
 /// # Errors
 /// Returns an AssemblyError if:

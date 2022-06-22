@@ -40,7 +40,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 3,
-            op: Some(Operation::StoreW),
+            op: Some(Operation::MStoreW),
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
             fmp: fmp,
             memory: mem.clone(),
@@ -162,7 +162,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 16,
-            op: Some(Operation::StoreW),
+            op: Some(Operation::MStoreW),
             stack: [0, 0, 0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp: next_fmp,
             memory: vec![

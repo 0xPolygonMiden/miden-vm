@@ -43,7 +43,7 @@ fn bitwise_aux_trace() {
 fn memory_aux_trace() {
     // --- single memory operation with no stack manipulation -------------------------------------
     let stack = [1, 2, 3, 4];
-    let operations = vec![Operation::Push(Felt::new(2)), Operation::StoreW];
+    let operations = vec![Operation::Push(Felt::new(2)), Operation::MStoreW];
     let (aux_table_trace, trace_len) = build_trace(&stack, operations);
     let memory_trace_len = 1;
 
@@ -68,7 +68,7 @@ fn stacked_aux_trace() {
     let operations = vec![
         Operation::U32or,
         Operation::Push(Felt::ZERO),
-        Operation::StoreW,
+        Operation::MStoreW,
         Operation::RpPerm,
     ];
     let (aux_table_trace, trace_len) = build_trace(&stack, operations);
