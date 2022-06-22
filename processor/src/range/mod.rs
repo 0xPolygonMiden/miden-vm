@@ -263,7 +263,7 @@ pub enum AuxColumnHint {
     F3,
 }
 
-/// A struct with information to help construct the auxiliary columnrs `p0` and `p1` used for
+/// A struct with information to help construct the auxiliary columns `p0` and `p1` used for
 /// multiset checks. It contains a vector of precomputed flag values for each row in the Range
 /// Checker's execution trace and the index where the 16-bit section of the Range Checker's trace
 /// starts.

@@ -81,18 +81,33 @@ pub const RANGE_CHECK_TRACE_RANGE: Range<usize> =
     range(RANGE_CHECK_TRACE_OFFSET, RANGE_CHECK_TRACE_WIDTH);
 
 // Auxiliary table trace
-pub const AUX_TRACE_OFFSET: usize = RANGE_CHECK_TRACE_OFFSET + RANGE_CHECK_TRACE_WIDTH;
-pub const AUX_TRACE_WIDTH: usize = 18;
-pub const AUX_TRACE_RANGE: Range<usize> = range(AUX_TRACE_OFFSET, AUX_TRACE_WIDTH);
+pub const AUX_TABLE_OFFSET: usize = RANGE_CHECK_TRACE_OFFSET + RANGE_CHECK_TRACE_WIDTH;
+pub const AUX_TABLE_WIDTH: usize = 18;
+pub const AUX_TABLE_RANGE: Range<usize> = range(AUX_TABLE_OFFSET, AUX_TABLE_WIDTH);
 
-pub const TRACE_WIDTH: usize = AUX_TRACE_OFFSET + AUX_TRACE_WIDTH;
+pub const TRACE_WIDTH: usize = AUX_TABLE_OFFSET + AUX_TABLE_WIDTH;
 
 // AUXILIARY COLUMNS LAYOUT
 // ------------------------------------------------------------------------------------------------
 
-//   range checks
-//    (2 columns)
-// ├───────────────┤
+//      decoder       range checks
+//    (3 columns)     (2 columns)
+// ├───────────────┴───────────────┤
+
+// Decoder auxiliary columns
+pub const DECODER_AUX_TRACE_OFFSET: usize = 0;
+pub const DECODER_AUX_TRACE_WIDTH: usize = 3;
+pub const DECODER_AUX_TRACE_RANGE: Range<usize> =
+    range(DECODER_AUX_TRACE_OFFSET, DECODER_AUX_TRACE_WIDTH);
 
 // Range check auxiliary columns
-pub const RANGE_CHECK_AUX_TRACE_OFFSET: usize = 0;
+pub const RANGE_CHECK_AUX_TRACE_OFFSET: usize = DECODER_AUX_TRACE_RANGE.end;
+pub const RANGE_CHECK_AUX_TRACE_WIDTH: usize = 2;
+pub const RANGE_CHECK_AUX_TRACE_RANGE: Range<usize> =
+    range(RANGE_CHECK_AUX_TRACE_OFFSET, RANGE_CHECK_AUX_TRACE_WIDTH);
+
+pub const AUX_TRACE_WIDTH: usize = RANGE_CHECK_AUX_TRACE_RANGE.end;
+
+/// Number of random elements available to the prover after the commitment to the main trace
+/// segment.
+pub const AUX_TRACE_RAND_ELEMENTS: usize = 4;

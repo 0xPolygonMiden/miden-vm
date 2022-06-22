@@ -13,7 +13,7 @@ use vm_core::{
     },
     utils::collections::{BTreeMap, Vec},
     AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
-    StarkField, Word, AUX_TRACE_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN,
+    StarkField, Word, AUX_TABLE_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN,
     NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
 
@@ -61,9 +61,14 @@ pub use debug::{VmState, VmStateIterator};
 // ================================================================================================
 
 type SysTrace = [Vec<Felt>; SYS_TRACE_WIDTH];
-type DecoderTrace = [Vec<Felt>; DECODER_TRACE_WIDTH];
+
+pub struct DecoderTrace {
+    trace: [Vec<Felt>; DECODER_TRACE_WIDTH],
+    aux_trace_hints: decoder::AuxTraceHints,
+}
+
 type StackTrace = [Vec<Felt>; STACK_TRACE_WIDTH];
-type AuxTableTrace = [Vec<Felt>; AUX_TRACE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
+type AuxTableTrace = [Vec<Felt>; AUX_TABLE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
 
 pub struct RangeCheckTrace {
     trace: [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH],
