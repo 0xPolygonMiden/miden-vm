@@ -1,6 +1,6 @@
 use super::{
     super::validate_operation, parse_decimal_param, parse_element_param, parse_hex_param,
-    parse_int_param, push_value, AdviceInjector, AssemblyError, Felt, Operation, Token,
+    parse_int_param, push_value, AdviceInjector, AssemblyError, Felt, Operation, Token, Vec,
 };
 
 mod adv_ops;

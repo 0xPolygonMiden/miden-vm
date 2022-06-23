@@ -1,4 +1,4 @@
-use super::AssemblyError;
+use super::{AssemblyError, String, ToString, Vec};
 use core::fmt;
 
 mod stream;

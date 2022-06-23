@@ -1,6 +1,6 @@
 use super::{
     super::validate_operation, parse_element_param, AssemblyError, Felt, FieldElement, Operation,
-    Token,
+    Token, Vec,
 };
 
 // ASSERTIONS AND TESTS

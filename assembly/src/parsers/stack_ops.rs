@@ -1,4 +1,4 @@
-use super::{AssemblyError, Operation, Token};
+use super::{AssemblyError, Operation, Token, Vec};
 use vm_core::utils::PushMany;
 
 // STACK MANIPULATION
@@ -160,55 +160,62 @@ pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
             }
             "8" => {
                 span_ops.push(Operation::MovDn7);
-                // MovUp8
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::MovUp9);
-                span_ops.push(Operation::Add);
+                span_ops.push(Operation::MovUp8);
             }
             "9" => {
-                span_ops.push(Operation::MovDn9);
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::MovUp9);
-                span_ops.push(Operation::Add);
+                span_ops.push(Operation::MovDn8);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::Swap);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp8);
             }
             "10" => {
-                span_ops.push(Operation::MovDn9);
-                // MovUp10
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::MovUp11);
-                span_ops.push(Operation::Add);
+                span_ops.push(Operation::MovDn8);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::Swap);
+                span_ops.push(Operation::MovUp2);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp8);
             }
             "11" => {
-                span_ops.push(Operation::MovDn11);
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::MovUp11);
-                span_ops.push(Operation::Add);
+                span_ops.push(Operation::MovDn8);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovDn2);
+                span_ops.push(Operation::MovUp3);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp8);
             }
             "12" => {
-                span_ops.push(Operation::MovDn11);
-                // MovUp12
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::MovUp13);
-                span_ops.push(Operation::Add);
+                span_ops.push(Operation::MovDn8);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovDn3);
+                span_ops.push(Operation::MovUp4);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp8);
             }
             "13" => {
-                span_ops.push(Operation::MovDn13);
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::MovUp13);
-                span_ops.push(Operation::Add);
+                span_ops.push(Operation::MovDn8);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovDn4);
+                span_ops.push(Operation::MovUp5);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp8);
             }
             "14" => {
-                span_ops.push(Operation::MovDn13);
-                // MovUp14
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::MovUp15);
-                span_ops.push(Operation::Add);
+                span_ops.push(Operation::MovDn8);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovDn5);
+                span_ops.push(Operation::MovUp6);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp8);
             }
             "15" => {
-                span_ops.push(Operation::MovDn15);
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::MovUp15);
-                span_ops.push(Operation::Add);
+                span_ops.push(Operation::MovDn8);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovDn6);
+                span_ops.push(Operation::MovUp7);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp8);
             }
             _ => return Err(AssemblyError::invalid_param(op, 1)),
         },
@@ -239,12 +246,7 @@ pub fn parse_swapw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 pub fn parse_swapdw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
-        1 => {
-            span_ops.push(Operation::SwapW);
-            span_ops.push(Operation::SwapW3);
-            span_ops.push(Operation::SwapW);
-            span_ops.push(Operation::SwapW2)
-        }
+        1 => span_ops.push(Operation::SwapDW),
         _ => return Err(AssemblyError::extra_param(op)),
     }
 
@@ -265,30 +267,49 @@ pub fn parse_movup(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
             "5" => span_ops.push(Operation::MovUp5),
             "6" => span_ops.push(Operation::MovUp6),
             "7" => span_ops.push(Operation::MovUp7),
-            "8" => {
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::MovUp9);
-                span_ops.push(Operation::Add);
+            "8" => span_ops.push(Operation::MovUp8),
+            "9" => {
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::Swap);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp8);
             }
-            "9" => span_ops.push(Operation::MovUp9),
             "10" => {
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::MovUp11);
-                span_ops.push(Operation::Add);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp2);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp8);
             }
-            "11" => span_ops.push(Operation::MovUp11),
+            "11" => {
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp3);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp8);
+            }
             "12" => {
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::MovUp13);
-                span_ops.push(Operation::Add);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp4);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp8);
             }
-            "13" => span_ops.push(Operation::MovUp13),
+            "13" => {
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp5);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp8);
+            }
             "14" => {
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::MovUp15);
-                span_ops.push(Operation::Add);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp6);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp8);
             }
-            "15" => span_ops.push(Operation::MovUp15),
+            "15" => {
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp7);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovUp8);
+            }
             _ => return Err(AssemblyError::invalid_param(op, 1)),
         },
         _ => return Err(AssemblyError::extra_param(op)),
@@ -337,34 +358,49 @@ pub fn parse_movdn(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
             "5" => span_ops.push(Operation::MovDn5),
             "6" => span_ops.push(Operation::MovDn6),
             "7" => span_ops.push(Operation::MovDn7),
-            "8" => {
-                span_ops.push(Operation::Pad);
+            "8" => span_ops.push(Operation::MovDn8),
+            "9" => {
+                span_ops.push(Operation::MovDn8);
+                span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::Swap);
-                span_ops.push(Operation::MovDn9);
-                span_ops.push(Operation::Drop);
+                span_ops.push(Operation::SwapDW);
             }
-            "9" => span_ops.push(Operation::MovDn9),
             "10" => {
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::Swap);
-                span_ops.push(Operation::MovDn11);
-                span_ops.push(Operation::Drop);
+                span_ops.push(Operation::MovDn8);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovDn2);
+                span_ops.push(Operation::SwapDW);
             }
-            "11" => span_ops.push(Operation::MovDn11),
+            "11" => {
+                span_ops.push(Operation::MovDn8);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovDn3);
+                span_ops.push(Operation::SwapDW);
+            }
             "12" => {
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::Swap);
-                span_ops.push(Operation::MovDn13);
-                span_ops.push(Operation::Drop);
+                span_ops.push(Operation::MovDn8);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovDn4);
+                span_ops.push(Operation::SwapDW);
             }
-            "13" => span_ops.push(Operation::MovDn13),
+            "13" => {
+                span_ops.push(Operation::MovDn8);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovDn5);
+                span_ops.push(Operation::SwapDW);
+            }
             "14" => {
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::Swap);
-                span_ops.push(Operation::MovDn15);
-                span_ops.push(Operation::Drop);
+                span_ops.push(Operation::MovDn8);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovDn6);
+                span_ops.push(Operation::SwapDW);
             }
-            "15" => span_ops.push(Operation::MovDn15),
+            "15" => {
+                span_ops.push(Operation::MovDn8);
+                span_ops.push(Operation::SwapDW);
+                span_ops.push(Operation::MovDn7);
+                span_ops.push(Operation::SwapDW);
+            }
             _ => return Err(AssemblyError::invalid_param(op, 1)),
         },
         _ => return Err(AssemblyError::extra_param(op)),

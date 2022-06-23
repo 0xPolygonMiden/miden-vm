@@ -1,4 +1,4 @@
-use super::{fmt, hasher, CodeBlock, Digest};
+use super::{fmt, hasher, Box, CodeBlock, Digest};
 
 // JOIN BLOCKS
 // ================================================================================================

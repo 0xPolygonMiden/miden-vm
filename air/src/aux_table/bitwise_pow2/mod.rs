@@ -1,4 +1,4 @@
-use super::{EvaluationFrame, FieldElement, TransitionConstraintDegree, BITWISE_TRACE_OFFSET};
+use super::{EvaluationFrame, FieldElement, TransitionConstraintDegree, Vec, BITWISE_TRACE_OFFSET};
 use crate::utils::is_binary;
 use core::ops::Range;
 use vm_core::{

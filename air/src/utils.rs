@@ -1,6 +1,6 @@
 use super::FieldElement;
 use core::ops::Range;
-use vm_core::utils::range as create_range;
+use vm_core::{utils::collections::Vec, utils::range as create_range};
 
 // BASIC CONSTRAINT OPERATORS
 // ================================================================================================
@@ -18,6 +18,11 @@ pub fn is_binary<E: FieldElement>(v: E) -> E {
 #[inline(always)]
 pub fn binary_not<E: FieldElement>(v: E) -> E {
     E::ONE - v
+}
+
+#[inline(always)]
+pub fn is_zero<E: FieldElement>(v: E) -> E {
+    v
 }
 
 // TRAIT TO SIMPLIFY CONSTRAINT AGGREGATION

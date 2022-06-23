@@ -231,6 +231,9 @@ pub enum Operation {
     /// Swaps stack elements 0, 1, 2, and 3, with elements 12, 13, 14, and 15.
     SwapW3,
 
+    /// Swaps stack elements 0, 1, 2, 3, 4, 5, 6, and 7 with elements 8, 9, 10, 11, 12, 13, 14, and 15.
+    SwapDW,
+
     /// Moves stack element 2 to the top of the stack.
     MovUp2,
 
@@ -249,17 +252,8 @@ pub enum Operation {
     /// Moves stack element 7 to the top of the stack.
     MovUp7,
 
-    /// Moves stack element 9 to the top of the stack.
-    MovUp9,
-
-    /// Moves stack element 11 to the top of the stack.
-    MovUp11,
-
-    /// Moves stack element 13 to the top of the stack.
-    MovUp13,
-
-    /// Moves stack element 15 to the top of the stack.
-    MovUp15,
+    /// Moves stack element 8 to the top of the stack.
+    MovUp8,
 
     /// Moves the top stack element to position 2 on the stack.
     MovDn2,
@@ -279,17 +273,8 @@ pub enum Operation {
     /// Moves the top stack element to position 7 on the stack.
     MovDn7,
 
-    /// Moves the top stack element to position 9 on the stack.
-    MovDn9,
-
-    /// Moves the top stack element to position 11 on the stack.
-    MovDn11,
-
-    /// Moves the top stack element to position 13 on the stack.
-    MovDn13,
-
-    /// Moves the top stack element to position 15 on the stack.
-    MovDn15,
+    /// Moves the top stack element to position 8 on the stack.
+    MovDn8,
 
     /// Pops an element off the stack, and if the element is 1, swaps the top two remaining
     /// elements on the stack. If the popped element is 0, the stack remains unchanged.
@@ -438,17 +423,15 @@ impl Operation {
             Self::SwapW => Some(27),
             Self::SwapW2 => Some(28),
             Self::SwapW3 => Some(29),
+            Self::SwapDW => Some(30),
 
-            Self::MovUp2 => Some(30),
-            Self::MovUp3 => Some(31),
-            Self::MovUp4 => Some(32),
-            Self::MovUp5 => Some(33),
-            Self::MovUp6 => Some(34),
-            Self::MovUp7 => Some(35),
-            Self::MovUp9 => Some(36),
-            Self::MovUp11 => Some(37),
-            Self::MovUp13 => Some(38),
-            Self::MovUp15 => Some(39),
+            Self::MovUp2 => Some(31),
+            Self::MovUp3 => Some(32),
+            Self::MovUp4 => Some(33),
+            Self::MovUp5 => Some(34),
+            Self::MovUp6 => Some(35),
+            Self::MovUp7 => Some(36),
+            Self::MovUp8 => Some(37),
 
             Self::MovDn2 => Some(40),
             Self::MovDn3 => Some(41),
@@ -456,10 +439,7 @@ impl Operation {
             Self::MovDn5 => Some(43),
             Self::MovDn6 => Some(44),
             Self::MovDn7 => Some(45),
-            Self::MovDn9 => Some(46),
-            Self::MovDn11 => Some(47),
-            Self::MovDn13 => Some(48),
-            Self::MovDn15 => Some(49),
+            Self::MovDn8 => Some(46),
 
             Self::CSwap => Some(50),
             Self::CSwapW => Some(51),
@@ -608,6 +588,7 @@ impl fmt::Display for Operation {
             Self::SwapW => write!(f, "swapw"),
             Self::SwapW2 => write!(f, "swapw2"),
             Self::SwapW3 => write!(f, "swapw3"),
+            Self::SwapDW => write!(f, "swapdw"),
 
             Self::MovUp2 => write!(f, "movup2"),
             Self::MovUp3 => write!(f, "movup3"),
@@ -615,10 +596,7 @@ impl fmt::Display for Operation {
             Self::MovUp5 => write!(f, "movup5"),
             Self::MovUp6 => write!(f, "movup6"),
             Self::MovUp7 => write!(f, "movup7"),
-            Self::MovUp9 => write!(f, "movup9"),
-            Self::MovUp11 => write!(f, "movup11"),
-            Self::MovUp13 => write!(f, "movup13"),
-            Self::MovUp15 => write!(f, "movup15"),
+            Self::MovUp8 => write!(f, "movup8"),
 
             Self::MovDn2 => write!(f, "movdn2"),
             Self::MovDn3 => write!(f, "movdn3"),
@@ -626,10 +604,7 @@ impl fmt::Display for Operation {
             Self::MovDn5 => write!(f, "movdn5"),
             Self::MovDn6 => write!(f, "movdn6"),
             Self::MovDn7 => write!(f, "movdn7"),
-            Self::MovDn9 => write!(f, "movdn9"),
-            Self::MovDn11 => write!(f, "movdn11"),
-            Self::MovDn13 => write!(f, "movdn13"),
-            Self::MovDn15 => write!(f, "movdn15"),
+            Self::MovDn8 => write!(f, "movdn8"),
 
             Self::CSwap => write!(f, "cswap"),
             Self::CSwapW => write!(f, "cswapw"),

@@ -1,12 +1,22 @@
 use super::{Felt, StarkField};
 use core::{fmt::Debug, ops::Range};
+use winter_utils::collections::Vec;
+
+// FEATURE BASED RE-EXPORT
+// ================================================================================================
+
+#[cfg(not(feature = "std"))]
+pub use alloc::boxed::Box;
+
+#[cfg(feature = "std")]
+pub use std::boxed::Box;
 
 // RE-EXPORTS
 // ================================================================================================
 
 pub use winter_utils::{
-    collections, group_vector_elements, uninit_vector, ByteReader, ByteWriter, Deserializable,
-    DeserializationError, Serializable, SliceReader,
+    collections, group_vector_elements, string, uninit_vector, ByteReader, ByteWriter,
+    Deserializable, DeserializationError, Serializable, SliceReader,
 };
 
 pub use crypto::{RandomCoin, RandomCoinError};

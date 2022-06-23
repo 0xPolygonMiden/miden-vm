@@ -1,5 +1,5 @@
 use super::{hasher, AdviceSetError, Felt, FieldElement, Word};
-use std::collections::BTreeMap;
+use crate::utils::collections::{BTreeMap, Vec};
 
 // MERKLE PATH SET
 // ================================================================================================

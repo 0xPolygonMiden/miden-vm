@@ -1,6 +1,10 @@
 use super::{AdviceInjector, DebugOptions, ExecutionError, Felt, Process, StarkField, Word};
 use core::ops::RangeInclusive;
 use log::info;
+use vm_core::utils::{
+    collections::Vec,
+    string::{String, ToString},
+};
 
 #[cfg(test)]
 mod debug_tests;

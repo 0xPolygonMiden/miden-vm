@@ -1,4 +1,4 @@
-use super::{ExecutionError, Felt, FieldElement, StarkField, TraceFragment};
+use super::{ExecutionError, Felt, FieldElement, StarkField, TraceFragment, Vec};
 use vm_core::bitwise::{
     BITWISE_AND, BITWISE_OR, BITWISE_XOR, NUM_SELECTORS, POW2_POWERS_PER_ROW, POWER_OF_TWO,
     TRACE_WIDTH,
@@ -20,8 +20,10 @@ const POW2_HELPER_COL: usize = NUM_SELECTORS + POW2_POWERS_PER_ROW;
 const POW2_AGG_POWER_COL: usize = POW2_HELPER_COL + 1;
 /// Column index for powers of 256.
 const POW2_POW_256_COL: usize = POW2_AGG_POWER_COL + 1;
+/// Column index for the previous row's result of the power of two operation.
+const POW2_PREV_AGG_OUTPUT_COL: usize = POW2_POW_256_COL + 1;
 /// Column index for the aggregated result of the power of two operation.
-const POW2_AGG_OUTPUT_COL: usize = POW2_POW_256_COL + 1;
+const POW2_AGG_OUTPUT_COL: usize = POW2_PREV_AGG_OUTPUT_COL + 1;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -37,16 +39,16 @@ type Selectors = [Felt; NUM_SELECTORS];
 /// bitwise or power of two.
 ///
 /// ## Bitwise operation execution trace (AND, OR, XOR)
-/// The execution trace for each operation consists of 8 rows and 14 columns, the last column of
-/// which is a padding column that enables combining this trace with that of the 14-column power of
+/// The execution trace for each operation consists of 8 rows and 15 columns, the last two columns of
+/// which are padding columns that enable combining this trace with that of the 15-column power of
 /// two operation. At a high level, we break input values into 4-bit limbs, apply the bitwise
 /// operation to these limbs at every row starting with the most significant limb, and accumulate
 /// the result in the result column.
 ///
 /// The layout of the table is illustrated below.
 ///
-///    s0    s1    a     b      a0     a1     a2     a3     b0     b1     b2     b3     c     0
-/// ├─────┴─────┴─────┴─────┴───────┴──────┴──────┴──────┴──────┴──────┴──────┴──────┴─────┴─────┤
+///    s0    s1    a     b      a0     a1     a2     a3     b0     b1     b2     b3     c     0     0
+/// ├─────┴─────┴─────┴─────┴───────┴──────┴──────┴──────┴──────┴──────┴──────┴──────┴─────┴─────┴────┤
 ///
 /// In the above, the meaning of the columns is as follows:
 /// - Selector columns s0 and s1 are used to specify the bitwise operator for each row.
@@ -62,16 +64,16 @@ type Selectors = [Felt; NUM_SELECTORS];
 ///   significant 4-bit limbs of the input values. With every subsequent row, the next most
 ///   significant 4-bit limb of the result is appended to it. Thus, by the 8th row, column `c`
 ///   contains the full result of the bitwise operation.
-/// - Column `0` is a padded column of zeros which is added so that the width of the bitwise trace
+/// - Column `0` are padded columns of zeros which are added so that the width of the bitwise trace
 ///   equals the width required by the execution trace for power of two operations.
 ///
 /// ## Power of Two operation execution trace (2^a for a < 64)
-/// The execution trace for each operation consists of 8 rows and 14 columns.
+/// The execution trace for each operation consists of 8 rows and 15 columns.
 ///
 /// The layout of the table is illustrated below.
 ///
-///    s0    s1   a0    a1     a2    a3    a4   a5     a6   a7     h     a     p     z
-/// ├─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┤
+///    s0    s1   a0    a1     a2    a3    a4   a5     a6   a7     h     a     p     zp    z
+/// ├─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴────┤
 ///
 /// In the above, the meaning of the columns is as follows:
 /// - Selector columns s0 and s1 are used to specify the power of two operation.
@@ -89,6 +91,8 @@ type Selectors = [Felt; NUM_SELECTORS];
 ///   power of two operation.
 /// - Column `p` contains increasing powers of 256, starting from 256^0. These are used to aggregate
 ///   the output of the power of two operation.
+/// - Column `zp` contains the aggregated result of the power of the two operation computed
+///   till previous row. It starts from 0.
 /// - Column `z` contains the aggregated result of the power of two operation that has been
 ///   computed so far. Thus, by the 8th row, column `z` contains `2^a` for input value `a`.
 pub struct Bitwise {
@@ -278,14 +282,14 @@ impl Bitwise {
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Appends a new row to the trace table and populates the first 12 column of trace as follows:
+    /// Appends a new row to the trace table and populates the first 15 columns of trace as follows:
     /// - Columns 0 and 1 are set to the selector values for the bitwise operation being executed.
     /// - Column 2 is set to the current value of `a`.
     /// - Column 3 is set to the current value of `b`.
     /// - Columns 4 to 7 are set to the 4 least-significant bits of `a`.
     /// - Columns 8 to 11 are set to the 4 least-significant bits of `b`.
     /// - Column 12 is left for the output value which is set elsewhere.
-    /// - Column 13 is padded with 0 so the width of the bitwise trace row will equal the width of
+    /// - Columns 13 & 14 are padded with 0 so the width of the bitwise trace row will equal the width of
     ///   power of two operation trace rows.
     fn add_bitwise_trace_row(&mut self, selectors: Selectors, a: u64, b: u64) {
         self.trace[0].push(selectors[0]);
@@ -304,11 +308,12 @@ impl Bitwise {
         self.trace[10].push(Felt::new((b >> 2) & 1));
         self.trace[11].push(Felt::new((b >> 3) & 1));
 
-        // Pad the final column.
+        // Pad the final two columns.
         self.trace[13].push(Felt::ZERO);
+        self.trace[14].push(Felt::ZERO);
     }
 
-    /// Appends a new row to the trace table and populates the 12 columns of trace as follows:
+    /// Appends a new row to the trace table and populates the 15 columns of trace as follows:
     /// - Columns 0 and 1 are set to the selector values for the power of two operation.
     /// - Columns 2 to 9 are each set to 1 for each power of two that needs to be calculated.
     /// - Column 10 is a helper column for constraints and is set to the value of column 0 in the
@@ -316,7 +321,8 @@ impl Bitwise {
     /// - Column 11 is set to the value of the total aggregated power that has been added to the
     ///   trace so far.
     /// - Column 12 is the power of 256 for the row.
-    /// - Column 13 is the aaggregated output so far.
+    /// - Column 13 is the aggregated output till previous row so far.
+    /// - Column 14 is the aggregated output so far.
     fn add_pow2_trace_row(
         &mut self,
         power_to_decomp: &mut u64,
@@ -330,6 +336,9 @@ impl Bitwise {
 
         // The row's power of 256, used for computing the aggregated output.
         let power_of_256 = Felt::new(256_u64.pow(row));
+
+        // Set output value of previous row.
+        let prev_agg_output = *agg_output;
 
         if *power_to_decomp == 0 {
             if row == 0 {
@@ -377,6 +386,9 @@ impl Bitwise {
 
         // Set the power of 256 for the row.
         self.trace[POW2_POW_256_COL].push(power_of_256);
+
+        // Set the previous row's output value.
+        self.trace[POW2_PREV_AGG_OUTPUT_COL].push(prev_agg_output);
 
         // Set the output value.
         self.trace[POW2_AGG_OUTPUT_COL].push(*agg_output);

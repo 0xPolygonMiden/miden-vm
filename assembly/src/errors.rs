@@ -1,4 +1,4 @@
-use super::Token;
+use super::{String, ToString, Token};
 use core::fmt;
 
 // ASSEMBLY ERROR

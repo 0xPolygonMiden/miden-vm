@@ -1,11 +1,12 @@
-use crate::{ExecutionError, Felt, Process, StarkField};
+use crate::{ExecutionError, Felt, Process, StarkField, Vec};
 use core::fmt;
-use vm_core::Word;
+use vm_core::{Operation, Word};
 
 /// VmState holds a current process state information at a specific clock cycle.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VmState {
     pub clk: usize,
+    pub op: Option<Operation>,
     pub fmp: Felt,
     pub stack: Vec<Felt>,
     pub memory: Vec<(u64, Word)>,
@@ -64,6 +65,11 @@ impl Iterator for VmStateIterator {
 
         let result = Some(Ok(VmState {
             clk: self.clk,
+            op: if self.clk == 0 {
+                None
+            } else {
+                Some(self.process.decoder.get_operation_at(self.clk - 1))
+            },
             fmp: self.process.system.get_fmp_at(self.clk),
             stack: self.process.stack.get_state_at(self.clk),
             memory: self

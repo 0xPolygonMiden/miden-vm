@@ -17,7 +17,7 @@ doctest = false
 
 [features]
 default = ["std"]
-std = ["air/std", "assembly/std", "winterfell/std"]
+std = ["air/std", "assembly/std", "vm-core/std", "winterfell/std"]
 
 [dependencies]
 air = { package = "miden-air", path = "../air", version = "0.2", default-features = false }

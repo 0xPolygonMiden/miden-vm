@@ -1,6 +1,6 @@
 use super::{
-    combine_blocks, parse_code_blocks, AssemblyContext, AssemblyError, CodeBlock, Token,
-    TokenStream,
+    combine_blocks, parse_code_blocks, AssemblyContext, AssemblyError, CodeBlock, String, Token,
+    TokenStream, Vec,
 };
 use vm_core::{Felt, Operation};
 

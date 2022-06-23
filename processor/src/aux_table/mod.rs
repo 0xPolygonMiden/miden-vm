@@ -1,5 +1,5 @@
 use super::{
-    AuxTableTrace, Bitwise, Felt, FieldElement, Hasher, Memory, TraceFragment, AUX_TRACE_WIDTH,
+    AuxTableTrace, Bitwise, Felt, FieldElement, Hasher, Memory, TraceFragment, Vec, AUX_TABLE_WIDTH,
 };
 
 #[cfg(test)]
@@ -24,8 +24,8 @@ mod tests;
 /// the `trace_len` of the bitwise coprocessor.
 /// - column 0: selector column with values set to ONE
 /// - column 1: selector column with values set to ZERO
-/// - columns 2-14: execution trace of bitwise coprocessor
-/// - columns 15-17: unused columns padded with ZERO
+/// - columns 2-16: execution trace of bitwise coprocessor
+/// - column 17: unused column padded with ZERO
 ///
 /// * Padding segment: unused *
 /// This segment begins at the end of the bitwise segment and fills as many rows in the table as
@@ -87,7 +87,7 @@ impl AuxTable {
         // note: it may be possible to optimize this by initializing with Felt::zeroed_vector,
         // depending on how the compiler reduces Felt(0) and whether initializing here + iterating
         // to update selector values is faster than using resize to initialize all values
-        let mut trace: AuxTableTrace = (0..AUX_TRACE_WIDTH)
+        let mut trace: AuxTableTrace = (0..AUX_TABLE_WIDTH)
             .map(|_| Vec::<Felt>::with_capacity(trace_len))
             .collect::<Vec<_>>()
             .try_into()
@@ -106,9 +106,9 @@ impl AuxTable {
     /// trace and padding to fill the rest of the table.
     fn fill_trace(self, trace: &mut AuxTableTrace, trace_len: usize, num_rand_rows: usize) {
         // allocate fragments to be filled with the respective execution traces of each coprocessor
-        let mut hasher_fragment = TraceFragment::new(AUX_TRACE_WIDTH);
-        let mut bitwise_fragment = TraceFragment::new(AUX_TRACE_WIDTH);
-        let mut memory_fragment = TraceFragment::new(AUX_TRACE_WIDTH);
+        let mut hasher_fragment = TraceFragment::new(AUX_TABLE_WIDTH);
+        let mut bitwise_fragment = TraceFragment::new(AUX_TABLE_WIDTH);
+        let mut memory_fragment = TraceFragment::new(AUX_TABLE_WIDTH);
         // The length of the padded segment accounting for the final random rows.
         let padding_len = trace_len - self.trace_len() - num_rand_rows;
 
@@ -147,19 +147,6 @@ impl AuxTable {
                         hasher_fragment.push_column_slice(column, self.hasher.trace_len());
                     // add bitwise segment to the bitwise fragment to be filled from the bitwise trace
                     bitwise_fragment.push_column_slice(rest_of_column, self.bitwise.trace_len());
-                }
-                16 => {
-                    // initialize hasher & memory segments and pad other segments with ZERO
-                    column.resize(trace_len, Felt::ZERO);
-                    // add hasher segment to the hasher fragment to be filled from the hasher trace
-                    let rest_of_column =
-                        hasher_fragment.push_column_slice(column, self.hasher.trace_len());
-                    // split the column again to skip the bitwise and padding segments which have
-                    // already been padded
-                    let (_, rest_of_column) =
-                        rest_of_column.split_at_mut(self.bitwise.trace_len() + padding_len);
-                    // add memory segment to the memory fragment to be filled from the memory trace
-                    memory_fragment.push_column_slice(rest_of_column, self.memory.trace_len());
                 }
                 17 => {
                     // initialize hasher segment and pad bitwise, memory, padding segments with ZERO

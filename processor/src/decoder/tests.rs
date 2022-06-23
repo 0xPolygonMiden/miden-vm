@@ -1,21 +1,26 @@
-use super::{super::DecoderTrace, Felt, Operation, Word, NUM_OP_BITS};
-use crate::{ExecutionTrace, Process, ProgramInputs};
+use super::{build_op_group, AuxTraceHints, BTreeMap, OpGroupTableRow, OpGroupTableUpdate};
+use crate::{ExecutionTrace, Felt, Operation, Process, ProgramInputs, Word};
 use rand_utils::rand_value;
 use vm_core::{
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
-        OP_BITS_OFFSET, OP_BITS_RANGE, OP_INDEX_COL_IDX,
+        NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS,
+        OP_BATCH_8_GROUPS, OP_BATCH_FLAGS_RANGE, OP_BITS_OFFSET, OP_BITS_RANGE, OP_INDEX_COL_IDX,
     },
-    program::blocks::{CodeBlock, Span},
-    FieldElement, StarkField, DECODER_TRACE_RANGE,
+    program::blocks::{CodeBlock, Span, OP_BATCH_SIZE},
+    utils::collections::Vec,
+    StarkField, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, ONE, ZERO,
 };
 
 // CONSTANTS
 // ================================================================================================
 
-const ONE: Felt = Felt::ONE;
-const ZERO: Felt = Felt::ZERO;
 const INIT_ADDR: Felt = ONE;
+
+// TYPE ALIASES
+// ================================================================================================
+
+type DecoderTrace = [Vec<Felt>; DECODER_TRACE_WIDTH];
 
 // SPAN BLOCK TESTS
 // ================================================================================================
@@ -26,10 +31,10 @@ fn span_block_one_group() {
     let span = Span::new(ops.clone());
     let program = CodeBlock::new_span(ops.clone());
 
-    let (trace, trace_len) = build_trace(&[], &program);
+    let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
-    check_op_decoding(&trace, 0, ZERO, Operation::Span, 8, 0, 0);
+    check_op_decoding(&trace, 0, ZERO, Operation::Span, 1, 0, 0);
     check_op_decoding(&trace, 1, INIT_ADDR, Operation::Pad, 0, 0, 1);
     check_op_decoding(&trace, 2, INIT_ADDR, Operation::Add, 0, 1, 1);
     check_op_decoding(&trace, 3, INIT_ADDR, Operation::Mul, 0, 2, 1);
@@ -54,6 +59,11 @@ fn span_block_one_group() {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+
+    // --- check op_group table hints -------------------------------------------------------------
+    // op_group table should not have been touched
+    assert!(&aux_hints.op_group_table_hints().is_empty());
+    assert!(aux_hints.op_group_table_rows().is_empty());
 }
 
 #[test]
@@ -67,10 +77,10 @@ fn span_block_small() {
     let span = Span::new(ops.clone());
     let program = CodeBlock::new_span(ops.clone());
 
-    let (trace, trace_len) = build_trace(&[], &program);
+    let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
-    check_op_decoding(&trace, 0, ZERO, Operation::Span, 8, 0, 0);
+    check_op_decoding(&trace, 0, ZERO, Operation::Span, 4, 0, 0);
     check_op_decoding(&trace, 1, INIT_ADDR, Operation::Push(iv[0]), 3, 0, 1);
     check_op_decoding(&trace, 2, INIT_ADDR, Operation::Push(iv[1]), 2, 1, 1);
     check_op_decoding(&trace, 3, INIT_ADDR, Operation::Add, 1, 2, 1);
@@ -99,6 +109,24 @@ fn span_block_small() {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+
+    // --- check op_group table hints -------------------------------------------------------------
+
+    // 3 op groups should be inserted at cycle 0, and removed one by one in subsequent cycles
+    let mut expected_ogt_hints: BTreeMap<usize, OpGroupTableUpdate> = BTreeMap::new();
+    expected_ogt_hints.insert(0, OpGroupTableUpdate::InsertRows(3));
+    expected_ogt_hints.insert(1, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(2, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(3, OpGroupTableUpdate::RemoveRow);
+    assert_eq!(&expected_ogt_hints, aux_hints.op_group_table_hints());
+
+    // the groups are imm(1), imm(2), and op group with a single NOOP
+    let expected_ogt_rows = vec![
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(3), iv[0]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(2), iv[1]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(1), ZERO),
+    ];
+    assert_eq!(expected_ogt_rows, aux_hints.op_group_table_rows());
 }
 
 #[test]
@@ -126,7 +154,7 @@ fn span_block() {
     ];
     let span = Span::new(ops.clone());
     let program = CodeBlock::new_span(ops.clone());
-    let (trace, trace_len) = build_trace(&[], &program);
+    let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Span, 8, 0, 0);
@@ -179,6 +207,31 @@ fn span_block() {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+
+    // --- check op_group table hints -------------------------------------------------------------
+
+    let mut expected_ogt_hints: BTreeMap<usize, OpGroupTableUpdate> = BTreeMap::new();
+    expected_ogt_hints.insert(0, OpGroupTableUpdate::InsertRows(7));
+    expected_ogt_hints.insert(1, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(2, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(3, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(8, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(9, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(10, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(13, OpGroupTableUpdate::RemoveRow);
+    assert_eq!(&expected_ogt_hints, aux_hints.op_group_table_hints());
+
+    let batch0_groups = &span.op_batches()[0].groups();
+    let expected_ogt_rows = vec![
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(7), batch0_groups[1]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(6), batch0_groups[2]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(5), batch0_groups[3]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(4), batch0_groups[4]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(3), batch0_groups[5]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(2), batch0_groups[6]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(1), batch0_groups[7]),
+    ];
+    assert_eq!(expected_ogt_rows, aux_hints.op_group_table_rows());
 }
 
 #[test]
@@ -209,30 +262,30 @@ fn span_block_with_respan() {
     ];
     let span = Span::new(ops.clone());
     let program = CodeBlock::new_span(ops.clone());
-    let (trace, trace_len) = build_trace(&[], &program);
+    let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
-    check_op_decoding(&trace, 0, ZERO, Operation::Span, 16, 0, 0);
-    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Push(iv[0]), 15, 0, 1);
-    check_op_decoding(&trace, 2, INIT_ADDR, Operation::Push(iv[1]), 14, 1, 1);
-    check_op_decoding(&trace, 3, INIT_ADDR, Operation::Push(iv[2]), 13, 2, 1);
-    check_op_decoding(&trace, 4, INIT_ADDR, Operation::Push(iv[3]), 12, 3, 1);
-    check_op_decoding(&trace, 5, INIT_ADDR, Operation::Push(iv[4]), 11, 4, 1);
-    check_op_decoding(&trace, 6, INIT_ADDR, Operation::Push(iv[5]), 10, 5, 1);
-    check_op_decoding(&trace, 7, INIT_ADDR, Operation::Push(iv[6]), 9, 6, 1);
+    check_op_decoding(&trace, 0, ZERO, Operation::Span, 12, 0, 0);
+    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Push(iv[0]), 11, 0, 1);
+    check_op_decoding(&trace, 2, INIT_ADDR, Operation::Push(iv[1]), 10, 1, 1);
+    check_op_decoding(&trace, 3, INIT_ADDR, Operation::Push(iv[2]), 9, 2, 1);
+    check_op_decoding(&trace, 4, INIT_ADDR, Operation::Push(iv[3]), 8, 3, 1);
+    check_op_decoding(&trace, 5, INIT_ADDR, Operation::Push(iv[4]), 7, 4, 1);
+    check_op_decoding(&trace, 6, INIT_ADDR, Operation::Push(iv[5]), 6, 5, 1);
+    check_op_decoding(&trace, 7, INIT_ADDR, Operation::Push(iv[6]), 5, 6, 1);
     // NOOP inserted by the processor to make sure the group doesn't end with a PUSH
-    check_op_decoding(&trace, 8, INIT_ADDR, Operation::Noop, 8, 7, 1);
+    check_op_decoding(&trace, 8, INIT_ADDR, Operation::Noop, 4, 7, 1);
     // RESPAN since the previous batch is full
-    let next_addr = INIT_ADDR + Felt::new(8);
-    check_op_decoding(&trace, 9, INIT_ADDR, Operation::Respan, 8, 0, 1);
-    check_op_decoding(&trace, 10, next_addr, Operation::Push(iv[7]), 3, 0, 1);
-    check_op_decoding(&trace, 11, next_addr, Operation::Add, 2, 1, 1);
-    check_op_decoding(&trace, 12, next_addr, Operation::Push(iv[8]), 2, 2, 1);
+    let batch1_addr = INIT_ADDR + Felt::new(8);
+    check_op_decoding(&trace, 9, INIT_ADDR, Operation::Respan, 4, 0, 0);
+    check_op_decoding(&trace, 10, batch1_addr, Operation::Push(iv[7]), 3, 0, 1);
+    check_op_decoding(&trace, 11, batch1_addr, Operation::Add, 2, 1, 1);
+    check_op_decoding(&trace, 12, batch1_addr, Operation::Push(iv[8]), 2, 2, 1);
     // NOOP inserted by the processor to make sure the group doesn't end with a PUSH
-    check_op_decoding(&trace, 13, next_addr, Operation::Noop, 1, 3, 1);
+    check_op_decoding(&trace, 13, batch1_addr, Operation::Noop, 1, 3, 1);
     // NOOP inserted by the processor to make sure the number of groups is a power of two
-    check_op_decoding(&trace, 14, next_addr, Operation::Noop, 0, 0, 1);
-    check_op_decoding(&trace, 15, next_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&trace, 14, batch1_addr, Operation::Noop, 0, 0, 1);
+    check_op_decoding(&trace, 15, batch1_addr, Operation::End, 0, 0, 0);
     check_op_decoding(&trace, 16, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
@@ -264,6 +317,40 @@ fn span_block_with_respan() {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+
+    // --- check op_group table hints -------------------------------------------------------------
+
+    let mut expected_ogt_hints: BTreeMap<usize, OpGroupTableUpdate> = BTreeMap::new();
+    expected_ogt_hints.insert(0, OpGroupTableUpdate::InsertRows(7));
+    expected_ogt_hints.insert(1, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(2, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(3, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(4, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(5, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(6, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(7, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(9, OpGroupTableUpdate::InsertRows(3));
+    expected_ogt_hints.insert(10, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(12, OpGroupTableUpdate::RemoveRow);
+    expected_ogt_hints.insert(13, OpGroupTableUpdate::RemoveRow);
+    assert_eq!(&expected_ogt_hints, aux_hints.op_group_table_hints());
+
+    let batch0_groups = &span.op_batches()[0].groups();
+    let batch1_groups = &span.op_batches()[1].groups();
+    let expected_ogt_rows = vec![
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(11), batch0_groups[1]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(10), batch0_groups[2]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(9), batch0_groups[3]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(8), batch0_groups[4]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(7), batch0_groups[5]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(6), batch0_groups[6]),
+        OpGroupTableRow::new(INIT_ADDR, Felt::new(5), batch0_groups[7]),
+        // skipping the first group of batch 1
+        OpGroupTableRow::new(batch1_addr, Felt::new(3), batch1_groups[1]),
+        OpGroupTableRow::new(batch1_addr, Felt::new(2), batch1_groups[2]),
+        OpGroupTableRow::new(batch1_addr, Felt::new(1), batch1_groups[3]),
+    ];
+    assert_eq!(expected_ogt_rows, aux_hints.op_group_table_rows());
 }
 
 // JOIN BLOCK TESTS
@@ -275,18 +362,18 @@ fn join_block() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_join([span1.clone(), span2.clone()]);
 
-    let (trace, trace_len) = build_trace(&[], &program);
+    let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Join, 0, 0, 0);
     // starting first span
     let span1_addr = INIT_ADDR + Felt::new(8);
-    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Span, 8, 0, 0);
+    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Span, 1, 0, 0);
     check_op_decoding(&trace, 2, span1_addr, Operation::Mul, 0, 0, 1);
     check_op_decoding(&trace, 3, span1_addr, Operation::End, 0, 0, 0);
     // starting second span
     let span2_addr = INIT_ADDR + Felt::new(16);
-    check_op_decoding(&trace, 4, INIT_ADDR, Operation::Span, 8, 0, 0);
+    check_op_decoding(&trace, 4, INIT_ADDR, Operation::Span, 1, 0, 0);
     check_op_decoding(&trace, 5, span2_addr, Operation::Add, 0, 0, 1);
     check_op_decoding(&trace, 6, span2_addr, Operation::End, 0, 0, 0);
     check_op_decoding(&trace, 7, INIT_ADDR, Operation::End, 0, 0, 0);
@@ -318,6 +405,11 @@ fn join_block() {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+
+    // --- check op_group table hints -------------------------------------------------------------
+    // op_group table should not have been touched
+    assert!(&aux_hints.op_group_table_hints().is_empty());
+    assert!(aux_hints.op_group_table_rows().is_empty());
 }
 
 // SPLIT BLOCK TESTS
@@ -329,12 +421,12 @@ fn split_block_true() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1.clone(), span2.clone());
 
-    let (trace, trace_len) = build_trace(&[1], &program);
+    let (trace, aux_hints, trace_len) = build_trace(&[1], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let span_addr = INIT_ADDR + Felt::new(8);
     check_op_decoding(&trace, 0, ZERO, Operation::Split, 0, 0, 0);
-    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Span, 8, 0, 0);
+    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Span, 1, 0, 0);
     check_op_decoding(&trace, 2, span_addr, Operation::Mul, 0, 0, 1);
     check_op_decoding(&trace, 3, span_addr, Operation::End, 0, 0, 0);
     check_op_decoding(&trace, 4, INIT_ADDR, Operation::End, 0, 0, 0);
@@ -362,6 +454,11 @@ fn split_block_true() {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+
+    // --- check op_group table hints -------------------------------------------------------------
+    // op_group table should not have been touched
+    assert!(&aux_hints.op_group_table_hints().is_empty());
+    assert!(aux_hints.op_group_table_rows().is_empty());
 }
 
 #[test]
@@ -370,12 +467,12 @@ fn split_block_false() {
     let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1.clone(), span2.clone());
 
-    let (trace, trace_len) = build_trace(&[0], &program);
+    let (trace, aux_hints, trace_len) = build_trace(&[0], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let span_addr = INIT_ADDR + Felt::new(8);
     check_op_decoding(&trace, 0, ZERO, Operation::Split, 0, 0, 0);
-    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Span, 8, 0, 0);
+    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Span, 1, 0, 0);
     check_op_decoding(&trace, 2, span_addr, Operation::Add, 0, 0, 1);
     check_op_decoding(&trace, 3, span_addr, Operation::End, 0, 0, 0);
     check_op_decoding(&trace, 4, INIT_ADDR, Operation::End, 0, 0, 0);
@@ -403,6 +500,11 @@ fn split_block_false() {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+
+    // --- check op_group table hints -------------------------------------------------------------
+    // op_group table should not have been touched
+    assert!(&aux_hints.op_group_table_hints().is_empty());
+    assert!(aux_hints.op_group_table_rows().is_empty());
 }
 
 // LOOP BLOCK TESTS
@@ -413,12 +515,12 @@ fn loop_block() {
     let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
     let program = CodeBlock::new_loop(loop_body.clone());
 
-    let (trace, trace_len) = build_trace(&[0, 1], &program);
+    let (trace, aux_hints, trace_len) = build_trace(&[0, 1], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let body_addr = INIT_ADDR + Felt::new(8);
     check_op_decoding(&trace, 0, ZERO, Operation::Loop, 0, 0, 0);
-    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Span, 8, 0, 0);
+    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Span, 1, 0, 0);
     check_op_decoding(&trace, 2, body_addr, Operation::Pad, 0, 0, 1);
     check_op_decoding(&trace, 3, body_addr, Operation::Drop, 0, 1, 1);
     check_op_decoding(&trace, 4, body_addr, Operation::End, 0, 0, 0);
@@ -448,6 +550,11 @@ fn loop_block() {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+
+    // --- check op_group table hints -------------------------------------------------------------
+    // op_group table should not have been touched
+    assert!(&aux_hints.op_group_table_hints().is_empty());
+    assert!(aux_hints.op_group_table_rows().is_empty());
 }
 
 #[test]
@@ -455,7 +562,7 @@ fn loop_block_skip() {
     let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
     let program = CodeBlock::new_loop(loop_body.clone());
 
-    let (trace, trace_len) = build_trace(&[0], &program);
+    let (trace, _, trace_len) = build_trace(&[0], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&trace, 0, ZERO, Operation::Loop, 0, 0, 0);
@@ -487,20 +594,20 @@ fn loop_block_repeat() {
     let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
     let program = CodeBlock::new_loop(loop_body.clone());
 
-    let (trace, trace_len) = build_trace(&[0, 1, 1], &program);
+    let (trace, aux_hints, trace_len) = build_trace(&[0, 1, 1], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     let iter1_addr = INIT_ADDR + Felt::new(8);
     let iter2_addr = INIT_ADDR + Felt::new(16);
 
     check_op_decoding(&trace, 0, ZERO, Operation::Loop, 0, 0, 0);
-    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Span, 8, 0, 0);
+    check_op_decoding(&trace, 1, INIT_ADDR, Operation::Span, 1, 0, 0);
     check_op_decoding(&trace, 2, iter1_addr, Operation::Pad, 0, 0, 1);
     check_op_decoding(&trace, 3, iter1_addr, Operation::Drop, 0, 1, 1);
     check_op_decoding(&trace, 4, iter1_addr, Operation::End, 0, 0, 0);
     // start second iteration
     check_op_decoding(&trace, 5, INIT_ADDR, Operation::Repeat, 0, 0, 0);
-    check_op_decoding(&trace, 6, INIT_ADDR, Operation::Span, 8, 0, 0);
+    check_op_decoding(&trace, 6, INIT_ADDR, Operation::Span, 1, 0, 0);
     check_op_decoding(&trace, 7, iter2_addr, Operation::Pad, 0, 0, 1);
     check_op_decoding(&trace, 8, iter2_addr, Operation::Drop, 0, 1, 1);
     check_op_decoding(&trace, 9, iter2_addr, Operation::End, 0, 0, 0);
@@ -539,6 +646,11 @@ fn loop_block_repeat() {
         assert!(contains_op(&trace, i, Operation::Halt));
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
+
+    // --- check op_group table hints -------------------------------------------------------------
+    // op_group table should not have been touched
+    assert!(&aux_hints.op_group_table_hints().is_empty());
+    assert!(aux_hints.op_group_table_rows().is_empty());
 }
 
 // HELPER REGISTERS TESTS
@@ -548,7 +660,7 @@ fn set_user_op_helpers_one() {
     // --- user operation with 1 helper value -----------------------------------------------------
     let ops = vec![Operation::U32and, Operation::U32and];
     let program = CodeBlock::new_span(ops);
-    let (trace, _) = build_trace(&[2, 6, 1], &program);
+    let (trace, _, _) = build_trace(&[2, 6, 1], &program);
 
     // Check the hasher state of the final user operation which was executed.
     let hasher_state = get_hasher_state(&trace, 2);
@@ -568,7 +680,7 @@ fn set_user_op_helpers_many() {
     let a = rand_value();
     let b = rand_value();
     let (dividend, divisor) = if a > b { (a, b) } else { (b, a) };
-    let (trace, _) = build_trace(&[dividend, divisor], &program);
+    let (trace, _, _) = build_trace(&[dividend, divisor], &program);
     let hasher_state = get_hasher_state(&trace, 1);
 
     // Check the hasher state of the user operation which was executed.
@@ -592,12 +704,12 @@ fn set_user_op_helpers_many() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, usize) {
+fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxTraceHints, usize) {
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(inputs);
     process.execute_code_block(program).unwrap();
 
-    let (trace, _) = ExecutionTrace::test_finalize_trace(process);
+    let (trace, aux_hints) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = trace[0].len() - ExecutionTrace::NUM_RAND_ROWS;
 
     (
@@ -605,6 +717,7 @@ fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, usize) {
             .to_vec()
             .try_into()
             .expect("failed to convert vector to array"),
+        aux_hints.decoder,
         trace_len,
     )
 }
@@ -623,9 +736,20 @@ fn check_op_decoding(
 ) {
     assert_eq!(trace[ADDR_COL_IDX][row_idx], addr);
     assert!(contains_op(trace, row_idx, op));
+    assert_eq!(trace[IN_SPAN_COL_IDX][row_idx], Felt::new(in_span));
     assert_eq!(trace[GROUP_COUNT_COL_IDX][row_idx], Felt::new(group_count));
     assert_eq!(trace[OP_INDEX_COL_IDX][row_idx], Felt::new(op_idx));
-    assert_eq!(trace[IN_SPAN_COL_IDX][row_idx], Felt::new(in_span));
+
+    let expected_batch_flags = if op == Operation::Span || op == Operation::Respan {
+        let num_groups = core::cmp::min(OP_BATCH_SIZE, group_count as usize);
+        build_op_batch_flags(num_groups)
+    } else {
+        [ZERO, ZERO, ZERO]
+    };
+
+    for (i, flag_value) in OP_BATCH_FLAGS_RANGE.zip(expected_batch_flags) {
+        assert_eq!(trace[i][row_idx], flag_value);
+    }
 }
 
 fn contains_op(trace: &DecoderTrace, row_idx: usize, op: Operation) -> bool {
@@ -647,16 +771,14 @@ fn read_opcode(trace: &DecoderTrace, row_idx: usize) -> u8 {
     result as u8
 }
 
-fn build_op_group(ops: &[Operation]) -> Felt {
-    let mut group = 0u64;
-    let mut i = 0;
-    for op in ops.iter() {
-        if !op.is_decorator() {
-            group |= (op.op_code().unwrap() as u64) << (Operation::OP_BITS * i);
-            i += 1;
-        }
+fn build_op_batch_flags(num_groups: usize) -> [Felt; NUM_OP_BATCH_FLAGS] {
+    match num_groups {
+        1 => OP_BATCH_1_GROUPS,
+        2 => OP_BATCH_2_GROUPS,
+        4 => OP_BATCH_4_GROUPS,
+        8 => OP_BATCH_8_GROUPS,
+        _ => panic!("invalid num groups: {}", num_groups),
     }
-    Felt::new(group)
 }
 
 // HASHER STATE

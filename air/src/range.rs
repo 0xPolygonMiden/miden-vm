@@ -1,5 +1,6 @@
 use vm_core::{
     range::{P0_COL_IDX, P1_COL_IDX, S0_COL_IDX, S1_COL_IDX, T_COL_IDX, V_COL_IDX},
+    utils::collections::Vec,
     ExtensionOf,
 };
 use winter_air::AuxTraceRandElements;

@@ -1,6 +1,12 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(not(feature = "std"))]
+#[macro_use]
+extern crate alloc;
+
 use vm_core::{
     hasher::Digest,
-    utils::{ByteWriter, Serializable},
+    utils::{collections::Vec, ByteWriter, Serializable},
     ExtensionOf, CLK_COL_IDX, FMP_COL_IDX, MIN_STACK_DEPTH, STACK_TRACE_OFFSET,
 };
 use winter_air::{

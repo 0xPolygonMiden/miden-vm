@@ -1,4 +1,10 @@
-use vm_core::{errors::LibraryError, program::Library, utils::collections::BTreeMap};
+#![cfg_attr(not(feature = "std"), no_std)]
+
+use vm_core::{
+    errors::LibraryError,
+    program::Library,
+    utils::{collections::BTreeMap, string::ToString},
+};
 
 mod asm;
 use asm::MODULES;

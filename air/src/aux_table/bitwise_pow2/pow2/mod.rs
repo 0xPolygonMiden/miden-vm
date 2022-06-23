@@ -1,6 +1,6 @@
-use crate::utils::{binary_not, is_binary};
+use crate::utils::{are_equal, binary_not, is_binary, is_zero};
 
-use super::{EvaluationFrame, FieldElement, OP_CYCLE_LEN, POW2_TRACE_OFFSET};
+use super::{EvaluationFrame, FieldElement, Vec, OP_CYCLE_LEN, POW2_TRACE_OFFSET};
 use core::ops::Range;
 use vm_core::{bitwise::POW2_POWERS_PER_ROW, utils::range as create_range};
 use winter_air::TransitionConstraintDegree;
@@ -12,7 +12,7 @@ mod tests;
 // ================================================================================================
 
 /// The number of constraints on the power of two co-processor.
-pub const NUM_CONSTRAINTS: usize = 24;
+pub const NUM_CONSTRAINTS: usize = 25;
 /// The degrees of constraints on the power of two co-processor. The degree of all constraints is
 /// increased by 4 due to the co-processor selector flag from the auxiliary table (degree 2) and the
 /// power of two operation selector flag (degree 2).
@@ -27,7 +27,7 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     6, // Ensure the input value a never exceeds the maximum allowed exponent value for the table.
     6, // Constrain the input aggregation.
     6, 6, // Enforce that the powers of 256 start at 1 and increase by 256 with each row.
-    6, 7, // Ensure that the output is aggregated correctly.
+    6, 6, 7, // Ensure that the output is aggregated correctly.
 ];
 /// Index of CONSTRAINT_DEGREES array after which all constraints use periodic columns.
 const PERIODIC_CONSTRAINTS_START: usize = 17;
@@ -43,8 +43,10 @@ const H_COL_IDX: usize = A_POWERS_COL_RANGE.end;
 const A_AGG_COL_IDX: usize = H_COL_IDX + 1;
 /// The column `p` holding increasing powers of 256.
 const P_COL_IDX: usize = A_AGG_COL_IDX + 1;
+/// The index of the output column `z` at previous row.
+const Z_AGG_PREV_COL_IDX: usize = P_COL_IDX + 1;
 /// The index of the output column `z`.
-const Z_AGG_COL_IDX: usize = P_COL_IDX + 1;
+const Z_AGG_COL_IDX: usize = Z_AGG_PREV_COL_IDX + 1;
 
 // POWER OF TWO TRANSITION CONSTRAINTS
 // ================================================================================================
@@ -189,10 +191,11 @@ fn enforce_powers_of_256<E: FieldElement>(
 }
 
 /// The constraints to enforce correct aggregation of the output value. The constraints enforce:
-/// - If the power decomposition ends in the first row, then the aggregated output of the decomposed
-///   powers equals the value in the output column.
-/// - For all rows except the last, the output value in the next row will equal the value in the
-///   current row plus the next row's power of 256 times the aggregation of its decomposed powers.
+/// - In the first row, `z_prev` should be set to 0.
+/// - For all the rows except the last one, the next value of `z_prev` should be the same as
+///   the current value of `z`.
+/// - For all rows except the last one, the current output value (`z`) should equal the output value
+///   copied from the previous row (`z_prev`) plus the aggregation of current row's decomposed power.
 fn enforce_output_aggregation<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     periodic_values: &[E],
@@ -203,17 +206,23 @@ fn enforce_output_aggregation<E: FieldElement>(
     let k0 = periodic_values[0];
     let k1 = periodic_values[1];
 
-    // Enforce correct output aggregation in the first row.
-    let agg_row_output = (0..=POW2_POWERS_PER_ROW).fold(E::ZERO, |r, idx| r + frame.a_output(idx));
-    result[constraint_offset] = processor_flag * k0 * (frame.z() - agg_row_output);
+    // Enforce value of `z_prev` output to 0 for the first row.
+    result[constraint_offset] = processor_flag * k0 * is_zero(frame.z_prev());
     constraint_offset += 1;
 
-    // For all rows except the last, enforce the next row's output is the aggregation of the
-    // decomposed powers in the next row and the output value in the current row.
-    let agg_next_row_output =
-        (0..=POW2_POWERS_PER_ROW).fold(E::ZERO, |r, idx| r + frame.a_output_next(idx));
+    // For all rows except the last one, enforce the next value of `z_prev` is the same as
+    // the current value of `z`.
+    result[constraint_offset] = processor_flag * k1 * are_equal(frame.z_prev_next(), frame.z());
+    constraint_offset += 1;
+
+    // For all rows, enforce the current row's output is the aggregation of the current row's
+    // decomposed powers and the current value of `z_prev`(the previous row's output value).
+    let agg_row_output =
+        (0..=POW2_POWERS_PER_ROW).fold(E::ZERO, |r, idx| r + frame.a_output(idx, k0));
+
     result[constraint_offset] =
-        processor_flag * k1 * (frame.z_next() - (frame.p_next() * agg_next_row_output + frame.z()));
+        processor_flag * are_equal(frame.z(), frame.p() * agg_row_output + frame.z_prev());
+
     constraint_offset += 1;
 
     constraint_offset
@@ -240,6 +249,10 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn p(&self) -> E;
     /// The power of 256 in the next row.
     fn p_next(&self) -> E;
+    /// The aggregated output value in the previous row.
+    fn z_prev(&self) -> E;
+    /// The aggregated output value in the next row's previous row.
+    fn z_prev_next(&self) -> E;
     /// The aggregated output value in the current row.
     fn z(&self) -> E;
     /// The aggregated output value in the next row.
@@ -250,11 +263,7 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// The aggregated output value at the specified index in the "virtual row" for the current row,
     /// where the virtual row is composed of the differences of adjacent values in the trace row and
     /// is used to track the end of the power decomposition, where the output should be aggregated.
-    fn a_output(&self, index: usize) -> E;
-    /// The aggregated output value at the specified index in the "virtual row" for the next row,
-    /// where the virtual row is composed of the differences of adjacent values in the trace row and
-    /// is used to track the end of the power decomposition, where the output should be aggregated.
-    fn a_output_next(&self, index: usize) -> E;
+    fn a_output(&self, index: usize, k0: E) -> E;
 }
 
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
@@ -293,6 +302,14 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
         self.next()[P_COL_IDX]
     }
     #[inline(always)]
+    fn z_prev(&self) -> E {
+        self.current()[Z_AGG_PREV_COL_IDX]
+    }
+    #[inline(always)]
+    fn z_prev_next(&self) -> E {
+        self.next()[Z_AGG_PREV_COL_IDX]
+    }
+    #[inline(always)]
     fn z(&self) -> E {
         self.current()[Z_AGG_COL_IDX]
     }
@@ -304,22 +321,14 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Intermediate variables & helpers -------------------------------------------------------
 
     #[inline(always)]
-    fn a_output(&self, index: usize) -> E {
+    fn a_output(&self, index: usize, k0: E) -> E {
         match index {
-            0 => binary_not(self.a_power(0)),
+            // If the value of the zeroth index of the first row is 0 then it returns 1 and for all other
+            // cases the the output of zeroth index is zero due to the selector column being 0 for rows other
+            // than the first row.
+            0 => binary_not(self.a_power(0)) * k0,
             8 => (self.a_power(index - 1) - self.h()) * E::from(2_u64.pow(index as u32)),
             _ => (self.a_power(index - 1) - self.a_power(index)) * E::from(2_u64.pow(index as u32)),
-        }
-    }
-    #[inline(always)]
-    fn a_output_next(&self, index: usize) -> E {
-        match index {
-            0 => E::ZERO,
-            8 => (self.a_power_next(7) - self.h_next()) * E::from(2_u64.pow(index as u32)),
-            _ => {
-                (self.a_power_next(index - 1) - self.a_power_next(index))
-                    * E::from(2_u64.pow(index as u32))
-            }
         }
     }
 }

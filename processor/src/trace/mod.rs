@@ -1,11 +1,21 @@
 use super::{
+    decoder::AuxTraceHints as DecoderAuxTraceHints,
     range::AuxTraceHints as RangeCheckerAuxTraceHints, Digest, Felt, FieldElement, Process,
-    StackTopState,
+    StackTopState, Vec,
 };
-use core::slice;
-use vm_core::{StarkField, MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH};
+use vm_core::{
+    AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET,
+    TRACE_WIDTH, ZERO,
+};
 use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
 
+#[cfg(feature = "std")]
+use vm_core::StarkField;
+
+mod utils;
+pub use utils::TraceFragment;
+
+mod decoder;
 mod range;
 
 // CONSTANTS
@@ -23,17 +33,22 @@ type RandomCoin = vm_core::utils::RandomCoin<Felt, vm_core::hasher::Hasher>;
 // ================================================================================================
 
 pub struct AuxTraceHints {
-    range: RangeCheckerAuxTraceHints,
+    pub(crate) decoder: DecoderAuxTraceHints,
+    pub(crate) range: RangeCheckerAuxTraceHints,
 }
 
-/// TODO: for now this consists only of system register trace, stack trace, range check trace, and
-/// auxiliary table trace, but will also need to include the decoder trace.
+/// Execution trace which is generated when a program is executed on the VM.
+///
+/// The trace consists of the following components:
+/// - Main traces of System, Decoder, Operand Stack, Range Checker, and Auxiliary Co-Processor
+///   components.
+/// - Hints used during auxiliary trace segment construction.
+/// - Metadata needed by the STARK prover.
 pub struct ExecutionTrace {
     meta: Vec<u8>,
     layout: TraceLayout,
     main_trace: Matrix<Felt>,
     aux_trace_hints: AuxTraceHints,
-    // TODO: program hash should be retrieved from decoder trace, but for now we store it explicitly
     program_hash: Digest,
 }
 
@@ -47,17 +62,18 @@ impl ExecutionTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
-    pub(super) fn new(process: Process, program_hash: Digest) -> Self {
+    pub(super) fn new(process: Process) -> Self {
         // use program hash to initialize random element generator; this generator will be used
         // to inject random values at the end of the trace; using program hash here is OK because
-        // we are using random values only to stabilize constraint degree, and not to achieve
+        // we are using random values only to stabilize constraint degrees, and not to achieve
         // perfect zero knowledge.
+        let program_hash: Digest = process.decoder.program_hash().into();
         let rng = RandomCoin::new(&program_hash.to_bytes());
         let (main_trace, aux_trace_hints) = finalize_trace(process, rng);
 
         Self {
             meta: Vec::new(),
-            layout: TraceLayout::new(TRACE_WIDTH, [2], [1]),
+            layout: TraceLayout::new(TRACE_WIDTH, [AUX_TRACE_WIDTH], [AUX_TRACE_RAND_ELEMENTS]),
             main_trace: Matrix::new(main_trace),
             aux_trace_hints,
             program_hash,
@@ -67,15 +83,14 @@ impl ExecutionTrace {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// TODO: add docs
+    /// Returns hash of the program execution of which resulted in this execution trace.
     pub fn program_hash(&self) -> Digest {
-        // TODO: program hash should be read from the decoder trace
         self.program_hash
     }
 
     /// Returns the initial state of the top 16 stack registers.
     pub fn init_stack_state(&self) -> StackTopState {
-        let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
+        let mut result = [ZERO; MIN_STACK_DEPTH];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[0];
         }
@@ -84,20 +99,28 @@ impl ExecutionTrace {
 
     /// Returns the final state of the top 16 stack registers.
     pub fn last_stack_state(&self) -> StackTopState {
-        let last_step = self.length() - NUM_RAND_ROWS - 1;
-        let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
+        let last_step = self.last_step();
+        let mut result = [ZERO; MIN_STACK_DEPTH];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[last_step];
         }
         result
     }
 
-    // TEST HELPERS
+    // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns the index of the last row in the trace.
+    fn last_step(&self) -> usize {
+        self.length() - NUM_RAND_ROWS - 1
+    }
+
+    // TEST HELPERS
+    // --------------------------------------------------------------------------------------------
+    #[cfg(feature = "std")]
     #[allow(dead_code)]
     pub fn print(&self) {
-        let mut row = [Felt::ZERO; TRACE_WIDTH];
+        let mut row = [ZERO; TRACE_WIDTH];
         for i in 0..self.length() {
             self.main_trace.read_row_into(i, &mut row);
             println!("{:?}", row.iter().map(|v| v.as_int()).collect::<Vec<_>>());
@@ -138,18 +161,33 @@ impl Trace for ExecutionTrace {
         aux_segments: &[Matrix<E>],
         rand_elements: &[E],
     ) -> Option<Matrix<E>> {
-        // We only have one auxiliary segment.
+        // we only have one auxiliary segment
         if !aux_segments.is_empty() {
             return None;
         }
 
-        // Add the range checker's running product columns.
-        let mut aux_columns = range::build_aux_columns(
+        // TODO: build auxiliary columns in multiple threads
+
+        // Add decoder's running product columns
+        let decoder_aux_columns = decoder::build_aux_columns(
+            &self.main_trace,
+            &self.aux_trace_hints.decoder,
+            rand_elements,
+        );
+
+        // add the range checker's running product columns
+        let range_aux_columns = range::build_aux_columns(
             self.length(),
             &self.aux_trace_hints.range,
             rand_elements,
             self.main_trace.get_column(range::V_COL_IDX),
         );
+
+        // combine all auxiliary columns into a single vector
+        let mut aux_columns = decoder_aux_columns
+            .into_iter()
+            .chain(range_aux_columns)
+            .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
         let mut rng = RandomCoin::new(&self.program_hash.to_bytes());
@@ -167,71 +205,6 @@ impl Trace for ExecutionTrace {
         self.main_trace.read_row_into(row_idx, frame.current_mut());
         self.main_trace
             .read_row_into(next_row_idx, frame.next_mut());
-    }
-}
-
-// TRACE FRAGMENT
-// ================================================================================================
-
-/// TODO: add docs
-pub struct TraceFragment<'a> {
-    data: Vec<&'a mut [Felt]>,
-}
-
-impl<'a> TraceFragment<'a> {
-    /// Creates a new TraceFragment with its data allocated to the specified capacity.
-    pub fn new(capacity: usize) -> Self {
-        TraceFragment {
-            data: Vec::with_capacity(capacity),
-        }
-    }
-
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns the number of columns in this execution trace fragment.
-    pub fn width(&self) -> usize {
-        self.data.len()
-    }
-
-    /// Returns the number of rows in this execution trace fragment.
-    pub fn len(&self) -> usize {
-        self.data[0].len()
-    }
-
-    // DATA MUTATORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Updates a single cell in this fragment with provided value.
-    #[inline(always)]
-    pub fn set(&mut self, row_idx: usize, col_idx: usize, value: Felt) {
-        self.data[col_idx][row_idx] = value;
-    }
-
-    /// Returns a mutable iterator the the columns of this fragment.
-    pub fn columns(&mut self) -> slice::IterMut<'_, &'a mut [Felt]> {
-        self.data.iter_mut()
-    }
-
-    /// Adds a new column to this fragment by pushing a mutable slice with the first `len`
-    /// elements of the provided column. Returns the rest of the provided column as a separate
-    /// mutable slice.
-    pub fn push_column_slice(&mut self, column: &'a mut [Felt], len: usize) -> &'a mut [Felt] {
-        let (column_fragment, rest) = column.split_at_mut(len);
-        self.data.push(column_fragment);
-        rest
-    }
-
-    // TEST METHODS
-    // --------------------------------------------------------------------------------------------
-
-    #[cfg(test)]
-    pub fn trace_to_fragment(trace: &'a mut [Vec<Felt>]) -> Self {
-        let mut data = Vec::new();
-        for column in trace.iter_mut() {
-            data.push(column.as_mut_slice());
-        }
-        Self { data }
     }
 }
 
@@ -253,7 +226,11 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
 
     // trace lengths of system and stack components must be equal to the number of executed cycles
     assert_eq!(clk, system.trace_len(), "inconsistent system trace lengths");
-    // TODO: check decoder trace length
+    assert_eq!(
+        clk,
+        decoder.trace_len(),
+        "inconsistent decoder trace length"
+    );
     assert_eq!(clk, stack.trace_len(), "inconsistent stack trace lengths");
 
     // Get the trace length required to hold all execution trace steps.
@@ -281,7 +258,7 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
 
     let mut trace = system_trace
         .into_iter()
-        .chain(decoder_trace)
+        .chain(decoder_trace.trace)
         .chain(stack_trace)
         .chain(range_check_trace.trace)
         .chain(aux_table_trace)
@@ -295,6 +272,7 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     }
 
     let aux_trace_hints = AuxTraceHints {
+        decoder: decoder_trace.aux_trace_hints,
         range: range_check_trace.aux_trace_hints,
     };
 
