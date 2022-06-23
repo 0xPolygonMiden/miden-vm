@@ -1,4 +1,7 @@
-use super::{get_num_groups_in_next_batch, BTreeMap, Felt, FieldElement, Vec};
+use super::{
+    get_num_groups_in_next_batch, BTreeMap, BlockInfo, Felt, FieldElement, StarkField, Vec, Word,
+    ONE, ZERO,
+};
 
 // AUXILIARY TRACE HINTS
 // ================================================================================================
@@ -6,6 +9,15 @@ use super::{get_num_groups_in_next_batch, BTreeMap, Felt, FieldElement, Vec};
 /// Contains information which can be used to simplify construction of execution traces of
 /// decoder-related auxiliary trace segment columns (used in multiset checks).
 pub struct AuxTraceHints {
+    /// TODO: add comments
+    pub(super) block_exec_hints: Vec<(usize, BlockTableUpdate)>,
+    /// Contains a list of rows which were added and then removed from the block stack table. The
+    /// rows are sorted by `block_id` in ascending order.
+    pub(super) block_stack_rows: Vec<BlockStackTableRow>,
+    /// Contains a list of rows which were added and then removed form the block hash table. The
+    /// rows are sorted first by `parent_id` and then by `is_first_child` with the entry where
+    /// `is_first_child` = true coming first.
+    pub(super) block_hash_rows: Vec<BlockHashTableRow>,
     /// A map where keys are clock cycles and values describes how the op group table is
     /// updated at these clock cycles.
     op_group_hints: BTreeMap<usize, OpGroupTableUpdate>,
@@ -19,6 +31,9 @@ impl AuxTraceHints {
     /// Returns an empty [AuxTraceHints] struct.
     pub fn new() -> Self {
         Self {
+            block_exec_hints: Vec::new(),
+            block_stack_rows: Vec::new(),
+            block_hash_rows: Vec::new(),
             op_group_hints: BTreeMap::new(),
             op_group_rows: Vec::new(),
         }
@@ -39,8 +54,117 @@ impl AuxTraceHints {
         &self.op_group_rows
     }
 
+    /// TODO: add comments
+    #[allow(dead_code)]
+    pub fn get_block_stack_row(&self, block_id: Felt) -> Option<&BlockStackTableRow> {
+        let block_id = block_id.as_int();
+        match self
+            .block_stack_rows
+            .binary_search_by_key(&block_id, |row| row.block_id.as_int())
+        {
+            Ok(idx) => Some(&self.block_stack_rows[idx]),
+            Err(_) => None,
+        }
+    }
+
+    /// TODO: add comments
+    #[allow(dead_code)]
+    pub fn get_block_hash_row(
+        &self,
+        parent_id: Felt,
+        is_first_child: bool,
+    ) -> Option<&BlockHashTableRow> {
+        let parent_id = parent_id.as_int();
+        match self
+            .block_hash_rows
+            .binary_search_by_key(&parent_id, |row| row.parent_id.as_int())
+        {
+            Ok(idx) => {
+                // check if the row for the found index is the right one; we need to do this
+                // because binary search may return an index for either of the two entries for
+                // the specified parent_id
+                let row = &self.block_hash_rows[idx];
+                if row.is_first_child == is_first_child {
+                    Some(row)
+                } else if is_first_child {
+                    // if we got here, it means that is_first_child for the row at the found index
+                    // is false. thus, the row with is_first_child = true should be right before it
+                    let row = &self.block_hash_rows[idx - 1];
+                    debug_assert_eq!(row.parent_id.as_int(), parent_id);
+                    debug_assert_eq!(row.is_first_child, is_first_child);
+                    Some(row)
+                } else {
+                    // similarly, if we got here, is_first_child for the row at the found index
+                    // must be true. thus, the row with is_first_child = false should be right
+                    // after it
+                    let row = &self.block_hash_rows[idx + 1];
+                    debug_assert_eq!(row.parent_id.as_int(), parent_id);
+                    debug_assert_eq!(row.is_first_child, is_first_child);
+                    Some(row)
+                }
+            }
+            Err(_) => None,
+        }
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
+
+    /// Specifies that a new code block started executing at the specified clock cycle. This also
+    /// records the relevant rows for both, block stack and block hash tables.
+    pub fn start_block(
+        &mut self,
+        clk: usize,
+        block_info: &BlockInfo,
+        child1_hash: Option<Word>,
+        child2_hash: Option<Word>,
+    ) {
+        // insert the hint with the relevant update
+        self.block_exec_hints
+            .push((clk, BlockTableUpdate::BlockStarted));
+
+        // create a row which would be inserted into the block stack table
+        let bst_row = BlockStackTableRow::new(block_info);
+        self.block_stack_rows.push(bst_row);
+
+        // crete rows for the block hash table. this may result in creation of 0, 1, or 2 rows:
+        // - no rows are created for SPAN blocks (both child hashes are None).
+        // - one row is created with is_first_child=false for SPLIT and LOOP blocks.
+        // - two rows are created for JOIN blocks with first row having is_first_child=true, and
+        //   the second row having is_first_child=false
+        if let Some(child1_hash) = child1_hash {
+            let is_first_child = child2_hash.is_some();
+            let bsh_row1 = BlockHashTableRow::new(block_info, child1_hash, is_first_child);
+            self.block_hash_rows.push(bsh_row1);
+
+            if let Some(child2_hash) = child2_hash {
+                let bsh_row2 = BlockHashTableRow::new(block_info, child2_hash, false);
+                self.block_hash_rows.push(bsh_row2);
+            }
+        }
+    }
+
+    /// Specifies that a code block execution was completed at the specified clock cycle. We also
+    /// need to specify whether the block was the first child of a JOIN block so that we can find
+    /// correct block hash table row.
+    pub fn end_block(&mut self, clk: usize, block_id: Felt, is_first_child: bool) {
+        self.block_exec_hints
+            .push((clk, BlockTableUpdate::BlockEnded(block_id, is_first_child)));
+    }
+
+    /// TODO: add comments
+    pub fn repeat_loop_body(&mut self, clk: usize, parent_id: Felt) {
+        self.block_exec_hints
+            .push((clk, BlockTableUpdate::LoopRepeated(parent_id)));
+    }
+
+    /// TODO: add comments
+    pub fn continue_span(&mut self, clk: usize, block_info: &BlockInfo) {
+        let row = BlockStackTableRow::new(block_info);
+        self.block_stack_rows.push(row);
+        self.block_exec_hints
+            .push((clk, BlockTableUpdate::SpanExtended))
+    }
 
     /// Specifies that an operation batch may have been inserted into the op group table at the
     /// specified cycle. Operation groups are inserted into the table only if the number of groups
@@ -86,7 +210,118 @@ impl Default for AuxTraceHints {
     }
 }
 
-// OP GROUP TABLE UPDATE HINTS
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BlockTableUpdate {
+    BlockStarted,
+    SpanExtended,
+    LoopRepeated(Felt),
+    BlockEnded(Felt, bool),
+}
+
+// BLOCK STACK TABLE HINTS
+// ================================================================================================
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct BlockStackTableRow {
+    block_id: Felt,
+    parent_id: Felt,
+    is_loop: bool,
+}
+
+impl BlockStackTableRow {
+    /// Returns a new [BlockStackTableRow] instantiated from the specified block info.
+    pub fn new(block_info: &BlockInfo) -> Self {
+        Self {
+            block_id: block_info.addr,
+            parent_id: block_info.parent_addr,
+            is_loop: block_info.is_entered_loop() == ONE,
+        }
+    }
+
+    /// Returns a new [BlockStackTableRow] instantiated with the specified parameters. This is
+    /// used for test purpose only.
+    #[cfg(test)]
+    pub fn new_test(block_id: Felt, parent_id: Felt, is_loop: bool) -> Self {
+        Self {
+            block_id,
+            parent_id,
+            is_loop,
+        }
+    }
+
+    /// Reduces this row to a single field element in the field specified by E. This requires
+    /// at least 4 alpha values.
+    #[allow(clippy::wrong_self_convention)]
+    #[allow(dead_code)]
+    pub fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+        let is_loop = if self.is_loop { ONE } else { ZERO };
+
+        alphas[0]
+            + alphas[1].mul_base(self.block_id)
+            + alphas[2].mul_base(self.parent_id)
+            + alphas[3].mul_base(is_loop)
+    }
+}
+
+// BLOCK HASH TABLE HINTS
+// ================================================================================================
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct BlockHashTableRow {
+    parent_id: Felt,
+    block_hash: Word,
+    is_first_child: bool,
+    is_loop_body: bool,
+}
+
+impl BlockHashTableRow {
+    /// Returns a new [BlockHashTableRow] instantiated with the specified parameters.
+    pub fn new(parent_info: &BlockInfo, block_hash: Word, is_first_child: bool) -> Self {
+        Self {
+            parent_id: parent_info.addr,
+            block_hash,
+            is_first_child,
+            is_loop_body: parent_info.is_entered_loop() == ONE,
+        }
+    }
+
+    /// Returns a new [BlockHashTableRow] instantiated with the specified parameters. This is
+    /// used for test purpose only.
+    #[cfg(test)]
+    pub fn new_test(
+        parent_id: Felt,
+        block_hash: Word,
+        is_first_child: bool,
+        is_loop_body: bool,
+    ) -> Self {
+        Self {
+            parent_id,
+            block_hash,
+            is_first_child,
+            is_loop_body,
+        }
+    }
+
+    /// Reduces this row to a single field element in the field specified by E. This requires
+    /// at least 8 alpha values.
+    #[allow(clippy::wrong_self_convention)]
+    #[allow(dead_code)]
+    pub fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+        let is_first_child = if self.is_first_child { ONE } else { ZERO };
+        let is_loop_body = if self.is_loop_body { ONE } else { ZERO };
+
+        alphas[0]
+            + alphas[1].mul_base(self.parent_id)
+            + alphas[2].mul_base(self.block_hash[0])
+            + alphas[3].mul_base(self.block_hash[1])
+            + alphas[4].mul_base(self.block_hash[2])
+            + alphas[5].mul_base(self.block_hash[3])
+            + alphas[6].mul_base(is_first_child)
+            + alphas[7].mul_base(is_loop_body)
+    }
+}
+
+// OP GROUP TABLE HINTS
 // ================================================================================================
 
 /// Describes an update to the op group table. There could be two types of updates:

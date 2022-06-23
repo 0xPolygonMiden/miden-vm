@@ -15,7 +15,10 @@ mod trace;
 use trace::DecoderTrace;
 
 mod aux_hints;
-pub use aux_hints::{AuxTraceHints, OpGroupTableRow, OpGroupTableUpdate};
+pub use aux_hints::{
+    AuxTraceHints, BlockHashTableRow, BlockStackTableRow, BlockTableUpdate, OpGroupTableRow,
+    OpGroupTableUpdate,
+};
 
 #[cfg(test)]
 mod tests;
@@ -78,7 +81,8 @@ impl Process {
 
         // start decoding the SPLIT block. this appends a row with SPLIT operation to the decoder
         // trace. we also pop the value off the top of the stack and return it.
-        self.decoder.start_split(child1_hash, child2_hash, addr);
+        self.decoder
+            .start_split(child1_hash, child2_hash, addr, condition);
         self.execute_op(Operation::Drop)?;
         Ok(condition)
     }
@@ -272,9 +276,19 @@ impl Decoder {
     /// This pushes a block with ID=addr onto the block stack and appends execution of a JOIN
     /// operation to the trace.
     pub fn start_join(&mut self, child1_hash: Word, child2_hash: Word, addr: Felt) {
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
+
         let parent_addr = self.block_stack.push(addr, BlockType::Join(false));
         self.trace
             .append_block_start(parent_addr, Operation::Join, child1_hash, child2_hash);
+
+        self.aux_hints.start_block(
+            clk,
+            self.block_stack.peek(),
+            Some(child1_hash),
+            Some(child2_hash),
+        );
 
         self.append_operation(Operation::Join);
     }
@@ -283,10 +297,28 @@ impl Decoder {
     ///
     /// This pushes a block with ID=addr onto the block stack and appends execution of a SPLIT
     /// operation to the trace.
-    pub fn start_split(&mut self, child1_hash: Word, child2_hash: Word, addr: Felt) {
+    pub fn start_split(
+        &mut self,
+        child1_hash: Word,
+        child2_hash: Word,
+        addr: Felt,
+        stack_top: Felt,
+    ) {
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
+
         let parent_addr = self.block_stack.push(addr, BlockType::Split);
         self.trace
             .append_block_start(parent_addr, Operation::Split, child1_hash, child2_hash);
+
+        let taken_branch_hash = if stack_top == ONE {
+            child1_hash
+        } else {
+            child2_hash
+        };
+
+        self.aux_hints
+            .start_block(clk, self.block_stack.peek(), Some(taken_branch_hash), None);
 
         self.append_operation(Operation::Split);
     }
@@ -296,10 +328,22 @@ impl Decoder {
     /// This pushes a block with ID=addr onto the block stack and appends execution of a LOOP
     /// operation to the trace. A block is marked as a loop block only if is_loop = ONE.
     pub fn start_loop(&mut self, loop_body_hash: Word, addr: Felt, stack_top: Felt) {
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
+
         let enter_loop = stack_top == ONE;
         let parent_addr = self.block_stack.push(addr, BlockType::Loop(enter_loop));
         self.trace
             .append_block_start(parent_addr, Operation::Loop, loop_body_hash, [ZERO; 4]);
+
+        let executed_loop_body = if enter_loop {
+            Some(loop_body_hash)
+        } else {
+            None
+        };
+
+        self.aux_hints
+            .start_block(clk, self.block_stack.peek(), executed_loop_body, None);
 
         self.append_operation(Operation::Loop);
     }
@@ -308,9 +352,14 @@ impl Decoder {
     ///
     /// This appends an execution of a REPEAT operation to the trace.
     pub fn repeat(&mut self) {
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
+
         let block_info = self.block_stack.peek();
         debug_assert_eq!(ONE, block_info.is_entered_loop());
         self.trace.append_loop_repeat(block_info.addr);
+
+        self.aux_hints.repeat_loop_body(clk, block_info.addr);
 
         self.append_operation(Operation::Repeat);
     }
@@ -320,6 +369,9 @@ impl Decoder {
     /// This appends an execution of an END operation to the trace. The top block on the block
     /// stack is also popped.
     pub fn end_control_block(&mut self, block_hash: Word) {
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
+
         let block_info = self.block_stack.pop();
         self.trace.append_block_end(
             block_info.addr,
@@ -327,6 +379,9 @@ impl Decoder {
             block_info.is_loop_body(),
             block_info.is_entered_loop(),
         );
+
+        self.aux_hints
+            .end_block(clk, block_info.addr, block_info.is_first_child);
 
         self.append_operation(Operation::End);
     }
@@ -357,6 +412,9 @@ impl Decoder {
         // into the op_group table
         self.aux_hints.insert_op_batch(clk, num_op_groups);
 
+        self.aux_hints
+            .start_block(clk, self.block_stack.peek(), None, None);
+
         self.append_operation(Operation::Span);
     }
 
@@ -378,6 +436,8 @@ impl Decoder {
         // mark the current cycle as a cycle at which an operation batch may have been inserted
         // into the op_group table
         self.aux_hints.insert_op_batch(clk, ctx.num_groups_left);
+
+        self.aux_hints.continue_span(clk, block_info);
 
         // after RESPAN operation is executed, we decrement the number of remaining groups by ONE
         // because executing RESPAN consumes the first group of the batch
@@ -459,9 +519,16 @@ impl Decoder {
 
     /// Ends decoding of a SPAN block.
     pub fn end_span(&mut self, block_hash: Word) {
-        let is_loop_body = self.block_stack.pop().is_loop_body();
-        self.trace.append_span_end(block_hash, is_loop_body);
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
+
+        let block_info = self.block_stack.pop();
+        self.trace
+            .append_span_end(block_hash, block_info.is_loop_body());
         self.span_context = None;
+
+        self.aux_hints
+            .end_block(clk, block_info.addr, block_info.is_first_child);
 
         self.append_operation(Operation::End);
     }
