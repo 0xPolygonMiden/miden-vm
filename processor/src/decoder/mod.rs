@@ -228,9 +228,9 @@ pub struct Decoder {
     block_stack: BlockStack,
     span_context: Option<SpanContext>,
     trace: DecoderTrace,
-    operations: Vec<Operation>,
-    in_debug_mode: bool,
     aux_hints: AuxTraceHints,
+    in_debug_mode: bool,
+    operations: Vec<Operation>,
 }
 
 impl Decoder {
@@ -242,9 +242,9 @@ impl Decoder {
             block_stack: BlockStack::new(),
             span_context: None,
             trace: DecoderTrace::new(),
-            operations: Vec::<Operation>::new(),
-            in_debug_mode,
             aux_hints: AuxTraceHints::new(),
+            in_debug_mode,
+            operations: Vec::<Operation>::new(),
         }
     }
 
@@ -269,42 +269,35 @@ impl Decoder {
 
     /// Starts decoding of a JOIN block.
     ///
-    /// This pushes a block with ID=addr onto the block stack and appending execution of a JOIN
+    /// This pushes a block with ID=addr onto the block stack and appends execution of a JOIN
     /// operation to the trace.
-    pub fn start_join(&mut self, left_child_hash: Word, right_child_hash: Word, addr: Felt) {
-        let parent_addr = self.block_stack.push(addr, ZERO);
-        self.trace.append_block_start(
-            parent_addr,
-            Operation::Join,
-            left_child_hash,
-            right_child_hash,
-        );
+    pub fn start_join(&mut self, child1_hash: Word, child2_hash: Word, addr: Felt) {
+        let parent_addr = self.block_stack.push(addr, BlockType::Join(false));
+        self.trace
+            .append_block_start(parent_addr, Operation::Join, child1_hash, child2_hash);
 
         self.append_operation(Operation::Join);
     }
 
     /// Starts decoding of a SPLIT block.
     ///
-    /// This pushes a block with ID=addr onto the block stack and appending execution of a SPLIT
+    /// This pushes a block with ID=addr onto the block stack and appends execution of a SPLIT
     /// operation to the trace.
-    pub fn start_split(&mut self, left_child_hash: Word, right_child_hash: Word, addr: Felt) {
-        let parent_addr = self.block_stack.push(addr, ZERO);
-        self.trace.append_block_start(
-            parent_addr,
-            Operation::Split,
-            left_child_hash,
-            right_child_hash,
-        );
+    pub fn start_split(&mut self, child1_hash: Word, child2_hash: Word, addr: Felt) {
+        let parent_addr = self.block_stack.push(addr, BlockType::Split);
+        self.trace
+            .append_block_start(parent_addr, Operation::Split, child1_hash, child2_hash);
 
         self.append_operation(Operation::Split);
     }
 
     /// Starts decoding of a LOOP block.
     ///
-    /// This pushes a block with ID=addr onto the block stack and appending execution of a LOOP
+    /// This pushes a block with ID=addr onto the block stack and appends execution of a LOOP
     /// operation to the trace. A block is marked as a loop block only if is_loop = ONE.
-    pub fn start_loop(&mut self, loop_body_hash: Word, addr: Felt, is_loop: Felt) {
-        let parent_addr = self.block_stack.push(addr, is_loop);
+    pub fn start_loop(&mut self, loop_body_hash: Word, addr: Felt, stack_top: Felt) {
+        let enter_loop = stack_top == ONE;
+        let parent_addr = self.block_stack.push(addr, BlockType::Loop(enter_loop));
         self.trace
             .append_block_start(parent_addr, Operation::Loop, loop_body_hash, [ZERO; 4]);
 
@@ -316,7 +309,7 @@ impl Decoder {
     /// This appends an execution of a REPEAT operation to the trace.
     pub fn repeat(&mut self) {
         let block_info = self.block_stack.peek();
-        debug_assert_eq!(ONE, block_info.is_loop);
+        debug_assert_eq!(ONE, block_info.is_entered_loop());
         self.trace.append_loop_repeat(block_info.addr);
 
         self.append_operation(Operation::Repeat);
@@ -331,8 +324,8 @@ impl Decoder {
         self.trace.append_block_end(
             block_info.addr,
             block_hash,
-            block_info.is_loop_body,
-            block_info.is_loop,
+            block_info.is_loop_body(),
+            block_info.is_entered_loop(),
         );
 
         self.append_operation(Operation::End);
@@ -344,7 +337,7 @@ impl Decoder {
     /// Starts decoding of a SPAN block defined by the specified operation batches.
     pub fn start_span(&mut self, first_op_batch: &OpBatch, num_op_groups: Felt, addr: Felt) {
         debug_assert!(self.span_context.is_none(), "already in span");
-        let parent_addr = self.block_stack.push(addr, ZERO);
+        let parent_addr = self.block_stack.push(addr, BlockType::Span);
 
         // get the current clock cycle here (before the trace table is updated)
         let clk = self.trace_len();
@@ -466,7 +459,7 @@ impl Decoder {
 
     /// Ends decoding of a SPAN block.
     pub fn end_span(&mut self, block_hash: Word) {
-        let is_loop_body = self.block_stack.pop().is_loop_body;
+        let is_loop_body = self.block_stack.pop().is_loop_body();
         self.trace.append_span_end(block_hash, is_loop_body);
         self.span_context = None;
 
@@ -541,30 +534,53 @@ impl BlockStack {
 
     /// Pushes a new code block onto the block stack and returns the address of the block's parent.
     ///
-    /// The block is identified by its address, and we also need to know whether this block is a
-    /// LOOP block. Other information (i.e., the block's parent and whether the block is a body of
-    /// a loop) is determined from the information already on the stack.
-    pub fn push(&mut self, addr: Felt, is_loop: Felt) -> Felt {
-        let (parent_addr, is_loop_body) = if self.blocks.is_empty() {
-            // if the stack is empty, the new block has no parent and cannot be a body of a LOOP
-            (ZERO, ZERO)
-        } else {
-            let parent = &self.blocks[self.blocks.len() - 1];
-            (parent.addr, parent.is_loop)
+    /// The block is identified by its address, and we also need to know what type of a block this
+    /// is. Other information (i.e., the block's parent, whether the block is a body of
+    /// a loop or a first child of a JOIN block) is determined from the information already on the
+    /// stack.
+    pub fn push(&mut self, addr: Felt, block_type: BlockType) -> Felt {
+        let (parent_addr, is_loop_body, is_first_child) = match self.blocks.last() {
+            Some(parent) => match parent.block_type {
+                // if the parent is a LOOP block, this block must be a loop body
+                BlockType::Loop(loop_entered) => {
+                    debug_assert!(loop_entered, "parent is un-entered loop");
+                    (parent.addr, true, false)
+                }
+                // if the parent is a JOIN block, figure out if this block is the first or the
+                // second child
+                BlockType::Join(first_child_executed) => {
+                    (parent.addr, false, !first_child_executed)
+                }
+                _ => (parent.addr, false, false),
+            },
+            // if the block has no parent, it is neither a body of a loop nor the first child of
+            // a JOIN block; also, we set the parent address to ZERO.
+            None => (ZERO, false, false),
         };
 
         self.blocks.push(BlockInfo {
             addr,
+            block_type,
             parent_addr,
             is_loop_body,
-            is_loop,
+            is_first_child,
         });
         parent_addr
     }
 
     /// Removes a block from the top of the stack and returns it.
     pub fn pop(&mut self) -> BlockInfo {
-        self.blocks.pop().expect("block stack is empty")
+        let block = self.blocks.pop().expect("block stack is empty");
+        // if the parent block is a JOIN block (i.e., we just finished executing a child of a JOIN
+        // block) and if the first_child_executed hasn't been set to true yet, set it to true
+        if let Some(parent) = self.blocks.last_mut() {
+            if let BlockType::Join(first_child_executed) = parent.block_type {
+                if !first_child_executed {
+                    parent.block_type = BlockType::Join(true);
+                }
+            }
+        }
+        block
     }
 
     /// Returns a reference to a block at the top of the stack.
@@ -580,11 +596,52 @@ impl BlockStack {
 
 /// Contains basic information about a code block.
 #[derive(Debug, Clone, Copy)]
-struct BlockInfo {
+pub struct BlockInfo {
     addr: Felt,
+    block_type: BlockType,
     parent_addr: Felt,
-    is_loop_body: Felt,
-    is_loop: Felt,
+    is_loop_body: bool,
+    is_first_child: bool,
+}
+
+impl BlockInfo {
+    /// Returns ONE if the this block is a LOOP block and the body of the loop was executed at
+    /// least once; otherwise, returns ZERO.
+    pub fn is_entered_loop(&self) -> Felt {
+        if self.block_type == BlockType::Loop(true) {
+            ONE
+        } else {
+            ZERO
+        }
+    }
+
+    /// Returns ONE if this block is a body of a LOOP block; otherwise returns ZERO.
+    pub fn is_loop_body(&self) -> Felt {
+        if self.is_loop_body {
+            ONE
+        } else {
+            ZERO
+        }
+    }
+
+    /// Returns ONE if this block is the first child of a JOIN block; otherwise returns ZERO.
+    #[allow(dead_code)]
+    pub fn is_first_child(&self) -> Felt {
+        if self.is_first_child {
+            ONE
+        } else {
+            ZERO
+        }
+    }
+}
+
+/// Specifies type of a code block with additional info for some block types.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BlockType {
+    Join(bool), // internal value set to true when the first child is fully executed
+    Split,
+    Loop(bool), // internal value set to false if the loop is never entered
+    Span,
 }
 
 // SPAN CONTEXT
