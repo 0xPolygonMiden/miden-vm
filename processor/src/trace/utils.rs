@@ -1,5 +1,6 @@
-use super::{Felt, Vec};
+use super::{Felt, FieldElement, Vec};
 use core::slice;
+use vm_core::utils::uninit_vector;
 
 #[cfg(test)]
 use vm_core::{program::blocks::CodeBlock, Operation, ProgramInputs};
@@ -85,4 +86,52 @@ pub fn build_trace_from_ops(stack: &[u64], operations: Vec<Operation>) -> Execut
     process.execute_code_block(&program).unwrap();
 
     ExecutionTrace::new(process)
+}
+
+// LOOKUP TABLES
+// ================================================================================================
+
+/// TODO: add docs
+pub trait LookupTableRow {
+    /// TODO: add docs
+    fn to_value<E: FieldElement<BaseField = Felt>>(&self, rand_values: &[E]) -> E;
+}
+
+/// Computes values as well as inverse value for all specified lookup table rows.
+///
+/// To compute the inverses of row values we use a modified version of batch inversion algorithm.
+/// The main modification is that we don't need to check for ZERO values, because, assuming
+/// random values are drawn from a large enough field, coming across a ZERO value should be
+/// computationally infeasible.
+pub fn build_lookup_table_row_values<E: FieldElement<BaseField = Felt>, R: LookupTableRow>(
+    rows: &[R],
+    rand_values: &[E],
+) -> (Vec<E>, Vec<E>) {
+    let mut row_values = unsafe { uninit_vector(rows.len()) };
+    let mut inv_row_values = unsafe { uninit_vector(rows.len()) };
+
+    // compute row values and compute their product
+    let mut acc = E::ONE;
+    for ((row, value), inv_value) in rows
+        .iter()
+        .zip(row_values.iter_mut())
+        .zip(inv_row_values.iter_mut())
+    {
+        *inv_value = acc;
+        *value = row.to_value(rand_values);
+        debug_assert_ne!(*value, E::ZERO, "row value cannot be ZERO");
+
+        acc *= *value;
+    }
+
+    // invert the accumulated product
+    acc = acc.inv();
+
+    // multiply the accumulated value by original values to compute inverses
+    for i in (0..row_values.len()).rev() {
+        inv_row_values[i] *= acc;
+        acc *= row_values[i];
+    }
+
+    (row_values, inv_row_values)
 }

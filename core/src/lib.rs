@@ -110,4 +110,4 @@ pub const AUX_TRACE_WIDTH: usize = RANGE_CHECK_AUX_TRACE_RANGE.end;
 
 /// Number of random elements available to the prover after the commitment to the main trace
 /// segment.
-pub const AUX_TRACE_RAND_ELEMENTS: usize = 4;
+pub const AUX_TRACE_RAND_ELEMENTS: usize = 8;

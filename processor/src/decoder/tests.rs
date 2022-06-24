@@ -70,17 +70,18 @@ fn span_block_one_group() {
 
     // --- check block execution hints ------------------------------------------------------------
     let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted),
-        (4, BlockTableUpdate::BlockEnded(INIT_ADDR, false)),
+        (0, BlockTableUpdate::BlockStarted(0)),
+        (4, BlockTableUpdate::BlockEnded(false)),
     ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints);
+    assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
     let expected_rows = vec![BlockStackTableRow::new_test(INIT_ADDR, ZERO, false)];
-    assert_eq!(expected_rows, aux_hints.block_stack_rows);
+    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
 
     // --- check block hash table hints ----------------------------------------------------------
-    assert!(aux_hints.block_hash_rows.is_empty());
+    let expected_rows = vec![BlockHashTableRow::from_program_hash(program_hash)];
+    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 #[test]
@@ -147,17 +148,18 @@ fn span_block_small() {
 
     // --- check block execution hints ------------------------------------------------------------
     let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted),
-        (5, BlockTableUpdate::BlockEnded(INIT_ADDR, false)),
+        (0, BlockTableUpdate::BlockStarted(0)),
+        (5, BlockTableUpdate::BlockEnded(false)),
     ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints);
+    assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
     let expected_rows = vec![BlockStackTableRow::new_test(INIT_ADDR, ZERO, false)];
-    assert_eq!(expected_rows, aux_hints.block_stack_rows);
+    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
 
     // --- check block hash table hints ----------------------------------------------------------
-    assert!(aux_hints.block_hash_rows.is_empty());
+    let expected_rows = vec![BlockHashTableRow::from_program_hash(program_hash)];
+    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 #[test]
@@ -266,17 +268,18 @@ fn span_block() {
 
     // --- check block execution hints ------------------------------------------------------------
     let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted),
-        (15, BlockTableUpdate::BlockEnded(INIT_ADDR, false)),
+        (0, BlockTableUpdate::BlockStarted(0)),
+        (15, BlockTableUpdate::BlockEnded(false)),
     ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints);
+    assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
     let expected_rows = vec![BlockStackTableRow::new_test(INIT_ADDR, ZERO, false)];
-    assert_eq!(expected_rows, aux_hints.block_stack_rows);
+    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
 
     // --- check block hash table hints ----------------------------------------------------------
-    assert!(aux_hints.block_hash_rows.is_empty());
+    let expected_rows = vec![BlockHashTableRow::from_program_hash(program_hash)];
+    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 #[test]
@@ -399,21 +402,22 @@ fn span_block_with_respan() {
 
     // --- check block execution hints ------------------------------------------------------------
     let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted),
+        (0, BlockTableUpdate::BlockStarted(0)),
         (9, BlockTableUpdate::SpanExtended),
-        (15, BlockTableUpdate::BlockEnded(batch1_addr, false)),
+        (15, BlockTableUpdate::BlockEnded(false)),
     ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints);
+    assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
     let expected_rows = vec![
         BlockStackTableRow::new_test(INIT_ADDR, ZERO, false),
         BlockStackTableRow::new_test(batch1_addr, ZERO, false),
     ];
-    assert_eq!(expected_rows, aux_hints.block_stack_rows);
+    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
 
     // --- check block hash table hints ----------------------------------------------------------
-    assert!(aux_hints.block_hash_rows.is_empty());
+    let expected_rows = vec![BlockHashTableRow::from_program_hash(program_hash)];
+    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 // JOIN BLOCK TESTS
@@ -476,14 +480,14 @@ fn join_block() {
 
     // --- check block execution hints ------------------------------------------------------------
     let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted),
-        (1, BlockTableUpdate::BlockStarted),
-        (3, BlockTableUpdate::BlockEnded(span1_addr, true)),
-        (4, BlockTableUpdate::BlockStarted),
-        (6, BlockTableUpdate::BlockEnded(span2_addr, false)),
-        (7, BlockTableUpdate::BlockEnded(INIT_ADDR, false)),
+        (0, BlockTableUpdate::BlockStarted(2)),
+        (1, BlockTableUpdate::BlockStarted(0)),
+        (3, BlockTableUpdate::BlockEnded(true)),
+        (4, BlockTableUpdate::BlockStarted(0)),
+        (6, BlockTableUpdate::BlockEnded(false)),
+        (7, BlockTableUpdate::BlockEnded(false)),
     ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints);
+    assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
     let expected_rows = vec![
@@ -491,14 +495,15 @@ fn join_block() {
         BlockStackTableRow::new_test(span1_addr, INIT_ADDR, false),
         BlockStackTableRow::new_test(span2_addr, INIT_ADDR, false),
     ];
-    assert_eq!(expected_rows, aux_hints.block_stack_rows);
+    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
 
     // --- check block hash table hints ----------------------------------------------------------
     let expected_rows = vec![
+        BlockHashTableRow::from_program_hash(program_hash),
         BlockHashTableRow::new_test(INIT_ADDR, span1_hash, true, false),
         BlockHashTableRow::new_test(INIT_ADDR, span2_hash, false, false),
     ];
-    assert_eq!(expected_rows, aux_hints.block_hash_rows);
+    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 // SPLIT BLOCK TESTS
@@ -551,25 +556,26 @@ fn split_block_true() {
 
     // --- check block execution hints ------------------------------------------------------------
     let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted),
-        (1, BlockTableUpdate::BlockStarted),
-        (3, BlockTableUpdate::BlockEnded(span_addr, false)),
-        (4, BlockTableUpdate::BlockEnded(INIT_ADDR, false)),
+        (0, BlockTableUpdate::BlockStarted(1)),
+        (1, BlockTableUpdate::BlockStarted(0)),
+        (3, BlockTableUpdate::BlockEnded(false)),
+        (4, BlockTableUpdate::BlockEnded(false)),
     ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints);
+    assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
     let expected_rows = vec![
         BlockStackTableRow::new_test(INIT_ADDR, ZERO, false),
         BlockStackTableRow::new_test(span_addr, INIT_ADDR, false),
     ];
-    assert_eq!(expected_rows, aux_hints.block_stack_rows);
+    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
 
     // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![BlockHashTableRow::new_test(
-        INIT_ADDR, span1_hash, false, false,
-    )];
-    assert_eq!(expected_rows, aux_hints.block_hash_rows);
+    let expected_rows = vec![
+        BlockHashTableRow::from_program_hash(program_hash),
+        BlockHashTableRow::new_test(INIT_ADDR, span1_hash, false, false),
+    ];
+    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 #[test]
@@ -619,25 +625,26 @@ fn split_block_false() {
 
     // --- check block execution hints ------------------------------------------------------------
     let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted),
-        (1, BlockTableUpdate::BlockStarted),
-        (3, BlockTableUpdate::BlockEnded(span_addr, false)),
-        (4, BlockTableUpdate::BlockEnded(INIT_ADDR, false)),
+        (0, BlockTableUpdate::BlockStarted(1)),
+        (1, BlockTableUpdate::BlockStarted(0)),
+        (3, BlockTableUpdate::BlockEnded(false)),
+        (4, BlockTableUpdate::BlockEnded(false)),
     ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints);
+    assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
     let expected_rows = vec![
         BlockStackTableRow::new_test(INIT_ADDR, ZERO, false),
         BlockStackTableRow::new_test(span_addr, INIT_ADDR, false),
     ];
-    assert_eq!(expected_rows, aux_hints.block_stack_rows);
+    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
 
     // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![BlockHashTableRow::new_test(
-        INIT_ADDR, span2_hash, false, false,
-    )];
-    assert_eq!(expected_rows, aux_hints.block_hash_rows);
+    let expected_rows = vec![
+        BlockHashTableRow::from_program_hash(program_hash),
+        BlockHashTableRow::new_test(INIT_ADDR, span2_hash, false, false),
+    ];
+    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 // LOOP BLOCK TESTS
@@ -691,28 +698,26 @@ fn loop_block() {
 
     // --- check block execution hints ------------------------------------------------------------
     let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted),
-        (1, BlockTableUpdate::BlockStarted),
-        (4, BlockTableUpdate::BlockEnded(body_addr, false)),
-        (5, BlockTableUpdate::BlockEnded(INIT_ADDR, false)),
+        (0, BlockTableUpdate::BlockStarted(1)),
+        (1, BlockTableUpdate::BlockStarted(0)),
+        (4, BlockTableUpdate::BlockEnded(false)),
+        (5, BlockTableUpdate::BlockEnded(false)),
     ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints);
+    assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
     let expected_rows = vec![
         BlockStackTableRow::new_test(INIT_ADDR, ZERO, true),
         BlockStackTableRow::new_test(body_addr, INIT_ADDR, false),
     ];
-    assert_eq!(expected_rows, aux_hints.block_stack_rows);
+    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
 
     // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![BlockHashTableRow::new_test(
-        INIT_ADDR,
-        loop_body_hash,
-        false,
-        true,
-    )];
-    assert_eq!(expected_rows, aux_hints.block_hash_rows);
+    let expected_rows = vec![
+        BlockHashTableRow::from_program_hash(program_hash),
+        BlockHashTableRow::new_test(INIT_ADDR, loop_body_hash, false, true),
+    ];
+    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 #[test]
@@ -748,17 +753,18 @@ fn loop_block_skip() {
 
     // --- check block execution hints ------------------------------------------------------------
     let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted),
-        (1, BlockTableUpdate::BlockEnded(INIT_ADDR, false)),
+        (0, BlockTableUpdate::BlockStarted(0)),
+        (1, BlockTableUpdate::BlockEnded(false)),
     ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints);
+    assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
     let expected_rows = vec![BlockStackTableRow::new_test(INIT_ADDR, ZERO, false)];
-    assert_eq!(expected_rows, aux_hints.block_stack_rows);
+    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
 
     // --- check block hash table hints ----------------------------------------------------------
-    assert!(aux_hints.block_hash_rows.is_empty());
+    let expected_rows = vec![BlockHashTableRow::from_program_hash(program_hash)];
+    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 #[test]
@@ -826,15 +832,15 @@ fn loop_block_repeat() {
 
     // --- check block execution hints ------------------------------------------------------------
     let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted),
-        (1, BlockTableUpdate::BlockStarted),
-        (4, BlockTableUpdate::BlockEnded(iter1_addr, false)),
-        (5, BlockTableUpdate::LoopRepeated(INIT_ADDR)),
-        (6, BlockTableUpdate::BlockStarted),
-        (9, BlockTableUpdate::BlockEnded(iter2_addr, false)),
-        (10, BlockTableUpdate::BlockEnded(INIT_ADDR, false)),
+        (0, BlockTableUpdate::BlockStarted(1)),
+        (1, BlockTableUpdate::BlockStarted(0)),
+        (4, BlockTableUpdate::BlockEnded(false)),
+        (5, BlockTableUpdate::LoopRepeated),
+        (6, BlockTableUpdate::BlockStarted(0)),
+        (9, BlockTableUpdate::BlockEnded(false)),
+        (10, BlockTableUpdate::BlockEnded(false)),
     ];
-    assert_eq!(expected_hints, aux_hints.block_exec_hints);
+    assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
     let expected_rows = vec![
@@ -842,16 +848,14 @@ fn loop_block_repeat() {
         BlockStackTableRow::new_test(iter1_addr, INIT_ADDR, false),
         BlockStackTableRow::new_test(iter2_addr, INIT_ADDR, false),
     ];
-    assert_eq!(expected_rows, aux_hints.block_stack_rows);
+    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
 
     // --- check block hash table hints ----------------------------------------------------------
-    let expected_rows = vec![BlockHashTableRow::new_test(
-        INIT_ADDR,
-        loop_body_hash,
-        false,
-        true,
-    )];
-    assert_eq!(expected_rows, aux_hints.block_hash_rows);
+    let expected_rows = vec![
+        BlockHashTableRow::from_program_hash(program_hash),
+        BlockHashTableRow::new_test(INIT_ADDR, loop_body_hash, false, true),
+    ];
+    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
 // HELPER REGISTERS TESTS

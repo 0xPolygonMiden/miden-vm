@@ -359,7 +359,7 @@ impl Decoder {
         debug_assert_eq!(ONE, block_info.is_entered_loop());
         self.trace.append_loop_repeat(block_info.addr);
 
-        self.aux_hints.repeat_loop_body(clk, block_info.addr);
+        self.aux_hints.repeat_loop_body(clk);
 
         self.append_operation(Operation::Repeat);
     }
@@ -380,8 +380,7 @@ impl Decoder {
             block_info.is_entered_loop(),
         );
 
-        self.aux_hints
-            .end_block(clk, block_info.addr, block_info.is_first_child);
+        self.aux_hints.end_block(clk, block_info.is_first_child);
 
         self.append_operation(Operation::End);
     }
@@ -527,8 +526,7 @@ impl Decoder {
             .append_span_end(block_hash, block_info.is_loop_body());
         self.span_context = None;
 
-        self.aux_hints
-            .end_block(clk, block_info.addr, block_info.is_first_child);
+        self.aux_hints.end_block(clk, block_info.is_first_child);
 
         self.append_operation(Operation::End);
     }
@@ -545,7 +543,10 @@ impl Decoder {
     /// hints to be used in construction of decoder-related auxiliary trace segment columns.
     ///
     /// Trace columns are extended to match the specified trace length.
-    pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> super::DecoderTrace {
+    pub fn into_trace(mut self, trace_len: usize, num_rand_rows: usize) -> super::DecoderTrace {
+        // TODO: comments
+        self.aux_hints.set_program_hash(self.program_hash());
+
         let trace = self
             .trace
             .into_vec(trace_len, num_rand_rows)
@@ -709,6 +710,25 @@ pub enum BlockType {
     Split,
     Loop(bool), // internal value set to false if the loop is never entered
     Span,
+}
+
+impl BlockType {
+    /// Returns the number of children a block has. This is an integer between 0 and 2 (both
+    /// inclusive).
+    pub fn num_children(&self) -> u32 {
+        match self {
+            Self::Join(_) => 2,
+            Self::Split => 1,
+            Self::Loop(is_entered) => {
+                if *is_entered {
+                    1
+                } else {
+                    0
+                }
+            }
+            Self::Span => 0,
+        }
+    }
 }
 
 // SPAN CONTEXT

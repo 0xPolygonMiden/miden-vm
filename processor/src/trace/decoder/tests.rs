@@ -1,10 +1,73 @@
 use super::{
-    super::{utils::build_trace_from_ops, Trace, NUM_RAND_ROWS},
-    Felt, OpGroupTableRow,
+    super::{utils::build_trace_from_ops, LookupTableRow, Trace, NUM_RAND_ROWS},
+    Felt,
 };
-use crate::decoder::build_op_group;
+use crate::decoder::{build_op_group, BlockStackTableRow, OpGroupTableRow};
 use rand_utils::rand_array;
-use vm_core::{decoder::P3_COL_IDX, utils::ToElements, Operation, ONE, ZERO};
+use vm_core::{
+    decoder::{P1_COL_IDX, P3_COL_IDX},
+    utils::ToElements,
+    FieldElement, Operation, AUX_TRACE_RAND_ELEMENTS, ONE, ZERO,
+};
+
+// BLOCK STACK TABLE TESTS
+// ================================================================================================
+
+#[test]
+#[allow(clippy::needless_range_loop)]
+fn decoder_p1_span_with_respan() {
+    let iv = [1, 3, 5, 7, 9, 11, 13, 15, 17].to_elements();
+    let ops = vec![
+        Operation::Push(iv[0]),
+        Operation::Push(iv[1]),
+        Operation::Push(iv[2]),
+        Operation::Push(iv[3]),
+        Operation::Push(iv[4]),
+        Operation::Push(iv[5]),
+        Operation::Push(iv[6]),
+        // next batch
+        Operation::Push(iv[7]),
+        Operation::Push(iv[8]),
+        Operation::Add,
+    ];
+    let mut trace = build_trace_from_ops(&[], ops.clone());
+    let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
+    let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
+    let p1 = aux_columns.get_column(P1_COL_IDX);
+
+    let row_values = [
+        BlockStackTableRow::new_test(ONE, ZERO, false).to_value(&alphas),
+        BlockStackTableRow::new_test(Felt::new(9), ZERO, false).to_value(&alphas),
+    ];
+
+    // make sure the first entry is ONE
+    assert_eq!(ONE, p1[0]);
+
+    // when SPAN operation is executed, entry for span block is added to the table
+    let expected_value = row_values[0];
+    assert_eq!(expected_value, p1[1]);
+
+    // for the next 8 cycles (as we execute user ops), the table is not affected
+    for i in 2..10 {
+        assert_eq!(expected_value, p1[i]);
+    }
+
+    // when RESPAN is executed, the first entry is replaced with a new entry
+    let expected_value = expected_value * row_values[0].inv() * row_values[1];
+    assert_eq!(expected_value, p1[10]);
+
+    // for the next 4 cycles (as we execute user ops), the table is not affected
+    for i in 11..15 {
+        assert_eq!(expected_value, p1[i]);
+    }
+
+    // at cycle 14, the END operation is executed and the table is cleared
+    let expected_value = expected_value * row_values[1].inv();
+    assert_eq!(expected_value, ONE);
+    for i in 15..(p1.len() - NUM_RAND_ROWS) {
+        assert_eq!(ONE, p1[i]);
+    }
+}
 
 // OP GROUP TABLE TESTS
 // ================================================================================================
@@ -15,7 +78,7 @@ fn decoder_p3_trace_empty_table() {
     let operations = vec![Operation::Add];
     let mut trace = build_trace_from_ops(&stack, operations);
 
-    let rand_elements = rand_array::<Felt, 4>();
+    let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
 
     // no rows should have been added or removed from the op group table, and thus, all values
@@ -45,7 +108,7 @@ fn decoder_p3_trace_one_batch() {
         Operation::Add,
     ];
     let mut trace = build_trace_from_ops(&stack, ops.clone());
-    let alphas = rand_array::<Felt, 4>();
+    let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
     let p3 = aux_columns.get_column(P3_COL_IDX);
 
@@ -111,7 +174,7 @@ fn decoder_p3_trace_two_batches() {
         Operation::Add,
     ];
     let mut trace = build_trace_from_ops(&[], ops.clone());
-    let alphas = rand_array::<Felt, 4>();
+    let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
     let p3 = aux_columns.get_column(P3_COL_IDX);
 

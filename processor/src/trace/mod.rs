@@ -13,7 +13,7 @@ use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
 use vm_core::StarkField;
 
 mod utils;
-pub use utils::TraceFragment;
+pub use utils::{LookupTableRow, TraceFragment};
 
 mod decoder;
 mod range;
