@@ -187,7 +187,7 @@ We need to add $1$ and subtract the sum of the relevant operation flags to ensur
 The degree of this constraint is $7$.
 
 ## Block stack table constraints
-As described [previously](./main.md/#block-stack-table), block stack table keeps track of program blocks currently executing on the VM. Thus, whenever the VM starts executing a new block, an entry for this block is added to the block stack table. And when execution of a block completes, it is removed from the block stack table.
+As described [previously](./main.md#block-stack-table), block stack table keeps track of program blocks currently executing on the VM. Thus, whenever the VM starts executing a new block, an entry for this block is added to the block stack table. And when execution of a block completes, it is removed from the block stack table.
 
 Adding and removing entries to/from the block stack table is accomplished as follows:
 * To add an entry, we multiply the value in column $p_1$ by a value representing a tuple `(blk_id, prnt_id, is_loop)`. A constraint to enforce this would look as $p_1' = p_1 \cdot v$, where $v$ is the value representing the row to be added.
@@ -246,7 +246,7 @@ The degree of this constraint is $7$.
 In addition to the above transition constraint, we also need to impose boundary constraints against the $p_1$ column to make sure the first and the last value in the column is set to $1$. This enforces that the block stack table starts and ends in an empty state.
 
 ## Block hash table constraints
-As described [previously](./main.md/#block-hash-table), when the VM starts executing a new program block, it adds hashes of the block's children to the block hash table. And when the VM finishes executing a block, it removes the block's hash from the block hash table. This means that the block hash tables gets updated when we execute `JOIN`, `SPLIT`, `LOOP`, `REPEAT`, and `END` operations (executing `SPAN` operation does not affect the block hash table because a *span* block has no children).
+As described [previously](./main.md#block-hash-table), when the VM starts executing a new program block, it adds hashes of the block's children to the block hash table. And when the VM finishes executing a block, it removes the block's hash from the block hash table. This means that the block hash tables gets updated when we execute `JOIN`, `SPLIT`, `LOOP`, `REPEAT`, and `END` operations (executing `SPAN` operation does not affect the block hash table because a *span* block has no children).
 
 Adding and removing entries to/from the block hash table is accomplished as follows:
 * To add an entry, we multiply the value in column $p_2$ by a value representing a tuple `(prnt_id, block_hash, is_first_child, is_loop_body)`. A constraint to enforce this would look as $p_2' = p_2 \cdot v$, where $v$ is the value representing the row to be added.
