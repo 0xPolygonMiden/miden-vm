@@ -240,7 +240,9 @@ fn build_aux_col_p3<E: FieldElement<BaseField = Felt>>(
     // keep track of the last updated row in the running product column
     let mut result_idx = 0_usize;
 
-    for (&clk, update) in aux_trace_hints.op_group_table_hints() {
+    for (clk, update) in aux_trace_hints.op_group_table_hints() {
+        let clk = *clk;
+
         // if we skipped some cycles since the last update was processed, values in the last
         // updated row should by copied over until the current cycle.
         if result_idx < clk {

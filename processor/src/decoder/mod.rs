@@ -1,6 +1,6 @@
 use super::{
-    BTreeMap, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation, Process, Span,
-    Split, StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
+    ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation, Process, Span, Split,
+    StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
 use vm_core::{
     decoder::{
@@ -283,7 +283,7 @@ impl Decoder {
         self.trace
             .append_block_start(parent_addr, Operation::Join, child1_hash, child2_hash);
 
-        self.aux_hints.start_block(
+        self.aux_hints.block_started(
             clk,
             self.block_stack.peek(),
             Some(child1_hash),
@@ -318,7 +318,7 @@ impl Decoder {
         };
 
         self.aux_hints
-            .start_block(clk, self.block_stack.peek(), Some(taken_branch_hash), None);
+            .block_started(clk, self.block_stack.peek(), Some(taken_branch_hash), None);
 
         self.append_operation(Operation::Split);
     }
@@ -343,7 +343,7 @@ impl Decoder {
         };
 
         self.aux_hints
-            .start_block(clk, self.block_stack.peek(), executed_loop_body, None);
+            .block_started(clk, self.block_stack.peek(), executed_loop_body, None);
 
         self.append_operation(Operation::Loop);
     }
@@ -359,7 +359,7 @@ impl Decoder {
         debug_assert_eq!(ONE, block_info.is_entered_loop());
         self.trace.append_loop_repeat(block_info.addr);
 
-        self.aux_hints.repeat_loop_body(clk);
+        self.aux_hints.loop_iteration_started(clk);
 
         self.append_operation(Operation::Repeat);
     }
@@ -380,7 +380,7 @@ impl Decoder {
             block_info.is_entered_loop(),
         );
 
-        self.aux_hints.end_block(clk, block_info.is_first_child);
+        self.aux_hints.block_ended(clk, block_info.is_first_child);
 
         self.append_operation(Operation::End);
     }
@@ -412,7 +412,7 @@ impl Decoder {
         self.aux_hints.insert_op_batch(clk, num_op_groups);
 
         self.aux_hints
-            .start_block(clk, self.block_stack.peek(), None, None);
+            .block_started(clk, self.block_stack.peek(), None, None);
 
         self.append_operation(Operation::Span);
     }
@@ -436,7 +436,7 @@ impl Decoder {
         // into the op_group table
         self.aux_hints.insert_op_batch(clk, ctx.num_groups_left);
 
-        self.aux_hints.continue_span(clk, block_info);
+        self.aux_hints.span_expanded(clk, block_info);
 
         // after RESPAN operation is executed, we decrement the number of remaining groups by ONE
         // because executing RESPAN consumes the first group of the batch
@@ -526,7 +526,7 @@ impl Decoder {
             .append_span_end(block_hash, block_info.is_loop_body());
         self.span_context = None;
 
-        self.aux_hints.end_block(clk, block_info.is_first_child);
+        self.aux_hints.block_ended(clk, block_info.is_first_child);
 
         self.append_operation(Operation::End);
     }

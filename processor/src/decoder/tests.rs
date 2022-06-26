@@ -1,6 +1,6 @@
 use super::{
-    build_op_group, AuxTraceHints, BTreeMap, BlockHashTableRow, BlockStackTableRow,
-    BlockTableUpdate, OpGroupTableRow, OpGroupTableUpdate,
+    build_op_group, AuxTraceHints, BlockHashTableRow, BlockStackTableRow, BlockTableUpdate,
+    OpGroupTableRow, OpGroupTableUpdate,
 };
 use crate::{ExecutionTrace, Felt, Operation, Process, ProgramInputs, Word};
 use rand_utils::rand_value;
@@ -131,11 +131,12 @@ fn span_block_small() {
     // --- check op_group table hints -------------------------------------------------------------
 
     // 3 op groups should be inserted at cycle 0, and removed one by one in subsequent cycles
-    let mut expected_ogt_hints: BTreeMap<usize, OpGroupTableUpdate> = BTreeMap::new();
-    expected_ogt_hints.insert(0, OpGroupTableUpdate::InsertRows(3));
-    expected_ogt_hints.insert(1, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(2, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(3, OpGroupTableUpdate::RemoveRow);
+    let expected_ogt_hints = vec![
+        (0, OpGroupTableUpdate::InsertRows(3)),
+        (1, OpGroupTableUpdate::RemoveRow),
+        (2, OpGroupTableUpdate::RemoveRow),
+        (3, OpGroupTableUpdate::RemoveRow),
+    ];
     assert_eq!(&expected_ogt_hints, aux_hints.op_group_table_hints());
 
     // the groups are imm(1), imm(2), and op group with a single NOOP
@@ -243,15 +244,16 @@ fn span_block() {
 
     // --- check op_group table hints -------------------------------------------------------------
 
-    let mut expected_ogt_hints: BTreeMap<usize, OpGroupTableUpdate> = BTreeMap::new();
-    expected_ogt_hints.insert(0, OpGroupTableUpdate::InsertRows(7));
-    expected_ogt_hints.insert(1, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(2, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(3, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(8, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(9, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(10, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(13, OpGroupTableUpdate::RemoveRow);
+    let expected_ogt_hints = vec![
+        (0, OpGroupTableUpdate::InsertRows(7)),
+        (1, OpGroupTableUpdate::RemoveRow),
+        (2, OpGroupTableUpdate::RemoveRow),
+        (3, OpGroupTableUpdate::RemoveRow),
+        (8, OpGroupTableUpdate::RemoveRow),
+        (9, OpGroupTableUpdate::RemoveRow),
+        (10, OpGroupTableUpdate::RemoveRow),
+        (13, OpGroupTableUpdate::RemoveRow),
+    ];
     assert_eq!(&expected_ogt_hints, aux_hints.op_group_table_hints());
 
     let batch0_groups = &span.op_batches()[0].groups();
@@ -368,19 +370,20 @@ fn span_block_with_respan() {
 
     // --- check op_group table hints -------------------------------------------------------------
 
-    let mut expected_ogt_hints: BTreeMap<usize, OpGroupTableUpdate> = BTreeMap::new();
-    expected_ogt_hints.insert(0, OpGroupTableUpdate::InsertRows(7));
-    expected_ogt_hints.insert(1, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(2, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(3, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(4, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(5, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(6, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(7, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(9, OpGroupTableUpdate::InsertRows(3));
-    expected_ogt_hints.insert(10, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(12, OpGroupTableUpdate::RemoveRow);
-    expected_ogt_hints.insert(13, OpGroupTableUpdate::RemoveRow);
+    let expected_ogt_hints = vec![
+        (0, OpGroupTableUpdate::InsertRows(7)),
+        (1, OpGroupTableUpdate::RemoveRow),
+        (2, OpGroupTableUpdate::RemoveRow),
+        (3, OpGroupTableUpdate::RemoveRow),
+        (4, OpGroupTableUpdate::RemoveRow),
+        (5, OpGroupTableUpdate::RemoveRow),
+        (6, OpGroupTableUpdate::RemoveRow),
+        (7, OpGroupTableUpdate::RemoveRow),
+        (9, OpGroupTableUpdate::InsertRows(3)),
+        (10, OpGroupTableUpdate::RemoveRow),
+        (12, OpGroupTableUpdate::RemoveRow),
+        (13, OpGroupTableUpdate::RemoveRow),
+    ];
     assert_eq!(&expected_ogt_hints, aux_hints.op_group_table_hints());
 
     let batch0_groups = &span.op_batches()[0].groups();

@@ -1,6 +1,6 @@
 use super::{
-    super::trace::LookupTableRow, get_num_groups_in_next_batch, BTreeMap, BlockInfo, Felt,
-    FieldElement, StarkField, Vec, Word, ONE, ZERO,
+    super::trace::LookupTableRow, get_num_groups_in_next_batch, BlockInfo, Felt, FieldElement,
+    StarkField, Vec, Word, ONE, ZERO,
 };
 
 // AUXILIARY TRACE HINTS
@@ -19,9 +19,9 @@ pub struct AuxTraceHints {
     /// rows are sorted first by `parent_id` and then by `is_first_child` with the entry where
     /// `is_first_child` = true coming first.
     block_hash_rows: Vec<BlockHashTableRow>,
-    /// A map where keys are clock cycles and values describes how the op group table is
-    /// updated at these clock cycles.
-    op_group_hints: BTreeMap<usize, OpGroupTableUpdate>,
+    /// A list of updates made to the op group table where each entry is a tuple contains the
+    /// cycle at which the update was made and the update description.
+    op_group_hints: Vec<(usize, OpGroupTableUpdate)>,
     /// Contains a list of rows which were added to and then removed from the op group table.
     op_group_rows: Vec<OpGroupTableRow>,
 }
@@ -31,11 +31,15 @@ impl AuxTraceHints {
     // --------------------------------------------------------------------------------------------
     /// Returns an empty [AuxTraceHints] struct.
     pub fn new() -> Self {
+        // initialize block has table with an blank entry, this will be replaced with an entry
+        // containing the actual program hash at the end of trace generation
+        let block_hash_rows = vec![BlockHashTableRow::from_program_hash([ZERO; 4])];
+
         Self {
             block_exec_hints: Vec::new(),
             block_stack_rows: Vec::new(),
-            block_hash_rows: Vec::new(),
-            op_group_hints: BTreeMap::new(),
+            block_hash_rows,
+            op_group_hints: Vec::new(),
             op_group_rows: Vec::new(),
         }
     }
@@ -59,7 +63,7 @@ impl AuxTraceHints {
     }
 
     /// Returns hints which describe how the op group was updated during program execution.
-    pub fn op_group_table_hints(&self) -> &BTreeMap<usize, OpGroupTableUpdate> {
+    pub fn op_group_table_hints(&self) -> &[(usize, OpGroupTableUpdate)] {
         &self.op_group_hints
     }
 
@@ -117,7 +121,7 @@ impl AuxTraceHints {
 
     /// Specifies that a new code block started executing at the specified clock cycle. This also
     /// records the relevant rows for both, block stack and block hash tables.
-    pub fn start_block(
+    pub fn block_started(
         &mut self,
         clk: usize,
         block_info: &BlockInfo,
@@ -152,19 +156,22 @@ impl AuxTraceHints {
     /// Specifies that a code block execution was completed at the specified clock cycle. We also
     /// need to specify whether the block was the first child of a JOIN block so that we can find
     /// correct block hash table row.
-    pub fn end_block(&mut self, clk: usize, is_first_child: bool) {
+    pub fn block_ended(&mut self, clk: usize, is_first_child: bool) {
         self.block_exec_hints
             .push((clk, BlockTableUpdate::BlockEnded(is_first_child)));
     }
 
-    /// TODO: add comments
-    pub fn repeat_loop_body(&mut self, clk: usize) {
+    /// Specifies that another execution of a loop's body started at the specified clock cycle.
+    /// This is triggered by the REPEAT operation.
+    pub fn loop_iteration_started(&mut self, clk: usize) {
         self.block_exec_hints
             .push((clk, BlockTableUpdate::LoopRepeated));
     }
 
-    /// TODO: add comments
-    pub fn continue_span(&mut self, clk: usize, block_info: &BlockInfo) {
+    /// Specifies that execution of a SPAN block was extended at the specified clock cycle. This
+    /// is triggered by the RESPAN operation. This also adds a row for the new span batch to the
+    /// block stack table.
+    pub fn span_expanded(&mut self, clk: usize, block_info: &BlockInfo) {
         let row = BlockStackTableRow::new(block_info);
         self.block_stack_rows.push(row);
         self.block_exec_hints
@@ -186,7 +193,7 @@ impl AuxTraceHints {
         // groups added to the op group table
         if num_inserted_groups > 0 {
             let update = OpGroupTableUpdate::InsertRows(num_inserted_groups as u32);
-            self.op_group_hints.insert(clk, update);
+            self.op_group_hints.push((clk, update));
         }
     }
 
@@ -200,7 +207,7 @@ impl AuxTraceHints {
         group_value: Felt,
     ) {
         self.op_group_hints
-            .insert(clk, OpGroupTableUpdate::RemoveRow);
+            .push((clk, OpGroupTableUpdate::RemoveRow));
         // we record a row only when it is deleted because rows are added and deleted in the same
         // order. thus, a sequence of deleted rows is exactly the same as the sequence of added
         // rows.
@@ -208,10 +215,9 @@ impl AuxTraceHints {
             .push(OpGroupTableRow::new(batch_id, group_pos, group_value));
     }
 
-    /// TODO: add docs
+    /// Inserts the first entry into the block hash table.
     pub fn set_program_hash(&mut self, program_hash: Word) {
-        let first_row = BlockHashTableRow::from_program_hash(program_hash);
-        self.block_hash_rows.insert(0, first_row);
+        self.block_hash_rows[0] = BlockHashTableRow::from_program_hash(program_hash);
     }
 }
 
@@ -249,6 +255,8 @@ pub enum OpGroupTableUpdate {
 // BLOCK STACK TABLE ROW
 // ================================================================================================
 
+/// Describes a single entry in the block stack table. An entry in the block stack table is a tuple
+/// (block_id, parent_id, is_loop).
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BlockStackTableRow {
     block_id: Felt,
@@ -293,6 +301,8 @@ impl LookupTableRow for BlockStackTableRow {
 // BLOCK HASH TABLE ROW
 // ================================================================================================
 
+/// Describes a single entry in the block hash table. An entry in the block hash table is a tuple
+/// (parent_id, block_hash, is_first_child, is_loop_body).
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BlockHashTableRow {
     parent_id: Felt,
@@ -302,6 +312,8 @@ pub struct BlockHashTableRow {
 }
 
 impl BlockHashTableRow {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
     /// Returns a new [BlockHashTableRow] instantiated with the specified parameters.
     pub fn from_parent(parent_info: &BlockInfo, block_hash: Word, is_first_child: bool) -> Self {
         Self {
@@ -312,7 +324,7 @@ impl BlockHashTableRow {
         }
     }
 
-    /// TODO: add comments
+    /// Returns a new [BlockHashTableRow] containing the hash of the entire program.
     pub fn from_program_hash(program_hash: Word) -> Self {
         Self {
             parent_id: ZERO,
@@ -320,10 +332,6 @@ impl BlockHashTableRow {
             is_first_child: false,
             is_loop_body: false,
         }
-    }
-
-    pub fn is_first_child(&self) -> bool {
-        self.is_first_child
     }
 
     /// Returns a new [BlockHashTableRow] instantiated with the specified parameters. This is
@@ -341,6 +349,14 @@ impl BlockHashTableRow {
             is_first_child,
             is_loop_body,
         }
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns true if this table row is for a block which is the first child of a JOIN block.
+    pub fn is_first_child(&self) -> bool {
+        self.is_first_child
     }
 }
 
