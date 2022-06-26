@@ -13,7 +13,8 @@ const ADDR_COL_IDX: usize = DECODER_TRACE_OFFSET + vm_core::decoder::ADDR_COL_ID
 // DECODER AUXILIARY TRACE COLUMNS
 // ================================================================================================
 
-/// TODO: add docs
+/// Builds and returns decoder auxiliary trace columns p1, p2, and p3 describing states of block
+/// stack, block hash, and op group tables respectively.
 pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
     main_trace: &Matrix<Felt>,
     aux_trace_hints: &AuxTraceHints,
@@ -84,7 +85,7 @@ fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
             }
             BlockTableUpdate::BlockEnded(_) => {
                 // when a block is ended, we need to remove the entry for the block from the
-                // block hash table; we can loop up the index of the entry using the block's
+                // block stack table; we can look up the index of the entry using the block's
                 // ID which we get from the current row of the execution trace.
                 let block_id = get_block_addr(main_trace, clk);
                 let row_idx = aux_trace_hints
@@ -123,14 +124,14 @@ fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
     let (row_values, inv_row_values) = build_lookup_table_row_values(table_rows, alphas);
 
     // initialize memory for the running product column, and set the first value in the column to
-    // the value of the first row (which represents an entry fo the root block of the program)
+    // the value of the first row (which represents an entry for the root block of the program)
     let mut result = unsafe { uninit_vector(main_trace.num_rows()) };
     result[0] = row_values[0];
 
     // keep track of the index into the list of block hash table rows for started blocks; we can
     // use this index because the sequence in which blocks are started is exactly the same as the
     // sequence in which the rows are added to the block hash table. we start at 1 because the
-    // first row is already included in the running produce above.
+    // first row is already included in the running product above.
     let mut started_block_idx = 1;
 
     // keep track of the last updated row in the running product column
@@ -176,10 +177,13 @@ fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
                 started_block_idx += *num_children as usize;
             }
             BlockTableUpdate::LoopRepeated => {
-                // when a REPEAT operation is executed, we need to add an entry for the loop's
-                // body to the table. we can find this entry by its parent ID (which is the ID)
-                // of the executing LOOP block. we can get this ID from the execution trace at
-                // the next row: clk + 1 (which is the same as result_idx).
+                // When a REPEAT operation is executed, we need to add an entry for the loop's
+                // body to the table. Entries for blocks in the block hash table can be identified
+                // by their parent ID (which is the ID of the executing LOOP block). Parent ID is
+                // always the address value in the next row of the execution trace after a REPEAT
+                // operation is executed. Therefore, we can get the parent ID from the execution
+                // trace at the next row: clk + 1 (which is the same as result_idx), and use it to
+                // find this entry.
                 let parent_id = get_block_addr(main_trace, result_idx);
                 let row_idx = aux_trace_hints
                     .get_block_hash_row_idx(parent_id, false)

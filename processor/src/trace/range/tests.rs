@@ -11,7 +11,7 @@ fn p0_trace() {
     // --- Range check 256_u32 (4 16-bit range checks: 0, 256 and 0, 0) ---------------------------
     let stack = [1, 255];
     let operations = vec![Operation::U32add];
-    let mut trace = build_trace_from_ops(&stack, operations);
+    let mut trace = build_trace_from_ops(operations, &stack);
 
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let alpha = rand_elements[0];
@@ -58,7 +58,7 @@ fn p1_trace() {
     // --- Range check 256_u32 (4 16-bit range checks: 0, 256 and 0, 0) ---------------------------
     let stack = [1, 255];
     let operations = vec![Operation::U32add];
-    let mut trace = build_trace_from_ops(&stack, operations);
+    let mut trace = build_trace_from_ops(operations, &stack);
 
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let alpha = rand_elements[0];

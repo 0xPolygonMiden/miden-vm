@@ -12,17 +12,17 @@ pub struct AuxTraceHints {
     /// A list of updates made to the block stack and block hash tables. Each entry contains a
     /// clock cycle at which the update was made, as well as the description of the update.
     block_exec_hints: Vec<(usize, BlockTableUpdate)>,
-    /// Contains a list of rows which were added and then removed from the block stack table. The
-    /// rows are sorted by `block_id` in ascending order.
+    /// A list of rows which were added and then removed from the block stack table. The rows are
+    /// sorted by `block_id` in ascending order.
     block_stack_rows: Vec<BlockStackTableRow>,
-    /// Contains a list of rows which were added and then removed form the block hash table. The
-    /// rows are sorted first by `parent_id` and then by `is_first_child` with the entry where
+    /// A list of rows which were added and then removed from the block hash table. The rows are
+    /// sorted first by `parent_id` and then by `is_first_child` with the entry where
     /// `is_first_child` = true coming first.
     block_hash_rows: Vec<BlockHashTableRow>,
-    /// A list of updates made to the op group table where each entry is a tuple contains the
+    /// A list of updates made to the op group table where each entry is a tuple containing the
     /// cycle at which the update was made and the update description.
     op_group_hints: Vec<(usize, OpGroupTableUpdate)>,
-    /// Contains a list of rows which were added to and then removed from the op group table.
+    /// A list of rows which were added to and then removed from the op group table.
     op_group_rows: Vec<OpGroupTableRow>,
 }
 
@@ -31,7 +31,7 @@ impl AuxTraceHints {
     // --------------------------------------------------------------------------------------------
     /// Returns an empty [AuxTraceHints] struct.
     pub fn new() -> Self {
-        // initialize block has table with an blank entry, this will be replaced with an entry
+        // initialize block hash table with an blank entry, this will be replaced with an entry
         // containing the actual program hash at the end of trace generation
         let block_hash_rows = vec![BlockHashTableRow::from_program_hash([ZERO; 4])];
 
@@ -47,34 +47,50 @@ impl AuxTraceHints {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// TODO: add docs
+    /// Returns hints which describe how the block stack and block hash tables were updated during
+    /// program execution. Each hint consists of a clock cycle and the update description for that
+    /// cycle. The hints are sorted by clock cycle in ascending order.
     pub fn block_exec_hints(&self) -> &[(usize, BlockTableUpdate)] {
         &self.block_exec_hints
     }
 
-    /// TODO: add docs
+    /// Returns a list of table rows which were added to and then removed from the block stack
+    /// table. We don't specify which cycles these rows were added/removed at because this info
+    /// can be inferred from execution hints.
+    ///
+    /// The rows are sorted by block_id in ascending order.
     pub fn block_stack_table_rows(&self) -> &[BlockStackTableRow] {
         &self.block_stack_rows
     }
 
-    /// TODO: add docs
+    /// Returns a list of table rows which were added to and then removed from the block hash
+    /// table. We don't specify which cycles these rows were added/removed at because this info
+    /// can be inferred from execution hints.
+    ///
+    /// The rows are sorted first by `parent_id` in ascending order and then by `is_first_child`
+    /// with the entry where `is_first_child` = true coming first.
     pub fn block_hash_table_rows(&self) -> &[BlockHashTableRow] {
         &self.block_hash_rows
     }
 
-    /// Returns hints which describe how the op group was updated during program execution.
+    /// Returns hints which describe how the op group was updated during program execution. Each
+    /// hint consists of a clock cycle and the update description for that cycle.
     pub fn op_group_table_hints(&self) -> &[(usize, OpGroupTableUpdate)] {
         &self.op_group_hints
     }
 
     /// Returns a list of table rows which were added to and then removed from the op group table.
-    /// We don't need to specify which cycles these rows were added/removed at because this info
-    /// can be inferred from the op group table hints.
+    /// We don't specify which cycles these rows were added/removed at because this info can be
+    /// inferred from the op group table hints.
     pub fn op_group_table_rows(&self) -> &[OpGroupTableRow] {
         &self.op_group_rows
     }
 
-    /// TODO: add comments
+    /// Returns an index of the row with the specified block_id in the list of block stack table
+    /// rows. Since the rows in the list are sorted by block_id, we can use binary search to find
+    /// the relevant row.
+    ///
+    /// If the row for the specified block_id is not found, None is returned.
     pub fn get_block_stack_row_idx(&self, block_id: Felt) -> Option<usize> {
         let block_id = block_id.as_int();
         self.block_stack_rows
@@ -82,7 +98,11 @@ impl AuxTraceHints {
             .ok()
     }
 
-    /// TODO: add comments
+    /// Returns an index of the row with the specified parent_id and is_first_child in the list of
+    /// block hash table rows. Since the rows in the list are sorted by parent_id, we can use
+    /// binary search to find the relevant row.
+    ///
+    /// If the row for the specified parent_id and is_first_child is not found, None is returned.
     pub fn get_block_hash_row_idx(&self, parent_id: Felt, is_first_child: bool) -> Option<usize> {
         let parent_id = parent_id.as_int();
         match self
@@ -136,7 +156,7 @@ impl AuxTraceHints {
         let bst_row = BlockStackTableRow::new(block_info);
         self.block_stack_rows.push(bst_row);
 
-        // crete rows for the block hash table. this may result in creation of 0, 1, or 2 rows:
+        // create rows for the block hash table. this may result in creation of 0, 1, or 2 rows:
         // - no rows are created for SPAN blocks (both child hashes are None).
         // - one row is created with is_first_child=false for SPLIT and LOOP blocks.
         // - two rows are created for JOIN blocks with first row having is_first_child=true, and
@@ -163,7 +183,7 @@ impl AuxTraceHints {
 
     /// Specifies that another execution of a loop's body started at the specified clock cycle.
     /// This is triggered by the REPEAT operation.
-    pub fn loop_iteration_started(&mut self, clk: usize) {
+    pub fn loop_repeat_started(&mut self, clk: usize) {
         self.block_exec_hints
             .push((clk, BlockTableUpdate::LoopRepeated));
     }
@@ -171,7 +191,7 @@ impl AuxTraceHints {
     /// Specifies that execution of a SPAN block was extended at the specified clock cycle. This
     /// is triggered by the RESPAN operation. This also adds a row for the new span batch to the
     /// block stack table.
-    pub fn span_expanded(&mut self, clk: usize, block_info: &BlockInfo) {
+    pub fn span_extended(&mut self, clk: usize, block_info: &BlockInfo) {
         let row = BlockStackTableRow::new(block_info);
         self.block_stack_rows.push(row);
         self.block_exec_hints

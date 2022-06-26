@@ -754,6 +754,11 @@ fn loop_block_skip() {
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
 
+    // --- check op_group table hints -------------------------------------------------------------
+    // op_group table should not have been touched
+    assert!(&aux_hints.op_group_table_hints().is_empty());
+    assert!(aux_hints.op_group_table_rows().is_empty());
+
     // --- check block execution hints ------------------------------------------------------------
     let expected_hints = vec![
         (0, BlockTableUpdate::BlockStarted(0)),
