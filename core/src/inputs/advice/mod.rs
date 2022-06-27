@@ -5,6 +5,8 @@ mod merkle_tree;
 use merkle_tree::MerkleTree;
 mod merkle_path_set;
 use merkle_path_set::MerklePathSet;
+mod sparse_merkle_tree;
+use sparse_merkle_tree::SparseMerkleTree;
 
 // ADVICE SET
 // ================================================================================================
@@ -13,6 +15,7 @@ use merkle_path_set::MerklePathSet;
 #[derive(Clone, Debug)]
 pub enum AdviceSet {
     MerkleTree(MerkleTree),
+    SparseMerkleTree(SparseMerkleTree),
     MerklePathSet(MerklePathSet),
 }
 
@@ -29,6 +32,20 @@ impl AdviceSet {
         Ok(Self::MerkleTree(MerkleTree::new(leaves)?))
     }
 
+    /// Returns a new [AdviceSet] instantiated as a Sparse Merkle tree from the provided leaves.
+    ///
+    /// # Errors
+    /// Returns an error if the number of leaves is smaller than two or is not a power of two.
+    pub fn new_sparse_merkle_tree(
+        keys: Vec<u64>,
+        values: Vec<Word>,
+        depth: u32,
+    ) -> Result<Self, AdviceSetError> {
+        Ok(Self::SparseMerkleTree(SparseMerkleTree::new(
+            keys, values, depth,
+        )?))
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -36,6 +53,7 @@ impl AdviceSet {
     pub fn root(&self) -> Word {
         match self {
             Self::MerkleTree(tree) => tree.root(),
+            Self::SparseMerkleTree(tree) => tree.root(),
             Self::MerklePathSet(set) => set.root(),
         }
     }
@@ -44,6 +62,7 @@ impl AdviceSet {
     pub fn depth(&self) -> u32 {
         match self {
             Self::MerkleTree(tree) => tree.depth(),
+            Self::SparseMerkleTree(tree) => tree.depth(),
             Self::MerklePathSet(set) => set.depth(),
         }
     }
@@ -58,6 +77,7 @@ impl AdviceSet {
     pub fn get_node(&self, depth: u32, index: u64) -> Result<Word, AdviceSetError> {
         match self {
             Self::MerkleTree(tree) => tree.get_node(depth, index),
+            Self::SparseMerkleTree(tree) => tree.get_node(depth, index),
             Self::MerklePathSet(set) => set.get_node(depth, index),
         }
     }
@@ -73,6 +93,7 @@ impl AdviceSet {
     pub fn get_path(&self, depth: u32, index: u64) -> Result<Vec<Word>, AdviceSetError> {
         match self {
             Self::MerkleTree(tree) => tree.get_path(depth, index),
+            Self::SparseMerkleTree(tree) => tree.get_path(depth, index),
             Self::MerklePathSet(set) => set.get_path(depth, index),
         }
     }
@@ -89,6 +110,7 @@ impl AdviceSet {
     pub fn update_leaf(&mut self, index: u64, value: Word) -> Result<(), AdviceSetError> {
         match self {
             Self::MerkleTree(tree) => tree.update_leaf(index, value),
+            Self::SparseMerkleTree(tree) => tree.update_leaf(index, value),
             Self::MerklePathSet(set) => set.update_leaf(index, value),
         }
     }
