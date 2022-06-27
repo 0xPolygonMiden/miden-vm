@@ -207,11 +207,12 @@ fn u32shl_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b >= 32
     let test = build_op_test!(asm_op, &[1, 32]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    // if b >= 32, 2^b >= 2^32 or not a u32
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 }
 
 #[test]
@@ -336,11 +337,11 @@ fn u32shr_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b >= 32
     let test = build_op_test!(asm_op, &[1, 32]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 }
 
 #[test]
@@ -621,7 +622,7 @@ fn u32rotr_fail() {
 
     // should fail if a >= 2^32
     let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 
     // should fail if b >= 32
     let test = build_op_test!(asm_op, &[1, 32]);

@@ -1,5 +1,4 @@
-use super::{Felt, FieldElement};
-use vm_core::utils::collections::BTreeMap;
+use super::{BTreeMap, Felt, FieldElement, Vec};
 
 // OVERFLOW TABLE
 // ================================================================================================

@@ -1,6 +1,8 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
 use air::{ProcessorAir, PublicInputs};
 use core::fmt;
-use vm_core::MIN_STACK_DEPTH;
+use vm_core::{utils::collections::Vec, MIN_STACK_DEPTH};
 use winterfell::VerifierError;
 
 // EXPORTS

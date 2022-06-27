@@ -1,13 +1,25 @@
 use super::{Felt, StarkField};
-use core::ops::Range;
+use core::{fmt::Debug, ops::Range};
+use winter_utils::collections::Vec;
+
+// FEATURE BASED RE-EXPORT
+// ================================================================================================
+
+#[cfg(not(feature = "std"))]
+pub use alloc::boxed::Box;
+
+#[cfg(feature = "std")]
+pub use std::boxed::Box;
 
 // RE-EXPORTS
 // ================================================================================================
 
 pub use winter_utils::{
-    collections, group_vector_elements, uninit_vector, ByteReader, ByteWriter, Deserializable,
-    DeserializationError, Serializable, SliceReader,
+    collections, group_vector_elements, string, uninit_vector, ByteReader, ByteWriter,
+    Deserializable, DeserializationError, Serializable, SliceReader,
 };
+
+pub use crypto::{RandomCoin, RandomCoinError};
 
 // TO ELEMENTS
 // ================================================================================================
@@ -71,4 +83,16 @@ pub const fn range(start: usize, len: usize) -> Range<usize> {
         start,
         end: start + len,
     }
+}
+
+// ARRAY CONSTRUCTORS
+// ================================================================================================
+
+/// Returns an array of N vectors initialized with the specified capacity.
+pub fn new_array_vec<T: Debug, const N: usize>(capacity: usize) -> [Vec<T>; N] {
+    (0..N)
+        .map(|_| Vec::with_capacity(capacity))
+        .collect::<Vec<_>>()
+        .try_into()
+        .expect("failed to convert vector to array")
 }

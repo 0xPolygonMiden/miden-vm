@@ -90,7 +90,7 @@ fn u32eq_b_fail() {
     // should fail when b is a valid parameter but a is out of bounds
     let asm_op = format!("{}.{}", asm_op, 1);
     let test = build_op_test!(&asm_op, &[U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 }
 
 #[test]
@@ -173,7 +173,7 @@ fn u32neq_b_fail() {
     // should fail when b is a valid parameter but a is out of bounds
     let asm_op = format!("{}.{}", asm_op, 1);
     let test = build_op_test!(&asm_op, &[U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+    test.expect_error(TestError::ExecutionError("NotU32Value"));
 }
 
 #[test]

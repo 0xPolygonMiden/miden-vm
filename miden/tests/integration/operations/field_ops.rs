@@ -5,6 +5,47 @@ use vm_core::{Felt, FieldElement, StarkField};
 use crate::build_op_test;
 use crate::helpers::{prop_randw, TestError, WORD_LEN};
 
+// FIELD OPS ASSERTIONS - MANUAL TESTS
+// ================================================================================================
+
+#[test]
+fn assert() {
+    let asm_op = "assert";
+
+    let test = build_op_test!(asm_op, &[1]);
+    test.expect_stack(&[]);
+}
+
+#[test]
+fn assert_fail() {
+    let asm_op = "assert";
+
+    let test = build_op_test!(asm_op, &[2]);
+    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+}
+
+#[test]
+fn assert_eq() {
+    let asm_op = "assert.eq";
+
+    let test = build_op_test!(asm_op, &[1, 1]);
+    test.expect_stack(&[]);
+
+    let test = build_op_test!(asm_op, &[3, 3]);
+    test.expect_stack(&[]);
+}
+
+#[test]
+fn assert_eq_fail() {
+    let asm_op = "assert.eq";
+
+    let test = build_op_test!(asm_op, &[2, 1]);
+    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+
+    let test = build_op_test!(asm_op, &[1, 4]);
+    test.expect_error(TestError::ExecutionError("FailedAssertion"));
+}
+
 // FIELD OPS ARITHMETIC - MANUAL TESTS
 // ================================================================================================
 
@@ -266,6 +307,125 @@ fn pow2_fail() {
     let asm_op = "pow2";
 
     build_op_test!(asm_op, &[64]).expect_error(TestError::ExecutionError("InvalidPowerOfTwo"));
+}
+
+// FIELD OPS BOOLEAN - MANUAL TESTS
+// ================================================================================================
+
+#[test]
+fn not() {
+    let asm_op = "not";
+
+    let test = build_op_test!(asm_op, &[1]);
+    test.expect_stack(&[0]);
+
+    let test = build_op_test!(asm_op, &[0]);
+    test.expect_stack(&[1]);
+}
+
+#[test]
+fn not_fail() {
+    let asm_op = "not";
+
+    // --- test value > 1 --------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[2]);
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+}
+
+#[test]
+fn and() {
+    let asm_op = "and";
+
+    let test = build_op_test!(asm_op, &[1, 1]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(asm_op, &[0, 1]);
+    test.expect_stack(&[0]);
+
+    let test = build_op_test!(asm_op, &[1, 0]);
+    test.expect_stack(&[0]);
+
+    let test = build_op_test!(asm_op, &[0, 0]);
+    test.expect_stack(&[0]);
+}
+
+#[test]
+fn and_fail() {
+    let asm_op = "and";
+
+    // --- test value > 1 --------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[2, 3]);
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+
+    let test = build_op_test!(asm_op, &[2, 0]);
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+
+    let test = build_op_test!(asm_op, &[0, 2]);
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+}
+
+#[test]
+fn or() {
+    let asm_op = "or";
+
+    let test = build_op_test!(asm_op, &[1, 1]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(asm_op, &[0, 1]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(asm_op, &[1, 0]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(asm_op, &[0, 0]);
+    test.expect_stack(&[0]);
+}
+
+#[test]
+fn or_fail() {
+    let asm_op = "or";
+
+    // --- test value > 1 --------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[2, 3]);
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+
+    let test = build_op_test!(asm_op, &[2, 0]);
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+
+    let test = build_op_test!(asm_op, &[0, 2]);
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+}
+
+#[test]
+fn xor() {
+    let asm_op = "xor";
+
+    let test = build_op_test!(asm_op, &[1, 1]);
+    test.expect_stack(&[0]);
+
+    let test = build_op_test!(asm_op, &[0, 1]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(asm_op, &[1, 0]);
+    test.expect_stack(&[1]);
+
+    let test = build_op_test!(asm_op, &[0, 0]);
+    test.expect_stack(&[0]);
+}
+
+#[test]
+fn xor_fail() {
+    let asm_op = "xor";
+
+    // --- test value > 1 --------------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[2, 3]);
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+
+    let test = build_op_test!(asm_op, &[2, 0]);
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
+
+    let test = build_op_test!(asm_op, &[0, 2]);
+    test.expect_error(TestError::ExecutionError("NotBinaryValue"));
 }
 
 // FIELD OPS COMPARISON - MANUAL TESTS

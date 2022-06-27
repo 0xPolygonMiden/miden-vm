@@ -1,5 +1,6 @@
 use super::{AssemblyError, Token};
 use core::fmt;
+use vm_core::utils::collections::Vec;
 
 // TOKEN STREAM
 // ================================================================================================

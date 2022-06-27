@@ -1,4 +1,4 @@
-use super::{Felt, FieldElement, HasherState, Selectors, TraceFragment, TRACE_WIDTH};
+use super::{Felt, FieldElement, HasherState, Selectors, TraceFragment, Vec, TRACE_WIDTH};
 use vm_core::hasher::{apply_round, NUM_ROUNDS, STATE_WIDTH};
 
 // HASHER TRACE
@@ -41,9 +41,13 @@ impl HasherTrace {
         self.row_addr.len()
     }
 
-    /// Returns next row address. The address is equal to the current trace length.
+    /// Returns next row address. The address is equal to the current trace length + 1.
+    ///
+    /// The above means that row addresses start at ONE (rather than ZERO), and are incremented by
+    /// ONE at every row. Starting at ONE is needed for the decoder so that the address of the
+    /// first code block is a non-zero value.
     pub fn next_row_addr(&self) -> Felt {
-        Felt::new(self.trace_len() as u64)
+        Felt::new(self.trace_len() as u64 + 1)
     }
 
     // TRACE MUTATORS
@@ -60,7 +64,7 @@ impl HasherTrace {
     ///
     /// Node index values are provided via `init_index` and `rest_index` parameters. The former is
     /// used for the first row, and the latter for all subsequent rows.
-    pub fn append_permutation(
+    pub fn append_permutation_with_index(
         &mut self,
         state: &mut HasherState,
         init_selectors: Selectors,
@@ -84,6 +88,26 @@ impl HasherTrace {
         // apply the last round and append the last row to the trace
         apply_round(state, NUM_ROUNDS - 1);
         self.append_row(final_selectors, state, rest_index);
+    }
+
+    /// Appends 8 rows to the execution trace describing a single permutation of the hash function.
+    ///
+    /// This function is similar to the append_permutation_with_index() function above, but it sets
+    /// init_index and rest_index parameters to ZEROs.
+    #[inline(always)]
+    pub fn append_permutation(
+        &mut self,
+        state: &mut HasherState,
+        init_selectors: Selectors,
+        final_selectors: Selectors,
+    ) {
+        self.append_permutation_with_index(
+            state,
+            init_selectors,
+            final_selectors,
+            Felt::ZERO,
+            Felt::ZERO,
+        );
     }
 
     /// Appends a new row to the execution trace based on the supplied parameters.

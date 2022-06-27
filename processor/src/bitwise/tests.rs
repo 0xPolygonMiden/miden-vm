@@ -1,5 +1,9 @@
-use super::{Bitwise, Felt, StarkField, TraceFragment, BITWISE_AND, BITWISE_OR, BITWISE_XOR};
+use super::{
+    Bitwise, Felt, FieldElement, StarkField, TraceFragment, BITWISE_AND, BITWISE_OR, BITWISE_XOR,
+    POW2_AGG_OUTPUT_COL, TRACE_WIDTH,
+};
 use rand_utils::rand_value;
+use vm_core::bitwise::OP_CYCLE_LEN;
 
 #[test]
 fn bitwise_init() {
@@ -14,12 +18,14 @@ fn bitwise_and() {
     let a = rand_u32();
     let b = rand_u32();
 
-    let result = bitwise.u32and(a, b).unwrap();
+    let (result, row_idx) = bitwise.u32and(a, b).unwrap();
+    let expected_row = OP_CYCLE_LEN - 1;
     assert_eq!(a.as_int() & b.as_int(), result.as_int());
+    assert_eq!(row_idx, Felt::new(expected_row as u64));
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
-    let mut trace = (0..13)
+    let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
@@ -61,12 +67,14 @@ fn bitwise_or() {
     let a = rand_u32();
     let b = rand_u32();
 
-    let result = bitwise.u32or(a, b).unwrap();
+    let (result, row_idx) = bitwise.u32or(a, b).unwrap();
+    let expected_row = OP_CYCLE_LEN - 1;
     assert_eq!(a.as_int() | b.as_int(), result.as_int());
+    assert_eq!(row_idx, Felt::new(expected_row as u64));
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
-    let mut trace = (0..13)
+    let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
@@ -108,12 +116,14 @@ fn bitwise_xor() {
     let a = rand_u32();
     let b = rand_u32();
 
-    let result = bitwise.u32xor(a, b).unwrap();
+    let (result, row_idx) = bitwise.u32xor(a, b).unwrap();
+    let expected_row = OP_CYCLE_LEN - 1;
     assert_eq!(a.as_int() ^ b.as_int(), result.as_int());
+    assert_eq!(row_idx, Felt::new(expected_row as u64));
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
-    let mut trace = (0..13)
+    let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
@@ -156,24 +166,32 @@ fn bitwise_multiple() {
     let b = [rand_u32(), rand_u32(), rand_u32(), rand_u32()];
 
     // first operation: AND
-    let result0 = bitwise.u32and(a[0], b[0]).unwrap();
+    let (result0, row_idx) = bitwise.u32and(a[0], b[0]).unwrap();
+    let mut expected_row = OP_CYCLE_LEN - 1;
     assert_eq!(a[0].as_int() & b[0].as_int(), result0.as_int());
+    assert_eq!(row_idx, Felt::new(expected_row as u64));
 
     // second operation: OR
-    let result1 = bitwise.u32or(a[1], b[1]).unwrap();
+    let (result1, row_idx) = bitwise.u32or(a[1], b[1]).unwrap();
+    expected_row += OP_CYCLE_LEN;
     assert_eq!(a[1].as_int() | b[1].as_int(), result1.as_int());
+    assert_eq!(row_idx, Felt::new(expected_row as u64));
 
     // third operation: XOR
-    let result2 = bitwise.u32xor(a[2], b[2]).unwrap();
+    let (result2, row_idx) = bitwise.u32xor(a[2], b[2]).unwrap();
+    expected_row += OP_CYCLE_LEN;
     assert_eq!(a[2].as_int() ^ b[2].as_int(), result2.as_int());
+    assert_eq!(row_idx, Felt::new(expected_row as u64));
 
     // fourth operation: AND
-    let result3 = bitwise.u32and(a[3], b[3]).unwrap();
+    let (result3, row_idx) = bitwise.u32and(a[3], b[3]).unwrap();
+    expected_row += OP_CYCLE_LEN;
     assert_eq!(a[3].as_int() & b[3].as_int(), result3.as_int());
+    assert_eq!(row_idx, Felt::new(expected_row as u64));
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 32;
-    let mut trace = (0..13)
+    let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
@@ -249,6 +267,49 @@ fn bitwise_multiple() {
 
         prev_result = result;
     }
+}
+
+#[test]
+fn pow2() {
+    let mut power_of_two = Bitwise::new();
+
+    // --- ensure correct results -------------------------------------------------------------
+    // Minimum exponent value.
+    let result = power_of_two.pow2(Felt::ZERO).unwrap();
+    let trace_result = power_of_two.trace[POW2_AGG_OUTPUT_COL].last().unwrap();
+    assert_eq!(result, Felt::ONE);
+    assert_eq!(trace_result, &result);
+
+    // Power decomposition ends at end of row.
+    let result = power_of_two.pow2(Felt::new(8)).unwrap();
+    let trace_result = power_of_two.trace[POW2_AGG_OUTPUT_COL].last().unwrap();
+    assert_eq!(result, Felt::new(2_u64.pow(8)));
+    assert_eq!(trace_result, &result);
+
+    // Power decomposition ends at start of row.
+    let result = power_of_two.pow2(Felt::new(9)).unwrap();
+    let trace_result = power_of_two.trace[POW2_AGG_OUTPUT_COL].last().unwrap();
+    assert_eq!(result, Felt::new(2_u64.pow(9)));
+    assert_eq!(trace_result, &result);
+
+    // Maximumm exponent value.
+    let result = power_of_two.pow2(Felt::new(63)).unwrap();
+    let trace_result = power_of_two.trace[POW2_AGG_OUTPUT_COL].last().unwrap();
+    assert_eq!(result, Felt::new(2_u64.pow(63)));
+    assert_eq!(trace_result, &result);
+
+    // --- check the trace --------------------------------------------------------------------
+    // The trace length should equal four full power-of-two operation cycles.
+    assert_eq!(power_of_two.trace_len(), 32);
+}
+
+#[test]
+fn pow2_fail() {
+    let mut power_of_two = Bitwise::new();
+
+    // --- ensure failure with out-of-bounds exponent -----------------------------------------
+    let result = power_of_two.pow2(Felt::new(64));
+    assert!(result.is_err());
 }
 
 // HELPER FUNCTIONS

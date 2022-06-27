@@ -27,6 +27,9 @@ type ModuleMap = BTreeMap<String, String>;
 /// namespace label and the module source code for this label.
 #[cfg(not(feature = "docs-rs"))]
 fn main() {
+    // re-build the `./src/asm.rs` file only if something in the `./asm` directory has changed
+    println!("cargo:rerun-if-changed=asm");
+
     let mut modules = BTreeMap::new();
 
     // read the modules from the asm directory

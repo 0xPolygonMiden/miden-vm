@@ -1,7 +1,8 @@
 use super::{
-    parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, Token, TokenStream,
+    parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, String, Token,
+    TokenStream, Vec,
 };
-use vm_core::utils::{collections::Vec, group_vector_elements};
+use vm_core::utils::group_vector_elements;
 
 // BLOCK PARSER
 // ================================================================================================
@@ -251,22 +252,25 @@ impl BlockParser {
 // ================================================================================================
 
 pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
-    // merge consecutive Span blocks
+    // merge consecutive Span blocks.
     let mut merged_blocks: Vec<CodeBlock> = Vec::with_capacity(blocks.len());
+    // Keep track of all the consecutive Span blocks and are merged together when
+    // there is a discontinuity.
+    let mut contiguous_spans: Vec<CodeBlock> = Vec::new();
+
     blocks.drain(0..).for_each(|block| {
         if block.is_span() {
-            if let Some(CodeBlock::Span(last_span)) = merged_blocks.last_mut() {
-                // this is guaranteed to execute because we know that the block is a span
-                if let CodeBlock::Span(span) = block {
-                    last_span.append(span);
-                }
-            } else {
-                merged_blocks.push(block);
-            }
+            contiguous_spans.push(block);
         } else {
+            if !contiguous_spans.is_empty() {
+                merged_blocks.push(combine_spans(&mut contiguous_spans));
+            }
             merged_blocks.push(block);
         }
     });
+    if !contiguous_spans.is_empty() {
+        merged_blocks.push(combine_spans(&mut contiguous_spans));
+    }
 
     // build a binary tree of blocks joining them using Join blocks
     let mut blocks = merged_blocks;
@@ -290,4 +294,26 @@ pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
     }
 
     blocks.remove(0)
+}
+
+/// Returns a CodeBlock [Span] from sequence of Span blocks provided as input.
+pub fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
+    if spans.len() == 1 {
+        return spans.remove(0);
+    }
+
+    let mut ops = Vec::<Operation>::new();
+    spans.drain(0..).for_each(|block| {
+        if let CodeBlock::Span(span) = block {
+            for batch in span.op_batches() {
+                ops.extend_from_slice(batch.ops());
+            }
+        } else {
+            panic!(
+                "Codeblock was expected to be a Span Block, got {:?}.",
+                block
+            );
+        }
+    });
+    CodeBlock::new_span(ops)
 }

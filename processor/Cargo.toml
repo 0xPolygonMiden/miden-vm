@@ -17,7 +17,7 @@ doctest = false
 
 [features]
 default = ["std"]
-std = ["vm-core/std", "winterfell/std"]
+std = ["vm-core/std", "winterfell/std", "log/std"]
 
 [dependencies]
 log = "0.4.14"

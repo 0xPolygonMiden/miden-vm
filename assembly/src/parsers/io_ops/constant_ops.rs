@@ -1,6 +1,6 @@
 use super::{
     parse_decimal_param, parse_element_param, parse_hex_param, push_value, validate_operation,
-    AssemblyError, Felt, Operation, Token,
+    AssemblyError, Felt, Operation, Token, Vec,
 };
 
 // CONSTANTS

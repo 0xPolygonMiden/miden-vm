@@ -1,6 +1,12 @@
-use super::{Felt, FieldElement, StarkField, TraceFragment, Word};
-use core::ops::Range;
-use vm_core::hasher::STATE_WIDTH;
+use super::{Felt, FieldElement, StarkField, TraceFragment, Vec, Word};
+use vm_core::{
+    hasher::{
+        absorb_into_state, get_digest, init_state, init_state_from_words, Selectors, LINEAR_HASH,
+        MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, STATE_WIDTH,
+        TRACE_WIDTH,
+    },
+    program::blocks::OpBatch,
+};
 
 mod trace;
 use trace::HasherTrace;
@@ -11,46 +17,12 @@ mod tests;
 // CONSTANTS
 // ================================================================================================
 
-/// Elements of the hasher state which are returned as hash result.
-const HASH_RESULT_RANGE: Range<usize> = Range { start: 4, end: 8 };
-
-/// Number of selector columns in the trace.
-const NUM_SELECTORS: usize = 3;
-
-/// Number of columns in Hasher execution trace. Additional two columns are for row address and
-/// node index columns.
-const TRACE_WIDTH: usize = NUM_SELECTORS + STATE_WIDTH + 2;
-
-/// Specifies a start of a new linear hash computation or absorption of new elements into an
-/// executing linear hash computation. These selectors can also be used for a simple 2-to-1 hash
-/// computation.
-pub const LINEAR_HASH: Selectors = [Felt::ONE, Felt::ZERO, Felt::ZERO];
-
-/// Specifies a start of Merkle path verification computation or absorption of a new path node
-/// into the hasher state.
-pub const MP_VERIFY: Selectors = [Felt::ONE, Felt::ZERO, Felt::ONE];
-
-/// Specifies a start of Merkle path verification or absorption of a new path node into the hasher
-/// state for the "old" node value during Merkle root update computation.
-pub const MR_UPDATE_OLD: Selectors = [Felt::ONE, Felt::ONE, Felt::ZERO];
-
-/// Specifies a start of Merkle path verification or absorption of a new path node into the hasher
-/// state for the "new" node value during Merkle root update computation.
-pub const MR_UPDATE_NEW: Selectors = [Felt::ONE, Felt::ONE, Felt::ONE];
-
-/// Specifies a completion of a computation such that only the hash result (values in h0, h1, h2
-/// h3) is returned.
-pub const RETURN_HASH: Selectors = [Felt::ZERO, Felt::ZERO, Felt::ZERO];
-
-/// Specifies a completion of a computation such that the entire hasher state (values in h0 through
-/// h11) is returned.
-pub const RETURN_STATE: Selectors = [Felt::ZERO, Felt::ZERO, Felt::ONE];
+const ZERO: Felt = Felt::ZERO;
 
 // TYPE ALIASES
 // ================================================================================================
 
 type HasherState = [Felt; STATE_WIDTH];
-type Selectors = [Felt; NUM_SELECTORS];
 
 // HASH PROCESSOR
 // ================================================================================================
@@ -72,7 +44,7 @@ type Selectors = [Felt; NUM_SELECTORS];
 /// In the above, the meaning of the columns is as follows:
 /// * Selector columns s0, s1, and s2 used to help select transition function for a given row.
 /// * Row address column addr used to uniquely identify each row in the table. Values in this
-///   column start at 0 and are incremented by one with every subsequent row.
+///   column start at 1 and are incremented by one with every subsequent row.
 /// * Hasher state columns h0 through h11 used to hold the hasher state for each round of hash
 ///   computation. The state is laid out as follows:
 ///   - The first four columns are reserved for capacity elements of the state. When the state
@@ -120,14 +92,73 @@ impl Hasher {
     /// execution trace at which the permutation started.
     pub fn permute(&mut self, mut state: HasherState) -> (Felt, HasherState) {
         let addr = self.trace.next_row_addr();
-        self.trace.append_permutation(
-            &mut state,
-            LINEAR_HASH,
-            RETURN_STATE,
-            Felt::ZERO,
-            Felt::ZERO,
-        );
+        self.trace
+            .append_permutation(&mut state, LINEAR_HASH, RETURN_STATE);
         (addr, state)
+    }
+
+    /// Merges the provided words by computing hash(h1, h2) and returns the result.
+    ///
+    /// The returned tuple also contains the row address of the execution trace at which hash
+    /// computation started.
+    pub fn merge(&mut self, h1: Word, h2: Word) -> (Felt, Word) {
+        let addr = self.trace.next_row_addr();
+        let mut state = init_state_from_words(&h1, &h2);
+        self.trace
+            .append_permutation(&mut state, LINEAR_HASH, RETURN_HASH);
+        let result = get_digest(&state);
+        (addr, result)
+    }
+
+    /// Computes a sequential hash of all operation batches in the list and returns the result.
+    ///
+    /// The returned tuple also contains the row address of the execution trace at which hash
+    /// computation started.
+    pub fn hash_span_block(
+        &mut self,
+        op_batches: &[OpBatch],
+        num_op_groups: usize,
+    ) -> (Felt, Word) {
+        const START: Selectors = LINEAR_HASH;
+        const RETURN: Selectors = RETURN_HASH;
+        // absorb selectors are the same as linear hash selectors, but absorb selectors are
+        // applied on the last row of a permutation cycle, while linear hash selectors are
+        // applied on the first row of a permutation cycle.
+        const ABSORB: Selectors = LINEAR_HASH;
+        // to continue linear hash we need retain the 2nd and 3rd selector flags and set the
+        // 1st flag to ZERO.
+        const CONTINUE: Selectors = [ZERO, LINEAR_HASH[1], LINEAR_HASH[2]];
+
+        let addr = self.trace.next_row_addr();
+
+        // initialize the state and absorb the first operation batch into it
+        let mut state = init_state(op_batches[0].groups(), num_op_groups);
+
+        let num_batches = op_batches.len();
+        if num_batches == 1 {
+            // if there is only one batch to hash, we need only one permutation
+            self.trace.append_permutation(&mut state, START, RETURN);
+        } else {
+            // if there is more than one batch, we need to process the first, the last, and the
+            // middle permutations a bit differently. Specifically, selector flags for the
+            // permutations need to be set as follows:
+            // - first permutation: init linear hash on the first row, and absorb the next
+            //   operation batch on the last row.
+            // - middle permutations: continue hashing on the first row, and absorb the next
+            //   operation batch on the last row.
+            // - last permutation: continue hashing on the first row, and return the result
+            //   on the last row.
+            self.trace.append_permutation(&mut state, START, ABSORB);
+            for batch in op_batches.iter().take(num_batches - 1).skip(1) {
+                absorb_into_state(&mut state, batch.groups());
+                self.trace.append_permutation(&mut state, CONTINUE, ABSORB);
+            }
+            absorb_into_state(&mut state, op_batches[num_batches - 1].groups());
+            self.trace.append_permutation(&mut state, CONTINUE, RETURN);
+        }
+
+        let result = get_digest(&state);
+        (addr, result)
     }
 
     /// Performs Merkle path verification computation and records its execution trace.
@@ -259,14 +290,14 @@ impl Hasher {
         // of init_selectors is not ZERO (i.e., we are processing the first leg of the Merkle
         // path), the index for the first row is different from the index for the other rows;
         // otherwise, indexes are the same.
-        let (init_index, rest_index) = if init_selectors[0] == Felt::ZERO {
+        let (init_index, rest_index) = if init_selectors[0] == ZERO {
             (Felt::new(*index >> 1), Felt::new(*index >> 1))
         } else {
             (Felt::new(*index), Felt::new(*index >> 1))
         };
 
         // apply the permutation to the state and record its trace
-        self.trace.append_permutation(
+        self.trace.append_permutation_with_index(
             &mut state,
             init_selectors,
             final_selectors,
@@ -276,9 +307,13 @@ impl Hasher {
 
         // remove the least significant bit from the index and return hash result
         *index >>= 1;
-        state[HASH_RESULT_RANGE]
-            .try_into()
-            .expect("failed to get result from hasher state")
+        get_digest(&state)
+    }
+}
+
+impl Default for Hasher {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -311,7 +346,7 @@ impl MerklePathContext {
     /// from selector values by replacing the first selector with ZERO.
     pub fn part_selectors(&self) -> Selectors {
         let selectors = self.main_selectors();
-        [Felt::ZERO, selectors[1], selectors[2]]
+        [ZERO, selectors[1], selectors[2]]
     }
 }
 
@@ -322,19 +357,11 @@ impl MerklePathContext {
 ///
 /// If index_bit = 0, the words are combined in the order (a, b), if index_bit = 1, the words are
 /// combined in the order (b, a), otherwise, the function panics.
-///
-/// This also sets the capacity elements of the state to 8 (the number of elements to be hashed),
-/// followed by 3 zeros.
+#[inline(always)]
 fn build_merge_state(a: &Word, b: &Word, index_bit: u64) -> HasherState {
-    const EIGHT: Felt = Felt::new(8);
-    const ZERO: Felt = Felt::ZERO;
     match index_bit {
-        0 => [
-            EIGHT, ZERO, ZERO, ZERO, a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3],
-        ],
-        1 => [
-            EIGHT, ZERO, ZERO, ZERO, b[0], b[1], b[2], b[3], a[0], a[1], a[2], a[3],
-        ],
+        0 => init_state_from_words(a, b),
+        1 => init_state_from_words(b, a),
         _ => panic!("index bit is not a binary value"),
     }
 }
