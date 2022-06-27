@@ -72,6 +72,44 @@ fn test_u256xu256_mod_mult() {
     }
 }
 
+#[test]
+fn test_u256_mod_add() {
+    let source = "
+    use.std::math::secp256k1
+
+    begin
+        exec.secp256k1::u256_mod_add
+    end";
+
+    let mut stack = [0u64; 16];
+    for i in 0..8 {
+        let a = rand_utils::rand_value::<u32>() as u64;
+        let b = rand_utils::rand_value::<u32>() as u64;
+
+        stack[i] = a;
+        stack[i ^ 8] = b;
+    }
+
+    let mut a = [0u32; 8];
+    let mut b = [0u32; 8];
+
+    for i in 0..8 {
+        a[i] = stack[i] as u32;
+        b[i] = stack[i ^ 8] as u32;
+    }
+
+    let expected = u256_mod_add(a, b);
+
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    for i in 0..8 {
+        assert_eq!(Felt::new(expected[i] as u64), strace[i]);
+    }
+}
+
 fn mac(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
     let tmp = a as u64 + (b as u64 * c as u64) + carry as u64;
     ((tmp >> 32) as u32, tmp as u32)
@@ -232,4 +270,47 @@ fn u256xu256_mod_mult(a: &[u32], b: &[u32]) -> [u32; 8] {
     c[9] += pc;
 
     c[8..16].try_into().expect("incorrect length")
+}
+
+/// See https://gist.github.com/itzmeanjan/d4853347dfdfa853993f5ea059824de6#file-test_montgomery_arithmetic-py-L236-L256
+fn u256_mod_add(a: [u32; 8], b: [u32; 8]) -> [u32; 8] {
+    let mut c = [0u32; 8];
+    let mut carry = 0u32;
+
+    let v = adc(a[0], b[0], carry);
+    carry = v.0;
+    c[0] = v.1;
+
+    let v = adc(a[1], b[1], carry);
+    carry = v.0;
+    c[1] = v.1;
+
+    let v = adc(a[2], b[2], carry);
+    carry = v.0;
+    c[2] = v.1;
+
+    let v = adc(a[3], b[3], carry);
+    carry = v.0;
+    c[3] = v.1;
+
+    let v = adc(a[4], b[4], carry);
+    carry = v.0;
+    c[4] = v.1;
+
+    let v = adc(a[5], b[5], carry);
+    carry = v.0;
+    c[5] = v.1;
+
+    let v = adc(a[6], b[6], carry);
+    carry = v.0;
+    c[6] = v.1;
+
+    let v = adc(a[7], b[7], carry);
+    carry = v.0;
+    c[7] = v.1;
+
+    c[0] += carry * 977;
+    c[1] += carry;
+
+    c
 }

@@ -293,6 +293,74 @@ export.u256xu256_mod_mult.2
   drop
 end
 
+# Given two 256 -bit numbers on stack, where each number is represented in
+# radix-2^32 form ( i.e. each number having eight 32 -bit limbs ), following function
+# computes modular addition of those two operands, in secp256k1 prime field.
+#
+# Stack expected as below, holding input
+#
+# [a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7] | a[0..8], b[0..8] are 256 -bit numbers
+#
+# After finishing execution of this function, stack should look like
+#
+# [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a 256 -bit number
+#
+# This implementation takes inspiration from https://gist.github.com/itzmeanjan/d4853347dfdfa853993f5ea059824de6#file-test_montgomery_arithmetic-py-L236-L256
+export.u256_mod_add
+  push.0
+  swap
+  movup.9
+  u32addc.unsafe
+
+  movup.2
+  movup.9
+  u32addc.unsafe
+
+  movup.3
+  movup.9
+  u32addc.unsafe
+
+  movup.4
+  movup.9
+  u32addc.unsafe
+
+  movup.5
+  movup.9
+  u32addc.unsafe
+
+  movup.6
+  movup.9
+  u32addc.unsafe
+
+  movup.7
+  movup.9
+  u32addc.unsafe
+
+  movup.8
+  movup.9
+  u32addc.unsafe
+
+  movup.8
+  dup.1
+  push.977
+  u32madd.unsafe
+  drop
+
+  movup.8
+  movup.2
+  u32add.unsafe
+  drop
+
+  movup.2
+  movup.3
+  movup.4
+  movup.5
+  movup.6
+  movup.7
+  movup.6
+  movup.7
+end
+
 # Given a 256 -bit number on stack, represented in radix-2^32 
 # form i.e. eight 32 -bit limbs, this routine computes Montgomery
 # representation of provided radix-2^32 number.
