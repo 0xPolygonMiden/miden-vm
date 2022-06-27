@@ -1,7 +1,7 @@
 use super::{
     decoder::AuxTraceHints as DecoderAuxTraceHints,
-    range::AuxTraceHints as RangeCheckerAuxTraceHints, Digest, Felt, FieldElement, Process,
-    StackTopState, Vec,
+    range::AuxTraceHints as RangeCheckerAuxTraceHints, stack::AuxTraceHints as StackAuxTraceHints,
+    Digest, Felt, FieldElement, Process, StackTopState, Vec,
 };
 use vm_core::{
     AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET,
@@ -34,6 +34,7 @@ type RandomCoin = vm_core::utils::RandomCoin<Felt, vm_core::hasher::Hasher>;
 
 pub struct AuxTraceHints {
     pub(crate) decoder: DecoderAuxTraceHints,
+    pub(crate) stack: StackAuxTraceHints,
     pub(crate) range: RangeCheckerAuxTraceHints,
 }
 
@@ -262,7 +263,7 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     let mut trace = system_trace
         .into_iter()
         .chain(decoder_trace.trace)
-        .chain(stack_trace)
+        .chain(stack_trace.trace)
         .chain(range_check_trace.trace)
         .chain(aux_table_trace)
         .collect::<Vec<_>>();
@@ -276,6 +277,7 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
 
     let aux_trace_hints = AuxTraceHints {
         decoder: decoder_trace.aux_trace_hints,
+        stack: stack_trace.aux_trace_hints,
         range: range_check_trace.aux_trace_hints,
     };
 
