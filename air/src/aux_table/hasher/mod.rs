@@ -1,6 +1,8 @@
+use super::{
+    Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec,
+    HASHER_TRACE_OFFSET,
+};
 use crate::utils::{are_equal, binary_not, is_binary, EvaluationResult};
-
-use super::{EvaluationFrame, Felt, FieldElement, Vec, HASHER_TRACE_OFFSET};
 use core::ops::Range;
 use vm_core::{
     hasher::{
@@ -8,15 +10,16 @@ use vm_core::{
     },
     utils::range as create_range,
 };
-use winter_air::TransitionConstraintDegree;
 
 #[cfg(test)]
 mod tests;
 
 // CONSTANTs
 // ================================================================================================
+/// The number of boundary constraints required by the hash co-processor.
+pub const NUM_ASSERTIONS: usize = 1;
 
-/// The number of constraints on the management of the hasher co-processor.
+/// The number of constraints on the management of the hash co-processor.
 pub const NUM_CONSTRAINTS: usize = 31;
 
 /// The number of periodic columns which are used as selectors to specify a particular row or rows
@@ -53,6 +56,14 @@ pub fn get_periodic_column_values() -> Vec<Vec<Felt>> {
     ];
     result.append(&mut get_round_constants());
     result
+}
+
+// BOUNDARY CONSTRAINTS
+// ================================================================================================
+
+/// Returns the boundary assertions for the hash co-processor at the first step.
+pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>) {
+    result.push(Assertion::single(ROW_COL_IDX, 0, Felt::ONE));
 }
 
 // HASHER TRANSITION CONSTRAINTS
@@ -358,7 +369,7 @@ fn apply_inv_mds<E: FieldElement + From<Felt>>(state: &mut [E; STATE_WIDTH]) {
 // ================================================================================================
 
 /// Trait to allow easy access to column values and intermediate variables used in constraint
-/// calculations for the Hasher co-processor.
+/// calculations for the hash co-processor.
 trait EvaluationFrameExt<E: FieldElement> {
     // --- Column accessors -----------------------------------------------------------------------
 

@@ -1,4 +1,4 @@
-use super::{EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec};
+use super::{Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec};
 use crate::utils::{binary_not, is_binary};
 use vm_core::AUX_TABLE_OFFSET;
 
@@ -9,6 +9,8 @@ mod memory;
 // CONSTANTS
 // ================================================================================================
 
+/// The number of boundary constraints required by the Auxiliary Table
+pub const NUM_ASSERTIONS: usize = hasher::NUM_ASSERTIONS;
 /// The number of constraints on the management of the Auxiliary Table. This does not include
 /// constraints for the co-processors.
 pub const NUM_CONSTRAINTS: usize = 3;
@@ -29,7 +31,7 @@ pub const S2_COL_IDX: usize = AUX_TABLE_OFFSET + 2;
 
 /// The first column of the bitwise co-processor.
 pub const BITWISE_TRACE_OFFSET: usize = S1_COL_IDX + 1;
-/// The first column of the hasher co-processor.
+/// The first column of the hash co-processor.
 pub const HASHER_TRACE_OFFSET: usize = S0_COL_IDX + 1;
 /// The first column of the memory co-processor.
 pub const MEMORY_TRACE_OFFSET: usize = S2_COL_IDX + 1;
@@ -70,6 +72,11 @@ pub fn get_transition_constraint_count() -> usize {
         + hasher::get_transition_constraint_count()
         + bitwise_pow2::get_transition_constraint_count()
         + memory::get_transition_constraint_count()
+}
+
+/// Returns the boundary assertions for the auxiliary table and all of its co-processors at the first step.
+pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>) {
+    hasher::get_assertions_first_step(result);
 }
 
 /// Enforces constraints for the auxiliary table and all of its co-processors.
