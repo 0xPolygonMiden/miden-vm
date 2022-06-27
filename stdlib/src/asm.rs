@@ -4,7 +4,7 @@
 ///
 /// Entries in the array are tuples containing module namespace and module source code.
 #[rustfmt::skip]
-pub const MODULES: [(&str, &str); 6] = [
+pub const MODULES: [(&str, &str); 7] = [
 // ----- std::crypto::hashes::blake3 --------------------------------------------------------------
 ("std::crypto::hashes::blake3", "proc.from_mem_to_stack.1
     storew.local.0
@@ -9517,7 +9517,7 @@ proc.u288_reduce
   movup.9
   swap
   movup.9
-  u32addc.unsafe
+  u32add3.unsafe
 
   swap
   movup.2
@@ -9656,7 +9656,7 @@ end
 
 # Given two 256 -bit numbers on stack, where each number is represented in
 # radix-2^32 form ( i.e. each number having eight 32 -bit limbs ), following function
-# computes modular addition of those two operands, computing 256 -bit result.
+# computes modular addition of those two operands, in secp256k1 prime field.
 #
 # Stack expected as below, holding input
 #
@@ -9671,35 +9671,35 @@ export.u256_mod_add
   push.0
   swap
   movup.9
-  u32addc.unsafe
+  u32add3.unsafe
 
   movup.2
   movup.9
-  u32addc.unsafe
+  u32add3.unsafe
 
   movup.3
   movup.9
-  u32addc.unsafe
+  u32add3.unsafe
 
   movup.4
   movup.9
-  u32addc.unsafe
+  u32add3.unsafe
 
   movup.5
   movup.9
-  u32addc.unsafe
+  u32add3.unsafe
 
   movup.6
   movup.9
-  u32addc.unsafe
+  u32add3.unsafe
 
   movup.7
   movup.9
-  u32addc.unsafe
+  u32add3.unsafe
 
   movup.8
   movup.9
-  u32addc.unsafe
+  u32add3.unsafe
 
   movup.8
   dup.1
