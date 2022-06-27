@@ -116,7 +116,9 @@ impl Stack {
         result
     }
 
-    /// Returns an execution trace of the top 16 stack slots and helper columns as a single array.
+    /// Returns an execution trace of the top 16 stack slots and helper columns as a single array
+    /// together with hints to be used in construction of stack-related auxiliary trace segment
+    /// columns.
     ///
     /// If the stack trace is smaller than the specified `trace_len`, last value in each column is
     /// duplicated until the length of the columns reaches `trace_len`.

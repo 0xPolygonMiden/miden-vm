@@ -20,20 +20,7 @@ use vm_core::{
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p1_span_with_respan() {
-    let iv = [1, 3, 5, 7, 9, 11, 13, 15, 17].to_elements();
-    let ops = vec![
-        Operation::Push(iv[0]),
-        Operation::Push(iv[1]),
-        Operation::Push(iv[2]),
-        Operation::Push(iv[3]),
-        Operation::Push(iv[4]),
-        Operation::Push(iv[5]),
-        Operation::Push(iv[6]),
-        // next batch
-        Operation::Push(iv[7]),
-        Operation::Push(iv[8]),
-        Operation::Add,
-    ];
+    let (ops, _) = build_span_with_respan_ops();
     let mut trace = build_trace_from_ops(ops, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
@@ -60,15 +47,15 @@ fn decoder_p1_span_with_respan() {
     let expected_value = expected_value * row_values[0].inv() * row_values[1];
     assert_eq!(expected_value, p1[10]);
 
-    // for the next 4 cycles (as we execute user ops), the table is not affected
-    for i in 11..15 {
+    // for the next 12 cycles (as we execute user ops), the table is not affected
+    for i in 11..22 {
         assert_eq!(expected_value, p1[i]);
     }
 
-    // at cycle 14, the END operation is executed and the table is cleared
+    // at cycle 22, the END operation is executed and the table is cleared
     let expected_value = expected_value * row_values[1].inv();
     assert_eq!(expected_value, ONE);
-    for i in 15..(p1.len() - NUM_RAND_ROWS) {
+    for i in 22..(p1.len() - NUM_RAND_ROWS) {
         assert_eq!(ONE, p1[i]);
     }
 }
@@ -300,20 +287,8 @@ fn decoder_p1_loop_with_repeat() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_span_with_respan() {
-    let iv = [1, 3, 5, 7, 9, 11, 13, 15, 17].to_elements();
-    let span = CodeBlock::new_span(vec![
-        Operation::Push(iv[0]),
-        Operation::Push(iv[1]),
-        Operation::Push(iv[2]),
-        Operation::Push(iv[3]),
-        Operation::Push(iv[4]),
-        Operation::Push(iv[5]),
-        Operation::Push(iv[6]),
-        // next batch
-        Operation::Push(iv[7]),
-        Operation::Push(iv[8]),
-        Operation::Add,
-    ]);
+    let (ops, _) = build_span_with_respan_ops();
+    let span = CodeBlock::new_span(ops);
     let mut trace = build_trace_from_block(&span, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
@@ -327,14 +302,14 @@ fn decoder_p2_span_with_respan() {
     assert_eq!(expected_value, p2[0]);
 
     // as operations inside the span execute (including RESPAN), the table is not affected
-    for i in 1..14 {
+    for i in 1..22 {
         assert_eq!(expected_value, p2[i]);
     }
 
-    // at cycle 14, the END operation is executed and the table is cleared
+    // at cycle 22, the END operation is executed and the table is cleared
     expected_value *= row_values[0].inv();
     assert_eq!(expected_value, ONE);
-    for i in 15..(p2.len() - NUM_RAND_ROWS) {
+    for i in 22..(p2.len() - NUM_RAND_ROWS) {
         assert_eq!(ONE, p2[i]);
     }
 }
@@ -669,20 +644,7 @@ fn decoder_p3_trace_one_batch() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p3_trace_two_batches() {
-    let iv = [1, 3, 5, 7, 9, 11, 13, 15, 17].to_elements();
-    let ops = vec![
-        Operation::Push(iv[0]),
-        Operation::Push(iv[1]),
-        Operation::Push(iv[2]),
-        Operation::Push(iv[3]),
-        Operation::Push(iv[4]),
-        Operation::Push(iv[5]),
-        Operation::Push(iv[6]),
-        // next batch
-        Operation::Push(iv[7]),
-        Operation::Push(iv[8]),
-        Operation::Add,
-    ];
+    let (ops, iv) = build_span_with_respan_ops();
     let mut trace = build_trace_from_ops(ops, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
@@ -718,31 +680,67 @@ fn decoder_p3_trace_two_batches() {
     assert_eq!(expected_value, ONE);
 
     // --- second batch ---------------------------------------------------------------------------
-    // make sure entries for 3 groups (two immediate values and NOOP for the padding group) are
-    // inserted at clock cycle 10 (when RESPAN is executed)
+    // make sure entries for 3 group are inserted at clock cycle 10 (when RESPAN is executed)
+    // group 3 consists of two DROP operations which do not fit into group 0
     let batch1_addr = ONE + Felt::new(8);
+    let op_group3 = build_op_group(&[Operation::Drop; 2]);
     let b1_values = [
         OpGroupTableRow::new(batch1_addr, Felt::new(3), iv[7]).to_value(&alphas),
         OpGroupTableRow::new(batch1_addr, Felt::new(2), iv[8]).to_value(&alphas),
-        OpGroupTableRow::new(batch1_addr, Felt::new(1), ZERO).to_value(&alphas),
+        OpGroupTableRow::new(batch1_addr, Felt::new(1), op_group3).to_value(&alphas),
     ];
     let mut expected_value: Felt = b1_values.iter().fold(ONE, |acc, &val| acc * val);
     assert_eq!(expected_value, p3[10]);
 
     // for the next 2 cycles (11, 12), an entry for an op group is removed from the table
     for (i, clk) in (11..13).enumerate() {
-        expected_value /= b1_values[i];
+        expected_value *= b1_values[i].inv();
         assert_eq!(expected_value, p3[clk]);
     }
 
-    // at cycle 13, when ADD is executed, the entry for the last op group is removed from the
-    // table
-    expected_value /= b1_values[2];
-    assert_eq!(expected_value, p3[13]);
+    // then, as we executed ADD and DROP operations for group 0, op group table doesn't change
+    for i in 13..19 {
+        assert_eq!(expected_value, p3[i]);
+    }
+
+    // at cycle 19 we start executing group 3 - so, the entry for the last op group is removed
+    // from the table
+    expected_value *= b1_values[2].inv();
+    assert_eq!(expected_value, p3[19]);
 
     // at this point, the table should be empty and thus, running product should be ONE
     assert_eq!(expected_value, ONE);
-    for i in 14..(p3.len() - NUM_RAND_ROWS) {
+    for i in 20..(p3.len() - NUM_RAND_ROWS) {
         assert_eq!(ONE, p3[i]);
     }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+fn build_span_with_respan_ops() -> (Vec<Operation>, Vec<Felt>) {
+    let iv = [1, 3, 5, 7, 9, 11, 13, 15, 17].to_elements();
+    let ops = vec![
+        Operation::Push(iv[0]),
+        Operation::Push(iv[1]),
+        Operation::Push(iv[2]),
+        Operation::Push(iv[3]),
+        Operation::Push(iv[4]),
+        Operation::Push(iv[5]),
+        Operation::Push(iv[6]),
+        // next batch
+        Operation::Push(iv[7]),
+        Operation::Push(iv[8]),
+        Operation::Add,
+        // drops to make sure stack overflow is empty on exit
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+    ];
+    (ops, iv)
 }

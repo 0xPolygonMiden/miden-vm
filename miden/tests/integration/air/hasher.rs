@@ -21,7 +21,8 @@ fn rphash() {
 
 #[test]
 fn mtree_get() {
-    let asm_op = "mtree.get";
+    // drop's are added at the end to make sure stack overflow is empty on exit
+    let asm_op = "mtree.get drop drop";
 
     let index = 3usize;
     let leaves = init_merkle_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
@@ -57,7 +58,8 @@ fn mtree_set() {
 
 #[test]
 fn mtree_cwm() {
-    let asm_op = "mtree.cwm";
+    // drop's are added at the end to make sure stack overflow is empty on exit
+    let asm_op = "mtree.cwm drop drop";
     let (stack_inputs, tree) = build_mtree_update_test_inputs();
 
     build_op_test!(asm_op, &stack_inputs, &[], vec![tree]).prove_and_verify(stack_inputs, 0, false);

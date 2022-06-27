@@ -14,6 +14,7 @@ fn aux_table() {
         push.5 push.10 u32or    # bitwise operation
         pow2                    # power of two operation
         push.mem                # memory operation
+        drop                    # make sure the stack overflow table is empty
     end";
     let pub_inputs = rand_vector::<u64>(8);
 

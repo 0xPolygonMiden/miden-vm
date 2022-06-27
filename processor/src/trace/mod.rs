@@ -17,6 +17,7 @@ pub use utils::{LookupTableRow, TraceFragment};
 
 mod decoder;
 mod range;
+mod stack;
 
 // CONSTANTS
 // ================================================================================================
@@ -176,6 +177,10 @@ impl Trace for ExecutionTrace {
             rand_elements,
         );
 
+        // Add stack's running product columns
+        let stack_aux_columns =
+            stack::build_aux_columns(&self.main_trace, &self.aux_trace_hints.stack, rand_elements);
+
         // add the range checker's running product columns
         let range_aux_columns = range::build_aux_columns(
             self.length(),
@@ -187,6 +192,7 @@ impl Trace for ExecutionTrace {
         // combine all auxiliary columns into a single vector
         let mut aux_columns = decoder_aux_columns
             .into_iter()
+            .chain(stack_aux_columns)
             .chain(range_aux_columns)
             .collect::<Vec<_>>();
 

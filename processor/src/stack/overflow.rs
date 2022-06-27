@@ -3,18 +3,27 @@ use super::{super::trace::LookupTableRow, BTreeMap, Felt, FieldElement, Vec, ZER
 // OVERFLOW TABLE
 // ================================================================================================
 
-/// Stores the values which beyond the top 16 elements of the stack.
-///
-/// For each overflow item we also track the clock cycle at which it was inserted into the overflow
-/// table.
+/// Stores stack values beyond the top 16 elements as well as the data which can be used in
+/// construction of the auxiliary trace column describing the state of the overflow table at every
+/// VM cycle.
 ///
 /// When `trace_enabled` is set to true, we also record all changes to the table so that we can
 /// reconstruct the overflow table at any clock cycle. This can be used for debugging purposes.
 pub struct OverflowTable {
+    /// A list of all rows that were added to and then removed from the overflow table.
     all_rows: Vec<OverflowTableRow>,
+    /// A list of indexes into the `all_rows` vector with describes the rows currently in the
+    /// overflow table.
     active_rows: Vec<usize>,
+    /// A list of updates made to the overflow table during program execution. For each update we
+    /// also track the cycle at which the update happened.
     update_trace: Vec<(usize, OverflowTableUpdate)>,
+    /// A map which records the full state of the overflow table at every cycle during which an
+    /// update happened. This map is populated only when `trace_enabled` = true.
     trace: BTreeMap<usize, Vec<Felt>>,
+    /// A flag which specifies whether we should record the full state of the overflow table
+    /// whenever an update happens. This is set to true only when executing programs for debug
+    /// purposes.
     trace_enabled: bool,
 }
 
@@ -37,16 +46,21 @@ impl OverflowTable {
 
     /// Pushes the specified value into the overflow table.
     pub fn push(&mut self, value: Felt, clk: usize) {
+        // get the clock cycle of the row currently at the top of the overflow table. if the
+        // overflow table is empty, this is set to ZERO.
         let prev = self
             .active_rows
             .last()
             .map_or(ZERO, |&last_row_idx| self.all_rows[last_row_idx].clk);
 
-        self.all_rows.push(OverflowTableRow::new(clk, value, prev));
-        self.active_rows.push(self.all_rows.len() - 1);
+        // create and record the new row, and also put it at the top of the overflow table
+        let row_idx = self.all_rows.len();
+        self.all_rows.push(OverflowTableRow::new(value, clk, prev));
+        self.active_rows.push(row_idx);
 
+        // mark this clock cycle as the cycle at which a new row was inserted into the table
         self.update_trace
-            .push((clk, OverflowTableUpdate::InsertRow));
+            .push((clk, OverflowTableUpdate::RowInserted(row_idx as u32)));
 
         if self.trace_enabled {
             // insert a copy of the current table state into the trace
@@ -59,18 +73,21 @@ impl OverflowTable {
     ///
     /// If after the top value is removed the table is empty, the returned clock cycle is ZERO.
     pub fn pop(&mut self, clk: usize) -> (Felt, Felt) {
+        // remove the top entry from the table and determine which table row corresponds to it
         let last_row_idx = self.active_rows.pop().expect("overflow table is empty");
         let last_row = &self.all_rows[last_row_idx];
 
+        // mark this clock cycle as the clock cycle at which a row was removed from the table
         self.update_trace
-            .push((clk, OverflowTableUpdate::RemoveRow));
+            .push((clk, OverflowTableUpdate::RowRemoved(last_row_idx as u32)));
 
         if self.trace_enabled {
             // insert a copy of the current table state into the trace
             self.trace.insert(clk, self.get_values());
         }
 
-        // determine the clock cycle of the next row and return
+        // return the removed value as well as the clock cycle of the value currently at the
+        // top of the table
         (last_row.val, last_row.prev)
     }
 
@@ -104,6 +121,8 @@ impl OverflowTable {
     // HINT GENERATION
     // --------------------------------------------------------------------------------------------
 
+    /// Converts this [OverflowTable] into set of hints which can be used in construction of the
+    /// auxiliary trace column describing the state of the overflow table at every cycle.
     pub fn into_hints(self) -> AuxTraceHints {
         AuxTraceHints {
             overflow_hints: self.update_trace,
@@ -115,19 +134,22 @@ impl OverflowTable {
 // OVERFLOW TABLE ROW
 // ================================================================================================
 
-/// A single row in the stack overflow table. Each row stores the value of the stack item as well
-/// as the clock cycle at which the stack item was pushed into the overflow table.
+/// A single row in the stack overflow table. Each row contains the following values:
+/// - The value of the stack item pushed into the overflow table.
+/// - The clock cycle at which the stack item was pushed into the overflow table.
+/// - The clock cycle of the value which was at the top of the overflow table when this value
+///   was pushed onto it.
 pub struct OverflowTableRow {
-    clk: Felt,
     val: Felt,
+    clk: Felt,
     prev: Felt,
 }
 
 impl OverflowTableRow {
-    pub fn new(clk: usize, val: Felt, prev: Felt) -> Self {
+    pub fn new(val: Felt, clk: usize, prev: Felt) -> Self {
         Self {
-            clk: Felt::new(clk as u64),
             val,
+            clk: Felt::new(clk as u64),
             prev,
         }
     }
@@ -150,26 +172,39 @@ impl LookupTableRow for OverflowTableRow {
 /// Describes an update to the stack overflow table. There could be two types of updates:
 /// - A single row can be added to the table. This happens during a right shift.
 /// - A single row can be removed from the table. This happens during a left shift.
+///
+/// For each update we also record the index of the row that was added/removed from the table.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum OverflowTableUpdate {
-    InsertRow,
-    RemoveRow,
+    RowInserted(u32),
+    RowRemoved(u32),
 }
 
 // AUXILIARY TRACE HINTS
 // ================================================================================================
 
+/// Contains information which can be used to simplify construction of execution traces of
+/// stack-related auxiliary trace segment columns (used in multiset checks).
 pub struct AuxTraceHints {
     overflow_hints: Vec<(usize, OverflowTableUpdate)>,
     overflow_table_rows: Vec<OverflowTableRow>,
 }
 
 impl AuxTraceHints {
-    pub fn overflow_table_hints(&self) -> &[(usize, OverflowTableUpdate)] {
-        &self.overflow_hints
-    }
-
+    /// Returns a list of rows which were added to and then removed from the stack overflow table.
+    ///
+    /// The order of the rows in the list is the same as the order in which the rows were added to
+    /// the table.
     pub fn overflow_table_rows(&self) -> &[OverflowTableRow] {
         &self.overflow_table_rows
+    }
+
+    /// Returns hints which describe how the stack overflow table was updated during program
+    /// execution. Each update hint is accompanied by a clock cycle at which the update happened.
+    ///
+    /// Internally, each update hint also contains an index of the row into the full list of rows
+    /// which was either added or removed.
+    pub fn overflow_table_hints(&self) -> &[(usize, OverflowTableUpdate)] {
+        &self.overflow_hints
     }
 }
