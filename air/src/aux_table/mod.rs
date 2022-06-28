@@ -1,6 +1,9 @@
 use super::{Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec};
 use crate::utils::{binary_not, is_binary};
-use vm_core::AUX_TABLE_OFFSET;
+use vm_core::{
+    aux_table::{BITWISE_TRACE_OFFSET, HASHER_TRACE_OFFSET, MEMORY_TRACE_OFFSET},
+    AUX_TABLE_OFFSET,
+};
 
 mod bitwise_pow2;
 mod hasher;
@@ -28,13 +31,6 @@ pub const S1_COL_IDX: usize = AUX_TABLE_OFFSET + 1;
 /// The third selector column, used as a selector for the memory and padding segments after the
 /// bitwise trace ends.
 pub const S2_COL_IDX: usize = AUX_TABLE_OFFSET + 2;
-
-/// The first column of the bitwise co-processor.
-pub const BITWISE_TRACE_OFFSET: usize = S1_COL_IDX + 1;
-/// The first column of the hash co-processor.
-pub const HASHER_TRACE_OFFSET: usize = S0_COL_IDX + 1;
-/// The first column of the memory co-processor.
-pub const MEMORY_TRACE_OFFSET: usize = S2_COL_IDX + 1;
 
 // PERIODIC COLUMNS
 // ================================================================================================

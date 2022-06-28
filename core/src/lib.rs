@@ -6,6 +6,7 @@ extern crate alloc;
 
 use core::ops::Range;
 
+pub mod aux_table;
 pub mod bitwise;
 pub mod decoder;
 pub mod errors;
