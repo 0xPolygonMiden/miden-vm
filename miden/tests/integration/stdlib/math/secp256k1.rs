@@ -141,6 +141,44 @@ fn test_u256_mod_neg() {
     }
 }
 
+#[test]
+fn test_u256_mod_sub() {
+    let source = "
+    use.std::math::secp256k1
+
+    begin
+        exec.secp256k1::u256_mod_sub
+    end";
+
+    let mut stack = [0u64; 16];
+    for i in 0..8 {
+        let a = rand_utils::rand_value::<u32>() as u64;
+        let b = rand_utils::rand_value::<u32>() as u64;
+
+        stack[i] = a;
+        stack[i ^ 8] = b;
+    }
+
+    let mut a = [0u32; 8];
+    let mut b = [0u32; 8];
+
+    for i in 0..8 {
+        a[i] = stack[i] as u32;
+        b[i] = stack[i ^ 8] as u32;
+    }
+
+    let expected = u256_mod_sub(a, b);
+
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    for i in 0..8 {
+        assert_eq!(Felt::new(expected[i] as u64), strace[i]);
+    }
+}
+
 fn mac(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
     let tmp = a as u64 + (b as u64 * c as u64) + carry as u64;
     ((tmp >> 32) as u32, tmp as u32)
@@ -393,4 +431,9 @@ fn u256_mod_neg(a: [u32; 8]) -> [u32; 8] {
     b[7] = v.1;
 
     b
+}
+
+/// See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/field.py#L97-L101
+fn u256_mod_sub(a: [u32; 8], b: [u32; 8]) -> [u32; 8] {
+    return u256_mod_add(a, u256_mod_neg(b));
 }

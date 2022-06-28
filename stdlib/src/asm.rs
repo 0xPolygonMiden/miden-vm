@@ -9797,6 +9797,31 @@ export.u256_mod_neg
   movup.7
 end
 
+# Given two secp256k1 field elements, say a, b, ( represented in Montgomery form, each number having 
+# eight 32 -bit limbs ) on stack, following function computes modular subtraction of those 
+# two operands c = a + (-b) = a - b
+#
+# Stack expected as below, holding input
+#
+# [a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7] | a[0..8], b[0..8] are secp256k1 field elements
+#
+# After finishing execution of this function, stack should look like
+#
+# [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a secp256k1 field element
+#
+# See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/field.py#L97-L101
+export.u256_mod_sub.2
+  popw.local.0
+  popw.local.1
+
+  exec.u256_mod_neg
+
+  pushw.local.1
+  pushw.local.0
+
+  exec.u256_mod_add
+end
+
 # Given a 256 -bit number on stack, represented in radix-2^32 
 # form i.e. eight 32 -bit limbs, this routine computes Montgomery
 # representation of provided radix-2^32 number.
