@@ -18,6 +18,7 @@
   - [Programs](./design/programs.md)
   - [Program decoder](./design/decoder/main.md)
     - [Decoder constraints](./design/decoder/constraints.md)
+  - [Operand stack](./design/stack/main.md)
   - [Range Checker](./design/range.md)
   - [Auxiliary Table](./design/aux_table/main.md)
     - [Hash Processor](./design/aux_table/hasher.md)

@@ -17,6 +17,7 @@ const P1_COL_IDX: usize = STACK_AUX_TRACE_OFFSET;
 // ================================================================================================
 
 #[test]
+#[allow(clippy::needless_range_loop)]
 fn stack_p1() {
     let ops = vec![
         Operation::U32add, // no shift, clk 1
@@ -32,16 +33,16 @@ fn stack_p1() {
         Operation::Drop,   // left shift, clk 11
     ];
     let init_stack = (1..17).collect::<Vec<_>>();
-    let mut trace = build_trace_from_ops(ops.clone(), &init_stack);
+    let mut trace = build_trace_from_ops(ops, &init_stack);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [
-        OverflowTableRow::new(Felt::new(1), 2, ZERO).to_value(&alphas),
-        OverflowTableRow::new(Felt::new(2), 3, Felt::new(2)).to_value(&alphas),
-        OverflowTableRow::new(Felt::new(2), 6, Felt::new(2)).to_value(&alphas),
-        OverflowTableRow::new(ZERO, 10, ZERO).to_value(&alphas),
+        OverflowTableRow::new(2, Felt::new(1), ZERO).to_value(&alphas),
+        OverflowTableRow::new(3, Felt::new(2), Felt::new(2)).to_value(&alphas),
+        OverflowTableRow::new(6, Felt::new(2), Felt::new(2)).to_value(&alphas),
+        OverflowTableRow::new(10, ZERO, ZERO).to_value(&alphas),
     ];
 
     // make sure the first entry is ONE

@@ -47,7 +47,7 @@ fn decoder_p1_span_with_respan() {
     let expected_value = expected_value * row_values[0].inv() * row_values[1];
     assert_eq!(expected_value, p1[10]);
 
-    // for the next 12 cycles (as we execute user ops), the table is not affected
+    // for the next 11 cycles (as we execute user ops), the table is not affected
     for i in 11..22 {
         assert_eq!(expected_value, p1[i]);
     }

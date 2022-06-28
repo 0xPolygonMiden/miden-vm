@@ -55,7 +55,7 @@ impl OverflowTable {
 
         // create and record the new row, and also put it at the top of the overflow table
         let row_idx = self.all_rows.len();
-        self.all_rows.push(OverflowTableRow::new(value, clk, prev));
+        self.all_rows.push(OverflowTableRow::new(clk, value, prev));
         self.active_rows.push(row_idx);
 
         // mark this clock cycle as the cycle at which a new row was inserted into the table
@@ -146,7 +146,7 @@ pub struct OverflowTableRow {
 }
 
 impl OverflowTableRow {
-    pub fn new(val: Felt, clk: usize, prev: Felt) -> Self {
+    pub fn new(clk: usize, val: Felt, prev: Felt) -> Self {
         Self {
             val,
             clk: Felt::new(clk as u64),
