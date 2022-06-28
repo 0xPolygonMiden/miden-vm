@@ -4,8 +4,9 @@ use super::{
     Digest, Felt, FieldElement, Process, StackTopState, Vec,
 };
 use vm_core::{
-    AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET,
-    TRACE_WIDTH, ZERO,
+    decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
+    AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_STACK_DEPTH, MIN_TRACE_LEN,
+    STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO,
 };
 use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
 
@@ -105,6 +106,17 @@ impl ExecutionTrace {
         let mut result = [ZERO; MIN_STACK_DEPTH];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[last_step];
+        }
+        result
+    }
+
+    /// Returns helper registers state at the specified `clk` of the VM
+    pub fn get_user_op_helpers_at(&self, clk: usize) -> [Felt; NUM_USER_OP_HELPERS] {
+        let mut result = [ZERO; NUM_USER_OP_HELPERS];
+        for (i, result) in result.iter_mut().enumerate() {
+            *result = self
+                .main_trace
+                .get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)[clk];
         }
         result
     }
