@@ -1,7 +1,9 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
 use air::{ProcessorAir, PublicInputs};
 use processor::{ExecutionError, ExecutionTrace};
 use prover::Prover;
-use vm_core::{Felt, StarkField, MIN_STACK_DEPTH};
+use vm_core::{utils::collections::Vec, Felt, StarkField, MIN_STACK_DEPTH};
 
 #[cfg(feature = "std")]
 use log::debug;
@@ -18,6 +20,7 @@ pub use assembly::{Assembler, AssemblyError};
 pub use prover::StarkProof;
 pub use verifier::{verify, VerificationError};
 pub use vm_core::{program::Script, ProgramInputs};
+pub mod tools;
 
 // EXECUTOR
 // ================================================================================================

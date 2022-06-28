@@ -2,6 +2,7 @@ use super::{
     hasher::{self, Digest},
     AdviceSetError, Felt, FieldElement, Word,
 };
+use crate::utils::collections::Vec;
 use core::slice;
 use math::log2;
 use winter_utils::uninit_vector;
@@ -85,7 +86,7 @@ impl MerkleTree {
         Ok(self.nodes[pos])
     }
 
-    /// Returns a Merkle path to the node at the specified depth and index. The note itself is
+    /// Returns a Merkle path to the node at the specified depth and index. The node itself is
     /// not included in the path.
     ///
     /// # Errors

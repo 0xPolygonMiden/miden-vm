@@ -1,7 +1,9 @@
 use super::{AssemblyContext, AssemblyError, Token, TokenStream};
 pub use blocks::{combine_blocks, parse_code_blocks};
 use vm_core::{
-    program::blocks::CodeBlock, AdviceInjector, Felt, FieldElement, Operation, StarkField,
+    program::blocks::CodeBlock,
+    utils::{collections::Vec, string::String},
+    AdviceInjector, Felt, FieldElement, Operation, StarkField,
 };
 
 mod blocks;
@@ -55,7 +57,7 @@ fn parse_op_token(
         "u32split" => u32_ops::parse_u32split(span_ops, op),
 
         "u32add" => u32_ops::parse_u32add(span_ops, op),
-        "u32addc" => u32_ops::parse_u32addc(span_ops, op),
+        "u32add3" => u32_ops::parse_u32add3(span_ops, op),
         "u32sub" => u32_ops::parse_u32sub(span_ops, op),
         "u32mul" => u32_ops::parse_u32mul(span_ops, op),
         "u32madd" => u32_ops::parse_u32madd(span_ops, op),

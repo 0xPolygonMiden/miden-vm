@@ -1,10 +1,10 @@
-use super::Token;
+use super::{String, ToString, Token};
 use core::fmt;
 
 // ASSEMBLY ERROR
 // ================================================================================================
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct AssemblyError {
     message: String,
     step: usize,

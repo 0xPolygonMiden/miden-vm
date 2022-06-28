@@ -17,7 +17,7 @@ doctest = false
 
 [features]
 default = ["std"]
-std = ["math/std", "winter-utils/std"]
+std = ["math/std", "winter-utils/std", "crypto/std"]
 
 [dependencies]
 crypto = { package = "winter-crypto", version = "0.4", default-features = false }

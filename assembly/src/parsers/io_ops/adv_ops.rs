@@ -1,4 +1,4 @@
-use super::{parse_int_param, validate_operation, AssemblyError, Operation, Token};
+use super::{parse_int_param, validate_operation, AssemblyError, Operation, Token, Vec};
 use vm_core::utils::PushMany;
 
 // CONSTANTS

@@ -1,10 +1,11 @@
 use rand_utils::rand_vector;
 use vm_core::{
     hasher::{apply_permutation, hash_elements, STATE_WIDTH},
-    AdviceSet, Felt, FieldElement, StarkField, Word,
+    AdviceSet, Felt, FieldElement, StarkField,
 };
 
 use crate::build_op_test;
+use crate::helpers::crypto::{init_merkle_leaf, init_merkle_leaves};
 
 // TESTS
 // ================================================================================================
@@ -94,7 +95,7 @@ fn mtree_get() {
     let asm_op = "mtree.get";
 
     let index = 3usize;
-    let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let leaves = init_merkle_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
     let tree = AdviceSet::new_merkle_tree(leaves.clone()).unwrap();
 
     let stack_inputs = [
@@ -124,10 +125,10 @@ fn mtree_get() {
 #[test]
 fn mtree_update() {
     let index = 5usize;
-    let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let leaves = init_merkle_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
     let tree = AdviceSet::new_merkle_tree(leaves.clone()).unwrap();
 
-    let new_node = init_leaf(9);
+    let new_node = init_merkle_leaf(9);
     let mut new_leaves = leaves;
     new_leaves[index] = new_node;
     let new_tree = AdviceSet::new_merkle_tree(new_leaves).unwrap();
@@ -208,12 +209,4 @@ fn build_expected_hash(values: &[u64]) -> [Felt; 4] {
     expected.reverse();
 
     expected
-}
-
-fn init_leaves(values: &[u64]) -> Vec<Word> {
-    values.iter().map(|&v| init_leaf(v)).collect()
-}
-
-fn init_leaf(value: u64) -> Word {
-    [Felt::new(value), Felt::ZERO, Felt::ZERO, Felt::ZERO]
 }

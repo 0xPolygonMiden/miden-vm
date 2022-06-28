@@ -13,7 +13,8 @@ For instructions where one or more operands can be provided as immediate paramet
 | ------------- | ----------- | ------------- | ------------------------------------------ |
 | u32test       | [a, ...]    | [b, a, ...]   | $b \leftarrow \begin{cases} 1, & \text{if}\ a < 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$ |
 | u32testw      | [A, ...]    | [b, A, ...]   | $b \leftarrow \begin{cases} 1, & \text{if}\ \forall\ i \in \{0, 1, 2, 3\}\ a_i < 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$ |
-| u32assert     | [a, ...]    | [a, ...]      | Fails if $a \ge 2^{32}$ |
+| u32assert <br> u32assert.1 | [a, ...]    | [a, ...]  | Fails if $a \ge 2^{32}$ |
+| u32assert.2   | [b, a,...]  | [b, a,...] | Fails if $a \ge 2^{32}$ or $b \ge 2^{32}$ |
 | u32assertw    | [A, ...]    | [A, ...]      | Fails if $\exists\ i \in \{0, 1, 2, 3\} \ni a_i \ge 2^{32}$ |
 | u32cast       | [a, ...]    | [b, ...]      | $b \leftarrow a \mod 2^{32}$ |
 | u32split      | [a, ...]    | [c, b, ...]   | $b \leftarrow a \mod 2^{32}$, $c \leftarrow \lfloor{a / 2^{32}}\rfloor$ |
@@ -25,8 +26,8 @@ For instructions where one or more operands can be provided as immediate paramet
 | u32add <br> u32add.*b* | [b, a, ...] | [c, ...] | $c \leftarrow a + b$ <br> Fails if $max(a, b, c) \ge 2^{32}$ |
 | u32add.full    | [b, a, ...]    | [d, c, ...]   | $c \leftarrow (a + b) \mod 2^{32}$ <br> $d \leftarrow \begin{cases} 1, & \text{if}\ (a + b) \ge 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$ <br> Fails if $max(a, b) \ge 2^{32}$ |
 | u32add.unsafe  | [b, a, ...]    | [d, c, ...]   | $c \leftarrow (a + b) \mod 2^{32}$, <br> $d \leftarrow \begin{cases} 1, & \text{if}\ (a + b) \ge 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$ <br> Undefined if $max(a, b) \ge 2^{32}$ |
-| u32addc        | [b, a, c, ...] | [e, d, ...]   | $d \leftarrow (a + b + c) \mod 2^{32}$ <br> $e \leftarrow \begin{cases} 1, & \text{if}\ (a + b + c) \ge 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$ <br> Fails if $max(a, b) \ge 2^{32}$ or $c > 1$ |
-| u32addc.unsafe | [b, a, c, ...] | [e, d, ...]   | $d \leftarrow (a + b + c) \mod 2^{32}$, <br> $e \leftarrow \begin{cases} 1, & \text{if}\ (a + b + c) \ge 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$ <br> Undefined if $max(a, b) \ge 2^{32}$ <br> Fails if $c > 1$ |
+| u32add3        | [c, b, a, ...] | [e, d, ...]   | $d \leftarrow (a + b + c) \mod 2^{32}$, <br> $e \leftarrow \lfloor (a + b + c) / 2^{32}\rfloor$ <br> Fails if $max(a, b, c) \ge 2^{32}$ |
+| u32add3.unsafe | [c, b, a, ...] | [e, d, ...]   | $d \leftarrow (a + b + c) \mod 2^{32}$, <br> $e \leftarrow \lfloor (a + b + c) / 2^{32}\rfloor$ <br> Undefined if $max(a, b, c) \ge 2^{32}$ <br> |
 | u32sub <br> u32sub.*b* | [b, a, ...] | [c, ...] | $c \leftarrow (a - b)$ <br> Fails if $max(a, b) \ge 2^{32}$ or $a < b$ |
 | u32sub.full    | [b, a, ...]    | [d, c, ...]   | $c \leftarrow (a - b) \mod 2^{32}$ <br> $d \leftarrow \begin{cases} 1, & \text{if}\ a < b \\ 0, & \text{otherwise}\ \end{cases}$ <br> Fails if $max(a, b) \ge 2^{32}$ |
 | u32sub.unsafe  | [b, a, ...]    | [d, c, ...]   | $c \leftarrow (a - b) \mod 2^{32}$ <br> $d \leftarrow \begin{cases} 1, & \text{if}\ a < b \\ 0, & \text{otherwise}\ \end{cases}$ <br> Undefined if $max(a, b) \ge 2^{32}$ |
