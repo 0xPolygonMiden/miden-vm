@@ -25,8 +25,7 @@ pub fn split_element_u32_into_u16(value: Felt) -> (Felt, Felt) {
     (Felt::new(hi as u64), Felt::new(lo as u64))
 }
 
-/// Splits a u64 integer assumed to contain a 32-bit value into two u64 integers containing 16-bit
-/// values.
+/// Splits a u64 integer assumed to contain a 32-bit value into two u16 integers.
 ///
 /// # Errors
 /// Fails in debug mode if the provided value is not a 32-bit value.
