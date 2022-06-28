@@ -6,6 +6,11 @@ use vm_core::utils::uninit_vector;
 #[cfg(test)]
 mod tests;
 
+// TYPE ALIASES
+// ================================================================================================
+
+pub type RangeCheckMap = BTreeMap<u16, usize>;
+
 // RANGE CHECKER
 // ================================================================================================
 
@@ -53,7 +58,7 @@ mod tests;
 #[allow(dead_code)]
 pub struct RangeChecker {
     /// Tracks lookup count for each checked value.
-    lookups: BTreeMap<u16, usize>,
+    lookups: RangeCheckMap,
 }
 
 #[allow(dead_code)]
@@ -62,7 +67,7 @@ impl RangeChecker {
     // --------------------------------------------------------------------------------------------
     /// Returns a new [RangeChecker] instantiated with an empty lookup table.
     pub fn new() -> Self {
-        let mut lookups = BTreeMap::new();
+        let mut lookups = RangeCheckMap::new();
         // we need to make sure that the first and the last row of the 16-bit segment of the table
         // are initialized. this simplifies trace table building later on.
         lookups.insert(0, 0);
@@ -86,12 +91,12 @@ impl RangeChecker {
 
     /// Adds the specified value to the trace of this range checker.
     pub fn add_value(&mut self, value: u16) {
-        // add the value to the lookup table. if the value already exists in the table, just
-        // increment the lookup count.
-        self.lookups
-            .entry(value as u16)
-            .and_modify(|v| *v += 1)
-            .or_insert(1);
+        self.lookups.add_value(value);
+    }
+
+    /// Merges the provided map of range check lookups into the range checker's lookups.
+    pub fn add_lookups(&mut self, new_lookups: &RangeCheckMap) {
+        self.lookups.merge_lookups(new_lookups);
     }
 
     // EXECUTION TRACE GENERATION
@@ -270,6 +275,49 @@ pub enum AuxColumnHint {
 pub struct AuxTraceHints {
     pub(super) aux_column_hints: Vec<AuxColumnHint>,
     pub(super) start_16bit: usize,
+}
+
+// TRAIT FOR UPDATING RANGE CHECK LOOKUPS
+// ================================================================================================
+pub trait RangeCheckUpdate {
+    /// Adds the specified value to self. If the value already exists, its lookup count is
+    /// incremented by one.
+    fn add_value(&mut self, value: u16);
+
+    /// Adds the provided range check lookups to self. The new value for any shared keys will be the
+    /// sum of the values from the two maps.
+    fn add_lookups(&mut self, lookups: &RangeCheckMap);
+
+    /// Merges the range check lookups of self and the provided map by adding the smaller set to the
+    /// larger set and setting self to the merged result. The new value for any shared keys will be
+    /// the sum of the values from the two maps.
+    fn merge_lookups(&mut self, lookups: &RangeCheckMap);
+}
+
+impl RangeCheckUpdate for RangeCheckMap {
+    fn add_value(&mut self, value: u16) {
+        self.entry(value as u16)
+            .and_modify(|v| *v += 1)
+            .or_insert(1);
+    }
+
+    fn add_lookups(&mut self, lookups: &RangeCheckMap) {
+        for (&key, &new_value) in lookups.iter() {
+            self.entry(key)
+                .and_modify(|v| *v += new_value)
+                .or_insert(new_value);
+        }
+    }
+
+    fn merge_lookups(&mut self, lookups: &RangeCheckMap) {
+        if self.len() >= lookups.len() {
+            self.add_lookups(lookups);
+        } else {
+            let mut new_lookups = lookups.clone();
+            new_lookups.add_lookups(self);
+            *self = new_lookups;
+        }
+    }
 }
 
 // HELPER FUNCTIONS
