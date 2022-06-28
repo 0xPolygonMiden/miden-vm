@@ -8,8 +8,8 @@ The co-processors in the auxiliary table are:
 
 - [Hash Processor](./hasher.md) (17 columns; degree 8)
 - Bitwise & Power of Two Processor, which combines 2 co-processors:
-  - [Bitwise Processor](./bitwise.md) (13 columns; degree 6)
-  - [Power of Two Processor](./pow2.md) (13 columns; degree 3)
+  - [Bitwise Processor](./bitwise.md) (15 columns; degree 6)
+  - [Power of Two Processor](./pow2.md) (15 columns; degree 3)
 - [Memory Processor](./memory.md) (14 columns; degree 6)
 
 Each co-processor is identified by a set of selector columns which identify its segment in the auxiliary table and cause its constraints to be selectively applied.
