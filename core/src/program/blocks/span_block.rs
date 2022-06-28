@@ -356,7 +356,7 @@ pub fn get_span_op_group_count(op_batches: &[OpBatch]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::{hasher, Felt, FieldElement, Operation, BATCH_SIZE};
-    use crate::DebugOptions;
+    use crate::AdviceInjector;
 
     #[test]
     fn batch_ops() {
@@ -664,7 +664,7 @@ mod tests {
         let ops = vec![
             Operation::Push(Felt::ONE),
             Operation::Add,
-            Operation::Debug(DebugOptions::All),
+            Operation::Advice(AdviceInjector::MerkleNode),
             Operation::Mul,
         ];
         let (batches, hash) = super::batch_ops(ops.clone());
