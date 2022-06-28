@@ -50,7 +50,6 @@ pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, Prog
             noop_count += 1;
         }
         total_vm_cycles = vm_state.clk;
-        println!("{:?} => {:?}", vm_state.decorators, vm_state.op);
     }
 
     Ok(ProgramInfo::new(total_vm_cycles, noop_count))

@@ -2,7 +2,10 @@ use super::{
     parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, String, Token,
     TokenStream, Vec,
 };
-use vm_core::{utils::group_vector_elements, Decorator, DecoratorMap};
+use vm_core::{
+    utils::{group_vector_elements, string::ToString},
+    Decorator, DecoratorMap,
+};
 
 // BLOCK PARSER
 // ================================================================================================

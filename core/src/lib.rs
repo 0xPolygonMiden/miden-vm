@@ -4,7 +4,7 @@
 #[macro_use]
 extern crate alloc;
 
-use crate::utils::collections::BTreeMap;
+use crate::utils::collections::{BTreeMap, Vec};
 use core::ops::Range;
 
 pub mod bitwise;

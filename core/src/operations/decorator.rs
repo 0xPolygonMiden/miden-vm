@@ -1,5 +1,7 @@
 use super::AdviceInjector;
+use crate::utils::string::String;
 use core::fmt;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Decorator {
     AsmOp(String),
