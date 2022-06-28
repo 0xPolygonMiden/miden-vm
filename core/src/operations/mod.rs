@@ -302,11 +302,20 @@ pub enum Operation {
 
     /// Pops an element off the stack, interprets it as a memory address, and replaces the
     /// remaining 4 elements at the top of the stack with values located at the specified address.
-    LoadW,
+    MLoadW,
 
     /// Pops an element off the stack, interprets it as a memory address, and writes the remaining
     /// 4 elements at the top of the stack into memory at the specified address.
-    StoreW,
+    MStoreW,
+
+    /// Pops an element off the stack, interprets it as a memory address, and pushes the first
+    /// element of the word located at the specified address to the stack.
+    MLoad,
+
+    /// Pops an element off the stack, interprets it as a memory address, and writes the remaining
+    /// element at the top of the stack into the first element of the word located at the specified
+    /// memory address. The remaining 3 elements of the word are not affected.
+    MStore,
 
     /// Pushes the current depth of the stack onto the stack.
     SDepth,
@@ -457,8 +466,8 @@ impl Operation {
             Self::U32or => Some(0b0100_1110),
             Self::U32xor => Some(0b0100_1111),
 
-            Self::LoadW => Some(52),
-            Self::StoreW => Some(53),
+            Self::MLoadW => Some(52),
+            Self::MStoreW => Some(53),
 
             Self::Read => Some(54),
             Self::ReadW => Some(55),
@@ -477,6 +486,9 @@ impl Operation {
             Self::Respan => Some(81),
             Self::Span => Some(82),
             Self::Halt => Some(83),
+
+            Self::MLoad => Some(84),
+            Self::MStore => Some(85),
 
             Self::Debug(_) => None,
             Self::Advice(_) => None,
@@ -615,8 +627,11 @@ impl fmt::Display for Operation {
             Self::Read => write!(f, "read"),
             Self::ReadW => write!(f, "readw"),
 
-            Self::LoadW => write!(f, "loadw"),
-            Self::StoreW => write!(f, "storew"),
+            Self::MLoadW => write!(f, "mloadw"),
+            Self::MStoreW => write!(f, "mstorew"),
+
+            Self::MLoad => write!(f, "mload"),
+            Self::MStore => write!(f, "mstore"),
 
             Self::SDepth => write!(f, "sdepth"),
 

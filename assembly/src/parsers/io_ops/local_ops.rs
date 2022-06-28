@@ -63,7 +63,7 @@ pub fn parse_read_local(
     }
 
     push_local_addr(span_ops, op, num_proc_locals)?;
-    span_ops.push(Operation::LoadW);
+    span_ops.push(Operation::MLoadW);
 
     Ok(())
 }
@@ -88,7 +88,7 @@ pub fn parse_write_local(
     validate_operation!(@only_params op, "popw|storew.local", 1);
 
     push_local_addr(span_ops, op, num_proc_locals)?;
-    span_ops.push(Operation::StoreW);
+    span_ops.push(Operation::MStoreW);
 
     if !retain_stack_top {
         span_ops.push_many(Operation::Drop, 4);

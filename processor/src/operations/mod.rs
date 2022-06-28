@@ -116,8 +116,11 @@ impl Process {
             Operation::Read => self.op_read()?,
             Operation::ReadW => self.op_readw()?,
 
-            Operation::LoadW => self.op_loadw()?,
-            Operation::StoreW => self.op_storew()?,
+            Operation::MLoadW => self.op_mloadw()?,
+            Operation::MStoreW => self.op_mstorew()?,
+
+            Operation::MLoad => self.op_mload()?,
+            Operation::MStore => self.op_mstore()?,
 
             Operation::FmpAdd => self.op_fmpadd()?,
             Operation::FmpUpdate => self.op_fmpupdate()?,
