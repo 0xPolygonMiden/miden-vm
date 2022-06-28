@@ -1,4 +1,9 @@
-use super::{Felt, FieldElement, Memory, StarkField, TraceFragment, Word};
+use crate::{
+    range::{RangeCheckMap, RangeCheckUpdate},
+    utils::split_u32_into_u16,
+};
+
+use super::{Felt, FieldElement, Memory, MemoryTrace, StarkField, Word};
 
 #[test]
 fn mem_init() {
@@ -43,27 +48,33 @@ fn mem_read() {
     assert_eq!(4, mem.trace_len());
 
     // check generated trace; rows should be sorted by address and then clock cycle
-    let num_rows = 4;
-    let mut trace = (0..14)
-        .map(|_| vec![Felt::ZERO; num_rows])
-        .collect::<Vec<_>>();
-    let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-
-    mem.fill_trace(&mut fragment);
+    let MemoryTrace {
+        trace,
+        range_checks,
+    } = mem.into_trace();
 
     // address 0
     let expected = build_trace_row(addr0, 1, [Felt::ZERO; 4], [Felt::ZERO; 4], [Felt::ZERO; 14]);
+    let mut expected_deltas = vec![0]; // clk delta: 1 - 0 - 1
     assert_eq!(expected, read_trace_row(&trace, 0));
+
     let expected = build_trace_row(addr0, 3, [Felt::ZERO; 4], [Felt::ZERO; 4], expected);
+    expected_deltas.push(1); // clk delta: 3 - 1 - 1
     assert_eq!(expected, read_trace_row(&trace, 1));
 
     // address 2
     let expected = build_trace_row(addr2, 4, [Felt::ZERO; 4], [Felt::ZERO; 4], expected);
+    expected_deltas.push(2); // addr delta: addr2 - addr0
     assert_eq!(expected, read_trace_row(&trace, 2));
 
     // address 3
     let expected = build_trace_row(addr3, 2, [Felt::ZERO; 4], [Felt::ZERO; 4], expected);
+    expected_deltas.push(1); // addr delta: addr3 - addr2
     assert_eq!(expected, read_trace_row(&trace, 3));
+
+    // Check the range check lookups.
+    let expected = build_range_checks(&expected_deltas);
+    assert_eq!(expected, range_checks);
 }
 
 #[test]
@@ -106,27 +117,33 @@ fn mem_write() {
     assert_eq!(4, mem.trace_len());
 
     // check generated trace; rows should be sorted by address and then clock cycle
-    let num_rows = 4;
-    let mut trace = (0..14)
-        .map(|_| vec![Felt::ZERO; num_rows])
-        .collect::<Vec<_>>();
-    let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-
-    mem.fill_trace(&mut fragment);
+    let MemoryTrace {
+        trace,
+        range_checks,
+    } = mem.into_trace();
 
     // address 0
     let expected = build_trace_row(addr0, 1, [Felt::ZERO; 4], value1, [Felt::ZERO; 14]);
+    let mut expected_deltas = vec![0]; // clk delta: 1 - 0 - 1
     assert_eq!(expected, read_trace_row(&trace, 0));
+
     let expected = build_trace_row(addr0, 4, value1, value9, expected);
+    expected_deltas.push(2); // clk delta: 4 - 1 - 1
     assert_eq!(expected, read_trace_row(&trace, 1));
 
     // address 1
     let expected = build_trace_row(addr1, 3, [Felt::ZERO; 4], value7, expected);
+    expected_deltas.push(1); // addr delta: addr1 - addr0
     assert_eq!(expected, read_trace_row(&trace, 2));
 
     // address 2
     let expected = build_trace_row(addr2, 2, [Felt::ZERO; 4], value5, expected);
+    expected_deltas.push(1); // addr delta: addr2 - addr1
     assert_eq!(expected, read_trace_row(&trace, 3));
+
+    // Check the range check lookups.
+    let expected = build_range_checks(&expected_deltas);
+    assert_eq!(expected, range_checks);
 }
 
 #[test]
@@ -176,35 +193,52 @@ fn mem_write_read() {
     let _ = mem.read(addr5);
 
     // check generated trace; rows should be sorted by address and then clock cycle
-    let num_rows = 9;
-    let mut trace = (0..14)
-        .map(|_| vec![Felt::ZERO; num_rows])
-        .collect::<Vec<_>>();
-    let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-
-    mem.fill_trace(&mut fragment);
+    let MemoryTrace {
+        trace,
+        range_checks,
+    } = mem.into_trace();
 
     // address 2
     let expected = build_trace_row(addr2, 2, [Felt::ZERO; 4], value4, [Felt::ZERO; 14]);
+    let mut expected_deltas = vec![0]; // clk delta: 2 - 1 - 1
     assert_eq!(expected, read_trace_row(&trace, 0));
+
     let expected = build_trace_row(addr2, 5, value4, value4, expected);
+    expected_deltas.push(2); // clk delta: 5 - 2 - 1
     assert_eq!(expected, read_trace_row(&trace, 1));
+
     let expected = build_trace_row(addr2, 6, value4, value7, expected);
+    expected_deltas.push(0); // clk delta: 6 - 5 - 1
     assert_eq!(expected, read_trace_row(&trace, 2));
+
     let expected = build_trace_row(addr2, 8, value7, value7, expected);
+    expected_deltas.push(1); // clk delta: 8 - 6 - 1
     assert_eq!(expected, read_trace_row(&trace, 3));
 
     // address 5
     let expected = build_trace_row(addr5, 1, [Felt::ZERO; 4], value1, expected);
+    expected_deltas.push(3); // addr delta: 5 - 2
     assert_eq!(expected, read_trace_row(&trace, 4));
+
     let expected = build_trace_row(addr5, 3, value1, value1, expected);
+    expected_deltas.push(1); // clk delta: 3 - 1 - 1
     assert_eq!(expected, read_trace_row(&trace, 5));
+
     let expected = build_trace_row(addr5, 4, value1, value2, expected);
+    expected_deltas.push(0); // clk delta: 4 - 3 - 1
     assert_eq!(expected, read_trace_row(&trace, 6));
+
     let expected = build_trace_row(addr5, 7, value2, value2, expected);
+    expected_deltas.push(2); // clk delta: 7 - 4 - 1
     assert_eq!(expected, read_trace_row(&trace, 7));
+
     let expected = build_trace_row(addr5, 9, value2, value2, expected);
+    expected_deltas.push(1); // clk delta: 9 - 7 - 1
     assert_eq!(expected, read_trace_row(&trace, 8));
+
+    // Check the range check lookups.
+    let expected = build_range_checks(&expected_deltas);
+    assert_eq!(expected, range_checks);
 }
 
 #[test]
@@ -290,4 +324,17 @@ fn build_trace_row(
     }
 
     row
+}
+
+/// Builds a map of the expected range check lookups from the provided memory delta values.
+fn build_range_checks(deltas: &[u64]) -> RangeCheckMap {
+    let mut lookups = RangeCheckMap::new();
+
+    for delta in deltas.iter() {
+        let (d1, d0) = split_u32_into_u16(*delta);
+        lookups.add_value(d0);
+        lookups.add_value(d1);
+    }
+
+    lookups
 }
