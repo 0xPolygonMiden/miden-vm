@@ -1,4 +1,5 @@
 use super::{ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
+use crate::utils::{split_element, split_u32_into_u16};
 
 impl Process {
     // CASTING OPERATIONS
@@ -8,7 +9,7 @@ impl Process {
     /// these values back onto the stack.
     pub(super) fn op_u32split(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
-        let (lo, hi) = split_element(a);
+        let (hi, lo) = split_element(a);
 
         self.add_range_checks(Operation::U32split, lo, hi, true);
 
@@ -46,7 +47,7 @@ impl Process {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
         let result = a + b;
-        let (lo, hi) = split_element(result);
+        let (hi, lo) = split_element(result);
 
         // Force this operation to consume 4 range checks, even though only `lo` is needed.
         // This is required for making the constraints more uniform and grouping the opcodes of
@@ -66,7 +67,7 @@ impl Process {
         let b = self.stack.get(1).as_int();
         let a = self.stack.get(2).as_int();
         let result = Felt::new(a + b + c);
-        let (lo, hi) = split_element(result);
+        let (hi, lo) = split_element(result);
 
         self.add_range_checks(Operation::U32add3, lo, hi, false);
 
@@ -103,7 +104,7 @@ impl Process {
         let b = self.stack.get(0).as_int();
         let a = self.stack.get(1).as_int();
         let result = Felt::new(a * b);
-        let (lo, hi) = split_element(result);
+        let (hi, lo) = split_element(result);
 
         self.add_range_checks(Operation::U32mul, lo, hi, true);
 
@@ -121,7 +122,7 @@ impl Process {
         let a = self.stack.get(1).as_int();
         let c = self.stack.get(2).as_int();
         let result = Felt::new(a * b + c);
-        let (lo, hi) = split_element(result);
+        let (hi, lo) = split_element(result);
 
         self.add_range_checks(Operation::U32madd, lo, hi, true);
 
@@ -222,8 +223,8 @@ impl Process {
         hi: Felt,
         check_element_validity: bool,
     ) {
-        let (t0, t1) = split_element_to_u16(lo);
-        let (t2, t3) = split_element_to_u16(hi);
+        let (t1, t0) = split_u32_into_u16(lo.as_int());
+        let (t3, t2) = split_u32_into_u16(hi.as_int());
 
         self.range.add_value(t0);
         self.range.add_value(t1);
@@ -245,26 +246,6 @@ impl Process {
 
         self.decoder.set_user_op_helpers(op, &helper_values);
     }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-#[inline(always)]
-fn split_element(value: Felt) -> (Felt, Felt) {
-    let value = value.as_int();
-    let lo = (value as u32) as u64;
-    let hi = value >> 32;
-    (Felt::new(lo), Felt::new(hi))
-}
-
-/// Splits an element into two 16 bit integer limbs. It assumes that the field element contains a
-/// valid 32-bit integer value.
-fn split_element_to_u16(value: Felt) -> (u16, u16) {
-    let value = value.as_int() as u32;
-    let lo = value as u16;
-    let hi = (value >> 16) as u16;
-    (lo, hi)
 }
 
 // TESTS

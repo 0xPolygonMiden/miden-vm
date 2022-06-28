@@ -54,6 +54,8 @@ use trace::TraceFragment;
 mod errors;
 pub use errors::ExecutionError;
 
+mod utils;
+
 mod debug;
 pub use debug::{VmState, VmStateIterator};
 

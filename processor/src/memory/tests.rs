@@ -283,7 +283,7 @@ fn build_trace_row(
             row[2] - prev_row[2] - Felt::ONE
         };
 
-        let (hi, lo) = super::split_u32_into_u16(delta);
+        let (hi, lo) = super::split_element_u32_into_u16(delta);
         row[11] = lo;
         row[12] = hi;
         row[13] = delta.inv();
