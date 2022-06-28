@@ -1,6 +1,6 @@
 # Summary
 
-[Miden](./main.md)
+[Miden VM](./main.md)
 
 - [Introduction](./intro.md)
 - [User Documentation](./user_docs/main.md)
@@ -10,13 +10,15 @@
     - [Flow Control](./user_docs/assembly/flow_control.md)
     - [Field Operations](./user_docs/assembly/field_operations.md)
     - [u32 Operations](./user_docs/assembly/u32_operations.md)
+    - [Stack manipulation](./user_docs/assembly/stack_manipulation.md)
     - [Input / Output Operations](./user_docs/assembly/io_operations.md)
     - [Cryptographic Operations](./user_docs/assembly/cryptographic_operations.md)
     - [Debugging](./user_docs/assembly/debugging.md)
   - [Miden Standard Library](./user_docs/stdlib/main.md)
 - [Design](./design/main.md)
   - [Programs](./design/programs.md)
-  - [Decoder](./design/decoder/main.md)
+  - [Program decoder](./design/decoder/main.md)
+    - [Decoder constraints](./design/decoder/constraints.md)
   - [Range Checker](./design/range.md)
   - [Auxiliary Table](./design/aux_table/main.md)
     - [Hash Processor](./design/aux_table/hasher.md)

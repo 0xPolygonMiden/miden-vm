@@ -1,5 +1,5 @@
 use super::{
-    AuxTableTrace, Bitwise, Felt, FieldElement, Hasher, Memory, TraceFragment, Vec, AUX_TRACE_WIDTH,
+    AuxTableTrace, Bitwise, Felt, FieldElement, Hasher, Memory, TraceFragment, Vec, AUX_TABLE_WIDTH,
 };
 
 #[cfg(test)]
@@ -87,7 +87,7 @@ impl AuxTable {
         // note: it may be possible to optimize this by initializing with Felt::zeroed_vector,
         // depending on how the compiler reduces Felt(0) and whether initializing here + iterating
         // to update selector values is faster than using resize to initialize all values
-        let mut trace: AuxTableTrace = (0..AUX_TRACE_WIDTH)
+        let mut trace: AuxTableTrace = (0..AUX_TABLE_WIDTH)
             .map(|_| Vec::<Felt>::with_capacity(trace_len))
             .collect::<Vec<_>>()
             .try_into()
@@ -106,9 +106,9 @@ impl AuxTable {
     /// trace and padding to fill the rest of the table.
     fn fill_trace(self, trace: &mut AuxTableTrace, trace_len: usize, num_rand_rows: usize) {
         // allocate fragments to be filled with the respective execution traces of each coprocessor
-        let mut hasher_fragment = TraceFragment::new(AUX_TRACE_WIDTH);
-        let mut bitwise_fragment = TraceFragment::new(AUX_TRACE_WIDTH);
-        let mut memory_fragment = TraceFragment::new(AUX_TRACE_WIDTH);
+        let mut hasher_fragment = TraceFragment::new(AUX_TABLE_WIDTH);
+        let mut bitwise_fragment = TraceFragment::new(AUX_TABLE_WIDTH);
+        let mut memory_fragment = TraceFragment::new(AUX_TABLE_WIDTH);
         // The length of the padded segment accounting for the final random rows.
         let padding_len = trace_len - self.trace_len() - num_rand_rows;
 

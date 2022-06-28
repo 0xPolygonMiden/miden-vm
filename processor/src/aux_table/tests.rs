@@ -6,7 +6,7 @@ use vm_core::{
     bitwise::{BITWISE_OR, OP_CYCLE_LEN},
     hasher::{HASH_CYCLE_LEN, LINEAR_HASH, RETURN_STATE},
     program::blocks::CodeBlock,
-    DecoratorMap, Felt, FieldElement, ProgramInputs, AUX_TRACE_RANGE,
+    DecoratorMap, Felt, FieldElement, ProgramInputs, AUX_TABLE_RANGE,
 };
 
 #[test]
@@ -106,7 +106,7 @@ fn build_trace(stack: &[u64], operations: Vec<Operation>) -> (AuxTableTrace, usi
     let trace_len = trace[0].len() - ExecutionTrace::NUM_RAND_ROWS;
 
     (
-        trace[AUX_TRACE_RANGE]
+        trace[AUX_TABLE_RANGE]
             .to_vec()
             .try_into()
             .expect("failed to convert vector to array"),

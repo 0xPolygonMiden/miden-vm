@@ -1,7 +1,7 @@
 use super::{
-    Felt, Operation, StarkField, Vec, Word, DIGEST_LEN, MIN_TRACE_LEN, NUM_HASHER_COLUMNS,
-    NUM_OP_BATCH_FLAGS, NUM_OP_BITS, ONE, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS,
-    OP_BATCH_8_GROUPS, OP_BATCH_SIZE, ZERO,
+    get_num_groups_in_next_batch, Felt, Operation, StarkField, Vec, Word, DIGEST_LEN,
+    MIN_TRACE_LEN, NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, ONE, OP_BATCH_1_GROUPS,
+    OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS, OP_BATCH_SIZE, ZERO,
 };
 use core::ops::Range;
 use vm_core::utils::new_array_vec;
@@ -492,8 +492,8 @@ impl DecoderTrace {
 
 /// Returns op batch flags for the specified group count. If the group count is greater than 8,
 /// we assume that the operation batch is full - i.e., has 8 operation groups.
-fn get_op_batch_flags(group_count: Felt) -> [Felt; NUM_OP_BATCH_FLAGS] {
-    let num_groups = core::cmp::min(group_count.as_int() as usize, OP_BATCH_SIZE);
+fn get_op_batch_flags(num_groups_left: Felt) -> [Felt; NUM_OP_BATCH_FLAGS] {
+    let num_groups = get_num_groups_in_next_batch(num_groups_left);
     match num_groups {
         8 => OP_BATCH_8_GROUPS,
         4 => OP_BATCH_4_GROUPS,
@@ -501,7 +501,7 @@ fn get_op_batch_flags(group_count: Felt) -> [Felt; NUM_OP_BATCH_FLAGS] {
         1 => OP_BATCH_1_GROUPS,
         _ => panic!(
             "invalid number of groups in a batch: {}, group count: {}",
-            num_groups, group_count
+            num_groups, num_groups_left
         ),
     }
 }

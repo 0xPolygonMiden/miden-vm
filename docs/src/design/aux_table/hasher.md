@@ -36,7 +36,7 @@ The meaning of the columns is as follows:
 
 - Three periodic columns $k_0$, $k_1$, and $k_2$ are used to help select the instruction executed at a given row. All of these columns contain patterns which repeat every $8$ rows. For $k_0$ the pattern is $7$ zeros followed by $1$ one, helping us identify the last row in the cycle. For $k_1$ the pattern is $6$ zeros, $1$ one, and $1$ zero, which can be used to identify the second-to-last row in a cycle. For $k_2$ the pattern is $1$ one followed by $7$ zeros, which can identify the first row in the cycle.
 - Three selector columns $s_0$, $s_1$, and $s_2$. These columns can contain only binary values (ones or zeros), and they are also used to help select the instruction to execute at a given row.
-- One row address column $r$. This column starts out at $0$ and gets incremented by $1$ with every row.
+- One row address column $r$. This column starts out at $1$ and gets incremented by $1$ with every row.
 - Twelve hasher state columns $h_0, ..., h_{11}$. These columns are used to hold the hasher state for each round of Rescue Prime permutation. The state is laid out as follows:
   - The first four columns ($h_0, ..., h_3$) are reserved for capacity elements of the state. When the state is initialized for hash computations, $h_0$ should be set to the number of elements to be hashed. All other capacity elements should be set to $0$'s.
   - The next eight columns ($h_4, ..., h_{11}$) are reserved for the rate elements of the state. These are used to absorb the values to be hashed. Once the permutation is complete, hash output is located in the first four rate columns ($h_4, ..., h_7$).
@@ -238,7 +238,7 @@ When describing AIR constraints, we adopt the following notation: for column $x$
 
 ### Row address constraint
 
-As mentioned above, row address $r$ starts at $0$, and is incremented by $1$ with every row. The first condition can be enforced with a boundary constraint which specifies $r=0$ at the first row. The second condition can be enforced via the following transition constraint:
+As mentioned above, row address $r$ starts at $1$, and is incremented by $1$ with every row. The first condition can be enforced with a boundary constraint which specifies $r=1$ at the first row. The second condition can be enforced via the following transition constraint:
 
 $$
 r' - r - 1 = 0

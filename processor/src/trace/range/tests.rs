@@ -1,20 +1,20 @@
 use super::{
-    super::{ExecutionTrace, Process, NUM_RAND_ROWS},
+    super::NUM_RAND_ROWS,
+    super::{utils::build_trace_from_ops, Trace},
     Felt, FieldElement, P0_COL_IDX, P1_COL_IDX,
 };
-use rand_utils::rand_value;
-use vm_core::{program::blocks::CodeBlock, DecoratorMap, Operation, ProgramInputs};
-use winterfell::Trace;
+use rand_utils::rand_array;
+use vm_core::{Operation, AUX_TRACE_RAND_ELEMENTS};
 
 #[test]
 fn p0_trace() {
     // --- Range check 256_u32 (4 16-bit range checks: 0, 256 and 0, 0) ---------------------------
     let stack = [1, 255];
     let operations = vec![Operation::U32add];
-    let mut trace = build_trace(&stack, operations);
+    let mut trace = build_trace_from_ops(operations, &stack);
 
-    let alpha = rand_value::<Felt>();
-    let rand_elements = vec![alpha];
+    let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
+    let alpha = rand_elements[0];
     let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
     let p0 = aux_columns.get_column(P0_COL_IDX);
 
@@ -58,10 +58,10 @@ fn p1_trace() {
     // --- Range check 256_u32 (4 16-bit range checks: 0, 256 and 0, 0) ---------------------------
     let stack = [1, 255];
     let operations = vec![Operation::U32add];
-    let mut trace = build_trace(&stack, operations);
+    let mut trace = build_trace_from_ops(operations, &stack);
 
-    let alpha = rand_value::<Felt>();
-    let rand_elements = vec![alpha];
+    let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
+    let alpha = rand_elements[0];
     let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
@@ -95,18 +95,4 @@ fn p1_trace() {
     // Then we include 1 lookup of 256, so it should be multiplied by alpha + 256.
     expected *= alpha + Felt::new(256);
     assert_eq!(expected, p1[start_16bit + 4]);
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-/// Builds a sample trace by executing a span block containing the specified operations. This
-/// results in 1 additional hash cycle at the beginning of the hasher coprocessor.
-fn build_trace(stack: &[u64], operations: Vec<Operation>) -> ExecutionTrace {
-    let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
-    let mut process = Process::new(inputs);
-    let program = CodeBlock::new_span(operations, DecoratorMap::new());
-    process.execute_code_block(&program).unwrap();
-
-    ExecutionTrace::new(process)
 }
