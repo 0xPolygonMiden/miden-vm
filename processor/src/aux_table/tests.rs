@@ -1,7 +1,5 @@
-use super::{
-    super::{ExecutionTrace, Operation, Process},
-    AuxTableTrace,
-};
+use super::AuxTableTrace;
+use crate::{utils::get_trace_len, ExecutionTrace, Operation, Process};
 use vm_core::{
     bitwise::{BITWISE_OR, OP_CYCLE_LEN},
     hasher::{HASH_CYCLE_LEN, LINEAR_HASH, RETURN_STATE},
@@ -103,7 +101,7 @@ fn build_trace(stack: &[u64], operations: Vec<Operation>) -> (AuxTableTrace, usi
     process.execute_code_block(&program).unwrap();
 
     let (trace, _) = ExecutionTrace::test_finalize_trace(process);
-    let trace_len = trace[0].len() - ExecutionTrace::NUM_RAND_ROWS;
+    let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
 
     (
         trace[AUX_TABLE_RANGE]

@@ -1,7 +1,13 @@
-use super::{Felt, StarkField};
+use super::{Felt, StarkField, Vec};
 
 // HELPER FUNCTIONS
 // ================================================================================================
+
+/// Returns the number of rows in the provided execution trace assumed to be in column-major form
+/// and contain at least one column.
+pub fn get_trace_len(trace: &[Vec<Felt>]) -> usize {
+    trace[0].len()
+}
 
 /// Splits an element into two field elements containing 32-bit integer values
 #[inline(always)]
