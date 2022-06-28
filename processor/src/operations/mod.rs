@@ -1,7 +1,4 @@
-use super::{
-    AdviceInjector, DebugOptions, ExecutionError, Felt, FieldElement, Operation, Process,
-    StarkField, Word,
-};
+use super::{AdviceInjector, ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
 
 mod crypto_ops;
 mod decorators;
@@ -116,8 +113,11 @@ impl Process {
             Operation::Read => self.op_read()?,
             Operation::ReadW => self.op_readw()?,
 
-            Operation::LoadW => self.op_loadw()?,
-            Operation::StoreW => self.op_storew()?,
+            Operation::MLoadW => self.op_mloadw()?,
+            Operation::MStoreW => self.op_mstorew()?,
+
+            Operation::MLoad => self.op_mload()?,
+            Operation::MStore => self.op_mstore()?,
 
             Operation::FmpAdd => self.op_fmpadd()?,
             Operation::FmpUpdate => self.op_fmpupdate()?,
@@ -130,7 +130,6 @@ impl Process {
             Operation::MrUpdate(copy) => self.op_mrupdate(copy)?,
 
             // ----- decorators -------------------------------------------------------------------
-            Operation::Debug(options) => self.op_debug(options)?,
             Operation::Advice(injector) => self.op_advice(injector)?,
         }
 

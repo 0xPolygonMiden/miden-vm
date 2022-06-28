@@ -1,4 +1,5 @@
-use super::{ExecutionError, Felt, Process};
+use super::{ExecutionError, Felt, Process, StarkField};
+use crate::memory::INIT_MEM_VALUE;
 
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
@@ -29,7 +30,7 @@ impl Process {
     /// - The top four elements of the stack are overwritten with values retried from memory.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
-    pub(super) fn op_loadw(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_mloadw(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from memory
         let addr = self.stack.get(0);
         let word = self.memory.read(addr);
@@ -43,6 +44,26 @@ impl Process {
         Ok(())
     }
 
+    /// Loads the first element from the specified memory address onto the stack.
+    ///
+    /// The operation works as follows:
+    /// - The memory address is popped off the stack.
+    /// - A word is retrieved from memory at the specified address. The memory is always
+    ///   initialized to ZEROs, and thus, if the specified address has never been written to,
+    ///   four ZERO elements are returned.
+    /// - The first element of the word retried from memory is pushed to the top of the stack.
+    pub(super) fn op_mload(&mut self) -> Result<(), ExecutionError> {
+        // get the address from the stack and read the word from memory
+        let addr = self.stack.get(0);
+        let word = self.memory.read(addr);
+
+        // update the stack state
+        self.stack.set(0, word[0]);
+        self.stack.copy_state(1);
+
+        Ok(())
+    }
+
     /// Stores a word (4 elements) from the stack into the specified memory address.
     ///
     /// The operation works as follows:
@@ -51,7 +72,7 @@ impl Process {
     ///   removed from the stack.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
-    pub(super) fn op_storew(&mut self) -> Result<(), ExecutionError> {
+    pub(super) fn op_mstorew(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and build the word to be saved from the stack values
         let addr = self.stack.get(0);
         let word = [
@@ -69,6 +90,38 @@ impl Process {
             self.stack.set(i, value);
         }
         self.stack.shift_left(5);
+
+        Ok(())
+    }
+
+    /// Stores an element from the stack into the first slot at the specified memory address.
+    ///
+    /// The operation works as follows:
+    /// - The memory address is popped off the stack.
+    /// - The top stack element is saved into the first element of the word located at the specified
+    /// memory address. The remaining 3 elements of the word are not affected. The element is not
+    /// removed from the stack.
+    ///
+    /// Thus, the net result of the operation is that the stack is shifted left by one item.
+    pub(super) fn op_mstore(&mut self) -> Result<(), ExecutionError> {
+        // get the address from the stack and build the word to be saved from the stack values
+        let addr = self.stack.get(0);
+
+        // get the word stored in the memory. If we did not access the memory return [0, 0, 0, 0]
+        // since initially the memory is initialized with zeros
+        let mut word = self
+            .memory
+            .get_value(addr.as_int())
+            .unwrap_or(INIT_MEM_VALUE);
+
+        // store the value
+        word[0] = self.stack.get(1);
+
+        // write the word back to the memory
+        self.memory.write(addr, word);
+
+        // update the stack state
+        self.stack.shift_left(1);
 
         Ok(())
     }
@@ -129,7 +182,7 @@ mod tests {
         super::{FieldElement, Operation},
         Felt, Process,
     };
-    use vm_core::MIN_STACK_DEPTH;
+    use vm_core::{utils::ToElements, MIN_STACK_DEPTH, ZERO};
 
     #[test]
     fn op_push() {
@@ -169,7 +222,7 @@ mod tests {
         assert_eq!(0, process.memory.size());
 
         // push the first word onto the stack and save it at address 0
-        let word1 = [Felt::new(1), Felt::new(3), Felt::new(5), Felt::new(7)];
+        let word1 = [1, 3, 5, 7].to_elements().try_into().unwrap();
         store_value(&mut process, 0, word1);
 
         // check stack state
@@ -181,7 +234,7 @@ mod tests {
         assert_eq!(word1, process.memory.get_value(0).unwrap());
 
         // push the second word onto the stack and save it at address 3
-        let word2 = [Felt::new(2), Felt::new(4), Felt::new(6), Felt::new(8)];
+        let word2 = [2, 4, 6, 8].to_elements().try_into().unwrap();
         store_value(&mut process, 3, word2);
 
         // check stack state
@@ -195,7 +248,7 @@ mod tests {
 
         // --- calling STOREW with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy();
-        assert!(process.execute_op(Operation::StoreW).is_ok());
+        assert!(process.execute_op(Operation::MStoreW).is_ok());
     }
 
     #[test]
@@ -204,7 +257,7 @@ mod tests {
         assert_eq!(0, process.memory.size());
 
         // push a word onto the stack and save it at address 1
-        let word = [Felt::new(1), Felt::new(3), Felt::new(5), Felt::new(7)];
+        let word = [1, 3, 5, 7].to_elements().try_into().unwrap();
         store_value(&mut process, 1, word);
 
         // push four zeros onto the stack
@@ -214,7 +267,7 @@ mod tests {
 
         // push the address onto the stack and load the word
         process.execute_op(Operation::Push(Felt::ONE)).unwrap();
-        process.execute_op(Operation::LoadW).unwrap();
+        process.execute_op(Operation::MLoadW).unwrap();
 
         let expected_stack = build_expected_stack(&[7, 5, 3, 1, 7, 5, 3, 1]);
         assert_eq!(expected_stack, process.stack.trace_state());
@@ -223,9 +276,75 @@ mod tests {
         assert_eq!(1, process.memory.size());
         assert_eq!(word, process.memory.get_value(1).unwrap());
 
-        // --- calling STOREW with a stack of minimum depth is ok ----------------
+        // --- calling LOADW with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy();
-        assert!(process.execute_op(Operation::LoadW).is_ok());
+        assert!(process.execute_op(Operation::MLoadW).is_ok());
+    }
+
+    #[test]
+    fn op_mload() {
+        let mut process = Process::new_dummy();
+        assert_eq!(0, process.memory.size());
+
+        // push a word onto the stack and save it at address 2
+        let word = [1, 3, 5, 7].to_elements().try_into().unwrap();
+        store_value(&mut process, 2, word);
+
+        // push the address onto the stack and load the element
+        process.execute_op(Operation::Push(Felt::new(2))).unwrap();
+        process.execute_op(Operation::MLoad).unwrap();
+
+        let expected_stack = build_expected_stack(&[1, 7, 5, 3, 1]);
+        assert_eq!(expected_stack, process.stack.trace_state());
+
+        // check memory state
+        assert_eq!(1, process.memory.size());
+        assert_eq!(word, process.memory.get_value(2).unwrap());
+
+        // --- calling MLOAD with a stack of minimum depth is ok ----------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::MLoad).is_ok());
+    }
+
+    #[test]
+    fn op_mstore() {
+        let mut process = Process::new_dummy();
+        assert_eq!(0, process.memory.size());
+
+        // push new element onto the stack and save it as first element of the word on
+        // uninitialized memory at address 0
+        let element = Felt::new(10);
+        store_element(&mut process, 0, element);
+
+        // check stack state
+        let expected_stack = build_expected_stack(&[10]);
+        assert_eq!(expected_stack, process.stack.trace_state());
+
+        // check memory state
+        let mem_0 = [element, ZERO, ZERO, ZERO];
+        assert_eq!(1, process.memory.size());
+        assert_eq!(mem_0, process.memory.get_value(0).unwrap());
+
+        // push the word onto the stack and save it at address 2
+        let word_2 = [1, 3, 5, 7].to_elements().try_into().unwrap();
+        store_value(&mut process, 2, word_2);
+
+        // push new element onto the stack and save it as first element of the word at address 2
+        let element = Felt::new(12);
+        store_element(&mut process, 2, element);
+
+        // check stack state
+        let expected_stack = build_expected_stack(&[12, 7, 5, 3, 1, 10]);
+        assert_eq!(expected_stack, process.stack.trace_state());
+
+        // check memory state to make sure the other 3 elements were not affected
+        let mem_2 = [element, Felt::new(3), Felt::new(5), Felt::new(7)];
+        assert_eq!(2, process.memory.size());
+        assert_eq!(mem_2, process.memory.get_value(2).unwrap());
+
+        // --- calling MSTORE with a stack of minimum depth is ok ----------------
+        let mut process = Process::new_dummy();
+        assert!(process.execute_op(Operation::MStore).is_ok());
     }
 
     // ADVICE INPUT TESTS
@@ -310,7 +429,14 @@ mod tests {
         }
         let addr = Felt::new(addr);
         process.execute_op(Operation::Push(addr)).unwrap();
-        process.execute_op(Operation::StoreW).unwrap();
+        process.execute_op(Operation::MStoreW).unwrap();
+    }
+
+    fn store_element(process: &mut Process, addr: u64, value: Felt) {
+        process.execute_op(Operation::Push(value)).unwrap();
+        let addr = Felt::new(addr);
+        process.execute_op(Operation::Push(addr)).unwrap();
+        process.execute_op(Operation::MStore).unwrap();
     }
 
     fn build_expected_stack(values: &[u64]) -> [Felt; 16] {

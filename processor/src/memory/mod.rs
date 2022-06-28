@@ -8,7 +8,7 @@ mod tests;
 // ================================================================================================
 
 /// Initial value of every memory cell.
-const INIT_MEM_VALUE: Word = [Felt::ZERO; 4];
+pub const INIT_MEM_VALUE: Word = [Felt::ZERO; 4];
 
 // RANDOM ACCESS MEMORY
 // ================================================================================================

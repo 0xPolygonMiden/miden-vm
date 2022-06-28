@@ -13,7 +13,6 @@
     - [Stack manipulation](./user_docs/assembly/stack_manipulation.md)
     - [Input / Output Operations](./user_docs/assembly/io_operations.md)
     - [Cryptographic Operations](./user_docs/assembly/cryptographic_operations.md)
-    - [Debugging](./user_docs/assembly/debugging.md)
   - [Miden Standard Library](./user_docs/stdlib/main.md)
 - [Design](./design/main.md)
   - [Programs](./design/programs.md)
