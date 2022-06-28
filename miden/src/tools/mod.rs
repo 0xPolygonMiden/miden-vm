@@ -1,8 +1,7 @@
-use super::AssemblyError;
-use assembly::Assembler;
+use assembly::{Assembler, AssemblyError};
 use core::fmt;
 use processor::ExecutionError;
-use vm_core::{Operation, ProgramInputs};
+use vm_core::{program::Script, Operation, ProgramInputs};
 
 /// Contains info of a program. Used for program analysis. Contains the following fields:
 /// - total_vm_cycles (vm cycles it takes to execute the entire script)
@@ -34,11 +33,7 @@ impl ProgramInfo {
 }
 
 /// Returns program analysis of a given program.
-pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, ProgramError> {
-    let assembler = Assembler::new();
-    let script = assembler
-        .compile_script(program)
-        .map_err(ProgramError::AssemblyError)?;
+pub fn analyze(script: &Script, inputs: ProgramInputs) -> Result<ProgramInfo, ProgramError> {
     let vm_state_iterator = processor::execute_iter(&script, &inputs);
 
     let mut total_vm_cycles = 0;
@@ -54,6 +49,21 @@ pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, Prog
 
     Ok(ProgramInfo::new(total_vm_cycles, noop_count))
 }
+
+// fn analyze_main() {
+//     let args = Args::from_args();
+//     //reads input masm file
+//     let program = std::fs::read_to_string(&args.masm_path).expect("Could not read masm file");
+//     let program_inputs = ProgramInputs::none();
+//     let program_info: ProgramInfo =
+//         analyze(program.as_str(), program_inputs).expect("Could not retreive program info");
+
+//     let total_vm_cycles = program_info.total_vm_cycles();
+//     let total_noops = program_info.total_noops();
+
+//     println!("Total Number of VM Cycles: {}", total_vm_cycles);
+//     println!("Total Number of NOOPs executed: {}", total_noops);
+// }
 
 /// This is used to specify the error type returned from analyze.
 #[derive(Debug)]
@@ -73,13 +83,17 @@ impl fmt::Display for ProgramError {
 
 #[cfg(test)]
 mod tests {
+    use assembly::Assembler;
 
     #[test]
     fn analyze_test() {
         let source = "proc.foo.1 pop.local.0 end begin popw.mem.1 push.17 exec.foo end";
+        let script = Assembler::new()
+            .compile_script(source)
+            .expect("script should compile");
         let program_inputs = super::ProgramInputs::none();
         let program_info =
-            super::analyze(source, program_inputs).expect("analyze_test: Unexpected Error");
+            super::analyze(&script, program_inputs).expect("analyze_test: Unexpected Error");
         let expected_program_info = super::ProgramInfo::new(24, 1);
         assert_eq!(program_info, expected_program_info);
     }
@@ -87,19 +101,13 @@ mod tests {
     #[test]
     fn analyze_test_execution_error() {
         let source = "begin div end";
+        let script = Assembler::new()
+            .compile_script(source)
+            .expect("script should compile");
         let stack_input = vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         let program_inputs = super::ProgramInputs::new(&stack_input, &[], vec![]).unwrap();
-        let program_info = super::analyze(source, program_inputs);
+        let program_info = super::analyze(&script, program_inputs);
         let expected_error = "Execution Error: DivideByZero(1)";
-        assert_eq!(program_info.err().unwrap().to_string(), expected_error);
-    }
-
-    #[test]
-    fn analyze_test_assembly_error() {
-        let source = "proc.foo.1 pop.local.0 end popw.mem.1 push.17 exec.foo end";
-        let program_inputs = super::ProgramInputs::none();
-        let program_info = super::analyze(source, program_inputs);
-        let expected_error = "Assembly Error: assembly error at 3: unexpected token: expected 'begin' but was 'popw.mem.1'";
         assert_eq!(program_info.err().unwrap().to_string(), expected_error);
     }
 }

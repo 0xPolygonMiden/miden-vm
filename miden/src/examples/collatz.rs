@@ -1,13 +1,13 @@
-use crate::Example;
+use super::Example;
 use log::debug;
-use miden::{assembly, BaseElement, FieldElement, ProgramInputs, StarkField};
+use super::{assembly::Assembler, Felt, FieldElement, ProgramInputs, StarkField};
 
 // EXAMPLE BUILDER
 // ================================================================================================
 
 pub fn get_example(start_value: usize) -> Example {
     // convert starting value of the sequence into a field element
-    let start_value = BaseElement::new(start_value as u128);
+    let start_value = Felt::new(start_value as u64);
 
     // determine the expected result
     let expected_result = compute_collatz_steps(start_value).as_int();
@@ -15,7 +15,7 @@ pub fn get_example(start_value: usize) -> Example {
     // construct the program which executes an unbounded loop to compute a Collatz sequence
     // which starts with the provided value; the output of the program is the number of steps
     // needed to reach the end of the sequence
-    let program = assembly::compile(
+    let program = Assembler::new().compile_script(
         "
     begin
         pad read dup push.1 ne
@@ -40,7 +40,7 @@ pub fn get_example(start_value: usize) -> Example {
 
     Example {
         program,
-        inputs: ProgramInputs::new(&[], &[start_value.as_int()], &[]),
+        inputs: ProgramInputs::new(&[], &[start_value.as_int()], (&[]).to_vec()).unwrap(),
         pub_inputs: vec![],
         expected_result: vec![expected_result],
         num_outputs: 1,
@@ -48,18 +48,18 @@ pub fn get_example(start_value: usize) -> Example {
 }
 
 /// Computes number of steps in a Collatz sequence which starts with the provided `value`.
-fn compute_collatz_steps(mut value: BaseElement) -> BaseElement {
+fn compute_collatz_steps(mut value: Felt) -> Felt {
     let mut i = 0;
-    while value != BaseElement::ONE {
+    while value != Felt::ONE {
         if value.as_int() & 1 == 0 {
-            value /= BaseElement::new(2);
+            value /= Felt::new(2);
         } else {
-            value = value * BaseElement::new(3) + BaseElement::ONE
+            value = value * Felt::new(3) + Felt::ONE
         }
         i += 1;
     }
 
-    BaseElement::new(i)
+    Felt::new(i)
 }
 
 // EXAMPLE TESTER

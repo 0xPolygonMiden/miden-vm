@@ -1,6 +1,6 @@
-pub use miden::{ProofOptions, StarkProof};
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
+pub use prover::{ProofOptions, StarkProof};
 pub use vm_core::{program::Script, Felt, FieldElement, ProgramInputs, MIN_STACK_DEPTH};
 
 pub mod crypto;
@@ -153,7 +153,7 @@ impl Test {
         test_fail: bool,
     ) {
         let script = self.compile();
-        let (mut outputs, proof) = miden::execute(
+        let (mut outputs, proof) = prover::prove(
             &script,
             &self.inputs,
             num_stack_outputs,
@@ -163,9 +163,9 @@ impl Test {
 
         if test_fail {
             outputs[0] += 1;
-            assert!(miden::verify(script.hash(), &pub_inputs, &outputs, proof).is_err());
+            assert!(verifier::verify(script.hash(), &pub_inputs, &outputs, proof).is_err());
         } else {
-            assert!(miden::verify(script.hash(), &pub_inputs, &outputs, proof).is_ok());
+            assert!(verifier::verify(script.hash(), &pub_inputs, &outputs, proof).is_ok());
         }
     }
 

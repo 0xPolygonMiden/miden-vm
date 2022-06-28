@@ -1,0 +1,19 @@
+[package]
+name = "miden-prover"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+air = { package = "miden-air", path = "../air", version = "0.2", default-features = false }
+assembly = { package = "miden-assembly", path = "../assembly", version = "0.2", default-features = false }
+log = { version = "0.4", default-features = false }
+processor = { package = "miden-processor", path = "../processor", version = "0.2", default-features = false }
+prover = { package = "winter-prover", version = "0.4", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.2", default-features = false }
+
+[features]
+concurrent = ["prover/concurrent", "std"]
+default = ["std"]
+std = ["air/std", "processor/std", "prover/std", "vm-core/std"]

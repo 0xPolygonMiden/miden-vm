@@ -1,7 +1,5 @@
-use crate::Example;
+use super::{assembly::Assembler, Example, Felt, FieldElement, ProgramInputs, Script, StarkField};
 use log::debug;
-use miden::{Assembler, ProgramInputs, Script};
-use vm_core::{Felt, FieldElement, StarkField};
 
 // EXAMPLE BUILDER
 // ================================================================================================

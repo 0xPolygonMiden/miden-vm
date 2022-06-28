@@ -1,6 +1,5 @@
-use crate::Example;
 use log::debug;
-use miden::{assembly, BaseElement, FieldElement, Program, ProgramInputs, StarkField};
+use super::{assembly, Felt, FieldElement, Program, ProgramInputs, StarkField, Example};
 use rand_utils::prng_vector;
 use vm_core::hasher;
 
@@ -66,7 +65,7 @@ fn generate_merkle_program(n: usize, index: usize) -> Program {
 
 /// Converts Merkle authentication path for a node at the specified `index` into
 /// a set of inputs which can be consumed by the program created by the function above.
-fn generate_program_inputs(path: &[Vec<BaseElement>; 2], index: usize) -> ProgramInputs {
+fn generate_program_inputs(path: &[Vec<Felt>; 2], index: usize) -> ProgramInputs {
     let mut a = Vec::new();
     let mut b = Vec::new();
     let n = path[0].len();
@@ -118,8 +117,8 @@ fn generate_authentication_path(n: usize) -> ([Vec<BaseElement>; 2], usize) {
 
 /// Computes tree root to which a given authentication path resolves assuming the
 /// path is for a leaf node at position specified by `index` parameter.
-fn compute_merkle_root(path: &[Vec<BaseElement>; 2], index: usize) -> Vec<u128> {
-    let mut buf = [BaseElement::ZERO; 4];
+fn compute_merkle_root(path: &[Vec<Felt>; 2], index: usize) -> Vec<u128> {
+    let mut buf = [Felt::ZERO; 4];
     let n = path[0].len();
 
     let r = index & 1;

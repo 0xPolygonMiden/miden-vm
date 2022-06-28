@@ -3,7 +3,9 @@
 use air::{ProcessorAir, PublicInputs};
 use processor::{ExecutionError, ExecutionTrace};
 use prover::Prover;
-use vm_core::{utils::collections::Vec, Felt, StarkField, MIN_STACK_DEPTH};
+use vm_core::{
+    program::Script, utils::collections::Vec, Felt, ProgramInputs, StarkField, MIN_STACK_DEPTH,
+};
 
 #[cfg(feature = "std")]
 use log::debug;
@@ -15,17 +17,13 @@ use std::time::Instant;
 // EXPORTS
 // ================================================================================================
 
-pub use air::{FieldExtension, HashFunction, ProofOptions};
-pub use assembly::{Assembler, AssemblyError};
+pub use air::ProofOptions;
 pub use prover::StarkProof;
-pub use verifier::{verify, VerificationError};
-pub use vm_core::{program::Script, ProgramInputs};
-pub mod tools;
 
-// EXECUTOR
+// Prover
 // ================================================================================================
 
-/// Executes the specified `program` and returns the result together with a STARK-based proof of
+/// Executes and proves the specified `program` and returns the result together with a STARK-based proof of
 /// the program's execution.
 ///
 /// * `inputs` specifies the initial state of the stack as well as non-deterministic (secret)
@@ -36,7 +34,7 @@ pub mod tools;
 ///
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
-pub fn execute(
+pub fn prove(
     program: &Script,
     inputs: &ProgramInputs,
     num_stack_outputs: usize,
