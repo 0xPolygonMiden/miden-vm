@@ -11,7 +11,7 @@ fn test_exec_iter() {
     (1..=16).for_each(|i| {
         init_stack.push(i);
     });
-    let test = build_test!(source, &init_stack.clone());
+    let test = build_test!(source, &init_stack);
     let traces = test.execute_iter();
     let fmp = Felt::new(2u64.pow(30));
     let next_fmp = fmp + Felt::ONE;
@@ -21,70 +21,70 @@ fn test_exec_iter() {
             clk: 0,
             op: None,
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
-            fmp: fmp,
+            fmp,
             memory: Vec::new(),
         },
         VmState {
             clk: 1,
             op: Some(Operation::Span),
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1].to_elements(),
-            fmp: fmp,
+            fmp,
             memory: Vec::new(),
         },
         VmState {
             clk: 2,
             op: Some(Operation::Push(Felt::new(1))),
             stack: [1, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2].to_elements(),
-            fmp: fmp,
+            fmp,
             memory: Vec::new(),
         },
         VmState {
             clk: 3,
             op: Some(Operation::MStoreW),
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
-            fmp: fmp,
+            fmp,
             memory: mem.clone(),
         },
         VmState {
             clk: 4,
             op: Some(Operation::Drop),
             stack: [15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].to_elements(),
-            fmp: fmp,
+            fmp,
             memory: mem.clone(),
         },
         VmState {
             clk: 5,
             op: Some(Operation::Drop),
             stack: [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0].to_elements(),
-            fmp: fmp,
+            fmp,
             memory: mem.clone(),
         },
         VmState {
             clk: 6,
             op: Some(Operation::Drop),
             stack: [13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
-            fmp: fmp,
+            fmp,
             memory: mem.clone(),
         },
         VmState {
             clk: 7,
             op: Some(Operation::Drop),
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
-            fmp: fmp,
+            fmp,
             memory: mem.clone(),
         },
         VmState {
             clk: 8,
             op: Some(Operation::Push(Felt::new(17))),
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
-            fmp: fmp,
+            fmp,
             memory: mem.clone(),
         },
         VmState {
             clk: 9,
             op: Some(Operation::Push(Felt::new(1))),
             stack: [1, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
-            fmp: fmp,
+            fmp,
             memory: mem.clone(),
         },
         VmState {
@@ -158,7 +158,7 @@ fn test_exec_iter() {
             ]
             .to_elements(),
             fmp: next_fmp,
-            memory: mem.clone(),
+            memory: mem,
         },
         VmState {
             clk: 16,

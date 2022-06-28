@@ -243,16 +243,16 @@ fn check_merkle_path(
     init_selectors: Selectors,
 ) {
     // make sure row address is correct
-    check_row_addr_trace(&trace);
+    check_row_addr_trace(trace);
 
     // make sure selectors were set correctly
     let mid_selectors = [Felt::ZERO, init_selectors[1], init_selectors[2]];
-    check_selector_trace(&trace, row_idx, init_selectors, init_selectors);
+    check_selector_trace(trace, row_idx, init_selectors, init_selectors);
     for i in 1..path.len() - 1 {
-        check_selector_trace(&trace, row_idx + i * 8, mid_selectors, init_selectors);
+        check_selector_trace(trace, row_idx + i * 8, mid_selectors, init_selectors);
     }
     let last_perm_row_addr = row_idx + (path.len() - 1) * 8;
-    check_selector_trace(&trace, last_perm_row_addr, mid_selectors, RETURN_HASH);
+    check_selector_trace(trace, last_perm_row_addr, mid_selectors, RETURN_HASH);
 
     // make sure hasher states are correct
     let mut root = leaf;
@@ -266,7 +266,7 @@ fn check_merkle_path(
             root = hasher::merge(&[node.into(), root.into()]).into();
             hasher_merge_state(node, old_root)
         };
-        check_hasher_state_trace(&trace, row_idx + i * 8, init_state);
+        check_hasher_state_trace(trace, row_idx + i * 8, init_state);
     }
 
     // make sure node index is set correctly
