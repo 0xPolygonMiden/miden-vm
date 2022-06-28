@@ -1,4 +1,6 @@
-use super::{ExecutionError, Felt, FieldElement, StarkField, TraceFragment, Vec};
+use super::{
+    utils::get_trace_len, ExecutionError, Felt, FieldElement, StarkField, TraceFragment, Vec,
+};
 use vm_core::bitwise::{
     BITWISE_AND, BITWISE_OR, BITWISE_XOR, NUM_SELECTORS, POW2_POWERS_PER_ROW, POWER_OF_TWO,
     TRACE_WIDTH,
@@ -118,7 +120,7 @@ impl Bitwise {
     /// Returns length of execution trace required to describe bitwise operations executed on the
     /// VM.
     pub fn trace_len(&self) -> usize {
-        self.trace[0].len()
+        get_trace_len(&self.trace)
     }
 
     // TRACE MUTATORS

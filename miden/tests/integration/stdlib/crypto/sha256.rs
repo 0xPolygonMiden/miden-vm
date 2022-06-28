@@ -55,5 +55,5 @@ fn from_be_bytes_to_words(be_bytes: &[u8]) -> u32 {
     ((be_bytes[0] as u32) << 24)
         | ((be_bytes[1] as u32) << 16)
         | ((be_bytes[2] as u32) << 8)
-        | ((be_bytes[3] as u32) << 0)
+        | (be_bytes[3] as u32)
 }

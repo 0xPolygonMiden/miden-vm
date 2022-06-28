@@ -130,7 +130,7 @@ pub fn build_lookup_table_row_values<E: FieldElement<BaseField = Felt>, R: Looku
 pub fn build_trace_from_block(program: &CodeBlock, stack: &[u64]) -> ExecutionTrace {
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(inputs);
-    process.execute_code_block(&program).unwrap();
+    process.execute_code_block(program).unwrap();
     ExecutionTrace::new(process)
 }
 

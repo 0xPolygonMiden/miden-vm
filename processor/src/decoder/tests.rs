@@ -2,7 +2,7 @@ use super::{
     build_op_group, AuxTraceHints, BlockHashTableRow, BlockStackTableRow, BlockTableUpdate,
     OpGroupTableRow, OpGroupTableUpdate,
 };
-use crate::{ExecutionTrace, Felt, Operation, Process, ProgramInputs, Word};
+use crate::{utils::get_trace_len, ExecutionTrace, Felt, Operation, Process, ProgramInputs, Word};
 use rand_utils::rand_value;
 use vm_core::{
     decoder::{
@@ -890,10 +890,10 @@ fn set_user_op_helpers_one() {
 fn set_user_op_helpers_many() {
     // --- user operation with 4 helper values ----------------------------------------------------
     let program = CodeBlock::new_span(vec![Operation::U32div]);
-    let a = rand_value();
-    let b = rand_value();
+    let a = rand_value::<u32>();
+    let b = rand_value::<u32>();
     let (dividend, divisor) = if a > b { (a, b) } else { (b, a) };
-    let (trace, _, _) = build_trace(&[dividend, divisor], &program);
+    let (trace, _, _) = build_trace(&[dividend as u64, divisor as u64], &program);
     let hasher_state = get_hasher_state(&trace, 1);
 
     // Check the hasher state of the user operation which was executed.
@@ -923,7 +923,7 @@ fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxTraceHin
     process.execute_code_block(program).unwrap();
 
     let (trace, aux_hints) = ExecutionTrace::test_finalize_trace(process);
-    let trace_len = trace[0].len() - ExecutionTrace::NUM_RAND_ROWS;
+    let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
 
     (
         trace[DECODER_TRACE_RANGE]

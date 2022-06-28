@@ -1,4 +1,7 @@
-use super::{BTreeMap, Felt, FieldElement, StarkField, TraceFragment, Vec, Word};
+use super::{
+    utils::split_element_u32_into_u16, BTreeMap, Felt, FieldElement, StarkField, TraceFragment,
+    Vec, Word, ONE, ZERO,
+};
 use core::ops::RangeInclusive;
 
 #[cfg(test)]
@@ -8,7 +11,7 @@ mod tests;
 // ================================================================================================
 
 /// Initial value of every memory cell.
-pub const INIT_MEM_VALUE: Word = [Felt::ZERO; 4];
+pub const INIT_MEM_VALUE: Word = [ZERO; 4];
 
 // RANDOM ACCESS MEMORY
 // ================================================================================================
@@ -142,7 +145,7 @@ impl Memory {
     // EXECUTION TRACE GENERATION
     // --------------------------------------------------------------------------------------------
 
-    /// Fills the provide trace fragment with trace data from this memory instance.
+    /// Fills the provided trace fragment with trace data from this memory instance.
     pub fn fill_trace(self, trace: &mut TraceFragment) {
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
 
@@ -150,7 +153,7 @@ impl Memory {
         // trace; we also adjust the clock cycle so that delta value for the first row would end
         // up being ZERO. if the trace is empty, return without any further processing.
         let (mut prev_addr, mut prev_clk) = match self.get_first_row_info() {
-            Some((addr, clk)) => (addr, clk - Felt::ONE),
+            Some((addr, clk)) => (addr, clk - ONE),
             None => return,
         };
 
@@ -163,7 +166,7 @@ impl Memory {
             let addr = Felt::new(addr);
             let mut prev_value = INIT_MEM_VALUE;
             for (clk, value) in addr_trace {
-                trace.set(i, 0, Felt::ZERO); // ctx
+                trace.set(i, 0, ZERO); // ctx
                 trace.set(i, 1, addr);
                 trace.set(i, 2, clk);
                 trace.set(i, 3, prev_value[0]);
@@ -179,10 +182,10 @@ impl Memory {
                 let delta = if prev_addr != addr {
                     addr - prev_addr
                 } else {
-                    clk - prev_clk - Felt::ONE
+                    clk - prev_clk - ONE
                 };
 
-                let (delta_hi, delta_lo) = split_u32_into_u16(delta);
+                let (delta_hi, delta_lo) = split_element_u32_into_u16(delta);
                 trace.set(i, 11, delta_lo);
                 trace.set(i, 12, delta_hi);
                 trace.set(i, 13, delta.inv());
@@ -271,19 +274,4 @@ impl Default for Memory {
     fn default() -> Self {
         Self::new()
     }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-fn split_u32_into_u16(value: Felt) -> (Felt, Felt) {
-    const U32MAX: u64 = u32::MAX as u64;
-
-    let value = value.as_int();
-    assert!(value <= U32MAX, "not a 32-bit value");
-
-    let lo = (value as u16) as u64;
-    let hi = value >> 16;
-
-    (Felt::new(hi), Felt::new(lo))
 }
