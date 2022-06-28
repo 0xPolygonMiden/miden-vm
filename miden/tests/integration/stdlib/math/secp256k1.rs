@@ -35,12 +35,12 @@ fn test_to_and_from_mont_repr() {
 }
 
 #[test]
-fn test_u256xu256_mod_mult() {
+fn test_u256_mod_mul() {
     let source = "
     use.std::math::secp256k1
 
     begin
-        exec.secp256k1::u256xu256_mod_mult
+        exec.secp256k1::u256_mod_mul
     end";
 
     let mut stack = [0u64; 16];
@@ -110,6 +110,37 @@ fn test_u256_mod_add() {
     }
 }
 
+#[test]
+fn test_u256_mod_neg() {
+    let source = "
+    use.std::math::secp256k1
+
+    begin
+        exec.secp256k1::u256_mod_neg
+    end";
+
+    let mut stack = [0u64; 16];
+    for i in 0..8 {
+        stack[i] = rand_utils::rand_value::<u32>() as u64;
+    }
+
+    let mut a = [0u32; 8];
+    for i in 0..8 {
+        a[i] = stack[i] as u32;
+    }
+
+    let expected = u256_mod_neg(a);
+
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    for i in 0..8 {
+        assert_eq!(Felt::new(expected[i] as u64), strace[i]);
+    }
+}
+
 fn mac(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
     let tmp = a as u64 + (b as u64 * c as u64) + carry as u64;
     ((tmp >> 32) as u32, tmp as u32)
@@ -117,6 +148,11 @@ fn mac(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
 
 fn adc(a: u32, b: u32, carry: u32) -> (u32, u32) {
     let tmp = a as u64 + b as u64 + carry as u64;
+    return ((tmp >> 32) as u32, tmp as u32);
+}
+
+fn sbb(a: u32, b: u32, borrow: u32) -> (u32, u32) {
+    let tmp = (a as u64).wrapping_sub(b as u64 + (borrow >> 31) as u64);
     return ((tmp >> 32) as u32, tmp as u32);
 }
 
@@ -313,4 +349,48 @@ fn u256_mod_add(a: [u32; 8], b: [u32; 8]) -> [u32; 8] {
     c[1] += carry;
 
     c
+}
+
+/// See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/field.py#L77-L95
+fn u256_mod_neg(a: [u32; 8]) -> [u32; 8] {
+    let mut b = [0u32; 8];
+    let mut borrow = 0u32;
+
+    let prime = [
+        4294966319, 4294967294, 4294967295, 4294967295, 4294967295, 4294967295, 4294967295,
+        4294967295,
+    ];
+
+    let v = sbb(prime[0], a[0], borrow);
+    borrow = v.0;
+    b[0] = v.1;
+
+    let v = sbb(prime[1], a[1], borrow);
+    borrow = v.0;
+    b[1] = v.1;
+
+    let v = sbb(prime[2], a[2], borrow);
+    borrow = v.0;
+    b[2] = v.1;
+
+    let v = sbb(prime[3], a[3], borrow);
+    borrow = v.0;
+    b[3] = v.1;
+
+    let v = sbb(prime[4], a[4], borrow);
+    borrow = v.0;
+    b[4] = v.1;
+
+    let v = sbb(prime[5], a[5], borrow);
+    borrow = v.0;
+    b[5] = v.1;
+
+    let v = sbb(prime[6], a[6], borrow);
+    borrow = v.0;
+    b[6] = v.1;
+
+    let v = sbb(prime[7], a[7], borrow);
+    b[7] = v.1;
+
+    b
 }

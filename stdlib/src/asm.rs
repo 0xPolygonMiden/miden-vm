@@ -9366,7 +9366,8 @@ end
 #  lo = tmp & 0xffff_ffff
 #  return (hi, lo)
 #
-#  At end of execution of this function, stack top should look like [hi, lo]
+# At end of execution of this function, stack top should look like [hi, lo]
+# See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/utils.py#L75-L80
 proc.mac
   swap
   movup.2
@@ -9378,6 +9379,22 @@ proc.mac
 
   movup.2
   add
+end
+
+# Given [a, b, borrow] on stack top, following function computes
+#
+#  tmp = a - (b + borrow)
+#  hi = tmp >> 32
+#  lo = tmp & 0xffff_ffff
+#  return (hi, lo)
+#
+# At end of execution of this function, stack top should look like [hi, lo]
+# See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/utils.py#L83-L89
+proc.sbb
+  movdn.2
+  u32add.unsafe
+  drop
+  u32sub.full
 end
 
 # Given [a0, a1, a2, a3, a4, a5, a6, a7, b, c_0_addr, c_1_addr] on stack top,
@@ -9545,7 +9562,7 @@ end
 # school book multiplication equipped with montgomery reduction technique
 # is used, which is why a[0..8], b[0..8] are expected to be in montgomery form,
 # while computed c[0..8] will also be in montgomery form.
-export.u256xu256_mod_mult.2
+export.u256_mod_mul.2
   popw.local.0
   popw.local.1
 
@@ -9722,6 +9739,64 @@ export.u256_mod_add
   movup.7
 end
 
+# Given a secp256k1 field element ( say `a` ) on stack, represented in Montgomery form 
+# ( i.e. number having eight 32 -bit limbs ), following function negates it to
+# field element `a'` | a' + a = 0
+#
+# Stack expected as below, holding input
+#
+# [a0, a1, a2, a3, a4, a5, a6, a7] | a[0..8] is a secp256k1 field element
+#
+# After finishing execution of this function, stack should look like
+#
+# [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a secp256k1 field element
+#
+# See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/field.py#L77-L95
+export.u256_mod_neg
+  push.0
+  swap
+  push.4294966319
+  exec.sbb
+
+  movup.2
+  push.4294967294
+  exec.sbb
+
+  movup.3
+  push.4294967295
+  exec.sbb
+
+  movup.4
+  push.4294967295
+  exec.sbb
+
+  movup.5
+  push.4294967295
+  exec.sbb
+
+  movup.6
+  push.4294967295
+  exec.sbb
+
+  movup.7
+  push.4294967295
+  exec.sbb
+
+  movup.8
+  push.4294967295
+  exec.sbb
+
+  drop
+  
+  swap
+  movup.2
+  movup.3
+  movup.4
+  movup.5
+  movup.6
+  movup.7
+end
+
 # Given a 256 -bit number on stack, represented in radix-2^32 
 # form i.e. eight 32 -bit limbs, this routine computes Montgomery
 # representation of provided radix-2^32 number.
@@ -9740,7 +9815,7 @@ export.to_mont
   push.0.1.1954.954529 # pushed R2's radix-2^32 form;
                        # see https://gist.github.com/itzmeanjan/d4853347dfdfa853993f5ea059824de6
 
-  exec.u256xu256_mod_mult
+  exec.u256_mod_mul
 end
 
 # Given a 256 -bit number on stack, represented in Montgomery 
@@ -9761,7 +9836,7 @@ export.from_mont
   push.0.0.0.1 # pushed 1's radix-2^32 form;
                # see https://gist.github.com/itzmeanjan/d4853347dfdfa853993f5ea059824de6
 
-  exec.u256xu256_mod_mult
+  exec.u256_mod_mul
 end
 "),
 // ----- std::math::u256 --------------------------------------------------------------------------
