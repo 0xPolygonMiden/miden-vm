@@ -890,10 +890,10 @@ fn set_user_op_helpers_one() {
 fn set_user_op_helpers_many() {
     // --- user operation with 4 helper values ----------------------------------------------------
     let program = CodeBlock::new_span(vec![Operation::U32div]);
-    let a = rand_value();
-    let b = rand_value();
+    let a = rand_value::<u32>();
+    let b = rand_value::<u32>();
     let (dividend, divisor) = if a > b { (a, b) } else { (b, a) };
-    let (trace, _, _) = build_trace(&[dividend, divisor], &program);
+    let (trace, _, _) = build_trace(&[dividend as u64, divisor as u64], &program);
     let hasher_state = get_hasher_state(&trace, 1);
 
     // Check the hasher state of the user operation which was executed.
