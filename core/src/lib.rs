@@ -4,6 +4,7 @@
 #[macro_use]
 extern crate alloc;
 
+use crate::utils::collections::BTreeMap;
 use core::ops::Range;
 
 pub mod bitwise;
@@ -30,6 +31,8 @@ use utils::range;
 pub type Word = [Felt; 4];
 
 pub type StackTopState = [Felt; MIN_STACK_DEPTH];
+
+pub type DecoratorMap = BTreeMap<usize, Vec<Decorator>>;
 
 // CONSTANTS
 // ================================================================================================

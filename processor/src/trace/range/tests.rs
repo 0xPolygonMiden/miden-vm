@@ -3,7 +3,7 @@ use super::{
     Felt, FieldElement, P0_COL_IDX, P1_COL_IDX,
 };
 use rand_utils::rand_value;
-use vm_core::{program::blocks::CodeBlock, Operation, ProgramInputs};
+use vm_core::{program::blocks::CodeBlock, DecoratorMap, Operation, ProgramInputs};
 use winterfell::Trace;
 
 #[test]
@@ -105,7 +105,7 @@ fn p1_trace() {
 fn build_trace(stack: &[u64], operations: Vec<Operation>) -> ExecutionTrace {
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(inputs);
-    let program = CodeBlock::new_span(operations);
+    let program = CodeBlock::new_span(operations, DecoratorMap::new());
     process.execute_code_block(&program).unwrap();
 
     ExecutionTrace::new(process)

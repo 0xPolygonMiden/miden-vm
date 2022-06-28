@@ -6,7 +6,7 @@ use vm_core::{Decorator, Operation, Word};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VmState {
     pub clk: usize,
-    pub decorator: Option<Decorator>,
+    pub decorators: Option<Vec<Decorator>>,
     pub op: Option<Operation>,
     pub fmp: Felt,
     pub stack: Vec<Felt>,
@@ -71,7 +71,11 @@ impl Iterator for VmStateIterator {
             } else {
                 Some(self.process.decoder.get_operation_at(self.clk - 1))
             },
-            decorator: None,
+            decorators: if self.clk == 0 {
+                None
+            } else {
+                self.process.decoder.get_decorators_at(self.clk - 1)
+            },
             fmp: self.process.system.get_fmp_at(self.clk),
             stack: self.process.stack.get_state_at(self.clk),
             memory: self

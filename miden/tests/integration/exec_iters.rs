@@ -1,6 +1,6 @@
-use super::build_test;
+use super::build_debug_test;
 use processor::VmState;
-use vm_core::{utils::ToElements, Felt, FieldElement, Operation};
+use vm_core::{utils::ToElements, Decorator, Felt, FieldElement, Operation};
 
 // EXEC ITER TESTS
 // =================================================================
@@ -11,7 +11,7 @@ fn test_exec_iter() {
     (1..=16).for_each(|i| {
         init_stack.push(i);
     });
-    let test = build_test!(source, &init_stack.clone());
+    let test = build_debug_test!(source, &init_stack.clone());
     let traces = test.execute_iter();
     let fmp = Felt::new(2u64.pow(30));
     let next_fmp = fmp + Felt::ONE;
@@ -19,7 +19,7 @@ fn test_exec_iter() {
     let expected_states = vec![
         VmState {
             clk: 0,
-            decorator: None,
+            decorators: None,
             op: None,
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
             fmp: fmp,
@@ -27,7 +27,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 1,
-            decorator: None,
+            decorators: None,
             op: Some(Operation::Span),
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1].to_elements(),
             fmp: fmp,
@@ -35,7 +35,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 2,
-            decorator: None,
+            decorators: Some(vec![Decorator::AsmOp("popw.mem.1".to_string())]),
             op: Some(Operation::Push(Felt::new(1))),
             stack: [1, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2].to_elements(),
             fmp: fmp,
@@ -43,7 +43,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 3,
-            decorator: None,
+            decorators: None,
             op: Some(Operation::StoreW),
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
             fmp: fmp,
@@ -51,7 +51,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 4,
-            decorator: None,
+            decorators: None,
             op: Some(Operation::Drop),
             stack: [15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].to_elements(),
             fmp: fmp,
@@ -59,7 +59,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 5,
-            decorator: None,
+            decorators: None,
             op: Some(Operation::Drop),
             stack: [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0].to_elements(),
             fmp: fmp,
@@ -67,7 +67,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 6,
-            decorator: None,
+            decorators: None,
             op: Some(Operation::Drop),
             stack: [13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp: fmp,
@@ -75,7 +75,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 7,
-            decorator: None,
+            decorators: None,
             op: Some(Operation::Drop),
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp: fmp,
@@ -83,7 +83,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 8,
-            decorator: None,
+            decorators: Some(vec![Decorator::AsmOp("push.17".to_string())]),
             op: Some(Operation::Push(Felt::new(17))),
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp: fmp,
@@ -91,7 +91,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 9,
-            decorator: None,
+            decorators: None,
             op: Some(Operation::Push(Felt::new(1))),
             stack: [1, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp: fmp,
@@ -99,7 +99,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 10,
-            decorator: None,
+            decorators: None,
             op: Some(Operation::FmpUpdate),
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp: next_fmp,
@@ -107,7 +107,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 11,
-            decorator: None,
+            decorators: Some(vec![Decorator::AsmOp("pop.local.0".to_string())]),
             op: Some(Operation::Pad),
             stack: [0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp: next_fmp,
@@ -115,7 +115,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 12,
-            decorator: None,
+            decorators: None,
             op: Some(Operation::Pad),
             stack: [
                 0, 0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0,
@@ -126,7 +126,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 13,
-            decorator: None,
+            decorators: None,
             op: Some(Operation::Pad),
             stack: [
                 0, 0, 0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1, 0, 0, 0, 0,
@@ -137,7 +137,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 14,
-            decorator: None,
+            decorators: None,
             op: Some(Operation::Pad),
             stack: [
                 0, 0, 0, 0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0,
@@ -148,7 +148,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 15,
-            decorator: None,
+            decorators: None,
             op: Some(Operation::FmpAdd),
             stack: [
                 2u64.pow(30) + 1,
@@ -178,7 +178,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 16,
-            decorator: None,
+            decorators: None,
             op: Some(Operation::StoreW),
             stack: [0, 0, 0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp: next_fmp,
@@ -189,7 +189,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 17,
-            decorator: None,
+            decorators: None,
             op: Some(Operation::Drop),
             stack: [0, 0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp: next_fmp,

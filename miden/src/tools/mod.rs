@@ -35,7 +35,7 @@ impl ProgramInfo {
 
 /// Returns program analysis of a given program.
 pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, ProgramError> {
-    let assembler = Assembler::new();
+    let assembler = Assembler::new(true);
     let script = assembler
         .compile_script(program)
         .map_err(ProgramError::AssemblyError)?;
@@ -50,6 +50,7 @@ pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, Prog
             noop_count += 1;
         }
         total_vm_cycles = vm_state.clk;
+        println!("{:?} => {:?}", vm_state.decorators, vm_state.op);
     }
 
     Ok(ProgramInfo::new(total_vm_cycles, noop_count))

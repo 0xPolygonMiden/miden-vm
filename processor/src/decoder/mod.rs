@@ -9,6 +9,7 @@ use vm_core::{
     },
     hasher::DIGEST_LEN,
     program::blocks::get_span_op_group_count,
+    Decorator, DecoratorMap,
 };
 
 mod trace;
@@ -162,8 +163,32 @@ impl Process {
         // start decoding the first operation batch; this also appends a row with SPAN operation
         // to the decoder trace. we also need the total number of operation groups so that we can
         // set the value of the group_count register at the beginning of the SPAN.
-        self.decoder
-            .start_span(&op_batches[0], Felt::new(num_op_groups as u64), addr);
+
+        let mut op_count = 0;
+        let mut batch_count = 0;
+        let mut decorators = DecoratorMap::new();
+        if self.decoder.in_debug_mode {
+            let decorators_without_respan = block.get_decorators();
+            // Skip operation index of respan operation in between op batches and continues aggregating
+            // decorators for the span block (only applicable in debug mode)
+            for batch in block.op_batches() {
+                let batch_ops = batch.ops();
+                for (k, v) in decorators_without_respan.range(op_count..op_count + batch_ops.len())
+                {
+                    decorators.insert(k + batch_count, (*v).clone());
+                }
+                op_count += batch_ops.len();
+                batch_count += 1;
+            }
+        } else {
+            decorators = block.get_decorators();
+        }
+        self.decoder.start_span(
+            &op_batches[0],
+            Felt::new(num_op_groups as u64),
+            addr,
+            decorators,
+        );
         self.execute_op(Operation::Noop)
     }
 
@@ -223,6 +248,7 @@ pub struct Decoder {
     span_context: Option<SpanContext>,
     trace: DecoderTrace,
     operations: Vec<Operation>,
+    decorators: DecoratorMap,
     in_debug_mode: bool,
 }
 
@@ -236,6 +262,7 @@ impl Decoder {
             span_context: None,
             trace: DecoderTrace::new(),
             operations: Vec::<Operation>::new(),
+            decorators: DecoratorMap::new(),
             in_debug_mode,
         }
     }
@@ -334,7 +361,13 @@ impl Decoder {
     // --------------------------------------------------------------------------------------------
 
     /// Starts decoding of a SPAN block defined by the specified operation batches.
-    pub fn start_span(&mut self, first_op_batch: &OpBatch, num_op_groups: Felt, addr: Felt) {
+    pub fn start_span(
+        &mut self,
+        first_op_batch: &OpBatch,
+        num_op_groups: Felt,
+        addr: Felt,
+        decorator_map: DecoratorMap,
+    ) {
         debug_assert!(self.span_context.is_none(), "already in span");
         let parent_addr = self.block_stack.push(addr, ZERO);
 
@@ -348,7 +381,7 @@ impl Decoder {
             num_groups_left: num_op_groups - ONE,
             group_ops_left: first_op_batch.groups()[0],
         });
-
+        self.append_decorators(self.operations.len(), decorator_map);
         self.append_operation(Operation::Span);
     }
 
@@ -431,6 +464,10 @@ impl Decoder {
         self.operations[clk]
     }
 
+    pub fn get_decorators_at(&self, clk: usize) -> Option<Vec<Decorator>> {
+        self.decorators.get(&clk).cloned()
+    }
+
     // TRACE GENERATIONS
     // --------------------------------------------------------------------------------------------
 
@@ -452,6 +489,16 @@ impl Decoder {
     fn append_operation(&mut self, op: Operation) {
         if self.in_debug_mode {
             self.operations.push(op);
+        }
+    }
+
+    /// Adds decorators of a span block to decorators map in debug mode.
+    #[inline(always)]
+    fn append_decorators(&mut self, idx: usize, decorators: DecoratorMap) {
+        if self.in_debug_mode {
+            for (k, v) in decorators {
+                self.decorators.insert(idx + k + 1, v);
+            }
         }
     }
 

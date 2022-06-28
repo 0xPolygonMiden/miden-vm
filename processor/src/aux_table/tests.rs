@@ -6,7 +6,7 @@ use vm_core::{
     bitwise::{BITWISE_OR, OP_CYCLE_LEN},
     hasher::{HASH_CYCLE_LEN, LINEAR_HASH, RETURN_STATE},
     program::blocks::CodeBlock,
-    Felt, FieldElement, ProgramInputs, AUX_TRACE_RANGE,
+    DecoratorMap, Felt, FieldElement, ProgramInputs, AUX_TRACE_RANGE,
 };
 
 #[test]
@@ -99,7 +99,7 @@ fn stacked_aux_trace() {
 fn build_trace(stack: &[u64], operations: Vec<Operation>) -> (AuxTableTrace, usize) {
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(inputs);
-    let program = CodeBlock::new_span(operations);
+    let program = CodeBlock::new_span(operations, DecoratorMap::new());
     process.execute_code_block(&program).unwrap();
 
     let (trace, _) = ExecutionTrace::test_finalize_trace(process);

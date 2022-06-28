@@ -14,7 +14,7 @@ fn script_compilation(c: &mut Criterion) {
                 exec.sha256::hash
             end";
         bench.iter(|| {
-            let assembler = Assembler::new();
+            let assembler = Assembler::new(false);
             assembler
                 .compile_script(source)
                 .expect("Failed to compile test source.")

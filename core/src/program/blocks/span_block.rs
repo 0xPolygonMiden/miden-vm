@@ -1,4 +1,5 @@
 use super::{fmt, hasher, Digest, Felt, FieldElement, Operation, Vec};
+use crate::DecoratorMap;
 use winter_utils::flatten_slice_elements;
 
 // CONSTANTS
@@ -38,6 +39,7 @@ const MAX_OPS_PER_BATCH: usize = GROUP_SIZE * BATCH_SIZE;
 pub struct Span {
     op_batches: Vec<OpBatch>,
     hash: Digest,
+    decorators: DecoratorMap,
 }
 
 impl Span {
@@ -49,10 +51,14 @@ impl Span {
     /// Returns an error if:
     /// - `operations` vector is empty.
     /// - `operations` vector contains any number of system operations.
-    pub fn new(operations: Vec<Operation>) -> Self {
+    pub fn new(operations: Vec<Operation>, decorators: DecoratorMap) -> Self {
         assert!(!operations.is_empty()); // TODO: return error
         let (op_batches, hash) = batch_ops(operations);
-        Self { op_batches, hash }
+        Self {
+            op_batches,
+            hash,
+            decorators,
+        }
     }
 
     // PUBLIC ACCESSORS
@@ -74,13 +80,21 @@ impl Span {
     /// Returns a new [Span] block instantiated with operations from this block repeated the
     /// specified number of times.
     #[must_use]
-    pub fn replicate(&self, num_copies: usize) -> Self {
+    pub fn replicate(&self, num_copies: usize, _in_debug_mode: bool) -> Self {
         let own_ops = self.get_ops();
+        // let own_decorators = self.get_decorators();
+
         let mut ops = Vec::with_capacity(own_ops.len() * num_copies);
+        // let mut decorators = DecoratorMap::new();
+
         for _ in 0..num_copies {
+            // Replicate decorators of span block to all copies of span block replicated
+            // for (k, v) in &own_decorators {
+            //     decorators.insert(own_ops.len() * i + k, (*v).clone());
+            // }
             ops.extend_from_slice(&own_ops);
         }
-        Self::new(ops)
+        Self::new(ops, DecoratorMap::new())
     }
 
     // HELPER METHODS
@@ -93,6 +107,10 @@ impl Span {
             ops.extend_from_slice(&batch.ops);
         }
         ops
+    }
+
+    pub fn get_decorators(&self) -> DecoratorMap {
+        self.decorators.clone()
     }
 }
 

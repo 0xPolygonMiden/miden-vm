@@ -223,7 +223,7 @@ impl AssemblyError {
         }
     }
 
-    pub fn prc_export_not_allowed(token: &Token, label: &str) -> Self {
+    pub fn proc_export_not_allowed(token: &Token, label: &str) -> Self {
         AssemblyError {
             message: format!("exported procedures not allowed in this context: {}", label),
             step: token.pos(),
