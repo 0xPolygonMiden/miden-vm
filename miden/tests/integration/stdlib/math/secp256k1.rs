@@ -179,6 +179,83 @@ fn test_u256_mod_sub() {
     }
 }
 
+#[test]
+fn test_u256_mod_add_sub_cycle() {
+    let source_add = "
+    use.std::math::secp256k1
+
+    begin
+        exec.secp256k1::u256_mod_add
+    end";
+
+    let source_sub = "
+    use.std::math::secp256k1
+
+    begin
+        exec.secp256k1::u256_mod_sub
+    end";
+
+    let mut stack = [0u64; 16];
+    for i in 0..8 {
+        let a = rand_utils::rand_value::<u32>() as u64;
+        let b = rand_utils::rand_value::<u32>() as u64;
+
+        stack[i] = a;
+        stack[i ^ 8] = b;
+    }
+
+    let mut a = [0u32; 8];
+    let mut b = [0u32; 8];
+
+    // randomly generate a, b --- two secp256k1 field elements
+    for i in 0..8 {
+        a[i] = stack[i] as u32;
+        b[i] = stack[i ^ 8] as u32;
+    }
+
+    // compute c = a + b
+    let c = {
+        stack.reverse();
+
+        let c = u256_mod_add(a, b);
+
+        let test = build_test!(source_add, &stack);
+        let strace = test.get_last_stack_state();
+
+        for i in 0..8 {
+            assert_eq!(Felt::new(c[i] as u64), strace[i]);
+        }
+
+        c
+    };
+
+    for i in 0..8 {
+        stack[i] = c[i] as u64;
+        stack[i ^ 8] = a[i] as u64;
+    }
+
+    // compute d = c - a
+    let d = {
+        stack.reverse();
+
+        let d = u256_mod_sub(c, a);
+
+        let test = build_test!(source_sub, &stack);
+        let strace = test.get_last_stack_state();
+
+        for i in 0..8 {
+            assert_eq!(Felt::new(d[i] as u64), strace[i]);
+        }
+
+        d
+    };
+
+    // check b == d | (d = c - a) & (c = a + b)
+    for i in 0..8 {
+        assert_eq!(b[i] ^ d[i], 0);
+    }
+}
+
 fn mac(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
     let tmp = a as u64 + (b as u64 * c as u64) + carry as u64;
     ((tmp >> 32) as u32, tmp as u32)
