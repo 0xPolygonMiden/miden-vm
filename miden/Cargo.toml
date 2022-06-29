@@ -27,10 +27,12 @@ air = { package = "miden-air", path = "../air", version = "0.2", default-feature
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.2", default-features = false }
 processor = { package = "miden-processor", path = "../processor", version = "0.2", default-features = false }
 prover = { package = "miden-prover", path = "../prover", version = "0.1", default-features = false }
+env_logger = { version = "0.9", default-features = false }
 hex = { version = "0.4", optional = true }
 log = { version = "0.4", default-features = false }
 verifier = { package = "miden-verifier", path = "../verifier", version = "0.2", default-features = false }
 vm-core = { package = "miden-core", path = "../core", version = "0.2", default-features = false }
+structopt = { version = "0.3", default-features = false }
 
 [dev-dependencies]
 blake3 = "1.3.1"
