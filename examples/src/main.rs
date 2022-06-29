@@ -36,7 +36,7 @@ fn main() {
     // execute the program and generate the proof of execution
     #[cfg(feature = "std")]
     let now = Instant::now();
-    let (outputs, proof) = miden::execute(&program, &inputs, num_outputs, &proof_options).unwrap();
+    let (outputs, proof) = miden::prove(&program, &inputs, num_outputs, &proof_options).unwrap();
     debug!("--------------------------------");
 
     #[cfg(feature = "std")]
