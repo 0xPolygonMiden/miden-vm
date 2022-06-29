@@ -384,9 +384,9 @@ Armed with the above notation, we can describe constraints for updating column $
 We can combine the above constraints into a single expression like so:
 
 $$
-p_0' = p_0 \cdot ([(f_{bp} + f_{sout}) \cdot (v_h + v_a + v_b + v_c)] + \\
-[(f_{mp} + f_{mv} + f_{mu}) \cdot (v_h + (1-b) \cdot v_b + b \cdot v_d)] + \\
-[f_{abp} \cdot (v_h + v'_b + v'_c - (v_b + v_c)] + [f_{hout} \cdot (v_h + v_b)] + \\
+p_0' = p_0 \cdot ([(f_{bp} + f_{sout}) \cdot (v_h + v_a + v_b + v_c)] + \\\
+[(f_{mp} + f_{mv} + f_{mu}) \cdot (v_h + (1-b) \cdot v_b + b \cdot v_d)] + \\\
+[f_{abp} \cdot (v_h + v'_b + v'_c - (v_b + v_c))] + [f_{hout} \cdot (v_h + v_b)] + \\\
 1 - (f_{bp} + f_{mp} + f_{mv} + f_{mu} + f_{abp} + f_{out})
 )
 $$
