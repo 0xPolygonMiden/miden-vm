@@ -220,7 +220,7 @@ impl Trace for ExecutionTrace {
 ///   are no repeating patterns in each column and each column contains a least two distinct
 ///   values. This, in turn, ensures that polynomial degrees of all columns are stable.
 fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, AuxTraceHints) {
-    let (system, decoder, stack, range, aux_table) = process.to_components();
+    let (system, decoder, stack, mut range, aux_table) = process.to_components();
 
     let clk = system.clk();
 
@@ -232,6 +232,9 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
         "inconsistent decoder trace length"
     );
     assert_eq!(clk, stack.trace_len(), "inconsistent stack trace lengths");
+
+    // Add the range checks required by the auxiliary table to the range checker.
+    range.add_lookups(aux_table.get_range_checks());
 
     // Get the trace length required to hold all execution trace steps.
     let max_len = [clk, range.trace_len(), aux_table.trace_len()]

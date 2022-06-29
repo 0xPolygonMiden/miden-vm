@@ -86,6 +86,9 @@ pub const AUX_TABLE_OFFSET: usize = RANGE_CHECK_TRACE_OFFSET + RANGE_CHECK_TRACE
 pub const AUX_TABLE_WIDTH: usize = 18;
 pub const AUX_TABLE_RANGE: Range<usize> = range(AUX_TABLE_OFFSET, AUX_TABLE_WIDTH);
 
+// Auxiliary table components
+pub const MEMORY_TRACE_WIDTH: usize = 14;
+
 pub const TRACE_WIDTH: usize = AUX_TABLE_OFFSET + AUX_TABLE_WIDTH;
 
 // AUXILIARY COLUMNS LAYOUT

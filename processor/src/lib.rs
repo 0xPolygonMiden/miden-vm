@@ -13,8 +13,8 @@ use vm_core::{
     },
     utils::collections::{BTreeMap, Vec},
     AdviceInjector, Felt, FieldElement, Operation, ProgramInputs, StackTopState, StarkField, Word,
-    AUX_TABLE_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN, NUM_STACK_HELPER_COLS,
-    ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
+    AUX_TABLE_WIDTH, DECODER_TRACE_WIDTH, MEMORY_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN,
+    NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
 
 mod operations;
@@ -30,7 +30,7 @@ mod stack;
 use stack::Stack;
 
 mod range;
-use range::RangeChecker;
+use range::{RangeCheckMap, RangeChecker};
 
 mod hasher;
 use hasher::Hasher;
@@ -70,11 +70,17 @@ pub struct DecoderTrace {
 }
 
 type StackTrace = [Vec<Felt>; STACK_TRACE_WIDTH];
-type AuxTableTrace = [Vec<Felt>; AUX_TABLE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
 
 pub struct RangeCheckTrace {
     trace: [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH],
     aux_trace_hints: range::AuxTraceHints,
+}
+
+type AuxTableTrace = [Vec<Felt>; AUX_TABLE_WIDTH];
+
+pub struct MemoryTrace {
+    trace: [Vec<Felt>; MEMORY_TRACE_WIDTH],
+    range_checks: RangeCheckMap,
 }
 
 // EXECUTOR
