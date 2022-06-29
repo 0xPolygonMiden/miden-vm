@@ -1,4 +1,4 @@
-use crate::Example;
+use super::Example;
 use log::debug;
 use miden::{Assembler, ProgramInputs, Script};
 use vm_core::{Felt, FieldElement, StarkField};

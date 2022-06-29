@@ -1,8 +1,33 @@
-use super::AssemblyError;
 use assembly::Assembler;
 use core::fmt;
+use miden::AssemblyError;
 use processor::ExecutionError;
+use structopt::StructOpt;
 use vm_core::{Operation, ProgramInputs};
+
+/// Defines cli interace
+#[derive(StructOpt, Debug)]
+#[structopt(about = "Analyze a miden program")]
+pub struct Analyze {
+    /// Script Source File Path
+    masm_path: String,
+}
+
+/// Implements CLI execution logic
+impl Analyze {
+    pub fn execute(&self) {
+        let program = std::fs::read_to_string(&self.masm_path).expect("Could not read masm file");
+        let program_inputs = ProgramInputs::none();
+        let program_info: ProgramInfo =
+            analyze(program.as_str(), program_inputs).expect("Could not retreive program info");
+
+        let total_vm_cycles = program_info.total_vm_cycles();
+        let total_noops = program_info.total_noops();
+
+        println!("Total Number of VM Cycles: {}", total_vm_cycles);
+        println!("Total Number of NOOPs executed: {}", total_noops);
+    }
+}
 
 /// Contains info of a program. Used for program analysis. Contains the following fields:
 /// - total_vm_cycles (vm cycles it takes to execute the entire script)
