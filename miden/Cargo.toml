@@ -26,7 +26,7 @@ std = ["air/std", "assembly/std", "processor/std", "prover/std", "hex/std", "log
 air = { package = "miden-air", path = "../air", version = "0.2", default-features = false }
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.2", default-features = false }
 processor = { package = "miden-processor", path = "../processor", version = "0.2", default-features = false }
-prover = { package = "winter-prover", version = "0.4", default-features = false }
+prover = { package = "miden-prover", path = "../prover", version = "0.1", default-features = false }
 hex = { version = "0.4", optional = true }
 log = { version = "0.4", default-features = false }
 verifier = { package = "miden-verifier", path = "../verifier", version = "0.2", default-features = false }

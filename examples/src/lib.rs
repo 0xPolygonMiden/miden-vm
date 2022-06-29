@@ -63,7 +63,7 @@ pub fn test_example(example: Example, fail: bool) {
     } = example;
 
     let (mut outputs, proof) =
-        miden::execute(&program, &inputs, num_outputs, &ProofOptions::default()).unwrap();
+        miden::prove(&program, &inputs, num_outputs, &ProofOptions::default()).unwrap();
 
     assert_eq!(
         expected_result, outputs,
