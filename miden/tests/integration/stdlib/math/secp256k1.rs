@@ -256,6 +256,136 @@ fn test_u256_mod_add_sub_cycle() {
     }
 }
 
+#[test]
+fn test_secp256k1_point_doubling() {
+    let source = "
+    use.std::math::secp256k1
+
+    # Given generator point of secp256k1 elliptic curve, this routine first computes
+    # point doubling of generator point in projective coordinate & then asserts
+    # each coordinate limb-by-limb for ensuring correctness.
+    #
+    # Note, this test is not yet very generic i.e. it can't be generalized to work
+    # with any point generated from curve generator & test for correctness of execution
+    # of point doubling assembly routine. This is what I'd like to make it, in sometime future.
+    proc.point_doubling_test_wrapper.12
+        # push X -coordinate to memory
+        push.589179219.700212955.3610652250.1216225431
+        popw.local.0
+        push.2575427139.3909656392.2543798464.872223388
+        popw.local.1
+
+        # push Y -coordinate to memory
+        push.2382126429.522045005.2975770322.3554388962
+        popw.local.2
+        push.3477046559.3567616726.1891022234.2887369014
+        popw.local.3
+
+        # push Z -coordinate to memory
+        push.0.0.1.977
+        popw.local.4
+        push.0.0.0.0
+        popw.local.5
+
+        # input/ output memory addresses for point doubling purpose
+        push.env.locaddr.11
+        push.env.locaddr.10
+        push.env.locaddr.9
+        push.env.locaddr.8
+        push.env.locaddr.7
+        push.env.locaddr.6
+
+        push.env.locaddr.5
+        push.env.locaddr.4
+        push.env.locaddr.3
+        push.env.locaddr.2
+        push.env.locaddr.1
+        push.env.locaddr.0
+
+        # elliptic curve point doubling
+        exec.secp256k1::point_doubling
+
+        # --- start asserting X3 ---
+        pushw.mem
+
+        u32eq.474728642
+        assert
+        u32eq.4256012599
+        assert
+        u32eq.2072183026
+        assert
+        u32eq.3437933890
+        assert
+
+        pushw.mem
+
+        u32eq.4191201175
+        assert
+        u32eq.1644336685
+        assert
+        u32eq.3276311816
+        assert
+        u32eq.617223735
+        assert
+        # --- end asserting X3 ---
+
+        # --- start asserting Y3 ---
+        pushw.mem
+
+        u32eq.3875396767
+        assert
+        u32eq.483526712
+        assert
+        u32eq.3043178571
+        assert
+        u32eq.2826781693
+        assert
+
+        pushw.mem
+
+        u32eq.2758035882
+        assert
+        u32eq.3425160008
+        assert
+        u32eq.524996660
+        assert
+        u32eq.1440660280
+        assert
+        # --- end asserting Y3 ---
+
+        # --- start asserting Z3 ---
+        pushw.mem
+
+        u32eq.2545792257
+        assert
+        u32eq.4082826636
+        assert
+        u32eq.1673463056
+        assert
+        u32eq.2688095969
+        assert
+
+        pushw.mem
+
+        u32eq.2687252166
+        assert
+        u32eq.3884180958
+        assert
+        u32eq.1848170264
+        assert
+        u32eq.579919648
+        assert
+        # --- end asserting Z3 ---
+    end
+
+    begin
+        exec.point_doubling_test_wrapper
+    end";
+
+    let test = build_test!(source, &[]);
+    let _ = test.get_last_stack_state();
+}
+
 fn mac(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
     let tmp = a as u64 + (b as u64 * c as u64) + carry as u64;
     ((tmp >> 32) as u32, tmp as u32)
