@@ -9863,6 +9863,236 @@ export.from_mont
 
   exec.u256_mod_mul
 end
+
+# Given a secp256k1 point in projective coordinate system ( i.e. with x, y, z -coordinates
+# as secp256k1 prime field elements, represented in Montgomery form ), this routine adds 
+# that point with self i.e. does point doubling on elliptic curve, using exception-free 
+# doubling formula from algorithm 9 of https://eprint.iacr.org/2015/1060.pdf, while 
+# following prototype implementation https://github.com/itzmeanjan/secp256k1/blob/ec3652a/point.py#L131-L165
+# 
+# Input:
+#
+# 12 memory addresses on stack such that first 6 memory addresses are for input point &
+# last 6 are for storing resulting point.
+#
+# First 6 addresses hold input elliptic curve point's x, y, z -coordinates, where each coordinate
+# is represented in Montgomery form, as eight 32 -bit limbs.
+#
+# Similarly, last 6 addresses hold resulting (doubled) point's x, y, z -coordinates, where each
+# coordinate is represented in Montgomery form, as eight 32 -bit limbs. Note, this is where
+# output will be written, so called is expected to read doubled point from last 6 memory addresses.
+#
+# Expected stack during invokation of this routine:
+#
+#   [x_addr[0..4], x_addr[4..8], y_addr[0..4], y_addr[4..8], z_addr[0..4], z_addr[4..8], 
+#     x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
+#
+# Note, (X, Y, Z)    => input point
+#       (X3, Y3, Z3) => output point
+#
+# Output:
+#
+# Last 6 memory addresses of 12 memory addresses which were provided during invokation, where resulting doubled
+# point is kept in similar form. For seeing X3, Y3, Z3 -coordinates of doubled point, one needs to read from
+# those 6 memory addresses.
+#
+# Stack at end of execution of routine looks like
+#
+#   [x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
+export.point_doubling.12
+  dup.3
+  pushw.mem
+  dup.6
+  pushw.mem         # y -coordinate on stack top
+
+  dupw.1
+  dupw.1            # repeated y -coordinate
+
+  exec.u256_mod_mul # = t0
+
+  storew.local.0
+  swapw
+  storew.local.1
+  swapw             # cache t0
+
+  dupw.1
+  dupw.1            # repeated t0
+
+  exec.u256_mod_add # = z3
+
+  dupw.1
+  dupw.1            # repeated z3
+
+  exec.u256_mod_add # = z3
+
+  dupw.1
+  dupw.1            # repeated z3
+
+  exec.u256_mod_add # = z3
+
+  popw.local.2
+  popw.local.3      # cache z3
+
+  dup.5
+  pushw.mem
+  dup.8
+  pushw.mem         # z -coordinate on stack top
+
+  dup.11
+  pushw.mem
+  dup.14
+  pushw.mem         # y -coordinate on stack top
+
+  exec.u256_mod_mul # = t1
+
+  popw.local.4
+  popw.local.5      # cache t1
+
+  dup.5
+  pushw.mem
+  dup.8
+  pushw.mem         # z -coordinate on stack top
+
+  dupw.1
+  dupw.1            # repeated z
+
+  exec.u256_mod_mul # = t2
+
+  push.0.0.0.0
+  push.0.0.21.20517 # = b3
+
+  exec.u256_mod_mul # = t2
+
+  storew.local.6
+  swapw
+  storew.local.7    # cache t2
+  swapw
+
+  pushw.local.3
+  pushw.local.2     # = z3
+
+  exec.u256_mod_mul # = x3
+
+  popw.local.8
+  popw.local.9      # cache x3
+
+  pushw.local.7
+  pushw.local.6     # = t2
+
+  pushw.local.1
+  pushw.local.0     # = t0
+
+  exec.u256_mod_add # = y3
+
+  popw.local.10
+  popw.local.11     # cache y3
+
+  pushw.local.5
+  pushw.local.4     # = t1
+
+  pushw.local.3
+  pushw.local.2     # = z3
+
+  exec.u256_mod_mul # = z3
+
+  popw.local.2
+  popw.local.3      # cache z3
+
+  pushw.local.7
+  pushw.local.6     # = t2
+
+  dupw.1
+  dupw.1            # repeated t2
+
+  exec.u256_mod_add # = t1
+
+  pushw.local.7
+  pushw.local.6     # = t2
+
+  exec.u256_mod_add # = t2
+
+  pushw.local.1
+  pushw.local.0     # = t0
+
+  exec.u256_mod_sub # = t0
+
+  storew.local.0
+  swapw
+  storew.local.1
+  swapw             # cache t0
+
+  pushw.local.11
+  pushw.local.10    # = y3
+
+  exec.u256_mod_mul # = y3
+
+  pushw.local.9
+  pushw.local.8     # = x3
+
+  exec.u256_mod_add # = y3
+
+  popw.local.10
+  popw.local.11     # cache y3
+
+  dup.3
+  pushw.mem
+  dup.6
+  pushw.mem         # y -coordinate on stack top
+
+  dup.9
+  pushw.mem
+  dup.12
+  pushw.mem         # x -coordinate on stack top
+
+  exec.u256_mod_mul # = t1
+
+  pushw.local.1
+  pushw.local.0     # = t0
+
+  exec.u256_mod_mul # = x3
+
+  dupw.1
+  dupw.1            # repeated x3
+
+  exec.u256_mod_add # = x3
+
+  popw.local.8
+  popw.local.9      # cache x3
+
+  dropw
+  drop
+  drop
+
+  dup
+  pushw.local.8
+  movup.4
+  popw.mem          # write x3[0..4] to memory
+
+  dup.1
+  pushw.local.9
+  movup.4
+  popw.mem          # write x3[4..8] to memory
+
+  dup.2
+  pushw.local.10
+  movup.4
+  popw.mem          # write y3[0..4] to memory
+
+  dup.3
+  pushw.local.11
+  movup.4
+  popw.mem          # write y3[4..8] to memory
+
+  dup.4
+  pushw.local.2
+  movup.4
+  popw.mem          # write z3[0..4] to memory
+
+  dup.5
+  pushw.local.3
+  movup.4
+  popw.mem          # write z3[4..8] to memory
+end
 "),
 // ----- std::math::u256 --------------------------------------------------------------------------
 ("std::math::u256", "export.add_unsafe
