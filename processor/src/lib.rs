@@ -69,7 +69,10 @@ pub struct DecoderTrace {
     aux_trace_hints: decoder::AuxTraceHints,
 }
 
-type StackTrace = [Vec<Felt>; STACK_TRACE_WIDTH];
+pub struct StackTrace {
+    trace: [Vec<Felt>; STACK_TRACE_WIDTH],
+    aux_trace_hints: stack::AuxTraceHints,
+}
 
 pub struct RangeCheckTrace {
     trace: [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH],

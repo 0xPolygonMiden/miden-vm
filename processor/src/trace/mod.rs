@@ -1,7 +1,7 @@
 use super::{
     decoder::AuxTraceHints as DecoderAuxTraceHints,
-    range::AuxTraceHints as RangeCheckerAuxTraceHints, Digest, Felt, FieldElement, Process,
-    StackTopState, Vec,
+    range::AuxTraceHints as RangeCheckerAuxTraceHints, stack::AuxTraceHints as StackAuxTraceHints,
+    Digest, Felt, FieldElement, Process, StackTopState, Vec,
 };
 use vm_core::{
     AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET,
@@ -17,6 +17,7 @@ pub use utils::{LookupTableRow, TraceFragment};
 
 mod decoder;
 mod range;
+mod stack;
 
 // CONSTANTS
 // ================================================================================================
@@ -34,6 +35,7 @@ type RandomCoin = vm_core::utils::RandomCoin<Felt, vm_core::hasher::Hasher>;
 
 pub struct AuxTraceHints {
     pub(crate) decoder: DecoderAuxTraceHints,
+    pub(crate) stack: StackAuxTraceHints,
     pub(crate) range: RangeCheckerAuxTraceHints,
 }
 
@@ -175,6 +177,10 @@ impl Trace for ExecutionTrace {
             rand_elements,
         );
 
+        // Add stack's running product columns
+        let stack_aux_columns =
+            stack::build_aux_columns(&self.main_trace, &self.aux_trace_hints.stack, rand_elements);
+
         // add the range checker's running product columns
         let range_aux_columns = range::build_aux_columns(
             self.length(),
@@ -186,6 +192,7 @@ impl Trace for ExecutionTrace {
         // combine all auxiliary columns into a single vector
         let mut aux_columns = decoder_aux_columns
             .into_iter()
+            .chain(stack_aux_columns)
             .chain(range_aux_columns)
             .collect::<Vec<_>>();
 
@@ -262,7 +269,7 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     let mut trace = system_trace
         .into_iter()
         .chain(decoder_trace.trace)
-        .chain(stack_trace)
+        .chain(stack_trace.trace)
         .chain(range_check_trace.trace)
         .chain(aux_table_trace)
         .collect::<Vec<_>>();
@@ -276,6 +283,7 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
 
     let aux_trace_hints = AuxTraceHints {
         decoder: decoder_trace.aux_trace_hints,
+        stack: stack_trace.aux_trace_hints,
         range: range_check_trace.aux_trace_hints,
     };
 
