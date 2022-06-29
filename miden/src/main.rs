@@ -4,6 +4,8 @@ use miden::StarkProof;
 use std::{io::Write, time::Instant};
 use structopt::StructOpt;
 
+mod examples;
+
 fn main() {
     // configure logging
     env_logger::Builder::new()
