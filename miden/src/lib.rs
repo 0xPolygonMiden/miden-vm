@@ -8,4 +8,3 @@ pub use assembly::{Assembler, AssemblyError};
 pub use prover::{prove, StarkProof};
 pub use verifier::{verify, VerificationError};
 pub use vm_core::{program::Script, ProgramInputs};
-pub mod tools;
