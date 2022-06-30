@@ -541,6 +541,116 @@ fn test_secp256k1_point_addition() {
     let _ = test.get_last_stack_state();
 }
 
+#[test]
+fn test_secp256k1_point_multiplication() {
+    let source = "
+    use.std::math::secp256k1
+
+    # Given 256 -bit scalar in radix-2^32 form ( i.e. 8 limbs, each of 32 -bit width ), 
+    # this routine first multiplies the identity point of group ( i.e. 0, 1, 0 in projective 
+    # coordinate system ), by (given) scalar and then asserts for correctness with known answer.
+    #
+    # Note, this test is not yet very generic i.e. it can't be generalized to work
+    # with any 256 -bit random scalar & test for correctness of execution of point 
+    # multiplication assembly routine. This is what I'd like to make it, in sometime future.
+    proc.point_multiplication_test_wrapper.6
+        # resulting point ( in projective coordinate system ) 
+        # will be stored in these addresses
+        push.env.locaddr.5
+        push.env.locaddr.4
+        push.env.locaddr.3
+        push.env.locaddr.2
+        push.env.locaddr.1
+        push.env.locaddr.0
+
+        # scalar
+        push.3754378978.2737387451.3951838026.2457684815
+        push.1793611799.2969588298.2075099376.2301743426
+
+        # elliptic curve point multiplication
+        exec.secp256k1::point_mul
+
+        # --- start asserting X ---
+        pushw.mem
+
+        u32eq.1096602412
+        assert
+        u32eq.1336778744
+        assert
+        u32eq.4237851429
+        assert
+        u32eq.2379704491
+        assert
+
+        pushw.mem
+
+        u32eq.2174658910
+        assert
+        u32eq.1179196601
+        assert
+        u32eq.696486755
+        assert
+        u32eq.2826869248
+        assert
+        # --- end asserting X ---
+
+        # --- start asserting Y ---
+        pushw.mem
+
+        u32eq.3362845704
+        assert
+        u32eq.129965728
+        assert
+        u32eq.1311711770
+        assert
+        u32eq.3674781461
+        assert
+
+        pushw.mem
+
+        u32eq.3620120701
+        assert
+        u32eq.1257229422
+        assert
+        u32eq.162674263
+        assert
+        u32eq.1366999099
+        assert
+        # --- end asserting Y ---
+
+        # --- start asserting Z ---
+        pushw.mem
+
+        u32eq.440013615
+        assert
+        u32eq.548226205
+        assert
+        u32eq.868197170
+        assert
+        u32eq.3947728772
+        assert
+
+        pushw.mem
+
+        u32eq.2287684084
+        assert
+        u32eq.3056380747
+        assert
+        u32eq.2298699306
+        assert
+        u32eq.2987928230
+        assert
+        # --- end asserting Z ---
+    end
+
+    begin
+        exec.point_multiplication_test_wrapper
+    end";
+
+    let test = build_test!(source, &[]);
+    let _ = test.get_last_stack_state();
+}
+
 fn mac(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
     let tmp = a as u64 + (b as u64 * c as u64) + carry as u64;
     ((tmp >> 32) as u32, tmp as u32)
