@@ -1,6 +1,6 @@
 use super::{
     BTreeMap, Felt, FieldElement, ProgramInputs, StackTopState, Vec, MIN_STACK_DEPTH,
-    NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH,
+    NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH, ZERO,
 };
 use core::cmp;
 
@@ -9,6 +9,7 @@ use trace::StackTrace;
 
 mod overflow;
 use overflow::OverflowTable;
+pub use overflow::{AuxTraceHints, OverflowTableRow, OverflowTableUpdate};
 
 #[cfg(test)]
 mod tests;
@@ -115,7 +116,9 @@ impl Stack {
         result
     }
 
-    /// Returns an execution trace of the top 16 stack slots and helper columns as a single array.
+    /// Returns an execution trace of the top 16 stack slots and helper columns as a single array
+    /// together with hints to be used in construction of stack-related auxiliary trace segment
+    /// columns.
     ///
     /// If the stack trace is smaller than the specified `trace_len`, last value in each column is
     /// duplicated until the length of the columns reaches `trace_len`.
@@ -139,7 +142,11 @@ impl Stack {
             column[clk..].fill(last_value);
             column.resize(trace_len, last_value);
         }
-        trace
+
+        super::StackTrace {
+            trace,
+            aux_trace_hints: self.overflow.into_hints(),
+        }
     }
 
     /// Returns stack state at the specified clock cycle.
@@ -194,8 +201,7 @@ impl Stack {
             0..=MAX_TOP_IDX => unreachable!("stack underflow"),
             MIN_STACK_DEPTH => {
                 // Shift in a ZERO, to prevent depth shrinking below the minimum stack depth.
-                self.trace
-                    .stack_shift_left_at(self.clk, start_pos, Felt::ZERO);
+                self.trace.stack_shift_left_at(self.clk, start_pos, ZERO);
                 self.trace.copy_helpers_at(self.clk);
             }
             _ => {

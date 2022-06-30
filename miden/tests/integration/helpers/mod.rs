@@ -153,7 +153,7 @@ impl Test {
         test_fail: bool,
     ) {
         let script = self.compile();
-        let (mut outputs, proof) = miden::execute(
+        let (mut outputs, proof) = prover::prove(
             &script,
             &self.inputs,
             num_stack_outputs,

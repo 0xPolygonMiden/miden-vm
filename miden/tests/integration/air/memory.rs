@@ -2,14 +2,16 @@ use crate::{build_op_test, build_test};
 
 #[test]
 fn push() {
-    let asm_op = "push.mem.0";
+    // drop's are added at the end to make sure stack overflow is empty on exit
+    let asm_op = "push.mem.0 swap drop";
 
     build_op_test!(asm_op).prove_and_verify(vec![], 0, false);
 }
 
 #[test]
 fn pushw() {
-    let asm_op = "pushw.mem.0";
+    // drop's are added at the end to make sure stack overflow is empty on exit
+    let asm_op = "pushw.mem.0 swapw drop drop drop drop";
 
     build_op_test!(asm_op).prove_and_verify(vec![], 0, false);
 }
@@ -47,7 +49,8 @@ fn store() {
 
 #[test]
 fn write_read() {
-    let source = "begin popw.mem.0 pushw.mem.0 end";
+    // drop's are added at the end to make sure stack overflow is empty on exit
+    let source = "begin popw.mem.0 pushw.mem.0 swapw drop drop drop drop end";
     let pub_inputs = vec![4, 3, 2, 1];
 
     build_test!(source, &pub_inputs).prove_and_verify(pub_inputs, 1, false);
@@ -55,7 +58,8 @@ fn write_read() {
 
 #[test]
 fn update() {
-    let source = "begin pushw.mem.0 storew.mem.0 end";
+    // drop's are added at the end to make sure stack overflow is empty on exit
+    let source = "begin pushw.mem.0 storew.mem.0 swapw drop drop drop drop end";
     let pub_inputs = vec![8, 7, 6, 5, 4, 3, 2, 1];
 
     build_test!(source, &pub_inputs).prove_and_verify(pub_inputs, 1, false);

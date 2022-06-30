@@ -12,7 +12,7 @@ The design makes extensive use of $16$-bit range checks. An efficient way of imp
 
 The simplest (and most efficient) alternative to the above design is contiguous write-once memory. To support such memory, we need to allocate just two trace columns as illustrated below.
 
-![](https://i.imgur.com/DJsQR7q.png)
+![memory_alternative_design](../../assets/design/aux_table/memory/memory_alternative_design.png)
 
 In the above, `addr` column holds memory address, and `value` column holds the field element representing the value stored at this address. Notice that some rows in this table are duplicated. This is because we need one row per memory access (either read or write operation). In the example above, value $b$ was first stored at memory address $1$, and then read from this address.
 
@@ -40,7 +40,7 @@ As mentioned above, this approach is very efficient: each memory access requires
 
 Write-once memory is tricky to work with, and many developers may need to climb a steep learning curve before they become comfortable working in this model. Thus, ideally, we'd want to support read-write memory. To do this, we need to introduce additional columns as illustrated below.
 
-![](https://i.imgur.com/8t8FBF9.png)
+![memory_read_write](../../assets/design/aux_table/memory/memory_read_write.png)
 
 In the above, we added `clk` column, which keeps track of the clock cycle at which memory access happened. We also need to differentiate between memory reads and writes. To do this, we now use two columns to keep track of the value: `old val` contains the value stored at the address before the operation, and `new val` contains the value after the operation. Thus, if `old val` and `new val` are the same, it was a read operation. If they are different, it was a write operation.
 
@@ -66,7 +66,7 @@ $$
 
 Lastly, we need to make sure that for the same address values in `clk` column are always increasing. One way to do this is to perform a $16$-bit range check on the value of $(i' - i - 1)$, where $i$ is the reference to `clk` column. However, this would mean that memory operations involving the same address must happen within $65536$ VM cycles from each other. This limitation would be difficult to enforce statically. To remove this limitation, we need to add two more columns as shown below:
 
-![](https://i.imgur.com/GgEo21V.png)
+![memory_limitation_diagram](../../assets/design/aux_table/memory/memory_limitation_diagram.png)
 
 In the above column `d0` contains the lower $16$ bits of $(i' - i - 1)$ while `d1` contains the upper $16$ bits. The constraint needed to enforces this is as follows:
 
@@ -82,7 +82,7 @@ Overall, the cost of reading or writing a single element is now $6$ trace cells 
 
 Requiring that memory addresses are contiguous may also be a difficult limitation to impose statically. To remove this limitation, we need to introduce one more column as shown below:
 
-![](https://i.imgur.com/U0GN06r.png)
+![memory_non_contiguous_memory](../../assets/design/aux_table/memory/memory_non_contiguous_memory.png)
 
 In the above, the prover sets the value in the new column `t` to $0$ when the address doesn't change, and to $1 / (a' - a)$ otherwise. To simplify constraint description, we'll define variable $n$ computed as follows:
 
@@ -118,7 +118,7 @@ In many situations it may be desirable to assign memories to different context. 
 
 To accommodate this feature, we need to add one more column as illustrated below.
 
-![](https://i.imgur.com/ccbFrKU.png)
+![memory_context_separation](../../assets/design/aux_table/memory/memory_context_separation.png)
 
 This new column `ctx` should behave similarly to the address column: values in it should increase monotonically, and there could be breaks between them. We also need to change how the prover populates column `t`:
 
@@ -170,7 +170,7 @@ Miden VM frequently needs to deal with batches of $4$ field elements, which we c
 
 The layout of Miden VM memory table is shown below:
 
-![](https://i.imgur.com/4uIUxXY.png)
+![memory_miden_vm_layout](../../assets/design/aux_table/memory/memory_miden_vm_layout.png)
 
 where:
 
@@ -262,7 +262,7 @@ To move elements between the stack and the memory, Miden VM provides two operati
 
 Graphically, this looks like so:
 
-![](https://i.imgur.com/jg3vYqV.png)
+![memory_reading_memory](../../assets/design/aux_table/memory/memory_reading_memory.png)
 
 Note that as a result of this operation the stack is shifted to the left by one.
 
@@ -285,7 +285,7 @@ Note that the values from the top of the stack are added into the row twice: onc
 
 Graphically, this looks like so:
 
-![](https://i.imgur.com/METn4y1.png)
+![memory_writing_to_memory](../../assets/design/aux_table/memory/memory_writing_to_memory.png)
 
 Note that as a result of this operation the stack is shifted to the left by one, and the values saved to memory remain on the stack.
 

@@ -1,6 +1,9 @@
 use super::{
-    AuxTableTrace, Bitwise, Felt, FieldElement, Hasher, Memory, TraceFragment, Vec, AUX_TABLE_WIDTH,
+    AuxTableTrace, Bitwise, Felt, FieldElement, Hasher, Memory, MemoryTrace, TraceFragment, Vec,
+    AUX_TABLE_WIDTH,
 };
+use crate::{range::RangeCheckMap, utils::get_trace_len};
+use vm_core::aux_table::NUM_MEMORY_SELECTORS;
 
 #[cfg(test)]
 mod tests;
@@ -47,7 +50,7 @@ mod tests;
 pub struct AuxTable {
     hasher: Hasher,
     bitwise: Bitwise,
-    memory: Memory,
+    memory: MemoryTrace,
 }
 
 impl AuxTable {
@@ -55,6 +58,8 @@ impl AuxTable {
     // --------------------------------------------------------------------------------------------
     /// Returns an [AuxTable] initialized with its co-processor components.
     pub fn new(hasher: Hasher, bitwise: Bitwise, memory: Memory) -> Self {
+        let memory = memory.into_trace();
+
         Self {
             hasher,
             bitwise,
@@ -68,7 +73,12 @@ impl AuxTable {
     /// Returns the length of the trace required to accommodate co-processor components (excluding
     /// the padding component).
     pub fn trace_len(&self) -> usize {
-        self.hasher.trace_len() + self.bitwise.trace_len() + self.memory.trace_len()
+        self.hasher.trace_len() + self.bitwise.trace_len() + get_trace_len(&self.memory.trace)
+    }
+
+    /// Returns all range check lookups required by auxiliary table components.
+    pub fn get_range_checks(&self) -> &RangeCheckMap {
+        &self.memory.range_checks
     }
 
     /// Returns an execution trace of the auxiliary table containing the stacked traces of the
@@ -108,7 +118,7 @@ impl AuxTable {
         // allocate fragments to be filled with the respective execution traces of each coprocessor
         let mut hasher_fragment = TraceFragment::new(AUX_TABLE_WIDTH);
         let mut bitwise_fragment = TraceFragment::new(AUX_TABLE_WIDTH);
-        let mut memory_fragment = TraceFragment::new(AUX_TABLE_WIDTH);
+
         // The length of the padded segment accounting for the final random rows.
         let padding_len = trace_len - self.trace_len() - num_rand_rows;
 
@@ -163,10 +173,11 @@ impl AuxTable {
                     // add bitwise segment to the bitwise fragment to be filled from the bitwise trace
                     let rest_of_column = bitwise_fragment
                         .push_column_slice(rest_of_column, self.bitwise.trace_len());
-                    // Split the column again to skip the padding segment.
+                    // Skip the padding segment.
                     let (_, rest_of_column) = rest_of_column.split_at_mut(padding_len);
-                    // add memory segment to the memory fragment to be filled from the memory trace
-                    memory_fragment.push_column_slice(rest_of_column, self.memory.trace_len());
+                    // Fill the memory segment from the memory trace. Skip the final random values.
+                    rest_of_column[..get_trace_len(&self.memory.trace)]
+                        .copy_from_slice(&self.memory.trace[column_num - NUM_MEMORY_SELECTORS]);
                 }
             }
         }
@@ -175,6 +186,5 @@ impl AuxTable {
         // TODO: this can be parallelized to fill the traces in multiple threads
         self.hasher.fill_trace(&mut hasher_fragment);
         self.bitwise.fill_trace(&mut bitwise_fragment);
-        self.memory.fill_trace(&mut memory_fragment);
     }
 }
