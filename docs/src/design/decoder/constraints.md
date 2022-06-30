@@ -6,7 +6,7 @@ When describing AIR constraints, we adopt the following notation:
 * For multiset equality constraints, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0, \alpha_1, \alpha_2$ etc.
 * For decoder execution trace columns, we use the names shown on the diagram below (these are the same names as in the previous section). Additionally, we denote the register containing the value at the top of the stack as $s_0$.
 
-![](https://hackmd.io/_uploads/HJa9lKuuq.png)
+![air_decoder_columns](../../assets/design/decoder/constraints/air_decoder_columns.png)
 
 We assume that the VM exposes a flag per operation which is set to $1$ when the operation is executed, and to $0$ otherwise. The notation for such flags is $f_{opname}$. For example, when the VM executes a `PUSH` operation, flag $f_{push} = 1$. All flags are mutually exclusive - i.e., when one flag is set to $1$ all other flags are set to $0$. The flags are computed based on values in `op_bits` columns.
 
@@ -261,7 +261,7 @@ $$
 
 Graphically, this looks like so:
 
-![](https://hackmd.io/_uploads/SyBTih-Fq.png)
+![air_decoder_left_right_child](../../assets/design/decoder/constraints/air_decoder_left_right_child.png)
 
 In a similar manner, we define a value representing the result of hash computation as follows:
 
@@ -329,7 +329,7 @@ The `in_span` column (denoted as $sp$) is used to identify rows which execute no
 
 The picture below illustrates the above rules.
 
-![](https://hackmd.io/_uploads/Bk9ru3Buc.png)
+![air_decoder_in_spans_column_constraint](../../assets/design/decoder/constraints/air_decoder_in_spans_column_constraint.png)
 
 To enforce the above rules we need the following constraints.
 
@@ -421,7 +421,7 @@ $$
 ### Op group decoding constraints
 Inside a *span* block, register $h_0$ is used to keep track of operations to be executed in the current operation group. The value of this register is set by the prover non-deterministically at the time when the prover executes a `SPAN` or a `RESPAN` operation, or when processing of a new operation group within a batch starts. The picture below illustrates this.
 
-![](https://hackmd.io/_uploads/HkrlALIO5.png)
+![air_decoder_op_group_constraint](../../assets/design/decoder/constraints/air_decoder_op_group_constraint.png)
 
 In the above:
 * The prover sets the value of $h_0$ non-deterministically at row $0$. The value is set to an operation group containing operations `op0` through `op8`.

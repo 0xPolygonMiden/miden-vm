@@ -57,7 +57,7 @@ For simplicity, all of the "cyclic" co-processors which operate in multi-row cyc
 
 To fulfill the requirements above, we'll start by placing the Hasher at the top of the Auxiliary Table with a single selector column beside it where $s_0 = 0$ selects the Hasher. The third requirement for the hasher can easily be resolved with a virtual flag excluding the last row, since the row address constraint is only degree 2.
 
-![hasher](../../assets/hasher.png)
+![hasher](../../assets/design/aux_table/hasher.png)
 
 Next, we would like to include the other cyclic co-processors: the Bitwise and Power of Two processors.
 
@@ -65,7 +65,7 @@ That would leave the Memory co-processor to go last. However, if we use a select
 
 We can get around this problem by combining the Bitwise and Power of Two processors into a single co-processor with a shared trace, so that the Power of Two processor becomes an additional operation in the Bitwise processor which will be selected by the Bitwise processor's internal selector columns. We'll need to add two columns to the Bitwise trace in order for the Power of Two operation to fit. The degree of the combined processor will be 6, and the selector flag from the two selector columns will push it to degree 8, which is fine.
 
-![hasher_bitwise](../../assets/hasher_bitwise_pow2.png)
+![hasher_bitwise](../../assets/design/aux_table/hasher_bitwise_pow2.png)
 
 Finally, we come to the Memory co-processor, where we still need to deal with the "last row problem" (described below). The three selector flags for the Memory section mean that the constraint degree is already at the maximum of 9, which gives us 2 options:
 
@@ -74,7 +74,7 @@ Finally, we come to the Memory co-processor, where we still need to deal with th
 
 For now, we'll place the Memory co-processor last after the padding to keep the implementation simple.
 
-![aux_table](../../assets/aux_table.png)
+![aux_table](../../assets/design/aux_table/aux_table.png)
 
 ## Auxiliary Table constraints
 

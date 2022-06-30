@@ -30,7 +30,7 @@ The processor can be thought of as having a small instruction set of $11$ instru
 
 Execution trace table of the processor consists of $17$ trace columns and $3$ periodic columns. The structure of the table is such that a single permutation of the hash function can be computed using $8$ table rows. The layout of the table is illustrated below.
 
-![](https://i.imgur.com/g2oeXQ9.png)
+![hash_execution_trace](../../assets/design/aux_table/hasher/hash_execution_trace.png)
 
 The meaning of the columns is as follows:
 
@@ -99,7 +99,7 @@ SOUT                     // return the entire state as output
 
 Execution trace for this computation would look as illustrated below.
 
-![](https://i.imgur.com/RqnZvwH.png)
+![hash_1_permutation_trace](../../assets/design/aux_table/hasher/hash_1_permutation_trace.png)
 
 In the above $\{a_0, ..., a_{11}\}$ is the input state of the hasher, and $\{b_0, ..., b_{11}\}$ is the output state of the hasher.
 
@@ -121,7 +121,7 @@ HOUT                     // return elements 4, 5, 6, 7 of the state as output
 
 Execution trace for this computation would look as illustrated below.
 
-![](https://i.imgur.com/nECz9UF.png)
+![hash_2_to_1_hash](../../assets/design/aux_table/hasher/hash_2_to_1_hash.png)
 
 In the above, we compute the following:
 
@@ -151,7 +151,7 @@ HOUT                        // return elements 4, 5, 6, 7 of the state as output
 
 Execution trace for this computation would look as illustrated below.
 
-![](https://i.imgur.com/JEFSHJg.png)
+![hash_linear_hash_n](../../assets/design/aux_table/hasher/hash_linear_hash_n.png)
 
 In the above, the value absorbed into hasher state between rows $7$ and $8$ is the delta between values $t_i$ and $s_i$. Thus, if we define $b_i = t_i - s_i$ for $i \in \{0, ..., 7\}$, the above computes the following:
 
@@ -185,7 +185,7 @@ HOUT                        // return elements 4, 5, 6, 7 of the state as output
 
 Suppose we have a Merkle tree as illustrated below. This Merkle tree has $4$ leaves, each of which consists of $4$ field elements. For example, leaf $a$ consists of elements $a_0, a_1, a_2, a_3$, leaf be consists of elements $b_0, b_1, b_2, b_3$ etc.
 
-![](https://hackmd.io/_uploads/Hk4txKNAY.png)
+![hash_merkle_tree](../../assets/design/aux_table/hasher/hash_merkle_tree.png)
 
 If we wanted to verify that leaf $d$ is in fact in the tree, we'd need to compute the following hashes:
 
@@ -195,7 +195,7 @@ $$
 
 And if $r = g$, we can be convinced that $d$ is in fact in the tree at position $3$. Execution trace for this computation would look as illustrated below.
 
-![](https://i.imgur.com/uZdqicd.png)
+![hash_merkle_tree_trace](../../assets/design/aux_table/hasher/hash_merkle_tree_trace.png)
 
 In the above, the prover provides values for nodes $c$ and $e$ non-deterministically.
 

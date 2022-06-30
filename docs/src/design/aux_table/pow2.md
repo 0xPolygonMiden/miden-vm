@@ -6,7 +6,7 @@ The general approach is to decompose the exponent value $a$ into 1's, representi
 
 To perform this operation, we'll use a table with 13 columns and two periodic columns, as shown below. Computing a power of $2^a$ for input $a$ where $0 \leq a < 64$ will require 8 table rows.
 
-![pow2](../../assets/pow2_aux_table.png)
+![pow2](../../assets/design/aux_table/pow2/pow2_aux_table.png)
 
 The columns shown above have the following meanings:
 
