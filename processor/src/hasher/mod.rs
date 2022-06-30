@@ -1,4 +1,4 @@
-use super::{Felt, FieldElement, StarkField, TraceFragment, Vec, Word};
+use super::{Felt, FieldElement, StarkField, TraceFragment, Vec, Word, ZERO};
 use vm_core::{
     hasher::{
         absorb_into_state, get_digest, init_state, init_state_from_words, Selectors, LINEAR_HASH,
@@ -11,13 +11,11 @@ use vm_core::{
 mod trace;
 use trace::HasherTrace;
 
+mod aux_hints;
+pub use aux_hints::{AuxTraceHints, SiblingTableRow, SiblingTableUpdate};
+
 #[cfg(test)]
 mod tests;
-
-// CONSTANTS
-// ================================================================================================
-
-const ZERO: Felt = Felt::ZERO;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -61,6 +59,7 @@ type HasherState = [Felt; STATE_WIDTH];
 /// update it is 16 * path.len(), since we need to perform two path verifications for each update.
 pub struct Hasher {
     trace: HasherTrace,
+    aux_hints: AuxTraceHints,
 }
 
 impl Hasher {
@@ -70,6 +69,7 @@ impl Hasher {
     pub fn new() -> Self {
         Self {
             trace: HasherTrace::new(),
+            aux_hints: AuxTraceHints::new(),
         }
     }
 
@@ -77,7 +77,6 @@ impl Hasher {
     // --------------------------------------------------------------------------------------------
 
     /// Returns current length of the execution trace stored in this hasher.
-    #[allow(dead_code)]
     pub fn trace_len(&self) -> usize {
         self.trace.trace_len()
     }
@@ -240,6 +239,7 @@ impl Hasher {
         assert!(!path.is_empty(), "path is empty");
         assert!(index >> path.len() == 0, "invalid index for the path");
         let mut root = value;
+        let mut depth = path.len() - 1;
 
         // determine selectors for the specified context
         let main_selectors = context.main_selectors();
@@ -248,21 +248,27 @@ impl Hasher {
         if path.len() == 1 {
             // handle path of length 1 separately because pattern for init and final selectors
             // is different from other cases
+            self.update_sibling_hints(context, index, path[0], depth);
             self.verify_mp_leg(root, path[0], &mut index, main_selectors, RETURN_HASH)
         } else {
             // process the first node of the path; for this node, init and final selectors are
             // the same
             let sibling = path[0];
+            self.update_sibling_hints(context, index, path[0], depth);
             root = self.verify_mp_leg(root, sibling, &mut index, main_selectors, main_selectors);
+            depth -= 1;
 
             // process all other nodes, except for the last one
             for &sibling in &path[1..path.len() - 1] {
+                self.update_sibling_hints(context, index, sibling, depth);
                 root =
                     self.verify_mp_leg(root, sibling, &mut index, part_selectors, main_selectors);
+                depth -= 1;
             }
 
             // process the last node
             let sibling = path[path.len() - 1];
+            self.update_sibling_hints(context, index, sibling, depth);
             self.verify_mp_leg(root, sibling, &mut index, part_selectors, RETURN_HASH)
         }
     }
@@ -309,6 +315,27 @@ impl Hasher {
         *index >>= 1;
         get_digest(&state)
     }
+
+    /// TODO: add comments
+    fn update_sibling_hints(
+        &mut self,
+        context: MerklePathContext,
+        index: u64,
+        sibling: Word,
+        depth: usize,
+    ) {
+        let step = self.trace.trace_len();
+        match context {
+            MerklePathContext::MrUpdateOld => {
+                self.aux_hints
+                    .sibling_added(step, Felt::new(index), sibling);
+            }
+            MerklePathContext::MrUpdateNew => {
+                self.aux_hints.sibling_removed(step, depth);
+            }
+            _ => (),
+        }
+    }
 }
 
 impl Default for Hasher {
@@ -321,6 +348,7 @@ impl Default for Hasher {
 // ================================================================================================
 
 /// Specifies the context of a Merkle path computation.
+#[derive(Debug, Clone, Copy)]
 enum MerklePathContext {
     /// The computation is for verifying a Merkle path (MPVERIFY).
     MpVerify,

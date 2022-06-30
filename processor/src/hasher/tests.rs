@@ -1,11 +1,12 @@
 use super::{
-    Felt, FieldElement, Hasher, HasherState, Selectors, TraceFragment, Word, LINEAR_HASH,
-    MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
+    init_state_from_words, AuxTraceHints, Felt, Hasher, HasherState, Selectors, SiblingTableRow,
+    SiblingTableUpdate, TraceFragment, Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD,
+    RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
 };
 use rand_utils::rand_array;
 use vm_core::{
     hasher::{self, NUM_ROUNDS},
-    AdviceSet,
+    AdviceSet, ONE, ZERO,
 };
 
 // LINEAR HASH TESTS
@@ -21,20 +22,24 @@ fn hasher_permute() {
     let (addr, final_state) = hasher.permute(init_state);
 
     // address of the permutation should be ONE (as hasher address starts at ONE)
-    assert_eq!(Felt::ONE, addr);
+    assert_eq!(ONE, addr);
 
     // make sure the result is correct
     let expected_state = apply_permutation(init_state);
     assert_eq!(expected_state, final_state);
 
     // build the trace
-    let trace = build_trace(hasher, 8);
+    let (trace, aux_hints) = build_trace(hasher, 8);
 
     // make sure the trace is correct
     check_row_addr_trace(&trace);
     check_selector_trace(&trace, 0, LINEAR_HASH, RETURN_STATE);
     check_hasher_state_trace(&trace, 0, init_state);
-    assert_eq!(trace.last().unwrap(), &[Felt::ZERO; 8]);
+    assert_eq!(trace.last().unwrap(), &[ZERO; 8]);
+
+    // make sure aux hints for sibling table are empty
+    assert!(aux_hints.sibling_table_hints().is_empty());
+    assert!(aux_hints.sibling_table_rows().is_empty());
 
     // --- test two permutations ----------------------------------------------
 
@@ -47,7 +52,7 @@ fn hasher_permute() {
     let (addr2, final_state2) = hasher.permute(init_state2);
 
     // make sure the returned addresses are correct (they must be 8 rows apart)
-    assert_eq!(Felt::ONE, addr1);
+    assert_eq!(ONE, addr1);
     assert_eq!(Felt::new(9), addr2);
 
     // make sure the results are correct
@@ -58,7 +63,7 @@ fn hasher_permute() {
     assert_eq!(expected_state2, final_state2);
 
     // build the trace
-    let trace = build_trace(hasher, 16);
+    let (trace, aux_hints) = build_trace(hasher, 16);
 
     // make sure the trace is correct
     check_row_addr_trace(&trace);
@@ -66,7 +71,11 @@ fn hasher_permute() {
     check_selector_trace(&trace, 8, LINEAR_HASH, RETURN_STATE);
     check_hasher_state_trace(&trace, 0, init_state1);
     check_hasher_state_trace(&trace, 8, init_state2);
-    assert_eq!(trace.last().unwrap(), &[Felt::ZERO; 16]);
+    assert_eq!(trace.last().unwrap(), &[ZERO; 16]);
+
+    // make sure aux hints for sibling table are empty
+    assert!(aux_hints.sibling_table_hints().is_empty());
+    assert!(aux_hints.sibling_table_rows().is_empty());
 }
 
 // MERKLE TREE TESTS
@@ -83,23 +92,27 @@ fn hasher_build_merkle_root() {
     // initialize the hasher and perform two Merkle branch verifications
     let mut hasher = Hasher::new();
     let path0 = tree.get_path(1, 0).unwrap();
-    hasher.build_merkle_root(leaves[0], &path0, Felt::ZERO);
+    hasher.build_merkle_root(leaves[0], &path0, ZERO);
     let path1 = tree.get_path(1, 1).unwrap();
-    hasher.build_merkle_root(leaves[1], &path1, Felt::ONE);
+    hasher.build_merkle_root(leaves[1], &path1, ONE);
 
     // build the trace
-    let trace = build_trace(hasher, 16);
+    let (trace, aux_hints) = build_trace(hasher, 16);
 
     // make sure the trace is correct
     check_row_addr_trace(&trace);
     check_selector_trace(&trace, 0, MP_VERIFY, RETURN_HASH);
     check_selector_trace(&trace, 8, MP_VERIFY, RETURN_HASH);
-    check_hasher_state_trace(&trace, 0, hasher_merge_state(leaves[0], path0[0]));
-    check_hasher_state_trace(&trace, 0, hasher_merge_state(path1[0], leaves[1]));
+    check_hasher_state_trace(&trace, 0, init_state_from_words(&leaves[0], &path0[0]));
+    check_hasher_state_trace(&trace, 0, init_state_from_words(&path1[0], &leaves[1]));
     let node_idx_column = trace.last().unwrap();
-    assert_eq!(&node_idx_column[..8], &[Felt::ZERO; 8]);
-    assert_eq!(node_idx_column[8], Felt::ONE);
-    assert_eq!(&node_idx_column[9..], &[Felt::ZERO; 7]);
+    assert_eq!(&node_idx_column[..8], &[ZERO; 8]);
+    assert_eq!(node_idx_column[8], ONE);
+    assert_eq!(&node_idx_column[9..], &[ZERO; 7]);
+
+    // make sure aux hints for sibling table are empty
+    assert!(aux_hints.sibling_table_hints().is_empty());
+    assert!(aux_hints.sibling_table_rows().is_empty());
 
     // --- Merkle tree with 8 leaves ------------------------------------------
 
@@ -113,8 +126,12 @@ fn hasher_build_merkle_root() {
     hasher.build_merkle_root(leaves[5], &path, Felt::new(5));
 
     // build and check the trace for validity
-    let trace = build_trace(hasher, 24);
+    let (trace, aux_hints) = build_trace(hasher, 24);
     check_merkle_path(&trace, 0, leaves[5], &path, 5, MP_VERIFY);
+
+    // make sure aux hints for sibling table are empty
+    assert!(aux_hints.sibling_table_hints().is_empty());
+    assert!(aux_hints.sibling_table_rows().is_empty());
 
     // --- Merkle tree with 8 leaves (multiple branches) ----------------------
 
@@ -122,7 +139,7 @@ fn hasher_build_merkle_root() {
     let mut hasher = Hasher::new();
 
     let path0 = tree.get_path(3, 0).unwrap();
-    hasher.build_merkle_root(leaves[0], &path0, Felt::ZERO);
+    hasher.build_merkle_root(leaves[0], &path0, ZERO);
 
     let path3 = tree.get_path(3, 3).unwrap();
     hasher.build_merkle_root(leaves[3], &path3, Felt::new(3));
@@ -134,11 +151,15 @@ fn hasher_build_merkle_root() {
     hasher.build_merkle_root(leaves[3], &path3, Felt::new(3));
 
     // build and check the trace for validity
-    let trace = build_trace(hasher, 96);
+    let (trace, aux_hints) = build_trace(hasher, 96);
     check_merkle_path(&trace, 0, leaves[0], &path0, 0, MP_VERIFY);
     check_merkle_path(&trace, 24, leaves[3], &path3, 3, MP_VERIFY);
     check_merkle_path(&trace, 48, leaves[7], &path7, 7, MP_VERIFY);
     check_merkle_path(&trace, 72, leaves[3], &path3, 3, MP_VERIFY);
+
+    // make sure aux hints for sibling table are empty
+    assert!(aux_hints.sibling_table_hints().is_empty());
+    assert!(aux_hints.sibling_table_rows().is_empty());
 }
 
 #[test]
@@ -154,16 +175,16 @@ fn hasher_update_merkle_root() {
 
     let path0 = tree.get_path(1, 0).unwrap();
     let new_leaf0 = init_leaf(3);
-    hasher.update_merkle_root(leaves[0], new_leaf0, &path0, Felt::ZERO);
+    hasher.update_merkle_root(leaves[0], new_leaf0, &path0, ZERO);
     tree.update_leaf(0, new_leaf0).unwrap();
 
     let path1 = tree.get_path(1, 1).unwrap();
     let new_leaf1 = init_leaf(4);
-    hasher.update_merkle_root(leaves[1], new_leaf1, &path1, Felt::ONE);
+    hasher.update_merkle_root(leaves[1], new_leaf1, &path1, ONE);
     tree.update_leaf(1, new_leaf1).unwrap();
 
     // build the trace
-    let trace = build_trace(hasher, 32);
+    let (trace, aux_hints) = build_trace(hasher, 32);
 
     // make sure the trace is correct
     check_row_addr_trace(&trace);
@@ -171,16 +192,33 @@ fn hasher_update_merkle_root() {
     check_selector_trace(&trace, 8, MR_UPDATE_NEW, RETURN_HASH);
     check_selector_trace(&trace, 16, MR_UPDATE_OLD, RETURN_HASH);
     check_selector_trace(&trace, 24, MR_UPDATE_NEW, RETURN_HASH);
-    check_hasher_state_trace(&trace, 0, hasher_merge_state(leaves[0], path0[0]));
-    check_hasher_state_trace(&trace, 8, hasher_merge_state(new_leaf0, path0[0]));
-    check_hasher_state_trace(&trace, 16, hasher_merge_state(path1[0], leaves[1]));
-    check_hasher_state_trace(&trace, 24, hasher_merge_state(path1[0], new_leaf1));
+    check_hasher_state_trace(&trace, 0, init_state_from_words(&leaves[0], &path0[0]));
+    check_hasher_state_trace(&trace, 8, init_state_from_words(&new_leaf0, &path0[0]));
+    check_hasher_state_trace(&trace, 16, init_state_from_words(&path1[0], &leaves[1]));
+    check_hasher_state_trace(&trace, 24, init_state_from_words(&path1[0], &new_leaf1));
     let node_idx_column = trace.last().unwrap();
-    assert_eq!(&node_idx_column[..16], &[Felt::ZERO; 16]);
-    assert_eq!(node_idx_column[16], Felt::ONE);
-    assert_eq!(&node_idx_column[17..24], &[Felt::ZERO; 7]);
-    assert_eq!(node_idx_column[24], Felt::ONE);
-    assert_eq!(&node_idx_column[25..], &[Felt::ZERO; 7]);
+    assert_eq!(&node_idx_column[..16], &[ZERO; 16]);
+    assert_eq!(node_idx_column[16], ONE);
+    assert_eq!(&node_idx_column[17..24], &[ZERO; 7]);
+    assert_eq!(node_idx_column[24], ONE);
+    assert_eq!(&node_idx_column[25..], &[ZERO; 7]);
+
+    // make sure sibling table hints were built correctly
+    let expected_sibling_hints = vec![
+        // first update
+        (0, SiblingTableUpdate::SiblingAdded(0)),
+        (8, SiblingTableUpdate::SiblingRemoved(0)),
+        // second update
+        (16, SiblingTableUpdate::SiblingAdded(1)),
+        (24, SiblingTableUpdate::SiblingRemoved(1)),
+    ];
+    assert_eq!(expected_sibling_hints, aux_hints.sibling_table_hints());
+
+    let expected_sibling_rows = vec![
+        SiblingTableRow::new(ZERO, path0[0]),
+        SiblingTableRow::new(ONE, path1[0]),
+    ];
+    assert_eq!(expected_sibling_rows, aux_hints.sibling_table_rows());
 
     // --- Merkle tree with 8 leaves ------------------------------------------
 
@@ -209,13 +247,55 @@ fn hasher_update_merkle_root() {
     assert_ne!(path3, path3_2);
 
     // build and check the trace for validity
-    let trace = build_trace(hasher, 144);
+    let (trace, aux_hints) = build_trace(hasher, 144);
     check_merkle_path(&trace, 0, leaves[3], &path3, 3, MR_UPDATE_OLD);
     check_merkle_path(&trace, 24, new_leaf3, &path3, 3, MR_UPDATE_NEW);
     check_merkle_path(&trace, 48, leaves[6], &path6, 6, MR_UPDATE_OLD);
     check_merkle_path(&trace, 72, new_leaf6, &path6, 6, MR_UPDATE_NEW);
     check_merkle_path(&trace, 96, new_leaf3, &path3_2, 3, MR_UPDATE_OLD);
     check_merkle_path(&trace, 120, new_leaf3_2, &path3_2, 3, MR_UPDATE_NEW);
+
+    // make sure sibling table hints were built correctly
+    let expected_sibling_hints = vec![
+        // first update
+        (0, SiblingTableUpdate::SiblingAdded(0)),
+        (8, SiblingTableUpdate::SiblingAdded(1)),
+        (16, SiblingTableUpdate::SiblingAdded(2)),
+        (24, SiblingTableUpdate::SiblingRemoved(0)),
+        (32, SiblingTableUpdate::SiblingRemoved(1)),
+        (40, SiblingTableUpdate::SiblingRemoved(2)),
+        // second update
+        (48, SiblingTableUpdate::SiblingAdded(3)),
+        (56, SiblingTableUpdate::SiblingAdded(4)),
+        (64, SiblingTableUpdate::SiblingAdded(5)),
+        (72, SiblingTableUpdate::SiblingRemoved(3)),
+        (80, SiblingTableUpdate::SiblingRemoved(4)),
+        (88, SiblingTableUpdate::SiblingRemoved(5)),
+        // third update
+        (96, SiblingTableUpdate::SiblingAdded(6)),
+        (104, SiblingTableUpdate::SiblingAdded(7)),
+        (112, SiblingTableUpdate::SiblingAdded(8)),
+        (120, SiblingTableUpdate::SiblingRemoved(6)),
+        (128, SiblingTableUpdate::SiblingRemoved(7)),
+        (136, SiblingTableUpdate::SiblingRemoved(8)),
+    ];
+    assert_eq!(expected_sibling_hints, aux_hints.sibling_table_hints());
+
+    let expected_sibling_rows = vec![
+        // first update
+        SiblingTableRow::new(Felt::new(3), path3[0]),
+        SiblingTableRow::new(Felt::new(3 >> 1), path3[1]),
+        SiblingTableRow::new(Felt::new(3 >> 2), path3[2]),
+        // second update
+        SiblingTableRow::new(Felt::new(6), path6[0]),
+        SiblingTableRow::new(Felt::new(6 >> 1), path6[1]),
+        SiblingTableRow::new(Felt::new(6 >> 2), path6[2]),
+        // third update
+        SiblingTableRow::new(Felt::new(3), path3_2[0]),
+        SiblingTableRow::new(Felt::new(3 >> 1), path3_2[1]),
+        SiblingTableRow::new(Felt::new(3 >> 2), path3_2[2]),
+    ];
+    assert_eq!(expected_sibling_rows, aux_hints.sibling_table_rows());
 }
 
 // HELPER FUNCTIONS
@@ -223,13 +303,14 @@ fn hasher_update_merkle_root() {
 
 /// Builds an execution trace for the provided hasher. The trace must have the number of rows
 /// specified by num_rows.
-fn build_trace(hasher: Hasher, num_rows: usize) -> Vec<Vec<Felt>> {
+fn build_trace(hasher: Hasher, num_rows: usize) -> (Vec<Vec<Felt>>, AuxTraceHints) {
+    let aux_hints = hasher.aux_hints.clone();
     let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
     hasher.fill_trace(&mut fragment);
-    trace
+    (trace, aux_hints)
 }
 
 /// Makes sure that the provided trace is consistent with verifying the specified Merkle path
@@ -246,7 +327,7 @@ fn check_merkle_path(
     check_row_addr_trace(trace);
 
     // make sure selectors were set correctly
-    let mid_selectors = [Felt::ZERO, init_selectors[1], init_selectors[2]];
+    let mid_selectors = [ZERO, init_selectors[1], init_selectors[2]];
     check_selector_trace(trace, row_idx, init_selectors, init_selectors);
     for i in 1..path.len() - 1 {
         check_selector_trace(trace, row_idx + i * 8, mid_selectors, init_selectors);
@@ -261,10 +342,10 @@ fn check_merkle_path(
         let old_root = root;
         let init_state = if index_bit == 0 {
             root = hasher::merge(&[root.into(), node.into()]).into();
-            hasher_merge_state(old_root, node)
+            init_state_from_words(&old_root, &node)
         } else {
             root = hasher::merge(&[node.into(), root.into()]).into();
-            hasher_merge_state(node, old_root)
+            init_state_from_words(&node, &old_root)
         };
         check_hasher_state_trace(trace, row_idx + i * 8, init_state);
     }
@@ -302,7 +383,7 @@ fn check_selector_trace(
     final_selectors: Selectors,
 ) {
     let trace = &trace[0..3];
-    let mid_selectors = [Felt::ZERO, init_selectors[1], init_selectors[2]];
+    let mid_selectors = [ZERO, init_selectors[1], init_selectors[2]];
 
     assert_row_equal(trace, row_idx, &init_selectors);
     for i in 0..NUM_ROUNDS - 1 {
@@ -342,22 +423,5 @@ fn inti_leaves(values: &[u64]) -> Vec<Word> {
 }
 
 fn init_leaf(value: u64) -> Word {
-    [Felt::new(value), Felt::ZERO, Felt::ZERO, Felt::ZERO]
-}
-
-fn hasher_merge_state(a: Word, b: Word) -> HasherState {
-    [
-        Felt::new(8),
-        Felt::ZERO,
-        Felt::ZERO,
-        Felt::ZERO,
-        a[0],
-        a[1],
-        a[2],
-        a[3],
-        b[0],
-        b[1],
-        b[2],
-        b[3],
-    ]
+    [Felt::new(value), ZERO, ZERO, ZERO]
 }
