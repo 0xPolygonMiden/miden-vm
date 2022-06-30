@@ -98,7 +98,7 @@ The decoder is one of the more complex parts of the VM. It consists of the follo
 ### Decoder trace
 Decoder trace columns can be grouped into several logical sets of registers as illustrated below.
 
-![](https://hackmd.io/_uploads/HJa9lKuuq.png)
+![decoder_trace.png](../../assets/design/decoder/decoder_trace.png)
 
 These registers have the following meanings:
 1. Block address register $a$. This register contains address of the hasher for the current block (row index from the auxiliary hashing table). It also serves the role of unique block identifiers. This is convenient, because hasher addresses are guaranteed to be unique.
@@ -173,7 +173,7 @@ When the VM starts executing a new program block, it adds its block ID together 
 
 The table can be thought of as consisting of $3$ columns as shown below:
 
-![](https://hackmd.io/_uploads/SJmrCdq_q.png)
+![decoder_block_stack_table](../../assets/design/decoder/decoder_block_stack_table.png)
 
 where:
 * The first column ($t_0$) contains the ID of the block.
@@ -195,7 +195,7 @@ When the VM starts executing a new program block, it adds hashes of the block's 
 
 The table can be thought of as consisting of $7$ columns as shown below:
 
-![](https://hackmd.io/_uploads/S1SvKMs_q.png)
+![block_hash_table](../../assets/design/decoder/block_hash_table.png)
 
 where:
 * The first column ($t_0$) contains the ID of the block's parent. For program root, parent ID is $0$.
@@ -224,7 +224,7 @@ When the VM starts executing a new batch of operations, it adds all operation gr
 
 The table can be thought of as consisting of $3$ columns as shown below:
 
-![](https://hackmd.io/_uploads/SJ4MF2Tuc.png)
+![decoder_op_group_table](../../assets/design/decoder/decoder_op_group_table.png)
 
 The meaning of the columns is as follows:
 
@@ -248,7 +248,7 @@ In this section we describe high-level semantics of executing all control flow o
 #### JOIN operation
 Before a `JOIN` operation is executed by the VM, the prover populates $h_0, ..., h_7$ registers with hashes of left and right children of the *join* program block as shown in the diagram below.
 
-![](https://hackmd.io/_uploads/SJyR0TYOc.png)
+![decoder_join_operation](../../assets/design/decoder/decoder_join_operation.png)
 
 In the above diagram, `blk` is the ID of the *join* block which is about to be executed. `blk` is also the address of the hasher row in the auxiliary hasher table. `prnt` is the ID of the block's parent.
 
@@ -260,7 +260,7 @@ When the VM executes a `JOIN` operation, it does the following:
 #### SPLIT operation
 Before a `SPLIT` operation is executed by the VM, the prover populates $h_0, ..., h_7$ registers with hashes of true and false branches of the *split* program block as shown in the diagram below.
 
-![](https://hackmd.io/_uploads/HJCZx0Yd5.png)
+![decoder_split_operation](../../assets/design/decoder/decoder_split_operation.png)
 
 In the above diagram, `blk` is the ID of the *split* block which is about to be executed. `blk` is also the address of the hasher row in the auxiliary hasher table. `prnt` is the ID of the block's parent.
 
@@ -275,7 +275,7 @@ When the VM executes a `SPLIT` operation, it does the following:
 #### LOOP operation
 Before a `LOOP` operation is executed by the VM, the prover populates $h_0, ..., h_3$ registers with hash of the loop's body as shown in the diagram below.
 
-![](https://hackmd.io/_uploads/rkUzZCKu9.png)
+![decoder_loop_operation](../../assets/design/decoder/decoder_loop_operation.png)
 
 In the above diagram, `blk` is the ID of the *loop* block which is about to be executed. `blk` is also the address of the hasher row in the auxiliary hasher table. `prnt` is the ID of the block's parent.
 
@@ -290,7 +290,7 @@ When the VM executes a `LOOP` operation, it does the following:
 #### SPAN operation
 Before a `SPAN` operation is executed by the VM, the prover populates $h_0, ..., h_7$ registers with contents of the first operation batch of the span block as shown in the diagram below. The prover also sets the group count register $gc$ to the total number of operation groups in the span block.
 
-![](https://hackmd.io/_uploads/HyynQCK_9.png)
+![decoder_span_block](../../assets/design/decoder/decoder_span_block.png)
 
 In the above diagram, `blk` is the ID of the *span* block which is about to be executed. `blk` is also the address of the hasher row in the auxiliary hasher table. `prnt` is the ID of the block's parent. `g0_op0` is the first operation of the batch, and `g_0'` is the first operation group of the batch with the first operation removed.
 
@@ -307,7 +307,7 @@ Before an `END` operation is executed by the VM, the prover populates $h_0, ...,
 * $h_4$ is set to $1$ if the block is a body of a *loop* block. We denote this value as `f0`.
 * $h_5$ is set to $1$ if the block is a *loop* block. We denote this value as `f1`.
 
-![](https://hackmd.io/_uploads/Sk_nECtOc.png)
+![decoder_end_operation](../../assets/design/decoder/decoder_end_operation.png)
 
 In the above diagram, `blk` is the ID of the block which is about to finish executing. `prnt` is the ID of the block's parent.
 
@@ -321,7 +321,7 @@ When the VM executes an `END` operation, it does the following:
 #### HALT operation
 Before a `HALT` operation is executed by the VM, the VM copies values in $h_0, ..., h_3$ registers to the next row as illustrated in the diagram below:
 
-![](https://hackmd.io/_uploads/H1UZhCY_5.png)
+![decoder_halt_operation](../../assets/design/decoder/decoder_halt_operation.png)
 
 In the above diagram, `blk` is the ID of the block which is about to finish executing.
 
@@ -334,7 +334,7 @@ When the VM executes a `HALT` operation, it does the following:
 #### REPEAT operation
 Before a `REPEAT` operation is executed by the VM, the VM copies values in registers $h_0, ..., h_4$ to the next row as shown in the diagram below.
 
-![](https://hackmd.io/_uploads/ByKbo0Yu9.png)
+![decoder_repeat_operation](../../assets/design/decoder/decoder_repeat_operation.png)
 
 In the above diagram, `blk` is the ID of the loop's body and `prnt` is the ID of the loop.
 
@@ -347,7 +347,7 @@ The effect of the above is that the VM needs to execute the loop's body again to
 #### RESPAN operation
 Before a `RESPAN` operation is executed by the VM, the VM copies the ID of the current block `blk` and the number of remaining operation groups in the span to the next row, and sets the value of `in_span` column to $0$. The prover also sets the value of $h_1$ register for the next row to the ID of the current block's parent `prnt` as shown in the diagram below:
 
-![](https://hackmd.io/_uploads/r1IID13_c.png)
+![decoder_respan_operation](../../assets/design/decoder/decoder_respan_operation.png)
 
 In the above diagram, `g0_op0` is the first operation of the new operation batch, and `g0'` is the first operation group of the batch with `g0_op0` operation removed.
 
@@ -372,14 +372,14 @@ The sections below illustrate how different types of code blocks are decoded by 
 
 When decoding a *join* bock, the VM first executes a `JOIN` operation, then executes the first child block, followed by the second child block. Once the children of the *join* block are executed, the VM executes an `END` operation. This is illustrated in the diagram below.
 
-![](https://hackmd.io/_uploads/rJEuLKcdc.png)
+![decoder_join_block_decoding](../../assets/design/decoder/decoder_join_block_decoding.png)
 
 As described previously, when the VM executes a `JOIN` operation, hashes of both children are added to the block hash table. These hashes are removed only when the `END` operations for the child blocks are executed. Thus, until both child blocks are executed, the block hash table is not cleared.
 
 ### SPLIT block decoding
 When decoding a *split* block, the decoder pops an element off the top of the stack, and if the popped element is $1$, executes the block corresponding to the `true branch`. If the popped element is $0$, the decoder executes the block corresponding to the `false branch`. This is illustrated on the diagram below.
 
-![](https://hackmd.io/_uploads/BJiVPYc_5.png)
+![decoder_split_block_decoding](../../assets/design/decoder/decoder_split_block_decoding.png)
 
 As described previously, when the VM executes a `SPLIT` operation, only the hash of the branch to be executed is added to the block hash table. Thus, until the child block corresponding to the required branch is executed, the block hash table is not cleared.
 
@@ -397,14 +397,14 @@ To clear the block hash table, the VM needs to execute the loop body (executing 
 
 This process is illustrated on the diagram below.
 
-![](https://hackmd.io/_uploads/ByWouY9O9.png)
+![decoder_loop_execution](../../assets/design/decoder/decoder_loop_execution.png)
 
 The above steps are repeated until the top of the stack becomes $0$, at which point the VM executes the `END` operation. Since in the beginning we set `is_loop` column in the block stack table to $1$, $h_6$ column will be set to $1$ when the `END` operation is executed. Thus, executing the `END` operation will also remove the top value from the stack. If the removed value is not $0$, the operation will fail. Thus, the VM can exit the loop block only when the top of the stack is $0$.
 
 #### Skipping the loop
 If the top of the stack is $0$, the VM still executes the `LOOP` operation. But unlike in the case when we need to entre the loop, the VM sets `is_loop` flag to $0$ in the block stack table, and does not add any rows to the block hash table. The last point means that the only possible operation to be executed after the `LOOP` operation is the `END` operation. This is illustrated in the diagram below.
 
-![](https://hackmd.io/_uploads/rysSuFcOc.png)
+![decoder_loop_skipping](../../assets/design/decoder/decoder_loop_skipping.png)
 
 Moreover, since we've set the `is_loop` flag to $0$, executing the `END` operation does not remove any items from the stack.
 
@@ -428,7 +428,7 @@ As described [here](../programs.md#Span-block), an operation group is a sequence
 
 We can read opcodes from the group by simply subtracting them from the op group value and then dividing the result by $2^7$. Once the value of the op group reaches $0$, we know that all opcodes have been read. Graphically, this can be illustrated like so:
 
-![](https://hackmd.io/_uploads/B1FODDTO9.png)
+![decoder_operation_group_decoding](../../assets/design/decoder/decoder_operation_group_decoding.png)
 
 Notice that despite their appearance, `op bits` is actually $7$ separate registers, while `op group` is just a single register.
 
@@ -439,7 +439,7 @@ Operation batch flags are used to specify how many operation groups comprise in 
 
 To simplify the constraint system, number of groups in a batch can be only one of the following values: $1$, $2$, $4$, and $8$. If number of groups in a batch does not match one of these values, the batch is simply padded with `NOOP`'s (one `NOOP` per added group). Consider the diagram below.
 
-![](https://hackmd.io/_uploads/HJV1VFpOq.png)
+![decoder_OPERATION_batch_flags](../../assets/design/decoder/decoder_OPERATION_batch_flags.png)
 
 In the above, the batch contains $3$ operation groups. To bring the count up to $4$, we consider the $4$-th group (i.e., $0$) to be a part of the batch. Since a numeric value for `NOOP` operation is $0$, op group value of $0$ can be interpreted as a single `NOOP`.
 
@@ -453,7 +453,7 @@ Operation batch flags (denoted as $c_0, c_1, c_2$), encode the number of groups 
 #### Single-batch span
 The simplest example of a *span* block is a block with a single batch. This batch may contain up to $8$ operation groups (e.g., $g_0, ..., g_7$). Decoding of such a block is illustrated in the diagram below.
 
-![](https://hackmd.io/_uploads/ByaP_s6_q.png)
+![decoder_single_batch_span](../../assets/design/decoder/decoder_single_batch_span.png)
 
 Before the VM starts processing this *span* block, the prover populates registers $h_0, ..., h_7$ with operation groups $g_0, ..., g_7$. The prover also puts the total number of groups into the `group count` register $gc$. In this case, the total number of groups is $8$.
 
@@ -466,7 +466,7 @@ When the VM executes a `SPAN` operation, it does the following:
 6. Sets `op bits` registers at the next step to the first operation of $g_0$, and also copies $g_0$ with the first operation removed (denoted as $g_0'$) to the next row.
 7. Adds groups $g_1, ..., g_7$ to the op group table. Thus, after the `SPAN` operation is executed, op group table looks as shown below. 
 
-![](https://hackmd.io/_uploads/HJQLos6d9.png)
+![decoder_op_group_table_after_span_op](../../assets/design/decoder/decoder_op_group_table_after_span_op.png)
 
 Then, with every step the next operation is removed from $g_0$, and by step $9$, value of $g_0$ is $0$. Once this happens, the VM does the following:
 1. Decrements `group_count` register by $1$.
@@ -485,13 +485,13 @@ Notice that by the time we get to the `END` operation, all rows are removed from
 #### Multi-batch span
 A *span* block may contain an unlimited number of operation batches. As mentioned previously, to absorb a new batch into the hasher, the VM executes a `RESPAN` operation. The diagram below illustrates decoding of a *span* block consisting of two operation batches.
 
-![](https://hackmd.io/_uploads/rJrtk26dc.png)
+![decoder_multi_batch_span](../../assets/design/decoder/decoder_multi_batch_span.png)
 
 Decoding of such a block will look very similar to decoding of the single-span block described previously, but there also will be some differences.
 
 First, after the `SPAN` operation is executed, the op group table will look as follows:
 
-![](https://hackmd.io/_uploads/HyPW0i6uq.png)
+![decoder_op_group_table_multi_span](../../assets/design/decoder/decoder_op_group_table_multi_span.png)
 
 Notice that while the same groups ($g_1, ..., g_7$) are added to the table, their positions now reflect the total number of groups in the *span* block.
 
@@ -501,7 +501,7 @@ Incrementing value of `addr` register actually changes the ID of the *span* bloc
 
 Executing a `RESPAN` operation also adds groups $g_9, g_{10}, g_{11}$ to the op group table, which now would look as follows:
 
-![](https://hackmd.io/_uploads/Hk1YopaO5.png)
+![decoder_op_group_table_post_respan](../../assets/design/decoder/decoder_op_group_table_post_respan.png)
 
 Then, the execution of the second batch proceeds in the manner similar to the first batch: we remove operations from the current op group, execute them, and when the value of the op group reaches $0$, we start executing the next group in the batch. Thus, by the time we get to the `END` operation, the op group table should be empty.
 
@@ -514,11 +514,11 @@ To achieve this, we treat immediate values in a manner similar to how we treat o
 
 The diagram below illustrates decoding of a *span* block with $9$ operations one of which is a `PUSH` operation.
 
-![](https://hackmd.io/_uploads/B1dV1dTd5.png)
+![decoder_decoding_span_block_with_push](../../assets/design/decoder/decoder_decoding_span_block_with_push.png)
 
 In the above, when the `SPAN` operation is executed, immediate value `imm0` will be added to the op group table, which will look as follows:
 
-![](https://hackmd.io/_uploads/rJW-3npO9.png)
+![decoder_imm_vale_op_group_table](../../assets/design/decoder/decoder_imm_vale_op_group_table.png)
 
 Then, when the `PUSH` operation is executed, the VM will do the following:
 1. Decrement `group_count` by $1$.
@@ -568,10 +568,10 @@ When this program is executed on the VM, the following happens:
 8. Finally, a sequence of `HALT` operations is executed until the length of the trace reaches a power of two.
 
 States of block hash and block stack tables after step 2:
-![](https://hackmd.io/_uploads/HkhLK-1Y5.png)
+![decoder_state_block_hash_2](../../assets/design/decoder/decoder_state_block_hash_2.png)
 
 States of block hash and block stack tables after step 4:
-![](https://hackmd.io/_uploads/SJ8Dt-kYc.png)
+![decoder_state_block_hash_4](../../assets/design/decoder/decoder_state_block_hash_4.png)
 
 States of block hash and block stack tables after step 6:
-![](https://hackmd.io/_uploads/HkZdFW1Yc.png)
+![decoder_state_block_hash_6](../../assets/design/decoder/decoder_state_block_hash_6.png)

@@ -67,7 +67,7 @@ How these are enforced will be described a bit later.
 ## Right shift
 If an operation adds data to the stack, we say that the operation caused a right shift. For example, `PUSH` and `DUP` operations cause a right shift. Graphically, this looks like so:
 
-![](https://hackmd.io/_uploads/SkhduAZWc.png)
+![](../../assets/design/stack/stack_right_shift.png)
 
 Here, we pushed value $v_{17}$ onto the stack. All other values on the stack are shifted by one slot to the right and the stack depth increases by $1$. There is not enough space at the top of the stack for all $17$ values, thus, $v_1$ needs to be moved to the overflow table.
 
@@ -75,17 +75,17 @@ To do this, we need to rely on another column: $k_0$. This is a system column wh
 
 The row we want to add to the overflow table is defined by tuple $(clk, v1, 0)$, and after it is added, the table would look like so:
 
-![](https://hackmd.io/_uploads/BJ-6mqXJc.png)
+![](../../assets/design/stack/stack_overflow_table_post_1_right_shift.png)
 
 The reason we use VM clock cycle as row address is that the clock cycle is guaranteed to be unique, and thus, the same row can not be added to the table twice.
 
 Let's push another item onto the stack:
 
-![](https://hackmd.io/_uploads/SkkytRZW9.png)
+![](../../assets/design/stack/stack_overflow_push_2nd_item.png)
 
 Again, as we push $v_{18}$ onto the stack, all items on the stack are shifted to the right, and now $v_2$ needs to be moved to the overflow table. The tuple we want to insert into the table now is $(clk+1, v2, clk)$. After the operation, the overflow table will look like so:
 
-![](https://hackmd.io/_uploads/BkGvcqXJc.png)
+![](../../assets/design/stack/stack_overflow_table_post_2_right_shift.png)
 
 Notice that $t_2$ for row which contains value $v_2$ points back to the row with address $clk$.
 
@@ -100,7 +100,7 @@ Also, as mentioned previously, the prover sets values in $h_0$ non-deterministic
 ## Left shift
 If an operation removes an item from the stack, we say that the operation caused a left shift. For example, a `DROP` operation causes a left shift. Assuming the stack is in the state we left it at the end of the previous section, graphically, this looks like so:
 
-![](https://hackmd.io/_uploads/HyTfOCZZq.png)
+![](../../assets/design/stack/stack_1st_left_shift.png)
 
 Overall, the during the left shift we do the following:
 

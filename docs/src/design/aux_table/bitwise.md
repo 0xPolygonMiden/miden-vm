@@ -22,7 +22,7 @@ To compute bitwise operations for multi-bit values, we will decompose the values
 
 To perform this operation we will use a table with 11 columns, and computing a single AND, OR, or XOR operation will require 8 table rows. We will also rely on two periodic columns as shown below.
 
-![](https://i.imgur.com/1IqHtXF.png)
+![bitwise_execution_trace](../../assets/design/aux_table/bitwise/bitwise_execution_trace.png)
 
 In the above, the columns have the following meanings:
 

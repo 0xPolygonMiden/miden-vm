@@ -6,14 +6,14 @@ Miden VM consumes programs in a form of a Merkelized Abstract Syntax Tree (MAST)
 ### Join block
 A **join** block is used to describe sequential execution. When the VM encounters a *join* block, it executes its left child first, and then executes its right child.
 
-![](https://i.imgur.com/1n92MkX.png)
+![join_block](../assets/design/programs/join_block.png)
 
 A *join* block must always have two children, and thus, cannot be a leaf node in the tree.
 
 ### Split block
 A **split** block is used to describe conditional execution. When the VM encounters a *split* block, it checks the top of the stack. If the top of the stack is $1$, it executes the left child, if the top of the stack is $0$, it executes the right child. If the top of the stack is neither $0$ nor $1$, the execution fails.
 
-![](https://i.imgur.com/6UCJeV5.png)
+![split_block](../assets/design/programs/split_block.png)
 
 A *split* block must always have two children, and thus, cannot be a leaf node in the tree.
 
@@ -22,7 +22,7 @@ A **loop** block is used to describe condition-based iterative execution. When t
 
 After the body of the loop is executed, the VM checks the top of the stack again. If the top of the stack is $1$, the body is executed again, if the top of the stack is $0$, the loop is exited. If the top of the stack is neither $0$ nor $1$, the execution fails.
 
-![](https://i.imgur.com/p4a5Uod.png)
+![loop_block](../assets/design/programs/loop_block.png)
 
 A *loop* block must always have one child, and thus, cannot be a leaf node in the tree.
 
@@ -34,7 +34,7 @@ A **span** block is used to describe a linear sequence of operations. When the V
 
 Thus, for example, executing 8 pushes in a row will result in two operation batches as illustrated in the picture below:
 
-![](https://hackmd.io/_uploads/H1NDxc0dq.png)
+![span_block_creation](../assets/design/programs/span_block_creation.png)
 
 * The first batch will contain 8 groups, with the first group containing 7 `PUSH` opcodes and 1 `NOOP`, and the remaining 7 groups containing immediate values for each of the push operations. The reason for the `NOOP` is explained later in this section.
 * The second batch will contain 2 groups, with the first group containing 1 `PUSH` opcode and 1 `NOOP`, and the second group containing the immediate value for the last push operation.
@@ -66,7 +66,7 @@ f_0, ..., f_l
 
 A MAST for this program would look as follows:
 
-![](https://i.imgur.com/hEWuQnG.png)
+![mast_of_program](../assets/design/programs/mast_of_program.png)
 
 Execution of this program would proceed as follows:
 
