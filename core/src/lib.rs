@@ -86,14 +86,17 @@ pub const AUX_TABLE_OFFSET: usize = RANGE_CHECK_TRACE_OFFSET + RANGE_CHECK_TRACE
 pub const AUX_TABLE_WIDTH: usize = 18;
 pub const AUX_TABLE_RANGE: Range<usize> = range(AUX_TABLE_OFFSET, AUX_TABLE_WIDTH);
 
+// Auxiliary table components
+pub const MEMORY_TRACE_WIDTH: usize = 14;
+
 pub const TRACE_WIDTH: usize = AUX_TABLE_OFFSET + AUX_TABLE_WIDTH;
 
 // AUXILIARY COLUMNS LAYOUT
 // ------------------------------------------------------------------------------------------------
 
-//      decoder       range checks
-//    (3 columns)     (2 columns)
-// ├───────────────┴───────────────┤
+//      decoder         stack        range checks
+//    (3 columns)     (1 column)      (2 columns)
+// ├───────────────┴──────────────┴───────────────┤
 
 // Decoder auxiliary columns
 pub const DECODER_AUX_TRACE_OFFSET: usize = 0;
@@ -101,8 +104,14 @@ pub const DECODER_AUX_TRACE_WIDTH: usize = 3;
 pub const DECODER_AUX_TRACE_RANGE: Range<usize> =
     range(DECODER_AUX_TRACE_OFFSET, DECODER_AUX_TRACE_WIDTH);
 
+// Stack auxiliary columns
+pub const STACK_AUX_TRACE_OFFSET: usize = DECODER_AUX_TRACE_RANGE.end;
+pub const STACK_AUX_TRACE_WIDTH: usize = 1;
+pub const STACK_AUX_TRACE_RANGE: Range<usize> =
+    range(STACK_AUX_TRACE_OFFSET, STACK_AUX_TRACE_WIDTH);
+
 // Range check auxiliary columns
-pub const RANGE_CHECK_AUX_TRACE_OFFSET: usize = DECODER_AUX_TRACE_RANGE.end;
+pub const RANGE_CHECK_AUX_TRACE_OFFSET: usize = STACK_AUX_TRACE_RANGE.end;
 pub const RANGE_CHECK_AUX_TRACE_WIDTH: usize = 2;
 pub const RANGE_CHECK_AUX_TRACE_RANGE: Range<usize> =
     range(RANGE_CHECK_AUX_TRACE_OFFSET, RANGE_CHECK_AUX_TRACE_WIDTH);
