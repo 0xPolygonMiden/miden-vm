@@ -58,6 +58,14 @@ impl AssemblyError {
         }
     }
 
+    pub fn invalid_decorator(token: &Token) -> Self {
+        AssemblyError {
+            message: format!("instruction '{}' is an invalid decorator", token),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
     pub fn invalid_op_with_reason(token: &Token, reason: &str) -> Self {
         AssemblyError {
             message: format!("instruction '{}' is invalid: {}", token, reason),
@@ -223,7 +231,7 @@ impl AssemblyError {
         }
     }
 
-    pub fn prc_export_not_allowed(token: &Token, label: &str) -> Self {
+    pub fn proc_export_not_allowed(token: &Token, label: &str) -> Self {
         AssemblyError {
             message: format!("exported procedures not allowed in this context: {}", label),
             step: token.pos(),

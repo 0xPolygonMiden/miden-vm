@@ -2,7 +2,7 @@ use super::{
     parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, String, Token,
     TokenStream, Vec,
 };
-use vm_core::utils::group_vector_elements;
+use vm_core::{utils::group_vector_elements, DecoratorMap};
 
 // BLOCK PARSER
 // ================================================================================================
@@ -61,14 +61,19 @@ impl BlockParser {
             Self::Span => {
                 // --------------------------------------------------------------------------------
                 let mut span_ops = Vec::new();
+                let mut decorator_map = DecoratorMap::new();
                 while let Some(op) = tokens.read() {
                     if op.is_control_token() {
                         break;
                     }
-                    parse_op_token(op, &mut span_ops, num_proc_locals)?;
+                    if op.is_decorator() {
+                        decorator_map.insert(span_ops.len(), vec![op.to_decorator()?]);
+                    } else {
+                        parse_op_token(op, &mut span_ops, num_proc_locals, &mut decorator_map)?;
+                    }
                     tokens.advance();
                 }
-                Ok(CodeBlock::new_span(span_ops))
+                Ok(CodeBlock::new_span_with_decorators(span_ops, decorator_map))
             }
             Self::IfElse => {
                 // --------------------------------------------------------------------------------
@@ -303,8 +308,12 @@ pub fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
     }
 
     let mut ops = Vec::<Operation>::new();
+    let mut decorator_map = DecoratorMap::new();
     spans.drain(0..).for_each(|block| {
         if let CodeBlock::Span(span) = block {
+            for (k, v) in span.get_decorator_map() {
+                decorator_map.insert(k + ops.len(), v);
+            }
             for batch in span.op_batches() {
                 ops.extend_from_slice(batch.ops());
             }
@@ -315,5 +324,5 @@ pub fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
             );
         }
     });
-    CodeBlock::new_span(ops)
+    CodeBlock::new_span_with_decorators(ops, decorator_map)
 }

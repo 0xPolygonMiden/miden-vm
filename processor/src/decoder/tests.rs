@@ -12,7 +12,7 @@ use vm_core::{
     },
     program::blocks::{CodeBlock, Span, OP_BATCH_SIZE},
     utils::collections::Vec,
-    StarkField, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, ONE, ZERO,
+    DecoratorMap, StarkField, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, ONE, ZERO,
 };
 
 // CONSTANTS
@@ -31,7 +31,7 @@ type DecoderTrace = [Vec<Felt>; DECODER_TRACE_WIDTH];
 #[test]
 fn span_block_one_group() {
     let ops = vec![Operation::Pad, Operation::Add, Operation::Mul];
-    let span = Span::new(ops.clone());
+    let span = Span::new(ops.clone(), DecoratorMap::new());
     let program = CodeBlock::new_span(ops.clone());
 
     let (trace, aux_hints, trace_len) = build_trace(&[], &program);
@@ -92,7 +92,7 @@ fn span_block_small() {
         Operation::Push(iv[1]),
         Operation::Add,
     ];
-    let span = Span::new(ops.clone());
+    let span = Span::new(ops.clone(), DecoratorMap::new());
     let program = CodeBlock::new_span(ops.clone());
 
     let (trace, aux_hints, trace_len) = build_trace(&[], &program);
@@ -186,7 +186,7 @@ fn span_block() {
         Operation::Add,
         Operation::Inv,
     ];
-    let span = Span::new(ops.clone());
+    let span = Span::new(ops.clone(), DecoratorMap::new());
     let program = CodeBlock::new_span(ops.clone());
     let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
@@ -310,7 +310,7 @@ fn span_block_with_respan() {
         Operation::Add,
         Operation::Push(iv[8]),
     ];
-    let span = Span::new(ops.clone());
+    let span = Span::new(ops.clone(), DecoratorMap::new());
     let program = CodeBlock::new_span(ops.clone());
     let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 

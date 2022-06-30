@@ -1,4 +1,5 @@
 use super::{fmt, hasher, Digest, Felt, FieldElement, Operation, Vec};
+use crate::DecoratorMap;
 use winter_utils::flatten_slice_elements;
 
 // CONSTANTS
@@ -38,6 +39,7 @@ const MAX_OPS_PER_BATCH: usize = GROUP_SIZE * BATCH_SIZE;
 pub struct Span {
     op_batches: Vec<OpBatch>,
     hash: Digest,
+    decorator_map: DecoratorMap,
 }
 
 impl Span {
@@ -49,10 +51,14 @@ impl Span {
     /// Returns an error if:
     /// - `operations` vector is empty.
     /// - `operations` vector contains any number of system operations.
-    pub fn new(operations: Vec<Operation>) -> Self {
+    pub fn new(operations: Vec<Operation>, decorator_map: DecoratorMap) -> Self {
         assert!(!operations.is_empty()); // TODO: return error
         let (op_batches, hash) = batch_ops(operations);
-        Self { op_batches, hash }
+        Self {
+            op_batches,
+            hash,
+            decorator_map,
+        }
     }
 
     // PUBLIC ACCESSORS
@@ -80,7 +86,11 @@ impl Span {
         for _ in 0..num_copies {
             ops.extend_from_slice(&own_ops);
         }
-        Self::new(ops)
+        Self::new(ops, DecoratorMap::new())
+    }
+
+    pub fn get_decorator_map(&self) -> DecoratorMap {
+        self.decorator_map.clone()
     }
 
     // HELPER METHODS
@@ -218,8 +228,6 @@ impl OpBatchAccumulator {
     /// is called before this function to make sure that the specified operation can be added to
     /// the accumulator.
     pub fn add_op(&mut self, op: Operation) {
-        debug_assert!(!op.is_decorator(), "must not be a decorator");
-
         // if the group is full, finalize it and start a new group
         if self.op_idx == GROUP_SIZE {
             self.finalize_op_group();
@@ -243,13 +251,6 @@ impl OpBatchAccumulator {
         self.group |= opcode << (Operation::OP_BITS * self.op_idx);
         self.ops.push(op);
         self.op_idx += 1;
-    }
-
-    /// Adds the specified operation to the list of operations without accumulating the operation
-    /// into op groups. It is expected that the operation is a decorator.
-    pub fn add_decorator(&mut self, op: Operation) {
-        debug_assert!(op.is_decorator(), "must be a decorator");
-        self.ops.push(op);
     }
 
     /// Convert the accumulator into an [OpBatch].
@@ -299,13 +300,6 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
     let mut batch_groups = Vec::<[Felt; BATCH_SIZE]>::new();
 
     for op in ops {
-        // if the operator is a decorator we add it to the accumulator as a decorator, but don't
-        // process it further (i.e., the operation will not affect program hash).
-        if op.is_decorator() {
-            batch_acc.add_decorator(op);
-            continue;
-        }
-
         // if the operation cannot be accepted into the current accumulator, add the contents of
         // the accumulator to the list of batches and start a new accumulator
         if !batch_acc.can_accept_op(op) {
@@ -356,7 +350,7 @@ pub fn get_span_op_group_count(op_batches: &[OpBatch]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::{hasher, Felt, FieldElement, Operation, BATCH_SIZE};
-    use crate::AdviceInjector;
+    // use crate::AdviceInjector;
 
     #[test]
     fn batch_ops() {
@@ -659,25 +653,6 @@ mod tests {
         assert_eq!(hasher::hash_elements(&all_groups[..10]), hash);
     }
 
-    #[test]
-    fn batch_ops_with_decorator() {
-        let ops = vec![
-            Operation::Push(Felt::ONE),
-            Operation::Add,
-            Operation::Advice(AdviceInjector::MerkleNode),
-            Operation::Mul,
-        ];
-        let (batches, hash) = super::batch_ops(ops.clone());
-        assert_eq!(1, batches.len());
-        let batch = &batches[0];
-        assert_eq!(ops, batch.ops);
-        let mut batch_groups = [Felt::ZERO; BATCH_SIZE];
-        batch_groups[0] = build_group(&ops);
-        batch_groups[1] = Felt::ONE;
-        assert_eq!(batch_groups, batch.groups);
-        assert_eq!(hasher::hash_elements(&batch_groups[..2]), hash);
-    }
-
     // TEST HELPERS
     // --------------------------------------------------------------------------------------------
 
@@ -685,10 +660,8 @@ mod tests {
         let mut group = 0u64;
         let mut i = 0;
         for op in ops.iter() {
-            if !op.is_decorator() {
-                group |= (op.op_code().unwrap() as u64) << (Operation::OP_BITS * i);
-                i += 1;
-            }
+            group |= (op.op_code().unwrap() as u64) << (Operation::OP_BITS * i);
+            i += 1;
         }
         Felt::new(group)
     }

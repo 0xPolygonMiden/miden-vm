@@ -1,7 +1,6 @@
-use super::{AdviceInjector, ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
+use super::{ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
 
 mod crypto_ops;
-mod decorators;
 mod field_ops;
 mod io_ops;
 mod stack_ops;
@@ -128,15 +127,9 @@ impl Process {
             Operation::RpPerm => self.op_rpperm()?,
             Operation::MpVerify => self.op_mpverify()?,
             Operation::MrUpdate(copy) => self.op_mrupdate(copy)?,
-
-            // ----- decorators -------------------------------------------------------------------
-            Operation::Advice(injector) => self.op_advice(injector)?,
         }
 
-        // increment the clock cycle, unless we are processing a decorator
-        if !op.is_decorator() {
-            self.advance_clock();
-        }
+        self.advance_clock();
 
         Ok(())
     }

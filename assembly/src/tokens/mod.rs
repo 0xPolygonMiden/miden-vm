@@ -1,5 +1,6 @@
 use super::{AssemblyError, String, ToString, Vec};
 use core::fmt;
+use vm_core::{AdviceInjector, Decorator};
 
 mod stream;
 pub use stream::TokenStream;
@@ -28,6 +29,11 @@ impl<'a> Token<'a> {
     pub const REPEAT: &'static str = "repeat";
     pub const EXEC: &'static str = "exec";
     pub const END: &'static str = "end";
+
+    // DECORATORS
+    // --------------------------------------------------------------------------------------------
+
+    pub const ADVICE: &'static str = "adv";
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -198,6 +204,20 @@ impl<'a> Token<'a> {
             Err(AssemblyError::extra_param(self))
         } else {
             Ok(())
+        }
+    }
+
+    pub fn is_decorator(&self) -> bool {
+        matches!(self.parts()[0], Self::ADVICE)
+    }
+
+    pub fn to_decorator(&self) -> Result<Decorator, AssemblyError> {
+        match self.parts()[0] {
+            Self::ADVICE => match self.parts()[1] {
+                "u64div" => Ok(Decorator::Advice(AdviceInjector::DivResultU64)),
+                _ => Err(AssemblyError::invalid_decorator(self)),
+            },
+            _ => Err(AssemblyError::invalid_decorator(self)),
         }
     }
 }

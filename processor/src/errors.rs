@@ -20,4 +20,5 @@ pub enum ExecutionError {
     TooManyStackOutputs(usize),
     UnexecutableCodeBlock(CodeBlock),
     UnsupportedCodeBlock(CodeBlock),
+    DecoratorNotFound(usize),
 }

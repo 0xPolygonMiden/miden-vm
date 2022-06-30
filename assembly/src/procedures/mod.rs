@@ -59,7 +59,7 @@ impl Procedure {
         let header = tokens.read().expect("missing procedure header");
         let (label, num_locals, is_export) = header.parse_proc()?;
         if !allow_export && is_export {
-            return Err(AssemblyError::prc_export_not_allowed(header, &label));
+            return Err(AssemblyError::proc_export_not_allowed(header, &label));
         }
         if context.contains_proc(&label) {
             return Err(AssemblyError::duplicate_proc_label(header, &label));
