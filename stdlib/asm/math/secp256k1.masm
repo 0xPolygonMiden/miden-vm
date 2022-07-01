@@ -328,21 +328,22 @@ end
 #
 # This implementation takes inspiration from https://gist.github.com/itzmeanjan/d4853347dfdfa853993f5ea059824de6#file-test_montgomery_arithmetic-py-L236-L256
 export.u256_mod_add
+  movupw.2
+
   push.0
-  swap
-  movup.9
+  movup.5
   u32add3.unsafe
 
   movup.2
-  movup.9
+  movup.5
   u32add3.unsafe
 
   movup.3
-  movup.9
+  movup.5
   u32add3.unsafe
 
   movup.4
-  movup.9
+  movup.5
   u32add3.unsafe
 
   movup.5
@@ -367,10 +368,9 @@ export.u256_mod_add
   u32madd.unsafe
   drop
 
+  swap
   movup.8
-  movup.2
-  u32add.unsafe
-  drop
+  add
 
   movup.2
   movup.3
@@ -453,15 +453,11 @@ end
 # [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a secp256k1 field element
 #
 # See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/field.py#L97-L101
-export.u256_mod_sub.2
-  popw.local.0
-  popw.local.1
+export.u256_mod_sub
+  movupw.3
+  movupw.3
 
   exec.u256_mod_neg
-
-  pushw.local.1
-  pushw.local.0
-
   exec.u256_mod_add
 end
 
