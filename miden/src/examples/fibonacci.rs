@@ -1,5 +1,4 @@
 use super::Example;
-use log::debug;
 use miden::{Assembler, ProgramInputs, Script};
 use vm_core::{Felt, FieldElement, StarkField};
 
@@ -10,7 +9,7 @@ pub fn get_example(n: usize) -> Example {
     // generate the program and expected results
     let program = generate_fibonacci_program(n);
     let expected_result = vec![compute_fibonacci(n).as_int()];
-    debug!(
+    println!(
         "Generated a program to compute {}-th Fibonacci term; expected result: {}",
         n, expected_result[0]
     );

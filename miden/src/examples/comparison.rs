@@ -1,5 +1,4 @@
 use crate::Example;
-use log::debug;
 use miden::{assembly, ProgramInputs};
 
 // EXAMPLE BUILDER
@@ -31,7 +30,7 @@ pub fn get_example(value: usize) -> Example {
     )
     .unwrap();
 
-    debug!(
+    println!(
         "Generated a program to test comparisons; expected result: {}",
         expected_result
     );

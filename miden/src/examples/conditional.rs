@@ -1,5 +1,4 @@
 use crate::Example;
-use log::debug;
 use miden::{assembly, ProgramInputs};
 
 // EXAMPLE BUILDER
@@ -33,7 +32,7 @@ pub fn get_example(flag: usize) -> Example {
     )
     .unwrap();
 
-    debug!(
+    println!(
         "Generated a program to test conditional execution; expected result: {}",
         expected_result
     );

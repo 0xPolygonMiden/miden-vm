@@ -15,7 +15,7 @@ pub struct Analyze {
 
 /// Implements CLI execution logic
 impl Analyze {
-    pub fn execute(&self) {
+    pub fn execute(&self) -> Result<(), String> {
         let program = std::fs::read_to_string(&self.masm_path).expect("Could not read masm file");
         let program_inputs = ProgramInputs::none();
         let program_info: ProgramInfo =
@@ -26,6 +26,8 @@ impl Analyze {
 
         println!("Total Number of VM Cycles: {}", total_vm_cycles);
         println!("Total Number of NOOPs executed: {}", total_noops);
+
+        Ok(())
     }
 }
 

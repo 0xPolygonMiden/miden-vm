@@ -192,11 +192,11 @@ To run examples of executing programs and verifying proofs of their execution, d
 
 First, compile an optimized version of the `miden` binary by running:
 ```
-cargo build --release
+cargo build --release --features executable
 ```
 Or, if you want to compile the with multi-threaded support enabled, run:
 ```
-cargo build --release --features concurrent
+cargo build --release --features "executable concurrent"
 ```
 
 In either case, the binary will be located in `target/release` directory, and you can run it like so:

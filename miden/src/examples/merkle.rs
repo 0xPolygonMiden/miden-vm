@@ -1,5 +1,4 @@
 use crate::Example;
-use log::debug;
 use miden::{assembly, BaseElement, FieldElement, Program, ProgramInputs, StarkField};
 use rand_utils::prng_vector;
 use vm_core::hasher;
@@ -19,11 +18,11 @@ pub fn get_example(depth: usize) -> Example {
 
     // compute root of the Merkle tree to which the path resolves
     let mut expected_result = compute_merkle_root(&auth_path, leaf_index);
-    debug!("Expected tree root: {:?}", expected_result);
+    println!("Expected tree root: {:?}", expected_result);
 
     // generate the program to verify Merkle path of given length
     let program = generate_merkle_program(depth, leaf_index);
-    debug!(
+    println!(
         "Generated a program to verify Merkle proof for a tree of depth {}",
         depth
     );
