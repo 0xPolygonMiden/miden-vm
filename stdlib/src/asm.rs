@@ -9369,12 +9369,10 @@ end
 # At end of execution of this function, stack top should look like [hi, lo]
 # See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/utils.py#L75-L80
 proc.mac
-  swap
-  movup.2
+  movdn.2
   u32madd.unsafe
   
-  swap
-  movup.2
+  movdn.2
   u32add.unsafe
 
   movup.2
@@ -9392,8 +9390,7 @@ end
 # See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/utils.py#L83-L89
 proc.sbb
   movdn.2
-  u32add.unsafe
-  drop
+  add
   u32sub.full
 end
 
@@ -9409,65 +9406,70 @@ end
 #  After finishing execution of this function, stack top should hold u288 i.e.
 #
 #  [a0, a1, a2, a3, a4, a5, a6, a7, a8] | a8 = carry
-proc.u256xu32
+proc.u256xu32.1
+  movup.8 # bring `b` closer to stack top
+
   dup.9
-  pushw.mem
-  dup.12
+  pushw.mem # load c[0..4] onto stack
 
+  dup.4
   push.0
-  swap
-  movup.2
-  swap
-  movup.6
+  movdn.2
+  movup.7
   exec.mac
 
   movup.2
-  dup.12
-  movup.6
+  dup.5
+  movup.7
   exec.mac
 
   movup.3
-  dup.11
-  movup.6
+  dup.5
+  movup.7
   exec.mac
 
   movup.4
-  dup.10
-  movup.6
+  dup.5
+  movup.7
   exec.mac
 
-  dup.11
-  pushw.mem
+  movdn.4
+  popw.local.0
+
+  dup.7
+  pushw.mem # load c[4..8] onto stack
 
   movup.4
   swap
-  dup.13
-  movup.10
+  dup.5
+  movup.7
   exec.mac
 
   movup.2
-  dup.12
-  movup.10
+  dup.5
+  movup.7
   exec.mac
 
   movup.3
-  dup.11
-  movup.10
+  dup.5
+  movup.7
   exec.mac
 
-  movup.4
-  movup.10
-  movup.10
-  exec.mac
-
-  swap
-  movup.2
-  movup.3
   movup.4
   movup.5
   movup.6
-  movup.7
-  movup.8
+  exec.mac
+
+  swap
+  movup.2
+  movup.3
+  movup.4
+
+  pushw.local.0
+
+  swap
+  movup.2
+  movup.3
 end
 
 # Given [c0, c1, c2, c3, c4, c5, c6, c7, c8, pc] on stack top,
@@ -9488,9 +9490,8 @@ proc.u288_reduce
   drop 
   # q at stack top #
 
-  dup
   push.0.4294966319
-  movup.2
+  dup.2
   movup.4
   exec.mac
   swap
@@ -9536,14 +9537,17 @@ proc.u288_reduce
   movup.9
   u32add3.unsafe
 
+  movdn.8
+
   swap
   movup.2
   movup.3
-  movup.4
-  movup.5
-  movup.6
-  movup.7
-  movup.8
+
+  swapw
+
+  swap
+  movup.2
+  movup.3
 end
 
 # Given two 256 -bit numbers on stack, where each number is represented in
@@ -9570,7 +9574,7 @@ export.u256_mod_mul.2
   push.env.locaddr.0
   movup.2
   push.0.0.0.0
-  push.0.0.0.0
+  dupw
 
   exec.u256xu32
   
