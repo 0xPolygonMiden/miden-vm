@@ -2,7 +2,7 @@ use super::{
     parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, String, Token,
     TokenStream, Vec,
 };
-use vm_core::{utils::group_vector_elements, DecoratorMap};
+use vm_core::{utils::group_vector_elements, DecoratorList};
 
 // BLOCK PARSER
 // ================================================================================================
@@ -61,15 +61,15 @@ impl BlockParser {
             Self::Span => {
                 // --------------------------------------------------------------------------------
                 let mut span_ops = Vec::new();
-                let mut decorator_map = DecoratorMap::new();
+                let mut decorators = DecoratorList::new();
                 while let Some(op) = tokens.read() {
                     if op.is_control_token() {
                         break;
                     }
-                    parse_op_token(op, &mut span_ops, num_proc_locals, &mut decorator_map)?;
+                    parse_op_token(op, &mut span_ops, num_proc_locals, &mut decorators)?;
                     tokens.advance();
                 }
-                Ok(CodeBlock::new_span(span_ops, decorator_map))
+                Ok(CodeBlock::new_span_with_decorators(span_ops, decorators))
             }
             Self::IfElse => {
                 // --------------------------------------------------------------------------------
@@ -117,7 +117,7 @@ impl BlockParser {
                             tokens.advance();
 
                             // when no `else` clause was specified, a Span with a single noop
-                            CodeBlock::new_span(vec![Operation::Noop], DecoratorMap::new())
+                            CodeBlock::new_span(vec![Operation::Noop])
                         }
                         _ => {
                             return Err(AssemblyError::unmatched_if(
@@ -304,11 +304,11 @@ pub fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
     }
 
     let mut ops = Vec::<Operation>::new();
-    let mut decorator_map = DecoratorMap::new();
+    let mut decorators = DecoratorList::new();
     spans.drain(0..).for_each(|block| {
         if let CodeBlock::Span(span) = block {
-            for (k, v) in span.get_decorator_map() {
-                decorator_map.insert(k + ops.len(), v);
+            for decorator in span.decorators() {
+                decorators.push((decorator.0 + ops.len(), decorator.1.clone()));
             }
             for batch in span.op_batches() {
                 ops.extend_from_slice(batch.ops());
@@ -320,5 +320,5 @@ pub fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
             );
         }
     });
-    CodeBlock::new_span(ops, decorator_map)
+    CodeBlock::new_span_with_decorators(ops, decorators)
 }

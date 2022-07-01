@@ -12,7 +12,7 @@ use vm_core::{
     },
     program::blocks::{CodeBlock, Span, OP_BATCH_SIZE},
     utils::collections::Vec,
-    DecoratorMap, StarkField, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, ONE, ZERO,
+    StarkField, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, ONE, ZERO,
 };
 
 // CONSTANTS
@@ -31,8 +31,8 @@ type DecoderTrace = [Vec<Felt>; DECODER_TRACE_WIDTH];
 #[test]
 fn span_block_one_group() {
     let ops = vec![Operation::Pad, Operation::Add, Operation::Mul];
-    let span = Span::new(ops.clone(), DecoratorMap::new());
-    let program = CodeBlock::new_span(ops.clone(), DecoratorMap::new());
+    let span = Span::new(ops.clone());
+    let program = CodeBlock::new_span(ops.clone());
 
     let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
@@ -92,8 +92,8 @@ fn span_block_small() {
         Operation::Push(iv[1]),
         Operation::Add,
     ];
-    let span = Span::new(ops.clone(), DecoratorMap::new());
-    let program = CodeBlock::new_span(ops.clone(), DecoratorMap::new());
+    let span = Span::new(ops.clone());
+    let program = CodeBlock::new_span(ops.clone());
 
     let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
@@ -186,8 +186,8 @@ fn span_block() {
         Operation::Add,
         Operation::Inv,
     ];
-    let span = Span::new(ops.clone(), DecoratorMap::new());
-    let program = CodeBlock::new_span(ops.clone(), DecoratorMap::new());
+    let span = Span::new(ops.clone());
+    let program = CodeBlock::new_span(ops.clone());
     let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
@@ -310,8 +310,8 @@ fn span_block_with_respan() {
         Operation::Add,
         Operation::Push(iv[8]),
     ];
-    let span = Span::new(ops.clone(), DecoratorMap::new());
-    let program = CodeBlock::new_span(ops.clone(), DecoratorMap::new());
+    let span = Span::new(ops.clone());
+    let program = CodeBlock::new_span(ops.clone());
     let (trace, aux_hints, trace_len) = build_trace(&[], &program);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
@@ -428,8 +428,8 @@ fn span_block_with_respan() {
 
 #[test]
 fn join_block() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul], DecoratorMap::new());
-    let span2 = CodeBlock::new_span(vec![Operation::Add], DecoratorMap::new());
+    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_join([span1.clone(), span2.clone()]);
 
     let (trace, aux_hints, trace_len) = build_trace(&[], &program);
@@ -514,8 +514,8 @@ fn join_block() {
 
 #[test]
 fn split_block_true() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul], DecoratorMap::new());
-    let span2 = CodeBlock::new_span(vec![Operation::Add], DecoratorMap::new());
+    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1.clone(), span2.clone());
 
     let (trace, aux_hints, trace_len) = build_trace(&[1], &program);
@@ -583,8 +583,8 @@ fn split_block_true() {
 
 #[test]
 fn split_block_false() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul], DecoratorMap::new());
-    let span2 = CodeBlock::new_span(vec![Operation::Add], DecoratorMap::new());
+    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1.clone(), span2.clone());
 
     let (trace, aux_hints, trace_len) = build_trace(&[0], &program);
@@ -655,7 +655,7 @@ fn split_block_false() {
 
 #[test]
 fn loop_block() {
-    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop], DecoratorMap::new());
+    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
     let program = CodeBlock::new_loop(loop_body.clone());
 
     let (trace, aux_hints, trace_len) = build_trace(&[0, 1], &program);
@@ -725,7 +725,7 @@ fn loop_block() {
 
 #[test]
 fn loop_block_skip() {
-    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop], DecoratorMap::new());
+    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
     let program = CodeBlock::new_loop(loop_body.clone());
 
     let (trace, aux_hints, trace_len) = build_trace(&[0], &program);
@@ -777,7 +777,7 @@ fn loop_block_skip() {
 
 #[test]
 fn loop_block_repeat() {
-    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop], DecoratorMap::new());
+    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Drop]);
     let program = CodeBlock::new_loop(loop_body.clone());
 
     let (trace, aux_hints, trace_len) = build_trace(&[0, 1, 1], &program);
@@ -872,7 +872,7 @@ fn loop_block_repeat() {
 fn set_user_op_helpers_one() {
     // --- user operation with 1 helper value -----------------------------------------------------
     let ops = vec![Operation::U32and, Operation::U32and];
-    let program = CodeBlock::new_span(ops, DecoratorMap::new());
+    let program = CodeBlock::new_span(ops);
     let (trace, _, _) = build_trace(&[2, 6, 1], &program);
 
     // Check the hasher state of the final user operation which was executed.
@@ -889,7 +889,7 @@ fn set_user_op_helpers_one() {
 #[test]
 fn set_user_op_helpers_many() {
     // --- user operation with 4 helper values ----------------------------------------------------
-    let program = CodeBlock::new_span(vec![Operation::U32div], DecoratorMap::new());
+    let program = CodeBlock::new_span(vec![Operation::U32div]);
     let a = rand_value::<u32>();
     let b = rand_value::<u32>();
     let (dividend, divisor) = if a > b { (a, b) } else { (b, a) };

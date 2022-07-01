@@ -107,7 +107,7 @@ fn advice_inject_u64div_local_procedure() {
 
 #[test]
 fn advice_inject_u64div_conditional_execution() {
-    let source = "begin eq if.true adv.u64div push.adv.4 else push.5 push.5 end end";
+    let source = "begin eq if.true adv.u64div push.adv.4 else padw end end";
 
     // if branch
     let test = build_test!(source, &[8, 0, 4, 0, 1, 1]);
@@ -115,5 +115,5 @@ fn advice_inject_u64div_conditional_execution() {
 
     // else branch
     let test = build_test!(source, &[8, 0, 4, 0, 1, 0]);
-    test.expect_stack(&[5, 5, 0, 4, 0, 8]);
+    test.expect_stack(&[0, 0, 0, 0, 0, 4, 0, 8]);
 }

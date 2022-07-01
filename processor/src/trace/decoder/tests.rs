@@ -11,7 +11,7 @@ use vm_core::{
     decoder::{P1_COL_IDX, P2_COL_IDX, P3_COL_IDX},
     program::blocks::CodeBlock,
     utils::ToElements,
-    DecoratorMap, FieldElement, Operation, AUX_TRACE_RAND_ELEMENTS, ONE, ZERO,
+    FieldElement, Operation, AUX_TRACE_RAND_ELEMENTS, ONE, ZERO,
 };
 
 // BLOCK STACK TABLE TESTS
@@ -63,8 +63,8 @@ fn decoder_p1_span_with_respan() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p1_join() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul], DecoratorMap::new());
-    let span2 = CodeBlock::new_span(vec![Operation::Add], DecoratorMap::new());
+    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_join([span1, span2]);
 
     let mut trace = build_trace_from_block(&program, &[]);
@@ -123,8 +123,8 @@ fn decoder_p1_join() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p1_split() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul], DecoratorMap::new());
-    let span2 = CodeBlock::new_span(vec![Operation::Add], DecoratorMap::new());
+    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1, span2);
 
     let mut trace = build_trace_from_block(&program, &[1]);
@@ -170,8 +170,8 @@ fn decoder_p1_split() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p1_loop_with_repeat() {
-    let span1 = CodeBlock::new_span(vec![Operation::Pad], DecoratorMap::new());
-    let span2 = CodeBlock::new_span(vec![Operation::Drop], DecoratorMap::new());
+    let span1 = CodeBlock::new_span(vec![Operation::Pad]);
+    let span2 = CodeBlock::new_span(vec![Operation::Drop]);
     let body = CodeBlock::new_join([span1, span2]);
     let program = CodeBlock::new_loop(body);
 
@@ -288,7 +288,7 @@ fn decoder_p1_loop_with_repeat() {
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_span_with_respan() {
     let (ops, _) = build_span_with_respan_ops();
-    let span = CodeBlock::new_span(ops, DecoratorMap::new());
+    let span = CodeBlock::new_span(ops);
     let mut trace = build_trace_from_block(&span, &[]);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
@@ -317,8 +317,8 @@ fn decoder_p2_span_with_respan() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_join() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul], DecoratorMap::new());
-    let span2 = CodeBlock::new_span(vec![Operation::Add], DecoratorMap::new());
+    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_join([span1.clone(), span2.clone()]);
 
     let mut trace = build_trace_from_block(&program, &[]);
@@ -370,8 +370,8 @@ fn decoder_p2_join() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_split_true() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul], DecoratorMap::new());
-    let span2 = CodeBlock::new_span(vec![Operation::Add], DecoratorMap::new());
+    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1.clone(), span2);
 
     let mut trace = build_trace_from_block(&program, &[1]);
@@ -414,8 +414,8 @@ fn decoder_p2_split_true() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_split_false() {
-    let span1 = CodeBlock::new_span(vec![Operation::Mul], DecoratorMap::new());
-    let span2 = CodeBlock::new_span(vec![Operation::Add], DecoratorMap::new());
+    let span1 = CodeBlock::new_span(vec![Operation::Mul]);
+    let span2 = CodeBlock::new_span(vec![Operation::Add]);
     let program = CodeBlock::new_split(span1, span2.clone());
 
     let mut trace = build_trace_from_block(&program, &[0]);
@@ -458,8 +458,8 @@ fn decoder_p2_split_false() {
 #[test]
 #[allow(clippy::needless_range_loop)]
 fn decoder_p2_loop_with_repeat() {
-    let span1 = CodeBlock::new_span(vec![Operation::Pad], DecoratorMap::new());
-    let span2 = CodeBlock::new_span(vec![Operation::Drop], DecoratorMap::new());
+    let span1 = CodeBlock::new_span(vec![Operation::Pad]);
+    let span2 = CodeBlock::new_span(vec![Operation::Drop]);
     let body = CodeBlock::new_join([span1.clone(), span2.clone()]);
     let program = CodeBlock::new_loop(body.clone());
 

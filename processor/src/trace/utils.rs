@@ -3,7 +3,7 @@ use core::slice;
 use vm_core::utils::uninit_vector;
 
 #[cfg(test)]
-use vm_core::{program::blocks::CodeBlock, DecoratorMap, Operation, ProgramInputs};
+use vm_core::{program::blocks::CodeBlock, Operation, ProgramInputs};
 
 #[cfg(test)]
 use super::{ExecutionTrace, Process};
@@ -138,6 +138,6 @@ pub fn build_trace_from_block(program: &CodeBlock, stack: &[u64]) -> ExecutionTr
 /// results in 1 additional hash cycle at the beginning of the hasher coprocessor.
 #[cfg(test)]
 pub fn build_trace_from_ops(operations: Vec<Operation>, stack: &[u64]) -> ExecutionTrace {
-    let program = CodeBlock::new_span(operations, DecoratorMap::new());
+    let program = CodeBlock::new_span(operations);
     build_trace_from_block(&program, stack)
 }

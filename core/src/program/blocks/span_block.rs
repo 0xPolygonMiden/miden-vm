@@ -1,5 +1,5 @@
 use super::{fmt, hasher, Digest, Felt, FieldElement, Operation, Vec};
-use crate::DecoratorMap;
+use crate::{DecoratorIterator, DecoratorList};
 use winter_utils::flatten_slice_elements;
 
 // CONSTANTS
@@ -39,7 +39,7 @@ const MAX_OPS_PER_BATCH: usize = GROUP_SIZE * BATCH_SIZE;
 pub struct Span {
     op_batches: Vec<OpBatch>,
     hash: Digest,
-    decorator_map: DecoratorMap,
+    decorators: DecoratorList,
 }
 
 impl Span {
@@ -51,13 +51,24 @@ impl Span {
     /// Returns an error if:
     /// - `operations` vector is empty.
     /// - `operations` vector contains any number of system operations.
-    pub fn new(operations: Vec<Operation>, decorator_map: DecoratorMap) -> Self {
+    pub fn new(operations: Vec<Operation>) -> Self {
+        assert!(!operations.is_empty()); // TODO: return error
+        Self::with_decorators(operations, DecoratorList::new())
+    }
+
+    /// Returns a new [Span] block instantiated with the specified operations and decorators.
+    ///
+    /// # Errors (TODO)
+    /// Returns an error if:
+    /// - `operations` vector is empty.
+    /// - `operations` vector contains any number of system operations.
+    pub fn with_decorators(operations: Vec<Operation>, decorators: DecoratorList) -> Self {
         assert!(!operations.is_empty()); // TODO: return error
         let (op_batches, hash) = batch_ops(operations);
         Self {
             op_batches,
             hash,
-            decorator_map,
+            decorators,
         }
     }
 
@@ -82,23 +93,29 @@ impl Span {
     #[must_use]
     pub fn replicate(&self, num_copies: usize) -> Self {
         let own_ops = self.get_ops();
-        let own_decorators = self.get_decorator_map();
+        let own_decorators = &self.decorators;
         let mut ops = Vec::with_capacity(own_ops.len() * num_copies);
-        let mut decorator_map = DecoratorMap::new();
+        let mut decorators = DecoratorList::new();
 
         for i in 0..num_copies {
-            if !own_decorators.is_empty() {
-                for (k, v) in &own_decorators {
-                    decorator_map.insert(own_ops.len() * i + k, (*v).clone());
-                }
+            // replicate decorators of a span block
+            for decorator in own_decorators {
+                decorators.push((own_ops.len() * i + decorator.0, decorator.1.clone()))
             }
             ops.extend_from_slice(&own_ops);
         }
-        Self::new(ops, decorator_map)
+        Self::with_decorators(ops, decorators)
     }
 
-    pub fn get_decorator_map(&self) -> DecoratorMap {
-        self.decorator_map.clone()
+    /// Returns a list of decorators in this span block
+    pub fn decorators(&self) -> &DecoratorList {
+        &self.decorators
+    }
+
+    /// Returns a [DecoratorIterator] which allows us to iterate through the decorator list of this span
+    /// block while executing operation batches of this span block
+    pub fn decorator_iter(&self) -> DecoratorIterator {
+        DecoratorIterator::new(&self.decorators)
     }
 
     // HELPER METHODS

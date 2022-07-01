@@ -4,7 +4,6 @@
 #[macro_use]
 extern crate alloc;
 
-use crate::utils::collections::{BTreeMap, Vec};
 use core::ops::Range;
 
 pub mod aux_table;
@@ -18,7 +17,7 @@ pub mod range;
 pub use math::{fields::f64::BaseElement as Felt, ExtensionOf, FieldElement, StarkField};
 
 mod operations;
-pub use operations::{AdviceInjector, Decorator, Operation};
+pub use operations::{AdviceInjector, Decorator, DecoratorIterator, DecoratorList, Operation};
 
 mod inputs;
 pub use inputs::{AdviceSet, ProgramInputs};
@@ -32,8 +31,6 @@ use utils::range;
 pub type Word = [Felt; 4];
 
 pub type StackTopState = [Felt; MIN_STACK_DEPTH];
-
-pub type DecoratorMap = BTreeMap<usize, Vec<Decorator>>;
 
 // CONSTANTS
 // ================================================================================================

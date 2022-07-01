@@ -4,7 +4,11 @@ use super::{AdviceInjector, Decorator, ExecutionError, Felt, Process, StarkField
 // ================================================================================================
 
 impl Process {
-    pub(super) fn execute_decorator(&mut self, decorator: Decorator) -> Result<(), ExecutionError> {
+    /// Executes the specified decorator
+    pub(super) fn execute_decorator(
+        &mut self,
+        decorator: &Decorator,
+    ) -> Result<(), ExecutionError> {
         match decorator {
             Decorator::Advice(injector) => self.decorator_advice(injector)?,
         }
@@ -14,7 +18,7 @@ impl Process {
     // --------------------------------------------------------------------------------------------
 
     /// Process the specified advice injector.
-    pub fn decorator_advice(&mut self, injector: AdviceInjector) -> Result<(), ExecutionError> {
+    pub fn decorator_advice(&mut self, injector: &AdviceInjector) -> Result<(), ExecutionError> {
         match injector {
             AdviceInjector::MerkleNode => self.inject_merkle_node(),
             AdviceInjector::DivResultU64 => self.inject_div_result_u64(),
@@ -140,7 +144,7 @@ mod tests {
 
         // inject the node into the advice tape
         process
-            .execute_decorator(Decorator::Advice(AdviceInjector::MerkleNode))
+            .execute_decorator(&Decorator::Advice(AdviceInjector::MerkleNode))
             .unwrap();
 
         // read the node from the tape onto the stack

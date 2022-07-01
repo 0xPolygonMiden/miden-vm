@@ -1,5 +1,5 @@
 use super::{super::validate_operation, AssemblyError, Felt, Operation, Token, Vec};
-use vm_core::{utils::PushMany, AdviceInjector, Decorator, DecoratorMap};
+use vm_core::{utils::PushMany, AdviceInjector, Decorator, DecoratorList};
 
 // HASHING
 // ================================================================================================
@@ -96,14 +96,14 @@ pub fn parse_rpperm(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 pub fn parse_mtree(
     span_ops: &mut Vec<Operation>,
     op: &Token,
-    decorator_map: &mut DecoratorMap,
+    decorators: &mut DecoratorList,
 ) -> Result<(), AssemblyError> {
     validate_operation!(op, "mtree.cwm|get|set", 0);
 
     match op.parts()[1] {
-        "get" => mtree_get(span_ops, decorator_map),
-        "set" => mtree_set(span_ops, decorator_map),
-        "cwm" => mtree_cwm(span_ops, decorator_map),
+        "get" => mtree_get(span_ops, decorators),
+        "set" => mtree_set(span_ops, decorators),
+        "cwm" => mtree_cwm(span_ops, decorators),
         _ => return Err(AssemblyError::invalid_op(op)),
     }
 
@@ -122,13 +122,13 @@ pub fn parse_mtree(
 /// - root of the tree, 4 elements
 ///
 /// This operation takes 24 VM cycles.
-fn mtree_get(span_ops: &mut Vec<Operation>, decorator_map: &mut DecoratorMap) {
+fn mtree_get(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
     // stack: [d, i, R, ...]
     // inject the node value we're looking for at the head of the advice tape
-    decorator_map.insert(
+    decorators.push((
         span_ops.len(),
-        vec![Decorator::Advice(AdviceInjector::MerkleNode)],
-    );
+        Decorator::Advice(AdviceInjector::MerkleNode),
+    ));
 
     // temporarily move d and i out of the way to make future stack manipulations easier
     // => [R, 0, 0, d, i, ...]
@@ -178,10 +178,10 @@ fn mtree_get(span_ops: &mut Vec<Operation>, decorator_map: &mut DecoratorMap) {
 /// - new root of the tree after the update, 4 elements
 ///
 /// This operation takes 38 VM cycles.
-fn mtree_set(span_ops: &mut Vec<Operation>, decorator_map: &mut DecoratorMap) {
+fn mtree_set(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
     // Duplicate the new value and reorder the stack as required for the call to MRUPDATE.
     // [d, i, V_new, R, ...] => [d, i, V_old, V_new, R, V_new_0, V_new_1] (overflowed)
-    prep_stack_for_mrupdate(span_ops, decorator_map);
+    prep_stack_for_mrupdate(span_ops, decorators);
 
     // Update the Merkle tree with the new value without copying the old tree. This replaces the
     // old and new node values with the computed and new Merkle roots, respectively.
@@ -214,10 +214,10 @@ fn mtree_set(span_ops: &mut Vec<Operation>, decorator_map: &mut DecoratorMap) {
 /// - root of the old tree which was copied, 4 elements
 ///
 /// This operation takes 34 VM cycles.
-fn mtree_cwm(span_ops: &mut Vec<Operation>, decorator_map: &mut DecoratorMap) {
+fn mtree_cwm(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
     // Duplicate the new value and reorder the stack as required for the call to MRUPDATE.
     // [d, i, V_new, R, ...] => [d, i, V_old, V_new, R, V_new_0, V_new_1] (overflowed)
-    prep_stack_for_mrupdate(span_ops, decorator_map);
+    prep_stack_for_mrupdate(span_ops, decorators);
 
     // update the Merkle tree with the new value and copy the old tree. This replaces the
     // old and new node values with the computed and new Merkle roots, respectively.
@@ -265,7 +265,7 @@ fn validate_and_drop_root(span_ops: &mut Vec<Operation>) {
 /// - copy of the new value of the node, 4 elements
 ///
 /// This operation takes 22 VM cycles.
-fn prep_stack_for_mrupdate(span_ops: &mut Vec<Operation>, decorator_map: &mut DecoratorMap) {
+fn prep_stack_for_mrupdate(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
     // stack: [d, i, V_new, R, ...]
 
     // temporarily add two zeroes to the top of the stack to create word with d and i to make
@@ -287,11 +287,10 @@ fn prep_stack_for_mrupdate(span_ops: &mut Vec<Operation>, decorator_map: &mut De
     span_ops.push(Operation::Drop);
 
     // inject the node value we're looking for at the head of the advice tape
-    decorator_map.insert(
+    decorators.push((
         span_ops.len(),
-        vec![Decorator::Advice(AdviceInjector::MerkleNode)],
-    );
-
+        Decorator::Advice(AdviceInjector::MerkleNode),
+    ));
     // temporarily add two zeroes to the top of the stack again
     // => [0, 0, d, i, R, V_new, V_new, ...]
     span_ops.push(Operation::Pad);
@@ -410,23 +409,23 @@ mod tests {
 
         let op_too_short = Token::new("mtree", op_pos);
         let expected = AssemblyError::invalid_op(&op_too_short);
-        let mut decorator_map = DecoratorMap::new();
+        let mut decorators = DecoratorList::new();
         assert_eq!(
-            parse_mtree(&mut span_ops, &op_too_short, &mut decorator_map).unwrap_err(),
+            parse_mtree(&mut span_ops, &op_too_short, &mut decorators).unwrap_err(),
             expected
         );
 
         let op_too_long = Token::new("mtree.get.12", op_pos);
         let expected = AssemblyError::extra_param(&op_too_long);
         assert_eq!(
-            parse_mtree(&mut span_ops, &op_too_long, &mut decorator_map).unwrap_err(),
+            parse_mtree(&mut span_ops, &op_too_long, &mut decorators).unwrap_err(),
             expected
         );
 
         let op_mismatch = Token::new("rpperm.get", op_pos);
         let expected = AssemblyError::unexpected_token(&op_mismatch, "mtree.cwm|get|set");
         assert_eq!(
-            parse_mtree(&mut span_ops, &op_mismatch, &mut decorator_map).unwrap_err(),
+            parse_mtree(&mut span_ops, &op_mismatch, &mut decorators).unwrap_err(),
             expected
         );
     }
