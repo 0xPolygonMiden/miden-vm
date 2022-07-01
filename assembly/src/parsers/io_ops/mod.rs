@@ -2,7 +2,7 @@ use super::{
     super::validate_operation, parse_decimal_param, parse_element_param, parse_hex_param,
     parse_int_param, push_value, AssemblyError, Felt, Operation, Token, Vec,
 };
-
+use vm_core::{AdviceInjector, Decorator, DecoratorMap};
 mod adv_ops;
 mod constant_ops;
 mod env_ops;
@@ -255,15 +255,22 @@ pub fn parse_storew(
 /// - adv.u64div: this operation interprets four elements at the top of the stack as two 64-bit
 ///   values (represented by 32-bit limbs), divides one value by another, and injects the quotient
 ///   and the remainder into the advice tape.
-// pub fn parse_adv_inject(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-//     validate_operation!(op, "adv.u64div");
-//     match op.parts()[1] {
-//         "u64div" => span_ops.push(Operation::Advice(AdviceInjector::DivResultU64)),
-//         _ => return Err(AssemblyError::invalid_op(op)),
-//     }
+pub fn parse_adv_inject(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    decorator_map: &mut DecoratorMap,
+) -> Result<(), AssemblyError> {
+    validate_operation!(op, "adv.u64div");
+    match op.parts()[1] {
+        "u64div" => decorator_map.insert(
+            span_ops.len(),
+            vec![Decorator::Advice(AdviceInjector::DivResultU64)],
+        ),
+        _ => return Err(AssemblyError::invalid_op(op)),
+    };
 
-//     Ok(())
-// }
+    Ok(())
+}
 
 // TESTS
 // ================================================================================================

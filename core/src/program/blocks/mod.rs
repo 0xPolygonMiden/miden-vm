@@ -36,15 +36,8 @@ impl CodeBlock {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new Span block instantiated with the provided operations.
-    pub fn new_span(operations: Vec<Operation>) -> Self {
-        Self::Span(Span::new(operations, DecoratorMap::new()))
-    }
-
-    pub fn new_span_with_decorators(
-        operations: Vec<Operation>,
-        decorator_map: DecoratorMap,
-    ) -> Self {
+    /// Returns a new Span block instantiated with the provided operations and decorator map.
+    pub fn new_span(operations: Vec<Operation>, decorator_map: DecoratorMap) -> Self {
         Self::Span(Span::new(operations, decorator_map))
     }
 

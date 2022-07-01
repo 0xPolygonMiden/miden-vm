@@ -82,11 +82,19 @@ impl Span {
     #[must_use]
     pub fn replicate(&self, num_copies: usize) -> Self {
         let own_ops = self.get_ops();
+        let own_decorators = self.get_decorator_map();
         let mut ops = Vec::with_capacity(own_ops.len() * num_copies);
-        for _ in 0..num_copies {
+        let mut decorator_map = DecoratorMap::new();
+
+        for i in 0..num_copies {
+            if !own_decorators.is_empty() {
+                for (k, v) in &own_decorators {
+                    decorator_map.insert(own_ops.len() * i + k, (*v).clone());
+                }
+            }
             ops.extend_from_slice(&own_ops);
         }
-        Self::new(ops, DecoratorMap::new())
+        Self::new(ops, decorator_map)
     }
 
     pub fn get_decorator_map(&self) -> DecoratorMap {
@@ -350,7 +358,6 @@ pub fn get_span_op_group_count(op_batches: &[OpBatch]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::{hasher, Felt, FieldElement, Operation, BATCH_SIZE};
-    // use crate::AdviceInjector;
 
     #[test]
     fn batch_ops() {

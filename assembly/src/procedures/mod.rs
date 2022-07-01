@@ -2,7 +2,7 @@ use super::{
     combine_blocks, parse_code_blocks, AssemblyContext, AssemblyError, CodeBlock, String, Token,
     TokenStream, Vec,
 };
-use vm_core::{Felt, Operation};
+use vm_core::{DecoratorMap, Felt, Operation};
 
 // PROCEDURE
 // ================================================================================================
@@ -114,14 +114,14 @@ pub fn parse_proc_blocks(
 
     // allocate procedure locals before the procedure body
     let alloc_ops = vec![Operation::Push(locals_felt), Operation::FmpUpdate];
-    blocks.push(CodeBlock::new_span(alloc_ops));
+    blocks.push(CodeBlock::new_span(alloc_ops, DecoratorMap::new()));
 
     // add the procedure body code block
     blocks.push(body);
 
     // deallocate procedure locals after the procedure body
     let dealloc_ops = vec![Operation::Push(-locals_felt), Operation::FmpUpdate];
-    blocks.push(CodeBlock::new_span(dealloc_ops));
+    blocks.push(CodeBlock::new_span(dealloc_ops, DecoratorMap::new()));
 
     // combine the local memory alloc/dealloc blocks with the procedure body code block
     Ok(combine_blocks(blocks))

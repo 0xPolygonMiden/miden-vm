@@ -109,6 +109,7 @@ fn parse_op_token(
         "popw" => io_ops::parse_popw(span_ops, op, num_proc_locals),
         "loadw" => io_ops::parse_loadw(span_ops, op, num_proc_locals),
         "storew" => io_ops::parse_storew(span_ops, op, num_proc_locals),
+        "adv" => io_ops::parse_adv_inject(span_ops, op, decorator_map),
 
         // ----- cryptographic operations ---------------------------------------------------------
         "rphash" => crypto_ops::parse_rphash(span_ops, op),

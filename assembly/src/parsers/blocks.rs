@@ -66,14 +66,10 @@ impl BlockParser {
                     if op.is_control_token() {
                         break;
                     }
-                    if op.is_decorator() {
-                        decorator_map.insert(span_ops.len(), vec![op.to_decorator()?]);
-                    } else {
-                        parse_op_token(op, &mut span_ops, num_proc_locals, &mut decorator_map)?;
-                    }
+                    parse_op_token(op, &mut span_ops, num_proc_locals, &mut decorator_map)?;
                     tokens.advance();
                 }
-                Ok(CodeBlock::new_span_with_decorators(span_ops, decorator_map))
+                Ok(CodeBlock::new_span(span_ops, decorator_map))
             }
             Self::IfElse => {
                 // --------------------------------------------------------------------------------
@@ -121,7 +117,7 @@ impl BlockParser {
                             tokens.advance();
 
                             // when no `else` clause was specified, a Span with a single noop
-                            CodeBlock::new_span(vec![Operation::Noop])
+                            CodeBlock::new_span(vec![Operation::Noop], DecoratorMap::new())
                         }
                         _ => {
                             return Err(AssemblyError::unmatched_if(
@@ -324,5 +320,5 @@ pub fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
             );
         }
     });
-    CodeBlock::new_span_with_decorators(ops, decorator_map)
+    CodeBlock::new_span(ops, decorator_map)
 }

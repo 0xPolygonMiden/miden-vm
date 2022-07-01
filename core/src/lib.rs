@@ -18,10 +18,7 @@ pub mod range;
 pub use math::{fields::f64::BaseElement as Felt, ExtensionOf, FieldElement, StarkField};
 
 mod operations;
-pub use operations::Operation;
-
-mod decorators;
-pub use decorators::{AdviceInjector, Decorator};
+pub use operations::{AdviceInjector, Decorator, Operation};
 
 mod inputs;
 pub use inputs::{AdviceSet, ProgramInputs};

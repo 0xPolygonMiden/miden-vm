@@ -9,6 +9,7 @@ pub enum ExecutionError {
     AdviceSetLookupFailed(AdviceSetError),
     AdviceSetNotFound([u8; 32]),
     AdviceSetUpdateFailed(AdviceSetError),
+    DecoratorNotFound(usize),
     DivideByZero(usize),
     EmptyAdviceTape(usize),
     FailedAssertion(usize),
@@ -20,5 +21,4 @@ pub enum ExecutionError {
     TooManyStackOutputs(usize),
     UnexecutableCodeBlock(CodeBlock),
     UnsupportedCodeBlock(CodeBlock),
-    DecoratorNotFound(usize),
 }

@@ -297,7 +297,7 @@ impl Process {
             if decorator_map.contains_key(&(idx + offset)) {
                 let decorators = decorator_map
                     .get(&(idx + offset))
-                    .ok_or(ExecutionError::DecoratorNotFound(idx + offset))?;
+                    .ok_or(ExecutionError::DecoratorNotFound(idx + offset))?; //This error should never occur. Should we use unwrap() here?
                 for decorator in decorators {
                     self.execute_decorator(*decorator)?;
                 }
