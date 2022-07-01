@@ -1,9 +1,6 @@
 # Miden stdlib
 Standard library for Miden VM.
 
-## License
-This project is [MIT licensed](../LICENSE).
-
 ## Modules
 - [std::crypto::hashes::blake3](./docs/blake3_hashes.md)
 - [std::crypto::hashes::keccak256](./docs/keccak256_hashes.md)
@@ -11,3 +8,6 @@ This project is [MIT licensed](../LICENSE).
 - [std::math::u256](./docs/u256_math.md)
 - [std::math::u64](./docs/u64_math.md)
 - [std::sys](./docs/sys_std.md)
+
+## License
+This project is [MIT licensed](../LICENSE).
