@@ -6,7 +6,7 @@ use vm_core::ProgramInputs;
 
 fn script_execution(c: &mut Criterion) {
     let mut group = c.benchmark_group("script_execution");
-    group.measurement_time(Duration::from_secs(300));
+    group.measurement_time(Duration::from_secs(10));
 
     group.bench_function("sha256", |bench| {
         let source = "

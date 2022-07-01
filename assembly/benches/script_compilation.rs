@@ -4,7 +4,7 @@ use std::time::Duration;
 
 fn script_compilation(c: &mut Criterion) {
     let mut group = c.benchmark_group("script_compilation");
-    group.measurement_time(Duration::from_secs(300));
+    group.measurement_time(Duration::from_secs(10));
 
     group.bench_function("sha256", |bench| {
         let source = "
