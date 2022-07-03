@@ -64,6 +64,11 @@ impl Span {
     /// - `operations` vector contains any number of system operations.
     pub fn with_decorators(operations: Vec<Operation>, decorators: DecoratorList) -> Self {
         assert!(!operations.is_empty()); // TODO: return error
+
+        // validate decorators list (only in debug mode)
+        #[cfg(debug_assertions)]
+        validate_decorators(&operations, &decorators);
+
         let (op_batches, hash) = batch_ops(operations);
         Self {
             op_batches,
@@ -367,6 +372,27 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
 pub fn get_span_op_group_count(op_batches: &[OpBatch]) -> usize {
     let last_batch_num_groups = op_batches.last().expect("no last group").num_groups();
     (op_batches.len() - 1) * BATCH_SIZE + last_batch_num_groups.next_power_of_two()
+}
+
+/// Checks if a given decorators list is valid (only checked in debug mode)
+/// - Assert the decorator list is in ascending order.
+/// - Assert the last op index in decorator list is less than the number of operations.
+#[cfg(debug_assertions)]
+fn validate_decorators(operations: &Vec<Operation>, decorators: &DecoratorList) {
+    if !decorators.is_empty() {
+        // check if decorator list is sorted
+        for i in 0..(decorators.len() - 1) {
+            debug_assert!(
+                decorators[i + 1].0 >= decorators[i].0,
+                "unsorted decorators list"
+            );
+        }
+        // assert the last index in decorator list is less than operations vector length
+        debug_assert!(
+            operations.len() > decorators.last().expect("empty decorators list").0,
+            "last op index in decorator list should be less than number of ops"
+        );
+    }
 }
 
 // TESTS

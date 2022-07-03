@@ -10,7 +10,7 @@ impl Process {
         decorator: &Decorator,
     ) -> Result<(), ExecutionError> {
         match decorator {
-            Decorator::Advice(injector) => self.decorator_advice(injector)?,
+            Decorator::Advice(injector) => self.dec_advice(injector)?,
         }
         Ok(())
     }
@@ -18,7 +18,7 @@ impl Process {
     // --------------------------------------------------------------------------------------------
 
     /// Process the specified advice injector.
-    pub fn decorator_advice(&mut self, injector: &AdviceInjector) -> Result<(), ExecutionError> {
+    pub fn dec_advice(&mut self, injector: &AdviceInjector) -> Result<(), ExecutionError> {
         match injector {
             AdviceInjector::MerkleNode => self.inject_merkle_node(),
             AdviceInjector::DivResultU64 => self.inject_div_result_u64(),
