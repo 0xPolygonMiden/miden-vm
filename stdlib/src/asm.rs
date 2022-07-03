@@ -10531,9 +10531,9 @@ end
 # The shift value is assumed to be in the range [0, 64).
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 13 cycles.
+# This takes 50 cycles.
 export.unchecked_shl
-    pow2
+    pow2.unsafe
     u32split
     exec.wrapping_mul
 end
@@ -10544,9 +10544,9 @@ end
 # The shift value is assumed to be in the range [0, 64).
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a >> b.
-# This takes 29 cycles.
+# This takes 66 cycles.
 export.unchecked_shr
-    pow2
+    pow2.unsafe
     u32split
 
     dup.1
@@ -10584,9 +10584,9 @@ end
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where (d,c) = a << b, 
 # which d contains the bits shifted out.
-# This takes 20 cycles.
+# This takes 57 cycles.
 export.overflowing_shl
-    pow2
+    pow2.unsafe
     u32split
     exec.overflowing_mul
 end
@@ -10597,7 +10597,7 @@ end
 # The shift value is assumed to be in the range [0, 64).
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where c = a >> b, d = a << (64 - b).
-# This takes 64 cycles.
+# This takes 138 cycles.
 export.overflowing_shr
     push.64             # (64 - b)
     dup.1
@@ -10628,7 +10628,7 @@ end
 # The shift value is assumed to be in the range [0, 64).
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 20 cycles.
+# This takes 57 cycles.
 export.unchecked_rotl
     push.31
     dup.1
@@ -10640,7 +10640,7 @@ export.unchecked_rotl
     # Shift the low limb.
     push.31
     u32and
-    pow2
+    pow2.unsafe
     dup
     movup.3
     u32mul.unsafe
@@ -10665,7 +10665,7 @@ end
 # The shift value is assumed to be in the range [0, 64).
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 25 cycles.
+# This takes 62 cycles.
 export.unchecked_rotr
     push.31
     dup.1
@@ -10681,7 +10681,7 @@ export.unchecked_rotr
     swap
     u32sub.unsafe
     drop
-    pow2
+    pow2.unsafe
     dup
     movup.3
     u32mul.unsafe
