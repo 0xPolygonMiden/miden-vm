@@ -38,8 +38,8 @@ fn hasher_permute() {
     assert_eq!(trace.last().unwrap(), &[ZERO; 8]);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_table_hints().is_empty());
-    assert!(aux_hints.sibling_table_rows().is_empty());
+    assert!(aux_hints.sibling_hints.is_empty());
+    assert!(aux_hints.sibling_rows.is_empty());
 
     // --- test two permutations ----------------------------------------------
 
@@ -74,8 +74,8 @@ fn hasher_permute() {
     assert_eq!(trace.last().unwrap(), &[ZERO; 16]);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_table_hints().is_empty());
-    assert!(aux_hints.sibling_table_rows().is_empty());
+    assert!(aux_hints.sibling_hints.is_empty());
+    assert!(aux_hints.sibling_rows.is_empty());
 }
 
 // MERKLE TREE TESTS
@@ -111,8 +111,8 @@ fn hasher_build_merkle_root() {
     assert_eq!(&node_idx_column[9..], &[ZERO; 7]);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_table_hints().is_empty());
-    assert!(aux_hints.sibling_table_rows().is_empty());
+    assert!(aux_hints.sibling_hints.is_empty());
+    assert!(aux_hints.sibling_rows.is_empty());
 
     // --- Merkle tree with 8 leaves ------------------------------------------
 
@@ -130,8 +130,8 @@ fn hasher_build_merkle_root() {
     check_merkle_path(&trace, 0, leaves[5], &path, 5, MP_VERIFY);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_table_hints().is_empty());
-    assert!(aux_hints.sibling_table_rows().is_empty());
+    assert!(aux_hints.sibling_hints.is_empty());
+    assert!(aux_hints.sibling_rows.is_empty());
 
     // --- Merkle tree with 8 leaves (multiple branches) ----------------------
 
@@ -158,8 +158,8 @@ fn hasher_build_merkle_root() {
     check_merkle_path(&trace, 72, leaves[3], &path3, 3, MP_VERIFY);
 
     // make sure aux hints for sibling table are empty
-    assert!(aux_hints.sibling_table_hints().is_empty());
-    assert!(aux_hints.sibling_table_rows().is_empty());
+    assert!(aux_hints.sibling_hints.is_empty());
+    assert!(aux_hints.sibling_rows.is_empty());
 }
 
 #[test]
@@ -212,13 +212,13 @@ fn hasher_update_merkle_root() {
         (16, SiblingTableUpdate::SiblingAdded(1)),
         (24, SiblingTableUpdate::SiblingRemoved(1)),
     ];
-    assert_eq!(expected_sibling_hints, aux_hints.sibling_table_hints());
+    assert_eq!(expected_sibling_hints, aux_hints.sibling_hints);
 
     let expected_sibling_rows = vec![
         SiblingTableRow::new(ZERO, path0[0]),
         SiblingTableRow::new(ONE, path1[0]),
     ];
-    assert_eq!(expected_sibling_rows, aux_hints.sibling_table_rows());
+    assert_eq!(expected_sibling_rows, aux_hints.sibling_rows);
 
     // --- Merkle tree with 8 leaves ------------------------------------------
 
@@ -279,7 +279,7 @@ fn hasher_update_merkle_root() {
         (128, SiblingTableUpdate::SiblingRemoved(7)),
         (136, SiblingTableUpdate::SiblingRemoved(8)),
     ];
-    assert_eq!(expected_sibling_hints, aux_hints.sibling_table_hints());
+    assert_eq!(expected_sibling_hints, aux_hints.sibling_hints);
 
     let expected_sibling_rows = vec![
         // first update
@@ -295,7 +295,7 @@ fn hasher_update_merkle_root() {
         SiblingTableRow::new(Felt::new(3 >> 1), path3_2[1]),
         SiblingTableRow::new(Felt::new(3 >> 2), path3_2[2]),
     ];
-    assert_eq!(expected_sibling_rows, aux_hints.sibling_table_rows());
+    assert_eq!(expected_sibling_rows, aux_hints.sibling_rows);
 }
 
 // HELPER FUNCTIONS

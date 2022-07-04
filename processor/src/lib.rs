@@ -81,7 +81,10 @@ pub struct RangeCheckTrace {
     aux_trace_hints: range::AuxTraceHints,
 }
 
-type AuxTableTrace = [Vec<Felt>; AUX_TABLE_WIDTH];
+pub struct AuxTableTrace {
+    trace: [Vec<Felt>; AUX_TABLE_WIDTH],
+    hasher_aux_hints: hasher::AuxTraceHints,
+}
 
 // EXECUTOR
 // ================================================================================================

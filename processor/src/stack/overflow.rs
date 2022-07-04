@@ -1,4 +1,7 @@
-use super::{super::trace::LookupTableRow, BTreeMap, Felt, FieldElement, Vec, ZERO};
+use super::{
+    super::trace::{AuxColumnBuilder, LookupTableRow},
+    BTreeMap, Felt, FieldElement, Vec, ZERO,
+};
 
 // OVERFLOW TABLE
 // ================================================================================================
@@ -190,12 +193,12 @@ pub struct AuxTraceHints {
     overflow_table_rows: Vec<OverflowTableRow>,
 }
 
-impl AuxTraceHints {
+impl AuxColumnBuilder<OverflowTableUpdate, OverflowTableRow> for AuxTraceHints {
     /// Returns a list of rows which were added to and then removed from the stack overflow table.
     ///
     /// The order of the rows in the list is the same as the order in which the rows were added to
     /// the table.
-    pub fn overflow_table_rows(&self) -> &[OverflowTableRow] {
+    fn get_table_rows(&self) -> &[OverflowTableRow] {
         &self.overflow_table_rows
     }
 
@@ -204,7 +207,25 @@ impl AuxTraceHints {
     ///
     /// Internally, each update hint also contains an index of the row into the full list of rows
     /// which was either added or removed.
-    pub fn overflow_table_hints(&self) -> &[(usize, OverflowTableUpdate)] {
+    fn get_table_hints(&self) -> &[(usize, OverflowTableUpdate)] {
         &self.overflow_hints
+    }
+
+    /// Returns the value by which the running product column should be multiplied for the provided
+    /// hint value.
+    fn get_multiplicand<E: FieldElement<BaseField = Felt>>(
+        &self,
+        hint: OverflowTableUpdate,
+        row_values: &[E],
+        inv_row_values: &[E],
+    ) -> E {
+        match hint {
+            OverflowTableUpdate::RowInserted(inserted_row_idx) => {
+                row_values[inserted_row_idx as usize]
+            }
+            OverflowTableUpdate::RowRemoved(removed_row_idx) => {
+                inv_row_values[removed_row_idx as usize]
+            }
+        }
     }
 }

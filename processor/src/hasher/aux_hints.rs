@@ -1,39 +1,19 @@
-use super::{super::trace::LookupTableRow, Felt, FieldElement, Vec, Word};
+use super::{
+    super::trace::{AuxColumnBuilder, LookupTableRow},
+    Felt, FieldElement, Vec, Word,
+};
 
 // AUXILIARY TRACE HINTS
 // ================================================================================================
 
 /// TODO: add docs
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct AuxTraceHints {
-    sibling_hints: Vec<(usize, SiblingTableUpdate)>,
-    sibling_rows: Vec<SiblingTableRow>,
+    pub(super) sibling_hints: Vec<(usize, SiblingTableUpdate)>,
+    pub(super) sibling_rows: Vec<SiblingTableRow>,
 }
 
 impl AuxTraceHints {
-    // CONSTRUCTOR
-    // --------------------------------------------------------------------------------------------
-    /// Returns an empty [AuxTraceHints] struct.
-    pub fn new() -> Self {
-        Self {
-            sibling_hints: Vec::new(),
-            sibling_rows: Vec::new(),
-        }
-    }
-
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    #[cfg(test)]
-    pub fn sibling_table_hints(&self) -> &[(usize, SiblingTableUpdate)] {
-        &self.sibling_hints
-    }
-
-    #[cfg(test)]
-    pub fn sibling_table_rows(&self) -> &[SiblingTableRow] {
-        &self.sibling_rows
-    }
-
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -48,6 +28,43 @@ impl AuxTraceHints {
         let row_index = self.sibling_rows.len() - row_offset - 1;
         let update = SiblingTableUpdate::SiblingRemoved(row_index as u32);
         self.sibling_hints.push((step, update));
+    }
+}
+
+impl AuxColumnBuilder<SiblingTableUpdate, SiblingTableRow> for AuxTraceHints {
+    /// Returns a list of rows which were added to and then removed from the sibling table.
+    ///
+    /// The order of the rows in the list is the same as the order in which the rows were added to
+    /// the table.
+    fn get_table_rows(&self) -> &[SiblingTableRow] {
+        &self.sibling_rows
+    }
+
+    /// Returns hints which describe how the sibling table was updated during program execution.
+    /// Each update hint is accompanied by a clock cycle at which the update happened.
+    ///
+    /// Internally, each update hint also contains an index of the row into the full list of rows
+    /// which was either added or removed.
+    fn get_table_hints(&self) -> &[(usize, SiblingTableUpdate)] {
+        &self.sibling_hints
+    }
+
+    /// Returns the value by which the running product column should be multiplied for the provided
+    /// hint value.
+    fn get_multiplicand<E: FieldElement<BaseField = Felt>>(
+        &self,
+        hint: SiblingTableUpdate,
+        row_values: &[E],
+        inv_row_values: &[E],
+    ) -> E {
+        match hint {
+            SiblingTableUpdate::SiblingAdded(inserted_row_idx) => {
+                row_values[inserted_row_idx as usize]
+            }
+            SiblingTableUpdate::SiblingRemoved(removed_row_idx) => {
+                inv_row_values[removed_row_idx as usize]
+            }
+        }
     }
 }
 

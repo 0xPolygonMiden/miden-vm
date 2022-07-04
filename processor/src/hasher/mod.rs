@@ -69,7 +69,7 @@ impl Hasher {
     pub fn new() -> Self {
         Self {
             trace: HasherTrace::new(),
-            aux_hints: AuxTraceHints::new(),
+            aux_hints: AuxTraceHints::default(),
         }
     }
 
@@ -79,6 +79,11 @@ impl Hasher {
     /// Returns current length of the execution trace stored in this hasher.
     pub fn trace_len(&self) -> usize {
         self.trace.trace_len()
+    }
+
+    /// TODO: add docs
+    pub fn aux_trace_hints(&self) -> &AuxTraceHints {
+        &self.aux_hints
     }
 
     // HASHING METHODS

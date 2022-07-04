@@ -1,11 +1,12 @@
-use super::AuxTableTrace;
 use crate::{utils::get_trace_len, ExecutionTrace, Operation, Process};
 use vm_core::{
     bitwise::{BITWISE_OR, OP_CYCLE_LEN},
     hasher::{HASH_CYCLE_LEN, LINEAR_HASH, RETURN_STATE},
     program::blocks::CodeBlock,
-    Felt, FieldElement, ProgramInputs, AUX_TABLE_RANGE,
+    Felt, FieldElement, ProgramInputs, AUX_TABLE_RANGE, AUX_TABLE_WIDTH,
 };
+
+type AuxTableTrace = [Vec<Felt>; AUX_TABLE_WIDTH];
 
 #[test]
 fn hasher_aux_trace() {

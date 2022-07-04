@@ -1,4 +1,4 @@
-use super::{Felt, FieldElement, Vec};
+use super::{Felt, FieldElement, Matrix, Vec};
 use core::slice;
 use vm_core::utils::uninit_vector;
 
@@ -120,6 +120,70 @@ pub fn build_lookup_table_row_values<E: FieldElement<BaseField = Felt>, R: Looku
     }
 
     (row_values, inv_row_values)
+}
+
+/// TODO: add comments
+pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow> {
+    // REQUIRED METHODS
+    // --------------------------------------------------------------------------------------------
+
+    fn get_table_rows(&self) -> &[R];
+    fn get_table_hints(&self) -> &[(usize, H)];
+
+    fn get_multiplicand<E: FieldElement<BaseField = Felt>>(
+        &self,
+        hint: H,
+        row_values: &[E],
+        inv_row_values: &[E],
+    ) -> E;
+
+    // PROVIDED METHODS
+    // --------------------------------------------------------------------------------------------
+
+    fn build_aux_column<E>(&self, main_trace: &Matrix<Felt>, alphas: &[E]) -> Vec<E>
+    where
+        E: FieldElement<BaseField = Felt>,
+    {
+        // compute row values and their inverses for all rows that were added to the sibling table
+        let table_rows = self.get_table_rows();
+        let (row_values, inv_row_values) = build_lookup_table_row_values(table_rows, alphas);
+
+        // allocate memory for the running product column and set the initial value to ONE
+        let mut result = unsafe { uninit_vector(main_trace.num_rows()) };
+        result[0] = E::ONE;
+
+        // keep track of the last updated row in the running product column
+        let mut result_idx = 0;
+
+        // iterate through the list of updates and apply them one by one
+        for (clk, hint) in self.get_table_hints() {
+            let clk = *clk;
+
+            // if we skipped some cycles since the last update was processed, values in the last
+            // updated row should by copied over until the current cycle.
+            if result_idx < clk {
+                let last_value = result[result_idx];
+                result[(result_idx + 1)..=clk].fill(last_value);
+            }
+
+            // move the result pointer to the next row
+            result_idx = clk + 1;
+
+            // apply the relevant updates to the column
+            let multiplicand = self.get_multiplicand(*hint, &row_values, &inv_row_values);
+            result[result_idx] = result[clk] * multiplicand;
+        }
+
+        // at this point, sibling table must be empty - so, the last value must be ONE;
+        // we also fill in all the remaining values in the column with ONE's.
+        let last_value = result[result_idx];
+        assert_eq!(last_value, E::ONE);
+        if result_idx < result.len() - 1 {
+            result[(result_idx + 1)..].fill(E::ONE);
+        }
+
+        result
+    }
 }
 
 // TEST HELPERS

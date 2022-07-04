@@ -1,14 +1,11 @@
 use super::{AuxColumnBuilder, Felt, FieldElement, Matrix, Vec};
-use crate::stack::AuxTraceHints;
+use crate::hasher::AuxTraceHints;
 
-#[cfg(test)]
-mod tests;
-
-// STACK AUXILIARY TRACE COLUMNS
+// HASHER AUXILIARY TRACE COLUMNS
 // ================================================================================================
 
-/// Builds and returns stack auxiliary trace column p1 describing states of the stack overflow
-/// table.
+/// Builds and returns stack auxiliary trace column p1 describing states of the hasher sibling
+/// table (used for Merkle root update computation).
 pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
     main_trace: &Matrix<Felt>,
     aux_trace_hints: &AuxTraceHints,

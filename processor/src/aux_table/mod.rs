@@ -92,11 +92,14 @@ impl AuxTable {
             "target trace length too small"
         );
 
+        // TODO: avoid clone
+        let hasher_aux_hints = self.hasher.aux_trace_hints().clone();
+
         // Allocate columns for the trace of the auxiliary table.
         // note: it may be possible to optimize this by initializing with Felt::zeroed_vector,
         // depending on how the compiler reduces Felt(0) and whether initializing here + iterating
         // to update selector values is faster than using resize to initialize all values
-        let mut trace: AuxTableTrace = (0..AUX_TABLE_WIDTH)
+        let mut trace = (0..AUX_TABLE_WIDTH)
             .map(|_| Vec::<Felt>::with_capacity(trace_len))
             .collect::<Vec<_>>()
             .try_into()
@@ -104,7 +107,10 @@ impl AuxTable {
 
         self.fill_trace(&mut trace, trace_len);
 
-        trace
+        AuxTableTrace {
+            trace,
+            hasher_aux_hints,
+        }
     }
 
     // HELPER METHODS
@@ -113,7 +119,12 @@ impl AuxTable {
     /// Fills the provided auxiliary table trace with the stacked execution traces of the Hasher,
     /// Bitwise, and Memory coprocessors, along with selector columns to identify each coprocessor
     /// trace and padding to fill the rest of the table.
-    fn fill_trace(self, trace: &mut AuxTableTrace, trace_len: usize) {
+    fn fill_trace(
+        self,
+        trace: &mut [Vec<Felt>; AUX_TABLE_WIDTH],
+        trace_len: usize,
+        num_rand_rows: usize,
+    ) {
         // allocate fragments to be filled with the respective execution traces of each coprocessor
         let mut hasher_fragment = TraceFragment::new(AUX_TABLE_WIDTH);
         let mut bitwise_fragment = TraceFragment::new(AUX_TABLE_WIDTH);
