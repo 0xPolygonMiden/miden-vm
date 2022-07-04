@@ -1,14 +1,24 @@
-use super::{AdviceInjector, ExecutionError, Felt, Process, StarkField};
+use super::{AdviceInjector, Decorator, ExecutionError, Felt, Process, StarkField};
 
 // DECORATORS
 // ================================================================================================
 
 impl Process {
+    /// Executes the specified decorator
+    pub(super) fn execute_decorator(
+        &mut self,
+        decorator: &Decorator,
+    ) -> Result<(), ExecutionError> {
+        match decorator {
+            Decorator::Advice(injector) => self.dec_advice(injector)?,
+        }
+        Ok(())
+    }
     // ADVICE INJECTION
     // --------------------------------------------------------------------------------------------
 
     /// Process the specified advice injector.
-    pub fn op_advice(&mut self, injector: AdviceInjector) -> Result<(), ExecutionError> {
+    pub fn dec_advice(&mut self, injector: &AdviceInjector) -> Result<(), ExecutionError> {
         match injector {
             AdviceInjector::MerkleNode => self.inject_merkle_node(),
             AdviceInjector::DivResultU64 => self.inject_div_result_u64(),
@@ -113,7 +123,7 @@ mod tests {
     };
     use crate::Word;
 
-    use vm_core::{AdviceInjector, AdviceSet, ProgramInputs};
+    use vm_core::{AdviceInjector, AdviceSet, Decorator, ProgramInputs};
 
     #[test]
     fn inject_merkle_node() {
@@ -134,8 +144,9 @@ mod tests {
 
         // inject the node into the advice tape
         process
-            .execute_op(Operation::Advice(AdviceInjector::MerkleNode))
+            .execute_decorator(&Decorator::Advice(AdviceInjector::MerkleNode))
             .unwrap();
+
         // read the node from the tape onto the stack
         process.execute_op(Operation::Read).unwrap();
         process.execute_op(Operation::Read).unwrap();

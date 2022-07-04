@@ -1,8 +1,7 @@
 use super::Felt;
 use core::fmt;
-
-mod advice;
-pub use advice::AdviceInjector;
+mod decorators;
+pub use decorators::{AdviceInjector, Decorator, DecoratorIterator, DecoratorList};
 
 // OPERATIONS
 // ================================================================================================
@@ -359,12 +358,6 @@ pub enum Operation {
     /// the specified root will be removed from the advice provider. Otherwise, the advice
     /// provider will keep track of both, the old and the new advice sets.
     MrUpdate(bool),
-
-    // ----- decorators ---------------------------------------------------------------------------
-    /// Injects zero or more values at the head of the advice tape as specified by the injector.
-    /// This operation affects only the advice tape, but has no effect on other VM components
-    /// (e.g., stack, memory), and does not advance VM clock.
-    Advice(AdviceInjector),
 }
 
 impl Operation {
@@ -478,7 +471,6 @@ impl Operation {
             Self::Halt => Some(83),
             Self::MLoad => Some(84),
             Self::MStore => Some(85),
-            Self::Advice(_) => None,
         }
     }
 
@@ -488,16 +480,6 @@ impl Operation {
             Self::Push(imm) => Some(*imm),
             _ => None,
         }
-    }
-
-    /// Returns true if this operation is a decorator.
-    ///
-    /// Decorators do not advance VM clock cycle and do not affect deterministic VM state (i.e.,
-    /// stack, memory), but they can change non-deterministic components (e.g., advice tape).
-    ///
-    /// Additionally, decorators do not have assigned op codes.
-    pub fn is_decorator(&self) -> bool {
-        matches!(self, Self::Advice(_))
     }
 
     /// Returns true if this operation is a control operation.
@@ -632,9 +614,6 @@ impl fmt::Display for Operation {
                     write!(f, "mrupdate(move)")
                 }
             }
-
-            // ----- decorators -------------------------------------------------------------------
-            Self::Advice(injector) => write!(f, "advice({})", injector),
         }
     }
 }

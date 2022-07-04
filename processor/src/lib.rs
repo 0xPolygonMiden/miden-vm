@@ -12,11 +12,13 @@ use vm_core::{
         Script,
     },
     utils::collections::{BTreeMap, Vec},
-    AdviceInjector, Felt, FieldElement, Operation, ProgramInputs, StackTopState, StarkField, Word,
-    AUX_TABLE_WIDTH, DECODER_TRACE_WIDTH, MEMORY_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN,
-    NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
+    AdviceInjector, Decorator, DecoratorIterator, Felt, FieldElement, Operation, ProgramInputs,
+    StackTopState, StarkField, Word, AUX_TABLE_WIDTH, DECODER_TRACE_WIDTH, MEMORY_TRACE_WIDTH,
+    MIN_STACK_DEPTH, MIN_TRACE_LEN, NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH,
+    STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
 
+mod decorators;
 mod operations;
 
 mod system;
@@ -242,8 +244,12 @@ impl Process {
     fn execute_span_block(&mut self, block: &Span) -> Result<(), ExecutionError> {
         self.start_span_block(block)?;
 
+        let mut op_offset = 0;
+        let mut decorators = block.decorator_iter();
+
         // execute the first operation batch
-        self.execute_op_batch(&block.op_batches()[0])?;
+        self.execute_op_batch(&block.op_batches()[0], &mut decorators, op_offset)?;
+        op_offset += block.op_batches()[0].ops().len();
 
         // if the span contains more operation batches, execute them. each additional batch is
         // preceded by a RESPAN operation; executing RESPAN operation does not change the state
@@ -251,7 +257,8 @@ impl Process {
         for op_batch in block.op_batches().iter().skip(1) {
             self.decoder.respan(op_batch);
             self.execute_op(Operation::Noop)?;
-            self.execute_op_batch(op_batch)?;
+            self.execute_op_batch(op_batch, &mut decorators, op_offset)?;
+            op_offset += op_batch.ops().len();
         }
 
         self.end_span_block(block)
@@ -264,7 +271,12 @@ impl Process {
     /// - If the number of groups in a batch is not a power of 2, NOOPs are executed (one per
     ///   group) to bring it up to the next power of two (e.g., 3 -> 4, 5 -> 8).
     #[inline(always)]
-    fn execute_op_batch(&mut self, batch: &OpBatch) -> Result<(), ExecutionError> {
+    fn execute_op_batch(
+        &mut self,
+        batch: &OpBatch,
+        decorators: &mut DecoratorIterator,
+        op_offset: usize,
+    ) -> Result<(), ExecutionError> {
         let op_counts = batch.op_counts();
         let mut op_idx = 0;
         let mut group_idx = 0;
@@ -276,12 +288,9 @@ impl Process {
         let num_batch_groups = batch.num_groups().next_power_of_two();
 
         // execute operations in the batch one by one
-        for &op in batch.ops() {
-            if op.is_decorator() {
-                // if the operation is a decorator, it has no side effects and, thus, we don't
-                // need to decode it
-                self.execute_op(op)?;
-                continue;
+        for (i, &op) in batch.ops().iter().enumerate() {
+            while let Some(decorator) = decorators.next(i + op_offset) {
+                self.execute_decorator(decorator)?;
             }
 
             // decode and execute the operation

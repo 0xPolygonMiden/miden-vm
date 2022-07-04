@@ -34,7 +34,7 @@ impl Analyze {
 /// Contains info of a program. Used for program analysis. Contains the following fields:
 /// - total_vm_cycles (vm cycles it takes to execute the entire script)
 /// - total_noops (total noops executed as part of a program)
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ProgramInfo {
     total_vm_cycles: usize,
     total_noops: usize,

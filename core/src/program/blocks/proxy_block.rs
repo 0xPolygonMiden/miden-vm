@@ -7,7 +7,7 @@ use super::{fmt, Digest};
 /// Proxy blocks cannot be executed by the VM. They are used primarily to verify the integrity of
 /// a program's hash while keeping parts of the program secret.
 ///
-/// Hash of a proxy block is not computed but is rathe defined at instantiation time.
+/// Hash of a proxy block is not computed but is rather defined at instantiation time.
 #[derive(Clone, Debug)]
 pub struct Proxy {
     hash: Digest,

@@ -489,8 +489,6 @@ impl Decoder {
 
     /// Decodes a user operation (i.e., not a control flow operation).
     pub fn execute_user_op(&mut self, op: Operation, op_idx: usize) {
-        debug_assert!(!op.is_decorator(), "op is a decorator");
-
         // get the current clock cycle here (before the trace table is updated)
         let clk = self.trace_len();
 
@@ -806,10 +804,8 @@ pub fn build_op_group(ops: &[Operation]) -> Felt {
     let mut group = 0u64;
     let mut i = 0;
     for op in ops.iter() {
-        if !op.is_decorator() {
-            group |= (op.op_code().unwrap() as u64) << (Operation::OP_BITS * i);
-            i += 1;
-        }
+        group |= (op.op_code().unwrap() as u64) << (Operation::OP_BITS * i);
+        i += 1;
     }
     assert!(i <= super::OP_GROUP_SIZE, "too many ops");
     Felt::new(group)

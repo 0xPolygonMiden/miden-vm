@@ -3,7 +3,7 @@ pub use blocks::{combine_blocks, parse_code_blocks};
 use vm_core::{
     program::blocks::CodeBlock,
     utils::{collections::Vec, string::String},
-    AdviceInjector, Felt, FieldElement, Operation, StarkField,
+    DecoratorList, Felt, FieldElement, Operation, StarkField,
 };
 
 mod blocks;
@@ -21,6 +21,7 @@ fn parse_op_token(
     op: &Token,
     span_ops: &mut Vec<Operation>,
     num_proc_locals: u32,
+    decorators: &mut DecoratorList,
 ) -> Result<(), AssemblyError> {
     // based on the instruction, invoke the correct parser for the operation
     match op.parts()[0] {
@@ -108,14 +109,13 @@ fn parse_op_token(
         "popw" => io_ops::parse_popw(span_ops, op, num_proc_locals),
         "loadw" => io_ops::parse_loadw(span_ops, op, num_proc_locals),
         "storew" => io_ops::parse_storew(span_ops, op, num_proc_locals),
-
-        "adv" => io_ops::parse_adv_inject(span_ops, op),
+        "adv" => io_ops::parse_adv_inject(span_ops, op, decorators),
 
         // ----- cryptographic operations ---------------------------------------------------------
         "rphash" => crypto_ops::parse_rphash(span_ops, op),
         "rpperm" => crypto_ops::parse_rpperm(span_ops, op),
 
-        "mtree" => crypto_ops::parse_mtree(span_ops, op),
+        "mtree" => crypto_ops::parse_mtree(span_ops, op, decorators),
 
         // ----- catch all ------------------------------------------------------------------------
         _ => return Err(AssemblyError::invalid_op(op)),
