@@ -11,6 +11,7 @@ impl Process {
     ) -> Result<(), ExecutionError> {
         match decorator {
             Decorator::Advice(injector) => self.dec_advice(injector)?,
+            Decorator::AsmOp(_) => (),
         }
         Ok(())
     }

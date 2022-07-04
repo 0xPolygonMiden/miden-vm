@@ -49,6 +49,7 @@ type ModuleMap = BTreeMap<String, ProcMap>;
 pub struct Assembler {
     stdlib: StdLibrary,
     parsed_modules: ModuleMap,
+    in_debug_mode: bool,
 }
 
 impl Assembler {
@@ -56,9 +57,15 @@ impl Assembler {
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of [Assembler] instantiated with empty module map.
     pub fn new() -> Self {
+        Self::in_debug_mode(false)
+    }
+
+    /// Returns a new instance of [Assembler] instantiated with empty module map in debug mode.
+    pub fn in_debug_mode(in_debug_mode: bool) -> Self {
         Self {
             stdlib: StdLibrary::default(),
             parsed_modules: BTreeMap::new(),
+            in_debug_mode,
         }
     }
 
@@ -79,7 +86,9 @@ impl Assembler {
         // context
         while let Some(token) = tokens.read() {
             let proc = match token.parts()[0] {
-                Token::PROC | Token::EXPORT => Procedure::parse(&mut tokens, &context, false)?,
+                Token::PROC | Token::EXPORT => {
+                    Procedure::parse(&mut tokens, &context, false, self.in_debug_mode)?
+                }
                 _ => break,
             };
             context.add_local_proc(proc);
@@ -94,7 +103,7 @@ impl Assembler {
         }
 
         // parse script body and return the resulting script
-        let script_root = parse_script(&mut tokens, &context)?;
+        let script_root = parse_script(&mut tokens, &context, self.in_debug_mode)?;
         Ok(Script::new(script_root))
     }
 
@@ -195,7 +204,9 @@ impl Assembler {
         // context
         while let Some(token) = tokens.read() {
             let proc = match token.parts()[0] {
-                Token::PROC | Token::EXPORT => Procedure::parse(&mut tokens, &context, true)?,
+                Token::PROC | Token::EXPORT => {
+                    Procedure::parse(&mut tokens, &context, true, self.in_debug_mode)?
+                }
                 _ => break,
             };
             context.add_local_proc(proc);
@@ -236,6 +247,7 @@ impl Default for Assembler {
 fn parse_script(
     tokens: &mut TokenStream,
     context: &AssemblyContext,
+    in_debug_mode: bool,
 ) -> Result<CodeBlock, AssemblyError> {
     let script_start = tokens.pos();
     // consume the 'begin' token
@@ -244,7 +256,7 @@ fn parse_script(
     tokens.advance();
 
     // parse the script body
-    let root = parse_code_blocks(tokens, context, 0)?;
+    let root = parse_code_blocks(tokens, context, 0, in_debug_mode)?;
 
     // consume the 'end' token
     match tokens.read() {

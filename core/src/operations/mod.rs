@@ -1,7 +1,7 @@
 use super::Felt;
 use core::fmt;
 mod decorators;
-pub use decorators::{AdviceInjector, Decorator, DecoratorIterator, DecoratorList};
+pub use decorators::{AdviceInjector, AsmOpInfo, Decorator, DecoratorIterator, DecoratorList};
 
 // OPERATIONS
 // ================================================================================================
