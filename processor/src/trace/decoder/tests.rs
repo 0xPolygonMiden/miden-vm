@@ -1,6 +1,6 @@
 use super::{
     super::{
-        utils::{build_trace_from_block, build_trace_from_ops},
+        tests::{build_trace_from_block, build_trace_from_ops},
         LookupTableRow, Trace, NUM_RAND_ROWS,
     },
     Felt,

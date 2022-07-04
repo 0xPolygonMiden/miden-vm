@@ -1,7 +1,9 @@
 use super::{
-    decoder::AuxTraceHints as DecoderAuxTraceHints, hasher::AuxTraceHints as HasherAuxTraceHints,
-    range::AuxTraceHints as RangeCheckerAuxTraceHints, stack::AuxTraceHints as StackAuxTraceHints,
-    Digest, Felt, FieldElement, Process, StackTopState, Vec,
+    decoder::AuxTraceHints as DecoderAuxTraceHints,
+    hasher::AuxTraceBuilder as HasherAuxTraceBuilder,
+    range::AuxTraceHints as RangeCheckerAuxTraceHints,
+    stack::AuxTraceBuilder as StackAuxTraceBuilder, Digest, Felt, FieldElement, Process,
+    StackTopState, Vec,
 };
 use vm_core::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
@@ -17,9 +19,10 @@ mod utils;
 pub use utils::{AuxColumnBuilder, LookupTableRow, TraceFragment};
 
 mod decoder;
-mod hasher;
 mod range;
-mod stack;
+
+#[cfg(test)]
+mod tests;
 
 // CONSTANTS
 // ================================================================================================
@@ -37,9 +40,9 @@ type RandomCoin = vm_core::utils::RandomCoin<Felt, vm_core::hasher::Hasher>;
 
 pub struct AuxTraceHints {
     pub(crate) decoder: DecoderAuxTraceHints,
-    pub(crate) stack: StackAuxTraceHints,
+    pub(crate) stack: StackAuxTraceBuilder,
     pub(crate) range: RangeCheckerAuxTraceHints,
-    pub(crate) hasher: HasherAuxTraceHints,
+    pub(crate) hasher: HasherAuxTraceBuilder,
 }
 
 /// Execution trace which is generated when a program is executed on the VM.
@@ -192,8 +195,10 @@ impl Trace for ExecutionTrace {
         );
 
         // add stack's running product columns
-        let stack_aux_columns =
-            stack::build_aux_columns(&self.main_trace, &self.aux_trace_hints.stack, rand_elements);
+        let stack_aux_columns = self
+            .aux_trace_hints
+            .stack
+            .build_aux_columns(&self.main_trace, rand_elements);
 
         // add the range checker's running product columns
         let range_aux_columns = range::build_aux_columns(
@@ -204,11 +209,10 @@ impl Trace for ExecutionTrace {
         );
 
         // add hasher's running product columns
-        let hasher_aux_columns = hasher::build_aux_columns(
-            &self.main_trace,
-            &self.aux_trace_hints.hasher,
-            rand_elements,
-        );
+        let hasher_aux_columns = self
+            .aux_trace_hints
+            .hasher
+            .build_aux_columns(&self.main_trace, rand_elements);
 
         // combine all auxiliary columns into a single vector
         let mut aux_columns = decoder_aux_columns
@@ -305,9 +309,9 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
 
     let aux_trace_hints = AuxTraceHints {
         decoder: decoder_trace.aux_trace_hints,
-        stack: stack_trace.aux_trace_hints,
+        stack: stack_trace.aux_builder,
         range: range_check_trace.aux_trace_hints,
-        hasher: aux_table_trace.hasher_aux_hints,
+        hasher: aux_table_trace.hasher_aux_builder,
     };
 
     (trace, aux_trace_hints)

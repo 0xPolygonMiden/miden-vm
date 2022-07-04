@@ -1,5 +1,5 @@
 use super::{
-    init_state_from_words, AuxTraceHints, Felt, Hasher, HasherState, Selectors, SiblingTableRow,
+    init_state_from_words, AuxTraceBuilder, Felt, Hasher, HasherState, Selectors, SiblingTableRow,
     SiblingTableUpdate, TraceFragment, Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD,
     RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
 };
@@ -303,8 +303,8 @@ fn hasher_update_merkle_root() {
 
 /// Builds an execution trace for the provided hasher. The trace must have the number of rows
 /// specified by num_rows.
-fn build_trace(hasher: Hasher, num_rows: usize) -> (Vec<Vec<Felt>>, AuxTraceHints) {
-    let aux_hints = hasher.aux_hints.clone();
+fn build_trace(hasher: Hasher, num_rows: usize) -> (Vec<Vec<Felt>>, AuxTraceBuilder) {
+    let aux_hints = hasher.aux_trace.clone();
     let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();

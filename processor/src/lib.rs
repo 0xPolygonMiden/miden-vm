@@ -73,7 +73,7 @@ pub struct DecoderTrace {
 
 pub struct StackTrace {
     trace: [Vec<Felt>; STACK_TRACE_WIDTH],
-    aux_trace_hints: stack::AuxTraceHints,
+    aux_builder: stack::AuxTraceBuilder,
 }
 
 pub struct RangeCheckTrace {
@@ -83,7 +83,7 @@ pub struct RangeCheckTrace {
 
 pub struct AuxTableTrace {
     trace: [Vec<Felt>; AUX_TABLE_WIDTH],
-    hasher_aux_hints: hasher::AuxTraceHints,
+    hasher_aux_builder: hasher::AuxTraceBuilder,
 }
 
 // EXECUTOR

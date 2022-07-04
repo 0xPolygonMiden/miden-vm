@@ -2,18 +2,34 @@ use super::{
     super::trace::{AuxColumnBuilder, LookupTableRow},
     Felt, FieldElement, Vec, Word,
 };
+use winterfell::Matrix;
 
-// AUXILIARY TRACE HINTS
+// AUXILIARY TRACE BUILDER
 // ================================================================================================
 
 /// TODO: add docs
 #[derive(Debug, Clone, Default)]
-pub struct AuxTraceHints {
+pub struct AuxTraceBuilder {
     pub(super) sibling_hints: Vec<(usize, SiblingTableUpdate)>,
     pub(super) sibling_rows: Vec<SiblingTableRow>,
 }
 
-impl AuxTraceHints {
+impl AuxTraceBuilder {
+    // COLUMN TRACE CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+
+    /// Builds and returns hasher auxiliary trace columns. Currently this consists of a single
+    /// column p1 describing states of the hasher sibling table (used for Merkle root update
+    /// computation).
+    pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
+        &self,
+        main_trace: &Matrix<Felt>,
+        rand_elements: &[E],
+    ) -> Vec<Vec<E>> {
+        let p1 = self.build_aux_column(main_trace, rand_elements);
+        vec![p1]
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -31,7 +47,7 @@ impl AuxTraceHints {
     }
 }
 
-impl AuxColumnBuilder<SiblingTableUpdate, SiblingTableRow> for AuxTraceHints {
+impl AuxColumnBuilder<SiblingTableUpdate, SiblingTableRow> for AuxTraceBuilder {
     /// Returns a list of rows which were added to and then removed from the sibling table.
     ///
     /// The order of the rows in the list is the same as the order in which the rows were added to

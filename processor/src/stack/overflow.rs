@@ -1,6 +1,5 @@
 use super::{
-    super::trace::{AuxColumnBuilder, LookupTableRow},
-    BTreeMap, Felt, FieldElement, Vec, ZERO,
+    super::trace::LookupTableRow, AuxTraceBuilder, BTreeMap, Felt, FieldElement, Vec, ZERO,
 };
 
 // OVERFLOW TABLE
@@ -124,10 +123,10 @@ impl OverflowTable {
     // HINT GENERATION
     // --------------------------------------------------------------------------------------------
 
-    /// Converts this [OverflowTable] into set of hints which can be used in construction of the
-    /// auxiliary trace column describing the state of the overflow table at every cycle.
-    pub fn into_hints(self) -> AuxTraceHints {
-        AuxTraceHints {
+    /// Converts this [OverflowTable] into an auxiliary trace builder which can be used to construct
+    /// the auxiliary trace column describing the state of the overflow table at every cycle.
+    pub fn into_aux_builder(self) -> AuxTraceBuilder {
+        AuxTraceBuilder {
             overflow_hints: self.update_trace,
             overflow_table_rows: self.all_rows,
         }
@@ -181,51 +180,4 @@ impl LookupTableRow for OverflowTableRow {
 pub enum OverflowTableUpdate {
     RowInserted(u32),
     RowRemoved(u32),
-}
-
-// AUXILIARY TRACE HINTS
-// ================================================================================================
-
-/// Contains information which can be used to simplify construction of execution traces of
-/// stack-related auxiliary trace segment columns (used in multiset checks).
-pub struct AuxTraceHints {
-    overflow_hints: Vec<(usize, OverflowTableUpdate)>,
-    overflow_table_rows: Vec<OverflowTableRow>,
-}
-
-impl AuxColumnBuilder<OverflowTableUpdate, OverflowTableRow> for AuxTraceHints {
-    /// Returns a list of rows which were added to and then removed from the stack overflow table.
-    ///
-    /// The order of the rows in the list is the same as the order in which the rows were added to
-    /// the table.
-    fn get_table_rows(&self) -> &[OverflowTableRow] {
-        &self.overflow_table_rows
-    }
-
-    /// Returns hints which describe how the stack overflow table was updated during program
-    /// execution. Each update hint is accompanied by a clock cycle at which the update happened.
-    ///
-    /// Internally, each update hint also contains an index of the row into the full list of rows
-    /// which was either added or removed.
-    fn get_table_hints(&self) -> &[(usize, OverflowTableUpdate)] {
-        &self.overflow_hints
-    }
-
-    /// Returns the value by which the running product column should be multiplied for the provided
-    /// hint value.
-    fn get_multiplicand<E: FieldElement<BaseField = Felt>>(
-        &self,
-        hint: OverflowTableUpdate,
-        row_values: &[E],
-        inv_row_values: &[E],
-    ) -> E {
-        match hint {
-            OverflowTableUpdate::RowInserted(inserted_row_idx) => {
-                row_values[inserted_row_idx as usize]
-            }
-            OverflowTableUpdate::RowRemoved(removed_row_idx) => {
-                inv_row_values[removed_row_idx as usize]
-            }
-        }
-    }
 }

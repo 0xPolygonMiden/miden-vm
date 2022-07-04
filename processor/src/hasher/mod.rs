@@ -11,8 +11,8 @@ use vm_core::{
 mod trace;
 use trace::HasherTrace;
 
-mod aux_hints;
-pub use aux_hints::{AuxTraceHints, SiblingTableRow, SiblingTableUpdate};
+mod aux_trace;
+pub use aux_trace::{AuxTraceBuilder, SiblingTableRow, SiblingTableUpdate};
 
 #[cfg(test)]
 mod tests;
@@ -59,7 +59,7 @@ type HasherState = [Felt; STATE_WIDTH];
 /// update it is 16 * path.len(), since we need to perform two path verifications for each update.
 pub struct Hasher {
     trace: HasherTrace,
-    aux_hints: AuxTraceHints,
+    aux_trace: AuxTraceBuilder,
 }
 
 impl Hasher {
@@ -69,7 +69,7 @@ impl Hasher {
     pub fn new() -> Self {
         Self {
             trace: HasherTrace::new(),
-            aux_hints: AuxTraceHints::default(),
+            aux_trace: AuxTraceBuilder::default(),
         }
     }
 
@@ -82,8 +82,8 @@ impl Hasher {
     }
 
     /// TODO: add docs
-    pub fn aux_trace_hints(&self) -> &AuxTraceHints {
-        &self.aux_hints
+    pub fn aux_trace_builder(&self) -> &AuxTraceBuilder {
+        &self.aux_trace
     }
 
     // HASHING METHODS
@@ -332,11 +332,11 @@ impl Hasher {
         let step = self.trace.trace_len();
         match context {
             MerklePathContext::MrUpdateOld => {
-                self.aux_hints
+                self.aux_trace
                     .sibling_added(step, Felt::new(index), sibling);
             }
             MerklePathContext::MrUpdateNew => {
-                self.aux_hints.sibling_removed(step, depth);
+                self.aux_trace.sibling_removed(step, depth);
             }
             _ => (),
         }

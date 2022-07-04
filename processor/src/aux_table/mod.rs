@@ -93,7 +93,7 @@ impl AuxTable {
         );
 
         // TODO: avoid clone
-        let hasher_aux_hints = self.hasher.aux_trace_hints().clone();
+        let hasher_aux_builder = self.hasher.aux_trace_builder().clone();
 
         // Allocate columns for the trace of the auxiliary table.
         // note: it may be possible to optimize this by initializing with Felt::zeroed_vector,
@@ -109,7 +109,7 @@ impl AuxTable {
 
         AuxTableTrace {
             trace,
-            hasher_aux_hints,
+            hasher_aux_builder,
         }
     }
 
