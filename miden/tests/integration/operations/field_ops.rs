@@ -303,10 +303,37 @@ fn pow2() {
 }
 
 #[test]
+fn pow2_unsafe() {
+    let asm_op = "pow2.unsafe";
+
+    let value = 64;
+
+    // This tests that when the `pow2.unsafe` assembly instruction is executed on
+    // out-of-bounds input it does not fail.
+
+    // --- value = 64 > 63 -------------------------------------------------------------
+    let test = build_op_test!(asm_op, &[value]);
+    assert!(test.execute().is_ok());
+
+    // --- random u64 values > 63 ------------------------------------------------------
+    let value = rand_value::<u64>() as u32;
+    let test = build_op_test!(asm_op, &[value as u64]);
+    assert!(test.execute().is_ok());
+}
+
+#[test]
 fn pow2_fail() {
     let asm_op = "pow2";
 
-    build_op_test!(asm_op, &[64]).expect_error(TestError::ExecutionError("InvalidPowerOfTwo"));
+    build_op_test!(asm_op, &[64]).expect_error(TestError::ExecutionError("FailedAssertion"));
+}
+
+#[test]
+fn pow2_b_fail() {
+    let asm_op = "pow2.5";
+
+    let value = 5;
+    build_op_test!(asm_op, &[value]).expect_error(TestError::AssemblyError("parameter"));
 }
 
 // FIELD OPS BOOLEAN - MANUAL TESTS
