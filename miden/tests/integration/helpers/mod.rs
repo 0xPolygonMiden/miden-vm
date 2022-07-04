@@ -37,6 +37,7 @@ pub enum TestError<'a> {
 pub struct Test {
     pub source: String,
     pub inputs: ProgramInputs,
+    pub in_debug_mode: bool,
 }
 
 impl Test {
@@ -44,10 +45,11 @@ impl Test {
     // --------------------------------------------------------------------------------------------
 
     /// Creates the simplest possible new test, with only a source string and no inputs.
-    pub fn new(source: &str) -> Self {
+    pub fn new(source: &str, in_debug_mode: bool) -> Self {
         Test {
             source: String::from(source),
             inputs: ProgramInputs::none(),
+            in_debug_mode,
         }
     }
 
@@ -130,7 +132,7 @@ impl Test {
 
     /// Compiles a test's source and returns the resulting Script.
     pub fn compile(&self) -> Script {
-        let assembler = assembly::Assembler::new();
+        let assembler = assembly::Assembler::with_debug(self.in_debug_mode);
         assembler
             .compile_script(&self.source)
             .expect("Failed to compile test source.")

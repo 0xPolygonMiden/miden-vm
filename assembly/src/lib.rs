@@ -57,11 +57,11 @@ impl Assembler {
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of [Assembler] instantiated with empty module map.
     pub fn new() -> Self {
-        Self::in_debug_mode(false)
+        Self::with_debug(false)
     }
 
     /// Returns a new instance of [Assembler] instantiated with empty module map in debug mode.
-    pub fn in_debug_mode(in_debug_mode: bool) -> Self {
+    pub fn with_debug(in_debug_mode: bool) -> Self {
         Self {
             stdlib: StdLibrary::default(),
             parsed_modules: BTreeMap::new(),
