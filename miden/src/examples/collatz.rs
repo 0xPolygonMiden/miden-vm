@@ -1,5 +1,4 @@
 use crate::Example;
-use log::debug;
 use miden::{assembly, BaseElement, FieldElement, ProgramInputs, StarkField};
 
 // EXAMPLE BUILDER
@@ -33,7 +32,7 @@ pub fn get_example(start_value: usize) -> Example {
     )
     .unwrap();
 
-    debug!(
+    println!(
         "Generated a program to compute Collatz sequence; expected result: {}",
         expected_result
     );

@@ -1,4 +1,3 @@
-use log::debug;
 use miden::{ProgramInputs, ProofOptions, Script, StarkProof};
 use std::time::Instant;
 use structopt::StructOpt;
@@ -50,8 +49,8 @@ impl ExampleOptions {
         }
     }
 
-    pub fn execute(&self) {
-        debug!("============================================================");
+    pub fn execute(&self) -> Result<(), String> {
+        println!("============================================================");
 
         let proof_options = self.get_proof_options();
 
@@ -67,23 +66,20 @@ impl ExampleOptions {
             pub_inputs,
             expected_result,
         } = example;
-        #[cfg(feature = "std")]
-        debug!("--------------------------------");
+        println!("--------------------------------");
 
         // execute the program and generate the proof of execution
-        #[cfg(feature = "std")]
         let now = Instant::now();
         let (outputs, proof) =
             miden::prove(&program, &inputs, num_outputs, &proof_options).unwrap();
-        debug!("--------------------------------");
+        println!("--------------------------------");
 
-        #[cfg(feature = "std")]
-        debug!(
+        println!(
             "Executed program in {} ms",
             //hex::encode(program.hash()), // TODO: include into message
             now.elapsed().as_millis()
         );
-        debug!("Program output: {:?}", outputs);
+        println!("Program output: {:?}", outputs);
         assert_eq!(
             expected_result, outputs,
             "Program result was computed incorrectly"
@@ -91,21 +87,23 @@ impl ExampleOptions {
 
         // serialize the proof to see how big it is
         let proof_bytes = proof.to_bytes();
-        debug!("Execution proof size: {} KB", proof_bytes.len() / 1024);
-        debug!(
+        println!("Execution proof size: {} KB", proof_bytes.len() / 1024);
+        println!(
             "Execution proof security: {} bits",
             proof.security_level(true)
         );
-        debug!("--------------------------------");
+        println!("--------------------------------");
 
         // verify that executing a program with a given hash and given inputs
         // results in the expected output
         let proof = StarkProof::from_bytes(&proof_bytes).unwrap();
         let now = Instant::now();
         match miden::verify(program.hash(), &pub_inputs, &outputs, proof) {
-            Ok(_) => debug!("Execution verified in {} ms", now.elapsed().as_millis()),
-            Err(err) => debug!("Failed to verify execution: {}", err),
+            Ok(_) => println!("Execution verified in {} ms", now.elapsed().as_millis()),
+            Err(err) => println!("Failed to verify execution: {}", err),
         }
+
+        Ok(())
     }
 }
 

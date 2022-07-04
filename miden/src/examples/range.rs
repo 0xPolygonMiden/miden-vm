@@ -1,5 +1,4 @@
 use crate::Example;
-use log::debug;
 use miden::{assembly, Program, ProgramInputs};
 use rand_utils::rand_vector;
 
@@ -13,7 +12,7 @@ pub fn get_example(num_values: usize) -> Example {
     // generate the program and expected results
     let program = generate_range_check_program(num_values);
     let expected_result = vec![count_63_bit_values(&values)];
-    debug!(
+    println!(
         "Generated a program to range-check {} values; expected result: {}",
         num_values, expected_result[0]
     );
