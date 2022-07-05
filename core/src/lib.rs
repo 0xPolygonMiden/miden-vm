@@ -97,7 +97,7 @@ pub const TRACE_WIDTH: usize = AUX_TABLE_OFFSET + AUX_TABLE_WIDTH;
 // ------------------------------------------------------------------------------------------------
 
 //      decoder         stack       range checks      hasher
-//    (3 columns)     (1 column)     (2 columns)    (1 columns)
+//    (3 columns)     (1 column)     (3 columns)    (1 columns)
 // ├───────────────┴──────────────┴──────────────┴───────────────┤
 
 // Decoder auxiliary columns
@@ -114,7 +114,7 @@ pub const STACK_AUX_TRACE_RANGE: Range<usize> =
 
 // Range check auxiliary columns
 pub const RANGE_CHECK_AUX_TRACE_OFFSET: usize = STACK_AUX_TRACE_RANGE.end;
-pub const RANGE_CHECK_AUX_TRACE_WIDTH: usize = 2;
+pub const RANGE_CHECK_AUX_TRACE_WIDTH: usize = 3;
 pub const RANGE_CHECK_AUX_TRACE_RANGE: Range<usize> =
     range(RANGE_CHECK_AUX_TRACE_OFFSET, RANGE_CHECK_AUX_TRACE_WIDTH);
 

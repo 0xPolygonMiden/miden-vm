@@ -5,6 +5,9 @@ use vm_core::utils::uninit_vector;
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
 
+mod request;
+use request::CycleRangeChecks;
+
 #[cfg(test)]
 mod tests;
 
@@ -56,6 +59,10 @@ mod tests;
 pub struct RangeChecker {
     /// Tracks lookup count for each checked value.
     lookups: BTreeMap<u16, usize>,
+    // Range check lookups performed by all user operations, grouped and sorted by clock cycle. Each
+    // cycle is mapped to a single CycleRangeChecks instance which includes lookups from the stack,
+    // memory, or both.
+    cycle_range_checks: BTreeMap<usize, CycleRangeChecks>,
 }
 
 #[allow(dead_code)]
@@ -69,7 +76,10 @@ impl RangeChecker {
         // are initialized. this simplifies trace table building later on.
         lookups.insert(0, 0);
         lookups.insert(u16::MAX, 0);
-        Self { lookups }
+        Self {
+            lookups,
+            cycle_range_checks: BTreeMap::new(),
+        }
     }
 
     // PUBLIC ACCESSORS
@@ -85,7 +95,7 @@ impl RangeChecker {
 
     // TRACE MUTATORS
     // --------------------------------------------------------------------------------------------
-    /// Adds the specified value to the trace of this range checker.
+    /// Adds the specified value to the trace of this range checker's lookups.
     pub fn add_value(&mut self, value: u16) {
         self.lookups
             .entry(value as u16)
@@ -93,10 +103,31 @@ impl RangeChecker {
             .or_insert(1);
     }
 
-    /// Adds the provided memory range check values at the specified clock cycle.
-    pub fn add_mem_checks(&mut self, _clk: usize, values: &[u16; 2]) {
+    /// Adds range check lookups from the [Stack] to this [RangeChecker] instance. Stack lookups are
+    /// guaranteed to be added at unique clock cycles, since operations are sequential and no range
+    /// check lookups are added before or during the stack operation processing.
+    pub fn add_stack_checks(&mut self, clk: usize, values: &[u16; 4]) {
         self.add_value(values[0]);
         self.add_value(values[1]);
+        self.add_value(values[2]);
+        self.add_value(values[3]);
+
+        // Stack operations are added before memory operations at unique clock cycles.
+        self.cycle_range_checks
+            .insert(clk, CycleRangeChecks::new_from_stack(values));
+    }
+
+    /// Adds range check lookups from [Memory] to this [RangeChecker] instance. Memory lookups are
+    /// always added after all stack lookups have completed, since they are processed during trace
+    /// finalization.
+    pub fn add_mem_checks(&mut self, clk: usize, values: &[u16; 2]) {
+        self.add_value(values[0]);
+        self.add_value(values[1]);
+
+        self.cycle_range_checks
+            .entry(clk)
+            .and_modify(|entry| entry.add_memory_checks(values))
+            .or_insert_with(|| CycleRangeChecks::new_from_memory(values));
     }
 
     // EXECUTION TRACE GENERATION
@@ -196,7 +227,11 @@ impl RangeChecker {
 
         RangeCheckTrace {
             trace,
-            aux_trace_builder: AuxTraceBuilder::new(row_flags, start_16bit),
+            aux_trace_builder: AuxTraceBuilder::new(
+                self.cycle_range_checks,
+                row_flags,
+                start_16bit,
+            ),
         }
     }
 

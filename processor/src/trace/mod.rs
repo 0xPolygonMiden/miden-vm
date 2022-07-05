@@ -16,7 +16,7 @@ use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
 use vm_core::StarkField;
 
 mod utils;
-pub use utils::{AuxColumnBuilder, LookupTableRow, TraceFragment};
+pub use utils::{build_lookup_table_row_values, AuxColumnBuilder, LookupTableRow, TraceFragment};
 
 mod decoder;
 
