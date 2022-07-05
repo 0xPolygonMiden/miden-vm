@@ -45,18 +45,13 @@ fn memory_aux_trace() {
     let (aux_table_trace, trace_len) = build_trace(&stack, operations);
     let memory_trace_len = 1;
 
-    // Validate that the table was padded correctly.
-    let padding_end = trace_len - memory_trace_len;
     // Skip the hash cycle created by the span block when building the trace.
-    validate_padding(&aux_table_trace, HASH_CYCLE_LEN, padding_end);
-
     // Check the memory trace.
-    validate_memory_trace(
-        &aux_table_trace,
-        padding_end,
-        padding_end + memory_trace_len,
-        2,
-    );
+    let memory_end = HASH_CYCLE_LEN + memory_trace_len;
+    validate_memory_trace(&aux_table_trace, HASH_CYCLE_LEN, memory_end, 2);
+
+    // Validate that the table was padded correctly.
+    validate_padding(&aux_table_trace, memory_end, trace_len);
 }
 
 #[test]
@@ -81,12 +76,12 @@ fn stacked_aux_trace() {
     let bitwise_end = hasher_end + OP_CYCLE_LEN;
     validate_bitwise_trace(&aux_table_trace, hasher_end, bitwise_end);
 
-    // Validate that the table was padded correctly.
-    let padding_end = trace_len - memory_len;
-    validate_padding(&aux_table_trace, bitwise_end, padding_end);
-
     // expect 1 row of memory trace
-    validate_memory_trace(&aux_table_trace, padding_end, padding_end + memory_len, 0);
+    let memory_end = bitwise_end + memory_len;
+    validate_memory_trace(&aux_table_trace, bitwise_end, memory_end, 0);
+
+    // Validate that the table was padded correctly.
+    validate_padding(&aux_table_trace, memory_end, trace_len);
 }
 
 // HELPER FUNCTIONS
@@ -166,22 +161,6 @@ fn validate_bitwise_trace(aux_table: &AuxTableTrace, start: usize, end: usize) {
     }
 }
 
-/// Checks that the middle section of the auxiliary trace table before the memory coprocessor is
-/// padded and has the correct selectors.
-fn validate_padding(aux_table: &AuxTableTrace, start: usize, end: usize) {
-    for row in start..end {
-        // selectors
-        assert_eq!(Felt::ONE, aux_table[0][row]);
-        assert_eq!(Felt::ONE, aux_table[1][row]);
-        assert_eq!(Felt::ZERO, aux_table[2][row]);
-
-        // padding
-        aux_table.iter().skip(3).for_each(|column| {
-            assert_eq!(Felt::ZERO, column[row]);
-        });
-    }
-}
-
 /// Validate the bitwise trace output by the storew operation. The full memory trace is tested in
 /// the Memory module, so this just tests the AuxTableTrace selectors, the initial columns
 /// of the memory trace, and the final column after the memory trace.
@@ -190,7 +169,7 @@ fn validate_memory_trace(aux_table: &AuxTableTrace, start: usize, end: usize, ad
         // The selectors in the first row should match the memory selectors
         assert_eq!(Felt::ONE, aux_table[0][row]);
         assert_eq!(Felt::ONE, aux_table[1][row]);
-        assert_eq!(Felt::ONE, aux_table[2][row]);
+        assert_eq!(Felt::ZERO, aux_table[2][row]);
 
         // the expected start of the memory trace should hold the memory ctx and addr
         assert_eq!(Felt::ZERO, aux_table[3][row]);
@@ -198,5 +177,21 @@ fn validate_memory_trace(aux_table: &AuxTableTrace, start: usize, end: usize, ad
 
         // the final column should be padded
         assert_eq!(Felt::ZERO, aux_table[17][row]);
+    }
+}
+
+/// Checks that the final section of the auxiliary trace table after the memory co-processor is
+/// padded and has the correct selectors.
+fn validate_padding(aux_table: &AuxTableTrace, start: usize, end: usize) {
+    for row in start..end {
+        // selectors
+        assert_eq!(Felt::ONE, aux_table[0][row]);
+        assert_eq!(Felt::ONE, aux_table[1][row]);
+        assert_eq!(Felt::ONE, aux_table[2][row]);
+
+        // padding
+        aux_table.iter().skip(3).for_each(|column| {
+            assert_eq!(Felt::ZERO, column[row]);
+        });
     }
 }

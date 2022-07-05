@@ -1,11 +1,5 @@
-use crate::{
-    range::{RangeCheckMap, RangeCheckUpdate},
-    utils::split_u32_into_u16,
-};
-
-use super::{
-    Felt, FieldElement, Memory, MemoryTrace, StarkField, Word, MEMORY_TRACE_WIDTH, ONE, ZERO,
-};
+use super::{Felt, FieldElement, Memory, StarkField, TraceFragment, Word, ONE, ZERO};
+use vm_core::MEMORY_TRACE_WIDTH;
 
 #[test]
 fn mem_init() {
@@ -50,10 +44,7 @@ fn mem_read() {
     assert_eq!(4, mem.trace_len());
 
     // check generated trace; rows should be sorted by address and then clock cycle
-    let MemoryTrace {
-        trace,
-        range_checks,
-    } = mem.into_trace();
+    let trace = build_trace(mem, 4);
 
     // address 0
     let expected = build_trace_row(addr0, 1, [ZERO; 4], [ZERO; 4], [ZERO; MEMORY_TRACE_WIDTH]);
@@ -73,10 +64,6 @@ fn mem_read() {
     let expected = build_trace_row(addr3, 2, [ZERO; 4], [ZERO; 4], expected);
     expected_deltas.push(1); // addr delta: addr3 - addr2
     assert_eq!(expected, read_trace_row(&trace, 3));
-
-    // Check the range check lookups.
-    let expected = build_range_checks(&expected_deltas);
-    assert_eq!(expected, range_checks);
 }
 
 #[test]
@@ -119,10 +106,7 @@ fn mem_write() {
     assert_eq!(4, mem.trace_len());
 
     // check generated trace; rows should be sorted by address and then clock cycle
-    let MemoryTrace {
-        trace,
-        range_checks,
-    } = mem.into_trace();
+    let trace = build_trace(mem, 4);
 
     // address 0
     let expected = build_trace_row(addr0, 1, [ZERO; 4], value1, [ZERO; MEMORY_TRACE_WIDTH]);
@@ -142,10 +126,6 @@ fn mem_write() {
     let expected = build_trace_row(addr2, 2, [ZERO; 4], value5, expected);
     expected_deltas.push(1); // addr delta: addr2 - addr1
     assert_eq!(expected, read_trace_row(&trace, 3));
-
-    // Check the range check lookups.
-    let expected = build_range_checks(&expected_deltas);
-    assert_eq!(expected, range_checks);
 }
 
 #[test]
@@ -195,10 +175,7 @@ fn mem_write_read() {
     let _ = mem.read(addr5);
 
     // check generated trace; rows should be sorted by address and then clock cycle
-    let MemoryTrace {
-        trace,
-        range_checks,
-    } = mem.into_trace();
+    let trace = build_trace(mem, 9);
 
     // address 2
     let expected = build_trace_row(addr2, 2, [ZERO; 4], value4, [ZERO; MEMORY_TRACE_WIDTH]);
@@ -237,10 +214,6 @@ fn mem_write_read() {
     let expected = build_trace_row(addr5, 9, value2, value2, expected);
     expected_deltas.push(1); // clk delta: 9 - 7 - 1
     assert_eq!(expected, read_trace_row(&trace, 8));
-
-    // Check the range check lookups.
-    let expected = build_range_checks(&expected_deltas);
-    assert_eq!(expected, range_checks);
 }
 
 #[test]
@@ -281,6 +254,17 @@ fn mem_get_values_at() {
 
 // HELPER FUNCTIONS
 // ================================================================================================
+
+/// Builds a trace of the specified length and fills it with data from the provided Memory instance.
+fn build_trace(mem: Memory, num_rows: usize) -> Vec<Vec<Felt>> {
+    let mut trace = (0..MEMORY_TRACE_WIDTH)
+        .map(|_| vec![Felt::ZERO; num_rows])
+        .collect::<Vec<_>>();
+    let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
+    mem.fill_trace(&mut fragment);
+
+    trace
+}
 
 fn read_trace_row(trace: &[Vec<Felt>], step: usize) -> [Felt; MEMORY_TRACE_WIDTH] {
     let mut row = [ZERO; MEMORY_TRACE_WIDTH];
@@ -326,17 +310,4 @@ fn build_trace_row(
     }
 
     row
-}
-
-/// Builds a map of the expected range check lookups from the provided memory delta values.
-fn build_range_checks(deltas: &[u64]) -> RangeCheckMap {
-    let mut lookups = RangeCheckMap::new();
-
-    for delta in deltas.iter() {
-        let (d1, d0) = split_u32_into_u16(*delta);
-        lookups.add_value(d0);
-        lookups.add_value(d1);
-    }
-
-    lookups
 }

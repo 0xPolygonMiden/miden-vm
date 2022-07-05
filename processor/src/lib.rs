@@ -13,9 +13,9 @@ use vm_core::{
     },
     utils::collections::{BTreeMap, Vec},
     AdviceInjector, Decorator, DecoratorIterator, Felt, FieldElement, Operation, ProgramInputs,
-    StackTopState, StarkField, Word, AUX_TABLE_WIDTH, DECODER_TRACE_WIDTH, MEMORY_TRACE_WIDTH,
-    MIN_STACK_DEPTH, MIN_TRACE_LEN, NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH,
-    STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
+    StackTopState, StarkField, Word, AUX_TABLE_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH,
+    MIN_TRACE_LEN, NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
+    SYS_TRACE_WIDTH, ZERO,
 };
 
 mod decorators;
@@ -32,7 +32,7 @@ mod stack;
 use stack::Stack;
 
 mod range;
-use range::{RangeCheckMap, RangeChecker};
+use range::RangeChecker;
 
 mod hasher;
 use hasher::Hasher;
@@ -82,11 +82,6 @@ pub struct RangeCheckTrace {
 }
 
 type AuxTableTrace = [Vec<Felt>; AUX_TABLE_WIDTH];
-
-pub struct MemoryTrace {
-    trace: [Vec<Felt>; MEMORY_TRACE_WIDTH],
-    range_checks: RangeCheckMap,
-}
 
 // EXECUTOR
 // ================================================================================================

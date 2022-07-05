@@ -253,7 +253,7 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     assert_eq!(clk, stack.trace_len(), "inconsistent stack trace lengths");
 
     // Add the range checks required by the auxiliary table to the range checker.
-    range.add_lookups(aux_table.get_range_checks());
+    aux_table.append_range_checks(&mut range);
 
     // Get the trace length required to hold all execution trace steps.
     let max_len = [clk, range.trace_len(), aux_table.trace_len()]
