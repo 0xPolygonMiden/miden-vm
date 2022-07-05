@@ -3,6 +3,7 @@ use rand_utils::rand_array;
 use vm_core::{program::blocks::CodeBlock, Operation, ProgramInputs, Word, ONE, ZERO};
 
 mod hasher;
+mod range;
 mod stack;
 
 // TEST HELPERS

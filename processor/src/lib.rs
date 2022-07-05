@@ -78,7 +78,7 @@ pub struct StackTrace {
 
 pub struct RangeCheckTrace {
     trace: [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH],
-    aux_trace_hints: range::AuxTraceHints,
+    aux_trace_builder: range::AuxTraceBuilder,
 }
 
 pub struct AuxTableTrace {

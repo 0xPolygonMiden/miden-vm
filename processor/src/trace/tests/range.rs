@@ -1,10 +1,9 @@
-use super::{
-    super::NUM_RAND_ROWS,
-    super::{tests::build_trace_from_ops, Trace},
-    Felt, FieldElement, P0_COL_IDX, P1_COL_IDX,
-};
+use super::{super::NUM_RAND_ROWS, build_trace_from_ops, Felt, FieldElement, Trace};
 use rand_utils::rand_array;
-use vm_core::{Operation, AUX_TRACE_RAND_ELEMENTS};
+use vm_core::{
+    range::{P0_COL_IDX, P1_COL_IDX},
+    Operation, AUX_TRACE_RAND_ELEMENTS,
+};
 
 #[test]
 fn p0_trace() {
