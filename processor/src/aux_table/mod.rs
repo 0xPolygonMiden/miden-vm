@@ -2,6 +2,7 @@ use super::{
     AuxTableTrace, Bitwise, Felt, FieldElement, Hasher, Memory, RangeChecker, TraceFragment, Vec,
     AUX_TABLE_WIDTH,
 };
+use crate::hasher::AuxTraceBuilder as HasherAuxTraceBuilder;
 
 #[cfg(test)]
 mod tests;
@@ -92,9 +93,6 @@ impl AuxTable {
             "target trace length too small"
         );
 
-        // TODO: avoid clone
-        let hasher_aux_builder = self.hasher.aux_trace_builder().clone();
-
         // Allocate columns for the trace of the auxiliary table.
         // note: it may be possible to optimize this by initializing with Felt::zeroed_vector,
         // depending on how the compiler reduces Felt(0) and whether initializing here + iterating
@@ -105,7 +103,7 @@ impl AuxTable {
             .try_into()
             .expect("failed to convert vector to array");
 
-        self.fill_trace(&mut trace, trace_len);
+        let hasher_aux_builder = self.fill_trace(&mut trace, trace_len);
 
         AuxTableTrace {
             trace,
@@ -123,8 +121,7 @@ impl AuxTable {
         self,
         trace: &mut [Vec<Felt>; AUX_TABLE_WIDTH],
         trace_len: usize,
-        num_rand_rows: usize,
-    ) {
+    ) -> HasherAuxTraceBuilder {
         // allocate fragments to be filled with the respective execution traces of each coprocessor
         let mut hasher_fragment = TraceFragment::new(AUX_TABLE_WIDTH);
         let mut bitwise_fragment = TraceFragment::new(AUX_TABLE_WIDTH);
@@ -191,8 +188,10 @@ impl AuxTable {
 
         // fill the fragments with the execution trace from each coprocessor
         // TODO: this can be parallelized to fill the traces in multiple threads
-        self.hasher.fill_trace(&mut hasher_fragment);
+        let hasher_aux_builder = self.hasher.fill_trace(&mut hasher_fragment);
         self.bitwise.fill_trace(&mut bitwise_fragment);
         self.memory.fill_trace(&mut memory_fragment);
+
+        hasher_aux_builder
     }
 }

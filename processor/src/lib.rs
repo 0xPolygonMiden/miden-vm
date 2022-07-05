@@ -151,7 +151,7 @@ impl Process {
             decoder: Decoder::new(in_debug_mode),
             stack: Stack::new(&inputs, MIN_TRACE_LEN, in_debug_mode),
             range: RangeChecker::new(),
-            hasher: Hasher::new(),
+            hasher: Hasher::default(),
             bitwise: Bitwise::new(),
             memory: Memory::new(),
             advice: AdviceProvider::new(inputs),

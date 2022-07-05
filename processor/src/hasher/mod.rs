@@ -57,33 +57,23 @@ type HasherState = [Felt; STATE_WIDTH];
 /// Each permutation of the hash function adds 8 rows to the execution trace. Thus, for Merkle
 /// path verification, number of rows added to the trace is 8 * path.len(), and for Merkle root
 /// update it is 16 * path.len(), since we need to perform two path verifications for each update.
+///
+/// In addition to the execution trace, the hash processor also maintains an auxiliary trace
+/// builder which can be used to construct a running product column describing the state of the
+/// sibling table (used in Merkle root update operations).
+#[derive(Default)]
 pub struct Hasher {
     trace: HasherTrace,
     aux_trace: AuxTraceBuilder,
 }
 
 impl Hasher {
-    // CONSTRUCTOR
-    // --------------------------------------------------------------------------------------------
-    /// Returns a [Hasher] instantiated with an empty execution trace.
-    pub fn new() -> Self {
-        Self {
-            trace: HasherTrace::new(),
-            aux_trace: AuxTraceBuilder::default(),
-        }
-    }
-
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
     /// Returns current length of the execution trace stored in this hasher.
     pub fn trace_len(&self) -> usize {
         self.trace.trace_len()
-    }
-
-    /// TODO: add docs
-    pub fn aux_trace_builder(&self) -> &AuxTraceBuilder {
-        &self.aux_trace
     }
 
     // HASHING METHODS
@@ -217,9 +207,11 @@ impl Hasher {
     // TRACE GENERATION
     // --------------------------------------------------------------------------------------------
 
-    /// Fills the provided trace fragment with trace data from this hasher trace instance.
-    pub fn fill_trace(self, trace: &mut TraceFragment) {
-        self.trace.fill_trace(trace)
+    /// Fills the provided trace fragment with trace data from this hasher trace instance. This
+    /// also returns the trace builder for hasher-related auxiliary trace columns.
+    pub fn fill_trace(self, trace: &mut TraceFragment) -> AuxTraceBuilder {
+        self.trace.fill_trace(trace);
+        self.aux_trace
     }
 
     // HELPER METHODS
@@ -321,7 +313,9 @@ impl Hasher {
         get_digest(&state)
     }
 
-    /// TODO: add comments
+    /// Records an update hint in the auxiliary trace builder to indicate whether the sibling was
+    /// consumed as a part of computing the new or the old Merkle root. This is relevant only for
+    /// the Merkle root update computation.
     fn update_sibling_hints(
         &mut self,
         context: MerklePathContext,
@@ -336,16 +330,16 @@ impl Hasher {
                     .sibling_added(step, Felt::new(index), sibling);
             }
             MerklePathContext::MrUpdateNew => {
+                // we use node depth as row offset here because siblings are added to the table
+                // in reverse order of their depth (i.e., the sibling with the greatest depth is
+                // added first). thus, when removing siblings from the table, we can find the right
+                // entry by looking at the n-th entry from the end of the table, where n is the
+                // node's depth (e.g., an entry for the sibling with depth 2, would be in the
+                // second entry from the end of the table).
                 self.aux_trace.sibling_removed(step, depth);
             }
             _ => (),
         }
-    }
-}
-
-impl Default for Hasher {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

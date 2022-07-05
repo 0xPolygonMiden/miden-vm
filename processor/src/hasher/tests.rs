@@ -17,7 +17,7 @@ fn hasher_permute() {
     // --- test one permutation -----------------------------------------------
 
     // initialize the hasher and perform one permutation
-    let mut hasher = Hasher::new();
+    let mut hasher = Hasher::default();
     let init_state: HasherState = rand_array();
     let (addr, final_state) = hasher.permute(init_state);
 
@@ -44,7 +44,7 @@ fn hasher_permute() {
     // --- test two permutations ----------------------------------------------
 
     // initialize the hasher and perform two permutations
-    let mut hasher = Hasher::new();
+    let mut hasher = Hasher::default();
     let init_state1: HasherState = rand_array();
     let (addr1, final_state1) = hasher.permute(init_state1);
 
@@ -90,7 +90,7 @@ fn hasher_build_merkle_root() {
     let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
     // initialize the hasher and perform two Merkle branch verifications
-    let mut hasher = Hasher::new();
+    let mut hasher = Hasher::default();
     let path0 = tree.get_path(1, 0).unwrap();
     hasher.build_merkle_root(leaves[0], &path0, ZERO);
     let path1 = tree.get_path(1, 1).unwrap();
@@ -121,7 +121,7 @@ fn hasher_build_merkle_root() {
     let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
     // initialize the hasher and perform one Merkle branch verifications
-    let mut hasher = Hasher::new();
+    let mut hasher = Hasher::default();
     let path = tree.get_path(3, 5).unwrap();
     hasher.build_merkle_root(leaves[5], &path, Felt::new(5));
 
@@ -136,7 +136,7 @@ fn hasher_build_merkle_root() {
     // --- Merkle tree with 8 leaves (multiple branches) ----------------------
 
     // initialize the hasher and perform one Merkle branch verifications
-    let mut hasher = Hasher::new();
+    let mut hasher = Hasher::default();
 
     let path0 = tree.get_path(3, 0).unwrap();
     hasher.build_merkle_root(leaves[0], &path0, ZERO);
@@ -171,7 +171,7 @@ fn hasher_update_merkle_root() {
     let mut tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
     // initialize the hasher and update both leaves
-    let mut hasher = Hasher::new();
+    let mut hasher = Hasher::default();
 
     let path0 = tree.get_path(1, 0).unwrap();
     let new_leaf0 = init_leaf(3);
@@ -227,7 +227,7 @@ fn hasher_update_merkle_root() {
     let mut tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
     // initialize the hasher
-    let mut hasher = Hasher::new();
+    let mut hasher = Hasher::default();
 
     let path3 = tree.get_path(3, 3).unwrap();
     let new_leaf3 = init_leaf(23);
