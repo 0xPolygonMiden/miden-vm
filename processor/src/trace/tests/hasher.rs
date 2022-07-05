@@ -4,14 +4,7 @@ use super::{
     Word, ONE, ZERO,
 };
 use crate::hasher::SiblingTableRow;
-use vm_core::{
-    AdviceSet, FieldElement, StarkField, AUX_TRACE_RAND_ELEMENTS, HASHER_AUX_TRACE_OFFSET,
-};
-
-// CONSTANTS
-// ================================================================================================
-
-const P1_COL_IDX: usize = HASHER_AUX_TRACE_OFFSET;
+use vm_core::{hasher::P1_COL_IDX, AdviceSet, FieldElement, StarkField, AUX_TRACE_RAND_ELEMENTS};
 
 // SIBLING TABLE TESTS
 // ================================================================================================
@@ -24,8 +17,8 @@ fn hasher_p1_mp_verify() {
 
     // build program inputs
     let mut init_stack = vec![3, 1];
-    append_word(node, &mut init_stack);
-    append_word(tree.root(), &mut init_stack);
+    append_word(&mut init_stack, node);
+    append_word(&mut init_stack, tree.root());
     init_stack.reverse();
     let inputs = ProgramInputs::new(&init_stack, &[], vec![tree]).unwrap();
 
@@ -54,9 +47,9 @@ fn hasher_p1_mr_update() {
 
     // build program inputs
     let mut init_stack = vec![3, index];
-    append_word(old_node, &mut init_stack);
-    append_word(new_node, &mut init_stack);
-    append_word(tree.root(), &mut init_stack);
+    append_word(&mut init_stack, old_node);
+    append_word(&mut init_stack, new_node);
+    append_word(&mut init_stack, tree.root());
     init_stack.reverse();
     let inputs = ProgramInputs::new(&init_stack, &[], vec![tree]).unwrap();
 
@@ -146,11 +139,11 @@ fn hasher_p1_mr_update() {
 
 fn build_merkle_tree() -> AdviceSet {
     // build a Merkle tree
-    let leaves = inti_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
     AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap()
 }
 
-fn inti_leaves(values: &[u64]) -> Vec<Word> {
+fn init_leaves(values: &[u64]) -> Vec<Word> {
     values.iter().map(|&v| init_leaf(v)).collect()
 }
 
@@ -158,6 +151,6 @@ fn init_leaf(value: u64) -> Word {
     [Felt::new(value), ZERO, ZERO, ZERO]
 }
 
-fn append_word(word: Word, target: &mut Vec<u64>) {
+fn append_word(target: &mut Vec<u64>, word: Word) {
     word.iter().rev().for_each(|v| target.push(v.as_int()));
 }

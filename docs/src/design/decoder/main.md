@@ -126,10 +126,10 @@ $$
 $$
 
 where:
-* $m_{bp}$ is a label indicating beginning of a new permutation. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](../programs.md#permutation-product-constraints).
+* $m_{bp}$ is a label indicating beginning of a new permutation. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](../programs.md#multiset-check-constraints).
 * $r$ is the address of the row at which the hashing begins.
 * $\alpha_4 \cdot 8$ indicates that we are hashing a total of $8$ elements.
-* Some $\alpha$ values are skipped in the above (e.g., $\alpha_3$) because of the specifics of how auxiliary hasher table rows are reduces to field elements (described [here](../programs.md#permutation-product-constraints)). For example, $a_3$ is used a  coefficient for node index values during Merkle path computations in the hasher, and thus, is not relevant in this case.
+* Some $\alpha$ values are skipped in the above (e.g., $\alpha_3$) because of the specifics of how auxiliary hasher table rows are reduces to field elements (described [here](../programs.md#multiset-check-constraints)). For example, $a_3$ is used a  coefficient for node index values during Merkle path computations in the hasher, and thus, is not relevant in this case.
 
 To read the $4$-element result ($u_0, ..., u_3$), we need to divide $p_0$ by the following value:
 
@@ -138,7 +138,7 @@ $$
 $$
 
 where:
-* $m_{hout}$ is a label indicating return of the hash value. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](../programs.md#permutation-product-constraints).
+* $m_{hout}$ is a label indicating return of the hash value. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](../programs.md#multiset-check-constraints).
 * $r$ is the address of the row at which the hashing began.
 
 #### Sequential hash
@@ -154,7 +154,7 @@ $$
 \alpha_0 + \alpha_1 \cdot m_{abp} + \alpha_2 \cdot (r + 7) + \sum_{i=0}^7 (\alpha_{i+8} \cdot v_{i + 8})
 $$
 
-Where $m_{abp}$ is a label indicating absorption of more elements into the hasher state. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](../programs.md#permutation-product-constraints).
+Where $m_{abp}$ is a label indicating absorption of more elements into the hasher state. Value of this label is computed based on hash co-processor selector flags according to the methodology described [here](../programs.md#multiset-check-constraints).
 
 We can keep absorbing elements into the hasher in the similar manner until all elements have been absorbed. Then, to read the result (e.g., $u_0, ..., u_3$), we need to divide $p_0$ by the following value:
 

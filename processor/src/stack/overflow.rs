@@ -120,7 +120,7 @@ impl OverflowTable {
             .collect()
     }
 
-    // HINT GENERATION
+    // AUX TRACE BUILDER GENERATION
     // --------------------------------------------------------------------------------------------
 
     /// Converts this [OverflowTable] into an auxiliary trace builder which can be used to construct

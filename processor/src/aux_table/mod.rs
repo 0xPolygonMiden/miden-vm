@@ -19,7 +19,7 @@ mod tests;
 /// * Hasher segment: contains the hasher trace and selector *
 /// This segment fills the first rows of the table up to the length of the hasher `trace_len`.
 /// - column 0: selector column with values set to ZERO
-/// - columns 1-17: execution trace of hasher coprocessor
+/// - columns 1-17: execution trace of hash co-processor
 ///
 /// * Bitwise segment: contains the bitwise trace and selectors *
 /// This segment begins at the end of the hasher segment and fills the next rows of the table for

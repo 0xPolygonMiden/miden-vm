@@ -251,7 +251,7 @@ impl Hasher {
             // process the first node of the path; for this node, init and final selectors are
             // the same
             let sibling = path[0];
-            self.update_sibling_hints(context, index, path[0], depth);
+            self.update_sibling_hints(context, index, sibling, depth);
             root = self.verify_mp_leg(root, sibling, &mut index, main_selectors, main_selectors);
             depth -= 1;
 

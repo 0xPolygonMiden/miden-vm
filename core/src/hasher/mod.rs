@@ -1,6 +1,6 @@
 //! TODO: add docs
 
-use super::{Felt, FieldElement, Word};
+use super::{Felt, FieldElement, Word, HASHER_AUX_TRACE_OFFSET};
 use core::ops::Range;
 use crypto::{ElementHasher, Hasher as HashFn};
 
@@ -56,6 +56,8 @@ pub const HASH_CYCLE_LEN: usize = NUM_ROUNDS.next_power_of_two();
 /// node index columns.
 pub const TRACE_WIDTH: usize = NUM_SELECTORS + STATE_WIDTH + 2;
 
+// --- Transition selectors -----------------------------------------------------------------------
+
 /// Specifies a start of a new linear hash computation or absorption of new elements into an
 /// executing linear hash computation. These selectors can also be used for a simple 2-to-1 hash
 /// computation.
@@ -80,6 +82,11 @@ pub const RETURN_HASH: Selectors = [Felt::ZERO, Felt::ZERO, Felt::ZERO];
 /// Specifies a completion of a computation such that the entire hasher state (values in h0 through
 /// h11) is returned.
 pub const RETURN_STATE: Selectors = [Felt::ZERO, Felt::ZERO, Felt::ONE];
+
+// --- Column accessors in the auxiliary trace ----------------------------------------------------
+
+/// Index of the auxiliary trace column tracking the state of the sibling table.
+pub const P1_COL_IDX: usize = HASHER_AUX_TRACE_OFFSET;
 
 // PASS-THROUGH FUNCTIONS
 // ================================================================================================

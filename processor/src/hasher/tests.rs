@@ -86,7 +86,7 @@ fn hasher_build_merkle_root() {
     // --- Merkle tree with 2 leaves ------------------------------------------
 
     // build a Merkle tree
-    let leaves = inti_leaves(&[1, 2]);
+    let leaves = init_leaves(&[1, 2]);
     let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
     // initialize the hasher and perform two Merkle branch verifications
@@ -117,7 +117,7 @@ fn hasher_build_merkle_root() {
     // --- Merkle tree with 8 leaves ------------------------------------------
 
     // build a Merkle tree
-    let leaves = inti_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
     let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
     // initialize the hasher and perform one Merkle branch verifications
@@ -167,7 +167,7 @@ fn hasher_update_merkle_root() {
     // --- Merkle tree with 2 leaves ------------------------------------------
 
     // build a Merkle tree
-    let leaves = inti_leaves(&[1, 2]);
+    let leaves = init_leaves(&[1, 2]);
     let mut tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
     // initialize the hasher and update both leaves
@@ -223,7 +223,7 @@ fn hasher_update_merkle_root() {
     // --- Merkle tree with 8 leaves ------------------------------------------
 
     // build a Merkle tree
-    let leaves = inti_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
     let mut tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
     // initialize the hasher
@@ -304,13 +304,12 @@ fn hasher_update_merkle_root() {
 /// Builds an execution trace for the provided hasher. The trace must have the number of rows
 /// specified by num_rows.
 fn build_trace(hasher: Hasher, num_rows: usize) -> (Vec<Vec<Felt>>, AuxTraceBuilder) {
-    let aux_hints = hasher.aux_trace.clone();
     let mut trace = (0..TRACE_WIDTH)
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    hasher.fill_trace(&mut fragment);
-    (trace, aux_hints)
+    let aux_trace_builder = hasher.fill_trace(&mut fragment);
+    (trace, aux_trace_builder)
 }
 
 /// Makes sure that the provided trace is consistent with verifying the specified Merkle path
@@ -418,7 +417,7 @@ fn apply_permutation(mut state: HasherState) -> HasherState {
     state
 }
 
-fn inti_leaves(values: &[u64]) -> Vec<Word> {
+fn init_leaves(values: &[u64]) -> Vec<Word> {
     values.iter().map(|&v| init_leaf(v)).collect()
 }
 

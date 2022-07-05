@@ -89,7 +89,7 @@ fn stacked_aux_trace() {
 // ================================================================================================
 
 /// Builds a sample trace by executing a span block containing the specified operations. This
-/// results in 1 additional hash cycle at the beginning of the hasher coprocessor.
+/// results in 1 additional hash cycle (8 rows) at the beginning of the hash co-processor.
 fn build_trace(stack: &[u64], operations: Vec<Operation>) -> (AuxTableTrace, usize) {
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(inputs);

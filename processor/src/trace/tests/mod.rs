@@ -17,7 +17,7 @@ pub fn build_trace_from_block(program: &CodeBlock, stack: &[u64]) -> ExecutionTr
 }
 
 /// Builds a sample trace by executing a span block containing the specified operations. This
-/// results in 1 additional hash cycle at the beginning of the hasher coprocessor.
+/// results in 1 additional hash cycle (8 rows) at the beginning of the hash co-processor.
 pub fn build_trace_from_ops(operations: Vec<Operation>, stack: &[u64]) -> ExecutionTrace {
     let program = CodeBlock::new_span(operations);
     build_trace_from_block(&program, stack)

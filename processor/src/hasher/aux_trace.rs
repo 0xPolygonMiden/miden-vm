@@ -47,8 +47,8 @@ impl AuxTraceBuilder {
     }
 
     /// Specifies that an entry for a sibling was removed from the sibling table. The entry is
-    /// defined by the provided offset. For example, if n=2, the second from the last entry
-    /// was removed from the table.
+    /// defined by the provided offset. For example, if row_offset = 2, the second from the last
+    /// entry was removed from the table.
     pub fn sibling_removed(&mut self, step: usize, row_offset: usize) {
         let row_index = self.sibling_rows.len() - row_offset - 1;
         let update = SiblingTableUpdate::SiblingRemoved(row_index as u32);
@@ -96,7 +96,8 @@ impl AuxColumnBuilder<SiblingTableUpdate, SiblingTableRow> for AuxTraceBuilder {
 // SIBLING TABLE
 // ================================================================================================
 
-/// Describes updates to the sibling table.
+/// Describes updates to the sibling table. The internal u32 values are indexes of added/removed
+/// rows in a list of rows sorted chronologically (i.e., from first added row to last).
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SiblingTableUpdate {
     SiblingAdded(u32),
@@ -104,7 +105,9 @@ pub enum SiblingTableUpdate {
 }
 
 /// Describes a single entry in the sibling table which consists of a tuple `(index, node)` where
-/// index is the index of the node at its depth (i.e., not the index of the original leaf).
+/// index is the index of the node at its depth. For example, assume a leaf has index n. For the
+/// leaf's parent the index will be n << 1. For the parent of the parent, the index will be
+/// n << 2 etc.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SiblingTableRow {
     index: Felt,
@@ -124,7 +127,7 @@ impl LookupTableRow for SiblingTableRow {
         // when the least significant bit of the index is 0, the sibling will be in the 3rd word
         // of the hasher state, and when the least significant bit is 1, it will be in the 2nd
         // word. we compute the value in this way to make constraint evaluation a bit easier since
-        // the we'll need to compute the 2nd and the 3rd word values for other purposes as well.
+        // we need to compute the 2nd and the 3rd word values for other purposes as well.
         let lsb = self.index.as_int() & 1;
         if lsb == 0 {
             alphas[0]

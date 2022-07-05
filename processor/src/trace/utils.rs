@@ -125,10 +125,11 @@ pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow> {
     // REQUIRED METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns an exhaustive list of rows which present in the table.
+    /// Returns an exhaustive list of rows which are present in the table.
     fn get_table_rows(&self) -> &[R];
 
     /// Returns a sequence of hints which indicate how the table was updated. Each hint consists
+    /// of a clock cycle at which the update happened as well as the hint describing the update.
     fn get_table_hints(&self) -> &[(usize, H)];
 
     /// Returns a value by which the current value of the column should be multiplied to get the
