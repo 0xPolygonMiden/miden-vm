@@ -1,7 +1,7 @@
 use super::{Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec};
 use crate::utils::{binary_not, is_binary};
 use vm_core::{
-    aux_table::{BITWISE_TRACE_OFFSET, HASHER_TRACE_OFFSET, MEMORY_TRACE_OFFSET},
+    aux_table::{BITWISE_TRACE_OFFSET, HASHER_TRACE_OFFSET},
     AUX_TABLE_OFFSET,
 };
 
