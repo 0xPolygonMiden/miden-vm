@@ -132,7 +132,7 @@ impl Test {
 
     /// Compiles a test's source and returns the resulting Script.
     pub fn compile(&self) -> Script {
-        let assembler = assembly::Assembler::with_debug(self.in_debug_mode);
+        let assembler = assembly::Assembler::new(self.in_debug_mode);
         assembler
             .compile_script(&self.source)
             .expect("Failed to compile test source.")

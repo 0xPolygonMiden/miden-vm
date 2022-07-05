@@ -2,8 +2,11 @@ use super::{AssemblyContext, AssemblyError, Token, TokenStream};
 pub use blocks::{combine_blocks, parse_code_blocks};
 use vm_core::{
     program::blocks::CodeBlock,
-    utils::{collections::Vec, string::String},
-    DecoratorList, Felt, FieldElement, Operation, StarkField,
+    utils::{
+        collections::Vec,
+        string::{String, ToString},
+    },
+    AsmOpInfo, Decorator, DecoratorList, Felt, FieldElement, Operation, StarkField,
 };
 
 mod blocks;
@@ -22,7 +25,18 @@ fn parse_op_token(
     span_ops: &mut Vec<Operation>,
     num_proc_locals: u32,
     decorators: &mut DecoratorList,
+    in_debug_mode: bool,
 ) -> Result<(), AssemblyError> {
+    let dec_len = decorators.len();
+    // if assembler is in debug mode, populate decorators list with debug related
+    // decorators like AsmOp.
+    if in_debug_mode {
+        decorators.push((
+            span_ops.len(),
+            Decorator::AsmOp(AsmOpInfo::new(op.to_string(), 1)),
+        ));
+    }
+
     // based on the instruction, invoke the correct parser for the operation
     match op.parts()[0] {
         // ----- field operations -----------------------------------------------------------------
@@ -120,6 +134,14 @@ fn parse_op_token(
         // ----- catch all ------------------------------------------------------------------------
         _ => return Err(AssemblyError::invalid_op(op)),
     }?;
+
+    if in_debug_mode {
+        let op_start = decorators[dec_len].0;
+        // edit the number of cycles corresponding to the asmop decorator at an index
+        if let Decorator::AsmOp(asmop_info) = &mut decorators[dec_len].1 {
+            asmop_info.set_num_cycles((span_ops.len() - op_start) as u8)
+        }
+    }
 
     Ok(())
 }

@@ -27,7 +27,7 @@ impl fmt::Display for Decorator {
                 f,
                 "asmOp({}, {})",
                 asmop_info.get_op(),
-                asmop_info.get_cycles()
+                asmop_info.get_num_cycles()
             ),
         }
     }

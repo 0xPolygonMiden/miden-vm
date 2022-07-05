@@ -62,7 +62,7 @@ impl ProgramInfo {
 
 /// Returns program analysis of a given program.
 pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, ProgramError> {
-    let assembler = Assembler::new();
+    let assembler = Assembler::new(true);
     let script = assembler
         .compile_script(program)
         .map_err(ProgramError::AssemblyError)?;

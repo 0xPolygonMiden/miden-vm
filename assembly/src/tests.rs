@@ -3,7 +3,7 @@
 
 #[test]
 fn single_span() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
     let source = "begin push.1 push.2 add end";
     let script = assembler.compile_script(source).unwrap();
     let expected = "begin span pad incr push(2) add end end";
@@ -12,7 +12,7 @@ fn single_span() {
 
 #[test]
 fn span_and_simple_if() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
 
     // if with else
     let source = "begin push.2 push.3 if.true add else mul end end";
@@ -44,7 +44,7 @@ fn span_and_simple_if() {
 
 #[test]
 fn nested_control_blocks() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
 
     // if with else
     let source = "begin \
@@ -85,7 +85,7 @@ fn nested_control_blocks() {
 
 #[test]
 fn script_with_one_procedure() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
     let source = "proc.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end";
     let script = assembler.compile_script(source).unwrap();
     let expected = "begin span push(2) push(3) add push(3) push(7) mul end end";
@@ -94,7 +94,7 @@ fn script_with_one_procedure() {
 
 #[test]
 fn script_with_nested_procedure() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
     let source = "\
         proc.foo push.3 push.7 mul end \
         proc.bar push.5 exec.foo add end \
@@ -109,7 +109,7 @@ fn script_with_nested_procedure() {
 
 #[test]
 fn script_with_proc_locals() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
     let source = "\
         proc.foo.1 \
             pop.local.0 \
@@ -139,7 +139,7 @@ fn script_with_proc_locals() {
 
 #[test]
 fn script_with_exported_procedure() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
     let source = "export.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end";
     assert!(assembler.compile_script(source).is_err());
 }
@@ -149,7 +149,7 @@ fn script_with_exported_procedure() {
 
 #[test]
 fn script_with_one_import() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
     let source = "\
         use.std::math::u256
         begin \
@@ -177,7 +177,7 @@ fn script_with_one_import() {
 #[test]
 fn script_with_import_errors() {
     // --- non-existent import ------------------------------------------------
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
     let source = "\
         use.std::math::u512
         begin \
@@ -187,7 +187,7 @@ fn script_with_import_errors() {
     assert!(assembler.compile_script(source).is_err());
 
     // --- non-existent procedure in import -----------------------------------
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
     let source = "\
         use.std::math::u256
         begin \
@@ -202,7 +202,7 @@ fn script_with_import_errors() {
 
 #[test]
 fn comment_simple() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
     let source = "begin # simple comment \n push.1 push.2 add end";
     let script = assembler.compile_script(source).unwrap();
     let expected = "begin span pad incr push(2) add end end";
@@ -211,7 +211,7 @@ fn comment_simple() {
 
 #[test]
 fn comment_in_nested_control_blocks() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
 
     // if with else
     let source = "begin \
@@ -251,7 +251,7 @@ fn comment_in_nested_control_blocks() {
 
 #[test]
 fn comment_before_script() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
     let source = " # starting comment \n begin push.1 push.2 add end";
     let script = assembler.compile_script(source).unwrap();
     let expected = "begin span pad incr push(2) add end end";
@@ -260,7 +260,7 @@ fn comment_before_script() {
 
 #[test]
 fn comment_after_script() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
     let source = "begin push.1 push.2 add end # closing comment";
     let script = assembler.compile_script(source).unwrap();
     let expected = "begin span pad incr push(2) add end end";
@@ -272,7 +272,7 @@ fn comment_after_script() {
 
 #[test]
 fn invalid_script() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
     let source = "";
     let script = assembler.compile_script(source);
     assert!(script.is_err());
@@ -324,7 +324,7 @@ fn invalid_script() {
 
 #[test]
 fn invalid_proc() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
 
     let source = "proc.foo add mul begin push.1 end";
     let script = assembler.compile_script(source);
@@ -364,7 +364,7 @@ fn invalid_proc() {
 
 #[test]
 fn invalid_if_else() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
 
     // --- unmatched if ---------------------------------------------------------------------------
     let source = "begin push.1 add if.true mul";
@@ -406,7 +406,7 @@ fn invalid_if_else() {
 
 #[test]
 fn invalid_repeat() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
 
     // unmatched repeat
     let source = "begin push.1 add repeat.10 mul";
@@ -430,7 +430,7 @@ fn invalid_repeat() {
 
 #[test]
 fn invalid_while() {
-    let assembler = super::Assembler::new();
+    let assembler = super::Assembler::default();
 
     let source = "begin push.1 add while mul end end";
     let script = assembler.compile_script(source);

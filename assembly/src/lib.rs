@@ -56,12 +56,8 @@ impl Assembler {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of [Assembler] instantiated with empty module map.
-    pub fn new() -> Self {
-        Self::with_debug(false)
-    }
-
-    /// Returns a new instance of [Assembler] instantiated with empty module map in debug mode.
-    pub fn with_debug(in_debug_mode: bool) -> Self {
+    /// Debug related decorators are added to span blocks when debug mode is on.
+    pub fn new(in_debug_mode: bool) -> Self {
         Self {
             stdlib: StdLibrary::default(),
             parsed_modules: BTreeMap::new(),
@@ -235,8 +231,9 @@ impl Assembler {
 }
 
 impl Default for Assembler {
+    /// Returns a new instance of [Assembler] instantiated with empty module map in non-debug mode.
     fn default() -> Self {
-        Self::new()
+        Self::new(false)
     }
 }
 
