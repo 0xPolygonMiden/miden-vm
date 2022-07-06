@@ -1,4 +1,4 @@
-# Given [a, b, c, carry] on stack top, following function computes
+# Given [b, c, a, carry] on stack top, following function computes
 #
 #  tmp = a + (b * c) + carry
 #  hi = tmp >> 32
@@ -8,9 +8,8 @@
 # At end of execution of this function, stack top should look like [hi, lo]
 # See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/utils.py#L75-L80
 proc.mac
-  movdn.2
   u32madd.unsafe
-  
+
   movdn.2
   u32add.unsafe
 
@@ -91,39 +90,50 @@ end
 #
 # [d0, d1, d2, d3, d4, d5, d6, d7, carry]
 proc.u288_add_u256
-  movup.9
-  movup.9
+  swapw
+  movupw.2
+
   u32add.unsafe
 
-  movup.10
-  movup.10
+  movup.2
+  movup.7
+  u32add3.unsafe
+
+  movup.3
+  movup.6
+  u32add3.unsafe
+
+  movup.4
+  movup.5
+  movupw.2
+
+  movup.2
+  movup.4
+  movup.6
+  u32add3.unsafe
+
+  movup.5
+  movup.5
+  u32add3.unsafe
+
+  movup.3
+  movup.4
+  movupw.2
+
+  movup.2
+  movup.4
+  movup.6
+  u32add3.unsafe
+
+  movup.5
+  movup.5
   u32add3.unsafe
 
   movup.10
-  movup.10
+  movup.5
   u32add3.unsafe
 
-  movup.10
-  movup.10
-  u32add3.unsafe
-
-  movup.10
-  movup.10
-  u32add3.unsafe
-
-  movup.10
-  movup.10
-  u32add3.unsafe
-
-  movup.10
-  movup.10
-  u32add3.unsafe
-
-  movup.10
-  movup.10
-  u32add3.unsafe
-
-  movup.9
+  movup.4
   add
 
   swap
@@ -154,64 +164,63 @@ proc.u288_reduce
   drop 
   # q at stack top #
 
-  push.0.4294966319
-  dup.2
-  movup.4
+  push.0
+  movup.2
+  push.4294966319
+  dup.3
   exec.mac
+
   swap
   drop
 
+  movup.2
   push.4294967294
-  dup.2
-  movup.4
-  exec.mac
-
-  push.4294967295
   dup.3
-  movup.5
   exec.mac
 
+  movup.3
   push.4294967295
   dup.4
-  movup.6
   exec.mac
 
+  movup.4
   push.4294967295
   dup.5
-  movup.7
   exec.mac
 
+  movup.5
   push.4294967295
   dup.6
-  movup.8
   exec.mac
 
+  movup.6
   push.4294967295
   dup.7
-  movup.9
   exec.mac
 
+  movup.7
+  dup.7
   push.4294967295
+  exec.mac
+
+  movup.7
   movup.8
-  movup.9
+  swap
+  push.4294967295
   exec.mac
 
   movup.9
-  swap
   movup.9
   u32add3.unsafe
 
-  movdn.8
-
   swap
   movup.2
   movup.3
-
-  swapw
-
-  swap
-  movup.2
-  movup.3
+  movup.4
+  movup.5
+  movup.6
+  movup.7
+  movup.8
 end
 
 # Given two 256 -bit numbers on stack, where each number is represented in
