@@ -94,9 +94,10 @@ impl RangeChecker {
         self.lookups.add_value(value);
     }
 
-    /// Merges the provided map of range check lookups into the range checker's lookups.
-    pub fn add_lookups(&mut self, new_lookups: &RangeCheckMap) {
-        self.lookups.merge_lookups(new_lookups);
+    /// Adds the provided memory range check values at the specified clock cycle.
+    pub fn add_mem_checks(&mut self, _clk: usize, values: &[u16; 2]) {
+        self.add_value(values[0]);
+        self.add_value(values[1]);
     }
 
     // EXECUTION TRACE GENERATION

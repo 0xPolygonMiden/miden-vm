@@ -1,4 +1,7 @@
-use super::AUX_TABLE_OFFSET;
+use super::{utils::range as create_range, AUX_TABLE_OFFSET};
+use core::ops::Range;
+
+pub mod memory;
 
 // CONSTANTS
 // ================================================================================================

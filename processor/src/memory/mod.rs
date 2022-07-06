@@ -1,13 +1,10 @@
 use crate::{
-    range::{RangeCheckMap, RangeCheckUpdate},
-    utils::split_element_u32_into_u16,
+    range::RangeChecker,
+    utils::{split_element_u32_into_u16, split_u32_into_u16},
 };
 
-use super::{
-    BTreeMap, Felt, FieldElement, MemoryTrace, StarkField, Vec, Word, MEMORY_TRACE_WIDTH, ONE, ZERO,
-};
+use super::{BTreeMap, Felt, FieldElement, StarkField, TraceFragment, Vec, Word, ONE, ZERO};
 use core::ops::RangeInclusive;
-use vm_core::utils::new_array_vec;
 
 #[cfg(test)]
 mod tests;
@@ -150,44 +147,75 @@ impl Memory {
     // EXECUTION TRACE GENERATION
     // --------------------------------------------------------------------------------------------
 
-    /// Generates a finalized execution trace and a RangeCheckMap of required range check lookups
-    /// using the trace data from this memory instance.
-    pub fn into_trace(self) -> MemoryTrace {
-        let mut trace = new_array_vec::<Felt, MEMORY_TRACE_WIDTH>(self.trace_len());
-        let mut range_checks = RangeCheckMap::new();
-
+    /// Add all of the range checks required by the [Memory] processor to the provided
+    /// [RangeChecker] processor instance, along with their row in the finalized execution trace.
+    pub fn append_range_checks(&self, memory_start_row: usize, range: &mut RangeChecker) {
         // set the previous address and clock cycle to the first address and clock cycle of the
         // trace; we also adjust the clock cycle so that delta value for the first row would end
         // up being ZERO. if the trace is empty, return without any further processing.
         let (mut prev_addr, mut prev_clk) = match self.get_first_row_info() {
-            Some((addr, clk)) => (addr, clk - ONE),
-            None => {
-                return MemoryTrace {
-                    trace,
-                    range_checks,
+            Some((addr, clk)) => (addr.as_int(), clk.as_int() - 1),
+            None => return,
+        };
+
+        let mut row = memory_start_row;
+        // op range check index
+        for (&addr, addr_trace) in self.trace.iter() {
+            // when we start a new address, we set the previous value to all zeros. the effect of
+            // this is that memory is always initialized to zero.
+            for (clk, _) in addr_trace {
+                let clk = clk.as_int();
+
+                // compute delta as difference either between addresses or clock cycles
+                let delta = if prev_addr != addr {
+                    addr - prev_addr
+                } else {
+                    clk - prev_clk - 1
                 };
+
+                let (delta_hi, delta_lo) = split_u32_into_u16(delta);
+                range.add_mem_checks(row, &[delta_lo, delta_hi]);
+
+                // update values for the next iteration of the loop
+                prev_addr = addr;
+                prev_clk = clk;
+                row += 1;
             }
+        }
+    }
+
+    /// Fills the provided trace fragment with trace data from this memory instance.
+    pub fn fill_trace(self, trace: &mut TraceFragment) {
+        debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
+
+        // set the pervious address and clock cycle to the first address and clock cycle of the
+        // trace; we also adjust the clock cycle so that delta value for the first row would end
+        // up being ZERO. if the trace is empty, return without any further processing.
+        let (mut prev_addr, mut prev_clk) = match self.get_first_row_info() {
+            Some((addr, clk)) => (addr, clk - ONE),
+            None => return,
         };
 
         // iterate through addresses in ascending order, and write trace row for each memory access
         // into the trace. we expect the trace to be 14 columns wide.
+        let mut i = 0;
         for (addr, addr_trace) in self.trace {
             // when we start a new address, we set the previous value to all zeros. the effect of
             // this is that memory is always initialized to zero.
             let addr = Felt::new(addr);
             let mut prev_value = INIT_MEM_VALUE;
             for (clk, value) in addr_trace {
-                trace[0].push(ZERO); // ctx
-                trace[1].push(addr);
-                trace[2].push(clk);
-                trace[3].push(prev_value[0]);
-                trace[4].push(prev_value[1]);
-                trace[5].push(prev_value[2]);
-                trace[6].push(prev_value[3]);
-                trace[7].push(value[0]);
-                trace[8].push(value[1]);
-                trace[9].push(value[2]);
-                trace[10].push(value[3]);
+                trace.set(i, 0, ZERO); // ctx
+                trace.set(i, 1, addr);
+                trace.set(i, 2, clk);
+                trace.set(i, 3, prev_value[0]);
+                trace.set(i, 4, prev_value[1]);
+                trace.set(i, 5, prev_value[2]);
+                trace.set(i, 6, prev_value[3]);
+                trace.set(i, 7, value[0]);
+                trace.set(i, 8, value[1]);
+                trace.set(i, 9, value[2]);
+                trace.set(i, 10, value[3]);
 
                 // compute delta as difference either between addresses or clock cycles
                 let delta = if prev_addr != addr {
@@ -197,23 +225,16 @@ impl Memory {
                 };
 
                 let (delta_hi, delta_lo) = split_element_u32_into_u16(delta);
-                trace[11].push(delta_lo);
-                trace[12].push(delta_hi);
-                trace[13].push(delta.inv());
-
-                range_checks.add_value(delta_lo.as_int() as u16);
-                range_checks.add_value(delta_hi.as_int() as u16);
+                trace.set(i, 11, delta_lo);
+                trace.set(i, 12, delta_hi);
+                trace.set(i, 13, delta.inv());
 
                 // update values for the next iteration of the loop
                 prev_addr = addr;
                 prev_clk = clk;
                 prev_value = value;
+                i += 1;
             }
-        }
-
-        MemoryTrace {
-            trace,
-            range_checks,
         }
     }
 

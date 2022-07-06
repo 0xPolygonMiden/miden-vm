@@ -1,7 +1,9 @@
-use super::{EvaluationFrame, FieldElement, Vec, MEMORY_TRACE_OFFSET};
+use super::{EvaluationFrame, FieldElement, Vec};
 use crate::utils::{binary_not, is_binary, EvaluationResult};
-use core::ops::Range;
-use vm_core::utils::range as create_range;
+use vm_core::aux_table::memory::{
+    ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, NUM_ELEMENTS,
+    U_COL_RANGE, V_COL_RANGE,
+};
 use winter_air::TransitionConstraintDegree;
 
 #[cfg(test)]
@@ -20,31 +22,6 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     8, 8, 8,
     8, // Ensure next old values equal current new values when ctx and addr don't change.
 ];
-/// The number of elements accessible in one read or write memory access.
-const NUM_ELEMENTS: usize = 4;
-/// Column to hold the context ID of the current memory context.
-const CTX_COL_IDX: usize = MEMORY_TRACE_OFFSET;
-/// Column to hold the memory address.
-const ADDR_COL_IDX: usize = CTX_COL_IDX + 1;
-/// Column for the clock cycle in which the memory operation occurred.
-const CLK_COL_IDX: usize = ADDR_COL_IDX + 1;
-/// Columns to hold the old values stored at a given memory context, address, and clock cycle prior
-/// to the memory operation. When reading from a new address, these are initialized to zero. When
-/// reading or updating previously accessed memory, these values are set to equal the "new" values
-/// of the previous row in the trace.
-const U_COL_RANGE: Range<usize> = create_range(CLK_COL_IDX + 1, NUM_ELEMENTS);
-/// Columns to hold the new values stored at a given memory context, address, and clock cycle after
-/// the memory operation.
-const V_COL_RANGE: Range<usize> = create_range(U_COL_RANGE.end, NUM_ELEMENTS);
-/// Column for the lower 16-bits of the delta between two consecutive context IDs, addresses, or
-/// clock cycles.
-const D0_COL_IDX: usize = V_COL_RANGE.end;
-/// Column for the upper 16-bits of the delta between two consecutive context IDs, addresses, or
-/// clock cycles.
-const D1_COL_IDX: usize = D0_COL_IDX + 1;
-/// Column for the inverse of the delta between two consecutive context IDs, addresses, or clock
-/// cycles, used to enforce that changes are correctly constrained.
-const D_INV_COL_IDX: usize = D1_COL_IDX + 1;
 
 // MEMORY TRANSITION CONSTRAINTS
 // ================================================================================================
