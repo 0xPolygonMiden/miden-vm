@@ -1,4 +1,4 @@
-use super::{ExecutionError, Felt, Process, StarkField};
+use super::{ExecutionError, Felt, Operation, Process, StarkField};
 use crate::memory::INIT_MEM_VALUE;
 
 // INPUT / OUTPUT OPERATIONS
@@ -52,6 +52,9 @@ impl Process {
     ///   initialized to ZEROs, and thus, if the specified address has never been written to,
     ///   four ZERO elements are returned.
     /// - The first element of the word retried from memory is pushed to the top of the stack.
+    ///
+    /// The first 3 helper registers are filled with the elements of the word which were not pushed to the
+    /// stack
     pub(super) fn op_mload(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from memory
         let addr = self.stack.get(0);
@@ -60,6 +63,9 @@ impl Process {
         // update the stack state
         self.stack.set(0, word[0]);
         self.stack.copy_state(1);
+
+        self.decoder
+            .set_user_op_helpers(Operation::MLoad, &word[1..]);
 
         Ok(())
     }
@@ -72,9 +78,18 @@ impl Process {
     ///   removed from the stack.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
+    ///
+    /// The first 4 helper registers are filled with the value which were stored in memory before
+    /// the operation.
     pub(super) fn op_mstorew(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and build the word to be saved from the stack values
         let addr = self.stack.get(0);
+
+        let old_word = self
+            .memory
+            .get_value(addr.as_int())
+            .unwrap_or(INIT_MEM_VALUE);
+
         let word = [
             self.stack.get(4),
             self.stack.get(3),
@@ -91,6 +106,9 @@ impl Process {
         }
         self.stack.shift_left(5);
 
+        self.decoder
+            .set_user_op_helpers(Operation::MStoreW, &old_word);
+
         Ok(())
     }
 
@@ -103,6 +121,9 @@ impl Process {
     /// removed from the stack.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
+    ///
+    /// The first 4 helper registers are filled with the value which were stored in memory before
+    /// the operation.
     pub(super) fn op_mstore(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and build the word to be saved from the stack values
         let addr = self.stack.get(0);
@@ -113,6 +134,8 @@ impl Process {
             .memory
             .get_value(addr.as_int())
             .unwrap_or(INIT_MEM_VALUE);
+
+        self.decoder.set_user_op_helpers(Operation::MStore, &word);
 
         // store the value
         word[0] = self.stack.get(1);
@@ -217,8 +240,8 @@ mod tests {
     // --------------------------------------------------------------------------------------------
 
     #[test]
-    fn op_storew() {
-        let mut process = Process::new_dummy();
+    fn op_mstorew() {
+        let mut process = Process::new_dummy_with_decoder_helpers();
         assert_eq!(0, process.memory.size());
 
         // push the first word onto the stack and save it at address 0
@@ -247,13 +270,13 @@ mod tests {
         assert_eq!(word2, process.memory.get_value(3).unwrap());
 
         // --- calling STOREW with a stack of minimum depth is ok ----------------
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy_with_decoder_helpers();
         assert!(process.execute_op(Operation::MStoreW).is_ok());
     }
 
     #[test]
-    fn op_loadw() {
-        let mut process = Process::new_dummy();
+    fn op_mloadw() {
+        let mut process = Process::new_dummy_with_decoder_helpers();
         assert_eq!(0, process.memory.size());
 
         // push a word onto the stack and save it at address 1
@@ -277,13 +300,13 @@ mod tests {
         assert_eq!(word, process.memory.get_value(1).unwrap());
 
         // --- calling LOADW with a stack of minimum depth is ok ----------------
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy_with_decoder_helpers();
         assert!(process.execute_op(Operation::MLoadW).is_ok());
     }
 
     #[test]
     fn op_mload() {
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy_with_decoder_helpers();
         assert_eq!(0, process.memory.size());
 
         // push a word onto the stack and save it at address 2
@@ -302,13 +325,13 @@ mod tests {
         assert_eq!(word, process.memory.get_value(2).unwrap());
 
         // --- calling MLOAD with a stack of minimum depth is ok ----------------
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy_with_decoder_helpers();
         assert!(process.execute_op(Operation::MLoad).is_ok());
     }
 
     #[test]
     fn op_mstore() {
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy_with_decoder_helpers();
         assert_eq!(0, process.memory.size());
 
         // push new element onto the stack and save it as first element of the word on
@@ -343,7 +366,7 @@ mod tests {
         assert_eq!(mem_2, process.memory.get_value(2).unwrap());
 
         // --- calling MSTORE with a stack of minimum depth is ok ----------------
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy_with_decoder_helpers();
         assert!(process.execute_op(Operation::MStore).is_ok());
     }
 

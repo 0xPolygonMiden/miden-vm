@@ -24,6 +24,13 @@ pub const HASHER_STATE_OFFSET: usize = OP_BITS_OFFSET + NUM_OP_BITS;
 /// Number of hasher columns in the decoder trace.
 pub const NUM_HASHER_COLUMNS: usize = 8;
 
+/// Number of helper registers available to user ops.
+pub const NUM_USER_OP_HELPERS: usize = 6;
+
+/// Index at which helper registers available to user ops start.
+/// The first two helper registers are used by the decoder itself.
+pub const USER_OP_HELPERS_OFFSET: usize = HASHER_STATE_OFFSET + 2;
+
 /// Location of hasher columns in the decoder trace.
 pub const HASHER_STATE_RANGE: Range<usize> = range(HASHER_STATE_OFFSET, NUM_HASHER_COLUMNS);
 
