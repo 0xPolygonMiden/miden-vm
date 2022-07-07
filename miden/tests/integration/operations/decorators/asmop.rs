@@ -55,6 +55,59 @@ fn asmop_one_span_block_test() {
 }
 
 #[test]
+fn asmop_with_one_procedure() {
+    let source = "proc.foo push.1 push.2 add end begin exec.foo end";
+    let test = build_debug_test!(source);
+    let vm_state_iterator = test.execute_iter();
+    let expected_vm_state = vec![
+        VmStatePartial {
+            clk: 0,
+            decorators: None,
+            op: None,
+        },
+        VmStatePartial {
+            clk: 1,
+            decorators: None,
+            op: Some(Operation::Span),
+        },
+        VmStatePartial {
+            clk: 2,
+            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.1".to_string(), 2))]),
+            op: Some(Operation::Pad),
+        },
+        VmStatePartial {
+            clk: 3,
+            decorators: None,
+            op: Some(Operation::Incr),
+        },
+        VmStatePartial {
+            clk: 4,
+            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.2".to_string(), 1))]),
+            op: Some(Operation::Push(Felt::new(2))),
+        },
+        VmStatePartial {
+            clk: 5,
+            decorators: Some(vec![AsmOp(AsmOpInfo::new("add".to_string(), 1))]),
+            op: Some(Operation::Add),
+        },
+        VmStatePartial {
+            clk: 6,
+            decorators: None,
+            op: Some(Operation::End),
+        },
+    ];
+    let mut vm_state = Vec::new();
+    for state in vm_state_iterator {
+        vm_state.push(VmStatePartial {
+            clk: state.as_ref().unwrap().clk,
+            decorators: state.as_ref().unwrap().decorators.clone(),
+            op: state.as_ref().unwrap().op,
+        });
+    }
+    assert_eq!(expected_vm_state, vm_state);
+}
+
+#[test]
 fn asmop_repeat_test() {
     let source = "begin
             repeat.3
@@ -348,6 +401,10 @@ fn asmop_conditional_execution_test() {
     assert_eq!(expected_vm_state, vm_state);
 }
 
+/// VmStatePartial holds the following current process state information at a specific clock cycle
+/// * clk: Current clock cycle
+/// * decorators: Decorators executed at the specific clock cycle
+/// * op: Operation executed at the specific clock cycle
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct VmStatePartial {
     clk: usize,

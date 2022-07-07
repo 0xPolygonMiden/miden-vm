@@ -1,9 +1,8 @@
-use assembly::Assembler;
+use assembly::{Assembler, AssemblyError};
 use core::fmt;
-use miden::AssemblyError;
 use processor::ExecutionError;
 use structopt::StructOpt;
-use vm_core::{Operation, ProgramInputs};
+use vm_core::{utils::collections::Vec, Decorator, Operation, ProgramInputs};
 
 /// Defines cli interace
 #[derive(StructOpt, Debug)]
@@ -21,31 +20,65 @@ impl Analyze {
         let program_info: ProgramInfo =
             analyze(program.as_str(), program_inputs).expect("Could not retreive program info");
 
-        let total_vm_cycles = program_info.total_vm_cycles();
-        let total_noops = program_info.total_noops();
-
-        println!("Total Number of VM Cycles: {}", total_vm_cycles);
-        println!("Total Number of NOOPs executed: {}", total_noops);
-
+        print_stats(&program_info);
         Ok(())
+    }
+}
+
+/// Utility function to print the following stats about the program being run
+/// - Total Number of VM Cycles
+/// - Total Number of NOOPs executed:
+/// - Number of cycles per assembly instruction
+fn print_stats(program_info: &ProgramInfo) {
+    let total_vm_cycles = program_info.total_vm_cycles();
+    let total_noops = program_info.total_noops();
+    let asmop_info_list = program_info.asmop_info_list();
+    println!("Total Number of VM Cycles: {}\n", total_vm_cycles);
+    println!("Total Number of NOOPs executed: {}\n", total_noops);
+    println!(
+        "{0: <20} | {1: <20} | {2: <20} | {3: <20}",
+        "AsmOp", "Instruction Cycles", "Frequency", "Total Cycles"
+    );
+    println!("{:-<1$}", "", 80);
+    for op_info in asmop_info_list {
+        println!(
+            "{0: <20} | {1: <20} | {2: <20} | {3: <20}",
+            op_info.0,
+            op_info.1,
+            op_info.2,
+            op_info.2 * op_info.1 as usize
+        );
     }
 }
 
 /// Contains info of a program. Used for program analysis. Contains the following fields:
 /// - total_vm_cycles (vm cycles it takes to execute the entire script)
 /// - total_noops (total noops executed as part of a program)
+/// - asmop_info_list (maps an assembly instruction to the number of vm cycles it takes to execute
+/// the instruction and the number of times the instruction is run as part of the given program.)
 #[derive(Debug, Eq, PartialEq)]
 pub struct ProgramInfo {
     total_vm_cycles: usize,
     total_noops: usize,
+    asmop_info_list: Vec<(String, u8, usize)>,
 }
 
 impl ProgramInfo {
-    /// Creates a new ProgramInfo object
-    pub fn new(total_vm_cycles: usize, total_noops: usize) -> ProgramInfo {
+    /// Creates a new ProgramInfo object from the specified `total_vm_cycles`, `total_noops` and
+    /// `op_info_list`.
+    /// * total_vm_cycles: Total number of VM cycles required to run the given program.
+    /// * total_noops: Total number of NOOPs executed as part of the program.
+    /// * op_info_list: Vector of tuples that maps an assembly instruction to the number of vm cycles
+    /// it takes to execute it and the number of times it is run as part of the given program.
+    pub fn new(
+        total_vm_cycles: usize,
+        total_noops: usize,
+        asmop_info_list: Vec<(String, u8, usize)>,
+    ) -> ProgramInfo {
         Self {
             total_vm_cycles,
             total_noops,
+            asmop_info_list,
         }
     }
 
@@ -57,6 +90,12 @@ impl ProgramInfo {
     /// Returns total noops executed as part of a program
     pub fn total_noops(&self) -> usize {
         self.total_noops
+    }
+
+    /// Returns a Vector of tuples that maps an assembly instruction to the number of vm cycles it takes to
+    /// execute it and the number of times it is run as part of the given program.
+    pub fn asmop_info_list(&self) -> &Vec<(String, u8, usize)> {
+        &self.asmop_info_list
     }
 }
 
@@ -70,16 +109,42 @@ pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, Prog
 
     let mut total_vm_cycles = 0;
     let mut noop_count = 0;
+    let mut asmop_info_list = Vec::new();
 
     for state in vm_state_iterator {
         let vm_state = state.map_err(ProgramError::ExecutionError)?;
         if matches!(vm_state.op, Some(Operation::Noop)) {
             noop_count += 1;
         }
+        if let Some(decorators) = vm_state.decorators {
+            for decorator in decorators {
+                match decorator {
+                    Decorator::AsmOp(asmop_info) => {
+                        match &mut asmop_info_list.binary_search_by_key(
+                            &(asmop_info.get_op()),
+                            |(a, _, _): &(String, u8, usize)| &a,
+                        ) {
+                            Ok(pos) => {
+                                asmop_info_list[*pos].2 += 1;
+                            }
+                            Err(pos) => asmop_info_list.insert(
+                                *pos,
+                                (asmop_info.get_op().clone(), asmop_info.get_num_cycles(), 1),
+                            ),
+                        }
+                    }
+                    _ => (),
+                }
+            }
+        }
         total_vm_cycles = vm_state.clk;
     }
 
-    Ok(ProgramInfo::new(total_vm_cycles, noop_count))
+    Ok(ProgramInfo::new(
+        total_vm_cycles,
+        noop_count,
+        asmop_info_list,
+    ))
 }
 
 /// This is used to specify the error type returned from analyze.
@@ -100,14 +165,21 @@ impl fmt::Display for ProgramError {
 
 #[cfg(test)]
 mod tests {
-
     #[test]
     fn analyze_test() {
         let source = "proc.foo.1 pop.local.0 end begin popw.mem.1 push.17 exec.foo end";
         let program_inputs = super::ProgramInputs::none();
         let program_info =
             super::analyze(source, program_inputs).expect("analyze_test: Unexpected Error");
-        let expected_program_info = super::ProgramInfo::new(24, 1);
+        let expected_program_info = super::ProgramInfo::new(
+            24,
+            1,
+            vec![
+                ("pop.local.0".to_string(), 10, 1),
+                ("popw.mem.1".to_string(), 6, 1),
+                ("push.17".to_string(), 1, 1),
+            ],
+        );
         assert_eq!(program_info, expected_program_info);
     }
 

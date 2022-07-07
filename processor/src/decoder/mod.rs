@@ -271,6 +271,37 @@ impl Decoder {
         self.trace.program_hash()
     }
 
+    /// Returns an operation to be executed at the specified clock cycle. Only applicable in debug mode.
+    pub fn get_operation_at(&self, clk: usize) -> Operation {
+        self.operations[clk]
+    }
+
+    /// Returns the list of decorators at the specified clock cycle.
+    /// - Returns decorator list if decorators exist at the specified clock cycle.
+    /// - Returns None otherwise
+    pub fn get_decorators_at(&self, clk: usize) -> Option<Vec<Decorator>> {
+        let mut decorators = Vec::new();
+        for decorator in &self.decorators {
+            if decorator.0 > clk {
+                return (!decorators.is_empty()).then(|| decorators);
+            }
+            if decorator.0 == clk {
+                decorators.push(decorator.1.clone())
+            }
+        }
+        (!decorators.is_empty()).then(|| decorators)
+    }
+
+    /// Returns whether this decoder instance is instantiated in debug mode.
+    pub fn in_debug_mode(&self) -> bool {
+        self.in_debug_mode
+    }
+
+    /// Returns the current length of operations vector.
+    pub fn ops_len(&self) -> usize {
+        self.operations.len()
+    }
+
     // CONTROL BLOCKS
     // --------------------------------------------------------------------------------------------
 
@@ -557,40 +588,6 @@ impl Decoder {
     /// Appends a decorator to the decorator list.
     pub fn append_decorator(&mut self, clk: usize, decorator: Decorator) {
         self.decorators.push((clk, decorator));
-    }
-
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns an operation to be executed at the specified clock cycle. Only applicable in debug mode.
-    pub fn get_operation_at(&self, clk: usize) -> Operation {
-        self.operations[clk]
-    }
-
-    /// Returns the list of decorators at the specified clock cycle.
-    /// - Returns decorator list if decorators exist at the specified clock cycle.
-    /// - Returns None otherwise
-    pub fn get_decorators_at(&self, clk: usize) -> Option<Vec<Decorator>> {
-        let mut decorators = Vec::new();
-        for decorator in &self.decorators {
-            if decorator.0 > clk {
-                return (!decorators.is_empty()).then(|| decorators);
-            }
-            if decorator.0 == clk {
-                decorators.push(decorator.1.clone())
-            }
-        }
-        (!decorators.is_empty()).then(|| decorators)
-    }
-
-    /// Returns whether this decoder instance is instantiated in debug mode.
-    pub fn in_debug_mode(&self) -> bool {
-        self.in_debug_mode
-    }
-
-    /// Returns the current length of operations vector.
-    pub fn ops_len(&self) -> usize {
-        self.operations.len()
     }
 
     // TRACE GENERATIONS
