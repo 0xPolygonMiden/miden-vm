@@ -40,7 +40,7 @@ fn generate_fibonacci_program(n: usize) -> Script {
         n - 1
     );
 
-    let assembler = Assembler::new();
+    let assembler = Assembler::default();
     assembler.compile_script(&program).unwrap()
 }
 

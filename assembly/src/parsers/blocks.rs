@@ -12,6 +12,7 @@ pub fn parse_code_blocks(
     tokens: &mut TokenStream,
     context: &AssemblyContext,
     num_proc_locals: u32,
+    in_debug_mode: bool,
 ) -> Result<CodeBlock, AssemblyError> {
     // make sure there is something to be read
     let start_pos = tokens.pos();
@@ -22,7 +23,7 @@ pub fn parse_code_blocks(
     // parse the sequence of blocks and add each block to the list
     let mut blocks = Vec::new();
     while let Some(parser) = BlockParser::next(tokens)? {
-        let block = parser.parse(tokens, context, num_proc_locals)?;
+        let block = parser.parse(tokens, context, num_proc_locals, in_debug_mode)?;
         blocks.push(block);
     }
 
@@ -56,6 +57,7 @@ impl BlockParser {
         tokens: &mut TokenStream,
         context: &AssemblyContext,
         num_proc_locals: u32,
+        in_debug_mode: bool,
     ) -> Result<CodeBlock, AssemblyError> {
         match self {
             Self::Span => {
@@ -66,7 +68,13 @@ impl BlockParser {
                     if op.is_control_token() {
                         break;
                     }
-                    parse_op_token(op, &mut span_ops, num_proc_locals, &mut decorators)?;
+                    parse_op_token(
+                        op,
+                        &mut span_ops,
+                        num_proc_locals,
+                        &mut decorators,
+                        in_debug_mode,
+                    )?;
                     tokens.advance();
                 }
                 Ok(CodeBlock::new_span_with_decorators(span_ops, decorators))
@@ -78,7 +86,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the `if` clause
-                let t_branch = parse_code_blocks(tokens, context, num_proc_locals)?;
+                let t_branch = parse_code_blocks(tokens, context, num_proc_locals, in_debug_mode)?;
 
                 // build the `else` clause; if the else clause is specified, then read it;
                 // otherwise, set to a Span with a single noop
@@ -91,7 +99,8 @@ impl BlockParser {
                             tokens.advance();
 
                             // parse the `false` branch
-                            let f_branch = parse_code_blocks(tokens, context, num_proc_locals)?;
+                            let f_branch =
+                                parse_code_blocks(tokens, context, num_proc_locals, in_debug_mode)?;
 
                             // consume the `end` token
                             match tokens.read() {
@@ -141,7 +150,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the loop body
-                let loop_body = parse_code_blocks(tokens, context, num_proc_locals)?;
+                let loop_body = parse_code_blocks(tokens, context, num_proc_locals, in_debug_mode)?;
 
                 // consume the `end` token
                 match tokens.read() {
@@ -167,7 +176,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the loop body
-                let loop_body = parse_code_blocks(tokens, context, num_proc_locals)?;
+                let loop_body = parse_code_blocks(tokens, context, num_proc_locals, in_debug_mode)?;
 
                 // consume the `end` token
                 match tokens.read() {

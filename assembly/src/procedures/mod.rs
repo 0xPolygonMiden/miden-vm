@@ -52,6 +52,7 @@ impl Procedure {
         tokens: &mut TokenStream,
         context: &AssemblyContext,
         allow_export: bool,
+        in_debug_mode: bool,
     ) -> Result<Self, AssemblyError> {
         let proc_start = tokens.pos();
 
@@ -67,7 +68,7 @@ impl Procedure {
         tokens.advance();
 
         // parse procedure body, and handle memory allocation/deallocation of locals if any are declared
-        let code_root = parse_proc_blocks(tokens, context, num_locals)?;
+        let code_root = parse_proc_blocks(tokens, context, num_locals, in_debug_mode)?;
 
         // consume the 'end' token
         match tokens.read() {
@@ -100,9 +101,10 @@ pub fn parse_proc_blocks(
     tokens: &mut TokenStream,
     context: &AssemblyContext,
     num_proc_locals: u32,
+    in_debug_mode: bool,
 ) -> Result<CodeBlock, AssemblyError> {
     // parse the procedure body
-    let body = parse_code_blocks(tokens, context, num_proc_locals)?;
+    let body = parse_code_blocks(tokens, context, num_proc_locals, in_debug_mode)?;
 
     if num_proc_locals == 0 {
         // if no allocation of locals is required, return the procedure body

@@ -15,7 +15,7 @@ fn script_execution(c: &mut Criterion) {
             begin
                 exec.sha256::hash
             end";
-        let assembler = Assembler::new();
+        let assembler = Assembler::default();
         let script = assembler
             .compile_script(source)
             .expect("Failed to compile test source.");

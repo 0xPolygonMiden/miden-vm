@@ -127,7 +127,7 @@ impl ScriptFile {
         let now = Instant::now();
 
         // compile script
-        let script = Assembler::new()
+        let script = Assembler::default()
             .compile_script(&script_file)
             .map_err(|err| format!("Failed to compile script - {}", err))?;
 

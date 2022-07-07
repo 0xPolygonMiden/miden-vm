@@ -1,6 +1,8 @@
 mod advice;
+mod asmop_info;
 use crate::utils::collections::Vec;
 pub use advice::AdviceInjector;
+pub use asmop_info::AsmOpInfo;
 use core::fmt;
 
 // DECORATORS
@@ -12,12 +14,21 @@ pub enum Decorator {
     /// This operation affects only the advice tape, but has no effect on other VM components
     /// (e.g., stack, memory), and does not advance VM clock.
     Advice(AdviceInjector),
+    /// Adds information about the assembly instruction at a particular index
+    /// (only applicable in debug mode)
+    AsmOp(AsmOpInfo),
 }
 
 impl fmt::Display for Decorator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Advice(injector) => write!(f, "advice({})", injector),
+            Self::AsmOp(asmop_info) => write!(
+                f,
+                "asmOp({}, {})",
+                asmop_info.get_op(),
+                asmop_info.get_num_cycles()
+            ),
         }
     }
 }
