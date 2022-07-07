@@ -295,3 +295,31 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
         self.not_n0() * self.not_n1()
     }
 }
+
+// EXTERNAL ACCESSORS
+// ================================================================================================
+/// Trait to allow other processors to easily access the memory column values they need for
+/// constraint calculations.
+pub trait MemoryFrameExt<E: FieldElement> {
+    // --- Column accessors -----------------------------------------------------------------------
+
+    /// The value of the lower 16-bits of the delta value being tracked between two consecutive
+    /// context IDs, addresses, or clock cycles in the current row.
+    fn memory_d0(&self) -> E;
+    /// The value of the upper 16-bits of the delta value being tracked between two consecutive
+    /// context IDs, addresses, or clock cycles in the current row.
+    fn memory_d1(&self) -> E;
+}
+
+impl<E: FieldElement> MemoryFrameExt<E> for &EvaluationFrame<E> {
+    // --- Column accessors -----------------------------------------------------------------------
+
+    #[inline(always)]
+    fn memory_d0(&self) -> E {
+        self.current()[D0_COL_IDX]
+    }
+    #[inline(always)]
+    fn memory_d1(&self) -> E {
+        self.current()[D1_COL_IDX]
+    }
+}

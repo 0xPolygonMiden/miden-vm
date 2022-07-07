@@ -8,6 +8,7 @@ use vm_core::{
 mod bitwise_pow2;
 mod hasher;
 mod memory;
+pub use memory::MemoryFrameExt;
 
 // CONSTANTS
 // ================================================================================================
@@ -193,5 +194,21 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
         } else {
             self.s(0) * self.s(1) * binary_not(self.s_next(2))
         }
+    }
+}
+
+// EXTERNAL ACCESSORS
+// ================================================================================================
+/// Trait to allow other processors to easily access the auxiliary table values they need for
+/// constraint calculations.
+pub trait AuxTableFrameExt<E: FieldElement> {
+    /// Flag to indicate whether the frame is in the memory portion of the Auxiliary Table trace.
+    fn aux_table_memory_flag(&self) -> E;
+}
+
+impl<E: FieldElement> AuxTableFrameExt<E> for &EvaluationFrame<E> {
+    #[inline(always)]
+    fn aux_table_memory_flag(&self) -> E {
+        self.memory_flag(true)
     }
 }

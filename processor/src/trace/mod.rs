@@ -1,7 +1,7 @@
 use super::{
     decoder::AuxTraceHints as DecoderAuxTraceHints,
     hasher::AuxTraceBuilder as HasherAuxTraceBuilder,
-    range::AuxTraceHints as RangeCheckerAuxTraceHints,
+    range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
     stack::AuxTraceBuilder as StackAuxTraceBuilder, Digest, Felt, FieldElement, Process,
     StackTopState, Vec,
 };
@@ -16,10 +16,9 @@ use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
 use vm_core::StarkField;
 
 mod utils;
-pub use utils::{AuxColumnBuilder, LookupTableRow, TraceFragment};
+pub use utils::{build_lookup_table_row_values, AuxColumnBuilder, LookupTableRow, TraceFragment};
 
 mod decoder;
-mod range;
 
 #[cfg(test)]
 mod tests;
@@ -28,7 +27,7 @@ mod tests;
 // ================================================================================================
 
 /// Number of rows at the end of an execution trace which are injected with random values.
-const NUM_RAND_ROWS: usize = 1;
+pub const NUM_RAND_ROWS: usize = 1;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -41,7 +40,7 @@ type RandomCoin = vm_core::utils::RandomCoin<Felt, vm_core::hasher::Hasher>;
 pub struct AuxTraceHints {
     pub(crate) decoder: DecoderAuxTraceHints,
     pub(crate) stack: StackAuxTraceBuilder,
-    pub(crate) range: RangeCheckerAuxTraceHints,
+    pub(crate) range: RangeCheckerAuxTraceBuilder,
     pub(crate) hasher: HasherAuxTraceBuilder,
 }
 
@@ -201,12 +200,10 @@ impl Trace for ExecutionTrace {
             .build_aux_columns(&self.main_trace, rand_elements);
 
         // add the range checker's running product columns
-        let range_aux_columns = range::build_aux_columns(
-            self.length(),
-            &self.aux_trace_hints.range,
-            rand_elements,
-            self.main_trace.get_column(range::V_COL_IDX),
-        );
+        let range_aux_columns = self
+            .aux_trace_hints
+            .range
+            .build_aux_columns(&self.main_trace, rand_elements);
 
         // add hasher's running product columns
         let hasher_aux_columns = self
@@ -310,7 +307,7 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     let aux_trace_hints = AuxTraceHints {
         decoder: decoder_trace.aux_trace_hints,
         stack: stack_trace.aux_builder,
-        range: range_check_trace.aux_trace_hints,
+        range: range_check_trace.aux_trace_builder,
         hasher: aux_table_trace.hasher_aux_builder,
     };
 

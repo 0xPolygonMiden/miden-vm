@@ -16,7 +16,7 @@ fn range_checks() {
 
     let RangeCheckTrace {
         trace,
-        aux_trace_hints: _,
+        aux_trace_builder: _,
     } = checker.into_trace(1024, 0);
     validate_trace(&trace, &values);
 
@@ -55,7 +55,7 @@ fn range_checks_rand() {
     let trace_len = checker.trace_len().next_power_of_two();
     let RangeCheckTrace {
         trace,
-        aux_trace_hints: _,
+        aux_trace_builder: _,
     } = checker.into_trace(trace_len, 0);
     validate_trace(&trace, &values);
 }
