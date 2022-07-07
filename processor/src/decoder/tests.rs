@@ -966,7 +966,7 @@ fn check_op_decoding(
 }
 
 fn contains_op(trace: &DecoderTrace, row_idx: usize, op: Operation) -> bool {
-    op.op_code().unwrap() == read_opcode(trace, row_idx)
+    op.op_code() == read_opcode(trace, row_idx)
 }
 
 fn read_opcode(trace: &DecoderTrace, row_idx: usize) -> u8 {
