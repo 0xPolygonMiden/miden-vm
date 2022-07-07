@@ -1,7 +1,4 @@
 # Hash Processor
-
-This note assumes some familiarity with [permutation checks](https://hackmd.io/@arielg/ByFgSDA7D).
-
 Miden VM "offloads" all hash-related computations to a separate _hash processor_. This processor supports executing [Rescue Prime](https://eprint.iacr.org/2020/1143) hash function (or rather a [specific instantiation](https://docs.rs/winter-crypto/0.3.2/winter_crypto/hashers/struct.Rp64_256.html) of it) in the following settings:
 
 - A single permutation of Rescue Prime.
@@ -12,8 +9,8 @@ Miden VM "offloads" all hash-related computations to a separate _hash processor_
 
 The processor can be thought of as having a small instruction set of $11$ instructions. These instructions are listed below, and examples of how these instructions are used by the processor are described in the following sections.
 
-| Instruction | Description                                                                                                                                                                                                                                                                                                        |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Instruction | Description |
+| ----------- | ----------- |
 | `RPR`       | Executes a single round of Rescue Prime. All cycles which are not one less than a multiple of $8$ execute this instruction. That is, the processor executes this instruction on cycles $0, 1, 2, 3, 4, 5, 6$, but not $7$, and then again, $8, 9, 10, 11, 12, 13, 14$, but not $15$ etc.                           |
 | `BP`        | Initiates computation of a single permutation, a 2-to-1 hash, or a linear hash of many elements. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                      |
 | `MP`        | Initiates Merkle path verification computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                                                                       |
@@ -42,17 +39,16 @@ The meaning of the columns is as follows:
   - The next eight columns ($h_4, ..., h_{11}$) are reserved for the rate elements of the state. These are used to absorb the values to be hashed. Once the permutation is complete, hash output is located in the first four rate columns ($h_4, ..., h_7$).
 - One index column $i$. This column is used to help with Merkle path verification and Merkle root update computations.
 
-In addition to the columns described above, the table relies on two running product columns which are used to facilitate permutation checks. These columns are:
+In addition to the columns described above, the processor relies on two running product columns which are used to facilitate multiset checks (similar to the ones described [here](https://hackmd.io/@arielg/ByFgSDA7D)). These columns are:
 
-- $p_0$ - which is used to tie the processor table with with the main VM's stack. That is, inputs consumed by the processor and outputs produced by the processor are added to $p_0$, while the main VM stack removes them from $p_0$. Thus, if the sets of inputs and outputs between the main VM stack and hash processor are the same, value of $p_0$ should be equal to $1$ at the start and the end of the execution trace.
-- $p_1$ - which is used to as a _virtual_ helper table for Merkle root update computations.
+- $p_0$ - which is used to tie the processor table with the main VM's stack. That is, values representing inputs consumed by the processor and outputs produced by the processor are multiplied into $p_0$, while the main VM stack divides them out of $p_0$. Thus, if the sets of inputs and outputs between the main VM stack and hash processor are the same, value of $p_0$ should be equal to $1$ at the start and the end of the execution trace.
+- $p_1$ - which is used to keep track of the *sibling* table used for Merkle root update computations. Specifically, when a root for the old leaf value is computed, we add an entry for all sibling nodes to the table (i.e., we multiply $p_1$ by the values representing these entries). When the root for the new leaf value is computed, we remove the entries for the nodes from the table (i.e., we divide $p_1$ by the value representing these entries). Thus, if both computations used the same set of sibling nodes (in the same order), the sibling table should be empty by the time Merkle root update procedure completes (i.e., the value of $p_1$ would be $1$).
 
 ## Instruction flags
-
 As mentioned above, processor instructions are encoded using a combination of periodic and selector columns. These columns can be used to compute a binary flag for each instruction. Thus, when a flag for a given instruction is set to $1$, the processor executes this instruction. Formulas for computing instruction flags are listed below.
 
-| Flag       | Value                                                 | Notes                                                                                             |
-| ---------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Flag       | Value                                                 | Notes                       |
+| ---------- | ----------------------------------------------------- | --------------------------- |
 | $f_{rpr}$  | $1 - k_0$                                             | Set to $1$ on the first $7$ steps of every $8$-step cycle.                                        |
 | $f_{bp}$   | $k_2 \cdot s_0 \cdot (1 - s_1) \cdot (1 - s_2)$       | Set to $1$ when selector flags are $(1, 0, 0)$ on rows which are multiples of $8$.                |
 | $f_{mp}$   | $k_2 \cdot s_0 \cdot (1 - s_1) \cdot s_2$             | Set to $1$ when selector flags are $(1, 0, 1)$ on rows which are multiples of $8$.                |
@@ -160,7 +156,6 @@ $$
 $$
 
 ### Verify Merkle path
-
 Verifying a Merkle path involves the following steps:
 
 1. Initialize hasher state with the leaf and the first node of the path, setting the first capacity element to $8$, and the remaining capacity elements to $0$s.
@@ -237,50 +232,49 @@ The semantics of `MV` and `MU` instructions are similar to the semantics of `MP`
 When describing AIR constraints, we adopt the following notation: for column $x$, we denote the value in the current row simply as $x$, and the value in the next row of the column as $x′$. Thus, all transition constraints described in this note work with two consecutive rows of the execution trace.
 
 ### Row address constraint
-
 As mentioned above, row address $r$ starts at $1$, and is incremented by $1$ with every row. The first condition can be enforced with a boundary constraint which specifies $r=1$ at the first row. The second condition can be enforced via the following transition constraint:
 
-$$
-r' - r - 1 = 0
+>$$
+r' - r - 1 = 0  \text{ | degree } = 1
 $$
 
-This constraint should not be applied to the very last row of the hasher execution trace, since we do not want to enforce a value that would conflict with the first row of a subsequent co-processor in the Auxiliary Table. Therefore we can create a special virtual flag for this constraint using the $s_0$ selector column from the Auxiliary Table that selects for the hash co-processor. (This is _not_ one of the hasher's internal selector columns which are desribed above.)
+This constraint should not be applied to the very last row of the hasher execution trace, since we do not want to enforce a value that would conflict with the first row of a subsequent co-processor in the Auxiliary Table. Therefore we can create a special virtual flag for this constraint using the $aux\_s_0$ selector column from the [Auxiliary Table](main.md) that selects for the hash co-processor.
 
 The modified row address constraint which should be applied is the following:
 
-$$
-(1 - s_0') \cdot (r' - r - 1) = 0
+>$$
+(1 - aux\_s_0') \cdot (r' - r - 1) = 0 \text{ | degree } = 2
 $$
 
-_Note: this constraint should also be multiplied Auxiliary Table's selector flag $s_0$, as is true for all constraints in this co-processor._
+_Note: this constraint should also be multiplied by Auxiliary Table's selector flag $s_0$, as is true for all constraints in this co-processor._
 
 ### Selector columns constraints
 
 For selector columns, first we must ensure that only binary values are allowed in these columns. This can be done with the following constraints:
 
-$$
-s_0^2 - s_0 = 0 \\
-s_1^2 - s_1 = 0 \\
-s_2^2 - s_2 = 0
+>$$
+s_0^2 - s_0 = 0 \text{ | degree } = 2 \\
+s_1^2 - s_1 = 0 \text{ | degree } = 2 \\
+s_2^2 - s_2 = 0 \text{ | degree } = 2
 $$
 
 Next, we need to make sure that unless $f_{out}=1$ or $f_{out}'=1$, the values in columns $s_1$ and $s_2$ are copied over to the next row. This can be done with the following constraints:
 
-$$
-(s_1' - s_1) \cdot (1 - f_{out}') \cdot (1 - f_{out}) = 0 \\
-(s_2' - s_2) \cdot (1 - f_{out}') \cdot (1 - f_{out})= 0
+>$$
+(s_1' - s_1) \cdot (1 - f_{out}') \cdot (1 - f_{out}) = 0  \text{ | degree } = 9 \\
+(s_2' - s_2) \cdot (1 - f_{out}') \cdot (1 - f_{out}) = 0  \text{ | degree } = 9
 $$
 
 Next, we need to enforce that if any of $f_{abp}, f_{mpa}, f_{mva}, f_{mua}$ flags is set to $1$, the next value of $s_0$ is $0$. In all other cases, $s_0$ should be unconstrained. These flags will only be set for rows that are 1 less than a multiple of 8 (the last row of each cycle). This can be done with the following constraint:
 
-$$
-s_0' \cdot (f_{abp} + f_{mpa} + f_{mva} + f_{mua})= 0
+>$$
+s_0' \cdot (f_{abp} + f_{mpa} + f_{mva} + f_{mua})= 0  \text{ | degree } = 5
 $$
 
 Lastly, we need to make sure that no invalid combinations of flags are allowed. This can be done with the following constraints:
 
-$$
-k_0 \cdot (1 - s_0) \cdot s_1 = 0
+>$$
+k_0 \cdot (1 - s_0) \cdot s_1 = 0 \text{ | degree } = 3
 $$
 
 The above constraints enforce that on every step which is one less than a multiple of $8$, if $s_0 = 0$, then $s_1$ must also be set to $0$. Basically, if we set $s_0=0$, then we must make sure that either $f_{hout}=1$ or $f_{sout}=1$.
@@ -310,20 +304,20 @@ $$
 
 And then the full constraint would looks as follows:
 
-$$
-f_{an} \cdot (b^2 - b) = 0
+>$$
+f_{an} \cdot (b^2 - b) = 0  \text{ | degree } = 6
 $$
 
 Next, to make sure when a computation is finished $i=0$, we can use the following constraint:
 
-$$
-f_{out} \cdot i = 0
+>$$
+f_{out} \cdot i = 0 \text{ | degree } = 5
 $$
 
-Finally, to make sure that the value in $i$ is copied over to the next row unless we are absorbing a new row or the computation is finished, we impose the following contraint:
+Finally, to make sure that the value in $i$ is copied over to the next row unless we are absorbing a new row or the computation is finished, we impose the following constraint:
 
-$$
-(1 - f_{an} - f_{out}) \cdot (i' - i) = 0
+>$$
+(1 - f_{an} - f_{out}) \cdot (i' - i) = 0 \text{ | degree } = 5
 $$
 
 To satisfy these constraints for computations not related to Merkle paths (i.e., 2-to-1 hash and liner hash of elements), we can set $i = 0$ at the start of the computation. This guarantees that $i$ will remain $0$ until the end of the computation.
@@ -335,32 +329,31 @@ Hasher state columns $h_0, ..., h_{11}$ should behave as follows:
 - For the first $7$ row of every $8$-row cycle (i.e., when $k_0=0$), we need to apply [Rescue Prime](https://eprint.iacr.org/2020/1143) round constraints to the hasher state. For brevity, we omit these constraints from this note.
 - On the $8$th row of every $8$-row cycle, we apply the constraints based on which transition flag is set as described in the table below.
 
-| Condition\_                                      | Constraint                                                                                                      | Description                                                                                                                                                                                                                                                                           |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| $f_{out}=1$                                      | none                                                                                                            | When a computation is completed, the next hasher state is unconstrained.                                                                                                                                                                                                              |
-| $f_{abp}=1$                                      | $h'_j - h_j = 0$ for $j \in \{0, ..., 3\}$                                                                      | When absorbing the next set of elements into the state during linear hash computation, the first $4$ elements (the capacity portion) is carried over to the next row.                                                                                                                 |
-| $f_{mp}=1$ or <br> $f_{mv}=1$ or <br> $f_{mu}=1$ | $(1 - b) \cdot (h_{j +4}' - h_{j+4})+$ <br> $b \cdot (h_{j + 8}' - h_{j + 4})=0$ <br> for $j \in \{0, ..., 3\}$ | When absorbing the next node during Merkle path computation, the result of the previous hash ($h_4, ..., h_7$) are copied over either to $(h_4', ..., h_7')$ or to $(h_8', ..., h_{11}')$ depending on the value of $b$, which is defined in the same was as in the previous section. |
+Specifically, when absorbing the next set of elements into the state during linear hash computation (i.e., $f_{abp} = 1$), the first $4$ elements (the capacity portion) are carried over to the next row. For $j \in \{0, ..., 3\}$ this can be described as follows:
 
-The above can be translated into a set of constraint straightforwardly like so:
-
-$$
-f_{abp} \cdot (h'_j - h_j) = 0 \\
-(f_{mp} + f_{mv} + f_{mu}) \cdot \left( (1 - b) \cdot (h_{j +4}' - h_{j+4})+ b \cdot (h_{j + 8}' - h_{j + 4}) \right)=0
+>$$
+f_{abp} \cdot (h'_j - h_j) = 0 \text{ | degree } = 5
 $$
 
-### Permutation product constraints
+When absorbing the next node during Merkle path computation (i.e., $f_{mp} + f_{mv} + f_{mu}=1$), the result of the previous hash ($h_4, ..., h_7$) are copied over either to $(h_4', ..., h_7')$ or to $(h_8', ..., h_{11}')$ depending on the value of $b$, which is defined in the same way as in the previous section. For $j \in \{0, ..., 3\}$ this can be described as follows:
 
-This section describes constraints which enforce updates for permutation product columns $p_0$ and $p_1$. These columns can be updated only on rows which are multiples of $8$ or one less than a multiple of $8$. On all other rows the values in the columns remain the same.
+>$$
+(f_{mp} + f_{mv} + f_{mu}) \cdot ((1 - b) \cdot (h_{j +4}' - h_{j+4}) + b \cdot (h_{j + 8}' - h_{j + 4})) = 0 \text{ | degree } = 6
+$$ 
 
-To simplify description of constraints, we define the following variables. Below $\alpha$ and $\beta$ are random values sent by the verifier to the prover after the prover commits to the execution trace described by the main $17$ columns.
+Note, that when a computation is completed (i.e., $f_{out}=1$), the next hasher state is unconstrained.
+
+### Multiset check constraints
+In this sections we describe constraints which enforce updates for multiset check columns $p_0$ and $p_1$. These columns can be updated only on rows which are multiples of $8$ or $1$ less than a multiple of $8$. On all other rows the values in the columns remain the same.
+
+To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc..
 
 $$
 m = k_0 + 2 \cdot k_2 + \sum_{j=0}^2 (2^{j+2} \cdot s_j) \\
-v_h = \beta + \alpha \cdot m + \alpha^2 \cdot r + \alpha^3 \cdot i \\
-v_a = \sum_{j=0}^{3}(\alpha^{j+4} \cdot h_j) \\
-v_b = \sum_{j=4}^{7}(\alpha^{j+4} \cdot h_j) \\
-v_c = \sum_{j=8}^{11}(\alpha^{j+4} \cdot h_j) \\
-v_d = \sum_{j=8}^{11}(\alpha^j \cdot h_j)
+v_h = \alpha_0 + \alpha_1 \cdot m + \alpha_2 \cdot r + \alpha_3 \cdot i \\
+v_a = \sum_{j=0}^{3}(\alpha_{j+4} \cdot h_j) \\
+v_b = \sum_{j=4}^{7}(\alpha_{j+4} \cdot h_j) \\
+v_c = \sum_{j=8}^{11}(\alpha_{j+4} \cdot h_j) \\
 $$
 
 In the above:
@@ -368,52 +361,89 @@ In the above:
 - $m$ is a _transition label_ which uniquely identifies each transition function.
 - $v_h$ is a _common header_ which is a combination of transition label, row address, and node index.
 - $v_a$, $v_b$, $v_c$ are the first, second, and third words (4 elements) of the hasher state.
-- $v_d$ is the third word in the hasher state, but with the same $\alpha$ coefficients as used for the second word.
 
-Armed with the above notation, we can describe constraints for updating column $p_0$ as follows.
+#### Hash processor bus constraints
+As described previously, running product column $p_0$ is used to tie the hash processor with the main VM's stack. When receiving inputs from or returning results to the stack, hash processor multiplies $p_0$ by their respective values. On other other side, when sending inputs to the hash processor or receiving results from the processor, the stack divides $p_0$ by their values.
 
-| Condition\_                                      | Constraint                                               | Description                                                                                                                                                                          |
-| ------------------------------------------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| $f_{bp}=1$                                       | $p_0' = p_0 \cdot (v_h + v_a + v_b + v_c)$               | When starting a new simple or linear hash computation, the entire hasher state is included into $p_0$.                                                                               |
-| $f_{mp}=1$ or <br> $f_{mv}=1$ or <br> $f_{mu}=1$ | $p_0' = p_0 \cdot (v_h + (1-b) \cdot v_b + b \cdot v_d)$ | When starting a Merkle path computation, we include the leaf of the path into $p_0$. The leaf is selected from the state based on value of $b$ (defined as in the previous section). |
-| $f_{abp}=1$                                      | $p_0' = p_0 \cdot (v_h + v'_b + v'_c - (v_b + v_c))$     | When absorbing a new set of elements into the state while computing a linear hash, we include deltas between the last $8$ elements of the hasher state (the rate) into $p_0$.        |
-| $f_{hout}=1$                                     | $p_0' = p_0 \cdot (v_h + v_b)$                           | When a computation is complete, we include the second word of the hasher state (the result) into $p_0$                                                                               |
-| $f_{sout}=1$                                     | $p_0' = p_0 \cdot (v_h + v_a + v_b + v_c)$               | When we want to return the entire state of the hasher, we include the whole state into $p_0$                                                                                         |
-| otherwise                                        | $p_0' = p_0$                                             | $p_0$ does not change.                                                                                                                                                               |
+In the section below we describe only the hash processor side of the constraints (i.e., multiplying $p_0$ by relevant values). We define values which are to be multiplied into the $p_0$ for each operation as follows:
 
-We can combine the above constraints into a single expression like so:
-
+When starting a new simple or linear hash computation (i.e., $f_{bp}=1$) or when returning the entire state of the hasher ($f_{sout}=1$), the entire hasher state is included into $p_0$:
 $$
-p_0' = p_0 \cdot ([(f_{bp} + f_{sout}) \cdot (v_h + v_a + v_b + v_c)] + \\\
-[(f_{mp} + f_{mv} + f_{mu}) \cdot (v_h + (1-b) \cdot v_b + b \cdot v_d)] + \\\
-[f_{abp} \cdot (v_h + v'_b + v'_c - (v_b + v_c))] + [f_{hout} \cdot (v_h + v_b)] + \\\
-1 - (f_{bp} + f_{mp} + f_{mv} + f_{mu} + f_{abp} + f_{out})
-)
+v_{all} = v_h + v_a + v_b + v_c
 $$
+
+When starting a Merkle path computation (i.e., $f_{mp} + f_{mv} + f_{mu} = 1$), we include the leaf of the path into $p_0$. The leaf is selected from the state based on value of $b$ (defined as in the previous section):
+$$
+v_{leaf} = v_h + (1-b) \cdot v_b + b \cdot v_d
+$$
+
+When absorbing a new set of elements into the state while computing a linear hash (i.e., $f_{abp}=1$), we include deltas between the last $8$ elements of the hasher state (the rate) into $p_0$:
+$$
+v_{abp} = v_h + v'_b + v'_c - (v_b + v_c)
+$$
+
+When a computation is complete (i.e., $f_{hout}=1$), we include the second word of the hasher state (the result) into $p_0$:    
+$$
+v_{res} = v_h + v_b
+$$
+
+Using the above values, we can describe constraints for updating column $p_0$ as follows.
+
+>$$
+p_0' = p_0 \cdot ((f_{bp} + f_{sout}) \cdot v_{all} + (f_{mp} + f_{mv} + f_{mu}) \cdot v_{leaf} + f_{abp} \cdot v_{abp} + f_{hout} \cdot v_{res} + \\
+1 - (f_{bp} + f_{mp} + f_{mv} + f_{mu} + f_{abp} + f_{out}))
+$$
+
+The above constraint reduces to the following under various flag conditions:
+
+| Condition      | Applied constraint |
+| -------------- | ------------------ |
+| $f_{bp} = 1$   | $p_0' = p_0 \cdot v_{all}$ |
+| $f_{sout} = 1$ | $p_0' = p_0 \cdot v_{all}$ |
+| $f_{mp} = 1$   | $p_0' = p_0 \cdot v_{leaf}$ |
+| $f_{mv} = 1$   | $p_0' = p_0 \cdot v_{leaf}$ |
+| $f_{mu} = 1$   | $p_0' = p_0 \cdot v_{leaf}$ |
+| $f_{abp} = 1$  | $p_0' = p_0 \cdot v_{abp}$ |
+| $f_{hout} = 1$ | $p_0' = p_0 \cdot v_{res}$ |
+| Otherwise      | $p_0' = p_0$ |
 
 Note that the degree of the above constraint is $7$.
 
-To describe constraints for column $p_1$, we will change the definition of the _common header_ as follows:
+#### Sibling table constraints
+As mentioned previously, sibling table (represented by running column $p_1$) is used to keep track of sibling nodes used during Merkle root update computation. For this computation, we need to enforce the following rules:
+* When computing the old Merkle root, whenever a new sibling node is absorbed into the hasher state (i.e., $f_{mv} + f_{mva} = 1$), an entry for this sibling should be included into $p_1$.
+* When computing the new Merkle root, whenever a new sibling node is absorbed into the hasher state (i.e., $f_{mu} + f_{mua} = 1$), the entry for this sibling should be removed from $p_1$.
 
+To simplify the description of the constraints, we use variables $v_b$ and $v_c$ defined above and define the value representing an entry in the sibling table as follows:
 $$
-v_g = \beta + \alpha^3 \cdot i
+v_{sibling} = \alpha_0 + \alpha_3 \cdot i + b \cdot v_b + (1-b) \cdot v_c
 $$
 
-Then, the constraints can be described as follows:
+Using the above value, we can define the constraint for updating $p_1$ as follows:
 
-| Condition\_                 | Constraint                                               | Description                                                                                                                        |
-| --------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| $f_{mv}=1$ <br> $f_{mva}=1$ | $p_1' = p_1 \cdot (v_g + b \cdot v_b + (1-b) \cdot v_d)$ | When starting a Merkle root update or absorbing a new node into the hasher state, the non-leaf node should be included into $p_1$. |
-| $f_{mu}=1$ <br> $f_{mua}=1$ | $p_1' \cdot (v_g + b \cdot v_b + (1-b) \cdot v_d) = p_1$ | When starting a Merkle root update or absorbing a new node into the hasher state, the non-leaf node should be removed from $p_1$.  |
-| otherwise                   | $p_1' = p_1$                                             | $p_1$ does not change.                                                                                                             |
-
-We can combine the above constraints into a single expression like so:
-
+>$$
+p_1' \cdot \left( (f_{mv} + f_{mva}) \cdot v_{sibling} + 1 - (f_{mv} + f_{mva}) \right) = \\
+p_1 \cdot \left( (f_{mu} + f_{mua}) \cdot v_{sibling} + 1 - (f_{mu} + f_{mua}) \right)
 $$
-p_1' \cdot \left( (f_{mv} + f_{mva}) \cdot (v_g + b \cdot v_b + (1-b) \cdot v_d) + 1 - (f_{mv} + f_{mva}) \right) = \\
-p_1 \cdot \left( (f_{mu} + f_{mua}) \cdot (v_g + b \cdot v_b + (1-b) \cdot v_d) + 1 - (f_{mu} + f_{mua}) \right)
-$$
+
+The above constraint reduces to the following under various flag conditions:
+
+| Condition      | Applied constraint |
+| -------------- | ------------------ |
+| $f_{mv} = 1$   | $p_1' \cdot v_{sibling} = p_1$ |
+| $f_{mva} = 1$  | $p_1' \cdot v_{sibling} = p_1$ |
+| $f_{mu} = 1$   | $p_1' = p_1 \cdot v_{sibling}$ |
+| $f_{mua} = 1$  | $p_1' = p_1 \cdot v_{sibling}$ |
+| Otherwise      | $p_1' = p_1$ |
 
 Note that the degree of the above constraint is $7$.
 
-Together with boundary constraints enforcing that $p_1=1$ at the first and last rows, the above constraint ensures that if a node was included into $p_1$ as a part of verifying the old Merkle path, the same node must be removed from $p_1$ as a part of verifying the new Merkle path.
+To make sure computation of the old Merkle root is immediately followed by the computation of the new Merkle root, we impose the following constraint:
+
+>$$
+(f_{bp} + f_{mp} + f_{mv}) \cdot (1 - p_1) = 0 \text{ | degree } = 5
+$$
+
+The above means that whenever we start a new computation which is not the computation of the new Merkle root, the sibling table must be empty. Thus, after the hash processor computes the old Merkle root, the only way to clear the table is to compute the new Merkle root.
+
+Together with boundary constraints enforcing that $p_1=1$ at the first and last rows, the above constraints ensure that if a node was included into $p_1$ as a part of computing the old Merkle root, the same node must be removed from $p_1$ as a part of computing the new Merkle root.

@@ -708,10 +708,8 @@ mod tests {
 
     fn build_group(ops: &[Operation]) -> Felt {
         let mut group = 0u64;
-        let mut i = 0;
-        for op in ops.iter() {
+        for (i, op) in ops.iter().enumerate() {
             group |= (op.op_code().unwrap() as u64) << (Operation::OP_BITS * i);
-            i += 1;
         }
         Felt::new(group)
     }

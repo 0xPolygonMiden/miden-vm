@@ -73,7 +73,7 @@ pub struct DecoderTrace {
 
 pub struct StackTrace {
     trace: [Vec<Felt>; STACK_TRACE_WIDTH],
-    aux_trace_hints: stack::AuxTraceHints,
+    aux_builder: stack::AuxTraceBuilder,
 }
 
 pub struct RangeCheckTrace {
@@ -81,7 +81,10 @@ pub struct RangeCheckTrace {
     aux_trace_hints: range::AuxTraceHints,
 }
 
-type AuxTableTrace = [Vec<Felt>; AUX_TABLE_WIDTH];
+pub struct AuxTableTrace {
+    trace: [Vec<Felt>; AUX_TABLE_WIDTH],
+    hasher_aux_builder: hasher::AuxTraceBuilder,
+}
 
 // EXECUTOR
 // ================================================================================================
@@ -148,7 +151,7 @@ impl Process {
             decoder: Decoder::new(in_debug_mode),
             stack: Stack::new(&inputs, MIN_TRACE_LEN, in_debug_mode),
             range: RangeChecker::new(),
-            hasher: Hasher::new(),
+            hasher: Hasher::default(),
             bitwise: Bitwise::new(),
             memory: Memory::new(),
             advice: AdviceProvider::new(inputs),

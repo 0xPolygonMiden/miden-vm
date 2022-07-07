@@ -1,11 +1,12 @@
-use super::AuxTableTrace;
 use crate::{utils::get_trace_len, ExecutionTrace, Operation, Process};
 use vm_core::{
     bitwise::{BITWISE_OR, OP_CYCLE_LEN},
     hasher::{HASH_CYCLE_LEN, LINEAR_HASH, RETURN_STATE},
     program::blocks::CodeBlock,
-    Felt, FieldElement, ProgramInputs, AUX_TABLE_RANGE,
+    Felt, FieldElement, ProgramInputs, AUX_TABLE_RANGE, AUX_TABLE_WIDTH,
 };
+
+type AuxTableTrace = [Vec<Felt>; AUX_TABLE_WIDTH];
 
 #[test]
 fn hasher_aux_trace() {
@@ -88,7 +89,7 @@ fn stacked_aux_trace() {
 // ================================================================================================
 
 /// Builds a sample trace by executing a span block containing the specified operations. This
-/// results in 1 additional hash cycle at the beginning of the hasher coprocessor.
+/// results in 1 additional hash cycle (8 rows) at the beginning of the hash co-processor.
 fn build_trace(stack: &[u64], operations: Vec<Operation>) -> (AuxTableTrace, usize) {
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(inputs);

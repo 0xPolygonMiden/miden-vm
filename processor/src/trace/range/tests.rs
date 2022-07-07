@@ -1,6 +1,6 @@
 use super::{
     super::NUM_RAND_ROWS,
-    super::{utils::build_trace_from_ops, Trace},
+    super::{tests::build_trace_from_ops, Trace},
     Felt, FieldElement, P0_COL_IDX, P1_COL_IDX,
 };
 use rand_utils::rand_array;

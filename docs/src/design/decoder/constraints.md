@@ -109,7 +109,7 @@ For *span* blocks, the hash is computed by absorbing a linear sequence of instru
 
 The way the decoder communicates with the hash co-processor is by dividing values of the multiset check column $p_0$ by the values of operations providing inputs to or reading outputs from the hash co-processor. A constraint to enforce this would look as $p_0' \cdot u = p_0$, where $u$ is the value which defines the operation.
 
-In constructing value of $u$ for decoder AIR constraints, we will use the following labels (see [here](../aux_table/hasher.md#permutation-product-constraints) for an explanation of how values for these labels are computed):
+In constructing value of $u$ for decoder AIR constraints, we will use the following labels (see [here](../aux_table/hasher.md#multiset-check-constraints) for an explanation of how values for these labels are computed):
 
 * $m_{bp}$ this label specifies that we are starting a new hash computation.
 * $m_{abp}$ this label specifies that we are absorbing the next sequence of $8$ elements into an ongoing hash computation.

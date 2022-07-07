@@ -1,12 +1,9 @@
 use super::{
-    super::{utils::build_trace_from_ops, LookupTableRow, Trace, NUM_RAND_ROWS},
-    Felt,
+    build_trace_from_ops, rand_array, Felt, FieldElement, LookupTableRow, Operation, Trace,
+    NUM_RAND_ROWS, ONE, ZERO,
 };
 use crate::stack::OverflowTableRow;
-use rand_utils::rand_array;
-use vm_core::{
-    FieldElement, Operation, AUX_TRACE_RAND_ELEMENTS, ONE, STACK_AUX_TRACE_OFFSET, ZERO,
-};
+use vm_core::{AUX_TRACE_RAND_ELEMENTS, STACK_AUX_TRACE_OFFSET};
 
 // CONSTANTS
 // ================================================================================================
@@ -18,7 +15,7 @@ const P1_COL_IDX: usize = STACK_AUX_TRACE_OFFSET;
 
 #[test]
 #[allow(clippy::needless_range_loop)]
-fn stack_p1() {
+fn p1_trace() {
     let ops = vec![
         Operation::U32add, // no shift, clk 1
         Operation::Pad,    // right shift, clk 2

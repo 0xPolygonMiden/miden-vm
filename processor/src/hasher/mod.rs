@@ -1,4 +1,4 @@
-use super::{Felt, FieldElement, StarkField, TraceFragment, Vec, Word};
+use super::{Felt, FieldElement, StarkField, TraceFragment, Vec, Word, ZERO};
 use vm_core::{
     hasher::{
         absorb_into_state, get_digest, init_state, init_state_from_words, Selectors, LINEAR_HASH,
@@ -11,13 +11,11 @@ use vm_core::{
 mod trace;
 use trace::HasherTrace;
 
+mod aux_trace;
+pub use aux_trace::{AuxTraceBuilder, SiblingTableRow, SiblingTableUpdate};
+
 #[cfg(test)]
 mod tests;
-
-// CONSTANTS
-// ================================================================================================
-
-const ZERO: Felt = Felt::ZERO;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -59,25 +57,21 @@ type HasherState = [Felt; STATE_WIDTH];
 /// Each permutation of the hash function adds 8 rows to the execution trace. Thus, for Merkle
 /// path verification, number of rows added to the trace is 8 * path.len(), and for Merkle root
 /// update it is 16 * path.len(), since we need to perform two path verifications for each update.
+///
+/// In addition to the execution trace, the hash processor also maintains an auxiliary trace
+/// builder which can be used to construct a running product column describing the state of the
+/// sibling table (used in Merkle root update operations).
+#[derive(Default)]
 pub struct Hasher {
     trace: HasherTrace,
+    aux_trace: AuxTraceBuilder,
 }
 
 impl Hasher {
-    // CONSTRUCTOR
-    // --------------------------------------------------------------------------------------------
-    /// Returns a [Hasher] instantiated with an empty execution trace.
-    pub fn new() -> Self {
-        Self {
-            trace: HasherTrace::new(),
-        }
-    }
-
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
     /// Returns current length of the execution trace stored in this hasher.
-    #[allow(dead_code)]
     pub fn trace_len(&self) -> usize {
         self.trace.trace_len()
     }
@@ -213,9 +207,11 @@ impl Hasher {
     // TRACE GENERATION
     // --------------------------------------------------------------------------------------------
 
-    /// Fills the provided trace fragment with trace data from this hasher trace instance.
-    pub fn fill_trace(self, trace: &mut TraceFragment) {
-        self.trace.fill_trace(trace)
+    /// Fills the provided trace fragment with trace data from this hasher trace instance. This
+    /// also returns the trace builder for hasher-related auxiliary trace columns.
+    pub fn fill_trace(self, trace: &mut TraceFragment) -> AuxTraceBuilder {
+        self.trace.fill_trace(trace);
+        self.aux_trace
     }
 
     // HELPER METHODS
@@ -240,6 +236,7 @@ impl Hasher {
         assert!(!path.is_empty(), "path is empty");
         assert!(index >> path.len() == 0, "invalid index for the path");
         let mut root = value;
+        let mut depth = path.len() - 1;
 
         // determine selectors for the specified context
         let main_selectors = context.main_selectors();
@@ -248,21 +245,27 @@ impl Hasher {
         if path.len() == 1 {
             // handle path of length 1 separately because pattern for init and final selectors
             // is different from other cases
+            self.update_sibling_hints(context, index, path[0], depth);
             self.verify_mp_leg(root, path[0], &mut index, main_selectors, RETURN_HASH)
         } else {
             // process the first node of the path; for this node, init and final selectors are
             // the same
             let sibling = path[0];
+            self.update_sibling_hints(context, index, sibling, depth);
             root = self.verify_mp_leg(root, sibling, &mut index, main_selectors, main_selectors);
+            depth -= 1;
 
             // process all other nodes, except for the last one
             for &sibling in &path[1..path.len() - 1] {
+                self.update_sibling_hints(context, index, sibling, depth);
                 root =
                     self.verify_mp_leg(root, sibling, &mut index, part_selectors, main_selectors);
+                depth -= 1;
             }
 
             // process the last node
             let sibling = path[path.len() - 1];
+            self.update_sibling_hints(context, index, sibling, depth);
             self.verify_mp_leg(root, sibling, &mut index, part_selectors, RETURN_HASH)
         }
     }
@@ -309,11 +312,34 @@ impl Hasher {
         *index >>= 1;
         get_digest(&state)
     }
-}
 
-impl Default for Hasher {
-    fn default() -> Self {
-        Self::new()
+    /// Records an update hint in the auxiliary trace builder to indicate whether the sibling was
+    /// consumed as a part of computing the new or the old Merkle root. This is relevant only for
+    /// the Merkle root update computation.
+    fn update_sibling_hints(
+        &mut self,
+        context: MerklePathContext,
+        index: u64,
+        sibling: Word,
+        depth: usize,
+    ) {
+        let step = self.trace.trace_len();
+        match context {
+            MerklePathContext::MrUpdateOld => {
+                self.aux_trace
+                    .sibling_added(step, Felt::new(index), sibling);
+            }
+            MerklePathContext::MrUpdateNew => {
+                // we use node depth as row offset here because siblings are added to the table
+                // in reverse order of their depth (i.e., the sibling with the greatest depth is
+                // added first). thus, when removing siblings from the table, we can find the right
+                // entry by looking at the n-th entry from the end of the table, where n is the
+                // node's depth (e.g., an entry for the sibling with depth 2, would be in the
+                // second entry from the end of the table).
+                self.aux_trace.sibling_removed(step, depth);
+            }
+            _ => (),
+        }
     }
 }
 
@@ -321,6 +347,7 @@ impl Default for Hasher {
 // ================================================================================================
 
 /// Specifies the context of a Merkle path computation.
+#[derive(Debug, Clone, Copy)]
 enum MerklePathContext {
     /// The computation is for verifying a Merkle path (MPVERIFY).
     MpVerify,

@@ -11,6 +11,7 @@ use vm_core::hasher::{apply_round, NUM_ROUNDS, STATE_WIDTH};
 /// - 1 row address column.
 /// - 12 columns describing hasher state.
 /// - 1 node index column used for Merkle path related computations.
+#[derive(Default)]
 pub struct HasherTrace {
     selectors: [Vec<Felt>; 3],
     row_addr: Vec<Felt>,
@@ -19,20 +20,6 @@ pub struct HasherTrace {
 }
 
 impl HasherTrace {
-    // CONSTRUCTOR
-    // --------------------------------------------------------------------------------------------
-    /// Returns a [HasherTrace] instantiated with empty vectors for all columns.
-    pub fn new() -> Self {
-        let state = (0..STATE_WIDTH).map(|_| Vec::new()).collect::<Vec<_>>();
-
-        Self {
-            selectors: [Vec::new(), Vec::new(), Vec::new()],
-            row_addr: Vec::new(),
-            hasher_state: state.try_into().expect("failed to convert vector to array"),
-            node_index: Vec::new(),
-        }
-    }
-
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -126,7 +113,6 @@ impl HasherTrace {
     // --------------------------------------------------------------------------------------------
 
     /// Fills the provided trace fragment with trace data from this hasher trace instance.
-    #[allow(dead_code)]
     pub fn fill_trace(self, trace: &mut TraceFragment) {
         // make sure fragment dimensions are consistent with the dimensions of this trace
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");

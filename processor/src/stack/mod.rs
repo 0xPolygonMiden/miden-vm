@@ -9,7 +9,10 @@ use trace::StackTrace;
 
 mod overflow;
 use overflow::OverflowTable;
-pub use overflow::{AuxTraceHints, OverflowTableRow, OverflowTableUpdate};
+pub use overflow::{OverflowTableRow, OverflowTableUpdate};
+
+mod aux_trace;
+pub use aux_trace::AuxTraceBuilder;
 
 #[cfg(test)]
 mod tests;
@@ -145,7 +148,7 @@ impl Stack {
 
         super::StackTrace {
             trace,
-            aux_trace_hints: self.overflow.into_hints(),
+            aux_builder: self.overflow.into_aux_builder(),
         }
     }
 

@@ -254,7 +254,7 @@ mod tests {
     #[test]
     fn op_mpverify() {
         let index = 5usize;
-        let leaves = inti_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+        let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
         let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
         let stack_inputs = [
@@ -291,7 +291,7 @@ mod tests {
 
     #[test]
     fn op_mrupdate_move() {
-        let leaves = inti_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+        let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
 
         let node_index = 1usize;
         let new_node = init_leaf(9);
@@ -348,7 +348,7 @@ mod tests {
 
     #[test]
     fn op_mrupdate_copy() {
-        let leaves = inti_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+        let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
 
         let node_index = 5usize;
         let new_node = init_leaf(9);
@@ -405,7 +405,7 @@ mod tests {
 
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
-    fn inti_leaves(values: &[u64]) -> Vec<Word> {
+    fn init_leaves(values: &[u64]) -> Vec<Word> {
         values.iter().map(|&v| init_leaf(v)).collect()
     }
 
