@@ -8,10 +8,16 @@ impl Process {
     pub(super) fn execute_decorator(
         &mut self,
         decorator: &Decorator,
+        in_debug_mode: bool,
     ) -> Result<(), ExecutionError> {
         match decorator {
             Decorator::Advice(injector) => self.dec_advice(injector)?,
-            Decorator::AsmOp(_) => (),
+            Decorator::AsmOp(asmop_info) => {
+                if in_debug_mode {
+                    self.decoder
+                        .append_asmop(self.system.clk(), asmop_info.clone());
+                }
+            }
         }
         Ok(())
     }
@@ -145,7 +151,10 @@ mod tests {
 
         // inject the node into the advice tape
         process
-            .execute_decorator(&Decorator::Advice(AdviceInjector::MerkleNode))
+            .execute_decorator(
+                &Decorator::Advice(AdviceInjector::MerkleNode),
+                process.decoder.in_debug_mode(),
+            )
             .unwrap();
 
         // read the node from the tape onto the stack

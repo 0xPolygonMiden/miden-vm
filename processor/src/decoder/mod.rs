@@ -9,7 +9,7 @@ use vm_core::{
     },
     hasher::DIGEST_LEN,
     program::blocks::get_span_op_group_count,
-    Decorator, DecoratorList,
+    AsmOpInfo,
 };
 
 mod trace;
@@ -228,6 +228,8 @@ impl Process {
 /// In addition to the execution trace, the decoder also contains the following:
 /// - A list of operations executed on the VM. This list is populated only when `in_debug_mode`
 ///   is set to true.
+/// - An list of AsmOp decorators and the clock cycle at which they are executed. This list is
+/// populated only when both the processor and assembler are in debug mode.
 /// - A set of hints used in construction of decoder-related columns in auxiliary trace segment.
 pub struct Decoder {
     block_stack: BlockStack,
@@ -236,7 +238,7 @@ pub struct Decoder {
     aux_hints: AuxTraceHints,
     in_debug_mode: bool,
     operations: Vec<Operation>,
-    decorators: DecoratorList,
+    asmop_list: Vec<(usize, AsmOpInfo)>,
 }
 
 impl Decoder {
@@ -251,7 +253,7 @@ impl Decoder {
             aux_hints: AuxTraceHints::new(),
             in_debug_mode,
             operations: Vec::<Operation>::new(),
-            decorators: DecoratorList::new(),
+            asmop_list: Vec::<(usize, AsmOpInfo)>::new(),
         }
     }
 
@@ -276,30 +278,20 @@ impl Decoder {
         self.operations[clk]
     }
 
-    /// Returns the list of decorators at the specified clock cycle.
-    /// - Returns decorator list if decorators exist at the specified clock cycle.
+    /// Returns the asmop decorator at the specified clock cycle.
+    /// - Returns asmop decorator if one exists at the specified clock cycle.
     /// - Returns None otherwise
-    pub fn get_decorators_at(&self, clk: usize) -> Option<Vec<Decorator>> {
-        let mut decorators = Vec::new();
-        for decorator in &self.decorators {
-            if decorator.0 > clk {
-                return (!decorators.is_empty()).then(|| decorators);
-            }
-            if decorator.0 == clk {
-                decorators.push(decorator.1.clone())
-            }
+    pub fn get_asmop_at(&self, asmop_idx: usize, clk: usize) -> Option<AsmOpInfo> {
+        if asmop_idx < self.asmop_list.len() && self.asmop_list[asmop_idx].0 == clk {
+            Some(self.asmop_list[asmop_idx].1.clone())
+        } else {
+            None
         }
-        (!decorators.is_empty()).then(|| decorators)
     }
 
     /// Returns whether this decoder instance is instantiated in debug mode.
     pub fn in_debug_mode(&self) -> bool {
         self.in_debug_mode
-    }
-
-    /// Returns the current length of operations vector.
-    pub fn ops_len(&self) -> usize {
-        self.operations.len()
     }
 
     // CONTROL BLOCKS
@@ -585,9 +577,9 @@ impl Decoder {
         self.append_operation(Operation::End);
     }
 
-    /// Appends a decorator to the decorator list.
-    pub fn append_decorator(&mut self, clk: usize, decorator: Decorator) {
-        self.decorators.push((clk, decorator));
+    /// Appends an asmop decorator at the specified clock cycle to the asmop list.
+    pub fn append_asmop(&mut self, clk: usize, asmop: AsmOpInfo) {
+        self.asmop_list.push((clk, asmop));
     }
 
     // TRACE GENERATIONS

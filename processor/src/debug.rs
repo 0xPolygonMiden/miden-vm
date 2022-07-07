@@ -1,13 +1,13 @@
 use crate::{ExecutionError, Felt, Process, StarkField, Vec};
 use core::fmt;
-use vm_core::{Decorator, Operation, Word};
+use vm_core::{AsmOpInfo, Operation, Word};
 
 /// VmState holds a current process state information at a specific clock cycle.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VmState {
     pub clk: usize,
     pub op: Option<Operation>,
-    pub decorators: Option<Vec<Decorator>>,
+    pub asmop: Option<AsmOpInfo>,
     pub fmp: Felt,
     pub stack: Vec<Felt>,
     pub memory: Vec<(u64, Word)>,
@@ -38,6 +38,7 @@ pub struct VmStateIterator {
     process: Process,
     error: Option<ExecutionError>,
     clk: usize,
+    asmop_idx: usize,
 }
 
 impl VmStateIterator {
@@ -46,6 +47,7 @@ impl VmStateIterator {
             process,
             error: result.err(),
             clk: 0,
+            asmop_idx: 0,
         }
     }
 }
@@ -64,18 +66,25 @@ impl Iterator for VmStateIterator {
             }
         }
 
+        let (op, asmop) = if self.clk == 0 {
+            (None, None)
+        } else {
+            (
+                Some(self.process.decoder.get_operation_at(self.clk - 1)),
+                self.process
+                    .decoder
+                    .get_asmop_at(self.asmop_idx, self.clk - 1),
+            )
+        };
+
+        if asmop.is_some() {
+            self.asmop_idx += 1;
+        }
+
         let result = Some(Ok(VmState {
             clk: self.clk,
-            op: if self.clk == 0 {
-                None
-            } else {
-                Some(self.process.decoder.get_operation_at(self.clk - 1))
-            },
-            decorators: if self.clk == 0 {
-                None
-            } else {
-                self.process.decoder.get_decorators_at(self.clk - 1)
-            },
+            op,
+            asmop,
             fmp: self.process.system.get_fmp_at(self.clk),
             stack: self.process.stack.get_state_at(self.clk),
             memory: self

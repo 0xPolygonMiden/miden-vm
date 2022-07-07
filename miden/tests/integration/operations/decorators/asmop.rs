@@ -1,5 +1,5 @@
 use crate::build_debug_test;
-use vm_core::{AsmOpInfo, Decorator, Decorator::AsmOp, Felt, Operation};
+use vm_core::{AsmOpInfo, Felt, Operation};
 
 #[test]
 fn asmop_one_span_block_test() {
@@ -9,37 +9,37 @@ fn asmop_one_span_block_test() {
     let expected_vm_state = vec![
         VmStatePartial {
             clk: 0,
-            decorators: None,
+            asmop: None,
             op: None,
         },
         VmStatePartial {
             clk: 1,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Span),
         },
         VmStatePartial {
             clk: 2,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.1".to_string(), 2))]),
+            asmop: Some(AsmOpInfo::new("push.1".to_string(), 2)),
             op: Some(Operation::Pad),
         },
         VmStatePartial {
             clk: 3,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Incr),
         },
         VmStatePartial {
             clk: 4,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.2".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("push.2".to_string(), 1)),
             op: Some(Operation::Push(Felt::new(2))),
         },
         VmStatePartial {
             clk: 5,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("add".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("add".to_string(), 1)),
             op: Some(Operation::Add),
         },
         VmStatePartial {
             clk: 6,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::End),
         },
     ];
@@ -47,7 +47,7 @@ fn asmop_one_span_block_test() {
     for state in vm_state_iterator {
         vm_state.push(VmStatePartial {
             clk: state.as_ref().unwrap().clk,
-            decorators: state.as_ref().unwrap().decorators.clone(),
+            asmop: state.as_ref().unwrap().asmop.clone(),
             op: state.as_ref().unwrap().op,
         });
     }
@@ -62,37 +62,37 @@ fn asmop_with_one_procedure() {
     let expected_vm_state = vec![
         VmStatePartial {
             clk: 0,
-            decorators: None,
+            asmop: None,
             op: None,
         },
         VmStatePartial {
             clk: 1,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Span),
         },
         VmStatePartial {
             clk: 2,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.1".to_string(), 2))]),
+            asmop: Some(AsmOpInfo::new("push.1".to_string(), 2)),
             op: Some(Operation::Pad),
         },
         VmStatePartial {
             clk: 3,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Incr),
         },
         VmStatePartial {
             clk: 4,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.2".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("push.2".to_string(), 1)),
             op: Some(Operation::Push(Felt::new(2))),
         },
         VmStatePartial {
             clk: 5,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("add".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("add".to_string(), 1)),
             op: Some(Operation::Add),
         },
         VmStatePartial {
             clk: 6,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::End),
         },
     ];
@@ -100,7 +100,7 @@ fn asmop_with_one_procedure() {
     for state in vm_state_iterator {
         vm_state.push(VmStatePartial {
             clk: state.as_ref().unwrap().clk,
-            decorators: state.as_ref().unwrap().decorators.clone(),
+            asmop: state.as_ref().unwrap().asmop.clone(),
             op: state.as_ref().unwrap().op,
         });
     }
@@ -119,92 +119,92 @@ fn asmop_repeat_test() {
     let expected_vm_state = vec![
         VmStatePartial {
             clk: 0,
-            decorators: None,
+            asmop: None,
             op: None,
         },
         VmStatePartial {
             clk: 1,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Span),
         },
         VmStatePartial {
             clk: 2,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.1".to_string(), 2))]),
+            asmop: Some(AsmOpInfo::new("push.1".to_string(), 2)),
             op: Some(Operation::Pad),
         },
         VmStatePartial {
             clk: 3,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Incr),
         },
         VmStatePartial {
             clk: 4,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.2".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("push.2".to_string(), 1)),
             op: Some(Operation::Push(Felt::new(2))),
         },
         VmStatePartial {
             clk: 5,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("add".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("add".to_string(), 1)),
             op: Some(Operation::Add),
         },
         VmStatePartial {
             clk: 6,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.1".to_string(), 2))]),
+            asmop: Some(AsmOpInfo::new("push.1".to_string(), 2)),
             op: Some(Operation::Pad),
         },
         VmStatePartial {
             clk: 7,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Incr),
         },
         VmStatePartial {
             clk: 8,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.2".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("push.2".to_string(), 1)),
             op: Some(Operation::Push(Felt::new(2))),
         },
         VmStatePartial {
             clk: 9,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("add".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("add".to_string(), 1)),
             op: Some(Operation::Add),
         },
         VmStatePartial {
             clk: 10,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.1".to_string(), 2))]),
+            asmop: Some(AsmOpInfo::new("push.1".to_string(), 2)),
             op: Some(Operation::Pad),
         },
         VmStatePartial {
             clk: 11,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Incr),
         },
         VmStatePartial {
             clk: 12,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.2".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("push.2".to_string(), 1)),
             op: Some(Operation::Push(Felt::new(2))),
         },
         VmStatePartial {
             clk: 13,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("add".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("add".to_string(), 1)),
             op: Some(Operation::Add),
         },
         VmStatePartial {
             clk: 14,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Noop),
         },
         VmStatePartial {
             clk: 15,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Noop),
         },
         VmStatePartial {
             clk: 16,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Noop),
         },
         VmStatePartial {
             clk: 17,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::End),
         },
     ];
@@ -212,7 +212,7 @@ fn asmop_repeat_test() {
     for state in vm_state_iterator {
         vm_state.push(VmStatePartial {
             clk: state.as_ref().unwrap().clk,
-            decorators: state.as_ref().unwrap().decorators.clone(),
+            asmop: state.as_ref().unwrap().asmop.clone(),
             op: state.as_ref().unwrap().op,
         });
     }
@@ -236,72 +236,72 @@ fn asmop_conditional_execution_test() {
     let expected_vm_state = vec![
         VmStatePartial {
             clk: 0,
-            decorators: None,
+            asmop: None,
             op: None,
         },
         VmStatePartial {
             clk: 1,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Join),
         },
         VmStatePartial {
             clk: 2,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Span),
         },
         VmStatePartial {
             clk: 3,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("eq".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("eq".to_string(), 1)),
             op: Some(Operation::Eq),
         },
         VmStatePartial {
             clk: 4,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::End),
         },
         VmStatePartial {
             clk: 5,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Split),
         },
         VmStatePartial {
             clk: 6,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Span),
         },
         VmStatePartial {
             clk: 7,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.1".to_string(), 2))]),
+            asmop: Some(AsmOpInfo::new("push.1".to_string(), 2)),
             op: Some(Operation::Pad),
         },
         VmStatePartial {
             clk: 8,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Incr),
         },
         VmStatePartial {
             clk: 9,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.2".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("push.2".to_string(), 1)),
             op: Some(Operation::Push(Felt::new(2))),
         },
         VmStatePartial {
             clk: 10,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("add".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("add".to_string(), 1)),
             op: Some(Operation::Add),
         },
         VmStatePartial {
             clk: 11,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::End),
         },
         VmStatePartial {
             clk: 12,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::End),
         },
         VmStatePartial {
             clk: 13,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::End),
         },
     ];
@@ -309,7 +309,7 @@ fn asmop_conditional_execution_test() {
     for state in vm_state_iterator {
         vm_state.push(VmStatePartial {
             clk: state.as_ref().unwrap().clk,
-            decorators: state.as_ref().unwrap().decorators.clone(),
+            asmop: state.as_ref().unwrap().asmop.clone(),
             op: state.as_ref().unwrap().op,
         });
     }
@@ -321,72 +321,72 @@ fn asmop_conditional_execution_test() {
     let expected_vm_state = vec![
         VmStatePartial {
             clk: 0,
-            decorators: None,
+            asmop: None,
             op: None,
         },
         VmStatePartial {
             clk: 1,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Join),
         },
         VmStatePartial {
             clk: 2,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Span),
         },
         VmStatePartial {
             clk: 3,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("eq".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("eq".to_string(), 1)),
             op: Some(Operation::Eq),
         },
         VmStatePartial {
             clk: 4,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::End),
         },
         VmStatePartial {
             clk: 5,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Split),
         },
         VmStatePartial {
             clk: 6,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Span),
         },
         VmStatePartial {
             clk: 7,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.3".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("push.3".to_string(), 1)),
             op: Some(Operation::Push(Felt::new(3))),
         },
         VmStatePartial {
             clk: 8,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("push.4".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("push.4".to_string(), 1)),
             op: Some(Operation::Push(Felt::new(4))),
         },
         VmStatePartial {
             clk: 9,
-            decorators: Some(vec![AsmOp(AsmOpInfo::new("add".to_string(), 1))]),
+            asmop: Some(AsmOpInfo::new("add".to_string(), 1)),
             op: Some(Operation::Add),
         },
         VmStatePartial {
             clk: 10,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::Noop),
         },
         VmStatePartial {
             clk: 11,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::End),
         },
         VmStatePartial {
             clk: 12,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::End),
         },
         VmStatePartial {
             clk: 13,
-            decorators: None,
+            asmop: None,
             op: Some(Operation::End),
         },
     ];
@@ -394,7 +394,7 @@ fn asmop_conditional_execution_test() {
     for state in vm_state_iterator {
         vm_state.push(VmStatePartial {
             clk: state.as_ref().unwrap().clk,
-            decorators: state.as_ref().unwrap().decorators.clone(),
+            asmop: state.as_ref().unwrap().asmop.clone(),
             op: state.as_ref().unwrap().op,
         });
     }
@@ -403,11 +403,11 @@ fn asmop_conditional_execution_test() {
 
 /// VmStatePartial holds the following current process state information at a specific clock cycle
 /// * clk: Current clock cycle
-/// * decorators: Decorators executed at the specific clock cycle
+/// * asmop: AsmOp decorator at the specific clock cycle
 /// * op: Operation executed at the specific clock cycle
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct VmStatePartial {
     clk: usize,
-    decorators: Option<Vec<Decorator>>,
+    asmop: Option<AsmOpInfo>,
     op: Option<Operation>,
 }
