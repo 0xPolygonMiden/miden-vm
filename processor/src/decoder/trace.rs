@@ -370,7 +370,7 @@ impl DecoderTrace {
         trace.push(self.addr_trace);
 
         // insert HALT opcode into the unfilled rows of op_bits columns
-        let halt_opcode = Operation::Halt.op_code().expect("missing opcode");
+        let halt_opcode = Operation::Halt.op_code();
         for (i, mut column) in self.op_bits_trace.into_iter().enumerate() {
             debug_assert_eq!(own_len, column.len());
             let value = Felt::from((halt_opcode >> i) & 1);
@@ -446,7 +446,7 @@ impl DecoderTrace {
 
     /// Populates op_bits registers for the next row with the opcode of the provided operation.
     fn append_opcode(&mut self, op: Operation) {
-        let op_code = op.op_code().expect("missing opcode");
+        let op_code = op.op_code();
         for i in 0..NUM_OP_BITS {
             let bit = Felt::from((op_code >> i) & 1);
             self.op_bits_trace[i].push(bit);

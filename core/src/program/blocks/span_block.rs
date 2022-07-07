@@ -277,7 +277,7 @@ impl OpBatchAccumulator {
         }
 
         // add the opcode to the group and increment the op index pointer
-        let opcode = op.op_code().expect("no opcode") as u64;
+        let opcode = op.op_code() as u64;
         self.group |= opcode << (Operation::OP_BITS * self.op_idx);
         self.ops.push(op);
         self.op_idx += 1;
@@ -709,7 +709,7 @@ mod tests {
     fn build_group(ops: &[Operation]) -> Felt {
         let mut group = 0u64;
         for (i, op) in ops.iter().enumerate() {
-            group |= (op.op_code().unwrap() as u64) << (Operation::OP_BITS * i);
+            group |= (op.op_code() as u64) << (Operation::OP_BITS * i);
         }
         Felt::new(group)
     }
