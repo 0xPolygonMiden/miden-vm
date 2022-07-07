@@ -286,6 +286,10 @@ impl Process {
         for (i, &op) in batch.ops().iter().enumerate() {
             while let Some(decorator) = decorators.next(i + op_offset) {
                 self.execute_decorator(decorator)?;
+                if self.decoder.in_debug_mode() {
+                    self.decoder
+                        .append_decorator(self.decoder.ops_len(), decorator.clone());
+                }
             }
 
             // decode and execute the operation
