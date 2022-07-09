@@ -10704,10 +10704,11 @@ export.unchecked_rotr
 end
 "),
 // ----- std::sys ---------------------------------------------------------------------------------
-("std::sys", "# Clears the stack overflow table and ensures the stack top remains unchanged
+("std::sys", "# Removes elements deep in the stack stack until the depth of the stack is exactly 16. The elements
+# are removed in such a way that the top 16 elements of the stack remain unchanged.
 # Input: Stack top with 16 elements + overflow table with greater than or equal to 0 number of elements.
-# Output: Stack top with original 16 elements
-export.finalize_stack.16
+# Output: Stack top with original 16 elements.
+export.finalize_stack.4
     popw.local.0
     popw.local.1
     popw.local.2
