@@ -38,7 +38,7 @@ fn bitwise_and() {
     }
 
     // make sure result and result from the trace are the same
-    assert_eq!(result, trace[12][7]);
+    assert_eq!(result, trace[13][7]);
 
     // make sure values a and b were decomposed correctly
     check_decomposition(&trace, 0, a.as_int(), b.as_int());
@@ -54,7 +54,7 @@ fn bitwise_and() {
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
-        assert_eq!(result, trace[12][i]);
+        assert_eq!(result, trace[13][i]);
 
         prev_result = result;
     }
@@ -87,7 +87,7 @@ fn bitwise_or() {
     }
 
     // make sure result and result from the trace are the same
-    assert_eq!(result, trace[12][7]);
+    assert_eq!(result, trace[13][7]);
 
     // make sure values a and b were decomposed correctly
     check_decomposition(&trace, 0, a.as_int(), b.as_int());
@@ -103,7 +103,7 @@ fn bitwise_or() {
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
-        assert_eq!(result, trace[12][i]);
+        assert_eq!(result, trace[13][i]);
 
         prev_result = result;
     }
@@ -136,7 +136,7 @@ fn bitwise_xor() {
     }
 
     // make sure result and result from the trace are the same
-    assert_eq!(result, trace[12][7]);
+    assert_eq!(result, trace[13][7]);
 
     // make sure values a and b were decomposed correctly
     check_decomposition(&trace, 0, a.as_int(), b.as_int());
@@ -152,7 +152,7 @@ fn bitwise_xor() {
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
-        assert_eq!(result, trace[12][i]);
+        assert_eq!(result, trace[13][i]);
 
         prev_result = result;
     }
@@ -199,10 +199,10 @@ fn bitwise_multiple() {
     bitwise.fill_trace(&mut fragment);
 
     // make sure results and results from the trace are the same
-    assert_eq!(result0, trace[12][7]);
-    assert_eq!(result1, trace[12][15]);
-    assert_eq!(result2, trace[12][23]);
-    assert_eq!(result3, trace[12][31]);
+    assert_eq!(result0, trace[13][7]);
+    assert_eq!(result1, trace[13][15]);
+    assert_eq!(result2, trace[13][23]);
+    assert_eq!(result3, trace[13][31]);
 
     // make sure input values were decomposed correctly
     check_decomposition(&trace, 0, a[0].as_int(), b[0].as_int());
@@ -221,7 +221,7 @@ fn bitwise_multiple() {
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
-        assert_eq!(result, trace[12][i]);
+        assert_eq!(result, trace[13][i]);
 
         prev_result = result;
     }
@@ -235,7 +235,7 @@ fn bitwise_multiple() {
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
-        assert_eq!(result, trace[12][i]);
+        assert_eq!(result, trace[13][i]);
 
         prev_result = result;
     }
@@ -249,7 +249,7 @@ fn bitwise_multiple() {
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
-        assert_eq!(result, trace[12][i]);
+        assert_eq!(result, trace[13][i]);
 
         prev_result = result;
     }
@@ -263,7 +263,7 @@ fn bitwise_multiple() {
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
-        assert_eq!(result, trace[12][i]);
+        assert_eq!(result, trace[13][i]);
 
         prev_result = result;
     }

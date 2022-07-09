@@ -1,5 +1,5 @@
 use super::{EvaluationFrame, FieldElement, Vec, BITWISE_TRACE_OFFSET, OP_CYCLE_LEN};
-use crate::utils::{binary_not, is_binary, EvaluationResult};
+use crate::utils::{are_equal, binary_not, is_binary, is_zero, EvaluationResult};
 use core::ops::Range;
 use vm_core::{
     bitwise::{
@@ -17,19 +17,7 @@ pub mod tests;
 // ================================================================================================
 
 /// The number of transition constraints on the bitwise co-processor.
-pub const NUM_CONSTRAINTS: usize = 14;
-/// The degrees of constraints on the bitwise co-processor. The degree of all
-/// constraints is increased by 4 due to the co-processor selector flag from the auxiliary table
-/// (degree 2) and the selector flag specifying the bitwise operation (degree 2).
-pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
-    6, 6, 6, 6, 6, 6, 6, 6, // Input decomposition values should be binary.
-    6, 6, // Enforce correct initial values of a and b columns.
-    6, 6, // Enforce correct aggregation of a and b columns during transitions.
-    7, 7, // Ensure correct output aggregation
-];
-
-/// Index of CONSTRAINT_DEGREES array after which all constraints use periodic columns.
-const PERIODIC_CONSTRAINTS_START: usize = 8;
+pub const NUM_CONSTRAINTS: usize = 15;
 
 /// The range of the selector columns in the trace.
 const SELECTOR_COL_RANGE: Range<usize> = create_range(BITWISE_TRACE_OFFSET, NUM_SELECTORS);
@@ -41,30 +29,41 @@ const B_COL_IDX: usize = BITWISE_TRACE_OFFSET + BITWISE_B_COL_IDX;
 const A_COL_RANGE: Range<usize> = create_range(B_COL_IDX + 1, NUM_DECOMP_BITS);
 /// The index range for the bit decomposition of `b`.
 const B_COL_RANGE: Range<usize> = create_range(A_COL_RANGE.end, NUM_DECOMP_BITS);
+/// The index of the column containing the aggregated output value of the previous row.
+const OUTPUT_COL_PREV_IDX: usize = BITWISE_TRACE_OFFSET + BITWISE_OUTPUT_COL_IDX;
 /// The index of the column containing the aggregated output value.
-const OUTPUT_COL_IDX: usize = BITWISE_TRACE_OFFSET + BITWISE_OUTPUT_COL_IDX;
+const OUTPUT_COL_IDX: usize = OUTPUT_COL_PREV_IDX + 1;
 
 // BITWISE TRANSITION CONSTRAINTS
 // ================================================================================================
 
 /// Builds the transition constraint degrees for the bitwise co-processor.
 pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
-    // Add the degrees of non-periodic constraints.
-    let mut degrees: Vec<TransitionConstraintDegree> = CONSTRAINT_DEGREES
-        [..PERIODIC_CONSTRAINTS_START]
-        .iter()
-        .map(|&degree| TransitionConstraintDegree::new(degree))
-        .collect();
-
-    // Add the degrees of periodic constraints.
-    degrees.append(
-        &mut CONSTRAINT_DEGREES[PERIODIC_CONSTRAINTS_START..]
-            .iter()
-            .map(|&degree| TransitionConstraintDegree::with_cycles(degree - 1, vec![OP_CYCLE_LEN]))
-            .collect(),
-    );
-
-    degrees
+    // The degrees of constraints on the bitwise co-processor. The degree of all
+    // constraints is increased by 4 due to the co-processor selector flag from the auxiliary table
+    // (degree 2) and the selector flag specifying the bitwise operation (degree 2).
+    let degrees: [TransitionConstraintDegree; NUM_CONSTRAINTS] = [
+        // Input decomposition values should be binary.
+        TransitionConstraintDegree::new(6),
+        TransitionConstraintDegree::new(6),
+        TransitionConstraintDegree::new(6),
+        TransitionConstraintDegree::new(6),
+        TransitionConstraintDegree::new(6),
+        TransitionConstraintDegree::new(6),
+        TransitionConstraintDegree::new(6),
+        TransitionConstraintDegree::new(6),
+        // Enforce correct initial values of a and b columns.
+        TransitionConstraintDegree::with_cycles(5, vec![OP_CYCLE_LEN]),
+        TransitionConstraintDegree::with_cycles(5, vec![OP_CYCLE_LEN]),
+        // Enforce correct aggregation of a and b columns during transitions.
+        TransitionConstraintDegree::with_cycles(5, vec![OP_CYCLE_LEN]),
+        TransitionConstraintDegree::with_cycles(5, vec![OP_CYCLE_LEN]),
+        // Ensure correct output aggregation.
+        TransitionConstraintDegree::with_cycles(5, vec![OP_CYCLE_LEN]),
+        TransitionConstraintDegree::with_cycles(5, vec![OP_CYCLE_LEN]),
+        TransitionConstraintDegree::new(6),
+    ];
+    degrees.into()
 }
 
 /// Returns the number of transition constraints for the bitwise co-processor.
@@ -151,12 +150,14 @@ fn enforce_input_decomposition<E: FieldElement>(
     constraint_offset
 }
 
-/// Enforces correct output aggregation for the operation. This requires the following 2 constraints
+/// Enforces correct output aggregation for the operation. This requires the following 3 constraints
 /// for each operation:
-/// - In the first row, the output value must equal the aggregated result of the operation applied
-///   to the row.
-/// - For every row except the last, the output value in the next row must equal the output in the
-///   current row plus the aggregated result of the specified operation applied to the next row.
+/// - In the first row, `output_prev` should be set to 0.
+/// - For all the rows except the last one, the next value of `output_prev` should be the same as
+///   the current value of `output`.
+/// - For all rows, the current output value (`output`) should equal 16 times the output value
+///   copied from the previous row (`output_prev`) plus the aggregated result of the bitwise
+///   operation applied to the current row's set of bits.
 ///
 /// Because the selectors for the AND, OR, and XOR operations are mutually exclusive, the
 /// constraints for different operations can be aggregated into the same result indices.
@@ -174,43 +175,35 @@ fn enforce_output_aggregation<E: FieldElement>(
     let bitwise_and_flag = processor_flag * frame.bitwise_and_flag();
     let bitwise_or_flag = processor_flag * frame.bitwise_or_flag();
     let bitwise_xor_flag = processor_flag * frame.bitwise_xor_flag();
+    let bitwise_op_flag = processor_flag * frame.bitwise_op_flag();
 
-    // The value in the output column in the first row must be exactly equal to the the aggregated
-    // value of the operation applied to the bitwise decomposition columns a0..a3 and b0..b3.
-    result.agg_constraint(
-        constraint_offset,
-        k0_flag * bitwise_and_flag,
-        frame.output() - bitwise_and(frame.bit_decomp()),
-    );
-    result.agg_constraint(
-        constraint_offset,
-        k0_flag * bitwise_or_flag,
-        frame.output() - bitwise_or(frame.bit_decomp()),
-    );
-    result.agg_constraint(
-        constraint_offset,
-        k0_flag * bitwise_xor_flag,
-        frame.output() - bitwise_xor(frame.bit_decomp()),
-    );
+    // Enforce value of `output_prev` is 0 for the first row.
+    result[constraint_offset] = k0_flag * bitwise_op_flag * is_zero(frame.output_prev());
     constraint_offset += 1;
 
-    // During a transition between rows, the next value in the output column should be 16 times the
-    // previous value plus the aggregation of the next row's operation output.
-    let shifted_output = frame.output() * E::from(16_u8);
+    // For all rows except the last one, enforce the next value of `output_prev` is the same as
+    // the current value of `output`.
+    result[constraint_offset] =
+        k1_flag * bitwise_op_flag * are_equal(frame.output_prev_next(), frame.output());
+    constraint_offset += 1;
+
+    // During a transition between rows, the value in the output column should be 16 times the
+    // previous value plus the aggregation of the row's operation output.
+    let shifted_output = frame.output_prev() * E::from(16_u8);
     result.agg_constraint(
         constraint_offset,
-        k1_flag * bitwise_and_flag,
-        frame.output_next() - (shifted_output + bitwise_and(frame.bit_decomp_next())),
+        bitwise_and_flag,
+        frame.output() - (shifted_output + bitwise_and(frame.bit_decomp())),
     );
     result.agg_constraint(
         constraint_offset,
-        k1_flag * bitwise_or_flag,
-        frame.output_next() - (shifted_output + bitwise_or(frame.bit_decomp_next())),
+        bitwise_or_flag,
+        frame.output() - (shifted_output + bitwise_or(frame.bit_decomp())),
     );
     result.agg_constraint(
         constraint_offset,
-        k1_flag * bitwise_xor_flag,
-        frame.output_next() - (shifted_output + bitwise_xor(frame.bit_decomp_next())),
+        bitwise_xor_flag,
+        frame.output() - (shifted_output + bitwise_xor(frame.bit_decomp())),
     );
     constraint_offset += 1;
 
@@ -277,12 +270,13 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn b_bit(&self, index: usize) -> E;
     /// Gets the entire range of decomposed input values for `a` and `b` in the current row.
     fn bit_decomp(&self) -> &[E];
-    /// Gets the entire range of decomposed input values for `a` and `b` in the next row.
-    fn bit_decomp_next(&self) -> &[E];
+    /// Gets the value of the aggregated output in the previous row.
+    fn output_prev(&self) -> E;
+    /// Gets the value of the aggregated output of the current row, or
+    /// the previous row with respect to the next row.
+    fn output_prev_next(&self) -> E;
     /// Gets the value of the aggregated output in the current row.
     fn output(&self) -> E;
-    /// Gets the value of the aggregated output in the next row.
-    fn output_next(&self) -> E;
 
     // --- Intermediate variables & helpers -------------------------------------------------------
     /// The aggregated value of the decomposed bits from `a` in the current row.
@@ -342,16 +336,16 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
         &self.current()[A_COL_RANGE.start..B_COL_RANGE.end]
     }
     #[inline(always)]
-    fn bit_decomp_next(&self) -> &[E] {
-        &self.next()[A_COL_RANGE.start..B_COL_RANGE.end]
+    fn output_prev(&self) -> E {
+        self.current()[OUTPUT_COL_PREV_IDX]
+    }
+    #[inline(always)]
+    fn output_prev_next(&self) -> E {
+        self.next()[OUTPUT_COL_PREV_IDX]
     }
     #[inline(always)]
     fn output(&self) -> E {
         self.current()[OUTPUT_COL_IDX]
-    }
-    #[inline(always)]
-    fn output_next(&self) -> E {
-        self.next()[OUTPUT_COL_IDX]
     }
 
     // --- Intermediate variables & helpers -------------------------------------------------------
