@@ -9359,7 +9359,7 @@ export.hash.16
 end
 "),
 // ----- std::math::secp256k1 ---------------------------------------------------------------------
-("std::math::secp256k1", "# Given [a, b, c, carry] on stack top, following function computes
+("std::math::secp256k1", "# Given [b, c, a, carry] on stack top, following function computes
 #
 #  tmp = a + (b * c) + carry
 #  hi = tmp >> 32
@@ -9369,12 +9369,9 @@ end
 # At end of execution of this function, stack top should look like [hi, lo]
 # See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/utils.py#L75-L80
 proc.mac
-  swap
-  movup.2
   u32madd.unsafe
-  
-  swap
-  movup.2
+
+  movdn.2
   u32add.unsafe
 
   movup.2
@@ -9392,73 +9389,113 @@ end
 # See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/utils.py#L83-L89
 proc.sbb
   movdn.2
-  u32add.unsafe
-  drop
+  add
   u32sub.full
 end
 
-# Given [a0, a1, a2, a3, a4, a5, a6, a7, b, c_0_addr, c_1_addr] on stack top,
-#  this function computes a multiplication of u256 by u32, while also
-#  considering u256 computed during previous round.
+# Given a secp256k1 field element in radix-2^32 representation and 32 -bit unsigned integer,
+# this routine computes a 288 -bit number.
 #
-#  - Multiplicand u256 in this context is kept in memory, whose 8 limbs can be loaded
-#  into stack by pushing content at memory location `c_1_addr` & `c_0_addr`, in order.
-#  - Multiplier u32 is `b` i.e. stack[8] element.
-#  - Note, previous round's u256 is kept in first 8 stack elements.
+# Input via stack is expected in this form
 #
-#  After finishing execution of this function, stack top should hold u288 i.e.
+# [a0, a1, a2, a3, a4, a5, a6, a7, b] | a[0..8] -> 256 -bit number, b = 32 -bit number
 #
-#  [a0, a1, a2, a3, a4, a5, a6, a7, a8] | a8 = carry
+# Computed output looks like below, on stack
+#
+# [carry, b7, b6, b5, b4, b3, b2, b1, b0]
 proc.u256xu32
-  dup.9
-  pushw.mem
-  dup.12
-
+  movup.8
+  
   push.0
-  swap
-  movup.2
-  swap
+  dup.1
+  movup.3
+  u32madd.unsafe
+  
+  dup.2
+  movup.4
+  u32madd.unsafe
+
+  dup.3
+  movup.5
+  u32madd.unsafe
+
+  dup.4
   movup.6
-  exec.mac
+  u32madd.unsafe
+
+  dup.5
+  movup.7
+  u32madd.unsafe
+
+  dup.6
+  movup.8
+  u32madd.unsafe
+
+  dup.7
+  movup.9
+  u32madd.unsafe
+
+  movup.8
+  movup.9
+  u32madd.unsafe
+end
+
+# Given a 288 -bit number and 256 -bit number on stack ( in order ), this routine
+# computes a 288 -bit number
+#
+# Expected stack state during routine invocation
+#
+# [carry, b7, b6, b5, b4, b3, b2, b1, b0, c0, c1, c2, c3, c4, c5, c6, c7]
+#
+# While after execution of this routine, stack should look like
+#
+# [d0, d1, d2, d3, d4, d5, d6, d7, carry]
+proc.u288_add_u256
+  swapw
+  movupw.2
+
+  u32add.unsafe
 
   movup.2
-  dup.12
-  movup.6
-  exec.mac
+  movup.7
+  u32add3.unsafe
 
   movup.3
-  dup.11
   movup.6
-  exec.mac
+  u32add3.unsafe
 
   movup.4
-  dup.10
-  movup.6
-  exec.mac
-
-  dup.11
-  pushw.mem
-
-  movup.4
-  swap
-  dup.13
-  movup.10
-  exec.mac
+  movup.5
+  movupw.2
 
   movup.2
-  dup.12
-  movup.10
-  exec.mac
+  movup.4
+  movup.6
+  u32add3.unsafe
+
+  movup.5
+  movup.5
+  u32add3.unsafe
 
   movup.3
-  dup.11
+  movup.4
+  movupw.2
+
+  movup.2
+  movup.4
+  movup.6
+  u32add3.unsafe
+
+  movup.5
+  movup.5
+  u32add3.unsafe
+
   movup.10
-  exec.mac
+  movup.5
+  u32add3.unsafe
 
   movup.4
-  movup.10
-  movup.10
-  exec.mac
+  add
 
   swap
   movup.2
@@ -9488,51 +9525,52 @@ proc.u288_reduce
   drop 
   # q at stack top #
 
-  dup
-  push.0.4294966319
+  push.0
   movup.2
-  movup.4
+  push.4294966319
+  dup.3
   exec.mac
+
   swap
   drop
 
+  movup.2
   push.4294967294
-  dup.2
-  movup.4
-  exec.mac
-
-  push.4294967295
   dup.3
-  movup.5
   exec.mac
 
+  movup.3
   push.4294967295
   dup.4
-  movup.6
   exec.mac
 
+  movup.4
   push.4294967295
   dup.5
-  movup.7
   exec.mac
 
+  movup.5
   push.4294967295
   dup.6
-  movup.8
   exec.mac
 
+  movup.6
   push.4294967295
   dup.7
-  movup.9
   exec.mac
 
+  movup.7
+  dup.7
   push.4294967295
+  exec.mac
+
+  movup.7
   movup.8
-  movup.9
+  swap
+  push.4294967295
   exec.mac
 
   movup.9
-  swap
   movup.9
   u32add3.unsafe
 
@@ -9563,111 +9601,93 @@ end
 # is used, which is why a[0..8], b[0..8] are expected to be in montgomery form,
 # while computed c[0..8] will also be in montgomery form.
 export.u256_mod_mul.2
-  popw.local.0
-  popw.local.1
-
-  push.env.locaddr.1
-  push.env.locaddr.0
-  movup.2
-  push.0.0.0.0
-  push.0.0.0.0
+  storew.local.0
+  swapw
+  storew.local.1
+  swapw
 
   exec.u256xu32
-  
+
+  swap
+  movup.2
+  movup.3
+  movup.4
+  movup.5
+  movup.6
+  movup.7
+  movup.8
+
   push.0
   movdn.9
 
   exec.u288_reduce
 
-  movup.8
-  swap.11
-  movdn.8
+  movup.9
+  pushw.local.1
+  pushw.local.0
 
   exec.u256xu32
+  exec.u288_add_u256
+  exec.u288_reduce
 
-  movup.11
-  movdn.9
+  movup.9
+  pushw.local.1
+  pushw.local.0
 
+  exec.u256xu32
+  exec.u288_add_u256
+  exec.u288_reduce
+
+  movup.9
+  pushw.local.1
+  pushw.local.0
+
+  exec.u256xu32
+  exec.u288_add_u256
+  exec.u288_reduce
+
+  movup.9
+  pushw.local.1
+  pushw.local.0
+
+  exec.u256xu32
+  exec.u288_add_u256
+  exec.u288_reduce
+
+  movup.9
+  pushw.local.1
+  pushw.local.0
+
+  exec.u256xu32
+  exec.u288_add_u256
+  exec.u288_reduce
+
+  movup.9
+  pushw.local.1
+  pushw.local.0
+
+  exec.u256xu32
+  exec.u288_add_u256
+  exec.u288_reduce
+
+  movup.9
+  pushw.local.1
+  pushw.local.0
+
+  exec.u256xu32
+  exec.u288_add_u256
   exec.u288_reduce
 
   movup.8
-  swap.11
-  movdn.8
-
-  exec.u256xu32
-
-  movup.11
-  movdn.9
-
-  exec.u288_reduce
-
-  movup.8
-  swap.11
-  movdn.8
-
-  exec.u256xu32
-
-  movup.11
-  movdn.9
-
-  exec.u288_reduce
-
-  movup.8
-  swap.11
-  movdn.8
-
-  exec.u256xu32
-
-  movup.11
-  movdn.9
-
-  exec.u288_reduce
-
-  movup.8
-  swap.11
-  movdn.8
-
-  exec.u256xu32
-
-  movup.11
-  movdn.9
-
-  exec.u288_reduce
-
-  movup.8
-  swap.11
-  movdn.8
-
-  exec.u256xu32
-
-  movup.11
-  movdn.9
-
-  exec.u288_reduce
-
-  movup.8
-  swap.11
-  movdn.8
-
-  exec.u256xu32
-
-  movup.11
-  movdn.9
-
-  exec.u288_reduce
-
-  dup.8
   movup.2
-  add
-  swap
-
-  movup.8
-  mul.977
+  dup.1
   add
 
-  movup.8
-  drop
-  movup.8
+  movup.2
+  movup.2
+  push.977
+
+  u32madd.unsafe
   drop
 end
 
@@ -9685,21 +9705,22 @@ end
 #
 # This implementation takes inspiration from https://gist.github.com/itzmeanjan/d4853347dfdfa853993f5ea059824de6#file-test_montgomery_arithmetic-py-L236-L256
 export.u256_mod_add
+  movupw.2
+
   push.0
-  swap
-  movup.9
+  movup.5
   u32add3.unsafe
 
   movup.2
-  movup.9
+  movup.5
   u32add3.unsafe
 
   movup.3
-  movup.9
+  movup.5
   u32add3.unsafe
 
   movup.4
-  movup.9
+  movup.5
   u32add3.unsafe
 
   movup.5
@@ -9724,10 +9745,9 @@ export.u256_mod_add
   u32madd.unsafe
   drop
 
+  swap
   movup.8
-  movup.2
-  u32add.unsafe
-  drop
+  add
 
   movup.2
   movup.3
@@ -9810,15 +9830,11 @@ end
 # [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a secp256k1 field element
 #
 # See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/field.py#L97-L101
-export.u256_mod_sub.2
-  popw.local.0
-  popw.local.1
+export.u256_mod_sub
+  movupw.3
+  movupw.3
 
   exec.u256_mod_neg
-
-  pushw.local.1
-  pushw.local.0
-
   exec.u256_mod_add
 end
 
@@ -10514,34 +10530,28 @@ export.point_addition.16
   dropw
   dropw
 
-  dup
   pushw.local.10
-  movup.4
+  dup.4
   popw.mem          # write x3[0..4] to memory
 
-  dup.1
   pushw.local.11
-  movup.4
+  dup.5
   popw.mem          # write x3[4..8] to memory
 
-  dup.2
   pushw.local.12
-  movup.4
+  dup.6
   popw.mem          # write y3[0..4] to memory
 
-  dup.3
   pushw.local.13
-  movup.4
+  dup.7
   popw.mem          # write y3[4..8] to memory
 
-  dup.4
   pushw.local.14
-  movup.4
+  dup.8
   popw.mem          # write z3[0..4] to memory
 
-  dup.5
   pushw.local.15
-  movup.4
+  dup.9
   popw.mem          # write z3[4..8] to memory
 end
 
