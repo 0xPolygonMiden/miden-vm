@@ -2,7 +2,7 @@ use super::{
     super::{get_periodic_values, OP_CYCLE_LEN},
     agg_bits, bitwise_and, bitwise_or, bitwise_xor, enforce_constraints, EvaluationFrame,
     A_COL_IDX, A_COL_RANGE, BITWISE_TRACE_OFFSET, B_COL_IDX, B_COL_RANGE, NUM_CONSTRAINTS,
-    NUM_DECOMP_BITS, OUTPUT_COL_IDX, SELECTOR_COL_RANGE,
+    NUM_DECOMP_BITS, OUTPUT_COL_IDX, OUTPUT_COL_PREV_IDX, SELECTOR_COL_RANGE,
 };
 use vm_core::{
     bitwise::{
@@ -148,6 +148,7 @@ pub fn get_test_frame(
 
     // Define the shift amounts for the specified rows.
     let current_shift = NUM_DECOMP_BITS * (OP_CYCLE_LEN - cycle_row_num - 1);
+    let previous_shift = current_shift + NUM_DECOMP_BITS;
     let next_shift = current_shift - NUM_DECOMP_BITS;
 
     // Set the operation selectors.
@@ -186,7 +187,13 @@ pub fn get_test_frame(
         panic!("Test bitwise EvaluationFrame requested for unrecognized operation.");
     };
     current[OUTPUT_COL_IDX] = Felt::new((output >> current_shift) as u64);
+    if cycle_row_num == 0 {
+        current[OUTPUT_COL_PREV_IDX] = Felt::ZERO;
+    } else {
+        current[OUTPUT_COL_PREV_IDX] = Felt::new((output >> previous_shift) as u64);
+    }
     next[OUTPUT_COL_IDX] = Felt::new((output >> next_shift) as u64);
+    next[OUTPUT_COL_PREV_IDX] = current[OUTPUT_COL_IDX];
 
     EvaluationFrame::<Felt>::from_rows(current, next)
 }

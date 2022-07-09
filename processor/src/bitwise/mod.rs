@@ -49,7 +49,7 @@ type Selectors = [Felt; NUM_SELECTORS];
 ///
 /// The layout of the table is illustrated below.
 ///
-///    s0    s1    a     b      a0     a1     a2     a3     b0     b1     b2     b3     c     0     0
+///    s0    s1    a     b      a0     a1     a2     a3     b0     b1     b2     b3    zp     z     0
 /// ├─────┴─────┴─────┴─────┴───────┴──────┴──────┴──────┴──────┴──────┴──────┴──────┴─────┴─────┴────┤
 ///
 /// In the above, the meaning of the columns is as follows:
@@ -61,10 +61,12 @@ type Selectors = [Felt; NUM_SELECTORS];
 ///   contain full input values for the bitwise operation.
 /// - Columns `a0` through `a3` and `b0` through `b3` contain bits of the least significant 4-bit
 ///   limb of the values in `a` and `b` columns respectively.
-/// - Column `c` contains the accumulated result of applying the bitwise operation to 4-bit limbs.
-///   At the first row, column `c` contains the result of bitwise operation applied to the most
+/// - Column `zp` contains the accumulated result of applying the bitwise operation to 4-bit limbs,
+///   but for the previous row. In the first row, it is 0.
+/// - Column `z` contains the accumulated result of applying the bitwise operation to 4-bit limbs.
+///   At the first row, column `z` contains the result of bitwise operation applied to the most
 ///   significant 4-bit limbs of the input values. With every subsequent row, the next most
-///   significant 4-bit limb of the result is appended to it. Thus, by the 8th row, column `c`
+///   significant 4-bit limb of the result is appended to it. Thus, by the 8th row, column `z`
 ///   contains the full result of the bitwise operation.
 /// - Column `0` are padded columns of zeros which are added so that the width of the bitwise trace
 ///   equals the width required by the execution trace for power of two operations.
@@ -141,6 +143,8 @@ impl Bitwise {
         // append 8 rows to the trace, each row computing bitwise AND in 4 bit limbs starting with
         // the most significant limb.
         for bit_offset in (0..32).step_by(4).rev() {
+            // append the previous row's result to the 13th column of the trace
+            self.trace[12].push(Felt::new(result));
             // shift a and b so that the next 4-bit limb is in the least significant position
             let a = a >> bit_offset;
             let b = b >> bit_offset;
@@ -153,9 +157,9 @@ impl Bitwise {
             let result_4_bit = (a & b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 13th column of the trace.
+            // the 14th column of the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[12].push(Felt::new(result));
+            self.trace[13].push(Felt::new(result));
         }
 
         // Return the result row for calculating the lookup product.
@@ -179,6 +183,8 @@ impl Bitwise {
         // append 8 rows to the trace, each row computing bitwise OR in 4 bit limbs starting with
         // the most significant limb.
         for bit_offset in (0..32).step_by(4).rev() {
+            // append the previous row's result to the 13th column of the trace
+            self.trace[12].push(Felt::new(result));
             // shift a and b so that the next 4-bit limb is in the least significant position
             let a = a >> bit_offset;
             let b = b >> bit_offset;
@@ -191,9 +197,9 @@ impl Bitwise {
             let result_4_bit = (a | b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 13th column of the trace.
+            // the 14th column of the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[12].push(Felt::new(result));
+            self.trace[13].push(Felt::new(result));
         }
 
         // Return the result row for calculating the lookup product.
@@ -217,6 +223,8 @@ impl Bitwise {
         // append 8 rows to the trace, each row computing bitwise XOR in 4 bit limbs starting with
         // the most significant limb.
         for bit_offset in (0..32).step_by(4).rev() {
+            // append the previous row's result to the 13th column of the trace
+            self.trace[12].push(Felt::new(result));
             // shift a and b so that the next 4-bit limb is in the least significant position
             let a = a >> bit_offset;
             let b = b >> bit_offset;
@@ -229,9 +237,9 @@ impl Bitwise {
             let result_4_bit = (a ^ b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 13th column of the trace.
+            // the 14th column of the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[12].push(Felt::new(result));
+            self.trace[13].push(Felt::new(result));
         }
 
         // Return the result row for calculating the lookup product.
@@ -290,8 +298,9 @@ impl Bitwise {
     /// - Column 3 is set to the current value of `b`.
     /// - Columns 4 to 7 are set to the 4 least-significant bits of `a`.
     /// - Columns 8 to 11 are set to the 4 least-significant bits of `b`.
-    /// - Column 12 is left for the output value which is set elsewhere.
-    /// - Columns 13 & 14 are padded with 0 so the width of the bitwise trace row will equal the width of
+    /// - Column 12 and 13 are left for the output value and that of the previous row, which are
+    ///   set elsewhere.
+    /// - Column 14 is padded with 0 so the width of the bitwise trace row will equal the width of
     ///   power of two operation trace rows.
     fn add_bitwise_trace_row(&mut self, selectors: Selectors, a: u64, b: u64) {
         self.trace[0].push(selectors[0]);
@@ -310,8 +319,7 @@ impl Bitwise {
         self.trace[10].push(Felt::new((b >> 2) & 1));
         self.trace[11].push(Felt::new((b >> 3) & 1));
 
-        // Pad the final two columns.
-        self.trace[13].push(Felt::ZERO);
+        // Pad the final column.
         self.trace[14].push(Felt::ZERO);
     }
 

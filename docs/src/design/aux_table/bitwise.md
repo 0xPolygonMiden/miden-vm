@@ -29,22 +29,23 @@ In the above, the columns have the following meanings:
 - Periodic columns $k_0$ and $k_1$. These columns contain values needed to switch various constraint on or off. $k_0$ contains a repeating sequence of a single one, followed by seven zeros. $k_1$ contains a repeating sequence of seven ones, followed by a single zero.
 - Input columns $a$ and $b$. On the first row of each 8-row cycle, the prover will set values in these columns to the upper 4 bits of the values to which a bitwise operation is to be applied. For all subsequent rows, we will append the next-most-significant 4-bit limb to each value. Thus, by the final row columns $a$ and $b$ will contain the full input values for the bitwise operation.
 - Columns $a_0$, $a_1$, $a_2$, $a_3$, $b_0$, $b_1$, $b_2$, $b_3$ will contain lower 4 bits of their corresponding values.
+- Output column $z_p$. This column represents the value of column $z$ for the prior row. For the first row, it is set to $0$.
 - Output column $z$. This column will be used to aggregate the results of bitwise operations performed over columns $a_0$, $a_1$, $a_2$, $a_3$, $b_0$, $b_1$, $b_2$, $b_3$. By the time we get to the last row in each 8-row cycle, this column will contain the final result.
 
 ## Example
 
 Let's illustrate the above table on a concrete example. For simplicity, we'll use 16-bit values, and thus, we'll only need 4 rows to complete the operation (rather than 8 for 32-bit values). Let's say $a = 41851$ (`b1010_0011_0111_1011`) and $b = 40426$ (`b1001_1101_1110_1010`), then $and(a, b) = 33130$ (`b1000_0001_0110_1010`). The table for this computation looks like so:
 
-|   a   |   b   | x0  | x1  | x2  | x3  | y0  | y1  | y2  | y3  |   z   |
-| :---: | :---: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :---: |
-|  10   |   9   |  0  |  1  |  0  |  1  |  1  |  0  |  0  |  1  |   8   |
-|  163  |  157  |  1  |  1  |  0  |  0  |  1  |  0  |  1  |  1  |  129  |
-| 2615  | 2526  |  1  |  1  |  1  |  0  |  0  |  1  |  1  |  1  | 2070  |
-| 41851 | 40426 |  1  |  1  |  0  |  1  |  0  |  1  |  0  |  1  | 33130 |
+|   a   |   b   | x0  | x1  | x2  | x3  | y0  | y1  | y2  | y3  |   zp   |   z   |
+| :---: | :---: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :----: | :---: | 
+|  10   |   9   |  0  |  1  |  0  |  1  |  1  |  0  |  0  |  1  |   0    |   8   |
+|  163  |  157  |  1  |  1  |  0  |  0  |  1  |  0  |  1  |  1  |   8    |  129  |
+| 2615  | 2526  |  1  |  1  |  1  |  0  |  0  |  1  |  1  |  1  |  129   | 2070  |
+| 41851 | 40426 |  1  |  1  |  0  |  1  |  0  |  1  |  0  |  1  |  2070  | 33130 |
 
-Here, in the first row, we set each of the $a$ and $b$ columns to the value of their most-significant 4-bit limb. The bit columns ($a_0 .. a_3$ and $b_0 .. b_3$) in the first row contain the lower 4 bits of their corresponding values (`b1010` and `b1001`). Column $z$ contains the result of bitwise AND for the upper 4 bits (`b1000`).
+Here, in the first row, we set each of the $a$ and $b$ columns to the value of their most-significant 4-bit limb. The bit columns ($a_0 .. a_3$ and $b_0 .. b_3$) in the first row contain the lower 4 bits of their corresponding values (`b1010` and `b1001`). Column $z$ contains the result of bitwise AND for the upper 4 bits (`b1000`), while column $z_p$ contains that result for the prior row.
 
-With every subsequent row, we inject the next-most-significant 4 bits of each value into the bit columns, increase the $a$ and $b$ columns accordingly, and aggregate the result of bitwise AND into the $z$ column, adding it to $2^4$ times the value of $z$ in the previous row. By the time we get to the last row, the $z$ column contains the result of the bitwise AND, while columns $a$ and $b$ contain their original values.
+With every subsequent row, we inject the next-most-significant 4 bits of each value into the bit columns, increase the $a$ and $b$ columns accordingly, and aggregate the result of bitwise AND into the $z$ column, adding it to $2^4$ times the value of $z$ in the previous row. We set column $z_p$ to be the value of $z$ in the prior row. By the time we get to the last row, the $z$ column contains the result of the bitwise AND, while columns $a$ and $b$ contain their original values.
 
 ## Constraints
 
@@ -88,19 +89,21 @@ The above constraints enforce that when $k_1 = 1$ , $a' = 16 \cdot a + \sum_{i=0
 
 ### Output aggregation
 
-To ensure correct aggregation of operations over individual bits, first we need to ensure that in the first row of every 8-row cycle, the value in column $z$ is exactly equal to the aggregated values of a bitwise operation applied to columns $a_0$, $a_1$, $a_2$, $a_3$, $b_0$, $b_1$, $b_2$, $b_3$. For an AND operation, the constraint enforcing this would look as follows:
-
+To ensure correct aggregation of operations over individual bits, first we need to ensure that in the first row, the aggregated output value of the previous row should be 0.
 $$
-k_0 \cdot \left(z - \sum_{i=0}^3(2^i \cdot a_i \cdot b_i)\right) = 0
-$$
-
-Lastly, we need to ensure that for all other rows, the value in the $z$ column is computed by multiplying the value from the previous row of the column by 16 and then adding it to the bitwise operation applied to the next set of bits of $a$ and $b$. This can be enforced with the following constraint:
-
-$$
-k_1 \cdot \left(z' -(z \cdot 16 + \sum_0^3(2^i \cdot a'_i \cdot b'_i))\right) = 0
+k_0 \cdot z_p = 0
 $$
 
-The above constraint enforces that when $k_1 = 1$, $z' = 16 \cdot z + \sum_{i=0}^3(2^i \cdot a'_i \cdot b'_i)$
+Next, we need to ensure that for each row except the last, the aggregated output value must equal the previous aggregated output value in the next row.
+$$
+k_1 \cdot \left(z - z'_p\right) = 0
+$$
+
+Lastly, we need to ensure that for all rows, the value in the $z$ column is computed by multiplying the previous output value (from the $z_p$ column in the current row) by 16 and then adding it to the bitwise operation applied to the row's set of bits of $a$ and $b$. This can be enforced with the following constraint:
+
+$$
+z -(z_p \cdot 16 + \sum_0^3(2^i \cdot a_i \cdot b_i)) = 0
+$$
 
 ## Permutation product
 
