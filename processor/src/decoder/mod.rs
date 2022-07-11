@@ -9,7 +9,7 @@ use vm_core::{
     },
     hasher::DIGEST_LEN,
     program::blocks::get_span_op_group_count,
-    AsmOpInfo,
+    AssemblyOp,
 };
 
 mod trace;
@@ -226,19 +226,16 @@ impl Process {
 ///   set to ZEROs otherwise.
 ///
 /// In addition to the execution trace, the decoder also contains the following:
-/// - A list of operations executed on the VM. This list is populated only when `in_debug_mode`
-///   is set to true.
-/// - An list of AsmOp decorators and the clock cycle at which they are executed. This list is
-/// populated only when both the processor and assembler are in debug mode.
 /// - A set of hints used in construction of decoder-related columns in auxiliary trace segment.
+/// - An instance of [DebugInfo] which is only populated in debug mode. This debug_info instance
+///   includes operations executed by the VM and AsmOp decorators. AsmOp decorators are popoulated
+///   only when both the processor and assembler are in debug mode.
 pub struct Decoder {
     block_stack: BlockStack,
     span_context: Option<SpanContext>,
     trace: DecoderTrace,
     aux_hints: AuxTraceHints,
-    in_debug_mode: bool,
-    operations: Vec<Operation>,
-    asmop_list: Vec<(usize, AsmOpInfo)>,
+    debug_info: DebugInfo,
 }
 
 impl Decoder {
@@ -251,9 +248,7 @@ impl Decoder {
             span_context: None,
             trace: DecoderTrace::new(),
             aux_hints: AuxTraceHints::new(),
-            in_debug_mode,
-            operations: Vec::<Operation>::new(),
-            asmop_list: Vec::<(usize, AsmOpInfo)>::new(),
+            debug_info: DebugInfo::new(in_debug_mode),
         }
     }
 
@@ -273,25 +268,14 @@ impl Decoder {
         self.trace.program_hash()
     }
 
-    /// Returns an operation to be executed at the specified clock cycle. Only applicable in debug mode.
-    pub fn get_operation_at(&self, clk: usize) -> Operation {
-        self.operations[clk]
-    }
-
-    /// Returns the asmop decorator at the specified clock cycle.
-    /// - Returns asmop decorator if one exists at the specified clock cycle.
-    /// - Returns None otherwise
-    pub fn get_asmop_at(&self, asmop_idx: usize, clk: usize) -> Option<AsmOpInfo> {
-        if asmop_idx < self.asmop_list.len() && self.asmop_list[asmop_idx].0 == clk {
-            Some(self.asmop_list[asmop_idx].1.clone())
-        } else {
-            None
-        }
+    pub fn debug_info(&self) -> &DebugInfo {
+        debug_assert!(self.in_debug_mode());
+        &self.debug_info
     }
 
     /// Returns whether this decoder instance is instantiated in debug mode.
     pub fn in_debug_mode(&self) -> bool {
-        self.in_debug_mode
+        self.debug_info.in_debug_mode()
     }
 
     // CONTROL BLOCKS
@@ -320,7 +304,7 @@ impl Decoder {
             Some(child2_hash),
         );
 
-        self.append_operation(Operation::Join);
+        self.debug_info.append_operation(Operation::Join);
     }
 
     /// Starts decoding of a SPLIT block.
@@ -353,7 +337,7 @@ impl Decoder {
         self.aux_hints
             .block_started(clk, self.block_stack.peek(), Some(taken_branch_hash), None);
 
-        self.append_operation(Operation::Split);
+        self.debug_info.append_operation(Operation::Split);
     }
 
     /// Starts decoding of a LOOP block.
@@ -381,7 +365,7 @@ impl Decoder {
         self.aux_hints
             .block_started(clk, self.block_stack.peek(), executed_loop_body, None);
 
-        self.append_operation(Operation::Loop);
+        self.debug_info.append_operation(Operation::Loop);
     }
 
     /// Starts decoding another iteration of a loop.
@@ -400,7 +384,7 @@ impl Decoder {
         // block hash table)
         self.aux_hints.loop_repeat_started(clk);
 
-        self.append_operation(Operation::Repeat);
+        self.debug_info.append_operation(Operation::Repeat);
     }
 
     /// Ends decoding of a control block (i.e., a non-SPAN block).
@@ -423,7 +407,7 @@ impl Decoder {
         // mark this cycle as the cycle at which block execution has ended
         self.aux_hints.block_ended(clk, block_info.is_first_child);
 
-        self.append_operation(Operation::End);
+        self.debug_info.append_operation(Operation::End);
     }
 
     // SPAN BLOCK
@@ -457,7 +441,7 @@ impl Decoder {
         self.aux_hints
             .block_started(clk, self.block_stack.peek(), None, None);
 
-        self.append_operation(Operation::Span);
+        self.debug_info.append_operation(Operation::Span);
     }
 
     /// Starts decoding of the next operation batch in the current SPAN.
@@ -488,7 +472,7 @@ impl Decoder {
         ctx.num_groups_left -= ONE;
         ctx.group_ops_left = op_batch.groups()[0];
 
-        self.append_operation(Operation::Respan);
+        self.debug_info.append_operation(Operation::Respan);
     }
 
     /// Starts decoding a new operation group.
@@ -546,7 +530,7 @@ impl Decoder {
             ctx.num_groups_left -= ONE;
         }
 
-        self.append_operation(op);
+        self.debug_info.append_operation(op);
     }
 
     /// Sets the helper registers in the trace to the user-provided helper values. This is expected
@@ -574,12 +558,7 @@ impl Decoder {
         // mark this cycle as the cycle at which block execution has ended
         self.aux_hints.block_ended(clk, block_info.is_first_child);
 
-        self.append_operation(Operation::End);
-    }
-
-    /// Appends an asmop decorator at the specified clock cycle to the asmop list.
-    pub fn append_asmop(&mut self, clk: usize, asmop: AsmOpInfo) {
-        self.asmop_list.push((clk, asmop));
+        self.debug_info.append_operation(Operation::End);
     }
 
     // TRACE GENERATIONS
@@ -609,12 +588,9 @@ impl Decoder {
     // HELPERS
     // --------------------------------------------------------------------------------------------
 
-    /// Adds an operation to the operations vector in debug mode.
-    #[inline(always)]
-    fn append_operation(&mut self, op: Operation) {
-        if self.in_debug_mode {
-            self.operations.push(op);
-        }
+    /// Appends an asmop decorator at the specified clock cycle to the asmop list in debug mode.
+    pub fn append_asmop(&mut self, clk: usize, asmop: AssemblyOp) {
+        self.debug_info.append_asmop(clk, asmop);
     }
 
     // TEST METHODS
@@ -835,4 +811,52 @@ pub fn build_op_group(ops: &[Operation]) -> Felt {
     }
     assert!(i <= super::OP_GROUP_SIZE, "too many ops");
     Felt::new(group)
+}
+
+// DEBUG INFO
+// ================================================================================================
+
+pub struct DebugInfo {
+    in_debug_mode: bool,
+    operations: Vec<Operation>,
+    assembly_ops: Vec<(usize, AssemblyOp)>,
+}
+
+impl DebugInfo {
+    pub fn new(in_debug_mode: bool) -> Self {
+        Self {
+            in_debug_mode,
+            operations: Vec::<Operation>::new(),
+            assembly_ops: Vec::<(usize, AssemblyOp)>::new(),
+        }
+    }
+
+    /// Returns whether this decoder instance is instantiated in debug mode.
+    #[inline(always)]
+    pub fn in_debug_mode(&self) -> bool {
+        self.in_debug_mode
+    }
+
+    /// Returns an operation to be executed at the specified clock cycle. Only applicable in debug mode.
+    pub fn operations(&self) -> &[Operation] {
+        &self.operations
+    }
+
+    /// Returns list of assembly operations in debug mode.
+    pub fn assembly_ops(&self) -> &[(usize, AssemblyOp)] {
+        &self.assembly_ops
+    }
+
+    /// Adds an operation to the operations vector in debug mode.
+    #[inline(always)]
+    pub fn append_operation(&mut self, op: Operation) {
+        if self.in_debug_mode {
+            self.operations.push(op);
+        }
+    }
+
+    /// Appends an asmop decorator at the specified clock cycle to the asmop list in debug mode.
+    pub fn append_asmop(&mut self, clk: usize, asmop: AssemblyOp) {
+        self.assembly_ops.push((clk, asmop));
+    }
 }

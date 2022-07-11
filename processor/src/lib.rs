@@ -59,7 +59,7 @@ pub use errors::ExecutionError;
 mod utils;
 
 mod debug;
-pub use debug::{VmState, VmStateIterator};
+pub use debug::{AsmOpInfo, VmState, VmStateIterator};
 
 // TYPE ALIASES
 // ================================================================================================
@@ -285,7 +285,7 @@ impl Process {
         // execute operations in the batch one by one
         for (i, &op) in batch.ops().iter().enumerate() {
             while let Some(decorator) = decorators.next(i + op_offset) {
-                self.execute_decorator(decorator, self.decoder.in_debug_mode())?;
+                self.execute_decorator(decorator)?;
             }
 
             // decode and execute the operation

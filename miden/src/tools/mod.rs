@@ -1,8 +1,8 @@
 use assembly::{Assembler, AssemblyError};
 use core::fmt;
-use processor::ExecutionError;
+use processor::{AsmOpInfo, ExecutionError};
 use structopt::StructOpt;
-use vm_core::{utils::collections::Vec, AsmOpInfo, Operation, ProgramInputs};
+use vm_core::{utils::collections::Vec, Operation, ProgramInputs};
 
 // CLI
 // ================================================================================================
@@ -33,36 +33,17 @@ impl Analyze {
 /// Contains info of a program. Used for program analysis. Contains the following fields:
 /// - total_vm_cycles: vm cycles it takes to execute the entire script
 /// - total_noops: total noops executed as part of a program
-/// - asmop_info_list: vector of [AsmOpStats] that contains assembly instructions and
+/// - asm_op_stats: vector of [AsmOpStats] that contains assembly instructions and
 ///   the number of vm cycles it takes to execute the instruction and the number of times the
 ///   instruction is run as part of the given program.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Default, Eq, PartialEq)]
 pub struct ProgramInfo {
     total_vm_cycles: usize,
     total_noops: usize,
-    asmop_info_list: Vec<AsmOpStats>,
+    asm_op_stats: Vec<AsmOpStats>,
 }
 
 impl ProgramInfo {
-    /// Creates a new ProgramInfo object from the specified `total_vm_cycles`, `total_noops` and
-    /// `asmop_info_list`.
-    /// * total_vm_cycles: Total number of VM cycles required to run the given program.
-    /// * total_noops: Total number of NOOPs executed as part of the program.
-    /// * asmop_info_list: Vector of [AsmOpStats] that contains assembly instructions and
-    ///   the number of vm cycles it takes to execute the instruction and the number of times the
-    ///   instruction is run as part of the given program.
-    pub fn new(
-        total_vm_cycles: usize,
-        total_noops: usize,
-        asmop_info_list: Vec<AsmOpStats>,
-    ) -> ProgramInfo {
-        Self {
-            total_vm_cycles,
-            total_noops,
-            asmop_info_list,
-        }
-    }
-
     /// Returns total vm cycles to execute a program
     pub fn total_vm_cycles(&self) -> usize {
         self.total_vm_cycles
@@ -75,8 +56,8 @@ impl ProgramInfo {
 
     /// Returns [AsmOpStats] that contains assembly instructions and the number of vm cycles
     /// it takes to execute them and the number of times they are run as part of the given program.
-    pub fn asmop_info_list(&self) -> &Vec<AsmOpStats> {
-        &self.asmop_info_list
+    pub fn asm_op_stats(&self) -> &[AsmOpStats] {
+        &self.asm_op_stats
     }
 
     // STATE MUTATORS
@@ -92,36 +73,33 @@ impl ProgramInfo {
         self.total_vm_cycles = total_vm_cycles;
     }
 
-    /// Records a new occurence of asmop in the sorted asmop info list of this program info.
+    /// Records a new occurence of asmop in the sorted asmop stats vector of this program info.
     /// If the asmop is already in the list, increments its frequency by one.
     /// If the asmop is not already in the list, add it at the appropriate index to keep the
     /// list sorted alphabetically.
     pub fn record_asmop(&mut self, asmop_info: AsmOpInfo) {
-        let asmop_with_params = asmop_info.get_op().clone();
-        let asmop_vec: Vec<&str> = asmop_with_params.split(".").collect();
-        let op = if asmop_vec.last().unwrap().parse::<usize>().is_ok() {
-            asmop_vec.split_last().unwrap().1.join(".")
-        } else {
-            asmop_with_params
-        };
         match &mut self
-            .asmop_info_list
-            .binary_search_by_key(&(op), |asmop: &AsmOpStats| asmop.op().to_string())
-        {
+            .asm_op_stats
+            .binary_search_by_key(&(asmop_info.op_generalized()), |asmop: &AsmOpStats| {
+                asmop.op().to_string()
+            }) {
             Ok(pos) => {
-                self.asmop_info_list[*pos].incr_frequency();
+                if asmop_info.cycle_idx() == 1 {
+                    self.asm_op_stats[*pos].incr_frequency();
+                    self.asm_op_stats[*pos].add_vm_cycles(asmop_info.num_cycles());
+                }
             }
             Err(pos) => {
-                self.asmop_info_list
-                    .insert(*pos, AsmOpStats::new(op, asmop_info.get_num_cycles(), 1));
+                self.asm_op_stats.insert(
+                    *pos,
+                    AsmOpStats::new(
+                        asmop_info.op_generalized(),
+                        1,
+                        asmop_info.num_cycles() as usize,
+                    ),
+                );
             }
         }
-    }
-}
-
-impl Default for ProgramInfo {
-    fn default() -> Self {
-        Self::new(0, 0, Vec::new())
     }
 }
 
@@ -129,22 +107,22 @@ impl fmt::Display for ProgramInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let total_vm_cycles = self.total_vm_cycles();
         let total_noops = self.total_noops();
-        let asmop_info_list = self.asmop_info_list();
+        let asm_op_stats = self.asm_op_stats();
         write!(f, "Total Number of VM Cycles: {}\n\n", total_vm_cycles)?;
         write!(f, "Total Number of NOOPs executed: {}\n\n", total_noops)?;
         write!(
             f,
             "{0: <20} | {1: <20} | {2: <20} | {3: <20}\n",
-            "AsmOp", "Instruction Cycles", "Frequency", "Total Cycles"
+            "AsmOp", "Frequency", "Total Cycles", "Avg Instruction Cycles"
         )?;
-        for op_info in asmop_info_list {
+        for op_info in asm_op_stats {
             write!(
                 f,
-                "{0: <20} | {1: <20} | {2: <20} | {3: <20}\n",
+                "{0: <20} | {1: <20} | {2: <20} | {3: <20.2}\n",
                 op_info.op(),
-                op_info.num_cycles(),
                 op_info.frequency(),
-                op_info.frequency() * op_info.num_cycles() as usize
+                op_info.total_vm_cycles(),
+                op_info.total_vm_cycles() as f64 / op_info.frequency() as f64
             )?;
         }
         Ok(())
@@ -199,19 +177,19 @@ impl fmt::Display for ProgramError {
 #[derive(Debug, Eq, PartialEq)]
 pub struct AsmOpStats {
     op: String,
-    num_cycles: u8,
     frequency: usize,
+    total_vm_cycles: usize,
 }
 
 impl AsmOpStats {
     /// Returns [AsmOpStats] instantiated with the specified assembly instruction string,
     /// number of cycles it takes to execute the assembly instruction and the number of times
     /// the assembly instruction is executed.
-    pub fn new(op: String, num_cycles: u8, frequency: usize) -> Self {
+    pub fn new(op: String, frequency: usize, total_vm_cycles: usize) -> Self {
         Self {
             op,
-            num_cycles,
             frequency,
+            total_vm_cycles,
         }
     }
 
@@ -220,14 +198,14 @@ impl AsmOpStats {
         &self.op
     }
 
-    /// Returns the number of VM cycles taken to execute the assembly instruction of this decorator.
-    pub fn num_cycles(&self) -> u8 {
-        self.num_cycles
-    }
-
     /// Returns the number of times this AsmOp is executed as part of a program.
     pub fn frequency(&self) -> usize {
         self.frequency
+    }
+
+    /// Returns the combined vm cycles all occurences of this AsmOp take.
+    pub fn total_vm_cycles(&self) -> usize {
+        self.total_vm_cycles
     }
 
     // STATE MUTATORS
@@ -237,6 +215,11 @@ impl AsmOpStats {
     pub fn incr_frequency(&mut self) {
         self.frequency += 1;
     }
+
+    /// Increments the total vm cycles of this AsmOp by the specified number of vm cycles.
+    pub fn add_vm_cycles(&mut self, num_cycles: u8) {
+        self.total_vm_cycles += num_cycles as usize;
+    }
 }
 
 // TESTS
@@ -244,23 +227,25 @@ impl AsmOpStats {
 
 #[cfg(test)]
 mod tests {
-    use super::AsmOpStats;
+    use super::{AsmOpStats, ProgramInfo};
 
     #[test]
     fn analyze_test() {
-        let source = "proc.foo.1 pop.local.0 end begin popw.mem.1 push.17 exec.foo end";
+        let source =
+            "proc.foo.1 pop.local.0 end begin popw.mem.1 push.17 push.1 movdn.2 exec.foo end";
         let program_inputs = super::ProgramInputs::none();
         let program_info =
             super::analyze(source, program_inputs).expect("analyze_test: Unexpected Error");
-        let expected_program_info = super::ProgramInfo::new(
-            24,
-            1,
-            vec![
-                AsmOpStats::new("pop.local".to_string(), 10, 1),
-                AsmOpStats::new("popw.mem".to_string(), 6, 1),
-                AsmOpStats::new("push".to_string(), 1, 1),
+        let expected_program_info = ProgramInfo {
+            total_vm_cycles: 27,
+            total_noops: 1,
+            asm_op_stats: vec![
+                AsmOpStats::new("movdn.2".to_string(), 1, 1),
+                AsmOpStats::new("pop.local".to_string(), 1, 10),
+                AsmOpStats::new("popw.mem".to_string(), 1, 6),
+                AsmOpStats::new("push".to_string(), 2, 3),
             ],
-        );
+        };
         assert_eq!(program_info, expected_program_info);
     }
 
