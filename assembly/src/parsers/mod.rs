@@ -1,5 +1,6 @@
 use super::{AssemblyContext, AssemblyError, Token, TokenStream};
 pub use blocks::{combine_blocks, parse_code_blocks};
+use u32_ops::U32OpMode;
 use vm_core::{
     program::blocks::CodeBlock,
     utils::{
@@ -71,11 +72,22 @@ fn parse_op_token(
         "u32cast" => u32_ops::parse_u32cast(span_ops, op),
         "u32split" => u32_ops::parse_u32split(span_ops, op),
 
-        "u32add" => u32_ops::parse_u32add(span_ops, op),
-        "u32add3" => u32_ops::parse_u32add3(span_ops, op),
-        "u32sub" => u32_ops::parse_u32sub(span_ops, op),
-        "u32mul" => u32_ops::parse_u32mul(span_ops, op),
-        "u32madd" => u32_ops::parse_u32madd(span_ops, op),
+        "u32checked_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Checked),
+        "u32wrapping_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Wrapping),
+        "u32overflowing_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Overflowing),
+
+        "u32unchecked_add3" => u32_ops::parse_u32add3(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Checked),
+        "u32wrapping_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Wrapping),
+        "u32overflowing_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Overflowing),
+
+        "u32checked_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Checked),
+        "u32wrapping_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Wrapping),
+        "u32overflowing_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Overflowing),
+
+        "u32unchecked_madd" => u32_ops::parse_u32madd(span_ops, op, U32OpMode::Unchecked),
+
         "u32div" => u32_ops::parse_u32div(span_ops, op),
         "u32mod" => u32_ops::parse_u32mod(span_ops, op),
 
@@ -207,7 +219,7 @@ fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<Felt, Asse
 /// Returns an invalid param AssemblyError if:
 /// - the parsing attempt fails.
 /// - the parameter is outside the specified lower and upper bounds.
-fn parse_int_param(
+fn parse_u32_param(
     op: &Token,
     param_idx: usize,
     lower_bound: u32,
