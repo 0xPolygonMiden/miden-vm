@@ -88,8 +88,14 @@ fn parse_op_token(
 
         "u32unchecked_madd" => u32_ops::parse_u32madd(span_ops, op, U32OpMode::Unchecked),
 
-        "u32div" => u32_ops::parse_u32div(span_ops, op),
-        "u32mod" => u32_ops::parse_u32mod(span_ops, op),
+        "u32checked_div" => u32_ops::parse_u32div(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_div" => u32_ops::parse_u32div(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_mod" => u32_ops::parse_u32mod(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_mod" => u32_ops::parse_u32mod(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_divmod" => u32_ops::parse_u32divmod(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_divmod" => u32_ops::parse_u32divmod(span_ops, op, U32OpMode::Unchecked),
 
         "u32and" => u32_ops::parse_u32and(span_ops, op),
         "u32or" => u32_ops::parse_u32or(span_ops, op),
