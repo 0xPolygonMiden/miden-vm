@@ -1,4 +1,5 @@
 use super::{
+    aux_table_bus::AuxTraceBuilder as AuxTableAuxTraceBuilder,
     decoder::AuxTraceHints as DecoderAuxTraceHints,
     hasher::AuxTraceBuilder as HasherAuxTraceBuilder,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
@@ -42,6 +43,7 @@ pub struct AuxTraceHints {
     pub(crate) stack: StackAuxTraceBuilder,
     pub(crate) range: RangeCheckerAuxTraceBuilder,
     pub(crate) hasher: HasherAuxTraceBuilder,
+    pub(crate) aux_table: AuxTableAuxTraceBuilder,
 }
 
 /// Execution trace which is generated when a program is executed on the VM.
@@ -211,12 +213,19 @@ impl Trace for ExecutionTrace {
             .hasher
             .build_aux_columns(&self.main_trace, rand_elements);
 
+        // add aux table's running product columns
+        let aux_table_aux_columns = self
+            .aux_trace_hints
+            .aux_table
+            .build_aux_columns(&self.main_trace, rand_elements);
+
         // combine all auxiliary columns into a single vector
         let mut aux_columns = decoder_aux_columns
             .into_iter()
             .chain(stack_aux_columns)
             .chain(range_aux_columns)
             .chain(hasher_aux_columns)
+            .chain(aux_table_aux_columns)
             .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
@@ -309,6 +318,7 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
         stack: stack_trace.aux_builder,
         range: range_check_trace.aux_builder,
         hasher: aux_table_trace.hasher_aux_builder,
+        aux_table: aux_table_trace.aux_builder,
     };
 
     (trace, aux_trace_hints)

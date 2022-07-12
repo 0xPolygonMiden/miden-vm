@@ -96,9 +96,9 @@ pub const TRACE_WIDTH: usize = AUX_TABLE_OFFSET + AUX_TABLE_WIDTH;
 // AUXILIARY COLUMNS LAYOUT
 // ------------------------------------------------------------------------------------------------
 
-//      decoder         stack       range checks      hasher
-//    (3 columns)     (1 column)     (3 columns)    (1 columns)
-// ├───────────────┴──────────────┴──────────────┴───────────────┤
+//      decoder         stack       range checks      hasher      auxiliary table
+//    (3 columns)     (1 column)     (3 columns)    (1 column)       (1 column)
+// ├───────────────┴──────────────┴──────────────┴───────────────┴───────────────┤
 
 // Decoder auxiliary columns
 pub const DECODER_AUX_TRACE_OFFSET: usize = 0;
@@ -124,7 +124,13 @@ pub const HASHER_AUX_TRACE_WIDTH: usize = 1;
 pub const HASHER_AUX_TRACE_RANGE: Range<usize> =
     range(HASHER_AUX_TRACE_OFFSET, HASHER_AUX_TRACE_WIDTH);
 
-pub const AUX_TRACE_WIDTH: usize = HASHER_AUX_TRACE_RANGE.end;
+// Auxiliary Table auxiliary columns
+pub const AUX_TABLE_AUX_TRACE_OFFSET: usize = HASHER_AUX_TRACE_RANGE.end;
+pub const AUX_TABLE_AUX_TRACE_WIDTH: usize = 1;
+pub const AUX_TABLE_AUX_TRACE_RANGE: Range<usize> =
+    range(AUX_TABLE_AUX_TRACE_OFFSET, AUX_TABLE_AUX_TRACE_WIDTH);
+
+pub const AUX_TRACE_WIDTH: usize = AUX_TABLE_AUX_TRACE_RANGE.end;
 
 /// Number of random elements available to the prover after the commitment to the main trace
 /// segment.
