@@ -307,7 +307,7 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     let aux_trace_hints = AuxTraceHints {
         decoder: decoder_trace.aux_trace_hints,
         stack: stack_trace.aux_builder,
-        range: range_check_trace.aux_trace_builder,
+        range: range_check_trace.aux_builder,
         hasher: aux_table_trace.hasher_aux_builder,
     };
 
