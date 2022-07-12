@@ -1,4 +1,5 @@
-use super::{Felt, FieldElement, Memory, StarkField, TraceFragment, Word, ONE, ZERO};
+use super::{Felt, FieldElement, Memory, MemoryLookup, StarkField, TraceFragment, ONE, ZERO};
+use crate::aux_table_bus::{AuxTableBus, AuxTableLookup, AuxTableLookupRow};
 use vm_core::MEMORY_TRACE_WIDTH;
 
 #[test]
@@ -43,27 +44,25 @@ fn mem_read() {
     assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
 
-    // check generated trace; rows should be sorted by address and then clock cycle
-    let trace = build_trace(mem, 4);
+    // check generated trace and memory data provided to the AuxTableBus; rows should be sorted by
+    // address and then clock cycle
+    let (trace, aux_table_bus) = build_trace(mem, 4);
 
     // address 0
-    let expected = build_trace_row(addr0, 1, [ZERO; 4], [ZERO; 4], [ZERO; MEMORY_TRACE_WIDTH]);
-    let mut expected_deltas = vec![0]; // clk delta: 1 - 0 - 1
-    assert_eq!(expected, read_trace_row(&trace, 0));
+    let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
+    let memory_access = MemoryLookup::new(addr0, 1, [ZERO; 4], [ZERO; 4]);
+    prev_row = verify_memory_access(&trace, &aux_table_bus, 0, &memory_access, prev_row);
 
-    let expected = build_trace_row(addr0, 3, [ZERO; 4], [ZERO; 4], expected);
-    expected_deltas.push(1); // clk delta: 3 - 1 - 1
-    assert_eq!(expected, read_trace_row(&trace, 1));
+    let memory_access = MemoryLookup::new(addr0, 3, [ZERO; 4], [ZERO; 4]);
+    prev_row = verify_memory_access(&trace, &aux_table_bus, 1, &memory_access, prev_row);
 
     // address 2
-    let expected = build_trace_row(addr2, 4, [ZERO; 4], [ZERO; 4], expected);
-    expected_deltas.push(2); // addr delta: addr2 - addr0
-    assert_eq!(expected, read_trace_row(&trace, 2));
+    let memory_access = MemoryLookup::new(addr2, 4, [ZERO; 4], [ZERO; 4]);
+    prev_row = verify_memory_access(&trace, &aux_table_bus, 2, &memory_access, prev_row);
 
     // address 3
-    let expected = build_trace_row(addr3, 2, [ZERO; 4], [ZERO; 4], expected);
-    expected_deltas.push(1); // addr delta: addr3 - addr2
-    assert_eq!(expected, read_trace_row(&trace, 3));
+    let memory_access = MemoryLookup::new(addr3, 2, [ZERO; 4], [ZERO; 4]);
+    verify_memory_access(&trace, &aux_table_bus, 3, &memory_access, prev_row);
 }
 
 #[test]
@@ -105,27 +104,25 @@ fn mem_write() {
     assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
 
-    // check generated trace; rows should be sorted by address and then clock cycle
-    let trace = build_trace(mem, 4);
+    // check generated trace and memory data provided to the AuxTableBus; rows should be sorted by
+    // address and then clock cycle
+    let (trace, aux_table_bus) = build_trace(mem, 4);
 
     // address 0
-    let expected = build_trace_row(addr0, 1, [ZERO; 4], value1, [ZERO; MEMORY_TRACE_WIDTH]);
-    let mut expected_deltas = vec![0]; // clk delta: 1 - 0 - 1
-    assert_eq!(expected, read_trace_row(&trace, 0));
+    let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
+    let memory_access = MemoryLookup::new(addr0, 1, [ZERO; 4], value1);
+    prev_row = verify_memory_access(&trace, &aux_table_bus, 0, &memory_access, prev_row);
 
-    let expected = build_trace_row(addr0, 4, value1, value9, expected);
-    expected_deltas.push(2); // clk delta: 4 - 1 - 1
-    assert_eq!(expected, read_trace_row(&trace, 1));
+    let memory_access = MemoryLookup::new(addr0, 4, value1, value9);
+    prev_row = verify_memory_access(&trace, &aux_table_bus, 1, &memory_access, prev_row);
 
     // address 1
-    let expected = build_trace_row(addr1, 3, [ZERO; 4], value7, expected);
-    expected_deltas.push(1); // addr delta: addr1 - addr0
-    assert_eq!(expected, read_trace_row(&trace, 2));
+    let memory_access = MemoryLookup::new(addr1, 3, [ZERO; 4], value7);
+    prev_row = verify_memory_access(&trace, &aux_table_bus, 2, &memory_access, prev_row);
 
     // address 2
-    let expected = build_trace_row(addr2, 2, [ZERO; 4], value5, expected);
-    expected_deltas.push(1); // addr delta: addr2 - addr1
-    assert_eq!(expected, read_trace_row(&trace, 3));
+    let memory_access = MemoryLookup::new(addr2, 2, [ZERO; 4], value5);
+    verify_memory_access(&trace, &aux_table_bus, 3, &memory_access, prev_row);
 }
 
 #[test]
@@ -174,46 +171,39 @@ fn mem_write_read() {
     mem.advance_clock();
     let _ = mem.read(addr5);
 
-    // check generated trace; rows should be sorted by address and then clock cycle
-    let trace = build_trace(mem, 9);
+    // check generated trace and memory data provided to the AuxTableBus; rows should be sorted by
+    // address and then clock cycle
+    let (trace, aux_table_bus) = build_trace(mem, 9);
 
     // address 2
-    let expected = build_trace_row(addr2, 2, [ZERO; 4], value4, [ZERO; MEMORY_TRACE_WIDTH]);
-    let mut expected_deltas = vec![0]; // clk delta: 2 - 1 - 1
-    assert_eq!(expected, read_trace_row(&trace, 0));
+    let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
+    let memory_access = MemoryLookup::new(addr2, 2, [ZERO; 4], value4);
+    prev_row = verify_memory_access(&trace, &aux_table_bus, 0, &memory_access, prev_row);
 
-    let expected = build_trace_row(addr2, 5, value4, value4, expected);
-    expected_deltas.push(2); // clk delta: 5 - 2 - 1
-    assert_eq!(expected, read_trace_row(&trace, 1));
+    let memory_access = MemoryLookup::new(addr2, 5, value4, value4);
+    prev_row = verify_memory_access(&trace, &aux_table_bus, 1, &memory_access, prev_row);
 
-    let expected = build_trace_row(addr2, 6, value4, value7, expected);
-    expected_deltas.push(0); // clk delta: 6 - 5 - 1
-    assert_eq!(expected, read_trace_row(&trace, 2));
+    let memory_access = MemoryLookup::new(addr2, 6, value4, value7);
+    prev_row = verify_memory_access(&trace, &aux_table_bus, 2, &memory_access, prev_row);
 
-    let expected = build_trace_row(addr2, 8, value7, value7, expected);
-    expected_deltas.push(1); // clk delta: 8 - 6 - 1
-    assert_eq!(expected, read_trace_row(&trace, 3));
+    let memory_access = MemoryLookup::new(addr2, 8, value7, value7);
+    prev_row = verify_memory_access(&trace, &aux_table_bus, 3, &memory_access, prev_row);
 
     // address 5
-    let expected = build_trace_row(addr5, 1, [ZERO; 4], value1, expected);
-    expected_deltas.push(3); // addr delta: 5 - 2
-    assert_eq!(expected, read_trace_row(&trace, 4));
+    let memory_access = MemoryLookup::new(addr5, 1, [ZERO; 4], value1);
+    prev_row = verify_memory_access(&trace, &aux_table_bus, 4, &memory_access, prev_row);
 
-    let expected = build_trace_row(addr5, 3, value1, value1, expected);
-    expected_deltas.push(1); // clk delta: 3 - 1 - 1
-    assert_eq!(expected, read_trace_row(&trace, 5));
+    let memory_access = MemoryLookup::new(addr5, 3, value1, value1);
+    prev_row = verify_memory_access(&trace, &aux_table_bus, 5, &memory_access, prev_row);
 
-    let expected = build_trace_row(addr5, 4, value1, value2, expected);
-    expected_deltas.push(0); // clk delta: 4 - 3 - 1
-    assert_eq!(expected, read_trace_row(&trace, 6));
+    let memory_access = MemoryLookup::new(addr5, 4, value1, value2);
+    prev_row = verify_memory_access(&trace, &aux_table_bus, 6, &memory_access, prev_row);
 
-    let expected = build_trace_row(addr5, 7, value2, value2, expected);
-    expected_deltas.push(2); // clk delta: 7 - 4 - 1
-    assert_eq!(expected, read_trace_row(&trace, 7));
+    let memory_access = MemoryLookup::new(addr5, 7, value2, value2);
+    prev_row = verify_memory_access(&trace, &aux_table_bus, 7, &memory_access, prev_row);
 
-    let expected = build_trace_row(addr5, 9, value2, value2, expected);
-    expected_deltas.push(1); // clk delta: 9 - 7 - 1
-    assert_eq!(expected, read_trace_row(&trace, 8));
+    let memory_access = MemoryLookup::new(addr5, 9, value2, value2);
+    verify_memory_access(&trace, &aux_table_bus, 8, &memory_access, prev_row);
 }
 
 #[test]
@@ -252,18 +242,19 @@ fn mem_get_values_at() {
     assert_eq!(vec![(2_u64, value4)], mem.get_values_at(0..=4, 4));
 }
 
-// HELPER FUNCTIONS
+// HELPER STRUCT & FUNCTIONS
 // ================================================================================================
 
 /// Builds a trace of the specified length and fills it with data from the provided Memory instance.
-fn build_trace(mem: Memory, num_rows: usize) -> Vec<Vec<Felt>> {
+fn build_trace(mem: Memory, num_rows: usize) -> (Vec<Vec<Felt>>, AuxTableBus) {
+    let mut aux_table_bus = AuxTableBus::default();
     let mut trace = (0..MEMORY_TRACE_WIDTH)
         .map(|_| vec![Felt::ZERO; num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    mem.fill_trace(&mut fragment);
+    mem.fill_trace(&mut fragment, 0, &mut aux_table_bus);
 
-    trace
+    (trace, aux_table_bus)
 }
 
 fn read_trace_row(trace: &[Vec<Felt>], step: usize) -> [Felt; MEMORY_TRACE_WIDTH] {
@@ -275,14 +266,19 @@ fn read_trace_row(trace: &[Vec<Felt>], step: usize) -> [Felt; MEMORY_TRACE_WIDTH
 }
 
 fn build_trace_row(
-    addr: Felt,
-    clk: u64,
-    old_val: Word,
-    new_val: Word,
+    memory_access: &MemoryLookup,
     prev_row: [Felt; MEMORY_TRACE_WIDTH],
 ) -> [Felt; MEMORY_TRACE_WIDTH] {
+    let MemoryLookup {
+        ctx,
+        addr,
+        clk,
+        old_word: old_val,
+        new_word: new_val,
+    } = *memory_access;
+
     let mut row = [ZERO; MEMORY_TRACE_WIDTH];
-    row[0] = ZERO; // ctx
+    row[0] = ctx; // ctx
     row[1] = addr;
     row[2] = Felt::new(clk);
     row[3] = old_val[0];
@@ -310,4 +306,25 @@ fn build_trace_row(
     }
 
     row
+}
+
+fn verify_memory_access(
+    trace: &[Vec<Felt>],
+    aux_table_bus: &AuxTableBus,
+    row: usize,
+    memory_access: &MemoryLookup,
+    prev_row: [Felt; MEMORY_TRACE_WIDTH],
+) -> [Felt; MEMORY_TRACE_WIDTH] {
+    let expected_row = build_trace_row(memory_access, prev_row);
+    let expected_lookup = AuxTableLookupRow::Memory(*memory_access);
+    let expected_hint = AuxTableLookup::Response(row);
+
+    let lookup = aux_table_bus.get_response_row(row);
+    let hint = aux_table_bus.get_lookup_hint(row).unwrap();
+
+    assert_eq!(expected_row, read_trace_row(trace, row));
+    assert_eq!(expected_lookup, lookup);
+    assert_eq!(&expected_hint, hint);
+
+    expected_row
 }
