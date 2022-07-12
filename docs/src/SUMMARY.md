@@ -1,10 +1,10 @@
 # Summary
 
-[Miden VM](./main.md)
-
-- [Introduction](./intro.md)
+- [Introduction](./intro/main.md)
+  - [Overview](./intro/overview.md)
+  - [Usage](./intro/usage.md)
+  - [Performance](./intro/performance.md)
 - [User Documentation](./user_docs/main.md)
-  - [Miden VM Overview](./user_docs/overview/main.md)
   - [Miden Assembly](./user_docs/assembly/main.md)
     - [Code Organization](./user_docs/assembly/code_organization.md)
     - [Flow Control](./user_docs/assembly/flow_control.md)
