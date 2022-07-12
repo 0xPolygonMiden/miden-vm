@@ -2,6 +2,7 @@ use super::{ExecutionTrace, Felt, FieldElement, LookupTableRow, Process, Trace, 
 use rand_utils::rand_array;
 use vm_core::{program::blocks::CodeBlock, Operation, ProgramInputs, Word, ONE, ZERO};
 
+mod aux_table;
 mod hasher;
 mod range;
 mod stack;
