@@ -6,7 +6,7 @@ use vm_core::{
         collections::Vec,
         string::{String, ToString},
     },
-    AsmOpInfo, Decorator, DecoratorList, Felt, FieldElement, Operation, StarkField,
+    AssemblyOp, Decorator, DecoratorList, Felt, FieldElement, Operation, StarkField,
 };
 
 mod blocks;
@@ -33,7 +33,7 @@ fn parse_op_token(
     if in_debug_mode {
         decorators.push((
             span_ops.len(),
-            Decorator::AsmOp(AsmOpInfo::new(op.to_string(), 1)),
+            Decorator::AsmOp(AssemblyOp::new(op.to_string(), 1)),
         ));
     }
 
@@ -138,8 +138,8 @@ fn parse_op_token(
     if in_debug_mode {
         let op_start = decorators[dec_len].0;
         // edit the number of cycles corresponding to the asmop decorator at an index
-        if let Decorator::AsmOp(asmop_info) = &mut decorators[dec_len].1 {
-            asmop_info.set_num_cycles((span_ops.len() - op_start) as u8)
+        if let Decorator::AsmOp(assembly_op) = &mut decorators[dec_len].1 {
+            assembly_op.set_num_cycles((span_ops.len() - op_start) as u8)
         }
     }
 

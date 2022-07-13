@@ -18,7 +18,7 @@ pub use math::{fields::f64::BaseElement as Felt, ExtensionOf, FieldElement, Star
 
 mod operations;
 pub use operations::{
-    AdviceInjector, AsmOpInfo, Decorator, DecoratorIterator, DecoratorList, Operation,
+    AdviceInjector, AssemblyOp, Decorator, DecoratorIterator, DecoratorList, Operation,
 };
 
 mod inputs;

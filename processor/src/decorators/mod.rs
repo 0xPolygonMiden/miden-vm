@@ -11,7 +11,12 @@ impl Process {
     ) -> Result<(), ExecutionError> {
         match decorator {
             Decorator::Advice(injector) => self.dec_advice(injector)?,
-            Decorator::AsmOp(_) => (),
+            Decorator::AsmOp(assembly_op) => {
+                if self.decoder.in_debug_mode() {
+                    self.decoder
+                        .append_asmop(self.system.clk(), assembly_op.clone());
+                }
+            }
         }
         Ok(())
     }

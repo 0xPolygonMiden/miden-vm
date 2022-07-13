@@ -1,8 +1,8 @@
 mod advice;
-mod asmop_info;
+mod assembly_op;
 use crate::utils::collections::Vec;
 pub use advice::AdviceInjector;
-pub use asmop_info::AsmOpInfo;
+pub use assembly_op::AssemblyOp;
 use core::fmt;
 
 // DECORATORS
@@ -16,19 +16,21 @@ pub enum Decorator {
     Advice(AdviceInjector),
     /// Adds information about the assembly instruction at a particular index
     /// (only applicable in debug mode)
-    AsmOp(AsmOpInfo),
+    AsmOp(AssemblyOp),
 }
 
 impl fmt::Display for Decorator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Advice(injector) => write!(f, "advice({})", injector),
-            Self::AsmOp(asmop_info) => write!(
-                f,
-                "asmOp({}, {})",
-                asmop_info.get_op(),
-                asmop_info.get_num_cycles()
-            ),
+            Self::AsmOp(assembly_op) => {
+                write!(
+                    f,
+                    "asmOp({}, {})",
+                    assembly_op.op(),
+                    assembly_op.num_cycles()
+                )
+            }
         }
     }
 }
