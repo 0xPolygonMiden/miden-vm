@@ -27,7 +27,7 @@ impl Process {
     /// - A word is retrieved from memory at the specified address. The memory is always
     ///   initialized to ZEROs, and thus, if the specified address has never been written to,
     ///   four ZERO elements are returned.
-    /// - The top four elements of the stack are overwritten with values retried from memory.
+    /// - The top four elements of the stack are overwritten with values retrieved from memory.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
     pub(super) fn op_mloadw(&mut self) -> Result<(), ExecutionError> {
@@ -41,6 +41,10 @@ impl Process {
         }
         self.stack.shift_left(5);
 
+        // send the memory read request to the aux table bus
+        self.aux_table_bus
+            .request_memory_operation(addr, self.system.clk(), word, word);
+
         Ok(())
     }
 
@@ -51,10 +55,10 @@ impl Process {
     /// - A word is retrieved from memory at the specified address. The memory is always
     ///   initialized to ZEROs, and thus, if the specified address has never been written to,
     ///   four ZERO elements are returned.
-    /// - The first element of the word retried from memory is pushed to the top of the stack.
+    /// - The first element of the word retrieved from memory is pushed to the top of the stack.
     ///
-    /// The first 3 helper registers are filled with the elements of the word which were not pushed to the
-    /// stack
+    /// The first 3 helper registers are filled with the elements of the word which were not pushed
+    /// to the stack.
     pub(super) fn op_mload(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from memory
         let addr = self.stack.get(0);
@@ -66,6 +70,10 @@ impl Process {
 
         self.decoder
             .set_user_op_helpers(Operation::MLoad, &word[1..]);
+
+        // send the memory read request to the aux table bus
+        self.aux_table_bus
+            .request_memory_operation(addr, self.system.clk(), word, word);
 
         Ok(())
     }
@@ -79,7 +87,7 @@ impl Process {
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
     ///
-    /// The first 4 helper registers are filled with the value which were stored in memory before
+    /// The first 4 helper registers are filled with the values which were stored in memory before
     /// the operation.
     pub(super) fn op_mstorew(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and build the word to be saved from the stack values
@@ -109,6 +117,10 @@ impl Process {
         self.decoder
             .set_user_op_helpers(Operation::MStoreW, &old_word);
 
+        // send the memory write request to the aux table bus
+        self.aux_table_bus
+            .request_memory_operation(addr, self.system.clk(), old_word, word);
+
         Ok(())
     }
 
@@ -122,7 +134,7 @@ impl Process {
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
     ///
-    /// The first 4 helper registers are filled with the value which were stored in memory before
+    /// The first 4 helper registers are filled with the values which were stored in memory before
     /// the operation.
     pub(super) fn op_mstore(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and build the word to be saved from the stack values
@@ -130,21 +142,26 @@ impl Process {
 
         // get the word stored in the memory. If we did not access the memory return [0, 0, 0, 0]
         // since initially the memory is initialized with zeros
-        let mut word = self
+        let old_word = self
             .memory
             .get_value(addr.as_int())
             .unwrap_or(INIT_MEM_VALUE);
 
-        self.decoder.set_user_op_helpers(Operation::MStore, &word);
+        self.decoder
+            .set_user_op_helpers(Operation::MStore, &old_word);
 
         // store the value
-        word[0] = self.stack.get(1);
+        let word = [self.stack.get(1), old_word[1], old_word[2], old_word[3]];
 
         // write the word back to the memory
         self.memory.write(addr, word);
 
         // update the stack state
         self.stack.shift_left(1);
+
+        // send the memory write request to the aux table bus
+        self.aux_table_bus
+            .request_memory_operation(addr, self.system.clk(), old_word, word);
 
         Ok(())
     }
@@ -212,12 +229,12 @@ mod tests {
         let mut process = Process::new_dummy();
         assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
         assert_eq!(0, process.stack.current_clk());
-        assert_eq!([Felt::ZERO; 16], process.stack.trace_state());
+        assert_eq!([ZERO; 16], process.stack.trace_state());
 
         // push one item onto the stack
         let op = Operation::Push(Felt::ONE);
         process.execute_op(op).unwrap();
-        let mut expected = [Felt::ZERO; 16];
+        let mut expected = [ZERO; 16];
         expected[0] = Felt::ONE;
 
         assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
@@ -227,7 +244,7 @@ mod tests {
         // push another item onto the stack
         let op = Operation::Push(Felt::new(3));
         process.execute_op(op).unwrap();
-        let mut expected = [Felt::ZERO; 16];
+        let mut expected = [ZERO; 16];
         expected[0] = Felt::new(3);
         expected[1] = Felt::ONE;
 
@@ -463,7 +480,7 @@ mod tests {
     }
 
     fn build_expected_stack(values: &[u64]) -> [Felt; 16] {
-        let mut expected = [Felt::ZERO; 16];
+        let mut expected = [ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = Felt::new(value);
         }

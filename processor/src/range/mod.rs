@@ -227,11 +227,7 @@ impl RangeChecker {
 
         RangeCheckTrace {
             trace,
-            aux_trace_builder: AuxTraceBuilder::new(
-                self.cycle_range_checks,
-                row_flags,
-                start_16bit,
-            ),
+            aux_builder: AuxTraceBuilder::new(self.cycle_range_checks, row_flags, start_16bit),
         }
     }
 

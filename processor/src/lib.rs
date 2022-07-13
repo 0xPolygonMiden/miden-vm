@@ -49,6 +49,9 @@ use advice::AdviceProvider;
 mod aux_table;
 use aux_table::AuxTable;
 
+mod aux_table_bus;
+use aux_table_bus::AuxTableBus;
+
 mod trace;
 pub use trace::ExecutionTrace;
 use trace::TraceFragment;
@@ -78,12 +81,13 @@ pub struct StackTrace {
 
 pub struct RangeCheckTrace {
     trace: [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH],
-    aux_trace_builder: range::AuxTraceBuilder,
+    aux_builder: range::AuxTraceBuilder,
 }
 
 pub struct AuxTableTrace {
     trace: [Vec<Felt>; AUX_TABLE_WIDTH],
     hasher_aux_builder: hasher::AuxTraceBuilder,
+    aux_builder: aux_table_bus::AuxTraceBuilder,
 }
 
 // EXECUTOR
@@ -129,6 +133,7 @@ pub struct Process {
     hasher: Hasher,
     bitwise: Bitwise,
     memory: Memory,
+    aux_table_bus: AuxTableBus,
     advice: AdviceProvider,
 }
 
@@ -154,6 +159,7 @@ impl Process {
             hasher: Hasher::default(),
             bitwise: Bitwise::new(),
             memory: Memory::new(),
+            aux_table_bus: AuxTableBus::default(),
             advice: AdviceProvider::new(inputs),
         }
     }
@@ -356,7 +362,7 @@ impl Process {
     }
 
     pub fn to_components(self) -> (System, Decoder, Stack, RangeChecker, AuxTable) {
-        let aux_table = AuxTable::new(self.hasher, self.bitwise, self.memory);
+        let aux_table = AuxTable::new(self.hasher, self.bitwise, self.memory, self.aux_table_bus);
         (self.system, self.decoder, self.stack, self.range, aux_table)
     }
 }

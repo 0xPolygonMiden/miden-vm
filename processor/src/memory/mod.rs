@@ -1,5 +1,7 @@
 use crate::{
+    aux_table_bus::AuxTableBus,
     range::RangeChecker,
+    trace::LookupTableRow,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
 };
 
@@ -185,7 +187,12 @@ impl Memory {
     }
 
     /// Fills the provided trace fragment with trace data from this memory instance.
-    pub fn fill_trace(self, trace: &mut TraceFragment) {
+    pub fn fill_trace(
+        self,
+        trace: &mut TraceFragment,
+        memory_start_row: usize,
+        aux_table_bus: &mut AuxTableBus,
+    ) {
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
 
         // set the pervious address and clock cycle to the first address and clock cycle of the
@@ -227,7 +234,17 @@ impl Memory {
                 let (delta_hi, delta_lo) = split_element_u32_into_u16(delta);
                 trace.set(i, 11, delta_lo);
                 trace.set(i, 12, delta_hi);
+                // TODO: switch to batch inversion to improve efficiency.
                 trace.set(i, 13, delta.inv());
+
+                // provide the memory access data to the aux table bus.
+                aux_table_bus.provide_memory_operation(
+                    addr,
+                    clk,
+                    prev_value,
+                    value,
+                    memory_start_row + i,
+                );
 
                 // update values for the next iteration of the loop
                 prev_addr = addr;
@@ -312,5 +329,58 @@ impl Memory {
 impl Default for Memory {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// MEMORY LOOKUPS
+// ================================================================================================
+
+/// Contains the data required to describe a memory read or write.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(super) struct MemoryLookup {
+    ctx: Felt,
+    addr: Felt,
+    clk: u64,
+    old_word: Word,
+    new_word: Word,
+}
+
+impl MemoryLookup {
+    pub fn new(addr: Felt, clk: u64, old_word: Word, new_word: Word) -> Self {
+        Self {
+            ctx: ZERO,
+            addr,
+            clk,
+            old_word,
+            new_word,
+        }
+    }
+}
+
+impl LookupTableRow for MemoryLookup {
+    /// Reduces this row to a single field element in the field specified by E. This requires
+    /// at least 12 alpha values.
+    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+        let old_word_value = self
+            .old_word
+            .iter()
+            .enumerate()
+            .fold(E::ZERO, |acc, (j, element)| {
+                acc + alphas[j + 4].mul_base(*element)
+            });
+        let new_word_value = self
+            .new_word
+            .iter()
+            .enumerate()
+            .fold(E::ZERO, |acc, (j, element)| {
+                acc + alphas[j + 8].mul_base(*element)
+            });
+
+        alphas[0]
+            + alphas[1].mul_base(self.ctx)
+            + alphas[2].mul_base(self.addr)
+            + alphas[3].mul_base(Felt::new(self.clk))
+            + old_word_value
+            + new_word_value
     }
 }
