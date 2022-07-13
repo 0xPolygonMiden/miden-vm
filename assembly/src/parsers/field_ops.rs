@@ -396,7 +396,11 @@ pub fn parse_gte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 /// The expected starting state of the stack (from the top) is: [a, ...].
 ///
 /// After these operations, the stack state will be: [2^a, ...].
-fn aggregate_power_2(span_ops: &mut Vec<Operation>, unsafe_mode: bool) {
+///
+/// VM cycles per mode:
+/// safe: 43 cycles
+/// unsafe: 38 cycles
+pub fn aggregate_power_2(span_ops: &mut Vec<Operation>, unsafe_mode: bool) {
     const MOST_SIGNIFICANT_BIT: u32 = 5;
 
     // `safe` Mode
