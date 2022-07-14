@@ -325,7 +325,14 @@ fn pow2_unsafe() {
 fn pow2_fail() {
     let asm_op = "pow2";
 
+    let mut value = rand_value::<u32>() as u64;
+    value += (u32::MAX as u64) + 1;
+
+    // --- random u32 values > 63 ------------------------------------------------------
     build_op_test!(asm_op, &[64]).expect_error(TestError::ExecutionError("FailedAssertion"));
+
+    // --- random u64 values > u32MAX  ------------------------------------------------
+    build_op_test!(asm_op, &[value]).expect_error(TestError::ExecutionError("NotU32Value"))
 }
 
 #[test]
