@@ -30,97 +30,68 @@ end
 
 # initial hash state of blake3 when computing 2-to-1 hash i.e. two blake3 digests are being merged into single digest of 32 -bytes
 # see https://github.com/itzmeanjan/blake3/blob/f07d32ec10cbc8a10663b7e6539e0b1dab3e453b/include/blake3.hpp#L1709-L1713
-proc.initialize_hash_state.1
-    popw.local.0
-
+proc.initialize_hash_state
     # blake3 initial values
     # see https://github.com/BLAKE3-team/BLAKE3/blob/da4c792d8094f35c05c41c9aeb5dfe4aa67ca1ac/reference_impl/reference_impl.rs#L36-L38
     push.0xA54FF53A.0x3C6EF372.0xBB67AE85.0x6A09E667
-
-    pushw.local.0
-    repeat.3
-        swap
-        drop
-    end
-
+    movup.4
     popw.mem
 
     push.0x5BE0CD19.0x1F83D9AB.0x9B05688C.0x510E527F
-
-    pushw.local.0
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
+    movup.4
     popw.mem
 
     push.0xA54FF53A.0x3C6EF372.0xBB67AE85.0x6A09E667
-
-    pushw.local.0
-    drop
-    drop
-    swap
-    drop
-
+    movup.4
     popw.mem
 
     # blake3 hash constants https://github.com/itzmeanjan/blake3/blob/1c58f6a343baee52ba1fe7fc98bfb280b6d567da/include/blake3_consts.hpp#L16-L20
     push.11.64.0.0
-
-    pushw.local.0
-    drop
-    drop
-    drop
-
+    movup.4
     popw.mem
 end
 
-# permutes ordered message words, kept on stack top ( = sixteen 32 -bit BLAKE3 words )
-# such that next round of mixing can be applied
-# after completion of permutation, message words are transferred back to stack top, in ordered form
-# see https://github.com/itzmeanjan/blake3/blob/f07d32ec10cbc8a10663b7e6539e0b1dab3e453b/include/blake3.hpp#L1623-L1639
-proc.blake3_msg_words_permute.3
-    movup.2
-    movup.6
-    swap
-    movup.4
+# Permutes ordered message words, kept on stack top ( = sixteen 32 -bit BLAKE3 words )
+#
+# Expected stack top: 
+#
+# [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15]
+#
+# After permutation, stack top:
+#
+# [s2, s6, s3, s10, s7, s0, s4, s13, s1, s11, s12, s5, s9, s14, s15, s8]
+#
+# See https://github.com/itzmeanjan/blake3/blob/f07d32ec10cbc8a10663b7e6539e0b1dab3e453b/include/blake3.hpp#L1623-L1639
+proc.permute_msg_words
     movup.10
-    swap
-    movup.3
-    movup.3
-
-    push.env.locaddr.0
-    popw.mem
-
     movup.4
-    movup.3
+    movup.7
+    movup.5
+
+    movup.13
+    movup.7
+    movup.6
     movup.9
-    swap
-    movup.3
-    movup.3
 
-    push.env.locaddr.1
-    popw.mem
+    swapw
+    movupw.3
+    movupw.3
 
-    movup.4
     swap
     movup.5
-    movdn.2
+    movup.5
+    movup.3
 
-    push.env.locaddr.2
-    popw.mem
+    swapw
 
-    movdn.3
+    movup.3
+    movup.3
+    movup.3
 
-    # bring message words back to stack, from local memory
-    push.env.locaddr.2
-    pushw.mem
-    push.env.locaddr.1
-    pushw.mem
-    push.env.locaddr.0
-    pushw.mem
+    swapw
+
+    movupw.3
+    movupw.3
 end
 
 # this function computes final 32 -bytes digest from first 8 blake3 words of hash state,
@@ -880,32 +851,32 @@ proc.compress.1
     # round 0
     push.env.locaddr.0
     exec.round
-    exec.blake3_msg_words_permute
+    exec.permute_msg_words
 
     # round 1
     push.env.locaddr.0
     exec.round
-    exec.blake3_msg_words_permute
+    exec.permute_msg_words
 
     # round 2
     push.env.locaddr.0
     exec.round
-    exec.blake3_msg_words_permute
+    exec.permute_msg_words
 
     # round 3
     push.env.locaddr.0
     exec.round
-    exec.blake3_msg_words_permute
+    exec.permute_msg_words
 
     # round 4
     push.env.locaddr.0
     exec.round
-    exec.blake3_msg_words_permute
+    exec.permute_msg_words
 
     # round 5
     push.env.locaddr.0
     exec.round
-    exec.blake3_msg_words_permute
+    exec.permute_msg_words
 
     # round 6
     push.env.locaddr.0
