@@ -433,7 +433,7 @@ pub fn parse_u32not(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 ///
 /// VM cycles per mode:
 /// - u32shl: 46 cycles
-/// - u32shl.b: 46 cycles
+/// - u32shl.b: 4 cycles
 /// - u32shl.unsafe: 39 cycles
 pub fn parse_u32shl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     let drop_remainder = match op.num_parts() {
@@ -478,7 +478,7 @@ pub fn parse_u32shl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 ///
 /// VM cycles per mode:
 /// - u32shr: 46 cycles
-/// - u32shr.b: 46 cycles
+/// - u32shr.b: 4 cycles
 /// - u32shr.unsafe: 44 cycles
 pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     let drop_remainder = match op.num_parts() {
@@ -532,7 +532,7 @@ pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 ///
 /// VM cycles per mode:
 /// - u32rotl: 46 cycles
-/// - u32rotl.b: 46 cycles
+/// - u32rotl.b: 4 cycles
 /// - u32rotl.unsafe: 40 cycles
 pub fn parse_u32rotl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
@@ -570,7 +570,7 @@ pub fn parse_u32rotl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
 ///
 /// VM cycles per mode:
 /// - u32rotr: 58 cycles
-/// - u32rotr.b: 48 cycles
+/// - u32rotr.b: 6 cycles
 /// - u32rotr.unsafe: 44 cycles
 pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {

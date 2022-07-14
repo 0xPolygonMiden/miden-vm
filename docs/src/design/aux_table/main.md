@@ -1,15 +1,13 @@
 # Auxiliary Table
 
-The Auxiliary Table reduces the number of columns required by the execution trace by stacking the execution traces of 4 co-processors that are expected to generate significantly fewer rows than the other VM processors (the decoder, stack, and range checker).
+The Auxiliary Table reduces the number of columns required by the execution trace by stacking the execution traces of 3 co-processors that are expected to generate significantly fewer rows than the other VM processors (the decoder, stack, and range checker).
 
 ## Auxiliary Table segments
 
-The co-processors in the auxiliary table are:
+The co-processors in the auxiliary table are:the result in the result column.
 
 - [Hash Processor](./hasher.md) (17 columns; degree 8)
-- Bitwise & Power of Two Processor, which combines 2 co-processors:
-  - [Bitwise Processor](./bitwise.md) (15 columns; degree 6)
-  - [Power of Two Processor](./pow2.md) (15 columns; degree 3)
+- [Bitwise Processor](./bitwise.md) (14 columns; degree 6)
 - [Memory Processor](./memory.md) (14 columns; degree 6)
 
 Each co-processor is identified by a set of selector columns which identify its segment in the auxiliary table and cause its constraints to be selectively applied.
@@ -33,17 +31,10 @@ Additionally, a padding segment must be added to the Auxiliary Table so that the
 ### Bitwise
 
 - The constraints for the bitwise co-processor have degree 6, so its selector flag cannot exceed degree 3.
-- The bitwise co-processor requires 13 columns, so it can have at most 5 selector columns.
+- The bitwise co-processor requires 12 columns, so it can have at most 6 selector columns.
 - Each bitwise operation in the bitwise processor is performed in an 8-row cycle that must begin at a row number equal to $0\mod8$, so the bitwise processor's trace must begin on a row number equal to $0\mod8$.
 
 Note: If the bitwise co-processor is [refactored](https://github.com/maticnetwork/miden/issues/120) to process only one bitwise operation, rather than three, then its internal selector flags could be removed. In this case, the constraint degree would be reduced to 4 and the number of columns would be reduced to 11.
-
-### Power of two
-
-- The constraints for the power of two co-processor have degree 3, so its selector flag cannot exceed degree 6.
-- The power of two co-processor requires 13 columns, so it can have at most 5 selector columns.
-- The power of two operations is completed in an 8-row cycle that must begin at a row number equal to $0\mod8$, so the Power of Two processor's trace must begin on a row number equal to $0\mod8$.
-- As described in the Challenge section below, the input and output aggregation constraints must not be applied to the last row.
 
 ### Memory
 
@@ -59,13 +50,11 @@ To fulfill the requirements above, we'll start by placing the Hasher at the top 
 
 ![hasher](../../assets/design/aux_table/hasher.png)
 
-Next, we would like to include the other cyclic co-processors: the Bitwise and Power of Two processors.
+Next, we would like to include the other cyclic co-processors: the Bitwise.
 
-That would leave the Memory co-processor to go last. However, if we use a selector column for each of 4 co-processors and also put the Memory co-processor at the end, then the selectors will cause us to exceed the maximum degree for the Memory co-processor's constraints.
+That would leave the Memory co-processor to go last. However, if we use a selector column for each of 3 co-processors and also put the Memory co-processor at the end, then the selectors will cause us to exceed the maximum degree for the Memory co-processor's constraints.
 
-We can get around this problem by combining the Bitwise and Power of Two processors into a single co-processor with a shared trace, so that the Power of Two processor becomes an additional operation in the Bitwise processor which will be selected by the Bitwise processor's internal selector columns. We'll need to add two columns to the Bitwise trace in order for the Power of Two operation to fit. The degree of the combined processor will be 6, and the selector flag from the two selector columns will push it to degree 8, which is fine.
-
-![hasher_bitwise](../../assets/design/aux_table/hasher_bitwise_pow2.png)
+![hasher_bitwise](../../assets/design/aux_table/hasher_bitwise.png)
 
 Finally, we come to the Memory co-processor, where we still need to deal with the "last row problem" (described below). The three selector flags for the Memory section mean that the constraint degree is already at the maximum of 9, which gives us 2 options:
 
@@ -84,16 +73,13 @@ $$s_0^2 - s_0 = 0$$
 $$s_0 \cdot (s_1^2 - s_1) = 0$$
 $$s_0 \cdot s_1 \cdot (s_2^2 - s_2) = 0$$
 
-### Combined Bitwise & Power of Two Co-processor
+### Bitwise Co-processor
 
-Because the Bitwise and Power of Two co-processors have been combined to share a trace, the enforcement of operation selectors should be handled at the shared co-processor level rather than individually by the Bitwise or Power of Two co-processors themselves.
-
-The selectors for each operation are as follows:
+We have three bitwise operation in bitwise co-processor. The selectors for each operation are as follows:
 
 - `U32AND`: $s_0 = 0$, $s_1 = 0$
 - `U32OR`: $s_0 = 0$, $s_1 = 1$
 - `U32XOR`: $s_0 = 1$, $s_1 = 0$
-- `POW2`: $s_0 = 1$, $s_1 = 1$
 
 The constraints must require that the selectors be binary and stay the same throughout the cycle:
 $$s_0^2 - s_0 = 0$$
@@ -135,10 +121,6 @@ CONFLICT: our transition constraint from Processor A will require that this be 4
   $$r' - r - 1 = 0$$
 - [Memory](./memory.md) - all transition constraints, in particular this degree 6 constraint:
   $$(1−n_0)⋅(n_1^2−n_1)=0$$
-- [Power of 2](./pow2.md) - the input aggregation constraint (degree 2) and the output aggregation constraint (degree 4), which are:
-  $$a' - (a_0' + a_1'+a_2'+ ... + a_7' + k_1 \cdot a) = 0$$
-
-$$k_1 \cdot (zp' - z) = 0$$
 
 ### Possible solutions
 

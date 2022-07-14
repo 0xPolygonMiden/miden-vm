@@ -216,7 +216,7 @@ impl Bitwise {
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Appends a new row to the trace table and populates the first 15 columns of trace as follows:
+    /// Appends a new row to the trace table and populates the first 14 columns of trace as follows:
     /// - Columns 0 and 1 are set to the selector values for the bitwise operation being executed.
     /// - Column 2 is set to the current value of `a`.
     /// - Column 3 is set to the current value of `b`.

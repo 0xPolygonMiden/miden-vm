@@ -23,6 +23,5 @@
   - [Auxiliary Table](./design/aux_table/main.md)
     - [Hash Processor](./design/aux_table/hasher.md)
     - [Bitwise Processor](./design/aux_table/bitwise.md)
-    - [Power of Two Processor](./design/aux_table/pow2.md)
     - [Memory Processor](./design/aux_table/memory.md)
 - [Background Material](./background.md)
