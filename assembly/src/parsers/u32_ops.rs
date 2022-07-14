@@ -1,4 +1,7 @@
-use super::{parse_int_param, push_value, AssemblyError, Felt, Operation, Token, Vec};
+use super::{
+    field_ops::aggregate_power_2, parse_int_param, push_value, AssemblyError, Felt, Operation,
+    Token, Vec,
+};
 
 // CONVERSIONS AND TESTS
 // ================================================================================================
@@ -429,21 +432,21 @@ pub fn parse_u32not(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32shl: 4 cycles
+/// - u32shl: 46 cycles
 /// - u32shl.b: 4 cycles
-/// - u32shl.unsafe: 2 cycles
+/// - u32shl.unsafe: 39 cycles
 pub fn parse_u32shl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     let drop_remainder = match op.num_parts() {
         0 => return Err(AssemblyError::invalid_op(op)),
         1 => {
             // Assume the dynamic shift value b is on top of the stack.
-            span_ops.push(Operation::Pow2);
+            aggregate_power_2(span_ops, false);
             span_ops.push(Operation::U32assert2);
             true
         }
         2 => match op.parts()[1] {
             "unsafe" => {
-                span_ops.push(Operation::Pow2);
+                aggregate_power_2(span_ops, true);
                 false
             }
             _ => {
@@ -474,15 +477,15 @@ pub fn parse_u32shl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// be shifted is asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32shr: 4 cycles
+/// - u32shr: 46 cycles
 /// - u32shr.b: 4 cycles
-/// - u32shr.unsafe: 7 cycles
+/// - u32shr.unsafe: 44 cycles
 pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     let drop_remainder = match op.num_parts() {
         0 => return Err(AssemblyError::invalid_op(op)),
         1 => {
             // Assume the dynamic shift value b is on top of the stack.
-            span_ops.push(Operation::Pow2);
+            aggregate_power_2(span_ops, false);
             span_ops.push(Operation::U32assert2);
             true
         }
@@ -494,7 +497,7 @@ pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
                 span_ops.push(Operation::Swap);
                 span_ops.push(Operation::U32sub);
                 span_ops.push(Operation::Drop);
-                span_ops.push(Operation::Pow2);
+                aggregate_power_2(span_ops, true);
                 span_ops.push(Operation::U32mul);
                 span_ops.push(Operation::Swap);
                 false
@@ -528,20 +531,20 @@ pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// between 0-31 and the value to be shifted is asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32rotl: 4 cycles
+/// - u32rotl: 46 cycles
 /// - u32rotl.b: 4 cycles
-/// - u32rotl.unsafe: 3 cycles
+/// - u32rotl.unsafe: 40 cycles
 pub fn parse_u32rotl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::invalid_op(op)),
         1 => {
             // Assume the dynamic shift value b is on top of the stack.
-            span_ops.push(Operation::Pow2);
+            aggregate_power_2(span_ops, false);
             span_ops.push(Operation::U32assert2);
         }
         2 => match op.parts()[1] {
             "unsafe" => {
-                span_ops.push(Operation::Pow2);
+                aggregate_power_2(span_ops, true);
             }
             _ => {
                 let x = parse_int_param(op, 1, 0, 31)?;
@@ -566,9 +569,9 @@ pub fn parse_u32rotl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
 /// 0-31 and the value to be shifted is asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32rotr: 16 cycles
+/// - u32rotr: 58 cycles
 /// - u32rotr.b: 6 cycles
-/// - u32rotr.unsafe: 7 cycles
+/// - u32rotr.unsafe: 44 cycles
 pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::invalid_op(op)),
@@ -588,7 +591,7 @@ pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
             span_ops.push(Operation::Not);
             span_ops.push(Operation::CSwap);
             span_ops.push(Operation::Drop);
-            span_ops.push(Operation::Pow2);
+            aggregate_power_2(span_ops, false);
             span_ops.push(Operation::Swap);
         }
         2 => match op.parts()[1] {
@@ -597,7 +600,7 @@ pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
                 span_ops.push(Operation::Swap);
                 span_ops.push(Operation::U32sub);
                 span_ops.push(Operation::Drop);
-                span_ops.push(Operation::Pow2);
+                aggregate_power_2(span_ops, true);
             }
             _ => {
                 // Assert the top of the stack is a u32 value.

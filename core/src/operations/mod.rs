@@ -67,12 +67,6 @@ pub enum Operation {
     /// Pops an element off the stack, adds 1 to it, and pushes the result back onto the stack.
     Incr,
 
-    /// Pops one element `x` off the stack, computes the power of 2^x, and pushes the result back
-    /// onto the stack.
-    ///
-    /// If the element is greater than or equal to 64, execution fails.
-    Pow2,
-
     /// Pops two elements off the stack, multiplies them, and pushes the result back onto the stack.
     ///
     /// If either of the elements is greater than 1, execution fails. This operation is equivalent
@@ -390,7 +384,6 @@ impl Operation {
             Self::Mul => 0b0100_1010,
             Self::Inv => 8,
             Self::Incr => 9,
-            Self::Pow2 => 10,
             Self::And => 0b0100_1011,
             Self::Or => 0b0100_1100,
             Self::Not => 11,
@@ -524,7 +517,6 @@ impl fmt::Display for Operation {
             Self::Mul => write!(f, "mul"),
             Self::Inv => write!(f, "inv"),
             Self::Incr => write!(f, "incr"),
-            Self::Pow2 => write!(f, "pow2"),
 
             Self::And => write!(f, "and"),
             Self::Or => write!(f, "or"),

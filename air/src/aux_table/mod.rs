@@ -5,7 +5,7 @@ use vm_core::{
     AUX_TABLE_OFFSET,
 };
 
-mod bitwise_pow2;
+mod bitwise;
 mod hasher;
 mod memory;
 pub use memory::MemoryFrameExt;
@@ -31,7 +31,7 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
 /// Returns the set of periodic columns required by the co-processors in the Auxiliary Table.
 pub fn get_periodic_column_values() -> Vec<Vec<Felt>> {
     let mut result = hasher::get_periodic_column_values();
-    result.append(&mut bitwise_pow2::get_periodic_column_values());
+    result.append(&mut bitwise::get_periodic_column_values());
     result
 }
 
@@ -47,7 +47,7 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
 
     degrees.append(&mut hasher::get_transition_constraint_degrees());
 
-    degrees.append(&mut bitwise_pow2::get_transition_constraint_degrees());
+    degrees.append(&mut bitwise::get_transition_constraint_degrees());
 
     degrees.append(&mut memory::get_transition_constraint_degrees());
 
@@ -59,7 +59,7 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
 pub fn get_transition_constraint_count() -> usize {
     NUM_CONSTRAINTS
         + hasher::get_transition_constraint_count()
-        + bitwise_pow2::get_transition_constraint_count()
+        + bitwise::get_transition_constraint_count()
         + memory::get_transition_constraint_count()
 }
 
@@ -89,13 +89,13 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
     constraint_offset += hasher::get_transition_constraint_count();
 
     // bitwise transition constraints
-    bitwise_pow2::enforce_constraints(
+    bitwise::enforce_constraints(
         frame,
         &periodic_values[hasher::NUM_PERIODIC_COLUMNS..],
         &mut result[constraint_offset..],
         frame.bitwise_flag(),
     );
-    constraint_offset += bitwise_pow2::get_transition_constraint_count();
+    constraint_offset += bitwise::get_transition_constraint_count();
 
     // memory transition constraints
     memory::enforce_constraints(

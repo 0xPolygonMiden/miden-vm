@@ -1,8 +1,8 @@
 use super::{
-    super::{get_periodic_values, OP_CYCLE_LEN},
-    agg_bits, bitwise_and, bitwise_or, bitwise_xor, enforce_constraints, EvaluationFrame,
-    A_COL_IDX, A_COL_RANGE, BITWISE_TRACE_OFFSET, B_COL_IDX, B_COL_RANGE, NUM_CONSTRAINTS,
-    NUM_DECOMP_BITS, OUTPUT_COL_IDX, OUTPUT_COL_PREV_IDX, SELECTOR_COL_RANGE,
+    agg_bits, bitwise_and, bitwise_or, bitwise_xor, enforce_constraints, get_periodic_values,
+    EvaluationFrame, A_COL_IDX, A_COL_RANGE, BITWISE_TRACE_OFFSET, B_COL_IDX, B_COL_RANGE,
+    NUM_CONSTRAINTS, NUM_DECOMP_BITS, OP_CYCLE_LEN, OUTPUT_COL_IDX, OUTPUT_COL_PREV_IDX,
+    SELECTOR_COL_RANGE,
 };
 use vm_core::{
     bitwise::{
@@ -25,7 +25,7 @@ const BITWISE_DECOMPOSITION_LEN: usize = 2 * NUM_DECOMP_BITS;
 // UNIT TESTS
 // ================================================================================================
 
-/// Tests that the bitwise constraints do not all evaluate to zero if the operation selectors change
+/// Tests that the bitwise constraints do not all evaluate to zero if the internal selectors change
 /// within a cycle.
 #[test]
 fn test_bitwise_selectors_fail() {
@@ -72,6 +72,45 @@ fn test_bitwise_selectors_fail() {
     let frame =
         get_test_frame_with_two_selectors(&current_bitwise, &next_bitwise, BITWISE_OR, BITWISE_XOR);
     let result = get_constraint_evaluation(frame, cycle);
+    assert_ne!(result, expected);
+}
+
+#[test]
+/// Tests that the bitwise constraints do not all evaluate to zero if the internal selectors change
+/// within a cycle even when the output column will be the same for both of them.
+fn test_bitwise_selectors_same_output_fail() {
+    let current_bitwise = vec![
+        Felt::ONE,
+        Felt::ONE,
+        Felt::ZERO,
+        Felt::ZERO,
+        Felt::ONE,
+        Felt::ZERO,
+        Felt::ONE,
+        Felt::ONE,
+    ];
+
+    let next_bitwise = vec![
+        Felt::ZERO,
+        Felt::ZERO,
+        Felt::ZERO,
+        Felt::ZERO,
+        Felt::ONE,
+        Felt::ONE,
+        Felt::ONE,
+        Felt::ONE,
+    ];
+    let cycle = 1;
+    let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+
+    let frame =
+        get_test_frame_with_two_selectors(&current_bitwise, &next_bitwise, BITWISE_OR, BITWISE_XOR);
+
+    let periodic_values = get_periodic_values(cycle);
+    let mut result = [Felt::ZERO; NUM_CONSTRAINTS];
+
+    enforce_constraints(&frame, &periodic_values, &mut result, Felt::ONE);
+
     assert_ne!(result, expected);
 }
 
