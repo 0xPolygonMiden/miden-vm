@@ -1,12 +1,13 @@
 use crate::{
-    chiplets_bus::ChipletsBus,
     range::RangeChecker,
     trace::LookupTableRow,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
 };
 
-use super::{BTreeMap, Felt, FieldElement, StarkField, TraceFragment, Vec, Word, ONE, ZERO};
-use core::ops::RangeInclusive;
+use super::{
+    BTreeMap, ChipletsBus, Felt, FieldElement, RangeInclusive, StarkField, TraceFragment, Vec,
+    Word, ONE, ZERO,
+};
 
 #[cfg(test)]
 mod tests;
@@ -15,7 +16,7 @@ mod tests;
 // ================================================================================================
 
 /// Initial value of every memory cell.
-pub const INIT_MEM_VALUE: Word = [ZERO; 4];
+const INIT_MEM_VALUE: Word = [ZERO; 4];
 
 // RANDOM ACCESS MEMORY
 // ================================================================================================
@@ -63,7 +64,7 @@ pub const INIT_MEM_VALUE: Word = [ZERO; 4];
 /// For the first row of the trace, values in `d0`, `d1`, and `d_inv` are set to zeros.
 pub struct Memory {
     /// Current clock cycle of the VM.
-    step: u64,
+    clk: u64,
 
     /// Memory access trace sorted first by address and then by clock cycle.
     trace: BTreeMap<u64, Vec<(Felt, Word)>>,
@@ -79,7 +80,7 @@ impl Memory {
     /// Returns a new [Memory] initialized with an empty trace.
     pub fn new() -> Self {
         Self {
-            step: 0,
+            clk: 0,
             trace: BTreeMap::new(),
             num_trace_rows: 0,
         }
@@ -88,15 +89,71 @@ impl Memory {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns current size of the memory (in words).
-    pub fn size(&self) -> usize {
-        self.trace.len()
-    }
-
     /// Returns length of execution trace required to describe all memory access operations
     /// executed on the VM.
     pub fn trace_len(&self) -> usize {
         self.num_trace_rows
+    }
+
+    /// Returns the address and clock cycle of the first trace row, or None if the trace is empty.
+    fn get_first_row_info(&self) -> Option<(Felt, Felt)> {
+        match self.trace.iter().next() {
+            Some((&addr, addr_trace)) => {
+                let clk = addr_trace[0].0;
+                Some((Felt::new(addr), clk))
+            }
+            None => None,
+        }
+    }
+
+    /// Returns a word located at the specified address, or None if the address hasn't been
+    /// accessed previously.
+    /// Unlike read() that modifies the underlying map, get_value() only attempts to read
+    /// or return None when no value exists.
+    pub fn get_value(&self, addr: u64) -> Option<Word> {
+        match self.trace.get(&addr) {
+            Some(addr_trace) => addr_trace.last().map(|(_, value)| *value),
+            None => None,
+        }
+    }
+
+    /// Returns the value at the specified address which should be used as the "old value" for a
+    /// write request. It will be the previously stored value, if one exists, or initialized memory.
+    pub fn get_old_value(&self, addr: Felt) -> Word {
+        // get the stored word or return [0, 0, 0, 0], since the memory is initialized with zeros
+        self.get_value(addr.as_int()).unwrap_or(INIT_MEM_VALUE)
+    }
+
+    /// Returns values within a range of addresses, or optionally all values at the beginning of
+    /// the specified cycle.
+    /// TODO: refactor to something like `pub fn get_state_at(&self, clk: u64)-> Vec<(u64, Word)>`
+    pub fn get_values_at(&self, range: RangeInclusive<u64>, clk: u64) -> Vec<(u64, Word)> {
+        let mut data: Vec<(u64, Word)> = Vec::new();
+
+        if clk == 0 {
+            return data;
+        }
+
+        // Because we want to view the memory state at the beginning of the specified cycle, we
+        // view the memory state at the previous cycle, as the current memory state is at the
+        // end of the current cycle.
+        let search_step = clk - 1;
+
+        for (&addr, addr_trace) in self.trace.range(range) {
+            match addr_trace.binary_search_by(|(x, _)| x.as_int().cmp(&search_step)) {
+                Ok(i) => data.push((addr, addr_trace[i].1)),
+                Err(i) => {
+                    // Binary search finds the index of the data with the specified clock cycle.
+                    // Decrement the index to get the trace from the previously accessed clock cycle
+                    // to insert into the results.
+                    if i > 0 {
+                        data.push((addr, addr_trace[i - 1].1));
+                    }
+                }
+            }
+        }
+
+        data
     }
 
     // STATE ACCESSORS AND MUTATORS
@@ -108,7 +165,7 @@ impl Memory {
     /// returned. This effectively implies that memory is initialized to ZERO.
     pub fn read(&mut self, addr: Felt) -> Word {
         self.num_trace_rows += 1;
-        let clk = Felt::new(self.step);
+        let clk = Felt::new(self.clk);
 
         // look up the previous value in the appropriate address trace and add (clk, prev_value)
         // to it; if this is the first time we access this address, create address trace for it
@@ -125,10 +182,10 @@ impl Memory {
             .1
     }
 
-    /// Writes the provided words (4 elements) at the specified address.
+    /// Writes the provided word (4 elements) at the specified address.
     pub fn write(&mut self, addr: Felt, value: Word) {
         self.num_trace_rows += 1;
-        let clk = Felt::new(self.step);
+        let clk = Felt::new(self.clk);
 
         // add a tuple (clk, value) to the appropriate address trace; if this is the first time
         // we access this address, initialize address trace.
@@ -143,7 +200,7 @@ impl Memory {
 
     /// Increments the clock cycle.
     pub fn advance_clock(&mut self) {
-        self.step += 1;
+        self.clk += 1;
     }
 
     // EXECUTION TRACE GENERATION
@@ -255,74 +312,13 @@ impl Memory {
         }
     }
 
-    /// Returns the address and clock cycle of the first trace row, or None if the trace is empty.
-    fn get_first_row_info(&self) -> Option<(Felt, Felt)> {
-        match self.trace.iter().next() {
-            Some((&addr, addr_trace)) => {
-                let clk = addr_trace[0].0;
-                Some((Felt::new(addr), clk))
-            }
-            None => None,
-        }
-    }
+    // TEST HELPERS
+    // --------------------------------------------------------------------------------------------
 
-    /// Returns a word located at the specified address, or None if the address hasn't been
-    /// accessed previously.
-    /// Unlike read() that modifies the underlying map, get_value() only attempts to read
-    /// or return None when no value exists.
-    pub fn get_value(&self, addr: u64) -> Option<Word> {
-        match self.trace.get(&addr) {
-            Some(addr_trace) => addr_trace.last().map(|(_, value)| *value),
-            None => None,
-        }
-    }
-
-    /// Returns all the addresses and values stored in memory.
-    pub fn get_all_values(&self) -> Vec<(u64, Word)> {
-        self.get_values(RangeInclusive::new(0, u64::MAX))
-    }
-
-    /// Returns values within a range of addresses at the last clock cycle.
-    pub fn get_values(&self, range: RangeInclusive<u64>) -> Vec<(u64, Word)> {
-        let mut data: Vec<(u64, Word)> = Vec::new();
-
-        for (&addr, addr_trace) in self.trace.range(range) {
-            let value = addr_trace.last().expect("empty address trace").1;
-            data.push((addr, value));
-        }
-
-        data
-    }
-
-    /// Returns values within a range of addresses, or optionally all values at the beginning of.
-    /// the specified cycle.
-    pub fn get_values_at(&self, range: RangeInclusive<u64>, step: u64) -> Vec<(u64, Word)> {
-        let mut data: Vec<(u64, Word)> = Vec::new();
-
-        if step == 0 {
-            return data;
-        }
-
-        // Because we want to view the memory state at the beginning of the specified cycle, we
-        // view the memory state at the previous cycle, as the current memory state is at the
-        // end of the current cycle.
-        let search_step = step - 1;
-
-        for (&addr, addr_trace) in self.trace.range(range) {
-            match addr_trace.binary_search_by(|(x, _)| x.as_int().cmp(&search_step)) {
-                Ok(i) => data.push((addr, addr_trace[i].1)),
-                Err(i) => {
-                    // Binary search would find the index the specified step should be in.
-                    // We decrement the index to get the equal or less than specified step
-                    // trace to insert into the results.
-                    if i > 0 {
-                        data.push((addr, addr_trace[i - 1].1));
-                    }
-                }
-            }
-        }
-
-        data
+    /// Returns current size of the memory (in words).
+    #[cfg(test)]
+    pub fn size(&self) -> usize {
+        self.trace.len()
     }
 }
 
@@ -337,7 +333,7 @@ impl Default for Memory {
 
 /// Contains the data required to describe a memory read or write.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) struct MemoryLookup {
+pub struct MemoryLookup {
     ctx: Felt,
     addr: Felt,
     clk: u64,

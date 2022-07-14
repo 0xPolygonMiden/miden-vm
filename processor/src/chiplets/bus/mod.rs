@@ -1,5 +1,7 @@
-use super::{BTreeMap, Felt, FieldElement, StarkField, Vec, Word};
-use crate::{memory::MemoryLookup, trace::LookupTableRow};
+use super::{
+    BTreeMap, ChipletsLookup, ChipletsLookupRow, Felt, FieldElement, MemoryLookup, StarkField, Vec,
+    Word,
+};
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
@@ -7,8 +9,8 @@ pub use aux_trace::AuxTraceBuilder;
 // CHIPLETS BUS
 // ================================================================================================
 
-/// The Chiplets Bus tracks data requested from or provided by chiplets in the Chiplets module. It
-/// processes lookup requests from the stack and response data from the chiplets.
+/// The Chiplets bus tracks data requested from or provided by chiplets in the Chiplets module. It
+/// processes lookup requests from the stack & decoder and response data from the chiplets.
 ///
 /// For correct execution, the lookup data used by the stack for each chiplet must be a permutation
 /// of the lookups executed by that chiplet so that they cancel out. This is ensured by the `b_aux`
@@ -109,63 +111,5 @@ impl ChipletsBus {
     #[cfg(test)]
     pub(super) fn get_response_row(&self, i: usize) -> ChipletsLookupRow {
         self.response_rows[i]
-    }
-}
-
-// CHIPLETS LOOKUPS
-// ================================================================================================
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) enum ChipletsLookup {
-    Request(usize),
-    Response(usize),
-    RequestAndResponse((usize, usize)),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
-pub(super) enum ChipletsLookupRow {
-    Hasher(HasherLookupRow),
-    Bitwise(BitwiseLookupRow),
-    Memory(MemoryLookup),
-}
-
-impl LookupTableRow for ChipletsLookupRow {
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
-        match self {
-            ChipletsLookupRow::Hasher(row) => row.to_value(alphas),
-            ChipletsLookupRow::Bitwise(row) => row.to_value(alphas),
-            ChipletsLookupRow::Memory(row) => row.to_value(alphas),
-        }
-    }
-}
-
-// HASH PROCESSOR LOOKUPS
-// ================================================================================================
-
-#[allow(dead_code)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) struct HasherLookupRow {}
-
-impl LookupTableRow for HasherLookupRow {
-    /// Reduces this row to a single field element in the field specified by E. This requires
-    /// at least 12 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, _alphas: &[E]) -> E {
-        unimplemented!()
-    }
-}
-
-// BITWISE PROCESSOR LOOKUPS
-// ================================================================================================
-
-#[allow(dead_code)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) struct BitwiseLookupRow {}
-
-impl LookupTableRow for BitwiseLookupRow {
-    /// Reduces this row to a single field element in the field specified by E. This requires
-    /// at least 12 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, _alphas: &[E]) -> E {
-        unimplemented!()
     }
 }

@@ -1,22 +1,32 @@
 use super::{
-    Bitwise, ChipletsTrace, Felt, FieldElement, Hasher, Memory, RangeChecker, TraceFragment, Vec,
-    CHIPLETS_WIDTH,
+    BTreeMap, ChipletsTrace, Felt, FieldElement, RangeChecker, StarkField, TraceFragment, Vec,
+    Word, CHIPLETS_WIDTH, ONE, ZERO,
 };
-use crate::{
-    chiplets_bus::{AuxTraceBuilder as ChipletsAuxTraceBuilder, ChipletsBus},
-    hasher::AuxTraceBuilder as HasherAuxTraceBuilder,
-};
+use crate::{trace::LookupTableRow, ExecutionError};
+use core::ops::RangeInclusive;
+use vm_core::program::blocks::OpBatch;
+
+mod bitwise;
+use bitwise::Bitwise;
+
+mod hasher;
+pub use hasher::{AuxTraceBuilder as HasherAuxTraceBuilder, SiblingTableRow};
+use hasher::{Hasher, HasherState};
+
+mod memory;
+use memory::{Memory, MemoryLookup};
+
+mod bus;
+pub use bus::{AuxTraceBuilder, ChipletsBus};
 
 #[cfg(test)]
 mod tests;
 
-// CHIPLETS MODULE
+// CHIPLETS MODULE OF HASHER, BITWISE, AND MEMORY CHIPLETS
 // ================================================================================================
 
-/// A module containing the VM's hasher, bitwise, and memory chiplet components.
-///
-/// This component is responsible for building a final execution trace from the stacked chiplet
-/// execution traces.
+/// This module manages the VM's hasher, bitwise, and memory chiplets and is responsible for
+/// building a final execution trace from their stacked execution traces and chiplet selectors.
 ///
 /// The module's trace can be thought of as 4 stacked chiplet segments in the following form:
 /// * Hasher segment: contains the trace and selector for the hasher chiplet *
@@ -47,31 +57,17 @@ mod tests;
 /// - columns 0-2: selector columns with values set to ONE
 /// - columns 3-17: unused columns padded with ZERO
 ///
+#[derive(Default)]
 pub struct Chiplets {
+    /// Current clock cycle of the VM.
+    clk: usize,
     hasher: Hasher,
     bitwise: Bitwise,
     memory: Memory,
-    chiplets_bus: ChipletsBus,
+    bus: ChipletsBus,
 }
 
 impl Chiplets {
-    // CONSTRUCTOR
-    // --------------------------------------------------------------------------------------------
-    /// Returns a [Chiplets] module initialized with its chiplet components.
-    pub fn new(
-        hasher: Hasher,
-        bitwise: Bitwise,
-        memory: Memory,
-        chiplets_bus: ChipletsBus,
-    ) -> Self {
-        Self {
-            hasher,
-            bitwise,
-            memory,
-            chiplets_bus,
-        }
-    }
-
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -86,6 +82,178 @@ impl Chiplets {
     pub fn memory_start(&self) -> usize {
         self.hasher.trace_len() + self.bitwise.trace_len()
     }
+
+    // HASH CHIPLET ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Requests a single permutation of the hash function to the provided state from the Hash
+    /// chiplet.
+    ///
+    /// The returned tuple contains the hasher state after the permutation and the row address of
+    /// the execution trace at which the permutation started.
+    pub fn permute(&mut self, state: HasherState) -> (Felt, HasherState) {
+        self.hasher.permute(state)
+    }
+
+    /// Requests the hash of the provided words from the Hash chiplet and returns the result
+    /// hash(h1, h2).
+    ///
+    /// The returned tuple also contains the row address of the execution trace at which hash
+    /// computation started.
+    pub fn merge(&mut self, h1: Word, h2: Word) -> (Felt, Word) {
+        self.hasher.merge(h1, h2)
+    }
+
+    /// Requests computation a sequential hash of all operation batches in the list from the Hash
+    /// chiplet and returns the result.
+    ///
+    /// The returned tuple also contains the row address of the execution trace at which hash
+    /// computation started.
+    pub fn hash_span_block(
+        &mut self,
+        op_batches: &[OpBatch],
+        num_op_groups: usize,
+    ) -> (Felt, Word) {
+        self.hasher.hash_span_block(op_batches, num_op_groups)
+    }
+
+    /// Requests a Merkle root computation from the Hash chiplet for the specified path and the node
+    /// with the specified value.
+    ///
+    /// The returned tuple contains the root of the Merkle path and the row address of the
+    /// execution trace at which the computation started.
+    ///
+    /// # Panics
+    /// Panics if:
+    /// - The provided path does not contain any nodes.
+    /// - The provided index is out of range for the specified path.
+    pub fn build_merkle_root(&mut self, value: Word, path: &[Word], index: Felt) -> (Felt, Word) {
+        self.hasher.build_merkle_root(value, path, index)
+    }
+
+    /// Requests a Merkle root update computation from the Hash chiplet.
+    ///
+    /// The returned tuple contains computed roots for the old value and the new value of the node
+    /// with the specified path, as well as the row address of the execution trace at which the
+    /// computation started.
+    ///
+    /// # Panics
+    /// Panics if:
+    /// - The provided path does not contain any nodes.
+    /// - The provided index is out of range for the specified path.
+    pub fn update_merkle_root(
+        &mut self,
+        old_value: Word,
+        new_value: Word,
+        path: &[Word],
+        index: Felt,
+    ) -> (Felt, Word, Word) {
+        self.hasher
+            .update_merkle_root(old_value, new_value, path, index)
+    }
+
+    // BITWISE CHIPLET ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Requests a bitwise AND of `a` and `b` from the Bitwise chiplet. Returns the result along
+    /// with the index of the  result row, which is used for the lookup product column used for
+    /// multiset checks. We assume that `a` and `b` are 32-bit values. If that's not the case, the
+    /// result of the computation is undefined.
+    pub fn u32and(&mut self, a: Felt, b: Felt) -> Result<(Felt, Felt), ExecutionError> {
+        self.bitwise.u32and(a, b)
+    }
+
+    /// Requests a bitwise OR of `a` and `b` from the Bitwise chiplet. Returns the result along with
+    /// the index of the result row, which is used for the lookup product column used for multiset
+    /// checks. We assume that `a` and `b` are 32-bit values. If that's not the case, the result of
+    /// the computation is undefined.
+    pub fn u32or(&mut self, a: Felt, b: Felt) -> Result<(Felt, Felt), ExecutionError> {
+        self.bitwise.u32or(a, b)
+    }
+
+    /// Requests a bitwise XOR of `a` and `b` from the Bitwise chiplet and returns the result along
+    /// with the index of the result row, which is used for the lookup product column used for
+    /// multiset checks. We assume that `a` and `b` are 32-bit values. If that's not the case, the
+    /// result of the computation is undefined.
+    pub fn u32xor(&mut self, a: Felt, b: Felt) -> Result<(Felt, Felt), ExecutionError> {
+        self.bitwise.u32xor(a, b)
+    }
+
+    // MEMORY CHIPLET ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a word (4 elements) located in memory at the specified address.
+    ///
+    /// If the specified address hasn't been previously written to, four ZERO elements are
+    /// returned. This effectively implies that memory is initialized to ZERO.
+    pub fn read_mem(&mut self, addr: Felt) -> Word {
+        // read the word from memory
+        let value = self.memory.read(addr);
+
+        // send the memory read request to the bus
+        self.bus
+            .request_memory_operation(addr, self.clk, value, value);
+
+        value
+    }
+
+    /// Writes the provided element to memory at the specified address leaving the remaining 3
+    /// elements of the word previously stored at that address unchanged.
+    pub fn write_mem_single(&mut self, addr: Felt, value: Felt) -> Word {
+        let old_word = self.memory.get_old_value(addr);
+        let word = [value, old_word[1], old_word[2], old_word[3]];
+
+        self.memory.write(addr, word);
+
+        // send the memory write request to the bus
+        self.bus
+            .request_memory_operation(addr, self.clk, old_word, word);
+
+        old_word
+    }
+
+    /// Writes the provided word (4 elements) to memory at the specified address.
+    pub fn write_mem(&mut self, addr: Felt, word: Word) -> Word {
+        let old_word = self.memory.get_old_value(addr);
+        self.memory.write(addr, word);
+
+        // send the memory write request to the bus
+        self.bus
+            .request_memory_operation(addr, self.clk, old_word, word);
+
+        old_word
+    }
+
+    /// Returns a word located at the specified address, or None if the address hasn't been
+    /// accessed previously.
+    pub fn get_mem_value(&self, addr: u64) -> Option<Word> {
+        self.memory.get_value(addr)
+    }
+
+    /// Returns values within a range of addresses, or optionally all values at the beginning of.
+    /// the specified cycle.
+    /// TODO: Refactor to something like `pub fn get_mem_state(&self, clk: u64) -> Vec<(u64, Word)>`
+    pub fn get_mem_values_at(&self, range: RangeInclusive<u64>, step: u64) -> Vec<(u64, Word)> {
+        self.memory.get_values_at(range, step)
+    }
+
+    /// Returns current size of the memory (in words).
+    #[cfg(test)]
+    pub fn get_mem_size(&self) -> usize {
+        self.memory.size()
+    }
+
+    // CONTEXT MANAGEMENT
+    // --------------------------------------------------------------------------------------------
+
+    /// Increments the clock cycle.
+    pub fn advance_clock(&mut self) {
+        self.memory.advance_clock();
+        self.clk += 1;
+    }
+
+    // EXECUTION TRACE
+    // --------------------------------------------------------------------------------------------
 
     /// Adds all range checks required by the memory chiplet to the provided [RangeChecker]
     /// instance, along with the cycle rows at which the processor performs the lookups.
@@ -138,14 +306,15 @@ impl Chiplets {
         self,
         trace: &mut [Vec<Felt>; CHIPLETS_WIDTH],
         trace_len: usize,
-    ) -> (HasherAuxTraceBuilder, ChipletsAuxTraceBuilder) {
+    ) -> (HasherAuxTraceBuilder, AuxTraceBuilder) {
         // get the row where the memory segment begins before destructuring.
         let memory_start = self.memory_start();
         let Chiplets {
+            clk: _,
             hasher,
             bitwise,
             memory,
-            mut chiplets_bus,
+            mut bus,
         } = self;
 
         // allocate fragments to be filled with the respective execution traces of each chiplet
@@ -222,8 +391,66 @@ impl Chiplets {
         // TODO: this can be parallelized to fill the traces in multiple threads
         let hasher_aux_builder = hasher.fill_trace(&mut hasher_fragment);
         bitwise.fill_trace(&mut bitwise_fragment);
-        memory.fill_trace(&mut memory_fragment, memory_start, &mut chiplets_bus);
+        memory.fill_trace(&mut memory_fragment, memory_start, &mut bus);
 
-        (hasher_aux_builder, chiplets_bus.into_aux_builder())
+        (hasher_aux_builder, bus.into_aux_builder())
+    }
+}
+
+// CHIPLETS LOOKUPS
+// ================================================================================================
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(super) enum ChipletsLookup {
+    Request(usize),
+    Response(usize),
+    RequestAndResponse((usize, usize)),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
+pub(super) enum ChipletsLookupRow {
+    Hasher(HasherLookupRow),
+    Bitwise(BitwiseLookupRow),
+    Memory(MemoryLookup),
+}
+
+impl LookupTableRow for ChipletsLookupRow {
+    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+        match self {
+            ChipletsLookupRow::Hasher(row) => row.to_value(alphas),
+            ChipletsLookupRow::Bitwise(row) => row.to_value(alphas),
+            ChipletsLookupRow::Memory(row) => row.to_value(alphas),
+        }
+    }
+}
+
+// HASH PROCESSOR LOOKUPS
+// ================================================================================================
+
+#[allow(dead_code)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(super) struct HasherLookupRow {}
+
+impl LookupTableRow for HasherLookupRow {
+    /// Reduces this row to a single field element in the field specified by E. This requires
+    /// at least 12 alpha values.
+    fn to_value<E: FieldElement<BaseField = Felt>>(&self, _alphas: &[E]) -> E {
+        unimplemented!()
+    }
+}
+
+// BITWISE PROCESSOR LOOKUPS
+// ================================================================================================
+
+#[allow(dead_code)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(super) struct BitwiseLookupRow {}
+
+impl LookupTableRow for BitwiseLookupRow {
+    /// Reduces this row to a single field element in the field specified by E. This requires
+    /// at least 12 alpha values.
+    fn to_value<E: FieldElement<BaseField = Felt>>(&self, _alphas: &[E]) -> E {
+        unimplemented!()
     }
 }

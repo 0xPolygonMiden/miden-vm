@@ -34,23 +34,11 @@ use stack::Stack;
 mod range;
 use range::RangeChecker;
 
-mod hasher;
-use hasher::Hasher;
-
-mod bitwise;
-use bitwise::Bitwise;
-
-mod memory;
-use memory::Memory;
-
 mod advice;
 use advice::AdviceProvider;
 
 mod chiplets;
 use chiplets::Chiplets;
-
-mod chiplets_bus;
-use chiplets_bus::ChipletsBus;
 
 mod trace;
 pub use trace::ExecutionTrace;
@@ -86,8 +74,8 @@ pub struct RangeCheckTrace {
 
 pub struct ChipletsTrace {
     trace: [Vec<Felt>; CHIPLETS_WIDTH],
-    hasher_aux_builder: hasher::AuxTraceBuilder,
-    aux_builder: chiplets_bus::AuxTraceBuilder,
+    hasher_aux_builder: chiplets::HasherAuxTraceBuilder,
+    aux_builder: chiplets::AuxTraceBuilder,
 }
 
 // EXECUTOR
@@ -130,10 +118,7 @@ pub struct Process {
     decoder: Decoder,
     stack: Stack,
     range: RangeChecker,
-    hasher: Hasher,
-    bitwise: Bitwise,
-    memory: Memory,
-    chiplets_bus: ChipletsBus,
+    chiplets: Chiplets,
     advice: AdviceProvider,
 }
 
@@ -156,10 +141,7 @@ impl Process {
             decoder: Decoder::new(in_debug_mode),
             stack: Stack::new(&inputs, MIN_TRACE_LEN, in_debug_mode),
             range: RangeChecker::new(),
-            hasher: Hasher::default(),
-            bitwise: Bitwise::new(),
-            memory: Memory::new(),
-            chiplets_bus: ChipletsBus::default(),
+            chiplets: Chiplets::default(),
             advice: AdviceProvider::new(inputs),
         }
     }
@@ -358,11 +340,16 @@ impl Process {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
     pub fn get_memory_value(&self, addr: u64) -> Option<Word> {
-        self.memory.get_value(addr)
+        self.chiplets.get_mem_value(addr)
     }
 
     pub fn to_components(self) -> (System, Decoder, Stack, RangeChecker, Chiplets) {
-        let chiplets = Chiplets::new(self.hasher, self.bitwise, self.memory, self.chiplets_bus);
-        (self.system, self.decoder, self.stack, self.range, chiplets)
+        (
+            self.system,
+            self.decoder,
+            self.stack,
+            self.range,
+            self.chiplets,
+        )
     }
 }

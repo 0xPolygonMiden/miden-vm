@@ -1,10 +1,9 @@
 use super::{
-    chiplets_bus::AuxTraceBuilder as ChipletsAuxTraceBuilder,
+    chiplets::{AuxTraceBuilder as ChipletsAuxTraceBuilder, HasherAuxTraceBuilder},
     decoder::AuxTraceHints as DecoderAuxTraceHints,
-    hasher::AuxTraceBuilder as HasherAuxTraceBuilder,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
-    stack::AuxTraceBuilder as StackAuxTraceBuilder, Digest, Felt, FieldElement, Process,
-    StackTopState, Vec,
+    stack::AuxTraceBuilder as StackAuxTraceBuilder,
+    Digest, Felt, FieldElement, Process, StackTopState, Vec,
 };
 use vm_core::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},

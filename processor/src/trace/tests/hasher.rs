@@ -3,7 +3,7 @@ use super::{
     build_trace_from_ops_with_inputs, rand_array, Felt, LookupTableRow, Operation, ProgramInputs,
     Word, ONE, ZERO,
 };
-use crate::hasher::SiblingTableRow;
+use crate::chiplets::SiblingTableRow;
 use vm_core::{hasher::P1_COL_IDX, AdviceSet, FieldElement, StarkField, AUX_TRACE_RAND_ELEMENTS};
 
 // SIBLING TABLE TESTS

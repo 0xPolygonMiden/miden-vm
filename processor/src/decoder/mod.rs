@@ -43,7 +43,7 @@ impl Process {
         // row addr + 7.
         let child1_hash = block.first().hash().into();
         let child2_hash = block.second().hash().into();
-        let (addr, _result) = self.hasher.merge(child1_hash, child2_hash);
+        let (addr, _result) = self.chiplets.merge(child1_hash, child2_hash);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(block.hash(), _result.into());
@@ -75,7 +75,7 @@ impl Process {
         // row addr + 7.
         let child1_hash = block.on_true().hash().into();
         let child2_hash = block.on_false().hash().into();
-        let (addr, _result) = self.hasher.merge(child1_hash, child2_hash);
+        let (addr, _result) = self.chiplets.merge(child1_hash, child2_hash);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(block.hash(), _result.into());
@@ -109,7 +109,7 @@ impl Process {
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
         let body_hash = block.body().hash().into();
-        let (addr, _result) = self.hasher.merge(body_hash, [ZERO; 4]);
+        let (addr, _result) = self.chiplets.merge(body_hash, [ZERO; 4]);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(block.hash(), _result.into());
@@ -162,7 +162,7 @@ impl Process {
         // addr + (num_batches * 8) - 1.
         let op_batches = block.op_batches();
         let num_op_groups = get_span_op_group_count(op_batches);
-        let (addr, _result) = self.hasher.hash_span_block(op_batches, num_op_groups);
+        let (addr, _result) = self.chiplets.hash_span_block(op_batches, num_op_groups);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(block.hash(), _result.into());

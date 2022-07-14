@@ -1,6 +1,11 @@
-use super::{utils::range as create_range, CHIPLETS_OFFSET};
+use super::{
+    utils::range as create_range, Felt, FieldElement, Word, CHIPLETS_OFFSET,
+    HASHER_AUX_TRACE_OFFSET,
+};
 use core::ops::Range;
 
+pub mod bitwise;
+pub mod hasher;
 pub mod memory;
 
 // CONSTANTS

@@ -1,5 +1,7 @@
-use super::{Felt, FieldElement, Memory, MemoryLookup, StarkField, TraceFragment, ONE, ZERO};
-use crate::chiplets_bus::{ChipletsBus, ChipletsLookup, ChipletsLookupRow};
+use super::{
+    super::{ChipletsLookup, ChipletsLookupRow},
+    ChipletsBus, Felt, FieldElement, Memory, MemoryLookup, StarkField, TraceFragment, ONE, ZERO,
+};
 use vm_core::MEMORY_TRACE_WIDTH;
 
 #[test]

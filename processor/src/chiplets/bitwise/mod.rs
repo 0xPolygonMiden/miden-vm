@@ -1,4 +1,5 @@
-use super::{utils::get_trace_len, ExecutionError, Felt, StarkField, TraceFragment, Vec};
+use super::{ExecutionError, Felt, StarkField, TraceFragment, Vec};
+use crate::utils::get_trace_len;
 use vm_core::bitwise::{BITWISE_AND, BITWISE_OR, BITWISE_XOR, NUM_SELECTORS, TRACE_WIDTH};
 
 #[cfg(test)]

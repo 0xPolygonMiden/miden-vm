@@ -1,7 +1,5 @@
-use super::{
-    super::trace::{AuxColumnBuilder, LookupTableRow},
-    Felt, FieldElement, StarkField, Vec, Word,
-};
+use super::{Felt, FieldElement, StarkField, Vec, Word};
+use crate::trace::{AuxColumnBuilder, LookupTableRow};
 use winterfell::Matrix;
 
 // AUXILIARY TRACE BUILDER
