@@ -4,10 +4,10 @@ use super::{
     ZERO,
 };
 use vm_core::{
-    aux_table::memory::{
+    chiplets::memory::{
         ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, NUM_ELEMENTS, U_COL_RANGE, V_COL_RANGE,
     },
-    AUX_TABLE_AUX_TRACE_OFFSET, AUX_TRACE_RAND_ELEMENTS,
+    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET,
 };
 
 /// Tests the generation of the `b_aux` bus column when only memory lookups are included. It ensures
@@ -39,7 +39,7 @@ fn b_aux_trace_mem() {
 
     let rand_elements = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &rand_elements).unwrap();
-    let b_aux = aux_columns.get_column(AUX_TABLE_AUX_TRACE_OFFSET);
+    let b_aux = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);
 
     assert_eq!(trace.length(), b_aux.len());
     assert_eq!(ONE, b_aux[0]);
@@ -51,7 +51,7 @@ fn b_aux_trace_mem() {
     let mut expected = value.inv();
     assert_eq!(expected, b_aux[2]);
 
-    // Nothing changes after user operations that don't make requests to the Auxiliary Table.
+    // Nothing changes after user operations that don't make requests to the Chiplets.
     for row in 3..7 {
         assert_eq!(expected, b_aux[row]);
     }
@@ -65,7 +65,7 @@ fn b_aux_trace_mem() {
     // Nothing changes in row 8.
     assert_eq!(expected, b_aux[8]);
 
-    // Memory responses will be provided during the memory segment of the Auxiliary Table trace,
+    // Memory responses will be provided during the memory segment of the Chiplets trace,
     // which starts after the hash for the span block at row 8. There will be 4 rows, corresponding
     // to the four Memory operations.
 

@@ -1,8 +1,8 @@
 use super::{Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec};
 use crate::utils::{are_equal, binary_not, is_binary};
 use vm_core::{
-    aux_table::{BITWISE_TRACE_OFFSET, HASHER_TRACE_OFFSET},
-    AUX_TABLE_OFFSET,
+    chiplets::{BITWISE_TRACE_OFFSET, HASHER_TRACE_OFFSET},
+    CHIPLETS_OFFSET,
 };
 
 mod bitwise;
@@ -13,13 +13,13 @@ pub use memory::MemoryFrameExt;
 // CONSTANTS
 // ================================================================================================
 
-/// The number of boundary constraints required by the Auxiliary Table
+/// The number of boundary constraints required by the Chiplets module.
 pub const NUM_ASSERTIONS: usize = hasher::NUM_ASSERTIONS;
-/// The number of constraints on the management of the Auxiliary Table. This does not include
-/// constraints for the co-processors.
+/// The number of constraints on the management of the Chiplets module. This does not include
+/// constraints for the individual chiplet components.
 pub const NUM_CONSTRAINTS: usize = 6;
-/// The degrees of constraints on the management of the Auxiliary Table. This does not include
-/// constraint degrees for the co-processors
+/// The degrees of constraints on the management of the Chiplets module. This does not include
+/// constraint degrees for the individual chiplet components.
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     2, 3, 4, // Selector flags must be binary.
     2, 3, 4, // Selector flags can only change from 0 -> 1.
@@ -28,17 +28,17 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
 // PERIODIC COLUMNS
 // ================================================================================================
 
-/// Returns the set of periodic columns required by the co-processors in the Auxiliary Table.
+/// Returns the set of periodic columns required by chiplets in the Chiplets module.
 pub fn get_periodic_column_values() -> Vec<Vec<Felt>> {
     let mut result = hasher::get_periodic_column_values();
     result.append(&mut bitwise::get_periodic_column_values());
     result
 }
 
-// AUXILIARY TABLE TRANSITION CONSTRAINTS
+// CHIPLETS TRANSITION CONSTRAINTS
 // ================================================================================================
 
-/// Builds the transition constraint degrees for the auxiliary table and all of its co-processors.
+/// Builds the transition constraint degrees for the chiplets module and all chiplet components.
 pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
     let mut degrees: Vec<TransitionConstraintDegree> = CONSTRAINT_DEGREES
         .iter()
@@ -54,8 +54,7 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
     degrees
 }
 
-/// Returns the number of transition constraints for the auxiliary table and all of its
-/// co-processors.
+/// Returns the number of transition constraints for the chiplets.
 pub fn get_transition_constraint_count() -> usize {
     NUM_CONSTRAINTS
         + hasher::get_transition_constraint_count()
@@ -63,18 +62,18 @@ pub fn get_transition_constraint_count() -> usize {
         + memory::get_transition_constraint_count()
 }
 
-/// Returns the boundary assertions for the auxiliary table and all of its co-processors at the first step.
+/// Returns the boundary assertions for the chiplets at the first step.
 pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>) {
     hasher::get_assertions_first_step(result);
 }
 
-/// Enforces constraints for the auxiliary table and all of its co-processors.
+/// Enforces constraints for the chiplets module and all chiplet components.
 pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
     frame: &EvaluationFrame<E>,
     periodic_values: &[E],
     result: &mut [E],
 ) {
-    // auxiliary table transition constraints
+    // chiplets transition constraints
     enforce_selectors(frame, result);
     let mut constraint_offset = NUM_CONSTRAINTS;
 
@@ -108,12 +107,12 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
 // TRANSITION CONSTRAINT HELPERS
 // ================================================================================================
 
-/// Constraint evaluation function to enforce that the Auxiliary Table selector columns must be
+/// Constraint evaluation function to enforce that the Chiplets module's selector columns must be
 /// binary during the portion of the trace when they're being used as selectors.
 fn enforce_selectors<E: FieldElement>(frame: &EvaluationFrame<E>, result: &mut [E]) {
     // --- Selector flags must be binary ----------------------------------------------------------
 
-    // Selector flag s0 must be binary for the entire table.
+    // Selector flag s0 must be binary for the entire trace.
     result[0] = is_binary(frame.s(0));
 
     // When s0 is set, selector s1 is binary.
@@ -134,11 +133,11 @@ fn enforce_selectors<E: FieldElement>(frame: &EvaluationFrame<E>, result: &mut [
     result[5] = frame.s(0) * frame.s(1) * frame.s(2) * are_equal(frame.s(2), frame.s_next(2));
 }
 
-// AUXILIARY TABLE FRAME EXTENSION TRAIT
+// CHIPLETS FRAME EXTENSION TRAIT
 // ================================================================================================
 
 /// Trait to allow easy access to column values and intermediate variables used in constraint
-/// calculations for the Auxiliary Table and its Hasher, Bitwise, and Memory co-processors.
+/// calculations for the Chiplets module and its Hasher, Bitwise, and Memory chiplets.
 trait EvaluationFrameExt<E: FieldElement> {
     // --- Column accessors -----------------------------------------------------------------------
 
@@ -152,13 +151,13 @@ trait EvaluationFrameExt<E: FieldElement> {
 
     // --- Co-processor selector flags ------------------------------------------------------------
 
-    /// Flag to indicate whether the frame is in the hasher portion of the Auxiliary Table trace.
+    /// Flag to indicate whether the frame is in the hasher portion of the Chiplets trace.
     fn hasher_flag(&self) -> E;
 
-    /// Flag to indicate whether the frame is in the bitwise portion of the Auxiliary Table trace.
+    /// Flag to indicate whether the frame is in the bitwise portion of the Chiplets trace.
     fn bitwise_flag(&self) -> E;
 
-    /// Flag to indicate whether the frame is in the memory portion of the Auxiliary Table trace.
+    /// Flag to indicate whether the frame is in the memory portion of the Chiplets trace.
     /// When `include_last_row` is true, the memory flag is true for every row where the memory
     /// selectors are set. When false, the last row is excluded. When this flag is used for
     /// transition constraints with `include_last_row = false`, they will not be applied to the
@@ -170,11 +169,11 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Column accessors -----------------------------------------------------------------------
 
     fn s(&self, idx: usize) -> E {
-        self.current()[AUX_TABLE_OFFSET + idx]
+        self.current()[CHIPLETS_OFFSET + idx]
     }
 
     fn s_next(&self, idx: usize) -> E {
-        self.next()[AUX_TABLE_OFFSET + idx]
+        self.next()[CHIPLETS_OFFSET + idx]
     }
 
     // --- Co-processor selector flags ------------------------------------------------------------
@@ -199,16 +198,16 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 
 // EXTERNAL ACCESSORS
 // ================================================================================================
-/// Trait to allow other processors to easily access the auxiliary table values they need for
-/// constraint calculations.
-pub trait AuxTableFrameExt<E: FieldElement> {
-    /// Flag to indicate whether the frame is in the memory portion of the Auxiliary Table trace.
-    fn aux_table_memory_flag(&self) -> E;
+/// Trait to allow other processors to easily access the chiplet values they need for constraint
+/// calculations.
+pub trait ChipletsFrameExt<E: FieldElement> {
+    /// Flag to indicate whether the frame is in the memory chiplet.
+    fn chiplets_memory_flag(&self) -> E;
 }
 
-impl<E: FieldElement> AuxTableFrameExt<E> for &EvaluationFrame<E> {
+impl<E: FieldElement> ChipletsFrameExt<E> for &EvaluationFrame<E> {
     #[inline(always)]
-    fn aux_table_memory_flag(&self) -> E {
+    fn chiplets_memory_flag(&self) -> E {
         self.memory_flag(true)
     }
 }

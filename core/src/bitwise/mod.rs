@@ -9,7 +9,7 @@ pub const NUM_SELECTORS: usize = 2;
 /// Number of columns needed to record an execution trace of the bitwise helper.
 pub const TRACE_WIDTH: usize = NUM_SELECTORS + 12;
 
-/// The number of rows required to compute an operation in the Bitwise co-processor.
+/// The number of rows required to compute an operation in the Bitwise chiplet.
 pub const OP_CYCLE_LEN: usize = 8;
 
 // --- OPERATION SELECTORS ------------------------------------------------------------------------

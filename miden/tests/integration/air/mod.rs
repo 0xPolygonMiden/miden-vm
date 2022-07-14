@@ -7,8 +7,8 @@ mod memory;
 mod range;
 
 #[test]
-fn aux_table() {
-    // Test a script that uses all of the co-processors in the auxiliary table.
+fn chiplets() {
+    // Test a script that uses all of the chiplets.
     let script = "begin
         rpperm                  # hasher operation
         push.5 push.10 u32or    # bitwise operation

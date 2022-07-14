@@ -6,8 +6,8 @@ extern crate alloc;
 
 use core::ops::Range;
 
-pub mod aux_table;
 pub mod bitwise;
+pub mod chiplets;
 pub mod decoder;
 pub mod errors;
 pub mod hasher;
@@ -56,7 +56,7 @@ pub const NUM_STACK_HELPER_COLS: usize = 3;
 // MAIN TRACE LAYOUT
 // ------------------------------------------------------------------------------------------------
 
-//      system          decoder           stack      range checks    auxiliary table
+//      system          decoder           stack      range checks    chiplets
 //    (2 columns)     (22 columns)    (19 columns)    (4 columns)     (18 columns)
 // ├───────────────┴───────────────┴───────────────┴───────────────┴─────────────────┤
 
@@ -83,20 +83,20 @@ pub const RANGE_CHECK_TRACE_WIDTH: usize = 4;
 pub const RANGE_CHECK_TRACE_RANGE: Range<usize> =
     range(RANGE_CHECK_TRACE_OFFSET, RANGE_CHECK_TRACE_WIDTH);
 
-// Auxiliary table trace
-pub const AUX_TABLE_OFFSET: usize = RANGE_CHECK_TRACE_OFFSET + RANGE_CHECK_TRACE_WIDTH;
-pub const AUX_TABLE_WIDTH: usize = 18;
-pub const AUX_TABLE_RANGE: Range<usize> = range(AUX_TABLE_OFFSET, AUX_TABLE_WIDTH);
+// Chiplets trace
+pub const CHIPLETS_OFFSET: usize = RANGE_CHECK_TRACE_OFFSET + RANGE_CHECK_TRACE_WIDTH;
+pub const CHIPLETS_WIDTH: usize = 18;
+pub const CHIPLETS_RANGE: Range<usize> = range(CHIPLETS_OFFSET, CHIPLETS_WIDTH);
 
-// Auxiliary table components
+// Chiplets components
 pub const MEMORY_TRACE_WIDTH: usize = 14;
 
-pub const TRACE_WIDTH: usize = AUX_TABLE_OFFSET + AUX_TABLE_WIDTH;
+pub const TRACE_WIDTH: usize = CHIPLETS_OFFSET + CHIPLETS_WIDTH;
 
 // AUXILIARY COLUMNS LAYOUT
 // ------------------------------------------------------------------------------------------------
 
-//      decoder         stack       range checks      hasher      auxiliary table
+//      decoder         stack       range checks      hasher      chiplets
 //    (3 columns)     (1 column)     (3 columns)    (1 column)       (1 column)
 // ├───────────────┴──────────────┴──────────────┴───────────────┴───────────────┤
 
@@ -124,13 +124,13 @@ pub const HASHER_AUX_TRACE_WIDTH: usize = 1;
 pub const HASHER_AUX_TRACE_RANGE: Range<usize> =
     range(HASHER_AUX_TRACE_OFFSET, HASHER_AUX_TRACE_WIDTH);
 
-// Auxiliary Table auxiliary columns
-pub const AUX_TABLE_AUX_TRACE_OFFSET: usize = HASHER_AUX_TRACE_RANGE.end;
-pub const AUX_TABLE_AUX_TRACE_WIDTH: usize = 1;
-pub const AUX_TABLE_AUX_TRACE_RANGE: Range<usize> =
-    range(AUX_TABLE_AUX_TRACE_OFFSET, AUX_TABLE_AUX_TRACE_WIDTH);
+// Chiplets auxiliary columns
+pub const CHIPLETS_AUX_TRACE_OFFSET: usize = HASHER_AUX_TRACE_RANGE.end;
+pub const CHIPLETS_AUX_TRACE_WIDTH: usize = 1;
+pub const CHIPLETS_AUX_TRACE_RANGE: Range<usize> =
+    range(CHIPLETS_AUX_TRACE_OFFSET, CHIPLETS_AUX_TRACE_WIDTH);
 
-pub const AUX_TRACE_WIDTH: usize = AUX_TABLE_AUX_TRACE_RANGE.end;
+pub const AUX_TRACE_WIDTH: usize = CHIPLETS_AUX_TRACE_RANGE.end;
 
 /// Number of random elements available to the prover after the commitment to the main trace
 /// segment.

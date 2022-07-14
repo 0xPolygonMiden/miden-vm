@@ -16,10 +16,10 @@ mod tests;
 
 // CONSTANTs
 // ================================================================================================
-/// The number of boundary constraints required by the hash co-processor.
+/// The number of boundary constraints required by the hash chiplet.
 pub const NUM_ASSERTIONS: usize = 1;
 
-/// The number of constraints on the management of the hash co-processor.
+/// The number of constraints on the management of the hash chiplet.
 pub const NUM_CONSTRAINTS: usize = 31;
 
 /// The number of periodic columns which are used as selectors to specify a particular row or rows
@@ -61,7 +61,7 @@ pub fn get_periodic_column_values() -> Vec<Vec<Felt>> {
 // BOUNDARY CONSTRAINTS
 // ================================================================================================
 
-/// Returns the boundary assertions for the hash co-processor at the first step.
+/// Returns the boundary assertions for the hash chiplet at the first step.
 pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>) {
     result.push(Assertion::single(ROW_COL_IDX, 0, Felt::ONE));
 }
@@ -69,7 +69,7 @@ pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>) {
 // HASHER TRANSITION CONSTRAINTS
 // ================================================================================================
 
-/// Builds the transition constraint degrees for the hash co-processor.
+/// Builds the transition constraint degrees for the hash chiplet.
 pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
     let degrees: [TransitionConstraintDegree; NUM_CONSTRAINTS] = [
         // Enforce that the row address increases by 1 at each step except the last.
@@ -117,15 +117,15 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
     degrees.into()
 }
 
-/// Returns the number of transition constraints for the hash co-processor.
+/// Returns the number of transition constraints for the hash chiplet.
 pub fn get_transition_constraint_count() -> usize {
     NUM_CONSTRAINTS
 }
 
-/// Enforces constraints for the hash co-processor.
+/// Enforces constraints for the hash chiplet.
 ///
-/// - The `processor_flag` indicates whether the current row is in the section of the auxiliary
-///   table that contains this processor's trace.
+/// - The `processor_flag` indicates whether the current row is in the section of the chiplets
+///   module that contains this processor's trace.
 /// - The `transition_flag` indicates whether or not the constraints should be enforced for this
 ///   transition. It is expected to be false when the next row will be the last row of this
 ///   processor's execution trace.
@@ -369,7 +369,7 @@ fn apply_inv_mds<E: FieldElement + From<Felt>>(state: &mut [E; STATE_WIDTH]) {
 // ================================================================================================
 
 /// Trait to allow easy access to column values and intermediate variables used in constraint
-/// calculations for the hash co-processor.
+/// calculations for the hash chiplet.
 trait EvaluationFrameExt<E: FieldElement> {
     // --- Column accessors -----------------------------------------------------------------------
 

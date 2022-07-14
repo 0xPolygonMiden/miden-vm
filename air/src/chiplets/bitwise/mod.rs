@@ -17,7 +17,7 @@ pub mod tests;
 // CONSTANTS
 // ================================================================================================
 
-/// The number of transition constraints on the bitwise co-processor.
+/// The number of transition constraints on the bitwise chiplet.
 pub const NUM_CONSTRAINTS: usize = 19;
 
 /// The range of the selector columns in the trace.
@@ -38,7 +38,7 @@ const OUTPUT_COL_IDX: usize = OUTPUT_COL_PREV_IDX + 1;
 // PERIODIC COLUMNS
 // ================================================================================================
 
-/// Returns the set of periodic columns required by the Bitwise co-processor.
+/// Returns the set of periodic columns required by the Bitwise chiplet.
 ///
 /// The columns consist of:
 /// - k0 column, which has a repeating pattern of a single one followed by 7 zeros.
@@ -50,13 +50,12 @@ pub fn get_periodic_column_values() -> Vec<Vec<Felt>> {
 // BITWISE TRANSITION CONSTRAINTS
 // ================================================================================================
 
-/// Builds the transition constraint degrees for the bitwise co-processor.
+/// Builds the transition constraint degrees for the bitwise chiplet.
 pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
-    // The degrees of constraints on the bitwise co-processor. The degree of all bitwise
-    // constraints is increased by 4 due to the co-processor selector flag from the auxiliary table
-    // (degree 2) and the internal selector flag specifying the bitwise operation (degree 2).
-    // The degree of internal selectors is increased by 2 due to co-processor selector flag from the
-    // Auxiliary Table.
+    // The degrees of constraints on the bitwise chiplet. The degree of all bitwise
+    // constraints is increased by 4 due to the chiplet selector flag (degree 2) and the internal
+    // selector flag specifying the bitwise operation (degree 2). The degree of internal selectors
+    // is also increased by 2 due to the selector flag from the Chiplets.
     let degrees: [TransitionConstraintDegree; NUM_CONSTRAINTS] = [
         // Internal Selector flag should be binary.
         TransitionConstraintDegree::new(4),
@@ -88,12 +87,12 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
     degrees.into()
 }
 
-/// Returns the number of transition constraints for the bitwise co-processor.
+/// Returns the number of transition constraints for the bitwise chiplet.
 pub fn get_transition_constraint_count() -> usize {
     NUM_CONSTRAINTS
 }
 
-/// Enforces constraints for the bitwise co-processor, which includes the constraints for the
+/// Enforces constraints for the bitwise chiplet, which includes the constraints for the
 /// internal selectors & bitwise operations.
 pub fn enforce_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,

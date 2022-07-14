@@ -1,5 +1,5 @@
 use super::{Felt, FieldElement, Memory, MemoryLookup, StarkField, TraceFragment, ONE, ZERO};
-use crate::aux_table_bus::{AuxTableBus, AuxTableLookup, AuxTableLookupRow};
+use crate::chiplets_bus::{ChipletsBus, ChipletsLookup, ChipletsLookupRow};
 use vm_core::MEMORY_TRACE_WIDTH;
 
 #[test]
@@ -44,25 +44,25 @@ fn mem_read() {
     assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
 
-    // check generated trace and memory data provided to the AuxTableBus; rows should be sorted by
+    // check generated trace and memory data provided to the ChipletsBus; rows should be sorted by
     // address and then clock cycle
-    let (trace, aux_table_bus) = build_trace(mem, 4);
+    let (trace, chiplets_bus) = build_trace(mem, 4);
 
     // address 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
     let memory_access = MemoryLookup::new(addr0, 1, [ZERO; 4], [ZERO; 4]);
-    prev_row = verify_memory_access(&trace, &aux_table_bus, 0, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 0, &memory_access, prev_row);
 
     let memory_access = MemoryLookup::new(addr0, 3, [ZERO; 4], [ZERO; 4]);
-    prev_row = verify_memory_access(&trace, &aux_table_bus, 1, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 1, &memory_access, prev_row);
 
     // address 2
     let memory_access = MemoryLookup::new(addr2, 4, [ZERO; 4], [ZERO; 4]);
-    prev_row = verify_memory_access(&trace, &aux_table_bus, 2, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 2, &memory_access, prev_row);
 
     // address 3
     let memory_access = MemoryLookup::new(addr3, 2, [ZERO; 4], [ZERO; 4]);
-    verify_memory_access(&trace, &aux_table_bus, 3, &memory_access, prev_row);
+    verify_memory_access(&trace, &chiplets_bus, 3, &memory_access, prev_row);
 }
 
 #[test]
@@ -104,25 +104,25 @@ fn mem_write() {
     assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
 
-    // check generated trace and memory data provided to the AuxTableBus; rows should be sorted by
+    // check generated trace and memory data provided to the ChipletsBus; rows should be sorted by
     // address and then clock cycle
-    let (trace, aux_table_bus) = build_trace(mem, 4);
+    let (trace, chiplets_bus) = build_trace(mem, 4);
 
     // address 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
     let memory_access = MemoryLookup::new(addr0, 1, [ZERO; 4], value1);
-    prev_row = verify_memory_access(&trace, &aux_table_bus, 0, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 0, &memory_access, prev_row);
 
     let memory_access = MemoryLookup::new(addr0, 4, value1, value9);
-    prev_row = verify_memory_access(&trace, &aux_table_bus, 1, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 1, &memory_access, prev_row);
 
     // address 1
     let memory_access = MemoryLookup::new(addr1, 3, [ZERO; 4], value7);
-    prev_row = verify_memory_access(&trace, &aux_table_bus, 2, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 2, &memory_access, prev_row);
 
     // address 2
     let memory_access = MemoryLookup::new(addr2, 2, [ZERO; 4], value5);
-    verify_memory_access(&trace, &aux_table_bus, 3, &memory_access, prev_row);
+    verify_memory_access(&trace, &chiplets_bus, 3, &memory_access, prev_row);
 }
 
 #[test]
@@ -171,39 +171,39 @@ fn mem_write_read() {
     mem.advance_clock();
     let _ = mem.read(addr5);
 
-    // check generated trace and memory data provided to the AuxTableBus; rows should be sorted by
+    // check generated trace and memory data provided to the ChipletsBus; rows should be sorted by
     // address and then clock cycle
-    let (trace, aux_table_bus) = build_trace(mem, 9);
+    let (trace, chiplets_bus) = build_trace(mem, 9);
 
     // address 2
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
     let memory_access = MemoryLookup::new(addr2, 2, [ZERO; 4], value4);
-    prev_row = verify_memory_access(&trace, &aux_table_bus, 0, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 0, &memory_access, prev_row);
 
     let memory_access = MemoryLookup::new(addr2, 5, value4, value4);
-    prev_row = verify_memory_access(&trace, &aux_table_bus, 1, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 1, &memory_access, prev_row);
 
     let memory_access = MemoryLookup::new(addr2, 6, value4, value7);
-    prev_row = verify_memory_access(&trace, &aux_table_bus, 2, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 2, &memory_access, prev_row);
 
     let memory_access = MemoryLookup::new(addr2, 8, value7, value7);
-    prev_row = verify_memory_access(&trace, &aux_table_bus, 3, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 3, &memory_access, prev_row);
 
     // address 5
     let memory_access = MemoryLookup::new(addr5, 1, [ZERO; 4], value1);
-    prev_row = verify_memory_access(&trace, &aux_table_bus, 4, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 4, &memory_access, prev_row);
 
     let memory_access = MemoryLookup::new(addr5, 3, value1, value1);
-    prev_row = verify_memory_access(&trace, &aux_table_bus, 5, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 5, &memory_access, prev_row);
 
     let memory_access = MemoryLookup::new(addr5, 4, value1, value2);
-    prev_row = verify_memory_access(&trace, &aux_table_bus, 6, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 6, &memory_access, prev_row);
 
     let memory_access = MemoryLookup::new(addr5, 7, value2, value2);
-    prev_row = verify_memory_access(&trace, &aux_table_bus, 7, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 7, &memory_access, prev_row);
 
     let memory_access = MemoryLookup::new(addr5, 9, value2, value2);
-    verify_memory_access(&trace, &aux_table_bus, 8, &memory_access, prev_row);
+    verify_memory_access(&trace, &chiplets_bus, 8, &memory_access, prev_row);
 }
 
 #[test]
@@ -246,15 +246,15 @@ fn mem_get_values_at() {
 // ================================================================================================
 
 /// Builds a trace of the specified length and fills it with data from the provided Memory instance.
-fn build_trace(mem: Memory, num_rows: usize) -> (Vec<Vec<Felt>>, AuxTableBus) {
-    let mut aux_table_bus = AuxTableBus::default();
+fn build_trace(mem: Memory, num_rows: usize) -> (Vec<Vec<Felt>>, ChipletsBus) {
+    let mut chiplets_bus = ChipletsBus::default();
     let mut trace = (0..MEMORY_TRACE_WIDTH)
         .map(|_| vec![Felt::ZERO; num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    mem.fill_trace(&mut fragment, 0, &mut aux_table_bus);
+    mem.fill_trace(&mut fragment, 0, &mut chiplets_bus);
 
-    (trace, aux_table_bus)
+    (trace, chiplets_bus)
 }
 
 fn read_trace_row(trace: &[Vec<Felt>], step: usize) -> [Felt; MEMORY_TRACE_WIDTH] {
@@ -310,17 +310,17 @@ fn build_trace_row(
 
 fn verify_memory_access(
     trace: &[Vec<Felt>],
-    aux_table_bus: &AuxTableBus,
+    chiplets_bus: &ChipletsBus,
     row: usize,
     memory_access: &MemoryLookup,
     prev_row: [Felt; MEMORY_TRACE_WIDTH],
 ) -> [Felt; MEMORY_TRACE_WIDTH] {
     let expected_row = build_trace_row(memory_access, prev_row);
-    let expected_lookup = AuxTableLookupRow::Memory(*memory_access);
-    let expected_hint = AuxTableLookup::Response(row);
+    let expected_lookup = ChipletsLookupRow::Memory(*memory_access);
+    let expected_hint = ChipletsLookup::Response(row);
 
-    let lookup = aux_table_bus.get_response_row(row);
-    let hint = aux_table_bus.get_lookup_hint(row).unwrap();
+    let lookup = chiplets_bus.get_response_row(row);
+    let hint = chiplets_bus.get_lookup_hint(row).unwrap();
 
     assert_eq!(expected_row, read_trace_row(trace, row));
     assert_eq!(expected_lookup, lookup);

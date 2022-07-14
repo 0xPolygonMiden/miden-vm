@@ -4,30 +4,29 @@ use crate::{memory::MemoryLookup, trace::LookupTableRow};
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
 
-// AUXILIARY TABLE BUS
+// CHIPLETS BUS
 // ================================================================================================
 
-/// The Auxiliary Table Bus tracks data requested from or provided by co-processors in the
-/// Auxiliary Table. It processes lookup requests from the stack and response data from the
-/// co-processors in the Auxiliary Table.
+/// The Chiplets Bus tracks data requested from or provided by chiplets in the Chiplets module. It
+/// processes lookup requests from the stack and response data from the chiplets.
 ///
-/// For correct execution, the lookup data used by the stack for each co-processor must be a
-/// permutation of the lookups executed by that co-processor so that they cancel out. This is
-/// ensured by the `b_aux` bus column. When the `b_aux` column is built, requests from the stack
-/// must be divided out and lookup results provided by the co-processors must be multiplied in. To
-/// ensure that all lookups are attributed to the correct co-processor and operation, a unique
-/// co-processor operation selector must be included in the lookup row value when it is computed.
+/// For correct execution, the lookup data used by the stack for each chiplet must be a permutation
+/// of the lookups executed by that chiplet so that they cancel out. This is ensured by the `b_aux`
+/// bus column. When the `b_aux` column is built, requests from the stack must be divided out and
+/// lookup results provided by the chiplets must be multiplied in. To ensure that all lookups are
+/// attributed to the correct chiplet and operation, a unique chiplet operation selector must be
+/// included in the lookup row value when it is computed.
 ///
-/// TODO: document the AuxTableBus components and their types.
+/// TODO: document the ChipletsBus components and their types.
 
 #[derive(Default)]
-pub struct AuxTableBus {
-    lookup_hints: BTreeMap<usize, AuxTableLookup>,
-    request_rows: Vec<AuxTableLookupRow>,
-    response_rows: Vec<AuxTableLookupRow>,
+pub struct ChipletsBus {
+    lookup_hints: BTreeMap<usize, ChipletsLookup>,
+    request_rows: Vec<ChipletsLookupRow>,
+    response_rows: Vec<ChipletsLookupRow>,
 }
 
-impl AuxTableBus {
+impl ChipletsBus {
     // LOOKUP MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -41,16 +40,16 @@ impl AuxTableBus {
         old_word: Word,
         new_word: Word,
     ) {
-        // all requests are sent from the stack before responses are provided (during AuxTable trace
+        // all requests are sent from the stack before responses are provided (during Chiplets trace
         // finalization). requests are guaranteed not to share cycles with other requests, since
         // only one operation will be executed at a time.
         let request_idx = self.request_rows.len();
         self.lookup_hints
-            .insert(clk, AuxTableLookup::Request(request_idx));
+            .insert(clk, ChipletsLookup::Request(request_idx));
 
         let memory_lookup = MemoryLookup::new(addr, clk as u64, old_word, new_word);
         self.request_rows
-            .push(AuxTableLookupRow::Memory(memory_lookup));
+            .push(ChipletsLookupRow::Memory(memory_lookup));
     }
 
     /// Provides the data of a memory read or write contained in the [Memory] table.  When
@@ -71,22 +70,22 @@ impl AuxTableBus {
         self.lookup_hints
             .entry(response_cycle)
             .and_modify(|lookup| {
-                if let AuxTableLookup::Request(request_idx) = *lookup {
-                    *lookup = AuxTableLookup::RequestAndResponse((request_idx, response_idx));
+                if let ChipletsLookup::Request(request_idx) = *lookup {
+                    *lookup = ChipletsLookup::RequestAndResponse((request_idx, response_idx));
                 }
             })
-            .or_insert_with(|| AuxTableLookup::Response(response_idx));
+            .or_insert_with(|| ChipletsLookup::Response(response_idx));
 
         let memory_lookup = MemoryLookup::new(addr, clk.as_int(), old_word, new_word);
         self.response_rows
-            .push(AuxTableLookupRow::Memory(memory_lookup));
+            .push(ChipletsLookupRow::Memory(memory_lookup));
     }
 
     // AUX TRACE BUILDER GENERATION
     // --------------------------------------------------------------------------------------------
 
-    /// Converts this [AuxTableBus] into an auxiliary trace builder which can be used to construct
-    /// the auxiliary trace column describing the [AuxTable] lookups at every cycle.
+    /// Converts this [ChipletsBus] into an auxiliary trace builder which can be used to construct
+    /// the auxiliary trace column describing the [Chiplets] lookups at every cycle.
     pub fn into_aux_builder(self) -> AuxTraceBuilder {
         let lookup_hints = self.lookup_hints.into_iter().collect();
 
@@ -102,22 +101,22 @@ impl AuxTableBus {
 
     /// Returns an option with the lookup hint for the specified cycle.
     #[cfg(test)]
-    pub(super) fn get_lookup_hint(&self, cycle: usize) -> Option<&AuxTableLookup> {
+    pub(super) fn get_lookup_hint(&self, cycle: usize) -> Option<&ChipletsLookup> {
         self.lookup_hints.get(&cycle)
     }
 
-    /// Returns the ith lookup response provided by the AuxTable co-processors.
+    /// Returns the ith lookup response provided by the Chiplets module.
     #[cfg(test)]
-    pub(super) fn get_response_row(&self, i: usize) -> AuxTableLookupRow {
+    pub(super) fn get_response_row(&self, i: usize) -> ChipletsLookupRow {
         self.response_rows[i]
     }
 }
 
-// AUXILIARY TABLE LOOKUPS
+// CHIPLETS LOOKUPS
 // ================================================================================================
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) enum AuxTableLookup {
+pub(super) enum ChipletsLookup {
     Request(usize),
     Response(usize),
     RequestAndResponse((usize, usize)),
@@ -125,18 +124,18 @@ pub(super) enum AuxTableLookup {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[allow(dead_code)]
-pub(super) enum AuxTableLookupRow {
+pub(super) enum ChipletsLookupRow {
     Hasher(HasherLookupRow),
     Bitwise(BitwiseLookupRow),
     Memory(MemoryLookup),
 }
 
-impl LookupTableRow for AuxTableLookupRow {
+impl LookupTableRow for ChipletsLookupRow {
     fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
         match self {
-            AuxTableLookupRow::Hasher(row) => row.to_value(alphas),
-            AuxTableLookupRow::Bitwise(row) => row.to_value(alphas),
-            AuxTableLookupRow::Memory(row) => row.to_value(alphas),
+            ChipletsLookupRow::Hasher(row) => row.to_value(alphas),
+            ChipletsLookupRow::Bitwise(row) => row.to_value(alphas),
+            ChipletsLookupRow::Memory(row) => row.to_value(alphas),
         }
     }
 }

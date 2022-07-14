@@ -1,6 +1,6 @@
 use super::{EvaluationFrame, FieldElement, Vec};
 use crate::utils::{binary_not, is_binary, EvaluationResult};
-use vm_core::aux_table::memory::{
+use vm_core::chiplets::memory::{
     ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, NUM_ELEMENTS,
     U_COL_RANGE, V_COL_RANGE,
 };
@@ -12,9 +12,9 @@ mod tests;
 // CONSTANTS
 // ================================================================================================
 
-/// The number of constraints on the management of the memory co-processor.
+/// The number of constraints on the management of the memory chiplet.
 pub const NUM_CONSTRAINTS: usize = 13;
-/// The degrees of constraints on the management of the memory co-processor.
+/// The degrees of constraints on the management of the memory chiplet.
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     7, 6, 9, 8, // Constrain the values in the d inverse column.
     8, // Enforce values in ctx, addr, clk transition correctly.
@@ -26,7 +26,7 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
 // MEMORY TRANSITION CONSTRAINTS
 // ================================================================================================
 
-/// Builds the transition constraint degrees for the memory co-processor.
+/// Builds the transition constraint degrees for the memory chiplet.
 pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
     CONSTRAINT_DEGREES
         .iter()
@@ -34,12 +34,12 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
         .collect()
 }
 
-/// Returns the number of transition constraints for the memory co-processor.
+/// Returns the number of transition constraints for the memory chiplet.
 pub fn get_transition_constraint_count() -> usize {
     NUM_CONSTRAINTS
 }
 
-/// Enforces constraints for the memory co-processor.
+/// Enforces constraints for the memory chiplet.
 pub fn enforce_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -132,7 +132,7 @@ fn enforce_values<E: FieldElement>(
 // ================================================================================================
 
 /// Trait to allow easy access to column values and intermediate variables used in constraint
-/// calculations for the Memory co-processor.
+/// calculations for the Memory chiplet.
 trait EvaluationFrameExt<E: FieldElement> {
     // --- Column accessors -----------------------------------------------------------------------
 

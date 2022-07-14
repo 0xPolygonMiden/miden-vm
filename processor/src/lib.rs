@@ -13,7 +13,7 @@ use vm_core::{
     },
     utils::collections::{BTreeMap, Vec},
     AdviceInjector, Decorator, DecoratorIterator, Felt, FieldElement, Operation, ProgramInputs,
-    StackTopState, StarkField, Word, AUX_TABLE_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH,
+    StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH,
     MIN_TRACE_LEN, NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
     SYS_TRACE_WIDTH, ZERO,
 };
@@ -46,11 +46,11 @@ use memory::Memory;
 mod advice;
 use advice::AdviceProvider;
 
-mod aux_table;
-use aux_table::AuxTable;
+mod chiplets;
+use chiplets::Chiplets;
 
-mod aux_table_bus;
-use aux_table_bus::AuxTableBus;
+mod chiplets_bus;
+use chiplets_bus::ChipletsBus;
 
 mod trace;
 pub use trace::ExecutionTrace;
@@ -84,10 +84,10 @@ pub struct RangeCheckTrace {
     aux_builder: range::AuxTraceBuilder,
 }
 
-pub struct AuxTableTrace {
-    trace: [Vec<Felt>; AUX_TABLE_WIDTH],
+pub struct ChipletsTrace {
+    trace: [Vec<Felt>; CHIPLETS_WIDTH],
     hasher_aux_builder: hasher::AuxTraceBuilder,
-    aux_builder: aux_table_bus::AuxTraceBuilder,
+    aux_builder: chiplets_bus::AuxTraceBuilder,
 }
 
 // EXECUTOR
@@ -133,7 +133,7 @@ pub struct Process {
     hasher: Hasher,
     bitwise: Bitwise,
     memory: Memory,
-    aux_table_bus: AuxTableBus,
+    chiplets_bus: ChipletsBus,
     advice: AdviceProvider,
 }
 
@@ -159,7 +159,7 @@ impl Process {
             hasher: Hasher::default(),
             bitwise: Bitwise::new(),
             memory: Memory::new(),
-            aux_table_bus: AuxTableBus::default(),
+            chiplets_bus: ChipletsBus::default(),
             advice: AdviceProvider::new(inputs),
         }
     }
@@ -361,8 +361,8 @@ impl Process {
         self.memory.get_value(addr)
     }
 
-    pub fn to_components(self) -> (System, Decoder, Stack, RangeChecker, AuxTable) {
-        let aux_table = AuxTable::new(self.hasher, self.bitwise, self.memory, self.aux_table_bus);
-        (self.system, self.decoder, self.stack, self.range, aux_table)
+    pub fn to_components(self) -> (System, Decoder, Stack, RangeChecker, Chiplets) {
+        let chiplets = Chiplets::new(self.hasher, self.bitwise, self.memory, self.chiplets_bus);
+        (self.system, self.decoder, self.stack, self.range, chiplets)
     }
 }

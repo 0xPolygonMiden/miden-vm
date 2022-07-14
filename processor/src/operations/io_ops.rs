@@ -41,8 +41,8 @@ impl Process {
         }
         self.stack.shift_left(5);
 
-        // send the memory read request to the aux table bus
-        self.aux_table_bus
+        // send the memory read request to the chiplets bus
+        self.chiplets_bus
             .request_memory_operation(addr, self.system.clk(), word, word);
 
         Ok(())
@@ -71,8 +71,8 @@ impl Process {
         self.decoder
             .set_user_op_helpers(Operation::MLoad, &word[1..]);
 
-        // send the memory read request to the aux table bus
-        self.aux_table_bus
+        // send the memory read request to the chiplets bus
+        self.chiplets_bus
             .request_memory_operation(addr, self.system.clk(), word, word);
 
         Ok(())
@@ -117,8 +117,8 @@ impl Process {
         self.decoder
             .set_user_op_helpers(Operation::MStoreW, &old_word);
 
-        // send the memory write request to the aux table bus
-        self.aux_table_bus
+        // send the memory write request to the chiplets bus
+        self.chiplets_bus
             .request_memory_operation(addr, self.system.clk(), old_word, word);
 
         Ok(())
@@ -159,8 +159,8 @@ impl Process {
         // update the stack state
         self.stack.shift_left(1);
 
-        // send the memory write request to the aux table bus
-        self.aux_table_bus
+        // send the memory write request to the chiplets bus
+        self.chiplets_bus
             .request_memory_operation(addr, self.system.clk(), old_word, word);
 
         Ok(())

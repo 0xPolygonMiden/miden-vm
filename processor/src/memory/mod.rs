@@ -1,5 +1,5 @@
 use crate::{
-    aux_table_bus::AuxTableBus,
+    chiplets_bus::ChipletsBus,
     range::RangeChecker,
     trace::LookupTableRow,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
@@ -191,7 +191,7 @@ impl Memory {
         self,
         trace: &mut TraceFragment,
         memory_start_row: usize,
-        aux_table_bus: &mut AuxTableBus,
+        chiplets_bus: &mut ChipletsBus,
     ) {
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
 
@@ -237,8 +237,8 @@ impl Memory {
                 // TODO: switch to batch inversion to improve efficiency.
                 trace.set(i, 13, delta.inv());
 
-                // provide the memory access data to the aux table bus.
-                aux_table_bus.provide_memory_operation(
+                // provide the memory access data to the chiplets bus.
+                chiplets_bus.provide_memory_operation(
                     addr,
                     clk,
                     prev_value,

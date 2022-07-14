@@ -2,7 +2,7 @@ use super::{
     EvaluationFrame, ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX,
     NUM_ELEMENTS, U_COL_RANGE, V_COL_RANGE,
 };
-use crate::{aux_table::memory, Felt, FieldElement};
+use crate::{chiplets::memory, Felt, FieldElement};
 use vm_core::TRACE_WIDTH;
 
 use rand_utils::rand_value;

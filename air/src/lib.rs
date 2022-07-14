@@ -14,7 +14,7 @@ use winter_air::{
     ProofOptions as WinterProofOptions, TraceInfo, TransitionConstraintDegree,
 };
 
-mod aux_table;
+mod chiplets;
 mod options;
 mod range;
 mod utils;
@@ -61,15 +61,15 @@ impl Air for ProcessorAir {
 
         let aux_degrees = range::get_aux_transition_constraint_degrees();
 
-        // --- auxiliary table of co-processors (hasher, bitwise, memory) -------------------------
-        let mut aux_table_degrees = aux_table::get_transition_constraint_degrees();
-        main_degrees.append(&mut aux_table_degrees);
+        // --- chiplets (hasher, bitwise, memory) -------------------------
+        let mut chiplets_degrees = chiplets::get_transition_constraint_degrees();
+        main_degrees.append(&mut chiplets_degrees);
 
         // Define the transition constraint ranges.
         let constraint_ranges = TransitionConstraintRange::new(
             1,
             range::get_transition_constraint_count(),
-            aux_table::get_transition_constraint_count(),
+            chiplets::get_transition_constraint_count(),
         );
 
         // Define the number of boundary constraints for the main execution trace segment.
@@ -78,7 +78,7 @@ impl Air for ProcessorAir {
             + pub_inputs.stack_inputs.len()
             + pub_inputs.stack_outputs.len()
             + range::NUM_ASSERTIONS
-            + aux_table::NUM_ASSERTIONS;
+            + chiplets::NUM_ASSERTIONS;
 
         // Define the number of boundary constraints for the auxiliary execution trace segment (used
         // for multiset checks).
@@ -109,7 +109,7 @@ impl Air for ProcessorAir {
 
     /// Returns a set of periodic columns for the ProcessorAir.
     fn get_periodic_column_values(&self) -> Vec<Vec<Felt>> {
-        aux_table::get_periodic_column_values()
+        chiplets::get_periodic_column_values()
     }
 
     // ASSERTIONS
@@ -134,8 +134,8 @@ impl Air for ProcessorAir {
         // Add initial assertions for the range checker.
         range::get_assertions_first_step(&mut result);
 
-        // Add initial assertions for the auxiliary table.
-        aux_table::get_assertions_first_step(&mut result);
+        // Add initial assertions for the chiplets.
+        chiplets::get_assertions_first_step(&mut result);
 
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.last_step();
@@ -193,11 +193,11 @@ impl Air for ProcessorAir {
             select_result_range!(result, self.constraint_ranges.range_checker),
         );
 
-        // --- auxiliary table of co-processors (hasher, bitwise, memory) -------------------------
-        aux_table::enforce_constraints::<E>(
+        // --- chiplets (hasher, bitwise, memory) -------------------------
+        chiplets::enforce_constraints::<E>(
             frame,
             periodic_values,
-            select_result_range!(result, self.constraint_ranges.aux_table),
+            select_result_range!(result, self.constraint_ranges.chiplets),
         );
     }
 
