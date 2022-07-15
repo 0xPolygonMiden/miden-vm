@@ -134,7 +134,7 @@ pub fn parse_inv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 /// we skip the check of verifying that the top element is less than 64 or not.
 ///
 /// VM cycles per mode:
-/// pow2: 43 cycles
+/// pow2: 44 cycles
 /// pow2.unsafe: 38 cycles
 pub fn parse_pow2(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     let unsafe_mode = match op.num_parts() {
@@ -398,15 +398,18 @@ pub fn parse_gte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 /// After these operations, the stack state will be: [2^a, ...].
 ///
 /// VM cycles per mode:
-/// safe: 43 cycles
+/// safe: 44 cycles
 /// unsafe: 38 cycles
 pub fn aggregate_power_2(span_ops: &mut Vec<Operation>, unsafe_mode: bool) {
     const MOST_SIGNIFICANT_BIT: u32 = 5;
 
     // `safe` Mode
     if !unsafe_mode {
-        // Checks if the top element of the stack is less than 64 or not.
+        // Checks if the top element of the stack is less than 64 or not. U32assert2 will
+        // ensure if the element to which we are raising 2 to is u32 or not before u32div.
+        // U32div operates on only u32 values.
         span_ops.push(Operation::Push(Felt::new(64)));
+        span_ops.push(Operation::U32assert2);
         span_ops.push(Operation::U32div);
         span_ops.push(Operation::Swap);
         span_ops.push(Operation::Eqz);

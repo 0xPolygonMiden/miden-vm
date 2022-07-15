@@ -432,7 +432,7 @@ pub fn parse_u32not(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32shl: 46 cycles
+/// - u32shl: 47 cycles
 /// - u32shl.b: 4 cycles
 /// - u32shl.unsafe: 39 cycles
 pub fn parse_u32shl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
@@ -477,7 +477,7 @@ pub fn parse_u32shl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// be shifted is asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32shr: 46 cycles
+/// - u32shr: 47 cycles
 /// - u32shr.b: 4 cycles
 /// - u32shr.unsafe: 44 cycles
 pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
@@ -531,7 +531,7 @@ pub fn parse_u32shr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// between 0-31 and the value to be shifted is asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32rotl: 46 cycles
+/// - u32rotl: 47 cycles
 /// - u32rotl.b: 4 cycles
 /// - u32rotl.unsafe: 40 cycles
 pub fn parse_u32rotl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
@@ -569,7 +569,7 @@ pub fn parse_u32rotl(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), As
 /// 0-31 and the value to be shifted is asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32rotr: 58 cycles
+/// - u32rotr: 59 cycles
 /// - u32rotr.b: 6 cycles
 /// - u32rotr.unsafe: 44 cycles
 pub fn parse_u32rotr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
