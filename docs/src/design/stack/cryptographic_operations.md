@@ -9,37 +9,48 @@ In this section we describe the AIR constraint for Miden VM cryptographic operat
 
 To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/aux_table/hasher.html). 
 
-Let's define a few intermediate variables to simplify constraint description:
+To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc..
 
 $$
-state_{pre} = \sum_{j=0}^{11}\alpha_{j+3} \cdot s_i
-$$
-
-$$
-state_{post} = \sum_{j=0}^{11}\alpha_{i+3} \cdot s_i'
-$$
-
-In the above, $state_{pre}$ and $state_{post}$ can be thought of as component of initial and final stack state value post the rescue prime permutation in the permutation check calculation.
-
-$$
-v_{input} = \left(\alpha_0 + \alpha_1 \cdot 3+ \alpha_2 \cdot i + state_{pre}\right)
+m_{linearhash} = 3\\
 $$
 
 $$
-v_{output} = \left(\alpha_0 + \alpha_1 \cdot 9 + \alpha_2 \cdot (i + 7) +  state_{post}\right)
+m_{returnstate} = 9\\
 $$
 
-Here, $v_{input}$ and $v_{output}$ can be think of as the component which are multiplied in the hasher co-processor to the $b_{aux}$ at the start and end of the operation during permutation check. 
+$$
+v_i = \sum_{j=0}^{11}\alpha_{j+3} \cdot s_i
+$$
 
-The prover will also need to provide a non-deterministic ‘helper’ for the lookup. The lookup in the table can be accomplished by including the following values into the lookup product:
+$$
+v_o = \sum_{j=0}^{11}\alpha_{i+3} \cdot s_i'
+$$
+
+$$
+v_{input} = \left(\alpha_0 + \alpha_1 \cdot m_{linearhash} + \alpha_2 \cdot r + v_i\right)
+$$
+
+$$
+v_{output} = \left(\alpha_0 + \alpha_1 \cdot m_{returnstate} + \alpha_2 \cdot (r + 7) +  v_o\right)
+$$
+
+In the above:
+
+- $r$ is the row address of the execution trace at which the rescue prime permutation started inside the hasher processor.
+- $s_0$..$s_{11}$ are the three words(group of four consecutive elements) in the hasher state.
+- $m$ is a _transition label_ which uniquely identifies each operation.
+- The $3$ & $9$ in the permutation check are the unique identifier of hasher `LINEAR_HASH` & `RETURN_STATE` operations which have been explained [here](../stack/unique_identifier.md#identifiers).
+- $v_{input}$ is a _common header_ which is a combination of unique identifier of `LINEAR_HASH` and row address of the table when the rescue prime permutation started.
+- $v_{output}$ is a _common header_ which is a combination of unique identifier of `RETURN_STATE` and row address of the execution trace when the rescue prime permutaton ends.
+- $v_i$, is the component of the first element of the path.
+- $v_o$, is the component of the output root from the hasher processor.
+
+Using the above values, we can describe constraints for updating column $b_{aux}'$ which is a running product column of auxiliary table as follows:
 
 > $$
 b_{aux}' \cdot v_{input} \cdot v_{output} = b_{aux} \text{ | degree } = 3
 $$
-
-where $b_{aux}$ is the running product column of auxiliary table, $i$ is the row address of the execution trace at which the rescue prime permutation started and $\alpha_0$, $\alpha_1$, $\alpha_2$ etc... are random values sent from the verifier to the prover for use in permutation checks. 
-
-The $3$ & $8$ in the permutation check is the unique identifier of hasher `LINEAR_HASH` & `RETURN_STATE` operation which has been explained [here](../stack/unique_identifier.md#identifiers).
 
 The `RPPERM` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of the above operation is $3$.
 
@@ -52,32 +63,49 @@ The `RPPERM` operation will not change the depth of the stack i.e. the stack doe
 
 To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/aux_table/hasher.html). 
 
-Let's define a few intermediate variables to simplify constraint description:
+To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc..
 
 $$
-state_{pre} = \sum_{j=0}^{11}\alpha_{j+3} \cdot s_i
-$$
-
-$$
-state_{post} = \sum_{j=0}^{11}\alpha_{i+3} \cdot s_i'
+m_{mpverify} = 11\\
 $$
 
 $$
-v_{input} = 
+m_{returnhash} = 1\\
 $$
 
-In the above, $v_{new}$ and $v_{old}$ can be thought of as component of new and old memory value (whole word) in the permutation check calculation. 
-
-The prover will also need to provide a non-deterministic ‘helper’ for the lookup. The lookup in the table can be accomplished by including the following values into the lookup product:
-
 $$
-b_{aux}' \cdot \left(\alpha_0 + \alpha_1 \cdot 11 + \alpha_2 \cdot h_0 + \alpha_3 \cdot s_1 + \sum_{i=0}^3 \alpha_{i+4} \cdot s_{i+2} + \sum_{i=0}^3\alpha_{i + 8} \cdot h_{i+2}\right) \cdot \\
-\left(\alpha_0 + \alpha_1 \cdot 1 + \alpha_2 \cdot (h_0 + h_1 \cdot 8 - 1) + \sum_{i=0}^3 \alpha_{i+3} \cdot s_{i+2}'\right) = b_{aux} \\
-s_i' - s_{i+4}' = 0 \space where \space i \in \{2, 3, 4, 5\} 
+v_{i} = \alpha_0 + \alpha_1 \cdot m_{mpverify} + \alpha_2 \cdot r + \alpha_3 \cdot i \\
 $$
 
-where $b_{aux}$ is the running product column of auxiliary table, $h_0$ is the row address of the execution trace at which the computation of building merkle root started in the hasher, $h_1$ is the length of the merkle path vector fetched from advice provider, $h_2$..$h_5$ is the first word(group of four consecutive elements) of the merkle path and $\alpha_0$, $\alpha_1$, $\alpha_2$ etc... are random values sent from the verifier to the prover for use in permutation checks. 
-The value of selector flag of `hasher` co-processor is $0$ and the internal selector flag of `MP_VERIFY` and `RETURN_HASH` are $1, 0, 1$ and $0, 0, 0$ respectively. The bitwise aggregation of these flags with the `hasher` selector flag will come out to be $10 \space and \space 0$ respectivly. On adding one to both the aggregated flag value, we get the unique constant of $11 \space and \space 1$ for `MP_VERIFY` and `RETURN_HASH` respectively. We need these unique value in the grand product to ensure that the value we are looking up from the lookup table is indeed from a `hasher` operation and not from somewhere else.
+$$
+v_{o} = \alpha_0 + \alpha_1 \cdot m_{returnhash} + \alpha_2 \cdot (r + 8 \cdot d - 1)  \\
+$$
+
+$$
+v_p = \sum_{j=0}^3\alpha_{j + 4} \cdot h_j \\
+$$
+
+$$
+v_m = \sum_{i=0}^3 \alpha_{i+3} \cdot s_{i+2}' \\
+$$
+
+In the above:
+
+- $r$ is the row address of the execution trace at which the computation of building merkle root started inside the hasher processor.
+- $h_0$..$h_3$ is the first word(group of four consecutive elements) of the merkle path fetched from advice provider.
+- $m$ is a _transition label_ which uniquely identifies each operation.
+- The $11$ & $1$ in the permutation check are the unique identifier of hasher `MP_VERIFY` & `RETURN_HASH` operations which have been explained [here](../stack/unique_identifier.md#identifiers).
+- $v_{i}$ is a _common header_ which is a combination of unique identifier of `MP_VERIFY`, row address of execution trace when the computation of building merkle root starts for the node value, and node index.
+- $v_{o}$ is a _common header_ which is a combination of unique identifier of `RETURN_HASH` and row address of the trace when the computation ends.
+- $v_p$, is the component of the first element of the path.
+- $v_m$, is the component of the output root from the hasher processor.
+
+Using the above values, we can describe constraints for updating column $b_{aux}'$ which is a running product column of auxiliary table as follows:
+
+> $$
+b_{aux}' \cdot \left(v_{input} + v_{i}\right) \cdot \left(v_{output} + v_{o}\right) = b_{aux} \text{ | degree } = 3\\
+s_i' - s_{i+4}' = 0 \space where \space i \in \{2, 3, 4, 5\} \text{ | degree } = 1
+$$
 
 The `MPVERIFY` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of the above operation is $3$.
 
@@ -87,17 +115,70 @@ The `MPVERIFY` operation will not change the depth of the stack i.e. the stack d
 
 ![mrupdate](../../assets/design/stack/cryptographic_operations/MRUPDATE.png)
 
-To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/aux_table/hasher.html). The prover will also need to provide a non-deterministic ‘helper’ for the lookup. The lookup in the table can be accomplished by including the following values into the lookup product:
+To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/aux_table/hasher.html). 
+
+To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc..
 
 $$
-b_{aux}' \cdot \left(\alpha_0 + \alpha_1 \cdot 11 + \alpha_2 \cdot h_0 + \alpha_3 \cdot s_1 + \sum_{i=0}^3 \alpha_{i+4} \cdot s_{i+2} + \sum_{i=0}^3\alpha_{i + 8} \cdot h_{i+2}\right) \cdot \\
-\left(\alpha_0 + \alpha_1 \cdot 1 + \alpha_2 \cdot (h_0 + h_1 \cdot 8 - 1) + \sum_{i=0}^3 \alpha_{i+3} \cdot s_{i+2}'\right) \cdot \\
-\left(\alpha_0 + \alpha_1 \cdot 11 + \alpha_2 \cdot (h_0 + h_1 \cdot 8) + \alpha_3 \cdot s_1 + \sum_{i=0}^3 \alpha_{i+4} \cdot s_{i+6} + \sum_{i=0}^3\alpha_{i + 8} \cdot h_{i+2}\right) \cdot \\
-\left(\alpha_0 + \alpha_1 \cdot 1 + \alpha_2 \cdot (h_0 + h_1 \cdot 16 - 1) + \sum_{i=0}^3 \alpha_{i+3} \cdot s_{i+6}'\right) = b_{aux}\\
-s_i' - s_{i+8}' = 0 \space where \space i \in \{2, 3, 4, 5\} 
+m_{mrupdateold} = 7\\
 $$
 
-where $b_{aux}$ is the running product column of auxiliary table, $h_0$ is the row address of the execution trace at which the computation of building merkle root started in the hasher, $h_1$ is the length of the merkle path vector fetched from advice provider, $h_2$..$h_5$ is the first word(group of four consecutive elements) of the merkle path and $\alpha_0$, $\alpha_1$, $\alpha_2$ etc... are random values sent from the verifier to the prover for use in permutation checks. 
-The value of selector flag of `hasher` co-processor is $0$ and the internal selector flag of `MP_VERIFY` and `RETURN_HASH` are $1$, $0$, $1$ and $0$, $0$, $0$ respectively. The bitwise aggregation of these flags with the `hasher` selector flag will come out to be $10$ and $0$ respectivly. On adding one to both the aggregated flag value, we get the unique constant of $11$ and $1$ for `MP_VERIFY` and `RETURN_HASH` respectively. We need these unique value in the grand product to ensure that the value we are looking up from the lookup table is indeed from a `hasher` operation and not from somewhere else.
+$$
+m_{mrupdatenew} = 15\\
+$$
+
+$$
+m_{returnhash} = 1\\
+$$
+
+$$
+v_{io} = \alpha_0 + \alpha_1 \cdot m_{mrupdateold} + \alpha_2 \cdot r + \alpha_3 \cdot i \\
+$$
+
+$$
+v_{oo} = \alpha_0 + \alpha_1 \cdot m_{returnhash} + \alpha_2 \cdot (r + 8 \cdot d - 1)  \\
+$$
+
+$$
+v_{in} = \alpha_0 + \alpha_1 \cdot m_{mrupdatenew} + \alpha_2 \cdot (r + 8 \cdot d) + \alpha_3 \cdot i \\
+$$
+
+$$
+v_{on} = \alpha_0 + \alpha_1 \cdot m_{returnhash} + \alpha_2 \cdot (r + 2 \cdot 8 \cdot d - 1)  \\
+$$
+
+$$
+v_p = \sum_{j=0}^3\alpha_{j + 4} \cdot h_j \\
+$$
+
+$$
+v_o = \sum_{i=0}^3 \alpha_{i+3} \cdot s_{i+2}' \\
+$$
+
+$$
+v_m = \sum_{i=0}^3 \alpha_{i+3} \cdot s_{i+6}' \\
+$$
+
+In the above:
+
+- $r$ is the row address of the execution trace at which the computation of building merkle root started in the hasher.
+- $d$ is the depth of the node in the merkle tree fetched from the advice provider. 
+- $h_0$..$h_3$ is the first word(group of four consecutive elements) of the merkle path fetched from advice provider.
+- $m$ is a _transition label_ which uniquely identifies each operation.
+- The $7$, $15$ and $1$ in the permutation check are the unique identifier of hasher `MR_UPDATE_OLD`, `MR_UPDATE_NEW` and `RETURN_HASH` operations which have been explained [here](../stack/unique_identifier.md#identifiers).
+- $v_{io}$ is a _common header_ which is a combination of unique identifier of `MR_UPDATE_OLD`, row address of the trace when the merkle root building starts for the old node value, and node index.
+- $v_{oo}$ is a _common header_ which is a combination of unique identifier of `RETURN_HASH` and row address of the trace when the merkle root building ends for the old node value.
+- $v_{in}$ is a _common header_ which is a combination of unique identifier of `MR_UPDATE_NEW`, row address of the trace when the merkle root building starts for the new node value, and node index.
+- $v_{on}$ is a _common header_ which is a combination of unique identifier of `RETURN_HASH` and row address row address of the trace when the merkle root building ends for the old node value.
+- $v_p$, is the component of the first element of the path.
+- $v_o$, is the component of the output root for the old node value from the hasher processor.
+- $v_m$, is the component of the output root for the new node value from the hasher processor.
+
+Using the above values, we can describe constraints for updating column $b_{aux}'$ which is a running product column of auxiliary table as follows:
+
+> $$
+b_{aux}' \cdot \left( v_{io} + v_p \right) \cdot \left( v_{oo} + v_o \right) \cdot \left( v_{in} + v_p \right) \cdot \left( v_{on} + v_m\right) = b_{aux} \text{ | degree } = 5\\
+s_i' - s_{i+8}' = 0 \space where \space i \in \{2, 3, 4, 5\} \text{ | degree } = 1
+$$ 
 
 The `MRUPDATE` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of the above operation is $5$.
