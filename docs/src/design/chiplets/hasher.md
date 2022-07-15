@@ -1,5 +1,6 @@
-# Hash Processor
-Miden VM "offloads" all hash-related computations to a separate _hash processor_. This processor supports executing [Rescue Prime](https://eprint.iacr.org/2020/1143) hash function (or rather a [specific instantiation](https://docs.rs/winter-crypto/0.3.2/winter_crypto/hashers/struct.Rp64_256.html) of it) in the following settings:
+# Hash Chiplet
+
+Miden VM "offloads" all hash-related computations to a separate _hash processor_. This chiplet supports executing [Rescue Prime](https://eprint.iacr.org/2020/1143) hash function (or rather a [specific instantiation](https://docs.rs/winter-crypto/0.3.2/winter_crypto/hashers/struct.Rp64_256.html) of it) in the following settings:
 
 - A single permutation of Rescue Prime.
 - A simple 2-to-1 hash.
@@ -7,11 +8,11 @@ Miden VM "offloads" all hash-related computations to a separate _hash processor_
 - Merkle path verification.
 - Merkle root update.
 
-The processor can be thought of as having a small instruction set of $11$ instructions. These instructions are listed below, and examples of how these instructions are used by the processor are described in the following sections.
+The chiplet can be thought of as having a small instruction set of $11$ instructions. These instructions are listed below, and examples of how these instructions are used by the chiplet are described in the following sections.
 
 | Instruction | Description |
 | ----------- | ----------- |
-| `RPR`       | Executes a single round of Rescue Prime. All cycles which are not one less than a multiple of $8$ execute this instruction. That is, the processor executes this instruction on cycles $0, 1, 2, 3, 4, 5, 6$, but not $7$, and then again, $8, 9, 10, 11, 12, 13, 14$, but not $15$ etc.                           |
+| `RPR`       | Executes a single round of Rescue Prime. All cycles which are not one less than a multiple of $8$ execute this instruction. That is, the chiplet executes this instruction on cycles $0, 1, 2, 3, 4, 5, 6$, but not $7$, and then again, $8, 9, 10, 11, 12, 13, 14$, but not $15$ etc.                             |
 | `BP`        | Initiates computation of a single permutation, a 2-to-1 hash, or a linear hash of many elements. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                      |
 | `MP`        | Initiates Merkle path verification computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                                                                       |
 | `MV`        | Initiates Merkle path verification for the "old" node value during Merkle root update computaiton. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                    |
@@ -23,11 +24,11 @@ The processor can be thought of as having a small instruction set of $11$ instru
 | `MVA`       | Absorbs the next Merkle path node into the hasher state during Merkle path verification for the "old" node value during Merkle root update computation. This instruction can be executed only on cycles which are one less than a multiple of $8$, and only if the computation was started using `MV` instruction. |
 | `MUA`       | Absorbs the next Merkle path node into the hasher state during Merkle path verification for the "new" node value during Merkle root update computation. This instruction can be executed only on cycles which are one less than a multiple of $8$, and only if the computation was started using `Mu` instruction. |
 
-## Processor trace
+## Chiplet trace
 
-Execution trace table of the processor consists of $17$ trace columns and $3$ periodic columns. The structure of the table is such that a single permutation of the hash function can be computed using $8$ table rows. The layout of the table is illustrated below.
+Execution trace table of the chiplet consists of $17$ trace columns and $3$ periodic columns. The structure of the table is such that a single permutation of the hash function can be computed using $8$ table rows. The layout of the table is illustrated below.
 
-![hash_execution_trace](../../assets/design/aux_table/hasher/hash_execution_trace.png)
+![hash_execution_trace](../../assets/design/chiplets/hasher/hash_execution_trace.png)
 
 The meaning of the columns is as follows:
 
@@ -39,13 +40,14 @@ The meaning of the columns is as follows:
   - The next eight columns ($h_4, ..., h_{11}$) are reserved for the rate elements of the state. These are used to absorb the values to be hashed. Once the permutation is complete, hash output is located in the first four rate columns ($h_4, ..., h_7$).
 - One index column $i$. This column is used to help with Merkle path verification and Merkle root update computations.
 
-In addition to the columns described above, the processor relies on two running product columns which are used to facilitate multiset checks (similar to the ones described [here](https://hackmd.io/@arielg/ByFgSDA7D)). These columns are:
+In addition to the columns described above, the chiplet relies on two running product columns which are used to facilitate multiset checks (similar to the ones described [here](https://hackmd.io/@arielg/ByFgSDA7D)). These columns are:
 
-- $p_0$ - which is used to tie the processor table with the main VM's stack. That is, values representing inputs consumed by the processor and outputs produced by the processor are multiplied into $p_0$, while the main VM stack divides them out of $p_0$. Thus, if the sets of inputs and outputs between the main VM stack and hash processor are the same, value of $p_0$ should be equal to $1$ at the start and the end of the execution trace.
+- $p_0$ - which is used to tie the chiplet table with the main VM's stack. That is, values representing inputs consumed by the chiplet and outputs produced by the chiplet are multiplied into $p_0$, while the main VM stack divides them out of $p_0$. Thus, if the sets of inputs and outputs between the main VM stack and hash chiplet are the same, value of $p_0$ should be equal to $1$ at the start and the end of the execution trace.
 - $p_1$ - which is used to keep track of the *sibling* table used for Merkle root update computations. Specifically, when a root for the old leaf value is computed, we add an entry for all sibling nodes to the table (i.e., we multiply $p_1$ by the values representing these entries). When the root for the new leaf value is computed, we remove the entries for the nodes from the table (i.e., we divide $p_1$ by the value representing these entries). Thus, if both computations used the same set of sibling nodes (in the same order), the sibling table should be empty by the time Merkle root update procedure completes (i.e., the value of $p_1$ would be $1$).
 
 ## Instruction flags
-As mentioned above, processor instructions are encoded using a combination of periodic and selector columns. These columns can be used to compute a binary flag for each instruction. Thus, when a flag for a given instruction is set to $1$, the processor executes this instruction. Formulas for computing instruction flags are listed below.
+
+As mentioned above, chiplet instructions are encoded using a combination of periodic and selector columns. These columns can be used to compute a binary flag for each instruction. Thus, when a flag for a given instruction is set to $1$, the chiplet executes this instruction. Formulas for computing instruction flags are listed below.
 
 | Flag       | Value                                                 | Notes                       |
 | ---------- | ----------------------------------------------------- | --------------------------- |
@@ -85,7 +87,7 @@ Computing a single permutation of Rescue Prime hash function involves the follow
 2. Apply Rescue Prime permutation.
 3. Return the entire hasher state as output.
 
-The processor accomplishes the above by executing the following instructions:
+The chiplet accomplishes the above by executing the following instructions:
 
 ```
 [BP, RPR]                // init state and execute Rescue round (concurrently)
@@ -95,7 +97,7 @@ SOUT                     // return the entire state as output
 
 Execution trace for this computation would look as illustrated below.
 
-![hash_1_permutation_trace](../../assets/design/aux_table/hasher/hash_1_permutation_trace.png)
+![hash_1_permutation_trace](../../assets/design/chiplets/hasher/hash_1_permutation_trace.png)
 
 In the above $\{a_0, ..., a_{11}\}$ is the input state of the hasher, and $\{b_0, ..., b_{11}\}$ is the output state of the hasher.
 
@@ -107,7 +109,7 @@ Computing a 2-to-1 hash involves the following steps:
 2. Apply Rescue Prime permutation.
 3. Return elements ${4, ..., 7}$ of the hasher state as output.
 
-The processor accomplishes the above by executing the following instructions:
+The chiplet accomplishes the above by executing the following instructions:
 
 ```
 [BP, RPR]                // init state and execute Rescue round (concurrently)
@@ -117,7 +119,7 @@ HOUT                     // return elements 4, 5, 6, 7 of the state as output
 
 Execution trace for this computation would look as illustrated below.
 
-![hash_2_to_1_hash](../../assets/design/aux_table/hasher/hash_2_to_1_hash.png)
+![hash_2_to_1_hash](../../assets/design/chiplets/hasher/hash_2_to_1_hash.png)
 
 In the above, we compute the following:
 
@@ -135,7 +137,7 @@ Computing a linear hash of $n$ elements consists of the following steps:
 4. Repeat steps 2 and 3 until all $n$ elements have been absorbed.
 5. Return elements ${4, ..., 7}$ of the hasher state as output.
 
-The processor accomplishes the above by executing the following instructions (for hashing $16$ elements):
+The chiplet accomplishes the above by executing the following instructions (for hashing $16$ elements):
 
 ```
 [BP, RPR]                   // init state and execute Rescue round (concurrently)
@@ -147,7 +149,7 @@ HOUT                        // return elements 4, 5, 6, 7 of the state as output
 
 Execution trace for this computation would look as illustrated below.
 
-![hash_linear_hash_n](../../assets/design/aux_table/hasher/hash_linear_hash_n.png)
+![hash_linear_hash_n](../../assets/design/chiplets/hasher/hash_linear_hash_n.png)
 
 In the above, the value absorbed into hasher state between rows $7$ and $8$ is the delta between values $t_i$ and $s_i$. Thus, if we define $b_i = t_i - s_i$ for $i \in \{0, ..., 7\}$, the above computes the following:
 
@@ -156,6 +158,7 @@ $$
 $$
 
 ### Verify Merkle path
+
 Verifying a Merkle path involves the following steps:
 
 1. Initialize hasher state with the leaf and the first node of the path, setting the first capacity element to $8$, and the remaining capacity elements to $0$s.
@@ -168,7 +171,7 @@ Verifying a Merkle path involves the following steps:
 5. Return elements ${4, ..., 7}$ of the hasher state as output.
    a. Also, make sure the index value has been reduced to $0$.
 
-The processor accomplishes the above by executing the following instructions (for Merkle tree of depth $3$):
+The chiplet accomplishes the above by executing the following instructions (for Merkle tree of depth $3$):
 
 ```
 [MP, RPR]                   // init state and execute Rescue round (concurrently)
@@ -180,7 +183,7 @@ HOUT                        // return elements 4, 5, 6, 7 of the state as output
 
 Suppose we have a Merkle tree as illustrated below. This Merkle tree has $4$ leaves, each of which consists of $4$ field elements. For example, leaf $a$ consists of elements $a_0, a_1, a_2, a_3$, leaf be consists of elements $b_0, b_1, b_2, b_3$ etc.
 
-![hash_merkle_tree](../../assets/design/aux_table/hasher/hash_merkle_tree.png)
+![hash_merkle_tree](../../assets/design/chiplets/hasher/hash_merkle_tree.png)
 
 If we wanted to verify that leaf $d$ is in fact in the tree, we'd need to compute the following hashes:
 
@@ -190,7 +193,7 @@ $$
 
 And if $r = g$, we can be convinced that $d$ is in fact in the tree at position $3$. Execution trace for this computation would look as illustrated below.
 
-![hash_merkle_tree_trace](../../assets/design/aux_table/hasher/hash_merkle_tree_trace.png)
+![hash_merkle_tree_trace](../../assets/design/chiplets/hasher/hash_merkle_tree_trace.png)
 
 In the above, the prover provides values for nodes $c$ and $e$ non-deterministically.
 
@@ -207,7 +210,7 @@ $$
 
 Then, as long as $r = g$, and the same values were used for $c$ and $e$ in both computations, we can be convinced that the new root of the tree is $r'$.
 
-The processor accomplishes the above by executing the following instructions:
+The chiplet accomplishes the above by executing the following instructions:
 
 ```
 // verify the old merkle path
@@ -232,13 +235,14 @@ The semantics of `MV` and `MU` instructions are similar to the semantics of `MP`
 When describing AIR constraints, we adopt the following notation: for column $x$, we denote the value in the current row simply as $x$, and the value in the next row of the column as $x′$. Thus, all transition constraints described in this note work with two consecutive rows of the execution trace.
 
 ### Row address constraint
+
 As mentioned above, row address $r$ starts at $1$, and is incremented by $1$ with every row. The first condition can be enforced with a boundary constraint which specifies $r=1$ at the first row. The second condition can be enforced via the following transition constraint:
 
 >$$
 r' - r - 1 = 0  \text{ | degree } = 1
 $$
 
-This constraint should not be applied to the very last row of the hasher execution trace, since we do not want to enforce a value that would conflict with the first row of a subsequent co-processor in the Auxiliary Table. Therefore we can create a special virtual flag for this constraint using the $aux\_s_0$ selector column from the [Auxiliary Table](main.md) that selects for the hash co-processor.
+This constraint should not be applied to the very last row of the hasher execution trace, since we do not want to enforce a value that would conflict with the first row of a subsequent chiplet in the Chiplets module. Therefore we can create a special virtual flag for this constraint using the $aux\_s_0$ selector column from the [Chiplets](main.md) module that selects for the hash chiplet.
 
 The modified row address constraint which should be applied is the following:
 
@@ -246,7 +250,7 @@ The modified row address constraint which should be applied is the following:
 (1 - aux\_s_0') \cdot (r' - r - 1) = 0 \text{ | degree } = 2
 $$
 
-_Note: this constraint should also be multiplied by Auxiliary Table's selector flag $s_0$, as is true for all constraints in this co-processor._
+_Note: this constraint should also be multiplied by Chiplets module's selector flag $s_0$, as is true for all constraints in this chiplet._
 
 ### Selector columns constraints
 
@@ -362,10 +366,10 @@ In the above:
 - $v_h$ is a _common header_ which is a combination of transition label, row address, and node index.
 - $v_a$, $v_b$, $v_c$ are the first, second, and third words (4 elements) of the hasher state.
 
-#### Hash processor bus constraints
-As described previously, running product column $p_0$ is used to tie the hash processor with the main VM's stack. When receiving inputs from or returning results to the stack, hash processor multiplies $p_0$ by their respective values. On other other side, when sending inputs to the hash processor or receiving results from the processor, the stack divides $p_0$ by their values.
+#### Hash chiplet bus constraints
+As described previously, running product column $p_0$ is used to tie the hash chiplet with the main VM's stack. When receiving inputs from or returning results to the stack, hash chiplet multiplies $p_0$ by their respective values. On other other side, when sending inputs to the hash chiplet or receiving results from the chiplet, the stack divides $p_0$ by their values.
 
-In the section below we describe only the hash processor side of the constraints (i.e., multiplying $p_0$ by relevant values). We define values which are to be multiplied into the $p_0$ for each operation as follows:
+In the section below we describe only the hash chiplet side of the constraints (i.e., multiplying $p_0$ by relevant values). We define values which are to be multiplied into the $p_0$ for each operation as follows:
 
 When starting a new simple or linear hash computation (i.e., $f_{bp}=1$) or when returning the entire state of the hasher ($f_{sout}=1$), the entire hasher state is included into $p_0$:
 $$
@@ -382,7 +386,7 @@ $$
 v_{abp} = v_h + v'_b + v'_c - (v_b + v_c)
 $$
 
-When a computation is complete (i.e., $f_{hout}=1$), we include the second word of the hasher state (the result) into $p_0$:    
+When a computation is complete (i.e., $f_{hout}=1$), we include the second word of the hasher state (the result) into $p_0$:
 $$
 v_{res} = v_h + v_b
 $$
@@ -444,6 +448,6 @@ To make sure computation of the old Merkle root is immediately followed by the c
 (f_{bp} + f_{mp} + f_{mv}) \cdot (1 - p_1) = 0 \text{ | degree } = 5
 $$
 
-The above means that whenever we start a new computation which is not the computation of the new Merkle root, the sibling table must be empty. Thus, after the hash processor computes the old Merkle root, the only way to clear the table is to compute the new Merkle root.
+The above means that whenever we start a new computation which is not the computation of the new Merkle root, the sibling table must be empty. Thus, after the hash chiplet computes the old Merkle root, the only way to clear the table is to compute the new Merkle root.
 
 Together with boundary constraints enforcing that $p_1=1$ at the first and last rows, the above constraints ensure that if a node was included into $p_1$ as a part of computing the old Merkle root, the same node must be removed from $p_1$ as a part of computing the new Merkle root.

@@ -1,4 +1,4 @@
-# Bitwise Processor
+# Bitwise Chiplet
 
 In this note we describe how to compute bitwise AND, OR, and XOR operations on 32-bit values and the constraints required for proving correct execution. It assumes some familiarity with [permutation checks](https://hackmd.io/@arielg/ByFgSDA7D).
 
@@ -22,7 +22,7 @@ To compute bitwise operations for multi-bit values, we will decompose the values
 
 To perform this operation we will use a table with 11 columns, and computing a single AND, OR, or XOR operation will require 8 table rows. We will also rely on two periodic columns as shown below.
 
-![bitwise_execution_trace](../../assets/design/aux_table/bitwise/bitwise_execution_trace.png)
+![bitwise_execution_trace](../../assets/design/chiplets/bitwise/bitwise_execution_trace.png)
 
 In the above, the columns have the following meanings:
 
