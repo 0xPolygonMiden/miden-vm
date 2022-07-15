@@ -1,5 +1,5 @@
 use super::{
-    parse_int_param, push_value, validate_operation, AssemblyError, Felt, Operation, Token, Vec,
+    parse_u32_param, push_value, validate_operation, AssemblyError, Felt, Operation, Token, Vec,
 };
 use vm_core::utils::PushMany;
 
@@ -118,7 +118,7 @@ fn push_local_addr(
     }
 
     // parse the provided local memory index
-    let index = parse_int_param(op, 2, 0, num_proc_locals - 1)?;
+    let index = parse_u32_param(op, 2, 0, num_proc_locals - 1)?;
 
     // put the absolute memory address on the stack
     // negate the value to use it as an offset from the fmp

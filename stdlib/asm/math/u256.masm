@@ -2,31 +2,31 @@ export.add_unsafe
     swapw.3
     movup.3
     movup.7
-    u32add.unsafe
+    u32overflowing_add
     movup.4
     movup.7
-    u32add3.unsafe
+    u32unchecked_add3
     movup.4
     movup.6
-    u32add3.unsafe
+    u32unchecked_add3
     movup.4
     movup.5
-    u32add3.unsafe
+    u32unchecked_add3
     movdn.12
     swapw.2
     movup.12
     movup.4
     movup.8
-    u32add3.unsafe
+    u32unchecked_add3
     movup.4
     movup.7
-    u32add3.unsafe
+    u32unchecked_add3
     movup.4
     movup.6
-    u32add3.unsafe
+    u32unchecked_add3
     movup.4
     movup.5
-    u32add3.unsafe
+    u32unchecked_add3
     drop
 end
 
@@ -34,58 +34,58 @@ export.sub_unsafe
     swapw.3
     movup.3
     movup.7
-    u32sub.unsafe
+    u32overflowing_sub
     movup.7
-    u32add.unsafe
+    u32overflowing_add
     movup.5
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     add
     movup.6
-    u32add.unsafe
+    u32overflowing_add
     movup.5
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     add
     movup.5
-    u32add.unsafe
+    u32overflowing_add
     movup.5
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     add
     movdn.12
     swapw.2
     movup.12
     movup.4
-    u32add.unsafe
+    u32overflowing_add
     movup.8
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     add
     movup.4
-    u32add.unsafe
+    u32overflowing_add
     movup.7
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     add
     movup.4
-    u32add.unsafe
+    u32overflowing_add
     movup.6
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     add
     movup.5
     movup.5
     movup.2
-    u32add.unsafe
+    u32overflowing_add
     drop
-    u32sub.unsafe
+    u32overflowing_sub
     drop
 end
 
@@ -203,9 +203,9 @@ end
 
 proc.mulstep
     movdn.2
-    u32madd.unsafe
+    u32unchecked_madd
     movdn.2
-    u32add.unsafe
+    u32overflowing_add
     movup.2
     add
 end
