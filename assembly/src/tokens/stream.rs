@@ -7,7 +7,7 @@ use vm_core::utils::collections::Vec;
 
 #[derive(Debug)]
 pub struct TokenStream<'a> {
-    tokens: Vec<&'a str>,
+    tokens: Vec<(&'a str, usize, usize)>,
     current: Token<'a>,
     pos: usize,
     temp: Token<'a>,
@@ -22,19 +22,21 @@ impl<'a> TokenStream<'a> {
             return Err(AssemblyError::empty_source());
         }
 
-        let tokens = source
-            .lines()
-            // Tokenize and remove comments
-            .flat_map(|line| {
-                line.split_whitespace()
-                    .take_while(|&token| !token.starts_with('#'))
-            })
-            .collect::<Vec<_>>();
+        let mut tokens = Vec::new();
+        let lines = source.lines();
+        for (line_number, line) in lines.enumerate() {
+            let line_tokens = line
+                .split_whitespace()
+                .take_while(|&token| !token.starts_with('#'));
+            for (token_pos, token) in line_tokens.enumerate() {
+                tokens.push((token, line_number, token_pos));
+            }
+        }
 
         if tokens.is_empty() {
             return Err(AssemblyError::empty_source());
         }
-        let current = Token::new(tokens[0], 0);
+        let current = Token::new(tokens[0].0, 0);
         Ok(Self {
             tokens,
             current,
@@ -79,7 +81,12 @@ impl<'a> TokenStream<'a> {
         if pos == self.pos {
             self.read()
         } else {
-            self.temp.update(self.tokens[pos], pos);
+            self.temp.update(
+                self.tokens[pos].0,
+                pos,
+                self.tokens[pos].1,
+                self.tokens[pos].2,
+            );
             Some(&self.temp)
         }
     }
@@ -89,7 +96,12 @@ impl<'a> TokenStream<'a> {
         if !self.eof() {
             self.pos += 1;
             if !self.eof() {
-                self.current.update(self.tokens[self.pos], self.pos);
+                self.current.update(
+                    self.tokens[self.pos].0,
+                    self.pos,
+                    self.tokens[self.pos].1,
+                    self.tokens[self.pos].2,
+                );
             }
         }
     }

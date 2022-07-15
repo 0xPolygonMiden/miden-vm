@@ -9,6 +9,8 @@ pub struct AssemblyError {
     message: String,
     step: usize,
     op: String,
+    line_number: usize,
+    pos_in_line: usize,
 }
 
 impl AssemblyError {
@@ -20,6 +22,8 @@ impl AssemblyError {
             message: "source code cannot be an empty string".to_string(),
             step: 0,
             op: "".to_string(),
+            line_number: 0,
+            pos_in_line: 0,
         }
     }
 
@@ -28,6 +32,8 @@ impl AssemblyError {
             message: "unexpected EOF".to_string(),
             step,
             op: "".to_string(),
+            line_number: 0,
+            pos_in_line: 0,
         }
     }
 
@@ -39,6 +45,8 @@ impl AssemblyError {
             ),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -47,6 +55,8 @@ impl AssemblyError {
             message: "a code block must contain at least one instruction".to_string(),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -55,6 +65,8 @@ impl AssemblyError {
             message: format!("instruction '{}' is invalid", token),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -63,6 +75,8 @@ impl AssemblyError {
             message: format!("instruction '{}' is invalid: {}", token, reason),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -74,6 +88,8 @@ impl AssemblyError {
             ),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -85,6 +101,8 @@ impl AssemblyError {
             ),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -97,6 +115,8 @@ impl AssemblyError {
             ),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -110,6 +130,8 @@ impl AssemblyError {
             ),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -118,6 +140,8 @@ impl AssemblyError {
             message: "else without matching if".to_string(),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -126,6 +150,8 @@ impl AssemblyError {
             message: "if without matching else/end".to_string(),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -134,6 +160,8 @@ impl AssemblyError {
             message: "while without matching end".to_string(),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -142,6 +170,8 @@ impl AssemblyError {
             message: "repeat without matching end".to_string(),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -150,6 +180,8 @@ impl AssemblyError {
             message: "else without matching end".to_string(),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -158,6 +190,8 @@ impl AssemblyError {
             message: "# comment delimiter without matching #".to_string(),
             step,
             op: "".to_string(),
+            line_number: 0,
+            pos_in_line: 0,
         }
     }
 
@@ -169,6 +203,8 @@ impl AssemblyError {
             message: "begin without matching end".to_string(),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -177,6 +213,8 @@ impl AssemblyError {
             message: "dangling instructions after script end".to_string(),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -188,6 +226,8 @@ impl AssemblyError {
             message: format!("duplicate procedure label: {}", label),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -196,6 +236,8 @@ impl AssemblyError {
             message: format!("invalid procedure label: {}", label),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -204,6 +246,8 @@ impl AssemblyError {
             message: format!("invalid procedure locals: {}", locals),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -212,6 +256,8 @@ impl AssemblyError {
             message: "proc without matching end".to_string(),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -220,6 +266,8 @@ impl AssemblyError {
             message: format!("undefined procedure: {}", label),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -228,6 +276,8 @@ impl AssemblyError {
             message: format!("exported procedures not allowed in this context: {}", label),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -239,6 +289,8 @@ impl AssemblyError {
             message: format!("module source not found: {}", module_path),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -247,6 +299,8 @@ impl AssemblyError {
             message: format!("dangling instructions after module end at {}", module_path),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -258,6 +312,8 @@ impl AssemblyError {
             ),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -266,6 +322,8 @@ impl AssemblyError {
             message: format!("invalid module import path: {}", module_path),
             step: token.pos(),
             op: token.to_string(),
+            line_number: token.line_number(),
+            pos_in_line: token.pos_in_line(),
         }
     }
 
@@ -289,12 +347,20 @@ impl AssemblyError {
 
 impl fmt::Debug for AssemblyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "assembly error at {}: {}", self.step, self.message)
+        write!(
+            f,
+            "assembly error at {}, {}, {}: {}",
+            self.step, self.line_number, self.pos_in_line, self.message
+        )
     }
 }
 
 impl fmt::Display for AssemblyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "assembly error at {}: {}", self.step, self.message)
+        write!(
+            f,
+            "assembly error at {} {} {}: {}",
+            self.step, self.line_number, self.pos_in_line, self.message
+        )
     }
 }

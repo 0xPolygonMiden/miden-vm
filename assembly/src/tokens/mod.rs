@@ -11,6 +11,8 @@ pub use stream::TokenStream;
 pub struct Token<'a> {
     parts: Vec<&'a str>,
     pos: usize,
+    line_number: usize,
+    pos_in_line: usize,
 }
 
 impl<'a> Token<'a> {
@@ -40,6 +42,18 @@ impl<'a> Token<'a> {
         Self {
             parts: token.split('.').collect(),
             pos,
+            line_number: 0,
+            pos_in_line: 0,
+        }
+    }
+
+    pub fn with_loc(token: &'a str, pos: usize, line_number: usize, pos_in_line: usize) -> Self {
+        assert!(!token.is_empty(), "token cannot be an empty string");
+        Self {
+            parts: token.split('.').collect(),
+            pos,
+            line_number,
+            pos_in_line,
         }
     }
 
@@ -49,6 +63,14 @@ impl<'a> Token<'a> {
     /// Returns the position of this token in the source.
     pub fn pos(&self) -> usize {
         self.pos
+    }
+
+    pub fn line_number(&self) -> usize {
+        self.line_number
+    }
+
+    pub fn pos_in_line(&self) -> usize {
+        self.pos_in_line
     }
 
     /// Returns the number of parts in this token.
@@ -84,11 +106,13 @@ impl<'a> Token<'a> {
     ///
     /// # Panics
     /// Panic is the `token` parameter is an empty string.
-    pub fn update(&mut self, token: &'a str, pos: usize) {
+    pub fn update(&mut self, token: &'a str, pos: usize, line_number: usize, pos_in_line: usize) {
         assert!(!token.is_empty(), "token cannot be an empty string");
         self.parts.clear();
         token.split('.').for_each(|part| self.parts.push(part));
         self.pos = pos;
+        self.line_number = line_number;
+        self.pos_in_line = pos_in_line;
     }
 
     // CONTROL TOKEN PARSERS / VALIDATORS
