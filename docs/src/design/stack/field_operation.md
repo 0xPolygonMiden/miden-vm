@@ -136,7 +136,7 @@ $$
 The prover generates $h_0$ as:
 
 > $$
-h_0 \leftarrow \begin{cases} 0, & \text{if}\ s_1 = s_0 \\ \dfrac{1-s_0'}{s_1 - s_0}, & \text{otherwise}\ \end{cases}
+h_0 \leftarrow \begin{cases} 0, & \text{if}\ s_1 = s_0 \\ \dfrac{1}{s_1 - s_0}, & \text{otherwise}\ \end{cases}
 $$
 
 The `EQ` operation will shift the stack to the left by one. The maximum degree of this operation is $2$.
@@ -157,7 +157,7 @@ $$
 The prover generates $h_0$ as:
 
 > $$
-h_0 \leftarrow \begin{cases} 0, & \text{if}\ s_1 == 0 \\ \dfrac{1-s_0'}{s_1}, & \text{otherwise}\ \end{cases}
+h_0 \leftarrow \begin{cases} 0, & \text{if}\ s_1 == 0 \\ \dfrac{1}{s_1}, & \text{otherwise}\ \end{cases}
 $$
 
 
@@ -173,13 +173,13 @@ To facilitate this operation, the prover needs to provide one non-deterministic 
 
 > $$
 \sum_{i=0}^3 s_0' \cdot (s_i - s_{i+4}) = 0 \text{ | degree } = 2\\
-s_0' - 1 + \left(\prod_{i=0}^3h_i \cdot (s_i - s_{i+4})\right) = 0 \text{ | degree } = 2\\
+s_0' - \prod_{i=0}^3 \left(1 - h_i \cdot (s_i - s_{i+4})\right) = 0 \text{ | degree } = 8\\
 $$
 
 The prover generates $h_i$ as:
 
 > $$
-h_i \leftarrow \begin{cases} 0, & \text{if}\ s_i = s_{i+4} \\ \dfrac{1-s_0'}{s_i - s_{i+4}}, & \text{otherwise}\ \end{cases}
+h_i \leftarrow \begin{cases} 0, & \text{if}\ s_i = s_{i+4} \\ \dfrac{1}{s_i - s_{i+4}}, & \text{otherwise}\ \end{cases}
 $$
 
-The `EQW` operation will shift the stack to the right by one. The maximum degree of this operation is $2$.
+The `EQW` operation will shift the stack to the right by one. The maximum degree of this operation is $8$.
