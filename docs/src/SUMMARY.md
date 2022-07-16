@@ -1,10 +1,10 @@
 # Summary
 
-[Miden VM](./main.md)
-
-- [Introduction](./intro.md)
+- [Introduction](./intro/main.md)
+  - [Overview](./intro/overview.md)
+  - [Usage](./intro/usage.md)
+  - [Performance](./intro/performance.md)
 - [User Documentation](./user_docs/main.md)
-  - [Miden VM Overview](./user_docs/overview/main.md)
   - [Miden Assembly](./user_docs/assembly/main.md)
     - [Code Organization](./user_docs/assembly/code_organization.md)
     - [Flow Control](./user_docs/assembly/flow_control.md)
@@ -14,6 +14,9 @@
     - [Input / Output Operations](./user_docs/assembly/io_operations.md)
     - [Cryptographic Operations](./user_docs/assembly/cryptographic_operations.md)
   - [Miden Standard Library](./user_docs/stdlib/main.md)
+    - [std::crypto::hashes](./user_docs/stdlib/crypto/hashes.md)
+    - [std::math::u64](./user_docs/stdlib/math/u64.md)
+    - [std:sys](./user_docs/stdlib/sys.md)
 - [Design](./design/main.md)
   - [Programs](./design/programs.md)
   - [Program decoder](./design/decoder/main.md)

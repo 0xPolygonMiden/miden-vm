@@ -10488,10 +10488,10 @@ end
 
 # ===== BITWISE OPERATIONS ========================================================================
 
-# Performs divmod operation of two unsigned 64 bit integers.
+# Performs bitwise AND of two unsigned 64-bit integers.
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked.
 # Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [r_hi, r_lo, q_hi, q_lo ...], where r = a % b, q = a / b
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a AND b.
 export.checked_and
     swap
     movup.3
@@ -10704,10 +10704,11 @@ export.unchecked_rotr
 end
 "),
 // ----- std::sys ---------------------------------------------------------------------------------
-("std::sys", "# Clears the stack overflow table and ensures the stack top remains unchanged
-# Input: Stack top with 16 elements + overflow table with greater than or equal to 0 number of elements.
-# Output: Stack top with original 16 elements
-export.finalize_stack.16
+("std::sys", "# Removes elements deep in the stack until the depth of the stack is exactly 16. The elements
+# are removed in such a way that the top 16 elements of the stack remain unchanged.
+# Input: Stack with 16 or more elements.
+# Output: Stack with only the original top 16 elements.
+export.finalize_stack.4
     popw.local.0
     popw.local.1
     popw.local.2

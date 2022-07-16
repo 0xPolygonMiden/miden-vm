@@ -1,27 +1,30 @@
 use assembly::{Assembler, AssemblyError};
 use core::fmt;
 use processor::{AsmOpInfo, ExecutionError};
+use std::path::PathBuf;
 use structopt::StructOpt;
 use vm_core::{utils::collections::Vec, Operation, ProgramInputs};
 
 // CLI
 // ================================================================================================
 
-/// Defines cli interace
+/// Defines cli interface
 #[derive(StructOpt, Debug)]
 #[structopt(about = "Analyze a miden program")]
 pub struct Analyze {
-    /// Script Source File Path
-    masm_path: String,
+    /// Path to .masm assembly file
+    #[structopt(short = "a", long = "assembly", parse(from_os_str))]
+    assembly_file: PathBuf,
 }
 
 /// Implements CLI execution logic
 impl Analyze {
     pub fn execute(&self) -> Result<(), String> {
-        let program = std::fs::read_to_string(&self.masm_path).expect("Could not read masm file");
+        let program =
+            std::fs::read_to_string(&self.assembly_file).expect("Could not read masm file");
         let program_inputs = ProgramInputs::none();
         let program_info: ProgramInfo =
-            analyze(program.as_str(), program_inputs).expect("Could not retreive program info");
+            analyze(program.as_str(), program_inputs).expect("Could not retrieve program info");
         println!("{}", program_info);
         Ok(())
     }
@@ -73,7 +76,7 @@ impl ProgramInfo {
         self.total_vm_cycles = total_vm_cycles;
     }
 
-    /// Records a new occurence of asmop in the sorted asmop stats vector of this program info.
+    /// Records a new occurrence of asmop in the sorted asmop stats vector of this program info.
     /// If the asmop is already in the list, increments its frequency by one.
     /// If the asmop is not already in the list, add it at the appropriate index to keep the
     /// list sorted alphabetically.
@@ -108,17 +111,17 @@ impl fmt::Display for ProgramInfo {
         let total_vm_cycles = self.total_vm_cycles();
         let total_noops = self.total_noops();
         let asm_op_stats = self.asm_op_stats();
-        write!(f, "Total Number of VM Cycles: {}\n\n", total_vm_cycles)?;
-        write!(f, "Total Number of NOOPs executed: {}\n\n", total_noops)?;
-        write!(
+        writeln!(f, "Total Number of VM Cycles: {}\n", total_vm_cycles)?;
+        writeln!(f, "Total Number of NOOPs executed: {}\n", total_noops)?;
+        writeln!(
             f,
-            "{0: <20} | {1: <20} | {2: <20} | {3: <20}\n",
+            "{0: <20} | {1: <20} | {2: <20} | {3: <20}",
             "AsmOp", "Frequency", "Total Cycles", "Avg Instruction Cycles"
         )?;
         for op_info in asm_op_stats {
-            write!(
+            writeln!(
                 f,
-                "{0: <20} | {1: <20} | {2: <20} | {3: <20.2}\n",
+                "{0: <20} | {1: <20} | {2: <20} | {3: <20.2}",
                 op_info.op(),
                 op_info.frequency(),
                 op_info.total_vm_cycles(),
@@ -203,7 +206,7 @@ impl AsmOpStats {
         self.frequency
     }
 
-    /// Returns the combined vm cycles all occurences of this AsmOp take.
+    /// Returns the combined vm cycles all occurrences of this AsmOp take.
     pub fn total_vm_cycles(&self) -> usize {
         self.total_vm_cycles
     }
