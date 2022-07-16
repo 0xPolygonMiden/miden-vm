@@ -1,6 +1,6 @@
 use super::{
     super::validate_operation, parse_decimal_param, parse_element_param, parse_hex_param,
-    parse_int_param, push_value, AssemblyError, Felt, Operation, Token, Vec,
+    parse_u32_param, push_value, AssemblyError, Felt, Operation, Token, Vec,
 };
 use vm_core::{AdviceInjector, Decorator, DecoratorList};
 

@@ -158,27 +158,27 @@ proc.columnar_mixing.1
 
     movup.8
     dup.5
-    u32add3.unsafe
+    u32unchecked_add3
     drop
 
     swap
     movup.8
     dup.6
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     swap
 
     movup.2
     dup.6
     movup.9
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.2
 
     movup.3
     dup.7
     movup.9
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.3
 
@@ -211,24 +211,24 @@ proc.columnar_mixing.1
     pushw.mem
 
     dup.4
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     swap
     dup.5
-    u32add.unsafe
+    u32overflowing_add
     drop
     swap
 
     movup.2
     dup.6
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.2
 
     movup.3
     dup.7
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.3
 
@@ -262,27 +262,27 @@ proc.columnar_mixing.1
 
     movup.4
     dup.8
-    u32add3.unsafe
+    u32unchecked_add3
     drop
 
     swap
     movup.4
     dup.8
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     swap
 
     movup.2
     movup.4
     dup.8
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.2
 
     movup.3
     movup.4
     dup.8
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.3
 
@@ -313,24 +313,24 @@ proc.columnar_mixing.1
     movupw.3
 
     dup.4
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     swap
     dup.5
-    u32add.unsafe
+    u32overflowing_add
     drop
     swap
 
     movup.2
     dup.6
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.2
 
     movup.3
     dup.7
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.3
 
@@ -398,27 +398,27 @@ proc.diagonal_mixing.1
 
     movup.8
     dup.6
-    u32add3.unsafe
+    u32unchecked_add3
     drop
 
     swap
     movup.8
     dup.7
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     swap
 
     movup.2
     movup.8
     dup.8
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.2
 
     movup.3
     movup.8
     dup.5
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.3
 
@@ -452,23 +452,23 @@ proc.diagonal_mixing.1
 
     movup.2
     dup.7
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.2
 
     movup.3
     dup.4
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.3
 
     dup.5
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     swap
     dup.6
-    u32add.unsafe
+    u32overflowing_add
     drop
     swap
 
@@ -502,27 +502,27 @@ proc.diagonal_mixing.1
 
     movup.4
     dup.9
-    u32add3.unsafe
+    u32unchecked_add3
     drop
 
     swap
     movup.4
     dup.9
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     swap
 
     movup.2
     movup.4
     dup.9
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.2
 
     movup.3
     movup.4
     dup.5
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.3
 
@@ -554,23 +554,23 @@ proc.diagonal_mixing.1
 
     movup.2
     dup.7
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.2
 
     movup.3
     dup.4
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.3
 
     dup.5
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     swap
     dup.6
-    u32add.unsafe
+    u32overflowing_add
     drop
     swap
 

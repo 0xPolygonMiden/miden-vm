@@ -166,27 +166,27 @@ proc.columnar_mixing.1
 
     movup.8
     dup.5
-    u32add3.unsafe
+    u32unchecked_add3
     drop
 
     swap
     movup.8
     dup.6
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     swap
 
     movup.2
     dup.6
     movup.9
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.2
 
     movup.3
     dup.7
     movup.9
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.3
 
@@ -219,24 +219,24 @@ proc.columnar_mixing.1
     pushw.mem
 
     dup.4
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     swap
     dup.5
-    u32add.unsafe
+    u32overflowing_add
     drop
     swap
 
     movup.2
     dup.6
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.2
 
     movup.3
     dup.7
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.3
 
@@ -270,27 +270,27 @@ proc.columnar_mixing.1
 
     movup.4
     dup.8
-    u32add3.unsafe
+    u32unchecked_add3
     drop
 
     swap
     movup.4
     dup.8
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     swap
 
     movup.2
     movup.4
     dup.8
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.2
 
     movup.3
     movup.4
     dup.8
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.3
 
@@ -321,24 +321,24 @@ proc.columnar_mixing.1
     movupw.3
 
     dup.4
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     swap
     dup.5
-    u32add.unsafe
+    u32overflowing_add
     drop
     swap
 
     movup.2
     dup.6
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.2
 
     movup.3
     dup.7
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.3
 
@@ -406,27 +406,27 @@ proc.diagonal_mixing.1
 
     movup.8
     dup.6
-    u32add3.unsafe
+    u32unchecked_add3
     drop
 
     swap
     movup.8
     dup.7
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     swap
 
     movup.2
     movup.8
     dup.8
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.2
 
     movup.3
     movup.8
     dup.5
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.3
 
@@ -460,23 +460,23 @@ proc.diagonal_mixing.1
 
     movup.2
     dup.7
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.2
 
     movup.3
     dup.4
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.3
 
     dup.5
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     swap
     dup.6
-    u32add.unsafe
+    u32overflowing_add
     drop
     swap
 
@@ -510,27 +510,27 @@ proc.diagonal_mixing.1
 
     movup.4
     dup.9
-    u32add3.unsafe
+    u32unchecked_add3
     drop
 
     swap
     movup.4
     dup.9
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     swap
 
     movup.2
     movup.4
     dup.9
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.2
 
     movup.3
     movup.4
     dup.5
-    u32add3.unsafe
+    u32unchecked_add3
     drop
     movdn.3
 
@@ -562,23 +562,23 @@ proc.diagonal_mixing.1
 
     movup.2
     dup.7
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.2
 
     movup.3
     dup.4
-    u32add.unsafe
+    u32overflowing_add
     drop
     movdn.3
 
     dup.5
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     swap
     dup.6
-    u32add.unsafe
+    u32overflowing_add
     drop
     swap
 
@@ -6158,17 +6158,17 @@ proc.gen_four_message_words.1
     exec.small_sigma_1
 
     dup.2
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dup.10
     exec.small_sigma_0
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dup.9
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     # compute message schedule msg[a + 1]
@@ -6176,17 +6176,17 @@ proc.gen_four_message_words.1
     exec.small_sigma_1
 
     dup.4
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dup.12
     exec.small_sigma_0
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dup.11
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     # compute message schedule msg[a + 2]
@@ -6194,17 +6194,17 @@ proc.gen_four_message_words.1
     exec.small_sigma_1
 
     dup.6
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dup.14
     exec.small_sigma_0
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dup.13
-    u32add.unsafe
+    u32overflowing_add
     drop
     
     # compute message schedule msg[a + 3]
@@ -6212,7 +6212,7 @@ proc.gen_four_message_words.1
     exec.small_sigma_1
 
     dup.8
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     popw.local.0
@@ -6221,13 +6221,13 @@ proc.gen_four_message_words.1
     exec.small_sigma_0
 
     dup.12
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
     movup.4
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     # stack = [a + 3, a + 2, a + 1, a + 0, ...]
@@ -6507,42 +6507,42 @@ proc.update_hash_state
 
     movup.15
     movup.8
-    u32add.unsafe
+    u32overflowing_add
     drop                # = h
 
     movup.14
     movup.8
-    u32add.unsafe
+    u32overflowing_add
     drop                # = g
 
     movup.13
     movup.8
-    u32add.unsafe
+    u32overflowing_add
     drop                # = f
 
     movup.12
     movup.8
-    u32add.unsafe
+    u32overflowing_add
     drop                # = e
 
     movup.11
     movup.8
-    u32add.unsafe
+    u32overflowing_add
     drop                # = d
 
     movup.10
     movup.8
-    u32add.unsafe
+    u32overflowing_add
     drop                # = c
 
     movup.9
     movup.8
-    u32add.unsafe
+    u32overflowing_add
     drop                # = b
 
     movup.8
     movup.8
-    u32add.unsafe
+    u32overflowing_add
     drop                # = a
 
     # stack = [a, b, c, d, e, f, g, h]
@@ -6557,14 +6557,14 @@ proc.compute_next_working_variables
     movup.8             # = f
     dup.4
     movup.9
-    u32add.unsafe
+    u32overflowing_add
     drop                # = e 
     movup.8             # = d
     movup.8             # = c
     movup.8             # = b
     movup.8
     movup.8
-    u32add.unsafe
+    u32overflowing_add
     drop                # = a
     movup.8
     drop
@@ -6586,14 +6586,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x428a2f98
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -6607,7 +6607,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -6615,7 +6615,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -6624,14 +6624,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x71374491
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -6646,7 +6646,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -6654,7 +6654,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -6663,14 +6663,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xb5c0fbcf
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -6684,7 +6684,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -6692,7 +6692,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -6701,14 +6701,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xe9b5dba5
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -6721,7 +6721,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -6729,7 +6729,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -6738,14 +6738,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x3956c25b
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -6760,7 +6760,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -6768,7 +6768,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -6777,14 +6777,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x59f111f1
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -6800,7 +6800,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -6808,7 +6808,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -6817,14 +6817,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x923f82a4
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -6839,7 +6839,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -6847,7 +6847,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -6856,14 +6856,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xab1c5ed5
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -6877,7 +6877,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -6885,7 +6885,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -6894,14 +6894,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xd807aa98
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -6915,7 +6915,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -6923,7 +6923,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -6932,14 +6932,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x12835b01
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -6954,7 +6954,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -6962,7 +6962,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -6971,14 +6971,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x243185be
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -6992,7 +6992,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7000,7 +7000,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7009,14 +7009,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x550c7dc3
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -7029,7 +7029,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7037,7 +7037,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7046,14 +7046,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x72be5d74
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -7066,7 +7066,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7074,7 +7074,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7083,14 +7083,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x80deb1fe
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -7104,7 +7104,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7112,7 +7112,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7121,14 +7121,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x9bdc06a7
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -7141,7 +7141,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7149,7 +7149,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7158,14 +7158,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xc19bf174
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.0
@@ -7177,7 +7177,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7185,7 +7185,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7194,14 +7194,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xe49b69c1
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7215,7 +7215,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7223,7 +7223,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7232,14 +7232,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xefbe4786
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7254,7 +7254,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7262,7 +7262,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7271,14 +7271,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x0fc19dc6
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7292,7 +7292,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7300,7 +7300,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7309,14 +7309,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x240ca1cc
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7329,7 +7329,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7337,7 +7337,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7346,14 +7346,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x2de92c6f
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7368,7 +7368,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7376,7 +7376,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7385,14 +7385,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x4a7484aa
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7408,7 +7408,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7416,7 +7416,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7425,14 +7425,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x5cb0a9dc
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7447,7 +7447,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7455,7 +7455,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7464,14 +7464,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x76f988da
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7485,7 +7485,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7493,7 +7493,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7502,14 +7502,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x983e5152
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7523,7 +7523,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7531,7 +7531,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7540,14 +7540,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xa831c66d
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7562,7 +7562,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7570,7 +7570,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7579,14 +7579,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xb00327c8
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7600,7 +7600,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7608,7 +7608,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7617,14 +7617,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xbf597fc7
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7637,7 +7637,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7645,7 +7645,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7654,14 +7654,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xc6e00bf3
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7674,7 +7674,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7682,7 +7682,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7691,14 +7691,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xd5a79147
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7712,7 +7712,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7720,7 +7720,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7729,14 +7729,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x06ca6351
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7749,7 +7749,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7757,7 +7757,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7766,14 +7766,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x14292967
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.1
@@ -7785,7 +7785,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7793,7 +7793,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7802,14 +7802,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x27b70a85
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -7823,7 +7823,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7831,7 +7831,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7840,14 +7840,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x2e1b2138
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -7862,7 +7862,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7870,7 +7870,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7879,14 +7879,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x4d2c6dfc
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -7900,7 +7900,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7908,7 +7908,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7917,14 +7917,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x53380d13
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -7937,7 +7937,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7945,7 +7945,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7954,14 +7954,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x650a7354
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -7976,7 +7976,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -7984,7 +7984,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -7993,14 +7993,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x766a0abb
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -8016,7 +8016,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8024,7 +8024,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8033,14 +8033,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x81c2c92e
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -8055,7 +8055,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8063,7 +8063,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8072,14 +8072,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x92722c85
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -8093,7 +8093,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8101,7 +8101,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8110,14 +8110,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xa2bfe8a1
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -8131,7 +8131,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8139,7 +8139,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8148,14 +8148,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xa81a664b
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -8170,7 +8170,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8178,7 +8178,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8187,14 +8187,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xc24b8b70
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -8208,7 +8208,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8216,7 +8216,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8225,14 +8225,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xc76c51a3
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -8245,7 +8245,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8253,7 +8253,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8262,14 +8262,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xd192e819
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -8282,7 +8282,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8290,7 +8290,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8299,14 +8299,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xd6990624
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -8320,7 +8320,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8328,7 +8328,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8337,14 +8337,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xf40e3585
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -8357,7 +8357,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8365,7 +8365,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8374,14 +8374,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x106aa070
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.2
@@ -8393,7 +8393,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8401,7 +8401,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8410,14 +8410,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x19a4c116
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8431,7 +8431,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8439,7 +8439,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8448,14 +8448,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x1e376c08
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8470,7 +8470,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8478,7 +8478,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8487,14 +8487,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x2748774c
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8508,7 +8508,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8516,7 +8516,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8525,14 +8525,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x34b0bcb5
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8545,7 +8545,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8553,7 +8553,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8562,14 +8562,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x391c0cb3
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8584,7 +8584,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8592,7 +8592,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8601,14 +8601,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x4ed8aa4a
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8624,7 +8624,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8632,7 +8632,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8641,14 +8641,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x5b9cca4f
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8663,7 +8663,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8671,7 +8671,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8680,14 +8680,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x682e6ff3
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8701,7 +8701,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8709,7 +8709,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8718,14 +8718,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x748f82ee
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8739,7 +8739,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8747,7 +8747,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8756,14 +8756,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x78a5636f
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8778,7 +8778,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8786,7 +8786,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8795,14 +8795,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x84c87814
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8816,7 +8816,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8824,7 +8824,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8833,14 +8833,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x8cc70208
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8853,7 +8853,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8861,7 +8861,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8870,14 +8870,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0x90befffa
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8890,7 +8890,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8898,7 +8898,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8907,14 +8907,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xa4506ceb
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8928,7 +8928,7 @@ proc.mix.4
         drop
     end
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8936,7 +8936,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8945,14 +8945,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xbef9a3f7
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -8965,7 +8965,7 @@ proc.mix.4
     swap
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -8973,7 +8973,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -8982,14 +8982,14 @@ proc.mix.4
 
     dupw.1
     exec.ch
-    u32add.unsafe
+    u32overflowing_add
     drop
     dup.5
     exec.cap_sigma_1
-    u32add.unsafe
+    u32overflowing_add
     drop
     push.0xc67178f2
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     pushw.local.3
@@ -9001,7 +9001,7 @@ proc.mix.4
     drop
     drop
 
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     dupw
@@ -9009,7 +9009,7 @@ proc.mix.4
     exec.maj
     dup.2
     exec.cap_sigma_0
-    u32add.unsafe
+    u32overflowing_add
     drop
 
     exec.compute_next_working_variables
@@ -9142,31 +9142,31 @@ end
     swapw.3
     movup.3
     movup.7
-    u32add.unsafe
+    u32overflowing_add
     movup.4
     movup.7
-    u32add3.unsafe
+    u32unchecked_add3
     movup.4
     movup.6
-    u32add3.unsafe
+    u32unchecked_add3
     movup.4
     movup.5
-    u32add3.unsafe
+    u32unchecked_add3
     movdn.12
     swapw.2
     movup.12
     movup.4
     movup.8
-    u32add3.unsafe
+    u32unchecked_add3
     movup.4
     movup.7
-    u32add3.unsafe
+    u32unchecked_add3
     movup.4
     movup.6
-    u32add3.unsafe
+    u32unchecked_add3
     movup.4
     movup.5
-    u32add3.unsafe
+    u32unchecked_add3
     drop
 end
 
@@ -9174,58 +9174,58 @@ export.sub_unsafe
     swapw.3
     movup.3
     movup.7
-    u32sub.unsafe
+    u32overflowing_sub
     movup.7
-    u32add.unsafe
+    u32overflowing_add
     movup.5
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     add
     movup.6
-    u32add.unsafe
+    u32overflowing_add
     movup.5
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     add
     movup.5
-    u32add.unsafe
+    u32overflowing_add
     movup.5
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     add
     movdn.12
     swapw.2
     movup.12
     movup.4
-    u32add.unsafe
+    u32overflowing_add
     movup.8
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     add
     movup.4
-    u32add.unsafe
+    u32overflowing_add
     movup.7
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     add
     movup.4
-    u32add.unsafe
+    u32overflowing_add
     movup.6
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     add
     movup.5
     movup.5
     movup.2
-    u32add.unsafe
+    u32overflowing_add
     drop
-    u32sub.unsafe
+    u32overflowing_sub
     drop
 end
 
@@ -9343,9 +9343,9 @@ end
 
 proc.mulstep
     movdn.2
-    u32madd.unsafe
+    u32unchecked_madd
     movdn.2
-    u32add.unsafe
+    u32overflowing_add
     movup.2
     add
 end
@@ -9703,10 +9703,10 @@ end
 export.overflowing_add
     swap
     movup.3
-    u32add.unsafe
+    u32overflowing_add
     movup.3
     movup.3
-    u32add3.unsafe
+    u32unchecked_add3
 end
 
 # Performs addition of two unsigned 64 bit integers discarding the overflow.
@@ -9738,13 +9738,13 @@ end
 export.wrapping_sub
     movup.3
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.3
     movup.3
-    u32sub.unsafe
+    u32overflowing_sub
     drop
     swap
-    u32sub.unsafe
+    u32overflowing_sub
     drop
 end
 
@@ -9756,14 +9756,14 @@ export.checked_sub
     exec.u32assert4
     movup.3
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.3
     movup.3
-    u32sub.unsafe
+    u32overflowing_sub
     eq.0
     assert
     swap
-    u32sub.unsafe
+    u32overflowing_sub
     eq.0
     assert
 end
@@ -9775,13 +9775,13 @@ end
 export.overflowing_sub
     movup.3
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.3
     movup.3
-    u32sub.unsafe
+    u32overflowing_sub
     swap
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     or
 end
@@ -9795,14 +9795,14 @@ end
 export.wrapping_mul
     dup.3
     dup.2
-    u32mul.unsafe
+    u32overflowing_mul
     movup.4
     movup.4
-    u32madd.unsafe
+    u32unchecked_madd
     drop
     movup.3
     movup.3
-    u32madd.unsafe
+    u32unchecked_madd
     drop
 end
 
@@ -9814,20 +9814,20 @@ end
 export.overflowing_mul
     dup.3
     dup.2
-    u32mul.unsafe
+    u32overflowing_mul
     dup.4
     movup.4
-    u32madd.unsafe
+    u32unchecked_madd
     swap
     movup.5
     dup.4
-    u32madd.unsafe
+    u32unchecked_madd
     movup.5
     movup.5
-    u32madd.unsafe
+    u32unchecked_madd
     movup.3
     movup.2
-    u32add.unsafe
+    u32overflowing_add
     movup.2
     add
 end
@@ -9853,10 +9853,10 @@ end
 export.unchecked_lt
     movup.3
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movdn.3
     drop
-    u32sub.unsafe
+    u32overflowing_sub
     swap
     eq.0
     movup.2
@@ -9880,10 +9880,10 @@ end
 # This takes 11 cycles.
 export.unchecked_gt
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     movup.3
-    u32sub.unsafe
+    u32overflowing_sub
     swap
     drop
     movup.2
@@ -10074,15 +10074,15 @@ export.unchecked_div
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
     dup.2               # fits into 2 32-bit limbs
-    u32mul.unsafe
+    u32overflowing_mul
     dup.4
     dup.4
-    u32madd.unsafe
+    u32unchecked_madd
     eq.0
     assert
     dup.5
     dup.3
-    u32madd.unsafe
+    u32unchecked_madd
     eq.0
     assert
     dup.4
@@ -10105,10 +10105,10 @@ export.unchecked_div
 
     swap                # add remainder to the previous result; this also consumes the remainder
     movup.3
-    u32add.unsafe
+    u32overflowing_add
     movup.3
     movup.3
-    u32add3.unsafe
+    u32unchecked_add3
     eq.0
     assert
 
@@ -10143,15 +10143,15 @@ export.unchecked_mod
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
     dup.2               # fits into 2 32-bit limbs
-    u32mul.unsafe
+    u32overflowing_mul
     dup.4
     movup.4
-    u32madd.unsafe
+    u32unchecked_madd
     eq.0
     assert
     dup.4
     dup.3
-    u32madd.unsafe
+    u32unchecked_madd
     eq.0
     assert
     dup.3
@@ -10174,10 +10174,10 @@ export.unchecked_mod
 
     dup.1               # add remainder to the previous result
     movup.4
-    u32add.unsafe
+    u32overflowing_add
     movup.4
     dup.3
-    u32add3.unsafe
+    u32unchecked_add3
     eq.0
     assert
 
@@ -10212,15 +10212,15 @@ export.unchecked_divmod
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
     dup.2               # fits into 2 32-bit limbs
-    u32mul.unsafe
+    u32overflowing_mul
     dup.4
     dup.4
-    u32madd.unsafe
+    u32unchecked_madd
     eq.0
     assert
     dup.5
     dup.3
-    u32madd.unsafe
+    u32unchecked_madd
     eq.0
     assert
     dup.4
@@ -10243,10 +10243,10 @@ export.unchecked_divmod
 
     dup.1               # add remainder to the previous result
     movup.4
-    u32add.unsafe
+    u32overflowing_add
     movup.4
     dup.3
-    u32add3.unsafe
+    u32unchecked_add3
     eq.0
     assert
 
@@ -10267,10 +10267,10 @@ end
 
 # ===== BITWISE OPERATIONS ========================================================================
 
-# Performs divmod operation of two unsigned 64 bit integers.
+# Performs bitwise AND of two unsigned 64-bit integers.
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked.
 # Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [r_hi, r_lo, q_hi, q_lo ...], where r = a % b, q = a / b
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a AND b.
 export.checked_and
     swap
     movup.3
@@ -10338,7 +10338,7 @@ export.unchecked_shr
     movup.3
     dup
     eq.0
-    u32sub.unsafe
+    u32overflowing_sub
     not
     movdn.4
     dup
@@ -10412,7 +10412,7 @@ end
 export.unchecked_rotl
     push.31
     dup.1
-    u32sub.unsafe
+    u32overflowing_sub
     swap
     drop
     movdn.3
@@ -10423,12 +10423,12 @@ export.unchecked_rotl
     pow2.unsafe
     dup
     movup.3
-    u32mul.unsafe
+    u32overflowing_mul
 
     # Shift the high limb.
     movup.3
     movup.3
-    u32madd.unsafe
+    u32unchecked_madd
 
     # Carry the overflow shift to the low bits.
     movup.2
@@ -10449,7 +10449,7 @@ end
 export.unchecked_rotr
     push.31
     dup.1
-    u32sub.unsafe
+    u32overflowing_sub
     swap
     drop
     movdn.3
@@ -10459,17 +10459,17 @@ export.unchecked_rotr
     u32and
     push.32
     swap
-    u32sub.unsafe
+    u32overflowing_sub
     drop
     pow2.unsafe
     dup
     movup.3
-    u32mul.unsafe
+    u32overflowing_mul
 
     # Shift the high limb left by 32-b.
     movup.3
     movup.3
-    u32madd.unsafe
+    u32unchecked_madd
 
     # Carry the overflow shift to the low bits.
     movup.2
@@ -10483,10 +10483,11 @@ export.unchecked_rotr
 end
 "),
 // ----- std::sys ---------------------------------------------------------------------------------
-("std::sys", "# Clears the stack overflow table and ensures the stack top remains unchanged
-# Input: Stack top with 16 elements + overflow table with greater than or equal to 0 number of elements.
-# Output: Stack top with original 16 elements
-export.finalize_stack.16
+("std::sys", "# Removes elements deep in the stack until the depth of the stack is exactly 16. The elements
+# are removed in such a way that the top 16 elements of the stack remain unchanged.
+# Input: Stack with 16 or more elements.
+# Output: Stack with only the original top 16 elements.
+export.finalize_stack.4
     popw.local.0
     popw.local.1
     popw.local.2

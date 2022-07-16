@@ -8,7 +8,7 @@ pub mod memory;
 
 /// The number of columns in the auxiliary table which are used as selectors for the hasher segment.
 pub const NUM_HASHER_SELECTORS: usize = 1;
-/// The number of columns in the aux table which are used as selectors for the bitwise/pow2 segment.
+/// The number of columns in the aux table which are used as selectors for the bitwise segment.
 pub const NUM_BITWISE_SELECTORS: usize = 2;
 /// The number of columns in the auxiliary table which are used as selectors for the memory segment.
 pub const NUM_MEMORY_SELECTORS: usize = 3;

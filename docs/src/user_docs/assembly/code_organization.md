@@ -51,12 +51,12 @@ begin
 end
 ```
 
+In addition to local procedures defined within a script, Miden assembly programs can invoke procedures defined in the standard library as described [here](../stdlib/main.md).
+
 ### Comments
-Miden assembly allows annotating code with simple comments. The comments must be placed between two `#` (pound) characters which must be surrounded by whitespace on both sides. For example:
+Miden assembly allows annotating code with simple comments. Currently, the only supported type of comments is a single-line comment which starts with a `#` (pound) character. For example:
 ```
-# this is a comment #
+# this is a comment
 ```
-Using a pound character within a comment is not allowed.
 
 When Miden assembly is serialized into binary format, comments are not retained.
-
