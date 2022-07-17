@@ -219,25 +219,21 @@ proc.columnar_mixing.1
     pushw.mem
 
     dup.4
-    u32overflowing_add
-    drop
+    u32wrapping_add
 
     swap
     dup.5
-    u32overflowing_add
-    drop
+    u32wrapping_add
     swap
 
     movup.2
     dup.6
-    u32overflowing_add
-    drop
+    u32wrapping_add
     movdn.2
 
     movup.3
     dup.7
-    u32overflowing_add
-    drop
+    u32wrapping_add
     movdn.3
 
     movupw.3
@@ -321,25 +317,21 @@ proc.columnar_mixing.1
     movupw.3
 
     dup.4
-    u32overflowing_add
-    drop
+    u32wrapping_add
 
     swap
     dup.5
-    u32overflowing_add
-    drop
+    u32wrapping_add
     swap
 
     movup.2
     dup.6
-    u32overflowing_add
-    drop
+    u32wrapping_add
     movdn.2
 
     movup.3
     dup.7
-    u32overflowing_add
-    drop
+    u32wrapping_add
     movdn.3
 
     movupw.3
@@ -460,24 +452,20 @@ proc.diagonal_mixing.1
 
     movup.2
     dup.7
-    u32overflowing_add
-    drop
+    u32wrapping_add
     movdn.2
 
     movup.3
     dup.4
-    u32overflowing_add
-    drop
+    u32wrapping_add
     movdn.3
 
     dup.5
-    u32overflowing_add
-    drop
+    u32wrapping_add
 
     swap
     dup.6
-    u32overflowing_add
-    drop
+    u32wrapping_add
     swap
 
     movupw.3
@@ -562,24 +550,20 @@ proc.diagonal_mixing.1
 
     movup.2
     dup.7
-    u32overflowing_add
-    drop
+    u32wrapping_add
     movdn.2
 
     movup.3
     dup.4
-    u32overflowing_add
-    drop
+    u32wrapping_add
     movdn.3
 
     dup.5
-    u32overflowing_add
-    drop
+    u32wrapping_add
 
     swap
     dup.6
-    u32overflowing_add
-    drop
+    u32wrapping_add
     swap
 
     movupw.3
