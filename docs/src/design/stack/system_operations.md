@@ -5,6 +5,8 @@ In this section we describe the AIR constraint for Miden VM system operations.
 
 `NOOP` advances the cycle counter but doesn't change the state of the user stack. 
 
+The `NOOP` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of this operation is 1.
+
 ## ASSERT
 
 Assume $a$ is the top element in the stack. `ASSERT` operation pops $a$ and asserts that it is equal to 1. 

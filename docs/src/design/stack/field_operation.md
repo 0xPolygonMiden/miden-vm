@@ -169,7 +169,7 @@ Assume $A$ and $B$ are top two words in the stack(a word is made up of 4 field e
 
 ![eqw](../../assets/design/stack/field_operations/EQW.png)
 
-To facilitate this operation, the prover needs to provide one non-deterministic ‘helper’ values $h_0, h_1, h_2, h_3$ such that:
+To facilitate this operation, the prover needs to provide four non-deterministic ‘helper’ values $h_0, h_1, h_2, h_3$ such that:
 
 > $$
 \sum_{i=0}^3 s_0' \cdot (s_i - s_{i+4}) = 0 \text{ | degree } = 2\\

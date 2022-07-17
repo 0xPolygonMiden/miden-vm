@@ -86,6 +86,10 @@ v_p = \sum_{j=0}^3\alpha_{j + 4} \cdot h_j \\
 $$
 
 $$
+v_n = \sum_{i=0}^3 \alpha_{i+4} \cdot s_{i+2} \\
+$$
+
+$$
 v_m = \sum_{i=0}^3 \alpha_{i+3} \cdot s_{i+2}' \\
 $$
 
@@ -97,15 +101,18 @@ In the above:
 - The $11$ & $1$ in the permutation check are the unique identifier of hasher `MP_VERIFY` & `RETURN_HASH` operations which have been explained [here](../stack/unique_identifier.md#identifiers).
 - $v_{i}$ is a _common header_ which is a combination of unique identifier of `MP_VERIFY`, row address of execution trace when the computation of building merkle root starts for the node value, and node index.
 - $v_{o}$ is a _common header_ which is a combination of unique identifier of `RETURN_HASH` and row address of the trace when the computation ends.
-- $v_p$, is the component of the first element of the path.
+- $v_p$, is the component of the first element of the path or the `sibling` of the input node.
+- $v_n$, is the component of the input node.
 - $v_m$, is the component of the output root from the hasher processor.
 
 Using the above values, we can describe constraints for updating column $b_{aux}'$ which is a running product column of auxiliary table as follows:
 
 > $$
-b_{aux}' \cdot \left(v_{input} + v_{i}\right) \cdot \left(v_{output} + v_{o}\right) = b_{aux} \text{ | degree } = 3\\
+b_{aux}' \cdot \left(v_{i} + (1-b) \cdot v_{n} + b \cdot v_{p}\right) \cdot \left(v_{m} + v_{o}\right) = b_{aux} \text{ | degree } = 3\\
 s_i' - s_{i+4}' = 0 \space where \space i \in \{2, 3, 4, 5\} \text{ | degree } = 1
 $$
+
+where $b$ is the least significant bit of the node index sent to the hasher co-processor which fixes the location of node and the its sibling in the hasher state.
 
 The `MPVERIFY` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of the above operation is $3$.
 
@@ -152,12 +159,29 @@ v_p = \sum_{j=0}^3\alpha_{j + 4} \cdot h_j \\
 $$
 
 $$
+v_x = \sum_{i=0}^3 \alpha_{i+3} \cdot s_{i+2} \\
+$$
+
+$$
+v_y = \sum_{i=0}^3 \alpha_{i+3} \cdot s_{i+6} \\
+$$
+
+$$
 v_o = \sum_{i=0}^3 \alpha_{i+3} \cdot s_{i+2}' \\
 $$
 
 $$
 v_m = \sum_{i=0}^3 \alpha_{i+3} \cdot s_{i+6}' \\
 $$
+
+$$
+v_{leafold} = v_{io} + (1-b) \cdot v_x + b \cdot v_p \\
+$$
+
+$$
+v_{leafnew} = v_{io} + (1-b) \cdot v_y + b \cdot v_p \\
+$$
+
 
 In the above:
 
@@ -170,15 +194,22 @@ In the above:
 - $v_{oo}$ is a _common header_ which is a combination of unique identifier of `RETURN_HASH` and row address of the trace when the merkle root building ends for the old node value.
 - $v_{in}$ is a _common header_ which is a combination of unique identifier of `MR_UPDATE_NEW`, row address of the trace when the merkle root building starts for the new node value, and node index.
 - $v_{on}$ is a _common header_ which is a combination of unique identifier of `RETURN_HASH` and row address row address of the trace when the merkle root building ends for the old node value.
-- $v_p$, is the component of the first element of the path.
+- $v_p$, is the component of the first element of the path or the sibling of the input node.
+- $v_x$, is the component of the old input node.
+- $v_y$, is the component of the new input node.
 - $v_o$, is the component of the output root for the old node value from the hasher processor.
 - $v_m$, is the component of the output root for the new node value from the hasher processor.
+- $v_{leafold}$, is the leaf based on the value of b when starting a merkle path computation for the old node.
+- $v_{leafnew}$, is the leaf based on the value of b when starting a merkle path computation for the new node.
 
 Using the above values, we can describe constraints for updating column $b_{aux}'$ which is a running product column of auxiliary table as follows:
 
 > $$
-b_{aux}' \cdot \left( v_{io} + v_p \right) \cdot \left( v_{oo} + v_o \right) \cdot \left( v_{in} + v_p \right) \cdot \left( v_{on} + v_m\right) = b_{aux} \text{ | degree } = 5\\
+b_{aux}' \cdot \left( v_{leafold} ) \cdot ( v_{oo} + v_o ) \\
+\cdot ( v_{leafnew} ) \cdot ( v_{on} + v_m \right) = b_{aux} \text{ | degree } = 5\\
 s_i' - s_{i+8}' = 0 \space where \space i \in \{2, 3, 4, 5\} \text{ | degree } = 1
-$$ 
+$$
+
+where $b$ is the least significant bit of the node index sent to the hasher co-processor which fixes the location of node and the its sibling in the hasher state. 
 
 The `MRUPDATE` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of the above operation is $5$.
