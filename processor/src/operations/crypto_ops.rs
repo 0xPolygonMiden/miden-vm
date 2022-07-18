@@ -29,7 +29,7 @@ impl Process {
             self.stack.get(0),
         ];
 
-        let (_addr, output_state) = self.hasher.permute(input_state);
+        let (_addr, output_state) = self.chiplets.permute(input_state);
 
         for (i, &value) in output_state.iter().rev().enumerate() {
             self.stack.set(i, value);
@@ -84,7 +84,7 @@ impl Process {
         let path = self.advice.get_merkle_path(provided_root, depth, index)?;
 
         // use hasher to compute the Merkle root of the path
-        let (_addr, computed_root) = self.hasher.build_merkle_root(node, &path, index);
+        let (_addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);
 
         // this can happen only if the advice provider returns a Merkle path inconsistent with
         // the specified root. in general, programs using this operations should check that the
@@ -172,7 +172,7 @@ impl Process {
 
         // use hasher to update the Merkle root
         let (_addr, computed_old_root, new_root) = self
-            .hasher
+            .chiplets
             .update_merkle_root(old_node, new_node, &path, index);
 
         // this can happen only if the advice provider returns a Merkle path inconsistent with

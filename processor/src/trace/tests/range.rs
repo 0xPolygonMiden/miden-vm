@@ -182,7 +182,7 @@ fn p1_trace_mem() {
 
     assert_eq!(trace.length(), p1.len());
 
-    // The memory section of the aux table trace starts after the span hash.
+    // The memory section of the chiplets trace starts after the span hash.
     let memory_start = HASH_CYCLE_LEN;
     // 260 16-bit rows are needed for 0, 0, 4, ... 256 increments of 255 ..., 65535. (0 is
     // range-checked in 2 rows for a total of 3 lookups. Four is range checked in one row for a

@@ -1,5 +1,4 @@
-use super::{ExecutionError, Felt, Operation, Process, StarkField};
-use crate::memory::INIT_MEM_VALUE;
+use super::{ExecutionError, Felt, Operation, Process};
 
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
@@ -33,17 +32,13 @@ impl Process {
     pub(super) fn op_mloadw(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from memory
         let addr = self.stack.get(0);
-        let word = self.memory.read(addr);
+        let word = self.chiplets.read_mem(addr);
 
         // update the stack state
         for (i, &value) in word.iter().rev().enumerate() {
             self.stack.set(i, value);
         }
         self.stack.shift_left(5);
-
-        // send the memory read request to the aux table bus
-        self.aux_table_bus
-            .request_memory_operation(addr, self.system.clk(), word, word);
 
         Ok(())
     }
@@ -62,7 +57,7 @@ impl Process {
     pub(super) fn op_mload(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from memory
         let addr = self.stack.get(0);
-        let word = self.memory.read(addr);
+        let word = self.chiplets.read_mem(addr);
 
         // update the stack state
         self.stack.set(0, word[0]);
@@ -70,10 +65,6 @@ impl Process {
 
         self.decoder
             .set_user_op_helpers(Operation::MLoad, &word[1..]);
-
-        // send the memory read request to the aux table bus
-        self.aux_table_bus
-            .request_memory_operation(addr, self.system.clk(), word, word);
 
         Ok(())
     }
@@ -93,11 +84,6 @@ impl Process {
         // get the address from the stack and build the word to be saved from the stack values
         let addr = self.stack.get(0);
 
-        let old_word = self
-            .memory
-            .get_value(addr.as_int())
-            .unwrap_or(INIT_MEM_VALUE);
-
         let word = [
             self.stack.get(4),
             self.stack.get(3),
@@ -105,8 +91,8 @@ impl Process {
             self.stack.get(1),
         ];
 
-        // write the word to memory
-        self.memory.write(addr, word);
+        // write the word to memory and get the previous word
+        let old_word = self.chiplets.write_mem(addr, word);
 
         // update the stack state
         for (i, &value) in word.iter().rev().enumerate() {
@@ -116,10 +102,6 @@ impl Process {
 
         self.decoder
             .set_user_op_helpers(Operation::MStoreW, &old_word);
-
-        // send the memory write request to the aux table bus
-        self.aux_table_bus
-            .request_memory_operation(addr, self.system.clk(), old_word, word);
 
         Ok(())
     }
@@ -137,31 +119,18 @@ impl Process {
     /// The first 4 helper registers are filled with the values which were stored in memory before
     /// the operation.
     pub(super) fn op_mstore(&mut self) -> Result<(), ExecutionError> {
-        // get the address from the stack and build the word to be saved from the stack values
+        // get the address and the value from the stack
         let addr = self.stack.get(0);
+        let value = self.stack.get(1);
 
-        // get the word stored in the memory. If we did not access the memory return [0, 0, 0, 0]
-        // since initially the memory is initialized with zeros
-        let old_word = self
-            .memory
-            .get_value(addr.as_int())
-            .unwrap_or(INIT_MEM_VALUE);
+        // write the value to the memory and get the previous word
+        let old_word = self.chiplets.write_mem_single(addr, value);
 
         self.decoder
             .set_user_op_helpers(Operation::MStore, &old_word);
 
-        // store the value
-        let word = [self.stack.get(1), old_word[1], old_word[2], old_word[3]];
-
-        // write the word back to the memory
-        self.memory.write(addr, word);
-
         // update the stack state
         self.stack.shift_left(1);
-
-        // send the memory write request to the aux table bus
-        self.aux_table_bus
-            .request_memory_operation(addr, self.system.clk(), old_word, word);
 
         Ok(())
     }
@@ -259,7 +228,7 @@ mod tests {
     #[test]
     fn op_mstorew() {
         let mut process = Process::new_dummy_with_decoder_helpers();
-        assert_eq!(0, process.memory.size());
+        assert_eq!(0, process.chiplets.get_mem_size());
 
         // push the first word onto the stack and save it at address 0
         let word1 = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -270,8 +239,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(1, process.memory.size());
-        assert_eq!(word1, process.memory.get_value(0).unwrap());
+        assert_eq!(1, process.chiplets.get_mem_size());
+        assert_eq!(word1, process.chiplets.get_mem_value(0).unwrap());
 
         // push the second word onto the stack and save it at address 3
         let word2 = [2, 4, 6, 8].to_elements().try_into().unwrap();
@@ -282,9 +251,9 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(2, process.memory.size());
-        assert_eq!(word1, process.memory.get_value(0).unwrap());
-        assert_eq!(word2, process.memory.get_value(3).unwrap());
+        assert_eq!(2, process.chiplets.get_mem_size());
+        assert_eq!(word1, process.chiplets.get_mem_value(0).unwrap());
+        assert_eq!(word2, process.chiplets.get_mem_value(3).unwrap());
 
         // --- calling STOREW with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy_with_decoder_helpers();
@@ -294,7 +263,7 @@ mod tests {
     #[test]
     fn op_mloadw() {
         let mut process = Process::new_dummy_with_decoder_helpers();
-        assert_eq!(0, process.memory.size());
+        assert_eq!(0, process.chiplets.get_mem_size());
 
         // push a word onto the stack and save it at address 1
         let word = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -313,8 +282,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(1, process.memory.size());
-        assert_eq!(word, process.memory.get_value(1).unwrap());
+        assert_eq!(1, process.chiplets.get_mem_size());
+        assert_eq!(word, process.chiplets.get_mem_value(1).unwrap());
 
         // --- calling LOADW with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy_with_decoder_helpers();
@@ -324,7 +293,7 @@ mod tests {
     #[test]
     fn op_mload() {
         let mut process = Process::new_dummy_with_decoder_helpers();
-        assert_eq!(0, process.memory.size());
+        assert_eq!(0, process.chiplets.get_mem_size());
 
         // push a word onto the stack and save it at address 2
         let word = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -338,8 +307,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // check memory state
-        assert_eq!(1, process.memory.size());
-        assert_eq!(word, process.memory.get_value(2).unwrap());
+        assert_eq!(1, process.chiplets.get_mem_size());
+        assert_eq!(word, process.chiplets.get_mem_value(2).unwrap());
 
         // --- calling MLOAD with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy_with_decoder_helpers();
@@ -349,7 +318,7 @@ mod tests {
     #[test]
     fn op_mstore() {
         let mut process = Process::new_dummy_with_decoder_helpers();
-        assert_eq!(0, process.memory.size());
+        assert_eq!(0, process.chiplets.get_mem_size());
 
         // push new element onto the stack and save it as first element of the word on
         // uninitialized memory at address 0
@@ -362,8 +331,8 @@ mod tests {
 
         // check memory state
         let mem_0 = [element, ZERO, ZERO, ZERO];
-        assert_eq!(1, process.memory.size());
-        assert_eq!(mem_0, process.memory.get_value(0).unwrap());
+        assert_eq!(1, process.chiplets.get_mem_size());
+        assert_eq!(mem_0, process.chiplets.get_mem_value(0).unwrap());
 
         // push the word onto the stack and save it at address 2
         let word_2 = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -379,8 +348,8 @@ mod tests {
 
         // check memory state to make sure the other 3 elements were not affected
         let mem_2 = [element, Felt::new(3), Felt::new(5), Felt::new(7)];
-        assert_eq!(2, process.memory.size());
-        assert_eq!(mem_2, process.memory.get_value(2).unwrap());
+        assert_eq!(2, process.chiplets.get_mem_size());
+        assert_eq!(mem_2, process.chiplets.get_mem_value(2).unwrap());
 
         // --- calling MSTORE with a stack of minimum depth is ok ----------------
         let mut process = Process::new_dummy_with_decoder_helpers();

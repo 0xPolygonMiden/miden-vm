@@ -1,10 +1,9 @@
 use super::{
-    aux_table_bus::AuxTraceBuilder as AuxTableAuxTraceBuilder,
+    chiplets::{AuxTraceBuilder as ChipletsAuxTraceBuilder, HasherAuxTraceBuilder},
     decoder::AuxTraceHints as DecoderAuxTraceHints,
-    hasher::AuxTraceBuilder as HasherAuxTraceBuilder,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
-    stack::AuxTraceBuilder as StackAuxTraceBuilder, Digest, Felt, FieldElement, Process,
-    StackTopState, Vec,
+    stack::AuxTraceBuilder as StackAuxTraceBuilder,
+    Digest, Felt, FieldElement, Process, StackTopState, Vec,
 };
 use vm_core::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
@@ -43,7 +42,7 @@ pub struct AuxTraceHints {
     pub(crate) stack: StackAuxTraceBuilder,
     pub(crate) range: RangeCheckerAuxTraceBuilder,
     pub(crate) hasher: HasherAuxTraceBuilder,
-    pub(crate) aux_table: AuxTableAuxTraceBuilder,
+    pub(crate) chiplets: ChipletsAuxTraceBuilder,
 }
 
 /// Execution trace which is generated when a program is executed on the VM.
@@ -213,10 +212,10 @@ impl Trace for ExecutionTrace {
             .hasher
             .build_aux_columns(&self.main_trace, rand_elements);
 
-        // add aux table's running product columns
-        let aux_table_aux_columns = self
+        // add running product columns for the chiplets module
+        let chiplets_aux_columns = self
             .aux_trace_hints
-            .aux_table
+            .chiplets
             .build_aux_columns(&self.main_trace, rand_elements);
 
         // combine all auxiliary columns into a single vector
@@ -225,7 +224,7 @@ impl Trace for ExecutionTrace {
             .chain(stack_aux_columns)
             .chain(range_aux_columns)
             .chain(hasher_aux_columns)
-            .chain(aux_table_aux_columns)
+            .chain(chiplets_aux_columns)
             .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
@@ -259,7 +258,7 @@ impl Trace for ExecutionTrace {
 ///   are no repeating patterns in each column and each column contains a least two distinct
 ///   values. This, in turn, ensures that polynomial degrees of all columns are stable.
 fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, AuxTraceHints) {
-    let (system, decoder, stack, mut range, aux_table) = process.to_components();
+    let (system, decoder, stack, mut range, chiplets) = process.to_components();
 
     let clk = system.clk();
 
@@ -272,11 +271,11 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     );
     assert_eq!(clk, stack.trace_len(), "inconsistent stack trace lengths");
 
-    // Add the range checks required by the auxiliary table to the range checker.
-    aux_table.append_range_checks(&mut range);
+    // Add the range checks required by the chiplets to the range checker.
+    chiplets.append_range_checks(&mut range);
 
     // Get the trace length required to hold all execution trace steps.
-    let max_len = [clk, range.trace_len(), aux_table.trace_len()]
+    let max_len = [clk, range.trace_len(), chiplets.trace_len()]
         .into_iter()
         .max()
         .expect("failed to get max of component trace lengths");
@@ -296,14 +295,14 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     let decoder_trace = decoder.into_trace(trace_len, NUM_RAND_ROWS);
     let stack_trace = stack.into_trace(trace_len, NUM_RAND_ROWS);
     let range_check_trace = range.into_trace(trace_len, NUM_RAND_ROWS);
-    let aux_table_trace = aux_table.into_trace(trace_len, NUM_RAND_ROWS);
+    let chiplets_trace = chiplets.into_trace(trace_len, NUM_RAND_ROWS);
 
     let mut trace = system_trace
         .into_iter()
         .chain(decoder_trace.trace)
         .chain(stack_trace.trace)
         .chain(range_check_trace.trace)
-        .chain(aux_table_trace.trace)
+        .chain(chiplets_trace.trace)
         .collect::<Vec<_>>();
 
     // inject random values into the last rows of the trace
@@ -317,8 +316,8 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
         decoder: decoder_trace.aux_trace_hints,
         stack: stack_trace.aux_builder,
         range: range_check_trace.aux_builder,
-        hasher: aux_table_trace.hasher_aux_builder,
-        aux_table: aux_table_trace.aux_builder,
+        hasher: chiplets_trace.hasher_aux_builder,
+        chiplets: chiplets_trace.aux_builder,
     };
 
     (trace, aux_trace_hints)

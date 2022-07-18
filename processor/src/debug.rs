@@ -141,8 +141,8 @@ impl Iterator for VmStateIterator {
             stack: self.process.stack.get_state_at(self.clk),
             memory: self
                 .process
-                .memory
-                .get_values_at(0..=u64::MAX, self.clk as u64),
+                .chiplets
+                .get_mem_values_at(0..=u64::MAX, self.clk as u64),
         }));
 
         self.clk += 1;
