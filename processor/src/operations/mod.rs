@@ -171,6 +171,14 @@ impl Process {
         process.decoder.add_dummy_trace_row();
         process
     }
+
+    /// Instantiates a new process having inputs with one decoder trace row for testing purposes.
+    #[cfg(test)]
+    fn new_program_with_decoder_helpers(input: super::ProgramInputs) -> Self {
+        let mut process = Self::new(input);
+        process.decoder.add_dummy_trace_row();
+        process
+    }
 }
 
 // TEST HELPERS
