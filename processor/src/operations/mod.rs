@@ -137,7 +137,7 @@ impl Process {
     fn advance_clock(&mut self) {
         self.system.advance_clock();
         self.stack.advance_clock();
-        self.memory.advance_clock();
+        self.chiplets.advance_clock();
         self.advice.advance_clock();
     }
 

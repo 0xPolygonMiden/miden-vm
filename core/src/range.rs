@@ -23,7 +23,7 @@ pub const V_COL_IDX: usize = RANGE_CHECK_TRACE_OFFSET + 3;
 pub const P0_COL_IDX: usize = RANGE_CHECK_AUX_TRACE_OFFSET;
 
 /// The running product column used for verifying that the range check lookups performed in the
-/// Stack and Memory co-processors match the values checked in the Range Checker.
+/// Stack and the Memory chiplet match the values checked in the Range Checker.
 pub const P1_COL_IDX: usize = P0_COL_IDX + 1;
 
 /// An auxiliary trace column of intermediate values used to enforce AIR constraints on `p1`. It

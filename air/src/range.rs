@@ -1,5 +1,5 @@
 use crate::{
-    aux_table::{AuxTableFrameExt, MemoryFrameExt},
+    chiplets::{ChipletsFrameExt, MemoryFrameExt},
     utils::are_equal,
 };
 use vm_core::{
@@ -238,7 +238,7 @@ where
     F: FieldElement<BaseField = Felt>,
     E: FieldElement<BaseField = Felt> + ExtensionOf<F>,
 {
-    let memory_flag: E = main_frame.aux_table_memory_flag().into();
+    let memory_flag: E = main_frame.chiplets_memory_flag().into();
     let d0: E = main_frame.memory_d0().into();
     let d1: E = main_frame.memory_d1().into();
 

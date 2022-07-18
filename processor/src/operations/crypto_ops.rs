@@ -29,7 +29,7 @@ impl Process {
             self.stack.get(0),
         ];
 
-        let (_addr, output_state) = self.hasher.permute(input_state);
+        let (_addr, output_state) = self.chiplets.permute(input_state);
 
         for (i, &value) in output_state.iter().rev().enumerate() {
             self.stack.set(i, value);
@@ -92,8 +92,8 @@ impl Process {
         let b = Felt::new(index.as_int() >> 1);
 
         // use hasher to compute the Merkle root of the path
-        let (addr, computed_root) = self.hasher.build_merkle_root(node, &path, index);
-
+        let (addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);
+        
         // save values in the decoder helper registers in the following order (from the start):
         // - addr(r) - Its the row address in the hasher trace from when the computation starts.
         // - b - least significant bit of the node index.
@@ -109,6 +109,7 @@ impl Process {
             sibling[2],
             sibling[3],
         ];
+
 
         self.decoder
             .set_user_op_helpers(Operation::MpVerify, &helper_values);
@@ -193,7 +194,7 @@ impl Process {
 
         // use hasher to update the Merkle root
         let (_addr, computed_old_root, new_root) = self
-            .hasher
+            .chiplets
             .update_merkle_root(old_node, new_node, &path, index);
 
         // this can happen only if the advice provider returns a Merkle path inconsistent with
