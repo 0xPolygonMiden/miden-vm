@@ -3,7 +3,7 @@ use prover::StarkProof;
 use serde_derive::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::{fs, io::Write, time::Instant};
-use vm_core::{hasher::Digest, program::Script, ProgramInputs};
+use vm_core::{hasher::Digest, Program, ProgramInputs};
 use winter_utils::{Deserializable, SliceReader};
 
 // INPUT FILE
@@ -17,12 +17,12 @@ pub struct InputFile {
 
 /// Helper methods to interact with the input file
 impl InputFile {
-    pub fn read(inputs_path: &Option<PathBuf>, script_path: &Path) -> Result<Self, String> {
+    pub fn read(inputs_path: &Option<PathBuf>, program_path: &Path) -> Result<Self, String> {
         // If inputs_path has been provided then use this as path.  Alternatively we will
-        // replace the script_path extension with `.inputs` and use this as a default.
+        // replace the program_path extension with `.inputs` and use this as a default.
         let path = match inputs_path {
             Some(path) => path.clone(),
-            None => script_path.with_extension("inputs"),
+            None => program_path.with_extension("inputs"),
         };
 
         println!("Reading input file `{}`", path.display());
@@ -31,9 +31,9 @@ impl InputFile {
         let inputs_file = fs::read_to_string(&path)
             .map_err(|err| format!("Failed to open input file `{}` - {}", path.display(), err))?;
 
-        // deserilaise input data
+        // deserialize input data
         let inputs: InputFile = serde_json::from_str(&inputs_file)
-            .map_err(|err| format!("Failed to deserialse input data - {}", err))?;
+            .map_err(|err| format!("Failed to deserialize input data - {}", err))?;
 
         Ok(inputs)
     }
@@ -56,12 +56,12 @@ pub struct OutputFile {
 /// Helper methods to interact with the output file
 impl OutputFile {
     /// read the input file
-    pub fn read(outputs_path: &Option<PathBuf>, script_path: &Path) -> Result<Self, String> {
+    pub fn read(outputs_path: &Option<PathBuf>, program_path: &Path) -> Result<Self, String> {
         // If outputs_path has been provided then use this as path.  Alternatively we will
-        // replace the script_path extension with `.outputs` and use this as a default.
+        // replace the program_path extension with `.outputs` and use this as a default.
         let path = match outputs_path {
             Some(path) => path.clone(),
-            None => script_path.with_extension("outputs"),
+            None => program_path.with_extension("outputs"),
         };
 
         println!("Reading output file `{}`", path.display());
@@ -70,11 +70,11 @@ impl OutputFile {
         let outputs_file = fs::read_to_string(&path)
             .map_err(|err| format!("Failed to open outputs file `{}` - {}", path.display(), err))?;
 
-        // deserilaise outputs data
+        // deserialize outputs data
         let mut outputs: OutputFile = serde_json::from_str(&outputs_file)
-            .map_err(|err| format!("Failed to deserialse outputs data - {}", err))?;
+            .map_err(|err| format!("Failed to deserialize outputs data - {}", err))?;
 
-        // The verify interface exepects the stack outputs in reverse order so we reverse them here
+        // The verify interface expects the stack outputs in reverse order so we reverse them here
         outputs.outputs.reverse();
 
         Ok(outputs)
@@ -84,7 +84,7 @@ impl OutputFile {
     pub fn write(outputs: Vec<u64>, path: &Option<PathBuf>) -> Result<(), String> {
         match path {
             Some(path) => {
-                // if path provided create ouptut file
+                // if path provided create output file
 
                 println!("Creating output file `{}`", path.display());
 
@@ -109,31 +109,31 @@ impl OutputFile {
     }
 }
 
-// SCRIPT FILE
+// PROGRAM FILE
 // ================================================================================================
 
-pub struct ScriptFile;
+pub struct ProgramFile;
 
-/// Helper methods to interact with masm script file
-impl ScriptFile {
-    pub fn read(path: &PathBuf) -> Result<Script, String> {
-        println!("Reading script file `{}`", path.display());
+/// Helper methods to interact with masm program file
+impl ProgramFile {
+    pub fn read(path: &PathBuf) -> Result<Program, String> {
+        println!("Reading program file `{}`", path.display());
 
-        // read script file to string
-        let script_file = fs::read_to_string(&path)
-            .map_err(|err| format!("Failed to open script file `{}` - {}", path.display(), err))?;
+        // read program file to string
+        let program_file = fs::read_to_string(&path)
+            .map_err(|err| format!("Failed to open program file `{}` - {}", path.display(), err))?;
 
-        print!("Compiling script... ");
+        print!("Compiling program... ");
         let now = Instant::now();
 
-        // compile script
-        let script = Assembler::default()
-            .compile_script(&script_file)
-            .map_err(|err| format!("Failed to compile script - {}", err))?;
+        // compile program
+        let program = Assembler::default()
+            .compile(&program_file)
+            .map_err(|err| format!("Failed to compile program - {}", err))?;
 
         println!("done ({} ms)", now.elapsed().as_millis());
 
-        Ok(script)
+        Ok(program)
     }
 }
 
@@ -145,12 +145,12 @@ pub struct ProofFile;
 /// Helper methods to interact with proof file
 impl ProofFile {
     /// Read stark proof from file
-    pub fn read(proof_path: &Option<PathBuf>, script_path: &Path) -> Result<StarkProof, String> {
+    pub fn read(proof_path: &Option<PathBuf>, program_path: &Path) -> Result<StarkProof, String> {
         // If proof_path has been provided then use this as path.  Alternatively we will
-        // replace the script_path extension with `.proof` and use this as a default.
+        // replace the program_path extension with `.proof` and use this as a default.
         let path = match proof_path {
             Some(path) => path.clone(),
-            None => script_path.with_extension("proof"),
+            None => program_path.with_extension("proof"),
         };
 
         println!("Reading proof file `{}`", path.display());
@@ -159,7 +159,7 @@ impl ProofFile {
         let file = fs::read(&path)
             .map_err(|err| format!("Failed to open proof file `{}` - {}", path.display(), err))?;
 
-        // deserialise bytes into a stark proof
+        // deserialize bytes into a stark proof
         StarkProof::from_bytes(&file)
             .map_err(|err| format!("Failed to decode proof data - {}", err))
     }
@@ -168,18 +168,18 @@ impl ProofFile {
     pub fn write(
         proof: StarkProof,
         proof_path: &Option<PathBuf>,
-        script_path: &Path,
+        program_path: &Path,
     ) -> Result<(), String> {
         // If proof_path has been provided then use this as path.  Alternatively we will
-        // replace the script_path extension with `.proof` and use this as a default.
+        // replace the program_path extension with `.proof` and use this as a default.
         let path = match proof_path {
             Some(path) => path.clone(),
-            None => script_path.with_extension("proof"),
+            None => program_path.with_extension("proof"),
         };
 
         println!("Creating proof file `{}`", path.display());
 
-        // create ouptut fille
+        // create output fille
         let mut file = fs::File::create(&path)
             .map_err(|err| format!("Failed to create proof file `{}` - {}", path.display(), err))?;
 
@@ -214,7 +214,7 @@ impl ProgramHash {
 
         // create hash digest from slice
         let program_hash = Digest::read_from(&mut program_hash_slice)
-            .map_err(|err| format!("Failed to deserialise program hash from bytes - {}", err))?;
+            .map_err(|err| format!("Failed to deserialize program hash from bytes - {}", err))?;
 
         Ok(program_hash)
     }

@@ -35,7 +35,7 @@ fn pow2() {
     // Test powers of two significant to the construction: each power decomposed in the first row
     // of the pow2 trace; the first element of a  middle row; and the maximum exponent value.
     // the drop's at the end are added to make sure stack overflow table is empty at the end
-    let script = "begin
+    let source = "begin
         push.0 pow2
         push.1 pow2
         push.2 pow2
@@ -51,7 +51,7 @@ fn pow2() {
     end";
     let pub_inputs = vec![];
 
-    build_test!(script, &pub_inputs).prove_and_verify(pub_inputs, 1, false);
+    build_test!(source, &pub_inputs).prove_and_verify(pub_inputs, 1, false);
 }
 
 #[test]

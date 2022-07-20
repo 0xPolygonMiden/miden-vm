@@ -1,11 +1,7 @@
-use super::{Felt, FieldElement, StarkField, TraceFragment, Vec, Word, ZERO};
-use vm_core::{
-    hasher::{
-        absorb_into_state, get_digest, init_state, init_state_from_words, Selectors, LINEAR_HASH,
-        MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, STATE_WIDTH,
-        TRACE_WIDTH,
-    },
-    program::blocks::OpBatch,
+use super::{Felt, FieldElement, OpBatch, StarkField, TraceFragment, Vec, Word, ZERO};
+use vm_core::hasher::{
+    absorb_into_state, get_digest, init_state, init_state_from_words, Selectors, LINEAR_HASH,
+    MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, STATE_WIDTH, TRACE_WIDTH,
 };
 
 mod trace;

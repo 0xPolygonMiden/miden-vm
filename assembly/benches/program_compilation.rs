@@ -2,8 +2,8 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use miden_assembly::{self, Assembler};
 use std::time::Duration;
 
-fn script_compilation(c: &mut Criterion) {
-    let mut group = c.benchmark_group("script_compilation");
+fn program_compilation(c: &mut Criterion) {
+    let mut group = c.benchmark_group("program_compilation");
     group.measurement_time(Duration::from_secs(10));
 
     group.bench_function("sha256", |bench| {
@@ -16,7 +16,7 @@ fn script_compilation(c: &mut Criterion) {
         bench.iter(|| {
             let assembler = Assembler::default();
             assembler
-                .compile_script(source)
+                .compile(source)
                 .expect("Failed to compile test source.")
         });
     });
@@ -24,5 +24,5 @@ fn script_compilation(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(sha256_group, script_compilation);
+criterion_group!(sha256_group, program_compilation);
 criterion_main!(sha256_group);

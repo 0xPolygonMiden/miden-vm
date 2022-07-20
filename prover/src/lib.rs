@@ -18,7 +18,7 @@ use std::time::Instant;
 pub use air::ProofOptions;
 pub use processor::ExecutionError;
 pub use prover::StarkProof;
-pub use vm_core::{program::Script, ProgramInputs};
+pub use vm_core::{Program, ProgramInputs};
 
 // PROVER
 // ================================================================================================
@@ -35,7 +35,7 @@ pub use vm_core::{program::Script, ProgramInputs};
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
 pub fn prove(
-    program: &Script,
+    program: &Program,
     inputs: &ProgramInputs,
     num_stack_outputs: usize,
     options: &ProofOptions,

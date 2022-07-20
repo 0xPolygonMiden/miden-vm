@@ -1,4 +1,4 @@
-use super::data::{InputFile, OutputFile, ScriptFile};
+use super::data::{InputFile, OutputFile, ProgramFile};
 use air::StarkField;
 use std::path::PathBuf;
 use std::time::Instant;
@@ -27,8 +27,8 @@ impl RunCmd {
         println!("Run program");
         println!("============================================================");
 
-        // load script from file and compile
-        let script = ScriptFile::read(&self.assembly_file)?;
+        // load program from file and compile
+        let program = ProgramFile::read(&self.assembly_file)?;
 
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
@@ -37,7 +37,7 @@ impl RunCmd {
         let now = Instant::now();
 
         // generate execution trace
-        let trace = processor::execute(&script, &input_data.get_program_inputs())
+        let trace = processor::execute(&program, &input_data.get_program_inputs())
             .map_err(|err| format!("Failed to generate exection trace = {:?}", err))?;
 
         println!("done ({} ms)", now.elapsed().as_millis());

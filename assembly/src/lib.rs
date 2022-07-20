@@ -5,11 +5,12 @@
 extern crate alloc;
 
 use vm_core::{
-    program::{blocks::CodeBlock, Library, Script},
+    code_blocks::CodeBlock,
     utils::{
         collections::{BTreeMap, Vec},
         string::{String, ToString},
     },
+    Library, Program,
 };
 use vm_stdlib::StdLibrary;
 
@@ -65,11 +66,12 @@ impl Assembler {
         }
     }
 
-    // SCRIPT COMPILER
+    // PROGRAM COMPILER
     // --------------------------------------------------------------------------------------------
 
-    /// TODO: add comments
-    pub fn compile_script(&self, source: &str) -> Result<Script, AssemblyError> {
+    /// Compiles the provided source code into a [Program]. The resulting program can be executed
+    /// on Miden VM.
+    pub fn compile(&self, source: &str) -> Result<Program, AssemblyError> {
         let mut tokens = TokenStream::new(source)?;
         let mut context = AssemblyContext::new();
 
@@ -90,7 +92,7 @@ impl Assembler {
             context.add_local_proc(proc);
         }
 
-        // make sure script body is present
+        // make sure program body is present
         let next_token = tokens
             .read()
             .ok_or_else(|| AssemblyError::unexpected_eof(tokens.pos()))?;
@@ -98,9 +100,9 @@ impl Assembler {
             return Err(AssemblyError::unexpected_token(next_token, Token::BEGIN));
         }
 
-        // parse script body and return the resulting script
-        let script_root = parse_script(&mut tokens, &context, self.in_debug_mode)?;
-        Ok(Script::new(script_root))
+        // parse program body and return the resulting program
+        let program_root = parse_program(&mut tokens, &context, self.in_debug_mode)?;
+        Ok(Program::new(program_root))
     }
 
     // IMPORT PARSERS
@@ -241,30 +243,30 @@ impl Default for Assembler {
 // ================================================================================================
 
 /// TODO: add comments
-fn parse_script(
+fn parse_program(
     tokens: &mut TokenStream,
     context: &AssemblyContext,
     in_debug_mode: bool,
 ) -> Result<CodeBlock, AssemblyError> {
-    let script_start = tokens.pos();
+    let program_start = tokens.pos();
     // consume the 'begin' token
-    let header = tokens.read().expect("missing script header");
+    let header = tokens.read().expect("missing program header");
     header.validate_begin()?;
     tokens.advance();
 
-    // parse the script body
+    // parse the program body
     let root = parse_code_blocks(tokens, context, 0, in_debug_mode)?;
 
     // consume the 'end' token
     match tokens.read() {
         None => Err(AssemblyError::unmatched_begin(
-            tokens.read_at(script_start).expect("no begin token"),
+            tokens.read_at(program_start).expect("no begin token"),
         )),
         Some(token) => match token.parts()[0] {
             Token::END => token.validate_end(),
             Token::ELSE => Err(AssemblyError::dangling_else(token)),
             _ => Err(AssemblyError::unmatched_begin(
-                tokens.read_at(script_start).expect("no begin token"),
+                tokens.read_at(program_start).expect("no begin token"),
             )),
         },
     }?;
@@ -272,7 +274,7 @@ fn parse_script(
 
     // make sure there are no instructions after the end
     if let Some(token) = tokens.read() {
-        return Err(AssemblyError::dangling_ops_after_script(token));
+        return Err(AssemblyError::dangling_ops_after_program(token));
     }
 
     Ok(root)
