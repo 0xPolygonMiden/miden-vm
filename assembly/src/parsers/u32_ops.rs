@@ -272,94 +272,68 @@ pub fn parse_u32madd(
 
 /// Translates u32div assembly instruction to VM operations.
 ///
-/// The base operation is `U32DIV`, but depending on the mode, additional operations may be
-/// inserted.
-///
 /// VM cycles per mode:
-/// - u32div: 3 cycles
-/// - u32div.b: 4 cycles
-/// - u32div.full: 2 cycles
-/// - u32div.unsafe: 1 cycle
-pub fn parse_u32div(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    let drop_remainder = match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => {
-            span_ops.push(Operation::U32assert2);
-            true
-        }
-        2 => match op.parts()[1] {
-            "unsafe" => false,
-            "full" => {
-                span_ops.push(Operation::U32assert2);
-                false
-            }
-            _ => {
-                let divisor: u32 = parse_u32_param(op, 1, 0, u32::MAX)?;
-                if divisor == 0 {
-                    return Err(AssemblyError::invalid_param_with_reason(
-                        op,
-                        1,
-                        "division by 0",
-                    ));
-                }
+/// - u32checked_div: 3 cycles
+/// - u32checked_div.b:
+///    - 5 cycles if b is 1
+///    - 4 cycles if b is not 1
+/// - u32unchecked_div: 2 cycles
+/// - u32unchecked_div.b:
+///    - 4 cycles if b is 1
+///    - 3 cycles if b is not 1
+pub fn parse_u32div(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    op_mode: U32OpMode,
+) -> Result<(), AssemblyError> {
+    handle_division(span_ops, op, op_mode)?;
 
-                push_value(span_ops, Felt::new(divisor as u64));
-                span_ops.push(Operation::U32assert2);
-                true
-            }
-        },
-        _ => return Err(AssemblyError::extra_param(op)),
-    };
-
-    span_ops.push(Operation::U32div);
-
-    if drop_remainder {
-        span_ops.push(Operation::Drop);
-    }
+    span_ops.push(Operation::Drop);
 
     Ok(())
 }
 
 /// Translates u32mod assembly instruction to VM operations.
 ///
-/// In the unsafe mode this translates directly to `U32DIV SWAP DROP` operation. In the safe mode,
-/// we also assert that both inputs are u32 values.
-///
 /// VM cycles per mode:
-/// - u32mod: 4 cycles
-/// - u32mod.b: 5 cycles
-/// - u32mod.unsafe: 3 cycles
-pub fn parse_u32mod(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    // prepare the stack for the operation and determine if we need to check for overflow
-    match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => span_ops.push(Operation::U32assert2),
-        2 => match op.parts()[1] {
-            // skip u32 check in unsafe mode
-            "unsafe" => (),
-            _ => {
-                // for u32mod.n (where n is the immediate value), we need to push the immediate
-                // value onto the stack, and make sure both operands are u32 values.
-                let divisor: u32 = parse_u32_param(op, 1, 0, u32::MAX)?;
-                if divisor == 0 {
-                    return Err(AssemblyError::invalid_param_with_reason(
-                        op,
-                        1,
-                        "division by 0",
-                    ));
-                }
+/// - u32checked_mod: 4 cycles
+/// - u32checked_mod.b:
+///    - 6 cycles if b is 1
+///    - 5 cycles if b is not 1
+/// - u32unchecked_mod: 3 cycle
+/// - u32unchecked_mod.b:
+///    - 5 cycles if b is 1
+///    - 4 cycles if b is not 1
+pub fn parse_u32mod(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    op_mode: U32OpMode,
+) -> Result<(), AssemblyError> {
+    handle_division(span_ops, op, op_mode)?;
 
-                push_value(span_ops, Felt::new(divisor as u64));
-                span_ops.push(Operation::U32assert2);
-            }
-        },
-        _ => return Err(AssemblyError::extra_param(op)),
-    };
-
-    // perform the mod
-    span_ops.push(Operation::U32div);
     span_ops.push(Operation::Swap);
     span_ops.push(Operation::Drop);
+
+    Ok(())
+}
+
+/// Translates u32divmod assembly instruction to VM operations.
+///
+/// VM cycles per mode:
+/// - u32checked_divmod: 2 cycles
+/// - u32checked_divmod.b:
+///    - 4 cycles if b is 1
+///    - 3 cycles if b is not 1
+/// - u32unchecked_divmod: 1 cycle
+/// - u32unchecked_divmod.b:
+///    - 3 cycles if b is 1
+///    - 2 cycles if b is not 1
+pub fn parse_u32divmod(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    op_mode: U32OpMode,
+) -> Result<(), AssemblyError> {
+    handle_division(span_ops, op, op_mode)?;
 
     Ok(())
 }
@@ -831,8 +805,8 @@ fn assert_u32(span_ops: &mut Vec<Operation>) {
 /// as a u32 value onto the stack.
 ///
 /// This operation takes:
-/// - 3 VM cycles when the param is 1.
-/// - 2 VM cycle when the param is not 1.
+/// - 3 VM cycles when the param == 1.
+/// - 2 VM cycle when the param != 1.
 ///
 /// # Errors
 /// Returns an error if the first parameter of the `op` is not a u32 value or is greater than
@@ -855,8 +829,18 @@ fn assert_and_push_u32_param(
 /// Pushes the first param of the `op` onto the stack. The param is not checked for
 /// belonging to u32.
 ///
-/// This operation takes 1 VM cycle.
-fn push_int_param(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+/// This operation takes:
+/// - 2 VM cycles when the param == 1.
+/// - 1 VM cycle when the param != 1.
+///
+/// # Errors
+/// Returns an error if we try to push 0 as a divisor.
+fn push_int_param(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    op_mode: U32OpMode,
+    is_divisor: bool,
+) -> Result<(), AssemblyError> {
     let param_value = op.parts()[1];
 
     // attempt to parse the parameter value as an integer
@@ -864,6 +848,18 @@ fn push_int_param(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
         Ok(i) => i,
         Err(_) => return Err(AssemblyError::invalid_param(op, 1)),
     };
+
+    if value > (u32::MAX as u64) && op_mode == U32OpMode::Checked {
+        return Err(AssemblyError::invalid_param(op, 1));
+    }
+
+    if is_divisor && value == 0 {
+        return Err(AssemblyError::invalid_param_with_reason(
+            op,
+            1,
+            "division by 0",
+        ));
+    }
 
     push_value(span_ops, Felt::new(value));
 
@@ -955,13 +951,13 @@ fn handle_arithmetic_operation(
         }
         U32OpMode::Wrapping => {
             if num_parts == 2 {
-                push_int_param(span_ops, op)?;
+                push_int_param(span_ops, op, U32OpMode::Wrapping, false)?;
             }
             drop_high_bits = true;
         }
         U32OpMode::Overflowing => {
             if num_parts == 2 {
-                push_int_param(span_ops, op)?;
+                push_int_param(span_ops, op, U32OpMode::Overflowing, false)?;
             }
         }
         _ => return Err(AssemblyError::invalid_op(op)),
@@ -975,6 +971,33 @@ fn handle_arithmetic_operation(
     } else if drop_high_bits {
         span_ops.push(Operation::Drop);
     }
+
+    Ok(())
+}
+
+/// Handles common parts of u32div, u32mod, and u32divmod operations in checked and unchecked modes,
+/// including handling of immediate parameters.
+fn handle_division(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    op_mode: U32OpMode,
+) -> Result<(), AssemblyError> {
+    match op_mode {
+        U32OpMode::Checked => {
+            if op.num_parts() == 2 {
+                push_int_param(span_ops, op, U32OpMode::Checked, true)?;
+            }
+            span_ops.push(Operation::U32assert2);
+        }
+        U32OpMode::Unchecked => {
+            if op.num_parts() == 2 {
+                push_int_param(span_ops, op, U32OpMode::Unchecked, true)?;
+            }
+        }
+        _ => return Err(AssemblyError::invalid_op(op)),
+    }
+
+    span_ops.push(Operation::U32div);
 
     Ok(())
 }

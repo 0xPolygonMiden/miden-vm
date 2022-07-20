@@ -10317,7 +10317,7 @@ export.unchecked_shr
     add
     movup.2
     swap
-    u32div.unsafe
+    u32unchecked_divmod
     movup.3
     movup.3
     dup
@@ -10327,7 +10327,7 @@ export.unchecked_shr
     movdn.4
     dup
     movdn.4
-    u32div.unsafe
+    u32unchecked_divmod
     drop
     push.4294967296
     dup.5
