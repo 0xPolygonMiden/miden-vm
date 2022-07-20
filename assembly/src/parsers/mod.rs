@@ -1,8 +1,7 @@
-use super::{AssemblyContext, AssemblyError, Token, TokenStream};
+use super::{AssemblyContext, AssemblyError, CodeBlock, Token, TokenStream};
 pub use blocks::{combine_blocks, parse_code_blocks};
 use u32_ops::U32OpMode;
 use vm_core::{
-    program::blocks::CodeBlock,
     utils::{
         collections::Vec,
         string::{String, ToString},

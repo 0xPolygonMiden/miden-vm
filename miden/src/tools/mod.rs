@@ -34,7 +34,7 @@ impl Analyze {
 // ================================================================================================
 
 /// Contains info of a program. Used for program analysis. Contains the following fields:
-/// - total_vm_cycles: vm cycles it takes to execute the entire script
+/// - total_vm_cycles: vm cycles it takes to execute the entire program
 /// - total_noops: total noops executed as part of a program
 /// - asm_op_stats: vector of [AsmOpStats] that contains assembly instructions and
 ///   the number of vm cycles it takes to execute the instruction and the number of times the
@@ -135,10 +135,10 @@ impl fmt::Display for ProgramInfo {
 /// Returns program analysis of a given program.
 pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, ProgramError> {
     let assembler = Assembler::new(true);
-    let script = assembler
-        .compile_script(program)
+    let program = assembler
+        .compile(program)
         .map_err(ProgramError::AssemblyError)?;
-    let vm_state_iterator = processor::execute_iter(&script, &inputs);
+    let vm_state_iterator = processor::execute_iter(&program, &inputs);
     let mut program_info = ProgramInfo::default();
 
     for state in vm_state_iterator {

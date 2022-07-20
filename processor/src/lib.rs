@@ -5,17 +5,14 @@
 extern crate alloc;
 
 use vm_core::{
+    code_blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE},
     errors::AdviceSetError,
     hasher::Digest,
-    program::{
-        blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE},
-        Script,
-    },
     utils::collections::{BTreeMap, Vec},
-    AdviceInjector, Decorator, DecoratorIterator, Felt, FieldElement, Operation, ProgramInputs,
-    StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH,
-    MIN_TRACE_LEN, NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
-    SYS_TRACE_WIDTH, ZERO,
+    AdviceInjector, Decorator, DecoratorIterator, Felt, FieldElement, Operation, Program,
+    ProgramInputs, StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH,
+    MIN_STACK_DEPTH, MIN_TRACE_LEN, NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH,
+    STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
 
 mod decorators;
@@ -81,14 +78,17 @@ pub struct ChipletsTrace {
 // EXECUTOR
 // ================================================================================================
 
-/// Returns an execution trace resulting from executing the provided script against the provided
+/// Returns an execution trace resulting from executing the provided program against the provided
 /// inputs.
-pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace, ExecutionError> {
+pub fn execute(
+    program: &Program,
+    inputs: &ProgramInputs,
+) -> Result<ExecutionTrace, ExecutionError> {
     let mut process = Process::new(inputs.clone());
-    process.execute_code_block(script.root())?;
+    process.execute(program)?;
     let trace = ExecutionTrace::new(process);
     assert_eq!(
-        script.hash(),
+        program.hash(),
         trace.program_hash(),
         "inconsistent program hash"
     );
@@ -97,12 +97,12 @@ pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace
 
 /// Returns an iterator that allows callers to step through each execution and inspect
 /// vm state information along side.
-pub fn execute_iter(script: &Script, inputs: &ProgramInputs) -> VmStateIterator {
+pub fn execute_iter(program: &Program, inputs: &ProgramInputs) -> VmStateIterator {
     let mut process = Process::new_debug(inputs.clone());
-    let result = process.execute_code_block(script.root());
+    let result = process.execute(program);
     if result.is_ok() {
         assert_eq!(
-            script.hash(),
+            program.hash(),
             process.decoder.program_hash().into(),
             "inconsistent program hash"
         );
@@ -146,6 +146,19 @@ impl Process {
         }
     }
 
+    // PROGRAM EXECUTOR
+    // --------------------------------------------------------------------------------------------
+
+    /// Executes the provided [Program] in this process.
+    pub fn execute(&mut self, program: &Program) -> Result<(), ExecutionError> {
+        assert_eq!(
+            self.system.clk(),
+            0,
+            "a program has already been executed in this process"
+        );
+        self.execute_code_block(program.root())
+    }
+
     // CODE BLOCK EXECUTORS
     // --------------------------------------------------------------------------------------------
 
@@ -153,7 +166,7 @@ impl Process {
     ///
     /// # Errors
     /// Returns an [ExecutionError] if executing the specified block fails for any reason.
-    pub fn execute_code_block(&mut self, block: &CodeBlock) -> Result<(), ExecutionError> {
+    fn execute_code_block(&mut self, block: &CodeBlock) -> Result<(), ExecutionError> {
         match block {
             CodeBlock::Join(block) => self.execute_join_block(block),
             CodeBlock::Split(block) => self.execute_split_block(block),

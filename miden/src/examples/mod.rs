@@ -1,4 +1,4 @@
-use miden::{ProgramInputs, ProofOptions, Script, StarkProof};
+use miden::{Program, ProgramInputs, ProofOptions, StarkProof};
 use std::time::Instant;
 use structopt::StructOpt;
 
@@ -8,7 +8,7 @@ pub mod fibonacci;
 // ================================================================================================
 
 pub struct Example {
-    pub program: Script,
+    pub program: Program,
     pub inputs: ProgramInputs,
     pub pub_inputs: Vec<u64>,
     pub num_outputs: usize,

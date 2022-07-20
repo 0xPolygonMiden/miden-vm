@@ -1,4 +1,4 @@
-use super::data::ScriptFile;
+use super::data::ProgramFile;
 use crypto::Digest;
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -14,14 +14,14 @@ pub struct CompileCmd {
 impl CompileCmd {
     pub fn execute(&self) -> Result<(), String> {
         println!("============================================================");
-        println!("Compile script");
+        println!("Compile program");
         println!("============================================================");
 
-        // load and compile script file
-        let script = ScriptFile::read(&self.assembly_file)?;
+        // load and compile program file
+        let program = ProgramFile::read(&self.assembly_file)?;
 
-        // report script hash to user
-        println!("script hash is {}", hex::encode(script.hash().as_bytes()));
+        // report program hash to user
+        println!("program hash is {}", hex::encode(program.hash().as_bytes()));
 
         Ok(())
     }

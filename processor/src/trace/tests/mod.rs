@@ -1,6 +1,6 @@
 use super::{ExecutionTrace, Felt, FieldElement, LookupTableRow, Process, Trace, NUM_RAND_ROWS};
 use rand_utils::rand_array;
-use vm_core::{program::blocks::CodeBlock, Operation, ProgramInputs, Word, ONE, ZERO};
+use vm_core::{code_blocks::CodeBlock, Operation, ProgramInputs, Word, ONE, ZERO};
 
 mod chiplets;
 mod hasher;

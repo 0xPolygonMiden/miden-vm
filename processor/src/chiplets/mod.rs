@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{trace::LookupTableRow, ExecutionError};
 use core::ops::RangeInclusive;
-use vm_core::program::blocks::OpBatch;
+use vm_core::code_blocks::OpBatch;
 
 mod bitwise;
 use bitwise::Bitwise;
