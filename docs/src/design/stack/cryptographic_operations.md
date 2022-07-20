@@ -82,7 +82,7 @@ v_{o} = \alpha_0 + \alpha_1 \cdot m_{returnhash} + \alpha_2 \cdot (r + 8 \cdot d
 $$
 
 $$
-v_p = \sum_{j=0}^3\alpha_{j + 4} \cdot h_j \\
+v_p = \sum_{j=0}^3\alpha_{j + 4} \cdot p_j \\
 $$
 
 $$
@@ -96,7 +96,7 @@ $$
 In the above:
 
 - $r$ is the row address of the execution trace at which the computation of building merkle root started inside the hasher processor.
-- $h_0$..$h_3$ is the first word(group of four consecutive elements) of the merkle path fetched from advice provider.
+- $p_0$..$p_3$ is the first word(group of four consecutive elements) of the merkle path fetched from advice provider.
 - $m$ is a _transition label_ which uniquely identifies each operation.
 - The $11$ & $1$ in the permutation check are the unique identifier of hasher `MP_VERIFY` & `RETURN_HASH` operations which have been explained [here](../stack/unique_identifier.md#identifiers).
 - $v_{i}$ is a _common header_ which is a combination of unique identifier of `MP_VERIFY`, row address of execution trace when the computation of building merkle root starts for the node value, and node index.
@@ -109,10 +109,11 @@ Using the above values, we can describe constraints for updating column $b_{aux}
 
 > $$
 b_{aux}' \cdot \left(v_{i} + (1-b) \cdot v_{n} + b \cdot v_{p}\right) \cdot \left(v_{m} + v_{o}\right) = b_{aux} \text{ | degree } = 3\\
-s_i' - s_{i+4}' = 0 \space where \space i \in \{2, 3, 4, 5\} \text{ | degree } = 1
+b = i - i' \cdot 2 \text{ | degree } = 1 \\
+b^2 - b = 0  \text{ | degree } = 2\\
 $$
 
-where $b$ is the least significant bit of the node index sent to the hasher co-processor which fixes the location of node and the its sibling in the hasher state.
+where $b$ is the least significant bit of the node index sent to the hasher co-processor which fixes the location of node and the its sibling in the hasher state. $i`$ is one left shift of node index. 
 
 The `MPVERIFY` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of the above operation is $3$.
 
@@ -155,7 +156,7 @@ v_{on} = \alpha_0 + \alpha_1 \cdot m_{returnhash} + \alpha_2 \cdot (r + 2 \cdot 
 $$
 
 $$
-v_p = \sum_{j=0}^3\alpha_{j + 4} \cdot h_j \\
+v_p = \sum_{j=0}^3\alpha_{j + 4} \cdot p_j \\
 $$
 
 $$
@@ -187,7 +188,7 @@ In the above:
 
 - $r$ is the row address of the execution trace at which the computation of building merkle root started in the hasher.
 - $d$ is the depth of the node in the merkle tree fetched from the advice provider. 
-- $h_0$..$h_3$ is the first word(group of four consecutive elements) of the merkle path fetched from advice provider.
+- $p_0$..$p_3$ is the first word(group of four consecutive elements) of the merkle path fetched from advice provider.
 - $m$ is a _transition label_ which uniquely identifies each operation.
 - The $7$, $15$ and $1$ in the permutation check are the unique identifier of hasher `MR_UPDATE_OLD`, `MR_UPDATE_NEW` and `RETURN_HASH` operations which have been explained [here](../stack/unique_identifier.md#identifiers).
 - $v_{io}$ is a _common header_ which is a combination of unique identifier of `MR_UPDATE_OLD`, row address of the trace when the merkle root building starts for the old node value, and node index.
@@ -207,9 +208,10 @@ Using the above values, we can describe constraints for updating column $b_{aux}
 > $$
 b_{aux}' \cdot \left( v_{leafold} ) \cdot ( v_{oo} + v_o ) \\
 \cdot ( v_{leafnew} ) \cdot ( v_{on} + v_m \right) = b_{aux} \text{ | degree } = 5\\
-s_i' - s_{i+8}' = 0 \space where \space i \in \{2, 3, 4, 5\} \text{ | degree } = 1
+b = i - i' \cdot 2 \text{ | degree } = 1 \\ 
+b^2 - b = 0  \text{ | degree } = 2\\
 $$
 
-where $b$ is the least significant bit of the node index sent to the hasher co-processor which fixes the location of node and the its sibling in the hasher state. 
+where $b$ is the least significant bit of the node index sent to the hasher co-processor which fixes the location of node and the its sibling in the hasher state. $i`$ is one left shift of node index. 
 
 The `MRUPDATE` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of the above operation is $5$.

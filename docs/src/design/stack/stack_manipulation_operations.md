@@ -112,8 +112,10 @@ The `SWAPW3` operation will not change the depth of the stack i.e. the stack doe
 The stack transition for this operation must follow the following constraint:
 
 > $$
-s_i' - s_{i+7} = 0 \space where \space i \in \{0..7\} \text{ | degree } = 1\\
-s_i' - s_{i-8} = 0 \space where \space i \in \{8..15\} \text{ | degree } = 1\\
+s_i' - s_{i+12} = 0 \space where \space i \in \{0..3\}   \text{ | degree } = 1\\
+s_i' - s_{i+4}  = 0 \space where \space i \in \{4..7\}   \text{ | degree } = 1\\
+s_i' - s_{i-4}  = 0 \space where \space i \in \{8..11\}  \text{ | degree } = 1\\
+s_i' - s_{i-12} = 0 \space where \space i \in \{12..15\} \text{ | degree } = 1\\
 $$
 
 The `SWAPDW` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of this operation is $1$.

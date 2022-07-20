@@ -126,17 +126,17 @@ Assume $a$ and $b$ are top two elements in the stack. `EQ` operation computes $(
 
 ![eq](../../assets/design/stack/field_operations/EQ.png)
 
-To facilitate this operation, the prover needs to provide one non-deterministic ‘helper’ values $h_0$ such that:
+To facilitate this operation, the prover needs to provide one non-deterministic ‘helper’ values $t_0$ such that:
 
 > $$
 s_0' \cdot (s_0 - s_1) = 0 \text{ | degree } = 2\\
-s_0' - 1 + (s_0 - s_1) \cdot h_0 = 0 \text{ | degree } = 2
+s_0' - 1 + (s_0 - s_1) \cdot t_0 = 0 \text{ | degree } = 2
 $$
 
-The prover generates $h_0$ as:
+The prover generates $t_0$ as:
 
 > $$
-h_0 \leftarrow \begin{cases} 0, & \text{if}\ s_1 = s_0 \\ \dfrac{1}{s_1 - s_0}, & \text{otherwise}\ \end{cases}
+t_0 \leftarrow \begin{cases} 0, & \text{if}\ s_1 = s_0 \\ \dfrac{1}{s_1 - s_0}, & \text{otherwise}\ \end{cases}
 $$
 
 The `EQ` operation will shift the stack to the left by one. The maximum degree of this operation is $2$.
@@ -147,39 +147,18 @@ Assume $a$ is the top element in the stack.`EQZ` operation computes $(a == 0) \r
 
 ![eqz](../../assets/design/stack/field_operations/EQZ.png)
 
-To facilitate this operation, the prover needs to provide one non-deterministic ‘helper’ values $h_0$ such that:
+To facilitate this operation, the prover needs to provide one non-deterministic ‘helper’ values $t_0$ such that:
 
 > $$
 s_0' \cdot s_0 = 0 \text{ | degree } = 2\\
-s_0' - 1 + s_0 \cdot h_0 = 0 \text{ | degree } = 2
+s_0' - 1 + s_0 \cdot t_0 = 0 \text{ | degree } = 2
 $$
 
-The prover generates $h_0$ as:
+The prover generates $t_0$ as:
 
 > $$
-h_0 \leftarrow \begin{cases} 0, & \text{if}\ s_1 == 0 \\ \dfrac{1}{s_1}, & \text{otherwise}\ \end{cases}
+t_0 \leftarrow \begin{cases} 0, & \text{if}\ s_1 == 0 \\ \dfrac{1}{s_1}, & \text{otherwise}\ \end{cases}
 $$
 
 
 The `EQZ` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning.  The maximum degree of this operation is $2$.
-
-## EQW
-
-Assume $A$ and $B$ are top two words in the stack(a word is made up of 4 field elements).`EQW` operation computes $(A == B) \rightarrow c$ where c is $0$ if word $A$ & $B$ are not equal and $1$ otherwise. Both of the word must be equal on all 4 elements. $c$ is pushed to the top of the stack & could only be binary post this operation. The diagram below illustrates this graphically.
-
-![eqw](../../assets/design/stack/field_operations/EQW.png)
-
-To facilitate this operation, the prover needs to provide four non-deterministic ‘helper’ values $h_0, h_1, h_2, h_3$ such that:
-
-> $$
-\sum_{i=0}^3 s_0' \cdot (s_i - s_{i+4}) = 0 \text{ | degree } = 2\\
-s_0' - \prod_{i=0}^3 \left(1 - h_i \cdot (s_i - s_{i+4})\right) = 0 \text{ | degree } = 8\\
-$$
-
-The prover generates $h_i$ as:
-
-> $$
-h_i \leftarrow \begin{cases} 0, & \text{if}\ s_i = s_{i+4} \\ \dfrac{1}{s_i - s_{i+4}}, & \text{otherwise}\ \end{cases}
-$$
-
-The `EQW` operation will shift the stack to the right by one. The maximum degree of this operation is $8$.

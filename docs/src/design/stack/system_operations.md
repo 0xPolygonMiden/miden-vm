@@ -11,7 +11,7 @@ The `NOOP` operation will not change the depth of the stack i.e. the stack doesn
 
 Assume $a$ is the top element in the stack. `ASSERT` operation pops $a$ and asserts that it is equal to 1. 
 
-![assert](../../assets/design/stack/system_ops/assert.png)
+![assert](../../assets/design/stack/system_ops/ASSERT.png)
 
 The stack transition must satisfy the following condition:
 
@@ -30,7 +30,7 @@ The `ASSERT` operation will shift the stack to the left by one. The maximum degr
 The stack transition for this operation must follow the following constraint:
 
 > $$
-s_0' - s_0 - fmp = 0 \text{ | degree } = 1
+s_0' - s_0 - fmp1 = 0 \text{ | degree } = 1
 $$
 
 The `FMPADD` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of this operation is $1$.
@@ -44,7 +44,7 @@ The `FMPADD` operation will not change the depth of the stack i.e. the stack doe
 The stack transition for this operation must follow the following constraint:
 
 > $$
-fmp' - fmp - s_0 = 0 \text{ | degree } = 1
+fmp2 - fmp1 - s_0 = 0 \text{ | degree } = 1
 $$
 
 The `FMPUPDATE` operation will shift the stack to the left by one. The maximum degree of this operation is 1.

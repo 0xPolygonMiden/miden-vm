@@ -47,18 +47,18 @@ Assume $a$ is a field element. `U32SPLIT` operation computes $a \rightarrow (b,c
 
 ![u32split](../../assets/design/stack/u32_operations/U32SPLIT.png)
 
-To facilitate this operation, the prover needs to provide five non-deterministic 'helper' values $h_0$, $h_1$, $h_2$, $h_3$, and $m$ such that:
+To facilitate this operation, the prover needs to provide five non-deterministic 'helper' values $t_0$, $t_1$, $t_2$, $t_3$, and $m$ such that:
 
 > $$
-s_{0} = 2^{48} \cdot h_3 + 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1\\
-s_{1}' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1\\
-s_{0}' = 2^{16} \cdot h_3 + h_2 \text{ | degree } = 1\\
-b_{range}' \cdot \left((\alpha + h_0) \cdot (\alpha + h_1) \cdot (\alpha + h_2) \cdot (\alpha + h_3))\right) = b_{range} \text{ | degree } = 5
+s_{0} = 2^{48} \cdot t_3 + 2^{32} \cdot t_2 + 2^{16} \cdot t_1 + t_0 \text{ | degree } = 1\\
+s_{1}' = 2^{16} \cdot t_1 + t_0 \text{ | degree } = 1\\
+s_{0}' = 2^{16} \cdot t_3 + t_2 \text{ | degree } = 1\\
+b_{range}' \cdot \left((\alpha + t_0) \cdot (\alpha + t_1) \cdot (\alpha + t_2) \cdot (\alpha + t_3))\right) = b_{range} \text{ | degree } = 5
 $$
 
 where $b_{range}$ is the running product of range check column and $\alpha$ is a random value sent from the verifier to the prover for use in permutation checks. 
 
-The prover splits $a$ into two $32$-bit integer limbs and then splits both of these limbs into two $16$-bit integer limbs. So, a $64$-bit number is broken down into four $16$-bit limbs which are represented by $h_0​,h_1​,h_2​, and \space h_3$​.
+The prover splits $a$ into two $32$-bit integer limbs and then splits both of these limbs into two $16$-bit integer limbs. So, a $64$-bit number is broken down into four $16$-bit limbs which are represented by $t_0​,t_1​,t_2​, and \space t_3$​.
 
 The prover generates $m$ as following:
 
@@ -76,20 +76,18 @@ Assume $a$ and $b$ are known to be 32-bit values. `U32ADD` operation computes $a
 
 ![u32add](../../assets/design/stack/u32_operations/U32ADD.png)
 
-To facilitate this operation, the prover needs to provide four non-deterministic 'helper' values $h_0$, $h_1$, $h_2$ and $h_3$ such that:
+To facilitate this operation, the prover needs to provide four non-deterministic 'helper' values $t_0$, $t_1$, $t_2$ and $t_3$ such that:
 
 > $$
 s_1 + s_0= s_1' + 2^{32} \cdot s_0' \text{ | degree } = 1\\
-s_0'^2 - s_0' = 0 \text{ | degree } = 1\\
-s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1\\
-b_{range}' \cdot \left((\alpha + h_0) \cdot (\alpha + h_1) \cdot (\alpha + h_2) \cdot (\alpha + h_3))\right) = b_{range} \text{ | degree } = 5
+s_0'^2 - s_0' = 0 \text{ | degree } = 2\\
+s_1' = 2^{16} \cdot t_1 + t_0 \text{ | degree } = 1\\
+b_{range}' \cdot \left((\alpha + t_0) \cdot (\alpha + t_1) \cdot (\alpha + t_2) \cdot (\alpha + t_3))\right) = b_{range} \text{ | degree } = 5
 $$
 
 where $b_{range}$ is the running product of range check column and $\alpha$ is a random value sent from the verifier to the prover for use in permutation checks. 
 
-The prover splits $a$ into two $32$-bit integer limbs and then splits both of these limbs into two $16$-bit integer limbs. So, a $64$-bit number is broken down into four $16$-bit limbs which are represented by $h_0​,h_1​,h_2​, and \space h_3$​.
-
-Even though no range checks are required for $s_0'$ as its a binary, we are still forcing `U32ADD` to consume 4 range checks. This is required for making the constraints more uniform and grouping the opcodes of operations requiring range checks under a common degree-4 prefix as discussed [here](https://github.com/maticnetwork/miden/issues/203#issuecomment-1127178122). 
+The prover splits $c$ into two $16$-bit integer limbs which are represented by $t_0​,t_1​$​. Even though no range checks are required for $d$ as its a binary, we are still forcing `U32ADD` to consume 4 range checks by sending $0$ to the range check operation which is represented by $t_2, t_3$. This is required for making the constraints more uniform and grouping the opcodes of operations requiring range checks under a common degree-4 prefix as discussed [here](https://github.com/maticnetwork/miden/issues/203#issuecomment-1127178122).
 
 The `U32ADD` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of this operation is $5$.
 
@@ -99,18 +97,18 @@ Assume $a$, $b$, $c$ are known to be 32-bit values.`U32ADD3` operation computes 
 
 ![u32add3](../../assets/design/stack/u32_operations/U32ADD3.png)
 
-To facilitate this operation, the prover needs to provide four non-deterministic 'helper' values $h_0$, $h_1$, $h_2$ and $h_3$ such that:
+To facilitate this operation, the prover needs to provide four non-deterministic 'helper' values $t_0$, $t_1$, $t_2$ and $t_3$ such that:
 
 > $$
-s_0 + s_1 + s_2 = 2^{48} \cdot h_3 + 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1\\
-s_0' = 2^{16} \cdot h_3 + h_2 \text{ | degree } = 1\\
-s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1\\
-b_{range}' \cdot \left((\alpha + h_0) \cdot (\alpha + h_1) \cdot (\alpha + h_2) \cdot (\alpha + h_3))\right) = b_{range} \text{ | degree } = 5
+s_0 + s_1 + s_2 = 2^{32} \cdot t_2 + 2^{16} \cdot t_1 + t_0 \text{ | degree } = 1\\
+s_0' = t_2 \text{ | degree } = 1\\
+s_1' = 2^{16} \cdot t_1 + t_0 \text{ | degree } = 1\\
+b_{range}' \cdot \left((\alpha + t_0) \cdot (\alpha + t_1) \cdot (\alpha + t_2) \cdot (\alpha + t_3))\right) = b_{range} \text{ | degree } = 5
 $$
 
 where $b_{range}$ is the running product of range check column and $\alpha$ is a random value sent from the verifier to the prover for use in permutation checks.
 
-The prover splits $a$ into two $32$-bit integer limbs and then splits both of these limbs into two $16$-bit integer limbs. So, a $64$-bit number is broken down into four $16$-bit limbs which are represented by $h_0​,h_1​,h_2​, and \space h_3$​.
+The prover splits both $d$ and $e$ into two $16$-bit integer limbs respectively which are represented by $t_0​,t_1​,t_2​, and \space t_3$​.
 
 The `U32ADD3` operation will shift the stack to the left by one. The maximum degree of this operation is $5$.
 
@@ -120,20 +118,18 @@ Assume $a$ and $b$ are known to be 32-bit values. `U32SUB` operation computes $a
 
 ![u32sub](../../assets/design/stack/u32_operations/U32SUB.png)
 
-To facilitate this operation, the prover needs to provide four non-deterministic 'helper' values $h_0$, $h_1$, $h_2$ and $h_3$ such that:
+To facilitate this operation, the prover needs to provide four non-deterministic 'helper' values $t_0$, $t_1$, $t_2$ and $t_3$ such that:
 
 > $$
 s_1 = s_0 + s_1' + 2^{32} \cdot s_0' \text{ | degree } = 1\\
-s_0'^2 - s_0' = 0 \text{ | degree } = 1\\
-s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1\\
-b_{range}' \cdot \left((\alpha + h_0) \cdot (\alpha + h_1) \cdot (\alpha + h_2) \cdot (\alpha + h_3))\right) = b_{range} \text{ | degree } = 5
+s_0'^2 - s_0' = 0 \text{ | degree } = 2\\
+s_1' = 2^{16} \cdot t_1 + t_0 \text{ | degree } = 1\\
+b_{range}' \cdot \left((\alpha + t_0) \cdot (\alpha + t_1) \cdot (\alpha + t_2) \cdot (\alpha + t_3))\right) = b_{range} \text{ | degree } = 5
 $$
 
 where $b_{range}$ is the running product of range check column and $\alpha$ is a random value sent from the verifier to the prover for use in permutation checks. 
 
-The prover splits $a$ into two $32$-bit integer limbs and then splits both of these limbs into two $16$-bit integer limbs. So, a $64$-bit number is broken down into four $16$-bit limbs which are represented by $h_0​,h_1​,h_2​, and \space h_3$​.
-
-Even though no range checks are required for $s_0'$ as its a binary, we are still forcing `U32SUB` to consume 4 range checks. This is required for making the constraints more uniform and grouping the opcodes of operations requiring range checks under a common degree-4 prefix as discussed [here](https://github.com/maticnetwork/miden/issues/203#issuecomment-1127178122).
+The prover splits $c$ into two $16$-bit integer limbs which are represented by $t_0​,t_1​$​. Even though no range checks are required for $d$ as its a binary, we are still forcing `U32SUB` to consume 4 range checks by sending $0$ to the range check operation which is represented by $t_2, t_3$. This is required for making the constraints more uniform and grouping the opcodes of operations requiring range checks under a common degree-4 prefix as discussed [here](https://github.com/maticnetwork/miden/issues/203#issuecomment-1127178122).
 
 The `U32SUB` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of this operation is $5$.
 
@@ -142,18 +138,18 @@ Assume $a$ and $b$ are known to be 32-bit values. `U32MUL` operation computes $a
 
 ![u32mul](../../assets/design/stack/u32_operations/U32MUL.png)
 
-To facilitate this operation, the prover needs to provide five non-deterministic 'helper' values $h_0$, $h_1$, $h_2$, $h_3$, and $m$ such that:
+To facilitate this operation, the prover needs to provide five non-deterministic 'helper' values $t_0$, $t_1$, $t_2$, $t_3$, and $m$ such that:
 
 > $$
-s_0 \cdot s_1 = 2^{48} \cdot h_3 + 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1\\
-s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1\\
-s_0' = 2^{16} \cdot h_3 + h_2 \text{ | degree } = 1\\
-b_{range}' \cdot \left((\alpha + h_0) \cdot (\alpha + h_1) \cdot (\alpha + h_2) \cdot (\alpha + h_3))\right) = b_{range} \text{ | degree } = 5
+s_0 \cdot s_1 = 2^{48} \cdot t_3 + 2^{32} \cdot t_2 + 2^{16} \cdot t_1 + t_0 \text{ | degree } = 1\\
+s_1' = 2^{16} \cdot t_1 + t_0 \text{ | degree } = 1\\
+s_0' = 2^{16} \cdot t_3 + t_2 \text{ | degree } = 1\\
+b_{range}' \cdot \left((\alpha + t_0) \cdot (\alpha + t_1) \cdot (\alpha + t_2) \cdot (\alpha + t_3))\right) = b_{range} \text{ | degree } = 5
 $$
 
 where $b_{range}$ is the running product of range check column and $\alpha$ is a random value sent from the verifier to the prover for use in permutation checks. 
 
-The prover splits $a$ into two $32$-bit integer limbs and then splits both of these limbs into two $16$-bit integer limbs. So, a $64$-bit number is broken down into four $16$-bit limbs which are represented by $h_0​,h_1​,h_2​, and \space h_3$​.
+The prover splits both $c$ and $d$ into two $16$-bit integer limbs respectively which are represented by $t_0​,t_1​,t_2​, and \space t_3$​.
 
 The prover generates $m$ as following:
 
@@ -166,22 +162,22 @@ This ensures that the decomposition of $s_0 \cdot s_1$ into four 16-bit values i
 The `U32MUL` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of this operation is $5$.
 
 ## U32MADD
-In implementing efficient big integer arithmetic, it may be convenient to have an "multiply-add" operation which has the following semantics. Assume $a$, $b$, and $c$ are known to be 32-bit values. `U32MADD` operation computes $a \cdot b + c \rightarrow (d, e)$, where $d$ contains the low 32 bits of the result and $e$ contains the upper 32 bits of the result. The diagram below illustrates this graphically.
+In implementing efficient big integer arithmetic, it may be convenient to have an "multiply-add" operation which has the following semantics. Assume $a$, $b$, and $c$ are known to be 32-bit values. `U32MADD` operation computes $c \cdot b + a \rightarrow (d, e)$, where $d$ contains the low 32 bits of the result and $e$ contains the upper 32 bits of the result. The diagram below illustrates this graphically.
 
 ![u32madd](../../assets/design/stack/u32_operations/U32MADD.png)
 
-To facilitate this operation, the prover needs to provide five non-deterministic 'helper' values $h_0$, $h_1$, $h_2$, $h_3$, and $m$ such that:
+To facilitate this operation, the prover needs to provide five non-deterministic 'helper' values $t_0$, $t_1$, $t_2$, $t_3$, and $m$ such that:
 
 > $$
-s_0 \cdot s_1 + s_2 = 2^{48} \cdot h_3 + 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1\\
-s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1\\
-s_0' = 2^{16} \cdot h_3 + h_2 \text{ | degree } = 1\\
-b_{range}' \cdot \left((\alpha + h_0) \cdot (\alpha + h_1) \cdot (\alpha + h_2) \cdot (\alpha + h_3))\right) = b_{range} \text{ | degree } = 5
+s_0 \cdot s_1 + s_2 = 2^{48} \cdot t_3 + 2^{32} \cdot t_2 + 2^{16} \cdot t_1 + t_0 \text{ | degree } = 1\\
+s_1' = 2^{16} \cdot t_1 + t_0 \text{ | degree } = 1\\
+s_0' = 2^{16} \cdot t_3 + t_2 \text{ | degree } = 1\\
+b_{range}' \cdot \left((\alpha + t_0) \cdot (\alpha + t_1) \cdot (\alpha + t_2) \cdot (\alpha + t_3))\right) = b_{range} \text{ | degree } = 5
 $$
 
 where $b_{range}$ is the running product of range check column and $\alpha$ is a random value sent from the verifier to the prover for use in permutation checks. 
 
-The prover splits $a$ into two $32$-bit integer limbs and then splits both of these limbs into two $16$-bit integer limbs. So, a $64$-bit number is broken down into four $16$-bit limbs which are represented by $h_0​,h_1​,h_2​, and \space h_3$​.
+The prover splits both $d$ and $e$ into two $16$-bit integer limbs respectively which are represented by $t_0​,t_1​,t_2​, and \space t_3$​.
 
 The prover generates $m$ as following:
 
@@ -193,25 +189,25 @@ This ensures that the decomposition of $s_0 \cdot s_1 + s_2$ into four 16-bit va
 
 The `U32MADD` operation will shift the stack to the left by one. The maximum degree of this operation is $5$. 
 
-**Note**: that the above constraints guarantee the correctness of the operation iff $a \cdot b + c$ cannot overflow field modules (which is the case for the field with modulus $2^{64} - 2^{32} + 1$).
+**Note**: that the above constraints guarantee the correctness of the operation iff $c \cdot b + a$ cannot overflow field modules (which is the case for the field with modulus $2^{64} - 2^{32} + 1$).
 
 ## U32DIV
 Assume $a$ and $b$ are known to be 32-bit values. `U32DIV` operation computes $a / b \rightarrow (c, d)$, where $c$ contains the quotient and $d$ contains the remainder. The diagram below illustrates this graphically.
 
 ![u32div](../../assets/design/stack/u32_operations/U32DIV.png)
 
-To facilitate this operation, the prover needs to provide four non-deterministic 'helper' values $h_0$, $h_1$, $h_2$, and $h_3$ such that:
+To facilitate this operation, the prover needs to provide four non-deterministic 'helper' values $t_0$, $t_1$, $t_2$, and $t_3$ such that:
 
 > $$
-s_1 = s_0 \cdot s_1' + s_0' \text{ | degree } = 1\\
-s_1 - s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1\\
-s_0 - s_0' - 1= 2^{16} \cdot h_2 + h_3 \text{ | degree } = 1\\
-b_{range}' \cdot \left((\alpha + h_0) \cdot (\alpha + h_1) \cdot (\alpha + h_2) \cdot (\alpha + h_3))\right) = b_{range} \text{ | degree } = 5
+s_1 = s_0 \cdot s_1' + s_0' \text{ | degree } = 2\\
+s_1 - s_1' = 2^{16} \cdot t_1 + t_0 \text{ | degree } = 1\\
+s_0 - s_0' - 1= 2^{16} \cdot t_2 + t_3 \text{ | degree } = 1\\
+b_{range}' \cdot \left((\alpha + t_0) \cdot (\alpha + t_1) \cdot (\alpha + t_2) \cdot (\alpha + t_3))\right) = b_{range} \text{ | degree } = 5
 $$
 
 where $b_{range}$ is the running product of range check column and $\alpha$ is a random value sent from the verifier to the prover for use in permutation checks. The second constraint enforces that $s_1' \leq s_1$, while the third constraint enforces that $s_0' < s_0$.
 
-The prover splits $a$ into two $32$-bit integer limbs and then splits both of these limbs into two $16$-bit integer limbs. So, a $64$-bit number is broken down into four $16$-bit limbs which are represented by $h_0​,h_1​,h_2​, and \space h_3$​.
+The prover splits both $a-c$ and $b - d - 1$ into two $16$-bit integer limbs respectively which are represented by $t_0​,t_1​,t_2​, and \space t_3$​.
 
 The `U32DIV` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of this operation is $5$. 
 
@@ -220,19 +216,19 @@ Assume $a$ and $b$ are known to be field element defined on a 64-bit prime field
 
 ![u32assert2](../../assets/design/stack/u32_operations/U32ASSERT2.png)
 
-To facilitate this operation, the prover needs to provide four non-deterministic 'helper' values $h_0$, $h_1$, $h_2$ and $h_3$ such that:
+To facilitate this operation, the prover needs to provide four non-deterministic 'helper' values $t_0$, $t_1$, $t_2$ and $t_3$ such that:
 
 > $$
 s_0 - s_0' = 0 \text{ | degree } = 1\\
 s_1 - s_1' = 0 \text{ | degree } = 1\\
-s_0' = 2^{16} \cdot h_3 + h_2 \text{ | degree } = 1\\
-s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1\\
-b_{range}' \cdot \left((\alpha + h_0) \cdot (\alpha + h_1) \cdot (\alpha + h_2) \cdot (\alpha + h_3))\right) = b_{range} \text{ | degree } = 5
+s_0' = 2^{16} \cdot t_3 + t_2 \text{ | degree } = 1\\
+s_1' = 2^{16} \cdot t_1 + t_0 \text{ | degree } = 1\\
+b_{range}' \cdot \left((\alpha + t_0) \cdot (\alpha + t_1) \cdot (\alpha + t_2) \cdot (\alpha + t_3))\right) = b_{range} \text{ | degree } = 5
 $$
 
 where $b_{range}$ is the running product of range check column and $\alpha$ is a random value sent from the verifier to the prover for use in permutation checks.
 
-The prover splits $a$ into two $32$-bit integer limbs and then splits both of these limbs into two $16$-bit integer limbs. So, a $64$-bit number is broken down into four $16$-bit limbs which are represented by $h_0​,h_1​,h_2​, and \space h_3$​.
+The prover splits both $a$ and $b$ into two $16$-bit integer limbs which are represented by $t_0​,t_1​,t_2​, and \space t_3$​.
 
 The `U32ASSERT2` operation will not change the depth of the stack i.e. the stack doesn't shift while transitioning. The maximum degree of this operation is $5$. 
 

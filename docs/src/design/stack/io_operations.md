@@ -63,21 +63,21 @@ To facilitate this operation, we will need to perform a lookup into the memory t
 Let's define a few intermediate variables to simplify constraint description:
 
 $$
-v_h = \alpha_0 + \alpha_1 \cdot 8 + \alpha_2 \cdot s_0 + \alpha_3 \cdot clk
+v_h = \alpha_0 + \alpha_1 \cdot 8 + \alpha_2 \cdot s_0 + \alpha_3 \cdot clk1
 $$
 
 $$
-v_{n} = \alpha_4 \cdot s_0' + \sum_{i=0}^2\alpha_{i+5} \cdot h_i
+v_{n} = \alpha_4 \cdot s_0' + \sum_{i=0}^2\alpha_{i+5} \cdot m_i
 $$
 
 $$
-v_{o} = \alpha_8 \cdot s_0' + \sum_{i=0}^2\alpha_{i+9} \cdot h_i
+v_{o} = \alpha_8 \cdot s_0' + \sum_{i=0}^2\alpha_{i+9} \cdot m_i
 $$
 
 In the above:
 - $v_h$ is a _common header_ which is a combination of unique identifier, memory address and clock cycle. The $8$ in the permutation check is the unique identifier of `MEMORY` operation which has been explained [here](../stack/unique_identifier.md#identifiers).
-- $clk$ is the clock cycle and $\alpha_0$, $\alpha_1$, $\alpha_2$ etc... are random values sent from the verifier to the prover for use in permutation checks.
-- Values for the helper registers $h_0, h_1,  h_2$ are provided by the VM non-deterministically and represent last 3 elements of the old memory at specified address.
+- $clk1$ is the clock cycle and $\alpha_0$, $\alpha_1$, $\alpha_2$ etc... are random values sent from the verifier to the prover for use in permutation checks.
+- Values for the helper registers $m_0, m_1,  m_2$ are provided by the VM non-deterministically and represent last 3 elements of the old memory at specified address.
 - $v_{n}$ and $v_{o}$ can be thought of as component of new and old memory value (whole word) in the permutation check calculation. 
 
 The lookup in the table can be accomplished by including the value into the lookup product such that it follows the following constraint:
@@ -103,7 +103,7 @@ To facilitate this operation, we will need to perform a lookup into the memory t
 Let's define a few intermediate variables to simplify constraint description:
 
 $$
-v_h = \alpha_0 + \alpha_1 \cdot 8 + \alpha_2 \cdot s_0 + \alpha_3 \cdot clk
+v_h = \alpha_0 + \alpha_1 \cdot 8 + \alpha_2 \cdot s_0 + \alpha_3 \cdot clk1
 $$
 
 $$
@@ -116,7 +116,7 @@ $$
 
 In the above:
 - $v_h$ is a _common header_ which is a combination of unique identifier, memory address and clock cycle. The $8$ in the permutation check is the unique identifier of `MEMORY` operation which has been explained [here](../stack/unique_identifier.md#identifiers).
-- $clk$ is the clock cycle and $\alpha_0$, $\alpha_1$, $\alpha_2$ etc... are random values sent from the verifier to the prover for use in permutation checks.
+- $clk1$ is the clock cycle and $\alpha_0$, $\alpha_1$, $\alpha_2$ etc... are random values sent from the verifier to the prover for use in permutation checks.
 - $v_{n}$ and $v_{o}$ can be thought of as component of new and old memory value (whole word) in the permutation check calculation. 
 
 The lookup in the table can be accomplished by including the value into the lookup product such that it follows the following constraint:
@@ -142,21 +142,21 @@ To facilitate this operation, we will need to perform a lookup into the memory t
 Let's define a few intermediate variables to simplify constraint description:
 
 $$
-v_h = \alpha_0 + \alpha_1 \cdot 8 + \alpha_2 \cdot s_0 + \alpha_3 \cdot clk
+v_h = \alpha_0 + \alpha_1 \cdot 8 + \alpha_2 \cdot s_0 + \alpha_3 \cdot clk1
 $$
 
 $$
-v_{n} = \alpha_4 \cdot s_0' + \sum_{i=1}^3\alpha_{i+4} \cdot h_i
+v_{n} = \alpha_4 \cdot s_0' + \sum_{i=1}^3\alpha_{i+4} \cdot m_i
 $$
 
 $$
-v_{o} = \sum_{i=0}^3\alpha_{i+8} \cdot h_i
+v_{o} = \sum_{i=0}^3\alpha_{i+8} \cdot m_i
 $$
 
 In the above:
 - $v_h$ is a _common header_ which is a combination of unique identifier, memory address and clock cycle. The $8$ in the permutation check is the unique identifier of `MEMORY` operation which has been explained [here](../stack/unique_identifier.md#identifiers).
-- $clk$ is the clock cycle and $\alpha_0$, $\alpha_1$, $\alpha_2$ etc... are random values sent from the verifier to the prover for use in permutation checks. 
-- Values for the helper registers $h_0, h_1,  h_2, h_3$ are provided by the VM non-deterministically and represent old memory at the specified address.
+- $clk1$ is the clock cycle and $\alpha_0$, $\alpha_1$, $\alpha_2$ etc... are random values sent from the verifier to the prover for use in permutation checks. 
+- Values for the helper registers $m_0, m_1,  m_2, m_3$ are provided by the VM non-deterministically and represent old memory at the specified address.
 - $v_{n}$ and $v_{o}$ can be thought of as component of new and old memory value (whole word) in the permutation check calculation. 
 
 The lookup in the table can be accomplished by including the value into the lookup product such that it follows the following constraint:
@@ -183,7 +183,7 @@ To facilitate this operation, we will need to perform a lookup into the memory t
 Let's define a few intermediate variables to simplify constraint description:
 
 $$
-v_h = \alpha_0 + \alpha_1 \cdot 8 + \alpha_2 \cdot s_0 + \alpha_3 \cdot clk
+v_h = \alpha_0 + \alpha_1 \cdot 8 + \alpha_2 \cdot s_0 + \alpha_3 \cdot clk1
 $$
 
 $$
@@ -191,13 +191,13 @@ v_{n} = \sum_{i=0}^3\alpha_{i+4} \cdot s_i'
 $$
 
 $$
-v_{o} = \sum_{i=0}^3\alpha_{i+8} \cdot h_i
+v_{o} = \sum_{i=0}^3\alpha_{i+8} \cdot m_i
 $$
 
 In the above:
 - $v_h$ is a _common header_ which is a combination of unique identifier, memory address and clock cycle. The $8$ in the permutation check is the unique identifier of `MEMORY` operation which has been explained [here](../stack/unique_identifier.md#identifiers).
-- $clk$ is the clock cycle and $\alpha_0$, $\alpha_1$, $\alpha_2$ etc... are random values sent from the verifier to the prover for use in permutation checks.
-- Values for the helper registers $h_0, h_1, h_2, h_3$ are provided by the VM non-deterministically and represent old memory at the specified address.
+- $clk1$ is the clock cycle and $\alpha_0$, $\alpha_1$, $\alpha_2$ etc... are random values sent from the verifier to the prover for use in permutation checks.
+- Values for the helper registers $m_0, m_1, m_2, m_3$ are provided by the VM non-deterministically and represent old memory at the specified address.
 - $v_{n}$ and $v_{o}$ can be thought of as component of new and old memory value (whole word) in the permutation check calculation.  
 
 The lookup in the table can be accomplished by including the value into the lookup product such that it follows the following constraint:
