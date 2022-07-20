@@ -2,7 +2,7 @@
 In this section we describe the AIR constraint for Miden VM u32 operations. 
 In the sections below, we describe how we can implement common operations on u32 values (i.e., 32-bit unsigned integers) in this field very efficiently. This includes arithmetic operations and bitwise operations.
 
-Vast majority of operations rely only on 16-bit range checks which can be implemented efficiently using a methodology described in [this note](https://maticnetwork.github.io/miden/design/range.html). Some operations, such as bitwise `AND`, `OR`, and `XOR` require lookups in additional auxiliary tables, which are described [here](https://maticnetwork.github.io/miden/design/aux_table/bitwise.html).
+Vast majority of operations rely only on 16-bit range checks which can be implemented efficiently using a methodology described in [this note](https://maticnetwork.github.io/miden/design/range.html). Some operations, such as bitwise `AND`, `OR`, and `XOR` require lookups in additional auxiliary tables, which are described [here](https://maticnetwork.github.io/miden/design/chiplets/bitwise.html).
 
 ## Checking element validity
 Another nice property of this field is that checking whether four 16-bit values form a valid field element can be done relatively cheaply. Assume $t_0$, $t_1$, $t_2$, and $t_3$ are known to be 16-bit values (e.g., less than $2^{16}$), and we want to verify that $2^{48} \cdot t_3 + 2^{32} \cdot t_2 + 2^{16} \cdot t_1 + t_0$ is a valid field element.
@@ -237,7 +237,7 @@ Assume $a$ and $b$ are known to be a 32-bit values. `U32AND` operation computes 
 
 ![u32and](../../assets/design/stack/u32_operations/U32AND.png)
 
-To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/aux_table/bitwise.html). The lookup in the table can be accomplished by including the value into the lookup product such that it follows the following constraint:
+To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/chiplets/bitwise.html). The lookup in the table can be accomplished by including the value into the lookup product such that it follows the following constraint:
 
 > $$
 b_{aux}' \cdot \left(\alpha_0 + \alpha_1 \cdot 2 + \alpha_2 \cdot s_0 + \alpha_3 \cdot s_1 +  \alpha_4 \cdot s_0'  \right) = b_{aux} \text{ | degree } = 2
@@ -254,7 +254,7 @@ Assume $a$ and $b$ are known to be a 32-bit values. `U32OR` operation computes $
 
 ![u32or](../../assets/design/stack/u32_operations/U32OR.png)
 
-To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/aux_table/bitwise.html). The lookup in the table can be accomplished by including the value into the lookup product such that it follows the following constraint:
+To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/chiplets/bitwise.html). The lookup in the table can be accomplished by including the value into the lookup product such that it follows the following constraint:
 
 > $$
 b_{aux}' \cdot \left(\alpha_0 + \alpha_1 \cdot {10} + \alpha_2 \cdot s_0 + \alpha_3 \cdot s_1 +  \alpha_4 \cdot s_0'  \right) = b_{aux} \text{ | degree } = 2
@@ -271,7 +271,7 @@ Assume $a$ and $b$ are known to be a 32-bit values. `U32XOR` operation computes 
 
 ![u32xor](../../assets/design/stack/u32_operations/U32XOR.png)
 
-To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/aux_table/bitwise.html). The lookup in the table can be accomplished by including the value into the lookup product such that it follows the following constraint:
+To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/chiplets/bitwise.html). The lookup in the table can be accomplished by including the value into the lookup product such that it follows the following constraint:
 
 > $$
 b_{aux}' \cdot \left(\alpha_0 + \alpha_1 \cdot {6} + \alpha_2 \cdot s_0 + \alpha_3 \cdot s_1 +  \alpha_4 \cdot s_0'  \right) = b_{aux} \text{ | degree } = 2

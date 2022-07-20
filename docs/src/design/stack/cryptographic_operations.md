@@ -7,7 +7,7 @@ In this section we describe the AIR constraint for Miden VM cryptographic operat
 
 ![rpperm](../../assets/design/stack/cryptographic_operations/RPPERM.png)
 
-To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/aux_table/hasher.html). 
+To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/chiplets/hasher.html). 
 
 To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc..
 
@@ -61,7 +61,7 @@ The `RPPERM` operation will not change the depth of the stack i.e. the stack doe
 
 ![mpverify](../../assets/design/stack/cryptographic_operations/MPVERIFY.png)
 
-To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/aux_table/hasher.html). 
+To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/chiplets/hasher.html). 
 
 To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc..
 
@@ -123,7 +123,7 @@ The `MPVERIFY` operation will not change the depth of the stack i.e. the stack d
 
 ![mrupdate](../../assets/design/stack/cryptographic_operations/MRUPDATE.png)
 
-To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/aux_table/hasher.html). 
+To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/chiplets/hasher.html). 
 
 To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc..
 

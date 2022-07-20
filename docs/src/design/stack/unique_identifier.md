@@ -15,7 +15,7 @@ To enable this in the bitwise case, we have a special “Bitwise co-processor”
 1. allows us to enforce constraints and prove the correctness of the result for the given inputs.
 2. allows us to do this more efficiently then if we actually had to execute this without a specialized design.
 
-The co-processor takes in the two inputs and the bitwise operation and then provably computes the result so we could just look it up, which is exactly what we need(More information on [bitwise design doc](../aux_table/bitwise.md)).
+The co-processor takes in the two inputs and the bitwise operation and then provably computes the result so we could just look it up, which is exactly what we need(More information on [bitwise design doc](../chiplets/bitwise.md)).
 
 But now we’re left with a problem - we can prove that the bitwise computation is done correctly, but it’s not connected to our main processor yet, so we still need a way to actually “look up” the value and prove that the value we’re using after our lookup is in fact the correct result from that co-processor for the inputs we specified.
 

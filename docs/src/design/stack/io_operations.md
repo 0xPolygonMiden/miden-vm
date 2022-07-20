@@ -58,7 +58,7 @@ The `READW` operation will not change the depth of the stack i.e. the stack does
 
 ![mload](../../assets/design/stack/io_operations/MLOAD.png)
 
-To facilitate this operation, we will need to perform a lookup into the memory table at the specified address using the current values of context and clock cycle registers as described [here](https://maticnetwork.github.io/miden/design/aux_table/memory.html). 
+To facilitate this operation, we will need to perform a lookup into the memory table at the specified address using the current values of context and clock cycle registers as described [here](https://maticnetwork.github.io/miden/design/chiplets/memory.html). 
 
 Let's define a few intermediate variables to simplify constraint description:
 
@@ -98,7 +98,7 @@ The `MLOAD` operation will not change the depth of the stack i.e. the stack does
 
 ![mloadw](../../assets/design/stack/io_operations/MLOADW.png)
 
-To facilitate this operation, we will need to perform a lookup into the memory table at the specified address using the current values of context and clock cycle registers described [here](https://maticnetwork.github.io/miden/design/aux_table/memory.html). 
+To facilitate this operation, we will need to perform a lookup into the memory table at the specified address using the current values of context and clock cycle registers described [here](https://maticnetwork.github.io/miden/design/chiplets/memory.html). 
 
 Let's define a few intermediate variables to simplify constraint description:
 
@@ -137,7 +137,7 @@ The `MLOADW` operation will not change the depth of the stack i.e. the stack doe
 
 ![mstore](../../assets/design/stack/io_operations/MSTORE.png)
 
-To facilitate this operation, we will need to perform a lookup into the memory table at the specified address using the current values of context and clock cycle registers described [here](https://maticnetwork.github.io/miden/design/aux_table/memory.html). 
+To facilitate this operation, we will need to perform a lookup into the memory table at the specified address using the current values of context and clock cycle registers described [here](https://maticnetwork.github.io/miden/design/chiplets/memory.html). 
 
 Let's define a few intermediate variables to simplify constraint description:
 
@@ -178,7 +178,7 @@ The `MSTORE` operation will shift the stack to left by one. The maximum degree o
 
 ![mstorew](../../assets/design/stack/io_operations/MSTOREW.png)
 
-To facilitate this operation, we will need to perform a lookup into the memory table at the specified address using the current values of context and clock cycle registers described [here](https://maticnetwork.github.io/miden/design/aux_table/memory.html). 
+To facilitate this operation, we will need to perform a lookup into the memory table at the specified address using the current values of context and clock cycle registers described [here](https://maticnetwork.github.io/miden/design/chiplets/memory.html). 
 
 Let's define a few intermediate variables to simplify constraint description:
 
