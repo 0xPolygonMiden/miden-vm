@@ -869,24 +869,6 @@ fn loop_block_repeat() {
 // HELPER REGISTERS TESTS
 // ================================================================================================
 #[test]
-fn set_user_op_helpers_one() {
-    // --- user operation with 1 helper value -----------------------------------------------------
-    let ops = vec![Operation::U32and, Operation::U32and];
-    let program = CodeBlock::new_span(ops);
-    let (trace, _, _) = build_trace(&[2, 6, 1], &program);
-
-    // Check the hasher state of the final user operation which was executed.
-    let hasher_state = get_hasher_state(&trace, 2);
-
-    // h0 holds the number of ops left in the group, which is 0. h1 holds the parent addr, which is
-    // ZERO. h2 holds one helper value, which is the lookup row in the bitwise trace. everything
-    // else is unused.
-    let expected = build_expected_hasher_state(&[ZERO, ZERO, Felt::new(15)]);
-
-    assert_eq!(expected, hasher_state);
-}
-
-#[test]
 fn set_user_op_helpers_many() {
     // --- user operation with 4 helper values ----------------------------------------------------
     let program = CodeBlock::new_span(vec![Operation::U32div]);
