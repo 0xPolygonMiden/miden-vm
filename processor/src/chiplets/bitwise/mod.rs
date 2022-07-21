@@ -1,6 +1,12 @@
-use super::{ExecutionError, Felt, StarkField, TraceFragment, Vec};
+use super::{
+    ChipletsBus, ExecutionError, Felt, FieldElement, LookupTableRow, StarkField, TraceFragment,
+    Vec, BITWISE_AND_OP_ID, BITWISE_OR_OP_ID, BITWISE_XOR_OP_ID,
+};
 use crate::utils::get_trace_len;
-use vm_core::bitwise::{BITWISE_AND, BITWISE_OR, BITWISE_XOR, NUM_SELECTORS, TRACE_WIDTH};
+use vm_core::bitwise::{
+    BITWISE_AND, BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OR, BITWISE_OUTPUT_COL_IDX,
+    BITWISE_XOR, NUM_SELECTORS, OP_CYCLE_LEN, TRACE_WIDTH,
+};
 
 #[cfg(test)]
 mod tests;
@@ -187,10 +193,36 @@ impl Bitwise {
     // --------------------------------------------------------------------------------------------
 
     /// Fills the provide trace fragment with trace data from this bitwise helper instance.
-    pub fn fill_trace(self, trace: &mut TraceFragment) {
+    pub fn fill_trace(
+        self,
+        trace: &mut TraceFragment,
+        bitwise_start_row: usize,
+        chiplets_bus: &mut ChipletsBus,
+    ) {
         // make sure fragment dimensions are consistent with the dimensions of this trace
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
         debug_assert_eq!(TRACE_WIDTH, trace.width(), "inconsistent trace widths");
+
+        // provide the lookup data from the last row in each bitwise cycle
+        for row in ((OP_CYCLE_LEN - 1)..self.trace_len()).step_by(OP_CYCLE_LEN) {
+            let a = self.trace[BITWISE_A_COL_IDX][row];
+            let b = self.trace[BITWISE_B_COL_IDX][row];
+            let z = self.trace[BITWISE_OUTPUT_COL_IDX][row];
+
+            // get the operation identifier.
+            let op_selectors: Selectors = [self.trace[0][row], self.trace[1][row]];
+            let op_id = if op_selectors == BITWISE_AND {
+                BITWISE_AND_OP_ID
+            } else if op_selectors == BITWISE_OR {
+                BITWISE_OR_OP_ID
+            } else {
+                // TODO: We should probably match BITWISE_XOR and raise an error in the else case,
+                // but we need to determine how aggressively we want to error check.
+                BITWISE_XOR_OP_ID
+            };
+
+            chiplets_bus.provide_bitwise_operation(op_id, a, b, z, bitwise_start_row + row);
+        }
 
         // copy trace into the fragment column-by-column
         // TODO: this can be parallelized to copy columns in multiple threads
@@ -244,5 +276,34 @@ pub fn assert_u32(value: Felt) -> Result<Felt, ExecutionError> {
         Err(ExecutionError::NotU32Value(value))
     } else {
         Ok(value)
+    }
+}
+
+// BITWISE LOOKUPS
+// ================================================================================================
+#[allow(dead_code)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct BitwiseLookup {
+    op_id: Felt,
+    a: Felt,
+    b: Felt,
+    z: Felt,
+}
+
+impl BitwiseLookup {
+    pub fn new(op_id: Felt, a: Felt, b: Felt, z: Felt) -> Self {
+        Self { op_id, a, b, z }
+    }
+}
+
+impl LookupTableRow for BitwiseLookup {
+    /// Reduces this row to a single field element in the field specified by E. This requires
+    /// at least 12 alpha values.
+    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+        alphas[0]
+            + alphas[1].mul_base(self.op_id)
+            + alphas[2].mul_base(self.a)
+            + alphas[3].mul_base(self.b)
+            + alphas[4].mul_base(self.z)
     }
 }

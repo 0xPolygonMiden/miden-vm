@@ -1,4 +1,4 @@
-use super::{create_range, Range, MEMORY_TRACE_OFFSET};
+use super::{create_range, Felt, Range, MEMORY_TRACE_OFFSET};
 
 // CONSTANTS
 // ================================================================================================
@@ -28,3 +28,9 @@ pub const D1_COL_IDX: usize = D0_COL_IDX + 1;
 /// Column for the inverse of the delta between two consecutive context IDs, addresses, or clock
 /// cycles, used to enforce that changes are correctly constrained.
 pub const D_INV_COL_IDX: usize = D1_COL_IDX + 1;
+
+// --- OPERATION SELECTOR -----------------------------------------------------------------------
+
+/// Unique id for memory operations. Computed as 1 more than the binary composition of the
+/// chiplet selectors [1, 1, 1].
+pub const MEMORY_OP_ID: Felt = Felt::new(8);

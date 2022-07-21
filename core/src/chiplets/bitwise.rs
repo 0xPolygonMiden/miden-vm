@@ -16,12 +16,21 @@ pub const OP_CYCLE_LEN: usize = 8;
 
 /// Specifies a bitwise AND operation.
 pub const BITWISE_AND: Selectors = [Felt::ZERO, Felt::ZERO];
+/// Unique id for the bitwise AND operation. Computed as 1 more than the binary composition of the
+/// chiplet and operation selectors [1, 0, 0, 0].
+pub const BITWISE_AND_OP_ID: Felt = Felt::new(2);
 
 /// Specifies a bitwise OR operation.
 pub const BITWISE_OR: Selectors = [Felt::ZERO, Felt::ONE];
+/// Unique id for the bitwise OR operation. Computed as 1 more than the binary composition of the
+/// chiplet and operation selectors [1, 0, 0, 1].
+pub const BITWISE_OR_OP_ID: Felt = Felt::new(10);
 
 /// Specifies a bitwise XOR operation.
 pub const BITWISE_XOR: Selectors = [Felt::ONE, Felt::ZERO];
+/// Unique id for the bitwise XOR operation. Computed as 1 more than the binary composition of the
+/// chiplet and operation selectors [1, 0, 1, 0].
+pub const BITWISE_XOR_OP_ID: Felt = Felt::new(6);
 
 // --- INPUT DECOMPOSITION ------------------------------------------------------------------------
 

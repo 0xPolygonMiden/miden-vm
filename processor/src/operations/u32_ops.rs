@@ -168,7 +168,7 @@ impl Process {
     pub(super) fn op_u32and(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
-        let result = self.chiplets.u32and(a, b)?;
+        let result = self.chiplets.u32and(a, b, self.system.clk())?;
 
         self.stack.set(0, result);
         self.stack.shift_left(2);
@@ -181,7 +181,7 @@ impl Process {
     pub(super) fn op_u32or(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
-        let result = self.chiplets.u32or(a, b)?;
+        let result = self.chiplets.u32or(a, b, self.system.clk())?;
 
         self.stack.set(0, result);
         self.stack.shift_left(2);
@@ -194,7 +194,7 @@ impl Process {
     pub(super) fn op_u32xor(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
-        let result = self.chiplets.u32xor(a, b)?;
+        let result = self.chiplets.u32xor(a, b, self.system.clk())?;
 
         self.stack.set(0, result);
         self.stack.shift_left(2);
