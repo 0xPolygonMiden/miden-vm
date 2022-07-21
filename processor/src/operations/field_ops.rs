@@ -139,28 +139,6 @@ impl Process {
         self.stack.copy_state(1);
         Ok(())
     }
-
-    /// Compares the first word (four elements) with the second word on the stack, if the words are
-    /// equal, pushes ONE onto the stack, otherwise pushes ZERO onto the stack.
-    pub(super) fn op_eqw(&mut self) -> Result<(), ExecutionError> {
-        let b3 = self.stack.get(0);
-        let b2 = self.stack.get(1);
-        let b1 = self.stack.get(2);
-        let b0 = self.stack.get(3);
-
-        let a3 = self.stack.get(4);
-        let a2 = self.stack.get(5);
-        let a1 = self.stack.get(6);
-        let a0 = self.stack.get(7);
-
-        if a0 == b0 && a1 == b1 && a2 == b2 && a3 == b3 {
-            self.stack.set(0, Felt::ONE);
-        } else {
-            self.stack.set(0, Felt::ZERO);
-        }
-        self.stack.shift_right(0);
-        Ok(())
-    }
 }
 
 // TESTS
@@ -434,31 +412,6 @@ mod tests {
 
         process.execute_op(Operation::Eqz).unwrap();
         let expected = build_expected(&[Felt::ZERO, Felt::new(3)]);
-        assert_eq!(expected, process.stack.trace_state());
-    }
-
-    #[test]
-    fn op_eqw() {
-        // --- test when top two words are equal ------------------------------
-        let mut process = Process::new_dummy();
-        let mut values = vec![1, 2, 3, 4, 5, 2, 3, 4, 5];
-        init_stack_with(&mut process, &values);
-
-        process.execute_op(Operation::Eqw).unwrap();
-        values.reverse();
-        values.insert(0, 1);
-        let expected = build_expected_from_ints(&values);
-        assert_eq!(expected, process.stack.trace_state());
-
-        // --- test when top two words are not equal --------------------------
-        let mut process = Process::new_dummy();
-        let mut values = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
-        init_stack_with(&mut process, &values);
-
-        process.execute_op(Operation::Eqw).unwrap();
-        values.reverse();
-        values.insert(0, 0);
-        let expected = build_expected_from_ints(&values);
         assert_eq!(expected, process.stack.trace_state());
     }
 
