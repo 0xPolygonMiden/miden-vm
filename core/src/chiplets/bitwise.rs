@@ -49,7 +49,11 @@ pub const BITWISE_B_COL_IDX: usize = BITWISE_A_COL_IDX + 1;
 
 /// The index of the column containing the aggregated output value within the bitwise execution
 /// trace.
-pub const BITWISE_OUTPUT_COL_IDX: usize = BITWISE_B_COL_IDX + 1 + 2 * BITWISE_NUM_DECOMP_BITS;
+pub const BITWISE_PREV_OUTPUT_COL_IDX: usize = BITWISE_B_COL_IDX + 1 + 2 * BITWISE_NUM_DECOMP_BITS;
+
+/// The index of the column containing the aggregated output value within the bitwise execution
+/// trace.
+pub const BITWISE_OUTPUT_COL_IDX: usize = BITWISE_PREV_OUTPUT_COL_IDX + 1;
 
 // TYPE ALIASES
 // ================================================================================================

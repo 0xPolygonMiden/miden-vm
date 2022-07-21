@@ -4,7 +4,7 @@ use core::ops::Range;
 use vm_core::{
     bitwise::{
         BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_NUM_DECOMP_BITS as NUM_DECOMP_BITS,
-        BITWISE_OUTPUT_COL_IDX, NUM_SELECTORS, OP_CYCLE_LEN,
+        BITWISE_OUTPUT_COL_IDX, BITWISE_PREV_OUTPUT_COL_IDX, NUM_SELECTORS, OP_CYCLE_LEN,
     },
     utils::range as create_range,
     Felt,
@@ -31,9 +31,9 @@ const A_COL_RANGE: Range<usize> = create_range(B_COL_IDX + 1, NUM_DECOMP_BITS);
 /// The index range for the bit decomposition of `b`.
 const B_COL_RANGE: Range<usize> = create_range(A_COL_RANGE.end, NUM_DECOMP_BITS);
 /// The index of the column containing the aggregated output value of the previous row.
-const OUTPUT_COL_PREV_IDX: usize = BITWISE_TRACE_OFFSET + BITWISE_OUTPUT_COL_IDX;
+const OUTPUT_COL_PREV_IDX: usize = BITWISE_TRACE_OFFSET + BITWISE_PREV_OUTPUT_COL_IDX;
 /// The index of the column containing the aggregated output value.
-const OUTPUT_COL_IDX: usize = OUTPUT_COL_PREV_IDX + 1;
+const OUTPUT_COL_IDX: usize = BITWISE_TRACE_OFFSET + BITWISE_OUTPUT_COL_IDX;
 
 // PERIODIC COLUMNS
 // ================================================================================================
