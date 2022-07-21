@@ -155,27 +155,24 @@ impl Chiplets {
     // BITWISE CHIPLET ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Requests a bitwise AND of `a` and `b` from the Bitwise chiplet. Returns the result along
-    /// with the index of the  result row, which is used for the lookup product column used for
-    /// multiset checks. We assume that `a` and `b` are 32-bit values. If that's not the case, the
-    /// result of the computation is undefined.
-    pub fn u32and(&mut self, a: Felt, b: Felt) -> Result<(Felt, Felt), ExecutionError> {
+    /// Requests a bitwise AND of `a` and `b` from the Bitwise chiplet and returns the result.
+    /// We assume that `a` and `b` are 32-bit values. If that's not the case, the result of the
+    /// computation is undefined.
+    pub fn u32and(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
         self.bitwise.u32and(a, b)
     }
 
-    /// Requests a bitwise OR of `a` and `b` from the Bitwise chiplet. Returns the result along with
-    /// the index of the result row, which is used for the lookup product column used for multiset
-    /// checks. We assume that `a` and `b` are 32-bit values. If that's not the case, the result of
-    /// the computation is undefined.
-    pub fn u32or(&mut self, a: Felt, b: Felt) -> Result<(Felt, Felt), ExecutionError> {
+    /// Requests a bitwise OR of `a` and `b` from the Bitwise chiplet and returns the result.
+    /// We assume that `a` and `b` are 32-bit values. If that's not the case, the result of the
+    /// computation is undefined.
+    pub fn u32or(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
         self.bitwise.u32or(a, b)
     }
 
-    /// Requests a bitwise XOR of `a` and `b` from the Bitwise chiplet and returns the result along
-    /// with the index of the result row, which is used for the lookup product column used for
-    /// multiset checks. We assume that `a` and `b` are 32-bit values. If that's not the case, the
-    /// result of the computation is undefined.
-    pub fn u32xor(&mut self, a: Felt, b: Felt) -> Result<(Felt, Felt), ExecutionError> {
+    /// Requests a bitwise XOR of `a` and `b` from the Bitwise chiplet and returns the result.
+    /// We assume that `a` and `b` are 32-bit values. If that's not the case, the result of the
+    /// computation is undefined.
+    pub fn u32xor(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
         self.bitwise.u32xor(a, b)
     }
 

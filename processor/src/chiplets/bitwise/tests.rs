@@ -2,7 +2,6 @@ use super::{
     Bitwise, Felt, StarkField, TraceFragment, BITWISE_AND, BITWISE_OR, BITWISE_XOR, TRACE_WIDTH,
 };
 use rand_utils::rand_value;
-use vm_core::bitwise::OP_CYCLE_LEN;
 
 #[test]
 fn bitwise_init() {
@@ -17,10 +16,8 @@ fn bitwise_and() {
     let a = rand_u32();
     let b = rand_u32();
 
-    let (result, row_idx) = bitwise.u32and(a, b).unwrap();
-    let expected_row = OP_CYCLE_LEN - 1;
+    let result = bitwise.u32and(a, b).unwrap();
     assert_eq!(a.as_int() & b.as_int(), result.as_int());
-    assert_eq!(row_idx, Felt::new(expected_row as u64));
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
@@ -66,10 +63,8 @@ fn bitwise_or() {
     let a = rand_u32();
     let b = rand_u32();
 
-    let (result, row_idx) = bitwise.u32or(a, b).unwrap();
-    let expected_row = OP_CYCLE_LEN - 1;
+    let result = bitwise.u32or(a, b).unwrap();
     assert_eq!(a.as_int() | b.as_int(), result.as_int());
-    assert_eq!(row_idx, Felt::new(expected_row as u64));
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
@@ -115,10 +110,8 @@ fn bitwise_xor() {
     let a = rand_u32();
     let b = rand_u32();
 
-    let (result, row_idx) = bitwise.u32xor(a, b).unwrap();
-    let expected_row = OP_CYCLE_LEN - 1;
+    let result = bitwise.u32xor(a, b).unwrap();
     assert_eq!(a.as_int() ^ b.as_int(), result.as_int());
-    assert_eq!(row_idx, Felt::new(expected_row as u64));
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 8;
@@ -165,28 +158,20 @@ fn bitwise_multiple() {
     let b = [rand_u32(), rand_u32(), rand_u32(), rand_u32()];
 
     // first operation: AND
-    let (result0, row_idx) = bitwise.u32and(a[0], b[0]).unwrap();
-    let mut expected_row = OP_CYCLE_LEN - 1;
+    let result0 = bitwise.u32and(a[0], b[0]).unwrap();
     assert_eq!(a[0].as_int() & b[0].as_int(), result0.as_int());
-    assert_eq!(row_idx, Felt::new(expected_row as u64));
 
     // second operation: OR
-    let (result1, row_idx) = bitwise.u32or(a[1], b[1]).unwrap();
-    expected_row += OP_CYCLE_LEN;
+    let result1 = bitwise.u32or(a[1], b[1]).unwrap();
     assert_eq!(a[1].as_int() | b[1].as_int(), result1.as_int());
-    assert_eq!(row_idx, Felt::new(expected_row as u64));
 
     // third operation: XOR
-    let (result2, row_idx) = bitwise.u32xor(a[2], b[2]).unwrap();
-    expected_row += OP_CYCLE_LEN;
+    let result2 = bitwise.u32xor(a[2], b[2]).unwrap();
     assert_eq!(a[2].as_int() ^ b[2].as_int(), result2.as_int());
-    assert_eq!(row_idx, Felt::new(expected_row as u64));
 
     // fourth operation: AND
-    let (result3, row_idx) = bitwise.u32and(a[3], b[3]).unwrap();
-    expected_row += OP_CYCLE_LEN;
+    let result3 = bitwise.u32and(a[3], b[3]).unwrap();
     assert_eq!(a[3].as_int() & b[3].as_int(), result3.as_int());
-    assert_eq!(row_idx, Felt::new(expected_row as u64));
 
     // --- check generated trace ----------------------------------------------
     let num_rows = 32;
