@@ -4,10 +4,13 @@ use super::{
 };
 use crate::{trace::LookupTableRow, ExecutionError};
 use core::ops::RangeInclusive;
-use vm_core::code_blocks::OpBatch;
+use vm_core::{
+    chiplets::bitwise::{BITWISE_AND_LABEL, BITWISE_OR_LABEL, BITWISE_XOR_LABEL},
+    code_blocks::OpBatch,
+};
 
 mod bitwise;
-use bitwise::Bitwise;
+use bitwise::{Bitwise, BitwiseLookup};
 
 mod hasher;
 pub use hasher::{AuxTraceBuilder as HasherAuxTraceBuilder, SiblingTableRow};
@@ -159,21 +162,33 @@ impl Chiplets {
     /// We assume that `a` and `b` are 32-bit values. If that's not the case, the result of the
     /// computation is undefined.
     pub fn u32and(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
-        self.bitwise.u32and(a, b)
+        let result = self.bitwise.u32and(a, b)?;
+        self.bus
+            .request_bitwise_operation(BITWISE_AND_LABEL, a, b, result, self.clk);
+
+        Ok(result)
     }
 
     /// Requests a bitwise OR of `a` and `b` from the Bitwise chiplet and returns the result.
     /// We assume that `a` and `b` are 32-bit values. If that's not the case, the result of the
     /// computation is undefined.
     pub fn u32or(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
-        self.bitwise.u32or(a, b)
+        let result = self.bitwise.u32or(a, b)?;
+        self.bus
+            .request_bitwise_operation(BITWISE_OR_LABEL, a, b, result, self.clk);
+
+        Ok(result)
     }
 
     /// Requests a bitwise XOR of `a` and `b` from the Bitwise chiplet and returns the result.
     /// We assume that `a` and `b` are 32-bit values. If that's not the case, the result of the
     /// computation is undefined.
     pub fn u32xor(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
-        self.bitwise.u32xor(a, b)
+        let result = self.bitwise.u32xor(a, b)?;
+        self.bus
+            .request_bitwise_operation(BITWISE_XOR_LABEL, a, b, result, self.clk);
+
+        Ok(result)
     }
 
     // MEMORY CHIPLET ACCESSORS
@@ -304,7 +319,8 @@ impl Chiplets {
         trace: &mut [Vec<Felt>; CHIPLETS_WIDTH],
         trace_len: usize,
     ) -> (HasherAuxTraceBuilder, AuxTraceBuilder) {
-        // get the row where the memory segment begins before destructuring.
+        // get the rows where chiplets begin.
+        let bitwise_start = self.hasher.trace_len();
         let memory_start = self.memory_start();
         let Chiplets {
             clk: _,
@@ -387,7 +403,7 @@ impl Chiplets {
         // fill the fragments with the execution trace from each chiplet
         // TODO: this can be parallelized to fill the traces in multiple threads
         let hasher_aux_builder = hasher.fill_trace(&mut hasher_fragment);
-        bitwise.fill_trace(&mut bitwise_fragment);
+        bitwise.fill_trace(&mut bitwise_fragment, bitwise_start, &mut bus);
         memory.fill_trace(&mut memory_fragment, memory_start, &mut bus);
 
         (hasher_aux_builder, bus.into_aux_builder())
@@ -408,7 +424,7 @@ pub(super) enum ChipletsLookup {
 #[allow(dead_code)]
 pub(super) enum ChipletsLookupRow {
     Hasher(HasherLookupRow),
-    Bitwise(BitwiseLookupRow),
+    Bitwise(BitwiseLookup),
     Memory(MemoryLookup),
 }
 
@@ -430,21 +446,6 @@ impl LookupTableRow for ChipletsLookupRow {
 pub(super) struct HasherLookupRow {}
 
 impl LookupTableRow for HasherLookupRow {
-    /// Reduces this row to a single field element in the field specified by E. This requires
-    /// at least 12 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, _alphas: &[E]) -> E {
-        unimplemented!()
-    }
-}
-
-// BITWISE PROCESSOR LOOKUPS
-// ================================================================================================
-
-#[allow(dead_code)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) struct BitwiseLookupRow {}
-
-impl LookupTableRow for BitwiseLookupRow {
     /// Reduces this row to a single field element in the field specified by E. This requires
     /// at least 12 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(&self, _alphas: &[E]) -> E {
