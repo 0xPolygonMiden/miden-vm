@@ -96,23 +96,45 @@ fn parse_op_token(
         "u32checked_divmod" => u32_ops::parse_u32divmod(span_ops, op, U32OpMode::Checked),
         "u32unchecked_divmod" => u32_ops::parse_u32divmod(span_ops, op, U32OpMode::Unchecked),
 
-        "u32and" => u32_ops::parse_u32and(span_ops, op),
-        "u32or" => u32_ops::parse_u32or(span_ops, op),
-        "u32xor" => u32_ops::parse_u32xor(span_ops, op),
-        "u32not" => u32_ops::parse_u32not(span_ops, op),
-        "u32shr" => u32_ops::parse_u32shr(span_ops, op),
-        "u32shl" => u32_ops::parse_u32shl(span_ops, op),
-        "u32rotr" => u32_ops::parse_u32rotr(span_ops, op),
-        "u32rotl" => u32_ops::parse_u32rotl(span_ops, op),
+        "u32checked_and" => u32_ops::parse_u32and(span_ops, op),
+        "u32checked_or" => u32_ops::parse_u32or(span_ops, op),
+        "u32checked_xor" => u32_ops::parse_u32xor(span_ops, op),
+        "u32checked_not" => u32_ops::parse_u32not(span_ops, op),
 
-        "u32eq" => u32_ops::parse_u32eq(span_ops, op),
-        "u32neq" => u32_ops::parse_u32neq(span_ops, op),
-        "u32lt" => u32_ops::parse_u32lt(span_ops, op),
-        "u32lte" => u32_ops::parse_u32lte(span_ops, op),
-        "u32gt" => u32_ops::parse_u32gt(span_ops, op),
-        "u32gte" => u32_ops::parse_u32gte(span_ops, op),
-        "u32min" => u32_ops::parse_u32min(span_ops, op),
-        "u32max" => u32_ops::parse_u32max(span_ops, op),
+        "u32checked_shr" => u32_ops::parse_u32shr(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_shr" => u32_ops::parse_u32shr(span_ops, op, U32OpMode::Unchecked),
+        "u32overflowing_shr" => u32_ops::parse_u32shr(span_ops, op, U32OpMode::Overflowing),
+
+        "u32checked_shl" => u32_ops::parse_u32shl(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_shl" => u32_ops::parse_u32shl(span_ops, op, U32OpMode::Unchecked),
+        "u32overflowing_shl" => u32_ops::parse_u32shl(span_ops, op, U32OpMode::Overflowing),
+
+        "u32checked_rotr" => u32_ops::parse_u32rotr(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_rotr" => u32_ops::parse_u32rotr(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_rotl" => u32_ops::parse_u32rotl(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_rotl" => u32_ops::parse_u32rotl(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_eq" => u32_ops::parse_u32eq(span_ops, op),
+        "u32checked_neq" => u32_ops::parse_u32neq(span_ops, op),
+
+        "u32checked_lt" => u32_ops::parse_u32lt(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_lt" => u32_ops::parse_u32lt(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_lte" => u32_ops::parse_u32lte(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_lte" => u32_ops::parse_u32lte(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_gt" => u32_ops::parse_u32gt(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_gt" => u32_ops::parse_u32gt(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_gte" => u32_ops::parse_u32gte(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_gte" => u32_ops::parse_u32gte(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_min" => u32_ops::parse_u32min(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_min" => u32_ops::parse_u32min(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_max" => u32_ops::parse_u32max(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_max" => u32_ops::parse_u32max(span_ops, op, U32OpMode::Unchecked),
 
         // ----- stack manipulation ---------------------------------------------------------------
         "drop" => stack_ops::parse_drop(span_ops, op),

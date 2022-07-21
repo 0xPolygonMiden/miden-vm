@@ -11,8 +11,8 @@ use rand_utils::rand_value;
 // ================================================================================================
 
 #[test]
-fn u32eq() {
-    let asm_op = "u32eq";
+fn u32checked_eq() {
+    let asm_op = "u32checked_eq";
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 1]);
@@ -43,15 +43,15 @@ fn u32eq() {
 
 #[test]
 fn u32eq_fail() {
-    let asm_op = "u32eq";
+    let asm_op = "u32checked_eq";
 
     // should fail if either one of 2 inputs is out of bounds
     test_inputs_out_of_bounds(asm_op, 2);
 }
 
 #[test]
-fn u32eq_b() {
-    let build_asm_op = |param: u32| format!("u32eq.{}", param);
+fn u32checked_eq_b() {
+    let build_asm_op = |param: u32| format!("u32checked_eq.{}", param);
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(1).as_str(), &[1]);
@@ -81,8 +81,8 @@ fn u32eq_b() {
 }
 
 #[test]
-fn u32eq_b_fail() {
-    let asm_op = "u32eq";
+fn u32checked_eq_b_fail() {
+    let asm_op = "u32checked_eq";
 
     // should fail when b is out of bounds and provided as a parameter
     test_param_out_of_bounds(asm_op, U32_BOUND);
@@ -94,8 +94,8 @@ fn u32eq_b_fail() {
 }
 
 #[test]
-fn u32neq() {
-    let asm_op = "u32neq";
+fn u32checked_neq() {
+    let asm_op = "u32checked_neq";
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 1]);
@@ -125,16 +125,16 @@ fn u32neq() {
 }
 
 #[test]
-fn u32neq_fail() {
-    let asm_op = "u32neq";
+fn u32checked_neq_fail() {
+    let asm_op = "u32checked_neq";
 
     // should fail if either one of 2 inputs is out of bounds
     test_inputs_out_of_bounds(asm_op, 2);
 }
 
 #[test]
-fn u32neq_b() {
-    let build_asm_op = |param: u32| format!("u32neq.{}", param);
+fn u32checked_neq_b() {
+    let build_asm_op = |param: u32| format!("u32checked_neq.{}", param);
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(1).as_str(), &[1]);
@@ -164,8 +164,8 @@ fn u32neq_b() {
 }
 
 #[test]
-fn u32neq_b_fail() {
-    let asm_op = "u32neq";
+fn u32checked_neq_b_fail() {
+    let asm_op = "u32checked_neq";
 
     // should fail when b is out of bounds and provided as a parameter
     test_param_out_of_bounds(asm_op, U32_BOUND);
@@ -177,24 +177,24 @@ fn u32neq_b_fail() {
 }
 
 #[test]
-fn u32lt() {
-    let asm_op = "u32lt";
+fn u32checked_lt() {
+    let asm_op = "u32checked_lt";
 
     // should push 1 to the stack when a < b and 0 otherwise
     test_comparison_op(asm_op, 1, 0, 0);
 }
 
 #[test]
-fn u32lt_fail() {
-    let asm_op = "u32lt";
+fn u32checked_lt_fail() {
+    let asm_op = "u32checked_lt";
 
     // should fail if either one of 2 inputs is out of bounds
     test_inputs_out_of_bounds(asm_op, 2);
 }
 
 #[test]
-fn u32lt_unsafe() {
-    let asm_op = "u32lt.unsafe";
+fn u32unchecked_lt() {
+    let asm_op = "u32unchecked_lt";
 
     // should push 1 to the stack when a < b and 0 otherwise
     test_comparison_op(asm_op, 1, 0, 0);
@@ -204,24 +204,24 @@ fn u32lt_unsafe() {
 }
 
 #[test]
-fn u32lte() {
-    let asm_op = "u32lte";
+fn u32checked_lte() {
+    let asm_op = "u32checked_lte";
 
     // should push 1 to the stack when a <= b and 0 otherwise
     test_comparison_op(asm_op, 1, 1, 0);
 }
 
 #[test]
-fn u32lte_fail() {
-    let asm_op = "u32lte";
+fn u32checked_lte_fail() {
+    let asm_op = "u32checked_lte";
 
     // should fail if either one of 2 inputs is out of bounds
     test_inputs_out_of_bounds(asm_op, 2);
 }
 
 #[test]
-fn u32lte_unsafe() {
-    let asm_op = "u32lte.unsafe";
+fn u32unchecked_lte() {
+    let asm_op = "u32unchecked_lte";
 
     // should push 1 to the stack when a <= b and 0 otherwise
     test_comparison_op(asm_op, 1, 1, 0);
@@ -231,24 +231,24 @@ fn u32lte_unsafe() {
 }
 
 #[test]
-fn u32gt() {
-    let asm_op = "u32gt";
+fn u32checked_gt() {
+    let asm_op = "u32checked_gt";
 
     // should push 1 to the stack when a > b and 0 otherwise
     test_comparison_op(asm_op, 0, 0, 1);
 }
 
 #[test]
-fn u32gt_fail() {
-    let asm_op = "u32gt";
+fn u32checked_gt_fail() {
+    let asm_op = "u32checked_gt";
 
     // should fail if either one of 2 inputs is out of bounds
     test_inputs_out_of_bounds(asm_op, 2);
 }
 
 #[test]
-fn u32gt_unsafe() {
-    let asm_op = "u32gt.unsafe";
+fn u32unchecked_gt() {
+    let asm_op = "u32unchecked_gt";
 
     // should push 1 to the stack when a > b and 0 otherwise
     test_comparison_op(asm_op, 0, 0, 1);
@@ -258,24 +258,24 @@ fn u32gt_unsafe() {
 }
 
 #[test]
-fn u32gte() {
-    let asm_op = "u32gte";
+fn u32checked_gte() {
+    let asm_op = "u32checked_gte";
 
     // should push 1 to the stack when a >= b and 0 otherwise
     test_comparison_op(asm_op, 0, 1, 1);
 }
 
 #[test]
-fn u32gte_fail() {
-    let asm_op = "u32gte";
+fn u32checked_gte_fail() {
+    let asm_op = "u32checked_gte";
 
     // should fail if either one of 2 inputs is out of bounds
     test_inputs_out_of_bounds(asm_op, 2);
 }
 
 #[test]
-fn u32gte_unsafe() {
-    let asm_op = "u32gte.unsafe";
+fn u32unchecked_gte() {
+    let asm_op = "u32unchecked_gte";
 
     // should push 1 to the stack when a >= b and 0 otherwise
     test_comparison_op(asm_op, 0, 1, 1);
@@ -285,24 +285,24 @@ fn u32gte_unsafe() {
 }
 
 #[test]
-fn u32min() {
-    let asm_op = "u32min";
+fn u32checked_min() {
+    let asm_op = "u32checked_min";
 
     // should put the minimum of the 2 inputs on the stack
     test_min(asm_op);
 }
 
 #[test]
-fn u32min_fail() {
-    let asm_op = "u32min";
+fn u32checked_min_fail() {
+    let asm_op = "u32checked_min";
 
     // should fail if either one of 2 inputs is out of bounds
     test_inputs_out_of_bounds(asm_op, 2);
 }
 
 #[test]
-fn u32min_unsafe() {
-    let asm_op = "u32min.unsafe";
+fn u32unchecked_min() {
+    let asm_op = "u32unchecked_min";
 
     // should put the minimum of the 2 inputs on the stack
     test_min(asm_op);
@@ -312,24 +312,24 @@ fn u32min_unsafe() {
 }
 
 #[test]
-fn u32max() {
-    let asm_op = "u32max";
+fn u32checked_max() {
+    let asm_op = "u32checked_max";
 
     // should put the maximum of the 2 inputs on the stack
     test_max(asm_op);
 }
 
 #[test]
-fn u32max_fail() {
-    let asm_op = "u32max";
+fn u32checked_max_fail() {
+    let asm_op = "u32checked_max";
 
     // should fail if either one of 2 inputs is out of bounds
     test_inputs_out_of_bounds(asm_op, 2);
 }
 
 #[test]
-fn u32max_unsafe() {
-    let asm_op = "u32max.unsafe";
+fn u32unchecked_max() {
+    let asm_op = "u32unchecked_max";
 
     // should put the maximum of the 2 inputs on the stack
     test_max(asm_op);
@@ -343,8 +343,8 @@ fn u32max_unsafe() {
 
 proptest! {
     #[test]
-    fn u32eq_proptest(a in any::<u32>(), b in any::<u32>()) {
-        let asm_op = "u32eq";
+    fn u32checked_eq_proptest(a in any::<u32>(), b in any::<u32>()) {
+        let asm_op = "u32checked_eq";
         let values = [b as u64, a as u64];
 
         // should test for equality
@@ -360,8 +360,8 @@ proptest! {
     }
 
     #[test]
-    fn u32neq_proptest(a in any::<u32>(), b in any::<u32>()) {
-        let asm_op = "u32neq";
+    fn u32checked_neq_proptest(a in any::<u32>(), b in any::<u32>()) {
+        let asm_op = "u32checked_neq";
         let values = [b as u64, a as u64];
 
         // should test for inequality
@@ -378,7 +378,7 @@ proptest! {
 
     #[test]
     fn u32lt_proptest(a in any::<u32>(), b in any::<u32>()) {
-        let asm_op = "u32lt";
+        let asm_op = "u32checked_lt";
         let expected = match a.cmp(&b) {
             Ordering::Less => 1,
             Ordering::Equal => 0,
@@ -389,14 +389,14 @@ proptest! {
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
 
-        let asm_op = format!("{}.unsafe", asm_op);
+        let asm_op = "u32unchecked_lt";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
     }
 
     #[test]
     fn u32lte_proptest(a in any::<u32>(), b in any::<u32>()) {
-        let asm_op = "u32lte";
+        let asm_op = "u32checked_lte";
         let expected = match a.cmp(&b) {
             Ordering::Less => 1,
             Ordering::Equal => 1,
@@ -407,14 +407,14 @@ proptest! {
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
 
-        let asm_op = format!("{}.unsafe", asm_op);
+        let asm_op = "u32unchecked_lte";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
     }
 
     #[test]
     fn u32gt_proptest(a in any::<u32>(), b in any::<u32>()) {
-        let asm_op = "u32gt";
+        let asm_op = "u32checked_gt";
         let expected = match a.cmp(&b) {
             Ordering::Less => 0,
             Ordering::Equal => 0,
@@ -425,14 +425,14 @@ proptest! {
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
 
-        let asm_op = format!("{}.unsafe", asm_op);
+        let asm_op = "u32unchecked_gt";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
     }
 
     #[test]
     fn u32gte_proptest(a in any::<u32>(), b in any::<u32>()) {
-        let asm_op = "u32gte";
+        let asm_op = "u32checked_gte";
         let expected = match a.cmp(&b) {
             Ordering::Less => 0,
             Ordering::Equal => 1,
@@ -443,35 +443,35 @@ proptest! {
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
 
-        let asm_op = format!("{}.unsafe", asm_op);
+        let asm_op = "u32unchecked_gte";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
     }
 
     #[test]
     fn u32min_proptest(a in any::<u32>(), b in any::<u32>()) {
-        let asm_op = "u32min";
+        let asm_op = "u32checked_min";
         let expected = if a < b { a } else { b };
 
         // safe and unsafe should produce the same result for valid values
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected as u64])?;
 
-        let asm_op = format!("{}.unsafe", asm_op);
+        let asm_op = "u32unchecked_min";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected as u64])?;
     }
 
     #[test]
     fn u32max_proptest(a in any::<u32>(), b in any::<u32>()) {
-        let asm_op = "u32max";
+        let asm_op = "u32checked_max";
         let expected = if a > b { a } else { b };
 
         // safe and unsafe should produce the same result for valid values
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected as u64])?;
 
-        let asm_op = format!("{}.unsafe", asm_op);
+        let asm_op = "u32unchecked_max";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected as u64])?;
     }
@@ -532,8 +532,8 @@ fn test_min(asm_op: &str) {
     test.expect_stack(&[0]);
 
     // --- random u32 values ----------------------------------------------------------------------
-    let a = rand_value::<u64>() as u32;
-    let b = rand_value::<u64>() as u32;
+    let a = rand_value::<u32>();
+    let b = rand_value::<u32>();
     let expected = match a.cmp(&b) {
         Ordering::Less => a,
         Ordering::Equal => b,
@@ -567,8 +567,8 @@ fn test_max(asm_op: &str) {
     test.expect_stack(&[1]);
 
     // --- random u32 values ----------------------------------------------------------------------
-    let a = rand_value::<u64>() as u32;
-    let b = rand_value::<u64>() as u32;
+    let a = rand_value::<u32>();
+    let b = rand_value::<u32>();
     let expected = match a.cmp(&b) {
         Ordering::Less => b,
         Ordering::Equal => b,
