@@ -158,7 +158,7 @@ end
 export.checked_mul
     exec.u32assert4
     exec.overflowing_mul
-    u32or
+    u32checked_or
     eq.0
     assert
 end
@@ -264,10 +264,10 @@ end
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
 export.unchecked_eq
     movup.2
-    u32eq
+    u32checked_eq
     swap
     movup.2
-    u32eq
+    u32checked_eq
     and
 end
 
@@ -286,10 +286,10 @@ end
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a != b, and 0 otherwise.
 export.unchecked_neq
     movup.2
-    u32neq
+    u32checked_neq
     swap
     movup.2
-    u32neq
+    u32checked_neq
     or
 end
 
@@ -593,10 +593,10 @@ end
 export.checked_and
     swap
     movup.3
-    u32and
+    u32checked_and
     swap
     movup.2
-    u32and
+    u32checked_and
 end
 
 # Performs bitwise OR of two unsigned 64 bit integers.
@@ -606,10 +606,10 @@ end
 export.checked_or
     swap
     movup.3
-    u32or
+    u32checked_or
     swap
     movup.2
-    u32or
+    u32checked_or
 end
 
 # Performs bitwise XOR of two unsigned 64 bit integers.
@@ -619,10 +619,10 @@ end
 export.checked_xor
     swap
     movup.3
-    u32xor
+    u32checked_xor
     swap
     movup.2
-    u32xor
+    u32checked_xor
 end
 
 # Performs left shift of one unsigned 64-bit integer using the pow2 operation.
@@ -738,7 +738,7 @@ export.unchecked_rotl
 
     # Shift the low limb.
     push.31
-    u32and
+    u32checked_and
     pow2.unsafe
     dup
     movup.3
@@ -775,7 +775,7 @@ export.unchecked_rotr
 
     # Shift the low limb left by 32-b.
     push.31
-    u32and
+    u32checked_and
     push.32
     swap
     u32overflowing_sub
