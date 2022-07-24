@@ -10650,24 +10650,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 1 of scalar
@@ -10715,24 +10716,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 2 of scalar
@@ -10780,24 +10782,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 3 of scalar
@@ -10845,24 +10848,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 4 of scalar
@@ -10910,24 +10914,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 5 of scalar
@@ -10975,24 +10980,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 6 of scalar
@@ -11040,24 +11046,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 7 of scalar
@@ -11105,24 +11112,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 8 of scalar
@@ -11170,24 +11178,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 9 of scalar
@@ -11235,24 +11244,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 10 of scalar
@@ -11300,24 +11310,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 11 of scalar
@@ -11365,24 +11376,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 12 of scalar
@@ -11430,24 +11442,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 13 of scalar
@@ -11495,24 +11508,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 14 of scalar
@@ -11560,24 +11574,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 15 of scalar
@@ -11625,24 +11640,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 16 of scalar
@@ -11690,24 +11706,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 17 of scalar
@@ -11755,24 +11772,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 18 of scalar
@@ -11820,24 +11838,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 19 of scalar
@@ -11885,24 +11904,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 20 of scalar
@@ -11950,24 +11970,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 21 of scalar
@@ -12015,24 +12036,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 22 of scalar
@@ -12080,24 +12102,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 23 of scalar
@@ -12145,24 +12168,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 24 of scalar
@@ -12210,24 +12234,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 25 of scalar
@@ -12275,24 +12300,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 26 of scalar
@@ -12340,24 +12366,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 27 of scalar
@@ -12405,24 +12432,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 28 of scalar
@@ -12470,24 +12498,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 29 of scalar
@@ -12535,24 +12564,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 30 of scalar
@@ -12600,24 +12630,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 31 of scalar
@@ -12665,24 +12696,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # drop least significant limb of scalar
@@ -12733,24 +12765,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 33 of scalar
@@ -12798,24 +12831,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 34 of scalar
@@ -12863,24 +12897,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 35 of scalar
@@ -12928,24 +12963,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 36 of scalar
@@ -12993,24 +13029,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 37 of scalar
@@ -13058,24 +13095,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 38 of scalar
@@ -13123,24 +13161,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 39 of scalar
@@ -13188,24 +13227,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 40 of scalar
@@ -13253,24 +13293,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 41 of scalar
@@ -13318,24 +13359,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 42 of scalar
@@ -13383,24 +13425,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 43 of scalar
@@ -13448,24 +13491,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 44 of scalar
@@ -13513,24 +13557,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 45 of scalar
@@ -13578,24 +13623,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 46 of scalar
@@ -13643,24 +13689,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 47 of scalar
@@ -13708,24 +13755,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 48 of scalar
@@ -13773,24 +13821,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 49 of scalar
@@ -13838,24 +13887,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 50 of scalar
@@ -13903,24 +13953,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 51 of scalar
@@ -13968,24 +14019,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 52 of scalar
@@ -14033,24 +14085,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 53 of scalar
@@ -14098,24 +14151,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 54 of scalar
@@ -14163,24 +14217,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 55 of scalar
@@ -14228,24 +14283,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 56 of scalar
@@ -14293,24 +14349,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 57 of scalar
@@ -14358,24 +14415,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 58 of scalar
@@ -14423,24 +14481,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 59 of scalar
@@ -14488,24 +14547,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 60 of scalar
@@ -14553,24 +14613,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 61 of scalar
@@ -14618,24 +14679,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 62 of scalar
@@ -14683,24 +14745,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 63 of scalar
@@ -14748,24 +14811,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   drop
@@ -14815,24 +14879,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 65 of scalar
@@ -14880,24 +14945,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 66 of scalar
@@ -14945,24 +15011,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 67 of scalar
@@ -15010,24 +15077,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 68 of scalar
@@ -15075,24 +15143,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 69 of scalar
@@ -15140,24 +15209,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 70 of scalar
@@ -15205,24 +15275,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 71 of scalar
@@ -15270,24 +15341,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 72 of scalar
@@ -15335,24 +15407,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 73 of scalar
@@ -15400,24 +15473,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 74 of scalar
@@ -15465,24 +15539,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 75 of scalar
@@ -15530,24 +15605,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 76 of scalar
@@ -15595,24 +15671,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 77 of scalar
@@ -15660,24 +15737,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 78 of scalar
@@ -15725,24 +15803,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 79 of scalar
@@ -15790,24 +15869,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 80 of scalar
@@ -15855,24 +15935,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 81 of scalar
@@ -15920,24 +16001,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 82 of scalar
@@ -15985,24 +16067,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 83 of scalar
@@ -16050,24 +16133,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 84 of scalar
@@ -16115,24 +16199,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 85 of scalar
@@ -16180,24 +16265,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 86 of scalar
@@ -16245,24 +16331,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 87 of scalar
@@ -16310,24 +16397,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 88 of scalar
@@ -16375,24 +16463,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 89 of scalar
@@ -16440,24 +16529,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 90 of scalar
@@ -16505,24 +16595,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 91 of scalar
@@ -16570,24 +16661,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 92 of scalar
@@ -16635,24 +16727,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 93 of scalar
@@ -16700,24 +16793,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 94 of scalar
@@ -16765,24 +16859,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 95 of scalar
@@ -16830,24 +16925,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   drop
@@ -16897,24 +16993,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 97 of scalar
@@ -16962,24 +17059,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 98 of scalar
@@ -17027,24 +17125,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 99 of scalar
@@ -17092,24 +17191,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 100 of scalar
@@ -17157,24 +17257,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 101 of scalar
@@ -17222,24 +17323,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 102 of scalar
@@ -17287,24 +17389,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 103 of scalar
@@ -17352,24 +17455,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 104 of scalar
@@ -17417,24 +17521,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 105 of scalar
@@ -17482,24 +17587,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 106 of scalar
@@ -17547,24 +17653,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 107 of scalar
@@ -17612,24 +17719,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 108 of scalar
@@ -17677,24 +17785,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 109 of scalar
@@ -17742,24 +17851,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 110 of scalar
@@ -17807,24 +17917,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 111 of scalar
@@ -17872,24 +17983,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 112 of scalar
@@ -17937,24 +18049,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 113 of scalar
@@ -18002,24 +18115,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 114 of scalar
@@ -18067,24 +18181,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 115 of scalar
@@ -18132,24 +18247,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 116 of scalar
@@ -18197,24 +18313,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 117 of scalar
@@ -18262,24 +18379,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 118 of scalar
@@ -18327,24 +18445,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 119 of scalar
@@ -18392,24 +18511,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 120 of scalar
@@ -18457,24 +18577,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 121 of scalar
@@ -18522,24 +18643,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 122 of scalar
@@ -18587,24 +18709,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 123 of scalar
@@ -18652,24 +18775,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 124 of scalar
@@ -18717,24 +18841,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 125 of scalar
@@ -18782,24 +18907,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 126 of scalar
@@ -18847,24 +18973,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 127 of scalar
@@ -18912,24 +19039,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   drop
@@ -18979,24 +19107,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 129 of scalar
@@ -19044,24 +19173,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 130 of scalar
@@ -19109,24 +19239,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 131 of scalar
@@ -19174,24 +19305,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 132 of scalar
@@ -19239,24 +19371,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 133 of scalar
@@ -19304,24 +19437,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 134 of scalar
@@ -19369,24 +19503,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 135 of scalar
@@ -19434,24 +19569,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 136 of scalar
@@ -19499,24 +19635,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 137 of scalar
@@ -19564,24 +19701,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 138 of scalar
@@ -19629,24 +19767,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 139 of scalar
@@ -19694,24 +19833,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 140 of scalar
@@ -19759,24 +19899,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 141 of scalar
@@ -19824,24 +19965,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 142 of scalar
@@ -19889,24 +20031,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 143 of scalar
@@ -19954,24 +20097,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 144 of scalar
@@ -20019,24 +20163,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 145 of scalar
@@ -20084,24 +20229,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 146 of scalar
@@ -20149,24 +20295,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 147 of scalar
@@ -20214,24 +20361,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 148 of scalar
@@ -20279,24 +20427,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 149 of scalar
@@ -20344,24 +20493,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 150 of scalar
@@ -20409,24 +20559,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 151 of scalar
@@ -20474,24 +20625,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 152 of scalar
@@ -20539,24 +20691,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 153 of scalar
@@ -20604,24 +20757,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 154 of scalar
@@ -20669,24 +20823,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 155 of scalar
@@ -20734,24 +20889,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 156 of scalar
@@ -20799,24 +20955,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 157 of scalar
@@ -20864,24 +21021,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 158 of scalar
@@ -20929,24 +21087,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 159 of scalar
@@ -20994,24 +21153,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   drop
@@ -21061,24 +21221,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 161 of scalar
@@ -21126,24 +21287,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 162 of scalar
@@ -21191,24 +21353,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 163 of scalar
@@ -21256,24 +21419,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 164 of scalar
@@ -21321,24 +21485,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 165 of scalar
@@ -21386,24 +21551,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 166 of scalar
@@ -21451,24 +21617,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 167 of scalar
@@ -21516,24 +21683,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 168 of scalar
@@ -21581,24 +21749,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 169 of scalar
@@ -21646,24 +21815,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 170 of scalar
@@ -21711,24 +21881,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 171 of scalar
@@ -21776,24 +21947,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 172 of scalar
@@ -21841,24 +22013,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 173 of scalar
@@ -21906,24 +22079,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 174 of scalar
@@ -21971,24 +22145,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 175 of scalar
@@ -22036,24 +22211,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 176 of scalar
@@ -22101,24 +22277,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 177 of scalar
@@ -22166,24 +22343,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 178 of scalar
@@ -22231,24 +22409,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 179 of scalar
@@ -22296,24 +22475,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 180 of scalar
@@ -22361,24 +22541,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 181 of scalar
@@ -22426,24 +22607,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 182 of scalar
@@ -22491,24 +22673,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 183 of scalar
@@ -22556,24 +22739,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 184 of scalar
@@ -22621,24 +22805,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 185 of scalar
@@ -22686,24 +22871,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 186 of scalar
@@ -22751,24 +22937,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 187 of scalar
@@ -22816,24 +23003,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 188 of scalar
@@ -22881,24 +23069,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 189 of scalar
@@ -22946,24 +23135,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 190 of scalar
@@ -23011,24 +23201,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 191 of scalar
@@ -23076,24 +23267,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   drop
@@ -23143,24 +23335,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 193 of scalar
@@ -23208,24 +23401,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 194 of scalar
@@ -23273,24 +23467,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 195 of scalar
@@ -23338,24 +23533,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 196 of scalar
@@ -23403,24 +23599,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 197 of scalar
@@ -23468,24 +23665,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 198 of scalar
@@ -23533,24 +23731,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 199 of scalar
@@ -23598,24 +23797,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 200 of scalar
@@ -23663,24 +23863,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 201 of scalar
@@ -23728,24 +23929,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 202 of scalar
@@ -23793,24 +23995,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 203 of scalar
@@ -23858,24 +24061,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 204 of scalar
@@ -23923,24 +24127,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 205 of scalar
@@ -23988,24 +24193,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 206 of scalar
@@ -24053,24 +24259,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 207 of scalar
@@ -24118,24 +24325,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 208 of scalar
@@ -24183,24 +24391,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 209 of scalar
@@ -24248,24 +24457,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 210 of scalar
@@ -24313,24 +24523,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 211 of scalar
@@ -24378,24 +24589,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 212 of scalar
@@ -24443,24 +24655,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 213 of scalar
@@ -24508,24 +24721,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 214 of scalar
@@ -24573,24 +24787,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 215 of scalar
@@ -24638,24 +24853,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 216 of scalar
@@ -24703,24 +24919,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 217 of scalar
@@ -24768,24 +24985,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 218 of scalar
@@ -24833,24 +25051,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 219 of scalar
@@ -24898,24 +25117,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 220 of scalar
@@ -24963,24 +25183,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 221 of scalar
@@ -25028,24 +25249,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 222 of scalar
@@ -25093,24 +25315,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 223 of scalar
@@ -25158,24 +25381,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   drop
@@ -25225,24 +25449,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 225 of scalar
@@ -25290,24 +25515,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 226 of scalar
@@ -25355,24 +25581,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 227 of scalar
@@ -25420,24 +25647,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 228 of scalar
@@ -25485,24 +25713,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 229 of scalar
@@ -25550,24 +25779,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 230 of scalar
@@ -25615,24 +25845,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 231 of scalar
@@ -25680,24 +25911,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 232 of scalar
@@ -25745,24 +25977,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 233 of scalar
@@ -25810,24 +26043,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 234 of scalar
@@ -25875,24 +26109,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 235 of scalar
@@ -25940,24 +26175,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 236 of scalar
@@ -26005,24 +26241,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 237 of scalar
@@ -26070,24 +26307,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 238 of scalar
@@ -26135,24 +26373,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 239 of scalar
@@ -26200,24 +26439,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 240 of scalar
@@ -26265,24 +26505,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 241 of scalar
@@ -26330,24 +26571,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 242 of scalar
@@ -26395,24 +26637,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 243 of scalar
@@ -26460,24 +26703,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 244 of scalar
@@ -26525,24 +26769,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 245 of scalar
@@ -26590,24 +26835,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 246 of scalar
@@ -26655,24 +26901,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 247 of scalar
@@ -26720,24 +26967,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 248 of scalar
@@ -26785,24 +27033,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 249 of scalar
@@ -26850,24 +27099,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 250 of scalar
@@ -26915,24 +27165,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 251 of scalar
@@ -26980,24 +27231,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 252 of scalar
@@ -27045,24 +27297,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 253 of scalar
@@ -27110,24 +27363,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 254 of scalar
@@ -27175,24 +27429,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   # process bit 255 of scalar
@@ -27240,24 +27495,25 @@ export.point_mul.18
 
     exec.point_addition
 
+    drop
+    drop
+
+    loadw.local.6
+    storew.local.0
+    loadw.local.7
+    storew.local.1
+
+    loadw.local.8
+    storew.local.2
+    loadw.local.9
+    storew.local.3
+
+    loadw.local.10
+    storew.local.4
+    loadw.local.11
+    storew.local.5
+
     dropw
-    drop
-    drop
-
-    pushw.local.6
-    popw.local.0
-    pushw.local.7
-    popw.local.1
-
-    pushw.local.8
-    popw.local.2
-    pushw.local.9
-    popw.local.3
-
-    pushw.local.10
-    popw.local.4
-    pushw.local.11
-    popw.local.5
   end
 
   drop
