@@ -10,7 +10,7 @@ Thus, it is very important for the VM to be able to perform a large number 16-bi
 
 First, let's define a construction for the simplest possible 8-bit range-check. This can be done with a single column as illustrated below.
 
-![](https://i.imgur.com/qoIhcMD.png)
+![rc_8_bit_range_check](../assets/design/range/rc_8_bit_range_check.png)
 
 For this to work as a range-check we need to enforce a few constraints on this column:
 
@@ -45,7 +45,7 @@ To get rid of the padding requirement, we can add a _selector_ column, which wou
 
 Let's add two selector column to our table $s_0$ and $s_1$ as illustrated below.
 
-![](https://i.imgur.com/gL3hWGE.png)
+![rc_better_construction](../assets/design/range/rc_better_construction.png)
 
 The purpose of these columns is as follows:
 
@@ -111,7 +111,7 @@ The one downside of this approach is that the degree of our constraints is now $
 
 To support 16-bit range checks, let's try to extend the idea of the 8-bit table. Our 16-bit table would look like so (the only difference is that column $u$ now has to end with value $65535$):
 
-![](https://i.imgur.com/AhjTVSZ.png)
+![rc_16_bit_range_check](../assets/design/range/rc_16_bit_range_check.png)
 
 While this works, it is rather wasteful. In the worst case, we'd need to enumerate over 65K values, most of which we may not actually need. It would be nice if we could "skip over" the values that we don't want. We can do this by relying on 8-bit range checks. Specifically, instead of enforcing constraint:
 
@@ -127,7 +127,7 @@ $$
 
 Where $p_1$ is another running product column. At the end of the execution trace, we would check that $p_0 = p_1$. This would ensure that as we move from one row to another, values in column $u$ increase by at most $255$ (we are basically performing an 8-bit range check on increments of column $u$). Now, our table can look like this:
 
-![](https://i.imgur.com/LyCnLHS.png)
+![rc_table_post_8_bit_range_check](../assets/design/range/rc_table_post_8_bit_range_check.png)
 
 We still may need to include some unneeded rows because we can not "jump" by more than $255$ values, but at least we are guaranteed that the number of such unneeded rows will never be greater than $256$.
 
@@ -150,7 +150,7 @@ But we can do better.
 
 First, we can just stack the tables on top of each other. We'll need to add a column to partition the table between the sections used for 8-bit range checks and sections used for 16-bit range checks. Let's call this column $t$. When $t = 0$, we'll apply constraints for the 8-bit table, and when $t = 1$, we'll apply constraints for the 16-bit table.
 
-![](https://i.imgur.com/AverKG1.png)
+![rc_optimisation.png](../assets/design/range/rc_optimisation.png)
 
 Second, we can merge running product columns $p_0$ and $p_1$ into a single column. We'll do it like so:
 

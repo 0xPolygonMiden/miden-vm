@@ -1,5 +1,5 @@
 use super::{
-    parse_int_param, push_value, validate_operation, AssemblyError, Felt, Operation, Token, Vec,
+    parse_u32_param, push_value, validate_operation, AssemblyError, Felt, Operation, Token, Vec,
 };
 
 // ENVIRONMENT INPUTS
@@ -35,7 +35,7 @@ pub fn parse_push_env(
                 ));
             }
             validate_operation!(@only_params op, "push.env.locaddr", 1);
-            let index = parse_int_param(op, 3, 0, num_proc_locals - 1)?;
+            let index = parse_u32_param(op, 3, 0, num_proc_locals - 1)?;
 
             push_value(span_ops, -Felt::new(index as u64));
             span_ops.push(Operation::FmpAdd);

@@ -3,6 +3,7 @@ use super::{
     MIN_TRACE_LEN, NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, ONE, OP_BATCH_1_GROUPS,
     OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS, OP_BATCH_SIZE, ZERO,
 };
+use crate::utils::get_trace_len;
 use core::ops::Range;
 use vm_core::utils::new_array_vec;
 
@@ -180,7 +181,7 @@ impl DecoderTrace {
         self.addr_trace.push(loop_addr);
         self.append_opcode(Operation::Repeat);
 
-        let last_row = self.hasher_trace[0].len() - 1;
+        let last_row = get_trace_len(&self.hasher_trace) - 1;
         for column in self.hasher_trace.iter_mut() {
             column.push(column[last_row]);
         }
@@ -369,7 +370,7 @@ impl DecoderTrace {
         trace.push(self.addr_trace);
 
         // insert HALT opcode into the unfilled rows of op_bits columns
-        let halt_opcode = Operation::Halt.op_code().expect("missing opcode");
+        let halt_opcode = Operation::Halt.op_code();
         for (i, mut column) in self.op_bits_trace.into_iter().enumerate() {
             debug_assert_eq!(own_len, column.len());
             let value = Felt::from((halt_opcode >> i) & 1);
@@ -445,7 +446,7 @@ impl DecoderTrace {
 
     /// Populates op_bits registers for the next row with the opcode of the provided operation.
     fn append_opcode(&mut self, op: Operation) {
-        let op_code = op.op_code().expect("missing opcode");
+        let op_code = op.op_code();
         for i in 0..NUM_OP_BITS {
             let bit = Felt::from((op_code >> i) & 1);
             self.op_bits_trace[i].push(bit);

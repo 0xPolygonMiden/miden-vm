@@ -1,4 +1,4 @@
-use crate::RangeCheckTrace;
+use crate::{utils::get_trace_len, RangeCheckTrace};
 
 use super::{BTreeMap, Felt, FieldElement, RangeChecker};
 use rand_utils::rand_array;
@@ -16,7 +16,7 @@ fn range_checks() {
 
     let RangeCheckTrace {
         trace,
-        aux_trace_hints: _,
+        aux_builder: _,
     } = checker.into_trace(1024, 0);
     validate_trace(&trace, &values);
 
@@ -55,7 +55,7 @@ fn range_checks_rand() {
     let trace_len = checker.trace_len().next_power_of_two();
     let RangeCheckTrace {
         trace,
-        aux_trace_hints: _,
+        aux_builder: _,
     } = checker.into_trace(trace_len, 0);
     validate_trace(&trace, &values);
 }
@@ -81,7 +81,7 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
     assert_eq!(4, trace.len());
 
     // trace length must be a power of two
-    let trace_len = trace[0].len();
+    let trace_len = get_trace_len(trace);
     assert!(trace_len.is_power_of_two());
 
     // --- validate the 8-bit segment of the trace ----------------------------

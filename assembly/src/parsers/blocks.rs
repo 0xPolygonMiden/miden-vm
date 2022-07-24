@@ -2,7 +2,7 @@ use super::{
     parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, String, Token,
     TokenStream, Vec,
 };
-use vm_core::utils::group_vector_elements;
+use vm_core::{utils::group_vector_elements, DecoratorList};
 
 // BLOCK PARSER
 // ================================================================================================
@@ -12,6 +12,7 @@ pub fn parse_code_blocks(
     tokens: &mut TokenStream,
     context: &AssemblyContext,
     num_proc_locals: u32,
+    in_debug_mode: bool,
 ) -> Result<CodeBlock, AssemblyError> {
     // make sure there is something to be read
     let start_pos = tokens.pos();
@@ -22,7 +23,7 @@ pub fn parse_code_blocks(
     // parse the sequence of blocks and add each block to the list
     let mut blocks = Vec::new();
     while let Some(parser) = BlockParser::next(tokens)? {
-        let block = parser.parse(tokens, context, num_proc_locals)?;
+        let block = parser.parse(tokens, context, num_proc_locals, in_debug_mode)?;
         blocks.push(block);
     }
 
@@ -56,19 +57,27 @@ impl BlockParser {
         tokens: &mut TokenStream,
         context: &AssemblyContext,
         num_proc_locals: u32,
+        in_debug_mode: bool,
     ) -> Result<CodeBlock, AssemblyError> {
         match self {
             Self::Span => {
                 // --------------------------------------------------------------------------------
                 let mut span_ops = Vec::new();
+                let mut decorators = DecoratorList::new();
                 while let Some(op) = tokens.read() {
                     if op.is_control_token() {
                         break;
                     }
-                    parse_op_token(op, &mut span_ops, num_proc_locals)?;
+                    parse_op_token(
+                        op,
+                        &mut span_ops,
+                        num_proc_locals,
+                        &mut decorators,
+                        in_debug_mode,
+                    )?;
                     tokens.advance();
                 }
-                Ok(CodeBlock::new_span(span_ops))
+                Ok(CodeBlock::new_span_with_decorators(span_ops, decorators))
             }
             Self::IfElse => {
                 // --------------------------------------------------------------------------------
@@ -77,7 +86,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the `if` clause
-                let t_branch = parse_code_blocks(tokens, context, num_proc_locals)?;
+                let t_branch = parse_code_blocks(tokens, context, num_proc_locals, in_debug_mode)?;
 
                 // build the `else` clause; if the else clause is specified, then read it;
                 // otherwise, set to a Span with a single noop
@@ -90,7 +99,8 @@ impl BlockParser {
                             tokens.advance();
 
                             // parse the `false` branch
-                            let f_branch = parse_code_blocks(tokens, context, num_proc_locals)?;
+                            let f_branch =
+                                parse_code_blocks(tokens, context, num_proc_locals, in_debug_mode)?;
 
                             // consume the `end` token
                             match tokens.read() {
@@ -140,7 +150,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the loop body
-                let loop_body = parse_code_blocks(tokens, context, num_proc_locals)?;
+                let loop_body = parse_code_blocks(tokens, context, num_proc_locals, in_debug_mode)?;
 
                 // consume the `end` token
                 match tokens.read() {
@@ -166,7 +176,7 @@ impl BlockParser {
                 tokens.advance();
 
                 // read the loop body
-                let loop_body = parse_code_blocks(tokens, context, num_proc_locals)?;
+                let loop_body = parse_code_blocks(tokens, context, num_proc_locals, in_debug_mode)?;
 
                 // consume the `end` token
                 match tokens.read() {
@@ -303,8 +313,12 @@ pub fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
     }
 
     let mut ops = Vec::<Operation>::new();
+    let mut decorators = DecoratorList::new();
     spans.drain(0..).for_each(|block| {
         if let CodeBlock::Span(span) = block {
+            for decorator in span.decorators() {
+                decorators.push((decorator.0 + ops.len(), decorator.1.clone()));
+            }
             for batch in span.op_batches() {
                 ops.extend_from_slice(batch.ops());
             }
@@ -315,5 +329,5 @@ pub fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
             );
         }
     });
-    CodeBlock::new_span(ops)
+    CodeBlock::new_span_with_decorators(ops, decorators)
 }

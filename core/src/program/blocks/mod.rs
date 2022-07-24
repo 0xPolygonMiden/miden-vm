@@ -1,4 +1,5 @@
 use super::{hasher, Box, Digest, Felt, FieldElement, Operation, Vec};
+use crate::DecoratorList;
 use core::fmt;
 
 mod call_block;
@@ -38,6 +39,11 @@ impl CodeBlock {
     /// Returns a new Span block instantiated with the provided operations.
     pub fn new_span(operations: Vec<Operation>) -> Self {
         Self::Span(Span::new(operations))
+    }
+
+    /// Returns a new Span block instantiated with the provided operations and decorator list.
+    pub fn new_span_with_decorators(operations: Vec<Operation>, decorators: DecoratorList) -> Self {
+        Self::Span(Span::with_decorators(operations, decorators))
     }
 
     /// TODO: add comments

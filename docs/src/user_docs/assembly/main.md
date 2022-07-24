@@ -3,7 +3,7 @@ Miden assembly is a simple, low-level language for writing programs for Miden VM
 
 Before Miden assembly can be executed on Miden VM, it needs to be compiled into a [Program MAST](../../design/programs.md) (Merkelized Abstract Syntax Tree) which is a binary tree of code blocks each containing raw Miden VM instructions.
 
-![](https://i.imgur.com/NnV0bwN.png)
+![assembly_to_VM](../../assets/user_docs/assembly/assembly_to_VM.png)
 
 As compared to raw Miden VM instructions, Miden assembly has several advantages:
 1. Miden assembly is intended to be a more stable external interface for the VM. That is, while we plan to make significant changes to the underlying VM to optimize it for stability, performance etc., we intend to make very few breaking changes to Miden assembly.
@@ -14,11 +14,13 @@ As compared to raw Miden VM instructions, Miden assembly has several advantages:
 The last two points also make Miden assembly much more concise as compared to the raw program MAST. This may be important in the blockchain context where pubic programs need to be stored on chain.
 
 ### Terms and notations
-In this note we use the following terms and notations:
+In this document we use the following terms and notations:
 
 - $p$ is the modulus of the VM's base field which is equal to $2^{64} - 2^{32} + 1$.
 - A *binary* value means a field element which is either $0$ or $1$.
 - Inequality comparisons are assumed to be performed on integer representations of field elements in the range $[0, p)$.
+
+Throughout this document, we use lower-case letters to refer to individual field elements (e.g., $a$). Sometimes it is convenient to describe operations over groups of elements. For these purposes we define a *word* to be a group of four elements. We use upper-case letters to refer to words (e.g., $A$). To refer to individual elements within a word, we use numerical subscripts. For example, $a_0$ is the first element of word $A$, $b_3$ is the last element of word $B$, etc.
 
 ### Design goals
 

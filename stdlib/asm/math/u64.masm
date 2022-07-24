@@ -22,10 +22,10 @@ end
 export.overflowing_add
     swap
     movup.3
-    u32add.unsafe
+    u32overflowing_add
     movup.3
     movup.3
-    u32add3.unsafe
+    u32unchecked_add3
 end
 
 # Performs addition of two unsigned 64 bit integers discarding the overflow.
@@ -57,13 +57,13 @@ end
 export.wrapping_sub
     movup.3
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.3
     movup.3
-    u32sub.unsafe
+    u32overflowing_sub
     drop
     swap
-    u32sub.unsafe
+    u32overflowing_sub
     drop
 end
 
@@ -75,14 +75,14 @@ export.checked_sub
     exec.u32assert4
     movup.3
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.3
     movup.3
-    u32sub.unsafe
+    u32overflowing_sub
     eq.0
     assert
     swap
-    u32sub.unsafe
+    u32overflowing_sub
     eq.0
     assert
 end
@@ -94,13 +94,13 @@ end
 export.overflowing_sub
     movup.3
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.3
     movup.3
-    u32sub.unsafe
+    u32overflowing_sub
     swap
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     or
 end
@@ -114,14 +114,14 @@ end
 export.wrapping_mul
     dup.3
     dup.2
-    u32mul.unsafe
+    u32overflowing_mul
     movup.4
     movup.4
-    u32madd.unsafe
+    u32unchecked_madd
     drop
     movup.3
     movup.3
-    u32madd.unsafe
+    u32unchecked_madd
     drop
 end
 
@@ -133,20 +133,20 @@ end
 export.overflowing_mul
     dup.3
     dup.2
-    u32mul.unsafe
+    u32overflowing_mul
     dup.4
     movup.4
-    u32madd.unsafe
+    u32unchecked_madd
     swap
     movup.5
     dup.4
-    u32madd.unsafe
+    u32unchecked_madd
     movup.5
     movup.5
-    u32madd.unsafe
+    u32unchecked_madd
     movup.3
     movup.2
-    u32add.unsafe
+    u32overflowing_add
     movup.2
     add
 end
@@ -172,10 +172,10 @@ end
 export.unchecked_lt
     movup.3
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movdn.3
     drop
-    u32sub.unsafe
+    u32overflowing_sub
     swap
     eq.0
     movup.2
@@ -199,10 +199,10 @@ end
 # This takes 11 cycles.
 export.unchecked_gt
     movup.2
-    u32sub.unsafe
+    u32overflowing_sub
     movup.2
     movup.3
-    u32sub.unsafe
+    u32overflowing_sub
     swap
     drop
     movup.2
@@ -393,15 +393,15 @@ export.unchecked_div
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
     dup.2               # fits into 2 32-bit limbs
-    u32mul.unsafe
+    u32overflowing_mul
     dup.4
     dup.4
-    u32madd.unsafe
+    u32unchecked_madd
     eq.0
     assert
     dup.5
     dup.3
-    u32madd.unsafe
+    u32unchecked_madd
     eq.0
     assert
     dup.4
@@ -424,10 +424,10 @@ export.unchecked_div
 
     swap                # add remainder to the previous result; this also consumes the remainder
     movup.3
-    u32add.unsafe
+    u32overflowing_add
     movup.3
     movup.3
-    u32add3.unsafe
+    u32unchecked_add3
     eq.0
     assert
 
@@ -462,15 +462,15 @@ export.unchecked_mod
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
     dup.2               # fits into 2 32-bit limbs
-    u32mul.unsafe
+    u32overflowing_mul
     dup.4
     movup.4
-    u32madd.unsafe
+    u32unchecked_madd
     eq.0
     assert
     dup.4
     dup.3
-    u32madd.unsafe
+    u32unchecked_madd
     eq.0
     assert
     dup.3
@@ -493,10 +493,10 @@ export.unchecked_mod
 
     dup.1               # add remainder to the previous result
     movup.4
-    u32add.unsafe
+    u32overflowing_add
     movup.4
     dup.3
-    u32add3.unsafe
+    u32unchecked_add3
     eq.0
     assert
 
@@ -531,15 +531,15 @@ export.unchecked_divmod
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
     dup.2               # fits into 2 32-bit limbs
-    u32mul.unsafe
+    u32overflowing_mul
     dup.4
     dup.4
-    u32madd.unsafe
+    u32unchecked_madd
     eq.0
     assert
     dup.5
     dup.3
-    u32madd.unsafe
+    u32unchecked_madd
     eq.0
     assert
     dup.4
@@ -562,10 +562,10 @@ export.unchecked_divmod
 
     dup.1               # add remainder to the previous result
     movup.4
-    u32add.unsafe
+    u32overflowing_add
     movup.4
     dup.3
-    u32add3.unsafe
+    u32unchecked_add3
     eq.0
     assert
 
@@ -586,10 +586,10 @@ end
 
 # ===== BITWISE OPERATIONS ========================================================================
 
-# Performs divmod operation of two unsigned 64 bit integers.
+# Performs bitwise AND of two unsigned 64-bit integers.
 # The input values are assumed to be represented using 32 bit limbs, but this is not checked.
 # Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [r_hi, r_lo, q_hi, q_lo ...], where r = a % b, q = a / b
+# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a AND b.
 export.checked_and
     swap
     movup.3
@@ -630,9 +630,9 @@ end
 # The shift value is assumed to be in the range [0, 64).
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 13 cycles.
+# This takes 50 cycles.
 export.unchecked_shl
-    pow2
+    pow2.unsafe
     u32split
     exec.wrapping_mul
 end
@@ -643,26 +643,26 @@ end
 # The shift value is assumed to be in the range [0, 64).
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a >> b.
-# This takes 29 cycles.
+# This takes 66 cycles.
 export.unchecked_shr
-    pow2
+    pow2.unsafe
     u32split
 
     dup.1
     add
     movup.2
     swap
-    u32div.unsafe
+    u32unchecked_divmod
     movup.3
     movup.3
     dup
     eq.0
-    u32sub.unsafe
+    u32overflowing_sub
     not
     movdn.4
     dup
     movdn.4
-    u32div.unsafe
+    u32unchecked_divmod
     drop
     push.4294967296
     dup.5
@@ -683,9 +683,9 @@ end
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where (d,c) = a << b, 
 # which d contains the bits shifted out.
-# This takes 20 cycles.
+# This takes 57 cycles.
 export.overflowing_shl
-    pow2
+    pow2.unsafe
     u32split
     exec.overflowing_mul
 end
@@ -696,7 +696,7 @@ end
 # The shift value is assumed to be in the range [0, 64).
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where c = a >> b, d = a << (64 - b).
-# This takes 64 cycles.
+# This takes 138 cycles.
 export.overflowing_shr
     push.64             # (64 - b)
     dup.1
@@ -727,11 +727,11 @@ end
 # The shift value is assumed to be in the range [0, 64).
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 20 cycles.
+# This takes 57 cycles.
 export.unchecked_rotl
     push.31
     dup.1
-    u32sub.unsafe
+    u32overflowing_sub
     swap
     drop
     movdn.3
@@ -739,15 +739,15 @@ export.unchecked_rotl
     # Shift the low limb.
     push.31
     u32and
-    pow2
+    pow2.unsafe
     dup
     movup.3
-    u32mul.unsafe
+    u32overflowing_mul
 
     # Shift the high limb.
     movup.3
     movup.3
-    u32madd.unsafe
+    u32unchecked_madd
 
     # Carry the overflow shift to the low bits.
     movup.2
@@ -764,11 +764,11 @@ end
 # The shift value is assumed to be in the range [0, 64).
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 25 cycles.
+# This takes 62 cycles.
 export.unchecked_rotr
     push.31
     dup.1
-    u32sub.unsafe
+    u32overflowing_sub
     swap
     drop
     movdn.3
@@ -778,17 +778,17 @@ export.unchecked_rotr
     u32and
     push.32
     swap
-    u32sub.unsafe
+    u32overflowing_sub
     drop
-    pow2
+    pow2.unsafe
     dup
     movup.3
-    u32mul.unsafe
+    u32overflowing_mul
 
     # Shift the high limb left by 32-b.
     movup.3
     movup.3
-    u32madd.unsafe
+    u32unchecked_madd
 
     # Carry the overflow shift to the low bits.
     movup.2

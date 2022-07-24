@@ -2,6 +2,7 @@ use super::{
     Felt, FieldElement, ProgramInputs, StackTopState, Vec, MAX_TOP_IDX, MIN_STACK_DEPTH,
     NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH,
 };
+use crate::utils::get_trace_len;
 use vm_core::StarkField;
 
 // STACK TRACE
@@ -207,7 +208,7 @@ impl StackTrace {
     ///
     /// Trace length is doubled every time it needs to be increased.
     pub fn ensure_trace_capacity(&mut self, clk: usize) {
-        let current_capacity = self.stack[0].len();
+        let current_capacity = get_trace_len(&self.stack);
         if clk + 1 >= current_capacity {
             let new_length = current_capacity * 2;
             for register in self.stack.iter_mut().chain(self.helpers.iter_mut()) {

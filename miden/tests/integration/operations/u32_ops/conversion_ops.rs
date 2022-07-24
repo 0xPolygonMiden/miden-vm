@@ -139,19 +139,19 @@ fn u32assert2_fail() {
 
     // vars to test
     // -------- Case 1: a > 2^32 and b > 2^32 ---------------------------------------------------
-    let value_a = 1_u64 << 32 + 1;
+    let value_a = (1_u64 << 32) + 1;
     let value_b = value_a + 2;
     let test = build_op_test!(asm_op, &[value_a, value_b]);
     test.expect_error(TestError::ExecutionError(err));
 
     // -------- Case 2: a > 2^32 and b < 2^32 ---------------------------------------------------
-    let value_a = 1_u64 << 32 + 1;
+    let value_a = (1_u64 << 32) + 1;
     let value_b = 1_u64;
     let test = build_op_test!(asm_op, &[value_a, value_b]);
     test.expect_error(TestError::ExecutionError(err));
 
     // --------- Case 3: a < 2^32 and b > 2^32 --------------------------------------------------
-    let value_b = 1_u64 << 32 + 1;
+    let value_b = (1_u64 << 32) + 1;
     let value_a = 1_u64;
     let test = build_op_test!(asm_op, &[value_a, value_b]);
     test.expect_error(TestError::ExecutionError(err));

@@ -1,12 +1,7 @@
 use super::Felt;
 use core::fmt;
-
-mod advice;
-pub use advice::AdviceInjector;
-mod debug;
-pub use debug::DebugOptions;
-#[cfg(test)]
-mod tests;
+mod decorators;
+pub use decorators::{AdviceInjector, AssemblyOp, Decorator, DecoratorIterator, DecoratorList};
 
 // OPERATIONS
 // ================================================================================================
@@ -71,12 +66,6 @@ pub enum Operation {
 
     /// Pops an element off the stack, adds 1 to it, and pushes the result back onto the stack.
     Incr,
-
-    /// Pops one element `x` off the stack, computes the power of 2^x, and pushes the result back
-    /// onto the stack.
-    ///
-    /// If the element is greater than or equal to 64, execution fails.
-    Pow2,
 
     /// Pops two elements off the stack, multiplies them, and pushes the result back onto the stack.
     ///
@@ -302,11 +291,20 @@ pub enum Operation {
 
     /// Pops an element off the stack, interprets it as a memory address, and replaces the
     /// remaining 4 elements at the top of the stack with values located at the specified address.
-    LoadW,
+    MLoadW,
 
     /// Pops an element off the stack, interprets it as a memory address, and writes the remaining
     /// 4 elements at the top of the stack into memory at the specified address.
-    StoreW,
+    MStoreW,
+
+    /// Pops an element off the stack, interprets it as a memory address, and pushes the first
+    /// element of the word located at the specified address to the stack.
+    MLoad,
+
+    /// Pops an element off the stack, interprets it as a memory address, and writes the remaining
+    /// element at the top of the stack into the first element of the word located at the specified
+    /// memory address. The remaining 3 elements of the word are not affected.
+    MStore,
 
     /// Pushes the current depth of the stack onto the stack.
     SDepth,
@@ -354,18 +352,6 @@ pub enum Operation {
     /// the specified root will be removed from the advice provider. Otherwise, the advice
     /// provider will keep track of both, the old and the new advice sets.
     MrUpdate(bool),
-
-    // ----- decorators ---------------------------------------------------------------------------
-    /// Prints out the state of the VM. This operation has no effect on the VM state, and does not
-    /// advance VM clock.
-    ///
-    /// TODO: add debug options to specify what is to be printed out.
-    Debug(DebugOptions),
-
-    /// Injects zero or more values at the head of the advice tape as specified by the injector.
-    /// This operation affects only the advice tape, but has no effect on other VM components
-    /// (e.g., stack, memory), and does not advance VM clock.
-    Advice(AdviceInjector),
 }
 
 impl Operation {
@@ -379,107 +365,105 @@ impl Operation {
     /// - 1000xxx: operations that consume four range checks.
     ///   - 100010x: an operation that consumes four range checks and shifts the stack left.
     ///   - 1000110: an operation that consumes four range checks and shifts the stack right.
-    pub fn op_code(&self) -> Option<u8> {
+    pub fn op_code(&self) -> u8 {
         match self {
-            Self::Noop => Some(0),
-            Self::Assert => Some(1),
+            Self::Noop => 0,
+            Self::Assert => 1,
 
-            Self::FmpAdd => Some(2),
-            Self::FmpUpdate => Some(3),
+            Self::FmpAdd => 2,
+            Self::FmpUpdate => 3,
 
-            Self::Push(_) => Some(4),
+            Self::Push(_) => 4,
 
-            Self::Eq => Some(0b0100_1001),
-            Self::Eqz => Some(5),
-            Self::Eqw => Some(6),
+            Self::Eq => 0b0100_1001,
+            Self::Eqz => 5,
+            Self::Eqw => 6,
 
-            Self::Add => Some(0b0100_1000),
-            Self::Neg => Some(7),
-            Self::Mul => Some(0b0100_1010),
-            Self::Inv => Some(8),
-            Self::Incr => Some(9),
-            Self::Pow2 => Some(10),
-            Self::And => Some(0b0100_1011),
-            Self::Or => Some(0b0100_1100),
-            Self::Not => Some(11),
+            Self::Add => 0b0100_1000,
+            Self::Neg => 7,
+            Self::Mul => 0b0100_1010,
+            Self::Inv => 8,
+            Self::Incr => 9,
+            Self::And => 0b0100_1011,
+            Self::Or => 0b0100_1100,
+            Self::Not => 11,
 
-            Self::Pad => Some(12),
-            Self::Drop => Some(13),
+            Self::Pad => 12,
+            Self::Drop => 13,
 
-            Self::Dup0 => Some(14),
-            Self::Dup1 => Some(15),
-            Self::Dup2 => Some(16),
-            Self::Dup3 => Some(17),
-            Self::Dup4 => Some(18),
-            Self::Dup5 => Some(19),
-            Self::Dup6 => Some(20),
-            Self::Dup7 => Some(21),
-            Self::Dup9 => Some(22),
-            Self::Dup11 => Some(23),
-            Self::Dup13 => Some(24),
-            Self::Dup15 => Some(25),
+            Self::Dup0 => 14,
+            Self::Dup1 => 15,
+            Self::Dup2 => 16,
+            Self::Dup3 => 17,
+            Self::Dup4 => 18,
+            Self::Dup5 => 19,
+            Self::Dup6 => 20,
+            Self::Dup7 => 21,
+            Self::Dup9 => 22,
+            Self::Dup11 => 23,
+            Self::Dup13 => 24,
+            Self::Dup15 => 25,
 
-            Self::Swap => Some(26),
-            Self::SwapW => Some(27),
-            Self::SwapW2 => Some(28),
-            Self::SwapW3 => Some(29),
-            Self::SwapDW => Some(30),
+            Self::Swap => 26,
+            Self::SwapW => 27,
+            Self::SwapW2 => 28,
+            Self::SwapW3 => 29,
+            Self::SwapDW => 30,
 
-            Self::MovUp2 => Some(31),
-            Self::MovUp3 => Some(32),
-            Self::MovUp4 => Some(33),
-            Self::MovUp5 => Some(34),
-            Self::MovUp6 => Some(35),
-            Self::MovUp7 => Some(36),
-            Self::MovUp8 => Some(37),
+            Self::MovUp2 => 31,
+            Self::MovUp3 => 32,
+            Self::MovUp4 => 33,
+            Self::MovUp5 => 34,
+            Self::MovUp6 => 35,
+            Self::MovUp7 => 36,
+            Self::MovUp8 => 37,
 
-            Self::MovDn2 => Some(40),
-            Self::MovDn3 => Some(41),
-            Self::MovDn4 => Some(42),
-            Self::MovDn5 => Some(43),
-            Self::MovDn6 => Some(44),
-            Self::MovDn7 => Some(45),
-            Self::MovDn8 => Some(46),
+            Self::MovDn2 => 40,
+            Self::MovDn3 => 41,
+            Self::MovDn4 => 42,
+            Self::MovDn5 => 43,
+            Self::MovDn6 => 44,
+            Self::MovDn7 => 45,
+            Self::MovDn8 => 46,
 
-            Self::CSwap => Some(50),
-            Self::CSwapW => Some(51),
+            Self::CSwap => 50,
+            Self::CSwapW => 51,
 
-            Self::U32add => Some(0b0100_0000),
-            Self::U32sub => Some(0b0100_0001),
-            Self::U32mul => Some(0b0100_0010),
-            Self::U32div => Some(0b0100_0011),
-            Self::U32add3 => Some(0b0100_0100),
-            Self::U32madd => Some(0b0100_0101),
-            Self::U32split => Some(0b0100_0110),
-            Self::U32assert2 => Some(0b0100_0111),
+            Self::U32add => 0b0100_0000,
+            Self::U32sub => 0b0100_0001,
+            Self::U32mul => 0b0100_0010,
+            Self::U32div => 0b0100_0011,
+            Self::U32add3 => 0b0100_0100,
+            Self::U32madd => 0b0100_0101,
+            Self::U32split => 0b0100_0110,
+            Self::U32assert2 => 0b0100_0111,
 
-            Self::U32and => Some(0b0100_1101),
-            Self::U32or => Some(0b0100_1110),
-            Self::U32xor => Some(0b0100_1111),
+            Self::U32and => 0b0100_1101,
+            Self::U32or => 0b0100_1110,
+            Self::U32xor => 0b0100_1111,
 
-            Self::LoadW => Some(52),
-            Self::StoreW => Some(53),
+            Self::MLoadW => 52,
+            Self::MStoreW => 53,
 
-            Self::Read => Some(54),
-            Self::ReadW => Some(55),
+            Self::Read => 54,
+            Self::ReadW => 55,
 
-            Self::SDepth => Some(56),
+            Self::SDepth => 56,
 
-            Self::RpPerm => Some(57),
-            Self::MpVerify => Some(58),
-            Self::MrUpdate(_) => Some(59),
+            Self::RpPerm => 57,
+            Self::MpVerify => 58,
+            Self::MrUpdate(_) => 59,
 
-            Self::End => Some(60),
-            Self::Join => Some(61),
-            Self::Split => Some(62),
-            Self::Loop => Some(63),
-            Self::Repeat => Some(80),
-            Self::Respan => Some(81),
-            Self::Span => Some(82),
-            Self::Halt => Some(83),
-
-            Self::Debug(_) => None,
-            Self::Advice(_) => None,
+            Self::End => 60,
+            Self::Join => 61,
+            Self::Split => 62,
+            Self::Loop => 63,
+            Self::Repeat => 80,
+            Self::Respan => 81,
+            Self::Span => 82,
+            Self::Halt => 83,
+            Self::MLoad => 84,
+            Self::MStore => 85,
         }
     }
 
@@ -489,16 +473,6 @@ impl Operation {
             Self::Push(imm) => Some(*imm),
             _ => None,
         }
-    }
-
-    /// Returns true if this operation is a decorator.
-    ///
-    /// Decorators do not advance VM clock cycle and do not affect deterministic VM state (i.e.,
-    /// stack, memory), but they can change non-deterministic components (e.g., advice tape).
-    ///
-    /// Additionally, decorators do not have assigned op codes.
-    pub fn is_decorator(&self) -> bool {
-        matches!(self, Self::Debug(_) | Self::Advice(_))
     }
 
     /// Returns true if this operation is a control operation.
@@ -543,7 +517,6 @@ impl fmt::Display for Operation {
             Self::Mul => write!(f, "mul"),
             Self::Inv => write!(f, "inv"),
             Self::Incr => write!(f, "incr"),
-            Self::Pow2 => write!(f, "pow2"),
 
             Self::And => write!(f, "and"),
             Self::Or => write!(f, "or"),
@@ -615,8 +588,11 @@ impl fmt::Display for Operation {
             Self::Read => write!(f, "read"),
             Self::ReadW => write!(f, "readw"),
 
-            Self::LoadW => write!(f, "loadw"),
-            Self::StoreW => write!(f, "storew"),
+            Self::MLoadW => write!(f, "mloadw"),
+            Self::MStoreW => write!(f, "mstorew"),
+
+            Self::MLoad => write!(f, "mload"),
+            Self::MStore => write!(f, "mstore"),
 
             Self::SDepth => write!(f, "sdepth"),
 
@@ -630,10 +606,6 @@ impl fmt::Display for Operation {
                     write!(f, "mrupdate(move)")
                 }
             }
-
-            // ----- decorators -------------------------------------------------------------------
-            Self::Debug(options) => write!(f, "debug({})", options),
-            Self::Advice(injector) => write!(f, "advice({})", injector),
         }
     }
 }

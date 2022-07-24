@@ -21,5 +21,11 @@ pub const V_COL_IDX: usize = RANGE_CHECK_TRACE_OFFSET + 3;
 
 /// The 8-bit running product column used for multiset checks.
 pub const P0_COL_IDX: usize = RANGE_CHECK_AUX_TRACE_OFFSET;
-/// The 16-bit running product column used for multiset checks.
+
+/// The running product column used for verifying that the range check lookups performed in the
+/// Stack and the Memory chiplet match the values checked in the Range Checker.
 pub const P1_COL_IDX: usize = P0_COL_IDX + 1;
+
+/// An auxiliary trace column of intermediate values used to enforce AIR constraints on `p1`. It
+/// contains the product of the lookups performed by the Stack processor at each cycle.
+pub const Q_COL_IDX: usize = P1_COL_IDX + 1;
