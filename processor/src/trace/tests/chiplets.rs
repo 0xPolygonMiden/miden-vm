@@ -5,7 +5,8 @@ use super::{
 };
 use vm_core::{
     chiplets::memory::{
-        ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, NUM_ELEMENTS, U_COL_RANGE, V_COL_RANGE,
+        ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, MEMORY_OP_ID, NUM_ELEMENTS, U_COL_RANGE,
+        V_COL_RANGE,
     },
     AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET,
 };
@@ -117,14 +118,15 @@ fn build_expected_memory(
     let mut new_word_value = ZERO;
 
     for i in 0..NUM_ELEMENTS {
-        old_word_value += alphas[i + 4] * old_word[i];
-        new_word_value += alphas[i + 8] * new_word[i];
+        old_word_value += alphas[i + 5] * old_word[i];
+        new_word_value += alphas[i + 9] * new_word[i];
     }
 
     alphas[0]
-        + alphas[1] * ctx
-        + alphas[2] * addr
-        + alphas[3] * clk
+        + alphas[1] * MEMORY_OP_ID
+        + alphas[2] * ctx
+        + alphas[3] * addr
+        + alphas[4] * clk
         + old_word_value
         + new_word_value
 }
