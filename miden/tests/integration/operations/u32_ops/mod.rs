@@ -45,7 +45,7 @@ pub fn test_param_out_of_bounds(asm_op_base: &str, gt_max_value: u64) {
 
 /// This helper function tests that when the given u32 assembly instruction is executed on
 /// out-of-bounds inputs it does not fail. Each input is tested independently.
-pub fn test_unsafe_execution(asm_op: &str, input_count: usize) {
+pub fn test_unchecked_execution(asm_op: &str, input_count: usize) {
     let values = vec![1_u64; input_count];
 
     for i in 0..input_count {

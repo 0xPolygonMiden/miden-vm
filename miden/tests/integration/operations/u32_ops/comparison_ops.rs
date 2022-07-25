@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use super::{
-    build_op_test, test_inputs_out_of_bounds, test_param_out_of_bounds, test_unsafe_execution,
+    build_op_test, test_inputs_out_of_bounds, test_param_out_of_bounds, test_unchecked_execution,
     TestError, U32_BOUND,
 };
 use proptest::prelude::*;
@@ -200,7 +200,7 @@ fn u32unchecked_lt() {
     test_comparison_op(asm_op, 1, 0, 0);
 
     // should not fail when inputs are out of bounds
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -227,7 +227,7 @@ fn u32unchecked_lte() {
     test_comparison_op(asm_op, 1, 1, 0);
 
     // should not fail when inputs are out of bounds
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -254,7 +254,7 @@ fn u32unchecked_gt() {
     test_comparison_op(asm_op, 0, 0, 1);
 
     // should not fail when inputs are out of bounds
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -281,7 +281,7 @@ fn u32unchecked_gte() {
     test_comparison_op(asm_op, 0, 1, 1);
 
     // should not fail when inputs are out of bounds
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -308,7 +308,7 @@ fn u32unchecked_min() {
     test_min(asm_op);
 
     // should not fail when inputs are out of bounds
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -335,7 +335,7 @@ fn u32unchecked_max() {
     test_max(asm_op);
 
     // should not fail when inputs are out of bounds
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 // U32 OPERATIONS TESTS - RANDOMIZED - COMPARISON OPERATIONS
@@ -385,7 +385,7 @@ proptest! {
             Ordering::Greater => 0,
         };
 
-        // safe and unsafe should produce the same result for valid values
+        // checked and unchecked should produce the same result for valid values
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
 
@@ -403,7 +403,7 @@ proptest! {
             Ordering::Greater => 0,
         };
 
-        // safe and unsafe should produce the same result for valid values
+        // checked and unchecked should produce the same result for valid values
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
 
@@ -421,7 +421,7 @@ proptest! {
             Ordering::Greater => 1,
         };
 
-        // safe and unsafe should produce the same result for valid values
+        // checked and unchecked should produce the same result for valid values
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
 
@@ -439,7 +439,7 @@ proptest! {
             Ordering::Greater => 1,
         };
 
-        // safe and unsafe should produce the same result for valid values
+        // checked and unchecked should produce the same result for valid values
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected])?;
 
@@ -453,7 +453,7 @@ proptest! {
         let asm_op = "u32checked_min";
         let expected = if a < b { a } else { b };
 
-        // safe and unsafe should produce the same result for valid values
+        // checked and unchecked should produce the same result for valid values
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected as u64])?;
 
@@ -467,7 +467,7 @@ proptest! {
         let asm_op = "u32checked_max";
         let expected = if a > b { a } else { b };
 
-        // safe and unsafe should produce the same result for valid values
+        // checked and unchecked should produce the same result for valid values
         let test = build_op_test!(asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected as u64])?;
 
@@ -515,8 +515,8 @@ fn test_comparison_op(asm_op: &str, expected_lt: u64, expected_eq: u64, expected
     test.expect_stack(&[expected, c]);
 }
 
-/// Tests a u32min assembly operation (u32min or u32min.unsafe) against a number of cases to ensure
-/// that the operation puts the minimum of 2 input values on the stack.
+/// Tests a u32min assembly operation (u32checked_min or u32unchecked_min) against a number of
+/// cases to ensure that the operation puts the minimum of 2 input values on the stack.
 fn test_min(asm_op: &str) {
     // --- simple cases ---------------------------------------------------------------------------
     // a < b should put a on the stack
@@ -550,8 +550,8 @@ fn test_min(asm_op: &str) {
     test.expect_stack(&[expected as u64, c]);
 }
 
-/// Tests a u32max assembly operation (u32max or u32max.unsafe) against a number of cases to ensure
-/// that the operation puts the maximum of 2 input values on the stack.
+/// Tests a u32max assembly operation (u32checked_max or u32unchecked_max) against a number of
+/// cases to ensure that the operation puts the maximum of 2 input values on the stack.
 fn test_max(asm_op: &str) {
     // --- simple cases ---------------------------------------------------------------------------
     // a < b should put b on the stack

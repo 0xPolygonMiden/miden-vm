@@ -48,7 +48,9 @@ fn parse_op_token(
         "div" => field_ops::parse_div(span_ops, op),
         "neg" => field_ops::parse_neg(span_ops, op),
         "inv" => field_ops::parse_inv(span_ops, op),
-        "pow2" => field_ops::parse_pow2(span_ops, op),
+
+        "checked_pow2" => field_ops::parse_pow2(span_ops, op, true),
+        "unchecked_pow2" => field_ops::parse_pow2(span_ops, op, false),
 
         "not" => field_ops::parse_not(span_ops, op),
         "and" => field_ops::parse_and(span_ops, op),
@@ -75,7 +77,7 @@ fn parse_op_token(
         "u32wrapping_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Wrapping),
         "u32overflowing_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Overflowing),
 
-        "u32unchecked_add3" => u32_ops::parse_u32add3(span_ops, op, U32OpMode::Unchecked),
+        "u32overflowing_add3" => u32_ops::parse_u32add3(span_ops, op, U32OpMode::Overflowing),
 
         "u32checked_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Checked),
         "u32wrapping_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Wrapping),
@@ -85,7 +87,7 @@ fn parse_op_token(
         "u32wrapping_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Wrapping),
         "u32overflowing_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Overflowing),
 
-        "u32unchecked_madd" => u32_ops::parse_u32madd(span_ops, op, U32OpMode::Unchecked),
+        "u32overflowing_madd" => u32_ops::parse_u32madd(span_ops, op, U32OpMode::Overflowing),
 
         "u32checked_div" => u32_ops::parse_u32div(span_ops, op, U32OpMode::Checked),
         "u32unchecked_div" => u32_ops::parse_u32div(span_ops, op, U32OpMode::Unchecked),
@@ -103,11 +105,9 @@ fn parse_op_token(
 
         "u32checked_shr" => u32_ops::parse_u32shr(span_ops, op, U32OpMode::Checked),
         "u32unchecked_shr" => u32_ops::parse_u32shr(span_ops, op, U32OpMode::Unchecked),
-        "u32overflowing_shr" => u32_ops::parse_u32shr(span_ops, op, U32OpMode::Overflowing),
 
         "u32checked_shl" => u32_ops::parse_u32shl(span_ops, op, U32OpMode::Checked),
         "u32unchecked_shl" => u32_ops::parse_u32shl(span_ops, op, U32OpMode::Unchecked),
-        "u32overflowing_shl" => u32_ops::parse_u32shl(span_ops, op, U32OpMode::Overflowing),
 
         "u32checked_rotr" => u32_ops::parse_u32rotr(span_ops, op, U32OpMode::Checked),
         "u32unchecked_rotr" => u32_ops::parse_u32rotr(span_ops, op, U32OpMode::Unchecked),
