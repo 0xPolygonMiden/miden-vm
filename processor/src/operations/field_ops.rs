@@ -434,12 +434,4 @@ mod tests {
         }
         expected
     }
-
-    fn build_expected_from_ints(values: &[u64]) -> [Felt; 16] {
-        let mut expected = [Felt::ZERO; 16];
-        for (&value, result) in values.iter().zip(expected.iter_mut()) {
-            *result = Felt::new(value);
-        }
-        expected
-    }
 }

@@ -248,16 +248,42 @@ pub fn parse_neq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
     Ok(())
 }
 
-/// Appends the EQW operation to the span block to do an element-wise comparison of the top 2 words
-/// on the stack and push a value of 1 if they're equal or 0 otherwise. The original words are left
-/// on the stack.
+/// Appends a sequence of operations emulating an EQW assembly instruction to do an element-wise
+/// comparison of the top 2 words.
+///
+/// The stack is expected to be arranged as [B, A ...] (from the top).
+///
+/// A value of 1 is pushed onto the stack if A(word) equal B(word). Otherwise, 0 is pushed.
+/// The original words are left on the stack.
+///
+/// This operation takes 15 VM cycles.
 ///
 /// # Errors
 /// Returns an error if the assembly operation token is malformed or incorrect.
 pub fn parse_eqw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     validate_operation!(op, "eqw", 0);
 
-    span_ops.push(Operation::Eqw);
+    // duplicate first pair of for comparison(4th elements of each word) in reverse order
+    // to avoid using dup.8 after stack shifting(dup.X where X > 7, takes more VM cycles )
+    span_ops.push(Operation::Dup7);
+    span_ops.push(Operation::Dup4);
+    span_ops.push(Operation::Eq);
+
+    // continue comparison pair by pair using bitwise AND for EQ results
+    span_ops.push(Operation::Dup7);
+    span_ops.push(Operation::Dup4);
+    span_ops.push(Operation::Eq);
+    span_ops.push(Operation::And);
+
+    span_ops.push(Operation::Dup6);
+    span_ops.push(Operation::Dup3);
+    span_ops.push(Operation::Eq);
+    span_ops.push(Operation::And);
+
+    span_ops.push(Operation::Dup5);
+    span_ops.push(Operation::Dup2);
+    span_ops.push(Operation::Eq);
+    span_ops.push(Operation::And);
 
     Ok(())
 }
@@ -453,7 +479,7 @@ pub fn aggregate_power_2(span_ops: &mut Vec<Operation>, unsafe_mode: bool) {
 
 /// This is a helper function to fetch respective `Dup` & `MovUp` instruction for a particular
 /// iteration in the calculation of power of 2 for individual bits. The fetched instruction
-/// will introduce value `2` at the top of the stack.  
+/// will introduce value `2` at the top of the stack.
 fn call_dup_opcode(span_ops: &mut Vec<Operation>, index: u32) {
     match index {
         1 => span_ops.push(Operation::Dup2),

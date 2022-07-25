@@ -485,6 +485,31 @@ fn eq() {
 }
 
 #[test]
+fn eqw() {
+    let asm_op = "eqw";
+
+    // --- test when top two words are equal ------------------------------------------------------
+    let values = vec![5, 4, 3, 2, 5, 4, 3, 2];
+    let mut expected = values.clone();
+    // push the result
+    expected.push(1);
+    // put it in stack order
+    expected.reverse();
+    let test = build_op_test!(asm_op, &values);
+    test.expect_stack(&expected);
+
+    // --- test when top two words are not equal --------------------------------------------------
+    let values = vec![8, 7, 6, 5, 4, 3, 2, 1];
+    let mut expected = values.clone();
+    // push the result
+    expected.push(0);
+    // put it in stack order
+    expected.reverse();
+    let test = build_op_test!(asm_op, &values);
+    test.expect_stack(&expected);
+}
+
+#[test]
 fn lt() {
     // Results in 1 if a < b for a starting stack of [b, a, ...] and 0 otherwise
     test_felt_comparison_op("lt", 1, 0, 0);
@@ -640,6 +665,36 @@ proptest! {
 
         let test = build_op_test!(asm_op, &[a,b]);
         test.prop_expect_stack(&[expected_result])?;
+    }
+
+    #[test]
+    fn eqw_proptest(w1 in prop_randw(), w2 in prop_randw()) {
+        // test the eqw assembly operation with randomized inputs
+        let asm_op = "eqw";
+
+        // 2 words (8 values) for comparison and 1 for the result
+        let mut values = vec![0; 2 * WORD_LEN + 1];
+
+        // check the inputs for equality in the field
+        let mut inputs_equal = true;
+        for (i, (a, b)) in w1.iter().zip(w2.iter()).enumerate() {
+            // if any of the values are unequal in the field, then the words will be unequal
+            if *a % Felt::MODULUS != *b % Felt::MODULUS {
+                inputs_equal = false;
+            }
+            // add the values to the vector
+            values[i] = *a;
+            values[i + WORD_LEN] = *b;
+        }
+
+        let test = build_op_test!(asm_op, &values);
+
+        // add the expected result to get the expected state
+        let expected_result = if inputs_equal { 1 } else { 0 };
+        values.push(expected_result);
+        values.reverse();
+
+        test.prop_expect_stack(&values)?;
     }
 
     #[test]
