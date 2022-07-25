@@ -166,27 +166,27 @@ proc.columnar_mixing.1
 
     movup.8
     dup.5
-    u32unchecked_add3
+    u32overflowing_add3
     drop
 
     swap
     movup.8
     dup.6
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     swap
 
     movup.2
     dup.6
     movup.9
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.2
 
     movup.3
     dup.7
     movup.9
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.3
 
@@ -266,27 +266,27 @@ proc.columnar_mixing.1
 
     movup.4
     dup.8
-    u32unchecked_add3
+    u32overflowing_add3
     drop
 
     swap
     movup.4
     dup.8
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     swap
 
     movup.2
     movup.4
     dup.8
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.2
 
     movup.3
     movup.4
     dup.8
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.3
 
@@ -398,27 +398,27 @@ proc.diagonal_mixing.1
 
     movup.8
     dup.6
-    u32unchecked_add3
+    u32overflowing_add3
     drop
 
     swap
     movup.8
     dup.7
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     swap
 
     movup.2
     movup.8
     dup.8
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.2
 
     movup.3
     movup.8
     dup.5
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.3
 
@@ -498,27 +498,27 @@ proc.diagonal_mixing.1
 
     movup.4
     dup.9
-    u32unchecked_add3
+    u32overflowing_add3
     drop
 
     swap
     movup.4
     dup.9
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     swap
 
     movup.2
     movup.4
     dup.9
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.2
 
     movup.3
     movup.4
     dup.5
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.3
 
@@ -9129,28 +9129,28 @@ end
     u32overflowing_add
     movup.4
     movup.7
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.6
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.5
-    u32unchecked_add3
+    u32overflowing_add3
     movdn.12
     swapw.2
     movup.12
     movup.4
     movup.8
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.7
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.6
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.5
-    u32unchecked_add3
+    u32overflowing_add3
     drop
 end
 
@@ -9327,7 +9327,7 @@ end
 
 proc.mulstep
     movdn.2
-    u32unchecked_madd
+    u32overflowing_madd
     movdn.2
     u32overflowing_add
     movup.2
@@ -9690,7 +9690,7 @@ export.overflowing_add
     u32overflowing_add
     movup.3
     movup.3
-    u32unchecked_add3
+    u32overflowing_add3
 end
 
 # Performs addition of two unsigned 64 bit integers discarding the overflow.
@@ -9782,11 +9782,11 @@ export.wrapping_mul
     u32overflowing_mul
     movup.4
     movup.4
-    u32unchecked_madd
+    u32overflowing_madd
     drop
     movup.3
     movup.3
-    u32unchecked_madd
+    u32overflowing_madd
     drop
 end
 
@@ -9801,14 +9801,14 @@ export.overflowing_mul
     u32overflowing_mul
     dup.4
     movup.4
-    u32unchecked_madd
+    u32overflowing_madd
     swap
     movup.5
     dup.4
-    u32unchecked_madd
+    u32overflowing_madd
     movup.5
     movup.5
-    u32unchecked_madd
+    u32overflowing_madd
     movup.3
     movup.2
     u32overflowing_add
@@ -10061,12 +10061,12 @@ export.unchecked_div
     u32overflowing_mul
     dup.4
     dup.4
-    u32unchecked_madd
+    u32overflowing_madd
     eq.0
     assert
     dup.5
     dup.3
-    u32unchecked_madd
+    u32overflowing_madd
     eq.0
     assert
     dup.4
@@ -10092,7 +10092,7 @@ export.unchecked_div
     u32overflowing_add
     movup.3
     movup.3
-    u32unchecked_add3
+    u32overflowing_add3
     eq.0
     assert
 
@@ -10130,12 +10130,12 @@ export.unchecked_mod
     u32overflowing_mul
     dup.4
     movup.4
-    u32unchecked_madd
+    u32overflowing_madd
     eq.0
     assert
     dup.4
     dup.3
-    u32unchecked_madd
+    u32overflowing_madd
     eq.0
     assert
     dup.3
@@ -10161,7 +10161,7 @@ export.unchecked_mod
     u32overflowing_add
     movup.4
     dup.3
-    u32unchecked_add3
+    u32overflowing_add3
     eq.0
     assert
 
@@ -10199,12 +10199,12 @@ export.unchecked_divmod
     u32overflowing_mul
     dup.4
     dup.4
-    u32unchecked_madd
+    u32overflowing_madd
     eq.0
     assert
     dup.5
     dup.3
-    u32unchecked_madd
+    u32overflowing_madd
     eq.0
     assert
     dup.4
@@ -10230,7 +10230,7 @@ export.unchecked_divmod
     u32overflowing_add
     movup.4
     dup.3
-    u32unchecked_add3
+    u32overflowing_add3
     eq.0
     assert
 
@@ -10412,7 +10412,7 @@ export.unchecked_rotl
     # Shift the high limb.
     movup.3
     movup.3
-    u32unchecked_madd
+    u32overflowing_madd
 
     # Carry the overflow shift to the low bits.
     movup.2
@@ -10453,7 +10453,7 @@ export.unchecked_rotr
     # Shift the high limb left by 32-b.
     movup.3
     movup.3
-    u32unchecked_madd
+    u32overflowing_madd
 
     # Carry the overflow shift to the low bits.
     movup.2

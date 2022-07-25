@@ -331,90 +331,6 @@ fn u32unchecked_shl_b() {
 }
 
 #[test]
-fn u32overflowing_shl() {
-    // left shift: pops a from the stack and pushes (a * 2^b) mod 2^32 for a provided value b
-    let asm_op = "u32overflowing_shl";
-
-    // --- test simple case -----------------------------------------------------------------------
-    let a = 1_u32;
-    let b = 1_u32;
-    let test = build_op_test!(asm_op, &[5, a as u64, b as u64]);
-    test.expect_stack(&[0, 2, 5]);
-
-    // --- test max values of a and b -------------------------------------------------------------
-    let a = (U32_BOUND - 1) as u32;
-    let b = 31;
-    let c = a.wrapping_shl(b);
-    let d = a.wrapping_shr(32 - b);
-
-    let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[d as u64, c as u64]);
-
-    // --- test b = 0 -----------------------------------------------------------------------------
-    let a = rand_value::<u32>();
-    let b = 0;
-
-    let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[0, a as u64]);
-
-    // --- test random values ---------------------------------------------------------------------
-    let a = rand_value::<u32>();
-    let b = rand_value::<u32>() % 32;
-    let c = a.wrapping_shl(b);
-    let d = if b == 0 { 0 } else { a.wrapping_shr(32 - b) };
-
-    let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[d as u64, c as u64]);
-
-    // --- test out of bounds input (should not fail) --------------------------------------------
-    let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    assert!(test.execute().is_ok());
-}
-
-#[test]
-fn u32overflowing_shl_b() {
-    // left shift: pops a from the stack and pushes (a * 2^b) mod 2^32 for a provided value b
-    let op_base = "u32overflowing_shl";
-    let get_asm_op = |b: u32| format!("{}.{}", op_base, b);
-
-    // --- test simple case -----------------------------------------------------------------------
-    let a = 1_u32;
-    let b = 1_u32;
-    let test = build_op_test!(get_asm_op(b).as_str(), &[5, a as u64]);
-    test.expect_stack(&[0, 2, 5]);
-
-    // --- test max values of a and b -------------------------------------------------------------
-    let a = (U32_BOUND - 1) as u32;
-    let b = 31;
-    let c = a.wrapping_shl(b);
-    let d = a.wrapping_shr(32 - b);
-
-    let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[d as u64, c as u64]);
-
-    // --- test b = 0 -----------------------------------------------------------------------------
-    let a = rand_value::<u32>();
-    let b = 0;
-
-    let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[0, a as u64]);
-
-    // --- test random values ---------------------------------------------------------------------
-    let a = rand_value::<u32>();
-    let b = rand_value::<u32>() % 32;
-    let c = a.wrapping_shl(b);
-    let d = if b == 0 { 0 } else { a.wrapping_shr(32 - b) };
-
-    let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[d as u64, c as u64]);
-
-    // --- test out of bounds input (should not fail) --------------------------------------------
-    let b = 1;
-    let test = build_op_test!(get_asm_op(b).as_str(), &[U32_BOUND]);
-    assert!(test.execute().is_ok());
-}
-
-#[test]
 fn u32checked_shr() {
     // right shift: pops a from the stack and pushes a / 2^b for a provided value b
     let asm_op = "u32checked_shr";
@@ -571,90 +487,6 @@ fn u32unchecked_shr_b() {
 
     let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
     test.expect_stack(&[a.wrapping_shr(b) as u64]);
-
-    // --- test out of bounds inputs (should not fail) --------------------------------------------
-    let b = 1;
-    let test = build_op_test!(get_asm_op(b).as_str(), &[U32_BOUND]);
-    assert!(test.execute().is_ok());
-}
-
-#[test]
-fn u32overflowing_shr() {
-    // right shift: pops a from the stack and pushes a / 2^b for a provided value b
-    let asm_op = "u32overflowing_shr";
-
-    // --- test simple case -----------------------------------------------------------------------
-    let a = 4_u32;
-    let b = 2_u32;
-    let test = build_op_test!(asm_op, &[5, a as u64, b as u64]);
-    test.expect_stack(&[0, 1, 5]);
-
-    // --- test max values of a and b -------------------------------------------------------------
-    let a = (U32_BOUND - 1) as u32;
-    let b = 31;
-    let c = a.wrapping_shr(b);
-    let d = a.wrapping_shl(32 - b);
-
-    let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[d as u64, c as u64]);
-
-    // --- test b = 0 ---------------------------------------------------------------------------
-    let a = rand_value::<u32>();
-    let b = 0;
-
-    let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[0, a as u64]);
-
-    // --- test random values ---------------------------------------------------------------------
-    let a = rand_value::<u32>();
-    let b = rand_value::<u32>() % 32;
-    let c = a.wrapping_shr(b);
-    let d = if b == 0 { 0 } else { a.wrapping_shl(32 - b) };
-
-    let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[d as u64, c as u64]);
-
-    // --- test out of bounds inputs (should not fail) --------------------------------------------
-    let test = build_op_test!(asm_op, &[U32_BOUND, 1]);
-    assert!(test.execute().is_ok());
-}
-
-#[test]
-fn u32overflowing_shr_b() {
-    // right shift: pops a from the stack and pushes a / 2^b for a provided value b
-    let op_base = "u32overflowing_shr";
-    let get_asm_op = |b: u32| format!("{}.{}", op_base, b);
-
-    // --- test simple case -----------------------------------------------------------------------
-    let a = 4_u32;
-    let b = 2_u32;
-    let test = build_op_test!(get_asm_op(b).as_str(), &[5, a as u64]);
-    test.expect_stack(&[0, 1, 5]);
-
-    // --- test max values of a and b -------------------------------------------------------------
-    let a = (U32_BOUND - 1) as u32;
-    let b = 31;
-    let c = a.wrapping_shr(b);
-    let d = a.wrapping_shl(32 - b);
-
-    let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[d as u64, c as u64]);
-
-    // --- test b = 0 ---------------------------------------------------------------------------
-    let a = rand_value::<u32>();
-    let b = 0;
-
-    let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[0, a as u64]);
-
-    // --- test random values ---------------------------------------------------------------------
-    let a = rand_value::<u32>();
-    let b = rand_value::<u32>() % 32;
-    let c = a.wrapping_shr(b);
-    let d = if b == 0 { 0 } else { a.wrapping_shl(32 - b) };
-
-    let test = build_op_test!(get_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[d as u64, c as u64]);
 
     // --- test out of bounds inputs (should not fail) --------------------------------------------
     let b = 1;
@@ -1052,30 +884,6 @@ proptest! {
     }
 
     #[test]
-    fn u32overflowing_shl_proptest(a in any::<u32>(), b in 0_u32..32) {
-        let asm_opcode = "u32overflowing_shl";
-
-        // should execute left shift
-        let c = a.wrapping_shl(b);
-        // and leave the result that was shifted off
-        let d = if b == 0 { 0 } else { a.wrapping_shr(32 - b) };
-        let test = build_op_test!(asm_opcode, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[d as u64, c as u64])?;
-    }
-
-    #[test]
-    fn u32overflowing_shl_b_proptest(a in any::<u32>(), b in 0_u32..32) {
-        let asm_opcode = format!("u32overflowing_shl.{}", b);
-
-        // should execute left shift
-        let c = a.wrapping_shl(b);
-        // and leave the result that was shifted off
-        let d = if b == 0 { 0 } else { a.wrapping_shr(32 - b) };
-        let test = build_op_test!(asm_opcode, &[a as u64]);
-        test.prop_expect_stack(&[d as u64, c as u64])?;
-    }
-
-    #[test]
     fn u32checked_shr_proptest(a in any::<u32>(), b in 0_u32..32) {
         let asm_opcode = "u32checked_shr";
 
@@ -1093,30 +901,6 @@ proptest! {
         let expected = a >> b;
         let test = build_op_test!(asm_opcode, &[a as u64]);
         test.prop_expect_stack(&[expected as u64])?;
-    }
-
-    #[test]
-    fn u32overflowing_shr_proptest(a in any::<u32>(), b in 0_u32..32) {
-        let asm_opcode = "u32overflowing_shr";
-
-        // should execute right shift
-        let c = a.wrapping_shr(b);
-        // and leave the result that was shifted off
-        let d = if b == 0 { 0 } else { a.wrapping_shl(32 - b) };
-        let test = build_op_test!(asm_opcode, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[d as u64, c as u64])?;
-    }
-
-    #[test]
-    fn u32overflowing_shr_b_proptest(a in any::<u32>(), b in 0_u32..32) {
-        let asm_opcode = format!("u32overflowing_shr.{}", b);
-
-        // should execute right shift
-        let c = a.wrapping_shr(b);
-        // and leave the result that was shifted off
-        let d = if b == 0 { 0 } else { a.wrapping_shl(32 - b) };
-        let test = build_op_test!(asm_opcode, &[a as u64]);
-        test.prop_expect_stack(&[d as u64, c as u64])?;
     }
 
     #[test]

@@ -203,8 +203,8 @@ fn u32overflowing_add() {
 }
 
 #[test]
-fn u32unchecked_add3() {
-    let asm_op = "u32unchecked_add3";
+fn u32overflowing_add3() {
+    let asm_op = "u32overflowing_add3";
 
     // --- test correct execution -----------------------------------------------------------------
     // --- (a + b + c) < 2^32 where c = 0 ---------------------------------------------------------
@@ -679,8 +679,8 @@ fn u32overflowing_mul() {
 }
 
 #[test]
-fn u32unchecked_madd() {
-    let asm_op = "u32unchecked_madd";
+fn u32overflowing_madd() {
+    let asm_op = "u32overflowing_madd";
 
     // --- no overflow ----------------------------------------------------------------------------
     // d = a * b + c and e should be unset, since there was no arithmetic overflow.
@@ -1035,8 +1035,8 @@ proptest! {
     }
 
     #[test]
-    fn u32unchecked_add3_proptest(a in any::<u32>(), b in any::<u32>(), c in any::<u32>()) {
-        let asm_op = "u32unchecked_add3";
+    fn u32overflowing_add3_proptest(a in any::<u32>(), b in any::<u32>(), c in any::<u32>()) {
+        let asm_op = "u32overflowing_add3";
 
         let sum: u64 = u64::from(a) + u64::from(b) + u64::from(c);
         let lo = (sum as u32) as u64;
@@ -1121,8 +1121,8 @@ proptest! {
     }
 
     #[test]
-    fn u32unchecked_madd_proptest(a in any::<u32>(), b in any::<u32>(), c in any::<u32>()) {
-        let asm_op = "u32unchecked_madd";
+    fn u32overflowing_madd_proptest(a in any::<u32>(), b in any::<u32>(), c in any::<u32>()) {
+        let asm_op = "u32overflowing_madd";
 
         let madd = a as u64 * b as u64 + c as u64;
         let d = madd % U32_BOUND;

@@ -5,28 +5,28 @@ export.add_unsafe
     u32overflowing_add
     movup.4
     movup.7
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.6
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.5
-    u32unchecked_add3
+    u32overflowing_add3
     movdn.12
     swapw.2
     movup.12
     movup.4
     movup.8
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.7
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.6
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.5
-    u32unchecked_add3
+    u32overflowing_add3
     drop
 end
 
@@ -203,7 +203,7 @@ end
 
 proc.mulstep
     movdn.2
-    u32unchecked_madd
+    u32overflowing_madd
     movdn.2
     u32overflowing_add
     movup.2
