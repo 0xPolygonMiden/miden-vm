@@ -1,11 +1,11 @@
 ## u32 operations
 Miden assembly provides a set of instructions which can perform operations on regular 32-bit integers. These instructions are described in the tables below.
 
-Many instructions have *safe* and *unsafe* versions. The safe versions ensure that input values are 32-bit integers, and fail if that's not the case. The *unsafe* versions do not perform these checks, and thus, should be used only if the inputs are known to be 32-bit integers. Supplying inputs which are greater than or equal to $2^{32}$ to *unsafe* operations results in undefined behavior.
+Most instructions have _checked_ variants. These variants ensure that input values are 32-bit integers, and fail if that's not the case. All other variants do not perform these checks, and thus, should be used only if the inputs are known to be 32-bit integers. Supplying inputs which are greater than or equal to $2^{32}$ to unchecked operations results in undefined behavior.
 
-The primary benefit of using *unsafe* operations is performance: they can frequently be executed $2$ or $3$ times faster than their safe counterparts. In general, vast majority of the *unsafe* operations listed below can be executed in a single VM cycle.
+The primary benefit of using unchecked operations is performance: they can frequently be executed $2$ or $3$ times faster than their checked counterparts. In general, vast majority of the unchecked operations listed below can be executed in a single VM cycle.
 
-For instructions where one or more operands can be provided as immediate parameters (e.g., `u32add` and `u32add.b`), we provide stack transition diagrams only for the non-immediate version. For the immediate version, it can be assumed that the operand with the specified name is not present on the stack.
+For instructions where one or more operands can be provided as immediate parameters (e.g., `u32checked_add` and `u32checked_add.b`), we provide stack transition diagrams only for the non-immediate version. For the immediate version, it can be assumed that the operand with the specified name is not present on the stack.
 
 ### Conversions and tests
 

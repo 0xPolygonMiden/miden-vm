@@ -48,7 +48,9 @@ fn parse_op_token(
         "div" => field_ops::parse_div(span_ops, op),
         "neg" => field_ops::parse_neg(span_ops, op),
         "inv" => field_ops::parse_inv(span_ops, op),
-        "pow2" => field_ops::parse_pow2(span_ops, op),
+
+        "checked_pow2" => field_ops::parse_pow2(span_ops, op, true),
+        "unchecked_pow2" => field_ops::parse_pow2(span_ops, op, false),
 
         "not" => field_ops::parse_not(span_ops, op),
         "and" => field_ops::parse_and(span_ops, op),

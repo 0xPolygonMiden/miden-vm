@@ -1,7 +1,10 @@
 use super::{
-    field_ops::aggregate_power_2, parse_u32_param, push_value, AssemblyError, Felt, Operation,
-    Token, Vec,
+    field_ops::append_pow2_op, parse_u32_param, push_value, AssemblyError, Felt, Operation, Token,
+    Vec,
 };
+
+// ENUMS
+// ================================================================================================
 
 /// This enum is intended to determine the mode of operation passed to the parsing function
 #[derive(PartialEq)]
@@ -418,10 +421,8 @@ pub fn parse_u32not(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// Translates u32shl assembly instructions to VM operations.
 ///
 /// The operation is implemented by putting a power of 2 on the stack, then multiplying it with
-/// the value to be shifted and splitting the result. Depending on the mode, other instructions may
-/// be added, and the return value may or may not include an overflow result. For checked variants,
-/// the shift value is asserted to be between 0-31 and the value to be shifted is asserted to be a
-/// 32-bit value.
+/// the value to be shifted and splitting the result. For checked variants, the shift value is
+/// asserted to be between 0-31 and the value to be shifted is asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
 /// - u32checked_shl: 47 cycles
@@ -438,11 +439,11 @@ pub fn parse_u32shl(
         1 => match op_mode {
             U32OpMode::Checked => {
                 // Assume the dynamic shift value b is on top of the stack.
-                aggregate_power_2(span_ops, false);
+                append_pow2_op(span_ops, true);
                 span_ops.push(Operation::U32assert2);
             }
             U32OpMode::Unchecked => {
-                aggregate_power_2(span_ops, true);
+                append_pow2_op(span_ops, false);
             }
             _ => return Err(AssemblyError::invalid_op(op)),
         },
@@ -470,10 +471,8 @@ pub fn parse_u32shl(
 /// Translates u32shr assembly instructions to VM operations.
 ///
 /// The operation is implemented by putting a power of 2 on the stack, then dividing the value to
-/// be shifted by it and returning the quotient. Depending on the mode, other instructions may
-/// be added, and the return value may or may not include an overflow result. For checked variants,
-/// the shift value is asserted to be between 0-31 and the value to be shifted is asserted to be a
-/// 32-bit value.
+/// be shifted by it and returning the quotient. For checked variants, the shift value is asserted
+/// to be between 0-31 and the value to be shifted is asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
 /// - u32checked_shr: 47 cycles
@@ -490,11 +489,11 @@ pub fn parse_u32shr(
         1 => match op_mode {
             U32OpMode::Checked => {
                 // Assume the dynamic shift value b is on top of the stack.
-                aggregate_power_2(span_ops, false);
+                append_pow2_op(span_ops, true);
                 span_ops.push(Operation::U32assert2);
             }
             U32OpMode::Unchecked => {
-                aggregate_power_2(span_ops, true);
+                append_pow2_op(span_ops, false);
             }
             _ => return Err(AssemblyError::invalid_op(op)),
         },
@@ -513,10 +512,8 @@ pub fn parse_u32shr(
         _ => return Err(AssemblyError::extra_param(op)),
     };
 
-    // Use division to shift right when no overflow result is required and only a single
-    // shifted value is returned. This excludes "unsafe" mode, which is done above via mul.
+    // Use division to shift right and then drop the remainder
     span_ops.push(Operation::U32div);
-    // drop the remainder and keep the quotient
     span_ops.push(Operation::Drop);
 
     Ok(())
@@ -525,9 +522,9 @@ pub fn parse_u32shr(
 /// Translates u32rotl assembly instructions to VM operations.
 ///
 /// The base operation is implemented by putting a power of 2 on the stack, then multiplying the
-/// value to be shifted by it and adding the overflow limb to the shifted limb. Depending on the
-/// mode, other instructions may be added. For the checked variants, the shift value is asserted
-/// to be between 0-31 and the value to be shifted is asserted to be a 32-bit value.
+/// value to be shifted by it and adding the overflow limb to the shifted limb. For the checked
+/// variants, the shift value is asserted to be between 0-31 and the value to be shifted is
+/// asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
 /// - u32checked_rotl: 47 cycles
@@ -544,11 +541,11 @@ pub fn parse_u32rotl(
         1 => match op_mode {
             U32OpMode::Checked => {
                 // Assume the dynamic shift value b is on top of the stack.
-                aggregate_power_2(span_ops, false);
+                append_pow2_op(span_ops, true);
                 span_ops.push(Operation::U32assert2);
             }
             U32OpMode::Unchecked => {
-                aggregate_power_2(span_ops, true);
+                append_pow2_op(span_ops, false);
             }
             _ => return Err(AssemblyError::invalid_op(op)),
         },
@@ -575,10 +572,10 @@ pub fn parse_u32rotl(
 
 /// Translates u32rotr assembly instructions to VM operations.
 ///
-/// The base operation is implemented by multiplying the value to be shifted by 2^(32-b), where b
-/// is the shift amount, then adding the overflow limb to the shifted limb. Depending on the mode,
-/// other instructions may be added. For the checked variants, the shift value is asserted to be
-/// between 0-31 and the value to be shifted is asserted to be a 32-bit value.
+/// The base operation is implemented by multiplying the value to be shifted by 2^(32-b), where
+/// b is the shift amount, then adding the overflow limb to the shifted limb. For the checked
+/// variants, the shift value is asserted to be between 0-31 and the value to be shifted is
+/// asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
 /// - u32checked_rotr: 59 cycles
@@ -609,7 +606,7 @@ pub fn parse_u32rotr(
                 span_ops.push(Operation::Not);
                 span_ops.push(Operation::CSwap);
                 span_ops.push(Operation::Drop);
-                aggregate_power_2(span_ops, false);
+                append_pow2_op(span_ops, true);
                 span_ops.push(Operation::Swap);
             }
             U32OpMode::Unchecked => {
@@ -617,7 +614,7 @@ pub fn parse_u32rotr(
                 span_ops.push(Operation::Swap);
                 span_ops.push(Operation::U32sub);
                 span_ops.push(Operation::Drop);
-                aggregate_power_2(span_ops, true);
+                append_pow2_op(span_ops, false);
             }
             _ => return Err(AssemblyError::invalid_op(op)),
         },

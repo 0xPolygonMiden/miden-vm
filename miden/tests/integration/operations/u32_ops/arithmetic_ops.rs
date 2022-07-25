@@ -1,4 +1,6 @@
-use super::{build_op_test, test_param_out_of_bounds, test_unsafe_execution, TestError, U32_BOUND};
+use super::{
+    build_op_test, test_param_out_of_bounds, test_unchecked_execution, TestError, U32_BOUND,
+};
 use proptest::prelude::*;
 use rand_utils::rand_value;
 
@@ -199,7 +201,7 @@ fn u32overflowing_add() {
     test.expect_stack(&[d, c as u64, e]);
 
     // should not fail when inputs are out of bounds.
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -479,7 +481,7 @@ fn u32overflowing_sub() {
     test.expect_stack(&[d, c as u64, e]);
 
     // should not fail when inputs are out of bounds.
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -675,7 +677,7 @@ fn u32overflowing_mul() {
     test.expect_stack(&[d, c as u64, e]);
 
     // should not fail when inputs are out of bounds.
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -716,7 +718,7 @@ fn u32overflowing_madd() {
     test.expect_stack(&[e, d, f]);
 
     // should not fail when inputs are out of bounds.
-    test_unsafe_execution(asm_op, 3);
+    test_unchecked_execution(asm_op, 3);
 }
 
 #[test]
@@ -801,7 +803,7 @@ fn u32unchecked_div() {
     test_div(asm_op);
 
     // should not fail when inputs are out of bounds.
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -893,7 +895,7 @@ fn u32unchecked_mod() {
     test_mod(asm_op);
 
     // should not fail when inputs are out of bounds.
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -988,7 +990,7 @@ fn u32unchecked_divmod() {
     test_divmod(asm_op);
 
     // should not fail when inputs are out of bounds.
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]

@@ -10297,7 +10297,7 @@ end
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
 # This takes 50 cycles.
 export.unchecked_shl
-    pow2.unsafe
+    unchecked_pow2
     u32split
     exec.wrapping_mul
 end
@@ -10310,7 +10310,7 @@ end
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a >> b.
 # This takes 66 cycles.
 export.unchecked_shr
-    pow2.unsafe
+    unchecked_pow2
     u32split
 
     dup.1
@@ -10350,7 +10350,7 @@ end
 # which d contains the bits shifted out.
 # This takes 57 cycles.
 export.overflowing_shl
-    pow2.unsafe
+    unchecked_pow2
     u32split
     exec.overflowing_mul
 end
@@ -10404,7 +10404,7 @@ export.unchecked_rotl
     # Shift the low limb.
     push.31
     u32checked_and
-    pow2.unsafe
+    unchecked_pow2
     dup
     movup.3
     u32overflowing_mul
@@ -10445,7 +10445,7 @@ export.unchecked_rotr
     swap
     u32overflowing_sub
     drop
-    pow2.unsafe
+    unchecked_pow2
     dup
     movup.3
     u32overflowing_mul

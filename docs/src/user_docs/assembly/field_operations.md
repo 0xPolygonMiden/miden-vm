@@ -22,7 +22,8 @@ For instructions where one or more operands can be provided as immediate paramet
 | div <br> div.*b* | [b, a, ...] | [c, ...]      | $c \leftarrow (a \cdot b^{-1}) \mod p$ <br> Fails if $b = 0$ |
 | neg              | [a, ...]    | [b, ...]      | $b \leftarrow -a \mod p$               |
 | inv              | [a, ...]    | [b, ...]      | $b \leftarrow a^{-1} \mod p$ <br> Fails if $a = 0$ |
-| pow2             | [a, ...]    | [b, ...]      | $b \leftarrow 2^a$ <br> Fails if $a > 63$ |
+| checked_pow2     | [a, ...]    | [b, ...]      | $b \leftarrow 2^a$ <br> Fails if $a > 63$ |
+| unchecked_pow2   | [a, ...]    | [b, ...]      | $b \leftarrow 2^a$ <br> Undefined if $a > 63$ |
 | not              | [a, ...]    | [b, ...]      | $b \leftarrow 1 - a$ <br> Fails if $a > 1$ |
 | and              | [b, a, ...] | [c, ...]      | $c \leftarrow a \cdot b$ <br> Fails if $max(a, b) > 1$ |
 | or               | [b, a, ...] | [c, ...]      | $c \leftarrow a + b - a \cdot b$ <br> Fails if $max(a, b) > 1$ |

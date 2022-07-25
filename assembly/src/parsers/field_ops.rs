@@ -126,27 +126,24 @@ pub fn parse_inv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
     Ok(())
 }
 
-/// Translates pow2 assembly instruction to VM operations.
+/// Translates pow2 assembly instructions to VM operations.
 ///
-/// Specifically, we extract the least significant bit of the head element in the stack &
-/// perform a power of 2 operation on these individual bits. These individual powers are
-/// later aggregated to compute the power of 2 of the top value of the stack. In `unsafe mode`,
-/// we skip the check of verifying that the top element is less than 64 or not.
+/// Appends a sequence of operations to raise value 2 to the power specified by the element at the
+/// top of the stack. In the unchecked mode, we skip the check of verifying that the top element
+/// is less than 64.
 ///
 /// VM cycles per mode:
-/// pow2: 44 cycles
-/// pow2.unsafe: 38 cycles
-pub fn parse_pow2(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    let unsafe_mode = match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => false,
-        2 => match op.parts()[1] {
-            "unsafe" => true,
-            _ => return Err(AssemblyError::invalid_param(op, 1)),
-        },
-        _ => return Err(AssemblyError::extra_param(op)),
-    };
-    aggregate_power_2(span_ops, unsafe_mode);
+/// - checked_pow2: 44 cycles
+/// - unchecked_pow2: 38 cycles
+pub fn parse_pow2(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    checked_mode: bool,
+) -> Result<(), AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    append_pow2_op(span_ops, checked_mode);
 
     Ok(())
 }
@@ -389,22 +386,21 @@ pub fn parse_gte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 // POWER OF TWO HELPER FUNCTIONS
 // ================================================================================================
 
-/// Extract the least significant bit of the top element iteratively and performs
-/// power of 2 operation on the individual bit. These individual powers
-/// are combined later to calculate the power of 2 on the top value of the stack.
+/// Extracts the least significant bit of the top element iteratively and performs power of 2
+/// operation on the individual bit. These individual powers are combined later to calculate the
+/// power of 2 on the top value of the stack.
 ///
 /// The expected starting state of the stack (from the top) is: [a, ...].
 ///
 /// After these operations, the stack state will be: [2^a, ...].
 ///
 /// VM cycles per mode:
-/// safe: 44 cycles
-/// unsafe: 38 cycles
-pub fn aggregate_power_2(span_ops: &mut Vec<Operation>, unsafe_mode: bool) {
+/// - checked: 44 cycles
+/// - unchecked: 38 cycles
+pub fn append_pow2_op(span_ops: &mut Vec<Operation>, checked_mode: bool) {
     const MOST_SIGNIFICANT_BIT: u32 = 5;
 
-    // `safe` Mode
-    if !unsafe_mode {
+    if checked_mode {
         // Checks if the top element of the stack is less than 64 or not. U32assert2 will
         // ensure if the element to which we are raising 2 to is u32 or not before u32div.
         // U32div operates on only u32 values.
