@@ -93,10 +93,6 @@ pub enum Operation {
     /// the stack, otherwise pushes 0 onto the stack.
     Eqz,
 
-    /// Compares the first word (four elements) with the second word on the stack, if the words are
-    /// equal, pushes 1 onto the stack, otherwise pushes 0 onto the stack.
-    Eqw,
-
     // ----- u32 operations -----------------------------------------------------------------------
     /// Pops an element off the stack, splits it into upper and lower 32-bit values, and pushes
     /// these values back onto the stack.
@@ -377,7 +373,6 @@ impl Operation {
 
             Self::Eq => 0b0100_1001,
             Self::Eqz => 5,
-            Self::Eqw => 6,
 
             Self::Add => 0b0100_1000,
             Self::Neg => 7,
@@ -524,7 +519,6 @@ impl fmt::Display for Operation {
 
             Self::Eq => write!(f, "eq"),
             Self::Eqz => write!(f, "eqz"),
-            Self::Eqw => write!(f, "eqw"),
 
             // ----- u32 operations ---------------------------------------------------------------
             Self::U32assert2 => write!(f, "u32assert2"),

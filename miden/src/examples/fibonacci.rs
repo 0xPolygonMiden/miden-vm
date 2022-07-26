@@ -1,5 +1,5 @@
 use super::Example;
-use miden::{Assembler, ProgramInputs, Script};
+use miden::{Assembler, Program, ProgramInputs};
 use vm_core::{Felt, FieldElement, StarkField};
 
 // EXAMPLE BUILDER
@@ -24,7 +24,7 @@ pub fn get_example(n: usize) -> Example {
 }
 
 /// Generates a program to compute the `n`-th term of Fibonacci sequence
-fn generate_fibonacci_program(n: usize) -> Script {
+fn generate_fibonacci_program(n: usize) -> Program {
     // the program is a simple repetition of 4 stack operations:
     // the first operation moves the 2nd stack item to the top,
     // the second operation duplicates the top 2 stack items,
@@ -41,7 +41,7 @@ fn generate_fibonacci_program(n: usize) -> Script {
     );
 
     let assembler = Assembler::default();
-    assembler.compile_script(&program).unwrap()
+    assembler.compile(&program).unwrap()
 }
 
 /// Computes the `n`-th term of Fibonacci sequence

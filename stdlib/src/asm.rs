@@ -91,41 +91,41 @@ end
 # that's because it doesn't dictate what output of 2-to-1 hash will be.
 proc.finalize
     movup.8
-    u32xor
+    u32checked_xor
 
     swap
     movup.8
-    u32xor
+    u32checked_xor
     swap
 
     movup.2
     movup.8
-    u32xor
+    u32checked_xor
     movdn.2
 
     movup.3
     movup.8
-    u32xor
+    u32checked_xor
     movdn.3
 
     movup.4
     movup.8
-    u32xor
+    u32checked_xor
     movdn.4
 
     movup.5
     movup.8
-    u32xor
+    u32checked_xor
     movdn.5
 
     movup.6
     movup.8
-    u32xor
+    u32checked_xor
     movdn.6
 
     movup.7
     movup.8
-    u32xor
+    u32checked_xor
     movdn.7
 end
 
@@ -166,27 +166,27 @@ proc.columnar_mixing.1
 
     movup.8
     dup.5
-    u32unchecked_add3
+    u32overflowing_add3
     drop
 
     swap
     movup.8
     dup.6
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     swap
 
     movup.2
     dup.6
     movup.9
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.2
 
     movup.3
     dup.7
     movup.9
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.3
 
@@ -194,25 +194,25 @@ proc.columnar_mixing.1
     pushw.mem
 
     dup.4
-    u32xor
-    u32rotr.16
-
+    u32checked_xor
+    u32checked_rotr.16
+    
     swap
     dup.5
-    u32xor
-    u32rotr.16
+    u32checked_xor
+    u32checked_rotr.16
     swap
 
     movup.2
     dup.6
-    u32xor
-    u32rotr.16
+    u32checked_xor
+    u32checked_rotr.16
     movdn.2
 
     movup.3
     dup.7
-    u32xor
-    u32rotr.16
+    u32checked_xor
+    u32checked_rotr.16
     movdn.3
 
     movup.12
@@ -239,25 +239,25 @@ proc.columnar_mixing.1
     movupw.3
 
     dup.4
-    u32xor
-    u32rotr.12
-
+    u32checked_xor
+    u32checked_rotr.12
+    
     swap
     dup.5
-    u32xor
-    u32rotr.12
+    u32checked_xor
+    u32checked_rotr.12
     swap
 
     movup.2
     dup.6
-    u32xor
-    u32rotr.12
+    u32checked_xor
+    u32checked_rotr.12
     movdn.2
 
     movup.3
     dup.7
-    u32xor
-    u32rotr.12
+    u32checked_xor
+    u32checked_rotr.12
     movdn.3
 
     movupw.3
@@ -266,52 +266,52 @@ proc.columnar_mixing.1
 
     movup.4
     dup.8
-    u32unchecked_add3
+    u32overflowing_add3
     drop
 
     swap
     movup.4
     dup.8
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     swap
 
     movup.2
     movup.4
     dup.8
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.2
 
     movup.3
     movup.4
     dup.8
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.3
 
     movupw.3
 
     dup.4
-    u32xor
-    u32rotr.8
-
+    u32checked_xor
+    u32checked_rotr.8
+    
     swap
     dup.5
-    u32xor
-    u32rotr.8
+    u32checked_xor
+    u32checked_rotr.8
     swap
 
     movup.2
     dup.6
-    u32xor
-    u32rotr.8
+    u32checked_xor
+    u32checked_rotr.8
     movdn.2
 
     movup.3
     dup.7
-    u32xor
-    u32rotr.8
+    u32checked_xor
+    u32checked_rotr.8
     movdn.3
 
     movupw.3
@@ -337,25 +337,25 @@ proc.columnar_mixing.1
     movupw.3
 
     dup.4
-    u32xor
-    u32rotr.7
+    u32checked_xor
+    u32checked_rotr.7
 
     swap
     dup.5
-    u32xor
-    u32rotr.7
+    u32checked_xor
+    u32checked_rotr.7
     swap
 
     movup.2
     dup.6
-    u32xor
-    u32rotr.7
+    u32checked_xor
+    u32checked_rotr.7
     movdn.2
 
     movup.3
     dup.7
-    u32xor
-    u32rotr.7
+    u32checked_xor
+    u32checked_rotr.7
     movdn.3
 
     movupw.3
@@ -398,27 +398,27 @@ proc.diagonal_mixing.1
 
     movup.8
     dup.6
-    u32unchecked_add3
+    u32overflowing_add3
     drop
 
     swap
     movup.8
     dup.7
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     swap
 
     movup.2
     movup.8
     dup.8
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.2
 
     movup.3
     movup.8
     dup.5
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.3
 
@@ -427,24 +427,24 @@ proc.diagonal_mixing.1
 
     movup.3
     dup.4
-    u32xor
-    u32rotr.16
+    u32checked_xor
+    u32checked_rotr.16
     movdn.3
 
     dup.5
-    u32xor
-    u32rotr.16
+    u32checked_xor
+    u32checked_rotr.16
 
     swap
     dup.6
-    u32xor
-    u32rotr.16
+    u32checked_xor
+    u32checked_rotr.16
     swap
 
     movup.2
     dup.7
-    u32xor
-    u32rotr.16
+    u32checked_xor
+    u32checked_rotr.16
     movdn.2
 
     movup.12
@@ -472,25 +472,25 @@ proc.diagonal_mixing.1
 
     swap
     dup.6
-    u32xor
-    u32rotr.12
+    u32checked_xor
+    u32checked_rotr.12
     swap
 
     movup.2
     dup.7
-    u32xor
-    u32rotr.12
+    u32checked_xor
+    u32checked_rotr.12
     movdn.2
 
     movup.3
     dup.4
-    u32xor
-    u32rotr.12
+    u32checked_xor
+    u32checked_rotr.12
     movdn.3
 
     dup.5
-    u32xor
-    u32rotr.12
+    u32checked_xor
+    u32checked_rotr.12
 
     movupw.3
     pushw.local.0
@@ -498,27 +498,27 @@ proc.diagonal_mixing.1
 
     movup.4
     dup.9
-    u32unchecked_add3
+    u32overflowing_add3
     drop
 
     swap
     movup.4
     dup.9
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     swap
 
     movup.2
     movup.4
     dup.9
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.2
 
     movup.3
     movup.4
     dup.5
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     movdn.3
 
@@ -526,24 +526,24 @@ proc.diagonal_mixing.1
 
     movup.3
     dup.4
-    u32xor
-    u32rotr.8
+    u32checked_xor
+    u32checked_rotr.8
     movdn.3
 
     dup.5
-    u32xor
-    u32rotr.8
+    u32checked_xor
+    u32checked_rotr.8
 
     swap
     dup.6
-    u32xor
-    u32rotr.8
+    u32checked_xor
+    u32checked_rotr.8
     swap
 
     movup.2
     dup.7
-    u32xor
-    u32rotr.8
+    u32checked_xor
+    u32checked_rotr.8
     movdn.2
 
     movupw.3
@@ -570,25 +570,25 @@ proc.diagonal_mixing.1
 
     swap
     dup.6
-    u32xor
-    u32rotr.7
+    u32checked_xor
+    u32checked_rotr.7
     swap
 
     movup.2
     dup.7
-    u32xor
-    u32rotr.7
+    u32checked_xor
+    u32checked_rotr.7
     movdn.2
 
     movup.3
     dup.4
-    u32xor
-    u32rotr.7
+    u32checked_xor
+    u32checked_rotr.7
     movdn.3
 
     dup.5
-    u32xor
-    u32rotr.7
+    u32checked_xor
+    u32checked_rotr.7
 
     movupw.3
 end
@@ -743,20 +743,20 @@ end
 # given four elements of from each of a, b sets, following procedure computes a[i] ^ b[i] ∀ i = [0, 3]
 proc.xor_4_elements
     movup.7
-    u32xor
+    u32checked_xor
 
     swap
 
     movup.6
-    u32xor
+    u32checked_xor
 
     movup.2
     movup.5
-    u32xor
+    u32checked_xor
 
     movup.4
     movup.4
-    u32xor
+    u32checked_xor
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's θ function, which is
@@ -790,7 +790,7 @@ proc.theta.7
     swap
     drop
 
-    u32xor
+    u32checked_xor
 
     pushw.local.1
     drop
@@ -810,8 +810,8 @@ proc.theta.7
     swap
     drop
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 
     pushw.local.2
     drop
@@ -825,7 +825,7 @@ proc.theta.7
         drop
     end
 
-    u32xor
+    u32checked_xor
 
     # stack = [c_0]
     # -----
@@ -850,7 +850,7 @@ proc.theta.7
     drop
     drop
 
-    u32xor
+    u32checked_xor
 
     pushw.local.1
     drop
@@ -872,8 +872,8 @@ proc.theta.7
     drop
     drop
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 
     pushw.local.2
     drop
@@ -889,7 +889,7 @@ proc.theta.7
         drop
     end
 
-    u32xor
+    u32checked_xor
 
     # stack = [c_1, c_0]
     # -----
@@ -917,7 +917,7 @@ proc.theta.7
         drop
     end
 
-    u32xor
+    u32checked_xor
 
     pushw.local.1
 
@@ -934,7 +934,7 @@ proc.theta.7
     swap
     drop
 
-    u32xor
+    u32checked_xor
 
     pushw.local.2
 
@@ -959,8 +959,8 @@ proc.theta.7
     swap
     drop
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 
     # stack = [c_2, c_1, c_0]
     # -----
@@ -989,7 +989,7 @@ proc.theta.7
         drop
     end
 
-    u32xor
+    u32checked_xor
 
     pushw.local.1
 
@@ -1005,7 +1005,7 @@ proc.theta.7
     drop
     drop
 
-    u32xor
+    u32checked_xor
 
     pushw.local.2
 
@@ -1030,8 +1030,8 @@ proc.theta.7
     drop
     drop
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 
     # stack = [c_3, c_2, c_1, c_0]
     # -----
@@ -1059,7 +1059,7 @@ proc.theta.7
     swap
     drop
 
-    u32xor
+    u32checked_xor
 
     pushw.local.1
 
@@ -1075,7 +1075,7 @@ proc.theta.7
         drop
     end
 
-    u32xor
+    u32checked_xor
 
     pushw.local.2
 
@@ -1100,8 +1100,8 @@ proc.theta.7
         drop
     end
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 
     # stack = [c_4, c_3, c_2, c_1, c_0]
     # -----
@@ -1129,7 +1129,7 @@ proc.theta.7
     drop
     drop
 
-    u32xor
+    u32checked_xor
 
     pushw.local.1
 
@@ -1146,7 +1146,7 @@ proc.theta.7
         drop
     end
 
-    u32xor
+    u32checked_xor
 
     pushw.local.2
 
@@ -1171,8 +1171,8 @@ proc.theta.7
         drop
     end
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 
     # stack = [c_5, c_4, c_3, c_2, c_1, c_0]
     # -----
@@ -1216,8 +1216,8 @@ proc.theta.7
     swap
     drop
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 
     pushw.local.2
 
@@ -1241,8 +1241,8 @@ proc.theta.7
     swap
     drop
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 
     # stack = [c_6, c_5, c_4, c_3, c_2, c_1, c_0]
     # -----
@@ -1285,8 +1285,8 @@ proc.theta.7
     drop
     drop
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 
     pushw.local.2
 
@@ -1310,8 +1310,8 @@ proc.theta.7
     drop
     drop
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 
     # stack = [c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0]
     # -----
@@ -1354,8 +1354,8 @@ proc.theta.7
         drop
     end
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 
     pushw.local.2
 
@@ -1372,7 +1372,7 @@ proc.theta.7
     swap
     drop
 
-    u32xor
+    u32checked_xor
 
     pushw.local.3
 
@@ -1388,7 +1388,7 @@ proc.theta.7
         drop
     end
 
-    u32xor
+    u32checked_xor
 
     # stack = [c_8, c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0]
     # -----
@@ -1432,8 +1432,8 @@ proc.theta.7
         drop
     end
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 
     pushw.local.2
 
@@ -1464,8 +1464,8 @@ proc.theta.7
         drop
     end
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 
     push.0.0
 
@@ -1495,14 +1495,14 @@ proc.theta.7
     drop
 
     movup.3
-    u32xor
+    u32checked_xor
 
     swap
     movup.2
     swap
 
-    u32rotl.1
-    u32xor
+    u32checked_rotl.1
+    u32checked_xor
 
     # stack = [d0, d1]
 
@@ -1519,12 +1519,12 @@ proc.theta.7
     drop
 
     movup.3
-    u32xor
+    u32checked_xor
 
     swap
-    u32rotl.1
+    u32checked_rotl.1
     movup.2
-    u32xor
+    u32checked_xor
 
     # stack = [d2, d3, d0, d1]
 
@@ -1542,12 +1542,12 @@ proc.theta.7
     drop
 
     movup.3
-    u32xor
+    u32checked_xor
 
     swap
-    u32rotl.1
+    u32checked_rotl.1
     movup.2
-    u32xor
+    u32checked_xor
 
     # stack = [d4, d5, d0, d1, d2, d3]
 
@@ -1564,12 +1564,12 @@ proc.theta.7
     drop
 
     movup.3
-    u32xor
+    u32checked_xor
 
     swap
-    u32rotl.1
+    u32checked_rotl.1
     movup.2
-    u32xor
+    u32checked_xor
 
     # stack = [d6, d7, d4, d5, d0, d1, d2, d3]
 
@@ -1589,12 +1589,12 @@ proc.theta.7
     drop
 
     movup.3
-    u32xor
+    u32checked_xor
 
     swap
-    u32rotl.1
+    u32checked_rotl.1
     movup.2
-    u32xor
+    u32checked_xor
 
     # stack = [d8, d9, d4, d5, d6, d7, d0, d1, d2, d3]
 
@@ -1822,7 +1822,7 @@ proc.rho.4
     pushw.mem
     exec.rev_4_elements
 
-    u32rotl.1
+    u32checked_rotl.1
     swap
 
     exec.rev_4_elements
@@ -1832,16 +1832,16 @@ proc.rho.4
 
     pushw.mem
 
-    u32rotl.31
+    u32checked_rotl.31
     swap
-    u32rotl.31
+    u32checked_rotl.31
     swap
 
     exec.rev_4_elements
 
-    u32rotl.14
+    u32checked_rotl.14
     swap
-    u32rotl.14
+    u32checked_rotl.14
     swap
 
     exec.rev_4_elements
@@ -1851,15 +1851,15 @@ proc.rho.4
 
     pushw.mem
 
-    u32rotl.13
+    u32checked_rotl.13
     swap
-    u32rotl.14
+    u32checked_rotl.14
 
     exec.rev_4_elements
 
-    u32rotl.18
+    u32checked_rotl.18
     swap
-    u32rotl.18
+    u32checked_rotl.18
     swap
 
     exec.rev_4_elements
@@ -1869,16 +1869,16 @@ proc.rho.4
 
     pushw.mem
 
-    u32rotl.22
+    u32checked_rotl.22
     swap
-    u32rotl.22
+    u32checked_rotl.22
     swap
 
     exec.rev_4_elements
 
-    u32rotl.3
+    u32checked_rotl.3
     swap
-    u32rotl.3
+    u32checked_rotl.3
     swap
 
     exec.rev_4_elements
@@ -1891,15 +1891,15 @@ proc.rho.4
 
     pushw.mem
 
-    u32rotl.27
+    u32checked_rotl.27
     swap
-    u32rotl.28
+    u32checked_rotl.28
 
     exec.rev_4_elements
 
-    u32rotl.10
+    u32checked_rotl.10
     swap
-    u32rotl.10
+    u32checked_rotl.10
     swap
 
     exec.rev_4_elements
@@ -1909,15 +1909,15 @@ proc.rho.4
 
     pushw.mem
 
-    u32rotl.1
+    u32checked_rotl.1
     swap
-    u32rotl.2
+    u32checked_rotl.2
 
     exec.rev_4_elements
 
-    u32rotl.5
+    u32checked_rotl.5
     swap
-    u32rotl.5
+    u32checked_rotl.5
     swap
 
     exec.rev_4_elements
@@ -1927,15 +1927,15 @@ proc.rho.4
 
     pushw.mem
 
-    u32rotl.21
+    u32checked_rotl.21
     swap
-    u32rotl.22
+    u32checked_rotl.22
 
     exec.rev_4_elements
 
-    u32rotl.13
+    u32checked_rotl.13
     swap
-    u32rotl.12
+    u32checked_rotl.12
 
     exec.rev_4_elements
 
@@ -1944,15 +1944,15 @@ proc.rho.4
 
     pushw.mem
 
-    u32rotl.19
+    u32checked_rotl.19
     swap
-    u32rotl.20
+    u32checked_rotl.20
 
     exec.rev_4_elements
 
-    u32rotl.21
+    u32checked_rotl.21
     swap
-    u32rotl.20
+    u32checked_rotl.20
 
     exec.rev_4_elements
 
@@ -1964,15 +1964,15 @@ proc.rho.4
 
     pushw.mem
 
-    u32rotl.22
+    u32checked_rotl.22
     swap
-    u32rotl.23
+    u32checked_rotl.23
 
     exec.rev_4_elements
 
-    u32rotl.8
+    u32checked_rotl.8
     swap
-    u32rotl.7
+    u32checked_rotl.7
 
     exec.rev_4_elements
 
@@ -1981,15 +1981,15 @@ proc.rho.4
 
     pushw.mem
 
-    u32rotl.10
+    u32checked_rotl.10
     swap
-    u32rotl.11
+    u32checked_rotl.11
 
     exec.rev_4_elements
 
-    u32rotl.4
+    u32checked_rotl.4
     swap
-    u32rotl.4
+    u32checked_rotl.4
     swap
 
     exec.rev_4_elements
@@ -1999,16 +1999,16 @@ proc.rho.4
 
     pushw.mem
 
-    u32rotl.9
+    u32checked_rotl.9
     swap
-    u32rotl.9
+    u32checked_rotl.9
     swap
 
     exec.rev_4_elements
 
-    u32rotl.1
+    u32checked_rotl.1
     swap
-    u32rotl.1
+    u32checked_rotl.1
     swap
 
     exec.rev_4_elements
@@ -2018,15 +2018,15 @@ proc.rho.4
 
     pushw.mem
 
-    u32rotl.30
+    u32checked_rotl.30
     swap
-    u32rotl.31
+    u32checked_rotl.31
 
     exec.rev_4_elements
 
-    u32rotl.28
+    u32checked_rotl.28
     swap
-    u32rotl.28
+    u32checked_rotl.28
     swap
 
     exec.rev_4_elements
@@ -2045,9 +2045,9 @@ proc.rho.4
 
     pushw.mem
 
-    u32rotl.7
+    u32checked_rotl.7
     swap
-    u32rotl.7
+    u32checked_rotl.7
     swap
 
     movup.4
@@ -2494,17 +2494,17 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
     swap
 
     pushw.local.0
@@ -2517,17 +2517,17 @@ proc.chi.7
 
     pushw.mem
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
 
     exec.rev_4_elements
     swap
@@ -2557,17 +2557,17 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
 
     pushw.local.0
 
@@ -2584,9 +2584,9 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
 
     movup.2
     pushw.mem
@@ -2597,11 +2597,11 @@ proc.chi.7
     drop
 
     movup.3
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
 
     swap
     exec.rev_4_elements
@@ -2617,17 +2617,17 @@ proc.chi.7
 
     pushw.mem
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
 
     push.0.0
     exec.rev_4_elements
@@ -2680,17 +2680,17 @@ proc.chi.7
 
     pushw.mem
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
 
     swap
     push.0.0
@@ -2722,17 +2722,17 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.3
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
 
     pushw.local.1
 
@@ -2743,17 +2743,17 @@ proc.chi.7
 
     pushw.mem
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
 
     exec.rev_4_elements
     popw.local.5 # write to c[2..6]
@@ -2770,9 +2770,9 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     pushw.local.0
@@ -2788,11 +2788,11 @@ proc.chi.7
     drop
 
     movup.2
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
 
     pushw.local.0
 
@@ -2804,9 +2804,9 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
@@ -2819,11 +2819,11 @@ proc.chi.7
     drop
 
     movup.3
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
     swap
 
     exec.rev_4_elements
@@ -2885,9 +2885,9 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
@@ -2900,11 +2900,11 @@ proc.chi.7
     drop
 
     movup.3
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
     swap
 
     pushw.local.1
@@ -2916,17 +2916,17 @@ proc.chi.7
 
     pushw.mem
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
 
     exec.rev_4_elements
     popw.local.4 # write to c[0..4]
@@ -2941,9 +2941,9 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
@@ -2956,11 +2956,11 @@ proc.chi.7
     drop
 
     movup.3
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
     swap
 
     pushw.local.1
@@ -2976,9 +2976,9 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
 
     pushw.local.1
 
@@ -2996,11 +2996,11 @@ proc.chi.7
     drop
 
     movup.3
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
     swap
 
     exec.rev_4_elements
@@ -3016,17 +3016,17 @@ proc.chi.7
 
     pushw.mem
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
 
     push.0.0
     exec.rev_4_elements
@@ -3079,17 +3079,17 @@ proc.chi.7
 
     pushw.mem
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
     swap
 
     push.0.0
@@ -3106,9 +3106,9 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     dup.2
@@ -3121,27 +3121,27 @@ proc.chi.7
     drop
 
     movup.3
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
     swap
 
     movup.2
     pushw.mem
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
 
     exec.rev_4_elements
     popw.local.5 # write to c[2..6]
@@ -3159,9 +3159,9 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     pushw.local.1
@@ -3176,11 +3176,11 @@ proc.chi.7
     drop
 
     movup.2
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
 
     pushw.local.1
 
@@ -3193,9 +3193,9 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     pushw.local.2
@@ -3213,11 +3213,11 @@ proc.chi.7
     drop
 
     movup.3
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
     swap
 
     exec.rev_4_elements
@@ -3281,9 +3281,9 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
@@ -3296,11 +3296,11 @@ proc.chi.7
     drop
 
     movup.3
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
     swap
 
     pushw.local.2
@@ -3311,17 +3311,17 @@ proc.chi.7
 
     pushw.mem
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
 
     exec.rev_4_elements
     popw.local.4 # write to c[0..4]
@@ -3337,9 +3337,9 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     pushw.local.3
@@ -3357,11 +3357,11 @@ proc.chi.7
     drop
 
     movup.3
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
     swap
 
     pushw.local.3
@@ -3378,9 +3378,9 @@ proc.chi.7
     drop
     drop
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
 
     pushw.local.2
 
@@ -3397,11 +3397,11 @@ proc.chi.7
     drop
 
     movup.3
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
     swap
 
     exec.rev_4_elements
@@ -3416,17 +3416,17 @@ proc.chi.7
 
     pushw.mem
 
-    u32not
+    u32checked_not
     swap
-    u32not
+    u32checked_not
     swap
 
     movup.2
-    u32and
+    u32checked_and
 
     swap
     movup.2
-    u32and
+    u32checked_and
 
     push.0.0
 
@@ -3487,7 +3487,7 @@ proc.iota_round_1
     pushw.mem
 
     push.1
-    u32xor
+    u32checked_xor
 
     movup.4
     popw.mem # write to state[0..2]
@@ -3503,7 +3503,7 @@ proc.iota_round_2
     swap
 
     push.137
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3521,7 +3521,7 @@ proc.iota_round_3
     swap
 
     push.2147483787
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3539,7 +3539,7 @@ proc.iota_round_4
     swap
 
     push.2147516544
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3555,12 +3555,12 @@ proc.iota_round_5
     pushw.mem
 
     push.1
-    u32xor
+    u32checked_xor
 
     swap
 
     push.139
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3576,12 +3576,12 @@ proc.iota_round_6
     pushw.mem
 
     push.1
-    u32xor
+    u32checked_xor
 
     swap
 
     push.32768
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3597,12 +3597,12 @@ proc.iota_round_7
     pushw.mem
 
     push.1
-    u32xor
+    u32checked_xor
 
     swap
 
     push.2147516552
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3618,12 +3618,12 @@ proc.iota_round_8
     pushw.mem
 
     push.1
-    u32xor
+    u32checked_xor
 
     swap
 
     push.2147483778
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3641,7 +3641,7 @@ proc.iota_round_9
     swap
 
     push.11
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3659,7 +3659,7 @@ proc.iota_round_10
     swap
 
     push.10
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3675,12 +3675,12 @@ proc.iota_round_11
     pushw.mem
 
     push.1
-    u32xor
+    u32checked_xor
 
     swap
 
     push.32898
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3698,7 +3698,7 @@ proc.iota_round_12
     swap
 
     push.32771
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3714,12 +3714,12 @@ proc.iota_round_13
     pushw.mem
 
     push.1
-    u32xor
+    u32checked_xor
 
     swap
 
     push.32907
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3735,12 +3735,12 @@ proc.iota_round_14
     pushw.mem
 
     push.1
-    u32xor
+    u32checked_xor
 
     swap
 
     push.2147483659
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3756,12 +3756,12 @@ proc.iota_round_15
     pushw.mem
 
     push.1
-    u32xor
+    u32checked_xor
 
     swap
 
     push.2147483786
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3777,12 +3777,12 @@ proc.iota_round_16
     pushw.mem
 
     push.1
-    u32xor
+    u32checked_xor
 
     swap
 
     push.2147483777
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3800,7 +3800,7 @@ proc.iota_round_17
     swap
 
     push.2147483777
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3818,7 +3818,7 @@ proc.iota_round_18
     swap
 
     push.2147483656
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3836,7 +3836,7 @@ proc.iota_round_19
     swap
 
     push.131
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3854,7 +3854,7 @@ proc.iota_round_20
     swap
 
     push.2147516419
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3870,12 +3870,12 @@ proc.iota_round_21
     pushw.mem
 
     push.1
-    u32xor
+    u32checked_xor
 
     swap
 
     push.2147516552
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3893,7 +3893,7 @@ proc.iota_round_22
     swap
 
     push.2147483784
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3909,12 +3909,12 @@ proc.iota_round_23
     pushw.mem
 
     push.1
-    u32xor
+    u32checked_xor
 
     swap
 
     push.32768
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -3932,7 +3932,7 @@ proc.iota_round_24
     swap
 
     push.2147516546
-    u32xor
+    u32checked_xor
 
     swap
 
@@ -4419,693 +4419,693 @@ export.to_bit_interleaved
     dup.1
 
     push.1
-    u32and
+    u32checked_and
 
     dup.2
-    u32shr.1
+    u32checked_shr.1
     push.1
-    u32and
+    u32checked_and
 
     swap
 
     dup.3
 
-    u32shr.2
+    u32checked_shr.2
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.1
-    u32or
+    u32checked_shl.1
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.3
+    u32checked_shr.3
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.1
-    u32or
+    u32checked_shl.1
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.4
+    u32checked_shr.4
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.2
-    u32or
+    u32checked_shl.2
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.5
+    u32checked_shr.5
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.2
-    u32or
+    u32checked_shl.2
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.6
+    u32checked_shr.6
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.3
-    u32or
+    u32checked_shl.3
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.7
+    u32checked_shr.7
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.3
-    u32or
+    u32checked_shl.3
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.8
+    u32checked_shr.8
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.4
-    u32or
+    u32checked_shl.4
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.9
+    u32checked_shr.9
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.4
-    u32or
+    u32checked_shl.4
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.10
+    u32checked_shr.10
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.5
-    u32or
+    u32checked_shl.5
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.11
+    u32checked_shr.11
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.5
-    u32or
+    u32checked_shl.5
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.12
+    u32checked_shr.12
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.6
-    u32or
+    u32checked_shl.6
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.13
+    u32checked_shr.13
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.6
-    u32or
+    u32checked_shl.6
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.14
+    u32checked_shr.14
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.7
-    u32or
+    u32checked_shl.7
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.15
+    u32checked_shr.15
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.7
-    u32or
+    u32checked_shl.7
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.16
+    u32checked_shr.16
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.8
-    u32or
+    u32checked_shl.8
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.17
+    u32checked_shr.17
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.8
-    u32or
+    u32checked_shl.8
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.18
+    u32checked_shr.18
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.9
-    u32or
+    u32checked_shl.9
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.19
+    u32checked_shr.19
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.9
-    u32or
+    u32checked_shl.9
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.20
+    u32checked_shr.20
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.10
-    u32or
+    u32checked_shl.10
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.21
+    u32checked_shr.21
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.10
-    u32or
+    u32checked_shl.10
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.22
+    u32checked_shr.22
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.11
-    u32or
+    u32checked_shl.11
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.23
+    u32checked_shr.23
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.11
-    u32or
+    u32checked_shl.11
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.24
+    u32checked_shr.24
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.12
-    u32or
+    u32checked_shl.12
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.25
+    u32checked_shr.25
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.12
-    u32or
+    u32checked_shl.12
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.26
+    u32checked_shr.26
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.13
-    u32or
+    u32checked_shl.13
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.27
+    u32checked_shr.27
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.13
-    u32or
+    u32checked_shl.13
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.28
+    u32checked_shr.28
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.14
-    u32or
+    u32checked_shl.14
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.29
+    u32checked_shr.29
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.14
-    u32or
+    u32checked_shl.14
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.30
+    u32checked_shr.30
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.15
-    u32or
+    u32checked_shl.15
+    u32checked_or
 
     swap
 
     dup.3
 
-    u32shr.31
+    u32checked_shr.31
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.15
-    u32or
+    u32checked_shl.15
+    u32checked_or
 
     swap
 
     dup.2
 
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.16
-    u32or
-
-    swap
-
-    dup.2
-
-    u32shr.1
-    push.1
-    u32and
-
-    u32shl.16
-    u32or
+    u32checked_shl.16
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.2
+    u32checked_shr.1
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.17
-    u32or
+    u32checked_shl.16
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.3
+    u32checked_shr.2
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.17
-    u32or
+    u32checked_shl.17
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.4
+    u32checked_shr.3
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.18
-    u32or
+    u32checked_shl.17
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.5
+    u32checked_shr.4
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.18
-    u32or
+    u32checked_shl.18
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.6
+    u32checked_shr.5
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.19
-    u32or
+    u32checked_shl.18
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.7
+    u32checked_shr.6
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.19
-    u32or
+    u32checked_shl.19
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.8
+    u32checked_shr.7
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.20
-    u32or
+    u32checked_shl.19
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.9
+    u32checked_shr.8
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.20
-    u32or
+    u32checked_shl.20
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.10
+    u32checked_shr.9
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.21
-    u32or
+    u32checked_shl.20
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.11
+    u32checked_shr.10
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.21
-    u32or
+    u32checked_shl.21
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.12
+    u32checked_shr.11
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.22
-    u32or
+    u32checked_shl.21
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.13
+    u32checked_shr.12
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.22
-    u32or
+    u32checked_shl.22
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.14
+    u32checked_shr.13
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.23
-    u32or
+    u32checked_shl.22
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.15
+    u32checked_shr.14
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.23
-    u32or
+    u32checked_shl.23
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.16
+    u32checked_shr.15
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.24
-    u32or
+    u32checked_shl.23
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.17
+    u32checked_shr.16
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.24
-    u32or
+    u32checked_shl.24
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.18
+    u32checked_shr.17
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.25
-    u32or
+    u32checked_shl.24
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.19
+    u32checked_shr.18
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.25
-    u32or
+    u32checked_shl.25
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.20
+    u32checked_shr.19
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.26
-    u32or
+    u32checked_shl.25
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.21
+    u32checked_shr.20
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.26
-    u32or
+    u32checked_shl.26
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.22
+    u32checked_shr.21
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.27
-    u32or
+    u32checked_shl.26
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.23
+    u32checked_shr.22
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.27
-    u32or
+    u32checked_shl.27
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.24
+    u32checked_shr.23
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.28
-    u32or
+    u32checked_shl.27
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.25
+    u32checked_shr.24
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.28
-    u32or
+    u32checked_shl.28
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.26
+    u32checked_shr.25
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.29
-    u32or
+    u32checked_shl.28
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.27
+    u32checked_shr.26
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.29
-    u32or
+    u32checked_shl.29
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.28
+    u32checked_shr.27
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.30
-    u32or
+    u32checked_shl.29
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.29
+    u32checked_shr.28
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.30
-    u32or
+    u32checked_shl.30
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.30
+    u32checked_shr.29
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.31
-    u32or
+    u32checked_shl.30
+    u32checked_or
 
     swap
 
     dup.2
 
-    u32shr.31
+    u32checked_shr.30
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.31
-    u32or
+    u32checked_shl.31
+    u32checked_or
+
+    swap
+
+    dup.2
+
+    u32checked_shr.31
+    push.1
+    u32checked_and
+
+    u32checked_shl.31
+    u32checked_or
 
     swap
 end
@@ -5126,570 +5126,570 @@ export.from_bit_interleaved
     dup
 
     push.1
-    u32and
+    u32checked_and
 
     dup.2
 
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.1
-    u32or
+    u32checked_shl.1
+    u32checked_or
 
     dup.1
 
-    u32shr.1
+    u32checked_shr.1
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.2
-    u32or
+    u32checked_shl.2
+    u32checked_or
 
     dup.2
 
-    u32shr.1
+    u32checked_shr.1
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.3
-    u32or
+    u32checked_shl.3
+    u32checked_or
 
     dup.1
 
-    u32shr.2
+    u32checked_shr.2
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.4
-    u32or
+    u32checked_shl.4
+    u32checked_or
 
     dup.2
 
-    u32shr.2
+    u32checked_shr.2
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.5
-    u32or
+    u32checked_shl.5
+    u32checked_or
 
     dup.1
 
-    u32shr.3
+    u32checked_shr.3
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.6
-    u32or
+    u32checked_shl.6
+    u32checked_or
 
     dup.2
 
-    u32shr.3
+    u32checked_shr.3
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.7
-    u32or
+    u32checked_shl.7
+    u32checked_or
 
     dup.1
 
-    u32shr.4
+    u32checked_shr.4
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.8
-    u32or
+    u32checked_shl.8
+    u32checked_or
 
     dup.2
 
-    u32shr.4
+    u32checked_shr.4
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.9
-    u32or
+    u32checked_shl.9
+    u32checked_or
 
     dup.1
 
-    u32shr.5
+    u32checked_shr.5
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.10
-    u32or
+    u32checked_shl.10
+    u32checked_or
 
     dup.2
 
-    u32shr.5
+    u32checked_shr.5
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.11
-    u32or
+    u32checked_shl.11
+    u32checked_or
 
     dup.1
 
-    u32shr.6
+    u32checked_shr.6
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.12
-    u32or
+    u32checked_shl.12
+    u32checked_or
 
     dup.2
 
-    u32shr.6
+    u32checked_shr.6
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.13
-    u32or
+    u32checked_shl.13
+    u32checked_or
 
     dup.1
 
-    u32shr.7
+    u32checked_shr.7
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.14
-    u32or
+    u32checked_shl.14
+    u32checked_or
 
     dup.2
 
-    u32shr.7
+    u32checked_shr.7
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.15
-    u32or
+    u32checked_shl.15
+    u32checked_or
 
     dup.1
 
-    u32shr.8
+    u32checked_shr.8
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.16
-    u32or
+    u32checked_shl.16
+    u32checked_or
 
     dup.2
 
-    u32shr.8
+    u32checked_shr.8
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.17
-    u32or
+    u32checked_shl.17
+    u32checked_or
 
     dup.1
 
-    u32shr.9
+    u32checked_shr.9
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.18
-    u32or
+    u32checked_shl.18
+    u32checked_or
 
     dup.2
 
-    u32shr.9
+    u32checked_shr.9
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.19
-    u32or
+    u32checked_shl.19
+    u32checked_or
 
     dup.1
 
-    u32shr.10
+    u32checked_shr.10
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.20
-    u32or
+    u32checked_shl.20
+    u32checked_or
 
     dup.2
 
-    u32shr.10
+    u32checked_shr.10
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.21
-    u32or
+    u32checked_shl.21
+    u32checked_or
 
     dup.1
 
-    u32shr.11
+    u32checked_shr.11
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.22
-    u32or
+    u32checked_shl.22
+    u32checked_or
 
     dup.2
 
-    u32shr.11
+    u32checked_shr.11
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.23
-    u32or
+    u32checked_shl.23
+    u32checked_or
 
     dup.1
 
-    u32shr.12
+    u32checked_shr.12
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.24
-    u32or
+    u32checked_shl.24
+    u32checked_or
 
     dup.2
 
-    u32shr.12
+    u32checked_shr.12
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.25
-    u32or
+    u32checked_shl.25
+    u32checked_or
 
     dup.1
 
-    u32shr.13
+    u32checked_shr.13
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.26
-    u32or
+    u32checked_shl.26
+    u32checked_or
 
     dup.2
 
-    u32shr.13
+    u32checked_shr.13
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.27
-    u32or
+    u32checked_shl.27
+    u32checked_or
 
     dup.1
 
-    u32shr.14
+    u32checked_shr.14
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.28
-    u32or
+    u32checked_shl.28
+    u32checked_or
 
     dup.2
 
-    u32shr.14
+    u32checked_shr.14
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.29
-    u32or
+    u32checked_shl.29
+    u32checked_or
 
     dup.1
 
-    u32shr.15
+    u32checked_shr.15
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.30
-    u32or
+    u32checked_shl.30
+    u32checked_or
 
     dup.2
 
-    u32shr.15
+    u32checked_shr.15
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.31
-    u32or
+    u32checked_shl.31
+    u32checked_or
 
     dup.1
 
-    u32shr.16
+    u32checked_shr.16
     push.1
-    u32and
+    u32checked_and
 
     dup.3
 
-    u32shr.16
+    u32checked_shr.16
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.1
-    u32or
+    u32checked_shl.1
+    u32checked_or
 
     dup.2
 
-    u32shr.17
+    u32checked_shr.17
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.2
-    u32or
+    u32checked_shl.2
+    u32checked_or
 
     dup.3
 
-    u32shr.17
+    u32checked_shr.17
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.3
-    u32or
+    u32checked_shl.3
+    u32checked_or
 
     dup.2
 
-    u32shr.18
+    u32checked_shr.18
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.4
-    u32or
+    u32checked_shl.4
+    u32checked_or
 
     dup.3
 
-    u32shr.18
+    u32checked_shr.18
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.5
-    u32or
+    u32checked_shl.5
+    u32checked_or
 
     dup.2
 
-    u32shr.19
+    u32checked_shr.19
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.6
-    u32or
+    u32checked_shl.6
+    u32checked_or
 
     dup.3
 
-    u32shr.19
+    u32checked_shr.19
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.7
-    u32or
+    u32checked_shl.7
+    u32checked_or
 
     dup.2
 
-    u32shr.20
+    u32checked_shr.20
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.8
-    u32or
+    u32checked_shl.8
+    u32checked_or
 
     dup.3
 
-    u32shr.20
+    u32checked_shr.20
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.9
-    u32or
+    u32checked_shl.9
+    u32checked_or
 
     dup.2
 
-    u32shr.21
+    u32checked_shr.21
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.10
-    u32or
+    u32checked_shl.10
+    u32checked_or
 
     dup.3
 
-    u32shr.21
+    u32checked_shr.21
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.11
-    u32or
+    u32checked_shl.11
+    u32checked_or
 
     dup.2
 
-    u32shr.22
+    u32checked_shr.22
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.12
-    u32or
+    u32checked_shl.12
+    u32checked_or
 
     dup.3
 
-    u32shr.22
+    u32checked_shr.22
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.13
-    u32or
+    u32checked_shl.13
+    u32checked_or
 
     dup.2
 
-    u32shr.23
+    u32checked_shr.23
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.14
-    u32or
+    u32checked_shl.14
+    u32checked_or
 
     dup.3
 
-    u32shr.23
+    u32checked_shr.23
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.15
-    u32or
+    u32checked_shl.15
+    u32checked_or
 
     dup.2
 
-    u32shr.24
+    u32checked_shr.24
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.16
-    u32or
+    u32checked_shl.16
+    u32checked_or
 
     dup.3
 
-    u32shr.24
+    u32checked_shr.24
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.17
-    u32or
+    u32checked_shl.17
+    u32checked_or
 
     dup.2
 
-    u32shr.25
+    u32checked_shr.25
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.18
-    u32or
+    u32checked_shl.18
+    u32checked_or
 
     dup.3
 
-    u32shr.25
+    u32checked_shr.25
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.19
-    u32or
+    u32checked_shl.19
+    u32checked_or
 
     dup.2
 
-    u32shr.26
+    u32checked_shr.26
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.20
-    u32or
+    u32checked_shl.20
+    u32checked_or
 
     dup.3
 
-    u32shr.26
+    u32checked_shr.26
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.21
-    u32or
+    u32checked_shl.21
+    u32checked_or
 
     dup.2
 
-    u32shr.27
+    u32checked_shr.27
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.22
-    u32or
+    u32checked_shl.22
+    u32checked_or
 
     dup.3
 
-    u32shr.27
+    u32checked_shr.27
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.23
-    u32or
+    u32checked_shl.23
+    u32checked_or
 
     dup.2
 
-    u32shr.28
+    u32checked_shr.28
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.24
-    u32or
+    u32checked_shl.24
+    u32checked_or
 
     dup.3
 
-    u32shr.28
+    u32checked_shr.28
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.25
-    u32or
+    u32checked_shl.25
+    u32checked_or
 
     dup.2
 
-    u32shr.29
+    u32checked_shr.29
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.26
-    u32or
+    u32checked_shl.26
+    u32checked_or
 
     dup.3
 
-    u32shr.29
+    u32checked_shr.29
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.27
-    u32or
+    u32checked_shl.27
+    u32checked_or
 
     dup.2
 
-    u32shr.30
+    u32checked_shr.30
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.28
-    u32or
+    u32checked_shl.28
+    u32checked_or
 
     dup.3
 
-    u32shr.30
+    u32checked_shr.30
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.29
-    u32or
+    u32checked_shl.29
+    u32checked_or
 
     dup.2
 
-    u32shr.31
+    u32checked_shr.31
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.30
-    u32or
+    u32checked_shl.30
+    u32checked_or
 
     dup.3
 
-    u32shr.31
+    u32checked_shr.31
     push.1
-    u32and
+    u32checked_and
 
-    u32shl.31
-    u32or
+    u32checked_shl.31
+    u32checked_or
 end
 
 # given 64 -bytes input ( in terms of sixteen u32 elements on stack top ) to 2-to-1
@@ -6030,19 +6030,19 @@ end
 # See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L73-L79
 proc.small_sigma_0
     dup
-    u32rotr.7
+    u32checked_rotr.7
 
     swap
 
     dup
-    u32rotr.18
+    u32checked_rotr.18
 
     swap
 
-    u32shr.3
+    u32checked_shr.3
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 end
 
 # Given [x, ...] on stack top, this routine computes [y, ...]
@@ -6051,19 +6051,19 @@ end
 # See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L81-L87
 proc.small_sigma_1
     dup
-    u32rotr.17
+    u32checked_rotr.17
 
     swap
 
     dup
-    u32rotr.19
+    u32checked_rotr.19
 
     swap
 
-    u32shr.10
+    u32checked_shr.10
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 end
 
 # Given [x, ...] on stack top, this routine computes [y, ...]
@@ -6072,19 +6072,19 @@ end
 # See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L57-L63
 proc.cap_sigma_0
     dup
-    u32rotr.2
+    u32checked_rotr.2
 
     swap
 
     dup
-    u32rotr.13
+    u32checked_rotr.13
 
     swap
 
-    u32rotr.22
+    u32checked_rotr.22
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 end
 
 # Given [x, ...] on stack top, this routine computes [y, ...]
@@ -6093,19 +6093,19 @@ end
 # See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L65-L71
 proc.cap_sigma_1
     dup
-    u32rotr.6
+    u32checked_rotr.6
 
     swap
 
     dup
-    u32rotr.11
+    u32checked_rotr.11
 
     swap
 
-    u32rotr.25
+    u32checked_rotr.25
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 end
 
 # Given [x, y, z, ...] on stack top, this routine computes [o, ...]
@@ -6115,15 +6115,15 @@ end
 proc.ch
     swap
     dup.1
-    u32and
+    u32checked_and
 
     swap
-    u32not
+    u32checked_not
 
     movup.2
-    u32and
+    u32checked_and
 
-    u32xor
+    u32checked_xor
 end
 
 # Given [x, y, z, ...] on stack top, this routine computes [o, ...]
@@ -6133,18 +6133,18 @@ end
 proc.maj
     dup.1
     dup.1
-    u32and
+    u32checked_and
 
     swap
     dup.3
-    u32and
+    u32checked_and
 
     movup.2
     movup.3
-    u32and
+    u32checked_and
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 end
 
 # Given [a, b, c, d, ...] on stack top, this routine reverses order of first 
@@ -7532,28 +7532,28 @@ end
     u32overflowing_add
     movup.4
     movup.7
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.6
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.5
-    u32unchecked_add3
+    u32overflowing_add3
     movdn.12
     swapw.2
     movup.12
     movup.4
     movup.8
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.7
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.6
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.5
-    u32unchecked_add3
+    u32overflowing_add3
     drop
 end
 
@@ -7620,87 +7620,87 @@ export.and
     swapw.3
     movup.3
     movup.7
-    u32and
+    u32checked_and
     movup.3
     movup.6
-    u32and
+    u32checked_and
     movup.3
     movup.5
-    u32and
+    u32checked_and
     movup.3
     movup.4
-    u32and
+    u32checked_and
     swapw.2
     movup.3
     movup.7
-    u32and
+    u32checked_and
     movup.3
     movup.6
-    u32and
+    u32checked_and
     movup.3
     movup.5
-    u32and
+    u32checked_and
     movup.3
     movup.4
-    u32and
+    u32checked_and
 end
 
 export.or
     swapw.3
     movup.3
     movup.7
-    u32or
+    u32checked_or
     movup.3
     movup.6
-    u32or
+    u32checked_or
     movup.3
     movup.5
-    u32or
+    u32checked_or
     movup.3
     movup.4
-    u32or
+    u32checked_or
     swapw.2
     movup.3
     movup.7
-    u32or
+    u32checked_or
     movup.3
     movup.6
-    u32or
+    u32checked_or
     movup.3
     movup.5
-    u32or
+    u32checked_or
     movup.3
     movup.4
-    u32or
+    u32checked_or
 end
 
 export.xor
     swapw.3
     movup.3
     movup.7
-    u32xor
+    u32checked_xor
     movup.3
     movup.6
-    u32xor
+    u32checked_xor
     movup.3
     movup.5
-    u32xor
+    u32checked_xor
     movup.3
     movup.4
-    u32xor
+    u32checked_xor
     swapw.2
     movup.3
     movup.7
-    u32xor
+    u32checked_xor
     movup.3
     movup.6
-    u32xor
+    u32checked_xor
     movup.3
     movup.5
-    u32xor
+    u32checked_xor
     movup.3
     movup.4
-    u32xor
+    u32checked_xor
 end
 
 export.iszero_unsafe
@@ -7730,7 +7730,7 @@ end
 
 proc.mulstep
     movdn.2
-    u32unchecked_madd
+    u32overflowing_madd
     movdn.2
     u32overflowing_add
     movup.2
@@ -8093,7 +8093,7 @@ export.overflowing_add
     u32overflowing_add
     movup.3
     movup.3
-    u32unchecked_add3
+    u32overflowing_add3
 end
 
 # Performs addition of two unsigned 64 bit integers discarding the overflow.
@@ -8185,11 +8185,11 @@ export.wrapping_mul
     u32overflowing_mul
     movup.4
     movup.4
-    u32unchecked_madd
+    u32overflowing_madd
     drop
     movup.3
     movup.3
-    u32unchecked_madd
+    u32overflowing_madd
     drop
 end
 
@@ -8204,14 +8204,14 @@ export.overflowing_mul
     u32overflowing_mul
     dup.4
     movup.4
-    u32unchecked_madd
+    u32overflowing_madd
     swap
     movup.5
     dup.4
-    u32unchecked_madd
+    u32overflowing_madd
     movup.5
     movup.5
-    u32unchecked_madd
+    u32overflowing_madd
     movup.3
     movup.2
     u32overflowing_add
@@ -8226,7 +8226,7 @@ end
 export.checked_mul
     exec.u32assert4
     exec.overflowing_mul
-    u32or
+    u32checked_or
     eq.0
     assert
 end
@@ -8332,10 +8332,10 @@ end
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
 export.unchecked_eq
     movup.2
-    u32eq
+    u32checked_eq
     swap
     movup.2
-    u32eq
+    u32checked_eq
     and
 end
 
@@ -8354,10 +8354,10 @@ end
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a != b, and 0 otherwise.
 export.unchecked_neq
     movup.2
-    u32neq
+    u32checked_neq
     swap
     movup.2
-    u32neq
+    u32checked_neq
     or
 end
 
@@ -8464,12 +8464,12 @@ export.unchecked_div
     u32overflowing_mul
     dup.4
     dup.4
-    u32unchecked_madd
+    u32overflowing_madd
     eq.0
     assert
     dup.5
     dup.3
-    u32unchecked_madd
+    u32overflowing_madd
     eq.0
     assert
     dup.4
@@ -8495,7 +8495,7 @@ export.unchecked_div
     u32overflowing_add
     movup.3
     movup.3
-    u32unchecked_add3
+    u32overflowing_add3
     eq.0
     assert
 
@@ -8533,12 +8533,12 @@ export.unchecked_mod
     u32overflowing_mul
     dup.4
     movup.4
-    u32unchecked_madd
+    u32overflowing_madd
     eq.0
     assert
     dup.4
     dup.3
-    u32unchecked_madd
+    u32overflowing_madd
     eq.0
     assert
     dup.3
@@ -8564,7 +8564,7 @@ export.unchecked_mod
     u32overflowing_add
     movup.4
     dup.3
-    u32unchecked_add3
+    u32overflowing_add3
     eq.0
     assert
 
@@ -8602,12 +8602,12 @@ export.unchecked_divmod
     u32overflowing_mul
     dup.4
     dup.4
-    u32unchecked_madd
+    u32overflowing_madd
     eq.0
     assert
     dup.5
     dup.3
-    u32unchecked_madd
+    u32overflowing_madd
     eq.0
     assert
     dup.4
@@ -8633,7 +8633,7 @@ export.unchecked_divmod
     u32overflowing_add
     movup.4
     dup.3
-    u32unchecked_add3
+    u32overflowing_add3
     eq.0
     assert
 
@@ -8661,10 +8661,10 @@ end
 export.checked_and
     swap
     movup.3
-    u32and
+    u32checked_and
     swap
     movup.2
-    u32and
+    u32checked_and
 end
 
 # Performs bitwise OR of two unsigned 64 bit integers.
@@ -8674,10 +8674,10 @@ end
 export.checked_or
     swap
     movup.3
-    u32or
+    u32checked_or
     swap
     movup.2
-    u32or
+    u32checked_or
 end
 
 # Performs bitwise XOR of two unsigned 64 bit integers.
@@ -8687,10 +8687,10 @@ end
 export.checked_xor
     swap
     movup.3
-    u32xor
+    u32checked_xor
     swap
     movup.2
-    u32xor
+    u32checked_xor
 end
 
 # Performs left shift of one unsigned 64-bit integer using the pow2 operation.
@@ -8700,7 +8700,7 @@ end
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
 # This takes 50 cycles.
 export.unchecked_shl
-    pow2.unsafe
+    unchecked_pow2
     u32split
     exec.wrapping_mul
 end
@@ -8713,14 +8713,14 @@ end
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a >> b.
 # This takes 66 cycles.
 export.unchecked_shr
-    pow2.unsafe
+    unchecked_pow2
     u32split
 
     dup.1
     add
     movup.2
     swap
-    u32div.unsafe
+    u32unchecked_divmod
     movup.3
     movup.3
     dup
@@ -8730,7 +8730,7 @@ export.unchecked_shr
     movdn.4
     dup
     movdn.4
-    u32div.unsafe
+    u32unchecked_divmod
     drop
     push.4294967296
     dup.5
@@ -8753,7 +8753,7 @@ end
 # which d contains the bits shifted out.
 # This takes 57 cycles.
 export.overflowing_shl
-    pow2.unsafe
+    unchecked_pow2
     u32split
     exec.overflowing_mul
 end
@@ -8806,8 +8806,8 @@ export.unchecked_rotl
 
     # Shift the low limb.
     push.31
-    u32and
-    pow2.unsafe
+    u32checked_and
+    unchecked_pow2
     dup
     movup.3
     u32overflowing_mul
@@ -8815,7 +8815,7 @@ export.unchecked_rotl
     # Shift the high limb.
     movup.3
     movup.3
-    u32unchecked_madd
+    u32overflowing_madd
 
     # Carry the overflow shift to the low bits.
     movup.2
@@ -8843,12 +8843,12 @@ export.unchecked_rotr
 
     # Shift the low limb left by 32-b.
     push.31
-    u32and
+    u32checked_and
     push.32
     swap
     u32overflowing_sub
     drop
-    pow2.unsafe
+    unchecked_pow2
     dup
     movup.3
     u32overflowing_mul
@@ -8856,7 +8856,7 @@ export.unchecked_rotr
     # Shift the high limb left by 32-b.
     movup.3
     movup.3
-    u32unchecked_madd
+    u32overflowing_madd
 
     # Carry the overflow shift to the low bits.
     movup.2

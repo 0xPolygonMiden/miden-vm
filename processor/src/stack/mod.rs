@@ -222,7 +222,7 @@ impl Stack {
         }
     }
 
-    /// Copies stack values starting a the specified position at the current clock cycle to
+    /// Copies stack values starting at the specified position at the current clock cycle to
     /// position + 1 at the next clock cycle
     ///
     /// If stack depth grows beyond 16 items, the additional item is pushed into the overflow table.

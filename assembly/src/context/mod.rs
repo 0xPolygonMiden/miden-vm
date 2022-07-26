@@ -3,12 +3,12 @@ use super::{BTreeMap, CodeBlock, ProcMap, Procedure, String, ToString, MODULE_PA
 // ASSEMBLY CONTEXT
 // ================================================================================================
 
-/// Context for a compilation of a given script or module.
+/// Context for a compilation of a given program.
 ///
 /// An assembly context contains a set of procedures which can be called from the parsed code.
 /// The procedures are divided into local and imported procedures. Local procedures are procedures
-/// parsed from the body or a script or a module, while imported procedures are imported from
-/// other modules.
+/// parsed from the body of a program, while imported procedures are imported from external
+/// libraries.
 ///
 /// Local procedures are owned by the context, while imported procedures are stored by reference.
 pub struct AssemblyContext<'a> {

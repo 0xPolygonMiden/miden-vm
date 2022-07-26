@@ -78,14 +78,12 @@ impl Bitwise {
     // TRACE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Computes a bitwise AND of `a` and `b` and returns the result along with the index of the
-    /// result row, which is used for the lookup product column used for multiset checks. We assume
-    /// that `a` and `b` are 32-bit values. If that's not the case, the result of the computation is
-    /// undefined.
+    /// Computes a bitwise AND of `a` and `b` and returns the result. We assume that `a` and `b`
+    /// are 32-bit values. If that's not the case, the result of the computation is undefined.
     ///
     /// This also adds 8 rows to the internal execution trace table required for computing the
     /// operation.
-    pub fn u32and(&mut self, a: Felt, b: Felt) -> Result<(Felt, Felt), ExecutionError> {
+    pub fn u32and(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
         let a = assert_u32(a)?.as_int();
         let b = assert_u32(b)?.as_int();
         let mut result = 0u64;
@@ -112,20 +110,15 @@ impl Bitwise {
             self.trace[13].push(Felt::new(result));
         }
 
-        // Return the result row for calculating the lookup product.
-        let result_row = self.trace_len() - 1;
-
-        Ok((Felt::new(result), Felt::new(result_row as u64)))
+        Ok(Felt::new(result))
     }
 
-    /// Computes a bitwise OR of `a` and `b` and returns the result along with the index of the
-    /// result row, which is used for the lookup product column used for multiset checks. We assume
-    /// that `a` and `b` are 32-bit values. If that's not the case, the result of the computation is
-    /// undefined.
+    /// Computes a bitwise OR of `a` and `b` and returns the result. We assume that `a` and `b`
+    ///  are 32-bit values. If that's not the case, the result of the computation is undefined.
     ///
     /// This also adds 8 rows to the internal execution trace table required for computing the
     /// operation.
-    pub fn u32or(&mut self, a: Felt, b: Felt) -> Result<(Felt, Felt), ExecutionError> {
+    pub fn u32or(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
         let a = assert_u32(a)?.as_int();
         let b = assert_u32(b)?.as_int();
         let mut result = 0u64;
@@ -152,20 +145,15 @@ impl Bitwise {
             self.trace[13].push(Felt::new(result));
         }
 
-        // Return the result row for calculating the lookup product.
-        let result_row = self.trace_len() - 1;
-
-        Ok((Felt::new(result), Felt::new(result_row as u64)))
+        Ok(Felt::new(result))
     }
 
-    /// Computes a bitwise XOR of `a` and `b` and returns the result along with the index of the
-    /// result row, which is used for the lookup product column used for multiset checks. We assume
-    /// that `a` and `b` are 32-bit values. If that's not the case, the result of the computation is
-    /// undefined.
+    /// Computes a bitwise XOR of `a` and `b` and returns the result. We assume that `a` and `b`
+    /// are 32-bit values. If that's not the case, the result of the computation is undefined.
     ///
     /// This also adds 8 rows to the internal execution trace table required for computing the
     /// operation.
-    pub fn u32xor(&mut self, a: Felt, b: Felt) -> Result<(Felt, Felt), ExecutionError> {
+    pub fn u32xor(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
         let a = assert_u32(a)?.as_int();
         let b = assert_u32(b)?.as_int();
         let mut result = 0u64;
@@ -192,10 +180,7 @@ impl Bitwise {
             self.trace[13].push(Felt::new(result));
         }
 
-        // Return the result row for calculating the lookup product.
-        let result_row = self.trace_len() - 1;
-
-        Ok((Felt::new(result), Felt::new(result_row as u64)))
+        Ok(Felt::new(result))
     }
 
     // EXECUTION TRACE GENERATION

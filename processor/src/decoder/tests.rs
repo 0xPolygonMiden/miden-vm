@@ -5,12 +5,12 @@ use super::{
 use crate::{utils::get_trace_len, ExecutionTrace, Felt, Operation, Process, ProgramInputs, Word};
 use rand_utils::rand_value;
 use vm_core::{
+    code_blocks::{CodeBlock, Span, OP_BATCH_SIZE},
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
         NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS,
         OP_BATCH_8_GROUPS, OP_BATCH_FLAGS_RANGE, OP_BITS_OFFSET, OP_BITS_RANGE, OP_INDEX_COL_IDX,
     },
-    program::blocks::{CodeBlock, Span, OP_BATCH_SIZE},
     utils::collections::Vec,
     StarkField, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, ONE, ZERO,
 };
@@ -868,24 +868,6 @@ fn loop_block_repeat() {
 
 // HELPER REGISTERS TESTS
 // ================================================================================================
-#[test]
-fn set_user_op_helpers_one() {
-    // --- user operation with 1 helper value -----------------------------------------------------
-    let ops = vec![Operation::U32and, Operation::U32and];
-    let program = CodeBlock::new_span(ops);
-    let (trace, _, _) = build_trace(&[2, 6, 1], &program);
-
-    // Check the hasher state of the final user operation which was executed.
-    let hasher_state = get_hasher_state(&trace, 2);
-
-    // h0 holds the number of ops left in the group, which is 0. h1 holds the parent addr, which is
-    // ZERO. h2 holds one helper value, which is the lookup row in the bitwise trace. everything
-    // else is unused.
-    let expected = build_expected_hasher_state(&[ZERO, ZERO, Felt::new(15)]);
-
-    assert_eq!(expected, hasher_state);
-}
-
 #[test]
 fn set_user_op_helpers_many() {
     // --- user operation with 4 helper values ----------------------------------------------------

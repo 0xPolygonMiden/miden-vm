@@ -3,12 +3,12 @@ use super::{
     StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
 use vm_core::{
+    code_blocks::get_span_op_group_count,
     decoder::{
         NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS,
         OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
     },
     hasher::DIGEST_LEN,
-    program::blocks::get_span_op_group_count,
     AssemblyOp,
 };
 

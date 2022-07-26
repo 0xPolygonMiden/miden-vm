@@ -126,27 +126,24 @@ pub fn parse_inv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
     Ok(())
 }
 
-/// Translates pow2 assembly instruction to VM operations.
+/// Translates pow2 assembly instructions to VM operations.
 ///
-/// Specifically, we extract the least significant bit of the head element in the stack &
-/// perform a power of 2 operation on these individual bits. These individual powers are
-/// later aggregated to compute the power of 2 of the top value of the stack. In `unsafe mode`,
-/// we skip the check of verifying that the top element is less than 64 or not.
+/// Appends a sequence of operations to raise value 2 to the power specified by the element at the
+/// top of the stack. In the unchecked mode, we skip the check of verifying that the top element
+/// is less than 64.
 ///
 /// VM cycles per mode:
-/// pow2: 44 cycles
-/// pow2.unsafe: 38 cycles
-pub fn parse_pow2(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    let unsafe_mode = match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => false,
-        2 => match op.parts()[1] {
-            "unsafe" => true,
-            _ => return Err(AssemblyError::invalid_param(op, 1)),
-        },
-        _ => return Err(AssemblyError::extra_param(op)),
-    };
-    aggregate_power_2(span_ops, unsafe_mode);
+/// - checked_pow2: 44 cycles
+/// - unchecked_pow2: 38 cycles
+pub fn parse_pow2(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    checked_mode: bool,
+) -> Result<(), AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    append_pow2_op(span_ops, checked_mode);
 
     Ok(())
 }
@@ -248,16 +245,42 @@ pub fn parse_neq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
     Ok(())
 }
 
-/// Appends the EQW operation to the span block to do an element-wise comparison of the top 2 words
-/// on the stack and push a value of 1 if they're equal or 0 otherwise. The original words are left
-/// on the stack.
+/// Appends a sequence of operations emulating an EQW assembly instruction to do an element-wise
+/// comparison of the top 2 words.
+///
+/// The stack is expected to be arranged as [B, A ...] (from the top).
+///
+/// A value of 1 is pushed onto the stack if A(word) equal B(word). Otherwise, 0 is pushed.
+/// The original words are left on the stack.
+///
+/// This operation takes 15 VM cycles.
 ///
 /// # Errors
 /// Returns an error if the assembly operation token is malformed or incorrect.
 pub fn parse_eqw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     validate_operation!(op, "eqw", 0);
 
-    span_ops.push(Operation::Eqw);
+    // duplicate first pair of for comparison(4th elements of each word) in reverse order
+    // to avoid using dup.8 after stack shifting(dup.X where X > 7, takes more VM cycles )
+    span_ops.push(Operation::Dup7);
+    span_ops.push(Operation::Dup4);
+    span_ops.push(Operation::Eq);
+
+    // continue comparison pair by pair using bitwise AND for EQ results
+    span_ops.push(Operation::Dup7);
+    span_ops.push(Operation::Dup4);
+    span_ops.push(Operation::Eq);
+    span_ops.push(Operation::And);
+
+    span_ops.push(Operation::Dup6);
+    span_ops.push(Operation::Dup3);
+    span_ops.push(Operation::Eq);
+    span_ops.push(Operation::And);
+
+    span_ops.push(Operation::Dup5);
+    span_ops.push(Operation::Dup2);
+    span_ops.push(Operation::Eq);
+    span_ops.push(Operation::And);
 
     Ok(())
 }
@@ -389,22 +412,21 @@ pub fn parse_gte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 // POWER OF TWO HELPER FUNCTIONS
 // ================================================================================================
 
-/// Extract the least significant bit of the top element iteratively and performs
-/// power of 2 operation on the individual bit. These individual powers
-/// are combined later to calculate the power of 2 on the top value of the stack.
+/// Extracts the least significant bit of the top element iteratively and performs power of 2
+/// operation on the individual bit. These individual powers are combined later to calculate the
+/// power of 2 on the top value of the stack.
 ///
 /// The expected starting state of the stack (from the top) is: [a, ...].
 ///
 /// After these operations, the stack state will be: [2^a, ...].
 ///
 /// VM cycles per mode:
-/// safe: 44 cycles
-/// unsafe: 38 cycles
-pub fn aggregate_power_2(span_ops: &mut Vec<Operation>, unsafe_mode: bool) {
+/// - checked: 44 cycles
+/// - unchecked: 38 cycles
+pub fn append_pow2_op(span_ops: &mut Vec<Operation>, checked_mode: bool) {
     const MOST_SIGNIFICANT_BIT: u32 = 5;
 
-    // `safe` Mode
-    if !unsafe_mode {
+    if checked_mode {
         // Checks if the top element of the stack is less than 64 or not. U32assert2 will
         // ensure if the element to which we are raising 2 to is u32 or not before u32div.
         // U32div operates on only u32 values.
@@ -453,7 +475,7 @@ pub fn aggregate_power_2(span_ops: &mut Vec<Operation>, unsafe_mode: bool) {
 
 /// This is a helper function to fetch respective `Dup` & `MovUp` instruction for a particular
 /// iteration in the calculation of power of 2 for individual bits. The fetched instruction
-/// will introduce value `2` at the top of the stack.  
+/// will introduce value `2` at the top of the stack.
 fn call_dup_opcode(span_ops: &mut Vec<Operation>, index: u32) {
     match index {
         1 => span_ops.push(Operation::Dup2),

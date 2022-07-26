@@ -5,28 +5,28 @@ export.add_unsafe
     u32overflowing_add
     movup.4
     movup.7
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.6
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.5
-    u32unchecked_add3
+    u32overflowing_add3
     movdn.12
     swapw.2
     movup.12
     movup.4
     movup.8
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.7
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.6
-    u32unchecked_add3
+    u32overflowing_add3
     movup.4
     movup.5
-    u32unchecked_add3
+    u32overflowing_add3
     drop
 end
 
@@ -93,87 +93,87 @@ export.and
     swapw.3
     movup.3
     movup.7
-    u32and
+    u32checked_and
     movup.3
     movup.6
-    u32and
+    u32checked_and
     movup.3
     movup.5
-    u32and
+    u32checked_and
     movup.3
     movup.4
-    u32and
+    u32checked_and
     swapw.2
     movup.3
     movup.7
-    u32and
+    u32checked_and
     movup.3
     movup.6
-    u32and
+    u32checked_and
     movup.3
     movup.5
-    u32and
+    u32checked_and
     movup.3
     movup.4
-    u32and
+    u32checked_and
 end
 
 export.or
     swapw.3
     movup.3
     movup.7
-    u32or
+    u32checked_or
     movup.3
     movup.6
-    u32or
+    u32checked_or
     movup.3
     movup.5
-    u32or
+    u32checked_or
     movup.3
     movup.4
-    u32or
+    u32checked_or
     swapw.2
     movup.3
     movup.7
-    u32or
+    u32checked_or
     movup.3
     movup.6
-    u32or
+    u32checked_or
     movup.3
     movup.5
-    u32or
+    u32checked_or
     movup.3
     movup.4
-    u32or
+    u32checked_or
 end
 
 export.xor
     swapw.3
     movup.3
     movup.7
-    u32xor
+    u32checked_xor
     movup.3
     movup.6
-    u32xor
+    u32checked_xor
     movup.3
     movup.5
-    u32xor
+    u32checked_xor
     movup.3
     movup.4
-    u32xor
+    u32checked_xor
     swapw.2
     movup.3
     movup.7
-    u32xor
+    u32checked_xor
     movup.3
     movup.6
-    u32xor
+    u32checked_xor
     movup.3
     movup.5
-    u32xor
+    u32checked_xor
     movup.3
     movup.4
-    u32xor
+    u32checked_xor
 end
 
 export.iszero_unsafe
@@ -203,7 +203,7 @@ end
 
 proc.mulstep
     movdn.2
-    u32unchecked_madd
+    u32overflowing_madd
     movdn.2
     u32overflowing_add
     movup.2
