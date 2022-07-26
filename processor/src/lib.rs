@@ -5,18 +5,17 @@
 extern crate alloc;
 
 use vm_core::{
+    code_blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE},
     errors::AdviceSetError,
     hasher::Digest,
-    program::{
-        blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE},
-        Script,
-    },
     utils::collections::{BTreeMap, Vec},
-    AdviceInjector, DebugOptions, Felt, FieldElement, Operation, ProgramInputs, StackTopState,
-    StarkField, Word, AUX_TABLE_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN,
-    NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
+    AdviceInjector, Decorator, DecoratorIterator, Felt, FieldElement, Operation, Program,
+    ProgramInputs, StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH,
+    MIN_STACK_DEPTH, MIN_TRACE_LEN, NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH,
+    STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
 
+mod decorators;
 mod operations;
 
 mod system;
@@ -32,20 +31,11 @@ use stack::Stack;
 mod range;
 use range::RangeChecker;
 
-mod hasher;
-use hasher::Hasher;
-
-mod bitwise;
-use bitwise::Bitwise;
-
-mod memory;
-use memory::Memory;
-
 mod advice;
 use advice::AdviceProvider;
 
-mod aux_table;
-use aux_table::AuxTable;
+mod chiplets;
+use chiplets::Chiplets;
 
 mod trace;
 pub use trace::ExecutionTrace;
@@ -54,8 +44,10 @@ use trace::TraceFragment;
 mod errors;
 pub use errors::ExecutionError;
 
+mod utils;
+
 mod debug;
-pub use debug::{VmState, VmStateIterator};
+pub use debug::{AsmOpInfo, VmState, VmStateIterator};
 
 // TYPE ALIASES
 // ================================================================================================
@@ -67,25 +59,36 @@ pub struct DecoderTrace {
     aux_trace_hints: decoder::AuxTraceHints,
 }
 
-type StackTrace = [Vec<Felt>; STACK_TRACE_WIDTH];
-type AuxTableTrace = [Vec<Felt>; AUX_TABLE_WIDTH]; // TODO: potentially rename to AuxiliaryTrace
+pub struct StackTrace {
+    trace: [Vec<Felt>; STACK_TRACE_WIDTH],
+    aux_builder: stack::AuxTraceBuilder,
+}
 
 pub struct RangeCheckTrace {
     trace: [Vec<Felt>; RANGE_CHECK_TRACE_WIDTH],
-    aux_trace_hints: range::AuxTraceHints,
+    aux_builder: range::AuxTraceBuilder,
+}
+
+pub struct ChipletsTrace {
+    trace: [Vec<Felt>; CHIPLETS_WIDTH],
+    hasher_aux_builder: chiplets::HasherAuxTraceBuilder,
+    aux_builder: chiplets::AuxTraceBuilder,
 }
 
 // EXECUTOR
 // ================================================================================================
 
-/// Returns an execution trace resulting from executing the provided script against the provided
+/// Returns an execution trace resulting from executing the provided program against the provided
 /// inputs.
-pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace, ExecutionError> {
+pub fn execute(
+    program: &Program,
+    inputs: &ProgramInputs,
+) -> Result<ExecutionTrace, ExecutionError> {
     let mut process = Process::new(inputs.clone());
-    process.execute_code_block(script.root())?;
+    process.execute(program)?;
     let trace = ExecutionTrace::new(process);
     assert_eq!(
-        script.hash(),
+        program.hash(),
         trace.program_hash(),
         "inconsistent program hash"
     );
@@ -94,12 +97,12 @@ pub fn execute(script: &Script, inputs: &ProgramInputs) -> Result<ExecutionTrace
 
 /// Returns an iterator that allows callers to step through each execution and inspect
 /// vm state information along side.
-pub fn execute_iter(script: &Script, inputs: &ProgramInputs) -> VmStateIterator {
+pub fn execute_iter(program: &Program, inputs: &ProgramInputs) -> VmStateIterator {
     let mut process = Process::new_debug(inputs.clone());
-    let result = process.execute_code_block(script.root());
+    let result = process.execute(program);
     if result.is_ok() {
         assert_eq!(
-            script.hash(),
+            program.hash(),
             process.decoder.program_hash().into(),
             "inconsistent program hash"
         );
@@ -115,9 +118,7 @@ pub struct Process {
     decoder: Decoder,
     stack: Stack,
     range: RangeChecker,
-    hasher: Hasher,
-    bitwise: Bitwise,
-    memory: Memory,
+    chiplets: Chiplets,
     advice: AdviceProvider,
 }
 
@@ -140,11 +141,22 @@ impl Process {
             decoder: Decoder::new(in_debug_mode),
             stack: Stack::new(&inputs, MIN_TRACE_LEN, in_debug_mode),
             range: RangeChecker::new(),
-            hasher: Hasher::new(),
-            bitwise: Bitwise::new(),
-            memory: Memory::new(),
+            chiplets: Chiplets::default(),
             advice: AdviceProvider::new(inputs),
         }
+    }
+
+    // PROGRAM EXECUTOR
+    // --------------------------------------------------------------------------------------------
+
+    /// Executes the provided [Program] in this process.
+    pub fn execute(&mut self, program: &Program) -> Result<(), ExecutionError> {
+        assert_eq!(
+            self.system.clk(),
+            0,
+            "a program has already been executed in this process"
+        );
+        self.execute_code_block(program.root())
     }
 
     // CODE BLOCK EXECUTORS
@@ -154,7 +166,7 @@ impl Process {
     ///
     /// # Errors
     /// Returns an [ExecutionError] if executing the specified block fails for any reason.
-    pub fn execute_code_block(&mut self, block: &CodeBlock) -> Result<(), ExecutionError> {
+    fn execute_code_block(&mut self, block: &CodeBlock) -> Result<(), ExecutionError> {
         match block {
             CodeBlock::Join(block) => self.execute_join_block(block),
             CodeBlock::Split(block) => self.execute_split_block(block),
@@ -231,8 +243,12 @@ impl Process {
     fn execute_span_block(&mut self, block: &Span) -> Result<(), ExecutionError> {
         self.start_span_block(block)?;
 
+        let mut op_offset = 0;
+        let mut decorators = block.decorator_iter();
+
         // execute the first operation batch
-        self.execute_op_batch(&block.op_batches()[0])?;
+        self.execute_op_batch(&block.op_batches()[0], &mut decorators, op_offset)?;
+        op_offset += block.op_batches()[0].ops().len();
 
         // if the span contains more operation batches, execute them. each additional batch is
         // preceded by a RESPAN operation; executing RESPAN operation does not change the state
@@ -240,7 +256,8 @@ impl Process {
         for op_batch in block.op_batches().iter().skip(1) {
             self.decoder.respan(op_batch);
             self.execute_op(Operation::Noop)?;
-            self.execute_op_batch(op_batch)?;
+            self.execute_op_batch(op_batch, &mut decorators, op_offset)?;
+            op_offset += op_batch.ops().len();
         }
 
         self.end_span_block(block)
@@ -253,7 +270,12 @@ impl Process {
     /// - If the number of groups in a batch is not a power of 2, NOOPs are executed (one per
     ///   group) to bring it up to the next power of two (e.g., 3 -> 4, 5 -> 8).
     #[inline(always)]
-    fn execute_op_batch(&mut self, batch: &OpBatch) -> Result<(), ExecutionError> {
+    fn execute_op_batch(
+        &mut self,
+        batch: &OpBatch,
+        decorators: &mut DecoratorIterator,
+        op_offset: usize,
+    ) -> Result<(), ExecutionError> {
         let op_counts = batch.op_counts();
         let mut op_idx = 0;
         let mut group_idx = 0;
@@ -265,12 +287,9 @@ impl Process {
         let num_batch_groups = batch.num_groups().next_power_of_two();
 
         // execute operations in the batch one by one
-        for &op in batch.ops() {
-            if op.is_decorator() {
-                // if the operation is a decorator, it has no side effects and, thus, we don't
-                // need to decode it
-                self.execute_op(op)?;
-                continue;
+        for (i, &op) in batch.ops().iter().enumerate() {
+            while let Some(decorator) = decorators.next(i + op_offset) {
+                self.execute_decorator(decorator)?;
             }
 
             // decode and execute the operation
@@ -334,11 +353,16 @@ impl Process {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
     pub fn get_memory_value(&self, addr: u64) -> Option<Word> {
-        self.memory.get_value(addr)
+        self.chiplets.get_mem_value(addr)
     }
 
-    pub fn to_components(self) -> (System, Decoder, Stack, RangeChecker, AuxTable) {
-        let aux_table = AuxTable::new(self.hasher, self.bitwise, self.memory);
-        (self.system, self.decoder, self.stack, self.range, aux_table)
+    pub fn to_components(self) -> (System, Decoder, Stack, RangeChecker, Chiplets) {
+        (
+            self.system,
+            self.decoder,
+            self.stack,
+            self.range,
+            self.chiplets,
+        )
     }
 }

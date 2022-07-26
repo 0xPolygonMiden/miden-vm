@@ -52,17 +52,17 @@ impl<E: FieldElement> EvaluationResult<E> for Vec<E> {
 #[derive(Debug)]
 pub struct TransitionConstraintRange {
     pub(super) range_checker: Range<usize>,
-    pub(super) aux_table: Range<usize>,
+    pub(super) chiplets: Range<usize>,
 }
 
 impl TransitionConstraintRange {
-    pub fn new(sys: usize, range_checker_len: usize, aux_table_len: usize) -> Self {
+    pub fn new(sys: usize, range_checker_len: usize, chiplets_len: usize) -> Self {
         let range_checker = create_range(sys, range_checker_len);
-        let aux_table = create_range(range_checker.end, aux_table_len);
+        let chiplets = create_range(range_checker.end, chiplets_len);
 
         Self {
             range_checker,
-            aux_table,
+            chiplets,
         }
     }
 }
@@ -102,11 +102,11 @@ mod tests {
             sys_constraints_len + range_constraints_len
         );
         assert_eq!(
-            constraint_ranges.aux_table.start,
+            constraint_ranges.chiplets.start,
             sys_constraints_len + range_constraints_len
         );
         assert_eq!(
-            constraint_ranges.aux_table.end,
+            constraint_ranges.chiplets.end,
             sys_constraints_len + range_constraints_len + aux_constraints_len
         );
     }

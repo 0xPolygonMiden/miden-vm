@@ -1,10 +1,6 @@
-use super::{
-    AdviceInjector, DebugOptions, ExecutionError, Felt, FieldElement, Operation, Process,
-    StarkField, Word,
-};
+use super::{ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
 
 mod crypto_ops;
-mod decorators;
 mod field_ops;
 mod io_ops;
 mod stack_ops;
@@ -44,7 +40,6 @@ impl Process {
             Operation::Mul => self.op_mul()?,
             Operation::Inv => self.op_inv()?,
             Operation::Incr => self.op_incr()?,
-            Operation::Pow2 => self.op_pow2()?,
 
             Operation::And => self.op_and()?,
             Operation::Or => self.op_or()?,
@@ -52,7 +47,6 @@ impl Process {
 
             Operation::Eq => self.op_eq()?,
             Operation::Eqz => self.op_eqz()?,
-            Operation::Eqw => self.op_eqw()?,
 
             // ----- u32 operations ---------------------------------------------------------------
             Operation::U32split => self.op_u32split()?,
@@ -116,8 +110,11 @@ impl Process {
             Operation::Read => self.op_read()?,
             Operation::ReadW => self.op_readw()?,
 
-            Operation::LoadW => self.op_loadw()?,
-            Operation::StoreW => self.op_storew()?,
+            Operation::MLoadW => self.op_mloadw()?,
+            Operation::MStoreW => self.op_mstorew()?,
+
+            Operation::MLoad => self.op_mload()?,
+            Operation::MStore => self.op_mstore()?,
 
             Operation::FmpAdd => self.op_fmpadd()?,
             Operation::FmpUpdate => self.op_fmpupdate()?,
@@ -128,16 +125,9 @@ impl Process {
             Operation::RpPerm => self.op_rpperm()?,
             Operation::MpVerify => self.op_mpverify()?,
             Operation::MrUpdate(copy) => self.op_mrupdate(copy)?,
-
-            // ----- decorators -------------------------------------------------------------------
-            Operation::Debug(options) => self.op_debug(options)?,
-            Operation::Advice(injector) => self.op_advice(injector)?,
         }
 
-        // increment the clock cycle, unless we are processing a decorator
-        if !op.is_decorator() {
-            self.advance_clock();
-        }
+        self.advance_clock();
 
         Ok(())
     }
@@ -146,7 +136,7 @@ impl Process {
     fn advance_clock(&mut self) {
         self.system.advance_clock();
         self.stack.advance_clock();
-        self.memory.advance_clock();
+        self.chiplets.advance_clock();
         self.advice.advance_clock();
     }
 

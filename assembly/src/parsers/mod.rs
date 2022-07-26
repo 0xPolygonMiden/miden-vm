@@ -1,9 +1,12 @@
-use super::{AssemblyContext, AssemblyError, Token, TokenStream};
+use super::{AssemblyContext, AssemblyError, CodeBlock, Token, TokenStream};
 pub use blocks::{combine_blocks, parse_code_blocks};
+use u32_ops::U32OpMode;
 use vm_core::{
-    program::blocks::CodeBlock,
-    utils::{collections::Vec, string::String},
-    AdviceInjector, Felt, FieldElement, Operation, StarkField,
+    utils::{
+        collections::Vec,
+        string::{String, ToString},
+    },
+    AssemblyOp, Decorator, DecoratorList, Felt, FieldElement, Operation, StarkField,
 };
 
 mod blocks;
@@ -21,7 +24,19 @@ fn parse_op_token(
     op: &Token,
     span_ops: &mut Vec<Operation>,
     num_proc_locals: u32,
+    decorators: &mut DecoratorList,
+    in_debug_mode: bool,
 ) -> Result<(), AssemblyError> {
+    let dec_len = decorators.len();
+    // if assembler is in debug mode, populate decorators list with debug related
+    // decorators like AsmOp.
+    if in_debug_mode {
+        decorators.push((
+            span_ops.len(),
+            Decorator::AsmOp(AssemblyOp::new(op.to_string(), 1)),
+        ));
+    }
+
     // based on the instruction, invoke the correct parser for the operation
     match op.parts()[0] {
         // ----- field operations -----------------------------------------------------------------
@@ -33,7 +48,9 @@ fn parse_op_token(
         "div" => field_ops::parse_div(span_ops, op),
         "neg" => field_ops::parse_neg(span_ops, op),
         "inv" => field_ops::parse_inv(span_ops, op),
-        "pow2" => field_ops::parse_pow2(span_ops, op),
+
+        "checked_pow2" => field_ops::parse_pow2(span_ops, op, true),
+        "unchecked_pow2" => field_ops::parse_pow2(span_ops, op, false),
 
         "not" => field_ops::parse_not(span_ops, op),
         "and" => field_ops::parse_and(span_ops, op),
@@ -56,31 +73,68 @@ fn parse_op_token(
         "u32cast" => u32_ops::parse_u32cast(span_ops, op),
         "u32split" => u32_ops::parse_u32split(span_ops, op),
 
-        "u32add" => u32_ops::parse_u32add(span_ops, op),
-        "u32add3" => u32_ops::parse_u32add3(span_ops, op),
-        "u32sub" => u32_ops::parse_u32sub(span_ops, op),
-        "u32mul" => u32_ops::parse_u32mul(span_ops, op),
-        "u32madd" => u32_ops::parse_u32madd(span_ops, op),
-        "u32div" => u32_ops::parse_u32div(span_ops, op),
-        "u32mod" => u32_ops::parse_u32mod(span_ops, op),
+        "u32checked_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Checked),
+        "u32wrapping_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Wrapping),
+        "u32overflowing_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Overflowing),
 
-        "u32and" => u32_ops::parse_u32and(span_ops, op),
-        "u32or" => u32_ops::parse_u32or(span_ops, op),
-        "u32xor" => u32_ops::parse_u32xor(span_ops, op),
-        "u32not" => u32_ops::parse_u32not(span_ops, op),
-        "u32shr" => u32_ops::parse_u32shr(span_ops, op),
-        "u32shl" => u32_ops::parse_u32shl(span_ops, op),
-        "u32rotr" => u32_ops::parse_u32rotr(span_ops, op),
-        "u32rotl" => u32_ops::parse_u32rotl(span_ops, op),
+        "u32overflowing_add3" => u32_ops::parse_u32add3(span_ops, op, U32OpMode::Overflowing),
 
-        "u32eq" => u32_ops::parse_u32eq(span_ops, op),
-        "u32neq" => u32_ops::parse_u32neq(span_ops, op),
-        "u32lt" => u32_ops::parse_u32lt(span_ops, op),
-        "u32lte" => u32_ops::parse_u32lte(span_ops, op),
-        "u32gt" => u32_ops::parse_u32gt(span_ops, op),
-        "u32gte" => u32_ops::parse_u32gte(span_ops, op),
-        "u32min" => u32_ops::parse_u32min(span_ops, op),
-        "u32max" => u32_ops::parse_u32max(span_ops, op),
+        "u32checked_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Checked),
+        "u32wrapping_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Wrapping),
+        "u32overflowing_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Overflowing),
+
+        "u32checked_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Checked),
+        "u32wrapping_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Wrapping),
+        "u32overflowing_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Overflowing),
+
+        "u32overflowing_madd" => u32_ops::parse_u32madd(span_ops, op, U32OpMode::Overflowing),
+
+        "u32checked_div" => u32_ops::parse_u32div(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_div" => u32_ops::parse_u32div(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_mod" => u32_ops::parse_u32mod(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_mod" => u32_ops::parse_u32mod(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_divmod" => u32_ops::parse_u32divmod(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_divmod" => u32_ops::parse_u32divmod(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_and" => u32_ops::parse_u32and(span_ops, op),
+        "u32checked_or" => u32_ops::parse_u32or(span_ops, op),
+        "u32checked_xor" => u32_ops::parse_u32xor(span_ops, op),
+        "u32checked_not" => u32_ops::parse_u32not(span_ops, op),
+
+        "u32checked_shr" => u32_ops::parse_u32shr(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_shr" => u32_ops::parse_u32shr(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_shl" => u32_ops::parse_u32shl(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_shl" => u32_ops::parse_u32shl(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_rotr" => u32_ops::parse_u32rotr(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_rotr" => u32_ops::parse_u32rotr(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_rotl" => u32_ops::parse_u32rotl(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_rotl" => u32_ops::parse_u32rotl(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_eq" => u32_ops::parse_u32eq(span_ops, op),
+        "u32checked_neq" => u32_ops::parse_u32neq(span_ops, op),
+
+        "u32checked_lt" => u32_ops::parse_u32lt(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_lt" => u32_ops::parse_u32lt(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_lte" => u32_ops::parse_u32lte(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_lte" => u32_ops::parse_u32lte(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_gt" => u32_ops::parse_u32gt(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_gt" => u32_ops::parse_u32gt(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_gte" => u32_ops::parse_u32gte(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_gte" => u32_ops::parse_u32gte(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_min" => u32_ops::parse_u32min(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_min" => u32_ops::parse_u32min(span_ops, op, U32OpMode::Unchecked),
+
+        "u32checked_max" => u32_ops::parse_u32max(span_ops, op, U32OpMode::Checked),
+        "u32unchecked_max" => u32_ops::parse_u32max(span_ops, op, U32OpMode::Unchecked),
 
         // ----- stack manipulation ---------------------------------------------------------------
         "drop" => stack_ops::parse_drop(span_ops, op),
@@ -108,18 +162,25 @@ fn parse_op_token(
         "popw" => io_ops::parse_popw(span_ops, op, num_proc_locals),
         "loadw" => io_ops::parse_loadw(span_ops, op, num_proc_locals),
         "storew" => io_ops::parse_storew(span_ops, op, num_proc_locals),
-
-        "adv" => io_ops::parse_adv_inject(span_ops, op),
+        "adv" => io_ops::parse_adv_inject(span_ops, op, decorators),
 
         // ----- cryptographic operations ---------------------------------------------------------
         "rphash" => crypto_ops::parse_rphash(span_ops, op),
         "rpperm" => crypto_ops::parse_rpperm(span_ops, op),
 
-        "mtree" => crypto_ops::parse_mtree(span_ops, op),
+        "mtree" => crypto_ops::parse_mtree(span_ops, op, decorators),
 
         // ----- catch all ------------------------------------------------------------------------
         _ => return Err(AssemblyError::invalid_op(op)),
     }?;
+
+    if in_debug_mode {
+        let op_start = decorators[dec_len].0;
+        // edit the number of cycles corresponding to the asmop decorator at an index
+        if let Decorator::AsmOp(assembly_op) = &mut decorators[dec_len].1 {
+            assembly_op.set_num_cycles((span_ops.len() - op_start) as u8)
+        }
+    }
 
     Ok(())
 }
@@ -185,7 +246,7 @@ fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<Felt, Asse
 /// Returns an invalid param AssemblyError if:
 /// - the parsing attempt fails.
 /// - the parameter is outside the specified lower and upper bounds.
-fn parse_int_param(
+fn parse_u32_param(
     op: &Token,
     param_idx: usize,
     lower_bound: u32,

@@ -1,21 +1,25 @@
 use super::{
-    BTreeMap, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation, Process, Span,
-    Split, StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
+    ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation, Process, Span, Split,
+    StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
 use vm_core::{
+    code_blocks::get_span_op_group_count,
     decoder::{
         NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS,
         OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
     },
     hasher::DIGEST_LEN,
-    program::blocks::get_span_op_group_count,
+    AssemblyOp,
 };
 
 mod trace;
 use trace::DecoderTrace;
 
 mod aux_hints;
-pub use aux_hints::{AuxTraceHints, OpGroupTableRow, OpGroupTableUpdate};
+pub use aux_hints::{
+    AuxTraceHints, BlockHashTableRow, BlockStackTableRow, BlockTableUpdate, OpGroupTableRow,
+    OpGroupTableUpdate,
+};
 
 #[cfg(test)]
 mod tests;
@@ -39,7 +43,7 @@ impl Process {
         // row addr + 7.
         let child1_hash = block.first().hash().into();
         let child2_hash = block.second().hash().into();
-        let (addr, _result) = self.hasher.merge(child1_hash, child2_hash);
+        let (addr, _result) = self.chiplets.merge(child1_hash, child2_hash);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(block.hash(), _result.into());
@@ -71,14 +75,15 @@ impl Process {
         // row addr + 7.
         let child1_hash = block.on_true().hash().into();
         let child2_hash = block.on_false().hash().into();
-        let (addr, _result) = self.hasher.merge(child1_hash, child2_hash);
+        let (addr, _result) = self.chiplets.merge(child1_hash, child2_hash);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(block.hash(), _result.into());
 
         // start decoding the SPLIT block. this appends a row with SPLIT operation to the decoder
         // trace. we also pop the value off the top of the stack and return it.
-        self.decoder.start_split(child1_hash, child2_hash, addr);
+        self.decoder
+            .start_split(child1_hash, child2_hash, addr, condition);
         self.execute_op(Operation::Drop)?;
         Ok(condition)
     }
@@ -104,7 +109,7 @@ impl Process {
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
         let body_hash = block.body().hash().into();
-        let (addr, _result) = self.hasher.merge(body_hash, [ZERO; 4]);
+        let (addr, _result) = self.chiplets.merge(body_hash, [ZERO; 4]);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(block.hash(), _result.into());
@@ -157,7 +162,7 @@ impl Process {
         // addr + (num_batches * 8) - 1.
         let op_batches = block.op_batches();
         let num_op_groups = get_span_op_group_count(op_batches);
-        let (addr, _result) = self.hasher.hash_span_block(op_batches, num_op_groups);
+        let (addr, _result) = self.chiplets.hash_span_block(op_batches, num_op_groups);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(block.hash(), _result.into());
@@ -221,16 +226,16 @@ impl Process {
 ///   set to ZEROs otherwise.
 ///
 /// In addition to the execution trace, the decoder also contains the following:
-/// - A list of operations executed on the VM. This list is populated only when `in_debug_mode`
-///   is set to true.
 /// - A set of hints used in construction of decoder-related columns in auxiliary trace segment.
+/// - An instance of [DebugInfo] which is only populated in debug mode. This debug_info instance
+///   includes operations executed by the VM and AsmOp decorators. AsmOp decorators are popoulated
+///   only when both the processor and assembler are in debug mode.
 pub struct Decoder {
     block_stack: BlockStack,
     span_context: Option<SpanContext>,
     trace: DecoderTrace,
-    operations: Vec<Operation>,
-    in_debug_mode: bool,
     aux_hints: AuxTraceHints,
+    debug_info: DebugInfo,
 }
 
 impl Decoder {
@@ -242,9 +247,8 @@ impl Decoder {
             block_stack: BlockStack::new(),
             span_context: None,
             trace: DecoderTrace::new(),
-            operations: Vec::<Operation>::new(),
-            in_debug_mode,
             aux_hints: AuxTraceHints::new(),
+            debug_info: DebugInfo::new(in_debug_mode),
         }
     }
 
@@ -264,62 +268,123 @@ impl Decoder {
         self.trace.program_hash()
     }
 
+    pub fn debug_info(&self) -> &DebugInfo {
+        debug_assert!(self.in_debug_mode());
+        &self.debug_info
+    }
+
+    /// Returns whether this decoder instance is instantiated in debug mode.
+    pub fn in_debug_mode(&self) -> bool {
+        self.debug_info.in_debug_mode()
+    }
+
     // CONTROL BLOCKS
     // --------------------------------------------------------------------------------------------
 
     /// Starts decoding of a JOIN block.
     ///
-    /// This pushes a block with ID=addr onto the block stack and appending execution of a JOIN
+    /// This pushes a block with ID=addr onto the block stack and appends execution of a JOIN
     /// operation to the trace.
-    pub fn start_join(&mut self, left_child_hash: Word, right_child_hash: Word, addr: Felt) {
-        let parent_addr = self.block_stack.push(addr, ZERO);
-        self.trace.append_block_start(
-            parent_addr,
-            Operation::Join,
-            left_child_hash,
-            right_child_hash,
+    pub fn start_join(&mut self, child1_hash: Word, child2_hash: Word, addr: Felt) {
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
+
+        // append a JOIN row to the execution trace
+        let parent_addr = self.block_stack.push(addr, BlockType::Join(false));
+        self.trace
+            .append_block_start(parent_addr, Operation::Join, child1_hash, child2_hash);
+
+        // mark this cycle as the cycle at which a new JOIN block began execution (this affects
+        // block stack and block hash tables). Both children of the JOIN block are expected to
+        // be executed, and thus we record both of their hashes.
+        self.aux_hints.block_started(
+            clk,
+            self.block_stack.peek(),
+            Some(child1_hash),
+            Some(child2_hash),
         );
 
-        self.append_operation(Operation::Join);
+        self.debug_info.append_operation(Operation::Join);
     }
 
     /// Starts decoding of a SPLIT block.
     ///
-    /// This pushes a block with ID=addr onto the block stack and appending execution of a SPLIT
+    /// This pushes a block with ID=addr onto the block stack and appends execution of a SPLIT
     /// operation to the trace.
-    pub fn start_split(&mut self, left_child_hash: Word, right_child_hash: Word, addr: Felt) {
-        let parent_addr = self.block_stack.push(addr, ZERO);
-        self.trace.append_block_start(
-            parent_addr,
-            Operation::Split,
-            left_child_hash,
-            right_child_hash,
-        );
+    pub fn start_split(
+        &mut self,
+        child1_hash: Word,
+        child2_hash: Word,
+        addr: Felt,
+        stack_top: Felt,
+    ) {
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
 
-        self.append_operation(Operation::Split);
+        // append a SPLIT row to the execution trace
+        let parent_addr = self.block_stack.push(addr, BlockType::Split);
+        self.trace
+            .append_block_start(parent_addr, Operation::Split, child1_hash, child2_hash);
+
+        // mark this cycle as the cycle at which a SPLIT block began execution (this affects block
+        // stack and block hash tables). Only one child of the SPLIT block is expected to be
+        // executed, and thus, we record the hash only for that child.
+        let taken_branch_hash = if stack_top == ONE {
+            child1_hash
+        } else {
+            child2_hash
+        };
+        self.aux_hints
+            .block_started(clk, self.block_stack.peek(), Some(taken_branch_hash), None);
+
+        self.debug_info.append_operation(Operation::Split);
     }
 
     /// Starts decoding of a LOOP block.
     ///
-    /// This pushes a block with ID=addr onto the block stack and appending execution of a LOOP
+    /// This pushes a block with ID=addr onto the block stack and appends execution of a LOOP
     /// operation to the trace. A block is marked as a loop block only if is_loop = ONE.
-    pub fn start_loop(&mut self, loop_body_hash: Word, addr: Felt, is_loop: Felt) {
-        let parent_addr = self.block_stack.push(addr, is_loop);
+    pub fn start_loop(&mut self, loop_body_hash: Word, addr: Felt, stack_top: Felt) {
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
+
+        // append a LOOP row to the execution trace
+        let enter_loop = stack_top == ONE;
+        let parent_addr = self.block_stack.push(addr, BlockType::Loop(enter_loop));
         self.trace
             .append_block_start(parent_addr, Operation::Loop, loop_body_hash, [ZERO; 4]);
 
-        self.append_operation(Operation::Loop);
+        // mark this cycle as the cycle at which a new LOOP block has started (this may affect
+        // block hash table). A loop block has a single child only if the body of the loop is
+        // executed at least once.
+        let executed_loop_body = if enter_loop {
+            Some(loop_body_hash)
+        } else {
+            None
+        };
+        self.aux_hints
+            .block_started(clk, self.block_stack.peek(), executed_loop_body, None);
+
+        self.debug_info.append_operation(Operation::Loop);
     }
 
     /// Starts decoding another iteration of a loop.
     ///
     /// This appends an execution of a REPEAT operation to the trace.
     pub fn repeat(&mut self) {
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
+
+        // append a REPEAT row to the execution trace
         let block_info = self.block_stack.peek();
-        debug_assert_eq!(ONE, block_info.is_loop);
+        debug_assert_eq!(ONE, block_info.is_entered_loop());
         self.trace.append_loop_repeat(block_info.addr);
 
-        self.append_operation(Operation::Repeat);
+        // mark this cycle as the cycle at which a new iteration of a loop started (this affects
+        // block hash table)
+        self.aux_hints.loop_repeat_started(clk);
+
+        self.debug_info.append_operation(Operation::Repeat);
     }
 
     /// Ends decoding of a control block (i.e., a non-SPAN block).
@@ -327,15 +392,22 @@ impl Decoder {
     /// This appends an execution of an END operation to the trace. The top block on the block
     /// stack is also popped.
     pub fn end_control_block(&mut self, block_hash: Word) {
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
+
+        // add an END row to the trace
         let block_info = self.block_stack.pop();
         self.trace.append_block_end(
             block_info.addr,
             block_hash,
-            block_info.is_loop_body,
-            block_info.is_loop,
+            block_info.is_loop_body(),
+            block_info.is_entered_loop(),
         );
 
-        self.append_operation(Operation::End);
+        // mark this cycle as the cycle at which block execution has ended
+        self.aux_hints.block_ended(clk, block_info.is_first_child);
+
+        self.debug_info.append_operation(Operation::End);
     }
 
     // SPAN BLOCK
@@ -344,7 +416,7 @@ impl Decoder {
     /// Starts decoding of a SPAN block defined by the specified operation batches.
     pub fn start_span(&mut self, first_op_batch: &OpBatch, num_op_groups: Felt, addr: Felt) {
         debug_assert!(self.span_context.is_none(), "already in span");
-        let parent_addr = self.block_stack.push(addr, ZERO);
+        let parent_addr = self.block_stack.push(addr, BlockType::Span);
 
         // get the current clock cycle here (before the trace table is updated)
         let clk = self.trace_len();
@@ -364,7 +436,12 @@ impl Decoder {
         // into the op_group table
         self.aux_hints.insert_op_batch(clk, num_op_groups);
 
-        self.append_operation(Operation::Span);
+        // mark the current cycle as the cycle at which a SPAN block has started; SPAN block has
+        // no children
+        self.aux_hints
+            .block_started(clk, self.block_stack.peek(), None, None);
+
+        self.debug_info.append_operation(Operation::Span);
     }
 
     /// Starts decoding of the next operation batch in the current SPAN.
@@ -386,12 +463,16 @@ impl Decoder {
         // into the op_group table
         self.aux_hints.insert_op_batch(clk, ctx.num_groups_left);
 
+        // mark the current cycle as a cycle at which the ID of the span block was changed (this
+        // causes an update in the block stack table)
+        self.aux_hints.span_extended(clk, block_info);
+
         // after RESPAN operation is executed, we decrement the number of remaining groups by ONE
         // because executing RESPAN consumes the first group of the batch
         ctx.num_groups_left -= ONE;
         ctx.group_ops_left = op_batch.groups()[0];
 
-        self.append_operation(Operation::Respan);
+        self.debug_info.append_operation(Operation::Respan);
     }
 
     /// Starts decoding a new operation group.
@@ -418,8 +499,6 @@ impl Decoder {
 
     /// Decodes a user operation (i.e., not a control flow operation).
     pub fn execute_user_op(&mut self, op: Operation, op_idx: usize) {
-        debug_assert!(!op.is_decorator(), "op is a decorator");
-
         // get the current clock cycle here (before the trace table is updated)
         let clk = self.trace_len();
 
@@ -451,7 +530,7 @@ impl Decoder {
             ctx.num_groups_left -= ONE;
         }
 
-        self.append_operation(op);
+        self.debug_info.append_operation(op);
     }
 
     /// Sets the helper registers in the trace to the user-provided helper values. This is expected
@@ -466,16 +545,20 @@ impl Decoder {
 
     /// Ends decoding of a SPAN block.
     pub fn end_span(&mut self, block_hash: Word) {
-        let is_loop_body = self.block_stack.pop().is_loop_body;
-        self.trace.append_span_end(block_hash, is_loop_body);
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len();
+
+        // remove the block from the stack of executing blocks and add an END row to the
+        // execution trace
+        let block_info = self.block_stack.pop();
+        self.trace
+            .append_span_end(block_hash, block_info.is_loop_body());
         self.span_context = None;
 
-        self.append_operation(Operation::End);
-    }
+        // mark this cycle as the cycle at which block execution has ended
+        self.aux_hints.block_ended(clk, block_info.is_first_child);
 
-    /// Returns an operation to be executed at the specified clock cycle. Only applicable in debug mode.
-    pub fn get_operation_at(&self, clk: usize) -> Operation {
-        self.operations[clk]
+        self.debug_info.append_operation(Operation::End);
     }
 
     // TRACE GENERATIONS
@@ -485,7 +568,11 @@ impl Decoder {
     /// hints to be used in construction of decoder-related auxiliary trace segment columns.
     ///
     /// Trace columns are extended to match the specified trace length.
-    pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> super::DecoderTrace {
+    pub fn into_trace(mut self, trace_len: usize, num_rand_rows: usize) -> super::DecoderTrace {
+        // once we know the hash of the program, we update the auxiliary trace hints so that the
+        // block hash table could be initialized properly
+        self.aux_hints.set_program_hash(self.program_hash());
+
         let trace = self
             .trace
             .into_vec(trace_len, num_rand_rows)
@@ -501,12 +588,9 @@ impl Decoder {
     // HELPERS
     // --------------------------------------------------------------------------------------------
 
-    /// Adds an operation to the operations vector in debug mode.
-    #[inline(always)]
-    fn append_operation(&mut self, op: Operation) {
-        if self.in_debug_mode {
-            self.operations.push(op);
-        }
+    /// Appends an asmop decorator at the specified clock cycle to the asmop list in debug mode.
+    pub fn append_asmop(&mut self, clk: usize, asmop: AssemblyOp) {
+        self.debug_info.append_asmop(clk, asmop);
     }
 
     // TEST METHODS
@@ -541,30 +625,53 @@ impl BlockStack {
 
     /// Pushes a new code block onto the block stack and returns the address of the block's parent.
     ///
-    /// The block is identified by its address, and we also need to know whether this block is a
-    /// LOOP block. Other information (i.e., the block's parent and whether the block is a body of
-    /// a loop) is determined from the information already on the stack.
-    pub fn push(&mut self, addr: Felt, is_loop: Felt) -> Felt {
-        let (parent_addr, is_loop_body) = if self.blocks.is_empty() {
-            // if the stack is empty, the new block has no parent and cannot be a body of a LOOP
-            (ZERO, ZERO)
-        } else {
-            let parent = &self.blocks[self.blocks.len() - 1];
-            (parent.addr, parent.is_loop)
+    /// The block is identified by its address, and we also need to know what type of a block this
+    /// is. Other information (i.e., the block's parent, whether the block is a body of
+    /// a loop or a first child of a JOIN block) is determined from the information already on the
+    /// stack.
+    pub fn push(&mut self, addr: Felt, block_type: BlockType) -> Felt {
+        let (parent_addr, is_loop_body, is_first_child) = match self.blocks.last() {
+            Some(parent) => match parent.block_type {
+                // if the parent is a LOOP block, this block must be a loop body
+                BlockType::Loop(loop_entered) => {
+                    debug_assert!(loop_entered, "parent is un-entered loop");
+                    (parent.addr, true, false)
+                }
+                // if the parent is a JOIN block, figure out if this block is the first or the
+                // second child
+                BlockType::Join(first_child_executed) => {
+                    (parent.addr, false, !first_child_executed)
+                }
+                _ => (parent.addr, false, false),
+            },
+            // if the block has no parent, it is neither a body of a loop nor the first child of
+            // a JOIN block; also, we set the parent address to ZERO.
+            None => (ZERO, false, false),
         };
 
         self.blocks.push(BlockInfo {
             addr,
+            block_type,
             parent_addr,
             is_loop_body,
-            is_loop,
+            is_first_child,
         });
         parent_addr
     }
 
     /// Removes a block from the top of the stack and returns it.
     pub fn pop(&mut self) -> BlockInfo {
-        self.blocks.pop().expect("block stack is empty")
+        let block = self.blocks.pop().expect("block stack is empty");
+        // if the parent block is a JOIN block (i.e., we just finished executing a child of a JOIN
+        // block) and if the first_child_executed hasn't been set to true yet, set it to true
+        if let Some(parent) = self.blocks.last_mut() {
+            if let BlockType::Join(first_child_executed) = parent.block_type {
+                if !first_child_executed {
+                    parent.block_type = BlockType::Join(true);
+                }
+            }
+        }
+        block
     }
 
     /// Returns a reference to a block at the top of the stack.
@@ -580,11 +687,71 @@ impl BlockStack {
 
 /// Contains basic information about a code block.
 #[derive(Debug, Clone, Copy)]
-struct BlockInfo {
+pub struct BlockInfo {
     addr: Felt,
+    block_type: BlockType,
     parent_addr: Felt,
-    is_loop_body: Felt,
-    is_loop: Felt,
+    is_loop_body: bool,
+    is_first_child: bool,
+}
+
+impl BlockInfo {
+    /// Returns ONE if the this block is a LOOP block and the body of the loop was executed at
+    /// least once; otherwise, returns ZERO.
+    pub fn is_entered_loop(&self) -> Felt {
+        if self.block_type == BlockType::Loop(true) {
+            ONE
+        } else {
+            ZERO
+        }
+    }
+
+    /// Returns ONE if this block is a body of a LOOP block; otherwise returns ZERO.
+    pub fn is_loop_body(&self) -> Felt {
+        if self.is_loop_body {
+            ONE
+        } else {
+            ZERO
+        }
+    }
+
+    /// Returns ONE if this block is the first child of a JOIN block; otherwise returns ZERO.
+    #[allow(dead_code)]
+    pub fn is_first_child(&self) -> Felt {
+        if self.is_first_child {
+            ONE
+        } else {
+            ZERO
+        }
+    }
+}
+
+/// Specifies type of a code block with additional info for some block types.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BlockType {
+    Join(bool), // internal value set to true when the first child is fully executed
+    Split,
+    Loop(bool), // internal value set to false if the loop is never entered
+    Span,
+}
+
+impl BlockType {
+    /// Returns the number of children a block has. This is an integer between 0 and 2 (both
+    /// inclusive).
+    pub fn num_children(&self) -> u32 {
+        match self {
+            Self::Join(_) => 2,
+            Self::Split => 1,
+            Self::Loop(is_entered) => {
+                if *is_entered {
+                    1
+                } else {
+                    0
+                }
+            }
+            Self::Span => 0,
+        }
+    }
 }
 
 // SPAN CONTEXT
@@ -614,7 +781,7 @@ impl Default for SpanContext {
 
 /// Removes the specified operation from the op group and returns the resulting op group.
 fn remove_opcode_from_group(op_group: Felt, op: Operation) -> Felt {
-    let opcode = op.op_code().expect("no opcode") as u64;
+    let opcode = op.op_code() as u64;
     let result = Felt::new((op_group.as_int() - opcode) >> NUM_OP_BITS);
     debug_assert!(op_group.as_int() >= result.as_int(), "op group underflow");
     result
@@ -639,11 +806,57 @@ pub fn build_op_group(ops: &[Operation]) -> Felt {
     let mut group = 0u64;
     let mut i = 0;
     for op in ops.iter() {
-        if !op.is_decorator() {
-            group |= (op.op_code().unwrap() as u64) << (Operation::OP_BITS * i);
-            i += 1;
-        }
+        group |= (op.op_code() as u64) << (Operation::OP_BITS * i);
+        i += 1;
     }
     assert!(i <= super::OP_GROUP_SIZE, "too many ops");
     Felt::new(group)
+}
+
+// DEBUG INFO
+// ================================================================================================
+
+pub struct DebugInfo {
+    in_debug_mode: bool,
+    operations: Vec<Operation>,
+    assembly_ops: Vec<(usize, AssemblyOp)>,
+}
+
+impl DebugInfo {
+    pub fn new(in_debug_mode: bool) -> Self {
+        Self {
+            in_debug_mode,
+            operations: Vec::<Operation>::new(),
+            assembly_ops: Vec::<(usize, AssemblyOp)>::new(),
+        }
+    }
+
+    /// Returns whether this decoder instance is instantiated in debug mode.
+    #[inline(always)]
+    pub fn in_debug_mode(&self) -> bool {
+        self.in_debug_mode
+    }
+
+    /// Returns an operation to be executed at the specified clock cycle. Only applicable in debug mode.
+    pub fn operations(&self) -> &[Operation] {
+        &self.operations
+    }
+
+    /// Returns list of assembly operations in debug mode.
+    pub fn assembly_ops(&self) -> &[(usize, AssemblyOp)] {
+        &self.assembly_ops
+    }
+
+    /// Adds an operation to the operations vector in debug mode.
+    #[inline(always)]
+    pub fn append_operation(&mut self, op: Operation) {
+        if self.in_debug_mode {
+            self.operations.push(op);
+        }
+    }
+
+    /// Appends an asmop decorator at the specified clock cycle to the asmop list in debug mode.
+    pub fn append_asmop(&mut self, clk: usize, asmop: AssemblyOp) {
+        self.assembly_ops.push((clk, asmop));
+    }
 }

@@ -13,6 +13,7 @@ pub enum AdviceSetError {
     DepthTooSmall,
     DepthTooBig(u32),
     NumLeavesNotPowerOfTwo(usize),
+    InvalidKey(u64),
     InvalidIndex(u32, u64),
     InvalidDepth(u32, u32),
     InvalidPath(Vec<Word>),

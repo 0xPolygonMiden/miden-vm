@@ -1,7 +1,12 @@
-use crate::RangeCheckTrace;
-
 use super::{BTreeMap, Felt, FieldElement, Vec};
+use crate::RangeCheckTrace;
 use vm_core::utils::uninit_vector;
+
+mod aux_trace;
+pub use aux_trace::AuxTraceBuilder;
+
+mod request;
+use request::CycleRangeChecks;
 
 #[cfg(test)]
 mod tests;
@@ -54,6 +59,10 @@ mod tests;
 pub struct RangeChecker {
     /// Tracks lookup count for each checked value.
     lookups: BTreeMap<u16, usize>,
+    // Range check lookups performed by all user operations, grouped and sorted by clock cycle. Each
+    // cycle is mapped to a single CycleRangeChecks instance which includes lookups from the stack,
+    // memory, or both.
+    cycle_range_checks: BTreeMap<usize, CycleRangeChecks>,
 }
 
 #[allow(dead_code)]
@@ -67,7 +76,10 @@ impl RangeChecker {
         // are initialized. this simplifies trace table building later on.
         lookups.insert(0, 0);
         lookups.insert(u16::MAX, 0);
-        Self { lookups }
+        Self {
+            lookups,
+            cycle_range_checks: BTreeMap::new(),
+        }
     }
 
     // PUBLIC ACCESSORS
@@ -83,15 +95,39 @@ impl RangeChecker {
 
     // TRACE MUTATORS
     // --------------------------------------------------------------------------------------------
-
-    /// Adds the specified value to the trace of this range checker.
+    /// Adds the specified value to the trace of this range checker's lookups.
     pub fn add_value(&mut self, value: u16) {
-        // add the value to the lookup table. if the value already exists in the table, just
-        // increment the lookup count.
         self.lookups
             .entry(value as u16)
             .and_modify(|v| *v += 1)
             .or_insert(1);
+    }
+
+    /// Adds range check lookups from the [Stack] to this [RangeChecker] instance. Stack lookups are
+    /// guaranteed to be added at unique clock cycles, since operations are sequential and no range
+    /// check lookups are added before or during the stack operation processing.
+    pub fn add_stack_checks(&mut self, clk: usize, values: &[u16; 4]) {
+        self.add_value(values[0]);
+        self.add_value(values[1]);
+        self.add_value(values[2]);
+        self.add_value(values[3]);
+
+        // Stack operations are added before memory operations at unique clock cycles.
+        self.cycle_range_checks
+            .insert(clk, CycleRangeChecks::new_from_stack(values));
+    }
+
+    /// Adds range check lookups from [Memory] to this [RangeChecker] instance. Memory lookups are
+    /// always added after all stack lookups have completed, since they are processed during trace
+    /// finalization.
+    pub fn add_mem_checks(&mut self, clk: usize, values: &[u16; 2]) {
+        self.add_value(values[0]);
+        self.add_value(values[1]);
+
+        self.cycle_range_checks
+            .entry(clk)
+            .and_modify(|entry| entry.add_memory_checks(values))
+            .or_insert_with(|| CycleRangeChecks::new_from_memory(values));
     }
 
     // EXECUTION TRACE GENERATION
@@ -141,7 +177,7 @@ impl RangeChecker {
             ]
         };
         // Allocate uninitialized memory for accumulating the precomputed auxiliary column hints.
-        let mut aux_column_hints = unsafe { uninit_vector(target_len) };
+        let mut row_flags = unsafe { uninit_vector(target_len) };
 
         // determine the number of padding rows needed to get to target trace length and pad the
         // table with the required number of rows.
@@ -152,17 +188,17 @@ impl RangeChecker {
 
         // Initialize the padded rows of the auxiliary column hints with the default flag, F0,
         // indicating s0 = s1 = ZERO.
-        aux_column_hints[..num_padding_rows].fill(AuxColumnHint::F0);
+        row_flags[..num_padding_rows].fill(RangeCheckFlag::F0);
 
         // build the 8-bit segment of the trace table
         let mut i = num_padding_rows;
         for (value, num_lookups) in lookups_8bit.into_iter().enumerate() {
             write_value(
                 &mut trace,
-                &mut aux_column_hints,
                 &mut i,
                 num_lookups,
                 value as u64,
+                &mut row_flags,
             );
         }
 
@@ -177,27 +213,21 @@ impl RangeChecker {
         for (&value, &num_lookups) in self.lookups.iter() {
             // when the delta between two values is greater than 255, insert "bridge" rows
             for value in (prev_value..value).step_by(255).skip(1) {
-                write_value(&mut trace, &mut aux_column_hints, &mut i, 0, value as u64);
+                write_value(&mut trace, &mut i, 0, value as u64, &mut row_flags);
             }
             write_value(
                 &mut trace,
-                &mut aux_column_hints,
                 &mut i,
                 num_lookups,
                 value as u64,
+                &mut row_flags,
             );
             prev_value = value;
         }
 
-        // Create the hints for the auxiliary trace.
-        let aux_trace_hints = AuxTraceHints {
-            aux_column_hints,
-            start_16bit,
-        };
-
         RangeCheckTrace {
             trace,
-            aux_trace_hints,
+            aux_builder: AuxTraceBuilder::new(self.cycle_range_checks, row_flags, start_16bit),
         }
     }
 
@@ -249,27 +279,33 @@ impl Default for RangeChecker {
     }
 }
 
-// AUXILIARY TRACE HINTS
+// RANGE CHECKER ROWS
 // ================================================================================================
 
 /// A precomputed hint value that can be used to help construct the execution trace for the
 /// auxiliary columns p0 and p1 used for multiset checks. The hint is a precomputed flag value based
 /// on the selectors s0 and s1 in the trace.
-#[derive(Debug, Clone)]
-pub enum AuxColumnHint {
+#[derive(Debug, PartialEq, Clone)]
+pub enum RangeCheckFlag {
     F0,
     F1,
     F2,
     F3,
 }
 
-/// A struct with information to help construct the auxiliary columns `p0` and `p1` used for
-/// multiset checks. It contains a vector of precomputed flag values for each row in the Range
-/// Checker's execution trace and the index where the 16-bit section of the Range Checker's trace
-/// starts.
-pub struct AuxTraceHints {
-    pub(super) aux_column_hints: Vec<AuxColumnHint>,
-    pub(super) start_16bit: usize,
+impl RangeCheckFlag {
+    /// Reduces this row to a single field element in the field specified by E. This requires
+    /// at least 1 alpha value.
+    pub fn to_value<E: FieldElement<BaseField = Felt>>(&self, value: Felt, alphas: &[E]) -> E {
+        let alpha: E = alphas[0];
+
+        match self {
+            RangeCheckFlag::F0 => E::ONE,
+            RangeCheckFlag::F1 => alpha + value.into(),
+            RangeCheckFlag::F2 => (alpha + value.into()).square(),
+            RangeCheckFlag::F3 => ((alpha + value.into()).square()).square(),
+        }
+    }
 }
 
 // HELPER FUNCTIONS
@@ -308,14 +344,14 @@ fn get_num_8bit_rows(lookups: &[usize; 256]) -> usize {
 /// the specified value.
 fn write_value(
     trace: &mut [Vec<Felt>],
-    aux_column_hints: &mut [AuxColumnHint],
     step: &mut usize,
     num_lookups: usize,
     value: u64,
+    row_flags: &mut [RangeCheckFlag],
 ) {
     // if the number of lookups is 0, only one trace row is required
     if num_lookups == 0 {
-        aux_column_hints[*step] = AuxColumnHint::F0;
+        row_flags[*step] = RangeCheckFlag::F0;
         write_trace_row(trace, step, Felt::ZERO, Felt::ZERO, value as u64);
         return;
     }
@@ -323,20 +359,20 @@ fn write_value(
     // write rows which can support 4 lookups per row
     let (num_rows, num_lookups) = div_rem(num_lookups, 4);
     for _ in 0..num_rows {
-        aux_column_hints[*step] = AuxColumnHint::F3;
+        row_flags[*step] = RangeCheckFlag::F3;
         write_trace_row(trace, step, Felt::ONE, Felt::ONE, value as u64);
     }
 
     // write rows which can support 2 lookups per row
     let (num_rows, num_lookups) = div_rem(num_lookups, 2);
     for _ in 0..num_rows {
-        aux_column_hints[*step] = AuxColumnHint::F2;
+        row_flags[*step] = RangeCheckFlag::F2;
         write_trace_row(trace, step, Felt::ZERO, Felt::ONE, value as u64);
     }
 
     // write rows which can support only one lookup per row
     for _ in 0..num_lookups {
-        aux_column_hints[*step] = AuxColumnHint::F1;
+        row_flags[*step] = RangeCheckFlag::F1;
         write_trace_row(trace, step, Felt::ONE, Felt::ZERO, value as u64);
     }
 }

@@ -5,7 +5,7 @@ Throughout this document, we use lower-case letters to refer to individual field
 
 Miden VM consists of three high-level components as illustrated below.
 
-![](https://hackmd.io/_uploads/SyERLVphK.png)
+![miden_vm_overview](../../assets/user_docs/assembly/overview/miden_vm_overview.png)
 
 These components are:
 * **Stack** which is a push-down stack where each item is a field element. Most assembly instructions operate with values located on the stack. The stack can grow up to $2^{16}$ items deep, however, only the top 16 items are directly accessible.

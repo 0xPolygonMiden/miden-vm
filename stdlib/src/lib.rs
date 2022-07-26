@@ -2,8 +2,8 @@
 
 use vm_core::{
     errors::LibraryError,
-    program::Library,
     utils::{collections::BTreeMap, string::ToString},
+    Library,
 };
 
 mod asm;
@@ -68,7 +68,7 @@ impl Default for StdLibrary {
 
 #[cfg(test)]
 mod tests {
-    use vm_core::program::Library;
+    use super::Library;
 
     #[test]
     fn lib_version() {

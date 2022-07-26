@@ -29,7 +29,7 @@ impl Process {
             self.stack.get(0),
         ];
 
-        let (_addr, output_state) = self.hasher.permute(input_state);
+        let (_addr, output_state) = self.chiplets.permute(input_state);
 
         for (i, &value) in output_state.iter().rev().enumerate() {
             self.stack.set(i, value);
@@ -84,7 +84,7 @@ impl Process {
         let path = self.advice.get_merkle_path(provided_root, depth, index)?;
 
         // use hasher to compute the Merkle root of the path
-        let (_addr, computed_root) = self.hasher.build_merkle_root(node, &path, index);
+        let (_addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);
 
         // this can happen only if the advice provider returns a Merkle path inconsistent with
         // the specified root. in general, programs using this operations should check that the
@@ -172,7 +172,7 @@ impl Process {
 
         // use hasher to update the Merkle root
         let (_addr, computed_old_root, new_root) = self
-            .hasher
+            .chiplets
             .update_merkle_root(old_node, new_node, &path, index);
 
         // this can happen only if the advice provider returns a Merkle path inconsistent with
@@ -254,7 +254,7 @@ mod tests {
     #[test]
     fn op_mpverify() {
         let index = 5usize;
-        let leaves = inti_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+        let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
         let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
 
         let stack_inputs = [
@@ -291,7 +291,7 @@ mod tests {
 
     #[test]
     fn op_mrupdate_move() {
-        let leaves = inti_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+        let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
 
         let node_index = 1usize;
         let new_node = init_leaf(9);
@@ -348,7 +348,7 @@ mod tests {
 
     #[test]
     fn op_mrupdate_copy() {
-        let leaves = inti_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+        let leaves = init_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
 
         let node_index = 5usize;
         let new_node = init_leaf(9);
@@ -405,7 +405,7 @@ mod tests {
 
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
-    fn inti_leaves(values: &[u64]) -> Vec<Word> {
+    fn init_leaves(values: &[u64]) -> Vec<Word> {
         values.iter().map(|&v| init_leaf(v)).collect()
     }
 

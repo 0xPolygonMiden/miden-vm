@@ -16,7 +16,7 @@ bench = false
 doctest = false
 
 [[bench]]
-name = "script_compilation"
+name = "program_compilation"
 harness = false
 
 [features]

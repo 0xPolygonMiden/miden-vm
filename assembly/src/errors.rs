@@ -161,7 +161,7 @@ impl AssemblyError {
         }
     }
 
-    // SCRIPT
+    // PROGRAM
     // --------------------------------------------------------------------------------------------
 
     pub fn unmatched_begin(token: &Token) -> Self {
@@ -172,9 +172,9 @@ impl AssemblyError {
         }
     }
 
-    pub fn dangling_ops_after_script(token: &Token) -> Self {
+    pub fn dangling_ops_after_program(token: &Token) -> Self {
         AssemblyError {
-            message: "dangling instructions after script end".to_string(),
+            message: "dangling instructions after program end".to_string(),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -223,7 +223,7 @@ impl AssemblyError {
         }
     }
 
-    pub fn prc_export_not_allowed(token: &Token, label: &str) -> Self {
+    pub fn proc_export_not_allowed(token: &Token, label: &str) -> Self {
         AssemblyError {
             message: format!("exported procedures not allowed in this context: {}", label),
             step: token.pos(),

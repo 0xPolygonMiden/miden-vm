@@ -59,20 +59,6 @@ impl Process {
         Ok(())
     }
 
-    /// Pops one element `a` off the stack, computes 2^a, and pushes the power of two result back
-    /// onto the stack.
-    ///
-    /// # Errors
-    /// Returns an error if the exponent is greater than 63.
-    pub(super) fn op_pow2(&mut self) -> Result<(), ExecutionError> {
-        let a = self.stack.get(0);
-        let result = self.bitwise.pow2(a)?;
-
-        self.stack.set(0, result);
-        self.stack.copy_state(1);
-        Ok(())
-    }
-
     // BOOLEAN OPERATIONS
     // --------------------------------------------------------------------------------------------
 
@@ -151,28 +137,6 @@ impl Process {
             self.stack.set(0, Felt::ZERO);
         }
         self.stack.copy_state(1);
-        Ok(())
-    }
-
-    /// Compares the first word (four elements) with the second word on the stack, if the words are
-    /// equal, pushes ONE onto the stack, otherwise pushes ZERO onto the stack.
-    pub(super) fn op_eqw(&mut self) -> Result<(), ExecutionError> {
-        let b3 = self.stack.get(0);
-        let b2 = self.stack.get(1);
-        let b1 = self.stack.get(2);
-        let b0 = self.stack.get(3);
-
-        let a3 = self.stack.get(4);
-        let a2 = self.stack.get(5);
-        let a1 = self.stack.get(6);
-        let a0 = self.stack.get(7);
-
-        if a0 == b0 && a1 == b1 && a2 == b2 && a3 == b3 {
-            self.stack.set(0, Felt::ONE);
-        } else {
-            self.stack.set(0, Felt::ZERO);
-        }
-        self.stack.shift_right(0);
         Ok(())
     }
 }
@@ -279,31 +243,6 @@ mod tests {
         assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
         assert_eq!(4, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
-    }
-
-    #[test]
-    fn op_pow2() {
-        // --- test 0 ----------------------------------------------------------------------------
-        let mut process = Process::new_dummy();
-        let p = 0;
-        init_stack_with(&mut process, &[p]);
-        process.execute_op(Operation::Pow2).unwrap();
-        let expected = build_expected(&[Felt::new(2_u64.pow(p as u32))]);
-        assert_eq!(expected, process.stack.trace_state());
-
-        // --- test 63 (maximum exponent value) --------------------------------------------------
-        let mut process = Process::new_dummy();
-        let p = 63;
-        init_stack_with(&mut process, &[p]);
-        process.execute_op(Operation::Pow2).unwrap();
-        let expected = build_expected(&[Felt::new(2_u64.pow(p as u32))]);
-        assert_eq!(expected, process.stack.trace_state());
-
-        // --- 2^64 should fail ------------------------------------------------------------------
-        let mut process = Process::new_dummy();
-        let p = 64;
-        init_stack_with(&mut process, &[p]);
-        assert!(process.execute_op(Operation::Pow2).is_err());
     }
 
     // BOOLEAN OPERATIONS
@@ -476,31 +415,6 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
     }
 
-    #[test]
-    fn op_eqw() {
-        // --- test when top two words are equal ------------------------------
-        let mut process = Process::new_dummy();
-        let mut values = vec![1, 2, 3, 4, 5, 2, 3, 4, 5];
-        init_stack_with(&mut process, &values);
-
-        process.execute_op(Operation::Eqw).unwrap();
-        values.reverse();
-        values.insert(0, 1);
-        let expected = build_expected_from_ints(&values);
-        assert_eq!(expected, process.stack.trace_state());
-
-        // --- test when top two words are not equal --------------------------
-        let mut process = Process::new_dummy();
-        let mut values = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
-        init_stack_with(&mut process, &values);
-
-        process.execute_op(Operation::Eqw).unwrap();
-        values.reverse();
-        values.insert(0, 0);
-        let expected = build_expected_from_ints(&values);
-        assert_eq!(expected, process.stack.trace_state());
-    }
-
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
@@ -517,14 +431,6 @@ mod tests {
         let mut expected = [Felt::ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = value;
-        }
-        expected
-    }
-
-    fn build_expected_from_ints(values: &[u64]) -> [Felt; 16] {
-        let mut expected = [Felt::ZERO; 16];
-        for (&value, result) in values.iter().zip(expected.iter_mut()) {
-            *result = Felt::new(value);
         }
         expected
     }
