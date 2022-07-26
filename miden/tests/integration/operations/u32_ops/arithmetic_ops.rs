@@ -1,4 +1,6 @@
-use super::{build_op_test, test_param_out_of_bounds, test_unsafe_execution, TestError, U32_BOUND};
+use super::{
+    build_op_test, test_param_out_of_bounds, test_unchecked_execution, TestError, U32_BOUND,
+};
 use proptest::prelude::*;
 use rand_utils::rand_value;
 
@@ -199,12 +201,12 @@ fn u32overflowing_add() {
     test.expect_stack(&[d, c as u64, e]);
 
     // should not fail when inputs are out of bounds.
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
-fn u32unchecked_add3() {
-    let asm_op = "u32unchecked_add3";
+fn u32overflowing_add3() {
+    let asm_op = "u32overflowing_add3";
 
     // --- test correct execution -----------------------------------------------------------------
     // --- (a + b + c) < 2^32 where c = 0 ---------------------------------------------------------
@@ -479,7 +481,7 @@ fn u32overflowing_sub() {
     test.expect_stack(&[d, c as u64, e]);
 
     // should not fail when inputs are out of bounds.
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -675,12 +677,12 @@ fn u32overflowing_mul() {
     test.expect_stack(&[d, c as u64, e]);
 
     // should not fail when inputs are out of bounds.
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
-fn u32unchecked_madd() {
-    let asm_op = "u32unchecked_madd";
+fn u32overflowing_madd() {
+    let asm_op = "u32overflowing_madd";
 
     // --- no overflow ----------------------------------------------------------------------------
     // d = a * b + c and e should be unset, since there was no arithmetic overflow.
@@ -716,7 +718,7 @@ fn u32unchecked_madd() {
     test.expect_stack(&[e, d, f]);
 
     // should not fail when inputs are out of bounds.
-    test_unsafe_execution(asm_op, 3);
+    test_unchecked_execution(asm_op, 3);
 }
 
 #[test]
@@ -801,7 +803,7 @@ fn u32unchecked_div() {
     test_div(asm_op);
 
     // should not fail when inputs are out of bounds.
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -893,7 +895,7 @@ fn u32unchecked_mod() {
     test_mod(asm_op);
 
     // should not fail when inputs are out of bounds.
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -988,7 +990,7 @@ fn u32unchecked_divmod() {
     test_divmod(asm_op);
 
     // should not fail when inputs are out of bounds.
-    test_unsafe_execution(asm_op, 2);
+    test_unchecked_execution(asm_op, 2);
 }
 
 #[test]
@@ -1035,8 +1037,8 @@ proptest! {
     }
 
     #[test]
-    fn u32unchecked_add3_proptest(a in any::<u32>(), b in any::<u32>(), c in any::<u32>()) {
-        let asm_op = "u32unchecked_add3";
+    fn u32overflowing_add3_proptest(a in any::<u32>(), b in any::<u32>(), c in any::<u32>()) {
+        let asm_op = "u32overflowing_add3";
 
         let sum: u64 = u64::from(a) + u64::from(b) + u64::from(c);
         let lo = (sum as u32) as u64;
@@ -1121,8 +1123,8 @@ proptest! {
     }
 
     #[test]
-    fn u32unchecked_madd_proptest(a in any::<u32>(), b in any::<u32>(), c in any::<u32>()) {
-        let asm_op = "u32unchecked_madd";
+    fn u32overflowing_madd_proptest(a in any::<u32>(), b in any::<u32>(), c in any::<u32>()) {
+        let asm_op = "u32overflowing_madd";
 
         let madd = a as u64 * b as u64 + c as u64;
         let d = madd % U32_BOUND;

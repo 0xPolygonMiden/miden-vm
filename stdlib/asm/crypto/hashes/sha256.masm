@@ -1,106 +1,106 @@
 # SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L73-L79
 proc.small_sigma_0
     dup
-    u32rotr.7
+    u32checked_rotr.7
 
     swap
 
     dup
-    u32rotr.18
+    u32checked_rotr.18
 
     swap
 
-    u32shr.3
+    u32checked_shr.3
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 end
 
 # SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L81-L87
 proc.small_sigma_1
     dup
-    u32rotr.17
+    u32checked_rotr.17
 
     swap
 
     dup
-    u32rotr.19
+    u32checked_rotr.19
 
     swap
 
-    u32shr.10
+    u32checked_shr.10
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 end
 
 # SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L57-L63
 proc.cap_sigma_0
     dup
-    u32rotr.2
+    u32checked_rotr.2
 
     swap
 
     dup
-    u32rotr.13
+    u32checked_rotr.13
 
     swap
 
-    u32rotr.22
+    u32checked_rotr.22
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 end
 
 # SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L65-L71
 proc.cap_sigma_1
     dup
-    u32rotr.6
+    u32checked_rotr.6
 
     swap
 
     dup
-    u32rotr.11
+    u32checked_rotr.11
 
     swap
 
-    u32rotr.25
+    u32checked_rotr.25
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 end
 
 # SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L37-L45
 proc.ch
     swap
     dup.1
-    u32and
+    u32checked_and
 
     swap
-    u32not
+    u32checked_not
 
     movup.2
-    u32and
+    u32checked_and
 
-    u32xor
+    u32checked_xor
 end
 
 # SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L47-L55
 proc.maj
     dup.1
     dup.1
-    u32and
+    u32checked_and
 
     swap
     dup.3
-    u32and
+    u32checked_and
 
     movup.2
     movup.3
-    u32and
+    u32checked_and
 
-    u32xor
-    u32xor
+    u32checked_xor
+    u32checked_xor
 end
 
 # assume top 4 elements of stack are [3, 2, 1, 0, ...], then after execution of this function, stack should look like [0, 1, 2, 3, ...]
