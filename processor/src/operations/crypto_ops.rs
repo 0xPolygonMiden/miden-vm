@@ -51,10 +51,12 @@ impl Process {
     /// To perform the operation we do the following:
     /// 1. Look up the Merkle path in the advice provider for the specified tree root.
     /// 2. Use the hasher to compute the root of the Merkle path for the specified node.
-    /// 3. Copy the stack state over to the next clock cycle with no changes.
+    /// 3. Verifies the computed root is equal to the root provided via the stack.
+    /// 4. Copy the stack state over to the next clock cycle with no changes.
     ///
+    /// # Panic
     /// If the correct Merkle path was provided, the computed root and the provided root must be
-    /// the same. This is checked via an assert statement.
+    /// the same. It will panic in case the roots don't match.
     ///
     /// # Errors
     /// Returns an error if:
@@ -86,30 +88,22 @@ impl Process {
         // The first element in the path should be a `sibling` of the node.
         let sibling = path[0];
 
-        // The least significant bit of the node index is used to decide the initial state of the 
-        // hasher. If it's 0, node value is set before its sibling (node, sibling), if it's 1, 
+        // The least significant bit of the node index is used to decide the initial state of the
+        // hasher. If it's 0, node value is set before its sibling (node, sibling), if it's 1,
         // then sibling is set before the node (sibling, node).
         let b = Felt::new(index.as_int() >> 1);
 
         // use hasher to compute the Merkle root of the path
         let (addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);
-        
+
         // save values in the decoder helper registers in the following order (from the start):
-        // - addr(r) - Its the row address in the hasher trace from when the computation starts.
+        // - addr(r) - the row address in the hasher trace from when the computation starts.
         // - b - least significant bit of the node index.
         // - h0 - First element of sibling word.
         // - h1 - Second element of sibling word.
         // - h2 - Third element of sibling word.
         // - h3 - Forth element of sibling word.
-        let helper_values = [
-            addr,
-            b,
-            sibling[0],
-            sibling[1],
-            sibling[2],
-            sibling[3],
-        ];
-
+        let helper_values = [addr, b, sibling[0], sibling[1], sibling[2], sibling[3]];
 
         self.decoder
             .set_user_op_helpers(Operation::MpVerify, &helper_values);
@@ -293,7 +287,7 @@ mod tests {
         ];
 
         let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new_program_with_decoder_helpers(inputs);
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
 
         process.execute_op(Operation::MpVerify).unwrap();
         let expected_stack = build_expected(&[
