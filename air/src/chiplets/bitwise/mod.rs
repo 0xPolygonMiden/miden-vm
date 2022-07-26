@@ -1,13 +1,9 @@
-use super::{EvaluationFrame, FieldElement, Vec, BITWISE_TRACE_OFFSET};
+use super::{EvaluationFrame, Felt, FieldElement, Vec};
 use crate::utils::{are_equal, binary_not, is_binary, is_zero, EvaluationResult};
-use core::ops::Range;
-use vm_core::{
-    bitwise::{
-        BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_NUM_DECOMP_BITS as NUM_DECOMP_BITS,
-        BITWISE_OUTPUT_COL_IDX, NUM_SELECTORS, OP_CYCLE_LEN,
-    },
-    utils::range as create_range,
-    Felt,
+use vm_core::chiplets::{
+    bitwise::{NUM_DECOMP_BITS, NUM_SELECTORS, OP_CYCLE_LEN},
+    BITWISE_A_COL_IDX, BITWISE_A_COL_RANGE, BITWISE_B_COL_IDX, BITWISE_B_COL_RANGE,
+    BITWISE_OUTPUT_COL_IDX, BITWISE_PREV_OUTPUT_COL_IDX, BITWISE_SELECTOR_COL_RANGE,
 };
 use winter_air::TransitionConstraintDegree;
 
@@ -19,21 +15,6 @@ pub mod tests;
 
 /// The number of transition constraints on the bitwise chiplet.
 pub const NUM_CONSTRAINTS: usize = 19;
-
-/// The range of the selector columns in the trace.
-const SELECTOR_COL_RANGE: Range<usize> = create_range(BITWISE_TRACE_OFFSET, NUM_SELECTORS);
-/// The index of the column holding the aggregated value of input `a`.
-const A_COL_IDX: usize = BITWISE_TRACE_OFFSET + BITWISE_A_COL_IDX;
-/// The index of the column holding the aggregated value of input `b`.
-const B_COL_IDX: usize = BITWISE_TRACE_OFFSET + BITWISE_B_COL_IDX;
-/// The index range for the bit decomposition of `a`.
-const A_COL_RANGE: Range<usize> = create_range(B_COL_IDX + 1, NUM_DECOMP_BITS);
-/// The index range for the bit decomposition of `b`.
-const B_COL_RANGE: Range<usize> = create_range(A_COL_RANGE.end, NUM_DECOMP_BITS);
-/// The index of the column containing the aggregated output value of the previous row.
-const OUTPUT_COL_PREV_IDX: usize = BITWISE_TRACE_OFFSET + BITWISE_OUTPUT_COL_IDX;
-/// The index of the column containing the aggregated output value.
-const OUTPUT_COL_IDX: usize = OUTPUT_COL_PREV_IDX + 1;
 
 // PERIODIC COLUMNS
 // ================================================================================================
@@ -358,69 +339,69 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 
     #[inline(always)]
     fn selector(&self, index: usize) -> E {
-        self.current()[SELECTOR_COL_RANGE.start + index]
+        self.current()[BITWISE_SELECTOR_COL_RANGE.start + index]
     }
     #[inline(always)]
     fn selector_next(&self, index: usize) -> E {
-        self.next()[SELECTOR_COL_RANGE.start + index]
+        self.next()[BITWISE_SELECTOR_COL_RANGE.start + index]
     }
     #[inline(always)]
     fn a(&self) -> E {
-        self.current()[A_COL_IDX]
+        self.current()[BITWISE_A_COL_IDX]
     }
     #[inline(always)]
     fn a_next(&self) -> E {
-        self.next()[A_COL_IDX]
+        self.next()[BITWISE_A_COL_IDX]
     }
     #[inline(always)]
     fn a_bit(&self, index: usize) -> E {
-        self.current()[A_COL_RANGE.start + index]
+        self.current()[BITWISE_A_COL_RANGE.start + index]
     }
     #[inline(always)]
     fn b(&self) -> E {
-        self.current()[B_COL_IDX]
+        self.current()[BITWISE_B_COL_IDX]
     }
     #[inline(always)]
     fn b_next(&self) -> E {
-        self.next()[B_COL_IDX]
+        self.next()[BITWISE_B_COL_IDX]
     }
     #[inline(always)]
     fn b_bit(&self, index: usize) -> E {
-        self.current()[B_COL_RANGE.start + index]
+        self.current()[BITWISE_B_COL_RANGE.start + index]
     }
     #[inline(always)]
     fn bit_decomp(&self) -> &[E] {
-        &self.current()[A_COL_RANGE.start..B_COL_RANGE.end]
+        &self.current()[BITWISE_A_COL_RANGE.start..BITWISE_B_COL_RANGE.end]
     }
     #[inline(always)]
     fn output_prev(&self) -> E {
-        self.current()[OUTPUT_COL_PREV_IDX]
+        self.current()[BITWISE_PREV_OUTPUT_COL_IDX]
     }
     #[inline(always)]
     fn output_prev_next(&self) -> E {
-        self.next()[OUTPUT_COL_PREV_IDX]
+        self.next()[BITWISE_PREV_OUTPUT_COL_IDX]
     }
     #[inline(always)]
     fn output(&self) -> E {
-        self.current()[OUTPUT_COL_IDX]
+        self.current()[BITWISE_OUTPUT_COL_IDX]
     }
 
     // --- Intermediate variables & helpers -------------------------------------------------------
     #[inline(always)]
     fn a_agg_bits(&self) -> E {
-        agg_bits(self.current(), A_COL_RANGE.start)
+        agg_bits(self.current(), BITWISE_A_COL_RANGE.start)
     }
     #[inline(always)]
     fn a_agg_bits_next(&self) -> E {
-        agg_bits(self.next(), A_COL_RANGE.start)
+        agg_bits(self.next(), BITWISE_A_COL_RANGE.start)
     }
     #[inline(always)]
     fn b_agg_bits(&self) -> E {
-        agg_bits(self.current(), B_COL_RANGE.start)
+        agg_bits(self.current(), BITWISE_B_COL_RANGE.start)
     }
     #[inline(always)]
     fn b_agg_bits_next(&self) -> E {
-        agg_bits(self.next(), B_COL_RANGE.start)
+        agg_bits(self.next(), BITWISE_B_COL_RANGE.start)
     }
 
     // --- Flags ----------------------------------------------------------------------------------

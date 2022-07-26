@@ -1,6 +1,9 @@
 use super::{ExecutionError, Felt, StarkField, TraceFragment, Vec};
 use crate::utils::get_trace_len;
-use vm_core::bitwise::{BITWISE_AND, BITWISE_OR, BITWISE_XOR, NUM_SELECTORS, TRACE_WIDTH};
+use vm_core::chiplets::bitwise::{
+    BITWISE_AND, BITWISE_OR, BITWISE_XOR, NUM_SELECTORS, OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX,
+    TRACE_WIDTH,
+};
 
 #[cfg(test)]
 mod tests;
@@ -91,8 +94,8 @@ impl Bitwise {
         // append 8 rows to the trace, each row computing bitwise AND in 4 bit limbs starting with
         // the most significant limb.
         for bit_offset in (0..32).step_by(4).rev() {
-            // append the previous row's result to the 13th column of the trace
-            self.trace[12].push(Felt::new(result));
+            // append the previous row's result to the column for previous output values
+            self.trace[PREV_OUTPUT_COL_IDX].push(Felt::new(result));
             // shift a and b so that the next 4-bit limb is in the least significant position
             let a = a >> bit_offset;
             let b = b >> bit_offset;
@@ -105,9 +108,9 @@ impl Bitwise {
             let result_4_bit = (a & b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 14th column of the trace.
+            // the output column in the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[13].push(Felt::new(result));
+            self.trace[OUTPUT_COL_IDX].push(Felt::new(result));
         }
 
         Ok(Felt::new(result))
@@ -126,8 +129,8 @@ impl Bitwise {
         // append 8 rows to the trace, each row computing bitwise OR in 4 bit limbs starting with
         // the most significant limb.
         for bit_offset in (0..32).step_by(4).rev() {
-            // append the previous row's result to the 13th column of the trace
-            self.trace[12].push(Felt::new(result));
+            // append the previous row's result to the column for previous output values
+            self.trace[PREV_OUTPUT_COL_IDX].push(Felt::new(result));
             // shift a and b so that the next 4-bit limb is in the least significant position
             let a = a >> bit_offset;
             let b = b >> bit_offset;
@@ -140,9 +143,9 @@ impl Bitwise {
             let result_4_bit = (a | b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 14th column of the trace.
+            // the output column in the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[13].push(Felt::new(result));
+            self.trace[OUTPUT_COL_IDX].push(Felt::new(result));
         }
 
         Ok(Felt::new(result))
@@ -161,8 +164,8 @@ impl Bitwise {
         // append 8 rows to the trace, each row computing bitwise XOR in 4 bit limbs starting with
         // the most significant limb.
         for bit_offset in (0..32).step_by(4).rev() {
-            // append the previous row's result to the 13th column of the trace
-            self.trace[12].push(Felt::new(result));
+            // append the previous row's result to the column for previous output values
+            self.trace[PREV_OUTPUT_COL_IDX].push(Felt::new(result));
             // shift a and b so that the next 4-bit limb is in the least significant position
             let a = a >> bit_offset;
             let b = b >> bit_offset;
@@ -175,9 +178,9 @@ impl Bitwise {
             let result_4_bit = (a ^ b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 14th column of the trace.
+            // the output column in the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[13].push(Felt::new(result));
+            self.trace[OUTPUT_COL_IDX].push(Felt::new(result));
         }
 
         Ok(Felt::new(result))
