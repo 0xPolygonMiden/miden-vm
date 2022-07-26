@@ -121,7 +121,7 @@ pub fn parse_mtree(
 /// - node V, 4 elements
 /// - root of the tree, 4 elements
 ///
-/// This operation takes 24 VM cycles.
+/// This operation takes 38 VM cycles.
 fn mtree_get(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
     // stack: [d, i, R, ...]
     // inject the node value we're looking for at the head of the advice tape
@@ -237,10 +237,27 @@ fn mtree_cwm(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
 /// - root of a Merkle tree, 4 elements
 /// - root of a Merkle tree, 4 elements
 ///
-/// This operation takes 6 VM cycles.
+/// This operation takes 20 VM cycles.
 fn validate_and_drop_root(span_ops: &mut Vec<Operation>) {
     // verify the provided root and the computed root are equal
-    span_ops.push(Operation::Eqw);
+    span_ops.push(Operation::Dup7);
+    span_ops.push(Operation::Dup4);
+    span_ops.push(Operation::Eq);
+
+    span_ops.push(Operation::Dup7);
+    span_ops.push(Operation::Dup4);
+    span_ops.push(Operation::Eq);
+    span_ops.push(Operation::And);
+
+    span_ops.push(Operation::Dup6);
+    span_ops.push(Operation::Dup3);
+    span_ops.push(Operation::Eq);
+    span_ops.push(Operation::And);
+
+    span_ops.push(Operation::Dup5);
+    span_ops.push(Operation::Dup2);
+    span_ops.push(Operation::Eq);
+    span_ops.push(Operation::And);
     span_ops.push(Operation::Assert);
 
     // drop one of the duplicate roots
@@ -324,7 +341,7 @@ fn prep_stack_for_mrupdate(span_ops: &mut Vec<Operation>, decorators: &mut Decor
 /// - old Merkle tree root, 4 elements
 /// - new Merkle tree root, 4 elements
 ///
-/// This operation takes 10 VM cycles.
+/// This operation takes 24 VM cycles.
 fn validate_root_after_mrupdate(span_ops: &mut Vec<Operation>) {
     // drop d, i => [R_computed, R_new, R, ...]
     span_ops.push(Operation::Drop);
