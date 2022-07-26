@@ -1,6 +1,6 @@
-use vm_core::StarkField;
+use vm_core::{Felt, StarkField};
 
-use super::{ExecutionError, Process};
+use super::{ExecutionError, Operation, Process};
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
@@ -51,10 +51,12 @@ impl Process {
     /// To perform the operation we do the following:
     /// 1. Look up the Merkle path in the advice provider for the specified tree root.
     /// 2. Use the hasher to compute the root of the Merkle path for the specified node.
-    /// 3. Replace the node value with the computed root.
+    /// 3. Verifies the computed root is equal to the root provided via the stack.
+    /// 4. Copy the stack state over to the next clock cycle with no changes.
     ///
+    /// # Panic
     /// If the correct Merkle path was provided, the computed root and the provided root must be
-    /// the same. This can be checked via subsequent operations.
+    /// the same. It will panic in case the roots don't match.
     ///
     /// # Errors
     /// Returns an error if:
@@ -83,24 +85,38 @@ impl Process {
         // the path is expected to be of the specified depth.
         let path = self.advice.get_merkle_path(provided_root, depth, index)?;
 
-        // use hasher to compute the Merkle root of the path
-        let (_addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);
+        // The first element in the path should be a `sibling` of the node.
+        let sibling = path[0];
 
-        // this can happen only if the advice provider returns a Merkle path inconsistent with
-        // the specified root. in general, programs using this operations should check that the
-        // computed root and the provided root are the same.
-        debug_assert_eq!(
+        // The least significant bit of the node index is used to decide the initial state of the
+        // hasher. If it's 0, node value is set before its sibling (node, sibling), if it's 1,
+        // then sibling is set before the node (sibling, node).
+        let b = Felt::new(index.as_int() >> 1);
+
+        // use hasher to compute the Merkle root of the path
+        let (addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);
+
+        // save values in the decoder helper registers in the following order (from the start):
+        // - addr(r) - the row address in the hasher trace from when the computation starts.
+        // - b - least significant bit of the node index.
+        // - h0 - First element of sibling word.
+        // - h1 - Second element of sibling word.
+        // - h2 - Third element of sibling word.
+        // - h3 - Forth element of sibling word.
+        let helper_values = [addr, b, sibling[0], sibling[1], sibling[2], sibling[3]];
+
+        self.decoder
+            .set_user_op_helpers(Operation::MpVerify, &helper_values);
+
+        // Asserting the computed root of the merkle path from the advice provider is consistent with
+        // the input root.
+        assert_eq!(
             provided_root, computed_root,
             "inconsistent Merkle tree root"
         );
 
-        // replace the node value with the computed root; everything else remains the same
-        self.stack.set(0, depth);
-        self.stack.set(1, index);
-        for (i, &value) in computed_root.iter().rev().enumerate() {
-            self.stack.set(i + 2, value);
-        }
-        self.stack.copy_state(6);
+        // The same state is copied over to the next clock cycle with no changes.
+        self.stack.copy_state(0);
         Ok(())
     }
 
@@ -271,16 +287,16 @@ mod tests {
         ];
 
         let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new(inputs);
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
 
         process.execute_op(Operation::MpVerify).unwrap();
         let expected_stack = build_expected(&[
             Felt::new(tree.depth() as u64),
             Felt::new(index as u64),
-            tree.root()[3],
-            tree.root()[2],
-            tree.root()[1],
-            tree.root()[0],
+            leaves[index][3],
+            leaves[index][2],
+            leaves[index][1],
+            leaves[index][0],
             tree.root()[3],
             tree.root()[2],
             tree.root()[1],
