@@ -308,72 +308,72 @@ fn test_secp256k1_point_doubling() {
         # --- start asserting X3 ---
         pushw.mem
 
-        u32eq.474728642
+        u32checked_eq.474728642
         assert
-        u32eq.4256012599
+        u32checked_eq.4256012599
         assert
-        u32eq.2072183026
+        u32checked_eq.2072183026
         assert
-        u32eq.3437933890
+        u32checked_eq.3437933890
         assert
 
         pushw.mem
 
-        u32eq.4191201175
+        u32checked_eq.4191201175
         assert
-        u32eq.1644336685
+        u32checked_eq.1644336685
         assert
-        u32eq.3276311816
+        u32checked_eq.3276311816
         assert
-        u32eq.617223735
+        u32checked_eq.617223735
         assert
         # --- end asserting X3 ---
 
         # --- start asserting Y3 ---
         pushw.mem
 
-        u32eq.3875396767
+        u32checked_eq.3875396767
         assert
-        u32eq.483526712
+        u32checked_eq.483526712
         assert
-        u32eq.3043178571
+        u32checked_eq.3043178571
         assert
-        u32eq.2826781693
+        u32checked_eq.2826781693
         assert
 
         pushw.mem
 
-        u32eq.2758035882
+        u32checked_eq.2758035882
         assert
-        u32eq.3425160008
+        u32checked_eq.3425160008
         assert
-        u32eq.524996660
+        u32checked_eq.524996660
         assert
-        u32eq.1440660280
+        u32checked_eq.1440660280
         assert
         # --- end asserting Y3 ---
 
         # --- start asserting Z3 ---
         pushw.mem
 
-        u32eq.2545792257
+        u32checked_eq.2545792257
         assert
-        u32eq.4082826636
+        u32checked_eq.4082826636
         assert
-        u32eq.1673463056
+        u32checked_eq.1673463056
         assert
-        u32eq.2688095969
+        u32checked_eq.2688095969
         assert
 
         pushw.mem
 
-        u32eq.2687252166
+        u32checked_eq.2687252166
         assert
-        u32eq.3884180958
+        u32checked_eq.3884180958
         assert
-        u32eq.1848170264
+        u32checked_eq.1848170264
         assert
-        u32eq.579919648
+        u32checked_eq.579919648
         assert
         # --- end asserting Z3 ---
     end
@@ -463,72 +463,72 @@ fn test_secp256k1_point_addition() {
         # --- start asserting X3 ---
         pushw.mem
 
-        u32eq.474728642
+        u32checked_eq.474728642
         assert
-        u32eq.4256012599
+        u32checked_eq.4256012599
         assert
-        u32eq.2072183026
+        u32checked_eq.2072183026
         assert
-        u32eq.3437933890
+        u32checked_eq.3437933890
         assert
 
         pushw.mem
 
-        u32eq.4191201175
+        u32checked_eq.4191201175
         assert
-        u32eq.1644336685
+        u32checked_eq.1644336685
         assert
-        u32eq.3276311816
+        u32checked_eq.3276311816
         assert
-        u32eq.617223735
+        u32checked_eq.617223735
         assert
         # --- end asserting X3 ---
 
         # --- start asserting Y3 ---
         pushw.mem
 
-        u32eq.3875396767
+        u32checked_eq.3875396767
         assert
-        u32eq.483526712
+        u32checked_eq.483526712
         assert
-        u32eq.3043178571
+        u32checked_eq.3043178571
         assert
-        u32eq.2826781693
+        u32checked_eq.2826781693
         assert
 
         pushw.mem
 
-        u32eq.2758035882
+        u32checked_eq.2758035882
         assert
-        u32eq.3425160008
+        u32checked_eq.3425160008
         assert
-        u32eq.524996660
+        u32checked_eq.524996660
         assert
-        u32eq.1440660280
+        u32checked_eq.1440660280
         assert
         # --- end asserting Y3 ---
 
         # --- start asserting Z3 ---
         pushw.mem
 
-        u32eq.2545792257
+        u32checked_eq.2545792257
         assert
-        u32eq.4082826636
+        u32checked_eq.4082826636
         assert
-        u32eq.1673463056
+        u32checked_eq.1673463056
         assert
-        u32eq.2688095969
+        u32checked_eq.2688095969
         assert
 
         pushw.mem
 
-        u32eq.2687252166
+        u32checked_eq.2687252166
         assert
-        u32eq.3884180958
+        u32checked_eq.3884180958
         assert
-        u32eq.1848170264
+        u32checked_eq.1848170264
         assert
-        u32eq.579919648
+        u32checked_eq.579919648
         assert
         # --- end asserting Z3 ---
     end
@@ -573,72 +573,72 @@ fn test_secp256k1_point_multiplication() {
         # --- start asserting X ---
         pushw.mem
 
-        u32eq.1096602412
+        u32checked_eq.1096602412
         assert
-        u32eq.1336778744
+        u32checked_eq.1336778744
         assert
-        u32eq.4237851429
+        u32checked_eq.4237851429
         assert
-        u32eq.2379704491
+        u32checked_eq.2379704491
         assert
 
         pushw.mem
 
-        u32eq.2174658910
+        u32checked_eq.2174658910
         assert
-        u32eq.1179196601
+        u32checked_eq.1179196601
         assert
-        u32eq.696486755
+        u32checked_eq.696486755
         assert
-        u32eq.2826869248
+        u32checked_eq.2826869248
         assert
         # --- end asserting X ---
 
         # --- start asserting Y ---
         pushw.mem
 
-        u32eq.3362845704
+        u32checked_eq.3362845704
         assert
-        u32eq.129965728
+        u32checked_eq.129965728
         assert
-        u32eq.1311711770
+        u32checked_eq.1311711770
         assert
-        u32eq.3674781461
+        u32checked_eq.3674781461
         assert
 
         pushw.mem
 
-        u32eq.3620120701
+        u32checked_eq.3620120701
         assert
-        u32eq.1257229422
+        u32checked_eq.1257229422
         assert
-        u32eq.162674263
+        u32checked_eq.162674263
         assert
-        u32eq.1366999099
+        u32checked_eq.1366999099
         assert
         # --- end asserting Y ---
 
         # --- start asserting Z ---
         pushw.mem
 
-        u32eq.440013615
+        u32checked_eq.440013615
         assert
-        u32eq.548226205
+        u32checked_eq.548226205
         assert
-        u32eq.868197170
+        u32checked_eq.868197170
         assert
-        u32eq.3947728772
+        u32checked_eq.3947728772
         assert
 
         pushw.mem
 
-        u32eq.2287684084
+        u32checked_eq.2287684084
         assert
-        u32eq.3056380747
+        u32checked_eq.3056380747
         assert
-        u32eq.2298699306
+        u32checked_eq.2298699306
         assert
-        u32eq.2987928230
+        u32checked_eq.2987928230
         assert
         # --- end asserting Z ---
     end

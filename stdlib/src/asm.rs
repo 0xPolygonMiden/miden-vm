@@ -9132,7 +9132,7 @@ end
 # At end of execution of this function, stack top should look like [hi, lo]
 # See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/utils.py#L75-L80
 proc.mac
-  u32unchecked_madd
+  u32overflowing_madd
 
   movdn.2
   u32overflowing_add
@@ -9172,35 +9172,35 @@ proc.u256xu32
   push.0
   dup.1
   movup.3
-  u32unchecked_madd
+  u32overflowing_madd
   
   dup.2
   movup.4
-  u32unchecked_madd
+  u32overflowing_madd
 
   dup.3
   movup.5
-  u32unchecked_madd
+  u32overflowing_madd
 
   dup.4
   movup.6
-  u32unchecked_madd
+  u32overflowing_madd
 
   dup.5
   movup.7
-  u32unchecked_madd
+  u32overflowing_madd
 
   dup.6
   movup.8
-  u32unchecked_madd
+  u32overflowing_madd
 
   dup.7
   movup.9
-  u32unchecked_madd
+  u32overflowing_madd
 
   movup.8
   movup.9
-  u32unchecked_madd
+  u32overflowing_madd
 end
 
 # Given a 288 -bit number and 256 -bit number on stack ( in order ), this routine
@@ -9221,11 +9221,11 @@ proc.u288_add_u256
 
   movup.2
   movup.7
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.3
   movup.6
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.4
   movup.5
@@ -9234,11 +9234,11 @@ proc.u288_add_u256
   movup.2
   movup.4
   movup.6
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.5
   movup.5
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.3
   movup.4
@@ -9247,15 +9247,15 @@ proc.u288_add_u256
   movup.2
   movup.4
   movup.6
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.5
   movup.5
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.10
   movup.5
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.4
   add
@@ -9334,7 +9334,7 @@ proc.u288_reduce
 
   movup.9
   movup.9
-  u32unchecked_add3
+  u32overflowing_add3
 
   swap
   movup.2
@@ -9449,7 +9449,7 @@ export.u256_mod_mul.2
   movup.2
   push.977
 
-  u32unchecked_madd
+  u32overflowing_madd
   drop
 end
 
@@ -9471,40 +9471,40 @@ export.u256_mod_add
 
   push.0
   movup.5
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.2
   movup.5
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.3
   movup.5
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.4
   movup.5
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.5
   movup.9
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.6
   movup.9
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.7
   movup.9
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.8
   movup.9
-  u32unchecked_add3
+  u32overflowing_add3
 
   movup.8
   dup.1
   push.977
-  u32unchecked_madd
+  u32overflowing_madd
   drop
 
   swap
@@ -12424,9 +12424,9 @@ export.point_mul.20
         pushw.local.18
         dup
         push.1
-        u32and
+        u32checked_and
         movdn.4
-        u32shr.1
+        u32unchecked_shr.1
         popw.local.18
 
         if.true
