@@ -4,16 +4,16 @@
 # See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L73-L79
 proc.small_sigma_0
     dup
-    u32checked_rotr.7
+    u32unchecked_rotr.7
 
     swap
 
     dup
-    u32checked_rotr.18
+    u32unchecked_rotr.18
 
     swap
 
-    u32checked_shr.3
+    u32unchecked_shr.3
 
     u32checked_xor
     u32checked_xor
@@ -25,16 +25,16 @@ end
 # See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L81-L87
 proc.small_sigma_1
     dup
-    u32checked_rotr.17
+    u32unchecked_rotr.17
 
     swap
 
     dup
-    u32checked_rotr.19
+    u32unchecked_rotr.19
 
     swap
 
-    u32checked_shr.10
+    u32unchecked_shr.10
 
     u32checked_xor
     u32checked_xor
@@ -46,16 +46,16 @@ end
 # See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L57-L63
 proc.cap_sigma_0
     dup
-    u32checked_rotr.2
+    u32unchecked_rotr.2
 
     swap
 
     dup
-    u32checked_rotr.13
+    u32unchecked_rotr.13
 
     swap
 
-    u32checked_rotr.22
+    u32unchecked_rotr.22
 
     u32checked_xor
     u32checked_xor
@@ -67,16 +67,16 @@ end
 # See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L65-L71
 proc.cap_sigma_1
     dup
-    u32checked_rotr.6
+    u32unchecked_rotr.6
 
     swap
 
     dup
-    u32checked_rotr.11
+    u32unchecked_rotr.11
 
     swap
 
-    u32checked_rotr.25
+    u32unchecked_rotr.25
 
     u32checked_xor
     u32checked_xor
@@ -148,7 +148,7 @@ proc.compute_message_schedule_word
     movup.2
     exec.small_sigma_0
 
-    u32unchecked_add3
+    u32overflowing_add3
     drop
     u32wrapping_add
 end
@@ -175,14 +175,14 @@ proc.consume_message_word
     movup.9
     movup.10
 
-    u32unchecked_add3
+    u32overflowing_add3
     drop
 
     dup.5
     exec.cap_sigma_1
 
     movup.9
-    u32unchecked_add3
+    u32overflowing_add3
     drop
 
     dup.3
