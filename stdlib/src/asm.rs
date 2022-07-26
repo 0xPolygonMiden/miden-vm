@@ -195,24 +195,24 @@ proc.columnar_mixing.1
 
     dup.4
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
     
     swap
     dup.5
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
     swap
 
     movup.2
     dup.6
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
     movdn.2
 
     movup.3
     dup.7
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
     movdn.3
 
     movup.12
@@ -240,24 +240,24 @@ proc.columnar_mixing.1
 
     dup.4
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
     
     swap
     dup.5
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
     swap
 
     movup.2
     dup.6
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
     movdn.2
 
     movup.3
     dup.7
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
     movdn.3
 
     movupw.3
@@ -294,24 +294,24 @@ proc.columnar_mixing.1
 
     dup.4
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
     
     swap
     dup.5
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
     swap
 
     movup.2
     dup.6
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
     movdn.2
 
     movup.3
     dup.7
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
     movdn.3
 
     movupw.3
@@ -338,24 +338,24 @@ proc.columnar_mixing.1
 
     dup.4
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
 
     swap
     dup.5
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
     swap
 
     movup.2
     dup.6
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
     movdn.2
 
     movup.3
     dup.7
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
     movdn.3
 
     movupw.3
@@ -428,23 +428,23 @@ proc.diagonal_mixing.1
     movup.3
     dup.4
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
     movdn.3
 
     dup.5
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
 
     swap
     dup.6
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
     swap
 
     movup.2
     dup.7
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
     movdn.2
 
     movup.12
@@ -473,24 +473,24 @@ proc.diagonal_mixing.1
     swap
     dup.6
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
     swap
 
     movup.2
     dup.7
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
     movdn.2
 
     movup.3
     dup.4
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
     movdn.3
 
     dup.5
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
 
     movupw.3
     pushw.local.0
@@ -527,23 +527,23 @@ proc.diagonal_mixing.1
     movup.3
     dup.4
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
     movdn.3
 
     dup.5
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
 
     swap
     dup.6
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
     swap
 
     movup.2
     dup.7
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
     movdn.2
 
     movupw.3
@@ -571,24 +571,24 @@ proc.diagonal_mixing.1
     swap
     dup.6
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
     swap
 
     movup.2
     dup.7
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
     movdn.2
 
     movup.3
     dup.4
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
     movdn.3
 
     dup.5
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
 
     movupw.3
 end
