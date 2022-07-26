@@ -241,14 +241,3 @@ Overall, with this optimized construction we have the following:
   - For short traces ($2^{10} < n \le 2^{16}$), we can range-check at slightly fewer than $n$ unique values, but if there are duplicates, we may be able to range-check up to $3n$ total values.
 
 The only downside of this construction is again higher constraint degree. Specifically, some of the transition constraints described above have degree $8$. But again, in the context of Miden VM, this doesn't matter as max constraint degree of the VM is $8$ anyway.
-
-### Cost of running product columns
-
-It is important to note that depending on the field in which we operate, a running product column may actually require more than one trace columns. This is specifically true for small field.
-
-For example, if we are in a 64-bit field, each running product column would need to be represented by $2$ columns to achieve ~100-bit security, and by $3$ columns to achieve ~128-bit security.
-
-Since the native field of Miden VM is 64 bits, the total number of columns needed for the optimized construction described above is:
-
-- 8 columns for 96-bit security level.
-- 10 columns for 128-bit security level.
