@@ -1,9 +1,6 @@
 use super::{
     hasher::{self, Digest},
-    utils::{
-        collections::{BTreeMap, Vec},
-        Box,
-    },
+    utils::{collections::Vec, Box},
     Felt, FieldElement, Operation,
 };
 use core::fmt;
@@ -14,20 +11,19 @@ use blocks::CodeBlock;
 mod library;
 pub use library::Library;
 
-// SCRIPT
+// PROGRAM
 // ================================================================================================
 /// A program which can be executed by the VM.
 ///
-/// A script is a self-contained program which can be executed by the VM. A script has its own
-/// read-write memory, but has no storage and cannot define functions. When executed against a
-/// [Module], a script can call the module's functions, and via these functions modify the module's
-/// storage.
+/// A program is described by a Merkelized Abstract Syntax Tree (MAST), where each node is a
+/// [CodeBlock]. Internal nodes describe control flow semantics of the program, while leaf nodes
+/// contain linear sequences of instructions which contain no control flow.
 #[derive(Clone, Debug)]
-pub struct Script {
+pub struct Program {
     root: CodeBlock,
 }
 
-impl Script {
+impl Program {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Constructs a new program from the specified code block.
@@ -38,55 +34,19 @@ impl Script {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns the root code block of this script.
+    /// Returns the root code block of this program.
     pub fn root(&self) -> &CodeBlock {
         &self.root
     }
 
-    /// Returns a hash of this script.
+    /// Returns a hash of this program.
     pub fn hash(&self) -> Digest {
         self.root.hash()
     }
 }
 
-impl fmt::Display for Script {
+impl fmt::Display for Program {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "begin {} end", self.root)
     }
-}
-
-// MODULE
-// ================================================================================================
-/// TODO: add comments
-#[derive(Clone)]
-#[allow(dead_code)]
-pub struct Module {
-    functions: BTreeMap<Digest, CodeBlock>,
-    storage: Vec<u64>, // TODO: this should be a sparse Merkle tree
-}
-
-#[allow(dead_code)]
-impl Module {
-    pub fn new(_functions: BTreeMap<Digest, CodeBlock>) -> Self {
-        unimplemented!()
-    }
-
-    pub fn code_root(&self) -> Digest {
-        unimplemented!()
-    }
-
-    pub fn storage_root(&self) -> Digest {
-        unimplemented!()
-    }
-
-    pub fn get_function(&self, _hash: Digest) -> Option<&CodeBlock> {
-        //self.functions.get(&hash)
-        unimplemented!()
-    }
-
-    pub fn load(&self, _index: Felt) -> [Felt; 4] {
-        unimplemented!()
-    }
-
-    pub fn store(&self, _index: usize, _value: [Felt; 4]) {}
 }

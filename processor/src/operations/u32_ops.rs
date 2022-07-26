@@ -168,12 +168,10 @@ impl Process {
     pub(super) fn op_u32and(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
-        let (result, row_idx) = self.chiplets.u32and(a, b)?;
+        let result = self.chiplets.u32and(a, b)?;
 
         self.stack.set(0, result);
         self.stack.shift_left(2);
-        self.decoder
-            .set_user_op_helpers(Operation::U32and, &[row_idx]);
 
         Ok(())
     }
@@ -183,12 +181,10 @@ impl Process {
     pub(super) fn op_u32or(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
-        let (result, row_idx) = self.chiplets.u32or(a, b)?;
+        let result = self.chiplets.u32or(a, b)?;
 
         self.stack.set(0, result);
         self.stack.shift_left(2);
-        self.decoder
-            .set_user_op_helpers(Operation::U32or, &[row_idx]);
 
         Ok(())
     }
@@ -198,12 +194,10 @@ impl Process {
     pub(super) fn op_u32xor(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
-        let (result, row_idx) = self.chiplets.u32xor(a, b)?;
+        let result = self.chiplets.u32xor(a, b)?;
 
         self.stack.set(0, result);
         self.stack.shift_left(2);
-        self.decoder
-            .set_user_op_helpers(Operation::U32xor, &[row_idx]);
 
         Ok(())
     }

@@ -1,7 +1,7 @@
 pub use miden::{ProofOptions, StarkProof};
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
-pub use vm_core::{program::Script, Felt, FieldElement, ProgramInputs, MIN_STACK_DEPTH};
+pub use vm_core::{Felt, FieldElement, Program, ProgramInputs, MIN_STACK_DEPTH};
 
 pub mod crypto;
 
@@ -25,15 +25,15 @@ pub enum TestError<'a> {
 /// different types of tests.
 ///
 /// Types of valid result tests:
-/// * - Execution test: check that running a script compiled from the given source has the specified
-/// results for the given (optional) inputs.
-/// * - Proptest: run an execution test inside a proptest.
+/// - Execution test: check that running a program compiled from the given source has the
+///   specified results for the given (optional) inputs.
+/// - Proptest: run an execution test inside a proptest.
 ///
 /// Types of failure tests:
-/// * - Assembly error test: check that attempting to compile the given source causes an
+/// - Assembly error test: check that attempting to compile the given source causes an
 /// AssemblyError which contains the specified substring.
-/// * - Execution error test: check that running a script compiled from the given source causes an
-/// ExecutionError which contains the specified substring.
+/// - Execution error test: check that running a program compiled from the given source causes
+///   an ExecutionError which contains the specified substring.
 pub struct Test {
     pub source: String,
     pub inputs: ProgramInputs,
@@ -100,8 +100,8 @@ impl Test {
         let mut process = Process::new(self.inputs.clone());
 
         // execute the test
-        let script = self.compile();
-        process.execute_code_block(script.root()).unwrap();
+        let program = self.compile();
+        process.execute(&program).unwrap();
 
         // validate the memory state
         let mem_state = process.get_memory_value(mem_addr).unwrap();
@@ -130,22 +130,22 @@ impl Test {
     // UTILITY METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Compiles a test's source and returns the resulting Script.
-    pub fn compile(&self) -> Script {
+    /// Compiles a test's source and returns the resulting Program.
+    pub fn compile(&self) -> Program {
         let assembler = assembly::Assembler::new(self.in_debug_mode);
         assembler
-            .compile_script(&self.source)
+            .compile(&self.source)
             .expect("Failed to compile test source.")
     }
 
-    /// Compiles the test's source to a Script and executes it with the tests inputs. Returns a
+    /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
     /// resulting execution trace or error.
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
-        let script = self.compile();
-        processor::execute(&script, &self.inputs)
+        let program = self.compile();
+        processor::execute(&program, &self.inputs)
     }
 
-    /// Compiles the test's code into a script, then generates and verifies a proof of execution
+    /// Compiles the test's code into a program, then generates and verifies a proof of execution
     /// using the given public inputs and the specified number of stack outputs. When `test_fail`
     /// is true, this function will force a failure by modifying the first output.
     pub fn prove_and_verify(
@@ -154,9 +154,9 @@ impl Test {
         num_stack_outputs: usize,
         test_fail: bool,
     ) {
-        let script = self.compile();
+        let program = self.compile();
         let (mut outputs, proof) = prover::prove(
-            &script,
+            &program,
             &self.inputs,
             num_stack_outputs,
             &ProofOptions::default(),
@@ -165,18 +165,18 @@ impl Test {
 
         if test_fail {
             outputs[0] += 1;
-            assert!(miden::verify(script.hash(), &pub_inputs, &outputs, proof).is_err());
+            assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_err());
         } else {
-            assert!(miden::verify(script.hash(), &pub_inputs, &outputs, proof).is_ok());
+            assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_ok());
         }
     }
 
-    /// Compiles the test's source to a Script and executes it with the tests inputs. Returns a
+    /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
     /// VmStateIterator that allows us to iterate through each clock cycle and inpsect the process
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
-        let script = self.compile();
-        processor::execute_iter(&script, &self.inputs)
+        let program = self.compile();
+        processor::execute_iter(&program, &self.inputs)
     }
 
     /// Returns the last state of the stack after executing a test.

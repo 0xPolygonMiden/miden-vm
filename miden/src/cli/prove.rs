@@ -1,4 +1,4 @@
-use super::data::{InputFile, OutputFile, ProofFile, ScriptFile};
+use super::data::{InputFile, OutputFile, ProgramFile, ProofFile};
 use air::ProofOptions;
 use std::path::PathBuf;
 use std::time::Instant;
@@ -41,8 +41,8 @@ impl ProveCmd {
         println!("Prove program");
         println!("============================================================");
 
-        // load script from file and compile
-        let script = ScriptFile::read(&self.assembly_file)?;
+        // load program from file and compile
+        let program = ProgramFile::read(&self.assembly_file)?;
 
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
@@ -52,7 +52,7 @@ impl ProveCmd {
 
         // execute program and generate proof
         let (outputs, proof) = prover::prove(
-            &script,
+            &program,
             &input_data.get_program_inputs(),
             self.num_outputs,
             &self.get_proof_security(),

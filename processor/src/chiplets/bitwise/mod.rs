@@ -1,6 +1,9 @@
 use super::{ExecutionError, Felt, StarkField, TraceFragment, Vec};
 use crate::utils::get_trace_len;
-use vm_core::bitwise::{BITWISE_AND, BITWISE_OR, BITWISE_XOR, NUM_SELECTORS, TRACE_WIDTH};
+use vm_core::chiplets::bitwise::{
+    BITWISE_AND, BITWISE_OR, BITWISE_XOR, NUM_SELECTORS, OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX,
+    TRACE_WIDTH,
+};
 
 #[cfg(test)]
 mod tests;
@@ -78,14 +81,12 @@ impl Bitwise {
     // TRACE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Computes a bitwise AND of `a` and `b` and returns the result along with the index of the
-    /// result row, which is used for the lookup product column used for multiset checks. We assume
-    /// that `a` and `b` are 32-bit values. If that's not the case, the result of the computation is
-    /// undefined.
+    /// Computes a bitwise AND of `a` and `b` and returns the result. We assume that `a` and `b`
+    /// are 32-bit values. If that's not the case, the result of the computation is undefined.
     ///
     /// This also adds 8 rows to the internal execution trace table required for computing the
     /// operation.
-    pub fn u32and(&mut self, a: Felt, b: Felt) -> Result<(Felt, Felt), ExecutionError> {
+    pub fn u32and(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
         let a = assert_u32(a)?.as_int();
         let b = assert_u32(b)?.as_int();
         let mut result = 0u64;
@@ -93,8 +94,8 @@ impl Bitwise {
         // append 8 rows to the trace, each row computing bitwise AND in 4 bit limbs starting with
         // the most significant limb.
         for bit_offset in (0..32).step_by(4).rev() {
-            // append the previous row's result to the 13th column of the trace
-            self.trace[12].push(Felt::new(result));
+            // append the previous row's result to the column for previous output values
+            self.trace[PREV_OUTPUT_COL_IDX].push(Felt::new(result));
             // shift a and b so that the next 4-bit limb is in the least significant position
             let a = a >> bit_offset;
             let b = b >> bit_offset;
@@ -107,25 +108,20 @@ impl Bitwise {
             let result_4_bit = (a & b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 14th column of the trace.
+            // the output column in the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[13].push(Felt::new(result));
+            self.trace[OUTPUT_COL_IDX].push(Felt::new(result));
         }
 
-        // Return the result row for calculating the lookup product.
-        let result_row = self.trace_len() - 1;
-
-        Ok((Felt::new(result), Felt::new(result_row as u64)))
+        Ok(Felt::new(result))
     }
 
-    /// Computes a bitwise OR of `a` and `b` and returns the result along with the index of the
-    /// result row, which is used for the lookup product column used for multiset checks. We assume
-    /// that `a` and `b` are 32-bit values. If that's not the case, the result of the computation is
-    /// undefined.
+    /// Computes a bitwise OR of `a` and `b` and returns the result. We assume that `a` and `b`
+    ///  are 32-bit values. If that's not the case, the result of the computation is undefined.
     ///
     /// This also adds 8 rows to the internal execution trace table required for computing the
     /// operation.
-    pub fn u32or(&mut self, a: Felt, b: Felt) -> Result<(Felt, Felt), ExecutionError> {
+    pub fn u32or(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
         let a = assert_u32(a)?.as_int();
         let b = assert_u32(b)?.as_int();
         let mut result = 0u64;
@@ -133,8 +129,8 @@ impl Bitwise {
         // append 8 rows to the trace, each row computing bitwise OR in 4 bit limbs starting with
         // the most significant limb.
         for bit_offset in (0..32).step_by(4).rev() {
-            // append the previous row's result to the 13th column of the trace
-            self.trace[12].push(Felt::new(result));
+            // append the previous row's result to the column for previous output values
+            self.trace[PREV_OUTPUT_COL_IDX].push(Felt::new(result));
             // shift a and b so that the next 4-bit limb is in the least significant position
             let a = a >> bit_offset;
             let b = b >> bit_offset;
@@ -147,25 +143,20 @@ impl Bitwise {
             let result_4_bit = (a | b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 14th column of the trace.
+            // the output column in the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[13].push(Felt::new(result));
+            self.trace[OUTPUT_COL_IDX].push(Felt::new(result));
         }
 
-        // Return the result row for calculating the lookup product.
-        let result_row = self.trace_len() - 1;
-
-        Ok((Felt::new(result), Felt::new(result_row as u64)))
+        Ok(Felt::new(result))
     }
 
-    /// Computes a bitwise XOR of `a` and `b` and returns the result along with the index of the
-    /// result row, which is used for the lookup product column used for multiset checks. We assume
-    /// that `a` and `b` are 32-bit values. If that's not the case, the result of the computation is
-    /// undefined.
+    /// Computes a bitwise XOR of `a` and `b` and returns the result. We assume that `a` and `b`
+    /// are 32-bit values. If that's not the case, the result of the computation is undefined.
     ///
     /// This also adds 8 rows to the internal execution trace table required for computing the
     /// operation.
-    pub fn u32xor(&mut self, a: Felt, b: Felt) -> Result<(Felt, Felt), ExecutionError> {
+    pub fn u32xor(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
         let a = assert_u32(a)?.as_int();
         let b = assert_u32(b)?.as_int();
         let mut result = 0u64;
@@ -173,8 +164,8 @@ impl Bitwise {
         // append 8 rows to the trace, each row computing bitwise XOR in 4 bit limbs starting with
         // the most significant limb.
         for bit_offset in (0..32).step_by(4).rev() {
-            // append the previous row's result to the 13th column of the trace
-            self.trace[12].push(Felt::new(result));
+            // append the previous row's result to the column for previous output values
+            self.trace[PREV_OUTPUT_COL_IDX].push(Felt::new(result));
             // shift a and b so that the next 4-bit limb is in the least significant position
             let a = a >> bit_offset;
             let b = b >> bit_offset;
@@ -187,15 +178,12 @@ impl Bitwise {
             let result_4_bit = (a ^ b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 14th column of the trace.
+            // the output column in the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[13].push(Felt::new(result));
+            self.trace[OUTPUT_COL_IDX].push(Felt::new(result));
         }
 
-        // Return the result row for calculating the lookup product.
-        let result_row = self.trace_len() - 1;
-
-        Ok((Felt::new(result), Felt::new(result_row as u64)))
+        Ok(Felt::new(result))
     }
 
     // EXECUTION TRACE GENERATION

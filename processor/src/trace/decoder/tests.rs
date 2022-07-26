@@ -8,8 +8,8 @@ use super::{
 use crate::decoder::{build_op_group, BlockHashTableRow, BlockStackTableRow, OpGroupTableRow};
 use rand_utils::rand_array;
 use vm_core::{
+    code_blocks::CodeBlock,
     decoder::{P1_COL_IDX, P2_COL_IDX, P3_COL_IDX},
-    program::blocks::CodeBlock,
     utils::ToElements,
     FieldElement, Operation, AUX_TRACE_RAND_ELEMENTS, ONE, ZERO,
 };

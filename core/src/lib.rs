@@ -7,13 +7,15 @@ extern crate alloc;
 use core::ops::Range;
 
 pub mod chiplets;
-pub use chiplets::{bitwise, hasher};
+pub use chiplets::hasher;
 pub mod decoder;
 pub mod errors;
-pub mod program;
 pub mod range;
 
 pub use math::{fields::f64::BaseElement as Felt, ExtensionOf, FieldElement, StarkField};
+
+mod program;
+pub use program::{blocks as code_blocks, Library, Program};
 
 mod operations;
 pub use operations::{
