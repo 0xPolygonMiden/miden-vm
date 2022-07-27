@@ -12,21 +12,32 @@ Throughout these sections we adopt the following notations and assumptions:
 ## VM components
 Miden VM consists of several interconnected components, each providing a specific set of functionality. These components are:
 
-* **Program decoder**, which is responsible for computing a root of the executing program and converting the program into a sequence of operations executed by the VM.
+* **Program decoder**, which is responsible for computing a commitment to the executing program and converting the program into a sequence of operations executed by the VM.
 * **Operand stack**, which is a push-down stack which provides operands for all operations executed by the VM.
 * **Range checker**, which is responsible for providing 16-bit range checks needed by other components.
 * **Chiplets**, which is a set of specialized circuits used to accelerate commonly-used complex computations. Currently, the VM relies on 3 chiplets:
-  - Hash chiplet, used to compute Rescue Prime hash computations both for sequential hashing and for Merkle tree hashing.
-  - Bitwise chiplet, used to compute bitwise operations over 32-bit integers.
+  - Hash chiplet, used to compute Rescue Prime hashes both for sequential hashing and for Merkle tree hashing.
+  - Bitwise chiplet, used to compute bitwise operations (e.g., `AND`, `XOR`) over 32-bit integers.
   - Memory chiplet, used to support random-access memory in the VM.
 
-The above components are connected via multiset checks.
+The above components are connected via **buses**, which are implemented using [multiset checks](./multiset.md). We also use multiset checks internally within components to describe **virtual tables**.
 
-### VM execution trace
+## VM execution trace
+Execution trace of Miden VM consists of $66$ main trace columns, $2$ buses, and $6$ virtual tables as shown in the diagram below.
 
 ![vm_trace.png](../assets/design/vm_trace.png)
 
-### Cost of running product columns
-It is important to note that depending on the field in which we operate, a running product column may actually require more than one trace columns. This is specifically true for small field.
+As can be seen from the above, decoder, stack, and range checker components use dedicated sets of columns, while all chiplets share the same $18$ columns. To differentiate between chiplets, we use a set of binary selector columns, a combination of which uniquely identifies each chiplet.
 
-For example, if we are in a 64-bit field, each running product column would need to be represented by $2$ columns to achieve ~100-bit security, and by $3$ columns to achieve ~128-bit security.
+In addition to the components described previously, execution trace also contains $2$ system columns:
+
+* `clk` which is used to keep track of the current VM cycle. Values in these columns start out at $0$ and are incremented with each cycle.
+* `fmp` which contains the value of the free memory pointer used for specifying the region of memory available to procedure locals.
+
+AIR constraints for the `fmp` column are described in [system operations](./stack/system_ops.md) section. For the `clk` column, the constraints are straightforward:
+
+>$$
+clk' - (clk + 1) = 0 \text{ | degree } = 1
+$$
+
+We frequently use the above notation for describing other AIR constraints. Specifically, the constraint is followed by its implied algebraic degree.

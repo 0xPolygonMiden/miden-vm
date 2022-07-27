@@ -7,7 +7,7 @@ In this section we describe the AIR constraint for Miden VM cryptographic operat
 
 ![rpperm](../../assets/design/stack/cryptographic_operations/RPPERM.png)
 
-To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/chiplets/hasher.html). 
+To facilitate this operation, we will need to perform a lookup in a table described [here](../chiplets/hasher.md). 
 
 To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc..
 
@@ -40,7 +40,7 @@ In the above:
 - $r$ is the row address of the execution trace at which the rescue prime permutation started inside the hasher processor.
 - $s_0$..$s_{11}$ are the three words(group of four consecutive elements) in the hasher state.
 - $m$ is a _transition label_ which uniquely identifies each operation.
-- The $3$ & $9$ in the permutation check are the unique identifier of hasher `LINEAR_HASH` & `RETURN_STATE` operations which have been explained [here](../stack/unique_identifier.md#identifiers).
+- The $3$ & $9$ in the permutation check are the unique identifier of hasher `LINEAR_HASH` & `RETURN_STATE` operations which have been explained [here](../chiplets/main.md#operation-labels).
 - $v_{input}$ is a _common header_ which is a combination of unique identifier of `LINEAR_HASH` and row address of the table when the rescue prime permutation started.
 - $v_{output}$ is a _common header_ which is a combination of unique identifier of `RETURN_STATE` and row address of the execution trace when the rescue prime permutaton ends.
 - $v_i$, is the component of the first element of the path.
@@ -61,7 +61,7 @@ The `RPPERM` operation will not change the depth of the stack i.e. the stack doe
 
 ![mpverify](../../assets/design/stack/cryptographic_operations/MPVERIFY.png)
 
-To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/chiplets/hasher.html). 
+To facilitate this operation, we will need to perform a lookup in a table described [here](../chiplets/hasher.md). 
 
 To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc..
 
@@ -98,7 +98,7 @@ In the above:
 - $r$ is the row address of the execution trace at which the computation of building merkle root started inside the hasher processor.
 - $p_0$..$p_3$ is the first word(group of four consecutive elements) of the merkle path fetched from advice provider.
 - $m$ is a _transition label_ which uniquely identifies each operation.
-- The $11$ & $1$ in the permutation check are the unique identifier of hasher `MP_VERIFY` & `RETURN_HASH` operations which have been explained [here](../stack/unique_identifier.md#identifiers).
+- The $11$ & $1$ in the permutation check are the unique identifier of hasher `MP_VERIFY` & `RETURN_HASH` operations which have been explained [here](../chiplets/main.md#operation-labels).
 - $v_{i}$ is a _common header_ which is a combination of unique identifier of `MP_VERIFY`, row address of execution trace when the computation of building merkle root starts for the node value, and node index.
 - $v_{o}$ is a _common header_ which is a combination of unique identifier of `RETURN_HASH` and row address of the trace when the computation ends.
 - $v_p$, is the component of the first element of the path or the `sibling` of the input node.
@@ -123,7 +123,7 @@ The `MPVERIFY` operation will not change the depth of the stack i.e. the stack d
 
 ![mrupdate](../../assets/design/stack/cryptographic_operations/MRUPDATE.png)
 
-To facilitate this operation, we will need to perform a lookup in a table described [here](https://maticnetwork.github.io/miden/design/chiplets/hasher.html). 
+To facilitate this operation, we will need to perform a lookup in a table described [here](../chiplets/hasher.md). 
 
 To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc..
 
@@ -190,7 +190,7 @@ In the above:
 - $d$ is the depth of the node in the merkle tree fetched from the advice provider. 
 - $p_0$..$p_3$ is the first word(group of four consecutive elements) of the merkle path fetched from advice provider.
 - $m$ is a _transition label_ which uniquely identifies each operation.
-- The $7$, $15$ and $1$ in the permutation check are the unique identifier of hasher `MR_UPDATE_OLD`, `MR_UPDATE_NEW` and `RETURN_HASH` operations which have been explained [here](../stack/unique_identifier.md#identifiers).
+- The $7$, $15$ and $1$ in the permutation check are the unique identifier of hasher `MR_UPDATE_OLD`, `MR_UPDATE_NEW` and `RETURN_HASH` operations which have been explained [here](../chiplets/main.md#operation-labels).
 - $v_{io}$ is a _common header_ which is a combination of unique identifier of `MR_UPDATE_OLD`, row address of the trace when the merkle root building starts for the old node value, and node index.
 - $v_{oo}$ is a _common header_ which is a combination of unique identifier of `RETURN_HASH` and row address of the trace when the merkle root building ends for the old node value.
 - $v_{in}$ is a _common header_ which is a combination of unique identifier of `MR_UPDATE_NEW`, row address of the trace when the merkle root building starts for the new node value, and node index.
