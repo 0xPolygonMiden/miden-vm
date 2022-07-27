@@ -1,6 +1,6 @@
 use super::{
+    chiplets::hasher,
     errors::{AdviceSetError, InputError},
-    hasher,
     utils::IntoBytes,
     Felt, FieldElement, Word, MIN_STACK_DEPTH,
 };

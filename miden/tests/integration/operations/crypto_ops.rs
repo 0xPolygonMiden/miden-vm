@@ -1,6 +1,6 @@
 use rand_utils::rand_vector;
 use vm_core::{
-    hasher::{apply_permutation, hash_elements, STATE_WIDTH},
+    chiplets::hasher::{apply_permutation, hash_elements, STATE_WIDTH},
     AdviceSet, Felt, FieldElement, StarkField,
 };
 

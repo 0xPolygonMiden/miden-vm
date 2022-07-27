@@ -4,7 +4,7 @@ use super::{
 };
 use rand_utils::rand_array;
 use vm_core::{
-    hasher::{apply_round, Selectors, LINEAR_HASH, STATE_WIDTH},
+    chiplets::hasher::{apply_round, Selectors, LINEAR_HASH, STATE_WIDTH},
     Felt, FieldElement, TRACE_WIDTH,
 };
 use winter_air::EvaluationFrame;

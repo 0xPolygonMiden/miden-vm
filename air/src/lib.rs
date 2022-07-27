@@ -5,7 +5,7 @@
 extern crate alloc;
 
 use vm_core::{
-    hasher::Digest,
+    chiplets::hasher::Digest,
     utils::{collections::Vec, ByteWriter, Serializable},
     ExtensionOf, CLK_COL_IDX, FMP_COL_IDX, MIN_STACK_DEPTH, STACK_TRACE_OFFSET,
 };

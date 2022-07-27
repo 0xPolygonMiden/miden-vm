@@ -219,7 +219,7 @@ mod tests {
     use crate::Word;
     use rand_utils::rand_vector;
     use vm_core::{
-        hasher::{apply_permutation, STATE_WIDTH},
+        chiplets::hasher::{apply_permutation, STATE_WIDTH},
         AdviceSet, ProgramInputs,
     };
 

@@ -5,9 +5,9 @@
 extern crate alloc;
 
 use vm_core::{
+    chiplets::hasher::Digest,
     code_blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE},
     errors::AdviceSetError,
-    hasher::Digest,
     utils::collections::{BTreeMap, Vec},
     AdviceInjector, Decorator, DecoratorIterator, Felt, FieldElement, Operation, Program,
     ProgramInputs, StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH,

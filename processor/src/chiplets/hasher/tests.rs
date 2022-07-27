@@ -5,7 +5,7 @@ use super::{
 };
 use rand_utils::rand_array;
 use vm_core::{
-    hasher::{self, NUM_ROUNDS},
+    chiplets::hasher::{self, NUM_ROUNDS},
     AdviceSet, ONE, ZERO,
 };
 
@@ -413,7 +413,7 @@ fn assert_row_equal(trace: &[Vec<Felt>], row_idx: usize, values: &[Felt]) {
 }
 
 fn apply_permutation(mut state: HasherState) -> HasherState {
-    vm_core::hasher::apply_permutation(&mut state);
+    hasher::apply_permutation(&mut state);
     state
 }
 

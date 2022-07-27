@@ -5,7 +5,7 @@ use super::{
 use crate::utils::{are_equal, binary_not, is_binary, EvaluationResult};
 use core::ops::Range;
 use vm_core::{
-    hasher::{
+    chiplets::hasher::{
         Hasher, CAPACITY_LEN, DIGEST_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, NUM_SELECTORS, STATE_WIDTH,
     },
     utils::range as create_range,

@@ -3,12 +3,12 @@ use super::{
     StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
 use vm_core::{
+    chiplets::hasher::DIGEST_LEN,
     code_blocks::get_span_op_group_count,
     decoder::{
         NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS,
         OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
     },
-    hasher::DIGEST_LEN,
     AssemblyOp,
 };
 
@@ -27,7 +27,7 @@ mod tests;
 // CONSTANTS
 // ================================================================================================
 
-const HASH_CYCLE_LEN: Felt = Felt::new(vm_core::hasher::HASH_CYCLE_LEN as u64);
+const HASH_CYCLE_LEN: Felt = Felt::new(vm_core::chiplets::hasher::HASH_CYCLE_LEN as u64);
 
 // DECODER PROCESS EXTENSION
 // ================================================================================================
