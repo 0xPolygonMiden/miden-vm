@@ -24,10 +24,10 @@ fn blake3_2_to_1_hash() {
     let mut i_words = [0u64; MIN_STACK_DEPTH];
 
     // convert each of four consecutive little endian bytes (of input) to blake3 words
-    for i in 0..MIN_STACK_DEPTH {
+    for (i, word) in i_words.iter_mut().enumerate().take(MIN_STACK_DEPTH) {
         let frm = i << 2;
         let to = (i + 1) << 2;
-        i_words[i] = u32::from_le_bytes(i_digest[frm..to].try_into().unwrap()) as u64;
+        *word = u32::from_le_bytes(i_digest[frm..to].try_into().unwrap()) as u64;
     }
     i_words.reverse();
 
@@ -39,10 +39,14 @@ fn blake3_2_to_1_hash() {
     let mut digest_words = [0u64; MIN_STACK_DEPTH >> 1];
 
     // convert each of four consecutive little endian bytes (of digest) to blake3 words
-    for i in 0..(MIN_STACK_DEPTH >> 1) {
+    for (i, word) in digest_words
+        .iter_mut()
+        .enumerate()
+        .take(MIN_STACK_DEPTH >> 1)
+    {
         let frm = i << 2;
         let to = (i + 1) << 2;
-        digest_words[i] = u32::from_le_bytes(digest_bytes[frm..to].try_into().unwrap()) as u64;
+        *word = u32::from_le_bytes(digest_bytes[frm..to].try_into().unwrap()) as u64;
     }
 
     let test = build_test!(source, &i_words);

@@ -1,5 +1,6 @@
 use super::{build_test, Felt, MIN_STACK_DEPTH};
 use sha2::{Digest, Sha256};
+use std::convert::TryInto;
 use vm_core::utils::IntoBytes;
 
 #[test]
@@ -24,8 +25,10 @@ fn sha256_2_to_1_hash() {
     let mut i_words = [0u64; MIN_STACK_DEPTH];
 
     // convert each of four consecutive big endian bytes (of input) to sha256 words
-    for i in 0..MIN_STACK_DEPTH {
-        i_words[i] = from_be_bytes_to_words(&i_digest[i * 4..(i + 1) * 4]) as u64;
+    for (i, word) in i_words.iter_mut().enumerate().take(MIN_STACK_DEPTH) {
+        let frm = i << 2;
+        let to = (i + 1) << 2;
+        *word = u32::from_be_bytes(i_digest[frm..to].try_into().unwrap()) as u64;
     }
     i_words.reverse();
 
@@ -36,24 +39,16 @@ fn sha256_2_to_1_hash() {
     // prepare digest in desired sha256 word form so that assertion writing becomes easier
     let mut digest_words = [0u64; MIN_STACK_DEPTH >> 1];
     // convert each of four consecutive big endian bytes (of digest) to sha256 words
-    for i in 0..(MIN_STACK_DEPTH >> 1) {
-        digest_words[i] = from_be_bytes_to_words(&digest[i * 4..(i + 1) * 4]) as u64;
+    for (i, word) in digest_words
+        .iter_mut()
+        .enumerate()
+        .take(MIN_STACK_DEPTH >> 1)
+    {
+        let frm = i << 2;
+        let to = (i + 1) << 2;
+        *word = u32::from_be_bytes(digest[frm..to].try_into().unwrap()) as u64;
     }
 
-    // finally execute miden program on VM
     let test = build_test!(source, &i_words);
-    // first 8 elements of stack top holds sha256 digest,
-    // while remaining 8 elements are zeroed
     test.expect_stack(&digest_words);
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-/// Takes four consecutive big endian bytes and interprets them as a SHA256 word
-fn from_be_bytes_to_words(be_bytes: &[u8]) -> u32 {
-    ((be_bytes[0] as u32) << 24)
-        | ((be_bytes[1] as u32) << 16)
-        | ((be_bytes[2] as u32) << 8)
-        | (be_bytes[3] as u32)
 }

@@ -195,24 +195,24 @@ proc.columnar_mixing.1
 
     dup.4
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
     
     swap
     dup.5
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
     swap
 
     movup.2
     dup.6
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
     movdn.2
 
     movup.3
     dup.7
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
     movdn.3
 
     movup.12
@@ -240,24 +240,24 @@ proc.columnar_mixing.1
 
     dup.4
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
     
     swap
     dup.5
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
     swap
 
     movup.2
     dup.6
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
     movdn.2
 
     movup.3
     dup.7
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
     movdn.3
 
     movupw.3
@@ -294,24 +294,24 @@ proc.columnar_mixing.1
 
     dup.4
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
     
     swap
     dup.5
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
     swap
 
     movup.2
     dup.6
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
     movdn.2
 
     movup.3
     dup.7
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
     movdn.3
 
     movupw.3
@@ -338,24 +338,24 @@ proc.columnar_mixing.1
 
     dup.4
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
 
     swap
     dup.5
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
     swap
 
     movup.2
     dup.6
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
     movdn.2
 
     movup.3
     dup.7
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
     movdn.3
 
     movupw.3
@@ -428,23 +428,23 @@ proc.diagonal_mixing.1
     movup.3
     dup.4
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
     movdn.3
 
     dup.5
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
 
     swap
     dup.6
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
     swap
 
     movup.2
     dup.7
     u32checked_xor
-    u32checked_rotr.16
+    u32unchecked_rotr.16
     movdn.2
 
     movup.12
@@ -473,24 +473,24 @@ proc.diagonal_mixing.1
     swap
     dup.6
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
     swap
 
     movup.2
     dup.7
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
     movdn.2
 
     movup.3
     dup.4
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
     movdn.3
 
     dup.5
     u32checked_xor
-    u32checked_rotr.12
+    u32unchecked_rotr.12
 
     movupw.3
     pushw.local.0
@@ -527,23 +527,23 @@ proc.diagonal_mixing.1
     movup.3
     dup.4
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
     movdn.3
 
     dup.5
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
 
     swap
     dup.6
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
     swap
 
     movup.2
     dup.7
     u32checked_xor
-    u32checked_rotr.8
+    u32unchecked_rotr.8
     movdn.2
 
     movupw.3
@@ -571,24 +571,24 @@ proc.diagonal_mixing.1
     swap
     dup.6
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
     swap
 
     movup.2
     dup.7
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
     movdn.2
 
     movup.3
     dup.4
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
     movdn.3
 
     dup.5
     u32checked_xor
-    u32checked_rotr.7
+    u32unchecked_rotr.7
 
     movupw.3
 end
@@ -6024,79 +6024,94 @@ export.hash.13
 end
 "),
 // ----- std::crypto::hashes::sha256 --------------------------------------------------------------
-("std::crypto::hashes::sha256", "# SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L73-L79
+("std::crypto::hashes::sha256", "# Given [x, ...] on stack top, this routine computes [y, ...]
+# such that y = σ_0(x), as defined in SHA specification
+#
+# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L73-L79
 proc.small_sigma_0
     dup
-    u32checked_rotr.7
+    u32unchecked_rotr.7
 
     swap
 
     dup
-    u32checked_rotr.18
+    u32unchecked_rotr.18
 
     swap
 
-    u32checked_shr.3
+    u32unchecked_shr.3
 
     u32checked_xor
     u32checked_xor
 end
 
-# SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L81-L87
+# Given [x, ...] on stack top, this routine computes [y, ...]
+# such that y = σ_1(x), as defined in SHA specification
+#
+# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L81-L87
 proc.small_sigma_1
     dup
-    u32checked_rotr.17
+    u32unchecked_rotr.17
 
     swap
 
     dup
-    u32checked_rotr.19
+    u32unchecked_rotr.19
 
     swap
 
-    u32checked_shr.10
+    u32unchecked_shr.10
 
     u32checked_xor
     u32checked_xor
 end
 
-# SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L57-L63
+# Given [x, ...] on stack top, this routine computes [y, ...]
+# such that y = Σ_0(x), as defined in SHA specification
+#
+# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L57-L63
 proc.cap_sigma_0
     dup
-    u32checked_rotr.2
+    u32unchecked_rotr.2
 
     swap
 
     dup
-    u32checked_rotr.13
+    u32unchecked_rotr.13
 
     swap
 
-    u32checked_rotr.22
+    u32unchecked_rotr.22
 
     u32checked_xor
     u32checked_xor
 end
 
-# SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L65-L71
+# Given [x, ...] on stack top, this routine computes [y, ...]
+# such that y = Σ_1(x), as defined in SHA specification
+#
+# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L65-L71
 proc.cap_sigma_1
     dup
-    u32checked_rotr.6
+    u32unchecked_rotr.6
 
     swap
 
     dup
-    u32checked_rotr.11
+    u32unchecked_rotr.11
 
     swap
 
-    u32checked_rotr.25
+    u32unchecked_rotr.25
 
     u32checked_xor
     u32checked_xor
 end
 
-# SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L37-L45
+# Given [x, y, z, ...] on stack top, this routine computes [o, ...]
+# such that o = ch(x, y, z), as defined in SHA specification
+#
+# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L37-L45
 proc.ch
     swap
     dup.1
@@ -6111,7 +6126,10 @@ proc.ch
     u32checked_xor
 end
 
-# SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L47-L55
+# Given [x, y, z, ...] on stack top, this routine computes [o, ...]
+# such that o = maj(x, y, z), as defined in SHA specification
+#
+# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L47-L55
 proc.maj
     dup.1
     dup.1
@@ -6129,2996 +6147,1381 @@ proc.maj
     u32checked_xor
 end
 
-# assume top 4 elements of stack are [3, 2, 1, 0, ...], then after execution of this function, stack should look like [0, 1, 2, 3, ...]
+# Given [a, b, c, d, ...] on stack top, this routine reverses order of first 
+# four elements on stack top such that final stack state looks like [d, c, b, a, ...]
 proc.rev_element_order
     swap
     movup.2
     movup.3
 end
 
-proc.gen_four_message_words.1
-    # compute message schedule msg[a + 0] | a % 4 == 0
-    dup.6
+# Given [a, b, c, d, ...] on stack top, this routine computes next message schedule word
+# using following formula
+#
+# t0 = small_sigma_1(a) + b
+# t1 = small_sigma_0(c) + d
+# return t0 + t1
+#
+# If to be computed message schedule word has index i ∈ [16, 64), then 
+# a, b, c, d will have following indices in message schedule
+#
+# a = msg[i - 2]
+# b = msg[i - 7]
+# c = msg[i - 15]
+# d = msg[i - 16]
+proc.compute_message_schedule_word
     exec.small_sigma_1
+    movup.2
+    exec.small_sigma_0
+
+    u32overflowing_add3
+    drop
+    u32wrapping_add
+end
+
+# Given eight working variables of SHA256 ( i.e. hash state ), a 32 -bit round constant & 
+# 32 -bit message word on stack top, this routine consumes constant & message word into 
+# hash state.
+#
+# Expected stack state looks like
+#
+# [a, b, c, d, e, f, g, h, CONST_i, WORD_i] | i ∈ [0, 64)
+#
+# After finishing execution, stack looks like
+#
+# [a', b', c', d', e', f', g', h']
+#
+# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L165-L175
+proc.consume_message_word
+    dup.6
+    dup.6
+    dup.6
+    exec.ch
+
+    movup.9
+    movup.10
+
+    u32overflowing_add3
+    drop
+
+    dup.5
+    exec.cap_sigma_1
+
+    movup.9
+    u32overflowing_add3
+    drop
+
+    dup.3
+    dup.3
+    dup.3
+    exec.maj
 
     dup.2
-    u32overflowing_add
-    drop
+    exec.cap_sigma_0
 
-    dup.10
-    exec.small_sigma_0
+    u32wrapping_add
 
-    u32overflowing_add
-    drop
+    movup.5
+    dup.2
+    u32wrapping_add
+    movdn.5
 
-    dup.9
-    u32overflowing_add
-    drop
+    u32wrapping_add
+end
 
-    # compute message schedule msg[a + 1]
-    dup.8
-    exec.small_sigma_1
+# Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and 64 -bytes input 
+# message ( in terms of 16 SHA256 words ) on stack top, this routine computes
+# whole message schedule of 64 message words and consumes them into hash state.
+#
+# Expected stack state:
+#
+# [state0, state1, state2, state3, state4, state5, state6, state7, msg0, msg1, msg2, msg3, msg4, msg5, msg6, msg7, msg8, msg9, msg10, msg11, msg12, msg13, msg14, msg15]
+#
+# Final stack state after completion of execution
+#
+# [state0', state1', state2', state3', state4', state5', state6', state7']
+#
+# Note, each SHA256 word is 32 -bit wide
+#
+# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L89-L113
+# & https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop body execution when i = 0 )
+proc.prepare_message_schedule_and_consume.2
+    popw.local.0
+    popw.local.1
 
-    dup.4
-    u32overflowing_add
-    drop
-
-    dup.12
-    exec.small_sigma_0
-
-    u32overflowing_add
-    drop
+    dup.15
+    dup.15
 
     dup.11
-    u32overflowing_add
-    drop
+    swap
+    dup.4
+    dup.4
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[16]
 
-    # compute message schedule msg[a + 2]
+    swap
+    dup.12
+    swap
+    dup.5
+    dup.5
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[17]
+
     dup.1
-    exec.small_sigma_1
+    dup.14
+    swap
+    dup.7
+    dup.7
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[18]
+
+    dup.15
+    dup.2
+    dup.9
+    dup.9
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[19]
+
+    swapw
+
+    push.0x428a2f98
+    pushw.local.1
+    pushw.local.0
+    exec.consume_message_word # consume msg[0]
+
+    push.0x71374491
+    movdn.8
+    exec.consume_message_word # consume msg[1]
+
+    push.0xb5c0fbcf
+    movdn.8
+    exec.consume_message_word # consume msg[2]
+
+    push.0xe9b5dba5
+    movdn.8
+    exec.consume_message_word # consume msg[3]
+
+    popw.local.0
+    popw.local.1
+
+    dup.15
+    dup.15
+    dup.15
+
+    dup.4
+    dup.9
+    dup.9
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[20]
+
+    swap
+    dup.3
+    dup.10
+    dup.10
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[21]
+
+    movup.2
+    dup.2
+    dup.11
+    dup.11
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[22]
 
     dup.6
-    u32overflowing_add
-    drop
+    dup.2
+    dup.13
+    dup.13
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[23]
+
+    movupw.2
+
+    push.0x3956c25b
+    pushw.local.1
+    pushw.local.0
+    exec.consume_message_word # consume msg[4]
+
+    push.0x59f111f1
+    movdn.8
+    exec.consume_message_word # consume msg[5]
+
+    push.0x923f82a4
+    movdn.8
+    exec.consume_message_word # consume msg[6]
+
+    push.0xab1c5ed5
+    movdn.8
+    exec.consume_message_word # consume msg[7]
+
+    popw.local.0
+    popw.local.1
+
+    dup.6
+    dup.2
+    dup.11
+    dup.11
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[24]
+
+    dup.6
+    dup.2
+    dup.13
+    dup.13
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[25]
+
+    dup.6
+    dup.2
+    dup.15
+    dup.15
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[26]
+
+    dup.15
+    dup.15
+    swap
+    dup.8
+    dup.4
+    exec.compute_message_schedule_word # computed msg[27]
+
+    movupw.3
+
+    push.0xd807aa98
+    pushw.local.1
+    pushw.local.0
+    exec.consume_message_word # consume msg[8]
+
+    push.0x12835b01
+    movdn.8
+    exec.consume_message_word # consume msg[9]
+
+    push.0x243185be
+    movdn.8
+    exec.consume_message_word # consume msg[10]
+
+    push.0x550c7dc3
+    movdn.8
+    exec.consume_message_word # consume msg[11]
+
+    popw.local.0
+    popw.local.1
+
+    movupw.3
+    movupw.3
 
     dup.14
-    exec.small_sigma_0
+    dup.10
+    dup.7
+    dup.7
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[28]
 
-    u32overflowing_add
-    drop
+    dup.14
+    dup.10
+    dup.9
+    dup.9
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[29]
 
-    dup.13
-    u32overflowing_add
-    drop
-    
-    # compute message schedule msg[a + 3]
-    dup.1
-    exec.small_sigma_1
+    dup.14
+    dup.2
+    dup.11
+    dup.11
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[30]
 
+    dup.14
+    dup.2
     dup.8
-    u32overflowing_add
-    drop
+    dup.13
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[31]
 
-    popw.local.0
-
-    dup.12
-    exec.small_sigma_0
-
-    dup.12
-    u32overflowing_add
-    drop
-
-    pushw.local.0
-    movup.4
-
-    u32overflowing_add
-    drop
-
-    # stack = [a + 3, a + 2, a + 1, a + 0, ...]
-    exec.rev_element_order
-    # stack = [a + 0, a + 1, a + 2, a + 3, ...]
-end
-
-proc.reorder_stack_words
-    swapw
-    movupw.3
-    movupw.2
-    movupw.3
-end
-
-# SHA256 function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2.hpp#L89-L113
-proc.prepare_message_schedule.5
-    popw.local.0
-    popw.local.1
-    popw.local.2
-    popw.local.3
-
-    movupw.3
-    movupw.3
-
-    # -----
-
-    exec.gen_four_message_words
-
-    popw.local.4
     movupw.2
 
-    pushw.local.0
-    repeat.3
-        swap
-        drop
-    end
-
-    popw.mem            # write to mem msg[0, 1, 2, 3]
-    pushw.local.4
-
-    exec.reorder_stack_words
-    
-    # -----
-
-    exec.gen_four_message_words
-
-    popw.local.4
-    movupw.2
-
-    pushw.local.0
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    popw.mem            # write to mem msg[4, 5, 6, 7]
-    pushw.local.4
-
-    exec.reorder_stack_words
-
-    # -----
-
-    exec.gen_four_message_words
-
-    popw.local.4
-    movupw.2
-
-    pushw.local.0
-    drop
-    drop
-    swap
-    drop
-
-    popw.mem            # write to mem msg[8, 9, 10, 11]
-    pushw.local.4
-
-    exec.reorder_stack_words
-
-    # -----
-
-    exec.gen_four_message_words
-
-    popw.local.4
-    movupw.2
-
-    pushw.local.0
-    drop
-    drop
-    drop
-
-    popw.mem            # write to mem msg[12, 13, 14, 15]
-    pushw.local.4
-
-    exec.reorder_stack_words
-
-    # -----
-    # -----
-
-    exec.gen_four_message_words
-
-    popw.local.4
-    movupw.2
-
-    pushw.local.1
-    repeat.3
-        swap
-        drop
-    end
-
-    popw.mem            # write to mem msg[16, 17, 18, 19]
-    pushw.local.4
-
-    exec.reorder_stack_words
-
-    # -----
-
-    exec.gen_four_message_words
-
-    popw.local.4
-    movupw.2
-
-    pushw.local.1
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    popw.mem            # write to mem msg[20, 21, 22, 23]
-    pushw.local.4
-
-    exec.reorder_stack_words
-
-    # -----
-
-    exec.gen_four_message_words
-
-    popw.local.4
-    movupw.2
-
-    pushw.local.1
-    drop
-    drop
-    swap
-    drop
-
-    popw.mem            # write to mem msg[24, 25, 26, 27]
-    pushw.local.4
-
-    exec.reorder_stack_words
-
-    # -----
-
-    exec.gen_four_message_words
-
-    popw.local.4
-    movupw.2
-
-    pushw.local.1
-    drop
-    drop
-    drop
-
-    popw.mem            # write to mem msg[28, 29, 30, 31]
-    pushw.local.4
-
-    exec.reorder_stack_words
-
-    # -----
-    # -----
-
-    exec.gen_four_message_words
-
-    popw.local.4
-    movupw.2
-
-    pushw.local.2
-    repeat.3
-        swap
-        drop
-    end
-
-    popw.mem            # write to mem msg[32, 33, 34, 35]
-    pushw.local.4
-
-    exec.reorder_stack_words
-
-    # -----
-
-    exec.gen_four_message_words
-
-    popw.local.4
-    movupw.2
-
-    pushw.local.2
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    popw.mem            # write to mem msg[36, 37, 38, 39]
-    pushw.local.4
-
-    exec.reorder_stack_words
-
-    # -----
-
-    exec.gen_four_message_words
-
-    popw.local.4
-    movupw.2
-
-    pushw.local.2
-    drop
-    drop
-    swap
-    drop
-
-    popw.mem            # write to mem msg[40, 41, 42, 43]
-    pushw.local.4
-
-    exec.reorder_stack_words
-
-    # -----
-
-    exec.gen_four_message_words
-
-    popw.local.4
-    movupw.2
-
-    pushw.local.2
-    drop
-    drop
-    drop
-
-    popw.mem            # write to mem msg[44, 45, 46, 47]
-    pushw.local.4
-
-    movupw.3
-    pushw.local.3
-    repeat.3
-        swap
-        drop
-    end
-    popw.mem            # write to mem msg[48, 49, 50, 51]
-
-    swapw
-    pushw.local.3
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    popw.mem            # write to mem msg[52, 53, 54, 55]
-
-    swapw
-    pushw.local.3
-    drop
-    drop
-    swap
-    drop
-    popw.mem            # write to mem msg[56, 57, 58, 59]
-
-    pushw.local.3
-    drop
-    drop
-    drop
-    popw.mem            # write to mem msg[60, 61, 62, 63]
-
-    # -----
-end
-
-proc.update_hash_state
-    # stack = [a, b, c, d, e, f, g, h,  a, b, c, d, e, f, g, h]
-
-    movup.15
-    movup.8
-    u32overflowing_add
-    drop                # = h
-
-    movup.14
-    movup.8
-    u32overflowing_add
-    drop                # = g
-
-    movup.13
-    movup.8
-    u32overflowing_add
-    drop                # = f
-
-    movup.12
-    movup.8
-    u32overflowing_add
-    drop                # = e
-
-    movup.11
-    movup.8
-    u32overflowing_add
-    drop                # = d
-
-    movup.10
-    movup.8
-    u32overflowing_add
-    drop                # = c
-
-    movup.9
-    movup.8
-    u32overflowing_add
-    drop                # = b
-
-    movup.8
-    movup.8
-    u32overflowing_add
-    drop                # = a
-
-    # stack = [a, b, c, d, e, f, g, h]
-end
-
-# can be treated same as https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2_256.hpp#L168-L175
-proc.compute_next_working_variables
-    # stack = [tmp1, tmp0, a, b, c, d, e, f, g, h]
-
-    movup.8             # = h
-    movup.8             # = g
-    movup.8             # = f
-    dup.4
-    movup.9
-    u32overflowing_add
-    drop                # = e 
-    movup.8             # = d
-    movup.8             # = c
-    movup.8             # = b
-    movup.8
-    movup.8
-    u32overflowing_add
-    drop                # = a
-    movup.8
-    drop
-
-    # stack = [a', b', c', d', e', f', g', h']
-end
-
-# can be translated to https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2_256.hpp#L144-L187, where single round of SHA256 mixing is performed
-proc.mix.4
-    popw.local.0
-    popw.local.1
-    popw.local.2
-    popw.local.3
-    
-    # --- begin iteration t = 0 ---
-
-    dupw.1
-    dupw.1
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
-    push.0x428a2f98
-    u32overflowing_add
-    drop
-
-    pushw.local.0
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 1 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
-    push.0x71374491
-    u32overflowing_add
-    drop
-
-    pushw.local.0
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 2 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
-    push.0xb5c0fbcf
-    u32overflowing_add
-    drop
-
-    pushw.local.0
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 3 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
-    push.0xe9b5dba5
-    u32overflowing_add
-    drop
-
-    pushw.local.0
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 4 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
-    push.0x3956c25b
-    u32overflowing_add
-    drop
-
-    pushw.local.0
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 5 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
-    push.0x59f111f1
-    u32overflowing_add
-    drop
-
-    pushw.local.0
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 6 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
-    push.0x923f82a4
-    u32overflowing_add
-    drop
-
-    pushw.local.0
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 7 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
-    push.0xab1c5ed5
-    u32overflowing_add
-    drop
-
-    pushw.local.0
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 8 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
-    push.0xd807aa98
-    u32overflowing_add
-    drop
-
-    pushw.local.0
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 9 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
-    push.0x12835b01
-    u32overflowing_add
-    drop
-
-    pushw.local.0
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 10 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
-    push.0x243185be
-    u32overflowing_add
-    drop
-
-    pushw.local.0
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 11 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
-    push.0x550c7dc3
-    u32overflowing_add
-    drop
-
-    pushw.local.0
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    drop
-    drop
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 12 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x72be5d74
-    u32overflowing_add
-    drop
-
+    pushw.local.1
     pushw.local.0
-    drop
-    drop
-    drop
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
+    exec.consume_message_word # consume msg[12]
 
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 13 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x80deb1fe
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[13]
 
-    pushw.local.0
-    drop
-    drop
-    drop
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 14 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x9bdc06a7
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[14]
 
-    pushw.local.0
-    drop
-    drop
-    drop
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 15 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xc19bf174
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[15]
 
-    pushw.local.0
-    drop
-    drop
-    drop
-    pushw.mem
-    drop
-    drop
-    drop
+    popw.local.0
+    popw.local.1
 
-    u32overflowing_add
-    drop
+    movupw.3
 
-    dupw
-    drop
-    exec.maj
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[32]
+
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[33]
+
+    dup.14
     dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[34]
 
-    exec.compute_next_working_variables
+    dup.10
+    dup.2
+    dup.8
+    dup.14
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[35]
 
-    # --- begin iteration t = 16 ---
+    movupw.3
+    exec.rev_element_order
 
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xe49b69c1
-    u32overflowing_add
-    drop
-
     pushw.local.1
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
+    pushw.local.0
+    exec.consume_message_word # consume msg[16]
 
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 17 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xefbe4786
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[17]
 
-    pushw.local.1
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 18 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x0fc19dc6
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[18]
 
-    pushw.local.1
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 19 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x240ca1cc
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[19]
 
-    pushw.local.1
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    drop
+    popw.local.0
+    popw.local.1
 
-    u32overflowing_add
-    drop
+    movupw.3
 
-    dupw
-    drop
-    exec.maj
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[36]
+
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[37]
+
+    dup.14
     dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[38]
 
-    exec.compute_next_working_variables
+    dup.10
+    dup.2
+    dup.8
+    dup.14
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[39]
 
-    # --- begin iteration t = 20 ---
+    movupw.3
+    exec.rev_element_order
 
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x2de92c6f
-    u32overflowing_add
-    drop
-
     pushw.local.1
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
+    pushw.local.0
+    exec.consume_message_word # consume msg[20]
 
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 21 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x4a7484aa
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[21]
 
-    pushw.local.1
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 22 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x5cb0a9dc
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[22]
 
-    pushw.local.1
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 23 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x76f988da
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[23]
 
-    pushw.local.1
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    drop
+    popw.local.0
+    popw.local.1
 
-    u32overflowing_add
-    drop
+    movupw.3
 
-    dupw
-    drop
-    exec.maj
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[40]
+
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[41]
+
+    dup.14
     dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[42]
 
-    exec.compute_next_working_variables
+    dup.10
+    dup.2
+    dup.13
+    dup.9
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[43]
 
-    # --- begin iteration t = 24 ---
+    movupw.3
+    exec.rev_element_order
 
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x983e5152
-    u32overflowing_add
-    drop
-
     pushw.local.1
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
+    pushw.local.0
+    exec.consume_message_word # consume msg[24]
 
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 25 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xa831c66d
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[25]
 
-    pushw.local.1
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 26 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xb00327c8
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[26]
 
-    pushw.local.1
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 27 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xbf597fc7
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[27]
 
-    pushw.local.1
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    drop
-    drop
-    drop
+    popw.local.0
+    popw.local.1
 
-    u32overflowing_add
-    drop
+    movupw.3
 
-    dupw
-    drop
-    exec.maj
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[44]
+
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[45]
+
+    dup.14
     dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[46]
 
-    exec.compute_next_working_variables
+    dup.10
+    dup.2
+    dup.8
+    dup.14
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[47]
 
-    # --- begin iteration t = 28 ---
+    movupw.3
+    exec.rev_element_order
 
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xc6e00bf3
-    u32overflowing_add
-    drop
-
     pushw.local.1
-    drop
-    drop
-    drop
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
+    pushw.local.0
+    exec.consume_message_word # consume msg[28]
 
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 29 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xd5a79147
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[29]
 
-    pushw.local.1
-    drop
-    drop
-    drop
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 30 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x06ca6351
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[30]
 
-    pushw.local.1
-    drop
-    drop
-    drop
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 31 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x14292967
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[31]
 
-    pushw.local.1
-    drop
-    drop
-    drop
-    pushw.mem
-    drop
-    drop
-    drop
+    popw.local.0
+    popw.local.1
 
-    u32overflowing_add
-    drop
+    movupw.3
 
-    dupw
-    drop
-    exec.maj
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[48]
+
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[49]
+
+    dup.14
     dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[50]
 
-    exec.compute_next_working_variables
+    dup.10
+    dup.2
+    dup.8
+    dup.14
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[51]
 
-    # --- begin iteration t = 32 ---
+    movupw.3
+    exec.rev_element_order
 
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x27b70a85
-    u32overflowing_add
-    drop
+    pushw.local.1
+    pushw.local.0
+    exec.consume_message_word # consume msg[32]
 
-    pushw.local.2
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 33 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x2e1b2138
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[33]
 
-    pushw.local.2
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 34 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x4d2c6dfc
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[34]
 
-    pushw.local.2
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 35 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x53380d13
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[35]
 
-    pushw.local.2
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    drop
+    popw.local.0
+    popw.local.1
 
-    u32overflowing_add
-    drop
+    movupw.3
 
-    dupw
-    drop
-    exec.maj
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[52]
+
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[53]
+
+    dup.14
     dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[54]
 
-    exec.compute_next_working_variables
+    dup.10
+    dup.2
+    dup.8
+    dup.14
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[55]
 
-    # --- begin iteration t = 36 ---
+    movupw.3
+    exec.rev_element_order
 
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x650a7354
-    u32overflowing_add
-    drop
+    pushw.local.1
+    pushw.local.0
+    exec.consume_message_word # consume msg[36]
 
-    pushw.local.2
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 37 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x766a0abb
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[37]
 
-    pushw.local.2
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 38 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x81c2c92e
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[38]
 
-    pushw.local.2
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 39 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x92722c85
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[39]
 
-    pushw.local.2
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    drop
+    popw.local.0
+    popw.local.1
 
-    u32overflowing_add
-    drop
+    movupw.3
 
-    dupw
-    drop
-    exec.maj
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[56]
+
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[57]
+
+    dup.14
     dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[58]
 
-    exec.compute_next_working_variables
+    dup.10
+    dup.2
+    dup.8
+    dup.14
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[59]
 
-    # --- begin iteration t = 40 ---
+    movupw.3
+    exec.rev_element_order
 
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xa2bfe8a1
-    u32overflowing_add
-    drop
+    pushw.local.1
+    pushw.local.0
+    exec.consume_message_word # consume msg[40]
 
-    pushw.local.2
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 41 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xa81a664b
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[41]
 
-    pushw.local.2
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 42 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xc24b8b70
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[42]
 
-    pushw.local.2
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 43 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xc76c51a3
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[43]
 
-    pushw.local.2
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    drop
-    drop
-    drop
+    popw.local.0
+    popw.local.1
 
-    u32overflowing_add
-    drop
+    movupw.3
 
-    dupw
-    drop
-    exec.maj
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[60]
+
+    dup.14
+    dup.6
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[61]
+
+    dup.14
     dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
+    dup.13
+    dup.13
+    movdn.3
+    movdn.3
+    exec.compute_message_schedule_word # computed msg[62]
 
-    exec.compute_next_working_variables
+    dup.10
+    dup.2
+    dup.8
+    dup.14
+    movdn.3
+    movdn.2
+    exec.compute_message_schedule_word # computed msg[63]
 
-    # --- begin iteration t = 44 ---
+    movupw.3
+    exec.rev_element_order
 
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xd192e819
-    u32overflowing_add
-    drop
+    pushw.local.1
+    pushw.local.0
+    exec.consume_message_word # consume msg[44]
 
-    pushw.local.2
-    drop
-    drop
-    drop
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 45 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xd6990624
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[45]
 
-    pushw.local.2
-    drop
-    drop
-    drop
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 46 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xf40e3585
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[46]
 
-    pushw.local.2
-    drop
-    drop
-    drop
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 47 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x106aa070
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[47]
 
-    pushw.local.2
-    drop
-    drop
-    drop
-    pushw.mem
-    drop
-    drop
-    drop
+    popw.local.0
+    popw.local.1
 
-    u32overflowing_add
-    drop
+    movupw.2
+    movupw.3
+    movupw.3
 
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
+    exec.rev_element_order
 
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 48 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x19a4c116
-    u32overflowing_add
-    drop
+    pushw.local.1
+    pushw.local.0
+    exec.consume_message_word # consume msg[48]
 
-    pushw.local.3
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 49 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x1e376c08
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[49]
 
-    pushw.local.3
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 50 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x2748774c
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[50]
 
-    pushw.local.3
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 51 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x34b0bcb5
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[51]
 
-    pushw.local.3
-    repeat.3
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    drop
+    movupw.2
+    exec.rev_element_order
+    movdnw.2
 
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 52 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x391c0cb3
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[52]
 
-    pushw.local.3
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 53 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x4ed8aa4a
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[53]
 
-    pushw.local.3
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 54 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x5b9cca4f
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[54]
 
-    pushw.local.3
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 55 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x682e6ff3
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[55]
 
-    pushw.local.3
-    drop
-    repeat.2
-        swap
-        drop
-    end
-    pushw.mem
-    drop
-    drop
-    drop
+    movupw.2
+    exec.rev_element_order
+    movdnw.2
 
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 56 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x748f82ee
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[56]
 
-    pushw.local.3
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 57 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x78a5636f
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[57]
 
-    pushw.local.3
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 58 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x84c87814
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[58]
 
-    pushw.local.3
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 59 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x8cc70208
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[59]
 
-    pushw.local.3
-    drop
-    drop
-    swap
-    drop
-    pushw.mem
-    drop
-    drop
-    drop
+    movupw.2
+    exec.rev_element_order
+    movdnw.2
 
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 60 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0x90befffa
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[60]
 
-    pushw.local.3
-    drop
-    drop
-    drop
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 61 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xa4506ceb
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[61]
 
-    pushw.local.3
-    drop
-    drop
-    drop
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 62 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xbef9a3f7
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[62]
 
-    pushw.local.3
-    drop
-    drop
-    drop
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32overflowing_add
-    drop
-
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
-
-    exec.compute_next_working_variables
-
-    # --- begin iteration t = 63 ---
-
-    dupw.1
-    exec.ch
-    u32overflowing_add
-    drop
-    dup.5
-    exec.cap_sigma_1
-    u32overflowing_add
-    drop
     push.0xc67178f2
-    u32overflowing_add
-    drop
+    movdn.8
+    exec.consume_message_word # consume msg[63]
 
-    pushw.local.3
-    drop
-    drop
-    drop
-    pushw.mem
-    drop
-    drop
-    drop
+    push.0x6a09e667
+    u32wrapping_add
 
-    u32overflowing_add
-    drop
+    swap
+    push.0xbb67ae85
+    u32wrapping_add
+    swap
 
-    dupw
-    drop
-    exec.maj
-    dup.2
-    exec.cap_sigma_0
-    u32overflowing_add
-    drop
+    movup.2
+    push.0x3c6ef372
+    u32wrapping_add
+    movdn.2
 
-    exec.compute_next_working_variables
+    movup.3
+    push.0xa54ff53a
+    u32wrapping_add
+    movdn.3
 
-    exec.update_hash_state
+    movup.4
+    push.0x510e527f
+    u32wrapping_add
+    movdn.4
+
+    movup.5
+    push.0x9b05688c
+    u32wrapping_add
+    movdn.5
+
+    movup.6
+    push.0x1f83d9ab
+    u32wrapping_add
+    movdn.6
+
+    movup.7
+    push.0x5be0cd19
+    u32wrapping_add
+    movdn.7
 end
 
-# Computes SHA256 2-to-1 hash function; see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2_256.hpp#L121-L196
+# Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and precomputed message 
+# schedule of padding bytes ( in terms of 64 message words ), this routine consumes
+# that into hash state, leaving final hash state, which is 32 -bytes SHA256 digest.
 #
-# Input: First 16 elements of stack ( i.e. stack top ) holds 64 -bytes input digest, 
-#   which is two sha256 digests ( each digest 32 -bytes i.e. 8 stack elements ) concatenated 
-#   next to each other
-#  
-# Output: First 8 elements of stack holds 32 -bytes blake3 digest, 
-#   while remaining 8 elements of stack top are zeroed
-export.hash.16
-    push.env.locaddr.15
-    push.env.locaddr.14
-    push.env.locaddr.13
-    push.env.locaddr.12
+# Note, in SHA256 2-to-1 hashing, 64 -bytes are padded, which is processed as second message
+# block ( each SHA256 message block is 64 -bytes wide ). That message block is used for generating 
+# message schedule of 64 SHA256 words. That's exactly what can be precomputed & is consumed here 
+# ( in this routine ) into provided hash state.
+#
+# Expected stack state:
+#
+# [state0, state1, state2, state3, state4, state5, state6, state7, ...]
+#
+# Final stack state after completion of execution
+#
+# [state0', state1', state2', state3', state4', state5', state6', state7']
+#
+# Note, each SHA256 word is 32 -bit wide
+#
+# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop 
+# body execution when i = 1 i.e. consuming padding bytes )
+proc.consume_padding_message_schedule
+    dupw.1
+    dupw.1
 
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
+    push.2147483648
+    movdn.8
+    push.0x428a2f98
+    movdn.8
+    exec.consume_message_word # consume msg[0]
 
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
+    push.0
+    movdn.8
+    push.0x71374491
+    movdn.8
+    exec.consume_message_word # consume msg[1]
 
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
+    push.0
+    movdn.8
+    push.0xb5c0fbcf
+    movdn.8
+    exec.consume_message_word # consume msg[2]
 
-    exec.prepare_message_schedule
+    push.0
+    movdn.8
+    push.0xe9b5dba5
+    movdn.8
+    exec.consume_message_word # consume msg[3]
 
-    # SHA256 initial hash values https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2_256.hpp#L15-L20
+    push.0
+    movdn.8
+    push.0x3956c25b
+    movdn.8
+    exec.consume_message_word # consume msg[4]
+
+    push.0
+    movdn.8
+    push.0x59f111f1
+    movdn.8
+    exec.consume_message_word # consume msg[5]
+
+    push.0
+    movdn.8
+    push.0x923f82a4
+    movdn.8
+    exec.consume_message_word # consume msg[6]
+
+    push.0
+    movdn.8
+    push.0xab1c5ed5
+    movdn.8
+    exec.consume_message_word # consume msg[7]
+
+    push.0
+    movdn.8
+    push.0xd807aa98
+    movdn.8
+    exec.consume_message_word # consume msg[8]
+
+    push.0
+    movdn.8
+    push.0x12835b01
+    movdn.8
+    exec.consume_message_word # consume msg[9]
+
+    push.0
+    movdn.8
+    push.0x243185be
+    movdn.8
+    exec.consume_message_word # consume msg[10]
+
+    push.0
+    movdn.8
+    push.0x550c7dc3
+    movdn.8
+    exec.consume_message_word # consume msg[11]
+
+    push.0
+    movdn.8
+    push.0x72be5d74
+    movdn.8
+    exec.consume_message_word # consume msg[12]
+
+    push.0
+    movdn.8
+    push.0x80deb1fe
+    movdn.8
+    exec.consume_message_word # consume msg[13]
+
+    push.0
+    movdn.8
+    push.0x9bdc06a7
+    movdn.8
+    exec.consume_message_word # consume msg[14]
+
+    push.512
+    movdn.8
+    push.0xc19bf174
+    movdn.8
+    exec.consume_message_word # consume msg[15]
+
+    push.2147483648
+    movdn.8
+    push.0xe49b69c1
+    movdn.8
+    exec.consume_message_word # consume msg[16]
+
+    push.20971520
+    movdn.8
+    push.0xefbe4786
+    movdn.8
+    exec.consume_message_word # consume msg[17]
+
+    push.2117632
+    movdn.8
+    push.0x0fc19dc6
+    movdn.8
+    exec.consume_message_word # consume msg[18]
+
+    push.20616
+    movdn.8
+    push.0x240ca1cc
+    movdn.8
+    exec.consume_message_word # consume msg[19]
+
+    push.570427392
+    movdn.8
+    push.0x2de92c6f
+    movdn.8
+    exec.consume_message_word # consume msg[20]
+
+    push.575995924
+    movdn.8
+    push.0x4a7484aa
+    movdn.8
+    exec.consume_message_word # consume msg[21]
+
+    push.84449090
+    movdn.8
+    push.0x5cb0a9dc
+    movdn.8
+    exec.consume_message_word # consume msg[22]
+
+    push.2684354592
+    movdn.8
+    push.0x76f988da
+    movdn.8
+    exec.consume_message_word # consume msg[23]
+
+    push.1518862336
+    movdn.8
+    push.0x983e5152
+    movdn.8
+    exec.consume_message_word # consume msg[24]
+
+    push.6067200
+    movdn.8
+    push.0xa831c66d
+    movdn.8
+    exec.consume_message_word # consume msg[25]
+
+    push.1496221
+    movdn.8
+    push.0xb00327c8
+    movdn.8
+    exec.consume_message_word # consume msg[26]
+
+    push.4202700544
+    movdn.8
+    push.0xbf597fc7
+    movdn.8
+    exec.consume_message_word # consume msg[27]
+
+    push.3543279056
+    movdn.8
+    push.0xc6e00bf3
+    movdn.8
+    exec.consume_message_word # consume msg[28]
+
+    push.291985753
+    movdn.8
+    push.0xd5a79147
+    movdn.8
+    exec.consume_message_word # consume msg[29]
+
+    push.4142317530
+    movdn.8
+    push.0x06ca6351
+    movdn.8
+    exec.consume_message_word # consume msg[30]
+
+    push.3003913545
+    movdn.8
+    push.0x14292967
+    movdn.8
+    exec.consume_message_word # consume msg[31]
+
+    push.145928272
+    movdn.8
+    push.0x27b70a85
+    movdn.8
+    exec.consume_message_word # consume msg[32]
+
+    push.2642168871
+    movdn.8
+    push.0x2e1b2138
+    movdn.8
+    exec.consume_message_word # consume msg[33]
+
+    push.216179603
+    movdn.8
+    push.0x4d2c6dfc
+    movdn.8
+    exec.consume_message_word # consume msg[34]
+
+    push.2296832490
+    movdn.8
+    push.0x53380d13
+    movdn.8
+    exec.consume_message_word # consume msg[35]
+
+    push.2771075893
+    movdn.8
+    push.0x650a7354
+    movdn.8
+    exec.consume_message_word # consume msg[36]
+
+    push.1738633033
+    movdn.8
+    push.0x766a0abb
+    movdn.8
+    exec.consume_message_word # consume msg[37]
+
+    push.3610378607
+    movdn.8
+    push.0x81c2c92e
+    movdn.8
+    exec.consume_message_word # consume msg[38]
+
+    push.1324035729
+    movdn.8
+    push.0x92722c85
+    movdn.8
+    exec.consume_message_word # consume msg[39]
+
+    push.1572820453
+    movdn.8
+    push.0xa2bfe8a1
+    movdn.8
+    exec.consume_message_word # consume msg[40]
+
+    push.2397971253
+    movdn.8
+    push.0xa81a664b
+    movdn.8
+    exec.consume_message_word # consume msg[41]
+
+    push.3803995842
+    movdn.8
+    push.0xc24b8b70
+    movdn.8
+    exec.consume_message_word # consume msg[42]
+
+    push.2822718356
+    movdn.8
+    push.0xc76c51a3
+    movdn.8
+    exec.consume_message_word # consume msg[43]
+
+    push.1168996599
+    movdn.8
+    push.0xd192e819
+    movdn.8
+    exec.consume_message_word # consume msg[44]
+
+    push.921948365
+    movdn.8
+    push.0xd6990624
+    movdn.8
+    exec.consume_message_word # consume msg[45]
+
+    push.3650881000
+    movdn.8
+    push.0xf40e3585
+    movdn.8
+    exec.consume_message_word # consume msg[46]
+
+    push.2958106055
+    movdn.8
+    push.0x106aa070
+    movdn.8
+    exec.consume_message_word # consume msg[47]
+
+    push.1773959876
+    movdn.8
+    push.0x19a4c116
+    movdn.8
+    exec.consume_message_word # consume msg[48]
+
+    push.3172022107
+    movdn.8
+    push.0x1e376c08
+    movdn.8
+    exec.consume_message_word # consume msg[49]
+
+    push.3820646885
+    movdn.8
+    push.0x2748774c
+    movdn.8
+    exec.consume_message_word # consume msg[50]
+
+    push.991993842
+    movdn.8
+    push.0x34b0bcb5
+    movdn.8
+    exec.consume_message_word # consume msg[51]
+
+    push.419360279
+    movdn.8
+    push.0x391c0cb3
+    movdn.8
+    exec.consume_message_word # consume msg[52]
+
+    push.3797604839
+    movdn.8
+    push.0x4ed8aa4a
+    movdn.8
+    exec.consume_message_word # consume msg[53]
+
+    push.322392134
+    movdn.8
+    push.0x5b9cca4f
+    movdn.8
+    exec.consume_message_word # consume msg[54]
+
+    push.85264541
+    movdn.8
+    push.0x682e6ff3
+    movdn.8
+    exec.consume_message_word # consume msg[55]
+
+    push.1326255876
+    movdn.8
+    push.0x748f82ee
+    movdn.8
+    exec.consume_message_word # consume msg[56]
+
+    push.640108622
+    movdn.8
+    push.0x78a5636f
+    movdn.8
+    exec.consume_message_word # consume msg[57]
+
+    push.822159570
+    movdn.8
+    push.0x84c87814
+    movdn.8
+    exec.consume_message_word # consume msg[58]
+
+    push.3328750644
+    movdn.8
+    push.0x8cc70208
+    movdn.8
+    exec.consume_message_word # consume msg[59]
+
+    push.1107837388
+    movdn.8
+    push.0x90befffa
+    movdn.8
+    exec.consume_message_word # consume msg[60]
+
+    push.1657999800
+    movdn.8
+    push.0xa4506ceb
+    movdn.8
+    exec.consume_message_word # consume msg[61]
+
+    push.3852183409
+    movdn.8
+    push.0xbef9a3f7
+    movdn.8
+    exec.consume_message_word # consume msg[62]
+
+    push.2242356356
+    movdn.8
+    push.0xc67178f2
+    movdn.8
+    exec.consume_message_word # consume msg[63]
+
+    movup.8
+    u32wrapping_add
+
+    swap
+    movup.8
+    u32wrapping_add
+    swap
+
+    movup.2
+    movup.8
+    u32wrapping_add
+    movdn.2
+
+    movup.3
+    movup.8
+    u32wrapping_add
+    movdn.3
+
+    movup.4
+    movup.8
+    u32wrapping_add
+    movdn.4
+
+    movup.5
+    movup.8
+    u32wrapping_add
+    movdn.5
+
+    movup.6
+    movup.8
+    u32wrapping_add
+    movdn.6
+
+    movup.7
+    movup.8
+    u32wrapping_add
+    movdn.7
+end
+
+# Given 64 -bytes input, this routine computes 32 -bytes SAH256 digest
+#
+# Expected stack state:
+#
+# [m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15] | m[0,16) = 32 -bit word
+#
+# Note, each SHA256 word is 32 -bit wide, so that's how input is expected.
+# If you've 64 -bytes, consider packing 4 consecutive bytes into single word, 
+# maintaining big endian byte order.
+#
+# Final stack state:
+#
+# [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7]
+#
+# SHA256 digest is represented in terms of eight 32 -bit words ( big endian byte order ).
+export.hash
     push.0x5be0cd19.0x1f83d9ab.0x9b05688c.0x510e527f
     push.0xa54ff53a.0x3c6ef372.0xbb67ae85.0x6a09e667
 
-    push.env.locaddr.15
-    push.env.locaddr.14
-    push.env.locaddr.13
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.mix
-
-    # precompute message schedule for compile-time known 512 -bytes padding 
-    # words ( see https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2_256.hpp#L89-L99 ),
-    # i.e. 64 sha256 words.
-    #
-    # message schedule computation happens in https://github.com/itzmeanjan/merklize-sha/blob/8a2c006a2ffe1e6e8e36b375bc5a570385e9f0f2/include/sha2_256.hpp#L144-L146,
-    # note in following section, I'm precomputing message schedule for iteration `i = 1` ( see last hyperlink )
-    #
-    push.0.0.0.2147483648
-    popw.local.0
-    push.0.0.0.0
-    popw.local.1
-    push.0.0.0.0
-    popw.local.2
-    push.512.0.0.0
-    popw.local.3
-    push.20616.2117632.20971520.2147483648
-    popw.local.4
-    push.2684354592.84449090.575995924.570427392
-    popw.local.5
-    push.4202700544.1496221.6067200.1518862336
-    popw.local.6
-    push.3003913545.4142317530.291985753.3543279056
-    popw.local.7
-    push.2296832490.216179603.2642168871.145928272
-    popw.local.8
-    push.1324035729.3610378607.1738633033.2771075893
-    popw.local.9
-    push.2822718356.3803995842.2397971253.1572820453
-    popw.local.10
-    push.2958106055.3650881000.921948365.1168996599
-    popw.local.11
-    push.991993842.3820646885.3172022107.1773959876
-    popw.local.12
-    push.85264541.322392134.3797604839.419360279
-    popw.local.13
-    push.3328750644.822159570.640108622.1326255876
-    popw.local.14
-    push.2242356356.3852183409.1657999800.1107837388
-    popw.local.15
-
-    push.env.locaddr.15
-    push.env.locaddr.14
-    push.env.locaddr.13
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
-
-    exec.mix
+    exec.prepare_message_schedule_and_consume
+    exec.consume_padding_message_schedule
 end
 "),
 // ----- std::math::u256 --------------------------------------------------------------------------

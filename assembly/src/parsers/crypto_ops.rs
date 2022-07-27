@@ -121,7 +121,7 @@ pub fn parse_mtree(
 /// - node V, 4 elements
 /// - root of the tree, 4 elements
 ///
-/// This operation takes 38 VM cycles.
+/// This operation takes 12 VM cycles.
 fn mtree_get(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
     // stack: [d, i, R, ...]
     // inject the node value we're looking for at the head of the advice tape
@@ -131,38 +131,25 @@ fn mtree_get(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
     ));
 
     // temporarily move d and i out of the way to make future stack manipulations easier
-    // => [R, 0, 0, d, i, ...]
+    // => [0, 0, d, i, R, ...]
     span_ops.push(Operation::Pad);
     span_ops.push(Operation::Pad);
-    span_ops.push(Operation::SwapW);
 
-    // read node value from advice tape => [V, R, 0, 0, d, i, ...]
+    // read node value from advice tape => [V, 0, 0, d, i, R, ...]
     span_ops.push_many(Operation::Read, 4);
 
-    // Duplicate the node value at the top of the stack. This allows the new copy of the node to be
-    // used in MPVERIFY and keeps a copy to return at the end
-    // copy the node value for use in MPVERIFY => [V, V, R, 0, 0, d, i ...]
-    span_ops.push_many(Operation::Dup3, 4);
-
-    // move d, i back to the top of the stack => [d, i, V, R, V, ...]
-    span_ops.push(Operation::SwapW3);
+    // move d, i back to the top of the stack => [d, i, V, R, ...]
+    span_ops.push(Operation::SwapW);
     span_ops.push(Operation::Drop);
     span_ops.push(Operation::Drop);
 
     // verify the node V for root R with depth d and index i
-    // => [d, i, R_computed, R, V, ...] where R_computed is the computed root for node V at d, i
+    // => [d, i, V, R, ...]
     span_ops.push(Operation::MpVerify);
 
-    // drop d, i since they're no longer needed => [R_computed, R, V, ...]
+    // drop d, i since they're no longer needed => [V, R, ...]
     span_ops.push(Operation::Drop);
     span_ops.push(Operation::Drop);
-
-    // verify that the computed root for node V equals the provided root, then drop the duplicate
-    // => [R, V, ...]
-    validate_and_drop_root(span_ops);
-
-    // move the retrieved & verified node value to the top of the stack => [V, R, ...]
-    span_ops.push(Operation::SwapW);
 }
 
 /// Appends the MRUPDATE op with a parameter of "false" and stack manipulations to the span block

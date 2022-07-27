@@ -166,7 +166,14 @@ impl Process {
     /// allows for setting helpers in the decoder when executing operations during tests.
     #[cfg(test)]
     fn new_dummy_with_decoder_helpers() -> Self {
-        let mut process = Self::new(super::ProgramInputs::none());
+        Self::new_dummy_with_inputs_and_decoder_helpers(super::ProgramInputs::none())
+    }
+
+    /// Instantiates a new process having Program inputs along with one decoder trace row
+    /// for testing purposes.
+    #[cfg(test)]
+    fn new_dummy_with_inputs_and_decoder_helpers(input: super::ProgramInputs) -> Self {
+        let mut process = Self::new(input);
         process.decoder.add_dummy_trace_row();
         process
     }

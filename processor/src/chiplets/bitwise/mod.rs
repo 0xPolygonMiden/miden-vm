@@ -1,6 +1,12 @@
-use super::{ExecutionError, Felt, StarkField, TraceFragment, Vec};
+use super::{
+    ChipletsBus, ExecutionError, Felt, FieldElement, LookupTableRow, StarkField, TraceFragment,
+    Vec, BITWISE_AND_LABEL, BITWISE_OR_LABEL, BITWISE_XOR_LABEL,
+};
 use crate::utils::get_trace_len;
-use vm_core::bitwise::{BITWISE_AND, BITWISE_OR, BITWISE_XOR, NUM_SELECTORS, TRACE_WIDTH};
+use vm_core::chiplets::bitwise::{
+    A_COL_IDX, BITWISE_AND, BITWISE_OR, BITWISE_XOR, B_COL_IDX, NUM_SELECTORS, OP_CYCLE_LEN,
+    OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
+};
 
 #[cfg(test)]
 mod tests;
@@ -91,8 +97,8 @@ impl Bitwise {
         // append 8 rows to the trace, each row computing bitwise AND in 4 bit limbs starting with
         // the most significant limb.
         for bit_offset in (0..32).step_by(4).rev() {
-            // append the previous row's result to the 13th column of the trace
-            self.trace[12].push(Felt::new(result));
+            // append the previous row's result to the column for previous output values
+            self.trace[PREV_OUTPUT_COL_IDX].push(Felt::new(result));
             // shift a and b so that the next 4-bit limb is in the least significant position
             let a = a >> bit_offset;
             let b = b >> bit_offset;
@@ -105,9 +111,9 @@ impl Bitwise {
             let result_4_bit = (a & b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 14th column of the trace.
+            // the output column in the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[13].push(Felt::new(result));
+            self.trace[OUTPUT_COL_IDX].push(Felt::new(result));
         }
 
         Ok(Felt::new(result))
@@ -126,8 +132,8 @@ impl Bitwise {
         // append 8 rows to the trace, each row computing bitwise OR in 4 bit limbs starting with
         // the most significant limb.
         for bit_offset in (0..32).step_by(4).rev() {
-            // append the previous row's result to the 13th column of the trace
-            self.trace[12].push(Felt::new(result));
+            // append the previous row's result to the column for previous output values
+            self.trace[PREV_OUTPUT_COL_IDX].push(Felt::new(result));
             // shift a and b so that the next 4-bit limb is in the least significant position
             let a = a >> bit_offset;
             let b = b >> bit_offset;
@@ -140,9 +146,9 @@ impl Bitwise {
             let result_4_bit = (a | b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 14th column of the trace.
+            // the output column in the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[13].push(Felt::new(result));
+            self.trace[OUTPUT_COL_IDX].push(Felt::new(result));
         }
 
         Ok(Felt::new(result))
@@ -161,8 +167,8 @@ impl Bitwise {
         // append 8 rows to the trace, each row computing bitwise XOR in 4 bit limbs starting with
         // the most significant limb.
         for bit_offset in (0..32).step_by(4).rev() {
-            // append the previous row's result to the 13th column of the trace
-            self.trace[12].push(Felt::new(result));
+            // append the previous row's result to the column for previous output values
+            self.trace[PREV_OUTPUT_COL_IDX].push(Felt::new(result));
             // shift a and b so that the next 4-bit limb is in the least significant position
             let a = a >> bit_offset;
             let b = b >> bit_offset;
@@ -175,9 +181,9 @@ impl Bitwise {
             let result_4_bit = (a ^ b) & 0xF;
 
             // append the 4 bit result to the result accumulator, and save the current result into
-            // the 14th column of the trace.
+            // the output column in the trace.
             result = (result << 4) | result_4_bit;
-            self.trace[13].push(Felt::new(result));
+            self.trace[OUTPUT_COL_IDX].push(Felt::new(result));
         }
 
         Ok(Felt::new(result))
@@ -186,11 +192,44 @@ impl Bitwise {
     // EXECUTION TRACE GENERATION
     // --------------------------------------------------------------------------------------------
 
-    /// Fills the provide trace fragment with trace data from this bitwise helper instance.
-    pub fn fill_trace(self, trace: &mut TraceFragment) {
+    /// Fills the provided trace fragment with trace data from this bitwise helper instance. Each
+    /// bitwise operation lookup is also sent to the chiplets bus, along with the cycle at which it
+    /// was provided, which is calculated as an offset from the first row of the Bitwise chiplet.
+    /// Lookup values come from the last row of each bitwise operation cycle which contains both the
+    /// aggregated input values and the output result.
+    pub fn fill_trace(
+        self,
+        trace: &mut TraceFragment,
+        bitwise_start_row: usize,
+        chiplets_bus: &mut ChipletsBus,
+    ) {
         // make sure fragment dimensions are consistent with the dimensions of this trace
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
         debug_assert_eq!(TRACE_WIDTH, trace.width(), "inconsistent trace widths");
+
+        // provide the lookup data from the last row in each bitwise cycle
+        for row in ((OP_CYCLE_LEN - 1)..self.trace_len()).step_by(OP_CYCLE_LEN) {
+            let a = self.trace[A_COL_IDX][row];
+            let b = self.trace[B_COL_IDX][row];
+            let z = self.trace[OUTPUT_COL_IDX][row];
+
+            // get the operation label.
+            let op_selectors: Selectors = [self.trace[0][row], self.trace[1][row]];
+            let label = if op_selectors == BITWISE_AND {
+                BITWISE_AND_LABEL
+            } else if op_selectors == BITWISE_OR {
+                BITWISE_OR_LABEL
+            } else {
+                assert!(
+                    op_selectors == BITWISE_XOR,
+                    "Unrecognized operation selectors in Bitwise chiplet"
+                );
+                BITWISE_XOR_LABEL
+            };
+
+            let lookup = BitwiseLookup::new(label, a, b, z);
+            chiplets_bus.provide_bitwise_operation(lookup, bitwise_start_row + row);
+        }
 
         // copy trace into the fragment column-by-column
         // TODO: this can be parallelized to copy columns in multiple threads
@@ -244,5 +283,33 @@ pub fn assert_u32(value: Felt) -> Result<Felt, ExecutionError> {
         Err(ExecutionError::NotU32Value(value))
     } else {
         Ok(value)
+    }
+}
+
+// BITWISE LOOKUPS
+// ================================================================================================
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct BitwiseLookup {
+    op_id: Felt,
+    a: Felt,
+    b: Felt,
+    z: Felt,
+}
+
+impl BitwiseLookup {
+    pub fn new(op_id: Felt, a: Felt, b: Felt, z: Felt) -> Self {
+        Self { op_id, a, b, z }
+    }
+}
+
+impl LookupTableRow for BitwiseLookup {
+    /// Reduces this row to a single field element in the field specified by E. This requires
+    /// at least 5 alpha values.
+    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+        alphas[0]
+            + alphas[1].mul_base(self.op_id)
+            + alphas[2].mul_base(self.a)
+            + alphas[3].mul_base(self.b)
+            + alphas[4].mul_base(self.z)
     }
 }

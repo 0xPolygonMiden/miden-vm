@@ -8,6 +8,7 @@ use super::{
     BTreeMap, ChipletsBus, Felt, FieldElement, RangeInclusive, StarkField, TraceFragment, Vec,
     Word, ONE, ZERO,
 };
+use vm_core::chiplets::memory::MEMORY_LABEL;
 
 #[cfg(test)]
 mod tests;
@@ -295,13 +296,8 @@ impl Memory {
                 trace.set(i, 13, delta.inv());
 
                 // provide the memory access data to the chiplets bus.
-                chiplets_bus.provide_memory_operation(
-                    addr,
-                    clk,
-                    prev_value,
-                    value,
-                    memory_start_row + i,
-                );
+                let memory_lookup = MemoryLookup::new(addr, clk.as_int(), prev_value, value);
+                chiplets_bus.provide_memory_operation(memory_lookup, memory_start_row + i);
 
                 // update values for the next iteration of the loop
                 prev_addr = addr;
@@ -355,27 +351,28 @@ impl MemoryLookup {
 
 impl LookupTableRow for MemoryLookup {
     /// Reduces this row to a single field element in the field specified by E. This requires
-    /// at least 12 alpha values.
+    /// at least 13 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
         let old_word_value = self
             .old_word
             .iter()
             .enumerate()
             .fold(E::ZERO, |acc, (j, element)| {
-                acc + alphas[j + 4].mul_base(*element)
+                acc + alphas[j + 5].mul_base(*element)
             });
         let new_word_value = self
             .new_word
             .iter()
             .enumerate()
             .fold(E::ZERO, |acc, (j, element)| {
-                acc + alphas[j + 8].mul_base(*element)
+                acc + alphas[j + 9].mul_base(*element)
             });
 
         alphas[0]
-            + alphas[1].mul_base(self.ctx)
-            + alphas[2].mul_base(self.addr)
-            + alphas[3].mul_base(Felt::new(self.clk))
+            + alphas[1].mul_base(MEMORY_LABEL)
+            + alphas[2].mul_base(self.ctx)
+            + alphas[3].mul_base(self.addr)
+            + alphas[4].mul_base(Felt::new(self.clk))
             + old_word_value
             + new_word_value
     }

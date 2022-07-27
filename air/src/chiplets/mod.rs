@@ -1,9 +1,6 @@
 use super::{Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec};
 use crate::utils::{are_equal, binary_not, is_binary};
-use vm_core::{
-    chiplets::{BITWISE_TRACE_OFFSET, HASHER_TRACE_OFFSET},
-    CHIPLETS_OFFSET,
-};
+use vm_core::{chiplets::HASHER_TRACE_OFFSET, CHIPLETS_OFFSET};
 
 mod bitwise;
 mod hasher;
