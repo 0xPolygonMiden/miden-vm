@@ -163,8 +163,9 @@ impl Chiplets {
     /// computation is undefined.
     pub fn u32and(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
         let result = self.bitwise.u32and(a, b)?;
-        self.bus
-            .request_bitwise_operation(BITWISE_AND_LABEL, a, b, result, self.clk);
+
+        let bitwise_lookup = BitwiseLookup::new(BITWISE_AND_LABEL, a, b, result);
+        self.bus.request_bitwise_operation(bitwise_lookup, self.clk);
 
         Ok(result)
     }
@@ -174,8 +175,9 @@ impl Chiplets {
     /// computation is undefined.
     pub fn u32or(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
         let result = self.bitwise.u32or(a, b)?;
-        self.bus
-            .request_bitwise_operation(BITWISE_OR_LABEL, a, b, result, self.clk);
+
+        let bitwise_lookup = BitwiseLookup::new(BITWISE_OR_LABEL, a, b, result);
+        self.bus.request_bitwise_operation(bitwise_lookup, self.clk);
 
         Ok(result)
     }
@@ -185,8 +187,9 @@ impl Chiplets {
     /// computation is undefined.
     pub fn u32xor(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
         let result = self.bitwise.u32xor(a, b)?;
-        self.bus
-            .request_bitwise_operation(BITWISE_XOR_LABEL, a, b, result, self.clk);
+
+        let bitwise_lookup = BitwiseLookup::new(BITWISE_XOR_LABEL, a, b, result);
+        self.bus.request_bitwise_operation(bitwise_lookup, self.clk);
 
         Ok(result)
     }
@@ -203,8 +206,8 @@ impl Chiplets {
         let value = self.memory.read(addr);
 
         // send the memory read request to the bus
-        self.bus
-            .request_memory_operation(addr, self.clk, value, value);
+        let memory_lookup = MemoryLookup::new(addr, self.clk as u64, value, value);
+        self.bus.request_memory_operation(memory_lookup, self.clk);
 
         value
     }
@@ -218,8 +221,8 @@ impl Chiplets {
         self.memory.write(addr, word);
 
         // send the memory write request to the bus
-        self.bus
-            .request_memory_operation(addr, self.clk, old_word, word);
+        let memory_lookup = MemoryLookup::new(addr, self.clk as u64, old_word, word);
+        self.bus.request_memory_operation(memory_lookup, self.clk);
 
         old_word
     }
@@ -230,8 +233,8 @@ impl Chiplets {
         self.memory.write(addr, word);
 
         // send the memory write request to the bus
-        self.bus
-            .request_memory_operation(addr, self.clk, old_word, word);
+        let memory_lookup = MemoryLookup::new(addr, self.clk as u64, old_word, word);
+        self.bus.request_memory_operation(memory_lookup, self.clk);
 
         old_word
     }

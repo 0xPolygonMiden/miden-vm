@@ -1,6 +1,6 @@
 use super::{
     BTreeMap, BitwiseLookup, ChipletsLookup, ChipletsLookupRow, Felt, FieldElement, MemoryLookup,
-    StarkField, Vec, Word,
+    Vec,
 };
 
 mod aux_trace;
@@ -61,78 +61,40 @@ impl ChipletsBus {
     // MEMORY LOOKUPS
     // --------------------------------------------------------------------------------------------
 
-    /// Requests a memory access with the specified data. When `old_word` and `new_word` are the
-    /// same, this is a read request. When they are different, it's a write request. The memory
-    /// value is requested at cycle `clk`. This is expected to be called by operation executors.
-    pub fn request_memory_operation(
-        &mut self,
-        addr: Felt,
-        clk: usize,
-        old_word: Word,
-        new_word: Word,
-    ) {
-        self.request_operation(clk);
-
-        let memory_lookup = MemoryLookup::new(addr, clk as u64, old_word, new_word);
-        self.request_rows
-            .push(ChipletsLookupRow::Memory(memory_lookup));
+    /// Sends a request for the specified memory access. When `old_word` and `new_word` are the
+    /// same in the MemoryLookup, this is a read request. When they are different, it's a write
+    /// request. The memory value is requested at `cycle`. This request is expected to originate
+    /// from operation executors.
+    pub fn request_memory_operation(&mut self, lookup: MemoryLookup, cycle: usize) {
+        self.request_operation(cycle);
+        self.request_rows.push(ChipletsLookupRow::Memory(lookup));
     }
 
-    /// Provides the data of a memory read or write contained in the [Memory] table.  When
-    /// `old_word` and `new_word` are the same, this is a read request. When they are different,
-    /// it's a write  request. The memory value is provided at cycle `response_cycle`, which is the
-    /// row of the execution trace that contains this Memory row.
-    pub fn provide_memory_operation(
-        &mut self,
-        addr: Felt,
-        clk: Felt,
-        old_word: Word,
-        new_word: Word,
-        response_cycle: usize,
-    ) {
+    /// Provides the data of the specified memory access.  When `old_word` and `new_word` are the
+    /// same in the MemoryLookup, this is a read request. When they are different, it's a write  
+    /// request. The memory access data is provided at cycle `response_cycle`, which is the row of
+    /// the execution trace that contains this Memory row.
+    pub fn provide_memory_operation(&mut self, lookup: MemoryLookup, response_cycle: usize) {
         self.provide_operation(response_cycle);
-
-        let memory_lookup = MemoryLookup::new(addr, clk.as_int(), old_word, new_word);
-        self.response_rows
-            .push(ChipletsLookupRow::Memory(memory_lookup));
+        self.response_rows.push(ChipletsLookupRow::Memory(lookup));
     }
 
     // BITWISE LOOKUPS
     // --------------------------------------------------------------------------------------------
 
-    /// Requests a bitwise lookup with the specified data at the specified `cycle`. This is expected
-    /// to be called by operation executors.
-    pub fn request_bitwise_operation(
-        &mut self,
-        op_id: Felt,
-        a: Felt,
-        b: Felt,
-        z: Felt,
-        cycle: usize,
-    ) {
+    /// Requests the specified bitwise lookup at the specified `cycle`. This request is expected to
+    /// originate from operation executors.
+    pub fn request_bitwise_operation(&mut self, lookup: BitwiseLookup, cycle: usize) {
         self.request_operation(cycle);
-
-        let bitwise_lookup = BitwiseLookup::new(op_id, a, b, z);
-        self.request_rows
-            .push(ChipletsLookupRow::Bitwise(bitwise_lookup));
+        self.request_rows.push(ChipletsLookupRow::Bitwise(lookup));
     }
 
     /// Provides the data of a bitwise operation contained in the [Bitwise] table. The bitwise value
     /// is provided at cycle `response_cycle`, which is the row of the execution trace that contains
     /// this Bitwise row. It will always be the final row of a Bitwise operation cycle.
-    pub fn provide_bitwise_operation(
-        &mut self,
-        op_id: Felt,
-        a: Felt,
-        b: Felt,
-        z: Felt,
-        response_cycle: usize,
-    ) {
+    pub fn provide_bitwise_operation(&mut self, lookup: BitwiseLookup, response_cycle: usize) {
         self.provide_operation(response_cycle);
-
-        let bitwise_lookup = BitwiseLookup::new(op_id, a, b, z);
-        self.response_rows
-            .push(ChipletsLookupRow::Bitwise(bitwise_lookup));
+        self.response_rows.push(ChipletsLookupRow::Bitwise(lookup));
     }
 
     // AUX TRACE BUILDER GENERATION

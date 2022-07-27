@@ -296,13 +296,8 @@ impl Memory {
                 trace.set(i, 13, delta.inv());
 
                 // provide the memory access data to the chiplets bus.
-                chiplets_bus.provide_memory_operation(
-                    addr,
-                    clk,
-                    prev_value,
-                    value,
-                    memory_start_row + i,
-                );
+                let memory_lookup = MemoryLookup::new(addr, clk.as_int(), prev_value, value);
+                chiplets_bus.provide_memory_operation(memory_lookup, memory_start_row + i);
 
                 // update values for the next iteration of the loop
                 prev_addr = addr;

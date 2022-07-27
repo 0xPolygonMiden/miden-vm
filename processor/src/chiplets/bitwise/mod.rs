@@ -215,7 +215,7 @@ impl Bitwise {
 
             // get the operation label.
             let op_selectors: Selectors = [self.trace[0][row], self.trace[1][row]];
-            let op_id = if op_selectors == BITWISE_AND {
+            let label = if op_selectors == BITWISE_AND {
                 BITWISE_AND_LABEL
             } else if op_selectors == BITWISE_OR {
                 BITWISE_OR_LABEL
@@ -227,7 +227,8 @@ impl Bitwise {
                 BITWISE_XOR_LABEL
             };
 
-            chiplets_bus.provide_bitwise_operation(op_id, a, b, z, bitwise_start_row + row);
+            let lookup = BitwiseLookup::new(label, a, b, z);
+            chiplets_bus.provide_bitwise_operation(lookup, bitwise_start_row + row);
         }
 
         // copy trace into the fragment column-by-column
