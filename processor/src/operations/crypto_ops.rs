@@ -41,9 +41,9 @@ impl Process {
     // MERKLE TREES
     // --------------------------------------------------------------------------------------------
 
-    /// Computes a root of a Merkle path for the specified node. The stack is expected to be
-    /// arranged as follows (from the top):
-    /// - depth of the path, 1 element.
+    /// Verifies that a Merkle path from the specified node resolves to the specified root. The
+    /// stack is expected to be arranged as follows (from the top):
+    /// - depth of the node, 1 element.
     /// - index of the node, 1 element.
     /// - value of the node, 4 elements.
     /// - root of the tree, 4 elements.
@@ -51,12 +51,11 @@ impl Process {
     /// To perform the operation we do the following:
     /// 1. Look up the Merkle path in the advice provider for the specified tree root.
     /// 2. Use the hasher to compute the root of the Merkle path for the specified node.
-    /// 3. Verifies the computed root is equal to the root provided via the stack.
+    /// 3. Verify that the computed root is equal to the root provided via the stack.
     /// 4. Copy the stack state over to the next clock cycle with no changes.
     ///
-    /// # Panic
-    /// If the correct Merkle path was provided, the computed root and the provided root must be
-    /// the same. It will panic in case the roots don't match.
+    /// # Panics
+    /// Panics if the computed root roots does not match the root provided via the stack.
     ///
     /// # Errors
     /// Returns an error if:
@@ -99,10 +98,7 @@ impl Process {
         // save values in the decoder helper registers in the following order (from the start):
         // - addr(r) - the row address in the hasher trace from when the computation starts.
         // - b - least significant bit of the node index.
-        // - h0 - First element of sibling word.
-        // - h1 - Second element of sibling word.
-        // - h2 - Third element of sibling word.
-        // - h3 - Forth element of sibling word.
+        // - sibling - four elements representing the sibling of the node
         let helper_values = [addr, b, sibling[0], sibling[1], sibling[2], sibling[3]];
 
         self.decoder
