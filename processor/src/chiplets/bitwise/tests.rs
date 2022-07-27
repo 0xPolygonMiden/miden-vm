@@ -1,5 +1,5 @@
 use super::{
-    super::{ChipletsLookup, ChipletsLookupRow},
+    super::bus::{ChipletsLookup, ChipletsLookupRow},
     Bitwise, BitwiseLookup, ChipletsBus, Felt, StarkField, TraceFragment, A_COL_IDX, BITWISE_AND,
     BITWISE_AND_LABEL, BITWISE_OR, BITWISE_OR_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, B_COL_IDX,
     OP_CYCLE_LEN, OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
@@ -305,7 +305,7 @@ fn build_trace(bitwise: Bitwise, num_rows: usize) -> (Vec<Vec<Felt>>, ChipletsBu
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    bitwise.fill_trace(&mut fragment, 0, &mut chiplets_bus);
+    bitwise.fill_trace(&mut fragment, &mut chiplets_bus, 0);
 
     (trace, chiplets_bus)
 }

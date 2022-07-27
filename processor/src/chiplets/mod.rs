@@ -6,7 +6,7 @@ use crate::{trace::LookupTableRow, ExecutionError};
 use core::ops::RangeInclusive;
 use vm_core::{
     chiplets::bitwise::{BITWISE_AND_LABEL, BITWISE_OR_LABEL, BITWISE_XOR_LABEL},
-    chiplets::hasher::HasherState,
+    chiplets::hasher::{Digest, HasherState},
     code_blocks::OpBatch,
 };
 
@@ -87,7 +87,7 @@ impl Chiplets {
         self.hasher.trace_len() + self.bitwise.trace_len()
     }
 
-    // HASH CHIPLET ACCESSORS
+    // HASH CHIPLET ACCESSORS FOR OPERATIONS
     // --------------------------------------------------------------------------------------------
 
     /// Requests a single permutation of the hash function to the provided state from the Hash
@@ -96,29 +96,10 @@ impl Chiplets {
     /// The returned tuple contains the hasher state after the permutation and the row address of
     /// the execution trace at which the permutation started.
     pub fn permute(&mut self, state: HasherState) -> (Felt, HasherState) {
-        self.hasher.permute(state)
-    }
+        let (addr, return_state, lookups) = self.hasher.permute(state);
+        self.bus.request_hasher_operation(lookups, self.clk);
 
-    /// Requests the hash of the provided words from the Hash chiplet and returns the result
-    /// hash(h1, h2).
-    ///
-    /// The returned tuple also contains the row address of the execution trace at which hash
-    /// computation started.
-    pub fn merge(&mut self, h1: Word, h2: Word) -> (Felt, Word) {
-        self.hasher.merge(h1, h2)
-    }
-
-    /// Requests computation a sequential hash of all operation batches in the list from the Hash
-    /// chiplet and returns the result.
-    ///
-    /// The returned tuple also contains the row address of the execution trace at which hash
-    /// computation started.
-    pub fn hash_span_block(
-        &mut self,
-        op_batches: &[OpBatch],
-        num_op_groups: usize,
-    ) -> (Felt, Word) {
-        self.hasher.hash_span_block(op_batches, num_op_groups)
+        (addr, return_state)
     }
 
     /// Requests a Merkle root computation from the Hash chiplet for the specified path and the node
@@ -132,7 +113,10 @@ impl Chiplets {
     /// - The provided path does not contain any nodes.
     /// - The provided index is out of range for the specified path.
     pub fn build_merkle_root(&mut self, value: Word, path: &[Word], index: Felt) -> (Felt, Word) {
-        self.hasher.build_merkle_root(value, path, index)
+        let (addr, root, lookups) = self.hasher.build_merkle_root(value, path, index);
+        self.bus.request_hasher_operation(lookups, self.clk);
+
+        (addr, root)
     }
 
     /// Requests a Merkle root update computation from the Hash chiplet.
@@ -152,8 +136,84 @@ impl Chiplets {
         path: &[Word],
         index: Felt,
     ) -> (Felt, Word, Word) {
-        self.hasher
-            .update_merkle_root(old_value, new_value, path, index)
+        let (addr, old_root, new_root, lookups) = self
+            .hasher
+            .update_merkle_root(old_value, new_value, path, index);
+        self.bus.request_hasher_operation(lookups, self.clk);
+
+        (addr, old_root, new_root)
+    }
+
+    // HASH CHIPLET ACCESSORS FOR CONTROL BLOCK DECODING
+    // --------------------------------------------------------------------------------------------
+
+    /// Requests the hash of the provided words from the Hash chiplet and returns the result
+    /// hash(h1, h2).
+    ///
+    /// The returned tuple also contains the row address of the execution trace at which hash
+    /// computation started.
+    pub fn hash_control_block(&mut self, h1: Word, h2: Word, expected: Digest) -> Felt {
+        let (addr, result, lookups) = self.hasher.merge(h1, h2);
+
+        // make sure the result computed by the hasher is the same as the expected block hash
+        debug_assert_eq!(expected, result.into());
+
+        // send the request for the hash initialization
+        self.bus.request_hasher_lookup(lookups[0], self.clk);
+
+        // enqueue the request for the hash result
+        self.bus.enqueue_hasher_request(lookups[1]);
+
+        addr
+    }
+
+    /// Requests computation a sequential hash of all operation batches in the list from the Hash
+    /// chiplet and returns the result.
+    ///
+    /// The returned tuple also contains the row address of the execution trace at which hash
+    /// computation started.
+    pub fn hash_span_block(
+        &mut self,
+        op_batches: &[OpBatch],
+        num_op_groups: usize,
+        expected: Digest,
+    ) -> Felt {
+        let (addr, result, lookups) = self.hasher.hash_span_block(op_batches, num_op_groups);
+
+        // make sure the result computed by the hasher is the same as the expected block hash
+        debug_assert_eq!(expected, result.into());
+
+        // send the request for the hash initialization
+        self.bus.request_hasher_lookup(lookups[0], self.clk);
+
+        // enqueue the rest of the requests in reverse order so that the next request is at
+        // the top of the queue.
+        for lookup in lookups.iter().skip(1).rev() {
+            self.bus.enqueue_hasher_request(*lookup);
+        }
+
+        addr
+    }
+
+    /// Sends a request for a [HasherLookup] required for verifying absorption of a new `SPAN` batch
+    /// to the Chiplets Bus. It's expected to be called by the decoder while processing a `RESPAN`.
+    ///
+    /// It's processed by moving the corresponding lookup from the Chiplets bus' queued lookups to
+    /// its requested lookups. Therefore, the next queued lookup is expected to be a precomputed
+    /// lookup for absorbing new elements into the hasher state.
+    pub fn absorb_span_batch(&mut self) {
+        self.bus.send_queued_hasher_request(self.clk);
+    }
+
+    /// Sends a request for a control block hash result to the Chiplets Bus. It's expected to be
+    /// called by the decoder to request the finalization (return hash) of a control block hash
+    /// computation for the control block it has just finished decoding.
+    ///
+    /// It's processed by moving the corresponding lookup from the Chiplets bus' queued lookups to
+    /// its requested lookups. Therefore, the next queued lookup is expected to be a precomputed
+    /// lookup for returning a hash result.
+    pub fn read_hash_result(&mut self) {
+        self.bus.send_queued_hasher_request(self.clk);
     }
 
     // BITWISE CHIPLET ACCESSORS
@@ -406,53 +466,10 @@ impl Chiplets {
 
         // fill the fragments with the execution trace from each chiplet
         // TODO: this can be parallelized to fill the traces in multiple threads
-        let hasher_aux_builder = hasher.fill_trace(&mut hasher_fragment);
-        bitwise.fill_trace(&mut bitwise_fragment, bitwise_start, &mut bus);
-        memory.fill_trace(&mut memory_fragment, memory_start, &mut bus);
+        let hasher_aux_builder = hasher.fill_trace(&mut hasher_fragment, &mut bus);
+        bitwise.fill_trace(&mut bitwise_fragment, &mut bus, bitwise_start);
+        memory.fill_trace(&mut memory_fragment, &mut bus, memory_start);
 
         (hasher_aux_builder, bus.into_aux_builder())
-    }
-}
-
-// CHIPLETS LOOKUPS
-// ================================================================================================
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) enum ChipletsLookup {
-    Request(usize),
-    Response(usize),
-    RequestAndResponse((usize, usize)),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
-pub(super) enum ChipletsLookupRow {
-    Hasher(HasherLookupRow),
-    Bitwise(BitwiseLookup),
-    Memory(MemoryLookup),
-}
-
-impl LookupTableRow for ChipletsLookupRow {
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
-        match self {
-            ChipletsLookupRow::Hasher(row) => row.to_value(alphas),
-            ChipletsLookupRow::Bitwise(row) => row.to_value(alphas),
-            ChipletsLookupRow::Memory(row) => row.to_value(alphas),
-        }
-    }
-}
-
-// HASH PROCESSOR LOOKUPS
-// ================================================================================================
-
-#[allow(dead_code)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(super) struct HasherLookupRow {}
-
-impl LookupTableRow for HasherLookupRow {
-    /// Reduces this row to a single field element in the field specified by E. This requires
-    /// at least 12 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, _alphas: &[E]) -> E {
-        unimplemented!()
     }
 }
