@@ -44,8 +44,8 @@ impl VerifyCmd {
         // verify proof
         verifier::verify(
             program_hash,
-            &input_data.stack_inputs,
-            &outputs_data.outputs,
+            &input_data.stack_init(),
+            &outputs_data.outputs(),
             proof,
         )
         .map_err(|err| format!("Program failed verification! - {}", err))?;
