@@ -138,8 +138,8 @@ fn b_aux_trace_bitwise() {
 // TEST HELPERS
 // ================================================================================================
 
-fn build_expected_bitwise(alphas: &[Felt], op_id: Felt, a: Felt, b: Felt, result: Felt) -> Felt {
-    alphas[0] + alphas[1] * op_id + alphas[2] * a + alphas[3] * b + alphas[4] * result
+fn build_expected_bitwise(alphas: &[Felt], label: Felt, a: Felt, b: Felt, result: Felt) -> Felt {
+    alphas[0] + alphas[1] * label + alphas[2] * a + alphas[3] * b + alphas[4] * result
 }
 
 fn build_expected_bitwise_from_trace(trace: &ExecutionTrace, alphas: &[Felt], row: usize) -> Felt {
