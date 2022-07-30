@@ -8,7 +8,7 @@ Thus, to describe AIR constraints for the cryptographic operations, we need to d
 ## RPPERM
 The `RPPERM` operation applies Rescue Prime permutation to the top $12$ elements of the stack. The stack is assumed to be arranged so that the $8$ elements of the rate are at the top of the stack. The capacity word follows, with the number of elements to be hashed at the deepest position in stack. The diagram below illustrates this graphically.
 
-![rpperm](../../assets/design/stack/cryptographic_operations/RPPERM.png)
+![rpperm](../../assets/design/stack/crypto_ops/RPPERM.png)
 
 In the above, $r$ (located in the helper register $h_0$) is the row address from the hash chiplet set by the prover nondeterministically.
 
@@ -46,7 +46,7 @@ Prior to the operation, the stack is expected to be arranged as follows (from th
 
 The Merkle path itself is expected to be provided by the prover non-deterministically (via the advice provider). If the prover is not able to provide the required path, the operation fails. Otherwise, the state of the stack does not change. The diagram below illustrates this graphically.
 
-![mpverify](../../assets/design/stack/cryptographic_operations/MPVERIFY.png)
+![mpverify](../../assets/design/stack/crypto_ops/MPVERIFY.png)
 
 In the above, $r$ (located in the helper register $h_0$) is the row address from the hash chiplet set by the prover nondeterministically.
 
@@ -85,7 +85,7 @@ The stack is expected to be arranged as follows (from the top):
 
 The Merkle path for the node is expected to be provided by the prover non-deterministically (via advice sets). At the end of the operation, the old node value is replaced with the old root value computed based on the provided path, the new node value is replaced by the new root value computed based on the same path. Everything else on the stack remains the same. The diagram below illustrates this graphically.
 
-![mrupdate](../../assets/design/stack/cryptographic_operations/MRUPDATE.png)
+![mrupdate](../../assets/design/stack/crypto_ops/MRUPDATE.png)
 
 In the above, $r$ (located in the helper register $h_0$) is the row address from the hash chiplet set by the prover nondeterministically.
 

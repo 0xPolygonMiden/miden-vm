@@ -8,9 +8,9 @@ The effect of this operation on the rest of the stack is:
 * **Right shift** starting from position $0$.
 
 ### SDEPTH
-The `SDEPTH` pushes the current depth of the stack (prior to the execution of this operation) onto the stack. The diagram below illustrates this graphically.
+Assume $a$ is the current depth of the stack stored in the stack bookkeeping register $b_0$ (as described [here](./main.md#stack-representation)). The `SDEPTH` pushes $a$ onto the stack. The diagram below illustrates this graphically.
 
-![sdepth](../../assets/design/stack/io_operations/SDEPTH.png)
+![sdepth](../../assets/design/stack/io_ops/SDEPTH.png)
 
 Stack transition for this operation must satisfy the following constraints:
 
@@ -18,15 +18,13 @@ Stack transition for this operation must satisfy the following constraints:
 s_0' - b_0 = 0 \text{ | degree } = 1
 $$
 
-where $b_0$ is the stack bookkeeping register which keeps track of the current stack depth as described [here](./main.md#stack-representation).
-
 The effect of this operation on the rest of the stack is:
 * **Right shift** starting from position $0$.
 
 ### READ
-The `READ` operation removes the next element from the advice tape and pushes it onto the stack. The diagram below illustrates this graphically.
+Assume $a$ is an element at the head of the advice tape. The `READ` operation removes $a$ from the advice tape and pushes it onto the stack. The diagram below illustrates this graphically.
 
-![read](../../assets/design/stack/io_operations/READ.png)
+![read](../../assets/design/stack/io_ops/READ.png)
 
 The `READ` operation does not impose any constraints against the first element of the stack.
 
@@ -34,9 +32,9 @@ The effect of this operation on the rest of the stack is:
 * **Right shift** starting from position $0$.
 
 ### READW
-The `READW` operation removes a word (4 field elements) from the advice tape and puts it onto the stack by overwriting the top $4$ elements of the stack. The diagram below illustrates this graphically.
+Assume $a$, $b$, $c$, and $d$, are the elements at the head of the advice tape (with $a$ being on top). The `READW` operation removes these elements from the advice tape and puts them onto the stack by overwriting the top $4$ stack elements. The diagram below illustrates this graphically.
 
-![readw](../../assets/design/stack/io_operations/READW.png)
+![readw](../../assets/design/stack/io_ops/READW.png)
 
 The `READW` operation does not impose any constraints against the top $4$ elements of the stack.
 
@@ -57,9 +55,9 @@ $$
 In the above, $u_{mem}$ is the value of memory access request. Thus, to describe AIR constraint for memory operations, it is sufficient to describe how $u_{mem}$ is computed. We do this in the following sections.
 
 ### MLOADW
-The `MLOADW` operation loads a word (4 field elements) from the specified memory address onto the stack. The address is specified by the top stack element. After the operation is executed, the top $4$ stack elements are overwritten with values retrieved from the memory. The diagram below illustrates this graphically.
+Assume that the words with elements $v_0, v_1, v_2, v_3$ is located in memory at address $a$. The `MLOADW` operation pops an element off the stack, interprets it as a memory address, and replaces the remaining 4 elements at the top of the stack with values located at the specified address. The diagram below illustrates this graphically.
 
-![mloadw](../../assets/design/stack/io_operations/MLOADW.png)
+![mloadw](../../assets/design/stack/io_ops/MLOADW.png)
 
 To simplify description of memory access request value, we first define the following variables:
 
@@ -89,12 +87,12 @@ In the above:
 - $clk$ is the current clock cycle of the VM.
 
 The effect of this operation on the rest of the stack is:
-* **No change** starting from position $4$.
+* **Left shift** starting from position $5$.
 
 ### MLOAD
-The `MLOAD` operation is similar to the `MLOADW` operation but instead of loading the full word, we load only the first element of the word at the specified address onto the stack. The diagram below illustrates this graphically.
+Assume that the words with elements $v_0, v_1, v_2, v_3$ is located in memory at address $a$. The `MLOAD` operation pops an element off the stack, interprets it as a memory address, and pushes the first element of the word located at the specified address to the stack. The diagram below illustrates this graphically.
 
-![mload](../../assets/design/stack/io_operations/MLOAD.png)
+![mload](../../assets/design/stack/io_ops/MLOAD.png)
 
 To simplify description of memory access request value, we first define the following variables:
 
@@ -125,9 +123,11 @@ The effect of this operation on the rest of the stack is:
 * **No change** starting from position $1$.
 
 ### MSTOREW
-The `MSTOREW` operation stores a word (4 elements) from the stack into the specified memory address. The address is specified by the top stack element. The stored elements are not removed from the stack. The diagram below illustrates this graphically.
+Assume that the words with elements $v_0, v_1, v_2, v_3$ is located in memory at address $a$. The `MSTOREW` operation pops an element off the stack, interprets it as a memory address, and writes the remaining $4$ elements at the top of the stack into memory at the specified address. The stored elements are not removed from the stack. The diagram below illustrates this graphically.
 
-![mstorew](../../assets/design/stack/io_operations/MSTOREW.png)
+![mstorew](../../assets/design/stack/io_ops/MSTOREW.png)
+
+After the operation the contents of memory at address $a$ would be set to $u_0, u_1, u_2, u_3$.
 
 To simplify description of memory access request value, we first define the following variables:
 
@@ -158,9 +158,11 @@ The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $1$.
 
 ### MSTORE
-The `MSTORE` operation is similar to the `MSTOREW` operation but instead updating the entire word in memory, we update only the first element of the word at the specified memory address. The remaining three elements of the word are not affected. The diagram below illustrates this graphically.
+Assume that the words with elements $v_0, v_1, v_2, v_3$ is located in memory at address $a$. The `MSTORE` operation pops an element off the stack, interprets it as a memory address, and writes the remaining element at the top of the stack into the first element of the word located at the specified memory address. The remaining $3$ elements of the word are not affected. The diagram below illustrates this graphically.
 
-![mstore](../../assets/design/stack/io_operations/MSTORE.png)
+![mstore](../../assets/design/stack/io_ops/MSTORE.png)
+
+After the operation the contents of memory at address $a$ would be set to $b, v_1, v_2, v_3$.
 
 To simplify description of memory access request value, we first define the following variables:
 

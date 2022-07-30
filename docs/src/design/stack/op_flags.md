@@ -1,3 +1,0 @@
-# Operation flags
-
-TODO

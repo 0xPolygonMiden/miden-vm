@@ -22,7 +22,7 @@
   - [Program decoder](./design/decoder/main.md)
     - [Decoder constraints](./design/decoder/constraints.md)
   - [Operand stack](./design/stack/main.md)
-    - [Operation flags](./design/stack/op_flags.md)
+    - [Operation constraints](./design/stack/op_constraints.md)
     - [System operations](./design/stack/system_ops.md)
     - [Field operations](./design/stack/field_ops.md)
     - [u32 operations](./design/stack/u32_ops.md)

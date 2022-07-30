@@ -4,7 +4,7 @@ In this section we describe the AIR constraint for Miden VM stack manipulation o
 ## PAD
 The `PAD` operation pushes a $0$ onto the stack. The diagram below illustrates this graphically.
 
-![pad](../../assets/design/stack/stack_manipulation_operations/PAD.png)
+![pad](../../assets/design/stack/stack_ops/PAD.png)
 
 Stack transition for this operation must satisfy the following constraints:
 
@@ -18,14 +18,14 @@ The effect on the rest of the stack is:
 ## DROP
 The `DROP` operation removes an element from the top of the stack. The diagram below illustrates this graphically.
 
-![drop](../../assets/design/stack/stack_manipulation_operations/DROP.png)
+![drop](../../assets/design/stack/stack_ops/DROP.png)
 
 The `DROP` operation shifts the stack by $1$ element to the left, but does not impose any additional constraints. The degree of left shift constraints is $1$.
 
 ## DUP(n)
 The `DUP(n)` operations push a copy of the $n$-th stack element onto the stack. Eg. `DUP` (same as `DUP0`) pushes a copy of the top stack element onto the stack. Similarly, `DUP5` pushes a copy of the $6$-th stack element onto the stack. This operation is valid for $n \in \{0, ..., 7, 9, 11, 13, 15\}$. The diagram below illustrates this graphically.
 
-![dupn](../../assets/design/stack/stack_manipulation_operations/DUP(n).png)
+![dupn](../../assets/design/stack/stack_ops/DUP(n).png)
 
 Stack transition for this operation must satisfy the following constraints:
 
@@ -41,7 +41,7 @@ The effect on the rest of the stack is:
 ## SWAP
 The `SWAP` operations swaps the top two element of the stack. The diagram below illustrates this graphically.
 
-![swap](../../assets/design/stack/stack_manipulation_operations/SWAP.png)
+![swap](../../assets/design/stack/stack_ops/SWAP.png)
 
 Stack transition for this operation must satisfy the following constraints:
 
@@ -59,7 +59,7 @@ The effect on the rest of the stack is:
 ## SWAPW
 The `SWAPW` operation swaps stack elements $0, 1, 2, 3$ with elements $4, 5, 6, 7$. The diagram below illustrates this graphically.
 
-![swapw](../../assets/design/stack/stack_manipulation_operations/SWAPW.png)
+![swapw](../../assets/design/stack/stack_ops/SWAPW.png)
 
 Stack transition for this operation must satisfy the following constraints:
 
@@ -77,7 +77,7 @@ The effect on the rest of the stack is:
 ## SWAPW2
 The `SWAPW2` operation swaps stack elements $0, 1, 2, 3$ with elements $8, 9, 10, 11$. The diagram below illustrates this graphically.
 
-![swapw2](../../assets/design/stack/stack_manipulation_operations/SWAPW2.png)
+![swapw2](../../assets/design/stack/stack_ops/SWAPW2.png)
 
 Stack transition for this operation must satisfy the following constraints:
 
@@ -96,7 +96,7 @@ The effect on the rest of the stack is:
 ## SWAPW3
 The `SWAPW3` operation swaps stack elements $0, 1, 2, 3$ with elements $12, 13, 14, 15$. The diagram below illustrates this graphically.
 
-![swapw3](../../assets/design/stack/stack_manipulation_operations/SWAPW3.png)
+![swapw3](../../assets/design/stack/stack_ops/SWAPW3.png)
 
 Stack transition for this operation must satisfy the following constraints:
 
@@ -115,7 +115,7 @@ The effect on the rest of the stack is:
 ## SWAPDW
 The `SWAPDW` operation swaps stack elements $\{0, ..., 7\}$ with elements $\{8, ..., 15\}$. The diagram below illustrates this graphically.
 
-![swapdw](../../assets/design/stack/stack_manipulation_operations/SWAPDW.png)
+![swapdw](../../assets/design/stack/stack_ops/SWAPDW.png)
 
 Stack transition for this operation must satisfy the following constraints:
 
@@ -133,7 +133,7 @@ The effect on the rest of the stack is:
 ## MOVUP(n)
 The `MOVUP(n)` operation moves the $n$-th element of the stack to the top of the stack. For example, `MOVUP2` moves element at depth $2$ to the top of the stack. All elements with depth less than $n$ are shifted to the right by one, while elements with depth greater than $n$ remain in place, and the depth of the stack does not change. This operation is valid for $n \in \{2, ..., 8\}$. The diagram below illustrates this graphically.
 
-![movup](../../assets/design/stack/stack_manipulation_operations/MOVUP(n).png)
+![movup](../../assets/design/stack/stack_ops/MOVUP(n).png)
 
 Stack transition for this operation must satisfy the following constraints:
 
@@ -150,7 +150,7 @@ The effect on the rest of the stack is:
 ## MOVDN(n)
 The `MOVDN(n)` operation moves the top element of the stack to the $n$-th position. For example, `MOVDN2` moves the top element of the stack to depth $2$. All the elements with depth less than $n$ are shifted to the left by one, while elements with depth greater than $n$ remain in place, and the depth of the stack does not change. This operation is valid for $n \in \{2, ..., 8\}$. The diagram below illustrates this graphically.
 
-![movdn](../../assets/design/stack/stack_manipulation_operations/MOVDN(n).png)
+![movdn](../../assets/design/stack/stack_ops/MOVDN(n).png)
 
 Stack transition for this operation must satisfy the following constraints:
 
@@ -167,7 +167,7 @@ The effect on the rest of the stack is:
 ## CSWAP
 The `CSWAP` operation pops an element off the stack and if the element is $1$, swaps the top two remaining elements. If the popped element is $0$, the stack remains unchanged. The diagram below illustrates this graphically.
 
-![cswap](../../assets/design/stack/stack_manipulation_operations/CSWAP.png)
+![cswap](../../assets/design/stack/stack_ops/CSWAP.png)
 
 In the above:
 
@@ -197,7 +197,7 @@ The effect on the rest of the stack is:
 ## CSWAPW
 The `CSWAPW` operation pops an element off the stack and if the element is $1$, swaps elements $0, 1, 2, 3$ with elements $4, 5, 6, 7$. If the popped element is $0$, the stack remains unchanged. The diagram below illustrates this graphically.
 
-![cswapw](../../assets/design/stack/stack_manipulation_operations/CSWAPW.png)
+![cswapw](../../assets/design/stack/stack_ops/CSWAPW.png)
 
 In the above:
 
