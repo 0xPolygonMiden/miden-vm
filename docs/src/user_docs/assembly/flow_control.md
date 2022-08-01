@@ -21,7 +21,7 @@ where `instructions` can be a sequence of any instructions, including nested con
 3. If the value of the item is $0$, instructions in the `else` branch are executed.
 4. If the value is not binary, the execution fails.
 
-A note on performance: using *if-else* statements incurs a small, but non-negligible overhead. Thus, for simple conditional statements, it may be more efficient to compute the result of both branches, and then select the result using [conditional drop](#Conditional-manipulation) instructions.
+A note on performance: using *if-else* statements incurs a small, but non-negligible overhead. Thus, for simple conditional statements, it may be more efficient to compute the result of both branches, and then select the result using [conditional drop](./stack_manipulation.md#conditional-manipulation) instructions.
 
 ### Counter-controlled loops
 Executing a sequence of instructions a predefined number of times can be accomplished with *repeat* statements. These statements look like so:
