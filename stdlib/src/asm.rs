@@ -8500,9 +8500,9 @@ export.unchecked_div
     assert
 
     movup.4             # make sure the result we got is equal to the dividend
-    assert.eq
+    assert_eq
     movup.3
-    assert.eq           # quotient remains on the stack
+    assert_eq           # quotient remains on the stack
 end
 
 # Performs division of two unsigned 64 bit integers discarding the remainder.
@@ -8569,9 +8569,9 @@ export.unchecked_mod
     assert
 
     movup.4             # make sure the result we got is equal to the dividend
-    assert.eq
+    assert_eq
     movup.3
-    assert.eq           # remainder remains on the stack
+    assert_eq           # remainder remains on the stack
 end
 
 # Performs modulo operation of two unsigned 64 bit integers.
@@ -8638,9 +8638,9 @@ export.unchecked_divmod
     assert
 
     movup.6             # make sure the result we got is equal to the dividend
-    assert.eq
+    assert_eq
     movup.5
-    assert.eq           # remainder remains on the stack
+    assert_eq           # remainder remains on the stack
 end
 
 # Performs divmod operation of two unsigned 64 bit integers.
