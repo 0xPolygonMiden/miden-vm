@@ -9,7 +9,8 @@ use vm_core::{
     decoder::{
         ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
         NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS,
-        OP_BATCH_8_GROUPS, OP_BATCH_FLAGS_RANGE, OP_BITS_OFFSET, OP_BITS_RANGE, OP_INDEX_COL_IDX,
+        OP_BATCH_8_GROUPS, OP_BATCH_FLAGS_RANGE, OP_BITS_OFFSET, OP_BITS_RANGE,
+        OP_BIT_EXTRA_COL_IDX, OP_INDEX_COL_IDX,
     },
     utils::collections::Vec,
     StarkField, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, ONE, ZERO,
@@ -60,6 +61,7 @@ fn span_block_one_group() {
     // HALT opcode and program hash gets propagated to the last row
     for i in 6..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(ONE, trace[OP_BIT_EXTRA_COL_IDX][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
 
@@ -125,6 +127,7 @@ fn span_block_small() {
     // HALT opcode and program hash gets propagated to the last row
     for i in 7..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(ONE, trace[OP_BIT_EXTRA_COL_IDX][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
 
@@ -239,6 +242,7 @@ fn span_block() {
     // HALT opcode and program hash gets propagated to the last row
     for i in 17..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(ONE, trace[OP_BIT_EXTRA_COL_IDX][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
 
@@ -365,6 +369,7 @@ fn span_block_with_respan() {
     // HALT opcode and program hash gets propagated to the last row
     for i in 17..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(ONE, trace[OP_BIT_EXTRA_COL_IDX][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
 
@@ -473,6 +478,7 @@ fn join_block() {
     // HALT opcode and program hash gets propagated to the last row
     for i in 9..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(ONE, trace[OP_BIT_EXTRA_COL_IDX][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
 
@@ -549,6 +555,7 @@ fn split_block_true() {
     // HALT opcode and program hash gets propagated to the last row
     for i in 6..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(ONE, trace[OP_BIT_EXTRA_COL_IDX][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
 
@@ -618,6 +625,7 @@ fn split_block_false() {
     // HALT opcode and program hash gets propagated to the last row
     for i in 6..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(ONE, trace[OP_BIT_EXTRA_COL_IDX][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
 
@@ -691,6 +699,7 @@ fn loop_block() {
     // HALT opcode and program hash gets propagated to the last row
     for i in 7..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(ONE, trace[OP_BIT_EXTRA_COL_IDX][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
 
@@ -751,6 +760,7 @@ fn loop_block_skip() {
     // HALT opcode and program hash gets propagated to the last row
     for i in 3..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(ONE, trace[OP_BIT_EXTRA_COL_IDX][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
 
@@ -830,6 +840,7 @@ fn loop_block_repeat() {
     // HALT opcode and program hash gets propagated to the last row
     for i in 12..trace_len {
         assert!(contains_op(&trace, i, Operation::Halt));
+        assert_eq!(ONE, trace[OP_BIT_EXTRA_COL_IDX][i]);
         assert_eq!(program_hash, get_hasher_state1(&trace, i));
     }
 
@@ -929,8 +940,10 @@ fn check_op_decoding(
     op_idx: u64,
     in_span: u64,
 ) {
+    let opcode = read_opcode(trace, row_idx);
+
     assert_eq!(trace[ADDR_COL_IDX][row_idx], addr);
-    assert!(contains_op(trace, row_idx, op));
+    assert_eq!(op.op_code(), opcode);
     assert_eq!(trace[IN_SPAN_COL_IDX][row_idx], Felt::new(in_span));
     assert_eq!(trace[GROUP_COUNT_COL_IDX][row_idx], Felt::new(group_count));
     assert_eq!(trace[OP_INDEX_COL_IDX][row_idx], Felt::new(op_idx));
@@ -945,6 +958,11 @@ fn check_op_decoding(
     for (i, flag_value) in OP_BATCH_FLAGS_RANGE.zip(expected_batch_flags) {
         assert_eq!(trace[i][row_idx], flag_value);
     }
+
+    // make sure op bit extra column is set to the product of the two most significant opcode bits
+    let bit6 = Felt::from((opcode >> 6) & 1);
+    let bit5 = Felt::from((opcode >> 5) & 1);
+    assert_eq!(trace[OP_BIT_EXTRA_COL_IDX][row_idx], bit6 * bit5);
 }
 
 fn contains_op(trace: &DecoderTrace, row_idx: usize, op: Operation) -> bool {

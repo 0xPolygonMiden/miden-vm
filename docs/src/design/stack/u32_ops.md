@@ -57,15 +57,15 @@ Assume $a$ is the element at the top of the stack. The `U32SPLIT` operation comp
 To facilitate this operation, the prover sets values in $h_0, ..., h_3$ to 16-bit limbs of $a$ with $h_0$ being the least significant limb. Thus, stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_{0} = 2^{48} \cdot h_3 + 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1
+s_{0} = 2^{48} \cdot h_3 + 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \text{ | degree} = 1
 $$
 
 >$$
-s_{1}' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1
+s_{1}' = 2^{16} \cdot h_1 + h_0 \text{ | degree} = 1
 $$
 
 >$$
-s_{0}' = 2^{16} \cdot h_3 + h_2 \text{ | degree } = 1
+s_{0}' = 2^{16} \cdot h_3 + h_2 \text{ | degree} = 1
 $$
 
 In addition to the above constraints, we also need to verify that values in $h_0, ..., h_3$ are smaller than $2^{16}$, which we can do using 16-bit range checks as described [previously](#range-checks). Also, we need to make sure that values in $h_0, ..., h_3$, when combined, form a valid field element, which we can do by putting a nondeterministic value $m$ into helper register $h_4$ and using the technique described [here](#checking-element-validity).
@@ -81,11 +81,11 @@ Assume $a$ and $b$ are the elements at the top of the stack. The `U32ASSERT2` ve
 To facilitate this operation, the prover sets values in $h_0$ and $h_1$ to low and high 16-bit limbs of $a$, and values in $h_2$ and $h_3$ to to low and high 16-bit limbs of $b$. Thus, stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0' = 2^{16} \cdot h_3 + h_2 \text{ | degree } = 1
+s_0' = 2^{16} \cdot h_3 + h_2 \text{ | degree} = 1
 $$
 
 >$$
-s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1
+s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree} = 1
 $$
 
 In addition to the above constraints, we also need to verify that values in $h_0, ..., h_3$ are smaller than $2^{16}$, which we can do using 16-bit range checks as described [previously](#range-checks).
@@ -101,15 +101,15 @@ Assume $a$ and $b$ are the values at the top of the stack which are known to be 
 To facilitate this operation, the prover sets values in $h_0$, $h_1$, and $h_2$ to 16-bit limbs of $a+b$ with $h_0$ being the least significant limb. Value in $h_3$ is set to $0$. Thus, stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0 + s_1 = 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1
+s_0 + s_1 = 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \text{ | degree} = 1
 $$
 
 >$$
-s_0' = h_2 \text{ | degree } = 1
+s_0' = h_2 \text{ | degree} = 1
 $$
 
 >$$
-s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1
+s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree} = 1
 $$
 
 In addition to the above constraints, we also need to verify that values in $h_0, ..., h_3$ are smaller than $2^{16}$, which we can do using 16-bit range checks as described [previously](#range-checks).
@@ -125,15 +125,15 @@ Assume $a$, $b$, $c$ are the values at the top of the stack which are known to b
 To facilitate this operation, the prover sets values in $h_0$, $h_1$, and $h_2$ to 16-bit limbs of $a+b+c$ with $h_0$ being the least significant limb. Value in $h_3$ is set to $0$. Thus, stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0 + s_1 + s_2 = 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1
+s_0 + s_1 + s_2 = 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \text{ | degree} = 1
 $$
 
 >$$
-s_0' = h_2 \text{ | degree } = 1
+s_0' = h_2 \text{ | degree} = 1
 $$
 
 >$$
-s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1
+s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree} = 1
 $$
 
 In addition to the above constraints, we also need to verify that values in $h_0, ..., h_3$ are smaller than $2^{16}$, which we can do using 16-bit range checks as described [previously](#range-checks).
@@ -149,7 +149,7 @@ Assume $a$ and $b$ are the values at the top of the stack which are known to be 
 To facilitate this operation, the prover sets values in $h_0$ and $h_1$ to the low and the high 16-bit limbs of $a-b$ respectively. Values in $h_2$ and $h_3$ are set to $0$. Thus, stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_1 = s_0 + s_1' + 2^{32} \cdot s_0' \text{ | degree } = 1
+s_1 = s_0 + s_1' + 2^{32} \cdot s_0' \text{ | degree} = 1
 $$
 
 >$$
@@ -157,7 +157,7 @@ s_0'^2 - s_0' = 0 \text{ | degree } = 2
 $$
 
 >$$
-s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1
+s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree} = 1
 $$
 
 In addition to the above constraints, we also need to verify that values in $h_0, ..., h_3$ are smaller than $2^{16}$, which we can do using 16-bit range checks as described [previously](#range-checks).
@@ -177,11 +177,11 @@ s_0 \cdot s_1 = 2^{48} \cdot h_3 + 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \te
 $$
 
 >$$
-s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1
+s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree} = 1
 $$
 
 >$$
-s_0' = 2^{16} \cdot h_3 + h_2 \text{ | degree } = 1
+s_0' = 2^{16} \cdot h_3 + h_2 \text{ | degree} = 1
 $$
 
 In addition to the above constraints, we also need to verify that values in $h_0, ..., h_3$ are smaller than $2^{16}$, which we can do using 16-bit range checks as described [previously](#range-checks). Also, we need to make sure that values in $h_0, ..., h_3$, when combined, form a valid field element, which we can do by putting a nondeterministic value $m$ into helper register $h_4$ and using the technique described [here](#checking-element-validity).
@@ -201,11 +201,11 @@ s_0 \cdot s_1 + s_2 = 2^{48} \cdot h_3 + 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h
 $$
 
 >$$
-s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1
+s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree} = 1
 $$
 
 >$$
-s_0' = 2^{16} \cdot h_3 + h_2 \text{ | degree } = 1
+s_0' = 2^{16} \cdot h_3 + h_2 \text{ | degree} = 1
 $$
 
 In addition to the above constraints, we also need to verify that values in $h_0, ..., h_3$ are smaller than $2^{16}$, which we can do using 16-bit range checks as described [previously](#range-checks). Also, we need to make sure that values in $h_0, ..., h_3$, when combined, form a valid field element, which we can do by putting a nondeterministic value $m$ into helper register $h_4$ and using the technique described [here](#checking-element-validity).
@@ -227,11 +227,11 @@ s_1 = s_0 \cdot s_1' + s_0' \text{ | degree } = 2
 $$
 
 >$$
-s_1 - s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree } = 1
+s_1 - s_1' = 2^{16} \cdot h_1 + h_0 \text{ | degree} = 1
 $$
 
 >$$
-s_0 - s_0' - 1= 2^{16} \cdot h_2 + h_3 \text{ | degree } = 1
+s_0 - s_0' - 1= 2^{16} \cdot h_2 + h_3 \text{ | degree} = 1
 $$
 
 The second constraint enforces that $s_1' \leq s_1$, while the third constraint enforces that $s_0' < s_0$.

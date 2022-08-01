@@ -239,7 +239,7 @@ When describing AIR constraints, we adopt the following notation: for column $x$
 As mentioned above, row address $r$ starts at $1$, and is incremented by $1$ with every row. The first condition can be enforced with a boundary constraint which specifies $r=1$ at the first row. The second condition can be enforced via the following transition constraint:
 
 >$$
-r' - r - 1 = 0  \text{ | degree } = 1
+r' - r - 1 = 0  \text{ | degree} = 1
 $$
 
 This constraint should not be applied to the very last row of the hasher execution trace, since we do not want to enforce a value that would conflict with the first row of a subsequent chiplet in the Chiplets module. Therefore we can create a special virtual flag for this constraint using the $aux\_s_0$ selector column from the [Chiplets](main.md) module that selects for the hash chiplet.
@@ -393,7 +393,7 @@ $$
 v_{res} = v_h + v_b
 $$
 
-Using the above values, we can describe constraints for updating column $p_0$ as follows.
+Using the above values, we can describe the constraints for updating column $p_0$ as follows.
 
 >$$
 p_0' = p_0 \cdot ((f_{bp} + f_{sout}) \cdot v_{all} + (f_{mp} + f_{mv} + f_{mu}) \cdot v_{leaf} + f_{abp} \cdot v_{abp} + f_{hout} \cdot v_{res} + \\

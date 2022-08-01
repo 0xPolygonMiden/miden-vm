@@ -19,7 +19,7 @@ pub const OP_BITS_RANGE: Range<usize> = range(OP_BITS_OFFSET, NUM_OP_BITS);
 // TODO: probably rename "hasher state" to something like "shared columns".
 
 /// Index at which hasher state columns start in the decoder trace.
-pub const HASHER_STATE_OFFSET: usize = OP_BITS_OFFSET + NUM_OP_BITS;
+pub const HASHER_STATE_OFFSET: usize = OP_BITS_RANGE.end;
 
 /// Number of hasher columns in the decoder trace.
 pub const NUM_HASHER_COLUMNS: usize = 8;
@@ -35,7 +35,7 @@ pub const USER_OP_HELPERS_OFFSET: usize = HASHER_STATE_OFFSET + 2;
 pub const HASHER_STATE_RANGE: Range<usize> = range(HASHER_STATE_OFFSET, NUM_HASHER_COLUMNS);
 
 /// Index of the in_span column in the decoder trace.
-pub const IN_SPAN_COL_IDX: usize = HASHER_STATE_OFFSET + NUM_HASHER_COLUMNS;
+pub const IN_SPAN_COL_IDX: usize = HASHER_STATE_RANGE.end;
 
 /// Index of the operation group count column in the decoder trace.
 pub const GROUP_COUNT_COL_IDX: usize = IN_SPAN_COL_IDX + 1;
@@ -63,6 +63,9 @@ pub const OP_BATCH_2_GROUPS: [Felt; NUM_OP_BATCH_FLAGS] = [ZERO, ZERO, ONE];
 
 /// Operation batch consists of 1 operation group.
 pub const OP_BATCH_1_GROUPS: [Felt; NUM_OP_BATCH_FLAGS] = [ZERO, ONE, ONE];
+
+// Index of the op bits extra column in the decoder trace.
+pub const OP_BIT_EXTRA_COL_IDX: usize = OP_BATCH_FLAGS_RANGE.end;
 
 // --- Column accessors in the auxiliary columns --------------------------------------------------
 

@@ -1,5 +1,5 @@
 # Cryptographic operations
-In this section we describe the AIR constraint for Miden VM cryptographic operations.
+In this section we describe the AIR constraints for Miden VM cryptographic operations.
 
 Cryptographic operations in Miden VM are performed by the [Hash chiplet](../chiplets/hasher.md). Communication between the stack and the hash chiplet is accomplished via the chiplet bus $b_{chip}$. To make requests to and to read results from the chiplet bus we need to divide its current value by the value representing the request.
 
@@ -10,7 +10,7 @@ The `RPPERM` operation applies Rescue Prime permutation to the top $12$ elements
 
 ![rpperm](../../assets/design/stack/crypto_ops/RPPERM.png)
 
-In the above, $r$ (located in the helper register $h_0$) is the row address from the hash chiplet set by the prover nondeterministically.
+In the above, $r$ (located in the helper register $h_0$) is the row address from the hash chiplet set by the prover non-deterministically.
 
 For the `RPPERM` operation, we define input and output values as follows:
 
@@ -22,15 +22,15 @@ $$
 v_{output} = \alpha_0 + \alpha_1 \cdot op_{retstate} + \alpha_2 \cdot (h_0 + 7) + \sum_{j=0}^{11} (\alpha_{i+4} \cdot s_{11-i}')
 $$
 
-In the above, $op_{linhash}$ and $op_{retstate}$ are the unique [operation label](../chiplets/main.md#operation-labels) for initiating a linear hash and reading the full state of the hasher respectively. Also note that the term for $\alpha_3$ is missing from the above expressions because for Rescue Prime permutation computation the index column is expected to be set to $0$.
+In the above, $op_{linhash}$ and $op_{retstate}$ are the unique [operation labels](../chiplets/main.md#operation-labels) for initiating a linear hash and reading the full state of the hasher respectively. Also note that the term for $\alpha_3$ is missing from the above expressions because for Rescue Prime permutation computation the index column is expected to be set to $0$.
 
-Using the above values, we can describe constraint for the chiplet bus column as follows:
+Using the above values, we can describe the constraint for the chiplet bus column as follows:
 
 >$$
 b_{chip}' \cdot v_{input} \cdot v_{output} = b_{chip} \text{ | degree } = 3
 $$
 
-The above constrain enforces that the specified input and output rows must be present in the trace of the hash chiplet, and that they must be exactly $7$ rows apart.
+The above constraint enforces that the specified input and output rows must be present in the trace of the hash chiplet, and that they must be exactly $7$ rows apart.
 
 The effect of this operation on the rest of the stack is:
 * **No change** starting from position $12$.
@@ -48,27 +48,27 @@ The Merkle path itself is expected to be provided by the prover non-deterministi
 
 ![mpverify](../../assets/design/stack/crypto_ops/MPVERIFY.png)
 
-In the above, $r$ (located in the helper register $h_0$) is the row address from the hash chiplet set by the prover nondeterministically.
+In the above, $r$ (located in the helper register $h_0$) is the row address from the hash chiplet set by the prover non-deterministically.
 
 For the `MPVERIFY` operation, we define input and output values as follows:
 
 $$
-v_{input} = \alpha_0 + \alpha_1 \cdot op_{mpver} + \alpha_2 \cdot r + \alpha_3 \cdot i + \sum_{j=0}^3 \alpha_{j+8} \cdot s_{6 - j}
+v_{input} = \alpha_0 + \alpha_1 \cdot op_{mpver} + \alpha_2 \cdot r + \alpha_3 \cdot i + \sum_{j=0}^3 \alpha_{j+8} \cdot s_{5 - j}
 $$
 
 $$
-v_{output} = \alpha_0 + \alpha_1 \cdot op_{rethash} + \alpha_2 \cdot (h_0 + 8 \cdot s_0 - 1) + \sum_{j=0}^3\alpha_{j + 8} \cdot s_{10 - j}
+v_{output} = \alpha_0 + \alpha_1 \cdot op_{rethash} + \alpha_2 \cdot (h_0 + 8 \cdot s_0 - 1) + \sum_{j=0}^3\alpha_{j + 8} \cdot s_{9 - j}
 $$
 
-In the above, $op_{mpver}$ and $op_{rethash}$ are the unique [operation label](../chiplets/main.md#operation-labels) for initiating a Merkle path verification computation and reading the hash result respectively. The sum expression for inputs computes the value of the leaf node, while the sum expression for the output computes the value of the tree root.
+In the above, $op_{mpver}$ and $op_{rethash}$ are the unique [operation labels](../chiplets/main.md#operation-labels) for initiating a Merkle path verification computation and reading the hash result respectively. The sum expression for inputs computes the value of the leaf node, while the sum expression for the output computes the value of the tree root.
 
-Using the above values, we can describe constraint for the chiplet bus column as follows:
+Using the above values, we can describe the constraint for the chiplet bus column as follows:
 
 >$$
 b_{chip}' \cdot v_{input} \cdot v_{output} = b_{chip} \text{ | degree } = 3
 $$
 
-The above constrain enforces that the specified input and output rows must be present in the trace of the hash chiplet, and that they must be exactly $8 \cdot d - 1$ rows apart, where $d$ is the depth of the node.
+The above constraint enforces that the specified input and output rows must be present in the trace of the hash chiplet, and that they must be exactly $8 \cdot d - 1$ rows apart, where $d$ is the depth of the node.
 
 The effect of this operation on the rest of the stack is:
 * **No change** starting from position $0$.
@@ -87,7 +87,7 @@ The Merkle path for the node is expected to be provided by the prover non-determ
 
 ![mrupdate](../../assets/design/stack/crypto_ops/MRUPDATE.png)
 
-In the above, $r$ (located in the helper register $h_0$) is the row address from the hash chiplet set by the prover nondeterministically.
+In the above, $r$ (located in the helper register $h_0$) is the row address from the hash chiplet set by the prover non-deterministically.
 
 For the `MRUPDATE` operation, we define input and output values as follows:
 
@@ -107,15 +107,15 @@ $$
 v_{outputnew} = \alpha_0 + \alpha_1 \cdot op_{rethash} + \alpha_2 \cdot (r + 2 \cdot 8 \cdot d - 1) + \sum_{j=0}^3\alpha_{j + 8} \cdot s_{9 - j}'
 $$
 
-In the above, the first two expressions correspond to inputs and outputs for verifying the Merkle path between the old node value and the old tree root, while the last two expressions correspond to inputs and outputs for verifying the Merkle path between the new node value and the new tree root. Hash chiplet ensures the same set of sibling nodes are uses in both of these computations.
+In the above, the first two expressions correspond to inputs and outputs for verifying the Merkle path between the old node value and the old tree root, while the last two expressions correspond to inputs and outputs for verifying the Merkle path between the new node value and the new tree root. The hash chiplet ensures the same set of sibling nodes are uses in both of these computations.
 
-The $op_{mruold}$, $op_{mrunew}$, and $op_{rethash}$ are the unique [operation label](../chiplets/main.md#operation-labels) used by the above computations.
+The $op_{mruold}$, $op_{mrunew}$, and $op_{rethash}$ are the unique [operation labels](../chiplets/main.md#operation-labels) used by the above computations.
 
 > $$
 b_{chip}' \cdot v_{inputold} \cdot v_{outputold} \cdot v_{inputnew} \cdot v_{outputnew} = b_{chip} \text{ | degree } = 5
 $$
 
-The above constrain enforces that the specified input and output rows for both, the old and the new node/root combinations, must be present in the trace of the hash chiplet, and that they must be exactly $8 \cdot d - 1$ rows apart, where $d$ is the depth of the node. It also ensure that the computation for the old node/root combination is immediately followed by the computation for the new node/root combination.
+The above constraint enforces that the specified input and output rows for both, the old and the new node/root combinations, must be present in the trace of the hash chiplet, and that they must be exactly $8 \cdot d - 1$ rows apart, where $d$ is the depth of the node. It also ensures that the computation for the old node/root combination is immediately followed by the computation for the new node/root combination.
 
 The effect of this operation on the rest of the stack is:
 * **No change** for positions $0$ and $1$.
