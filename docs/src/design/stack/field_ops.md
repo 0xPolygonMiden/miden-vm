@@ -1,5 +1,5 @@
 # Field Operations
-In this section we describe the AIR constraint for Miden VM field operations (i.e., arithmetic operations over field elements).
+In this section we describe the AIR constraints for Miden VM field operations (i.e., arithmetic operations over field elements).
 
 ## ADD
 Assume $a$ and $b$ are the elements at the top of the stack. The `ADD` operation computes $c \leftarrow (a + b)$. The diagram below illustrates this graphically.
@@ -9,7 +9,7 @@ Assume $a$ and $b$ are the elements at the top of the stack. The `ADD` operation
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0' - (s_0 + s_1) = 0 \text{ | degree } = 1
+s_0' - (s_0 + s_1) = 0 \text{ | degree} = 1
 $$
 
 The effect on the rest of the stack is:
@@ -23,7 +23,7 @@ Assume $a$ is the element at the top of the stack. The `NEG` operation computes 
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0' + s_0 = 0 \text{ | degree } = 1
+s_0' + s_0 = 0 \text{ | degree} = 1
 $$
 
 The effect on the rest of the stack is:
@@ -67,7 +67,7 @@ Assume $a$ is the element at the top of the stack. The `INCR` operation computes
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0' - (s_0 + 1) = 0 \text{ | degree } = 1
+s_0' - (s_0 + 1) = 0 \text{ | degree} = 1
 $$
 
 The effect on the rest of the stack is:
@@ -85,7 +85,7 @@ s_0^2 - s_0 = 0 \text{ | degree } = 2
 $$
 
 >$$
-s_0' - (1 - s_0) = 0 \text{ | degree } = 1
+s_0' - (1 - s_0) = 0 \text{ | degree} = 1
 $$
 
 The first constraint ensures that the value in $s_0$ is binary, and the second constraint ensures the correctness of the boolean `NOT` operation.

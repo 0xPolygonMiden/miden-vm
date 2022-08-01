@@ -2,12 +2,21 @@
 In the following sections, we provide in-depth descriptions of Miden VM internals, including all AIR constraints for the proving system. We also provide rationale for making specific design choices.
 
 Throughout these sections we adopt the following notations and assumptions:
-* All arithmetic operations, unless noted otherwise, are assumed to be in a prime filed with modulus $p = 2^{64} - 2^{32} + 1$.
+* All arithmetic operations, unless noted otherwise, are assumed to be in a prime field with modulus $p = 2^{64} - 2^{32} + 1$.
 * A _binary_ value means a field element which is either $0$ or $1$.
-* We use lower-case letters to refer to individual field elements (e.g., $a$), and upper-case letters to refer to groups of $4$ elements or words (e.g., $A$). To refer to individual elements within a word, we use numerical subscripts. For example, $a_0$ is the first element of word $A$, $b_3$ is the last element of word $B$, etc.
+* We use lowercase letters to refer to individual field elements (e.g., $a$), and uppercase letters to refer to groups of $4$ elements, also referred to as words (e.g., $A$). To refer to individual elements within a word, we use numerical subscripts. For example, $a_0$ is the first element of word $A$, $b_3$ is the last element of word $B$, etc.
 * When describing AIR constraints:
   - For a column $x$, we denote the value in the current row simply as $x$, and the value in the next row of the column as $x'$. Thus, all transition constraints for Miden VM work with two consecutive rows of the execution trace.
   - For multiset equality constraints, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0, \alpha_1, \alpha_2$ etc.
+  - To differentiate constraints from other formulas, we frequently use the following format for constraint equations.
+
+>$$
+x' - (x + y) = 0 \text{ | degree} = 1
+$$
+
+In the above, the constraint equation is followed by the implied algebraic degree of the constraint. This degree is determined by the number of multiplications between trace columns. If a constraint does not involve any multiplications between columns, its degree is $1$. If a constraint involves multiplication between two columns, its degree is $2$. If we need to multiply three columns together, the degree is $3$ ect.
+
+The maximum allowed constraint degree in Miden VM is $9$. If a constraint degree grows beyond that, we frequently need to introduce additional columns to reduce the degree.
 
 ## VM components
 Miden VM consists of several interconnected components, each providing a specific set of functionality. These components are:
@@ -31,13 +40,11 @@ As can be seen from the above, decoder, stack, and range checker components use 
 
 In addition to the components described previously, execution trace also contains $2$ system columns:
 
-* `clk` which is used to keep track of the current VM cycle. Values in these columns start out at $0$ and are incremented with each cycle.
+* `clk` which is used to keep track of the current VM cycle. Values in this column start out at $0$ and are incremented by $1$ with each cycle.
 * `fmp` which contains the value of the free memory pointer used for specifying the region of memory available to procedure locals.
 
 AIR constraints for the `fmp` column are described in [system operations](./stack/system_ops.md) section. For the `clk` column, the constraints are straightforward:
 
 >$$
-clk' - (clk + 1) = 0 \text{ | degree } = 1
+clk' - (clk + 1) = 0 \text{ | degree} = 1
 $$
-
-We frequently use the above notation for describing other AIR constraints. Specifically, the constraint is followed by its implied algebraic degree.
