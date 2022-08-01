@@ -9,18 +9,20 @@ use super::{
 // ================================================================================================
 
 /// Appends ASSERT operation to the span block.
-///
-/// In cases when 'eq' parameter is specified, the sequence of appended operations is: EQ ASSERT
 pub fn parse_assert(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         1 => span_ops.push(Operation::Assert),
-        2 => {
-            if op.parts()[1] == "eq" {
-                span_ops.push(Operation::Eq);
-                span_ops.push(Operation::Assert);
-            } else {
-                return Err(AssemblyError::invalid_param(op, 1));
-            }
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+    Ok(())
+}
+
+/// Appends EQ ASSERT operation sequence to the span block.
+pub fn parse_assert_eq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        1 => {
+            span_ops.push(Operation::Eq);
+            span_ops.push(Operation::Assert);
         }
         _ => return Err(AssemblyError::extra_param(op)),
     }
