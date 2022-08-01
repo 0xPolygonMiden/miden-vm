@@ -253,8 +253,8 @@ Adding and removing entries to/from the block hash table is accomplished as foll
 To simplify constraint descriptions, we define values representing left and right children of a block as follows:
 
 $$
-ch_1 = \alpha_0 + \alpha_1 \cdot a' + \sum_{i=0}^3(a_{i+2} \cdot h_i) \text{ | degree } = 1 \\
-ch_2 = \alpha_0 + \alpha_1 \cdot a' + \sum_{i=0}^3(a_{i+2} \cdot h_{i+4}) \text{ | degree } = 1
+ch_1 = \alpha_0 + \alpha_1 \cdot a' + \sum_{i=0}^3(a_{i+2} \cdot h_i) \text{ | degree} = 1 \\
+ch_2 = \alpha_0 + \alpha_1 \cdot a' + \sum_{i=0}^3(a_{i+2} \cdot h_{i+4}) \text{ | degree} = 1
 $$
 
 Graphically, this looks like so:
@@ -264,7 +264,7 @@ Graphically, this looks like so:
 In a similar manner, we define a value representing the result of hash computation as follows:
 
 $$
-bh = \alpha_0 + \alpha_1 \cdot a + \sum_{i=0}^3(\alpha_{i+2} \cdot h_i) + \alpha_7 \cdot h_4 \text{ | degree } = 1
+bh = \alpha_0 + \alpha_1 \cdot a + \sum_{i=0}^3(\alpha_{i+2} \cdot h_i) + \alpha_7 \cdot h_4 \text{ | degree} = 1
 $$
 
 Note that in the above we use $a$ (block address from the current row) rather than $a'$ (block address from the next row) as we did for for values of $ch_1$ and $ch_2$. Also, note that we are not adding a flag indicating whether the block is the first child of a join block (i.e., $\alpha_6$ term is missing). It will be added later on.
@@ -382,7 +382,7 @@ $$
 \Delta gc = gc - gc'
 $$
 
-Using this variable, we can describe constraints against the $gc$ column as follows:
+Using this variable, we can describe the constraints against the $gc$ column as follows:
 
 Inside a *span* block, group count can either stay the same or decrease by one:
 
@@ -463,7 +463,7 @@ ng = \Delta gc - f_{push} \\
 \Delta ox = ox' - ox
 $$
 
-The value of $ng$ is set to $1$ when we are about to start executing a new operation group (i.e., group count is decremented but we did not execute a `PUSH` operation). Using these variables, we can describe constraints against the $ox$ column as follows.
+The value of $ng$ is set to $1$ when we are about to start executing a new operation group (i.e., group count is decremented but we did not execute a `PUSH` operation). Using these variables, we can describe the constraints against the $ox$ column as follows.
 
 When executing `SPAN` or `RESPAN` operations the next value of `op_index` must be set to $0$:
 
@@ -544,7 +544,7 @@ To simplify constraint descriptions, we first define variables representing the 
 When a `SPAN` or a `RESPAN` operation is executed, we compute the values of the rows to be added to the op group table as follows:
 
 $$
-v_i = \alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot (gc - i) + \alpha_3 \cdot h_{i} \text{ | degree } = 1
+v_i = \alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot (gc - i) + \alpha_3 \cdot h_{i} \text{ | degree} = 1
 $$
 
 Where $i \in 1..7$. Thus, $v_1$ defines row value for group in $h_1$, $v_2$ defines row value for group $h_2$ etc. Note that batch address column comes from the next row of the block address column ($a'$).

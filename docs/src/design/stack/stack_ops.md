@@ -1,5 +1,5 @@
 # Stack Manipulation
-In this section we describe the AIR constraint for Miden VM stack manipulation operations. 
+In this section we describe the AIR constraints for Miden VM stack manipulation operations. 
 
 ## PAD
 The `PAD` operation pushes a $0$ onto the stack. The diagram below illustrates this graphically.
@@ -9,7 +9,7 @@ The `PAD` operation pushes a $0$ onto the stack. The diagram below illustrates t
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_{0}' = 0 \text{ | degree } = 1
+s_{0}' = 0 \text{ | degree} = 1
 $$
 
 The effect on the rest of the stack is:
@@ -30,7 +30,7 @@ The `DUP(n)` operations push a copy of the $n$-th stack element onto the stack. 
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_{0}' - s_{n} = 0 \text{ for } n \in \{0, ..., 7, 9, 11, 13, 15\} \text{ | degree } = 1
+s_{0}' - s_{n} = 0 \text{ for } n \in \{0, ..., 7, 9, 11, 13, 15\} \text{ | degree} = 1
 $$
 
 where $n$ is the depth of the stack from where the element has been copied.
@@ -46,11 +46,11 @@ The `SWAP` operations swaps the top two element of the stack. The diagram below 
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_{0}' - s_{1} = 0 \text{ | degree } = 1
+s_{0}' - s_{1} = 0 \text{ | degree} = 1
 $$
 
 >$$
-s_{1}' - s_{0} = 0 \text{ | degree } = 1
+s_{1}' - s_{0} = 0 \text{ | degree} = 1
 $$
 
 The effect on the rest of the stack is:
@@ -64,11 +64,11 @@ The `SWAPW` operation swaps stack elements $0, 1, 2, 3$ with elements $4, 5, 6, 
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_{i}' - s_{i+4} = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree } = 1
+s_{i}' - s_{i+4} = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 1
 $$
 
 >$$
-s_{i + 4}' - s_i = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree } = 1
+s_{i + 4}' - s_i = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 1
 $$
 
 The effect on the rest of the stack is:
@@ -82,11 +82,11 @@ The `SWAPW2` operation swaps stack elements $0, 1, 2, 3$ with elements $8, 9, 10
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_i' - s_{i+8} = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree } = 1
+s_i' - s_{i+8} = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 1
 $$
 
 >$$
-s_{i + 8}' - s_i = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree } = 1
+s_{i + 8}' - s_i = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 1
 $$
 
 The effect on the rest of the stack is:
@@ -101,11 +101,11 @@ The `SWAPW3` operation swaps stack elements $0, 1, 2, 3$ with elements $12, 13, 
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_i' - s_{i+12} = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree } = 1
+s_i' - s_{i+12} = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 1
 $$
 
 >$$
-s_{i+12}' - s_i = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree } = 1
+s_{i+12}' - s_i = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 1
 $$
 
 The effect on the rest of the stack is:
@@ -120,11 +120,11 @@ The `SWAPDW` operation swaps stack elements $\{0, ..., 7\}$ with elements $\{8, 
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_i' - s_{i+8} = 0 \text{ for } i \in \{0, ..., 7\}   \text{ | degree } = 1
+s_i' - s_{i+8} = 0 \text{ for } i \in \{0, ..., 7\}   \text{ | degree} = 1
 $$
 
 >$$
-s_{i+8}' - s_i = 0 \text{ for } i \in \{0, ..., 7\}   \text{ | degree } = 1
+s_{i+8}' - s_i = 0 \text{ for } i \in \{0, ..., 7\}   \text{ | degree} = 1
 $$
 
 The effect on the rest of the stack is:
@@ -138,7 +138,7 @@ The `MOVUP(n)` operation moves the $n$-th element of the stack to the top of the
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0' - s_n = 0 \text{ for } n \in \{2, ..., 8\} \text{ | degree } = 1
+s_0' - s_n = 0 \text{ for } n \in \{2, ..., 8\} \text{ | degree} = 1
 $$
 
 where $n$ is the depth of the element which is moved moved to the top of the stack.
@@ -155,7 +155,7 @@ The `MOVDN(n)` operation moves the top element of the stack to the $n$-th positi
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_n' - s_0 = 0 \text{ for } n \in \{2, ..., 8\} \text{ | degree } = 1
+s_n' - s_0 = 0 \text{ for } n \in \{2, ..., 8\} \text{ | degree} = 1
 $$
 
 where $n$ is the depth to which the top stack element is moved.
