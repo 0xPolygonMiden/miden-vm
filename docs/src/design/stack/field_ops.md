@@ -74,7 +74,7 @@ The effect on the rest of the stack is:
 * **No change** starting from position $1$.
 
 ## NOT
-Assume $a$ is the element at the top of the stack. The `NOT` operation computes $b \leftarrow (\lnot a)$. The diagram below illustrates this graphically.
+Assume $a$ is a binary value at the top of the stack. The `NOT` operation computes $b \leftarrow (\lnot a)$. The diagram below illustrates this graphically.
 
 ![not](../../assets/design/stack/field_operations/NOT.png)
 
@@ -94,7 +94,7 @@ The effect on the rest of the stack is:
 * **No change** starting from position $1$.
 
 ## AND
-Assume $a$ and $b$ are the elements at the top of the stack. The `AND` operation computes $c \leftarrow (a \land b)$. The diagram below illustrates this graphically.
+Assume $a$ and $b$ are binary values at the top of the stack. The `AND` operation computes $c \leftarrow (a \land b)$. The diagram below illustrates this graphically.
 
 ![and](../../assets/design/stack/field_operations/AND.png)
 
@@ -114,7 +114,7 @@ The effect on the rest of the stack is:
 * **Left shift** starting from position $2$.
 
 ## OR
-Assume $a$ and $b$ are the elements at the top of the stack. The `OR` operation computes $c \leftarrow (a \lor b)$ The diagram below illustrates this graphically.
+Assume $a$ and $b$ are binary values at the top of the stack. The `OR` operation computes $c \leftarrow (a \lor b)$ The diagram below illustrates this graphically.
 
 ![or](../../assets/design/stack/field_operations/OR.png)
 

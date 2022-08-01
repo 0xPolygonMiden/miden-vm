@@ -55,7 +55,7 @@ $$
 In the above, $u_{mem}$ is the value of memory access request. Thus, to describe AIR constraint for memory operations, it is sufficient to describe how $u_{mem}$ is computed. We do this in the following sections.
 
 ### MLOADW
-Assume that the words with elements $v_0, v_1, v_2, v_3$ is located in memory at address $a$. The `MLOADW` operation pops an element off the stack, interprets it as a memory address, and replaces the remaining 4 elements at the top of the stack with values located at the specified address. The diagram below illustrates this graphically.
+Assume that the word with elements $v_0, v_1, v_2, v_3$ is located in memory at address $a$. The `MLOADW` operation pops an element off the stack, interprets it as a memory address, and replaces the remaining 4 elements at the top of the stack with values located at the specified address. The diagram below illustrates this graphically.
 
 ![mloadw](../../assets/design/stack/io_ops/MLOADW.png)
 
@@ -90,7 +90,7 @@ The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $5$.
 
 ### MLOAD
-Assume that the words with elements $v_0, v_1, v_2, v_3$ is located in memory at address $a$. The `MLOAD` operation pops an element off the stack, interprets it as a memory address, and pushes the first element of the word located at the specified address to the stack. The diagram below illustrates this graphically.
+Assume that the word with elements $v_0, v_1, v_2, v_3$ is located in memory at address $a$. The `MLOAD` operation pops an element off the stack, interprets it as a memory address, and pushes the first element of the word located at the specified address to the stack. The diagram below illustrates this graphically.
 
 ![mload](../../assets/design/stack/io_ops/MLOAD.png)
 
@@ -99,13 +99,13 @@ To simplify description of memory access request value, we first define the foll
 The value representing state of memory before the operation (values in registers $h_0, h_1, h_2$ are set by the prover non-deterministically):
 
 $$
-v_{old} = \alpha_4 \cdot s_0' + \sum_{i=2}^3\alpha_{i+4} \cdot h_i'
+v_{old} = \alpha_4 \cdot s_0' + \sum_{i=1}^3\alpha_{i+4} \cdot h_{i-1}'
 $$
 
 The value representing state of memory after the operation:
 
 $$
-v_{new} = \alpha_8 \cdot s_0' + \sum_{i=0}^2\alpha_{i+8} \cdot h_i'
+v_{new} = \alpha_8 \cdot s_0' + \sum_{i=1}^3\alpha_{i+8} \cdot h_{i-1}'
 $$
 
 Using the above variables, we define the value representing the memory access request as follows:
@@ -123,11 +123,11 @@ The effect of this operation on the rest of the stack is:
 * **No change** starting from position $1$.
 
 ### MSTOREW
-Assume that the words with elements $v_0, v_1, v_2, v_3$ is located in memory at address $a$. The `MSTOREW` operation pops an element off the stack, interprets it as a memory address, and writes the remaining $4$ elements at the top of the stack into memory at the specified address. The stored elements are not removed from the stack. The diagram below illustrates this graphically.
+Assume that the word with elements $u_0, u_1, u_2, u_3$ is located in memory at address $a$. The `MSTOREW` operation pops an element off the stack, interprets it as a memory address, and writes the remaining $4$ elements at the top of the stack into memory at the specified address. The stored elements are not removed from the stack. The diagram below illustrates this graphically.
 
 ![mstorew](../../assets/design/stack/io_ops/MSTOREW.png)
 
-After the operation the contents of memory at address $a$ would be set to $u_0, u_1, u_2, u_3$.
+After the operation the contents of memory at address $a$ would be set to $v_0, v_1, v_2, v_3$.
 
 To simplify description of memory access request value, we first define the following variables:
 
@@ -158,7 +158,7 @@ The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $1$.
 
 ### MSTORE
-Assume that the words with elements $v_0, v_1, v_2, v_3$ is located in memory at address $a$. The `MSTORE` operation pops an element off the stack, interprets it as a memory address, and writes the remaining element at the top of the stack into the first element of the word located at the specified memory address. The remaining $3$ elements of the word are not affected. The diagram below illustrates this graphically.
+Assume that the word with elements $v_0, v_1, v_2, v_3$ is located in memory at address $a$. The `MSTORE` operation pops an element off the stack, interprets it as a memory address, and writes the remaining element at the top of the stack into the first element of the word located at the specified memory address. The remaining $3$ elements of the word are not affected. The diagram below illustrates this graphically.
 
 ![mstore](../../assets/design/stack/io_ops/MSTORE.png)
 
@@ -175,7 +175,7 @@ $$
 The value representing state of memory after the operation:
 
 $$
-v_{new} = \alpha_4 \cdot s_0' + \sum_{i=1}^3\alpha_{i+8} \cdot h_i'
+v_{new} = \alpha_8 \cdot s_0' + \sum_{i=1}^3\alpha_{i+8} \cdot h_i'
 $$
 
 Using the above variables, we define the value representing the memory access request as follows:

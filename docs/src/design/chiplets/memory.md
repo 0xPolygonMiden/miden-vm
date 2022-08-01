@@ -195,110 +195,54 @@ The amortized cost of reading or writing a single value is between $4$ and $5$ t
 To simplify description of constraints, we'll define two variables $n_0$ and $n_1$ as follows:
 
 $$
-n_0 = (c' - c) \cdot t \\
-n_1 = (a' - a) \cdot t
+n_0 = \Delta c \cdot t \\
+n_1 = \Delta a \cdot t
 $$
+
+Where $\Delta c = c' - c$ and $\Delta a = a' - a$.
 
 To make sure the prover sets the value of column `t` correctly, we'll need to impose the following constraints:
 
-$$
-n_0^2 - n_0 = 0 \\
-(1 - n_0) \cdot  (c' - c) = 0 \\
-(1 - n_0) \cdot (n_1^2 - n_1) = 0 \\
-(1 - n_0) \cdot (1 - n_1) \cdot (a' - a) = 0
+>$$
+n_0^2 - n_0 = 0 \text{ | degree} = 4
 $$
 
-The above constraints guarantee that when context changes $n_0 = 1$, when context remains the same but address changes $(1 - n_0) \cdot n_1 = 1$, and when neither the context nor the address change, $(1 - n_0) \cdot (1 - n_1) = 1$.
+>$$
+(1 - n_0) \cdot  \Delta c = 0 \text{ | degree} = 3
+$$
+
+>$$
+(1 - n_0) \cdot (n_1^2 - n_1) = 0 \text{ | degree} = 6
+$$
+
+>$$
+(1 - n_0) \cdot (1 - n_1) \cdot \Delta a = 0 \text{ | degree} = 5
+$$
+
+The above constraints guarantee that when context changes, $n_0 = 1$. When context remains the same but address changes, $(1 - n_0) \cdot n_1 = 1$. And when neither the context nor the address change, $(1 - n_0) \cdot (1 - n_1) = 1$.
 
 To enforce the values of context ID, address, and clock cycle grow monotonically as described in the previous section, we define the following constraint.
 
+>$$
+\left(n_0 \cdot \Delta c + (1 - n_0) \cdot (n_1 \cdot \Delta a + (1 - n_1) \cdot \Delta i) \right) - (2^{16} \cdot d_1' + d_0') = 0 \text{ | degree} = 5
 $$
-\left(n_0 \cdot (c' - c) + (1 - n_0) \cdot \left(n_1 \cdot (a - a') + (1 - n_1) \cdot (i' - i - 1) \right) \right) - (2^{16} \cdot d_1' + d_0') = 0
-$$
+
+Where $\Delta i = i' - i - 1$.
 
 In addition to this constraint, we also need to make sure that values in registers $d_0$ and $d_1$ are less than $2^{16}$, and this can be done with permutation-based range checks.
 
 Next, we need to make sure that values at a given memory address are always initialized to $0$. This can be done with the following constraint:
 
-$$
-(n_0 + (1 - n_0) \cdot n_1) \cdot u_i' = 0
+>$$
+(n_0 + (1 - n_0) \cdot n_1) \cdot u_i' = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 5
 $$
 
-where $i \in \{0, 1, 2, 3\}$. Thus, when either the context changes, or the address changes, values in $u_i$ columns are guaranteed to be zeros.
+Thus, when either the context changes, or the address changes, values in $u_i$ columns are guaranteed to be zeros.
 
 Lastly, we need to make sure that for the same context/address combination, the $v_i$ columns of the current row are equal to the corresponding $u_i$ columns of the next row. This can be done with the following constraints:
 
-$$
-(1 - n_0) \cdot (1 - n_1) \cdot (u_i' - v_i) = 0
-$$
-
-where $i \in \{0, 1, 2, 3\}$.
-
-Notice that the maximum degree for all constraints described above is $5$.
-
-#### Memory row value
-
-To use the above table in permutation checks, we need to reduce each row of the memory table to a single value. This can be done like so:
-
-$$
-v = \alpha_0 + \alpha_1 \cdot c + \alpha_2 \cdot a + \alpha_3 \cdot i + \sum_{j=0}^3(\alpha_{j+4} \cdot u_j) + \sum_{j=0}^3(\alpha_{j+8} \cdot v_j)
+>$$
+(1 - n_0) \cdot (1 - n_1) \cdot (u_i' - v_i) = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 5
 $$
 
-where $\alpha_0$, $\alpha_1$, $\alpha_2$, etc. are random values sent from the verifier to the prover for use in permutation checks.
-
-### Load and store operations
-
-To move elements between the stack and the memory, Miden VM provides two operations `MLOAD` and `MSTORE`. Semantic of these operations are described below.
-
-#### Reading from memory
-
-`MLOAD` operation is used to move values from memory to the top of the stack. This operation works as follows:
-
-1. Pop the top element from the stack and interpret it as memory address.
-2. Perform a lookup into the memory table at the specified address and using the current values of context and clock cycle registers. This creates a row in the lookup table corresponding to the load operation.
-3. Overwrite the top four stack items with values located at the specified memory address.
-
-Graphically, this looks like so:
-
-![memory_reading_memory](../../assets/design/chiplets/memory/memory_reading_memory.png)
-
-Note that as a result of this operation the stack is shifted to the left by one.
-
-Denoting stack registers as $s_j$, clock cycle register as $i$, and context register as $c$, we can compute the lookup row value as follows:
-
-$$
-v = \alpha_0 + \alpha_1 \cdot c + \alpha_2 \cdot s_0 + \alpha_3 \cdot i + \sum_{j=0}^3(\alpha_{j+4} \cdot s_j') + \sum_{j=0}^3(\alpha_{j+8} \cdot s_j')
-$$
-
-where $\alpha_0$, $\alpha_1$, $\alpha_2$, etc. are random values sent from the verifier to the prover for use in permutation checks.
-
-Note that the values from the top of the stack are added into the row twice: once for "old" values and once for "new" values. We can do this because old and new values in the memory table row corresponding the load operation are the same.
-
-#### Writing to memory
-
-`MSTORE` operation is used to move values from the top of the stack to the memory. This operation works as follows:
-
-1. Pop the top element from the stack and interpret it as memory address.
-2. Perform a lookup into the memory table at the specified address and using the current values of context and clock cycle registers. This creates a row in the lookup table corresponding to the store operation.
-
-Graphically, this looks like so:
-
-![memory_writing_to_memory](../../assets/design/chiplets/memory/memory_writing_to_memory.png)
-
-Note that as a result of this operation the stack is shifted to the left by one, and the values saved to memory remain on the stack.
-
-Denoting stack registers as $s_j$, helper registers as $h_j$, clock cycle register as $i$, and context register as $c$, we can compute the lookup row value as follows:
-
-$$
-v = \alpha_0 + \alpha_1 \cdot c + \alpha_2 \cdot s_0 + \alpha_3 \cdot i + \sum_{j=0}^3(\alpha_{j+4} \cdot h_j) + \sum_{j=0}^3(\alpha_{j+8} \cdot s_j')
-$$
-
-where $\alpha_0$, $\alpha_1$, $\alpha_2$ etc... are random values sent from the verifier to the prover for use in permutation checks. Values for the helper registers $h_0, ...,  h_3$ are provided by the VM non-deterministically.
-
-We also need to make sure that the saved values remained on the stack. This can be done with the following constraint:
-
-$$
-s_i' - s_{i + 1} = 0
-$$
-
-where $i \in \{0, 1, 2, 3\}$.
+On the stack side, for every memory access request, a corresponding value is divided out of the $b_{chip}$ column. Specifics of how this is done are described [here](../stack/io_ops.md#memory-access-operations).
