@@ -22,7 +22,7 @@ pub const USER_OP_HELPERS: Range<usize> = Range {
 
 /// Execution trace of the decoder.
 ///
-/// The trace currently consists of 22 columns grouped logically as follows:
+/// The trace currently consists of 23 columns grouped logically as follows:
 /// - 1 column for code block ID / related hasher table row address.
 /// - 7 columns for the binary representation of an opcode.
 /// - 8 columns used for providing inputs to, and reading results from the hasher, but also used
@@ -33,6 +33,7 @@ pub const USER_OP_HELPERS: Range<usize> = Range {
 /// - 1 column to keep track of the index of a currently executing operation within an operation
 ///   group.
 /// - 3 columns for keeping track of operation batch flags.
+/// - 1 column used for op flag degree reduction (to support degree 5 operations).
 pub struct DecoderTrace {
     addr_trace: Vec<Felt>,
     op_bits_trace: [Vec<Felt>; NUM_OP_BITS],
@@ -41,6 +42,7 @@ pub struct DecoderTrace {
     group_count_trace: Vec<Felt>,
     op_idx_trace: Vec<Felt>,
     op_batch_flag_trace: [Vec<Felt>; NUM_OP_BATCH_FLAGS],
+    op_bit_extra: Vec<Felt>,
 }
 
 impl DecoderTrace {
@@ -56,6 +58,7 @@ impl DecoderTrace {
             in_span_trace: Vec::with_capacity(MIN_TRACE_LEN),
             op_idx_trace: Vec::with_capacity(MIN_TRACE_LEN),
             op_batch_flag_trace: new_array_vec(MIN_TRACE_LEN),
+            op_bit_extra: Vec::with_capacity(MIN_TRACE_LEN),
         }
     }
 
@@ -413,6 +416,15 @@ impl DecoderTrace {
             trace.push(column);
         }
 
+        // put ONEs into the unfilled rows of op bit extra column; we put ONE because the two
+        // most significant bits of HALT operation are ONE and this column is computed as the
+        // product of the two most significant op bits.
+        debug_assert_eq!(1, (halt_opcode >> 6) & 1);
+        debug_assert_eq!(1, (halt_opcode >> 5) & 1);
+        debug_assert_eq!(own_len, self.op_bit_extra.len());
+        self.op_bit_extra.resize(trace_len, ONE);
+        trace.push(self.op_bit_extra);
+
         trace
     }
 
@@ -451,6 +463,12 @@ impl DecoderTrace {
             let bit = Felt::from((op_code >> i) & 1);
             self.op_bits_trace[i].push(bit);
         }
+
+        // populate extra op bit column with the product of the two most significant bits
+        let clk = self.op_bit_extra.len();
+        let bit6 = self.op_bits_trace[NUM_OP_BITS - 1][clk];
+        let bit5 = self.op_bits_trace[NUM_OP_BITS - 2][clk];
+        self.op_bit_extra.push(bit6 * bit5);
     }
 
     /// Add all provided values to the helper registers in the order provided, starting from the

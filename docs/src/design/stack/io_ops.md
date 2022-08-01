@@ -1,5 +1,5 @@
 # Input / output operations
-In this section we describe the AIR constraint for Miden VM input / output operations. These operations move values between the stack and other components of the VM such as program code (i.e., decoder), memory, and advice provider.
+In this section we describe the AIR constraints for Miden VM input / output operations. These operations move values between the stack and other components of the VM such as program code (i.e., decoder), memory, and advice provider.
 
 ### PUSH
 The `PUSH` operation pushes the provided immediate value onto the stack (i.e., sets the value of $s_0$ register). Currently, it is the only operation in Miden VM which carries an immediate value. The semantics of this operation are explained in the [decoder section](../decoder/main.html#handling-immediate-values).
@@ -15,7 +15,7 @@ Assume $a$ is the current depth of the stack stored in the stack bookkeeping reg
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0' - b_0 = 0 \text{ | degree } = 1
+s_0' - b_0 = 0 \text{ | degree} = 1
 $$
 
 The effect of this operation on the rest of the stack is:
@@ -96,7 +96,7 @@ Assume that the words with elements $v_0, v_1, v_2, v_3$ is located in memory at
 
 To simplify description of memory access request value, we first define the following variables:
 
-The value representing state of memory before the operation (values in registers $h_0, h_1, h_2$ are set by the prover nondeterministically):
+The value representing state of memory before the operation (values in registers $h_0, h_1, h_2$ are set by the prover non-deterministically):
 
 $$
 v_{old} = \alpha_4 \cdot s_0' + \sum_{i=2}^3\alpha_{i+4} \cdot h_i'
@@ -131,7 +131,7 @@ After the operation the contents of memory at address $a$ would be set to $u_0, 
 
 To simplify description of memory access request value, we first define the following variables:
 
-The value representing state of memory before the operation (set by the prover nondeterministically in registers $h_0, ..., h_3$):
+The value representing state of memory before the operation (set by the prover non-deterministically in registers $h_0, ..., h_3$):
 
 $$
 v_{old} = \sum_{i=0}^3\alpha_{i+4} \cdot h_i
@@ -166,7 +166,7 @@ After the operation the contents of memory at address $a$ would be set to $b, v_
 
 To simplify description of memory access request value, we first define the following variables:
 
-The value representing state of memory before the operation (set by the prover nondeterministically in registers $h_0, ..., h_3$):
+The value representing state of memory before the operation (set by the prover non-deterministically in registers $h_0, ..., h_3$):
 
 $$
 v_{old} = \sum_{i=0}^3\alpha_{i+4} \cdot h_i
