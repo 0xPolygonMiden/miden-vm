@@ -3,7 +3,7 @@ use prover::StarkProof;
 use serde_derive::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::{fs, io::Write, time::Instant};
-use vm_core::{hasher::Digest, Program, ProgramInputs};
+use vm_core::{chiplets::hasher::Digest, Program, ProgramInputs};
 use winter_utils::{Deserializable, SliceReader};
 
 // INPUT FILE
