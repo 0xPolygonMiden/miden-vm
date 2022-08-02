@@ -27,6 +27,17 @@ pub const MEMORY_TRACE_OFFSET: usize = CHIPLETS_OFFSET + NUM_MEMORY_SELECTORS;
 
 // --- GLOBALLY-INDEXED CHIPLET COLUMN ACCESSORS --------------------------------------------------
 
+/// The column index range in the execution trace containing the selector columns in the hasher.
+pub const HASHER_SELECTOR_COL_RANGE: Range<usize> =
+    create_range(HASHER_TRACE_OFFSET, hasher::NUM_SELECTORS);
+/// The index of the hasher's row column in the execution trace.
+pub const HASHER_ROW_COL_IDX: usize = HASHER_SELECTOR_COL_RANGE.end;
+/// The range of columns in the execution trace that contain the hasher's state.
+pub const HASHER_STATE_COL_RANGE: Range<usize> =
+    create_range(HASHER_ROW_COL_IDX + 1, hasher::STATE_WIDTH);
+/// The index of the hasher's node index column in the execution trace.
+pub const HASHER_NODE_INDEX_COL_IDX: usize = HASHER_STATE_COL_RANGE.end;
+
 /// The range within the main trace of the bitwise selector columns.
 pub const BITWISE_SELECTOR_COL_RANGE: Range<usize> =
     create_range(BITWISE_TRACE_OFFSET, bitwise::NUM_SELECTORS);
