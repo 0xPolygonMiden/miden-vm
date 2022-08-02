@@ -257,7 +257,7 @@ pub fn parse_storew(
 ///   values (represented by 32-bit limbs), divides one value by another, and injects the quotient
 ///   and the remainder into the advice tape.
 pub fn parse_adv_inject(
-    span_ops: &mut Vec<Operation>,
+    span_ops: &mut [Operation],
     op: &Token,
     decorators: &mut DecoratorList,
 ) -> Result<(), AssemblyError> {
