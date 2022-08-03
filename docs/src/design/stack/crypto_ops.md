@@ -27,7 +27,7 @@ In the above, $op_{linhash}$ and $op_{retstate}$ are the unique [operation label
 Using the above values, we can describe the constraint for the chiplet bus column as follows:
 
 >$$
-b_{chip}' \cdot v_{input} \cdot v_{output} = b_{chip} \text{ | degree } = 3
+b_{chip}' \cdot v_{input} \cdot v_{output} = b_{chip} \text{ | degree} = 3
 $$
 
 The above constraint enforces that the specified input and output rows must be present in the trace of the hash chiplet, and that they must be exactly $7$ rows apart.
@@ -65,7 +65,7 @@ In the above, $op_{mpver}$ and $op_{rethash}$ are the unique [operation labels](
 Using the above values, we can describe the constraint for the chiplet bus column as follows:
 
 >$$
-b_{chip}' \cdot v_{input} \cdot v_{output} = b_{chip} \text{ | degree } = 3
+b_{chip}' \cdot v_{input} \cdot v_{output} = b_{chip} \text{ | degree} = 3
 $$
 
 The above constraint enforces that the specified input and output rows must be present in the trace of the hash chiplet, and that they must be exactly $8 \cdot d - 1$ rows apart, where $d$ is the depth of the node.
@@ -112,7 +112,7 @@ In the above, the first two expressions correspond to inputs and outputs for ver
 The $op_{mruold}$, $op_{mrunew}$, and $op_{rethash}$ are the unique [operation labels](../chiplets/main.md#operation-labels) used by the above computations.
 
 > $$
-b_{chip}' \cdot v_{inputold} \cdot v_{outputold} \cdot v_{inputnew} \cdot v_{outputnew} = b_{chip} \text{ | degree } = 5
+b_{chip}' \cdot v_{inputold} \cdot v_{outputold} \cdot v_{inputnew} \cdot v_{outputnew} = b_{chip} \text{ | degree} = 5
 $$
 
 The above constraint enforces that the specified input and output rows for both, the old and the new node/root combinations, must be present in the trace of the hash chiplet, and that they must be exactly $8 \cdot d - 1$ rows apart, where $d$ is the depth of the node. It also ensures that the computation for the old node/root combination is immediately followed by the computation for the new node/root combination.

@@ -37,7 +37,7 @@ Assume $a$ and $b$ are the elements at the top of the stack. The `MUL` operation
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0' - s_0 \cdot s_1 = 0 \text{ | degree } = 2
+s_0' - s_0 \cdot s_1 = 0 \text{ | degree} = 2
 $$
 
 The effect on the rest of the stack is:
@@ -51,7 +51,7 @@ Assume $a$ is the element at the top of the stack. The `INV` operation computes 
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-1 - s_0' \cdot s_0 = 0 \text{ | degree } = 2
+1 - s_0' \cdot s_0 = 0 \text{ | degree} = 2
 $$
 
 Note that the above constraint can be satisfied only if the value in $s_0 \neq 0$.
@@ -81,7 +81,7 @@ Assume $a$ is a binary value at the top of the stack. The `NOT` operation comput
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0^2 - s_0 = 0 \text{ | degree } = 2
+s_0^2 - s_0 = 0 \text{ | degree} = 2
 $$
 
 >$$
@@ -101,11 +101,11 @@ Assume $a$ and $b$ are binary values at the top of the stack. The `AND` operatio
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_i^2 - s_i = 0 \text{ for } i \in \{0, 1\} \text{ | degree } = 2
+s_i^2 - s_i = 0 \text{ for } i \in \{0, 1\} \text{ | degree} = 2
 $$
 
 >$$
-s_0' - s_0 \cdot s_1 = 0 \text{ | degree } = 2
+s_0' - s_0 \cdot s_1 = 0 \text{ | degree} = 2
 $$
 
 The first two constraints ensure that the value in $s_0$ and $s_1$ are binary, and the third constraint ensures the correctness of the boolean `AND` operation.
@@ -121,11 +121,11 @@ Assume $a$ and $b$ are binary values at the top of the stack. The `OR` operation
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_i^2 - s_i = 0 \text{ for } i \in \{0, 1\} \text{ | degree } = 2
+s_i^2 - s_i = 0 \text{ for } i \in \{0, 1\} \text{ | degree} = 2
 $$
 
 >$$
-s_{0}' - (s_{1} + s_{0} - s_{1} \cdot s_{0}) = 0 \text{ | degree } = 2
+s_{0}' - (s_{1} + s_{0} - s_{1} \cdot s_{0}) = 0 \text{ | degree} = 2
 $$
 
 The first two constraints ensure that the value in $s_0$ and $s_1$ are binary, and the third constraint ensures the correctness of the boolean `OR` operation.
@@ -141,11 +141,11 @@ Assume $a$ and $b$ are the elements at the top of the stack. The `EQ` operation 
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0' \cdot (s_0 - s_1) = 0 \text{ | degree } = 2
+s_0' \cdot (s_0 - s_1) = 0 \text{ | degree} = 2
 $$
 
 >$$
-s_0' - (1 - (s_0 - s_1) \cdot h_0) = 0 \text{ | degree } = 2
+s_0' - (1 - (s_0 - s_1) \cdot h_0) = 0 \text{ | degree} = 2
 $$
 
 To satisfy the above constraints, the prover must populate the value of helper register $h_0$ as follows:
@@ -163,11 +163,11 @@ Assume $a$ is the element at the top of the stack. The `EQZ` operation computes 
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0' \cdot s_0 = 0 \text{ | degree } = 2
+s_0' \cdot s_0 = 0 \text{ | degree} = 2
 $$
 
 >$$
-s_0' - (1 - s_0 \cdot h_0) = 0 \text{ | degree } = 2
+s_0' - (1 - s_0 \cdot h_0) = 0 \text{ | degree} = 2
 $$
 
 To satisfy the above constraints, the prover must populate the value of helper register $h_0$ as follows:

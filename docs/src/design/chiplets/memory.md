@@ -245,4 +245,19 @@ Lastly, we need to make sure that for the same context/address combination, the 
 (1 - n_0) \cdot (1 - n_1) \cdot (u_i' - v_i) = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 5
 $$
 
+#### Memory row value
+Communication between the memory chiplet and the stack is accomplished via the chiplet bus $b_{chip}$. To respond to memory access requests from the stack, we need to divide the current value in $b_{chip}$ by the value representing a row in the memory table. This value can be computed as follows:
+
+$$
+v_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot c + \alpha_3 \cdot a + \alpha_4 \cdot i + \sum_{j=0}^3(\alpha_{j+5} \cdot u_j) + \sum_{j=0}^3(\alpha_{j+9} \cdot v_j)
+$$
+
+Where, $op_{mem}$ is the unique [operation label](./main.md#operation-labels) of the memory access operation.
+
+To ensure that values of memory table rows are included into the chiplet bus, we impose the following constraint:
+
+>$$
+b_{chip}' = b_{chip} \cdot v_{mem} \text{ | degree} = 2
+$$
+
 On the stack side, for every memory access request, a corresponding value is divided out of the $b_{chip}$ column. Specifics of how this is done are described [here](../stack/io_ops.md#memory-access-operations).

@@ -7,13 +7,13 @@ Most operations described below require some number of 16-bit range checks (i.e.
 To perform these range checks, the prover puts the values to be range-checked into helper registers $h_0, ..., h_3$, and then divides the range checker bus column $b_{range}$ by a randomized product of these values. This operation is enforced via the following constraint:
 
 >$$
-b_{range}' \cdot (\alpha_0 + h_0) \cdot (\alpha_0 + h_1) \cdot (\alpha_0 + h_2) \cdot (\alpha_0 + h_3) = b_{range} \text{ | degree } = 5
+b_{range}' \cdot (\alpha_0 + h_0) \cdot (\alpha_0 + h_1) \cdot (\alpha_0 + h_2) \cdot (\alpha_0 + h_3) = b_{range} \text{ | degree} = 5
 $$
 
-The above is just a partial constraint as it does not show the range checker's part of the constraint, which multiplies the required values into the bus column. It also omits the selector flag which is used to turn this constraint on only when executing relevant operations.
+The above is just a partial constraint as it does not show the range checker's part of the constraint, which multiplies the required values into the bus column. It also omits the [selector flag](./op_constraints.md#operation-flags) which is used to turn this constraint on only when executing relevant operations.
 
 ### Checking element validity
-Another primitive which most operations described below rely is checking whether four 16-bit values form a valid field element. Assume $t_0$, $t_1$, $t_2$, and $t_3$ are known to be 16-bit values, and we want to verify that $2^{48} \cdot t_3 + 2^{32} \cdot t_2 + 2^{16} \cdot t_1 + t_0$ is a valid field element. 
+Another primitive which is required by most of the operations described below is checking whether four 16-bit values form a valid field element. Assume $t_0$, $t_1$, $t_2$, and $t_3$ are known to be 16-bit values, and we want to verify that $2^{48} \cdot t_3 + 2^{32} \cdot t_2 + 2^{16} \cdot t_1 + t_0$ is a valid field element. 
 
 For simplicity, let's denote:
 
@@ -25,10 +25,12 @@ $$
 We can then impose the following constraint to verify element validity:
 
 > $$
-\left(1 - m \cdot (2^{32} - 1 - v_{hi})\right) \cdot v_{lo} = 0 \text{ | degree } = 3
+\left(1 - m \cdot (2^{32} - 1 - v_{hi})\right) \cdot v_{lo} = 0 \text{ | degree} = 3
 $$
 
-The above constraint holds only if either of the following hold:
+Where $m$ is a value set non-deterministically by the prover.
+
+The above constraint should hold only if either of the following hold:
 
 * $v_{lo} = 0$
 * $v_{hi} \ne 2^{32} - 1$
@@ -153,7 +155,7 @@ s_1 = s_0 + s_1' + 2^{32} \cdot s_0' \text{ | degree} = 1
 $$
 
 >$$
-s_0'^2 - s_0' = 0 \text{ | degree } = 2
+s_0'^2 - s_0' = 0 \text{ | degree} = 2
 $$
 
 >$$
@@ -173,7 +175,7 @@ Assume $a$ and $b$ are the values at the top of the stack which are known to be 
 To facilitate this operation, the prover sets values in $h_0, ..., h_3$ to 16-bit limbs of $a \cdot b$ with $h_0$ being the least significant limb. Thus, stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0 \cdot s_1 = 2^{48} \cdot h_3 + 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \text{ | degree } = 2
+s_0 \cdot s_1 = 2^{48} \cdot h_3 + 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \text{ | degree} = 2
 $$
 
 >$$
@@ -197,7 +199,7 @@ Assume $a$, $b$, $c$ are the values at the top of the stack which are known to b
 To facilitate this operation, the prover sets values in $h_0, ..., h_3$ to 16-bit limbs of $a + b \cdot c$ with $h_0$ being the least significant limb. Thus, stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0 \cdot s_1 + s_2 = 2^{48} \cdot h_3 + 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \text{ | degree } = 2
+s_0 \cdot s_1 + s_2 = 2^{48} \cdot h_3 + 2^{32} \cdot h_2 + 2^{16} \cdot h_1 + h_0 \text{ | degree} = 2
 $$
 
 >$$
@@ -223,7 +225,7 @@ Assume $a$ and $b$ are the values at the top of the stack which are known to be 
 To facilitate this operation, the prover sets values in $h_0$ and $h_1$ to 16-bit limbs of $a - c$, and values in $h_2$ and $h_3$ to 16-bit limbs of $b - d - 1$. Thus, stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_1 = s_0 \cdot s_1' + s_0' \text{ | degree } = 2
+s_1 = s_0 \cdot s_1' + s_0' \text{ | degree} = 2
 $$
 
 >$$
@@ -247,7 +249,7 @@ Assume $a$ and $b$ are the values at the top of the stack. The `U32AND` operatio
 To facilitate this operation, we will need to make a request to the chiplet bus $b_{chip}$ by dividing its current value by the value representing bitwise operation request. This can be enforced with the following constraint:
 
 >$$
-b_{chip}' \cdot \left(\alpha_0 + \alpha_1 \cdot op_{u32and} + \alpha_2 \cdot s_0 + \alpha_3 \cdot s_1 +  \alpha_4 \cdot s_0'  \right) = b_{chip} \text{ | degree } = 2
+b_{chip}' \cdot \left(\alpha_0 + \alpha_1 \cdot op_{u32and} + \alpha_2 \cdot s_0 + \alpha_3 \cdot s_1 +  \alpha_4 \cdot s_0'  \right) = b_{chip} \text{ | degree} = 2
 $$
 
 In the above, $op_{u32and}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the bitwise `AND` operation.
@@ -265,7 +267,7 @@ Assume $a$ and $b$ are the values at the top of the stack. The `U32OR` operation
 To facilitate this operation, we will need to make a request to the chiplet bus $b_{chip}$ by dividing its current value by the value representing bitwise operation request. This can be enforced with the following constraint:
 
 > $$
-b_{chip}' \cdot \left(\alpha_0 + \alpha_1 \cdot op_{u32or} + \alpha_2 \cdot s_0 + \alpha_3 \cdot s_1 +  \alpha_4 \cdot s_0'  \right) = b_{chip} \text{ | degree } = 2
+b_{chip}' \cdot \left(\alpha_0 + \alpha_1 \cdot op_{u32or} + \alpha_2 \cdot s_0 + \alpha_3 \cdot s_1 +  \alpha_4 \cdot s_0'  \right) = b_{chip} \text{ | degree} = 2
 $$
 
 In the above, $op_{u32or}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the bitwise `OR` operation.
@@ -283,7 +285,7 @@ Assume $a$ and $b$ are the values at the top of the stack. The `U32XOR` operatio
 To facilitate this operation, we will need to make a request to the chiplet bus $b_{chip}$ by dividing its current value by the value representing bitwise operation request. This can be enforced with the following constraint:
 
 > $$
-b_{chip}' \cdot \left(\alpha_0 + \alpha_1 \cdot op_{u32xor} + \alpha_2 \cdot s_0 + \alpha_3 \cdot s_1 +  \alpha_4 \cdot s_0'  \right) = b_{chip} \text{ | degree } = 2
+b_{chip}' \cdot \left(\alpha_0 + \alpha_1 \cdot op_{u32xor} + \alpha_2 \cdot s_0 + \alpha_3 \cdot s_1 +  \alpha_4 \cdot s_0'  \right) = b_{chip} \text{ | degree} = 2
 $$
 
 In the above, $op_{u32xor}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the bitwise `XOR` operation.

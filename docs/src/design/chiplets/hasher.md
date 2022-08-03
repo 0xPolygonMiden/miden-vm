@@ -247,7 +247,7 @@ This constraint should not be applied to the very last row of the hasher executi
 The modified row address constraint which should be applied is the following:
 
 >$$
-(1 - aux\_s_0') \cdot (r' - r - 1) = 0 \text{ | degree } = 2
+(1 - aux\_s_0') \cdot (r' - r - 1) = 0 \text{ | degree} = 2
 $$
 
 _Note: this constraint should also be multiplied by Chiplets module's selector flag $s_0$, as is true for all constraints in this chiplet._
@@ -257,28 +257,28 @@ _Note: this constraint should also be multiplied by Chiplets module's selector f
 For selector columns, first we must ensure that only binary values are allowed in these columns. This can be done with the following constraints:
 
 >$$
-s_0^2 - s_0 = 0 \text{ | degree } = 2 \\
-s_1^2 - s_1 = 0 \text{ | degree } = 2 \\
-s_2^2 - s_2 = 0 \text{ | degree } = 2
+s_0^2 - s_0 = 0 \text{ | degree} = 2 \\
+s_1^2 - s_1 = 0 \text{ | degree} = 2 \\
+s_2^2 - s_2 = 0 \text{ | degree} = 2
 $$
 
 Next, we need to make sure that unless $f_{out}=1$ or $f_{out}'=1$, the values in columns $s_1$ and $s_2$ are copied over to the next row. This can be done with the following constraints:
 
 >$$
-(s_1' - s_1) \cdot (1 - f_{out}') \cdot (1 - f_{out}) = 0  \text{ | degree } = 9 \\
-(s_2' - s_2) \cdot (1 - f_{out}') \cdot (1 - f_{out}) = 0  \text{ | degree } = 9
+(s_1' - s_1) \cdot (1 - f_{out}') \cdot (1 - f_{out}) = 0  \text{ | degree} = 9 \\
+(s_2' - s_2) \cdot (1 - f_{out}') \cdot (1 - f_{out}) = 0  \text{ | degree} = 9
 $$
 
 Next, we need to enforce that if any of $f_{abp}, f_{mpa}, f_{mva}, f_{mua}$ flags is set to $1$, the next value of $s_0$ is $0$. In all other cases, $s_0$ should be unconstrained. These flags will only be set for rows that are 1 less than a multiple of 8 (the last row of each cycle). This can be done with the following constraint:
 
 >$$
-s_0' \cdot (f_{abp} + f_{mpa} + f_{mva} + f_{mua})= 0  \text{ | degree } = 5
+s_0' \cdot (f_{abp} + f_{mpa} + f_{mva} + f_{mua})= 0  \text{ | degree} = 5
 $$
 
 Lastly, we need to make sure that no invalid combinations of flags are allowed. This can be done with the following constraints:
 
 >$$
-k_0 \cdot (1 - s_0) \cdot s_1 = 0 \text{ | degree } = 3
+k_0 \cdot (1 - s_0) \cdot s_1 = 0 \text{ | degree} = 3
 $$
 
 The above constraints enforce that on every step which is one less than a multiple of $8$, if $s_0 = 0$, then $s_1$ must also be set to $0$. Basically, if we set $s_0=0$, then we must make sure that either $f_{hout}=1$ or $f_{sout}=1$.
@@ -309,19 +309,19 @@ $$
 And then the full constraint would looks as follows:
 
 >$$
-f_{an} \cdot (b^2 - b) = 0  \text{ | degree } = 6
+f_{an} \cdot (b^2 - b) = 0  \text{ | degree} = 6
 $$
 
 Next, to make sure when a computation is finished $i=0$, we can use the following constraint:
 
 >$$
-f_{out} \cdot i = 0 \text{ | degree } = 5
+f_{out} \cdot i = 0 \text{ | degree} = 5
 $$
 
 Finally, to make sure that the value in $i$ is copied over to the next row unless we are absorbing a new row or the computation is finished, we impose the following constraint:
 
 >$$
-(1 - f_{an} - f_{out}) \cdot (i' - i) = 0 \text{ | degree } = 5
+(1 - f_{an} - f_{out}) \cdot (i' - i) = 0 \text{ | degree} = 5
 $$
 
 To satisfy these constraints for computations not related to Merkle paths (i.e., 2-to-1 hash and liner hash of elements), we can set $i = 0$ at the start of the computation. This guarantees that $i$ will remain $0$ until the end of the computation.
@@ -336,13 +336,13 @@ Hasher state columns $h_0, ..., h_{11}$ should behave as follows:
 Specifically, when absorbing the next set of elements into the state during linear hash computation (i.e., $f_{abp} = 1$), the first $4$ elements (the capacity portion) are carried over to the next row. For $j \in \{0, ..., 3\}$ this can be described as follows:
 
 >$$
-f_{abp} \cdot (h'_j - h_j) = 0 \text{ | degree } = 5
+f_{abp} \cdot (h'_j - h_j) = 0 \text{ | degree} = 5
 $$
 
 When absorbing the next node during Merkle path computation (i.e., $f_{mp} + f_{mv} + f_{mu}=1$), the result of the previous hash ($h_4, ..., h_7$) are copied over either to $(h_4', ..., h_7')$ or to $(h_8', ..., h_{11}')$ depending on the value of $b$, which is defined in the same way as in the previous section. For $j \in \{0, ..., 3\}$ this can be described as follows:
 
 >$$
-(f_{mp} + f_{mv} + f_{mu}) \cdot ((1 - b) \cdot (h_{j +4}' - h_{j+4}) + b \cdot (h_{j + 8}' - h_{j + 4})) = 0 \text{ | degree } = 6
+(f_{mp} + f_{mv} + f_{mu}) \cdot ((1 - b) \cdot (h_{j +4}' - h_{j+4}) + b \cdot (h_{j + 8}' - h_{j + 4})) = 0 \text{ | degree} = 6
 $$ 
 
 Note, that when a computation is completed (i.e., $f_{out}=1$), the next hasher state is unconstrained.
@@ -447,7 +447,7 @@ Note that the degree of the above constraint is $7$.
 To make sure computation of the old Merkle root is immediately followed by the computation of the new Merkle root, we impose the following constraint:
 
 >$$
-(f_{bp} + f_{mp} + f_{mv}) \cdot (1 - p_1) = 0 \text{ | degree } = 5
+(f_{bp} + f_{mp} + f_{mv}) \cdot (1 - p_1) = 0 \text{ | degree} = 5
 $$
 
 The above means that whenever we start a new computation which is not the computation of the new Merkle root, the sibling table must be empty. Thus, after the hash chiplet computes the old Merkle root, the only way to clear the table is to compute the new Merkle root.

@@ -2,7 +2,7 @@
 
 In addition to the constraints described in the previous section, we need to impose constraints to check that each VM operation is executed correctly.
 
-For these purposes the VM exposes a set of operation-specific flags. These flags are set to $1$ when a given operation is executed, and to $0$ otherwise. The naming convention for these flags is $f_{opname}$. For example, $f_{dup}$ would be set to $1$ when `DUP` operation is executed, and to $0$ otherwise. Operation flags are discussed in detail in the section [below](#operation-flags).
+For this purpose the VM exposes a set of operation-specific flags. These flags are set to $1$ when a given operation is executed, and to $0$ otherwise. The naming convention for these flags is $f_{opname}$. For example, $f_{dup}$ would be set to $1$ when `DUP` operation is executed, and to $0$ otherwise. Operation flags are discussed in detail in the section [below](#operation-flags).
 
 To describe how operation-specific constraints work, let's use an example with `DUP` operation. This  operation pushes a copy of the top stack item onto the stack. The constraints we need to impose for this operation are as follows:
 
@@ -22,14 +22,14 @@ $$
 
 It is easy to notice that while the first constraint changed, the second constraint remained the same - i.e., we are still just shifting the stack to the right.
 
-In fact, for most operations it make sense to make a distinction between constraints unique to the operation vs. more general constraints which enforce correct behavior for the stack items not affected by the operation. In the subsequent sections we describe in detail only the former constraints, and provide high-level description of the more general constraints. Specifically, we indicate how the operation affects the rest of the stack (e.g., shifts right starting from position $0$).
+In fact, for most operations it makes sense to make a distinction between constraints unique to the operation vs. more general constraints which enforce correct behavior for the stack items not affected by the operation. In the subsequent sections we describe in detail only the former constraints, and provide high-level descriptions of the more general constraints. Specifically, we indicate how the operation affects the rest of the stack (e.g., shifts right starting from position $0$).
 
 ## Operation flags
 As mentioned above, operation flags are used as selectors to enforce operation-specific constraints. That is, they turn on relevant constraints for a given operation. In total, the VM provides $88$ unique operations, and thus, there are $88$ operation flags (not all of them currently used).
 
-Operation flags are mutually exclusive. That is, if one flags is set to $1$, all other flags are set to $0$. Also, one of the flags is always guaranteed to be set to $1$.
+Operation flags are mutually exclusive. That is, if one flag is set to $1$, all other flags are set to $0$. Also, one of the flags is always guaranteed to be set to $1$.
 
-To compute values of operation flags we use _op bits_ registers located in the [decoder](../decoder/main.md#decoder-trace). These registers contain binary representations of operation codes (opcodes). Each opcode consists of $7$ bits, and thus, there are $7$ _ob bits_ registers. We denote these registers as $b_0, ..., b_6$. The values are computed by multiplying the op bit registers in various combinations.
+To compute values of operation flags we use _op bits_ registers located in the [decoder](../decoder/main.md#decoder-trace). These registers contain binary representations of operation codes (opcodes). Each opcode consists of $7$ bits, and thus, there are $7$ _op bits_ registers. We denote these registers as $b_0, ..., b_6$. The values are computed by multiplying the op bit registers in various combinations.
 
 For example, the value of the flag for `NOOP`, which is encoded as `0000000`, is computed as follows:
 
@@ -43,7 +43,7 @@ $$
 f_{drop} = (1 - b_0) \cdot b_1 \cdot (1 - b_2) \cdot b_3 \cdot (1 - b_4) \cdot (1 - b_5) \cdot b_6
 $$
 
-As can be seen from above, the degree for both of these flags is $7$. Since degree of constraints in Miden VM can go up to $9$, this means that operation-specific constraints cannot exceed degree $2$. However, there are some operations which require constraints of higher degree (e.g., $3$ or even $5$). To support such constraints, we adapt the following scheme.
+As can be seen from above, the degree for both of these flags is $7$. Since degree of constraints in Miden VM can go up to $9$, this means that operation-specific constraints cannot exceed degree $2$. However, there are some operations which require constraints of higher degree (e.g., $3$ or even $5$). To support such constraints, we adopt the following scheme.
 
 We organize the operations into $3$ groups as shown below and also introduce an extra register for degree reduction:
 
@@ -111,7 +111,7 @@ This group contains $16$ operations which shift the stack to the left (i.e., rem
 | `OR`         | $37$         | `010_0101`      | [Field ops](./field_ops.md)   | $7$         |
 | `U32AND`     | $38$         | `010_0110`      | [u32 ops](./u32_ops.md)       | $7$         |
 | `U32OR`      | $39$         | `010_0111`      | [u32 ops](./u32_ops.md)       | $7$         |
-| `U32ZOR`     | $40$         | `010_1000`      | [u32 ops](./u32_ops.md)       | $7$         |
+| `U32XOR`     | $40$         | `010_1000`      | [u32 ops](./u32_ops.md)       | $7$         |
 | `DROP`       | $41$         | `010_1001`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `CSWAP`      | $42$         | `010_1010`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `CSWAPW`     | $43$         | `010_1011`      | [Stack ops](./stack_ops.md)   | $7$         |
@@ -165,7 +165,7 @@ The degree of this flag is $3$, which is acceptable for a selector for degree $5
 As mentioned previously, the last bit of the opcode is not used in computation of the flag for these operations. We force this bit to always be set to $0$ with the following constraint:
 
 >$$
-b_6 \cdot (1 - b_5) \cdot b_0 = 0 \text{ | degree } = 3
+b_6 \cdot (1 - b_5) \cdot b_0 = 0 \text{ | degree} = 3
 $$
 
 Putting these operations into a group with flag degree $6$ is important for two other reasons:
@@ -205,24 +205,24 @@ This group contains operations which require constraints with degree up to $5$.
 As mentioned previously, the last two bits of the opcode are not used in computation of the flag for these operations. We force these bits to always be set to $0$ with the following constraints:
 
 >$$
-b_6 \cdot b_5 \cdot b_0 = 0 \text{ | degree } = 3
+b_6 \cdot b_5 \cdot b_0 = 0 \text{ | degree} = 3
 $$
 
 >$$
-b_6 \cdot b_5 \cdot b_1 = 0 \text{ | degree } = 3
+b_6 \cdot b_5 \cdot b_1 = 0 \text{ | degree} = 3
 $$
 
 ## Composite flags
 Using the operation flags defined above, we can compute several composite flags which are used by various constraints in the VM.
 
 ### Shift right flag
-The right-shift flag indicates that a given operation shifts the stack to the right. This flag is computed as follows:
+The right-shift flag indicates that an operation shifts the stack to the right. This flag is computed as follows:
 
 $$
-f_{shr} = (1 - b_6) \cdot b_5 \cdot b_4 + f_{u32split} + f_{push}
+f_{shr} = (1 - b_6) \cdot b_5 \cdot b_4 + f_{u32split} + f_{push} \text{ | degree} = 6
 $$
 
-The degree of this flag is $6$.
+In the above, $(1 - b_6) \cdot b_5 \cdot b_4$ evaluates to $1$ for all [right stack shift](#right-stack-shift-operations) operations described previously. This works because all these operations have a common prefix `011`. We also need to add in flags for other operations which shift the stack to the right but are not a part of the above group (e.g., `PUSH` operation).
 
 ### Shift left flag
 The left-shift flag indicates that a given operation shifts the stack to the left. To simplify the description of this flag, we will first compute the following intermediate variables:
@@ -230,21 +230,23 @@ The left-shift flag indicates that a given operation shifts the stack to the lef
 A flag which is set to $1$ when $f_{u32add3} = 1$ or $f_{u32madd} = 1$:
 
 $$
-f_{add3\_madd} = b_6 \cdot (1 - b_5) \cdot (1 - b_4) \cdot b_3 \cdot b_2 \text{ | degree } = 5
+f_{add3\_madd} = b_6 \cdot (1 - b_5) \cdot (1 - b_4) \cdot b_3 \cdot b_2 \text{ | degree} = 5
 $$
 
 A flag which is set to $1$ when $f_{split} = 1$ or $f_{loop} = 1$:
 
 $$
-f_{split\_loop} = b_6 \cdot (1 - b_5) \cdot b_4 \cdot b_3 \cdot b_2 \text{ | degree } = 5
+f_{split\_loop} = b_6 \cdot (1 - b_5) \cdot b_4 \cdot b_3 \cdot b_2 \text{ | degree} = 5
 $$
 
 Using the above variables, we compute left-shift flag as follows:
 
 $$
-f_{shl} = (1 - b_6) \cdot b_5 \cdot (1 - b_4) + f_{add3\_madd} + f_{split\_loop} + f_{repeat} + f_{end} \cdot h_5
+f_{shl} = (1 - b_6) \cdot b_5 \cdot (1 - b_4) + f_{add3\_madd} + f_{split\_loop} + f_{repeat} + f_{end} \cdot h_5 \text{ | degree} = 5
 $$
 
-In the above, $h_5$ is the helper register in the decoder which is set to $1$ when we are exiting a `LOOP` block, and to $0$ otherwise.
+In the above:
+* $(1 - b_6) \cdot b_5 \cdot (1 - b_4)$ evaluates to $1$ for all [left stack shift](#left-stack-shift-operations) operations described previously. This works because all these operations have a common prefix `010`.
+* $h_5$ is the helper register in the decoder which is set to $1$ when we are exiting a `LOOP` block, and to $0$ otherwise.
 
-The degree of this flag is $5$.
+Thus, similarly to the right-shift flag, we compute the value of the left-shift flag based on the prefix of the operation group which contains most left shift operations, and add in flag values for other operations which shift the stack to the left but are not a part of this group.

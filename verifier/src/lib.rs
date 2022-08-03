@@ -20,13 +20,15 @@ pub use winterfell::StarkProof;
 /// Specifically, verifies that if a program with the specified `program_hash` is executed against
 /// the provided `stack_inputs` and some secret inputs, the result is equal to the `stack_outputs`.
 ///
-/// Stack inputs are expected to be provided in the order as if they were pushed onto the stack
-/// one by one. Thus, the last value in the `stack_inputs` slice is expected to be the value at
-/// the top of the stack.
+/// Stack inputs are expected to be ordered as if they would be pushed onto the stack one by one.
+/// Thus, their expected order on the stack will be the reverse of the order in which they are
+/// provided, and the last value in the `stack_inputs` slice is expected to be the value at the top
+/// of the stack.
 ///
-/// Stack outputs are expected to be provided in the order as if they were popped off the stack
-/// one by one. Thus, the value at the top of the stack is expected to be be in the first position
-/// of the `stack_outputs` slice. This the reverse of order of `stack_inputs` slice.
+/// Stack outputs are expected to be ordered as if they would be popped off the stack one by one.
+/// Thus, the value at the top of the stack is expected to be be in the first position of the
+/// `stack_outputs` slice, and the order of the rest of the output elements will also match the
+/// order on the stack. This the reverse of order of `stack_inputs` slice.
 ///
 /// # Errors
 /// Returns an error if the provided proof does not prove a correct execution of the program.

@@ -128,13 +128,13 @@ These flags are mutually exclusive. That is, if $f_{shl}=1$, then $f_{shr}=0$ an
 Additionally, we'll define a flag to indicate whether the overflow table contains values. This flag will be set to $0$ when the overflow table is empty, and to $1$ otherwise (i.e., when stack depth $>16$). This flag can be computed as follows:
 
 $$
-f_{ov} = (b_0 - 16) \cdot h_0 \text{ | degree } = 2
+f_{ov} = (b_0 - 16) \cdot h_0 \text{ | degree} = 2
 $$
 
 To ensure that this flag is set correctly, we need to impose the following constraint:
 
 >$$
-(1 - f_{ov}) \cdot (b_0 - 16) = 0 \text{ | degree } = 3
+(1 - f_{ov}) \cdot (b_0 - 16) = 0 \text{ | degree} = 3
 $$
 
 The above constraint can be satisfied only when either of the following holds:
@@ -154,7 +154,7 @@ To make sure stack depth column $b_0$ is updated correctly, we need to impose th
 We can combine the above constraints into a single expression as follows:
 
 >$$
-b'_0 - b_0 + f_{shl} \cdot f_{ov} - f_{shr} = 0 \text{ | degree } = 7
+b'_0 - b_0 + f_{shl} \cdot f_{ov} - f_{shr} = 0 \text{ | degree} = 7
 $$
 
 ### Overflow table constraints
@@ -174,7 +174,7 @@ $$
 Using the above variables, we can ensure that right and left shifts update the overflow table correctly by enforcing the following constraint:
 
 >$$
-p_1' \cdot (u \cdot f_{shl} \cdot f_{ov} + 1 - f_{shl} \cdot f_{ov}) = p_1 \cdot (v \cdot f_{shr} + 1 - f_{shr}) \text{ | degree } = 9
+p_1' \cdot (u \cdot f_{shl} \cdot f_{ov} + 1 - f_{shl} \cdot f_{ov}) = p_1 \cdot (v \cdot f_{shr} + 1 - f_{shr}) \text{ | degree} = 9
 $$
 
 The above constraint reduces to the following under various flag conditions:
@@ -191,13 +191,13 @@ Notice that in the case of the left shift, the constraint forces the prover to s
 In case of a right shift, we also need to make sure that the next value of $b_1$ is set to the current value of $k_0$. This can be done with the following constraint:
 
 >$$
-f_{shr} \cdot (b'_1 - k_0) = 0 \text{ | degree } = 8
+f_{shr} \cdot (b'_1 - k_0) = 0 \text{ | degree} = 8
 $$
 
 In case of a left shift, when the overflow table is empty, we need to make sure that a $0$ is "shifted in" from the right (i.e., $s_{15}$ is set to $0$). This can be done with the following constraint:
 
 >$$
-f_{shl} \cdot (1 - f_{ov}) \cdot s_{15}' = 0 \text{ | degree } = 8
+f_{shl} \cdot (1 - f_{ov}) \cdot s_{15}' = 0 \text{ | degree} = 8
 $$
 
 ### Boundary constraints

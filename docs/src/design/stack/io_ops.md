@@ -49,7 +49,7 @@ Communication between the stack and the memory chiplet is accomplished via the c
 To enforce the correctness of memory access, we can use the following constraint:
 
 >$$
-b_{chip}' \cdot u_{mem} = b_{chip} \text{ | degree } = 2
+b_{chip}' \cdot u_{mem} = b_{chip} \text{ | degree} = 2
 $$
 
 In the above, $u_{mem}$ is the value of memory access request. Thus, to describe AIR constraint for memory operations, it is sufficient to describe how $u_{mem}$ is computed. We do this in the following sections.
@@ -64,13 +64,13 @@ To simplify description of memory access request value, we first define the foll
 The value representing state of memory before the operation:
 
 $$
-v_{old} = \sum_{i=0}^3\alpha_{i+4} \cdot s_{3-i}'
+v_{old} = \sum_{i=0}^3\alpha_{i+5} \cdot s_{3-i}'
 $$
 
 The value representing state of memory after the operation:
 
 $$
-v_{new} = \sum_{i=0}^3\alpha_{i+8} \cdot s_{3-i}'
+v_{new} = \sum_{i=0}^3\alpha_{i+9} \cdot s_{3-i}'
 $$
 
 Note that since this is a _read_ operation, the values come from the same registers, but the $\alpha$ values are different from the values used to compute the old state of memory.
@@ -78,13 +78,15 @@ Note that since this is a _read_ operation, the values come from the same regist
 Using the above variables, we define the value representing the memory access request as follows:
 
 $$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot s_0 + \alpha_3 \cdot clk + v_{old} + v_{new}
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v_{old} + v_{new}
 $$
 
 In the above:
 - $op_{mem}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory access operation.
 - $s_0$ is the memory address from which the values are to be loaded onto the stack.
 - $clk$ is the current clock cycle of the VM.
+
+Note that $\alpha_2$ term is skipped because currently memory context value is always $0$.
 
 The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $5$.
@@ -99,25 +101,27 @@ To simplify description of memory access request value, we first define the foll
 The value representing state of memory before the operation (values in registers $h_0, h_1, h_2$ are set by the prover non-deterministically):
 
 $$
-v_{old} = \alpha_4 \cdot s_0' + \sum_{i=1}^3\alpha_{i+4} \cdot h_{i-1}'
+v_{old} = \alpha_5 \cdot s_0' + \sum_{i=1}^3\alpha_{i+5} \cdot h_{i-1}'
 $$
 
 The value representing state of memory after the operation:
 
 $$
-v_{new} = \alpha_8 \cdot s_0' + \sum_{i=1}^3\alpha_{i+8} \cdot h_{i-1}'
+v_{new} = \alpha_9 \cdot s_0' + \sum_{i=1}^3\alpha_{i+9} \cdot h_{i-1}'
 $$
 
 Using the above variables, we define the value representing the memory access request as follows:
 
 $$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot s_0 + \alpha_3 \cdot clk + v_{old} + v_{new}
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v_{old} + v_{new}
 $$
 
 In the above:
 - $op_{mem}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory access operation.
 - $s_0$ is the memory address from which the value is to be loaded onto the stack.
 - $clk$ is the current clock cycle of the VM.
+
+Note that $\alpha_2$ term is skipped because currently memory context value is always $0$.
 
 The effect of this operation on the rest of the stack is:
 * **No change** starting from position $1$.
@@ -134,25 +138,27 @@ To simplify description of memory access request value, we first define the foll
 The value representing state of memory before the operation (set by the prover non-deterministically in registers $h_0, ..., h_3$):
 
 $$
-v_{old} = \sum_{i=0}^3\alpha_{i+4} \cdot h_i
+v_{old} = \sum_{i=0}^3\alpha_{i+5} \cdot h_i
 $$
 
 The value representing state of memory after the operation:
 
 $$
-v_{new} = \sum_{i=0}^3\alpha_{i+8} \cdot s_{3-i}'
+v_{new} = \sum_{i=0}^3\alpha_{i+9} \cdot s_{3-i}'
 $$
 
 Using the above variables, we define the value representing the memory access request as follows:
 
 $$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot s_0 + \alpha_3 \cdot clk + v_{old} + v_{new}
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v_{old} + v_{new}
 $$
 
 In the above:
 - $op_{mem}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory access operation.
 - $s_0$ is the memory address into which the values from the stack are to be saved.
 - $clk$ is the current clock cycle of the VM.
+
+Note that $\alpha_2$ term is skipped because currently memory context value is always $0$.
 
 The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $1$.
@@ -169,25 +175,27 @@ To simplify description of memory access request value, we first define the foll
 The value representing state of memory before the operation (set by the prover non-deterministically in registers $h_0, ..., h_3$):
 
 $$
-v_{old} = \sum_{i=0}^3\alpha_{i+4} \cdot h_i
+v_{old} = \sum_{i=0}^3\alpha_{i+5} \cdot h_i
 $$
 
 The value representing state of memory after the operation:
 
 $$
-v_{new} = \alpha_8 \cdot s_0' + \sum_{i=1}^3\alpha_{i+8} \cdot h_i'
+v_{new} = \alpha_9 \cdot s_0' + \sum_{i=1}^3\alpha_{i+9} \cdot h_i'
 $$
 
 Using the above variables, we define the value representing the memory access request as follows:
 
 $$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot s_0 + \alpha_3 \cdot clk + v_{old} + v_{new}
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v_{old} + v_{new}
 $$
 
 In the above:
 - $op_{mem}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory access operation.
 - $s_0$ is the memory address into which the value from the stack is to be saved.
 - $clk$ is the current clock cycle of the VM.
+
+Note that $\alpha_2$ term is skipped because currently memory context value is always $0$.
 
 The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $1$.

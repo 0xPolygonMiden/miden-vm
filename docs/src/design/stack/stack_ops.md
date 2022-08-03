@@ -12,7 +12,7 @@ Stack transition for this operation must satisfy the following constraints:
 s_{0}' = 0 \text{ | degree} = 1
 $$
 
-The effect on the rest of the stack is:
+The effect of this operation on the rest of the stack is:
 * **Right shift** starting from position $0$.
 
 ## DROP
@@ -21,6 +21,10 @@ The `DROP` operation removes an element from the top of the stack. The diagram b
 ![drop](../../assets/design/stack/stack_ops/DROP.png)
 
 The `DROP` operation shifts the stack by $1$ element to the left, but does not impose any additional constraints. The degree of left shift constraints is $1$.
+
+The effect of this operation on the rest of the stack is:
+* **Left shift** starting from position $1$.
+
 
 ## DUP(n)
 The `DUP(n)` operations push a copy of the $n$-th stack element onto the stack. Eg. `DUP` (same as `DUP0`) pushes a copy of the top stack element onto the stack. Similarly, `DUP5` pushes a copy of the $6$-th stack element onto the stack. This operation is valid for $n \in \{0, ..., 7, 9, 11, 13, 15\}$. The diagram below illustrates this graphically.
@@ -35,11 +39,11 @@ $$
 
 where $n$ is the depth of the stack from where the element has been copied.
 
-The effect on the rest of the stack is:
+The effect of this operation on the rest of the stack is:
 * **Right shift** starting from position $0$.
 
 ## SWAP
-The `SWAP` operations swaps the top two element of the stack. The diagram below illustrates this graphically.
+The `SWAP` operations swaps the top two elements of the stack. The diagram below illustrates this graphically.
 
 ![swap](../../assets/design/stack/stack_ops/SWAP.png)
 
@@ -53,7 +57,7 @@ $$
 s_{1}' - s_{0} = 0 \text{ | degree} = 1
 $$
 
-The effect on the rest of the stack is:
+The effect of this operation on the rest of the stack is:
 * **No change** starting from position $2$.
 
 ## SWAPW
@@ -71,7 +75,7 @@ $$
 s_{i + 4}' - s_i = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 1
 $$
 
-The effect on the rest of the stack is:
+The effect of this operation on the rest of the stack is:
 * **No change** starting from position $8$.
 
 ## SWAPW2
@@ -89,7 +93,7 @@ $$
 s_{i + 8}' - s_i = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 1
 $$
 
-The effect on the rest of the stack is:
+The effect of this operation on the rest of the stack is:
 * **No change** for elements $4, 5, 6, 7$.
 * **No change** starting from position $12$.
 
@@ -108,7 +112,7 @@ $$
 s_{i+12}' - s_i = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 1
 $$
 
-The effect on the rest of the stack is:
+The effect of this operation on the rest of the stack is:
 * **No change** for elements $4, 5, 6, 7, 8, 9, 10, 11$.
 * **No change** starting from position $16$.
 
@@ -127,7 +131,7 @@ $$
 s_{i+8}' - s_i = 0 \text{ for } i \in \{0, ..., 7\}   \text{ | degree} = 1
 $$
 
-The effect on the rest of the stack is:
+The effect of this operation on the rest of the stack is:
 * **No change** starting from position $16$.
 
 ## MOVUP(n)
@@ -143,7 +147,7 @@ $$
 
 where $n$ is the depth of the element which is moved moved to the top of the stack.
 
-The effect on the rest of the stack is:
+The effect of this operation on the rest of the stack is:
 * **Right shift** for elements between $0$ and $n-1$.
 * **No change** starting from position $n+1$.
 
@@ -160,12 +164,12 @@ $$
 
 where $n$ is the depth to which the top stack element is moved.
 
-The effect on the rest of the stack is:
+The effect of this operation on the rest of the stack is:
 * **Right shift** for elements between $0$ and $n-1$.
 * **No change** starting from position $n+1$.
 
 ## CSWAP
-The `CSWAP` operation pops an element off the stack and if the element is $1$, swaps the top two remaining elements. If the popped element is $0$, the stack remains unchanged. The diagram below illustrates this graphically.
+The `CSWAP` operation pops an element off the stack and if the element is $1$, swaps the top two remaining elements. If the popped element is $0$, the rest of the stack remains unchanged. The diagram below illustrates this graphically.
 
 ![cswap](../../assets/design/stack/stack_ops/CSWAP.png)
 
@@ -178,24 +182,24 @@ $$
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_0' - s_{0} \cdot s_{2} - (1-s_0) \cdot s_1 = 0 \text{ | degree } = 2
+s_0' - s_{0} \cdot s_{2} - (1-s_0) \cdot s_1 = 0 \text{ | degree} = 2
 $$
 
 >$$
-s_1' - s_0 \cdot s_{1} - (1-s_0) \cdot s_2 = 0 \text{ | degree } = 2
+s_1' - s_0 \cdot s_{1} - (1-s_0) \cdot s_2 = 0 \text{ | degree} = 2
 $$
 
 We also need to enforce that the value in $s_0$ is binary. This can be done with the following constraint:
 
 >$$
-s_0^2 - s_0 = 0 \text{ | degree } = 2
+s_0^2 - s_0 = 0 \text{ | degree} = 2
 $$
 
-The effect on the rest of the stack is:
+The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $3$.
 
 ## CSWAPW
-The `CSWAPW` operation pops an element off the stack and if the element is $1$, swaps elements $0, 1, 2, 3$ with elements $4, 5, 6, 7$. If the popped element is $0$, the stack remains unchanged. The diagram below illustrates this graphically.
+The `CSWAPW` operation pops an element off the stack and if the element is $1$, swaps elements $1, 2, 3, 4$ with elements $5, 6, 7, 8$. If the popped element is $0$, the rest of the stack remains unchanged. The diagram below illustrates this graphically.
 
 ![cswapw](../../assets/design/stack/stack_ops/CSWAPW.png)
 
@@ -208,18 +212,18 @@ $$
 Stack transition for this operation must satisfy the following constraints:
 
 >$$
-s_i' - s_0 \cdot s_{i+5} - (1-s_0) \cdot s_{i+1} = 0 \text{ for } i \in \{0..3\}  \text{ | degree } = 2
+s_i' - s_0 \cdot s_{i+5} - (1-s_0) \cdot s_{i+1} = 0 \text{ for } i \in \{0..3\}  \text{ | degree} = 2
 $$
 
 >$$
-s_{i+4}' - s_0 \cdot s_{i+1} + (1-s_0) \cdot s_{i+5} = 0 \text{ for } i \in \{0..3\} \text{ | degree } = 2
+s_{i+4}' - s_0 \cdot s_{i+1} + (1-s_0) \cdot s_{i+5} = 0 \text{ for } i \in \{0..3\} \text{ | degree} = 2
 $$
 
 We also need to enforce that the value in $s_0$ is binary. This can be done with the following constraint:
 
 >$$
-s_0^2 - s_0 = 0 \text{ | degree } = 2
+s_0^2 - s_0 = 0 \text{ | degree} = 2
 $$
 
-The effect on the rest of the stack is:
+The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $9$.
