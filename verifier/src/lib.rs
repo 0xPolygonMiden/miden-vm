@@ -17,8 +17,16 @@ pub use winterfell::StarkProof;
 /// Returns Ok(()) if the specified program was executed correctly against the specified inputs
 /// and outputs.
 ///
-/// Specifically, verifies that if a program with the specified `program_hash` is executed with the
-/// provided `public_inputs` and some secret inputs, and the result is equal to the `outputs`.
+/// Specifically, verifies that if a program with the specified `program_hash` is executed against
+/// the provided `stack_inputs` and some secret inputs, the result is equal to the `stack_outputs`.
+///
+/// Stack inputs are expected to be provided in the order as if they were pushed onto the stack
+/// one by one. Thus, the last value in the `stack_inputs` slice is expected to be the value at
+/// the top of the stack.
+///
+/// Stack outputs are expected to be provided in the order as if they were popped off the stack
+/// one by one. Thus, the value at the top of the stack is expected to be be in the first position
+/// of the `stack_outputs` slice. This the reverse of order of `stack_inputs` slice.
 ///
 /// # Errors
 /// Returns an error if the provided proof does not prove a correct execution of the program.
@@ -54,7 +62,7 @@ pub fn verify(
 
     // convert stack outputs to field elements
     let mut stack_output_felts = Vec::with_capacity(stack_outputs.len());
-    for &output in stack_outputs.iter().rev() {
+    for &output in stack_outputs.iter() {
         stack_output_felts.push(
             output
                 .try_into()

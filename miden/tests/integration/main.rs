@@ -14,6 +14,12 @@ fn simple_program() {
     build_test!("begin push.1 push.2 add end").expect_stack(&[3]);
 }
 
+#[test]
+fn multi_io_program() {
+    let test = build_test!("begin mul movup.2 drop end", &[1, 2, 3]);
+    test.prove_and_verify(vec![1, 2, 3], 2, false);
+}
+
 // MACROS TO BUILD TESTS
 // ================================================================================================
 
