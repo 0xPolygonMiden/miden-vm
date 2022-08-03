@@ -56,8 +56,8 @@ pub const NUM_STACK_HELPER_COLS: usize = 3;
 // MAIN TRACE LAYOUT
 // ------------------------------------------------------------------------------------------------
 
-//      system          decoder           stack      range checks    chiplets
-//    (2 columns)     (22 columns)    (19 columns)    (4 columns)     (18 columns)
+//      system          decoder           stack      range checks       chiplets
+//    (2 columns)     (23 columns)    (19 columns)    (4 columns)     (18 columns)
 // ├───────────────┴───────────────┴───────────────┴───────────────┴─────────────────┤
 
 pub const SYS_TRACE_OFFSET: usize = 0;
@@ -69,7 +69,7 @@ pub const FMP_COL_IDX: usize = SYS_TRACE_OFFSET + 1;
 
 // decoder trace
 pub const DECODER_TRACE_OFFSET: usize = SYS_TRACE_OFFSET + SYS_TRACE_WIDTH;
-pub const DECODER_TRACE_WIDTH: usize = 22;
+pub const DECODER_TRACE_WIDTH: usize = 23;
 pub const DECODER_TRACE_RANGE: Range<usize> = range(DECODER_TRACE_OFFSET, DECODER_TRACE_WIDTH);
 
 // Stack trace
@@ -96,8 +96,8 @@ pub const TRACE_WIDTH: usize = CHIPLETS_OFFSET + CHIPLETS_WIDTH;
 // AUXILIARY COLUMNS LAYOUT
 // ------------------------------------------------------------------------------------------------
 
-//      decoder         stack       range checks      hasher      chiplets
-//    (3 columns)     (1 column)     (3 columns)    (1 column)       (1 column)
+//      decoder         stack       range checks      hasher         chiplets
+//    (3 columns)     (1 column)     (3 columns)    (1 column)      (1 column)
 // ├───────────────┴──────────────┴──────────────┴───────────────┴───────────────┤
 
 // Decoder auxiliary columns

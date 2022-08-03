@@ -193,11 +193,10 @@ impl Process {
 /// of the executed program, as well as building an execution trace for these computations.
 ///
 /// ## Execution trace
-/// Decoder execution trace currently consists of 19 columns as illustrated below (this will
-/// be increased to 24 columns in the future):
+/// Decoder execution trace currently consists of 23 columns as illustrated below:
 ///
-///  addr b0 b1 b2 b3 b4 b5 b6 h0 h1 h2 h3 h4 h5 h6 h7 in_span g_count op_idx c0 c1 c2
-/// ├────┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴───────┴───────┴──────┴──┴──┴──┤
+///  addr b0 b1 b2 b3 b4 b5 b6 h0 h1 h2 h3 h4 h5 h6 h7 in_span g_count op_idx c0 c1 c2 be
+/// ├────┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴───────┴───────┴──────┴──┴──┴──┴──┤
 ///
 /// In the above, the meaning of the columns is as follows:
 /// * addr column contains address of the hasher for the current block (row index from the
@@ -224,11 +223,13 @@ impl Process {
 /// * Operation batch flag columns c0, c1, c2 which indicate how many operation groups are in
 ///   a given operation batch. These flags are set only for SPAN or RESPAN operations, and are
 ///   set to ZEROs otherwise.
+/// * Operation bit extra column `be` which is used to reduce the degree of op flags for
+///   operations where the two most significant bits are ONE.
 ///
 /// In addition to the execution trace, the decoder also contains the following:
 /// - A set of hints used in construction of decoder-related columns in auxiliary trace segment.
 /// - An instance of [DebugInfo] which is only populated in debug mode. This debug_info instance
-///   includes operations executed by the VM and AsmOp decorators. AsmOp decorators are popoulated
+///   includes operations executed by the VM and AsmOp decorators. AsmOp decorators are populated
 ///   only when both the processor and assembler are in debug mode.
 pub struct Decoder {
     block_stack: BlockStack,
