@@ -58,9 +58,12 @@ mod tests;
 /// path verification, number of rows added to the trace is 8 * path.len(), and for Merkle root
 /// update it is 16 * path.len(), since we need to perform two path verifications for each update.
 ///
-/// In addition to the execution trace, the hash processor also maintains an auxiliary trace
-/// builder which can be used to construct a running product column describing the state of the
-/// sibling table (used in Merkle root update operations).
+/// In addition to the execution trace, the hash processor also maintains:
+/// - an auxiliary trace builder, which can be used to construct a running product column describing
+///   the state of the sibling table (used in Merkle root update operations).
+/// - a vector of [HasherLookup]s, each of which specifies the data for one of the lookup rows which
+///   are required for verification of the communication between the stack/decoder and the Hash
+///   Chiplet via the Chiplets Bus.
 #[derive(Default)]
 pub struct Hasher {
     trace: HasherTrace,
@@ -86,9 +89,11 @@ impl Hasher {
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    // TODO: documentation
-    /// It assumes that the corresponding row was the last one appended to the hasher trace so that
-    /// the address of the row is equal to the trace length.
+    /// Records a HasherLookup with the specified data.
+    ///
+    /// When starting a hash operation, it should be called before any rows are recorded in the
+    /// trace. In all other cases, it should be called immediately after the corresponding row is
+    /// appended to the trace, so that the address of the row is equal to the trace length.
     fn append_lookup(
         &mut self,
         label: u8,
@@ -96,10 +101,10 @@ impl Hasher {
         index: Felt,
         context: HasherLookupContext,
     ) {
-        // When starting a new hash operation, lookups are added before the cycle begins. In all
-        // other cases, they are added after the hash cycle has completed.
         let addr = match context {
+            // when starting a new hash operation, lookups are added before the operation begins.
             HasherLookupContext::Start => self.trace.next_row_addr().as_int() as u32,
+            // in all other cases, they are added after the hash operation has completed.
             _ => self.trace_len() as u32,
         };
 
@@ -107,10 +112,12 @@ impl Hasher {
             .push(HasherLookup::new(label, state, addr, index, context));
     }
 
+    /// Returns the index at which the next lookup will be appended.
     fn next_lookup_idx(&self) -> usize {
         self.lookups.len()
     }
 
+    /// Gets all of the most recently recorded lookups, starting from `start_index`.
     fn get_last_lookups(&self, start_index: usize) -> &[HasherLookup] {
         &self.lookups[start_index..]
     }
@@ -119,10 +126,13 @@ impl Hasher {
     // --------------------------------------------------------------------------------------------
 
     /// Applies a single permutation of the hash function to the provided state and records the
-    /// execution trace of this computation.
+    /// execution trace of this computation as well as the lookups required for verifying the
+    /// correctness of the permutation so that they can be provided to the Chiplets Bus when the
+    /// trace is finalized.
     ///
-    /// The returned tuple contains hasher state after the permutation and the row address of the
-    /// execution trace at which the permutation started.
+    /// The returned tuple contains the hasher state after the permutation, the row address of
+    /// the execution trace at which the permutation started, and the lookups required to verify the
+    /// computation so that the correct requests can be sent by the caller to the Chiplets Bus.
     pub(super) fn permute(
         &mut self,
         mut state: HasherState,
@@ -144,10 +154,13 @@ impl Hasher {
         (addr, state, lookups)
     }
 
-    /// Merges the provided words by computing hash(h1, h2) and returns the result.
+    /// Merges the provided words by computing hash(h1, h2) and returns the result. It also records
+    /// the execution trace of this computation as well as the lookups required for verifying its
+    /// correctness so that they can be provided to the Chiplets Bus when the trace is finalized.
     ///
-    /// The returned tuple also contains the row address of the execution trace at which hash
-    /// computation started.
+    /// The returned tuple also contains the row address of the execution trace at which the hash
+    /// computation started and the lookups required to verify the computation so that the correct
+    /// requests can be sent by the caller to the Chiplets Bus.
     pub(super) fn merge(&mut self, h1: Word, h2: Word) -> (Felt, Word, &[HasherLookup]) {
         let addr = self.trace.next_row_addr();
         let init_lookup_idx = self.next_lookup_idx();
@@ -168,10 +181,14 @@ impl Hasher {
         (addr, result, lookups)
     }
 
-    /// Computes a sequential hash of all operation batches in the list and returns the result.
+    /// Computes a sequential hash of all operation batches in the list and returns the result. It
+    /// also records the execution trace of this computation, as well as the lookups required for
+    /// verifying its correctness so that they can be provided to the Chiplets Bus when the trace is
+    /// finalized.
     ///
-    /// The returned tuple also contains the row address of the execution trace at which hash
-    /// computation started.
+    /// The returned tuple also contains the row address of the execution trace at which the hash
+    /// computation started and the lookups required to verify the computation so that the correct
+    /// requests can be sent by the caller to the Chiplets Bus.
     pub(super) fn hash_span_block(
         &mut self,
         op_batches: &[OpBatch],
@@ -218,7 +235,7 @@ impl Hasher {
 
             for batch in op_batches.iter().take(num_batches - 1).skip(1) {
                 absorb_into_state(&mut state, batch.groups());
-                // add the lookup to absorb the next operation batch
+                // add the lookup for absorbing the next operation batch.
                 self.append_lookup(
                     ABSORB_LABEL,
                     last_state,
@@ -231,7 +248,7 @@ impl Hasher {
             }
 
             absorb_into_state(&mut state, op_batches[num_batches - 1].groups());
-            // add the lookup to absorb the final operation batch
+            // add the lookup for absorbing the final operation batch.
             self.append_lookup(
                 ABSORB_LABEL,
                 last_state,
@@ -249,13 +266,16 @@ impl Hasher {
         (addr, result, lookups)
     }
 
-    /// Performs Merkle path verification computation and records its execution trace.
+    /// Performs Merkle path verification computation and records its execution trace, as well as
+    /// the lookups required for verifying its correctness so that they can be provided to the
+    /// Chiplets Bus when the trace is finalized.
     ///
     /// The computation consists of computing a Merkle root of the specified path for a node with
     /// the specified value, located at the specified index.
     ///
-    /// The returned tuple contains the root of the Merkle path and the row address of the
-    /// execution trace at which the computation started.
+    /// The returned tuple contains the root of the Merkle path, the row address of the
+    /// execution trace at which the computation started, and the lookups required to verify the
+    /// computation so that the correct requests can be sent by the caller to the Chiplets Bus.
     ///
     /// # Panics
     /// Panics if:
@@ -277,7 +297,9 @@ impl Hasher {
         (addr, root, lookups)
     }
 
-    /// Performs Merkle root update computation and records its execution trace.
+    /// Performs Merkle root update computation and records its execution trace, as well as the
+    /// lookups required for verifying its correctness so that they can be provided to the Chiplets
+    /// Bus when the trace is finalized.
     ///
     /// The computation consists of two Merkle path verification procedures for a node at the
     /// specified index. The procedures compute Merkle roots for the specified path for the old
@@ -285,7 +307,8 @@ impl Hasher {
     /// the update).
     ///
     /// The returned tuple contains these roots, as well as the row address of the execution trace
-    /// at which the computation started.
+    /// at which the computation started and the lookups required to verify the computation so that
+    /// the correct requests can be sent by the caller to the Chiplets Bus.
     ///
     /// # Panics
     /// Panics if:
@@ -338,7 +361,8 @@ impl Hasher {
     /// Computes a root of the provided Merkle path in the specified context. The path is assumed
     /// to be for a node with the specified value at the specified index.
     ///
-    /// This also records the execution trace of the Merkle path computation.
+    /// This also records the execution trace of the Merkle path computation and all lookups
+    /// required for verifying its correctness.
     ///
     /// # Panics
     /// Panics if:
@@ -392,7 +416,11 @@ impl Hasher {
     ///
     /// This function does the following:
     /// - Builds the initial hasher state based on the least significant bit of the index.
+    /// - Records the lookup required for verification of the hash initialization if the
+    ///   `init_selectors` indicate that it is the beginning of the Merkle path verification.
     /// - Applies a permutation to this state and records the resulting trace.
+    /// - Records the lookup required for verification of the hash result if the `final_selectors`
+    ///   indicate that it is the end of the Merkle path verification.
     /// - Returns the result of the permutation and updates the index by removing its least
     ///   significant bit.
     fn verify_mp_leg(
@@ -524,6 +552,7 @@ fn build_merge_state(a: &Word, b: &Word, index_bit: u64) -> HasherState {
     }
 }
 
+/// Gets the label for the hash operation from the provided selectors and the specified context.
 pub fn get_selector_context_label(
     selectors: Selectors,
     context: HasherLookupContext,

@@ -147,16 +147,15 @@ impl Chiplets {
     // HASH CHIPLET ACCESSORS FOR CONTROL BLOCK DECODING
     // --------------------------------------------------------------------------------------------
 
-    /// Requests the hash of the provided words from the Hash chiplet and returns the result
-    /// hash(h1, h2).
+    /// Requests the hash of the provided words from the Hash chiplet and checks the result
+    /// hash(h1, h2) against the provided `expected_result`.
     ///
-    /// The returned tuple also contains the row address of the execution trace at which hash
-    /// computation started.
-    pub fn hash_control_block(&mut self, h1: Word, h2: Word, expected: Digest) -> Felt {
+    /// It returns the row address of the execution trace at which the hash computation started.
+    pub fn hash_control_block(&mut self, h1: Word, h2: Word, expected_result: Digest) -> Felt {
         let (addr, result, lookups) = self.hasher.merge(h1, h2);
 
         // make sure the result computed by the hasher is the same as the expected block hash
-        debug_assert_eq!(expected, result.into());
+        debug_assert_eq!(expected_result, result.into());
 
         // send the request for the hash initialization
         self.bus.request_hasher_lookup(lookups[0], self.clk);
@@ -168,20 +167,19 @@ impl Chiplets {
     }
 
     /// Requests computation a sequential hash of all operation batches in the list from the Hash
-    /// chiplet and returns the result.
+    /// chiplet and checks the result against the provided `expected_result`.
     ///
-    /// The returned tuple also contains the row address of the execution trace at which hash
-    /// computation started.
+    /// It returns the row address of the execution trace at which the hash computation started.
     pub fn hash_span_block(
         &mut self,
         op_batches: &[OpBatch],
         num_op_groups: usize,
-        expected: Digest,
+        expected_result: Digest,
     ) -> Felt {
         let (addr, result, lookups) = self.hasher.hash_span_block(op_batches, num_op_groups);
 
         // make sure the result computed by the hasher is the same as the expected block hash
-        debug_assert_eq!(expected, result.into());
+        debug_assert_eq!(expected_result, result.into());
 
         // send the request for the hash initialization
         self.bus.request_hasher_lookup(lookups[0], self.clk);

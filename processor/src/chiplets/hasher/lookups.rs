@@ -11,6 +11,9 @@ const NUM_HEADER_ALPHAS: usize = 4;
 // HASHER LOOKUPS
 // ================================================================================================
 
+/// Specifies the context of the [HasherLookup], indicating whether it describes the beginning of a
+/// hash operation, the return of a specified result, or the absorption of additional elements,
+/// initiating a new hash cycle with the provided [HasherState].
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum HasherLookupContext {
     Start,
@@ -19,6 +22,7 @@ pub enum HasherLookupContext {
     Return,
 }
 
+/// Contains the data required to describe and verify hash operations.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct HasherLookup {
     // unique label identifying the hash operation
@@ -35,6 +39,7 @@ pub struct HasherLookup {
 }
 
 impl HasherLookup {
+    /// Creates a new HasherLookup.
     pub(super) fn new(
         label: u8,
         state: HasherState,
@@ -58,6 +63,8 @@ impl HasherLookup {
         self.addr as usize - 1
     }
 
+    /// Returns the common header value which describes this hash operation. It is a combination of
+    /// the transition label, the row address, and the node index.
     fn get_header_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
         let transition_label = match self.context {
             HasherLookupContext::Start => E::from(self.label) + E::from(16_u8),
@@ -76,11 +83,13 @@ impl LookupTableRow for HasherLookup {
     /// at least 16 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
         let header = self.get_header_value(&alphas[..NUM_HEADER_ALPHAS]);
+        // computing the rest of the value requires an alpha for each element in the [HasherState]
         let alphas = &alphas[NUM_HEADER_ALPHAS..(NUM_HEADER_ALPHAS + STATE_WIDTH)];
 
         match self.context {
             HasherLookupContext::Start => {
                 if self.label == LINEAR_HASH_LABEL {
+                    // include the entire state when initializing a linear hash.
                     header + build_value(alphas, &self.state)
                 } else {
                     assert!(
@@ -89,6 +98,10 @@ impl LookupTableRow for HasherLookup {
                             || self.label == MP_VERIFY_LABEL,
                         "unrecognized hash operation"
                     );
+                    // build the leaf value by selecting from the left and right words of the state.
+                    // the same alphas must be used in both cases, since whichever word is selected
+                    // by the index bit will be the leaf node, and the value must be computed in the
+                    // same way in both cases.
                     let bit = (self.index.as_int() >> 1) & 1;
                     let left_word = build_value(&alphas[DIGEST_RANGE], &self.state[DIGEST_RANGE]);
                     let right_word =
@@ -102,6 +115,8 @@ impl LookupTableRow for HasherLookup {
                     self.label == LINEAR_HASH_LABEL,
                     "unrecognized hash operation"
                 );
+                // build the value from the delta of the hasher state's rate before and after the
+                // absorption of new elements.
                 let next_state_value =
                     build_value(&alphas[CAPACITY_LEN..], &next_state[CAPACITY_LEN..]);
                 let state_value = build_value(&alphas[CAPACITY_LEN..], &self.state[CAPACITY_LEN..]);
@@ -110,12 +125,14 @@ impl LookupTableRow for HasherLookup {
             }
             HasherLookupContext::Return => {
                 if self.label == RETURN_STATE_LABEL {
+                    // build the value from the result, which is the entire state
                     header + build_value(alphas, &self.state)
                 } else {
                     assert!(
                         self.label == RETURN_HASH_LABEL,
                         "unrecognized hash operation"
                     );
+                    // build the value from the result, which is the digest portion of the state
                     header + build_value(&alphas[DIGEST_RANGE], &self.state[DIGEST_RANGE])
                 }
             }
@@ -126,8 +143,9 @@ impl LookupTableRow for HasherLookup {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Builds the value from alphas and elements of matching lengths. This can be used to build the
-/// value for a single word or for the entire state.
+/// Reduces a slice of elements to a single field element in the field specified by E using a slice
+/// of alphas of matching length. This can be used to build the value for a single word or for an
+/// entire [HasherState].
 fn build_value<E: FieldElement<BaseField = Felt>>(alphas: &[E], elements: &[Felt]) -> E {
     let mut value = E::ZERO;
     for (&alpha, &element) in alphas.iter().zip(elements.iter()) {

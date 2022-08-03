@@ -13,13 +13,11 @@ pub use aux_trace::AuxTraceBuilder;
 /// processes lookup requests from the stack & decoder and response data from the chiplets.
 ///
 /// For correct execution, the lookup data used by the stack for each chiplet must be a permutation
-/// of the lookups executed by that chiplet so that they cancel out. This is ensured by the `b_aux`
-/// bus column. When the `b_aux` column is built, requests from the stack must be divided out and
+/// of the lookups executed by that chiplet so that they cancel out. This is ensured by the `b_chip`
+/// bus column. When the `b_chip` column is built, requests from the stack must be divided out and
 /// lookup results provided by the chiplets must be multiplied in. To ensure that all lookups are
-/// attributed to the correct chiplet and operation, a unique chiplet operation selector must be
+/// attributed to the correct chiplet and operation, a unique chiplet operation label must be
 /// included in the lookup row value when it is computed.
-///
-/// TODO: document the ChipletsBus components and their types.
 
 #[derive(Default)]
 pub struct ChipletsBus {
@@ -38,7 +36,7 @@ impl ChipletsBus {
     // --------------------------------------------------------------------------------------------
 
     /// Requests lookups for a single operation at the specified cycle. A Hasher operation request
-    /// will always contain multiple lookups, while Bitwise and Memory requests will only contain a
+    /// can contain one or more lookups, while Bitwise and Memory requests will only contain a
     /// single lookup.
     fn request_lookup(&mut self, cycle: usize) {
         // all requests are sent from the stack before responses are provided (during Chiplets trace
@@ -49,7 +47,7 @@ impl ChipletsBus {
             .insert(cycle, ChipletsLookup::Request(request_idx));
     }
 
-    /// Provides lookup data at the specified cycle, which is the row of the AuxTable execution
+    /// Provides lookup data at the specified cycle, which is the row of the Chiplets execution
     /// trace that contains this lookup row.
     fn provide_lookup(&mut self, response_cycle: usize) {
         // results are guaranteed not to share cycles with other results, but they might share
@@ -68,11 +66,11 @@ impl ChipletsBus {
     // HASHER LOOKUPS
     // --------------------------------------------------------------------------------------------
 
-    /// Requests lookups for the initial row and result row of Hash operations from the Hash
-    /// Chiplet at the specified `cycle`. This request is expected to originate from operation
-    /// executors requesting a hash operation for the Stack where all operation lookups must be
-    /// included at the same cycle. For simple permutations this will require 2 lookups, while for
-    /// a Merkle root update it will require 4 lookups.
+    /// Requests lookups at the specified `cycle` for the initial row and result row of Hash
+    /// operations in the Hash Chiplet. This request is expected to originate from operation
+    /// executors requesting one or more hash operations for the Stack where all operation lookups
+    /// must be included at the same cycle. For simple permutations this will require 2 lookups,
+    /// while for a Merkle root update it will require 4, since two Hash operations are required.
     pub fn request_hasher_operation(&mut self, lookups: &[HasherLookup], cycle: usize) {
         debug_assert!(
             lookups.len() == 2 || lookups.len() == 4,
@@ -84,7 +82,8 @@ impl ChipletsBus {
     }
 
     /// Requests the specified lookup from the Hash Chiplet at the specified `cycle`. Single lookup
-    /// requests are expected to originate from the decoder during control block decoding.
+    /// requests are expected to originate from the decoder during control block decoding. This
+    /// lookup can be for either the initial or the final row of the hash operation.
     pub fn request_hasher_lookup(&mut self, lookup: HasherLookup, cycle: usize) {
         self.request_lookup(cycle);
         self.request_rows.push(ChipletsLookupRow::Hasher(lookup));
@@ -92,9 +91,10 @@ impl ChipletsBus {
 
     /// Adds the request for the specified lookup to a queue from which it can be sent later when
     /// the cycle of the request is known. Queued requests are expected to originate from the
-    /// decoder, since the hash is computed at the start of each control block, but the decoder
-    /// does not request intermediate and final lookups until the end of the control block or until
-    /// a `RESPAN` in the case of `SPAN` blocks with more than one operation batch.
+    /// decoder, since the hash is computed at the start of each control block (along with all
+    /// required lookups), but the decoder does not request intermediate and final lookups until the
+    /// end of the control block or until a `RESPAN`, in the case of `SPAN` blocks with more than
+    /// one operation batch.
     pub fn enqueue_hasher_request(&mut self, lookup: HasherLookup) {
         self.queued_requests.push(lookup);
     }
