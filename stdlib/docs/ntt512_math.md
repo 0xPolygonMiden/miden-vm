@@ -1,0 +1,5 @@
+
+## std::math::ntt512
+| Procedure | Description |
+| ----------- | ------------- |
+| forward.128 |  Applies forward NTT on a vector of length 512, where each element ∈ Zp \| p = 2^64 − 2^32 + 1,<br /> producing elements in frequency domain in bit-reversed order.<br /><br /> Static input vector ( i.e. [0..512) ) is accepted using function local memory, while after <br /> applying NTT, bit-reversed output vector is also kept on same function local memory allocation --- this <br /> section will be improved.<br /><br /> This routine tests itself, but doesn't respond, in any meaningful way, when invoked from outside.<br /> The purpose of this function is asserting functional correctness of NTT-512 implementation, while<br /> encapsulating the implementation. |
