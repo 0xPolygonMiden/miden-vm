@@ -6,6 +6,7 @@ use crate::{trace::LookupTableRow, ExecutionError};
 use core::ops::RangeInclusive;
 use vm_core::{
     chiplets::bitwise::{BITWISE_AND_LABEL, BITWISE_OR_LABEL, BITWISE_XOR_LABEL},
+    chiplets::hasher::HasherState,
     code_blocks::OpBatch,
 };
 
@@ -13,8 +14,8 @@ mod bitwise;
 use bitwise::{Bitwise, BitwiseLookup};
 
 mod hasher;
+use hasher::Hasher;
 pub use hasher::{AuxTraceBuilder as HasherAuxTraceBuilder, SiblingTableRow};
-use hasher::{Hasher, HasherState};
 
 mod memory;
 use memory::{Memory, MemoryLookup};

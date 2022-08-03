@@ -18,6 +18,9 @@ pub type Digest = <Hasher as HashFn>::Digest;
 /// is to be applied at a specific row of the hasher execution trace.
 pub type Selectors = [Felt; NUM_SELECTORS];
 
+/// Type for the Hasher's state.
+pub type HasherState = [Felt; STATE_WIDTH];
+
 // CONSTANTS
 // ================================================================================================
 
