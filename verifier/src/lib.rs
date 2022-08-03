@@ -9,7 +9,7 @@ use winterfell::VerifierError;
 // ================================================================================================
 
 pub use assembly;
-pub use vm_core::hasher::Digest;
+pub use vm_core::chiplets::hasher::Digest;
 pub use winterfell::StarkProof;
 
 // VERIFIER

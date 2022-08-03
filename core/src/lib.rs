@@ -7,7 +7,6 @@ extern crate alloc;
 use core::ops::Range;
 
 pub mod chiplets;
-pub use chiplets::hasher;
 pub mod decoder;
 pub mod errors;
 pub mod range;

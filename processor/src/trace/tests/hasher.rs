@@ -4,7 +4,9 @@ use super::{
     Word, ONE, ZERO,
 };
 use crate::chiplets::SiblingTableRow;
-use vm_core::{hasher::P1_COL_IDX, AdviceSet, FieldElement, StarkField, AUX_TRACE_RAND_ELEMENTS};
+use vm_core::{
+    chiplets::hasher::P1_COL_IDX, AdviceSet, FieldElement, StarkField, AUX_TRACE_RAND_ELEMENTS,
+};
 
 // SIBLING TABLE TESTS
 // ================================================================================================
