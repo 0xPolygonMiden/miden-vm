@@ -102,7 +102,7 @@ impl AuxTraceBuilder {
         for (row_idx, &v) in v_col
             .iter()
             .enumerate()
-            .take(v_col.len() - 1)
+            .take(v_col.len() - NUM_RAND_ROWS)
             .skip(self.start_16bit)
         {
             // This is the 16-bit section, where the running product must be reduced.
@@ -197,7 +197,7 @@ impl AuxTraceBuilder {
             .iter()
             .zip(main_trace.get_column(V_COL_IDX).iter())
             .enumerate()
-            .take(main_trace.num_rows() - NUM_RAND_ROWS - 1)
+            .take(main_trace.num_rows() - NUM_RAND_ROWS)
             .skip(self.start_16bit)
         {
             p1_idx = row_idx + 1;
