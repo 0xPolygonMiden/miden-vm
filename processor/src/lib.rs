@@ -254,7 +254,7 @@ impl Process {
         // preceded by a RESPAN operation; executing RESPAN operation does not change the state
         // of the stack
         for op_batch in block.op_batches().iter().skip(1) {
-            self.decoder.respan(op_batch);
+            self.respan(op_batch);
             self.execute_op(Operation::Noop)?;
             self.execute_op_batch(op_batch, &mut decorators, op_offset)?;
             op_offset += op_batch.ops().len();

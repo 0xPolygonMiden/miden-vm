@@ -1,7 +1,7 @@
 use super::{
-    init_state_from_words, AuxTraceBuilder, Felt, Hasher, HasherState, Selectors, SiblingTableRow,
-    SiblingTableUpdate, TraceFragment, Word, LINEAR_HASH, MP_VERIFY, MR_UPDATE_NEW, MR_UPDATE_OLD,
-    RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
+    init_state_from_words, AuxTraceBuilder, ChipletsBus, Felt, Hasher, HasherState, Selectors,
+    SiblingTableRow, SiblingTableUpdate, TraceFragment, Word, LINEAR_HASH, MP_VERIFY,
+    MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
 };
 use rand_utils::rand_array;
 use vm_core::{
@@ -19,7 +19,7 @@ fn hasher_permute() {
     // initialize the hasher and perform one permutation
     let mut hasher = Hasher::default();
     let init_state: HasherState = rand_array();
-    let (addr, final_state) = hasher.permute(init_state);
+    let (addr, final_state, _) = hasher.permute(init_state);
 
     // address of the permutation should be ONE (as hasher address starts at ONE)
     assert_eq!(ONE, addr);
@@ -46,10 +46,10 @@ fn hasher_permute() {
     // initialize the hasher and perform two permutations
     let mut hasher = Hasher::default();
     let init_state1: HasherState = rand_array();
-    let (addr1, final_state1) = hasher.permute(init_state1);
+    let (addr1, final_state1, _) = hasher.permute(init_state1);
 
     let init_state2: HasherState = rand_array();
-    let (addr2, final_state2) = hasher.permute(init_state2);
+    let (addr2, final_state2, _) = hasher.permute(init_state2);
 
     // make sure the returned addresses are correct (they must be 8 rows apart)
     assert_eq!(ONE, addr1);
@@ -308,7 +308,7 @@ fn build_trace(hasher: Hasher, num_rows: usize) -> (Vec<Vec<Felt>>, AuxTraceBuil
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    let aux_trace_builder = hasher.fill_trace(&mut fragment);
+    let aux_trace_builder = hasher.fill_trace(&mut fragment, &mut ChipletsBus::default());
     (trace, aux_trace_builder)
 }
 
