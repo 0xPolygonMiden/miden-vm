@@ -7,6 +7,7 @@ fn test_ntt512() {
 
     begin
         exec.ntt512::forward
+        exec.ntt512::backward
     end
     ";
 
