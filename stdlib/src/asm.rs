@@ -7887,4288 +7887,5184 @@ export.forward.128
 
 	exec.butterfly
 
-	popw.local.64
-	popw.local.0
+	storew.local.64
+    swapw
+	storew.local.0
 
-	pushw.local.1
-	pushw.local.65
+	loadw.local.1
+    swapw
+	loadw.local.65
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.65
-	popw.local.1
+	storew.local.65
+    swapw
+	storew.local.1
 
-	pushw.local.2
-	pushw.local.66
+	loadw.local.2
+	swapw
+    loadw.local.66
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.66
-	popw.local.2
+	storew.local.66
+    swapw
+    storew.local.2
 
-	pushw.local.3
-	pushw.local.67
+	loadw.local.3
+	swapw
+    loadw.local.67
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.67
-	popw.local.3
+	storew.local.67
+	swapw
+	storew.local.3
 
-	pushw.local.4
-	pushw.local.68
+	loadw.local.4
+	swapw
+	loadw.local.68
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.68
-	popw.local.4
+	storew.local.68
+	swapw
+	storew.local.4
 
-	pushw.local.5
-	pushw.local.69
+	loadw.local.5
+	swapw
+	loadw.local.69
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.69
-	popw.local.5
+	storew.local.69
+	swapw
+	storew.local.5
 
-	pushw.local.6
-	pushw.local.70
+	loadw.local.6
+	swapw
+	loadw.local.70
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.70
-	popw.local.6
+	storew.local.70
+	swapw
+	storew.local.6
 
-	pushw.local.7
-	pushw.local.71
+	loadw.local.7
+	swapw
+	loadw.local.71
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.71
-	popw.local.7
+	storew.local.71
+	swapw
+	storew.local.7
 
-	pushw.local.8
-	pushw.local.72
+	loadw.local.8
+	swapw
+	loadw.local.72
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.72
-	popw.local.8
+	storew.local.72
+	swapw
+	storew.local.8
 
-	pushw.local.9
-	pushw.local.73
+	loadw.local.9
+	swapw
+	loadw.local.73
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.73
-	popw.local.9
+	storew.local.73
+	swapw
+	storew.local.9
 
-	pushw.local.10
-	pushw.local.74
+	loadw.local.10
+	swapw
+	loadw.local.74
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.74
-	popw.local.10
+	storew.local.74
+	swapw
+	storew.local.10
 
-	pushw.local.11
-	pushw.local.75
+	loadw.local.11
+	swapw
+	loadw.local.75
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.75
-	popw.local.11
+	storew.local.75
+	swapw
+	storew.local.11
 
-	pushw.local.12
-	pushw.local.76
+	loadw.local.12
+	swapw
+	loadw.local.76
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.76
-	popw.local.12
+	storew.local.76
+	swapw
+	storew.local.12
 
-	pushw.local.13
-	pushw.local.77
+	loadw.local.13
+	swapw
+	loadw.local.77
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.77
-	popw.local.13
+	storew.local.77
+	swapw
+	storew.local.13
 
-	pushw.local.14
-	pushw.local.78
+	loadw.local.14
+	swapw
+	loadw.local.78
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.78
-	popw.local.14
+	storew.local.78
+	swapw
+	storew.local.14
 
-	pushw.local.15
-	pushw.local.79
+	loadw.local.15
+	swapw
+	loadw.local.79
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.79
-	popw.local.15
+	storew.local.79
+	swapw
+	storew.local.15
 
-	pushw.local.16
-	pushw.local.80
+	loadw.local.16
+	swapw
+	loadw.local.80
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.80
-	popw.local.16
+	storew.local.80
+	swapw
+	storew.local.16
 
-	pushw.local.17
-	pushw.local.81
+	loadw.local.17
+	swapw
+	loadw.local.81
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.81
-	popw.local.17
+	storew.local.81
+	swapw
+	storew.local.17
 
-	pushw.local.18
-	pushw.local.82
+	loadw.local.18
+	swapw
+	loadw.local.82
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.82
-	popw.local.18
+	storew.local.82
+	swapw
+	storew.local.18
 
-	pushw.local.19
-	pushw.local.83
+	loadw.local.19
+	swapw
+	loadw.local.83
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.83
-	popw.local.19
+	storew.local.83
+	swapw
+	storew.local.19
 
-	pushw.local.20
-	pushw.local.84
+	loadw.local.20
+	swapw
+	loadw.local.84
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.84
-	popw.local.20
+	storew.local.84
+	swapw
+	storew.local.20
 
-	pushw.local.21
-	pushw.local.85
+	loadw.local.21
+	swapw
+	loadw.local.85
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.85
-	popw.local.21
+	storew.local.85
+	swapw
+	storew.local.21
 
-	pushw.local.22
-	pushw.local.86
+	loadw.local.22
+	swapw
+	loadw.local.86
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.86
-	popw.local.22
+	storew.local.86
+	swapw
+	storew.local.22
 
-	pushw.local.23
-	pushw.local.87
+	loadw.local.23
+	swapw
+	loadw.local.87
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.87
-	popw.local.23
+	storew.local.87
+	swapw
+	storew.local.23
 
-	pushw.local.24
-	pushw.local.88
+	loadw.local.24
+	swapw
+	loadw.local.88
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.88
-	popw.local.24
+	storew.local.88
+	swapw
+	storew.local.24
 
-	pushw.local.25
-	pushw.local.89
+	loadw.local.25
+	swapw
+	loadw.local.89
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.89
-	popw.local.25
+	storew.local.89
+	swapw
+	storew.local.25
 
-	pushw.local.26
-	pushw.local.90
+	loadw.local.26
+	swapw
+	loadw.local.90
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.90
-	popw.local.26
+	storew.local.90
+	swapw
+	storew.local.26
 
-	pushw.local.27
-	pushw.local.91
+	loadw.local.27
+	swapw
+	loadw.local.91
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.91
-	popw.local.27
+	storew.local.91
+	swapw
+	storew.local.27
 
-	pushw.local.28
-	pushw.local.92
+	loadw.local.28
+	swapw
+	loadw.local.92
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.92
-	popw.local.28
+	storew.local.92
+	swapw
+	storew.local.28
 
-	pushw.local.29
-	pushw.local.93
+	loadw.local.29
+	swapw
+	loadw.local.93
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.93
-	popw.local.29
+	storew.local.93
+	swapw
+	storew.local.29
 
-	pushw.local.30
-	pushw.local.94
+	loadw.local.30
+	swapw
+	loadw.local.94
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.94
-	popw.local.30
+	storew.local.94
+	swapw
+	storew.local.30
 
-	pushw.local.31
-	pushw.local.95
+	loadw.local.31
+	swapw
+	loadw.local.95
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.95
-	popw.local.31
+	storew.local.95
+	swapw
+	storew.local.31
 
-	pushw.local.32
-	pushw.local.96
+	loadw.local.32
+	swapw
+	loadw.local.96
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.96
-	popw.local.32
+	storew.local.96
+	swapw
+	storew.local.32
 
-	pushw.local.33
-	pushw.local.97
+	loadw.local.33
+	swapw
+	loadw.local.97
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.97
-	popw.local.33
+	storew.local.97
+	swapw
+	storew.local.33
 
-	pushw.local.34
-	pushw.local.98
+	loadw.local.34
+	swapw
+	loadw.local.98
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.98
-	popw.local.34
+	storew.local.98
+	swapw
+	storew.local.34
 
-	pushw.local.35
-	pushw.local.99
+	loadw.local.35
+	swapw
+	loadw.local.99
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.99
-	popw.local.35
+	storew.local.99
+	swapw
+	storew.local.35
 
-	pushw.local.36
-	pushw.local.100
+	loadw.local.36
+	swapw
+	loadw.local.100
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.100
-	popw.local.36
+	storew.local.100
+	swapw
+	storew.local.36
 
-	pushw.local.37
-	pushw.local.101
+	loadw.local.37
+	swapw
+	loadw.local.101
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.101
-	popw.local.37
+	storew.local.101
+	swapw
+	storew.local.37
 
-	pushw.local.38
-	pushw.local.102
+	loadw.local.38
+	swapw
+	loadw.local.102
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.102
-	popw.local.38
+	storew.local.102
+	swapw
+	storew.local.38
 
-	pushw.local.39
-	pushw.local.103
+	loadw.local.39
+	swapw
+	loadw.local.103
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.103
-	popw.local.39
+	storew.local.103
+	swapw
+	storew.local.39
 
-	pushw.local.40
-	pushw.local.104
+	loadw.local.40
+	swapw
+	loadw.local.104
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.104
-	popw.local.40
+	storew.local.104
+	swapw
+	storew.local.40
 
-	pushw.local.41
-	pushw.local.105
+	loadw.local.41
+	swapw
+	loadw.local.105
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.105
-	popw.local.41
+	storew.local.105
+	swapw
+	storew.local.41
 
-	pushw.local.42
-	pushw.local.106
+	loadw.local.42
+	swapw
+	loadw.local.106
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.106
-	popw.local.42
+	storew.local.106
+	swapw
+	storew.local.42
 
-	pushw.local.43
-	pushw.local.107
+	loadw.local.43
+	swapw
+	loadw.local.107
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.107
-	popw.local.43
+	storew.local.107
+	swapw
+	storew.local.43
 
-	pushw.local.44
-	pushw.local.108
+	loadw.local.44
+	swapw
+	loadw.local.108
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.108
-	popw.local.44
+	storew.local.108
+	swapw
+	storew.local.44
 
-	pushw.local.45
-	pushw.local.109
+	loadw.local.45
+	swapw
+	loadw.local.109
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.109
-	popw.local.45
+	storew.local.109
+	swapw
+	storew.local.45
 
-	pushw.local.46
-	pushw.local.110
+	loadw.local.46
+	swapw
+	loadw.local.110
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.110
-	popw.local.46
+	storew.local.110
+	swapw
+	storew.local.46
 
-	pushw.local.47
-	pushw.local.111
+	loadw.local.47
+	swapw
+	loadw.local.111
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.111
-	popw.local.47
+	storew.local.111
+	swapw
+	storew.local.47
 
-	pushw.local.48
-	pushw.local.112
+	loadw.local.48
+	swapw
+	loadw.local.112
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.112
-	popw.local.48
+	storew.local.112
+	swapw
+	storew.local.48
 
-	pushw.local.49
-	pushw.local.113
+	loadw.local.49
+	swapw
+	loadw.local.113
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.113
-	popw.local.49
+	storew.local.113
+	swapw
+	storew.local.49
 
-	pushw.local.50
-	pushw.local.114
+	loadw.local.50
+	swapw
+	loadw.local.114
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.114
-	popw.local.50
+	storew.local.114
+	swapw
+	storew.local.50
 
-	pushw.local.51
-	pushw.local.115
+	loadw.local.51
+	swapw
+	loadw.local.115
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.115
-	popw.local.51
+	storew.local.115
+	swapw
+	storew.local.51
 
-	pushw.local.52
-	pushw.local.116
+	loadw.local.52
+	swapw
+	loadw.local.116
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.116
-	popw.local.52
+	storew.local.116
+	swapw
+	storew.local.52
 
-	pushw.local.53
-	pushw.local.117
+	loadw.local.53
+	swapw
+	loadw.local.117
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.117
-	popw.local.53
+	storew.local.117
+	swapw
+	storew.local.53
 
-	pushw.local.54
-	pushw.local.118
+	loadw.local.54
+	swapw
+	loadw.local.118
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.118
-	popw.local.54
+	storew.local.118
+	swapw
+	storew.local.54
 
-	pushw.local.55
-	pushw.local.119
+	loadw.local.55
+	swapw
+	loadw.local.119
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.119
-	popw.local.55
+	storew.local.119
+	swapw
+	storew.local.55
 
-	pushw.local.56
-	pushw.local.120
+	loadw.local.56
+	swapw
+	loadw.local.120
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.120
-	popw.local.56
+	storew.local.120
+	swapw
+	storew.local.56
 
-	pushw.local.57
-	pushw.local.121
+	loadw.local.57
+	swapw
+	loadw.local.121
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.121
-	popw.local.57
+	storew.local.121
+	swapw
+	storew.local.57
 
-	pushw.local.58
-	pushw.local.122
+	loadw.local.58
+	swapw
+	loadw.local.122
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.122
-	popw.local.58
+	storew.local.122
+	swapw
+	storew.local.58
 
-	pushw.local.59
-	pushw.local.123
+	loadw.local.59
+	swapw
+	loadw.local.123
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.123
-	popw.local.59
+	storew.local.123
+	swapw
+	storew.local.59
 
-	pushw.local.60
-	pushw.local.124
+	loadw.local.60
+	swapw
+	loadw.local.124
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.124
-	popw.local.60
+	storew.local.124
+	swapw
+	storew.local.60
 
-	pushw.local.61
-	pushw.local.125
+	loadw.local.61
+	swapw
+	loadw.local.125
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.125
-	popw.local.61
+	storew.local.125
+	swapw
+	storew.local.61
 
-	pushw.local.62
-	pushw.local.126
+	loadw.local.62
+	swapw
+	loadw.local.126
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.126
-	popw.local.62
+	storew.local.126
+	swapw
+	storew.local.62
 
-	pushw.local.63
-	pushw.local.127
+	loadw.local.63
+	swapw
+	loadw.local.127
 	push.18446462594437873665.18446462594437873665.18446462594437873665.18446462594437873665
 
 	exec.butterfly
 
-	popw.local.127
-	popw.local.63
+	storew.local.127
+	swapw
+	storew.local.63
 
     # iter = 1
 
-	pushw.local.0
-	pushw.local.32
+	loadw.local.0
+	swapw
+	loadw.local.32
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.32
-	popw.local.0
+	storew.local.32
+	swapw
+	storew.local.0
 
-	pushw.local.1
-	pushw.local.33
+	loadw.local.1
+	swapw
+	loadw.local.33
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.33
-	popw.local.1
+	storew.local.33
+	swapw
+	storew.local.1
 
-	pushw.local.2
-	pushw.local.34
+	loadw.local.2
+	swapw
+	loadw.local.34
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.34
-	popw.local.2
+	storew.local.34
+	swapw
+	storew.local.2
 
-	pushw.local.3
-	pushw.local.35
+	loadw.local.3
+	swapw
+	loadw.local.35
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.35
-	popw.local.3
+	storew.local.35
+	swapw
+	storew.local.3
 
-	pushw.local.4
-	pushw.local.36
+	loadw.local.4
+	swapw
+	loadw.local.36
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.36
-	popw.local.4
+	storew.local.36
+	swapw
+	storew.local.4
 
-	pushw.local.5
-	pushw.local.37
+	loadw.local.5
+	swapw
+	loadw.local.37
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.37
-	popw.local.5
+	storew.local.37
+	swapw
+	storew.local.5
 
-	pushw.local.6
-	pushw.local.38
+	loadw.local.6
+	swapw
+	loadw.local.38
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.38
-	popw.local.6
+	storew.local.38
+	swapw
+	storew.local.6
 
-	pushw.local.7
-	pushw.local.39
+	loadw.local.7
+	swapw
+	loadw.local.39
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.39
-	popw.local.7
+	storew.local.39
+	swapw
+	storew.local.7
 
-	pushw.local.8
-	pushw.local.40
+	loadw.local.8
+	swapw
+	loadw.local.40
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.40
-	popw.local.8
+	storew.local.40
+	swapw
+	storew.local.8
 
-	pushw.local.9
-	pushw.local.41
+	loadw.local.9
+	swapw
+	loadw.local.41
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.41
-	popw.local.9
+	storew.local.41
+	swapw
+	storew.local.9
 
-	pushw.local.10
-	pushw.local.42
+	loadw.local.10
+	swapw
+	loadw.local.42
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.42
-	popw.local.10
+	storew.local.42
+	swapw
+	storew.local.10
 
-	pushw.local.11
-	pushw.local.43
+	loadw.local.11
+	swapw
+	loadw.local.43
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.43
-	popw.local.11
+	storew.local.43
+	swapw
+	storew.local.11
 
-	pushw.local.12
-	pushw.local.44
+	loadw.local.12
+	swapw
+	loadw.local.44
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.44
-	popw.local.12
+	storew.local.44
+	swapw
+	storew.local.12
 
-	pushw.local.13
-	pushw.local.45
+	loadw.local.13
+	swapw
+	loadw.local.45
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.45
-	popw.local.13
+	storew.local.45
+	swapw
+	storew.local.13
 
-	pushw.local.14
-	pushw.local.46
+	loadw.local.14
+	swapw
+	loadw.local.46
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.46
-	popw.local.14
+	storew.local.46
+	swapw
+	storew.local.14
 
-	pushw.local.15
-	pushw.local.47
+	loadw.local.15
+	swapw
+	loadw.local.47
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.47
-	popw.local.15
+	storew.local.47
+	swapw
+	storew.local.15
 
-	pushw.local.16
-	pushw.local.48
+	loadw.local.16
+	swapw
+	loadw.local.48
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.48
-	popw.local.16
+	storew.local.48
+	swapw
+	storew.local.16
 
-	pushw.local.17
-	pushw.local.49
+	loadw.local.17
+	swapw
+	loadw.local.49
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.49
-	popw.local.17
+	storew.local.49
+	swapw
+	storew.local.17
 
-	pushw.local.18
-	pushw.local.50
+	loadw.local.18
+	swapw
+	loadw.local.50
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.50
-	popw.local.18
+	storew.local.50
+	swapw
+	storew.local.18
 
-	pushw.local.19
-	pushw.local.51
+	loadw.local.19
+	swapw
+	loadw.local.51
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.51
-	popw.local.19
+	storew.local.51
+	swapw
+	storew.local.19
 
-	pushw.local.20
-	pushw.local.52
+	loadw.local.20
+	swapw
+	loadw.local.52
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.52
-	popw.local.20
+	storew.local.52
+	swapw
+	storew.local.20
 
-	pushw.local.21
-	pushw.local.53
+	loadw.local.21
+	swapw
+	loadw.local.53
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.53
-	popw.local.21
+	storew.local.53
+	swapw
+	storew.local.21
 
-	pushw.local.22
-	pushw.local.54
+	loadw.local.22
+	swapw
+	loadw.local.54
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.54
-	popw.local.22
+	storew.local.54
+	swapw
+	storew.local.22
 
-	pushw.local.23
-	pushw.local.55
+	loadw.local.23
+	swapw
+	loadw.local.55
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.55
-	popw.local.23
+	storew.local.55
+	swapw
+	storew.local.23
 
-	pushw.local.24
-	pushw.local.56
+	loadw.local.24
+	swapw
+	loadw.local.56
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.56
-	popw.local.24
+	storew.local.56
+	swapw
+	storew.local.24
 
-	pushw.local.25
-	pushw.local.57
+	loadw.local.25
+	swapw
+	loadw.local.57
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.57
-	popw.local.25
+	storew.local.57
+	swapw
+	storew.local.25
 
-	pushw.local.26
-	pushw.local.58
+	loadw.local.26
+	swapw
+	loadw.local.58
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.58
-	popw.local.26
+	storew.local.58
+	swapw
+	storew.local.26
 
-	pushw.local.27
-	pushw.local.59
+	loadw.local.27
+	swapw
+	loadw.local.59
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.59
-	popw.local.27
+	storew.local.59
+	swapw
+	storew.local.27
 
-	pushw.local.28
-	pushw.local.60
+	loadw.local.28
+	swapw
+	loadw.local.60
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.60
-	popw.local.28
+	storew.local.60
+	swapw
+	storew.local.28
 
-	pushw.local.29
-	pushw.local.61
+	loadw.local.29
+	swapw
+	loadw.local.61
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.61
-	popw.local.29
+	storew.local.61
+	swapw
+	storew.local.29
 
-	pushw.local.30
-	pushw.local.62
+	loadw.local.30
+	swapw
+	loadw.local.62
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.62
-	popw.local.30
+	storew.local.62
+	swapw
+	storew.local.30
 
-	pushw.local.31
-	pushw.local.63
+	loadw.local.31
+	swapw
+	loadw.local.63
 	push.1099511627520.1099511627520.1099511627520.1099511627520
 
 	exec.butterfly
 
-	popw.local.63
-	popw.local.31
+	storew.local.63
+	swapw
+	storew.local.31
 
     # ---
 
-	pushw.local.64
-	pushw.local.96
+	loadw.local.64
+	swapw
+	loadw.local.96
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.96
-	popw.local.64
+	storew.local.96
+	swapw
+	storew.local.64
 
-	pushw.local.65
-	pushw.local.97
+	loadw.local.65
+	swapw
+	loadw.local.97
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.97
-	popw.local.65
+	storew.local.97
+	swapw
+	storew.local.65
 
-	pushw.local.66
-	pushw.local.98
+	loadw.local.66
+	swapw
+	loadw.local.98
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.98
-	popw.local.66
+	storew.local.98
+	swapw
+	storew.local.66
 
-	pushw.local.67
-	pushw.local.99
+	loadw.local.67
+	swapw
+	loadw.local.99
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.99
-	popw.local.67
+	storew.local.99
+	swapw
+	storew.local.67
 
-	pushw.local.68
-	pushw.local.100
+	loadw.local.68
+	swapw
+	loadw.local.100
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.100
-	popw.local.68
+	storew.local.100
+	swapw
+	storew.local.68
 
-	pushw.local.69
-	pushw.local.101
+	loadw.local.69
+	swapw
+	loadw.local.101
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.101
-	popw.local.69
+	storew.local.101
+	swapw
+	storew.local.69
 
-	pushw.local.70
-	pushw.local.102
+	loadw.local.70
+	swapw
+	loadw.local.102
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.102
-	popw.local.70
+	storew.local.102
+	swapw
+	storew.local.70
 
-	pushw.local.71
-	pushw.local.103
+	loadw.local.71
+	swapw
+	loadw.local.103
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.103
-	popw.local.71
+	storew.local.103
+	swapw
+	storew.local.71
 
-	pushw.local.72
-	pushw.local.104
+	loadw.local.72
+	swapw
+	loadw.local.104
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.104
-	popw.local.72
+	storew.local.104
+	swapw
+	storew.local.72
 
-	pushw.local.73
-	pushw.local.105
+	loadw.local.73
+	swapw
+	loadw.local.105
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.105
-	popw.local.73
+	storew.local.105
+	swapw
+	storew.local.73
 
-	pushw.local.74
-	pushw.local.106
+	loadw.local.74
+	swapw
+	loadw.local.106
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.106
-	popw.local.74
+	storew.local.106
+	swapw
+	storew.local.74
 
-	pushw.local.75
-	pushw.local.107
+	loadw.local.75
+	swapw
+	loadw.local.107
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.107
-	popw.local.75
+	storew.local.107
+	swapw
+	storew.local.75
 
-	pushw.local.76
-	pushw.local.108
+	loadw.local.76
+	swapw
+	loadw.local.108
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.108
-	popw.local.76
+	storew.local.108
+	swapw
+	storew.local.76
 
-	pushw.local.77
-	pushw.local.109
+	loadw.local.77
+	swapw
+	loadw.local.109
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.109
-	popw.local.77
+	storew.local.109
+	swapw
+	storew.local.77
 
-	pushw.local.78
-	pushw.local.110
+	loadw.local.78
+	swapw
+	loadw.local.110
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.110
-	popw.local.78
+	storew.local.110
+	swapw
+	storew.local.78
 
-	pushw.local.79
-	pushw.local.111
+	loadw.local.79
+	swapw
+	loadw.local.111
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.111
-	popw.local.79
+	storew.local.111
+	swapw
+	storew.local.79
 
-	pushw.local.80
-	pushw.local.112
+	loadw.local.80
+	swapw
+	loadw.local.112
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.112
-	popw.local.80
+	storew.local.112
+	swapw
+	storew.local.80
 
-	pushw.local.81
-	pushw.local.113
+	loadw.local.81
+	swapw
+	loadw.local.113
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.113
-	popw.local.81
+	storew.local.113
+	swapw
+	storew.local.81
 
-	pushw.local.82
-	pushw.local.114
+	loadw.local.82
+	swapw
+	loadw.local.114
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.114
-	popw.local.82
+	storew.local.114
+	swapw
+	storew.local.82
 
-	pushw.local.83
-	pushw.local.115
+	loadw.local.83
+	swapw
+	loadw.local.115
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.115
-	popw.local.83
+	storew.local.115
+	swapw
+	storew.local.83
 
-	pushw.local.84
-	pushw.local.116
+	loadw.local.84
+	swapw
+	loadw.local.116
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.116
-	popw.local.84
+	storew.local.116
+	swapw
+	storew.local.84
 
-	pushw.local.85
-	pushw.local.117
+	loadw.local.85
+	swapw
+	loadw.local.117
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.117
-	popw.local.85
+	storew.local.117
+	swapw
+	storew.local.85
 
-	pushw.local.86
-	pushw.local.118
+	loadw.local.86
+	swapw
+	loadw.local.118
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.118
-	popw.local.86
+	storew.local.118
+	swapw
+	storew.local.86
 
-	pushw.local.87
-	pushw.local.119
+	loadw.local.87
+	swapw
+	loadw.local.119
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.119
-	popw.local.87
+	storew.local.119
+	swapw
+	storew.local.87
 
-	pushw.local.88
-	pushw.local.120
+	loadw.local.88
+	swapw
+	loadw.local.120
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.120
-	popw.local.88
+	storew.local.120
+	swapw
+	storew.local.88
 
-	pushw.local.89
-	pushw.local.121
+	loadw.local.89
+	swapw
+	loadw.local.121
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.121
-	popw.local.89
+	storew.local.121
+	swapw
+	storew.local.89
 
-	pushw.local.90
-	pushw.local.122
+	loadw.local.90
+	swapw
+	loadw.local.122
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.122
-	popw.local.90
+	storew.local.122
+	swapw
+	storew.local.90
 
-	pushw.local.91
-	pushw.local.123
+	loadw.local.91
+	swapw
+	loadw.local.123
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.123
-	popw.local.91
+	storew.local.123
+	swapw
+	storew.local.91
 
-	pushw.local.92
-	pushw.local.124
+	loadw.local.92
+	swapw
+	loadw.local.124
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.124
-	popw.local.92
+	storew.local.124
+	swapw
+	storew.local.92
 
-	pushw.local.93
-	pushw.local.125
+	loadw.local.93
+	swapw
+	loadw.local.125
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.125
-	popw.local.93
+	storew.local.125
+	swapw
+	storew.local.93
 
-	pushw.local.94
-	pushw.local.126
+	loadw.local.94
+	swapw
+	loadw.local.126
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.126
-	popw.local.94
+	storew.local.126
+	swapw
+	storew.local.94
 
-	pushw.local.95
-	pushw.local.127
+	loadw.local.95
+	swapw
+	loadw.local.127
 	push.16777216.16777216.16777216.16777216
 
 	exec.butterfly
 
-	popw.local.127
-	popw.local.95
+	storew.local.127
+	swapw
+	storew.local.95
 
     # iter = 2
 
-	pushw.local.0
-	pushw.local.16
+	loadw.local.0
+	swapw
+	loadw.local.16
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.16
-	popw.local.0
+	storew.local.16
+	swapw
+	storew.local.0
 
-	pushw.local.1
-	pushw.local.17
+	loadw.local.1
+	swapw
+	loadw.local.17
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.17
-	popw.local.1
+	storew.local.17
+	swapw
+	storew.local.1
 
-	pushw.local.2
-	pushw.local.18
+	loadw.local.2
+	swapw
+	loadw.local.18
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.18
-	popw.local.2
+	storew.local.18
+	swapw
+	storew.local.2
 
-	pushw.local.3
-	pushw.local.19
+	loadw.local.3
+	swapw
+	loadw.local.19
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.19
-	popw.local.3
+	storew.local.19
+	swapw
+	storew.local.3
 
-	pushw.local.4
-	pushw.local.20
+	loadw.local.4
+	swapw
+	loadw.local.20
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.20
-	popw.local.4
+	storew.local.20
+	swapw
+	storew.local.4
 
-	pushw.local.5
-	pushw.local.21
+	loadw.local.5
+	swapw
+	loadw.local.21
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.21
-	popw.local.5
+	storew.local.21
+	swapw
+	storew.local.5
 
-	pushw.local.6
-	pushw.local.22
+	loadw.local.6
+	swapw
+	loadw.local.22
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.22
-	popw.local.6
+	storew.local.22
+	swapw
+	storew.local.6
 
-	pushw.local.7
-	pushw.local.23
+	loadw.local.7
+	swapw
+	loadw.local.23
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.23
-	popw.local.7
+	storew.local.23
+	swapw
+	storew.local.7
 
-	pushw.local.8
-	pushw.local.24
+	loadw.local.8
+	swapw
+	loadw.local.24
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.24
-	popw.local.8
+	storew.local.24
+	swapw
+	storew.local.8
 
-	pushw.local.9
-	pushw.local.25
+	loadw.local.9
+	swapw
+	loadw.local.25
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.25
-	popw.local.9
+	storew.local.25
+	swapw
+	storew.local.9
 
-	pushw.local.10
-	pushw.local.26
+	loadw.local.10
+	swapw
+	loadw.local.26
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.26
-	popw.local.10
+	storew.local.26
+	swapw
+	storew.local.10
 
-	pushw.local.11
-	pushw.local.27
+	loadw.local.11
+	swapw
+	loadw.local.27
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.27
-	popw.local.11
+	storew.local.27
+	swapw
+	storew.local.11
 
-	pushw.local.12
-	pushw.local.28
+	loadw.local.12
+	swapw
+	loadw.local.28
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.28
-	popw.local.12
+	storew.local.28
+	swapw
+	storew.local.12
 
-	pushw.local.13
-	pushw.local.29
+	loadw.local.13
+	swapw
+	loadw.local.29
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.29
-	popw.local.13
+	storew.local.29
+	swapw
+	storew.local.13
 
-	pushw.local.14
-	pushw.local.30
+	loadw.local.14
+	swapw
+	loadw.local.30
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.30
-	popw.local.14
+	storew.local.30
+	swapw
+	storew.local.14
 
-	pushw.local.15
-	pushw.local.31
+	loadw.local.15
+	swapw
+	loadw.local.31
 	push.18446744000695107585.18446744000695107585.18446744000695107585.18446744000695107585
 
 	exec.butterfly
 
-	popw.local.31
-	popw.local.15
+	storew.local.31
+	swapw
+	storew.local.15
 
     # ---
 
-	pushw.local.32
-	pushw.local.48
+	loadw.local.32
+	swapw
+	loadw.local.48
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.48
-	popw.local.32
+	storew.local.48
+	swapw
+	storew.local.32
 
-	pushw.local.33
-	pushw.local.49
+	loadw.local.33
+	swapw
+	loadw.local.49
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.49
-	popw.local.33
+	storew.local.49
+	swapw
+	storew.local.33
 
-	pushw.local.34
-	pushw.local.50
+	loadw.local.34
+	swapw
+	loadw.local.50
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.50
-	popw.local.34
+	storew.local.50
+	swapw
+	storew.local.34
 
-	pushw.local.35
-	pushw.local.51
+	loadw.local.35
+	swapw
+	loadw.local.51
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.51
-	popw.local.35
+	storew.local.51
+	swapw
+	storew.local.35
 
-	pushw.local.36
-	pushw.local.52
+	loadw.local.36
+	swapw
+	loadw.local.52
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.52
-	popw.local.36
+	storew.local.52
+	swapw
+	storew.local.36
 
-	pushw.local.37
-	pushw.local.53
+	loadw.local.37
+	swapw
+	loadw.local.53
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.53
-	popw.local.37
+	storew.local.53
+	swapw
+	storew.local.37
 
-	pushw.local.38
-	pushw.local.54
+	loadw.local.38
+	swapw
+	loadw.local.54
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.54
-	popw.local.38
+	storew.local.54
+	swapw
+	storew.local.38
 
-	pushw.local.39
-	pushw.local.55
+	loadw.local.39
+	swapw
+	loadw.local.55
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.55
-	popw.local.39
+	storew.local.55
+	swapw
+	storew.local.39
 
-	pushw.local.40
-	pushw.local.56
+	loadw.local.40
+	swapw
+	loadw.local.56
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.56
-	popw.local.40
+	storew.local.56
+	swapw
+	storew.local.40
 
-	pushw.local.41
-	pushw.local.57
+	loadw.local.41
+	swapw
+	loadw.local.57
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.57
-	popw.local.41
+	storew.local.57
+	swapw
+	storew.local.41
 
-	pushw.local.42
-	pushw.local.58
+	loadw.local.42
+	swapw
+	loadw.local.58
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.58
-	popw.local.42
+	storew.local.58
+	swapw
+	storew.local.42
 
-	pushw.local.43
-	pushw.local.59
+	loadw.local.43
+	swapw
+	loadw.local.59
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.59
-	popw.local.43
+	storew.local.59
+	swapw
+	storew.local.43
 
-	pushw.local.44
-	pushw.local.60
+	loadw.local.44
+	swapw
+	loadw.local.60
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.60
-	popw.local.44
+	storew.local.60
+	swapw
+	storew.local.44
 
-	pushw.local.45
-	pushw.local.61
+	loadw.local.45
+	swapw
+	loadw.local.61
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.61
-	popw.local.45
+	storew.local.61
+	swapw
+	storew.local.45
 
-	pushw.local.46
-	pushw.local.62
+	loadw.local.46
+	swapw
+	loadw.local.62
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.62
-	popw.local.46
+	storew.local.62
+	swapw
+	storew.local.46
 
-	pushw.local.47
-	pushw.local.63
+	loadw.local.47
+	swapw
+	loadw.local.63
 	push.4503599626321920.4503599626321920.4503599626321920.4503599626321920
 
 	exec.butterfly
 
-	popw.local.63
-	popw.local.47
+	storew.local.63
+	swapw
+	storew.local.47
 
     # ---
 
-	pushw.local.64
-	pushw.local.80
+	loadw.local.64
+	swapw
+	loadw.local.80
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.80
-	popw.local.64
+	storew.local.80
+	swapw
+	storew.local.64
 
-	pushw.local.65
-	pushw.local.81
+	loadw.local.65
+	swapw
+	loadw.local.81
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.81
-	popw.local.65
+	storew.local.81
+	swapw
+	storew.local.65
 
-	pushw.local.66
-	pushw.local.82
+	loadw.local.66
+	swapw
+	loadw.local.82
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.82
-	popw.local.66
+	storew.local.82
+	swapw
+	storew.local.66
 
-	pushw.local.67
-	pushw.local.83
+	loadw.local.67
+	swapw
+	loadw.local.83
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.83
-	popw.local.67
+	storew.local.83
+	swapw
+	storew.local.67
 
-	pushw.local.68
-	pushw.local.84
+	loadw.local.68
+	swapw
+	loadw.local.84
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.84
-	popw.local.68
+	storew.local.84
+	swapw
+	storew.local.68
 
-	pushw.local.69
-	pushw.local.85
+	loadw.local.69
+	swapw
+	loadw.local.85
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.85
-	popw.local.69
+	storew.local.85
+	swapw
+	storew.local.69
 
-	pushw.local.70
-	pushw.local.86
+	loadw.local.70
+	swapw
+	loadw.local.86
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.86
-	popw.local.70
+	storew.local.86
+	swapw
+	storew.local.70
 
-	pushw.local.71
-	pushw.local.87
+	loadw.local.71
+	swapw
+	loadw.local.87
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.87
-	popw.local.71
+	storew.local.87
+	swapw
+	storew.local.71
 
-	pushw.local.72
-	pushw.local.88
+	loadw.local.72
+	swapw
+	loadw.local.88
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.88
-	popw.local.72
+	storew.local.88
+	swapw
+	storew.local.72
 
-	pushw.local.73
-	pushw.local.89
+	loadw.local.73
+	swapw
+	loadw.local.89
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.89
-	popw.local.73
+	storew.local.89
+	swapw
+	storew.local.73
 
-	pushw.local.74
-	pushw.local.90
+	loadw.local.74
+	swapw
+	loadw.local.90
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.90
-	popw.local.74
+	storew.local.90
+	swapw
+	storew.local.74
 
-	pushw.local.75
-	pushw.local.91
+	loadw.local.75
+	swapw
+	loadw.local.91
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.91
-	popw.local.75
+	storew.local.91
+	swapw
+	storew.local.75
 
-	pushw.local.76
-	pushw.local.92
+	loadw.local.76
+	swapw
+	loadw.local.92
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.92
-	popw.local.76
+	storew.local.92
+	swapw
+	storew.local.76
 
-	pushw.local.77
-	pushw.local.93
+	loadw.local.77
+	swapw
+	loadw.local.93
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.93
-	popw.local.77
+	storew.local.93
+	swapw
+	storew.local.77
 
-	pushw.local.78
-	pushw.local.94
+	loadw.local.78
+	swapw
+	loadw.local.94
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-	popw.local.94
-	popw.local.78
+	storew.local.94
+	swapw
+	storew.local.78
 
-	pushw.local.79
-	pushw.local.95
+	loadw.local.79
+	swapw
+	loadw.local.95
 	push.4096.4096.4096.4096
 
 	exec.butterfly
 
-    popw.local.95
-	popw.local.79
+    storew.local.95
+	swapw
+	storew.local.79
 
     # ---
 
-	pushw.local.96
-	pushw.local.112
+	loadw.local.96
+	swapw
+	loadw.local.112
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.112
-	popw.local.96
+	storew.local.112
+	swapw
+	storew.local.96
 
-	pushw.local.97
-	pushw.local.113
+	loadw.local.97
+	swapw
+	loadw.local.113
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.113
-	popw.local.97
+	storew.local.113
+	swapw
+	storew.local.97
 
-	pushw.local.98
-	pushw.local.114
+	loadw.local.98
+	swapw
+	loadw.local.114
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.114
-	popw.local.98
+	storew.local.114
+	swapw
+	storew.local.98
 
-	pushw.local.99
-	pushw.local.115
+	loadw.local.99
+	swapw
+	loadw.local.115
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.115
-	popw.local.99
+	storew.local.115
+	swapw
+	storew.local.99
 
-	pushw.local.100
-	pushw.local.116
+	loadw.local.100
+	swapw
+	loadw.local.116
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.116
-	popw.local.100
+	storew.local.116
+	swapw
+	storew.local.100
 
-	pushw.local.101
-	pushw.local.117
+	loadw.local.101
+	swapw
+	loadw.local.117
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.117
-	popw.local.101
+	storew.local.117
+	swapw
+	storew.local.101
 
-	pushw.local.102
-	pushw.local.118
+	loadw.local.102
+	swapw
+	loadw.local.118
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.118
-	popw.local.102
+	storew.local.118
+	swapw
+	storew.local.102
 
-	pushw.local.103
-	pushw.local.119
+	loadw.local.103
+	swapw
+	loadw.local.119
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.119
-	popw.local.103
+	storew.local.119
+	swapw
+	storew.local.103
 
-	pushw.local.104
-	pushw.local.120
+	loadw.local.104
+	swapw
+	loadw.local.120
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.120
-	popw.local.104
+	storew.local.120
+	swapw
+	storew.local.104
 
-	pushw.local.105
-	pushw.local.121
+	loadw.local.105
+	swapw
+	loadw.local.121
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.121
-	popw.local.105
+	storew.local.121
+	swapw
+	storew.local.105
 
-	pushw.local.106
-	pushw.local.122
+	loadw.local.106
+	swapw
+	loadw.local.122
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.122
-	popw.local.106
+	storew.local.122
+	swapw
+	storew.local.106
 
-	pushw.local.107
-	pushw.local.123
+	loadw.local.107
+	swapw
+	loadw.local.123
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.123
-	popw.local.107
+	storew.local.123
+	swapw
+	storew.local.107
 
-	pushw.local.108
-	pushw.local.124
+	loadw.local.108
+	swapw
+	loadw.local.124
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.124
-	popw.local.108
+	storew.local.124
+	swapw
+	storew.local.108
 
-	pushw.local.109
-	pushw.local.125
+	loadw.local.109
+	swapw
+	loadw.local.125
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.125
-	popw.local.109
+	storew.local.125
+	swapw
+	storew.local.109
 
-	pushw.local.110
-	pushw.local.126
+	loadw.local.110
+	swapw
+	loadw.local.126
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.126
-	popw.local.110
+	storew.local.126
+	swapw
+	storew.local.110
 
-	pushw.local.111
-	pushw.local.127
+	loadw.local.111
+	swapw
+	loadw.local.127
 	push.17293822564807737345.17293822564807737345.17293822564807737345.17293822564807737345
 
 	exec.butterfly
 
-	popw.local.127
-	popw.local.111
+	storew.local.127
+	swapw
+	storew.local.111
 
     # iter = 3
 
-	pushw.local.0
-	pushw.local.8
+	loadw.local.0
+	swapw
+	loadw.local.8
 	push.17179869180.17179869180.17179869180.17179869180
 
 	exec.butterfly
 
-	popw.local.8
-	popw.local.0
+	storew.local.8
+	swapw
+	storew.local.0
 
-	pushw.local.1
-	pushw.local.9
+	loadw.local.1
+	swapw
+	loadw.local.9
 	push.17179869180.17179869180.17179869180.17179869180
 
 	exec.butterfly
 
-	popw.local.9
-	popw.local.1
+	storew.local.9
+	swapw
+	storew.local.1
 
-	pushw.local.2
-	pushw.local.10
+	loadw.local.2
+	swapw
+	loadw.local.10
 	push.17179869180.17179869180.17179869180.17179869180
 
 	exec.butterfly
 
-	popw.local.10
-	popw.local.2
+	storew.local.10
+	swapw
+	storew.local.2
 
-	pushw.local.3
-	pushw.local.11
+	loadw.local.3
+	swapw
+	loadw.local.11
 	push.17179869180.17179869180.17179869180.17179869180
 
 	exec.butterfly
 
-	popw.local.11
-	popw.local.3
+	storew.local.11
+	swapw
+	storew.local.3
 
-	pushw.local.4
-	pushw.local.12
+	loadw.local.4
+	swapw
+	loadw.local.12
 	push.17179869180.17179869180.17179869180.17179869180
 
 	exec.butterfly
 
-	popw.local.12
-	popw.local.4
+	storew.local.12
+	swapw
+	storew.local.4
 
-	pushw.local.5
-	pushw.local.13
+	loadw.local.5
+	swapw
+	loadw.local.13
 	push.17179869180.17179869180.17179869180.17179869180
 
 	exec.butterfly
 
-	popw.local.13
-	popw.local.5
+	storew.local.13
+	swapw
+	storew.local.5
 
-	pushw.local.6
-	pushw.local.14
+	loadw.local.6
+	swapw
+	loadw.local.14
 	push.17179869180.17179869180.17179869180.17179869180
 
 	exec.butterfly
 
-	popw.local.14
-	popw.local.6
+	storew.local.14
+	swapw
+	storew.local.6
 
-	pushw.local.7
-	pushw.local.15
+	loadw.local.7
+	swapw
+	loadw.local.15
 	push.17179869180.17179869180.17179869180.17179869180
 
 	exec.butterfly
 
-	popw.local.15
-	popw.local.7
+	storew.local.15
+	swapw
+	storew.local.7
 
     # ---
 
-    pushw.local.16
-	pushw.local.24
+    loadw.local.16
+	swapw
+	loadw.local.24
 	push.262144.262144.262144.262144
 
 	exec.butterfly
 
-	popw.local.24
-	popw.local.16
+	storew.local.24
+	swapw
+	storew.local.16
 
-	pushw.local.17
-	pushw.local.25
+	loadw.local.17
+	swapw
+	loadw.local.25
 	push.262144.262144.262144.262144
 
 	exec.butterfly
 
-	popw.local.25
-	popw.local.17
+	storew.local.25
+	swapw
+	storew.local.17
 
-	pushw.local.18
-	pushw.local.26
+	loadw.local.18
+	swapw
+	loadw.local.26
 	push.262144.262144.262144.262144
 
 	exec.butterfly
 
-	popw.local.26
-	popw.local.18
+	storew.local.26
+	swapw
+	storew.local.18
 
-	pushw.local.19
-	pushw.local.27
+	loadw.local.19
+	swapw
+	loadw.local.27
 	push.262144.262144.262144.262144
 
 	exec.butterfly
 
-	popw.local.27
-	popw.local.19
+	storew.local.27
+	swapw
+	storew.local.19
 
-	pushw.local.20
-	pushw.local.28
+	loadw.local.20
+	swapw
+	loadw.local.28
 	push.262144.262144.262144.262144
 
 	exec.butterfly
 
-	popw.local.28
-	popw.local.20
+	storew.local.28
+	swapw
+	storew.local.20
 
-	pushw.local.21
-	pushw.local.29
+	loadw.local.21
+	swapw
+	loadw.local.29
 	push.262144.262144.262144.262144
 
 	exec.butterfly
 
-	popw.local.29
-	popw.local.21
+	storew.local.29
+	swapw
+	storew.local.21
 
-	pushw.local.22
-	pushw.local.30
+	loadw.local.22
+	swapw
+	loadw.local.30
 	push.262144.262144.262144.262144
 
 	exec.butterfly
 
-	popw.local.30
-	popw.local.22
+	storew.local.30
+	swapw
+	storew.local.22
 
-	pushw.local.23
-	pushw.local.31
+	loadw.local.23
+	swapw
+	loadw.local.31
 	push.262144.262144.262144.262144
 
 	exec.butterfly
 
-	popw.local.31
-	popw.local.23
+	storew.local.31
+	swapw
+	storew.local.23
 
     # ---
 
-    pushw.local.32
-	pushw.local.40
+    loadw.local.32
+	swapw
+	loadw.local.40
 	push.18446739671368073217.18446739671368073217.18446739671368073217.18446739671368073217
 
 	exec.butterfly
 
-	popw.local.40
-	popw.local.32
+	storew.local.40
+	swapw
+	storew.local.32
 
-	pushw.local.33
-	pushw.local.41
+	loadw.local.33
+	swapw
+	loadw.local.41
 	push.18446739671368073217.18446739671368073217.18446739671368073217.18446739671368073217
 
 	exec.butterfly
 
-	popw.local.41
-	popw.local.33
+	storew.local.41
+	swapw
+	storew.local.33
 
-	pushw.local.34
-	pushw.local.42
+	loadw.local.34
+	swapw
+	loadw.local.42
 	push.18446739671368073217.18446739671368073217.18446739671368073217.18446739671368073217
 
 	exec.butterfly
 
-	popw.local.42
-	popw.local.34
+	storew.local.42
+	swapw
+	storew.local.34
 
-	pushw.local.35
-	pushw.local.43
+	loadw.local.35
+	swapw
+	loadw.local.43
 	push.18446739671368073217.18446739671368073217.18446739671368073217.18446739671368073217
 
 	exec.butterfly
 
-	popw.local.43
-	popw.local.35
+	storew.local.43
+	swapw
+	storew.local.35
 
-	pushw.local.36
-	pushw.local.44
+	loadw.local.36
+	swapw
+	loadw.local.44
 	push.18446739671368073217.18446739671368073217.18446739671368073217.18446739671368073217
 
 	exec.butterfly
 
-	popw.local.44
-	popw.local.36
+	storew.local.44
+	swapw
+	storew.local.36
 
-	pushw.local.37
-	pushw.local.45
+	loadw.local.37
+	swapw
+	loadw.local.45
 	push.18446739671368073217.18446739671368073217.18446739671368073217.18446739671368073217
 
 	exec.butterfly
 
-	popw.local.45
-	popw.local.37
+	storew.local.45
+	swapw
+	storew.local.37
 
-	pushw.local.38
-	pushw.local.46
+	loadw.local.38
+	swapw
+	loadw.local.46
 	push.18446739671368073217.18446739671368073217.18446739671368073217.18446739671368073217
 
 	exec.butterfly
 
-	popw.local.46
-	popw.local.38
+	storew.local.46
+	swapw
+	storew.local.38
 
-	pushw.local.39
-	pushw.local.47
+	loadw.local.39
+	swapw
+	loadw.local.47
 	push.18446739671368073217.18446739671368073217.18446739671368073217.18446739671368073217
 
 	exec.butterfly
 
-	popw.local.47
-	popw.local.39
+	storew.local.47
+	swapw
+	storew.local.39
 
     # ---
 
-    pushw.local.48
-	pushw.local.56
+    loadw.local.48
+	swapw
+	loadw.local.56
 	push.288230376084602880.288230376084602880.288230376084602880.288230376084602880
 
 	exec.butterfly
 
-	popw.local.56
-	popw.local.48
+	storew.local.56
+	swapw
+	storew.local.48
 
-	pushw.local.49
-	pushw.local.57
+	loadw.local.49
+	swapw
+	loadw.local.57
 	push.288230376084602880.288230376084602880.288230376084602880.288230376084602880
 
 	exec.butterfly
 
-	popw.local.57
-	popw.local.49
+	storew.local.57
+	swapw
+	storew.local.49
 
-	pushw.local.50
-	pushw.local.58
+	loadw.local.50
+	swapw
+	loadw.local.58
 	push.288230376084602880.288230376084602880.288230376084602880.288230376084602880
 
 	exec.butterfly
 
-	popw.local.58
-	popw.local.50
+	storew.local.58
+	swapw
+	storew.local.50
 
-	pushw.local.51
-	pushw.local.59
+	loadw.local.51
+	swapw
+	loadw.local.59
 	push.288230376084602880.288230376084602880.288230376084602880.288230376084602880
 
 	exec.butterfly
 
-	popw.local.59
-	popw.local.51
+	storew.local.59
+	swapw
+	storew.local.51
 
-	pushw.local.52
-	pushw.local.60
+	loadw.local.52
+	swapw
+	loadw.local.60
 	push.288230376084602880.288230376084602880.288230376084602880.288230376084602880
 
 	exec.butterfly
 
-	popw.local.60
-	popw.local.52
+	storew.local.60
+	swapw
+	storew.local.52
 
-	pushw.local.53
-	pushw.local.61
+	loadw.local.53
+	swapw
+	loadw.local.61
 	push.288230376084602880.288230376084602880.288230376084602880.288230376084602880
 
 	exec.butterfly
 
-	popw.local.61
-	popw.local.53
+	storew.local.61
+	swapw
+	storew.local.53
 
-	pushw.local.54
-	pushw.local.62
+	loadw.local.54
+	swapw
+	loadw.local.62
 	push.288230376084602880.288230376084602880.288230376084602880.288230376084602880
 
 	exec.butterfly
 
-	popw.local.62
-	popw.local.54
+	storew.local.62
+	swapw
+	storew.local.54
 
-	pushw.local.55
-	pushw.local.63
+	loadw.local.55
+	swapw
+	loadw.local.63
 	push.288230376084602880.288230376084602880.288230376084602880.288230376084602880
 
 	exec.butterfly
 
-	popw.local.63
-	popw.local.55
+	storew.local.63
+	swapw
+	storew.local.55
 
     # ---
 
-    pushw.local.64
-	pushw.local.72
+    loadw.local.64
+	swapw
+	loadw.local.72
 	push.64.64.64.64
 
 	exec.butterfly
 
-	popw.local.72
-	popw.local.64
+	storew.local.72
+	swapw
+	storew.local.64
 
-	pushw.local.65
-	pushw.local.73
+	loadw.local.65
+	swapw
+	loadw.local.73
 	push.64.64.64.64
 
 	exec.butterfly
 
-	popw.local.73
-	popw.local.65
+	storew.local.73
+	swapw
+	storew.local.65
 
-	pushw.local.66
-	pushw.local.74
+	loadw.local.66
+	swapw
+	loadw.local.74
 	push.64.64.64.64
 
 	exec.butterfly
 
-	popw.local.74
-	popw.local.66
+	storew.local.74
+	swapw
+	storew.local.66
 
-	pushw.local.67
-	pushw.local.75
+	loadw.local.67
+	swapw
+	loadw.local.75
 	push.64.64.64.64
 
 	exec.butterfly
 
-	popw.local.75
-	popw.local.67
+	storew.local.75
+	swapw
+	storew.local.67
 
-	pushw.local.68
-	pushw.local.76
+	loadw.local.68
+	swapw
+	loadw.local.76
 	push.64.64.64.64
 
 	exec.butterfly
 
-	popw.local.76
-	popw.local.68
+	storew.local.76
+	swapw
+	storew.local.68
 
-	pushw.local.69
-	pushw.local.77
+	loadw.local.69
+	swapw
+	loadw.local.77
 	push.64.64.64.64
 
 	exec.butterfly
 
-	popw.local.77
-	popw.local.69
+	storew.local.77
+	swapw
+	storew.local.69
 
-	pushw.local.70
-	pushw.local.78
+	loadw.local.70
+	swapw
+	loadw.local.78
 	push.64.64.64.64
 
 	exec.butterfly
 
-	popw.local.78
-	popw.local.70
+	storew.local.78
+	swapw
+	storew.local.70
 
-	pushw.local.71
-	pushw.local.79
+	loadw.local.71
+	swapw
+	loadw.local.79
 	push.64.64.64.64
 
 	exec.butterfly
 
-	popw.local.79
-	popw.local.71
+	storew.local.79
+	swapw
+	storew.local.71
 
     # ---
 
-    pushw.local.80
-	pushw.local.88
+    loadw.local.80
+	swapw
+	loadw.local.88
 	push.18428729670905102337.18428729670905102337.18428729670905102337.18428729670905102337
 
 	exec.butterfly
 
-	popw.local.88
-	popw.local.80
+	storew.local.88
+	swapw
+	storew.local.80
 
-	pushw.local.81
-	pushw.local.89
+	loadw.local.81
+	swapw
+	loadw.local.89
 	push.18428729670905102337.18428729670905102337.18428729670905102337.18428729670905102337
 
 	exec.butterfly
 
-	popw.local.89
-	popw.local.81
+	storew.local.89
+	swapw
+	storew.local.81
 
-	pushw.local.82
-	pushw.local.90
+	loadw.local.82
+	swapw
+	loadw.local.90
 	push.18428729670905102337.18428729670905102337.18428729670905102337.18428729670905102337
 
 	exec.butterfly
 
-	popw.local.90
-	popw.local.82
+	storew.local.90
+	swapw
+	storew.local.82
 
-	pushw.local.83
-	pushw.local.91
+	loadw.local.83
+	swapw
+	loadw.local.91
 	push.18428729670905102337.18428729670905102337.18428729670905102337.18428729670905102337
 
 	exec.butterfly
 
-	popw.local.91
-	popw.local.83
+	storew.local.91
+	swapw
+	storew.local.83
 
-	pushw.local.84
-	pushw.local.92
+	loadw.local.84
+	swapw
+	loadw.local.92
 	push.18428729670905102337.18428729670905102337.18428729670905102337.18428729670905102337
 
 	exec.butterfly
 
-	popw.local.92
-	popw.local.84
+	storew.local.92
+	swapw
+	storew.local.84
 
-	pushw.local.85
-	pushw.local.93
+	loadw.local.85
+	swapw
+	loadw.local.93
 	push.18428729670905102337.18428729670905102337.18428729670905102337.18428729670905102337
 
 	exec.butterfly
 
-	popw.local.93
-	popw.local.85
+	storew.local.93
+	swapw
+	storew.local.85
 
-	pushw.local.86
-	pushw.local.94
+	loadw.local.86
+	swapw
+	loadw.local.94
 	push.18428729670905102337.18428729670905102337.18428729670905102337.18428729670905102337
 
 	exec.butterfly
 
-	popw.local.94
-	popw.local.86
+	storew.local.94
+	swapw
+	storew.local.86
 
-	pushw.local.87
-	pushw.local.95
+	loadw.local.87
+	swapw
+	loadw.local.95
 	push.18428729670905102337.18428729670905102337.18428729670905102337.18428729670905102337
 
 	exec.butterfly
 
-	popw.local.95
-	popw.local.87
+	storew.local.95
+	swapw
+	storew.local.87
 
     # ---
 
-    pushw.local.96
-	pushw.local.104
+    loadw.local.96
+	swapw
+	loadw.local.104
 	push.70368744161280.70368744161280.70368744161280.70368744161280
 
 	exec.butterfly
 
-	popw.local.104
-	popw.local.96
+	storew.local.104
+	swapw
+	storew.local.96
 
-	pushw.local.97
-	pushw.local.105
+	loadw.local.97
+	swapw
+	loadw.local.105
 	push.70368744161280.70368744161280.70368744161280.70368744161280
 
 	exec.butterfly
 
-	popw.local.105
-	popw.local.97
+	storew.local.105
+	swapw
+	storew.local.97
 
-	pushw.local.98
-	pushw.local.106
+	loadw.local.98
+	swapw
+	loadw.local.106
 	push.70368744161280.70368744161280.70368744161280.70368744161280
 
 	exec.butterfly
 
-	popw.local.106
-	popw.local.98
+	storew.local.106
+	swapw
+	storew.local.98
 
-	pushw.local.99
-	pushw.local.107
+	loadw.local.99
+	swapw
+	loadw.local.107
 	push.70368744161280.70368744161280.70368744161280.70368744161280
 
 	exec.butterfly
 
-	popw.local.107
-	popw.local.99
+	storew.local.107
+	swapw
+	storew.local.99
 
-	pushw.local.100
-	pushw.local.108
+	loadw.local.100
+	swapw
+	loadw.local.108
 	push.70368744161280.70368744161280.70368744161280.70368744161280
 
 	exec.butterfly
 
-	popw.local.108
-	popw.local.100
+	storew.local.108
+	swapw
+	storew.local.100
 
-	pushw.local.101
-	pushw.local.109
+	loadw.local.101
+	swapw
+	loadw.local.109
 	push.70368744161280.70368744161280.70368744161280.70368744161280
 
 	exec.butterfly
 
-	popw.local.109
-	popw.local.101
+	storew.local.109
+	swapw
+	storew.local.101
 
-	pushw.local.102
-	pushw.local.110
+	loadw.local.102
+	swapw
+	loadw.local.110
 	push.70368744161280.70368744161280.70368744161280.70368744161280
 
 	exec.butterfly
 
-	popw.local.110
-	popw.local.102
+	storew.local.110
+	swapw
+	storew.local.102
 
-	pushw.local.103
-	pushw.local.111
+	loadw.local.103
+	swapw
+	loadw.local.111
 	push.70368744161280.70368744161280.70368744161280.70368744161280
 
 	exec.butterfly
 
-	popw.local.111
-	popw.local.103
+	storew.local.111
+	swapw
+	storew.local.103
 
     # ---
 
-    pushw.local.112
-	pushw.local.120
+    loadw.local.112
+	swapw
+	loadw.local.120
 	push.1073741824.1073741824.1073741824.1073741824
 
 	exec.butterfly
 
-	popw.local.120
-	popw.local.112
+	storew.local.120
+	swapw
+	storew.local.112
 
-	pushw.local.113
-	pushw.local.121
+	loadw.local.113
+	swapw
+	loadw.local.121
 	push.1073741824.1073741824.1073741824.1073741824
 
 	exec.butterfly
 
-	popw.local.121
-	popw.local.113
+	storew.local.121
+	swapw
+	storew.local.113
 
-	pushw.local.114
-	pushw.local.122
+	loadw.local.114
+	swapw
+	loadw.local.122
 	push.1073741824.1073741824.1073741824.1073741824
 
 	exec.butterfly
 
-	popw.local.122
-	popw.local.114
+	storew.local.122
+	swapw
+	storew.local.114
 
-	pushw.local.115
-	pushw.local.123
+	loadw.local.115
+	swapw
+	loadw.local.123
 	push.1073741824.1073741824.1073741824.1073741824
 
 	exec.butterfly
 
-	popw.local.123
-	popw.local.115
+	storew.local.123
+	swapw
+	storew.local.115
 
-	pushw.local.116
-	pushw.local.124
+	loadw.local.116
+	swapw
+	loadw.local.124
 	push.1073741824.1073741824.1073741824.1073741824
 
 	exec.butterfly
 
-	popw.local.124
-	popw.local.116
+	storew.local.124
+	swapw
+	storew.local.116
 
-	pushw.local.117
-	pushw.local.125
+	loadw.local.117
+	swapw
+	loadw.local.125
 	push.1073741824.1073741824.1073741824.1073741824
 
 	exec.butterfly
 
-	popw.local.125
-	popw.local.117
+	storew.local.125
+	swapw
+	storew.local.117
 
-	pushw.local.118
-	pushw.local.126
+	loadw.local.118
+	swapw
+	loadw.local.126
 	push.1073741824.1073741824.1073741824.1073741824
 
 	exec.butterfly
 
-	popw.local.126
-	popw.local.118
+	storew.local.126
+	swapw
+	storew.local.118
 
-	pushw.local.119
-	pushw.local.127
+	loadw.local.119
+	swapw
+	loadw.local.127
 	push.1073741824.1073741824.1073741824.1073741824
 
 	exec.butterfly
 
-	popw.local.127
-	popw.local.119
+	storew.local.127
+	swapw
+	storew.local.119
 
     # iter = 4
 
-    pushw.local.0
-	pushw.local.4
+    loadw.local.0
+	swapw
+	loadw.local.4
 	push.18446744060824649729.18446744060824649729.18446744060824649729.18446744060824649729
 
 	exec.butterfly
 
-	popw.local.4
-	popw.local.0
+	storew.local.4
+	swapw
+	storew.local.0
 
-	pushw.local.1
-	pushw.local.5
+	loadw.local.1
+	swapw
+	loadw.local.5
 	push.18446744060824649729.18446744060824649729.18446744060824649729.18446744060824649729
 
 	exec.butterfly
 
-	popw.local.5
-	popw.local.1
+	storew.local.5
+	swapw
+	storew.local.1
 
-	pushw.local.2
-	pushw.local.6
+	loadw.local.2
+	swapw
+	loadw.local.6
 	push.18446744060824649729.18446744060824649729.18446744060824649729.18446744060824649729
 
 	exec.butterfly
 
-	popw.local.6
-	popw.local.2
+	storew.local.6
+	swapw
+	storew.local.2
 
-	pushw.local.3
-	pushw.local.7
+	loadw.local.3
+	swapw
+	loadw.local.7
 	push.18446744060824649729.18446744060824649729.18446744060824649729.18446744060824649729
 
 	exec.butterfly
 
-	popw.local.7
-	popw.local.3
+	storew.local.7
+	swapw
+	storew.local.3
 
     # ---
 
-    pushw.local.8
-	pushw.local.12
+    loadw.local.8
+	swapw
+	loadw.local.12
 	push.562949953290240.562949953290240.562949953290240.562949953290240
 
 	exec.butterfly
 
-	popw.local.12
-	popw.local.8
+	storew.local.12
+	swapw
+	storew.local.8
 
-	pushw.local.9
-	pushw.local.13
+	loadw.local.9
+	swapw
+	loadw.local.13
 	push.562949953290240.562949953290240.562949953290240.562949953290240
 
 	exec.butterfly
 
-	popw.local.13
-	popw.local.9
+	storew.local.13
+	swapw
+	storew.local.9
 
-	pushw.local.10
-	pushw.local.14
+	loadw.local.10
+	swapw
+	loadw.local.14
 	push.562949953290240.562949953290240.562949953290240.562949953290240
 
 	exec.butterfly
 
-	popw.local.14
-	popw.local.10
+	storew.local.14
+	swapw
+	storew.local.10
 
-	pushw.local.11
-	pushw.local.15
+	loadw.local.11
+	swapw
+	loadw.local.15
 	push.562949953290240.562949953290240.562949953290240.562949953290240
 
 	exec.butterfly
 
-	popw.local.15
-	popw.local.11
+	storew.local.15
+	swapw
+	storew.local.11
 
     # ---
 
-    pushw.local.16
-	pushw.local.20
+    loadw.local.16
+	swapw
+	loadw.local.20
 	push.512.512.512.512
 
 	exec.butterfly
 
-	popw.local.20
-	popw.local.16
+	storew.local.20
+	swapw
+	storew.local.16
 
-	pushw.local.17
-	pushw.local.21
+	loadw.local.17
+	swapw
+	loadw.local.21
 	push.512.512.512.512
 
 	exec.butterfly
 
-	popw.local.21
-	popw.local.17
+	storew.local.21
+	swapw
+	storew.local.17
 
-	pushw.local.18
-	pushw.local.22
+	loadw.local.18
+	swapw
+	loadw.local.22
 	push.512.512.512.512
 
 	exec.butterfly
 
-	popw.local.22
-	popw.local.18
+	storew.local.22
+	swapw
+	storew.local.18
 
-	pushw.local.19
-	pushw.local.23
+	loadw.local.19
+	swapw
+	loadw.local.23
 	push.512.512.512.512
 
 	exec.butterfly
 
-	popw.local.23
-	popw.local.19
+	storew.local.23
+	swapw
+	storew.local.19
 
     # ---
 
-    pushw.local.24
-	pushw.local.28
+    loadw.local.24
+	swapw
+	loadw.local.28
 	push.18302628881338728449.18302628881338728449.18302628881338728449.18302628881338728449
 
 	exec.butterfly
 
-	popw.local.28
-	popw.local.24
+	storew.local.28
+	swapw
+	storew.local.24
 
-	pushw.local.25
-	pushw.local.29
+	loadw.local.25
+	swapw
+	loadw.local.29
 	push.18302628881338728449.18302628881338728449.18302628881338728449.18302628881338728449
 
 	exec.butterfly
 
-	popw.local.29
-	popw.local.25
+	storew.local.29
+	swapw
+	storew.local.25
 
-	pushw.local.26
-	pushw.local.30
+	loadw.local.26
+	swapw
+	loadw.local.30
 	push.18302628881338728449.18302628881338728449.18302628881338728449.18302628881338728449
 
 	exec.butterfly
 
-	popw.local.30
-	popw.local.26
+	storew.local.30
+	swapw
+	storew.local.26
 
-	pushw.local.27
-	pushw.local.31
+	loadw.local.27
+	swapw
+	loadw.local.31
 	push.18302628881338728449.18302628881338728449.18302628881338728449.18302628881338728449
 
 	exec.butterfly
 
-	popw.local.31
-	popw.local.27
+	storew.local.31
+	swapw
+	storew.local.27
 
     # ---
 
-    pushw.local.32
-	pushw.local.36
+    loadw.local.32
+	swapw
+	loadw.local.36
 	push.137438953440.137438953440.137438953440.137438953440
 
 	exec.butterfly
 
-	popw.local.36
-	popw.local.32
+	storew.local.36
+	swapw
+	storew.local.32
 
-	pushw.local.33
-	pushw.local.37
+	loadw.local.33
+	swapw
+	loadw.local.37
 	push.137438953440.137438953440.137438953440.137438953440
 
 	exec.butterfly
 
-	popw.local.37
-	popw.local.33
+	storew.local.37
+	swapw
+	storew.local.33
 
-	pushw.local.34
-	pushw.local.38
+	loadw.local.34
+	swapw
+	loadw.local.38
 	push.137438953440.137438953440.137438953440.137438953440
 
 	exec.butterfly
 
-	popw.local.38
-	popw.local.34
+	storew.local.38
+	swapw
+	storew.local.34
 
-	pushw.local.35
-	pushw.local.39
+	loadw.local.35
+	swapw
+	loadw.local.39
 	push.137438953440.137438953440.137438953440.137438953440
 
 	exec.butterfly
 
-	popw.local.39
-	popw.local.35
+	storew.local.39
+	swapw
+	storew.local.35
 
     # ---
 
-    pushw.local.40
-	pushw.local.44
+    loadw.local.40
+	swapw
+	loadw.local.44
 	push.2097152.2097152.2097152.2097152
 
 	exec.butterfly
 
-	popw.local.44
-	popw.local.40
+	storew.local.44
+	swapw
+	storew.local.40
 
-	pushw.local.41
-	pushw.local.45
+	loadw.local.41
+	swapw
+	loadw.local.45
 	push.2097152.2097152.2097152.2097152
 
 	exec.butterfly
 
-	popw.local.45
-	popw.local.41
+	storew.local.45
+	swapw
+	storew.local.41
 
-	pushw.local.42
-	pushw.local.46
+	loadw.local.42
+	swapw
+	loadw.local.46
 	push.2097152.2097152.2097152.2097152
 
 	exec.butterfly
 
-	popw.local.46
-	popw.local.42
+	storew.local.46
+	swapw
+	storew.local.42
 
-	pushw.local.43
-	pushw.local.47
+	loadw.local.43
+	swapw
+	loadw.local.47
 	push.2097152.2097152.2097152.2097152
 
 	exec.butterfly
 
-	popw.local.47
-	popw.local.43
+	storew.local.47
+	swapw
+	storew.local.43
 
     # ---
 
-    pushw.local.48
-	pushw.local.52
+    loadw.local.48
+	swapw
+	loadw.local.52
 	push.18446708885042495489.18446708885042495489.18446708885042495489.18446708885042495489
 
 	exec.butterfly
 
-	popw.local.52
-	popw.local.48
+	storew.local.52
+	swapw
+	storew.local.48
 
-	pushw.local.49
-	pushw.local.53
+	loadw.local.49
+	swapw
+	loadw.local.53
 	push.18446708885042495489.18446708885042495489.18446708885042495489.18446708885042495489
 
 	exec.butterfly
 
-	popw.local.53
-	popw.local.49
+	storew.local.53
+	swapw
+	storew.local.49
 
-	pushw.local.50
-	pushw.local.54
+	loadw.local.50
+	swapw
+	loadw.local.54
 	push.18446708885042495489.18446708885042495489.18446708885042495489.18446708885042495489
 
 	exec.butterfly
 
-	popw.local.54
-	popw.local.50
+	storew.local.54
+	swapw
+	storew.local.50
 
-	pushw.local.51
-	pushw.local.55
+	loadw.local.51
+	swapw
+	loadw.local.55
 	push.18446708885042495489.18446708885042495489.18446708885042495489.18446708885042495489
 
 	exec.butterfly
 
-	popw.local.55
-	popw.local.51
+	storew.local.55
+	swapw
+	storew.local.51
 
     # ---
 
-    pushw.local.56
-	pushw.local.60
+    loadw.local.56
+	swapw
+	loadw.local.60
 	push.2305843008676823040.2305843008676823040.2305843008676823040.2305843008676823040
 
 	exec.butterfly
 
-	popw.local.60
-	popw.local.56
+	storew.local.60
+	swapw
+	storew.local.56
 
-	pushw.local.57
-	pushw.local.61
+	loadw.local.57
+	swapw
+	loadw.local.61
 	push.2305843008676823040.2305843008676823040.2305843008676823040.2305843008676823040
 
 	exec.butterfly
 
-	popw.local.61
-	popw.local.57
+	storew.local.61
+	swapw
+	storew.local.57
 
-	pushw.local.58
-	pushw.local.62
+	loadw.local.58
+	swapw
+	loadw.local.62
 	push.2305843008676823040.2305843008676823040.2305843008676823040.2305843008676823040
 
 	exec.butterfly
 
-	popw.local.62
-	popw.local.58
+	storew.local.62
+	swapw
+	storew.local.58
 
-	pushw.local.59
-	pushw.local.63
+	loadw.local.59
+	swapw
+	loadw.local.63
 	push.2305843008676823040.2305843008676823040.2305843008676823040.2305843008676823040
 
 	exec.butterfly
 
-	popw.local.63
-	popw.local.59
+	storew.local.63
+	swapw
+	storew.local.59
 
     # ---
 
-    pushw.local.64
-	pushw.local.68
+    loadw.local.64
+	swapw
+	loadw.local.68
 	push.8.8.8.8
 
 	exec.butterfly
 
-	popw.local.68
-	popw.local.64
+	storew.local.68
+	swapw
+	storew.local.64
 
-	pushw.local.65
-	pushw.local.69
+	loadw.local.65
+	swapw
+	loadw.local.69
 	push.8.8.8.8
 
 	exec.butterfly
 
-	popw.local.69
-	popw.local.65
+	storew.local.69
+	swapw
+	storew.local.65
 
-	pushw.local.66
-	pushw.local.70
+	loadw.local.66
+	swapw
+	loadw.local.70
 	push.8.8.8.8
 
 	exec.butterfly
 
-	popw.local.70
-	popw.local.66
+	storew.local.70
+	swapw
+	storew.local.66
 
-	pushw.local.67
-	pushw.local.71
+	loadw.local.67
+	swapw
+	loadw.local.71
 	push.8.8.8.8
 
 	exec.butterfly
 
-	popw.local.71
-	popw.local.67
+	storew.local.71
+	swapw
+	storew.local.67
 
     # ---
 
-    pushw.local.72
-	pushw.local.76
+    loadw.local.72
+	swapw
+	loadw.local.76
 	push.18444492269600899073.18444492269600899073.18444492269600899073.18444492269600899073
 
 	exec.butterfly
 
-	popw.local.76
-	popw.local.72
+	storew.local.76
+	swapw
+	storew.local.72
 
-	pushw.local.73
-	pushw.local.77
+	loadw.local.73
+	swapw
+	loadw.local.77
 	push.18444492269600899073.18444492269600899073.18444492269600899073.18444492269600899073
 
 	exec.butterfly
 
-	popw.local.77
-	popw.local.73
+	storew.local.77
+	swapw
+	storew.local.73
 
-	pushw.local.74
-	pushw.local.78
+	loadw.local.74
+	swapw
+	loadw.local.78
 	push.18444492269600899073.18444492269600899073.18444492269600899073.18444492269600899073
 
 	exec.butterfly
 
-	popw.local.78
-	popw.local.74
+	storew.local.78
+	swapw
+	storew.local.74
 
-	pushw.local.75
-	pushw.local.79
+	loadw.local.75
+	swapw
+	loadw.local.79
 	push.18444492269600899073.18444492269600899073.18444492269600899073.18444492269600899073
 
 	exec.butterfly
 
-	popw.local.79
-	popw.local.75
+	storew.local.79
+	swapw
+	storew.local.75
 
     # ---
 
-    pushw.local.80
-	pushw.local.84
+    loadw.local.80
+	swapw
+	loadw.local.84
 	push.8796093020160.8796093020160.8796093020160.8796093020160
 
 	exec.butterfly
 
-	popw.local.84
-	popw.local.80
+	storew.local.84
+	swapw
+	storew.local.80
 
-	pushw.local.81
-	pushw.local.85
+	loadw.local.81
+	swapw
+	loadw.local.85
 	push.8796093020160.8796093020160.8796093020160.8796093020160
 
 	exec.butterfly
 
-	popw.local.85
-	popw.local.81
+	storew.local.85
+	swapw
+	storew.local.81
 
-	pushw.local.82
-	pushw.local.86
+	loadw.local.82
+	swapw
+	loadw.local.86
 	push.8796093020160.8796093020160.8796093020160.8796093020160
 
 	exec.butterfly
 
-	popw.local.86
-	popw.local.82
+	storew.local.86
+	swapw
+	storew.local.82
 
-	pushw.local.83
-	pushw.local.87
+	loadw.local.83
+	swapw
+	loadw.local.87
 	push.8796093020160.8796093020160.8796093020160.8796093020160
 
 	exec.butterfly
 
-	popw.local.87
-	popw.local.83
+	storew.local.87
+	swapw
+	storew.local.83
 
     # ---
 
-    pushw.local.88
-	pushw.local.92
+    loadw.local.88
+	swapw
+	loadw.local.92
 	push.134217728.134217728.134217728.134217728
 
 	exec.butterfly
 
-	popw.local.92
-	popw.local.88
+	storew.local.92
+	swapw
+	storew.local.88
 
-	pushw.local.89
-	pushw.local.93
+	loadw.local.89
+	swapw
+	loadw.local.93
 	push.134217728.134217728.134217728.134217728
 
 	exec.butterfly
 
-	popw.local.93
-	popw.local.89
+	storew.local.93
+	swapw
+	storew.local.89
 
-	pushw.local.90
-	pushw.local.94
+	loadw.local.90
+	swapw
+	loadw.local.94
 	push.134217728.134217728.134217728.134217728
 
 	exec.butterfly
 
-	popw.local.94
-	popw.local.90
+	storew.local.94
+	swapw
+	storew.local.90
 
-	pushw.local.91
-	pushw.local.95
+	loadw.local.91
+	swapw
+	loadw.local.95
 	push.134217728.134217728.134217728.134217728
 
 	exec.butterfly
 
-	popw.local.95
-	popw.local.91
+	storew.local.95
+	swapw
+	storew.local.91
 
     # ---
 
-    pushw.local.96
-	pushw.local.100
+    loadw.local.96
+	swapw
+	loadw.local.100
 	push.18446743519658770433.18446743519658770433.18446743519658770433.18446743519658770433
 
 	exec.butterfly
 
-	popw.local.100
-	popw.local.96
+	storew.local.100
+	swapw
+	storew.local.96
 
-	pushw.local.97
-	pushw.local.101
+	loadw.local.97
+	swapw
+	loadw.local.101
 	push.18446743519658770433.18446743519658770433.18446743519658770433.18446743519658770433
 
 	exec.butterfly
 
-	popw.local.101
-	popw.local.97
+	storew.local.101
+	swapw
+	storew.local.97
 
-	pushw.local.98
-	pushw.local.102
+	loadw.local.98
+	swapw
+	loadw.local.102
 	push.18446743519658770433.18446743519658770433.18446743519658770433.18446743519658770433
 
 	exec.butterfly
 
-	popw.local.102
-	popw.local.98
+	storew.local.102
+	swapw
+	storew.local.98
 
-	pushw.local.99
-	pushw.local.103
+	loadw.local.99
+	swapw
+	loadw.local.103
 	push.18446743519658770433.18446743519658770433.18446743519658770433.18446743519658770433
 
 	exec.butterfly
 
-	popw.local.103
-	popw.local.99
+	storew.local.103
+	swapw
+	storew.local.99
 
     # ---
 
-    pushw.local.104
-	pushw.local.108
+    loadw.local.104
+	swapw
+	loadw.local.108
 	push.36028797010575360.36028797010575360.36028797010575360.36028797010575360
 
 	exec.butterfly
 
-	popw.local.108
-	popw.local.104
+	storew.local.108
+	swapw
+	storew.local.104
 
-	pushw.local.105
-	pushw.local.109
+	loadw.local.105
+	swapw
+	loadw.local.109
 	push.36028797010575360.36028797010575360.36028797010575360.36028797010575360
 
 	exec.butterfly
 
-	popw.local.109
-	popw.local.105
+	storew.local.109
+	swapw
+	storew.local.105
 
-	pushw.local.106
-	pushw.local.110
+	loadw.local.106
+	swapw
+	loadw.local.110
 	push.36028797010575360.36028797010575360.36028797010575360.36028797010575360
 
 	exec.butterfly
 
-	popw.local.110
-	popw.local.106
+	storew.local.110
+	swapw
+	storew.local.106
 
-	pushw.local.107
-	pushw.local.111
+	loadw.local.107
+	swapw
+	loadw.local.111
 	push.36028797010575360.36028797010575360.36028797010575360.36028797010575360
 
 	exec.butterfly
 
-	popw.local.111
-	popw.local.107
+	storew.local.111
+	swapw
+	storew.local.107
 
     # ---
 
-    pushw.local.112
-	pushw.local.116
+    loadw.local.112
+	swapw
+	loadw.local.116
 	push.32768.32768.32768.32768
 
 	exec.butterfly
 
-	popw.local.116
-	popw.local.112
+	storew.local.116
+	swapw
+	storew.local.112
 
-	pushw.local.113
-	pushw.local.117
+	loadw.local.113
+	swapw
+	loadw.local.117
 	push.32768.32768.32768.32768
 
 	exec.butterfly
 
-	popw.local.117
-	popw.local.113
+	storew.local.117
+	swapw
+	storew.local.113
 
-	pushw.local.114
-	pushw.local.118
+	loadw.local.114
+	swapw
+	loadw.local.118
 	push.32768.32768.32768.32768
 
 	exec.butterfly
 
-	popw.local.118
-	popw.local.114
+	storew.local.118
+	swapw
+	storew.local.114
 
-	pushw.local.115
-	pushw.local.119
+	loadw.local.115
+	swapw
+	loadw.local.119
 	push.32768.32768.32768.32768
 
 	exec.butterfly
 
-	popw.local.119
-	popw.local.115
+	storew.local.119
+	swapw
+	storew.local.115
 
     # ---
 
-    pushw.local.120
-	pushw.local.124
+    loadw.local.120
+	swapw
+	loadw.local.124
 	push.9223372032559808513.9223372032559808513.9223372032559808513.9223372032559808513
 
 	exec.butterfly
 
-	popw.local.124
-	popw.local.120
+	storew.local.124
+	swapw
+	storew.local.120
 
-	pushw.local.121
-	pushw.local.125
+	loadw.local.121
+	swapw
+	loadw.local.125
 	push.9223372032559808513.9223372032559808513.9223372032559808513.9223372032559808513
 
 	exec.butterfly
 
-	popw.local.125
-	popw.local.121
+	storew.local.125
+	swapw
+	storew.local.121
 
-	pushw.local.122
-	pushw.local.126
+	loadw.local.122
+	swapw
+	loadw.local.126
 	push.9223372032559808513.9223372032559808513.9223372032559808513.9223372032559808513
 
 	exec.butterfly
 
-	popw.local.126
-	popw.local.122
+	storew.local.126
+	swapw
+	storew.local.122
 
-	pushw.local.123
-	pushw.local.127
+	loadw.local.123
+	swapw
+	loadw.local.127
 	push.9223372032559808513.9223372032559808513.9223372032559808513.9223372032559808513
 
 	exec.butterfly
 
-	popw.local.127
-	popw.local.123
+	storew.local.127
+	swapw
+	storew.local.123
 
     # iter = 5
 
-	pushw.local.0
-	pushw.local.2
+	loadw.local.0
+	swapw
+	loadw.local.2
 	push.72058693532778496.72058693532778496.72058693532778496.72058693532778496
 
 	exec.butterfly
 
-	popw.local.2
-	popw.local.0
+	storew.local.2
+	swapw
+	storew.local.0
 
-	pushw.local.1
-	pushw.local.3
+	loadw.local.1
+	swapw
+	loadw.local.3
 	push.72058693532778496.72058693532778496.72058693532778496.72058693532778496
 
 	exec.butterfly
 
-	popw.local.3
-	popw.local.1
+	storew.local.3
+	swapw
+	storew.local.1
 
 	# ---
 
-	pushw.local.4
-	pushw.local.6
+	loadw.local.4
+	swapw
+	loadw.local.6
 	push.18374687574905061377.18374687574905061377.18374687574905061377.18374687574905061377
 
 	exec.butterfly
 
-	popw.local.6
-	popw.local.4
+	storew.local.6
+	swapw
+	storew.local.4
 
-	pushw.local.5
-	pushw.local.7
+	loadw.local.5
+	swapw
+	loadw.local.7
 	push.18374687574905061377.18374687574905061377.18374687574905061377.18374687574905061377
 
 	exec.butterfly
 
-	popw.local.7
-	popw.local.5
+	storew.local.7
+	swapw
+	storew.local.5
 
 	# ---
 
-	pushw.local.8
-	pushw.local.10
+	loadw.local.8
+	swapw
+	loadw.local.10
 	push.18446744065119551490.18446744065119551490.18446744065119551490.18446744065119551490
 
 	exec.butterfly
 
-	popw.local.10
-	popw.local.8
+	storew.local.10
+	swapw
+	storew.local.8
 
-	pushw.local.9
-	pushw.local.11
+	loadw.local.9
+	swapw
+	loadw.local.11
 	push.18446744065119551490.18446744065119551490.18446744065119551490.18446744065119551490
 
 	exec.butterfly
 
-	popw.local.11
-	popw.local.9
+	storew.local.11
+	swapw
+	storew.local.9
 
 	# ---
 
-	pushw.local.12
-	pushw.local.14
+	loadw.local.12
+	swapw
+	loadw.local.14
 	push.4294901759.4294901759.4294901759.4294901759
 
 	exec.butterfly
 
-	popw.local.14
-	popw.local.12
+	storew.local.14
+	swapw
+	storew.local.12
 
-	pushw.local.13
-	pushw.local.15
+	loadw.local.13
+	swapw
+	loadw.local.15
 	push.4294901759.4294901759.4294901759.4294901759
 
 	exec.butterfly
 
-	popw.local.15
-	popw.local.13
+	storew.local.15
+	swapw
+	storew.local.13
 
 	# ---
 
-	pushw.local.16
-	pushw.local.18
+	loadw.local.16
+	swapw
+	loadw.local.18
 	push.18446726477496979457.18446726477496979457.18446726477496979457.18446726477496979457
 
 	exec.butterfly
 
-	popw.local.18
-	popw.local.16
+	storew.local.18
+	swapw
+	storew.local.16
 
-	pushw.local.17
-	pushw.local.19
+	loadw.local.17
+	swapw
+	loadw.local.19
 	push.18446726477496979457.18446726477496979457.18446726477496979457.18446726477496979457
 
 	exec.butterfly
 
-	popw.local.19
-	popw.local.17
+	storew.local.19
+	swapw
+	storew.local.17
 
 	# ---
 
-	pushw.local.20
-	pushw.local.22
+	loadw.local.20
+	swapw
+	loadw.local.22
 	push.18446726476960108545.18446726476960108545.18446726476960108545.18446726476960108545
 
 	exec.butterfly
 
-	popw.local.22
-	popw.local.20
+	storew.local.22
+	swapw
+	storew.local.20
 
-	pushw.local.21
-	pushw.local.23
+	loadw.local.21
+	swapw
+	loadw.local.23
 	push.18446726476960108545.18446726476960108545.18446726476960108545.18446726476960108545
 
 	exec.butterfly
 
-	popw.local.23
-	popw.local.21
+	storew.local.23
+	swapw
+	storew.local.21
 
 	# ---
 
-	pushw.local.24
-	pushw.local.26
+	loadw.local.24
+	swapw
+	loadw.local.26
 	push.4503599627370480.4503599627370480.4503599627370480.4503599627370480
 
 	exec.butterfly
 
-	popw.local.26
-	popw.local.24
+	storew.local.26
+	swapw
+	storew.local.24
 
-	pushw.local.25
-	pushw.local.27
+	loadw.local.25
+	swapw
+	loadw.local.27
 	push.4503599627370480.4503599627370480.4503599627370480.4503599627370480
 
 	exec.butterfly
 
-	popw.local.27
-	popw.local.25
+	storew.local.27
+	swapw
+	storew.local.25
 
 	# ---
 
-	pushw.local.28
-	pushw.local.30
+	loadw.local.28
+	swapw
+	loadw.local.30
 	push.4503599627370512.4503599627370512.4503599627370512.4503599627370512
 
 	exec.butterfly
 
-	popw.local.30
-	popw.local.28
+	storew.local.30
+	swapw
+	storew.local.28
 
-	pushw.local.29
-	pushw.local.31
+	loadw.local.29
+	swapw
+	loadw.local.31
 	push.4503599627370512.4503599627370512.4503599627370512.4503599627370512
 
 	exec.butterfly
 
-	popw.local.31
-	popw.local.29
+	storew.local.31
+	swapw
+	storew.local.29
 
 	# ---
 
-	pushw.local.32
-	pushw.local.34
+	loadw.local.32
+	swapw
+	loadw.local.34
 	push.18158513693262871553.18158513693262871553.18158513693262871553.18158513693262871553
 
 	exec.butterfly
 
-	popw.local.34
-	popw.local.32
+	storew.local.34
+	swapw
+	storew.local.32
 
-	pushw.local.33
-	pushw.local.35
+	loadw.local.33
+	swapw
+	loadw.local.35
 	push.18158513693262871553.18158513693262871553.18158513693262871553.18158513693262871553
 
 	exec.butterfly
 
-	popw.local.35
-	popw.local.33
+	storew.local.35
+	swapw
+	storew.local.33
 
 	# ---
 
-	pushw.local.36
-	pushw.local.38
+	loadw.local.36
+	swapw
+	loadw.local.38
 	push.288230376151710720.288230376151710720.288230376151710720.288230376151710720
 
 	exec.butterfly
 
-	popw.local.38
-	popw.local.36
+	storew.local.38
+	swapw
+	storew.local.36
 
-	pushw.local.37
-	pushw.local.39
+	loadw.local.37
+	swapw
+	loadw.local.39
 	push.288230376151710720.288230376151710720.288230376151710720.288230376151710720
 
 	exec.butterfly
 
-	popw.local.39
-	popw.local.37
+	storew.local.39
+	swapw
+	storew.local.37
 
 	# ---
 
-	pushw.local.40
-	pushw.local.42
+	loadw.local.40
+	swapw
+	loadw.local.42
 	push.18445618186687873025.18445618186687873025.18445618186687873025.18445618186687873025
 
 	exec.butterfly
 
-	popw.local.42
-	popw.local.40
+	storew.local.42
+	swapw
+	storew.local.40
 
-	pushw.local.41
-	pushw.local.43
+	loadw.local.41
+	swapw
+	loadw.local.43
 	push.18445618186687873025.18445618186687873025.18445618186687873025.18445618186687873025
 
 	exec.butterfly
 
-	popw.local.43
-	popw.local.41
+	storew.local.43
+	swapw
+	storew.local.41
 
 	# ---
 
-	pushw.local.44
-	pushw.local.46
+	loadw.local.44
+	swapw
+	loadw.local.46
 	push.18445618152328134657.18445618152328134657.18445618152328134657.18445618152328134657
 
 	exec.butterfly
 
-	popw.local.46
-	popw.local.44
+	storew.local.46
+	swapw
+	storew.local.44
 
-	pushw.local.45
-	pushw.local.47
+	loadw.local.45
+	swapw
+	loadw.local.47
 	push.18445618152328134657.18445618152328134657.18445618152328134657.18445618152328134657
 
 	exec.butterfly
 
-	popw.local.47
-	popw.local.45
+	storew.local.47
+	swapw
+	storew.local.45
 
 	# ---
 
-	pushw.local.48
-	pushw.local.50
+	loadw.local.48
+	swapw
+	loadw.local.50
 	push.4611756386097823744.4611756386097823744.4611756386097823744.4611756386097823744
 
 	exec.butterfly
 
-	popw.local.50
-	popw.local.48
+	storew.local.50
+	swapw
+	storew.local.48
 
-	pushw.local.49
-	pushw.local.51
+	loadw.local.49
+	swapw
+	loadw.local.51
 	push.4611756386097823744.4611756386097823744.4611756386097823744.4611756386097823744
 
 	exec.butterfly
 
-	popw.local.51
-	popw.local.49
+	storew.local.51
+	swapw
+	storew.local.49
 
 	# ---
 
-	pushw.local.52
-	pushw.local.54
+	loadw.local.52
+	swapw
+	loadw.local.54
 	push.13835128420805115905.13835128420805115905.13835128420805115905.13835128420805115905
 
 	exec.butterfly
 
-	popw.local.54
-	popw.local.52
+	storew.local.54
+	swapw
+	storew.local.52
 
-	pushw.local.53
-	pushw.local.55
+	loadw.local.53
+	swapw
+	loadw.local.55
 	push.13835128420805115905.13835128420805115905.13835128420805115905.13835128420805115905
 
 	exec.butterfly
 
-	popw.local.55
-	popw.local.53
+	storew.local.55
+	swapw
+	storew.local.53
 
 	# ---
 
-	pushw.local.56
-	pushw.local.58
+	loadw.local.56
+	swapw
+	loadw.local.58
 	push.18446743794532483137.18446743794532483137.18446743794532483137.18446743794532483137
 
 	exec.butterfly
 
-	popw.local.58
-	popw.local.56
+	storew.local.58
+	swapw
+	storew.local.56
 
-	pushw.local.57
-	pushw.local.59
+	loadw.local.57
+	swapw
+	loadw.local.59
 	push.18446743794532483137.18446743794532483137.18446743794532483137.18446743794532483137
 
 	exec.butterfly
 
-	popw.local.59
-	popw.local.57
+	storew.local.59
+	swapw
+	storew.local.57
 
 	# ---
 
-	pushw.local.60
-	pushw.local.62
+	loadw.local.60
+	swapw
+	loadw.local.62
 	push.274873712576.274873712576.274873712576.274873712576
 
 	exec.butterfly
 
-	popw.local.62
-	popw.local.60
+	storew.local.62
+	swapw
+	storew.local.60
 
-	pushw.local.61
-	pushw.local.63
+	loadw.local.61
+	swapw
+	loadw.local.63
 	push.274873712576.274873712576.274873712576.274873712576
 
 	exec.butterfly
 
-	popw.local.63
-	popw.local.61
+	storew.local.63
+	swapw
+	storew.local.61
 
 	# ---
 
-	pushw.local.64
-	pushw.local.66
+	loadw.local.64
+	swapw
+	loadw.local.66
 	push.18446741870424883713.18446741870424883713.18446741870424883713.18446741870424883713
 
 	exec.butterfly
 
-	popw.local.66
-	popw.local.64
+	storew.local.66
+	swapw
+	storew.local.64
 
-	pushw.local.65
-	pushw.local.67
+	loadw.local.65
+	swapw
+	loadw.local.67
 	push.18446741870424883713.18446741870424883713.18446741870424883713.18446741870424883713
 
 	exec.butterfly
 
-	popw.local.67
-	popw.local.65
+	storew.local.67
+	swapw
+	storew.local.65
 
 	# ---
 
-	pushw.local.68
-	pushw.local.70
+	loadw.local.68
+	swapw
+	loadw.local.70
 	push.18446741870357774849.18446741870357774849.18446741870357774849.18446741870357774849
 
 	exec.butterfly
 
-	popw.local.70
-	popw.local.68
+	storew.local.70
+	swapw
+	storew.local.68
 
-	pushw.local.69
-	pushw.local.71
+	loadw.local.69
+	swapw
+	loadw.local.71
 	push.18446741870357774849.18446741870357774849.18446741870357774849.18446741870357774849
 
 	exec.butterfly
 
-	popw.local.71
-	popw.local.69
+	storew.local.71
+	swapw
+	storew.local.69
 
 	# ---
 
-	pushw.local.72
-	pushw.local.74
+	loadw.local.72
+	swapw
+	loadw.local.74
 	push.562949953421310.562949953421310.562949953421310.562949953421310
 
 	exec.butterfly
 
-	popw.local.74
-	popw.local.72
+	storew.local.74
+	swapw
+	storew.local.72
 
-	pushw.local.73
-	pushw.local.75
+	loadw.local.73
+	swapw
+	loadw.local.75
 	push.562949953421310.562949953421310.562949953421310.562949953421310
 
 	exec.butterfly
 
-	popw.local.75
-	popw.local.73
+	storew.local.75
+	swapw
+	storew.local.73
 
 	# ---
 
-	pushw.local.76
-	pushw.local.78
+	loadw.local.76
+	swapw
+	loadw.local.78
 	push.562949953421314.562949953421314.562949953421314.562949953421314
 
 	exec.butterfly
 
-	popw.local.78
-	popw.local.76
+	storew.local.78
+	swapw
+	storew.local.76
 
-	pushw.local.77
-	pushw.local.79
+	loadw.local.77
+	swapw
+	loadw.local.79
 	push.562949953421314.562949953421314.562949953421314.562949953421314
 
 	exec.butterfly
 
-	popw.local.79
-	popw.local.77
+	storew.local.79
+	swapw
+	storew.local.77
 
 	# ---
 
-	pushw.local.80
-	pushw.local.82
+	loadw.local.80
+	swapw
+	loadw.local.82
 	push.16140901060200882177.16140901060200882177.16140901060200882177.16140901060200882177
 
 	exec.butterfly
 
-	popw.local.82
-	popw.local.80
+	storew.local.82
+	swapw
+	storew.local.80
 
-	pushw.local.81
-	pushw.local.83
+	loadw.local.81
+	swapw
+	loadw.local.83
 	push.16140901060200882177.16140901060200882177.16140901060200882177.16140901060200882177
 
 	exec.butterfly
 
-	popw.local.83
-	popw.local.81
+	storew.local.83
+	swapw
+	storew.local.81
 
 	# ---
 
-	pushw.local.84
-	pushw.local.86
+	loadw.local.84
+	swapw
+	loadw.local.86
 	push.2305843009213685760.2305843009213685760.2305843009213685760.2305843009213685760
 
 	exec.butterfly
 
-	popw.local.86
-	popw.local.84
+	storew.local.86
+	swapw
+	storew.local.84
 
-	pushw.local.85
-	pushw.local.87
+	loadw.local.85
+	swapw
+	loadw.local.87
 	push.2305843009213685760.2305843009213685760.2305843009213685760.2305843009213685760
 
 	exec.butterfly
 
-	popw.local.87
-	popw.local.85
+	storew.local.87
+	swapw
+	storew.local.85
 
 	# ---
 
-	pushw.local.88
-	pushw.local.90
+	loadw.local.88
+	swapw
+	loadw.local.90
 	push.18437737007600893953.18437737007600893953.18437737007600893953.18437737007600893953
 
 	exec.butterfly
 
-	popw.local.90
-	popw.local.88
+	storew.local.90
+	swapw
+	storew.local.88
 
-	pushw.local.89
-	pushw.local.91
+	loadw.local.89
+	swapw
+	loadw.local.91
 	push.18437737007600893953.18437737007600893953.18437737007600893953.18437737007600893953
 
 	exec.butterfly
 
-	popw.local.91
-	popw.local.89
+	storew.local.91
+	swapw
+	storew.local.89
 
 	# ---
 
-	pushw.local.92
-	pushw.local.94
+	loadw.local.92
+	swapw
+	loadw.local.94
 	push.18437736732722987009.18437736732722987009.18437736732722987009.18437736732722987009
 
 	exec.butterfly
 
-	popw.local.94
-	popw.local.92
+	storew.local.94
+	swapw
+	storew.local.92
 
-	pushw.local.93
-	pushw.local.95
+	loadw.local.93
+	swapw
+	loadw.local.95
 	push.18437736732722987009.18437736732722987009.18437736732722987009.18437736732722987009
 
 	exec.butterfly
 
-	popw.local.95
-	popw.local.93
+	storew.local.95
+	swapw
+	storew.local.93
 
 	# ---
 
-	pushw.local.96
-	pushw.local.98
+	loadw.local.96
+	swapw
+	loadw.local.98
 	push.576469548262227968.576469548262227968.576469548262227968.576469548262227968
 
 	exec.butterfly
 
-	popw.local.98
-	popw.local.96
+	storew.local.98
+	swapw
+	storew.local.96
 
-	pushw.local.97
-	pushw.local.99
+	loadw.local.97
+	swapw
+	loadw.local.99
 	push.576469548262227968.576469548262227968.576469548262227968.576469548262227968
 
 	exec.butterfly
 
-	popw.local.99
-	popw.local.97
+	storew.local.99
+	swapw
+	storew.local.97
 
 	# ---
 
-	pushw.local.100
-	pushw.local.102
+	loadw.local.100
+	swapw
+	loadw.local.102
 	push.17870292113338400769.17870292113338400769.17870292113338400769.17870292113338400769
 
 	exec.butterfly
 
-	popw.local.102
-	popw.local.100
+	storew.local.102
+	swapw
+	storew.local.100
 
-	pushw.local.101
-	pushw.local.103
+	loadw.local.101
+	swapw
+	loadw.local.103
 	push.17870292113338400769.17870292113338400769.17870292113338400769.17870292113338400769
 
 	exec.butterfly
 
-	popw.local.103
-	popw.local.101
+	storew.local.103
+	swapw
+	storew.local.101
 
 	# ---
 
-	pushw.local.104
-	pushw.local.106
+	loadw.local.104
+	swapw
+	loadw.local.106
 	push.18446744035054321673.18446744035054321673.18446744035054321673.18446744035054321673
 
 	exec.butterfly
 
-	popw.local.106
-	popw.local.104
+	storew.local.106
+	swapw
+	storew.local.104
 
-	pushw.local.105
-	pushw.local.107
+	loadw.local.105
+	swapw
+	loadw.local.107
 	push.18446744035054321673.18446744035054321673.18446744035054321673.18446744035054321673
 
 	exec.butterfly
 
-	popw.local.107
-	popw.local.105
+	storew.local.107
+	swapw
+	storew.local.105
 
 	# ---
 
-	pushw.local.108
-	pushw.local.110
+	loadw.local.108
+	swapw
+	loadw.local.110
 	push.34359214072.34359214072.34359214072.34359214072
 
 	exec.butterfly
 
-	popw.local.110
-	popw.local.108
+	storew.local.110
+	swapw
+	storew.local.108
 
-	pushw.local.109
-	pushw.local.111
+	loadw.local.109
+	swapw
+	loadw.local.111
 	push.34359214072.34359214072.34359214072.34359214072
 
 	exec.butterfly
 
-	popw.local.111
-	popw.local.109
+	storew.local.111
+	swapw
+	storew.local.109
 
 	# ---
 
-	pushw.local.112
-	pushw.local.114
+	loadw.local.112
+	swapw
+	loadw.local.114
 	push.18446603334073745409.18446603334073745409.18446603334073745409.18446603334073745409
 
 	exec.butterfly
 
-	popw.local.114
-	popw.local.112
+	storew.local.114
+	swapw
+	storew.local.112
 
-	pushw.local.113
-	pushw.local.115
+	loadw.local.113
+	swapw
+	loadw.local.115
 	push.18446603334073745409.18446603334073745409.18446603334073745409.18446603334073745409
 
 	exec.butterfly
 
-	popw.local.115
-	popw.local.113
+	storew.local.115
+	swapw
+	storew.local.113
 
 	# ---
 
-	pushw.local.116
-	pushw.local.118
+	loadw.local.116
+	swapw
+	loadw.local.118
 	push.18446603329778778113.18446603329778778113.18446603329778778113.18446603329778778113
 
 	exec.butterfly
 
-	popw.local.118
-	popw.local.116
+	storew.local.118
+	swapw
+	storew.local.116
 
-	pushw.local.117
-	pushw.local.119
+	loadw.local.117
+	swapw
+	loadw.local.119
 	push.18446603329778778113.18446603329778778113.18446603329778778113.18446603329778778113
 
 	exec.butterfly
 
-	popw.local.119
-	popw.local.117
+	storew.local.119
+	swapw
+	storew.local.117
 
 	# ---
 
-	pushw.local.120
-	pushw.local.122
+	loadw.local.120
+	swapw
+	loadw.local.122
 	push.36028797018963840.36028797018963840.36028797018963840.36028797018963840
 
 	exec.butterfly
 
-	popw.local.122
-	popw.local.120
+	storew.local.122
+	swapw
+	storew.local.120
 
-	pushw.local.121
-	pushw.local.123
+	loadw.local.121
+	swapw
+	loadw.local.123
 	push.36028797018963840.36028797018963840.36028797018963840.36028797018963840
 
 	exec.butterfly
 
-	popw.local.123
-	popw.local.121
+	storew.local.123
+	swapw
+	storew.local.121
 
 	# ---
 
-	pushw.local.124
-	pushw.local.126
+	loadw.local.124
+	swapw
+	loadw.local.126
 	push.36028797018964096.36028797018964096.36028797018964096.36028797018964096
 
 	exec.butterfly
 
-	popw.local.126
-	popw.local.124
+	storew.local.126
+	swapw
+	storew.local.124
 
-	pushw.local.125
-	pushw.local.127
+	loadw.local.125
+	swapw
+	loadw.local.127
 	push.36028797018964096.36028797018964096.36028797018964096.36028797018964096
 
 	exec.butterfly
 
-	popw.local.127
-	popw.local.125
+	storew.local.127
+	swapw
+	storew.local.125
 
 	# iter = 6
 
-    pushw.local.0
-	pushw.local.1
+    loadw.local.0
+	swapw
+	loadw.local.1
 	push.16192975500896648969.16192975500896648969.16192975500896648969.16192975500896648969
 
 	exec.butterfly
 
-	popw.local.1
-	popw.local.0
+	storew.local.1
+	swapw
+	storew.local.0
 
 	# ---
 
-	pushw.local.2
-	pushw.local.3
+	loadw.local.2
+	swapw
+	loadw.local.3
 	push.13801972045324315718.13801972045324315718.13801972045324315718.13801972045324315718
 
 	exec.butterfly
 
-	popw.local.3
-	popw.local.2
+	storew.local.3
+	swapw
+	storew.local.2
 
 	# ---
 
-	pushw.local.4
-	pushw.local.5
+	loadw.local.4
+	swapw
+	loadw.local.5
 	push.10105805016917838453.10105805016917838453.10105805016917838453.10105805016917838453
 
 	exec.butterfly
 
-	popw.local.5
-	popw.local.4
+	storew.local.5
+	swapw
+	storew.local.4
 
 	# ---
 
-	pushw.local.6
-	pushw.local.7
+	loadw.local.6
+	swapw
+	loadw.local.7
 	push.7884753188935386879.7884753188935386879.7884753188935386879.7884753188935386879
 
 	exec.butterfly
 
-	popw.local.7
-	popw.local.6
+	storew.local.7
+	swapw
+	storew.local.6
 
 	# ---
 
-	pushw.local.8
-	pushw.local.9
+	loadw.local.8
+	swapw
+	loadw.local.9
 	push.4299803665592489687.4299803665592489687.4299803665592489687.4299803665592489687
 
 	exec.butterfly
 
-	popw.local.9
-	popw.local.8
+	storew.local.9
+	swapw
+	storew.local.8
 
 	# ---
 
-	pushw.local.10
-	pushw.local.11
+	loadw.local.10
+	swapw
+	loadw.local.11
 	push.17330401598553671485.17330401598553671485.17330401598553671485.17330401598553671485
 
 	exec.butterfly
 
-	popw.local.11
-	popw.local.10
+	storew.local.11
+	swapw
+	storew.local.10
 
 	# ---
 
-	pushw.local.12
-	pushw.local.13
+	loadw.local.12
+	swapw
+	loadw.local.13
 	push.10382722127243543029.10382722127243543029.10382722127243543029.10382722127243543029
 
 	exec.butterfly
 
-	popw.local.13
-	popw.local.12
+	storew.local.13
+	swapw
+	storew.local.12
 
 	# ---
 
-	pushw.local.14
-	pushw.local.15
+	loadw.local.14
+	swapw
+	loadw.local.15
 	push.12053668962110821384.12053668962110821384.12053668962110821384.12053668962110821384
 
 	exec.butterfly
 
-	popw.local.15
-	popw.local.14
+	storew.local.15
+	swapw
+	storew.local.14
 
 	# ---
 
-	pushw.local.16
-	pushw.local.17
+	loadw.local.16
+	swapw
+	loadw.local.17
 	push.3328437340319972906.3328437340319972906.3328437340319972906.3328437340319972906
 
 	exec.butterfly
 
-	popw.local.17
-	popw.local.16
+	storew.local.17
+	swapw
+	storew.local.16
 
 	# ---
 
-	pushw.local.18
-	pushw.local.19
+	loadw.local.18
+	swapw
+	loadw.local.19
 	push.411429644661718300.411429644661718300.411429644661718300.411429644661718300
 
 	exec.butterfly
 
-	popw.local.19
-	popw.local.18
+	storew.local.19
+	swapw
+	storew.local.18
 
 	# ---
 
-	pushw.local.20
-	pushw.local.21
+	loadw.local.20
+	swapw
+	loadw.local.21
 	push.16933017626115159474.16933017626115159474.16933017626115159474.16933017626115159474
 
 	exec.butterfly
 
-	popw.local.21
-	popw.local.20
+	storew.local.21
+	swapw
+	storew.local.20
 
 	# ---
 
-	pushw.local.22
-	pushw.local.23
+	loadw.local.22
+	swapw
+	loadw.local.23
 	push.2341058142559915780.2341058142559915780.2341058142559915780.2341058142559915780
 
 	exec.butterfly
 
-	popw.local.23
-	popw.local.22
+	storew.local.23
+	swapw
+	storew.local.22
 
 	# ---
 
-	pushw.local.24
-	pushw.local.25
+	loadw.local.24
+	swapw
+	loadw.local.25
 	push.3332764170168812040.3332764170168812040.3332764170168812040.3332764170168812040
 
 	exec.butterfly
 
-	popw.local.25
-	popw.local.24
+	storew.local.25
+	swapw
+	storew.local.24
 
 	# ---
 
-	pushw.local.26
-	pushw.local.27
+	loadw.local.26
+	swapw
+	loadw.local.27
 	push.16329239638270742865.16329239638270742865.16329239638270742865.16329239638270742865
 
 	exec.butterfly
 
-	popw.local.27
-	popw.local.26
+	storew.local.27
+	swapw
+	storew.local.26
 
 	# ---
 
-	pushw.local.28
-	pushw.local.29
+	loadw.local.28
+	swapw
+	loadw.local.29
 	push.1135478653231209757.1135478653231209757.1135478653231209757.1135478653231209757
 
 	exec.butterfly
 
-	popw.local.29
-	popw.local.28
+	storew.local.29
+	swapw
+	storew.local.28
 
 	# ---
 
-	pushw.local.30
-	pushw.local.31
+	loadw.local.30
+	swapw
+	loadw.local.31
 	push.6562114217670983589.6562114217670983589.6562114217670983589.6562114217670983589
 
 	exec.butterfly
 
-	popw.local.31
-	popw.local.30
+	storew.local.31
+	swapw
+	storew.local.30
 
 	# ---
 
-	pushw.local.32
-	pushw.local.33
+	loadw.local.32
+	swapw
+	loadw.local.33
 	push.2843318466875884251.2843318466875884251.2843318466875884251.2843318466875884251
 
 	exec.butterfly
 
-	popw.local.33
-	popw.local.32
+	storew.local.33
+	swapw
+	storew.local.32
 
 	# ---
 
-	pushw.local.34
-	pushw.local.35
+	loadw.local.34
+	swapw
+	loadw.local.35
 	push.9083829225849678056.9083829225849678056.9083829225849678056.9083829225849678056
 
 	exec.butterfly
 
-	popw.local.35
-	popw.local.34
+	storew.local.35
+	swapw
+	storew.local.34
 
 	# ---
 
-	pushw.local.36
-	pushw.local.37
+	loadw.local.36
+	swapw
+	loadw.local.37
 	push.8215369291935911999.8215369291935911999.8215369291935911999.8215369291935911999
 
 	exec.butterfly
 
-	popw.local.37
-	popw.local.36
+	storew.local.37
+	swapw
+	storew.local.36
 
 	# ---
 
-	pushw.local.38
-	pushw.local.39
+	loadw.local.38
+	swapw
+	loadw.local.39
 	push.1506708620263852673.1506708620263852673.1506708620263852673.1506708620263852673
 
 	exec.butterfly
 
-	popw.local.39
-	popw.local.38
+	storew.local.39
+	swapw
+	storew.local.38
 
 	# ---
 
-	pushw.local.40
-	pushw.local.41
+	loadw.local.40
+	swapw
+	loadw.local.41
 	push.8180754653145198927.8180754653145198927.8180754653145198927.8180754653145198927
 
 	exec.butterfly
 
-	popw.local.41
-	popw.local.40
+	storew.local.41
+	swapw
+	storew.local.40
 
 	# ---
 
-	pushw.local.42
-	pushw.local.43
+	loadw.local.42
+	swapw
+	loadw.local.43
 	push.3291437157293746400.3291437157293746400.3291437157293746400.3291437157293746400
 
 	exec.butterfly
 
-	popw.local.43
-	popw.local.42
+	storew.local.43
+	swapw
+	storew.local.42
 
 	# ---
 
-	pushw.local.44
-	pushw.local.45
+	loadw.local.44
+	swapw
+	loadw.local.45
 	push.6336932523019185545.6336932523019185545.6336932523019185545.6336932523019185545
 
 	exec.butterfly
 
-	popw.local.45
-	popw.local.44
+	storew.local.45
+	swapw
+	storew.local.44
 
 	# ---
 
-	pushw.local.46
-	pushw.local.47
+	loadw.local.46
+	swapw
+	loadw.local.47
 	push.281721071064741919.281721071064741919.281721071064741919.281721071064741919
 
 	exec.butterfly
 
-	popw.local.47
-	popw.local.46
+	storew.local.47
+	swapw
+	storew.local.46
 
 	# ---
 
-	pushw.local.48
-	pushw.local.49
+	loadw.local.48
+	swapw
+	loadw.local.49
 	push.416595521271101505.416595521271101505.416595521271101505.416595521271101505
 
 	exec.butterfly
 
-	popw.local.49
-	popw.local.48
+	storew.local.49
+	swapw
+	storew.local.48
 
 	# ---
 
-	pushw.local.50
-	pushw.local.51
+	loadw.local.50
+	swapw
+	loadw.local.51
 	push.18182056015521604139.18182056015521604139.18182056015521604139.18182056015521604139
 
 	exec.butterfly
 
-	popw.local.51
-	popw.local.50
+	storew.local.51
+	swapw
+	storew.local.50
 
 	# ---
 
-	pushw.local.52
-	pushw.local.53
+	loadw.local.52
+	swapw
+	loadw.local.53
 	push.7059463857684370340.7059463857684370340.7059463857684370340.7059463857684370340
 
 	exec.butterfly
 
-	popw.local.53
-	popw.local.52
+	storew.local.53
+	swapw
+	storew.local.52
 
 	# ---
 
-	pushw.local.54
-	pushw.local.55
+	loadw.local.54
+	swapw
+	loadw.local.55
 	push.7737793303239342069.7737793303239342069.7737793303239342069.7737793303239342069
 
 	exec.butterfly
 
-	popw.local.55
-	popw.local.54
+	storew.local.55
+	swapw
+	storew.local.54
 
 	# ---
 
-	pushw.local.56
-	pushw.local.57
+	loadw.local.56
+	swapw
+	loadw.local.57
 	push.15951685255325333175.15951685255325333175.15951685255325333175.15951685255325333175
 
 	exec.butterfly
 
-	popw.local.57
-	popw.local.56
+	storew.local.57
+	swapw
+	storew.local.56
 
 	# ---
 
-	pushw.local.58
-	pushw.local.59
+	loadw.local.58
+	swapw
+	loadw.local.59
 	push.9516004302527281633.9516004302527281633.9516004302527281633.9516004302527281633
 
 	exec.butterfly
 
-	popw.local.59
-	popw.local.58
+	storew.local.59
+	swapw
+	storew.local.58
 
 	# ---
 
-	pushw.local.60
-	pushw.local.61
+	loadw.local.60
+	swapw
+	loadw.local.61
 	push.9274800740290006948.9274800740290006948.9274800740290006948.9274800740290006948
 
 	exec.butterfly
 
-	popw.local.61
-	popw.local.60
+	storew.local.61
+	swapw
+	storew.local.60
 
 	# ---
 
-	pushw.local.62
-	pushw.local.63
+	loadw.local.62
+	swapw
+	loadw.local.63
 	push.4195631349813649467.4195631349813649467.4195631349813649467.4195631349813649467
 
 	exec.butterfly
 
-	popw.local.63
-	popw.local.62
+	storew.local.63
+	swapw
+	storew.local.62
 
 	# ---
 
-	pushw.local.64
-	pushw.local.65
+	loadw.local.64
+	swapw
+	loadw.local.65
 	push.5575382163818481237.5575382163818481237.5575382163818481237.5575382163818481237
 
 	exec.butterfly
 
-	popw.local.65
-	popw.local.64
+	storew.local.65
+	swapw
+	storew.local.64
 
 	# ---
 
-	pushw.local.66
-	pushw.local.67
+	loadw.local.66
+	swapw
+	loadw.local.67
 	push.4404853092538523347.4404853092538523347.4404853092538523347.4404853092538523347
 
 	exec.butterfly
 
-	popw.local.67
-	popw.local.66
+	storew.local.67
+	swapw
+	storew.local.66
 
 	# ---
 
-	pushw.local.68
-	pushw.local.69
+	loadw.local.68
+	swapw
+	loadw.local.69
 	push.8288405288461869359.8288405288461869359.8288405288461869359.8288405288461869359
 
 	exec.butterfly
 
-	popw.local.69
-	popw.local.68
+	storew.local.69
+	swapw
+	storew.local.68
 
 	# ---
 
-	pushw.local.70
-	pushw.local.71
+	loadw.local.70
+	swapw
+	loadw.local.71
 	push.9952623958621855812.9952623958621855812.9952623958621855812.9952623958621855812
 
 	exec.butterfly
 
-	popw.local.71
-	popw.local.70
+	storew.local.71
+	swapw
+	storew.local.70
 
 	# ---
 
-	pushw.local.72
-	pushw.local.73
+	loadw.local.72
+	swapw
+	loadw.local.73
 	push.1356658891109943458.1356658891109943458.1356658891109943458.1356658891109943458
 
 	exec.butterfly
 
-	popw.local.73
-	popw.local.72
+	storew.local.73
+	swapw
+	storew.local.72
 
 	# ---
 
-	pushw.local.74
-	pushw.local.75
+	loadw.local.74
+	swapw
+	loadw.local.75
 	push.7298973816981743824.7298973816981743824.7298973816981743824.7298973816981743824
 
 	exec.butterfly
 
-	popw.local.75
-	popw.local.74
+	storew.local.75
+	swapw
+	storew.local.74
 
 	# ---
 
-	pushw.local.76
-	pushw.local.77
+	loadw.local.76
+	swapw
+	loadw.local.77
 	push.18142929134658341675.18142929134658341675.18142929134658341675.18142929134658341675
 
 	exec.butterfly
 
-	popw.local.77
-	popw.local.76
+	storew.local.77
+	swapw
+	storew.local.76
 
 	# ---
 
-	pushw.local.78
-	pushw.local.79
+	loadw.local.78
+	swapw
+	loadw.local.79
 	push.1362567150328163374.1362567150328163374.1362567150328163374.1362567150328163374
 
 	exec.butterfly
 
-	popw.local.79
-	popw.local.78
+	storew.local.79
+	swapw
+	storew.local.78
 
 	# ---
 
-	pushw.local.80
-	pushw.local.81
+	loadw.local.80
+	swapw
+	loadw.local.81
 	push.5029422726070465669.5029422726070465669.5029422726070465669.5029422726070465669
 
 	exec.butterfly
 
-	popw.local.81
-	popw.local.80
+	storew.local.81
+	swapw
+	storew.local.80
 
 	# ---
 
-	pushw.local.82
-	pushw.local.83
+	loadw.local.82
+	swapw
+	loadw.local.83
 	push.17449332314429639298.17449332314429639298.17449332314429639298.17449332314429639298
 
 	exec.butterfly
 
-	popw.local.83
-	popw.local.82
+	storew.local.83
+	swapw
+	storew.local.82
 
 	# ---
 
-	pushw.local.84
-	pushw.local.85
+	loadw.local.84
+	swapw
+	loadw.local.85
 	push.13039192753378044028.13039192753378044028.13039192753378044028.13039192753378044028
 
 	exec.butterfly
 
-	popw.local.85
-	popw.local.84
+	storew.local.85
+	swapw
+	storew.local.84
 
 	# ---
 
-	pushw.local.86
-	pushw.local.87
+	loadw.local.86
+	swapw
+	loadw.local.87
 	push.5965722551466996711.5965722551466996711.5965722551466996711.5965722551466996711
 
 	exec.butterfly
 
-	popw.local.87
-	popw.local.86
+	storew.local.87
+	swapw
+	storew.local.86
 
 	# ---
 
-	pushw.local.88
-	pushw.local.89
+	loadw.local.88
+	swapw
+	loadw.local.89
 	push.6336321165505697069.6336321165505697069.6336321165505697069.6336321165505697069
 
 	exec.butterfly
 
-	popw.local.89
-	popw.local.88
+	storew.local.89
+	swapw
+	storew.local.88
 
 	# ---
 
-	pushw.local.90
-	pushw.local.91
+	loadw.local.90
+	swapw
+	loadw.local.91
 	push.5209436881246729393.5209436881246729393.5209436881246729393.5209436881246729393
 
 	exec.butterfly
 
-	popw.local.91
-	popw.local.90
+	storew.local.91
+	swapw
+	storew.local.90
 
 	# ---
 
-	pushw.local.92
-	pushw.local.93
+	loadw.local.92
+	swapw
+	loadw.local.93
 	push.13949104517951277988.13949104517951277988.13949104517951277988.13949104517951277988
 
 	exec.butterfly
 
-	popw.local.93
-	popw.local.92
+	storew.local.93
+	swapw
+	storew.local.92
 
 	# ---
 
-	pushw.local.94
-	pushw.local.95
+	loadw.local.94
+	swapw
+	loadw.local.95
 	push.9778634991702905054.9778634991702905054.9778634991702905054.9778634991702905054
 
 	exec.butterfly
 
-	popw.local.95
-	popw.local.94
+	storew.local.95
+	swapw
+	storew.local.94
 
 	# ---
 
-	pushw.local.96
-	pushw.local.97
+	loadw.local.96
+	swapw
+	loadw.local.97
 	push.14004640413449681173.14004640413449681173.14004640413449681173.14004640413449681173
 
 	exec.butterfly
 
-	popw.local.97
-	popw.local.96
+	storew.local.97
+	swapw
+	storew.local.96
 
 	# ---
 
-	pushw.local.98
-	pushw.local.99
+	loadw.local.98
+	swapw
+	loadw.local.99
 	push.912371727122717978.912371727122717978.912371727122717978.912371727122717978
 
 	exec.butterfly
 
-	popw.local.99
-	popw.local.98
+	storew.local.99
+	swapw
+	storew.local.98
 
 	# ---
 
-	pushw.local.100
-	pushw.local.101
+	loadw.local.100
+	swapw
+	loadw.local.101
 	push.13797081185216407910.13797081185216407910.13797081185216407910.13797081185216407910
 
 	exec.butterfly
 
-	popw.local.101
-	popw.local.100
+	storew.local.101
+	swapw
+	storew.local.100
 
 	# ---
 
-	pushw.local.102
-	pushw.local.103
+	loadw.local.102
+	swapw
+	loadw.local.103
 	push.4782006911144666502.4782006911144666502.4782006911144666502.4782006911144666502
 
 	exec.butterfly
 
-	popw.local.103
-	popw.local.102
+	storew.local.103
+	swapw
+	storew.local.102
 
 	# ---
 
-	pushw.local.104
-	pushw.local.105
+	loadw.local.104
+	swapw
+	loadw.local.105
 	push.3341893669734556710.3341893669734556710.3341893669734556710.3341893669734556710
 
 	exec.butterfly
 
-	popw.local.105
-	popw.local.104
+	storew.local.105
+	swapw
+	storew.local.104
 
 	# ---
 
-	pushw.local.106
-	pushw.local.107
+	loadw.local.106
+	swapw
+	loadw.local.107
 	push.10467450029535024137.10467450029535024137.10467450029535024137.10467450029535024137
 
 	exec.butterfly
 
-	popw.local.107
-	popw.local.106
+	storew.local.107
+	swapw
+	storew.local.106
 
 	# ---
 
-	pushw.local.108
-	pushw.local.109
+	loadw.local.108
+	swapw
+	loadw.local.109
 	push.12079821679951430619.12079821679951430619.12079821679951430619.12079821679951430619
 
 	exec.butterfly
 
-	popw.local.109
-	popw.local.108
+	storew.local.109
+	swapw
+	storew.local.108
 
 	# ---
 
-	pushw.local.110
-	pushw.local.111
+	loadw.local.110
+	swapw
+	loadw.local.111
 	push.10832292272906805046.10832292272906805046.10832292272906805046.10832292272906805046
 
 	exec.butterfly
 
-	popw.local.111
-	popw.local.110
+	storew.local.111
+	swapw
+	storew.local.110
 
 	# ---
 
-	pushw.local.112
-	pushw.local.113
+	loadw.local.112
+	swapw
+	loadw.local.113
 	push.7709569171718681254.7709569171718681254.7709569171718681254.7709569171718681254
 
 	exec.butterfly
 
-	popw.local.113
-	popw.local.112
+	storew.local.113
+	swapw
+	storew.local.112
 
 	# ---
 
-	pushw.local.114
-	pushw.local.115
+	loadw.local.114
+	swapw
+	loadw.local.115
 	push.16792080670893602455.16792080670893602455.16792080670893602455.16792080670893602455
 
 	exec.butterfly
 
-	popw.local.115
-	popw.local.114
+	storew.local.115
+	swapw
+	storew.local.114
 
 	# ---
 
-	pushw.local.116
-	pushw.local.117
+	loadw.local.116
+	swapw
+	loadw.local.117
 	push.10967010099451201909.10967010099451201909.10967010099451201909.10967010099451201909
 
 	exec.butterfly
 
-	popw.local.117
-	popw.local.116
+	storew.local.117
+	swapw
+	storew.local.116
 
 	# ---
 
-	pushw.local.118
-	pushw.local.119
+	loadw.local.118
+	swapw
+	loadw.local.119
 	push.5834015391316509212.5834015391316509212.5834015391316509212.5834015391316509212
 
 	exec.butterfly
 
-	popw.local.119
-	popw.local.118
+	storew.local.119
+	swapw
+	storew.local.118
 
 	# ---
 
-	pushw.local.120
-	pushw.local.121
+	loadw.local.120
+	swapw
+	loadw.local.121
 	push.10853271128879547664.10853271128879547664.10853271128879547664.10853271128879547664
 
 	exec.butterfly
 
-	popw.local.121
-	popw.local.120
+	storew.local.121
+	swapw
+	storew.local.120
 
 	# ---
 
-	pushw.local.122
-	pushw.local.123
+	loadw.local.122
+	swapw
+	loadw.local.123
 	push.3051558327610197629.3051558327610197629.3051558327610197629.3051558327610197629
 
 	exec.butterfly
 
-	popw.local.123
-	popw.local.122
+	storew.local.123
+	swapw
+	storew.local.122
 
 	# ---
 
-	pushw.local.124
-	pushw.local.125
+	loadw.local.124
+	swapw
+	loadw.local.125
 	push.16016224591364643153.16016224591364643153.16016224591364643153.16016224591364643153
 
 	exec.butterfly
 
-	popw.local.125
-	popw.local.124
+	storew.local.125
+	swapw
+	storew.local.124
 
 	# ---
 
-	pushw.local.126
-	pushw.local.127
+	loadw.local.126
+	swapw
+	loadw.local.127
 	push.10900537202625306992.10900537202625306992.10900537202625306992.10900537202625306992
 
 	exec.butterfly
 
-	popw.local.127
-	popw.local.126
+	storew.local.127
+	swapw
+	storew.local.126
 
 	# iter = 7
 
-    pushw.local.0
-    pushw.local.1
+    loadw.local.0
+    swapw
+    loadw.local.1
 
     movdn.5
     movdn.5
@@ -12184,13 +13080,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.1
-    popw.local.0
+    storew.local.1
+	swapw
+	storew.local.0
 
     # ---
 
-    pushw.local.2
-    pushw.local.3
+    loadw.local.2
+	swapw
+	loadw.local.3
 
     movdn.5
     movdn.5
@@ -12206,13 +13104,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.3
-    popw.local.2
+    storew.local.3
+	swapw
+	storew.local.2
 
     # ---
 
-    pushw.local.4
-    pushw.local.5
+    loadw.local.4
+	swapw
+	loadw.local.5
 
     movdn.5
     movdn.5
@@ -12228,13 +13128,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.5
-    popw.local.4
+    storew.local.5
+	swapw
+	storew.local.4
 
     # ---
 
-    pushw.local.6
-    pushw.local.7
+    loadw.local.6
+	swapw
+	loadw.local.7
 
     movdn.5
     movdn.5
@@ -12250,13 +13152,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.7
-    popw.local.6
+    storew.local.7
+	swapw
+	storew.local.6
 
     # ---
 
-    pushw.local.8
-    pushw.local.9
+    loadw.local.8
+	swapw
+	loadw.local.9
 
     movdn.5
     movdn.5
@@ -12272,13 +13176,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.9
-    popw.local.8
+    storew.local.9
+	swapw
+	storew.local.8
 
     # ---
 
-    pushw.local.10
-    pushw.local.11
+    loadw.local.10
+	swapw
+	loadw.local.11
 
     movdn.5
     movdn.5
@@ -12294,13 +13200,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.11
-    popw.local.10
+    storew.local.11
+	swapw
+	storew.local.10
 
     # ---
 
-    pushw.local.12
-    pushw.local.13
+    loadw.local.12
+	swapw
+	loadw.local.13
 
     movdn.5
     movdn.5
@@ -12316,13 +13224,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.13
-    popw.local.12
+    storew.local.13
+	swapw
+	storew.local.12
 
     # ---
 
-    pushw.local.14
-    pushw.local.15
+    loadw.local.14
+	swapw
+	loadw.local.15
 
     movdn.5
     movdn.5
@@ -12338,13 +13248,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.15
-    popw.local.14
+    storew.local.15
+	swapw
+	storew.local.14
 
     # ---
 
-    pushw.local.16
-    pushw.local.17
+    loadw.local.16
+	swapw
+	loadw.local.17
 
     movdn.5
     movdn.5
@@ -12360,13 +13272,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.17
-    popw.local.16
+    storew.local.17
+	swapw
+	storew.local.16
 
     # ---
 
-    pushw.local.18
-    pushw.local.19
+    loadw.local.18
+	swapw
+	loadw.local.19
 
     movdn.5
     movdn.5
@@ -12382,13 +13296,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.19
-    popw.local.18
+    storew.local.19
+	swapw
+	storew.local.18
 
     # ---
 
-    pushw.local.20
-    pushw.local.21
+    loadw.local.20
+	swapw
+	loadw.local.21
 
     movdn.5
     movdn.5
@@ -12404,13 +13320,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.21
-    popw.local.20
+    storew.local.21
+	swapw
+	storew.local.20
 
     # ---
 
-    pushw.local.22
-    pushw.local.23
+    loadw.local.22
+	swapw
+	loadw.local.23
 
     movdn.5
     movdn.5
@@ -12426,13 +13344,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.23
-    popw.local.22
+    storew.local.23
+	swapw
+	storew.local.22
 
     # ---
 
-    pushw.local.24
-    pushw.local.25
+    loadw.local.24
+	swapw
+	loadw.local.25
 
     movdn.5
     movdn.5
@@ -12448,13 +13368,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.25
-    popw.local.24
+    storew.local.25
+	swapw
+	storew.local.24
 
     # ---
 
-    pushw.local.26
-    pushw.local.27
+    loadw.local.26
+	swapw
+	loadw.local.27
 
     movdn.5
     movdn.5
@@ -12470,13 +13392,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.27
-    popw.local.26
+    storew.local.27
+	swapw
+	storew.local.26
 
     # ---
 
-    pushw.local.28
-    pushw.local.29
+    loadw.local.28
+	swapw
+	loadw.local.29
 
     movdn.5
     movdn.5
@@ -12492,13 +13416,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.29
-    popw.local.28
+    storew.local.29
+	swapw
+	storew.local.28
 
     # ---
 
-    pushw.local.30
-    pushw.local.31
+    loadw.local.30
+	swapw
+	loadw.local.31
 
     movdn.5
     movdn.5
@@ -12514,13 +13440,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.31
-    popw.local.30
+    storew.local.31
+	swapw
+	storew.local.30
 
     # ---
 
-    pushw.local.32
-    pushw.local.33
+    loadw.local.32
+	swapw
+	loadw.local.33
 
     movdn.5
     movdn.5
@@ -12536,13 +13464,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.33
-    popw.local.32
+    storew.local.33
+	swapw
+	storew.local.32
 
     # ---
 
-    pushw.local.34
-    pushw.local.35
+    loadw.local.34
+	swapw
+	loadw.local.35
 
     movdn.5
     movdn.5
@@ -12558,13 +13488,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.35
-    popw.local.34
+    storew.local.35
+	swapw
+	storew.local.34
 
     # ---
 
-    pushw.local.36
-    pushw.local.37
+    loadw.local.36
+	swapw
+	loadw.local.37
 
     movdn.5
     movdn.5
@@ -12580,13 +13512,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.37
-    popw.local.36
+    storew.local.37
+	swapw
+	storew.local.36
 
     # ---
 
-    pushw.local.38
-    pushw.local.39
+    loadw.local.38
+	swapw
+	loadw.local.39
 
     movdn.5
     movdn.5
@@ -12602,13 +13536,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.39
-    popw.local.38
+    storew.local.39
+	swapw
+	storew.local.38
 
     # ---
 
-    pushw.local.40
-    pushw.local.41
+    loadw.local.40
+	swapw
+	loadw.local.41
 
     movdn.5
     movdn.5
@@ -12624,13 +13560,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.41
-    popw.local.40
+    storew.local.41
+	swapw
+	storew.local.40
 
     # ---
 
-    pushw.local.42
-    pushw.local.43
+    loadw.local.42
+	swapw
+	loadw.local.43
 
     movdn.5
     movdn.5
@@ -12646,13 +13584,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.43
-    popw.local.42
+    storew.local.43
+	swapw
+	storew.local.42
 
     # ---
 
-    pushw.local.44
-    pushw.local.45
+    loadw.local.44
+	swapw
+	loadw.local.45
 
     movdn.5
     movdn.5
@@ -12668,13 +13608,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.45
-    popw.local.44
+    storew.local.45
+	swapw
+	storew.local.44
 
     # ---
 
-    pushw.local.46
-    pushw.local.47
+    loadw.local.46
+	swapw
+	loadw.local.47
 
     movdn.5
     movdn.5
@@ -12690,13 +13632,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.47
-    popw.local.46
+    storew.local.47
+	swapw
+	storew.local.46
 
     # ---
 
-    pushw.local.48
-    pushw.local.49
+    loadw.local.48
+	swapw
+	loadw.local.49
 
     movdn.5
     movdn.5
@@ -12712,13 +13656,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.49
-    popw.local.48
+    storew.local.49
+	swapw
+	storew.local.48
 
     # ---
 
-    pushw.local.50
-    pushw.local.51
+    loadw.local.50
+	swapw
+	loadw.local.51
 
     movdn.5
     movdn.5
@@ -12734,13 +13680,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.51
-    popw.local.50
+    storew.local.51
+	swapw
+	storew.local.50
 
     # ---
 
-    pushw.local.52
-    pushw.local.53
+    loadw.local.52
+	swapw
+	loadw.local.53
 
     movdn.5
     movdn.5
@@ -12756,13 +13704,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.53
-    popw.local.52
+    storew.local.53
+	swapw
+	storew.local.52
 
     # ---
 
-    pushw.local.54
-    pushw.local.55
+    loadw.local.54
+	swapw
+	loadw.local.55
 
     movdn.5
     movdn.5
@@ -12778,13 +13728,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.55
-    popw.local.54
+    storew.local.55
+	swapw
+	storew.local.54
 
     # ---
 
-    pushw.local.56
-    pushw.local.57
+    loadw.local.56
+	swapw
+	loadw.local.57
 
     movdn.5
     movdn.5
@@ -12800,13 +13752,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.57
-    popw.local.56
+    storew.local.57
+	swapw
+	storew.local.56
 
     # ---
 
-    pushw.local.58
-    pushw.local.59
+    loadw.local.58
+	swapw
+	loadw.local.59
 
     movdn.5
     movdn.5
@@ -12822,13 +13776,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.59
-    popw.local.58
+    storew.local.59
+	swapw
+	storew.local.58
 
     # ---
 
-    pushw.local.60
-    pushw.local.61
+    loadw.local.60
+	swapw
+	loadw.local.61
 
     movdn.5
     movdn.5
@@ -12844,13 +13800,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.61
-    popw.local.60
+    storew.local.61
+	swapw
+	storew.local.60
 
     # ---
 
-    pushw.local.62
-    pushw.local.63
+    loadw.local.62
+	swapw
+	loadw.local.63
 
     movdn.5
     movdn.5
@@ -12866,13 +13824,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.63
-    popw.local.62
+    storew.local.63
+	swapw
+	storew.local.62
 
     # ---
 
-    pushw.local.64
-    pushw.local.65
+    loadw.local.64
+	swapw
+	loadw.local.65
 
     movdn.5
     movdn.5
@@ -12888,13 +13848,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.65
-    popw.local.64
+    storew.local.65
+	swapw
+	storew.local.64
 
     # ---
 
-    pushw.local.66
-    pushw.local.67
+    loadw.local.66
+	swapw
+	loadw.local.67
 
     movdn.5
     movdn.5
@@ -12910,13 +13872,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.67
-    popw.local.66
+    storew.local.67
+	swapw
+	storew.local.66
 
     # ---
 
-    pushw.local.68
-    pushw.local.69
+    loadw.local.68
+	swapw
+	loadw.local.69
 
     movdn.5
     movdn.5
@@ -12932,13 +13896,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.69
-    popw.local.68
+    storew.local.69
+	swapw
+	storew.local.68
 
     # ---
 
-    pushw.local.70
-    pushw.local.71
+    loadw.local.70
+	swapw
+	loadw.local.71
 
     movdn.5
     movdn.5
@@ -12954,13 +13920,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.71
-    popw.local.70
+    storew.local.71
+	swapw
+	storew.local.70
 
     # ---
 
-    pushw.local.72
-    pushw.local.73
+    loadw.local.72
+	swapw
+	loadw.local.73
 
     movdn.5
     movdn.5
@@ -12976,13 +13944,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.73
-    popw.local.72
+    storew.local.73
+	swapw
+	storew.local.72
 
     # ---
 
-    pushw.local.74
-    pushw.local.75
+    loadw.local.74
+	swapw
+	loadw.local.75
 
     movdn.5
     movdn.5
@@ -12998,13 +13968,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.75
-    popw.local.74
+    storew.local.75
+	swapw
+	storew.local.74
 
     # ---
 
-    pushw.local.76
-    pushw.local.77
+    loadw.local.76
+	swapw
+	loadw.local.77
 
     movdn.5
     movdn.5
@@ -13020,13 +13992,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.77
-    popw.local.76
+    storew.local.77
+	swapw
+	storew.local.76
 
     # ---
 
-    pushw.local.78
-    pushw.local.79
+    loadw.local.78
+	swapw
+	loadw.local.79
 
     movdn.5
     movdn.5
@@ -13042,13 +14016,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.79
-    popw.local.78
+    storew.local.79
+	swapw
+	storew.local.78
 
     # ---
 
-    pushw.local.80
-    pushw.local.81
+    loadw.local.80
+	swapw
+	loadw.local.81
 
     movdn.5
     movdn.5
@@ -13064,13 +14040,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.81
-    popw.local.80
+    storew.local.81
+	swapw
+	storew.local.80
 
     # ---
 
-    pushw.local.82
-    pushw.local.83
+    loadw.local.82
+	swapw
+	loadw.local.83
 
     movdn.5
     movdn.5
@@ -13086,13 +14064,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.83
-    popw.local.82
+    storew.local.83
+	swapw
+	storew.local.82
 
     # ---
 
-    pushw.local.84
-    pushw.local.85
+    loadw.local.84
+	swapw
+	loadw.local.85
 
     movdn.5
     movdn.5
@@ -13108,13 +14088,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.85
-    popw.local.84
+    storew.local.85
+	swapw
+	storew.local.84
 
     # ---
 
-    pushw.local.86
-    pushw.local.87
+    loadw.local.86
+	swapw
+	loadw.local.87
 
     movdn.5
     movdn.5
@@ -13130,13 +14112,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.87
-    popw.local.86
+    storew.local.87
+	swapw
+	storew.local.86
 
     # ---
 
-    pushw.local.88
-    pushw.local.89
+    loadw.local.88
+	swapw
+	loadw.local.89
 
     movdn.5
     movdn.5
@@ -13152,13 +14136,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.89
-    popw.local.88
+    storew.local.89
+	swapw
+	storew.local.88
 
     # ---
 
-    pushw.local.90
-    pushw.local.91
+    loadw.local.90
+	swapw
+	loadw.local.91
 
     movdn.5
     movdn.5
@@ -13174,13 +14160,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.91
-    popw.local.90
+    storew.local.91
+	swapw
+	storew.local.90
 
     # ---
 
-    pushw.local.92
-    pushw.local.93
+    loadw.local.92
+	swapw
+	loadw.local.93
 
     movdn.5
     movdn.5
@@ -13196,13 +14184,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.93
-    popw.local.92
+    storew.local.93
+	swapw
+	storew.local.92
 
     # ---
 
-    pushw.local.94
-    pushw.local.95
+    loadw.local.94
+	swapw
+	loadw.local.95
 
     movdn.5
     movdn.5
@@ -13218,13 +14208,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.95
-    popw.local.94
+    storew.local.95
+	swapw
+	storew.local.94
 
     # ---
 
-    pushw.local.96
-    pushw.local.97
+    loadw.local.96
+	swapw
+	loadw.local.97
 
     movdn.5
     movdn.5
@@ -13240,13 +14232,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.97
-    popw.local.96
+    storew.local.97
+	swapw
+	storew.local.96
 
     # ---
 
-    pushw.local.98
-    pushw.local.99
+    loadw.local.98
+	swapw
+	loadw.local.99
 
     movdn.5
     movdn.5
@@ -13262,13 +14256,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.99
-    popw.local.98
+    storew.local.99
+	swapw
+	storew.local.98
 
     # ---
 
-    pushw.local.100
-    pushw.local.101
+    loadw.local.100
+	swapw
+	loadw.local.101
 
     movdn.5
     movdn.5
@@ -13284,13 +14280,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.101
-    popw.local.100
+    storew.local.101
+	swapw
+	storew.local.100
 
     # ---
 
-    pushw.local.102
-    pushw.local.103
+    loadw.local.102
+	swapw
+	loadw.local.103
 
     movdn.5
     movdn.5
@@ -13306,13 +14304,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.103
-    popw.local.102
+    storew.local.103
+	swapw
+	storew.local.102
 
     # ---
 
-    pushw.local.104
-    pushw.local.105
+    loadw.local.104
+	swapw
+	loadw.local.105
 
     movdn.5
     movdn.5
@@ -13328,13 +14328,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.105
-    popw.local.104
+    storew.local.105
+	swapw
+	storew.local.104
 
     # ---
 
-    pushw.local.106
-    pushw.local.107
+    loadw.local.106
+	swapw
+	loadw.local.107
 
     movdn.5
     movdn.5
@@ -13350,13 +14352,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.107
-    popw.local.106
+    storew.local.107
+	swapw
+	storew.local.106
 
     # ---
 
-    pushw.local.108
-    pushw.local.109
+    loadw.local.108
+	swapw
+	loadw.local.109
 
     movdn.5
     movdn.5
@@ -13372,13 +14376,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.109
-    popw.local.108
+    storew.local.109
+	swapw
+	storew.local.108
 
     # ---
 
-    pushw.local.110
-    pushw.local.111
+    loadw.local.110
+	swapw
+	loadw.local.111
 
     movdn.5
     movdn.5
@@ -13394,13 +14400,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.111
-    popw.local.110
+    storew.local.111
+	swapw
+	storew.local.110
 
     # ---
 
-    pushw.local.112
-    pushw.local.113
+    loadw.local.112
+	swapw
+	loadw.local.113
 
     movdn.5
     movdn.5
@@ -13416,13 +14424,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.113
-    popw.local.112
+    storew.local.113
+	swapw
+	storew.local.112
 
     # ---
 
-    pushw.local.114
-    pushw.local.115
+    loadw.local.114
+	swapw
+	loadw.local.115
 
     movdn.5
     movdn.5
@@ -13438,13 +14448,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.115
-    popw.local.114
+    storew.local.115
+	swapw
+	storew.local.114
 
     # ---
 
-    pushw.local.116
-    pushw.local.117
+    loadw.local.116
+	swapw
+	loadw.local.117
 
     movdn.5
     movdn.5
@@ -13460,13 +14472,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.117
-    popw.local.116
+    storew.local.117
+	swapw
+	storew.local.116
 
     # ---
 
-    pushw.local.118
-    pushw.local.119
+    loadw.local.118
+	swapw
+	loadw.local.119
 
     movdn.5
     movdn.5
@@ -13482,13 +14496,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.119
-    popw.local.118
+    storew.local.119
+	swapw
+	storew.local.118
 
     # ---
 
-    pushw.local.120
-    pushw.local.121
+    loadw.local.120
+	swapw
+	loadw.local.121
 
     movdn.5
     movdn.5
@@ -13504,13 +14520,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.121
-    popw.local.120
+    storew.local.121
+	swapw
+	storew.local.120
 
     # ---
 
-    pushw.local.122
-    pushw.local.123
+    loadw.local.122
+	swapw
+	loadw.local.123
 
     movdn.5
     movdn.5
@@ -13526,13 +14544,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.123
-    popw.local.122
+    storew.local.123
+	swapw
+	storew.local.122
 
     # ---
 
-    pushw.local.124
-    pushw.local.125
+    loadw.local.124
+	swapw
+	loadw.local.125
 
     movdn.5
     movdn.5
@@ -13548,13 +14568,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.125
-    popw.local.124
+    storew.local.125
+	swapw
+	storew.local.124
 
     # ---
 
-    pushw.local.126
-    pushw.local.127
+    loadw.local.126
+	swapw
+	loadw.local.127
 
     movdn.5
     movdn.5
@@ -13570,13 +14592,15 @@ export.forward.128
     movup.7
     movup.7
 
-    popw.local.127
-    popw.local.126
+    storew.local.127
+	swapw
+	storew.local.126
 
     # iter = 8
 
-    pushw.local.0
-    pushw.local.1
+    loadw.local.0
+	swapw
+	loadw.local.1
 
     movup.2
     swap
@@ -13601,13 +14625,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.1
-    popw.local.0
+    storew.local.1
+	swapw
+	storew.local.0
 
     # ---
 
-    pushw.local.2
-    pushw.local.3
+    loadw.local.2
+	swapw
+	loadw.local.3
 
     movup.2
     swap
@@ -13632,13 +14658,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.3
-    popw.local.2
+    storew.local.3
+	swapw
+	storew.local.2
 
     # ---
 
-    pushw.local.4
-    pushw.local.5
+    loadw.local.4
+	swapw
+	loadw.local.5
 
     movup.2
     swap
@@ -13663,13 +14691,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.5
-    popw.local.4
+    storew.local.5
+	swapw
+	storew.local.4
 
     # ---
 
-    pushw.local.6
-    pushw.local.7
+    loadw.local.6
+	swapw
+	loadw.local.7
 
     movup.2
     swap
@@ -13694,13 +14724,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.7
-    popw.local.6
+    storew.local.7
+	swapw
+	storew.local.6
 
     # ---
 
-    pushw.local.8
-    pushw.local.9
+    loadw.local.8
+	swapw
+	loadw.local.9
 
     movup.2
     swap
@@ -13725,13 +14757,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.9
-    popw.local.8
+    storew.local.9
+	swapw
+	storew.local.8
 
     # ---
 
-    pushw.local.10
-    pushw.local.11
+    loadw.local.10
+	swapw
+	loadw.local.11
 
     movup.2
     swap
@@ -13756,13 +14790,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.11
-    popw.local.10
+    storew.local.11
+	swapw
+	storew.local.10
 
     # ---
 
-    pushw.local.12
-    pushw.local.13
+    loadw.local.12
+	swapw
+	loadw.local.13
 
     movup.2
     swap
@@ -13787,13 +14823,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.13
-    popw.local.12
+    storew.local.13
+	swapw
+	storew.local.12
 
     # ---
 
-    pushw.local.14
-    pushw.local.15
+    loadw.local.14
+	swapw
+	loadw.local.15
 
     movup.2
     swap
@@ -13818,13 +14856,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.15
-    popw.local.14
+    storew.local.15
+	swapw
+	storew.local.14
 
     # ---
 
-    pushw.local.16
-    pushw.local.17
+    loadw.local.16
+	swapw
+	loadw.local.17
 
     movup.2
     swap
@@ -13849,13 +14889,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.17
-    popw.local.16
+    storew.local.17
+	swapw
+	storew.local.16
 
     # ---
 
-    pushw.local.18
-    pushw.local.19
+    loadw.local.18
+	swapw
+	loadw.local.19
 
     movup.2
     swap
@@ -13880,13 +14922,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.19
-    popw.local.18
+    storew.local.19
+	swapw
+	storew.local.18
 
     # ---
 
-    pushw.local.20
-    pushw.local.21
+    loadw.local.20
+	swapw
+	loadw.local.21
 
     movup.2
     swap
@@ -13911,13 +14955,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.21
-    popw.local.20
+    storew.local.21
+	swapw
+	storew.local.20
 
     # ---
 
-    pushw.local.22
-    pushw.local.23
+    loadw.local.22
+	swapw
+	loadw.local.23
 
     movup.2
     swap
@@ -13942,13 +14988,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.23
-    popw.local.22
+    storew.local.23
+	swapw
+	storew.local.22
 
     # ---
 
-    pushw.local.24
-    pushw.local.25
+    loadw.local.24
+	swapw
+	loadw.local.25
 
     movup.2
     swap
@@ -13973,13 +15021,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.25
-    popw.local.24
+    storew.local.25
+	swapw
+	storew.local.24
 
     # ---
 
-    pushw.local.26
-    pushw.local.27
+    loadw.local.26
+	swapw
+	loadw.local.27
 
     movup.2
     swap
@@ -14004,13 +15054,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.27
-    popw.local.26
+    storew.local.27
+	swapw
+	storew.local.26
 
     # ---
 
-    pushw.local.28
-    pushw.local.29
+    loadw.local.28
+	swapw
+	loadw.local.29
 
     movup.2
     swap
@@ -14035,13 +15087,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.29
-    popw.local.28
+    storew.local.29
+	swapw
+	storew.local.28
 
     # ---
 
-    pushw.local.30
-    pushw.local.31
+    loadw.local.30
+	swapw
+	loadw.local.31
 
     movup.2
     swap
@@ -14066,13 +15120,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.31
-    popw.local.30
+    storew.local.31
+	swapw
+	storew.local.30
 
     # ---
 
-    pushw.local.32
-    pushw.local.33
+    loadw.local.32
+	swapw
+	loadw.local.33
 
     movup.2
     swap
@@ -14097,13 +15153,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.33
-    popw.local.32
+    storew.local.33
+	swapw
+	storew.local.32
 
     # ---
 
-    pushw.local.34
-    pushw.local.35
+    loadw.local.34
+	swapw
+	loadw.local.35
 
     movup.2
     swap
@@ -14128,13 +15186,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.35
-    popw.local.34
+    storew.local.35
+	swapw
+	storew.local.34
 
     # ---
 
-    pushw.local.36
-    pushw.local.37
+    loadw.local.36
+	swapw
+	loadw.local.37
 
     movup.2
     swap
@@ -14159,13 +15219,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.37
-    popw.local.36
+    storew.local.37
+	swapw
+	storew.local.36
 
     # ---
 
-    pushw.local.38
-    pushw.local.39
+    loadw.local.38
+	swapw
+	loadw.local.39
 
     movup.2
     swap
@@ -14190,13 +15252,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.39
-    popw.local.38
+    storew.local.39
+	swapw
+	storew.local.38
 
     # ---
 
-    pushw.local.40
-    pushw.local.41
+    loadw.local.40
+	swapw
+	loadw.local.41
 
     movup.2
     swap
@@ -14221,13 +15285,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.41
-    popw.local.40
+    storew.local.41
+	swapw
+	storew.local.40
 
     # ---
 
-    pushw.local.42
-    pushw.local.43
+    loadw.local.42
+	swapw
+	loadw.local.43
 
     movup.2
     swap
@@ -14252,13 +15318,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.43
-    popw.local.42
+    storew.local.43
+	swapw
+	storew.local.42
 
     # ---
 
-    pushw.local.44
-    pushw.local.45
+    loadw.local.44
+	swapw
+	loadw.local.45
 
     movup.2
     swap
@@ -14283,13 +15351,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.45
-    popw.local.44
+    storew.local.45
+	swapw
+	storew.local.44
 
     # ---
 
-    pushw.local.46
-    pushw.local.47
+    loadw.local.46
+	swapw
+	loadw.local.47
 
     movup.2
     swap
@@ -14314,13 +15384,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.47
-    popw.local.46
+    storew.local.47
+	swapw
+	storew.local.46
 
     # ---
 
-    pushw.local.48
-    pushw.local.49
+    loadw.local.48
+	swapw
+	loadw.local.49
 
     movup.2
     swap
@@ -14345,13 +15417,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.49
-    popw.local.48
+    storew.local.49
+	swapw
+	storew.local.48
 
     # ---
 
-    pushw.local.50
-    pushw.local.51
+    loadw.local.50
+	swapw
+	loadw.local.51
 
     movup.2
     swap
@@ -14376,13 +15450,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.51
-    popw.local.50
+    storew.local.51
+	swapw
+	storew.local.50
 
     # ---
 
-    pushw.local.52
-    pushw.local.53
+    loadw.local.52
+	swapw
+	loadw.local.53
 
     movup.2
     swap
@@ -14407,13 +15483,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.53
-    popw.local.52
+    storew.local.53
+	swapw
+	storew.local.52
 
     # ---
 
-    pushw.local.54
-    pushw.local.55
+    loadw.local.54
+	swapw
+	loadw.local.55
 
     movup.2
     swap
@@ -14438,13 +15516,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.55
-    popw.local.54
+    storew.local.55
+	swapw
+	storew.local.54
 
     # ---
 
-    pushw.local.56
-    pushw.local.57
+    loadw.local.56
+	swapw
+	loadw.local.57
 
     movup.2
     swap
@@ -14469,13 +15549,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.57
-    popw.local.56
+    storew.local.57
+	swapw
+	storew.local.56
 
     # ---
 
-    pushw.local.58
-    pushw.local.59
+    loadw.local.58
+	swapw
+	loadw.local.59
 
     movup.2
     swap
@@ -14500,13 +15582,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.59
-    popw.local.58
+    storew.local.59
+	swapw
+	storew.local.58
 
     # ---
 
-    pushw.local.60
-    pushw.local.61
+    loadw.local.60
+	swapw
+	loadw.local.61
 
     movup.2
     swap
@@ -14531,13 +15615,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.61
-    popw.local.60
+    storew.local.61
+	swapw
+	storew.local.60
 
     # ---
 
-    pushw.local.62
-    pushw.local.63
+    loadw.local.62
+	swapw
+	loadw.local.63
 
     movup.2
     swap
@@ -14562,13 +15648,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.63
-    popw.local.62
+    storew.local.63
+	swapw
+	storew.local.62
 
     # ---
 
-    pushw.local.64
-    pushw.local.65
+    loadw.local.64
+	swapw
+	loadw.local.65
 
     movup.2
     swap
@@ -14593,13 +15681,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.65
-    popw.local.64
+    storew.local.65
+	swapw
+	storew.local.64
 
     # ---
 
-    pushw.local.66
-    pushw.local.67
+    loadw.local.66
+	swapw
+	loadw.local.67
 
     movup.2
     swap
@@ -14624,13 +15714,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.67
-    popw.local.66
+    storew.local.67
+	swapw
+	storew.local.66
 
     # ---
 
-    pushw.local.68
-    pushw.local.69
+    loadw.local.68
+	swapw
+	loadw.local.69
 
     movup.2
     swap
@@ -14655,13 +15747,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.69
-    popw.local.68
+    storew.local.69
+	swapw
+	storew.local.68
 
     # ---
 
-    pushw.local.70
-    pushw.local.71
+    loadw.local.70
+	swapw
+	loadw.local.71
 
     movup.2
     swap
@@ -14686,13 +15780,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.71
-    popw.local.70
+    storew.local.71
+	swapw
+	storew.local.70
 
     # ---
 
-    pushw.local.72
-    pushw.local.73
+    loadw.local.72
+	swapw
+	loadw.local.73
 
     movup.2
     swap
@@ -14717,13 +15813,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.73
-    popw.local.72
+    storew.local.73
+	swapw
+	storew.local.72
 
     # ---
 
-    pushw.local.74
-    pushw.local.75
+    loadw.local.74
+	swapw
+	loadw.local.75
 
     movup.2
     swap
@@ -14748,13 +15846,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.75
-    popw.local.74
+    storew.local.75
+	swapw
+	storew.local.74
 
     # ---
 
-    pushw.local.76
-    pushw.local.77
+    loadw.local.76
+	swapw
+	loadw.local.77
 
     movup.2
     swap
@@ -14779,13 +15879,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.77
-    popw.local.76
+    storew.local.77
+	swapw
+	storew.local.76
 
     # ---
 
-    pushw.local.78
-    pushw.local.79
+    loadw.local.78
+	swapw
+	loadw.local.79
 
     movup.2
     swap
@@ -14810,13 +15912,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.79
-    popw.local.78
+    storew.local.79
+	swapw
+	storew.local.78
 
     # ---
 
-    pushw.local.80
-    pushw.local.81
+    loadw.local.80
+	swapw
+	loadw.local.81
 
     movup.2
     swap
@@ -14841,13 +15945,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.81
-    popw.local.80
+    storew.local.81
+	swapw
+	storew.local.80
 
     # ---
 
-    pushw.local.82
-    pushw.local.83
+    loadw.local.82
+	swapw
+	loadw.local.83
 
     movup.2
     swap
@@ -14872,13 +15978,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.83
-    popw.local.82
+    storew.local.83
+	swapw
+	storew.local.82
 
     # ---
 
-    pushw.local.84
-    pushw.local.85
+    loadw.local.84
+	swapw
+	loadw.local.85
 
     movup.2
     swap
@@ -14903,13 +16011,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.85
-    popw.local.84
+    storew.local.85
+	swapw
+	storew.local.84
 
     # ---
 
-    pushw.local.86
-    pushw.local.87
+    loadw.local.86
+	swapw
+	loadw.local.87
 
     movup.2
     swap
@@ -14934,13 +16044,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.87
-    popw.local.86
+    storew.local.87
+	swapw
+	storew.local.86
 
     # ---
 
-    pushw.local.88
-    pushw.local.89
+    loadw.local.88
+	swapw
+	loadw.local.89
 
     movup.2
     swap
@@ -14965,13 +16077,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.89
-    popw.local.88
+    storew.local.89
+	swapw
+	storew.local.88
 
     # ---
 
-    pushw.local.90
-    pushw.local.91
+    loadw.local.90
+	swapw
+	loadw.local.91
 
     movup.2
     swap
@@ -14996,13 +16110,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.91
-    popw.local.90
+    storew.local.91
+	swapw
+	storew.local.90
 
     # ---
 
-    pushw.local.92
-    pushw.local.93
+    loadw.local.92
+	swapw
+	loadw.local.93
 
     movup.2
     swap
@@ -15027,13 +16143,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.93
-    popw.local.92
+    storew.local.93
+	swapw
+	storew.local.92
 
     # ---
 
-    pushw.local.94
-    pushw.local.95
+    loadw.local.94
+	swapw
+	loadw.local.95
 
     movup.2
     swap
@@ -15058,13 +16176,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.95
-    popw.local.94
+    storew.local.95
+	swapw
+	storew.local.94
 
     # ---
 
-    pushw.local.96
-    pushw.local.97
+    loadw.local.96
+	swapw
+	loadw.local.97
 
     movup.2
     swap
@@ -15089,13 +16209,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.97
-    popw.local.96
+    storew.local.97
+	swapw
+	storew.local.96
 
     # ---
 
-    pushw.local.98
-    pushw.local.99
+    loadw.local.98
+	swapw
+	loadw.local.99
 
     movup.2
     swap
@@ -15120,13 +16242,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.99
-    popw.local.98
+    storew.local.99
+	swapw
+	storew.local.98
 
     # ---
 
-    pushw.local.100
-    pushw.local.101
+    loadw.local.100
+	swapw
+	loadw.local.101
 
     movup.2
     swap
@@ -15151,13 +16275,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.101
-    popw.local.100
+    storew.local.101
+	swapw
+	storew.local.100
 
     # ---
 
-    pushw.local.102
-    pushw.local.103
+    loadw.local.102
+	swapw
+	loadw.local.103
 
     movup.2
     swap
@@ -15182,13 +16308,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.103
-    popw.local.102
+    storew.local.103
+	swapw
+	storew.local.102
 
     # ---
 
-    pushw.local.104
-    pushw.local.105
+    loadw.local.104
+	swapw
+	loadw.local.105
 
     movup.2
     swap
@@ -15213,13 +16341,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.105
-    popw.local.104
+    storew.local.105
+	swapw
+	storew.local.104
 
     # ---
 
-    pushw.local.106
-    pushw.local.107
+    loadw.local.106
+	swapw
+	loadw.local.107
 
     movup.2
     swap
@@ -15244,13 +16374,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.107
-    popw.local.106
+    storew.local.107
+	swapw
+	storew.local.106
 
     # ---
 
-    pushw.local.108
-    pushw.local.109
+    loadw.local.108
+	swapw
+	loadw.local.109
 
     movup.2
     swap
@@ -15275,13 +16407,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.109
-    popw.local.108
+    storew.local.109
+	swapw
+	storew.local.108
 
     # ---
 
-    pushw.local.110
-    pushw.local.111
+    loadw.local.110
+	swapw
+	loadw.local.111
 
     movup.2
     swap
@@ -15306,13 +16440,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.111
-    popw.local.110
+    storew.local.111
+	swapw
+	storew.local.110
 
     # ---
 
-    pushw.local.112
-    pushw.local.113
+    loadw.local.112
+	swapw
+	loadw.local.113
 
     movup.2
     swap
@@ -15337,13 +16473,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.113
-    popw.local.112
+    storew.local.113
+	swapw
+	storew.local.112
 
     # ---
 
-    pushw.local.114
-    pushw.local.115
+    loadw.local.114
+	swapw
+	loadw.local.115
 
     movup.2
     swap
@@ -15368,13 +16506,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.115
-    popw.local.114
+    storew.local.115
+	swapw
+	storew.local.114
 
     # ---
 
-    pushw.local.116
-    pushw.local.117
+    loadw.local.116
+	swapw
+	loadw.local.117
 
     movup.2
     swap
@@ -15399,13 +16539,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.117
-    popw.local.116
+    storew.local.117
+	swapw
+	storew.local.116
 
     # ---
 
-    pushw.local.118
-    pushw.local.119
+    loadw.local.118
+	swapw
+	loadw.local.119
 
     movup.2
     swap
@@ -15430,13 +16572,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.119
-    popw.local.118
+    storew.local.119
+	swapw
+	storew.local.118
 
     # ---
 
-    pushw.local.120
-    pushw.local.121
+    loadw.local.120
+	swapw
+	loadw.local.121
 
     movup.2
     swap
@@ -15461,13 +16605,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.121
-    popw.local.120
+    storew.local.121
+	swapw
+	storew.local.120
 
     # ---
 
-    pushw.local.122
-    pushw.local.123
+    loadw.local.122
+	swapw
+	loadw.local.123
 
     movup.2
     swap
@@ -15492,13 +16638,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.123
-    popw.local.122
+    storew.local.123
+	swapw
+	storew.local.122
 
     # ---
 
-    pushw.local.124
-    pushw.local.125
+    loadw.local.124
+	swapw
+	loadw.local.125
 
     movup.2
     swap
@@ -15523,13 +16671,15 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.125
-    popw.local.124
+    storew.local.125
+	swapw
+	storew.local.124
 
     # ---
 
-    pushw.local.126
-    pushw.local.127
+    loadw.local.126
+	swapw
+	loadw.local.127
 
     movup.2
     swap
@@ -15554,8 +16704,9 @@ export.forward.128
     movup.6
     movup.7
 
-    popw.local.127
-    popw.local.126
+    storew.local.127
+	swapw
+	storew.local.126
 
     # begin asserting result
 
