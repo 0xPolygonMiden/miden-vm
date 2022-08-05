@@ -1,14 +1,11 @@
-use super::{
-    Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec,
-    HASHER_TRACE_OFFSET,
-};
+use super::{Assertion, EvaluationFrame, Felt, FieldElement, TransitionConstraintDegree, Vec};
 use crate::utils::{are_equal, binary_not, is_binary, EvaluationResult};
-use core::ops::Range;
-use vm_core::{
+use vm_core::chiplets::{
     hasher::{
         Hasher, CAPACITY_LEN, DIGEST_LEN, DIGEST_RANGE, HASH_CYCLE_LEN, NUM_SELECTORS, STATE_WIDTH,
     },
-    utils::range as create_range,
+    HASHER_NODE_INDEX_COL_IDX, HASHER_ROW_COL_IDX, HASHER_SELECTOR_COL_RANGE,
+    HASHER_STATE_COL_RANGE,
 };
 
 #[cfg(test)]
@@ -28,15 +25,6 @@ pub const NUM_PERIODIC_SELECTOR_COLUMNS: usize = 3;
 /// The total number of periodic columns used by the hash processor, which is the sum of the number
 /// of periodic selector columns plus the columns of round constants for the Rescue Hash permutation.
 pub const NUM_PERIODIC_COLUMNS: usize = STATE_WIDTH * 2 + NUM_PERIODIC_SELECTOR_COLUMNS;
-
-/// The column index range in the execution trace containing the selector columns in the hasher.
-const SELECTOR_COL_RANGE: Range<usize> = create_range(HASHER_TRACE_OFFSET, NUM_SELECTORS);
-/// The index of the hasher's row column in the execution trace.
-const ROW_COL_IDX: usize = SELECTOR_COL_RANGE.end;
-/// The range of columns in the execution trace that contain the hasher's state.
-const HASHER_STATE_COL_RANGE: Range<usize> = create_range(ROW_COL_IDX + 1, STATE_WIDTH);
-/// The index of the hasher's node index column in the execution trace.
-const NODE_INDEX_COL_IDX: usize = HASHER_STATE_COL_RANGE.end;
 
 // PERIODIC COLUMNS
 // ================================================================================================
@@ -63,7 +51,7 @@ pub fn get_periodic_column_values() -> Vec<Vec<Felt>> {
 
 /// Returns the boundary assertions for the hash chiplet at the first step.
 pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>) {
-    result.push(Assertion::single(ROW_COL_IDX, 0, Felt::ONE));
+    result.push(Assertion::single(HASHER_ROW_COL_IDX, 0, Felt::ONE));
 }
 
 // HASHER TRANSITION CONSTRAINTS
@@ -454,19 +442,19 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 
     #[inline(always)]
     fn s(&self, idx: usize) -> E {
-        self.current()[SELECTOR_COL_RANGE.start + idx]
+        self.current()[HASHER_SELECTOR_COL_RANGE.start + idx]
     }
     #[inline(always)]
     fn s_next(&self, idx: usize) -> E {
-        self.next()[SELECTOR_COL_RANGE.start + idx]
+        self.next()[HASHER_SELECTOR_COL_RANGE.start + idx]
     }
     #[inline(always)]
     fn row(&self) -> E {
-        self.current()[ROW_COL_IDX]
+        self.current()[HASHER_ROW_COL_IDX]
     }
     #[inline(always)]
     fn row_next(&self) -> E {
-        self.next()[ROW_COL_IDX]
+        self.next()[HASHER_ROW_COL_IDX]
     }
     #[inline(always)]
     fn hash_state(&self) -> &[E] {
@@ -486,11 +474,11 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     }
     #[inline(always)]
     fn i(&self) -> E {
-        self.current()[NODE_INDEX_COL_IDX]
+        self.current()[HASHER_NODE_INDEX_COL_IDX]
     }
     #[inline(always)]
     fn i_next(&self) -> E {
-        self.next()[NODE_INDEX_COL_IDX]
+        self.next()[HASHER_NODE_INDEX_COL_IDX]
     }
 
     // --- Intermediate variables & helpers -------------------------------------------------------

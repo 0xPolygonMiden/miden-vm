@@ -3,12 +3,12 @@ use super::{
     StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
 use vm_core::{
+    chiplets::hasher::DIGEST_LEN,
     code_blocks::get_span_op_group_count,
     decoder::{
         NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS,
         OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
     },
-    hasher::DIGEST_LEN,
     AssemblyOp,
 };
 
@@ -27,7 +27,7 @@ mod tests;
 // CONSTANTS
 // ================================================================================================
 
-const HASH_CYCLE_LEN: Felt = Felt::new(vm_core::hasher::HASH_CYCLE_LEN as u64);
+const HASH_CYCLE_LEN: Felt = Felt::new(vm_core::chiplets::hasher::HASH_CYCLE_LEN as u64);
 
 // DECODER PROCESS EXTENSION
 // ================================================================================================
@@ -43,10 +43,9 @@ impl Process {
         // row addr + 7.
         let child1_hash = block.first().hash().into();
         let child2_hash = block.second().hash().into();
-        let (addr, _result) = self.chiplets.merge(child1_hash, child2_hash);
-
-        // make sure the result computed by the hasher is the same as the expected block hash
-        debug_assert_eq!(block.hash(), _result.into());
+        let addr = self
+            .chiplets
+            .hash_control_block(child1_hash, child2_hash, block.hash());
 
         // start decoding the JOIN block; this appends a row with JOIN operation to the decoder
         // trace. when JOIN operation is executed, the rest of the VM state does not change
@@ -59,6 +58,10 @@ impl Process {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(block.hash().into());
+
+        // send the end of control block to the chiplets bus to handle the final hash request.
+        self.chiplets.read_hash_result();
+
         self.execute_op(Operation::Noop)
     }
 
@@ -75,10 +78,9 @@ impl Process {
         // row addr + 7.
         let child1_hash = block.on_true().hash().into();
         let child2_hash = block.on_false().hash().into();
-        let (addr, _result) = self.chiplets.merge(child1_hash, child2_hash);
-
-        // make sure the result computed by the hasher is the same as the expected block hash
-        debug_assert_eq!(block.hash(), _result.into());
+        let addr = self
+            .chiplets
+            .hash_control_block(child1_hash, child2_hash, block.hash());
 
         // start decoding the SPLIT block. this appends a row with SPLIT operation to the decoder
         // trace. we also pop the value off the top of the stack and return it.
@@ -93,6 +95,10 @@ impl Process {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(block.hash().into());
+
+        // send the end of control block to the chiplets bus to handle the final hash request.
+        self.chiplets.read_hash_result();
+
         self.execute_op(Operation::Noop)
     }
 
@@ -109,10 +115,9 @@ impl Process {
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
         let body_hash = block.body().hash().into();
-        let (addr, _result) = self.chiplets.merge(body_hash, [ZERO; 4]);
-
-        // make sure the result computed by the hasher is the same as the expected block hash
-        debug_assert_eq!(block.hash(), _result.into());
+        let addr = self
+            .chiplets
+            .hash_control_block(body_hash, [ZERO; 4], block.hash());
 
         // start decoding the LOOP block; this appends a row with LOOP operation to the decoder
         // trace, but if the value on the top of the stack is not ONE, the block is not marked
@@ -133,6 +138,9 @@ impl Process {
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace.
         self.decoder.end_control_block(block.hash().into());
+
+        // send the end of control block to the chiplets bus to handle the final hash request.
+        self.chiplets.read_hash_result();
 
         // if we are exiting a loop, we also need to pop the top value off the stack (and this
         // value must be ZERO - otherwise, we should have stayed in the loop). but, if we never
@@ -162,10 +170,9 @@ impl Process {
         // addr + (num_batches * 8) - 1.
         let op_batches = block.op_batches();
         let num_op_groups = get_span_op_group_count(op_batches);
-        let (addr, _result) = self.chiplets.hash_span_block(op_batches, num_op_groups);
-
-        // make sure the result computed by the hasher is the same as the expected block hash
-        debug_assert_eq!(block.hash(), _result.into());
+        let addr = self
+            .chiplets
+            .hash_span_block(op_batches, num_op_groups, block.hash());
 
         // start decoding the first operation batch; this also appends a row with SPAN operation
         // to the decoder trace. we also need the total number of operation groups so that we can
@@ -175,11 +182,23 @@ impl Process {
         self.execute_op(Operation::Noop)
     }
 
+    /// Continues decoding a SPAN block by absorbing the next batch of operations.
+    pub(super) fn respan(&mut self, op_batch: &OpBatch) {
+        self.decoder.respan(op_batch);
+
+        // send a request to the chiplets to continue the hash and absorb new elements.
+        self.chiplets.absorb_span_batch();
+    }
+
     /// Ends decoding a SPAN block.
     pub(super) fn end_span_block(&mut self, block: &Span) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_span(block.hash().into());
+
+        // send the end of control block to the chiplets bus to handle the final hash request.
+        self.chiplets.read_hash_result();
+
         self.execute_op(Operation::Noop)
     }
 }
@@ -193,11 +212,10 @@ impl Process {
 /// of the executed program, as well as building an execution trace for these computations.
 ///
 /// ## Execution trace
-/// Decoder execution trace currently consists of 19 columns as illustrated below (this will
-/// be increased to 24 columns in the future):
+/// Decoder execution trace currently consists of 23 columns as illustrated below:
 ///
-///  addr b0 b1 b2 b3 b4 b5 b6 h0 h1 h2 h3 h4 h5 h6 h7 in_span g_count op_idx c0 c1 c2
-/// ├────┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴───────┴───────┴──────┴──┴──┴──┤
+///  addr b0 b1 b2 b3 b4 b5 b6 h0 h1 h2 h3 h4 h5 h6 h7 in_span g_count op_idx c0 c1 c2 be
+/// ├────┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴───────┴───────┴──────┴──┴──┴──┴──┤
 ///
 /// In the above, the meaning of the columns is as follows:
 /// * addr column contains address of the hasher for the current block (row index from the
@@ -224,11 +242,13 @@ impl Process {
 /// * Operation batch flag columns c0, c1, c2 which indicate how many operation groups are in
 ///   a given operation batch. These flags are set only for SPAN or RESPAN operations, and are
 ///   set to ZEROs otherwise.
+/// * Operation bit extra column `be` which is used to reduce the degree of op flags for
+///   operations where the two most significant bits are ONE.
 ///
 /// In addition to the execution trace, the decoder also contains the following:
 /// - A set of hints used in construction of decoder-related columns in auxiliary trace segment.
 /// - An instance of [DebugInfo] which is only populated in debug mode. This debug_info instance
-///   includes operations executed by the VM and AsmOp decorators. AsmOp decorators are popoulated
+///   includes operations executed by the VM and AsmOp decorators. AsmOp decorators are populated
 ///   only when both the processor and assembler are in debug mode.
 pub struct Decoder {
     block_stack: BlockStack,

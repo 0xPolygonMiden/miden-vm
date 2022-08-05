@@ -10,7 +10,7 @@ For instructions where one or more operands can be provided as immediate paramet
 | Instruction      | Stack_input | Stack_output  | Notes                         |
 | ---------------- | ----------- | ------------- | ----------------------------- |
 | assert           | [a, ...]    | [...]         | If $a = 1$, removes it from the stack. <br> Fails if $a \ne 1$ |
-| assert.eq        | [b, a, ...] | [...]         | If $a = b$, removes them from the stack. <br> Fails if $a \ne b$ |
+| assert_eq        | [b, a, ...] | [...]         | If $a = b$, removes them from the stack. <br> Fails if $a \ne b$ |
 
 ### Arithmetic and Boolean operations
 

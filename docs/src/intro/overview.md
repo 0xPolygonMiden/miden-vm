@@ -3,10 +3,10 @@ Miden VM is a stack machine. The base data type of the MV is a field element in 
 
 Miden VM consists of three high-level components as illustrated below.
 
-![](https://hackmd.io/_uploads/SyERLVphK.png)
+![](../assets/intro/vm_components.png)
 
 These components are:
-* **Stack** which is a push-down stack where each item is a field element. Most assembly instructions operate with values located on the stack. The stack can grow up to $2^{16}$ items deep, however, only the top 16 items are directly accessible.
+* **Stack** which is a push-down stack where each item is a field element. Most assembly instructions operate with values located on the stack. The stack can grow up to $2^{32}$ items deep, however, only the top 16 items are directly accessible.
 * **Memory** which is a linear random-access read-write memory. The memory is word-addressable, meaning, four elements are located at each address, and we can read and write elements to/from memory in batches of four. Memory addresses can be in the range $[0, 2^{32})$.
 * **Advice provider** which is a way for the prover to provide nondeterministic inputs to the VM. The advice provider contains a single *advice tape* and unlimited number of *advice sets*. The latter contain structured data which can be interpreted as a set of Merkle paths.
 
@@ -27,9 +27,14 @@ After a program finishes executing up to 16 elements can remain on the stack. Th
 
 Having only 16 elements to describe public inputs and outputs of a program may seem limiting, however, just 4 elements are sufficient to represent a root of a Merkle tree which can be expanded into an arbitrary number of values.
 
-For example, if we wanted to provide a thousand public input values to the VM, we could put these values into a Merkle tree, initialize the stack with the root of this tree, initialize the advice provider with the tree itself, and then retrieve values from the tree during program execution using `mtree.get` instruction (described [here](../user_docs/assembly/cryptographic_operations.md#hashing-and-merkle-trees)).
+For example, if we wanted to provide a thousand public input values to the VM, we could put these values into a Merkle tree, initialize the stack with the root of this tree, initialize the advice provider with the tree itself, and then retrieve values from the tree during program execution using `mtree_get` instruction (described [here](../user_docs/assembly/cryptographic_operations.md#hashing-and-merkle-trees)).
 
 In the future, other ways of providing public inputs and reading public outputs (e.g., storage commitments) may be added to the VM.
+
+### Stack depth restrictions
+For reasons explained [here](../design/stack/main.md), the VM imposes the following restrictions on stack depth:
+1. Stack depth cannot be smaller than $16$. When initializing a program with fewer than $16$ inputs, the VM will pad the stack with zeros to ensure the depth is $16$ at the beginning of execution. If an operation would result in the stack depth dropping below $16$, the VM will insert a zero at the deep end of the stack to make sure the depth stays at $16$.
+2. At the end of program execution, stack depth cannot be greater than $16$. If ensuring this manually is difficult, [finalize_stack](../user_docs/stdlib/sys.md) procedure can be called at the end of program execution. This procedure will remove items deep in the stack while keeping the top $16$ items untouched.
 
 ### Nondeterministic inputs
 The *advice provider* component is responsible for supplying nondeterministic inputs to the VM. These inputs only need to be known to the prover (i.e., they do not need to be shared with the verifier).

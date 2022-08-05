@@ -32,7 +32,7 @@ pub const NUM_RAND_ROWS: usize = 1;
 // TYPE ALIASES
 // ================================================================================================
 
-type RandomCoin = vm_core::utils::RandomCoin<Felt, vm_core::hasher::Hasher>;
+type RandomCoin = vm_core::utils::RandomCoin<Felt, vm_core::chiplets::hasher::Hasher>;
 
 // VM EXECUTION TRACE
 // ================================================================================================

@@ -1,5 +1,5 @@
-use super::{Felt, FieldElement, HasherState, Selectors, TraceFragment, Vec, TRACE_WIDTH};
-use vm_core::hasher::{apply_round, NUM_ROUNDS, STATE_WIDTH};
+use super::{Felt, HasherState, Selectors, TraceFragment, Vec, STATE_WIDTH, TRACE_WIDTH, ZERO};
+use vm_core::chiplets::hasher::{apply_round, NUM_ROUNDS};
 
 // HASHER TRACE
 // ================================================================================================
@@ -66,7 +66,7 @@ impl HasherTrace {
         // - the last two selectors are carried over from row to row; the first selector is set
         //   to ZERO.
         // - hasher state is updated by applying a single round of the hash function for every row.
-        let next_selectors = [Felt::ZERO, init_selectors[1], init_selectors[2]];
+        let next_selectors = [ZERO, init_selectors[1], init_selectors[2]];
         for i in 0..NUM_ROUNDS - 1 {
             apply_round(state, i);
             self.append_row(next_selectors, state, rest_index);
@@ -88,13 +88,7 @@ impl HasherTrace {
         init_selectors: Selectors,
         final_selectors: Selectors,
     ) {
-        self.append_permutation_with_index(
-            state,
-            init_selectors,
-            final_selectors,
-            Felt::ZERO,
-            Felt::ZERO,
-        );
+        self.append_permutation_with_index(state, init_selectors, final_selectors, ZERO, ZERO);
     }
 
     /// Appends a new row to the execution trace based on the supplied parameters.

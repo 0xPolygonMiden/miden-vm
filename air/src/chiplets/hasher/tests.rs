@@ -1,10 +1,10 @@
 use super::{
-    enforce_constraints, Hasher, HASHER_STATE_COL_RANGE, NODE_INDEX_COL_IDX, NUM_CONSTRAINTS,
-    ROW_COL_IDX, SELECTOR_COL_RANGE,
+    enforce_constraints, Hasher, HASHER_NODE_INDEX_COL_IDX, HASHER_ROW_COL_IDX,
+    HASHER_SELECTOR_COL_RANGE, HASHER_STATE_COL_RANGE, NUM_CONSTRAINTS,
 };
 use rand_utils::rand_array;
 use vm_core::{
-    hasher::{apply_round, Selectors, LINEAR_HASH, STATE_WIDTH},
+    chiplets::hasher::{apply_round, Selectors, LINEAR_HASH, STATE_WIDTH},
     Felt, FieldElement, TRACE_WIDTH,
 };
 use winter_air::EvaluationFrame;
@@ -74,12 +74,12 @@ fn get_test_hashing_frame(
     let mut next = vec![Felt::ZERO; TRACE_WIDTH];
 
     // Set the selectors for the hash operation.
-    current[SELECTOR_COL_RANGE].copy_from_slice(&current_selectors);
-    next[SELECTOR_COL_RANGE].copy_from_slice(&next_selectors);
+    current[HASHER_SELECTOR_COL_RANGE].copy_from_slice(&current_selectors);
+    next[HASHER_SELECTOR_COL_RANGE].copy_from_slice(&next_selectors);
 
     // add the row values
-    current[ROW_COL_IDX] = Felt::new(cycle_row_num as u64);
-    next[ROW_COL_IDX] = Felt::new(cycle_row_num as u64 + 1);
+    current[HASHER_ROW_COL_IDX] = Felt::new(cycle_row_num as u64);
+    next[HASHER_ROW_COL_IDX] = Felt::new(cycle_row_num as u64 + 1);
 
     // Set the starting hasher state.
     let mut state = rand_array();
@@ -90,8 +90,8 @@ fn get_test_hashing_frame(
     next[HASHER_STATE_COL_RANGE].copy_from_slice(&state);
 
     // Set the node index values to zero for hash computations.
-    current[NODE_INDEX_COL_IDX] = Felt::ZERO;
-    next[NODE_INDEX_COL_IDX] = Felt::ZERO;
+    current[HASHER_NODE_INDEX_COL_IDX] = Felt::ZERO;
+    next[HASHER_NODE_INDEX_COL_IDX] = Felt::ZERO;
 
     EvaluationFrame::from_rows(current, next)
 }

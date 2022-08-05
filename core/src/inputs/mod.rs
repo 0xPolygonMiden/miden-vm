@@ -1,6 +1,6 @@
 use super::{
+    chiplets::hasher,
     errors::{AdviceSetError, InputError},
-    hasher,
     utils::IntoBytes,
     Felt, FieldElement, Word, MIN_STACK_DEPTH,
 };
@@ -39,6 +39,10 @@ impl ProgramInputs {
     // --------------------------------------------------------------------------------------------
     /// Returns [ProgramInputs] instantiated with the specified initial stack values, advice tape
     /// values, and advice sets.
+    ///
+    /// The initial stack values are put onto the stack in the order as if they were pushed onto
+    /// the stack one by one. The result of this is that the last value in the `stack_init` slice
+    /// will end up at the top of the stack.
     ///
     /// # Errors
     /// Returns an error if:

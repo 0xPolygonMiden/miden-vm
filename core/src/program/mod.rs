@@ -1,5 +1,5 @@
 use super::{
-    hasher::{self, Digest},
+    chiplets::hasher::{self, Digest},
     utils::{collections::Vec, Box},
     Felt, FieldElement, Operation,
 };

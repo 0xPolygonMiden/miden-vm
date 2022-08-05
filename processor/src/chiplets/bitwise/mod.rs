@@ -200,8 +200,8 @@ impl Bitwise {
     pub fn fill_trace(
         self,
         trace: &mut TraceFragment,
-        bitwise_start_row: usize,
         chiplets_bus: &mut ChipletsBus,
+        bitwise_start_row: usize,
     ) {
         // make sure fragment dimensions are consistent with the dimensions of this trace
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
