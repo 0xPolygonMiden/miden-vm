@@ -1,78 +1,83 @@
 # Miden VM
+This crate aggregates all components of Miden VM in a single place. Specifically, it re-exports functionality from [processor](../processor/), [prover](../prover/), and [verifier](../verifier/) crates. Additionally, when compiled as an executable, this crate can be used via a [CLI interface](#cli-interface) to execute Miden VM programs and to verify correctness of their execution.
 
-> This documentation has some deprecated snippets, this means that should be use just as reference to study purpose. It'll be rewritten in a near future.
+## Basic concepts
+An in-depth description of Miden VM is available in the full Miden VM [documentation](https://maticnetwork.github.io/miden/). In this section we cover only the basics to make the included examples easier to understand.
 
-This crate contains an implementation of Miden VM. It can be used to execute Miden VM programs and to verify correctness of program execution.
+### Writing programs
+Our goal is to make Miden VM an easy compilation target for high-level blockchain-centric languages such as Solidity, Move, Sway, and others. We believe it is important to let people write programs in the languages of their choice. However, compilers to help with this have not been developed yet. Thus, for now, the primary way to write programs for Miden VM is to use [Miden assembly](../assembly).
 
-## Overview
-Miden VM is a simple [stack machine](https://en.wikipedia.org/wiki/Stack_machine). This means all values live on the stack and all operations work with values near the top of the stack. 
+Miden assembler compiles assembly source code in a [program MAST](https://maticnetwork.github.io/miden/design/programs.html), which is represented by a `Program` struct. It is possible to construct a `Program` struct manually, but we don't recommend this approach because it is tedious, error-prone, and requires an in-depth understanding of VM internals. All examples throughout these docs use assembly syntax.
 
-### The stack
-Currently, Miden VM stack can be up to 32 items deep (this limit will be removed in the future). However, the more stack space a program uses, the longer it will take to execute, and the larger the execution proof will be. So, it pays to use stack space judiciously.
-
-Values on the stack are elements of a [prime field](https://en.wikipedia.org/wiki/Finite_field) with modulus `340282366920938463463374557953744961537` (which can also be written as 2<sup>128</sup> - 45 * 2<sup>40</sup> + 1). This means that all valid values are in the range between `0` and `340282366920938463463374557953744961536` - this covers almost all 128-bit integers.   
-
-All arithmetic operations (e.g., addition, multiplication) happen in the same prime field. This means that overflow happens after a value reaches field modulus. So, for example: `340282366920938463463374557953744961536 + 1 = 0`.
-
-Besides being field elements, values in Miden VM are untyped. However, some operations expect binary values and will fail if you attempt to execute them using non-binary values. Binary values are values which are either `0` or `1`.
-
-### Programs
-Programs in Miden VM are structured as an [execution graph (deprecated documentation)](/../main/core/doc/programs.md) of program blocks each consisting of a sequence of VM [instructions (deprecated documentation)](/../main/core/doc/isa.md). There are two ways of constructing such a graph:
-
-1. You can manually build it from blocks of raw Miden VM instructions.
-2. You can compile [Miden assembly](../assembly) source code into it.
-
-The latter approach is strongly encouraged because building programs from raw Miden VM instructions is tedious, error-prone, and requires an in-depth understanding of VM internals. All examples throughout these docs use assembly syntax.
+#### Program hash
+All Miden programs can be reduced to a single 32-byte value, called program hash. Once a `Program` object is constructed, you can access this hash via `Program::hash()` method. This hash value is used by a verifier when they verify program execution. This ensure that the verifier verifies execution of a specific program (e.g. a program which the prover had committed to previously). The methodology for computing program hash is described [here](https://maticnetwork.github.io/miden/design/programs.html#program-hash-computation).
 
 ### Inputs / outputs
 Currently, there are 3 ways to get values onto the stack:
 
-1. You can use `push` operations to push values onto the stack. These values become a part of the program itself, and, therefore, cannot be changed between program executions. You can think of them as constants.
-2. You can initialize the stack with a set of public inputs as described [here](#program-inputs). Because these inputs are public, they must be shared with a verifier for them to verify program execution.
-3. You can provide unlimited number of secret inputs via input tapes `A` and `B`. Similar to public inputs, these tapes are defined as a part of [program inputs](#program-inputs). To move secret inputs onto the stack, you'll need to use `read` operations.
+1. You can use `push` instruction to push values onto the stack. These values become a part of the program itself, and, therefore, cannot be changed between program executions. You can think of them as constants.
+2. The stack can be initialized to some set of values at the beginning of the program. These inputs are public and must be shared with the verifier for them to verify a proof of the correct execution of a Miden program. The number of elements at the top of the stack which can receive initial value is limited to 16.
+3. The program may request nondeterministic advice inputs from the prover. These inputs are secret inputs. This means that the prover does not need to share them with the verifier. There are two types of advice inputs: (1) a single advice tape which can contain any number of elements and (2) a list of advice sets, which are used to provide nondeterministic inputs for instructions which work with Merkle trees. There are no restrictions on the number of advice inputs a program can request.
 
-Values remaining on the stack after a program is executed can be returned as program outputs. You can specify exactly how many values (from the top of the stack) should be returned. Currently, the number of outputs is limited to 8. A way to return a large number of values (hundreds or thousands) is not yet available, but will be provided in the future.
+Stack and advice inputs are provided to Miden VM via `ProgramInputs` struct. To instantiate this struct, you can use `ProgramInputs::new()` constructor, as well as `ProgramInputs::from_stack_inputs()` and `ProgramInputs:none()` convenience constructors.
 
-### Memory
-Currently, Miden VM has no random access memory - all values live on the stack. However, a memory module will be added in the future to enable saving values to and reading values from RAM.
+Values remaining on the stack after a program is executed can be returned as program outputs. You can specify exactly how many values (from the top of the stack) should be returned. Currently, the number of outputs is limited to 16.
 
-### Program hash
-All Miden programs can be reduced to a single 32-byte value, called program hash. Once a `Program` object is constructed (e.g. by compiling assembly code), you can access this hash via `Program::hash()` method. This hash value is used by a verifier when they verify program execution. This ensure that the verifier verifies execution of a specific program (e.g. a program which the prover had committed to previously). The methodology for computing program hash is described [here (deprecated documentation)](/../main/core/doc/programs.md#Program-hash).
+Having only 16 elements to describe public inputs and outputs of a program may seem limiting, however, just 4 elements are sufficient to represent a root of a Merkle tree or a sequential hash of elements. Both of these can be expanded into an arbitrary number of values by supplying the actual values nondeterministically via the advice provider.
 
 ## Usage
-Miden crate exposes `prove()` and `verify()` functions which can be used to execute programs and verify their execution. Both are explained below, but you can also take a look at several working examples [here](src/examples) and find instructions for running them via cli [here](#examples).
+Miden crate exposes several functions which can be used to execute programs, generate proofs of their correct execution, and verify the generated proofs. How to do this is explained below, but you can also take a look at working examples [here](examples) and find instructions for running them via CLI [here](#fibonacci-example).
 
-### Executing a program 
-To execute a program on Miden VM, you can use `execute()` function. The function takes the following parameters:
+### Executing programs
+To execute a program on Miden VM, you can use either `execute()` or `execute_iter()` functions. Both of these functions take the same arguments:
 
-* `program: &Program` - the program to be executed. A program can be constructed manually by building a program execution graph, or compiled from Miden assembly (see [here](#Writing-programs)).
-* `inputs: &ProgramInputs` - inputs for the program. These include public inputs used to initialize the stack, as well as secret inputs consumed during program execution (see [here](#Program-inputs)).
-* `num_outputs: usize` - number of items on the stack to be returned as program output. Currently, at most 8 outputs can be returned.
+* `program: &Program` - a reference to a Miden program to be executed.
+* `inputs: &ProgramInputs` - a reference to a set of public and secret inputs with which to execute the program.
+
+The `execute()` function returns a `Result<ExecutionTrace, ExecutionError>` which will contain the execution trace of the program if the execution was successful, or and error, if the execution failed. You can inspect the trace to get the final state of the VM out of it, but generally, this trace is intended to be used internally by the prover during proof generation process.
+
+For example:
+```Rust
+use miden::{Assembler, ProgramInputs};
+
+// instantiate the assembler
+let assembler = Assembler::default();
+
+// compile Miden assembly source code into a program
+let program = assembler.compile("begin push.3 push.5 add end").unwrap();
+
+// execute the program with no inputs
+let trace = miden::execute(&program, &ProgramInputs::none()).unwrap();
+```
+
+The `execute_iter()` function returns a `VmStateIterator` which can be used to iterate over the cycles of the executed program for debug purposes. In fact, when we execute a program using this function, a lot of the debug information is retained and we can get a precise picture of the VM's state at any cycle. Moreover, if the execution results in an error, the `VmStateIterator` can still be used to inspect VM states right up to the cycle at which the error occurred.
+
+### Proving program execution
+To execute a program on Miden VM and generate a proof that the program was executed correctly, you can use the `prove()` function. This function takes the following arguments:
+
+* `program: &Program` - a reference to a Miden program to be executed.
+* `inputs: &ProgramInputs` - a reference to a set of public and secret inputs with which to execute the program.
+* `num_stack_outputs: usize` - number of items on the stack to be returned as program output.
 * `options: &ProofOptions` - config parameters for proof generation. The default options target 96-bit security level.
 
 If the program is executed successfully, the function returns a tuple with 2 elements:
 
-* `outputs: Vec<u128>` - the outputs generated by the program. The number of elements in the vector will be equal to the `num_outputs` parameter.
+* `outputs: Vec<u64>` - the outputs generated by the program. The number of elements in the vector will be equal to the `num_stack_outputs` parameter.
 * `proof: StarkProof` - proof of program execution. `StarkProof` can be easily serialized and deserialized using `to_bytes()` and `from_bytes()` functions respectively.
 
-#### Program inputs
-To provide inputs for a program, you must create a `ProgramInputs` object which can contain the following:
-
-* A list of public inputs which will be used to initialize the stack. Currently, at most 8 public inputs can be provided.
-* Two lists of secret inputs. These lists can be thought of as tapes `A` and `B`. You can use `read` operations to read values from these tapes and push them onto the stack.
-
-Besides the `ProgramInputs::new()` function, you can also use `ProgramInputs::from_public()` and `ProgramInputs:none()` convenience functions to construct the inputs object.
-
-#### Program execution example
+#### Proof generation example
 Here is a simple example of executing a program which pushes two numbers onto the stack and computes their sum:
 ```Rust
-use miden::{assembly, ProgramInputs, ProofOptions};
+use miden::{Assembler, ProgramInputs, ProofOptions};
+
+// instantiate the assembler
+let assembler = Assembler::default();
 
 // this is our program, we compile it from assembly code
-let program = assembly::compile("begin push.3 push.5 add end").unwrap();
+let program = assembler.compile("begin push.3 push.5 add end").unwrap();
 
-// let's execute it
-let (outputs, proof) = miden::execute(
+// let's execute it and generate a STARK proof
+let (outputs, proof) = miden::prove(
     &program,
     &ProgramInputs::none(),   // we won't provide any inputs
     1,                        // we'll return one item from the stack
@@ -85,22 +90,24 @@ assert_eq!(vec![8], outputs);
 ```
 
 ### Verifying program execution
-To verify program execution, you can use `verify()` function. The function takes the following parameters:
+To verify program execution, you can use the `verify()` function. The function takes the following parameters:
 
-* `program_hash: &[u8; 32]` - an array of 32 bytes representing a hash of the program to be verified.
-* `public_inputs: &[u128]` - a list of public inputs against which the program was executed.
-* `outputs: &[u128]` - a list of outputs generated by the program.
-* `proof: &StarkProof` - the proof generated during program execution.
+* `program_hash: Digest` - a hash of the program to be verified (represented as a 32-byte digest).
+* `stack_inputs: &[u64]` - a list of values with the stack was initialized prior to a program's execution.
+* `stack_outputs: &[u64]` - a list of values returned from the stack after a program's execution completes.
+* `proof: StarkProof` - the proof generated during program execution.
 
-The function returns `Result<(), VerifierError>` which will be `Ok(())` if verification passes, or `Err(VerifierError)` if verification fails, with `VerifierError` describing the reason for the failure.
+Stack inputs are expected to be ordered as if they would be pushed onto the stack one by one. Thus, their expected order on the stack will be the reverse of the order in which they are provided, and the last value in the `stack_inputs` slice is expected to be the value at the top of the stack.
 
-Verifying execution proof of a program basically means the following:
+Stack outputs are expected to be ordered as if they would be popped off the stack one by one. Thus, the value at the top of the stack is expected to be in the first position of the `stack_outputs` slice, and the order of the rest of the output elements will also match the order on the stack. This the reverse of order of `stack_inputs` slice.
+
+The function returns `Result<(), VerificationError>` which will be `Ok(())` if verification passes, or `Err(VerificationError)` if verification fails, with `VerificationError` describing the reason for the failure.
 
 > If a program with the provided hash is executed against some secret inputs and the provided public inputs, it will produce the provided outputs.
 
 Notice how the verifier needs to know only the hash of the program - not what the actual program was.
 
-#### Verifying execution example
+#### Proof verification example
 Here is a simple example of verifying execution of the program from the previous example:
 ```Rust
 use miden;
@@ -109,7 +116,7 @@ let program =   /* value from previous example */;
 let proof =     /* value from previous example */;
 
 // let's verify program execution
-match miden::verify(*program.hash(), &[], &[8], proof) {
+match miden::verify(program.hash(), &[], &[8], proof) {
     Ok(_) => println!("Execution verified!"),
     Err(msg) => println!("Something went terribly wrong: {}", msg),
 }
@@ -122,41 +129,39 @@ Let's write a simple program for Miden VM (using [Miden assembly](../assembly). 
 push.0      // stack state: 0
 push.1      // stack state: 1 0
 swap        // stack state: 0 1
-dup.2       // stack state: 0 1 0 1
-drop        // stack state: 1 0 1
+dup.1       // stack state: 1 0 1
 add         // stack state: 1 1
 swap        // stack state: 1 1
-dup.2       // stack state: 1 1 1 1
-drop        // stack state: 1 1 1
+dup.1       // stack state: 1 1 1
 add         // stack state: 2 1
 swap        // stack state: 1 2
-dup.2       // stack state: 1 2 1 2
-drop        // stack state: 2 1 2
+dup.1       // stack state: 2 1 2
 add         // stack state: 3 2
 ```
-Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.2 drop add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would like like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/src/fibonacci.rs)):
+Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would like like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/src/fibonacci.rs)):
 ```Rust
-use miden::{assembly, ProgramInputs, ProofOptions};
+use miden::{Assembler, ProgramInputs, ProofOptions};
 
 // set the number of terms to compute
 let n = 50;
 
-// build the program
-let mut source = format!("
+// instantiate the default assembler and compile the program
+let source = format!(
+    "
     begin 
         repeat.{}
-            swap dup.2 drop add
+            swap dup.1 add
         end
     end",
     n - 1
 );
-let program = assembly::compile(&source).unwrap();
+let program = Assembler::default().compile(&source).unwrap();
 
 // initialize the stack with values 0 and 1
-let inputs = ProgramInputs::from_public(&[1, 0]);
+let inputs = ProgramInputs::from_stack_inputs(&[0, 1]).unwrap();
 
 // execute the program
-let (outputs, proof) = miden::execute(
+let (outputs, proof) = miden::prove(
     &program,
     &inputs,
     1,                        // top stack item is the output
@@ -169,102 +174,65 @@ assert_eq!(vec![12586269025], outputs);
 ```
 Above, we used public inputs to initialize the stack rather than using `push` operations. This makes the program a bit simpler, and also allows us to run the program from arbitrary starting points without changing program hash.
 
-This program is rather efficient: the stack never gets more than 4 items deep. For some benchmarks of executing this program on the VM see [here](../README.md#Performance).
+## CLI interface
+If you want to execute, prove, and verify programs on Miden VM, but don't want to write Rust code, you can use Miden CLI. It also contains a number of useful tools to help analyze and debug programs.
+
+### Compiling Miden VM
+First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.62** or greater.
+
+Then, to compile Miden VM into a binary, run the following command:
+```
+cargo build --release --features executable
+```
+This will place `miden` executable in the `./target/release` directory.
+
+By default, the executable will be compiled in the single-threaded mode. If you would like to enable multi-threaded proof generation, you can compile Miden VM using the following command:
+```
+cargo build --release --features "executable concurrent"
+```
+
+### Running Miden VM
+Once the executable has been compiled, you can run Miden VM like so:
+```
+./target/release/miden [subcommand] [parameters]
+```
+Currently, Miden VM can be executed with the following subcommands:
+* `run` - this will execute a Miden assembly program and output the result, but will not generate a proof of execution.
+* `prove` - this will execute a Miden assembly program, and will also generate a STARK proof of execution.
+* `verify` - this will verify a previously generated proof of execution for a given program.
+* `compile` - this will compile a Miden assembly program and outputs stats about the compilation process.
+* `analyze` - this will run a Miden assembly program against specific inputs and will output stats about its execution.
+
+All of the above subcommands require various parameters to be provided. To get more detailed help on what is needed for a given subcommand, you can run the following:
+```
+./target/release/miden [subcommand] --help
+```
+For example:
+```
+./target/release/miden prove --help
+```
+
+### Fibonacci example
+In the `miden/examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1000th term of the Fibonacci sequence. You can execute this example on Miden VM like so:
+```
+./target/release/miden run -a miden/examples/fib/fib.masm -n 1
+```
+This will run the example code to completion and will output the top element remaining on the stack.
 
 ## Crate features
 Miden VM can be compiled with the following features:
 
 * `std` - enabled by default and relies on the Rust standard library.
 * `concurrent` - implies `std` and also enables multi-threaded proof generation.
+* `executable` - required for building Miden VM binary as described above. Implies `std`.
 * `no_std` does not rely on the Rust standard library and enables compilation to WebAssembly.
 
 To compile with `no_std`, disable default features via `--no-default-features` flag.
 
 ### Concurrent proof generation
-When compiled with `concurrent` feature enabled, the VM will generate STARK proofs using multiple threads. The number of threads can be configured via `RAYON_NUM_THREADS` environment variable, and usually defaults to the number of logical cores on the machine. For benefits of concurrent proof generation check out these [benchmarks](../README.md#Performance).
+When compiled with `concurrent` feature enabled, the VM will generate STARK proofs using multiple threads. For benefits of concurrent proof generation check out these [benchmarks](../README.md#Performance).
 
-
-## Examples
-This crate contains several examples of Miden VM programs and demonstrates how these programs can be executed on Miden VM.
-
-## Running examples
-To run examples of executing programs and verifying proofs of their execution, do the following:
-
-First, compile an optimized version of the `miden` binary by running:
-```
-cargo build --release --features executable
-```
-Or, if you want to compile the with multi-threaded support enabled, run:
-```
-cargo build --release --features "executable concurrent"
-```
-
-In either case, the binary will be located in `target/release` directory, and you can run it like so:
-```
-./target/release/miden [FLAGS] [OPTIONS] <SUBCOMMAND>
-```
-Where each example can be invoked using a distinct subcommand. To view the list of all available options and examples you can look up help like so:
-
-```
-./target/release/miden -h
-```
-This will print out something similar to this:
-```
-Miden 0.1.0
-Miden examples
-USAGE:
-    miden.exe [OPTIONS] <SUBCOMMAND>
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-OPTIONS:
-    -s, --security <security>    Security level for execution proofs generated by the VM [default: 96bits]
-SUBCOMMANDS:
-    collatz        Compute a Collatz sequence from the specified starting value
-    comparison     If provided value is less than 9, multiplies it by 9; otherwise add 9 to it
-    conditional    If provided value is 0, outputs 15; if provided value is 1, outputs 8
-    fib            Compute a Fibonacci sequence of the specified length
-    help           Prints this message or the help of the given subcommand(s)
-    merkle         Computes a root of a randomly generated Merkle branch of the specified depth
-    range          Determines how many of the randomly generated values are less than 2^63
-```
-
-Currently, the only available option for all examples is `-s` for specifying security level for the generated proofs. This can be set to one of two values:
-* *96bits* - for 96-bit security level (the default).
-* *128bits* - for 128-bit security level.
-
-For example, to execute Fibonacci calculator at 128-bit security level, you can run the following:
-```
-./target/release/miden -s 128bits fib
-```
-
-### Example-specific options
-
-To view additional options available for specific examples, you can run the following:
-```
-./target/release/miden help <example name>
-```
-For example, executing:
-```
-./target/release/miden help collatz
-```
-Will print something like this:
-```
-miden.exe-collatz 0.1.0
-Compute a Collatz sequence from the specified starting value
-USAGE:
-    miden.exe collatz [OPTIONS]
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-OPTIONS:
-    -n <start-value>        Starting value of the Collatz sequence [default: 511]
-```
-
-Thus, to compute Collatz sequence with a different starting value, you could execute something like this:
-```
-./target/release/miden collatz -n 513
-```
+Internally, we use [rayon](https://github.com/rayon-rs/rayon) for parallel computations. To control the number of threads used to generate a STARK proof, you can use `RAYON_NUM_THREADS` environment variable.
 
 ## License
 This project is [MIT licensed](../LICENSE).

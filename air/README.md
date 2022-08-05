@@ -1,11 +1,17 @@
 # Miden VM AIR
 This crate contains *algebraic intermediate representation* (AIR) of Miden VM execution logic.
 
-AIR is a STARK-specific format of describing a computation. It consists of defining a set of constraints expressed as low-degree polynomials. Miden VM evaluates these polynomials over an execution trace produced by Miden processor and includes the results in the execution proof. To verify the proof, the verifier checks that the constraints are evaluated correctly against the execution trace committed to by the prover.
+AIR is a STARK-specific format of describing a computation. It consists of defining a set of constraints expressed as low-degree polynomials. Miden prover evaluates these polynomials over an execution trace produced by Miden processor and includes the results in the execution proof. To verify the proof, the verifier checks that the constraints are evaluated correctly against the execution trace committed to by the prover.
 
-Internally, Miden VM AIR is separated into two parts:
+Internally, Miden VM AIR is separated into several components:
 * AIR for the decoder, which is responsible for decoding instructions and managing control flow.
-* AIR for the stack, which is responsible for executing instructions against the stack.
+* AIR for the stack, which is responsible for executing instructions against the operand stack.
+* AIR for the range checker, which is responsible for checking if field elements contain values smaller than $2^{16}$.
+* AIR for the chiplets module, which contain specialized circuits responsible for handling complex computations (e.g., hashing) as well as random access memory.
+
+These different components are tied together using multiset checks similar to the ones used in [PLONK](https://hackmd.io/@arielg/ByFgSDA7D).
+
+All AIR constraints for Miden VM are described in detail in the [design](https://maticnetwork.github.io/miden/design/main.html) section of Miden VM documentation.
 
 If you'd like to learn more about AIR, the following blog posts from StarkWare are an excellent resource:
 

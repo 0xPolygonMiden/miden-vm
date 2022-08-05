@@ -26,7 +26,7 @@ pub use winterfell::StarkProof;
 /// of the stack.
 ///
 /// Stack outputs are expected to be ordered as if they would be popped off the stack one by one.
-/// Thus, the value at the top of the stack is expected to be be in the first position of the
+/// Thus, the value at the top of the stack is expected to be in the first position of the
 /// `stack_outputs` slice, and the order of the rest of the output elements will also match the
 /// order on the stack. This the reverse of order of `stack_inputs` slice.
 ///

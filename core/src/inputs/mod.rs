@@ -20,10 +20,10 @@ pub use advice::AdviceSet;
 ///    inputs are public and must be shared with the verifier for them to verify a proof of the
 ///    correct execution of a Miden program. The number of elements at the top of the stack which
 ///    can receive initial value is limited to 16.
-/// 2. The program may request non-deterministic advice inputs from the prover. These inputs are
+/// 2. The program may request nondeterministic advice inputs from the prover. These inputs are
 ///    secret inputs. This means that the prover does not need to share them with the verifier.
 ///    There are two types of advice inputs: (1) a single advice tape which can contain any number
-///    of elements and (2) a list of advice sets, which are used to provide non-deterministic
+///    of elements and (2) a list of advice sets, which are used to provide nondeterministic
 ///    inputs for instructions which work with Merkle trees.
 ///
 /// TODO: add more detailed explanation.

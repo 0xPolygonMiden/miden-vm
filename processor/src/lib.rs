@@ -4,15 +4,17 @@
 #[macro_use]
 extern crate alloc;
 
-use vm_core::{
+pub use vm_core::{
     chiplets::hasher::Digest,
+    errors::{AdviceSetError, InputError},
+    AdviceSet, Program, ProgramInputs,
+};
+use vm_core::{
     code_blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE},
-    errors::AdviceSetError,
     utils::collections::{BTreeMap, Vec},
-    AdviceInjector, Decorator, DecoratorIterator, Felt, FieldElement, Operation, Program,
-    ProgramInputs, StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH,
-    MIN_STACK_DEPTH, MIN_TRACE_LEN, NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH,
-    STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
+    AdviceInjector, Decorator, DecoratorIterator, Felt, FieldElement, Operation, StackTopState,
+    StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH, MIN_TRACE_LEN,
+    NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
 
 mod decorators;
@@ -75,7 +77,7 @@ pub struct ChipletsTrace {
     aux_builder: chiplets::AuxTraceBuilder,
 }
 
-// EXECUTOR
+// EXECUTORS
 // ================================================================================================
 
 /// Returns an execution trace resulting from executing the provided program against the provided
