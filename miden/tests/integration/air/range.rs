@@ -18,3 +18,13 @@ fn range_check_multi() {
     let stack = vec![5, 5, 5];
     build_test!(source, &stack).prove_and_verify(stack, 0, false);
 }
+
+/// Range checks the result of 1 + u32::MAX - 1, which is u32::MAX. Therefore, it requires range
+/// checks for u16::MAX, the last value in the range checker's 16-bit section.
+#[test]
+fn range_check_u16max() {
+    let asm_op = "u32overflowing_add";
+    let stack = vec![1, (u32::MAX - 1) as u64];
+
+    build_op_test!(asm_op, &stack).prove_and_verify(stack, 0, false);
+}
