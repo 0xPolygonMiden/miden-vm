@@ -7611,274 +7611,540 @@ end
 # Applies forward NTT on a vector of length 512, where each element ∈ Zp | p = 2^64 − 2^32 + 1,
 # producing elements in frequency domain in bit-reversed order.
 #
-# Static input vector ( i.e. [0..512) ) is accepted using function local memory, while after 
-# applying NTT, bit-reversed output vector is also kept on same function local memory allocation --- this 
-# section will be improved.
+# Expected stack state as input:
 #
-# This routine tests itself, but doesn't respond, in any meaningful way, when invoked from outside.
-# The purpose of this function is asserting functional correctness of NTT-512 implementation, while
-# encapsulating the implementation.
+# [addr0, addr1, addr2, addr3, ... , addr126, addr127] | 128 absolute memory addresses
+#
+# Note, addr{i} is the absolute memory address of i-th word of input vector V s.t.
+# each word consists of four consecutive field elements in vector of length 512.
+#
+# Meaning addr{i} holds values V[(i << 2) .. ((i+1) << 2)] | i ∈ [0, 128)
+#
+# After applying NTT, bit-reversed order vector is returned back as 128 absolute memory
+# addresses on stack, as input was provided.
+#
+# [addr0', addr1', addr2', addr3', ... , addr126', addr127'] | 128 absolute memory addresses
+#
+# Note, input memory allocation is not mutated, instead output is stored in different memory allocation.
 export.forward.128
-    # begin preparing development input
+    # prepare input
 
-	push.3.2.1.0
-	popw.local.0
-	push.7.6.5.4
-	popw.local.1
-	push.11.10.9.8
-	popw.local.2
-	push.15.14.13.12
-	popw.local.3
-	push.19.18.17.16
-	popw.local.4
-	push.23.22.21.20
-	popw.local.5
-	push.27.26.25.24
-	popw.local.6
-	push.31.30.29.28
-	popw.local.7
-	push.35.34.33.32
-	popw.local.8
-	push.39.38.37.36
-	popw.local.9
-	push.43.42.41.40
-	popw.local.10
-	push.47.46.45.44
-	popw.local.11
-	push.51.50.49.48
-	popw.local.12
-	push.55.54.53.52
-	popw.local.13
-	push.59.58.57.56
-	popw.local.14
-	push.63.62.61.60
-	popw.local.15
-	push.67.66.65.64
-	popw.local.16
-	push.71.70.69.68
-	popw.local.17
-	push.75.74.73.72
-	popw.local.18
-	push.79.78.77.76
-	popw.local.19
-	push.83.82.81.80
-	popw.local.20
-	push.87.86.85.84
-	popw.local.21
-	push.91.90.89.88
-	popw.local.22
-	push.95.94.93.92
-	popw.local.23
-	push.99.98.97.96
-	popw.local.24
-	push.103.102.101.100
-	popw.local.25
-	push.107.106.105.104
-	popw.local.26
-	push.111.110.109.108
-	popw.local.27
-	push.115.114.113.112
-	popw.local.28
-	push.119.118.117.116
-	popw.local.29
-	push.123.122.121.120
-	popw.local.30
-	push.127.126.125.124
-	popw.local.31
-	push.131.130.129.128
-	popw.local.32
-	push.135.134.133.132
-	popw.local.33
-	push.139.138.137.136
-	popw.local.34
-	push.143.142.141.140
-	popw.local.35
-	push.147.146.145.144
-	popw.local.36
-	push.151.150.149.148
-	popw.local.37
-	push.155.154.153.152
-	popw.local.38
-	push.159.158.157.156
-	popw.local.39
-	push.163.162.161.160
-	popw.local.40
-	push.167.166.165.164
-	popw.local.41
-	push.171.170.169.168
-	popw.local.42
-	push.175.174.173.172
-	popw.local.43
-	push.179.178.177.176
-	popw.local.44
-	push.183.182.181.180
-	popw.local.45
-	push.187.186.185.184
-	popw.local.46
-	push.191.190.189.188
-	popw.local.47
-	push.195.194.193.192
-	popw.local.48
-	push.199.198.197.196
-	popw.local.49
-	push.203.202.201.200
-	popw.local.50
-	push.207.206.205.204
-	popw.local.51
-	push.211.210.209.208
-	popw.local.52
-	push.215.214.213.212
-	popw.local.53
-	push.219.218.217.216
-	popw.local.54
-	push.223.222.221.220
-	popw.local.55
-	push.227.226.225.224
-	popw.local.56
-	push.231.230.229.228
-	popw.local.57
-	push.235.234.233.232
-	popw.local.58
-	push.239.238.237.236
-	popw.local.59
-	push.243.242.241.240
-	popw.local.60
-	push.247.246.245.244
-	popw.local.61
-	push.251.250.249.248
-	popw.local.62
-	push.255.254.253.252
-	popw.local.63
-	push.259.258.257.256
-	popw.local.64
-	push.263.262.261.260
-	popw.local.65
-	push.267.266.265.264
-	popw.local.66
-	push.271.270.269.268
-	popw.local.67
-	push.275.274.273.272
-	popw.local.68
-	push.279.278.277.276
-	popw.local.69
-	push.283.282.281.280
-	popw.local.70
-	push.287.286.285.284
-	popw.local.71
-	push.291.290.289.288
-	popw.local.72
-	push.295.294.293.292
-	popw.local.73
-	push.299.298.297.296
-	popw.local.74
-	push.303.302.301.300
-	popw.local.75
-	push.307.306.305.304
-	popw.local.76
-	push.311.310.309.308
-	popw.local.77
-	push.315.314.313.312
-	popw.local.78
-	push.319.318.317.316
-	popw.local.79
-	push.323.322.321.320
-	popw.local.80
-	push.327.326.325.324
-	popw.local.81
-	push.331.330.329.328
-	popw.local.82
-	push.335.334.333.332
-	popw.local.83
-	push.339.338.337.336
-	popw.local.84
-	push.343.342.341.340
-	popw.local.85
-	push.347.346.345.344
-	popw.local.86
-	push.351.350.349.348
-	popw.local.87
-	push.355.354.353.352
-	popw.local.88
-	push.359.358.357.356
-	popw.local.89
-	push.363.362.361.360
-	popw.local.90
-	push.367.366.365.364
-	popw.local.91
-	push.371.370.369.368
-	popw.local.92
-	push.375.374.373.372
-	popw.local.93
-	push.379.378.377.376
-	popw.local.94
-	push.383.382.381.380
-	popw.local.95
-	push.387.386.385.384
-	popw.local.96
-	push.391.390.389.388
-	popw.local.97
-	push.395.394.393.392
-	popw.local.98
-	push.399.398.397.396
-	popw.local.99
-	push.403.402.401.400
-	popw.local.100
-	push.407.406.405.404
-	popw.local.101
-	push.411.410.409.408
-	popw.local.102
-	push.415.414.413.412
-	popw.local.103
-	push.419.418.417.416
-	popw.local.104
-	push.423.422.421.420
-	popw.local.105
-	push.427.426.425.424
-	popw.local.106
-	push.431.430.429.428
-	popw.local.107
-	push.435.434.433.432
-	popw.local.108
-	push.439.438.437.436
-	popw.local.109
-	push.443.442.441.440
-	popw.local.110
-	push.447.446.445.444
-	popw.local.111
-	push.451.450.449.448
-	popw.local.112
-	push.455.454.453.452
-	popw.local.113
-	push.459.458.457.456
-	popw.local.114
-	push.463.462.461.460
-	popw.local.115
-	push.467.466.465.464
-	popw.local.116
-	push.471.470.469.468
-	popw.local.117
-	push.475.474.473.472
-	popw.local.118
-	push.479.478.477.476
-	popw.local.119
-	push.483.482.481.480
-	popw.local.120
-	push.487.486.485.484
-	popw.local.121
-	push.491.490.489.488
-	popw.local.122
-	push.495.494.493.492
-	popw.local.123
-	push.499.498.497.496
-	popw.local.124
-	push.503.502.501.500
-	popw.local.125
-	push.507.506.505.504
-	popw.local.126
-	push.511.510.509.508
-	popw.local.127
+	push.0.0.0.0
 
-    # end preparing development input
+    movup.4
+    loadw.mem
+    storew.local.0
+
+    movup.4
+    loadw.mem
+    storew.local.1
+
+    movup.4
+    loadw.mem
+    storew.local.2
+
+    movup.4
+    loadw.mem
+    storew.local.3
+
+    movup.4
+    loadw.mem
+    storew.local.4
+
+    movup.4
+    loadw.mem
+    storew.local.5
+
+    movup.4
+    loadw.mem
+    storew.local.6
+
+    movup.4
+    loadw.mem
+    storew.local.7
+
+    movup.4
+    loadw.mem
+    storew.local.8
+
+    movup.4
+    loadw.mem
+    storew.local.9
+
+    movup.4
+    loadw.mem
+    storew.local.10
+
+    movup.4
+    loadw.mem
+    storew.local.11
+
+    movup.4
+    loadw.mem
+    storew.local.12
+
+    movup.4
+    loadw.mem
+    storew.local.13
+
+    movup.4
+    loadw.mem
+    storew.local.14
+
+    movup.4
+    loadw.mem
+    storew.local.15
+
+    movup.4
+    loadw.mem
+    storew.local.16
+
+    movup.4
+    loadw.mem
+    storew.local.17
+
+    movup.4
+    loadw.mem
+    storew.local.18
+
+    movup.4
+    loadw.mem
+    storew.local.19
+
+    movup.4
+    loadw.mem
+    storew.local.20
+
+    movup.4
+    loadw.mem
+    storew.local.21
+
+    movup.4
+    loadw.mem
+    storew.local.22
+
+    movup.4
+    loadw.mem
+    storew.local.23
+
+    movup.4
+    loadw.mem
+    storew.local.24
+
+    movup.4
+    loadw.mem
+    storew.local.25
+
+    movup.4
+    loadw.mem
+    storew.local.26
+
+    movup.4
+    loadw.mem
+    storew.local.27
+
+    movup.4
+    loadw.mem
+    storew.local.28
+
+    movup.4
+    loadw.mem
+    storew.local.29
+
+    movup.4
+    loadw.mem
+    storew.local.30
+
+    movup.4
+    loadw.mem
+    storew.local.31
+
+    movup.4
+    loadw.mem
+    storew.local.32
+
+    movup.4
+    loadw.mem
+    storew.local.33
+
+    movup.4
+    loadw.mem
+    storew.local.34
+
+    movup.4
+    loadw.mem
+    storew.local.35
+
+    movup.4
+    loadw.mem
+    storew.local.36
+
+    movup.4
+    loadw.mem
+    storew.local.37
+
+    movup.4
+    loadw.mem
+    storew.local.38
+
+    movup.4
+    loadw.mem
+    storew.local.39
+
+    movup.4
+    loadw.mem
+    storew.local.40
+
+    movup.4
+    loadw.mem
+    storew.local.41
+
+    movup.4
+    loadw.mem
+    storew.local.42
+
+    movup.4
+    loadw.mem
+    storew.local.43
+
+    movup.4
+    loadw.mem
+    storew.local.44
+
+    movup.4
+    loadw.mem
+    storew.local.45
+
+    movup.4
+    loadw.mem
+    storew.local.46
+
+    movup.4
+    loadw.mem
+    storew.local.47
+
+    movup.4
+    loadw.mem
+    storew.local.48
+
+    movup.4
+    loadw.mem
+    storew.local.49
+
+    movup.4
+    loadw.mem
+    storew.local.50
+
+    movup.4
+    loadw.mem
+    storew.local.51
+
+    movup.4
+    loadw.mem
+    storew.local.52
+
+    movup.4
+    loadw.mem
+    storew.local.53
+
+    movup.4
+    loadw.mem
+    storew.local.54
+
+    movup.4
+    loadw.mem
+    storew.local.55
+
+    movup.4
+    loadw.mem
+    storew.local.56
+
+    movup.4
+    loadw.mem
+    storew.local.57
+
+    movup.4
+    loadw.mem
+    storew.local.58
+
+    movup.4
+    loadw.mem
+    storew.local.59
+
+    movup.4
+    loadw.mem
+    storew.local.60
+
+    movup.4
+    loadw.mem
+    storew.local.61
+
+    movup.4
+    loadw.mem
+    storew.local.62
+
+    movup.4
+    loadw.mem
+    storew.local.63
+
+    movup.4
+    loadw.mem
+    storew.local.64
+
+    movup.4
+    loadw.mem
+    storew.local.65
+
+    movup.4
+    loadw.mem
+    storew.local.66
+
+    movup.4
+    loadw.mem
+    storew.local.67
+
+    movup.4
+    loadw.mem
+    storew.local.68
+
+    movup.4
+    loadw.mem
+    storew.local.69
+
+    movup.4
+    loadw.mem
+    storew.local.70
+
+    movup.4
+    loadw.mem
+    storew.local.71
+
+    movup.4
+    loadw.mem
+    storew.local.72
+
+    movup.4
+    loadw.mem
+    storew.local.73
+
+    movup.4
+    loadw.mem
+    storew.local.74
+
+    movup.4
+    loadw.mem
+    storew.local.75
+
+    movup.4
+    loadw.mem
+    storew.local.76
+
+    movup.4
+    loadw.mem
+    storew.local.77
+
+    movup.4
+    loadw.mem
+    storew.local.78
+
+    movup.4
+    loadw.mem
+    storew.local.79
+
+    movup.4
+    loadw.mem
+    storew.local.80
+
+    movup.4
+    loadw.mem
+    storew.local.81
+
+    movup.4
+    loadw.mem
+    storew.local.82
+
+    movup.4
+    loadw.mem
+    storew.local.83
+
+    movup.4
+    loadw.mem
+    storew.local.84
+
+    movup.4
+    loadw.mem
+    storew.local.85
+
+    movup.4
+    loadw.mem
+    storew.local.86
+
+    movup.4
+    loadw.mem
+    storew.local.87
+
+    movup.4
+    loadw.mem
+    storew.local.88
+
+    movup.4
+    loadw.mem
+    storew.local.89
+
+    movup.4
+    loadw.mem
+    storew.local.90
+
+    movup.4
+    loadw.mem
+    storew.local.91
+
+    movup.4
+    loadw.mem
+    storew.local.92
+
+    movup.4
+    loadw.mem
+    storew.local.93
+
+    movup.4
+    loadw.mem
+    storew.local.94
+
+    movup.4
+    loadw.mem
+    storew.local.95
+
+    movup.4
+    loadw.mem
+    storew.local.96
+
+    movup.4
+    loadw.mem
+    storew.local.97
+
+    movup.4
+    loadw.mem
+    storew.local.98
+
+    movup.4
+    loadw.mem
+    storew.local.99
+
+    movup.4
+    loadw.mem
+    storew.local.100
+
+    movup.4
+    loadw.mem
+    storew.local.101
+
+    movup.4
+    loadw.mem
+    storew.local.102
+
+    movup.4
+    loadw.mem
+    storew.local.103
+
+    movup.4
+    loadw.mem
+    storew.local.104
+
+    movup.4
+    loadw.mem
+    storew.local.105
+
+    movup.4
+    loadw.mem
+    storew.local.106
+
+    movup.4
+    loadw.mem
+    storew.local.107
+
+    movup.4
+    loadw.mem
+    storew.local.108
+
+    movup.4
+    loadw.mem
+    storew.local.109
+
+    movup.4
+    loadw.mem
+    storew.local.110
+
+    movup.4
+    loadw.mem
+    storew.local.111
+
+    movup.4
+    loadw.mem
+    storew.local.112
+
+    movup.4
+    loadw.mem
+    storew.local.113
+
+    movup.4
+    loadw.mem
+    storew.local.114
+
+    movup.4
+    loadw.mem
+    storew.local.115
+
+    movup.4
+    loadw.mem
+    storew.local.116
+
+    movup.4
+    loadw.mem
+    storew.local.117
+
+    movup.4
+    loadw.mem
+    storew.local.118
+
+    movup.4
+    loadw.mem
+    storew.local.119
+
+    movup.4
+    loadw.mem
+    storew.local.120
+
+    movup.4
+    loadw.mem
+    storew.local.121
+
+    movup.4
+    loadw.mem
+    storew.local.122
+
+    movup.4
+    loadw.mem
+    storew.local.123
+
+    movup.4
+    loadw.mem
+    storew.local.124
+
+    movup.4
+    loadw.mem
+    storew.local.125
+
+    movup.4
+    loadw.mem
+    storew.local.126
+
+    movup.4
+    loadw.mem
+    storew.local.127
+
+	dropw
+
     # iter = 0
 
 	pushw.local.0
@@ -16711,1417 +16977,136 @@ export.forward.128
 	dropw
 	dropw
 
-    # begin asserting result
-
-    pushw.local.0
-
-    push.6147698371245747120
-    assert_eq
-    push.13255236560399798415
-    assert_eq
-    push.2463011040099663974
-    assert_eq
-    push.500427581402858571
-    assert_eq
-
-    pushw.local.1
-
-    push.9387934912362961312
-    assert_eq
-    push.7549830671545879423
-    assert_eq
-    push.2807061946257421748
-    assert_eq
-    push.4759188580461308943
-    assert_eq
-
-    pushw.local.2
-
-    push.9379941516119320882
-    assert_eq
-    push.5463045908626770304
-    assert_eq
-    push.16298308954297267166
-    assert_eq
-    push.1388192801295105971
-    assert_eq
-
-    pushw.local.3
-
-    push.3025227557696320612
-    assert_eq
-    push.13701360230683392458
-    assert_eq
-    push.7837612199872064446
-    assert_eq
-    push.1822341659846948200
-    assert_eq
-
-    pushw.local.4
-
-    push.11593484223257809456
-    assert_eq
-    push.10287011748290197204
-    assert_eq
-    push.2462700283595696130
-    assert_eq
-    push.6661003217299415345
-    assert_eq
-
-    pushw.local.5
-
-    push.4850126366893939331
-    assert_eq
-    push.9513121813828969915
-    assert_eq
-    push.13374962778532735081
-    assert_eq
-    push.5822565313136645408
-    assert_eq
-
-    pushw.local.6
-
-    push.8639307051715995157
-    assert_eq
-    push.17760129267519767490
-    assert_eq
-    push.1284486619460005108
-    assert_eq
-    push.9638547351911424431
-    assert_eq
-
-    pushw.local.7
-
-    push.17637713302469968180
-    assert_eq
-    push.14285126964169992246
-    assert_eq
-    push.12823255455035621696
-    assert_eq
-    push.13238262168040768060
-    assert_eq
-
-    pushw.local.8
-
-    push.14223921105393507681
-    assert_eq
-    push.1357100511086411291
-    assert_eq
-    push.8090504461116217953
-    assert_eq
-    push.15517318235210799523
-    assert_eq
-
-    pushw.local.9
-
-    push.16628668316477991361
-    assert_eq
-    push.1684552264558936468
-    assert_eq
-    push.4716997638082670922
-    assert_eq
-    push.11495840209035318117
-    assert_eq
-
-    pushw.local.10
-
-    push.8712021422542957173
-    assert_eq
-    push.17813839478541020385
-    assert_eq
-    push.4375032670965432631
-    assert_eq
-    push.9373982051891349673
-    assert_eq
-
-    pushw.local.11
-
-    push.1926093556853850187
-    assert_eq
-    push.14044826173259891759
-    assert_eq
-    push.15061433824670536866
-    assert_eq
-    push.7963379320027168585
-    assert_eq
-
-    pushw.local.12
-
-    push.14691778372873896091
-    assert_eq
-    push.14431246337082958746
-    assert_eq
-    push.11152590746239846097
-    assert_eq
-    push.17117618612841673432
-    assert_eq
-
-    pushw.local.13
-
-    push.14862669681256781194
-    assert_eq
-    push.4084063692504982245
-    assert_eq
-    push.16546231301940396830
-    assert_eq
-    push.303890312557052486
-    assert_eq
-
-    pushw.local.14
-
-    push.7563043097586366000
-    assert_eq
-    push.1391337153954404998
-    assert_eq
-    push.8927299104241429512
-    assert_eq
-    push.12874831358695227040
-    assert_eq
-
-    pushw.local.15
-
-    push.17544691169439260104
-    assert_eq
-    push.3025759491575349789
-    assert_eq
-    push.3598143036621308872
-    assert_eq
-    push.487169446989684856
-    assert_eq
-
-    pushw.local.16
-
-    push.6666882237238639271
-    assert_eq
-    push.6080341855927780886
-    assert_eq
-    push.2882980834561558714
-    assert_eq
-    push.9893297249316795649
-    assert_eq
-
-    pushw.local.17
-
-    push.4691550456846015466
-    assert_eq
-    push.3411987355997998953
-    assert_eq
-    push.11137670125329914006
-    assert_eq
-    push.3705911779901497798
-    assert_eq
-
-    pushw.local.18
-
-    push.15518117179961526146
-    assert_eq
-    push.799757138718215649
-    assert_eq
-    push.18296196013336192157
-    assert_eq
-    push.15796413081962541352
-    assert_eq
-
-    pushw.local.19
-
-    push.7347195004378104849
-    assert_eq
-    push.13196368854332472946
-    assert_eq
-    push.8162117950669587555
-    assert_eq
-    push.13210457250415703836
-    assert_eq
-
-    pushw.local.20
-
-    push.5452650972361431851
-    assert_eq
-    push.657975828059970386
-    assert_eq
-    push.6266966273130402481
-    assert_eq
-    push.8906355104260221321
-    assert_eq
-
-    pushw.local.21
-
-    push.1177534166750439230
-    assert_eq
-    push.14955072641990074669
-    assert_eq
-    push.5042479363983917261
-    assert_eq
-    push.8576758396778913845
-    assert_eq
-
-    pushw.local.22
-
-    push.8896467651864889830
-    assert_eq
-    push.3941628179342546836
-    assert_eq
-    push.497910349234540620
-    assert_eq
-    push.6334563537974372527
-    assert_eq
-
-    pushw.local.23
-
-    push.13460463077709850377
-    assert_eq
-    push.9704822807517896607
-    assert_eq
-    push.774530765448667322
-    assert_eq
-    push.12425671526490530033
-    assert_eq
-
-    pushw.local.24
-
-    push.8065494508321203076
-    assert_eq
-    push.12498735210523199927
-    assert_eq
-    push.10225952875956458587
-    assert_eq
-    push.14318104668539212250
-    assert_eq
-
-    pushw.local.25
-
-    push.6311439446657985780
-    assert_eq
-    push.6807078861963306588
-    assert_eq
-    push.8346724915334734524
-    assert_eq
-    push.12164956900973499431
-    assert_eq
-
-    pushw.local.26
-
-    push.11445417186801385760
-    assert_eq
-    push.4239657429080771413
-    assert_eq
-    push.14244370490763271162
-    assert_eq
-    push.7234458743041469928
-    assert_eq
-
-    pushw.local.27
-
-    push.2139508481948263956
-    assert_eq
-    push.5018146025947592012
-    assert_eq
-    push.14751110666906846153
-    assert_eq
-    push.11747418408334319738
-    assert_eq
-
-    pushw.local.28
-
-    push.13564247872498662505
-    assert_eq
-    push.9021654833377757761
-    assert_eq
-    push.3702090447919014070
-    assert_eq
-    push.1973185003558773229
-    assert_eq
-
-    pushw.local.29
-
-    push.4997611524108540570
-    assert_eq
-    push.10771985727518467339
-    assert_eq
-    push.3004215856372485490
-    assert_eq
-    push.3965062879362346539
-    assert_eq
-
-    pushw.local.30
-
-    push.2219769481339195266
-    assert_eq
-    push.7706343149895562665
-    assert_eq
-    push.12465933509381032447
-    assert_eq
-    push.2312056974030883522
-    assert_eq
-
-    pushw.local.31
-
-    push.5022786165037908972
-    assert_eq
-    push.2125184873369089124
-    assert_eq
-    push.9033129468865877333
-    assert_eq
-    push.4146773039321337126
-    assert_eq
-
-    pushw.local.32
-
-    push.4662969890869329954
-    assert_eq
-    push.17149781625007751176
-    assert_eq
-    push.985664331094757213
-    assert_eq
-    push.13678435790007910187
-    assert_eq
-
-    pushw.local.33
-
-    push.10150484129565507076
-    assert_eq
-    push.8222509106562826527
-    assert_eq
-    push.18012673797650473443
-    assert_eq
-    push.6861895092303478630
-    assert_eq
-
-    pushw.local.34
-
-    push.16844253818212940857
-    assert_eq
-    push.14908977434228205095
-    assert_eq
-    push.14429583432640497786
-    assert_eq
-    push.5096773607628371884
-    assert_eq
-
-    pushw.local.35
-
-    push.12395699022945804024
-    assert_eq
-    push.12367986838157190529
-    assert_eq
-    push.4955617923334453253
-    assert_eq
-    push.7458036209579834773
-    assert_eq
-
-    pushw.local.36
-
-    push.9143623102345260628
-    assert_eq
-    push.18020016569845241237
-    assert_eq
-    push.6515488115992785920
-    assert_eq
-    push.13890387097742396980
-    assert_eq
-
-    pushw.local.37
-
-    push.12996593942828004366
-    assert_eq
-    push.17390390595735418203
-    assert_eq
-    push.16875779936086595852
-    assert_eq
-    push.2905443428502578517
-    assert_eq
-
-    pushw.local.38
-
-    push.893260271205161783
-    assert_eq
-    push.9199250935105121089
-    assert_eq
-    push.13002876069586538529
-    assert_eq
-    push.18214974425583805276
-    assert_eq
-
-    pushw.local.39
-
-    push.5871387860019782338
-    assert_eq
-    push.5760084267134403683
-    assert_eq
-    push.12587785846481248845
-    assert_eq
-    push.6709534089282777356
-    assert_eq
-
-    pushw.local.40
-
-    push.3123643438350635974
-    assert_eq
-    push.5716597287927550595
-    assert_eq
-    push.9607664737753257441
-    assert_eq
-    push.7245215770567422587
-    assert_eq
-
-    pushw.local.41
-
-    push.16881060344087771413
-    assert_eq
-    push.8078443735104605287
-    assert_eq
-    push.17071143378045471018
-    assert_eq
-    push.5759208819531861758
-    assert_eq
-
-    pushw.local.42
-
-    push.12566331383071766254
-    assert_eq
-    push.6407770971883791349
-    assert_eq
-    push.141332871558446952
-    assert_eq
-    push.1473685036794685672
-    assert_eq
-
-    pushw.local.43
-
-    push.469389931994699889
-    assert_eq
-    push.11894138910345911899
-    assert_eq
-    push.8861784141877776284
-    assert_eq
-    push.15369028662523164967
-    assert_eq
-
-    pushw.local.44
-
-    push.15664808304394316343
-    assert_eq
-    push.16586192596775565345
-    assert_eq
-    push.2607653131583029365
-    assert_eq
-    push.13875913004469395297
-    assert_eq
-
-    pushw.local.45
-
-    push.8009025452734193607
-    assert_eq
-    push.13448834210131967244
-    assert_eq
-    push.14161113041748059521
-    assert_eq
-    push.16813439921261944248
-    assert_eq
-
-    pushw.local.46
-
-    push.13995070365201497714
-    assert_eq
-    push.6137042318318339109
-    assert_eq
-    push.6251459103334690891
-    assert_eq
-    push.4083354598206562910
-    assert_eq
-
-    pushw.local.47
-
-    push.14493471866567307848
-    assert_eq
-    push.3997466371394620132
-    assert_eq
-    push.9249214068095605136
-    assert_eq
-    push.12818043094147068368
-    assert_eq
-
-    pushw.local.48
-
-    push.13015011347722958547
-    assert_eq
-    push.3588540624239934438
-    assert_eq
-    push.15239864752341206448
-    assert_eq
-    push.5394043712193799933
-    assert_eq
-
-    pushw.local.49
-
-    push.3128672686463738131
-    assert_eq
-    push.3419201204817655041
-    assert_eq
-    push.12130786777414201524
-    assert_eq
-    push.11829529434721723333
-    assert_eq
-
-    pushw.local.50
-
-    push.5151809639838655931
-    assert_eq
-    push.15516781916364721257
-    assert_eq
-    push.7500291227370840461
-    assert_eq
-    push.6140842141236339257
-    assert_eq
-
-    pushw.local.51
-
-    push.11690668512079064293
-    assert_eq
-    push.17726010777882042466
-    assert_eq
-    push.762882067218168658
-    assert_eq
-    push.13243563844154651511
-    assert_eq
-
-    pushw.local.52
-
-    push.10558916504036356933
-    assert_eq
-    push.17101791001764243145
-    assert_eq
-    push.11725206893555211986
-    assert_eq
-    push.3918065202896176478
-    assert_eq
-
-    pushw.local.53
-
-    push.803701966684189555
-    assert_eq
-    push.11567105031538459462
-    assert_eq
-    push.17149127386114289503
-    assert_eq
-    push.10298844172561774234
-    assert_eq
-
-    pushw.local.54
-
-    push.2803053123421498344
-    assert_eq
-    push.16018809242226017839
-    assert_eq
-    push.1810114756857547179
-    assert_eq
-    push.17482417277959843804
-    assert_eq
-
-    pushw.local.55
-
-    push.78962158302801786
-    assert_eq
-    push.13318542890811254177
-    assert_eq
-    push.8999334195551472243
-    assert_eq
-    push.13204537791056727921
-    assert_eq
-
-    pushw.local.56
-
-    push.12393637219601567574
-    assert_eq
-    push.7592879583466719407
-    assert_eq
-    push.13355052672226195728
-    assert_eq
-    push.11093885641065163374
-    assert_eq
-
-    pushw.local.57
-
-    push.14284568787846633340
-    assert_eq
-    push.6794795563368961656
-    assert_eq
-    push.2809894435780251284
-    assert_eq
-    push.3411599003810787776
-    assert_eq
-
-    pushw.local.58
-
-    push.1349795128299762686
-    assert_eq
-    push.6924418765183651467
-    assert_eq
-    push.3431893456709396822
-    assert_eq
-    push.16299086042706000560
-    assert_eq
-
-    pushw.local.59
-
-    push.1583932303300965007
-    assert_eq
-    push.16264631822018623161
-    assert_eq
-    push.10153763531676333194
-    assert_eq
-    push.5027175826503224555
-    assert_eq
-
-    pushw.local.60
-
-    push.7807832181012033386
-    assert_eq
-    push.1942275972796109015
-    assert_eq
-    push.17405989941569656846
-    assert_eq
-    push.7218523740236699299
-    assert_eq
-
-    pushw.local.61
-
-    push.16405583093082798411
-    assert_eq
-    push.2393469611227278774
-    assert_eq
-    push.10005260587118472398
-    assert_eq
-    push.5715345431563076262
-    assert_eq
-
-    pushw.local.62
-
-    push.16988798032855610364
-    assert_eq
-    push.9496386899791548746
-    assert_eq
-    push.18142885242969242100
-    assert_eq
-    push.8089586839234703419
-    assert_eq
-
-    pushw.local.63
-
-    push.4370480212321907950
-    assert_eq
-    push.6558160888738056325
-    assert_eq
-    push.4289754023734046593
-    assert_eq
-    push.13755333174520886464
-    assert_eq
-
-    pushw.local.64
-
-    push.1494047469102986519
-    assert_eq
-    push.16339859305517413399
-    assert_eq
-    push.12562227996983300356
-    assert_eq
-    push.1095320300961666936
-    assert_eq
-
-    pushw.local.65
-
-    push.10516920696937702284
-    assert_eq
-    push.5854381521638192751
-    assert_eq
-    push.14530409639472899115
-    assert_eq
-    push.854047760369733976
-    assert_eq
-
-    pushw.local.66
-
-    push.10904098461973645865
-    assert_eq
-    push.17422775311721259180
-    assert_eq
-    push.4139499927901685601
-    assert_eq
-    push.2794790736470622544
-    assert_eq
-
-    pushw.local.67
-
-    push.7819865318527720810
-    assert_eq
-    push.9250129350657951385
-    assert_eq
-    push.4234979558599665650
-    assert_eq
-    push.1784571835427036944
-    assert_eq
-
-    pushw.local.68
-
-    push.16289356085892318230
-    assert_eq
-    push.13588187127040443153
-    assert_eq
-    push.10045192632325951454
-    assert_eq
-    push.18142115543028914412
-    assert_eq
-
-    pushw.local.69
-
-    push.8111707298035988643
-    assert_eq
-    push.11430590887347575920
-    assert_eq
-    push.539684312007626408
-    assert_eq
-    push.17729711269237440361
-    assert_eq
-
-    pushw.local.70
-
-    push.11442474927709952764
-    assert_eq
-    push.13329490012213926327
-    assert_eq
-    push.6013205331994689614
-    assert_eq
-    push.8428499566768654683
-    assert_eq
-
-    pushw.local.71
-
-    push.8762253157562392538
-    assert_eq
-    push.10586391764183012409
-    assert_eq
-    push.15471829253544609840
-    assert_eq
-    push.16150914592979533613
-    assert_eq
-
-    pushw.local.72
-
-    push.8190839155548334141
-    assert_eq
-    push.11004455288779489872
-    assert_eq
-    push.17741352459101681712
-    assert_eq
-    push.6392279585533100357
-    assert_eq
-
-    pushw.local.73
-
-    push.3457721476658561580
-    assert_eq
-    push.11015187404152435362
-    assert_eq
-    push.14880425420800392990
-    assert_eq
-    push.4226216350017515577
-    assert_eq
-
-    pushw.local.74
-
-    push.2187849759750703504
-    assert_eq
-    push.14281378611832340921
-    assert_eq
-    push.7612415948668645325
-    assert_eq
-    push.14629100830552568255
-    assert_eq
-
-    pushw.local.75
-
-    push.1045809343595143126
-    assert_eq
-    push.5837373918705201518
-    assert_eq
-    push.2524681089307350526
-    assert_eq
-    push.877672128107013028
-    assert_eq
-
-    pushw.local.76
-
-    push.375546531597716834
-    assert_eq
-    push.1828356708926881600
-    assert_eq
-    push.11259226891969400454
-    assert_eq
-    push.5920559297162622495
-    assert_eq
-
-    pushw.local.77
-
-    push.1308096718102429686
-    assert_eq
-    push.4953050491861030149
-    assert_eq
-    push.821000236133808134
-    assert_eq
-    push.7917164687481063958
-    assert_eq
-
-    pushw.local.78
-
-    push.13281899104990252257
-    assert_eq
-    push.18151980406669433196
-    assert_eq
-    push.7468748459141628680
-    assert_eq
-    push.16363914024650516083
-    assert_eq
-
-    pushw.local.79
-
-    push.4849705256848202365
-    assert_eq
-    push.15393692351097644975
-    assert_eq
-    push.5915985290118060008
-    assert_eq
-    push.8668665576569166951
-    assert_eq
-
-    pushw.local.80
-
-    push.8300446822269204372
-    assert_eq
-    push.12628082128538211214
-    assert_eq
-    push.15384439712454326481
-    assert_eq
-    push.9554263480822607717
-    assert_eq
-
-    pushw.local.81
-
-    push.12238253882750553858
-    assert_eq
-    push.7292662648869841962
-    assert_eq
-    push.2979547823604997972
-    assert_eq
-    push.14732015482137704088
-    assert_eq
-
-    pushw.local.82
-
-    push.17320170229660244276
-    assert_eq
-    push.16536824509534370931
-    assert_eq
-    push.7198903717206004644
-    assert_eq
-    push.16519415090692894356
-    assert_eq
-
-    pushw.local.83
-
-    push.7201793695830885568
-    assert_eq
-    push.14758645042887458947
-    assert_eq
-    push.1309308834650053177
-    assert_eq
-    push.14338251575625791894
-    assert_eq
-
-    pushw.local.84
-
-    push.16250160353761920792
-    assert_eq
-    push.14516922055619556761
-    assert_eq
-    push.14537183770973180315
-    assert_eq
-    push.5716209785352087904
-    assert_eq
-
-    pushw.local.85
-
-    push.8662993271246423627
-    assert_eq
-    push.3400167661560536242
-    assert_eq
-    push.12061541935646977447
-    assert_eq
-    push.3173145240318099632
-    assert_eq
-
-    pushw.local.86
-
-    push.9779983570882049575
-    assert_eq
-    push.16797125524719969353
-    assert_eq
-    push.14364377592553572211
-    assert_eq
-    push.8719325338143121381
-    assert_eq
-
-    pushw.local.87
-
-    push.3441777122008563845
-    assert_eq
-    push.13369371497705876272
-    assert_eq
-    push.14761196745008075213
-    assert_eq
-    push.5311413155140064380
-    assert_eq
-
-    pushw.local.88
-
-    push.5334184973660170182
-    assert_eq
-    push.13603662903454429611
-    assert_eq
-    push.2543790951468878923
-    assert_eq
-    push.6874176837830348960
-    assert_eq
-
-    pushw.local.89
-
-    push.50931374536222867
-    assert_eq
-    push.10680417757191732550
-    assert_eq
-    push.2027790285986339592
-    assert_eq
-    push.2052697753100968697
-    assert_eq
-
-    pushw.local.90
-
-    push.17520109592597401123
-    assert_eq
-    push.17107102851440519601
-    assert_eq
-    push.8813959523570730359
-    assert_eq
-    push.8520311447926067785
-    assert_eq
-
-    pushw.local.91
-
-    push.13694145796795458120
-    assert_eq
-    push.4206605768450390142
-    assert_eq
-    push.12164864114726281851
-    assert_eq
-    push.15783770904168829462
-    assert_eq
-
-    pushw.local.92
-
-    push.5841129472983407877
-    assert_eq
-    push.16936924214205720797
-    assert_eq
-    push.11492798057464085775
-    assert_eq
-    push.14422448030219940688
-    assert_eq
-
-    pushw.local.93
-
-    push.6507250621729077940
-    assert_eq
-    push.10951745108692586643
-    assert_eq
-    push.11266079826466912438
-    assert_eq
-    push.8925771421991641474
-    assert_eq
-
-    pushw.local.94
-
-    push.431523066505444268
-    assert_eq
-    push.1285178546161991355
-    assert_eq
-    push.8555391423963084189
-    assert_eq
-    push.17328677503143420133
-    assert_eq
-
-    pushw.local.95
-
-    push.13849482253040846080
-    assert_eq
-    push.13570070408968146198
-    assert_eq
-    push.14234637378559746361
-    assert_eq
-    push.10540350791453628906
-    assert_eq
-
-    pushw.local.96
-
-    push.650415177035534115
-    assert_eq
-    push.2449447675370487743
-    assert_eq
-    push.5530570934007304021
-    assert_eq
-    push.5008022948409793965
-    assert_eq
-
-    pushw.local.97
-
-    push.8565569549360878607
-    assert_eq
-    push.402139522378392068
-    assert_eq
-    push.5781054458624323724
-    assert_eq
-    push.5441321007122731143
-    assert_eq
-
-    pushw.local.98
-
-    push.2141708533769732634
-    assert_eq
-    push.12296696041930375647
-    assert_eq
-    push.5030333191930369784
-    assert_eq
-    push.9589717239328382062
-    assert_eq
-
-    pushw.local.99
-
-    push.4543611496630253597
-    assert_eq
-    push.963677192151881803
-    assert_eq
-    push.1240774410427679033
-    assert_eq
-    push.6027690232728924930
-    assert_eq
-
-    pushw.local.100
-
-    push.2761035047280407935
-    assert_eq
-    push.9767474113466356503
-    assert_eq
-    push.1030608063572245572
-    assert_eq
-    push.2737555203331259767
-    assert_eq
-
-    pushw.local.101
-
-    push.8841814831092757511
-    assert_eq
-    push.7374284328308128887
-    assert_eq
-    push.8922377290982201691
-    assert_eq
-    push.1618945402508718138
-    assert_eq
-
-    pushw.local.102
-
-    push.11871822660196837602
-    assert_eq
-    push.3825152053016198315
-    assert_eq
-    push.3847290460963665198
-    assert_eq
-    push.12199497154981475450
-    assert_eq
-
-    pushw.local.103
-
-    push.6994210944247916666
-    assert_eq
-    push.8664215757935537682
-    assert_eq
-    push.17350460119148800673
-    assert_eq
-    push.12598101527954240506
-    assert_eq
-
-    pushw.local.104
-
-    push.2673356055215094872
-    assert_eq
-    push.12486487283416641615
-    assert_eq
-    push.2340432030104145622
-    assert_eq
-    push.16029478146060719718
-    assert_eq
-
-    pushw.local.105
-
-    push.16877457782303791547
-    assert_eq
-    push.11972590391248175313
-    assert_eq
-    push.3100373081707278564
-    assert_eq
-    push.7096542296177827649
-    assert_eq
-
-    pushw.local.106
-
-    push.7020793370540069683
-    assert_eq
-    push.14154189039299057850
-    assert_eq
-    push.16278699566452232814
-    assert_eq
-    push.15641825374164210288
-    assert_eq
-
-    pushw.local.107
-
-    push.16507891939315727263
-    assert_eq
-    push.2672282024558520400
-    assert_eq
-    push.11369699668797798029
-    assert_eq
-    push.12698485145960549833
-    assert_eq
-
-    pushw.local.108
-
-    push.7312272130372524998
-    assert_eq
-    push.618044444486631188
-    assert_eq
-    push.3791366873874355075
-    assert_eq
-    push.5082896689942265990
-    assert_eq
-
-    pushw.local.109
-
-    push.11707183425196948206
-    assert_eq
-    push.5473873804701425049
-    assert_eq
-    push.11040309650571431847
-    assert_eq
-    push.696756705851448612
-    assert_eq
-
-    pushw.local.110
-
-    push.3087123610587377460
-    assert_eq
-    push.17885312390645592151
-    assert_eq
-    push.14225547568313734297
-    assert_eq
-    push.9552704239592624845
-    assert_eq
-
-    pushw.local.111
-
-    push.16925721150628365575
-    assert_eq
-    push.1202539611214124159
-    assert_eq
-    push.9661188788039071482
-    assert_eq
-    push.947019814211424257
-    assert_eq
-
-    pushw.local.112
-
-    push.18382699622800959606
-    assert_eq
-    push.2661011257134350943
-    assert_eq
-    push.16517054008792145701
-    assert_eq
-    push.11242711842146528718
-    assert_eq
-
-    pushw.local.113
-
-    push.8607463334904655371
-    assert_eq
-    push.5461734778947279056
-    assert_eq
-    push.9319704235952767853
-    assert_eq
-    push.1666674032747892084
-    assert_eq
-
-    pushw.local.114
-
-    push.5163183654701938158
-    assert_eq
-    push.11841308919288316363
-    assert_eq
-    push.14059199343717200324
-    assert_eq
-    push.8251996508082379793
-    assert_eq
-
-    pushw.local.115
-
-    push.14842082905936626972
-    assert_eq
-    push.12439375321289707536
-    assert_eq
-    push.11088068707522430673
-    assert_eq
-    push.4862507816692896766
-    assert_eq
-
-    pushw.local.116
-
-    push.3956280272199302478
-    assert_eq
-    push.8085413517437825684
-    assert_eq
-    push.18188074785684425088
-    assert_eq
-    push.4336038796905611039
-    assert_eq
-
-    pushw.local.117
-
-    push.7927475631615442421
-    assert_eq
-    push.11176792569105590956
-    assert_eq
-    push.14252391726017169882
-    assert_eq
-    push.9219657197664309210
-    assert_eq
-
-    pushw.local.118
-
-    push.792037797933480636
-    assert_eq
-    push.14336541264070132902
-    assert_eq
-    push.638525423443462447
-    assert_eq
-    push.13245404777763005532
-    assert_eq
-
-    pushw.local.119
-
-    push.4268190099036611008
-    assert_eq
-    push.9571109272133006643
-    assert_eq
-    push.12055429652566909505
-    assert_eq
-    push.360955568435882338
-    assert_eq
-
-    pushw.local.120
-
-    push.10129622376870902946
-    assert_eq
-    push.9508126923216501423
-    assert_eq
-    push.5333503729525038918
-    assert_eq
-    push.6656980442522150754
-    assert_eq
-
-    pushw.local.121
-
-    push.14453836366880698356
-    assert_eq
-    push.730511821011013473
-    assert_eq
-    push.8954717507605904756
-    assert_eq
-    push.14946849288599984786
-    assert_eq
-
-    pushw.local.122
-
-    push.11497397510247217941
-    assert_eq
-    push.16540194865268245637
-    assert_eq
-    push.1012135699625126712
-    assert_eq
-    push.11499602538048347956
-    assert_eq
-
-    pushw.local.123
-
-    push.9069880514720156888
-    assert_eq
-    push.1704669204159609424
-    assert_eq
-    push.17802026749540522578
-    assert_eq
-    push.7733872095211700020
-    assert_eq
-
-    pushw.local.124
-
-    push.5686969124851045992
-    assert_eq
-    push.16258423984894898607
-    assert_eq
-    push.4286821862379136089
-    assert_eq
-    push.16405897176262122808
-    assert_eq
-
-    pushw.local.125
-
-    push.10152352175912283478
-    assert_eq
-    push.11992570287022017322
-    assert_eq
-    push.8003252851648323516
-    assert_eq
-    push.7213033422352747723
-    assert_eq
-
-    pushw.local.126
-
-    push.11886014067542442130
-    assert_eq
-    push.7617504743224559388
-    assert_eq
-    push.5942021648748510140
-    assert_eq
-    push.13914081284823479780
-    assert_eq
-
-    pushw.local.127
-
-    push.6251952012393749681
-    assert_eq
-    push.8615776837219416649
-    assert_eq
-    push.7272726666596204218
-    assert_eq
-    push.16992025507167613444
-    assert_eq
-
-    # end asserting result
+	# bit-reversed order NTT vector lives in these absolute memory addresses
+
+    push.env.locaddr.127
+    push.env.locaddr.126
+    push.env.locaddr.125
+    push.env.locaddr.124
+    push.env.locaddr.123
+    push.env.locaddr.122
+    push.env.locaddr.121
+    push.env.locaddr.120
+    push.env.locaddr.119
+    push.env.locaddr.118
+    push.env.locaddr.117
+    push.env.locaddr.116
+    push.env.locaddr.115
+    push.env.locaddr.114
+    push.env.locaddr.113
+    push.env.locaddr.112
+    push.env.locaddr.111
+    push.env.locaddr.110
+    push.env.locaddr.109
+    push.env.locaddr.108
+    push.env.locaddr.107
+    push.env.locaddr.106
+    push.env.locaddr.105
+    push.env.locaddr.104
+    push.env.locaddr.103
+    push.env.locaddr.102
+    push.env.locaddr.101
+    push.env.locaddr.100
+    push.env.locaddr.99
+    push.env.locaddr.98
+    push.env.locaddr.97
+    push.env.locaddr.96
+    push.env.locaddr.95
+    push.env.locaddr.94
+    push.env.locaddr.93
+    push.env.locaddr.92
+    push.env.locaddr.91
+    push.env.locaddr.90
+    push.env.locaddr.89
+    push.env.locaddr.88
+    push.env.locaddr.87
+    push.env.locaddr.86
+    push.env.locaddr.85
+    push.env.locaddr.84
+    push.env.locaddr.83
+    push.env.locaddr.82
+    push.env.locaddr.81
+    push.env.locaddr.80
+    push.env.locaddr.79
+    push.env.locaddr.78
+    push.env.locaddr.77
+    push.env.locaddr.76
+    push.env.locaddr.75
+    push.env.locaddr.74
+    push.env.locaddr.73
+    push.env.locaddr.72
+    push.env.locaddr.71
+    push.env.locaddr.70
+    push.env.locaddr.69
+    push.env.locaddr.68
+    push.env.locaddr.67
+    push.env.locaddr.66
+    push.env.locaddr.65
+    push.env.locaddr.64
+    push.env.locaddr.63
+    push.env.locaddr.62
+    push.env.locaddr.61
+    push.env.locaddr.60
+    push.env.locaddr.59
+    push.env.locaddr.58
+    push.env.locaddr.57
+    push.env.locaddr.56
+    push.env.locaddr.55
+    push.env.locaddr.54
+    push.env.locaddr.53
+    push.env.locaddr.52
+    push.env.locaddr.51
+    push.env.locaddr.50
+    push.env.locaddr.49
+    push.env.locaddr.48
+    push.env.locaddr.47
+    push.env.locaddr.46
+    push.env.locaddr.45
+    push.env.locaddr.44
+    push.env.locaddr.43
+    push.env.locaddr.42
+    push.env.locaddr.41
+    push.env.locaddr.40
+    push.env.locaddr.39
+    push.env.locaddr.38
+    push.env.locaddr.37
+    push.env.locaddr.36
+    push.env.locaddr.35
+    push.env.locaddr.34
+    push.env.locaddr.33
+    push.env.locaddr.32
+    push.env.locaddr.31
+    push.env.locaddr.30
+    push.env.locaddr.29
+    push.env.locaddr.28
+    push.env.locaddr.27
+    push.env.locaddr.26
+    push.env.locaddr.25
+    push.env.locaddr.24
+    push.env.locaddr.23
+    push.env.locaddr.22
+    push.env.locaddr.21
+    push.env.locaddr.20
+    push.env.locaddr.19
+    push.env.locaddr.18
+    push.env.locaddr.17
+    push.env.locaddr.16
+    push.env.locaddr.15
+    push.env.locaddr.14
+    push.env.locaddr.13
+    push.env.locaddr.12
+    push.env.locaddr.11
+    push.env.locaddr.10
+    push.env.locaddr.9
+    push.env.locaddr.8
+    push.env.locaddr.7
+    push.env.locaddr.6
+    push.env.locaddr.5
+    push.env.locaddr.4
+    push.env.locaddr.3
+    push.env.locaddr.2
+    push.env.locaddr.1
+    push.env.locaddr.0
 end
 
 # Applies four inverse NTT butterflies on four different indices, given following stack state
@@ -18244,276 +17229,543 @@ proc.mul_by_invN
 end
 
 # Applies inverse NTT on a vector of length 512, where each element ∈ Zp | p = 2^64 − 2^32 + 1,
-# producing elements in time domain in standard order, while input vector is expected to be in bit-reversed order.
+# producing elements in time domain in standard order, while input vector is expected to be in 
+# bit-reversed order.
 #
-# Static bit-reversed input vector ( i.e. [0..512) ) is accepted using function local memory, while after 
-# applying inverse NTT, standard order output vector is also kept on same function local memory allocation --- this 
-# section will be improved.
+# Expected stack state as input:
 #
-# This routine tests itself, but doesn't respond, in any meaningful way, when invoked from outside.
-# The purpose of this function is asserting functional correctness of inverse NTT-512 implementation, while
-# encapsulating the implementation.
+# [addr0, addr1, addr2, addr3, ... , addr126, addr127] | 128 absolute memory addresses
+#
+# Note, addr{i} is the absolute memory address of i-th word of input vector V s.t.
+# each word consists of four consecutive field elements in vector of length 512.
+#
+# Meaning addr{i} holds values V[(i << 2) .. ((i+1) << 2)] | i ∈ [0, 128)
+#
+# After applying iNTT, normal order vector is returned back as 128 absolute memory
+# addresses on stack, as input was provided.
+#
+# [addr0', addr1', addr2', addr3', ... , addr126', addr127'] | 128 absolute memory addresses
+#
+# Note, input memory allocation is not mutated, instead output is stored in different memory allocation.
 export.backward.128
-	# begin preparing development input
+	# prepare input
 
-    push.500427581402858571.2463011040099663974.13255236560399798415.6147698371245747120
-    popw.local.0
-    push.4759188580461308943.2807061946257421748.7549830671545879423.9387934912362961312
-    popw.local.1
-    push.1388192801295105971.16298308954297267166.5463045908626770304.9379941516119320882
-    popw.local.2
-    push.1822341659846948200.7837612199872064446.13701360230683392458.3025227557696320612
-    popw.local.3
-    push.6661003217299415345.2462700283595696130.10287011748290197204.11593484223257809456
-    popw.local.4
-    push.5822565313136645408.13374962778532735081.9513121813828969915.4850126366893939331
-    popw.local.5
-    push.9638547351911424431.1284486619460005108.17760129267519767490.8639307051715995157
-    popw.local.6
-    push.13238262168040768060.12823255455035621696.14285126964169992246.17637713302469968180
-    popw.local.7
-    push.15517318235210799523.8090504461116217953.1357100511086411291.14223921105393507681
-    popw.local.8
-    push.11495840209035318117.4716997638082670922.1684552264558936468.16628668316477991361
-    popw.local.9
-    push.9373982051891349673.4375032670965432631.17813839478541020385.8712021422542957173
-    popw.local.10
-    push.7963379320027168585.15061433824670536866.14044826173259891759.1926093556853850187
-    popw.local.11
-    push.17117618612841673432.11152590746239846097.14431246337082958746.14691778372873896091
-    popw.local.12
-    push.303890312557052486.16546231301940396830.4084063692504982245.14862669681256781194
-    popw.local.13
-    push.12874831358695227040.8927299104241429512.1391337153954404998.7563043097586366000
-    popw.local.14
-    push.487169446989684856.3598143036621308872.3025759491575349789.17544691169439260104
-    popw.local.15
-    push.9893297249316795649.2882980834561558714.6080341855927780886.6666882237238639271
-    popw.local.16
-    push.3705911779901497798.11137670125329914006.3411987355997998953.4691550456846015466
-    popw.local.17
-    push.15796413081962541352.18296196013336192157.799757138718215649.15518117179961526146
-    popw.local.18
-    push.13210457250415703836.8162117950669587555.13196368854332472946.7347195004378104849
-    popw.local.19
-    push.8906355104260221321.6266966273130402481.657975828059970386.5452650972361431851
-    popw.local.20
-    push.8576758396778913845.5042479363983917261.14955072641990074669.1177534166750439230
-    popw.local.21
-    push.6334563537974372527.497910349234540620.3941628179342546836.8896467651864889830
-    popw.local.22
-    push.12425671526490530033.774530765448667322.9704822807517896607.13460463077709850377
-    popw.local.23
-    push.14318104668539212250.10225952875956458587.12498735210523199927.8065494508321203076
-    popw.local.24
-    push.12164956900973499431.8346724915334734524.6807078861963306588.6311439446657985780
-    popw.local.25
-    push.7234458743041469928.14244370490763271162.4239657429080771413.11445417186801385760
-    popw.local.26
-    push.11747418408334319738.14751110666906846153.5018146025947592012.2139508481948263956
-    popw.local.27
-    push.1973185003558773229.3702090447919014070.9021654833377757761.13564247872498662505
-    popw.local.28
-    push.3965062879362346539.3004215856372485490.10771985727518467339.4997611524108540570
-    popw.local.29
-    push.2312056974030883522.12465933509381032447.7706343149895562665.2219769481339195266
-    popw.local.30
-    push.4146773039321337126.9033129468865877333.2125184873369089124.5022786165037908972
-    popw.local.31
-    push.13678435790007910187.985664331094757213.17149781625007751176.4662969890869329954
-    popw.local.32
-    push.6861895092303478630.18012673797650473443.8222509106562826527.10150484129565507076
-    popw.local.33
-    push.5096773607628371884.14429583432640497786.14908977434228205095.16844253818212940857
-    popw.local.34
-    push.7458036209579834773.4955617923334453253.12367986838157190529.12395699022945804024
-    popw.local.35
-    push.13890387097742396980.6515488115992785920.18020016569845241237.9143623102345260628
-    popw.local.36
-    push.2905443428502578517.16875779936086595852.17390390595735418203.12996593942828004366
-    popw.local.37
-    push.18214974425583805276.13002876069586538529.9199250935105121089.893260271205161783
-    popw.local.38
-    push.6709534089282777356.12587785846481248845.5760084267134403683.5871387860019782338
-    popw.local.39
-    push.7245215770567422587.9607664737753257441.5716597287927550595.3123643438350635974
-    popw.local.40
-    push.5759208819531861758.17071143378045471018.8078443735104605287.16881060344087771413
-    popw.local.41
-    push.1473685036794685672.141332871558446952.6407770971883791349.12566331383071766254
-    popw.local.42
-    push.15369028662523164967.8861784141877776284.11894138910345911899.469389931994699889
-    popw.local.43
-    push.13875913004469395297.2607653131583029365.16586192596775565345.15664808304394316343
-    popw.local.44
-    push.16813439921261944248.14161113041748059521.13448834210131967244.8009025452734193607
-    popw.local.45
-    push.4083354598206562910.6251459103334690891.6137042318318339109.13995070365201497714
-    popw.local.46
-    push.12818043094147068368.9249214068095605136.3997466371394620132.14493471866567307848
-    popw.local.47
-    push.5394043712193799933.15239864752341206448.3588540624239934438.13015011347722958547
-    popw.local.48
-    push.11829529434721723333.12130786777414201524.3419201204817655041.3128672686463738131
-    popw.local.49
-    push.6140842141236339257.7500291227370840461.15516781916364721257.5151809639838655931
-    popw.local.50
-    push.13243563844154651511.762882067218168658.17726010777882042466.11690668512079064293
-    popw.local.51
-    push.3918065202896176478.11725206893555211986.17101791001764243145.10558916504036356933
-    popw.local.52
-    push.10298844172561774234.17149127386114289503.11567105031538459462.803701966684189555
-    popw.local.53
-    push.17482417277959843804.1810114756857547179.16018809242226017839.2803053123421498344
-    popw.local.54
-    push.13204537791056727921.8999334195551472243.13318542890811254177.78962158302801786
-    popw.local.55
-    push.11093885641065163374.13355052672226195728.7592879583466719407.12393637219601567574
-    popw.local.56
-    push.3411599003810787776.2809894435780251284.6794795563368961656.14284568787846633340
-    popw.local.57
-    push.16299086042706000560.3431893456709396822.6924418765183651467.1349795128299762686
-    popw.local.58
-    push.5027175826503224555.10153763531676333194.16264631822018623161.1583932303300965007
-    popw.local.59
-    push.7218523740236699299.17405989941569656846.1942275972796109015.7807832181012033386
-    popw.local.60
-    push.5715345431563076262.10005260587118472398.2393469611227278774.16405583093082798411
-    popw.local.61
-    push.8089586839234703419.18142885242969242100.9496386899791548746.16988798032855610364
-    popw.local.62
-    push.13755333174520886464.4289754023734046593.6558160888738056325.4370480212321907950
-    popw.local.63
-    push.1095320300961666936.12562227996983300356.16339859305517413399.1494047469102986519
-    popw.local.64
-    push.854047760369733976.14530409639472899115.5854381521638192751.10516920696937702284
-    popw.local.65
-    push.2794790736470622544.4139499927901685601.17422775311721259180.10904098461973645865
-    popw.local.66
-    push.1784571835427036944.4234979558599665650.9250129350657951385.7819865318527720810
-    popw.local.67
-    push.18142115543028914412.10045192632325951454.13588187127040443153.16289356085892318230
-    popw.local.68
-    push.17729711269237440361.539684312007626408.11430590887347575920.8111707298035988643
-    popw.local.69
-    push.8428499566768654683.6013205331994689614.13329490012213926327.11442474927709952764
-    popw.local.70
-    push.16150914592979533613.15471829253544609840.10586391764183012409.8762253157562392538
-    popw.local.71
-    push.6392279585533100357.17741352459101681712.11004455288779489872.8190839155548334141
-    popw.local.72
-    push.4226216350017515577.14880425420800392990.11015187404152435362.3457721476658561580
-    popw.local.73
-    push.14629100830552568255.7612415948668645325.14281378611832340921.2187849759750703504
-    popw.local.74
-    push.877672128107013028.2524681089307350526.5837373918705201518.1045809343595143126
-    popw.local.75
-    push.5920559297162622495.11259226891969400454.1828356708926881600.375546531597716834
-    popw.local.76
-    push.7917164687481063958.821000236133808134.4953050491861030149.1308096718102429686
-    popw.local.77
-    push.16363914024650516083.7468748459141628680.18151980406669433196.13281899104990252257
-    popw.local.78
-    push.8668665576569166951.5915985290118060008.15393692351097644975.4849705256848202365
-    popw.local.79
-    push.9554263480822607717.15384439712454326481.12628082128538211214.8300446822269204372
-    popw.local.80
-    push.14732015482137704088.2979547823604997972.7292662648869841962.12238253882750553858
-    popw.local.81
-    push.16519415090692894356.7198903717206004644.16536824509534370931.17320170229660244276
-    popw.local.82
-    push.14338251575625791894.1309308834650053177.14758645042887458947.7201793695830885568
-    popw.local.83
-    push.5716209785352087904.14537183770973180315.14516922055619556761.16250160353761920792
-    popw.local.84
-    push.3173145240318099632.12061541935646977447.3400167661560536242.8662993271246423627
-    popw.local.85
-    push.8719325338143121381.14364377592553572211.16797125524719969353.9779983570882049575
-    popw.local.86
-    push.5311413155140064380.14761196745008075213.13369371497705876272.3441777122008563845
-    popw.local.87
-    push.6874176837830348960.2543790951468878923.13603662903454429611.5334184973660170182
-    popw.local.88
-    push.2052697753100968697.2027790285986339592.10680417757191732550.50931374536222867
-    popw.local.89
-    push.8520311447926067785.8813959523570730359.17107102851440519601.17520109592597401123
-    popw.local.90
-    push.15783770904168829462.12164864114726281851.4206605768450390142.13694145796795458120
-    popw.local.91
-    push.14422448030219940688.11492798057464085775.16936924214205720797.5841129472983407877
-    popw.local.92
-    push.8925771421991641474.11266079826466912438.10951745108692586643.6507250621729077940
-    popw.local.93
-    push.17328677503143420133.8555391423963084189.1285178546161991355.431523066505444268
-    popw.local.94
-    push.10540350791453628906.14234637378559746361.13570070408968146198.13849482253040846080
-    popw.local.95
-    push.5008022948409793965.5530570934007304021.2449447675370487743.650415177035534115
-    popw.local.96
-    push.5441321007122731143.5781054458624323724.402139522378392068.8565569549360878607
-    popw.local.97
-    push.9589717239328382062.5030333191930369784.12296696041930375647.2141708533769732634
-    popw.local.98
-    push.6027690232728924930.1240774410427679033.963677192151881803.4543611496630253597
-    popw.local.99
-    push.2737555203331259767.1030608063572245572.9767474113466356503.2761035047280407935
-    popw.local.100
-    push.1618945402508718138.8922377290982201691.7374284328308128887.8841814831092757511
-    popw.local.101
-    push.12199497154981475450.3847290460963665198.3825152053016198315.11871822660196837602
-    popw.local.102
-    push.12598101527954240506.17350460119148800673.8664215757935537682.6994210944247916666
-    popw.local.103
-    push.16029478146060719718.2340432030104145622.12486487283416641615.2673356055215094872
-    popw.local.104
-    push.7096542296177827649.3100373081707278564.11972590391248175313.16877457782303791547
-    popw.local.105
-    push.15641825374164210288.16278699566452232814.14154189039299057850.7020793370540069683
-    popw.local.106
-    push.12698485145960549833.11369699668797798029.2672282024558520400.16507891939315727263
-    popw.local.107
-    push.5082896689942265990.3791366873874355075.618044444486631188.7312272130372524998
-    popw.local.108
-    push.696756705851448612.11040309650571431847.5473873804701425049.11707183425196948206
-    popw.local.109
-    push.9552704239592624845.14225547568313734297.17885312390645592151.3087123610587377460
-    popw.local.110
-    push.947019814211424257.9661188788039071482.1202539611214124159.16925721150628365575
-    popw.local.111
-    push.11242711842146528718.16517054008792145701.2661011257134350943.18382699622800959606
-    popw.local.112
-    push.1666674032747892084.9319704235952767853.5461734778947279056.8607463334904655371
-    popw.local.113
-    push.8251996508082379793.14059199343717200324.11841308919288316363.5163183654701938158
-    popw.local.114
-    push.4862507816692896766.11088068707522430673.12439375321289707536.14842082905936626972
-    popw.local.115
-    push.4336038796905611039.18188074785684425088.8085413517437825684.3956280272199302478
-    popw.local.116
-    push.9219657197664309210.14252391726017169882.11176792569105590956.7927475631615442421
-    popw.local.117
-    push.13245404777763005532.638525423443462447.14336541264070132902.792037797933480636
-    popw.local.118
-    push.360955568435882338.12055429652566909505.9571109272133006643.4268190099036611008
-    popw.local.119
-    push.6656980442522150754.5333503729525038918.9508126923216501423.10129622376870902946
-    popw.local.120
-    push.14946849288599984786.8954717507605904756.730511821011013473.14453836366880698356
-    popw.local.121
-    push.11499602538048347956.1012135699625126712.16540194865268245637.11497397510247217941
-    popw.local.122
-    push.7733872095211700020.17802026749540522578.1704669204159609424.9069880514720156888
-    popw.local.123
-    push.16405897176262122808.4286821862379136089.16258423984894898607.5686969124851045992
-    popw.local.124
-    push.7213033422352747723.8003252851648323516.11992570287022017322.10152352175912283478
-    popw.local.125
-    push.13914081284823479780.5942021648748510140.7617504743224559388.11886014067542442130
-    popw.local.126
-    push.16992025507167613444.7272726666596204218.8615776837219416649.6251952012393749681
-    popw.local.127
+	push.0.0.0.0
 
-	# end preparing development input
+    movup.4
+    loadw.mem
+    storew.local.0
+
+    movup.4
+    loadw.mem
+    storew.local.1
+
+    movup.4
+    loadw.mem
+    storew.local.2
+
+    movup.4
+    loadw.mem
+    storew.local.3
+
+    movup.4
+    loadw.mem
+    storew.local.4
+
+    movup.4
+    loadw.mem
+    storew.local.5
+
+    movup.4
+    loadw.mem
+    storew.local.6
+
+    movup.4
+    loadw.mem
+    storew.local.7
+
+    movup.4
+    loadw.mem
+    storew.local.8
+
+    movup.4
+    loadw.mem
+    storew.local.9
+
+    movup.4
+    loadw.mem
+    storew.local.10
+
+    movup.4
+    loadw.mem
+    storew.local.11
+
+    movup.4
+    loadw.mem
+    storew.local.12
+
+    movup.4
+    loadw.mem
+    storew.local.13
+
+    movup.4
+    loadw.mem
+    storew.local.14
+
+    movup.4
+    loadw.mem
+    storew.local.15
+
+    movup.4
+    loadw.mem
+    storew.local.16
+
+    movup.4
+    loadw.mem
+    storew.local.17
+
+    movup.4
+    loadw.mem
+    storew.local.18
+
+    movup.4
+    loadw.mem
+    storew.local.19
+
+    movup.4
+    loadw.mem
+    storew.local.20
+
+    movup.4
+    loadw.mem
+    storew.local.21
+
+    movup.4
+    loadw.mem
+    storew.local.22
+
+    movup.4
+    loadw.mem
+    storew.local.23
+
+    movup.4
+    loadw.mem
+    storew.local.24
+
+    movup.4
+    loadw.mem
+    storew.local.25
+
+    movup.4
+    loadw.mem
+    storew.local.26
+
+    movup.4
+    loadw.mem
+    storew.local.27
+
+    movup.4
+    loadw.mem
+    storew.local.28
+
+    movup.4
+    loadw.mem
+    storew.local.29
+
+    movup.4
+    loadw.mem
+    storew.local.30
+
+    movup.4
+    loadw.mem
+    storew.local.31
+
+    movup.4
+    loadw.mem
+    storew.local.32
+
+    movup.4
+    loadw.mem
+    storew.local.33
+
+    movup.4
+    loadw.mem
+    storew.local.34
+
+    movup.4
+    loadw.mem
+    storew.local.35
+
+    movup.4
+    loadw.mem
+    storew.local.36
+
+    movup.4
+    loadw.mem
+    storew.local.37
+
+    movup.4
+    loadw.mem
+    storew.local.38
+
+    movup.4
+    loadw.mem
+    storew.local.39
+
+    movup.4
+    loadw.mem
+    storew.local.40
+
+    movup.4
+    loadw.mem
+    storew.local.41
+
+    movup.4
+    loadw.mem
+    storew.local.42
+
+    movup.4
+    loadw.mem
+    storew.local.43
+
+    movup.4
+    loadw.mem
+    storew.local.44
+
+    movup.4
+    loadw.mem
+    storew.local.45
+
+    movup.4
+    loadw.mem
+    storew.local.46
+
+    movup.4
+    loadw.mem
+    storew.local.47
+
+    movup.4
+    loadw.mem
+    storew.local.48
+
+    movup.4
+    loadw.mem
+    storew.local.49
+
+    movup.4
+    loadw.mem
+    storew.local.50
+
+    movup.4
+    loadw.mem
+    storew.local.51
+
+    movup.4
+    loadw.mem
+    storew.local.52
+
+    movup.4
+    loadw.mem
+    storew.local.53
+
+    movup.4
+    loadw.mem
+    storew.local.54
+
+    movup.4
+    loadw.mem
+    storew.local.55
+
+    movup.4
+    loadw.mem
+    storew.local.56
+
+    movup.4
+    loadw.mem
+    storew.local.57
+
+    movup.4
+    loadw.mem
+    storew.local.58
+
+    movup.4
+    loadw.mem
+    storew.local.59
+
+    movup.4
+    loadw.mem
+    storew.local.60
+
+    movup.4
+    loadw.mem
+    storew.local.61
+
+    movup.4
+    loadw.mem
+    storew.local.62
+
+    movup.4
+    loadw.mem
+    storew.local.63
+
+    movup.4
+    loadw.mem
+    storew.local.64
+
+    movup.4
+    loadw.mem
+    storew.local.65
+
+    movup.4
+    loadw.mem
+    storew.local.66
+
+    movup.4
+    loadw.mem
+    storew.local.67
+
+    movup.4
+    loadw.mem
+    storew.local.68
+
+    movup.4
+    loadw.mem
+    storew.local.69
+
+    movup.4
+    loadw.mem
+    storew.local.70
+
+    movup.4
+    loadw.mem
+    storew.local.71
+
+    movup.4
+    loadw.mem
+    storew.local.72
+
+    movup.4
+    loadw.mem
+    storew.local.73
+
+    movup.4
+    loadw.mem
+    storew.local.74
+
+    movup.4
+    loadw.mem
+    storew.local.75
+
+    movup.4
+    loadw.mem
+    storew.local.76
+
+    movup.4
+    loadw.mem
+    storew.local.77
+
+    movup.4
+    loadw.mem
+    storew.local.78
+
+    movup.4
+    loadw.mem
+    storew.local.79
+
+    movup.4
+    loadw.mem
+    storew.local.80
+
+    movup.4
+    loadw.mem
+    storew.local.81
+
+    movup.4
+    loadw.mem
+    storew.local.82
+
+    movup.4
+    loadw.mem
+    storew.local.83
+
+    movup.4
+    loadw.mem
+    storew.local.84
+
+    movup.4
+    loadw.mem
+    storew.local.85
+
+    movup.4
+    loadw.mem
+    storew.local.86
+
+    movup.4
+    loadw.mem
+    storew.local.87
+
+    movup.4
+    loadw.mem
+    storew.local.88
+
+    movup.4
+    loadw.mem
+    storew.local.89
+
+    movup.4
+    loadw.mem
+    storew.local.90
+
+    movup.4
+    loadw.mem
+    storew.local.91
+
+    movup.4
+    loadw.mem
+    storew.local.92
+
+    movup.4
+    loadw.mem
+    storew.local.93
+
+    movup.4
+    loadw.mem
+    storew.local.94
+
+    movup.4
+    loadw.mem
+    storew.local.95
+
+    movup.4
+    loadw.mem
+    storew.local.96
+
+    movup.4
+    loadw.mem
+    storew.local.97
+
+    movup.4
+    loadw.mem
+    storew.local.98
+
+    movup.4
+    loadw.mem
+    storew.local.99
+
+    movup.4
+    loadw.mem
+    storew.local.100
+
+    movup.4
+    loadw.mem
+    storew.local.101
+
+    movup.4
+    loadw.mem
+    storew.local.102
+
+    movup.4
+    loadw.mem
+    storew.local.103
+
+    movup.4
+    loadw.mem
+    storew.local.104
+
+    movup.4
+    loadw.mem
+    storew.local.105
+
+    movup.4
+    loadw.mem
+    storew.local.106
+
+    movup.4
+    loadw.mem
+    storew.local.107
+
+    movup.4
+    loadw.mem
+    storew.local.108
+
+    movup.4
+    loadw.mem
+    storew.local.109
+
+    movup.4
+    loadw.mem
+    storew.local.110
+
+    movup.4
+    loadw.mem
+    storew.local.111
+
+    movup.4
+    loadw.mem
+    storew.local.112
+
+    movup.4
+    loadw.mem
+    storew.local.113
+
+    movup.4
+    loadw.mem
+    storew.local.114
+
+    movup.4
+    loadw.mem
+    storew.local.115
+
+    movup.4
+    loadw.mem
+    storew.local.116
+
+    movup.4
+    loadw.mem
+    storew.local.117
+
+    movup.4
+    loadw.mem
+    storew.local.118
+
+    movup.4
+    loadw.mem
+    storew.local.119
+
+    movup.4
+    loadw.mem
+    storew.local.120
+
+    movup.4
+    loadw.mem
+    storew.local.121
+
+    movup.4
+    loadw.mem
+    storew.local.122
+
+    movup.4
+    loadw.mem
+    storew.local.123
+
+    movup.4
+    loadw.mem
+    storew.local.124
+
+    movup.4
+    loadw.mem
+    storew.local.125
+
+    movup.4
+    loadw.mem
+    storew.local.126
+
+    movup.4
+    loadw.mem
+    storew.local.127
+
+	dropw
+
 	# iter = 0
 
 	pushw.local.0
@@ -28309,1417 +27561,136 @@ export.backward.128
 
 	dropw
 
-	# begin asserting result
-
-    pushw.local.0
-
-    push.0
-    assert_eq
-    push.1
-    assert_eq
-    push.2
-    assert_eq
-    push.3
-    assert_eq
-
-    pushw.local.1
-
-    push.4
-    assert_eq
-    push.5
-    assert_eq
-    push.6
-    assert_eq
-    push.7
-    assert_eq
-
-    pushw.local.2
-
-    push.8
-    assert_eq
-    push.9
-    assert_eq
-    push.10
-    assert_eq
-    push.11
-    assert_eq
-
-    pushw.local.3
-
-    push.12
-    assert_eq
-    push.13
-    assert_eq
-    push.14
-    assert_eq
-    push.15
-    assert_eq
-
-    pushw.local.4
-
-    push.16
-    assert_eq
-    push.17
-    assert_eq
-    push.18
-    assert_eq
-    push.19
-    assert_eq
-
-    pushw.local.5
-
-    push.20
-    assert_eq
-    push.21
-    assert_eq
-    push.22
-    assert_eq
-    push.23
-    assert_eq
-
-    pushw.local.6
-
-    push.24
-    assert_eq
-    push.25
-    assert_eq
-    push.26
-    assert_eq
-    push.27
-    assert_eq
-
-    pushw.local.7
-
-    push.28
-    assert_eq
-    push.29
-    assert_eq
-    push.30
-    assert_eq
-    push.31
-    assert_eq
-
-    pushw.local.8
-
-    push.32
-    assert_eq
-    push.33
-    assert_eq
-    push.34
-    assert_eq
-    push.35
-    assert_eq
-
-    pushw.local.9
-
-    push.36
-    assert_eq
-    push.37
-    assert_eq
-    push.38
-    assert_eq
-    push.39
-    assert_eq
-
-    pushw.local.10
-
-    push.40
-    assert_eq
-    push.41
-    assert_eq
-    push.42
-    assert_eq
-    push.43
-    assert_eq
-
-    pushw.local.11
-
-    push.44
-    assert_eq
-    push.45
-    assert_eq
-    push.46
-    assert_eq
-    push.47
-    assert_eq
-
-    pushw.local.12
-
-    push.48
-    assert_eq
-    push.49
-    assert_eq
-    push.50
-    assert_eq
-    push.51
-    assert_eq
-
-    pushw.local.13
-
-    push.52
-    assert_eq
-    push.53
-    assert_eq
-    push.54
-    assert_eq
-    push.55
-    assert_eq
-
-    pushw.local.14
-
-    push.56
-    assert_eq
-    push.57
-    assert_eq
-    push.58
-    assert_eq
-    push.59
-    assert_eq
-
-    pushw.local.15
-
-    push.60
-    assert_eq
-    push.61
-    assert_eq
-    push.62
-    assert_eq
-    push.63
-    assert_eq
-
-    pushw.local.16
-
-    push.64
-    assert_eq
-    push.65
-    assert_eq
-    push.66
-    assert_eq
-    push.67
-    assert_eq
-
-    pushw.local.17
-
-    push.68
-    assert_eq
-    push.69
-    assert_eq
-    push.70
-    assert_eq
-    push.71
-    assert_eq
-
-    pushw.local.18
-
-    push.72
-    assert_eq
-    push.73
-    assert_eq
-    push.74
-    assert_eq
-    push.75
-    assert_eq
-
-    pushw.local.19
-
-    push.76
-    assert_eq
-    push.77
-    assert_eq
-    push.78
-    assert_eq
-    push.79
-    assert_eq
-
-    pushw.local.20
-
-    push.80
-    assert_eq
-    push.81
-    assert_eq
-    push.82
-    assert_eq
-    push.83
-    assert_eq
-
-    pushw.local.21
-
-    push.84
-    assert_eq
-    push.85
-    assert_eq
-    push.86
-    assert_eq
-    push.87
-    assert_eq
-
-    pushw.local.22
-
-    push.88
-    assert_eq
-    push.89
-    assert_eq
-    push.90
-    assert_eq
-    push.91
-    assert_eq
-
-    pushw.local.23
-
-    push.92
-    assert_eq
-    push.93
-    assert_eq
-    push.94
-    assert_eq
-    push.95
-    assert_eq
-
-    pushw.local.24
-
-    push.96
-    assert_eq
-    push.97
-    assert_eq
-    push.98
-    assert_eq
-    push.99
-    assert_eq
-
-    pushw.local.25
-
-    push.100
-    assert_eq
-    push.101
-    assert_eq
-    push.102
-    assert_eq
-    push.103
-    assert_eq
-
-    pushw.local.26
-
-    push.104
-    assert_eq
-    push.105
-    assert_eq
-    push.106
-    assert_eq
-    push.107
-    assert_eq
-
-    pushw.local.27
-
-    push.108
-    assert_eq
-    push.109
-    assert_eq
-    push.110
-    assert_eq
-    push.111
-    assert_eq
-
-    pushw.local.28
-
-    push.112
-    assert_eq
-    push.113
-    assert_eq
-    push.114
-    assert_eq
-    push.115
-    assert_eq
-
-    pushw.local.29
-
-    push.116
-    assert_eq
-    push.117
-    assert_eq
-    push.118
-    assert_eq
-    push.119
-    assert_eq
-
-    pushw.local.30
-
-    push.120
-    assert_eq
-    push.121
-    assert_eq
-    push.122
-    assert_eq
-    push.123
-    assert_eq
-
-    pushw.local.31
-
-    push.124
-    assert_eq
-    push.125
-    assert_eq
-    push.126
-    assert_eq
-    push.127
-    assert_eq
-
-    pushw.local.32
-
-    push.128
-    assert_eq
-    push.129
-    assert_eq
-    push.130
-    assert_eq
-    push.131
-    assert_eq
-
-    pushw.local.33
-
-    push.132
-    assert_eq
-    push.133
-    assert_eq
-    push.134
-    assert_eq
-    push.135
-    assert_eq
-
-    pushw.local.34
-
-    push.136
-    assert_eq
-    push.137
-    assert_eq
-    push.138
-    assert_eq
-    push.139
-    assert_eq
-
-    pushw.local.35
-
-    push.140
-    assert_eq
-    push.141
-    assert_eq
-    push.142
-    assert_eq
-    push.143
-    assert_eq
-
-    pushw.local.36
-
-    push.144
-    assert_eq
-    push.145
-    assert_eq
-    push.146
-    assert_eq
-    push.147
-    assert_eq
-
-    pushw.local.37
-
-    push.148
-    assert_eq
-    push.149
-    assert_eq
-    push.150
-    assert_eq
-    push.151
-    assert_eq
-
-    pushw.local.38
-
-    push.152
-    assert_eq
-    push.153
-    assert_eq
-    push.154
-    assert_eq
-    push.155
-    assert_eq
-
-    pushw.local.39
-
-    push.156
-    assert_eq
-    push.157
-    assert_eq
-    push.158
-    assert_eq
-    push.159
-    assert_eq
-
-    pushw.local.40
-
-    push.160
-    assert_eq
-    push.161
-    assert_eq
-    push.162
-    assert_eq
-    push.163
-    assert_eq
-
-    pushw.local.41
-
-    push.164
-    assert_eq
-    push.165
-    assert_eq
-    push.166
-    assert_eq
-    push.167
-    assert_eq
-
-    pushw.local.42
-
-    push.168
-    assert_eq
-    push.169
-    assert_eq
-    push.170
-    assert_eq
-    push.171
-    assert_eq
-
-    pushw.local.43
-
-    push.172
-    assert_eq
-    push.173
-    assert_eq
-    push.174
-    assert_eq
-    push.175
-    assert_eq
-
-    pushw.local.44
-
-    push.176
-    assert_eq
-    push.177
-    assert_eq
-    push.178
-    assert_eq
-    push.179
-    assert_eq
-
-    pushw.local.45
-
-    push.180
-    assert_eq
-    push.181
-    assert_eq
-    push.182
-    assert_eq
-    push.183
-    assert_eq
-
-    pushw.local.46
-
-    push.184
-    assert_eq
-    push.185
-    assert_eq
-    push.186
-    assert_eq
-    push.187
-    assert_eq
-
-    pushw.local.47
-
-    push.188
-    assert_eq
-    push.189
-    assert_eq
-    push.190
-    assert_eq
-    push.191
-    assert_eq
-
-    pushw.local.48
-
-    push.192
-    assert_eq
-    push.193
-    assert_eq
-    push.194
-    assert_eq
-    push.195
-    assert_eq
-
-    pushw.local.49
-
-    push.196
-    assert_eq
-    push.197
-    assert_eq
-    push.198
-    assert_eq
-    push.199
-    assert_eq
-
-    pushw.local.50
-
-    push.200
-    assert_eq
-    push.201
-    assert_eq
-    push.202
-    assert_eq
-    push.203
-    assert_eq
-
-    pushw.local.51
-
-    push.204
-    assert_eq
-    push.205
-    assert_eq
-    push.206
-    assert_eq
-    push.207
-    assert_eq
-
-    pushw.local.52
-
-    push.208
-    assert_eq
-    push.209
-    assert_eq
-    push.210
-    assert_eq
-    push.211
-    assert_eq
-
-    pushw.local.53
-
-    push.212
-    assert_eq
-    push.213
-    assert_eq
-    push.214
-    assert_eq
-    push.215
-    assert_eq
-
-    pushw.local.54
-
-    push.216
-    assert_eq
-    push.217
-    assert_eq
-    push.218
-    assert_eq
-    push.219
-    assert_eq
-
-    pushw.local.55
-
-    push.220
-    assert_eq
-    push.221
-    assert_eq
-    push.222
-    assert_eq
-    push.223
-    assert_eq
-
-    pushw.local.56
-
-    push.224
-    assert_eq
-    push.225
-    assert_eq
-    push.226
-    assert_eq
-    push.227
-    assert_eq
-
-    pushw.local.57
-
-    push.228
-    assert_eq
-    push.229
-    assert_eq
-    push.230
-    assert_eq
-    push.231
-    assert_eq
-
-    pushw.local.58
-
-    push.232
-    assert_eq
-    push.233
-    assert_eq
-    push.234
-    assert_eq
-    push.235
-    assert_eq
-
-    pushw.local.59
-
-    push.236
-    assert_eq
-    push.237
-    assert_eq
-    push.238
-    assert_eq
-    push.239
-    assert_eq
-
-    pushw.local.60
-
-    push.240
-    assert_eq
-    push.241
-    assert_eq
-    push.242
-    assert_eq
-    push.243
-    assert_eq
-
-    pushw.local.61
-
-    push.244
-    assert_eq
-    push.245
-    assert_eq
-    push.246
-    assert_eq
-    push.247
-    assert_eq
-
-    pushw.local.62
-
-    push.248
-    assert_eq
-    push.249
-    assert_eq
-    push.250
-    assert_eq
-    push.251
-    assert_eq
-
-    pushw.local.63
-
-    push.252
-    assert_eq
-    push.253
-    assert_eq
-    push.254
-    assert_eq
-    push.255
-    assert_eq
-
-    pushw.local.64
-
-    push.256
-    assert_eq
-    push.257
-    assert_eq
-    push.258
-    assert_eq
-    push.259
-    assert_eq
-
-    pushw.local.65
-
-    push.260
-    assert_eq
-    push.261
-    assert_eq
-    push.262
-    assert_eq
-    push.263
-    assert_eq
-
-    pushw.local.66
-
-    push.264
-    assert_eq
-    push.265
-    assert_eq
-    push.266
-    assert_eq
-    push.267
-    assert_eq
-
-    pushw.local.67
-
-    push.268
-    assert_eq
-    push.269
-    assert_eq
-    push.270
-    assert_eq
-    push.271
-    assert_eq
-
-    pushw.local.68
-
-    push.272
-    assert_eq
-    push.273
-    assert_eq
-    push.274
-    assert_eq
-    push.275
-    assert_eq
-
-    pushw.local.69
-
-    push.276
-    assert_eq
-    push.277
-    assert_eq
-    push.278
-    assert_eq
-    push.279
-    assert_eq
-
-    pushw.local.70
-
-    push.280
-    assert_eq
-    push.281
-    assert_eq
-    push.282
-    assert_eq
-    push.283
-    assert_eq
-
-    pushw.local.71
-
-    push.284
-    assert_eq
-    push.285
-    assert_eq
-    push.286
-    assert_eq
-    push.287
-    assert_eq
-
-    pushw.local.72
-
-    push.288
-    assert_eq
-    push.289
-    assert_eq
-    push.290
-    assert_eq
-    push.291
-    assert_eq
-
-    pushw.local.73
-
-    push.292
-    assert_eq
-    push.293
-    assert_eq
-    push.294
-    assert_eq
-    push.295
-    assert_eq
-
-    pushw.local.74
-
-    push.296
-    assert_eq
-    push.297
-    assert_eq
-    push.298
-    assert_eq
-    push.299
-    assert_eq
-
-    pushw.local.75
-
-    push.300
-    assert_eq
-    push.301
-    assert_eq
-    push.302
-    assert_eq
-    push.303
-    assert_eq
-
-    pushw.local.76
-
-    push.304
-    assert_eq
-    push.305
-    assert_eq
-    push.306
-    assert_eq
-    push.307
-    assert_eq
-
-    pushw.local.77
-
-    push.308
-    assert_eq
-    push.309
-    assert_eq
-    push.310
-    assert_eq
-    push.311
-    assert_eq
-
-    pushw.local.78
-
-    push.312
-    assert_eq
-    push.313
-    assert_eq
-    push.314
-    assert_eq
-    push.315
-    assert_eq
-
-    pushw.local.79
-
-    push.316
-    assert_eq
-    push.317
-    assert_eq
-    push.318
-    assert_eq
-    push.319
-    assert_eq
-
-    pushw.local.80
-
-    push.320
-    assert_eq
-    push.321
-    assert_eq
-    push.322
-    assert_eq
-    push.323
-    assert_eq
-
-    pushw.local.81
-
-    push.324
-    assert_eq
-    push.325
-    assert_eq
-    push.326
-    assert_eq
-    push.327
-    assert_eq
-
-    pushw.local.82
-
-    push.328
-    assert_eq
-    push.329
-    assert_eq
-    push.330
-    assert_eq
-    push.331
-    assert_eq
-
-    pushw.local.83
-
-    push.332
-    assert_eq
-    push.333
-    assert_eq
-    push.334
-    assert_eq
-    push.335
-    assert_eq
-
-    pushw.local.84
-
-    push.336
-    assert_eq
-    push.337
-    assert_eq
-    push.338
-    assert_eq
-    push.339
-    assert_eq
-
-    pushw.local.85
-
-    push.340
-    assert_eq
-    push.341
-    assert_eq
-    push.342
-    assert_eq
-    push.343
-    assert_eq
-
-    pushw.local.86
-
-    push.344
-    assert_eq
-    push.345
-    assert_eq
-    push.346
-    assert_eq
-    push.347
-    assert_eq
-
-    pushw.local.87
-
-    push.348
-    assert_eq
-    push.349
-    assert_eq
-    push.350
-    assert_eq
-    push.351
-    assert_eq
-
-    pushw.local.88
-
-    push.352
-    assert_eq
-    push.353
-    assert_eq
-    push.354
-    assert_eq
-    push.355
-    assert_eq
-
-    pushw.local.89
-
-    push.356
-    assert_eq
-    push.357
-    assert_eq
-    push.358
-    assert_eq
-    push.359
-    assert_eq
-
-    pushw.local.90
-
-    push.360
-    assert_eq
-    push.361
-    assert_eq
-    push.362
-    assert_eq
-    push.363
-    assert_eq
-
-    pushw.local.91
-
-    push.364
-    assert_eq
-    push.365
-    assert_eq
-    push.366
-    assert_eq
-    push.367
-    assert_eq
-
-    pushw.local.92
-
-    push.368
-    assert_eq
-    push.369
-    assert_eq
-    push.370
-    assert_eq
-    push.371
-    assert_eq
-
-    pushw.local.93
-
-    push.372
-    assert_eq
-    push.373
-    assert_eq
-    push.374
-    assert_eq
-    push.375
-    assert_eq
-
-    pushw.local.94
-
-    push.376
-    assert_eq
-    push.377
-    assert_eq
-    push.378
-    assert_eq
-    push.379
-    assert_eq
-
-    pushw.local.95
-
-    push.380
-    assert_eq
-    push.381
-    assert_eq
-    push.382
-    assert_eq
-    push.383
-    assert_eq
-
-    pushw.local.96
-
-    push.384
-    assert_eq
-    push.385
-    assert_eq
-    push.386
-    assert_eq
-    push.387
-    assert_eq
-
-    pushw.local.97
-
-    push.388
-    assert_eq
-    push.389
-    assert_eq
-    push.390
-    assert_eq
-    push.391
-    assert_eq
-
-    pushw.local.98
-
-    push.392
-    assert_eq
-    push.393
-    assert_eq
-    push.394
-    assert_eq
-    push.395
-    assert_eq
-
-    pushw.local.99
-
-    push.396
-    assert_eq
-    push.397
-    assert_eq
-    push.398
-    assert_eq
-    push.399
-    assert_eq
-
-    pushw.local.100
-
-    push.400
-    assert_eq
-    push.401
-    assert_eq
-    push.402
-    assert_eq
-    push.403
-    assert_eq
-
-    pushw.local.101
-
-    push.404
-    assert_eq
-    push.405
-    assert_eq
-    push.406
-    assert_eq
-    push.407
-    assert_eq
-
-    pushw.local.102
-
-    push.408
-    assert_eq
-    push.409
-    assert_eq
-    push.410
-    assert_eq
-    push.411
-    assert_eq
-
-    pushw.local.103
-
-    push.412
-    assert_eq
-    push.413
-    assert_eq
-    push.414
-    assert_eq
-    push.415
-    assert_eq
-
-    pushw.local.104
-
-    push.416
-    assert_eq
-    push.417
-    assert_eq
-    push.418
-    assert_eq
-    push.419
-    assert_eq
-
-    pushw.local.105
-
-    push.420
-    assert_eq
-    push.421
-    assert_eq
-    push.422
-    assert_eq
-    push.423
-    assert_eq
-
-    pushw.local.106
-
-    push.424
-    assert_eq
-    push.425
-    assert_eq
-    push.426
-    assert_eq
-    push.427
-    assert_eq
-
-    pushw.local.107
-
-    push.428
-    assert_eq
-    push.429
-    assert_eq
-    push.430
-    assert_eq
-    push.431
-    assert_eq
-
-    pushw.local.108
-
-    push.432
-    assert_eq
-    push.433
-    assert_eq
-    push.434
-    assert_eq
-    push.435
-    assert_eq
-
-    pushw.local.109
-
-    push.436
-    assert_eq
-    push.437
-    assert_eq
-    push.438
-    assert_eq
-    push.439
-    assert_eq
-
-    pushw.local.110
-
-    push.440
-    assert_eq
-    push.441
-    assert_eq
-    push.442
-    assert_eq
-    push.443
-    assert_eq
-
-    pushw.local.111
-
-    push.444
-    assert_eq
-    push.445
-    assert_eq
-    push.446
-    assert_eq
-    push.447
-    assert_eq
-
-    pushw.local.112
-
-    push.448
-    assert_eq
-    push.449
-    assert_eq
-    push.450
-    assert_eq
-    push.451
-    assert_eq
-
-    pushw.local.113
-
-    push.452
-    assert_eq
-    push.453
-    assert_eq
-    push.454
-    assert_eq
-    push.455
-    assert_eq
-
-    pushw.local.114
-
-    push.456
-    assert_eq
-    push.457
-    assert_eq
-    push.458
-    assert_eq
-    push.459
-    assert_eq
-
-    pushw.local.115
-
-    push.460
-    assert_eq
-    push.461
-    assert_eq
-    push.462
-    assert_eq
-    push.463
-    assert_eq
-
-    pushw.local.116
-
-    push.464
-    assert_eq
-    push.465
-    assert_eq
-    push.466
-    assert_eq
-    push.467
-    assert_eq
-
-    pushw.local.117
-
-    push.468
-    assert_eq
-    push.469
-    assert_eq
-    push.470
-    assert_eq
-    push.471
-    assert_eq
-
-    pushw.local.118
-
-    push.472
-    assert_eq
-    push.473
-    assert_eq
-    push.474
-    assert_eq
-    push.475
-    assert_eq
-
-    pushw.local.119
-
-    push.476
-    assert_eq
-    push.477
-    assert_eq
-    push.478
-    assert_eq
-    push.479
-    assert_eq
-
-    pushw.local.120
-
-    push.480
-    assert_eq
-    push.481
-    assert_eq
-    push.482
-    assert_eq
-    push.483
-    assert_eq
-
-    pushw.local.121
-
-    push.484
-    assert_eq
-    push.485
-    assert_eq
-    push.486
-    assert_eq
-    push.487
-    assert_eq
-
-    pushw.local.122
-
-    push.488
-    assert_eq
-    push.489
-    assert_eq
-    push.490
-    assert_eq
-    push.491
-    assert_eq
-
-    pushw.local.123
-
-    push.492
-    assert_eq
-    push.493
-    assert_eq
-    push.494
-    assert_eq
-    push.495
-    assert_eq
-
-    pushw.local.124
-
-    push.496
-    assert_eq
-    push.497
-    assert_eq
-    push.498
-    assert_eq
-    push.499
-    assert_eq
-
-    pushw.local.125
-
-    push.500
-    assert_eq
-    push.501
-    assert_eq
-    push.502
-    assert_eq
-    push.503
-    assert_eq
-
-    pushw.local.126
-
-    push.504
-    assert_eq
-    push.505
-    assert_eq
-    push.506
-    assert_eq
-    push.507
-    assert_eq
-
-    pushw.local.127
-
-    push.508
-    assert_eq
-    push.509
-    assert_eq
-    push.510
-    assert_eq
-    push.511
-    assert_eq
-
-	# end asserting result
+	# normal order iNTT vector lives in these absolute memory addresses
+
+    push.env.locaddr.127
+    push.env.locaddr.126
+    push.env.locaddr.125
+    push.env.locaddr.124
+    push.env.locaddr.123
+    push.env.locaddr.122
+    push.env.locaddr.121
+    push.env.locaddr.120
+    push.env.locaddr.119
+    push.env.locaddr.118
+    push.env.locaddr.117
+    push.env.locaddr.116
+    push.env.locaddr.115
+    push.env.locaddr.114
+    push.env.locaddr.113
+    push.env.locaddr.112
+    push.env.locaddr.111
+    push.env.locaddr.110
+    push.env.locaddr.109
+    push.env.locaddr.108
+    push.env.locaddr.107
+    push.env.locaddr.106
+    push.env.locaddr.105
+    push.env.locaddr.104
+    push.env.locaddr.103
+    push.env.locaddr.102
+    push.env.locaddr.101
+    push.env.locaddr.100
+    push.env.locaddr.99
+    push.env.locaddr.98
+    push.env.locaddr.97
+    push.env.locaddr.96
+    push.env.locaddr.95
+    push.env.locaddr.94
+    push.env.locaddr.93
+    push.env.locaddr.92
+    push.env.locaddr.91
+    push.env.locaddr.90
+    push.env.locaddr.89
+    push.env.locaddr.88
+    push.env.locaddr.87
+    push.env.locaddr.86
+    push.env.locaddr.85
+    push.env.locaddr.84
+    push.env.locaddr.83
+    push.env.locaddr.82
+    push.env.locaddr.81
+    push.env.locaddr.80
+    push.env.locaddr.79
+    push.env.locaddr.78
+    push.env.locaddr.77
+    push.env.locaddr.76
+    push.env.locaddr.75
+    push.env.locaddr.74
+    push.env.locaddr.73
+    push.env.locaddr.72
+    push.env.locaddr.71
+    push.env.locaddr.70
+    push.env.locaddr.69
+    push.env.locaddr.68
+    push.env.locaddr.67
+    push.env.locaddr.66
+    push.env.locaddr.65
+    push.env.locaddr.64
+    push.env.locaddr.63
+    push.env.locaddr.62
+    push.env.locaddr.61
+    push.env.locaddr.60
+    push.env.locaddr.59
+    push.env.locaddr.58
+    push.env.locaddr.57
+    push.env.locaddr.56
+    push.env.locaddr.55
+    push.env.locaddr.54
+    push.env.locaddr.53
+    push.env.locaddr.52
+    push.env.locaddr.51
+    push.env.locaddr.50
+    push.env.locaddr.49
+    push.env.locaddr.48
+    push.env.locaddr.47
+    push.env.locaddr.46
+    push.env.locaddr.45
+    push.env.locaddr.44
+    push.env.locaddr.43
+    push.env.locaddr.42
+    push.env.locaddr.41
+    push.env.locaddr.40
+    push.env.locaddr.39
+    push.env.locaddr.38
+    push.env.locaddr.37
+    push.env.locaddr.36
+    push.env.locaddr.35
+    push.env.locaddr.34
+    push.env.locaddr.33
+    push.env.locaddr.32
+    push.env.locaddr.31
+    push.env.locaddr.30
+    push.env.locaddr.29
+    push.env.locaddr.28
+    push.env.locaddr.27
+    push.env.locaddr.26
+    push.env.locaddr.25
+    push.env.locaddr.24
+    push.env.locaddr.23
+    push.env.locaddr.22
+    push.env.locaddr.21
+    push.env.locaddr.20
+    push.env.locaddr.19
+    push.env.locaddr.18
+    push.env.locaddr.17
+    push.env.locaddr.16
+    push.env.locaddr.15
+    push.env.locaddr.14
+    push.env.locaddr.13
+    push.env.locaddr.12
+    push.env.locaddr.11
+    push.env.locaddr.10
+    push.env.locaddr.9
+    push.env.locaddr.8
+    push.env.locaddr.7
+    push.env.locaddr.6
+    push.env.locaddr.5
+    push.env.locaddr.4
+    push.env.locaddr.3
+    push.env.locaddr.2
+    push.env.locaddr.1
+    push.env.locaddr.0
 end
 "),
 // ----- std::math::secp256k1 ---------------------------------------------------------------------
