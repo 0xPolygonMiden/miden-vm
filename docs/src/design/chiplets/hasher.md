@@ -242,12 +242,12 @@ As mentioned above, row address $r$ starts at $1$, and is incremented by $1$ wit
 r' - r - 1 = 0  \text{ | degree} = 1
 $$
 
-This constraint should not be applied to the very last row of the hasher execution trace, since we do not want to enforce a value that would conflict with the first row of a subsequent chiplet in the Chiplets module. Therefore we can create a special virtual flag for this constraint using the $aux\_s_0$ selector column from the [Chiplets](main.md) module that selects for the hash chiplet.
+This constraint should not be applied to the very last row of the hasher execution trace, since we do not want to enforce a value that would conflict with the first row of a subsequent chiplet in the Chiplets module. Therefore we can create a special virtual flag for this constraint using the $chip\_s_0$ selector column from the [Chiplets](main.md) module that selects for the hash chiplet.
 
 The modified row address constraint which should be applied is the following:
 
 >$$
-(1 - aux\_s_0') \cdot (r' - r - 1) = 0 \text{ | degree} = 2
+(1 - chip\_s_0') \cdot (r' - r - 1) = 0 \text{ | degree} = 2
 $$
 
 _Note: this constraint should also be multiplied by Chiplets module's selector flag $s_0$, as is true for all constraints in this chiplet._

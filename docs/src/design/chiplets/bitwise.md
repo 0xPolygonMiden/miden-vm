@@ -51,6 +51,21 @@ With every subsequent row, we inject the next-most-significant 4 bits of each va
 
 AIR constraints needed to ensure the correctness of the above table are described below.
 
+### Selectors
+
+The Bitwise chiplet supports three operations with the following operation selectors:
+
+- `U32AND`: $s_0 = 0$, $s_1 = 0$
+- `U32OR`: $s_0 = 0$, $s_1 = 1$
+- `U32XOR`: $s_0 = 1$, $s_1 = 0$
+
+The constraints must require that the selectors be binary and stay the same throughout the cycle:
+
+$$s_0^2 - s_0 = 0 \text{ | degree} = 2$$
+$$s_1^2 - s_1 = 0 \text{ | degree} = 2$$
+$$k_1 \cdot (s_0' -s_0) = 0 \text{ | degree} = 2$$
+$$k_1 \cdot (s_1' -s_1) = 0 \text{ | degree} = 2$$
+
 ### Input decomposition
 
 We need to make sure that inputs $a$ and $b$ are decomposed correctly into their individual bits. To do this, first, we need to make sure that columns $a_0$, $a_1$, $a_2$, $a_3$, $b_0$, $b_1$, $b_2$, $b_3$, can contain only binary values ($0$ or $1$). This can be accomplished with the following constraints (for $i$ ranging between $0$ and $3$):
