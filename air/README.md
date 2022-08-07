@@ -4,10 +4,10 @@ This crate contains *algebraic intermediate representation* (AIR) of Miden VM ex
 AIR is a STARK-specific format of describing a computation. It consists of defining a set of constraints expressed as low-degree polynomials. Miden prover evaluates these polynomials over an execution trace produced by Miden processor and includes the results in the execution proof. To verify the proof, the verifier checks that the constraints are evaluated correctly against the execution trace committed to by the prover.
 
 Internally, Miden VM AIR is separated into several components:
-* AIR for the decoder, which is responsible for decoding instructions and managing control flow.
-* AIR for the stack, which is responsible for executing instructions against the operand stack.
-* AIR for the range checker, which is responsible for checking if field elements contain values smaller than $2^{16}$.
-* AIR for the chiplets module, which contain specialized circuits responsible for handling complex computations (e.g., hashing) as well as random access memory.
+* AIR for the [decoder](https://maticnetwork.github.io/miden/design/decoder/main.html), which is responsible for decoding instructions and managing control flow.
+* AIR for the [stack](https://maticnetwork.github.io/miden/design/stack/main.html), which is responsible for executing instructions against the operand stack.
+* AIR for the [range checker](https://maticnetwork.github.io/miden/design/range.html), which is responsible for checking if field elements contain values smaller than $2^{16}$.
+* AIR for the [chiplets module](https://maticnetwork.github.io/miden/design/chiplets/main.html), which contains specialized circuits responsible for handling complex computations (e.g., hashing) as well as random access memory.
 
 These different components are tied together using multiset checks similar to the ones used in [PLONK](https://hackmd.io/@arielg/ByFgSDA7D).
 

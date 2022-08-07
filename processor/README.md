@@ -7,12 +7,14 @@ The processor exposes two functions which can be used to execute programs: `exec
 * `program: &Program` - a reference to a Miden program to be executed.
 * `inputs: &ProgramInputs` - a reference to a set of public and secret inputs with which to execute the program.
 
-The `execute()` function returns a `Result<ExecutionTrace, ExecutionError>` which will contain the execution trace of the program if the execution was successful, or and error, if the execution failed. Internally, the VM then passes this execution trace to the prover to generate a proof of a correct execution of the program.
+The `execute()` function returns a `Result<ExecutionTrace, ExecutionError>` which will contain the execution trace of the program if the execution was successful, or an error, if the execution failed. Internally, the VM then passes this execution trace to the prover to generate a proof of a correct execution of the program.
+
+The `execute_iter()` function returns a `VmStateIterator` which can be used to iterate over the cycles of the executed program for debug purposes. In fact, when we execute a program using this function, a lot of the debug information is retained and we can get a precise picture of the VM's state at any cycle. Moreover, if the execution results in an error, the `VmStateIterator` can still be used to inspect VM states right up to the cycle at which the error occurred.
 
 For example:
 ```Rust
 use miden_assembly::Assembler;
-use miden_processor::{execute, ProgramInputs};
+use miden_processor::{execute, execute_iter, ProgramInputs};
 
 // instantiate the assembler
 let assembler = Assembler::default();
@@ -22,9 +24,15 @@ let program = assembler.compile("begin push.3 push.5 add end").unwrap();
 
 // execute the program with no inputs
 let trace = execute(&program, &ProgramInputs::none()).unwrap();
-```
 
-The `execute_iter()` function returns a `VmStateIterator` which can be used to iterate over the cycles of the executed program for debug purposes. In fact, when we execute a program using this function, a lot of the debug information is retained and we can get a precise picture of the VM's state at any cycle. Moreover, if the execution results in an error, the `VmStateIterator` can still be used to inspect VM states right up to the cycle at which the error occurred.
+// now, execute the same program in debug mode and iterate over VM states
+for vm_state in execute_iter(&program, &ProgramInputs::none()) {
+    match vm_state {
+        Ok(vm_state) => println!("{:?}", vm_state),
+        Err(_) => println!("something went terribly wrong!"),
+    }
+}
+```
 
 ## Processor components
 The processor is organized into several components:

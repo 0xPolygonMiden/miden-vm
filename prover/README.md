@@ -1,5 +1,5 @@
 # Miden prover
-This crate contains Miden VM prover which proves of correct execution of Miden VM. Internally, the prover uses [Miden processor](../processor/) to execute the programs, and then relies on the [Winterfell](https://github.com/novifinancial/winterfell) prover to generate STARK proofs.
+This crate contains the Miden VM prover, which proves correct execution of Miden VM. Internally, the prover uses [Miden processor](../processor/) to execute the programs, and then relies on the [Winterfell](https://github.com/novifinancial/winterfell) prover to generate STARK proofs.
 
 ## Usage
 This crate exposes a `prove()` function which can be used to execute Miden VM programs and generate proofs of their execution. The function takes the following parameters:

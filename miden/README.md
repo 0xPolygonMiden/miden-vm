@@ -10,20 +10,20 @@ Our goal is to make Miden VM an easy compilation target for high-level blockchai
 Miden assembler compiles assembly source code in a [program MAST](https://maticnetwork.github.io/miden/design/programs.html), which is represented by a `Program` struct. It is possible to construct a `Program` struct manually, but we don't recommend this approach because it is tedious, error-prone, and requires an in-depth understanding of VM internals. All examples throughout these docs use assembly syntax.
 
 #### Program hash
-All Miden programs can be reduced to a single 32-byte value, called program hash. Once a `Program` object is constructed, you can access this hash via `Program::hash()` method. This hash value is used by a verifier when they verify program execution. This ensure that the verifier verifies execution of a specific program (e.g. a program which the prover had committed to previously). The methodology for computing program hash is described [here](https://maticnetwork.github.io/miden/design/programs.html#program-hash-computation).
+All Miden programs can be reduced to a single 32-byte value, called program hash. Once a `Program` object is constructed, you can access this hash via `Program::hash()` method. This hash value is used by a verifier when they verify program execution. This ensures that the verifier verifies execution of a specific program (e.g. a program which the prover had committed to previously). The methodology for computing program hash is described [here](https://maticnetwork.github.io/miden/design/programs.html#program-hash-computation).
 
 ### Inputs / outputs
 Currently, there are 3 ways to get values onto the stack:
 
 1. You can use `push` instruction to push values onto the stack. These values become a part of the program itself, and, therefore, cannot be changed between program executions. You can think of them as constants.
-2. The stack can be initialized to some set of values at the beginning of the program. These inputs are public and must be shared with the verifier for them to verify a proof of the correct execution of a Miden program. The number of elements at the top of the stack which can receive initial value is limited to 16.
+2. The stack can be initialized to some set of values at the beginning of the program. These inputs are public and must be shared with the verifier for them to verify a proof of the correct execution of a Miden program. The number of elements at the top of the stack which can receive an initial value is limited to 16.
 3. The program may request nondeterministic advice inputs from the prover. These inputs are secret inputs. This means that the prover does not need to share them with the verifier. There are two types of advice inputs: (1) a single advice tape which can contain any number of elements and (2) a list of advice sets, which are used to provide nondeterministic inputs for instructions which work with Merkle trees. There are no restrictions on the number of advice inputs a program can request.
 
 Stack and advice inputs are provided to Miden VM via `ProgramInputs` struct. To instantiate this struct, you can use `ProgramInputs::new()` constructor, as well as `ProgramInputs::from_stack_inputs()` and `ProgramInputs:none()` convenience constructors.
 
-Values remaining on the stack after a program is executed can be returned as program outputs. You can specify exactly how many values (from the top of the stack) should be returned. Currently, the number of outputs is limited to 16.
+Values remaining on the stack after a program is executed can be returned as program outputs. You can specify exactly how many values (from the top of the stack) should be returned. Currently, the maximum number of outputs is limited to 16.
 
-Having only 16 elements to describe public inputs and outputs of a program may seem limiting, however, just 4 elements are sufficient to represent a root of a Merkle tree or a sequential hash of elements. Both of these can be expanded into an arbitrary number of values by supplying the actual values nondeterministically via the advice provider.
+Having only 16 elements to describe public inputs and outputs of a program may seem limiting, however, just 4 elements are sufficient to represent a root of a Merkle tree or a sequential hash of elements. Both of these can be expanded into an arbitrary number of values by supplying the actual values non-deterministically via the advice provider.
 
 ## Usage
 Miden crate exposes several functions which can be used to execute programs, generate proofs of their correct execution, and verify the generated proofs. How to do this is explained below, but you can also take a look at working examples [here](examples) and find instructions for running them via CLI [here](#fibonacci-example).
@@ -34,7 +34,9 @@ To execute a program on Miden VM, you can use either `execute()` or `execute_ite
 * `program: &Program` - a reference to a Miden program to be executed.
 * `inputs: &ProgramInputs` - a reference to a set of public and secret inputs with which to execute the program.
 
-The `execute()` function returns a `Result<ExecutionTrace, ExecutionError>` which will contain the execution trace of the program if the execution was successful, or and error, if the execution failed. You can inspect the trace to get the final state of the VM out of it, but generally, this trace is intended to be used internally by the prover during proof generation process.
+The `execute()` function returns a `Result<ExecutionTrace, ExecutionError>` which will contain the execution trace of the program if the execution was successful, or an error, if the execution failed. You can inspect the trace to get the final state of the VM out of it, but generally, this trace is intended to be used internally by the prover during proof generation process.
+
+The `execute_iter()` function returns a `VmStateIterator` which can be used to iterate over the cycles of the executed program for debug purposes. In fact, when we execute a program using this function, a lot of the debug information is retained and we can get a precise picture of the VM's state at any cycle. Moreover, if the execution results in an error, the `VmStateIterator` can still be used to inspect VM states right up to the cycle at which the error occurred.
 
 For example:
 ```Rust
@@ -48,9 +50,15 @@ let program = assembler.compile("begin push.3 push.5 add end").unwrap();
 
 // execute the program with no inputs
 let trace = miden::execute(&program, &ProgramInputs::none()).unwrap();
-```
 
-The `execute_iter()` function returns a `VmStateIterator` which can be used to iterate over the cycles of the executed program for debug purposes. In fact, when we execute a program using this function, a lot of the debug information is retained and we can get a precise picture of the VM's state at any cycle. Moreover, if the execution results in an error, the `VmStateIterator` can still be used to inspect VM states right up to the cycle at which the error occurred.
+// now, execute the same program in debug mode and iterate over VM states
+for vm_state in miden::execute_iter(&program, &ProgramInputs::none()) {
+    match vm_state {
+        Ok(vm_state) => println!("{:?}", vm_state),
+        Err(_) => println!("something went terribly wrong!"),
+    }
+}
+```
 
 ### Proving program execution
 To execute a program on Miden VM and generate a proof that the program was executed correctly, you can use the `prove()` function. This function takes the following arguments:
@@ -93,13 +101,13 @@ assert_eq!(vec![8], outputs);
 To verify program execution, you can use the `verify()` function. The function takes the following parameters:
 
 * `program_hash: Digest` - a hash of the program to be verified (represented as a 32-byte digest).
-* `stack_inputs: &[u64]` - a list of values with the stack was initialized prior to a program's execution.
-* `stack_outputs: &[u64]` - a list of values returned from the stack after a program's execution completes.
+* `stack_inputs: &[u64]` - a list of the values with which the stack was initialized prior to the program's execution..
+* `stack_outputs: &[u64]` - a list of the values returned from the stack after the program completed execution.
 * `proof: StarkProof` - the proof generated during program execution.
 
 Stack inputs are expected to be ordered as if they would be pushed onto the stack one by one. Thus, their expected order on the stack will be the reverse of the order in which they are provided, and the last value in the `stack_inputs` slice is expected to be the value at the top of the stack.
 
-Stack outputs are expected to be ordered as if they would be popped off the stack one by one. Thus, the value at the top of the stack is expected to be in the first position of the `stack_outputs` slice, and the order of the rest of the output elements will also match the order on the stack. This the reverse of order of `stack_inputs` slice.
+Stack outputs are expected to be ordered as if they would be popped off the stack one by one. Thus, the value at the top of the stack is expected to be in the first position of the `stack_outputs` slice, and the order of the rest of the output elements will also match the order on the stack. This is the reverse of the order of the `stack_inputs` slice.
 
 The function returns `Result<(), VerificationError>` which will be `Ok(())` if verification passes, or `Err(VerificationError)` if verification fails, with `VerificationError` describing the reason for the failure.
 
@@ -123,7 +131,7 @@ match miden::verify(program.hash(), &[], &[8], proof) {
 ```
 
 ## Fibonacci calculator
-Let's write a simple program for Miden VM (using [Miden assembly](../assembly). Our program will compute the 5-th [Fibonacci number](https://en.wikipedia.org/wiki/Fibonacci_number):
+Let's write a simple program for Miden VM (using [Miden assembly](../assembly)). Our program will compute the 5-th [Fibonacci number](https://en.wikipedia.org/wiki/Fibonacci_number):
 
 ```
 push.0      // stack state: 0
@@ -138,7 +146,7 @@ swap        // stack state: 1 2
 dup.1       // stack state: 2 1 2
 add         // stack state: 3 2
 ```
-Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would like like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/src/fibonacci.rs)):
+Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/src/fibonacci.rs)):
 ```Rust
 use miden::{Assembler, ProgramInputs, ProofOptions};
 

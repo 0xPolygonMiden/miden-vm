@@ -75,29 +75,29 @@ A few general notes on performance:
 * Both proof generation and proof verification times are greatly influenced by the hash function used in the STARK protocol. In the benchmarks below, we use BLAKE3, which is a really fast hash function.
 
 ### Single-core prover performance
-When executed on a single CPU core, the current version of Miden VM operates at around 10 - 15 KHz. In the benchmarks below, the VM executes a Fibonacci calculator program on Apple M1 Pro CPU in a single thread. The generated proofs have a target security level of 96 bits.
+When executed on a single CPU core, the current version of Miden VM operates at around 10 - 15 KHz. In the benchmarks below, the VM executes a [Fibonacci calculator](miden/README.md#fibonacci-calculator) program on Apple M1 Pro CPU in a single thread. The generated proofs have a target security level of 96 bits.
 
 | VM cycles       | Execution time | Proving time | RAM consumed  | Proof size |
-| :-------------: | :------------: | :----------: | ------------- | ---------- |
-| 2<sup>10</sup>  |  2 ms          | 93 ms        |
-| 2<sup>12</sup>  |  4 ms          | 260 ms       |
-| 2<sup>14</sup>  |  12 ms         | 1.04 sec     |
-| 2<sup>16</sup>  |  40 ms         | 4.3 sec      |
-| 2<sup>18</sup>  |  122 ms        | 18.5 sec     |
-| 2<sup>20</sup>  |  320 ms        | 81 sec       |
+| :-------------: | :------------: | :----------: | :-----------: | :--------: |
+| 2<sup>10</sup>  |  2 ms          | 80 ms        | 13 MB         | 49 KB      |
+| 2<sup>12</sup>  |  4 ms          | 280 ms       | 41 MB         | 59 KB      |
+| 2<sup>14</sup>  |  10 ms         | 1.05 sec     | 155 MB        | 70 KB      |
+| 2<sup>16</sup>  |  30 ms         | 4.2 sec      | 624 MB        | 79 KB      |
+| 2<sup>18</sup>  |  90 ms         | 18 sec       | 2.5 GB        | 91 KB      |
+| 2<sup>20</sup>  |  330 ms        | 79 sec       | 9.5 GB        | 104 KB     |
 
 As can be seen from the above, proving time roughly doubles with every doubling in the number of cycles, but proof size grows much slower.
 
 We can also generate proofs at a higher security level. The cost of doing so is roughly doubling of proving time and roughly 40% increase in proof size. In the benchmarks below, the same Fibonacci calculator program was executed on Apple M1 Pro CPU at 128-bit target security level:
 
 | VM cycles       | Execution time | Proving time | RAM consumed  | Proof size |
-| :-------------: | -------------- | ------------ | ------------- | ---------- |
-| 2<sup>10</sup>  |
-| 2<sup>12</sup>  |
-| 2<sup>14</sup>  |
-| 2<sup>16</sup>  |
-| 2<sup>18</sup>  |
-| 2<sup>20</sup>  |
+| :-------------: | :------------: | :----------: | :-----------: | :--------: |
+| 2<sup>10</sup>  | 2 ms           | 340 ms       | 24 MB         | 72 KB      |
+| 2<sup>12</sup>  | 4 ms           | 560 ms       | 86 MB         | 84 KB      |
+| 2<sup>14</sup>  | 10 ms          | 2.2 sec      | 335 MB        | 97 KB      |
+| 2<sup>16</sup>  | 30 ms          | 7.7 sec      | 1.4 GB        | 113 KB     |
+| 2<sup>18</sup>  | 90 ms          | 34 sec       | 5.4 GB        | 130 KB     |
+| 2<sup>20</sup>  | 330 ms         | 143 sec      | 19.7 GB       | 147 KB     |
 
 ### Multi-core prover performance
 STARK proof generation is massively parallelizable. Thus, by taking advantage of multiple CPU cores we can dramatically reduce proof generation time. For example, when executed on a high-end 8-core CPU (Apple M1 Pro), the current version of Miden VM operates at around 80 KHz. And when executed on a high-end 64-core CPU (Amazon Graviton 3), the VM operates at around 320 KHz.

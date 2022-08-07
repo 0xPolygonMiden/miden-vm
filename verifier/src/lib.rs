@@ -28,7 +28,7 @@ pub use winterfell::StarkProof;
 /// Stack outputs are expected to be ordered as if they would be popped off the stack one by one.
 /// Thus, the value at the top of the stack is expected to be in the first position of the
 /// `stack_outputs` slice, and the order of the rest of the output elements will also match the
-/// order on the stack. This the reverse of order of `stack_inputs` slice.
+/// order on the stack. This is the reverse of the order of the `stack_inputs` slice.
 ///
 /// # Errors
 /// Returns an error if the provided proof does not prove a correct execution of the program.

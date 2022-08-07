@@ -17,7 +17,7 @@ Currently, Miden standard library contains just a few modules, which are listed 
 - [std::crypto::hashes::sha256](./docs/sha256_hashes.md)
 - [std::math::u256](./docs/u256_math.md)
 - [std::math::u64](./docs/u64_math.md)
-- [std::math::seckp256k1](./docs/secp256k1_math.md)
+- [std::math::secp256k1](./docs/secp256k1_math.md)
 - [std::sys](./docs/sys_std.md)
 
 ## Status
