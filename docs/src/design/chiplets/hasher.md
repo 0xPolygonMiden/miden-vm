@@ -353,7 +353,7 @@ In this sections we describe constraints which enforce updates for multiset chec
 To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc..
 
 $$
-m = k_0 + 2 \cdot k_2 + \sum_{j=0}^2 (2^{j+2} \cdot s_j) \\
+m = op_{label} + 2^4 \cdot k_0 + 2^5 \cdot k_2 \\
 v_h = \alpha_0 + \alpha_1 \cdot m + \alpha_2 \cdot r + \alpha_3 \cdot i \\
 v_a = \sum_{j=0}^{3}(\alpha_{j+4} \cdot h_j) \\
 v_b = \sum_{j=4}^{7}(\alpha_{j+4} \cdot h_j) \\
@@ -363,7 +363,7 @@ $$
 
 In the above:
 
-- $m$ is a _transition label_ which uniquely identifies each transition function.
+- $m$ is a _transition label_, composed of the [operation label](main.md#operation-labels) and the periodic columns that uniquely identify each transition function. The values in the $k_0$ and $k_2$ periodic columns are included to identify the row in the hash cycle where the operation occurs. They serve to differentiate between operations that share selectors but occur at different rows in the cycle, such as `BP`, which uses $op_{linhash}$ at the first row in the cycle to initiatiate a linear hash, and `ABP`, which uses $op_{linhash}$ at the last row in the cycle to absorb new elements.
 - $v_h$ is a _common header_ which is a combination of transition label, row address, and node index.
 - $v_a$, $v_b$, $v_c$ are the first, second, and third words (4 elements) of the hasher state.
 - $v_d$ is the third word of the hasher state but computed using the same $\alpha$ values as used for the second word. This is needed for computing the value of $v_{leaf}$ below to ensure that the same $\alpha$ values are used for the leaf node regardless of which part of the state the node comes from.
