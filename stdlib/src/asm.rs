@@ -11476,13 +11476,11 @@ end"),
 # Asserts that both values at the top of the stack are u64 values.
 # The input values are assumed to be represented using 32 bit limbs, fails if they are not.
 proc.u32assert4
-    u32assert
+    u32assert.2
     movup.3
-    u32assert
     movup.3
-    u32assert
+    u32assert.2
     movup.3
-    u32assert
     movup.3
 end
 
@@ -11515,8 +11513,14 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a + b) % 2^64
 export.checked_add
-    exec.u32assert4
-    exec.overflowing_add
+    swap
+    movup.3
+    u32assert.2
+    u32overflowing_add
+    movup.3
+    movup.3
+    u32assert.2
+    u32overflowing_add3
     eq.0
     assert
 end
@@ -11545,12 +11549,13 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a - b) % 2^64
 export.checked_sub
-    exec.u32assert4
     movup.3
     movup.2
+    u32assert.2
     u32overflowing_sub
     movup.3
     movup.3
+    u32assert.2
     u32overflowing_sub
     eq.0
     assert
@@ -11629,9 +11634,26 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a * b) % 2^64
 export.checked_mul
-    exec.u32assert4
-    exec.overflowing_mul
-    u32checked_or
+    dup.3
+    dup.2
+    u32assert.2         # make sure lower limbs of operands are 32-bit
+    u32overflowing_mul
+    dup.4
+    movup.4
+    u32overflowing_madd
+    swap
+    movup.5
+    dup.4
+    u32overflowing_madd
+    movup.5
+    movup.5
+    u32assert.2         # make sure higher limbs of operands are 32-bit
+    u32overflowing_madd
+    movup.3
+    movup.2
+    u32overflowing_add
+    add
+    add
     eq.0
     assert
 end
@@ -11661,8 +11683,19 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a < b, and 0 otherwise.
 export.checked_lt
-    exec.u32assert4
-    exec.unchecked_lt
+    movup.3
+    movup.2
+    u32assert.2
+    u32overflowing_sub
+    movdn.3
+    drop
+    u32assert.2
+    u32overflowing_sub
+    swap
+    eq.0
+    movup.2
+    and
+    or
 end
 
 # Performs greater-than comparison of two unsigned 64 bit integers.
@@ -11689,8 +11722,19 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a > b, and 0 otherwise.
 export.checked_gt
-    exec.u32assert4
-    exec.unchecked_gt
+    movup.2
+    u32assert.2
+    u32overflowing_sub
+    movup.2
+    movup.3
+    u32assert.2
+    u32overflowing_sub
+    swap
+    drop
+    movup.2
+    eq.0
+    and
+    or
 end
 
 # Performs less-than-or-equal comparison of two unsigned 64 bit integers.
@@ -11707,8 +11751,7 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a <= b, and 0 otherwise.
 export.checked_lte
-    exec.u32assert4
-    exec.unchecked_gt
+    exec.checked_gt
     not
 end
 
@@ -11726,8 +11769,7 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a >= b, and 0 otherwise.
 export.checked_gte
-    exec.u32assert4
-    exec.unchecked_lt
+    exec.checked_lt
     not
 end
 
@@ -11749,8 +11791,12 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
 export.checked_eq
-    exec.u32assert4
-    exec.unchecked_eq
+    movup.2
+    u32checked_eq
+    swap
+    movup.2
+    u32checked_eq
+    and
 end
 
 # Performs inequality comparison of two unsigned 64 bit integers.
@@ -11771,8 +11817,8 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
 export.checked_neq
-    exec.u32assert4
-    exec.unchecked_eq
+    exec.checked_eq
+    not
 end
 
 # Performs comparison to zero of an unsigned 64 bit integer.
@@ -11791,10 +11837,7 @@ end
 # Stack transition looks as follows:
 # [a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == 0, and 0 otherwise.
 export.checked_eqz
-    u32assert
-    swap
-    u32assert
-    swap
+    u32assert.2
     eq.0
     swap
     eq.0
@@ -11859,10 +11902,8 @@ end
 export.unchecked_div
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
-    push.adv.1          # read the quotient from the advice tape and make sure it consists of
-    u32assert           # 32-bit limbs
-    push.adv.1          # TODO: this can be optimized once we have u32assert2 instruction
-    u32assert
+    push.adv.2          # read the quotient from the advice tape and make sure it consists of
+    u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
     dup.2               # fits into 2 32-bit limbs
@@ -11883,10 +11924,8 @@ export.unchecked_div
     eq.0
     assert
 
-    push.adv.1          # read the remainder from the advice tape and make sure it consists of
-    u32assert           # 32-bit limbs
-    push.adv.1
-    u32assert
+    push.adv.2          # read the remainder from the advice tape and make sure it consists of
+    u32assert.2         # 32-bit limbs
 
     movup.7             # make sure the divisor is greater than the remainder. this also consumes
     movup.7             # the divisor
@@ -11928,10 +11967,8 @@ end
 export.unchecked_mod
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
-    push.adv.1          # read the quotient from the advice tape and make sure it consists of
-    u32assert           # 32-bit limbs
-    push.adv.1          # TODO: this can be optimized once we have u32assert2 instruction
-    u32assert
+    push.adv.2          # read the quotient from the advice tape and make sure it consists of
+    u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
     dup.2               # fits into 2 32-bit limbs
@@ -11952,10 +11989,8 @@ export.unchecked_mod
     eq.0
     assert
 
-    push.adv.1          # read the remainder from the advice tape and make sure it consists of
-    u32assert           # 32-bit limbs
-    push.adv.1
-    u32assert
+    push.adv.2          # read the remainder from the advice tape and make sure it consists of
+    u32assert.2         # 32-bit limbs
 
     movup.5             # make sure the divisor is greater than the remainder. this also consumes
     movup.5             # the divisor
@@ -11997,10 +12032,8 @@ end
 export.unchecked_divmod
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
-    push.adv.1          # read the quotient from the advice tape and make sure it consists of
-    u32assert           # 32-bit limbs
-    push.adv.1          # TODO: this can be optimized once we have u32assert2 instruction
-    u32assert
+    push.adv.2          # read the quotient from the advice tape and make sure it consists of
+    u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
     dup.2               # fits into 2 32-bit limbs
@@ -12021,10 +12054,8 @@ export.unchecked_divmod
     eq.0
     assert
 
-    push.adv.1          # read the remainder from the advice tape and make sure it consists of
-    u32assert           # 32-bit limbs 
-    push.adv.1
-    u32assert
+    push.adv.2          # read the remainder from the advice tape and make sure it consists of
+    u32assert.2         # 32-bit limbs
 
     movup.7             # make sure the divisor is greater than the remainder. this also consumes
     movup.7             # the divisor
@@ -12154,7 +12185,7 @@ end
 # The input value to be shifted is assumed to be represented using 32 bit limbs.
 # The shift value is assumed to be in the range [0, 64).
 # Stack transition looks as follows:
-# [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where (d,c) = a << b, 
+# [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where (d,c) = a << b,
 # which d contains the bits shifted out.
 # This takes 57 cycles.
 export.overflowing_shl
