@@ -1,13 +1,13 @@
 [package]
 name = "miden-prover"
-version = "0.1.0"
+version = "0.2.0"
 description = "Miden VM prover"
 authors = ["miden contributors"]
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/maticnetwork/miden"
-categories = ["compilers", "no-std"]
-keywords = ["prover", "proof", "miden", "zkp"]
+categories = ["cryptography", "emulators", "no-std"]
+keywords = ["miden", "prover", "stark", "zkp"]
 edition = "2021"
 rust-version = "1.62"
 
