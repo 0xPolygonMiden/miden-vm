@@ -9,7 +9,7 @@ repository = "https://github.com/maticnetwork/miden"
 categories = ["compilers", "no-std"]
 keywords = ["assembler", "assembly", "language", "miden"]
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.62"
 
 [lib]
 bench = false

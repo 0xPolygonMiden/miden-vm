@@ -9,7 +9,7 @@ repository = "https://github.com/maticnetwork/miden"
 categories = ["compilers", "no-std"]
 keywords = ["prover", "proof", "miden", "zkp"]
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.62"
 
 [dependencies]
 air = { package = "miden-air", path = "../air", version = "0.2", default-features = false }

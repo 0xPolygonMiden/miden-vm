@@ -9,7 +9,7 @@ repository = "https://github.com/maticnetwork/miden"
 categories = ["emulators", "no-std"]
 keywords = ["miden", "virtual-machine"]
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.62"
 
 [lib]
 bench = false
