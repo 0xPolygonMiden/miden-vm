@@ -182,7 +182,7 @@
 </ul>
 <p>In the future, additional components (e.g., storage, logs) may be added to the VM.</p>
 <h2 id="writing-programs"><a class="header" href="#writing-programs">Writing programs</a></h2>
-<p>Our goal is to make Miden VM an easy compilation target for high-level blockchain-centric languages such as Solidity, Move, and others. We believe it is important to let people write programs in the languages of their choice. However, compilers to help with this have not been developed yet. Thus, for now, the primary way to write programs for Miden VM is to use <a href="intro/../user_docs/assembly/main.html">Miden assembly</a>.</p>
+<p>Our goal is to make Miden VM an easy compilation target for high-level blockchain-centric languages such as Solidity, Move, Sway, and others. We believe it is important to let people write programs in the languages of their choice. However, compilers to help with this have not been developed yet. Thus, for now, the primary way to write programs for Miden VM is to use <a href="intro/../user_docs/assembly/main.html">Miden assembly</a>.</p>
 <p>While writing programs in assembly is far from ideal, Miden assembly does make this task a little bit easier by supporting high-level flow control structures and named procedures.</p>
 <h2 id="inputs-and-outputs"><a class="header" href="#inputs-and-outputs">Inputs and outputs</a></h2>
 <p>External inputs can be provided to Miden VM in two way:</p>
@@ -210,7 +210,7 @@
 <p>The prover initializes the advice provider prior to executing a program, and from that point on the advice provider is manipulated solely by executing operations on the VM.</p>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
 <h1 id="usage"><a class="header" href="#usage">Usage</a></h1>
-<p>Before you can use Miden VM, you'll need to make sure you have Rust <a href="https://www.rust-lang.org/tools/install">installed</a>. Miden VM v0.2, requires Rust version <strong>1.62</strong> or greater.</p>
+<p>Before you can use Miden VM, you'll need to make sure you have Rust <a href="https://www.rust-lang.org/tools/install">installed</a>. Miden VM v0.2 requires Rust version <strong>1.62</strong> or greater.</p>
 <p>Miden VM consists of several crates, each of which exposes a small set of functionality. The most notable of these crates are:</p>
 <ul>
 <li><a href="https://crates.io/crates/miden-processor">miden-processor</a>, which can be used to execute Miden VM programs.</li>
@@ -220,7 +220,7 @@
 <p>The above functionality is also exposed via the single <a href="https://crates.io/crates/miden">miden</a> crate, which also provides a CLI interface for interacting with Miden VM.</p>
 <h2 id="cli-interface"><a class="header" href="#cli-interface">CLI interface</a></h2>
 <h3 id="compiling-miden-vm"><a class="header" href="#compiling-miden-vm">Compiling Miden VM</a></h3>
-<p>To compile Miden VM to an executable file, you can run the following command:</p>
+<p>To compile Miden VM into a binary, you can run the following command:</p>
 <pre><code>cargo build --release --features executable
 </code></pre>
 <p>This will place <code>miden</code> executable in the <code>./target/release</code> directory.</p>
@@ -236,7 +236,7 @@
 <p>Currently, Miden VM can be executed with the following subcommands:</p>
 <ul>
 <li><code>run</code> - this will execute a Miden assembly program and output the result, but will not generate a proof of execution.</li>
-<li><code>prove</code> - this will execute a Miden assembly, and will also generate a STARK proof of execution.</li>
+<li><code>prove</code> - this will execute a Miden assembly program, and will also generate a STARK proof of execution.</li>
 <li><code>verify</code> - this will verify a previously generated proof of execution for a given program.</li>
 <li><code>compile</code> - this will compile a Miden assembly program (i.e., build a program <a href="intro/../design/programs.html">MAST</a>) and outputs stats about the compilation process.</li>
 <li><code>analyze</code> - this will run a Miden assembly program against specific inputs and will output stats about its execution.</li>
@@ -269,32 +269,32 @@
 </ul>
 <h2 id="single-core-prover-performance"><a class="header" href="#single-core-prover-performance">Single-core prover performance</a></h2>
 <p>When executed on a single CPU core, the current version of Miden VM operates at around 10 - 15 KHz. In the benchmarks below, the VM executes a Fibonacci calculator program on Apple M1 Pro CPU in a single thread. The generated proofs have a target security level of 96 bits.</p>
-<div class="table-wrapper"><table><thead><tr><th style="text-align: center">VM cycles</th><th style="text-align: center">Execution time</th><th style="text-align: center">Proving time</th><th>RAM consumed</th><th>Proof size</th></tr></thead><tbody>
-<tr><td style="text-align: center">2<sup>10</sup></td><td style="text-align: center">2 ms</td><td style="text-align: center">93 ms</td><td></td><td></td></tr>
-<tr><td style="text-align: center">2<sup>12</sup></td><td style="text-align: center">4 ms</td><td style="text-align: center">260 ms</td><td></td><td></td></tr>
-<tr><td style="text-align: center">2<sup>14</sup></td><td style="text-align: center">12 ms</td><td style="text-align: center">1.04 sec</td><td></td><td></td></tr>
-<tr><td style="text-align: center">2<sup>16</sup></td><td style="text-align: center">40 ms</td><td style="text-align: center">4.3 sec</td><td></td><td></td></tr>
-<tr><td style="text-align: center">2<sup>18</sup></td><td style="text-align: center">122 ms</td><td style="text-align: center">18.5 sec</td><td></td><td></td></tr>
-<tr><td style="text-align: center">2<sup>20</sup></td><td style="text-align: center">320 ms</td><td style="text-align: center">81 sec</td><td></td><td></td></tr>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: center">VM cycles</th><th style="text-align: center">Execution time</th><th style="text-align: center">Proving time</th><th style="text-align: center">RAM consumed</th><th style="text-align: center">Proof size</th></tr></thead><tbody>
+<tr><td style="text-align: center">2<sup>10</sup></td><td style="text-align: center">2 ms</td><td style="text-align: center">80 ms</td><td style="text-align: center">13 MB</td><td style="text-align: center">49 KB</td></tr>
+<tr><td style="text-align: center">2<sup>12</sup></td><td style="text-align: center">4 ms</td><td style="text-align: center">280 ms</td><td style="text-align: center">41 MB</td><td style="text-align: center">59 KB</td></tr>
+<tr><td style="text-align: center">2<sup>14</sup></td><td style="text-align: center">10 ms</td><td style="text-align: center">1.05 sec</td><td style="text-align: center">155 MB</td><td style="text-align: center">70 KB</td></tr>
+<tr><td style="text-align: center">2<sup>16</sup></td><td style="text-align: center">30 ms</td><td style="text-align: center">4.2 sec</td><td style="text-align: center">624 MB</td><td style="text-align: center">79 KB</td></tr>
+<tr><td style="text-align: center">2<sup>18</sup></td><td style="text-align: center">90 ms</td><td style="text-align: center">18 sec</td><td style="text-align: center">2.5 GB</td><td style="text-align: center">91 KB</td></tr>
+<tr><td style="text-align: center">2<sup>20</sup></td><td style="text-align: center">330 ms</td><td style="text-align: center">79 sec</td><td style="text-align: center">9.5 GB</td><td style="text-align: center">104 KB</td></tr>
 </tbody></table>
 </div>
 <p>As can be seen from the above, proving time roughly doubles with every doubling in the number of cycles, but proof size grows much slower.</p>
 <p>We can also generate proofs at a higher security level. The cost of doing so is roughly doubling of proving time and roughly 40% increase in proof size. In the benchmarks below, the same Fibonacci calculator program was executed on Apple M1 Pro CPU at 128-bit target security level:</p>
-<div class="table-wrapper"><table><thead><tr><th style="text-align: center">VM cycles</th><th>Execution time</th><th>Proving time</th><th>RAM consumed</th><th>Proof size</th></tr></thead><tbody>
-<tr><td style="text-align: center">2<sup>10</sup></td><td></td><td></td><td></td><td></td></tr>
-<tr><td style="text-align: center">2<sup>12</sup></td><td></td><td></td><td></td><td></td></tr>
-<tr><td style="text-align: center">2<sup>14</sup></td><td></td><td></td><td></td><td></td></tr>
-<tr><td style="text-align: center">2<sup>16</sup></td><td></td><td></td><td></td><td></td></tr>
-<tr><td style="text-align: center">2<sup>18</sup></td><td></td><td></td><td></td><td></td></tr>
-<tr><td style="text-align: center">2<sup>20</sup></td><td></td><td></td><td></td><td></td></tr>
+<div class="table-wrapper"><table><thead><tr><th style="text-align: center">VM cycles</th><th style="text-align: center">Execution time</th><th style="text-align: center">Proving time</th><th style="text-align: center">RAM consumed</th><th style="text-align: center">Proof size</th></tr></thead><tbody>
+<tr><td style="text-align: center">2<sup>10</sup></td><td style="text-align: center">2 ms</td><td style="text-align: center">340 ms</td><td style="text-align: center">24 MB</td><td style="text-align: center">72 KB</td></tr>
+<tr><td style="text-align: center">2<sup>12</sup></td><td style="text-align: center">4 ms</td><td style="text-align: center">560 ms</td><td style="text-align: center">86 MB</td><td style="text-align: center">84 KB</td></tr>
+<tr><td style="text-align: center">2<sup>14</sup></td><td style="text-align: center">10 ms</td><td style="text-align: center">2.2 sec</td><td style="text-align: center">335 MB</td><td style="text-align: center">97 KB</td></tr>
+<tr><td style="text-align: center">2<sup>16</sup></td><td style="text-align: center">30 ms</td><td style="text-align: center">7.7 sec</td><td style="text-align: center">1.4 GB</td><td style="text-align: center">113 KB</td></tr>
+<tr><td style="text-align: center">2<sup>18</sup></td><td style="text-align: center">90 ms</td><td style="text-align: center">34 sec</td><td style="text-align: center">5.4 GB</td><td style="text-align: center">130 KB</td></tr>
+<tr><td style="text-align: center">2<sup>20</sup></td><td style="text-align: center">330 ms</td><td style="text-align: center">143 sec</td><td style="text-align: center">19.7 GB</td><td style="text-align: center">147 KB</td></tr>
 </tbody></table>
 </div>
 <h2 id="multi-core-prover-performance"><a class="header" href="#multi-core-prover-performance">Multi-core prover performance</a></h2>
 <p>STARK proof generation is massively parallelizable. Thus, by taking advantage of multiple CPU cores we can dramatically reduce proof generation time. For example, when executed on a high-end 8-core CPU (Apple M1 Pro), the current version of Miden VM operates at around 80 KHz. And when executed on a high-end 64-core CPU (Amazon Graviton 3), the VM operates at around 320 KHz.</p>
 <p>In the benchmarks below, the VM executes the same Fibonacci calculator program for 2<sup>20</sup> cycles at 96-bit target security level:</p>
 <div class="table-wrapper"><table><thead><tr><th>Machine</th><th style="text-align: center">Execution time</th><th style="text-align: center">Proving time</th></tr></thead><tbody>
-<tr><td>Apple M1 Pro (8 threads)</td><td style="text-align: center">320 ms</td><td style="text-align: center">12.6 sec</td></tr>
-<tr><td>Amazon Graviton 3 (64 threads)</td><td style="text-align: center">380 ms</td><td style="text-align: center">3 sec</td></tr>
+<tr><td>Apple M1 Pro (8 threads)</td><td style="text-align: center">330 ms</td><td style="text-align: center">12.8 sec</td></tr>
+<tr><td>Amazon Graviton 3 (64 threads)</td><td style="text-align: center">390 ms</td><td style="text-align: center">3.2 sec</td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
 <h1 id="user-documentation"><a class="header" href="#user-documentation">User Documentation</a></h1>
@@ -661,7 +661,7 @@ end
 </code></pre>
 <p>In the above example we first push two 64-bit integers on the the stack, and then invoke a 64-bit addition procedure from <code>std::math::u64</code> module.</p>
 <h2 id="available-modules"><a class="header" href="#available-modules">Available modules</a></h2>
-<p>CCurrently, Miden standard library contains just a few modules, which are listed below. Over time, we plan to add many more modules which will include various cryptographic primitives, additional numeric data types and operations, and many others.</p>
+<p>Currently, Miden standard library contains just a few modules, which are listed below. Over time, we plan to add many more modules which will include various cryptographic primitives, additional numeric data types and operations, and many others.</p>
 <div class="table-wrapper"><table><thead><tr><th>Module</th><th>Description</th></tr></thead><tbody>
 <tr><td><a href="user_docs/stdlib/./crypto/hashes.html#blake3">std::crypto::hashes::blake3</a></td><td>Contains procedures for computing hashes using BLAKE3 hash function.</td></tr>
 <tr><td><a href="user_docs/stdlib/./crypto/hashes.html#sha256">std::crypto::hashes::sha265</a></td><td>Contains procedures for computing hashes using SHA256 hash function.</td></tr>
@@ -3649,9 +3649,10 @@ HOUT                        // return elements 4, 5, 6, 7 of the state as output
 <li><a href="https://vitalik.ca/general/2017/11/22/starks_part_2.html">STARKs, part 2: Thank Goodness it's FRI-day</a></li>
 <li><a href="https://vitalik.ca/general/2018/07/21/starks_part_3.html">STARKs, part 3: Into the Weeds</a></li>
 </ul>
-<p>Alan Szepieniec's STARK tutorial:</p>
+<p>Alan Szepieniec's STARK tutorials:</p>
 <ul>
 <li><a href="https://aszepieniec.github.io/stark-anatomy/">Anatomy of a STARK</a></li>
+<li><a href="https://aszepieniec.github.io/stark-brainfuck/">BrainSTARK</a></li>
 </ul>
 <p>StarkWare's STARK Math blog series:</p>
 <ul>

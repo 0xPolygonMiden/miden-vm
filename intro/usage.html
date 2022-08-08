@@ -136,7 +136,7 @@
                     <main>
                         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
 <h1 id="usage"><a class="header" href="#usage">Usage</a></h1>
-<p>Before you can use Miden VM, you'll need to make sure you have Rust <a href="https://www.rust-lang.org/tools/install">installed</a>. Miden VM v0.2, requires Rust version <strong>1.62</strong> or greater.</p>
+<p>Before you can use Miden VM, you'll need to make sure you have Rust <a href="https://www.rust-lang.org/tools/install">installed</a>. Miden VM v0.2 requires Rust version <strong>1.62</strong> or greater.</p>
 <p>Miden VM consists of several crates, each of which exposes a small set of functionality. The most notable of these crates are:</p>
 <ul>
 <li><a href="https://crates.io/crates/miden-processor">miden-processor</a>, which can be used to execute Miden VM programs.</li>
@@ -146,7 +146,7 @@
 <p>The above functionality is also exposed via the single <a href="https://crates.io/crates/miden">miden</a> crate, which also provides a CLI interface for interacting with Miden VM.</p>
 <h2 id="cli-interface"><a class="header" href="#cli-interface">CLI interface</a></h2>
 <h3 id="compiling-miden-vm"><a class="header" href="#compiling-miden-vm">Compiling Miden VM</a></h3>
-<p>To compile Miden VM to an executable file, you can run the following command:</p>
+<p>To compile Miden VM into a binary, you can run the following command:</p>
 <pre><code>cargo build --release --features executable
 </code></pre>
 <p>This will place <code>miden</code> executable in the <code>./target/release</code> directory.</p>
@@ -162,7 +162,7 @@
 <p>Currently, Miden VM can be executed with the following subcommands:</p>
 <ul>
 <li><code>run</code> - this will execute a Miden assembly program and output the result, but will not generate a proof of execution.</li>
-<li><code>prove</code> - this will execute a Miden assembly, and will also generate a STARK proof of execution.</li>
+<li><code>prove</code> - this will execute a Miden assembly program, and will also generate a STARK proof of execution.</li>
 <li><code>verify</code> - this will verify a previously generated proof of execution for a given program.</li>
 <li><code>compile</code> - this will compile a Miden assembly program (i.e., build a program <a href="../design/programs.html">MAST</a>) and outputs stats about the compilation process.</li>
 <li><code>analyze</code> - this will run a Miden assembly program against specific inputs and will output stats about its execution.</li>
