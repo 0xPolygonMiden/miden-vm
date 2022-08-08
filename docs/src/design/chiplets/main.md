@@ -98,8 +98,14 @@ Each chiplet's internal constraints are defined in the documentation for the ind
 This gives the following sets of constraints:
 
 > $$
-(1 - s_0) \cdot c_{hash} = 0 \text{ | degree} = 1 + \deg(c_{hash}) \\
-s_0 \cdot (1 - s_1) \cdot c_{bitwise} = 0 \text{ | degree} = 2 + \deg(c_{bitwise}) \\
+(1 - s_0) \cdot c_{hash} = 0 \text{ | degree} = 1 + \deg(c_{hash})
+$$
+
+> $$
+s_0 \cdot (1 - s_1) \cdot c_{bitwise} = 0 \text{ | degree} = 2 + \deg(c_{bitwise})
+$$
+
+> $$
 s_0 \cdot s_1 \cdot (1 - s'_2) \cdot c_{memory} = 0 \text{ | degree} = 3 + \deg(c_{memory})
 $$
 
