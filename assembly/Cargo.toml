@@ -1,6 +1,6 @@
 [package]
 name = "miden-assembly"
-version = "0.2.0"
+version = "0.3.0"
 description = "Miden VM assembly language"
 authors = ["miden contributors"]
 readme = "README.md"
@@ -24,8 +24,8 @@ default = ["std"]
 std = ["vm-core/std"]
 
 [dependencies]
-vm-core = { package = "miden-core", path = "../core", version = "0.2", default-features = false }
-vm-stdlib = { package = "miden-stdlib", path = "../stdlib", version = "0.1", default-features = false }
+vm-core = { package = "miden-core", path = "../core", version = "0.3", default-features = false }
+vm-stdlib = { package = "miden-stdlib", path = "../stdlib", version = "0.2", default-features = false }
 
 [dev-dependencies]
 criterion = "0.3"
