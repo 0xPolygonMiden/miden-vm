@@ -77,6 +77,43 @@ pub(super) fn parse_rpperm(span_ops: &mut Vec<Operation>, op: &Token) -> Result<
 // MERKLE TREES
 // ================================================================================================
 
+/// Appends the stack manipulations to the span block as required to check if a Merkle tree with
+/// root R has node V. If the Merkle tree with root R has the input node V, then, 1 is pushed to
+/// the top of the stack, else, 0 is pushed. The stack is expected to be arranged as follows (from
+/// the top):
+/// - Root of the Merkle tree, 4 elements.
+/// - Node which needs to be checked, 4 elements.
+/// 
+/// After the operations are executed, the stack will be arranged as follows:
+/// - bit flag, 1 element.
+/// - Root of the Merkle tree, 4 elements.
+/// - Node which was checked, 4 elements.
+/// 
+/// This operation takes 1 VM cycle.
+/// 
+/// # Errors:
+/// Returns an AssemblyError if the operation is malformed.
+pub(super) fn parse_mtree_has(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    decorators: &mut DecoratorList,
+) -> Result<(), AssemblyError> {
+    validate_operation!(op, "mtree_has", 0);
+
+    // stack: [R, V, ...]
+    // inject the root and the node value we're checking in the merkle tree
+    // with root R at the head of the advice tape.
+    decorators.push((
+        span_ops.len(),
+        Decorator::Advice(AdviceInjector::MerkleNodePresent),
+    ));
+
+    // read the bit value from the advice tape.
+    span_ops.push(Operation::Read);
+
+    Ok(())
+}
+
 /// Appends the MPVERIFY op and stack manipulations to the span block as required to verify that a
 /// Merkle tree with root R opens to node V at depth d and index i. The stack is expected to be
 /// arranged as follows (from the top):

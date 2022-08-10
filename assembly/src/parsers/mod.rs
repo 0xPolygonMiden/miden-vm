@@ -169,6 +169,7 @@ fn parse_op_token(
         "rphash" => crypto_ops::parse_rphash(span_ops, op),
         "rpperm" => crypto_ops::parse_rpperm(span_ops, op),
 
+        "mtree_has" => crypto_ops::parse_mtree_has(span_ops, op, decorators),
         "mtree_get" => crypto_ops::parse_mtree_get(span_ops, op, decorators),
         "mtree_set" => crypto_ops::parse_mtree_set(span_ops, op, decorators),
         "mtree_cwm" => crypto_ops::parse_mtree_cwm(span_ops, op, decorators),
