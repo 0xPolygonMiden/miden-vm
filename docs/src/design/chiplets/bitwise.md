@@ -51,38 +51,64 @@ With every subsequent row, we inject the next-most-significant 4 bits of each va
 
 AIR constraints needed to ensure the correctness of the above table are described below.
 
+### Selectors
+
+The Bitwise chiplet supports three operations with the following operation selectors:
+
+- `U32AND`: $s_0 = 0$, $s_1 = 0$
+- `U32OR`: $s_0 = 0$, $s_1 = 1$
+- `U32XOR`: $s_0 = 1$, $s_1 = 0$
+
+The constraints must require that the selectors be binary and stay the same throughout the cycle:
+
+> $$
+s_0^2 - s_0 = 0 \text{ | degree} = 2
+$$
+
+> $$
+s_1^2 - s_1 = 0 \text{ | degree} = 2
+$$
+
+> $$
+k_1 \cdot (s_0' - s_0) = 0 \text{ | degree} = 2
+$$
+
+> $$
+k_1 \cdot (s_1' - s_1) = 0 \text{ | degree} = 2
+$$
+
 ### Input decomposition
 
 We need to make sure that inputs $a$ and $b$ are decomposed correctly into their individual bits. To do this, first, we need to make sure that columns $a_0$, $a_1$, $a_2$, $a_3$, $b_0$, $b_1$, $b_2$, $b_3$, can contain only binary values ($0$ or $1$). This can be accomplished with the following constraints (for $i$ ranging between $0$ and $3$):
 
-$$
-a_i^2 - a_i = 0
+> $$
+a_i^2 - a_i = 0 \text{ | degree} = 2
 $$
 
-$$
-b_i^2 - b_i = 0
+> $$
+b_i^2 - b_i = 0 \text{ | degree} = 2
 $$
 
 Then, we need to make sure that on the first row of every 8-row cycle, the values in the columns $a$ and $b$ are exactly equal to the aggregation of binary values contained in the individual bit columns $a_i$, and $b_i$. This can be enforced with the following constraints:
 
-$$
-k_0 \cdot \left(a - \sum_{i=0}^3(2^i \cdot a_i)\right) = 0
+> $$
+k_0 \cdot \left(a - \sum_{i=0}^3(2^i \cdot a_i)\right) = 0 \text{ | degree} = 2
 $$
 
-$$
-k_0 \cdot \left(b - \sum_{i=0}^3(2^i \cdot b_i)\right) = 0
+> $$
+k_0 \cdot \left(b - \sum_{i=0}^3(2^i \cdot b_i)\right) = 0 \text{ | degree} = 2
 $$
 
 The above constraints enforce that when $k_0 = 1$, $a = \sum_{i=0}^3(2^i \cdot a_i)$ and $b = \sum_{i=0}^3(2^i \cdot b_i)$.
 
 Lastly, we need to make sure that for all rows in an 8-row cycle except for the last one, the values in $a$ and $b$ columns are increased by the values contained in the individual bit columns $a_i$ and $b_i$. Denoting $a$ as the value of column $a$ in the current row, and $a'$ as the value of column $a$ in the next row, we can enforce these conditions as follows:
 
-$$
-k_1 \cdot \left(a' - \left(a \cdot 16 + \sum_{i=0}^3(2^i \cdot a'_i)\right)\right) = 0
+> $$
+k_1 \cdot \left(a' - \left(a \cdot 16 + \sum_{i=0}^3(2^i \cdot a'_i)\right)\right) = 0 \text{ | degree} = 2
 $$
 
-$$
-k_1 \cdot \left(b' - \left(b \cdot 16 + \sum_{i=0}^3(2^i \cdot b'_i)\right)\right) = 0
+> $$
+k_1 \cdot \left(b' - \left(b \cdot 16 + \sum_{i=0}^3(2^i \cdot b'_i)\right)\right) = 0 \text{ | degree} = 2
 $$
 
 The above constraints enforce that when $k_1 = 1$ , $a' = 16 \cdot a + \sum_{i=0}^3(2^i \cdot a'_i)$ and $b' = 16 \cdot b + \sum_{i=0}^3(2^i \cdot b'_i)$.
@@ -90,26 +116,34 @@ The above constraints enforce that when $k_1 = 1$ , $a' = 16 \cdot a + \sum_{i=0
 ### Output aggregation
 
 To ensure correct aggregation of operations over individual bits, first we need to ensure that in the first row, the aggregated output value of the previous row should be 0.
-$$
-k_0 \cdot z_p = 0
+> $$
+k_0 \cdot z_p = 0 \text{ | degree} = 2
 $$
 
 Next, we need to ensure that for each row except the last, the aggregated output value must equal the previous aggregated output value in the next row.
-$$
-k_1 \cdot \left(z - z'_p\right) = 0
+> $$
+k_1 \cdot \left(z - z'_p\right) = 0 \text{ | degree} = 2
 $$
 
-Lastly, we need to ensure that for all rows, the value in the $z$ column is computed by multiplying the previous output value (from the $z_p$ column in the current row) by 16 and then adding it to the bitwise operation applied to the row's set of bits of $a$ and $b$. This can be enforced with the following constraint:
+Lastly, we need to ensure that for all rows the value in the $z$ column is computed by multiplying the previous output value (from the $z_p$ column in the current row) by 16 and then adding it to the bitwise operation applied to the row's set of bits of $a$ and $b$. The entire constraint must also be multiplied by the operation selector flag to ensure it is only applied for the appropriate operation.
 
+For `U32AND`, this is enforced with the following constraint:
+
+> $$
+(1 - s_0) \cdot (1 - s_1) \cdot \left(z -(z_p \cdot 16 + \sum_{i=0}^3(2^i \cdot a_i \cdot b_i))\right) = 0 \text{ | degree} = 4
 $$
-z -(z_p \cdot 16 + \sum_0^3(2^i \cdot a_i \cdot b_i)) = 0
+
+For `U32XOR`, this is enforced with the following constraint:
+
+> $$
+s_0 \cdot (1 - s_1) \cdot \left(z -(z_p \cdot 16 + \sum_{i=0}^3(2^i \cdot (a_i + b_i - 2 \cdot a_i \cdot b_i)))\right) = 0 \text{ | degree} = 4
 $$
 
 ## Permutation product
 
 For the permutation product, we want to include values of $a$, $b$ and $z$ at the last row of the cycle. Denoting the random value received from the verifier as $\alpha$, this can be achieved using the following:
 
-$$
+> $$
 v_i = (1-k_1) \cdot (\alpha \cdot a + \alpha^2 \cdot b + \alpha^3 \cdot z)
 $$
 
@@ -117,7 +151,7 @@ Thus, when $k_1 = 0$, $(\alpha \cdot a + \alpha^2 \cdot b + \alpha^3 \cdot z)$ g
 
 Then, denoting another random value sent by the verifier as $\beta$, and setting $m = 1 - k_1$, we can compute the permutation product as follows:
 
-$$
+> $$
 \prod_{i=0}^n ((\beta + v_i) \cdot m_i + 1 - m_i)
 $$
 
@@ -127,7 +161,7 @@ The above ensures that when $1 - k_1 = 0$ (which is true for all rows in the 8-r
 
 To perform a lookup into this table, we need to know values of $a$, $b$, $z$ (which the prover will provide non-deterministically). The lookup can then be performed by including the following into the lookup product:
 
-$$
+> $$
 \left(\beta + (\alpha \cdot a + \alpha^2 \cdot b + \alpha^3 \cdot z)\right)
 $$
 
