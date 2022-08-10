@@ -139,30 +139,30 @@ For `U32XOR`, this is enforced with the following constraint:
 s_0 \cdot (1 - s_1) \cdot \left(z -(z_p \cdot 16 + \sum_{i=0}^3(2^i \cdot (a_i + b_i - 2 \cdot a_i \cdot b_i)))\right) = 0 \text{ | degree} = 4
 $$
 
-## Permutation product
+## Bitwise chiplet bus constraints
 
-For the permutation product, we want to include values of $a$, $b$ and $z$ at the last row of the cycle. Denoting the random value received from the verifier as $\alpha$, this can be achieved using the following:
+To provide the results of bitwise operations to the chiplets bus, we want to include values of $a$, $b$ and $z$ at the last row of the cycle. Denoting the random values received from the verifier as $\alpha_0, \alpha_1$, etc., this can be achieved using the following:
 
 > $$
-v_i = (1-k_1) \cdot (\alpha \cdot a + \alpha^2 \cdot b + \alpha^3 \cdot z)
+v_i = (1-k_1) \cdot (\alpha_1 \cdot a + \alpha_2 \cdot b + \alpha_3 \cdot z)
 $$
 
-Thus, when $k_1 = 0$, $(\alpha \cdot a + \alpha^2 \cdot b + \alpha^3 \cdot z)$ gets included into the product.
+Thus, when $k_1 = 0$, $(\alpha_1 \cdot a + \alpha_2 \cdot b + \alpha_3 \cdot z)$ gets included into the product.
 
-Then, denoting another random value sent by the verifier as $\beta$, and setting $m = 1 - k_1$, we can compute the permutation product as follows:
+Then, setting $m = 1 - k_1$, we can compute the permutation product as follows:
 
 > $$
-\prod_{i=0}^n ((\beta + v_i) \cdot m_i + 1 - m_i)
+\prod_{i=0}^n ((\alpha_0 + v_i) \cdot m_i + 1 - m_i)
 $$
 
-The above ensures that when $1 - k_1 = 0$ (which is true for all rows in the 8-row cycle except for the last one), the product does not change. Otherwise, $(\beta + v_i)$ gets included into the product.
+The above ensures that when $1 - k_1 = 0$ (which is true for all rows in the 8-row cycle except for the last one), the product does not change. Otherwise, $(\alpha_0 + v_i)$ gets included into the product.
 
-## Table lookups
+## Requesting bitwise operations
 
-To perform a lookup into this table, we need to know values of $a$, $b$, $z$ (which the prover will provide non-deterministically). The lookup can then be performed by including the following into the lookup product:
+To perform a lookup into this table (request a bitwise operation from the chiplets bus), we need to know values of $a$, $b$, $z$ (which the prover will provide non-deterministically). The lookup can then be performed by including the following into the lookup product:
 
 > $$
-\left(\beta + (\alpha \cdot a + \alpha^2 \cdot b + \alpha^3 \cdot z)\right)
+\left(\alpha_0 + (\alpha_1 \cdot a + \alpha_2 \cdot b + \alpha_3 \cdot z)\right)
 $$
 
 ## Reducing the number of rows

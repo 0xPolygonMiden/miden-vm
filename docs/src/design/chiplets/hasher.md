@@ -348,7 +348,7 @@ $$
 Note, that when a computation is completed (i.e., $f_{out}=1$), the next hasher state is unconstrained.
 
 ### Multiset check constraints
-In this sections we describe constraints which enforce updates for multiset check columns $p_0$ and $p_1$. These columns can be updated only on rows which are multiples of $8$ or $1$ less than a multiple of $8$. On all other rows the values in the columns remain the same.
+In this sections we describe constraints which enforce updates for [multiset check columns](../multiset.md) $p_0$ and $p_1$. These columns can be updated only on rows which are multiples of $8$ or $1$ less than a multiple of $8$. On all other rows the values in the columns remain the same.
 
 To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc..
 
