@@ -91,6 +91,73 @@ fn rphash() {
 }
 
 #[test]
+fn mtree_has() {
+    let asm_op = "mtree_has";
+
+    let leaves = init_merkle_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let tree = AdviceSet::new_merkle_tree(leaves.clone()).unwrap();
+
+    // stack inputs when the node is in the merkle tree.
+    let stack_inputs = [
+        leaves[2][0].as_int(),
+        leaves[2][1].as_int(),
+        leaves[2][2].as_int(),
+        leaves[2][3].as_int(),
+        tree.root()[0].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[3].as_int(),
+    ];
+
+    let final_stack = [
+        1u64,
+        tree.root()[3].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[0].as_int(),
+        leaves[2][3].as_int(),
+        leaves[2][2].as_int(),
+        leaves[2][1].as_int(),
+        leaves[2][0].as_int(),
+    ];
+
+    let test = build_op_test!(asm_op, &stack_inputs, &[], vec![tree]);
+    test.expect_stack(&final_stack);
+
+    // node not present in the merkle tree
+    let leaves_not_in_leaf = init_merkle_leaf(447);
+
+    let leaves = init_merkle_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let tree = AdviceSet::new_merkle_tree(leaves).unwrap();
+
+    let stack_inputs = [
+        leaves_not_in_leaf[0].as_int(),
+        leaves_not_in_leaf[1].as_int(),
+        leaves_not_in_leaf[2].as_int(),
+        leaves_not_in_leaf[3].as_int(),
+        tree.root()[0].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[3].as_int(),
+    ];
+
+    let final_stack = [
+        0u64,
+        tree.root()[3].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[0].as_int(),
+        leaves_not_in_leaf[3].as_int(),
+        leaves_not_in_leaf[2].as_int(),
+        leaves_not_in_leaf[1].as_int(),
+        leaves_not_in_leaf[0].as_int(),
+    ];
+
+    let test = build_op_test!(asm_op, &stack_inputs, &[], vec![tree]);
+    test.expect_stack(&final_stack);
+}
+
+#[test]
 fn mtree_get() {
     let asm_op = "mtree_get";
 
