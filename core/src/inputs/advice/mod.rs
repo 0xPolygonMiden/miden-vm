@@ -49,6 +49,18 @@ impl AdviceSet {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns if the node is present in the advice set or not.
+    ///
+    /// # Panic
+    /// Panics if the advise set is not a Merkle tree.
+    pub fn is_node_present(&self, value: Word) -> bool {
+        if let Self::MerkleTree(tree) = self {
+            tree.is_node_present(value)
+        } else {
+            panic!("The node value is not being fetched from a Merkle Tree")
+        }
+    }
+
     /// Returns a root of this advice set.
     pub fn root(&self) -> Word {
         match self {

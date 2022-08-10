@@ -69,6 +69,24 @@ impl AdviceProvider {
         self.sets.contains_key(&root.into_bytes())
     }
 
+    /// Returns a boolean value if the node is present in the Merkle tree with the specified root.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - A Merkle tree for the specified root cannot be found in this advice provider.
+    pub fn is_node_present(&mut self, root: Word, node: Word) -> Result<bool, ExecutionError> {
+        // look up the advice set and return an error if none is found
+        let advice_set = self
+            .sets
+            .get(&root.into_bytes())
+            .ok_or_else(|| ExecutionError::AdviceSetNotFound(root.into_bytes()))?;
+
+        // get the boolean value of the node being present in the merkle tree.
+        let flag = advice_set.is_node_present(node);
+
+        Ok(flag)
+    }
+
     /// Returns a node at the specified index in a Merkle tree with the specified root.
     ///
     /// # Errors

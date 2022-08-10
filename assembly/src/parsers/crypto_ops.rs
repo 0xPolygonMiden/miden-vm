@@ -83,14 +83,14 @@ pub(super) fn parse_rpperm(span_ops: &mut Vec<Operation>, op: &Token) -> Result<
 /// the top):
 /// - Root of the Merkle tree, 4 elements.
 /// - Node which needs to be checked, 4 elements.
-/// 
+///
 /// After the operations are executed, the stack will be arranged as follows:
 /// - bit flag, 1 element.
 /// - Root of the Merkle tree, 4 elements.
 /// - Node which was checked, 4 elements.
-/// 
+///
 /// This operation takes 1 VM cycle.
-/// 
+///
 /// # Errors:
 /// Returns an AssemblyError if the operation is malformed.
 pub(super) fn parse_mtree_has(

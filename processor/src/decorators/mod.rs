@@ -27,6 +27,7 @@ impl Process {
     pub fn dec_advice(&mut self, injector: &AdviceInjector) -> Result<(), ExecutionError> {
         match injector {
             AdviceInjector::MerkleNode => self.inject_merkle_node(),
+            AdviceInjector::MerkleNodePresent => self.inject_merkle_node_present(),
             AdviceInjector::DivResultU64 => self.inject_div_result_u64(),
         }
     }
@@ -66,6 +67,39 @@ impl Process {
         self.advice.write_tape(node[2]);
         self.advice.write_tape(node[1]);
         self.advice.write_tape(node[0]);
+
+        Ok(())
+    }
+
+    /// Injects a boolean value at the head of the advice tape if the input node is present in the
+    /// Merkle tree with the specified input root. The stack is expected to be arranged as follows
+    /// (from the top):
+    /// - Root of the tree, 4 elements.
+    /// - Node which needs to be checked, 4 elements.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - Merkle tree for the specified root cannot be found in the advice provider.
+    fn inject_merkle_node_present(&mut self) -> Result<(), ExecutionError> {
+        // read node and tree root from the stack.
+        let root = [
+            self.stack.get(3),
+            self.stack.get(2),
+            self.stack.get(1),
+            self.stack.get(0),
+        ];
+        let node = [
+            self.stack.get(7),
+            self.stack.get(6),
+            self.stack.get(5),
+            self.stack.get(4),
+        ];
+
+        // look up whether the node is present in the advice provider or not.
+        let flag = self.advice.is_node_present(root, node)?;
+
+        // writes the value of the boolean bit flag in the advice tape.
+        self.advice.write_tape(Felt::new(flag as u64));
 
         Ok(())
     }
@@ -171,6 +205,90 @@ mod tests {
             tree.root()[1],
             tree.root()[0],
         ]);
+        assert_eq!(expected_stack, process.stack.trace_state());
+    }
+
+    #[test]
+    fn inject_merkle_node_present() {
+        let leaves = [init_leaf(1), init_leaf(2), init_leaf(3), init_leaf(4)];
+
+        let tree = AdviceSet::new_merkle_tree(leaves.to_vec()).unwrap();
+
+        // stack inputs when the node is in the merkle tree.
+        let stack_inputs = [
+            leaves[1][0].as_int(),
+            leaves[1][1].as_int(),
+            leaves[1][2].as_int(),
+            leaves[1][3].as_int(),
+            tree.root()[0].as_int(),
+            tree.root()[1].as_int(),
+            tree.root()[2].as_int(),
+            tree.root()[3].as_int(),
+        ];
+
+        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
+        let mut process = Process::new(inputs);
+
+        // inject the node into the advice tape
+        process
+            .execute_decorator(&Decorator::Advice(AdviceInjector::MerkleNodePresent))
+            .unwrap();
+
+        // read the node from the tape onto the stack
+        process.execute_op(Operation::Read).unwrap();
+
+        let expected_stack = build_expected(&[
+            Felt::new(1),
+            tree.root()[3],
+            tree.root()[2],
+            tree.root()[1],
+            tree.root()[0],
+            leaves[1][3],
+            leaves[1][2],
+            leaves[1][1],
+            leaves[1][0],
+        ]);
+
+        assert_eq!(expected_stack, process.stack.trace_state());
+
+        // node not present in the merkle tree.
+        let leaves_not_in_tree = init_leaf(69);
+
+        // stack inputs when the node is not in the merkle tree.
+        let stack_inputs_not = [
+            leaves_not_in_tree[0].as_int(),
+            leaves_not_in_tree[1].as_int(),
+            leaves_not_in_tree[2].as_int(),
+            leaves_not_in_tree[3].as_int(),
+            tree.root()[0].as_int(),
+            tree.root()[1].as_int(),
+            tree.root()[2].as_int(),
+            tree.root()[3].as_int(),
+        ];
+
+        let inputs = ProgramInputs::new(&stack_inputs_not, &[], vec![tree.clone()]).unwrap();
+        let mut process = Process::new(inputs);
+
+        // inject the node into the advice tape
+        process
+            .execute_decorator(&Decorator::Advice(AdviceInjector::MerkleNodePresent))
+            .unwrap();
+
+        // read the node from the tape onto the stack
+        process.execute_op(Operation::Read).unwrap();
+
+        let expected_stack = build_expected(&[
+            Felt::new(0),
+            tree.root()[3],
+            tree.root()[2],
+            tree.root()[1],
+            tree.root()[0],
+            leaves_not_in_tree[3],
+            leaves_not_in_tree[2],
+            leaves_not_in_tree[1],
+            leaves_not_in_tree[0],
+        ]);
+
         assert_eq!(expected_stack, process.stack.trace_state());
     }
 

@@ -10,6 +10,13 @@ pub enum AdviceInjector {
     /// - root of the tree, 4 elements
     MerkleNode,
 
+    /// Injects a boolean value at the head of the advice tape if the input node is present in the
+    /// Merkle tree with the specified input root. The stack is expected to be arranged as follows
+    /// (from the top):
+    /// - Root of the tree, 4 elements.
+    /// - Node which needs to be checked, 4 elements.
+    MerkleNodePresent,
+
     /// Injects the result of u64 division (both the quotient and the remainder) at the head of
     /// the advice tape. The stack is expected to be arranged as follows (from the top):
     /// - divisor split into two 32-bit elements
@@ -24,6 +31,7 @@ impl fmt::Display for AdviceInjector {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MerkleNode => write!(f, "merkle_node"),
+            Self::MerkleNodePresent => write!(f, "merkle_node_present"),
             Self::DivResultU64 => write!(f, "div_result_u64"),
         }
     }

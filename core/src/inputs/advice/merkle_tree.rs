@@ -66,6 +66,11 @@ impl MerkleTree {
         log2(self.nodes.len() / 2)
     }
 
+    /// Returns if a node is present in the Merkle tree or not.
+    pub fn is_node_present(&self, node: Word) -> bool {
+        self.nodes.contains(&node)
+    }
+
     /// Returns a node at the specified depth and index.
     ///
     /// # Errors
@@ -165,6 +170,23 @@ mod tests {
         int_to_node(7),
         int_to_node(8),
     ];
+
+    #[test]
+    fn is_node_present() {
+        let tree = super::MerkleTree::new(LEAVES4.to_vec()).unwrap();
+
+        // ------------ when node is in the merkle tree ---------------------------
+        assert!(tree.is_node_present(int_to_node(1)));
+        assert!(tree.is_node_present(int_to_node(2)));
+        assert!(tree.is_node_present(int_to_node(3)));
+        assert!(tree.is_node_present(int_to_node(4)));
+
+        // ------------ when node is not in the merkle tree ---------------------------
+        assert!(!tree.is_node_present(int_to_node(5)));
+        assert!(!tree.is_node_present(int_to_node(7)));
+        assert!(!tree.is_node_present(int_to_node(420)));
+        assert!(!tree.is_node_present(int_to_node(654)));
+    }
 
     #[test]
     fn build_merkle_tree() {
