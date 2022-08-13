@@ -298,7 +298,7 @@ impl Default for RangeChecker {
 /// A precomputed hint value that can be used to help construct the execution trace for the
 /// auxiliary columns p0 and p1 used for multiset checks. The hint is a precomputed flag value based
 /// on the selectors s0 and s1 in the trace.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum RangeCheckFlag {
     F0,
     F1,
