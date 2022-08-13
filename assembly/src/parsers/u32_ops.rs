@@ -7,7 +7,7 @@ use super::{
 // ================================================================================================
 
 /// This enum is intended to determine the mode of operation passed to the parsing function
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub enum U32OpMode {
     Checked,
     Unchecked,
