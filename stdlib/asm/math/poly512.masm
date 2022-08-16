@@ -2,7 +2,7 @@ use.std::math::ntt512
 use.std::math::u64
 
 # Given two consecutive words on stack, this routine performs 
-# element wise multiplication, while keeping resuling single
+# element wise multiplication, while keeping resulting single
 # word on stack.
 #
 # Expected stack state looks like
@@ -36,6 +36,41 @@ proc.mul_word
     movdn.3
 end
 
+# Given two consecutive words on stack, this routine performs 
+# element wise addition, while keeping resulting single
+# word on stack.
+#
+# Expected stack state looks like
+#
+# [a0, a1, a2, a3, b0, b1, b2, b3]
+#
+# What this routine does is
+#
+# c`i` = a`i` + b`i` mod P | i ∈ [0, 4), P = 2 ^ 64 - 2 ^ 32 + 1
+#
+# Output stack state looks like
+#
+# [c0, c1, c2, c3]
+proc.add_word
+    movup.4
+    add
+
+    swap
+    movup.4
+    add
+    swap
+
+    movup.2
+    movup.4
+    add
+    movdn.2
+
+    movup.3
+    movup.4
+    add
+    movdn.3
+end
+
 # Given two operands ( i.e. field elements a, b ) on stack top, this routine computes c = a % b
 #
 # Expected stack state
@@ -52,6 +87,40 @@ proc.mod_div
     u32split
     exec.u64::unchecked_mod
     drop # higher 32 -bit must always be 0, because b = 12289
+end
+
+# Given four elements on stack top, this routine reduces them by applying
+# modular division by 12289 ( = Falcon Signature Algorithm's Prime Number )
+#
+# Input stack state :
+#
+# [a0, a1, a3, a3, ...]
+#
+# Operated such that
+#
+# b`i` = a`i` % 12289 | i ∈ [0..4)
+#
+# Output stack state :
+#
+# [b0, b1, b2, b3, ...]
+proc.mod_div_word
+    push.12289
+    exec.mod_div
+
+    swap
+    push.12289
+    exec.mod_div
+    swap
+
+    movup.2
+    push.12289
+    exec.mod_div
+    movdn.2
+
+    movup.3
+    push.12289
+    exec.mod_div
+    movdn.3
 end
 
 # Given a field element, this routine does centered reduction using Miden VM
@@ -135,7 +204,7 @@ proc.reduce_word
 end
 
 # Given two polynomials of degree 512 on stack as absolute memory addresses,
-# this routine computes Polynomial multiplication, using NTT and iNTT.
+# this routine computes polynomial multiplication, using NTT and iNTT.
 #
 # Imagine, two polynomials are f, g
 #
@@ -156,6 +225,8 @@ end
 # [h_addr0, h_addr1, ..., h_addr127]
 #
 # h_addr`i` is the address of four elements | h[ (i << 2) .. ((i+1) << 2) ) & i ∈ [0..128)
+#
+# Note, input memory addresses are considered read-only, they are not mutated.
 export.mul_zq.128
     exec.ntt512::forward
 
@@ -2220,6 +2291,1700 @@ export.mul_zq.128
     movup.4
     loadw.mem
     exec.reduce_word
+    storew.local.127
+
+    dropw
+
+    push.env.locaddr.127
+    push.env.locaddr.126
+    push.env.locaddr.125
+    push.env.locaddr.124
+    push.env.locaddr.123
+    push.env.locaddr.122
+    push.env.locaddr.121
+    push.env.locaddr.120
+    push.env.locaddr.119
+    push.env.locaddr.118
+    push.env.locaddr.117
+    push.env.locaddr.116
+    push.env.locaddr.115
+    push.env.locaddr.114
+    push.env.locaddr.113
+    push.env.locaddr.112
+    push.env.locaddr.111
+    push.env.locaddr.110
+    push.env.locaddr.109
+    push.env.locaddr.108
+    push.env.locaddr.107
+    push.env.locaddr.106
+    push.env.locaddr.105
+    push.env.locaddr.104
+    push.env.locaddr.103
+    push.env.locaddr.102
+    push.env.locaddr.101
+    push.env.locaddr.100
+    push.env.locaddr.99
+    push.env.locaddr.98
+    push.env.locaddr.97
+    push.env.locaddr.96
+    push.env.locaddr.95
+    push.env.locaddr.94
+    push.env.locaddr.93
+    push.env.locaddr.92
+    push.env.locaddr.91
+    push.env.locaddr.90
+    push.env.locaddr.89
+    push.env.locaddr.88
+    push.env.locaddr.87
+    push.env.locaddr.86
+    push.env.locaddr.85
+    push.env.locaddr.84
+    push.env.locaddr.83
+    push.env.locaddr.82
+    push.env.locaddr.81
+    push.env.locaddr.80
+    push.env.locaddr.79
+    push.env.locaddr.78
+    push.env.locaddr.77
+    push.env.locaddr.76
+    push.env.locaddr.75
+    push.env.locaddr.74
+    push.env.locaddr.73
+    push.env.locaddr.72
+    push.env.locaddr.71
+    push.env.locaddr.70
+    push.env.locaddr.69
+    push.env.locaddr.68
+    push.env.locaddr.67
+    push.env.locaddr.66
+    push.env.locaddr.65
+    push.env.locaddr.64
+    push.env.locaddr.63
+    push.env.locaddr.62
+    push.env.locaddr.61
+    push.env.locaddr.60
+    push.env.locaddr.59
+    push.env.locaddr.58
+    push.env.locaddr.57
+    push.env.locaddr.56
+    push.env.locaddr.55
+    push.env.locaddr.54
+    push.env.locaddr.53
+    push.env.locaddr.52
+    push.env.locaddr.51
+    push.env.locaddr.50
+    push.env.locaddr.49
+    push.env.locaddr.48
+    push.env.locaddr.47
+    push.env.locaddr.46
+    push.env.locaddr.45
+    push.env.locaddr.44
+    push.env.locaddr.43
+    push.env.locaddr.42
+    push.env.locaddr.41
+    push.env.locaddr.40
+    push.env.locaddr.39
+    push.env.locaddr.38
+    push.env.locaddr.37
+    push.env.locaddr.36
+    push.env.locaddr.35
+    push.env.locaddr.34
+    push.env.locaddr.33
+    push.env.locaddr.32
+    push.env.locaddr.31
+    push.env.locaddr.30
+    push.env.locaddr.29
+    push.env.locaddr.28
+    push.env.locaddr.27
+    push.env.locaddr.26
+    push.env.locaddr.25
+    push.env.locaddr.24
+    push.env.locaddr.23
+    push.env.locaddr.22
+    push.env.locaddr.21
+    push.env.locaddr.20
+    push.env.locaddr.19
+    push.env.locaddr.18
+    push.env.locaddr.17
+    push.env.locaddr.16
+    push.env.locaddr.15
+    push.env.locaddr.14
+    push.env.locaddr.13
+    push.env.locaddr.12
+    push.env.locaddr.11
+    push.env.locaddr.10
+    push.env.locaddr.9
+    push.env.locaddr.8
+    push.env.locaddr.7
+    push.env.locaddr.6
+    push.env.locaddr.5
+    push.env.locaddr.4
+    push.env.locaddr.3
+    push.env.locaddr.2
+    push.env.locaddr.1
+    push.env.locaddr.0
+end
+
+# Given two polynomials of degree 512 on stack as absolute memory addresses,
+# this routine computes polynomial addition.
+#
+# Imagine, two polynomials f, g
+#
+# h = f + g, can be computed as
+#
+# [(f[i] + g[i]) % Q for i in range(512)] | Q = 12289 ( = Falcon Digital Signature Algorithm's Prime Number )
+#
+# Input stack state :
+#
+# [f_addr0, f_addr1, ..., f_addr127, g_addr0, g_addr1, ..., g_addr127]
+#
+# {f, g}_addr`i` -> {f, g}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
+#
+# Output stack state :
+#
+# [h_addr0, h_addr1, ..., h_addr127]
+#
+# h_addr`i` is the address of four elements | h[ (i << 2) .. ((i+1) << 2) ) & i ∈ [0..128)
+#
+# Note, input memory addresses are considered read-only, they are not mutated.
+export.add_zq.128
+    pop.local.0
+    pop.local.1
+    pop.local.2
+    pop.local.3
+    pop.local.4
+    pop.local.5
+    pop.local.6
+    pop.local.7
+    pop.local.8
+    pop.local.9
+    pop.local.10
+    pop.local.11
+    pop.local.12
+    pop.local.13
+    pop.local.14
+    pop.local.15
+    pop.local.16
+    pop.local.17
+    pop.local.18
+    pop.local.19
+    pop.local.20
+    pop.local.21
+    pop.local.22
+    pop.local.23
+    pop.local.24
+    pop.local.25
+    pop.local.26
+    pop.local.27
+    pop.local.28
+    pop.local.29
+    pop.local.30
+    pop.local.31
+    pop.local.32
+    pop.local.33
+    pop.local.34
+    pop.local.35
+    pop.local.36
+    pop.local.37
+    pop.local.38
+    pop.local.39
+    pop.local.40
+    pop.local.41
+    pop.local.42
+    pop.local.43
+    pop.local.44
+    pop.local.45
+    pop.local.46
+    pop.local.47
+    pop.local.48
+    pop.local.49
+    pop.local.50
+    pop.local.51
+    pop.local.52
+    pop.local.53
+    pop.local.54
+    pop.local.55
+    pop.local.56
+    pop.local.57
+    pop.local.58
+    pop.local.59
+    pop.local.60
+    pop.local.61
+    pop.local.62
+    pop.local.63
+    pop.local.64
+    pop.local.65
+    pop.local.66
+    pop.local.67
+    pop.local.68
+    pop.local.69
+    pop.local.70
+    pop.local.71
+    pop.local.72
+    pop.local.73
+    pop.local.74
+    pop.local.75
+    pop.local.76
+    pop.local.77
+    pop.local.78
+    pop.local.79
+    pop.local.80
+    pop.local.81
+    pop.local.82
+    pop.local.83
+    pop.local.84
+    pop.local.85
+    pop.local.86
+    pop.local.87
+    pop.local.88
+    pop.local.89
+    pop.local.90
+    pop.local.91
+    pop.local.92
+    pop.local.93
+    pop.local.94
+    pop.local.95
+    pop.local.96
+    pop.local.97
+    pop.local.98
+    pop.local.99
+    pop.local.100
+    pop.local.101
+    pop.local.102
+    pop.local.103
+    pop.local.104
+    pop.local.105
+    pop.local.106
+    pop.local.107
+    pop.local.108
+    pop.local.109
+    pop.local.110
+    pop.local.111
+    pop.local.112
+    pop.local.113
+    pop.local.114
+    pop.local.115
+    pop.local.116
+    pop.local.117
+    pop.local.118
+    pop.local.119
+    pop.local.120
+    pop.local.121
+    pop.local.122
+    pop.local.123
+    pop.local.124
+    pop.local.125
+    pop.local.126
+    pop.local.127
+
+    push.0.0.0.0
+
+    movup.4
+    loadw.mem
+
+    push.local.0
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.0
+
+    movup.4
+    loadw.mem
+
+    push.local.1
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.1
+
+    movup.4
+    loadw.mem
+
+    push.local.2
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.2
+
+    movup.4
+    loadw.mem
+
+    push.local.3
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.3
+
+    movup.4
+    loadw.mem
+
+    push.local.4
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.4
+
+    movup.4
+    loadw.mem
+
+    push.local.5
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.5
+
+    movup.4
+    loadw.mem
+
+    push.local.6
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.6
+
+    movup.4
+    loadw.mem
+
+    push.local.7
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.7
+
+    movup.4
+    loadw.mem
+
+    push.local.8
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.8
+
+    movup.4
+    loadw.mem
+
+    push.local.9
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.9
+
+    movup.4
+    loadw.mem
+
+    push.local.10
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.10
+
+    movup.4
+    loadw.mem
+
+    push.local.11
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.11
+
+    movup.4
+    loadw.mem
+
+    push.local.12
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.12
+
+    movup.4
+    loadw.mem
+
+    push.local.13
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.13
+
+    movup.4
+    loadw.mem
+
+    push.local.14
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.14
+
+    movup.4
+    loadw.mem
+
+    push.local.15
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.15
+
+    movup.4
+    loadw.mem
+
+    push.local.16
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.16
+
+    movup.4
+    loadw.mem
+
+    push.local.17
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.17
+
+    movup.4
+    loadw.mem
+
+    push.local.18
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.18
+
+    movup.4
+    loadw.mem
+
+    push.local.19
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.19
+
+    movup.4
+    loadw.mem
+
+    push.local.20
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.20
+
+    movup.4
+    loadw.mem
+
+    push.local.21
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.21
+
+    movup.4
+    loadw.mem
+
+    push.local.22
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.22
+
+    movup.4
+    loadw.mem
+
+    push.local.23
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.23
+
+    movup.4
+    loadw.mem
+
+    push.local.24
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.24
+
+    movup.4
+    loadw.mem
+
+    push.local.25
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.25
+
+    movup.4
+    loadw.mem
+
+    push.local.26
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.26
+
+    movup.4
+    loadw.mem
+
+    push.local.27
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.27
+
+    movup.4
+    loadw.mem
+
+    push.local.28
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.28
+
+    movup.4
+    loadw.mem
+
+    push.local.29
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.29
+
+    movup.4
+    loadw.mem
+
+    push.local.30
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.30
+
+    movup.4
+    loadw.mem
+
+    push.local.31
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.31
+
+    movup.4
+    loadw.mem
+
+    push.local.32
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.32
+
+    movup.4
+    loadw.mem
+
+    push.local.33
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.33
+
+    movup.4
+    loadw.mem
+
+    push.local.34
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.34
+
+    movup.4
+    loadw.mem
+
+    push.local.35
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.35
+
+    movup.4
+    loadw.mem
+
+    push.local.36
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.36
+
+    movup.4
+    loadw.mem
+
+    push.local.37
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.37
+
+    movup.4
+    loadw.mem
+
+    push.local.38
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.38
+
+    movup.4
+    loadw.mem
+
+    push.local.39
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.39
+
+    movup.4
+    loadw.mem
+
+    push.local.40
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.40
+
+    movup.4
+    loadw.mem
+
+    push.local.41
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.41
+
+    movup.4
+    loadw.mem
+
+    push.local.42
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.42
+
+    movup.4
+    loadw.mem
+
+    push.local.43
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.43
+
+    movup.4
+    loadw.mem
+
+    push.local.44
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.44
+
+    movup.4
+    loadw.mem
+
+    push.local.45
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.45
+
+    movup.4
+    loadw.mem
+
+    push.local.46
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.46
+
+    movup.4
+    loadw.mem
+
+    push.local.47
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.47
+
+    movup.4
+    loadw.mem
+
+    push.local.48
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.48
+
+    movup.4
+    loadw.mem
+
+    push.local.49
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.49
+
+    movup.4
+    loadw.mem
+
+    push.local.50
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.50
+
+    movup.4
+    loadw.mem
+
+    push.local.51
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.51
+
+    movup.4
+    loadw.mem
+
+    push.local.52
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.52
+
+    movup.4
+    loadw.mem
+
+    push.local.53
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.53
+
+    movup.4
+    loadw.mem
+
+    push.local.54
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.54
+
+    movup.4
+    loadw.mem
+
+    push.local.55
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.55
+
+    movup.4
+    loadw.mem
+
+    push.local.56
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.56
+
+    movup.4
+    loadw.mem
+
+    push.local.57
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.57
+
+    movup.4
+    loadw.mem
+
+    push.local.58
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.58
+
+    movup.4
+    loadw.mem
+
+    push.local.59
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.59
+
+    movup.4
+    loadw.mem
+
+    push.local.60
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.60
+
+    movup.4
+    loadw.mem
+
+    push.local.61
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.61
+
+    movup.4
+    loadw.mem
+
+    push.local.62
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.62
+
+    movup.4
+    loadw.mem
+
+    push.local.63
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.63
+
+    movup.4
+    loadw.mem
+
+    push.local.64
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.64
+
+    movup.4
+    loadw.mem
+
+    push.local.65
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.65
+
+    movup.4
+    loadw.mem
+
+    push.local.66
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.66
+
+    movup.4
+    loadw.mem
+
+    push.local.67
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.67
+
+    movup.4
+    loadw.mem
+
+    push.local.68
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.68
+
+    movup.4
+    loadw.mem
+
+    push.local.69
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.69
+
+    movup.4
+    loadw.mem
+
+    push.local.70
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.70
+
+    movup.4
+    loadw.mem
+
+    push.local.71
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.71
+
+    movup.4
+    loadw.mem
+
+    push.local.72
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.72
+
+    movup.4
+    loadw.mem
+
+    push.local.73
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.73
+
+    movup.4
+    loadw.mem
+
+    push.local.74
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.74
+
+    movup.4
+    loadw.mem
+
+    push.local.75
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.75
+
+    movup.4
+    loadw.mem
+
+    push.local.76
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.76
+
+    movup.4
+    loadw.mem
+
+    push.local.77
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.77
+
+    movup.4
+    loadw.mem
+
+    push.local.78
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.78
+
+    movup.4
+    loadw.mem
+
+    push.local.79
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.79
+
+    movup.4
+    loadw.mem
+
+    push.local.80
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.80
+
+    movup.4
+    loadw.mem
+
+    push.local.81
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.81
+
+    movup.4
+    loadw.mem
+
+    push.local.82
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.82
+
+    movup.4
+    loadw.mem
+
+    push.local.83
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.83
+
+    movup.4
+    loadw.mem
+
+    push.local.84
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.84
+
+    movup.4
+    loadw.mem
+
+    push.local.85
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.85
+
+    movup.4
+    loadw.mem
+
+    push.local.86
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.86
+
+    movup.4
+    loadw.mem
+
+    push.local.87
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.87
+
+    movup.4
+    loadw.mem
+
+    push.local.88
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.88
+
+    movup.4
+    loadw.mem
+
+    push.local.89
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.89
+
+    movup.4
+    loadw.mem
+
+    push.local.90
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.90
+
+    movup.4
+    loadw.mem
+
+    push.local.91
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.91
+
+    movup.4
+    loadw.mem
+
+    push.local.92
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.92
+
+    movup.4
+    loadw.mem
+
+    push.local.93
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.93
+
+    movup.4
+    loadw.mem
+
+    push.local.94
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.94
+
+    movup.4
+    loadw.mem
+
+    push.local.95
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.95
+
+    movup.4
+    loadw.mem
+
+    push.local.96
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.96
+
+    movup.4
+    loadw.mem
+
+    push.local.97
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.97
+
+    movup.4
+    loadw.mem
+
+    push.local.98
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.98
+
+    movup.4
+    loadw.mem
+
+    push.local.99
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.99
+
+    movup.4
+    loadw.mem
+
+    push.local.100
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.100
+
+    movup.4
+    loadw.mem
+
+    push.local.101
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.101
+
+    movup.4
+    loadw.mem
+
+    push.local.102
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.102
+
+    movup.4
+    loadw.mem
+
+    push.local.103
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.103
+
+    movup.4
+    loadw.mem
+
+    push.local.104
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.104
+
+    movup.4
+    loadw.mem
+
+    push.local.105
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.105
+
+    movup.4
+    loadw.mem
+
+    push.local.106
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.106
+
+    movup.4
+    loadw.mem
+
+    push.local.107
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.107
+
+    movup.4
+    loadw.mem
+
+    push.local.108
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.108
+
+    movup.4
+    loadw.mem
+
+    push.local.109
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.109
+
+    movup.4
+    loadw.mem
+
+    push.local.110
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.110
+
+    movup.4
+    loadw.mem
+
+    push.local.111
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.111
+
+    movup.4
+    loadw.mem
+
+    push.local.112
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.112
+
+    movup.4
+    loadw.mem
+
+    push.local.113
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.113
+
+    movup.4
+    loadw.mem
+
+    push.local.114
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.114
+
+    movup.4
+    loadw.mem
+
+    push.local.115
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.115
+
+    movup.4
+    loadw.mem
+
+    push.local.116
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.116
+
+    movup.4
+    loadw.mem
+
+    push.local.117
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.117
+
+    movup.4
+    loadw.mem
+
+    push.local.118
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.118
+
+    movup.4
+    loadw.mem
+
+    push.local.119
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.119
+
+    movup.4
+    loadw.mem
+
+    push.local.120
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.120
+
+    movup.4
+    loadw.mem
+
+    push.local.121
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.121
+
+    movup.4
+    loadw.mem
+
+    push.local.122
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.122
+
+    movup.4
+    loadw.mem
+
+    push.local.123
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.123
+
+    movup.4
+    loadw.mem
+
+    push.local.124
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.124
+
+    movup.4
+    loadw.mem
+
+    push.local.125
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.125
+
+    movup.4
+    loadw.mem
+
+    push.local.126
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
+    storew.local.126
+
+    movup.4
+    loadw.mem
+
+    push.local.127
+    pushw.mem
+
+    exec.add_word
+    exec.mod_div_word
+
     storew.local.127
 
     dropw
