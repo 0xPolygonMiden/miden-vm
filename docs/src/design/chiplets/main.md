@@ -14,7 +14,7 @@ Each chiplet executes its computations separately from the rest of the VM and pr
 
 The chiplets must be explicitly connected to the rest of the VM in order for it to use their operations. This connection must prove that all specialized operations which a given VM component claimed to offload to one of the chiplets were in fact executed by the correct chiplet with the same set of inputs and outputs as those used by the offloading component.
 
-This is achieved via a bus called $b_{chip}$ where a request can be sent to any chiplet and a corresponding response will be sent back by that chiplet.
+This is achieved via a [bus](./multiset.md#communication-buses) called $b_{chip}$ where a request can be sent to any chiplet and a corresponding response will be sent back by that chiplet.
 
 The bus is implemented as a single [running product column](../multiset.md) where:
 
@@ -27,7 +27,14 @@ Note that the order of the requests and responses does not matter, as long as th
 
 ### Chiplet bus constraints
 
-The chiplet bus constraints are defined by the [hash](./hasher.md#hash-chiplet-bus-constraints), [bitwise](./bitwise.md#bitwise-chiplet-bus-constraints), and [memory](./memory.md#memory-row-value) chiplets and the components which send lookup requests ([bitwise](../stack/u32_ops.md#u32and), [memory](../stack/io_ops.md#memory-access-operations), and [cryptographic hash operations](../stack/crypto_ops.md) from the stack, and [hash operations](../decoder/main.md#program-block-hashing) for program block hashing from the decoder).
+The chiplet bus constraints are defined by the components that use it to communicate.
+
+Lookup requests are sent to the chiplets bus by the following components:
+
+- The stack sends requests for [bitwise](../stack/u32_ops.md#u32and), [memory](../stack/io_ops.md#memory-access-operations), and [cryptographic hash operations](../stack/crypto_ops.md).
+- The decoder sends requests for [hash operations](../decoder/main.md#program-block-hashing) for program block hashing.
+
+Responses are provided by the [hash](./hasher.md#hash-chiplet-bus-constraints), [bitwise](./bitwise.md#bitwise-chiplet-bus-constraints), and [memory](./memory.md#memory-row-value) chiplets.
 
 ## Chiplets module trace
 
