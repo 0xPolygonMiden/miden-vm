@@ -4,7 +4,1009 @@
 ///
 /// Entries in the array are tuples containing module namespace and module source code.
 #[rustfmt::skip]
-pub const MODULES: [(&str, &str); 9] = [
+pub const MODULES: [(&str, &str); 10] = [
+// ----- std::crypto::dsa::falcon -----------------------------------------------------------------
+("std::crypto::dsa::falcon", "use.std::math::poly512
+
+# Given an element on stack top, this routine normalizes that element in 
+# interval (-q/2, q/2] | q = 12289
+#
+# Imagine, a is the provided element, which needs to be normalized
+#
+# b = normalize(a)
+#   = (a + (q >> 1)) % q - (q >> 1) | a ∈ [0, q), q = 12289
+#
+# Note, normalization requires that we can represent the number as signed integer,
+# which is not allowed inside Miden VM stack. But we can ignore the sign of integer and only
+# store the absolute value as field element. This can be safely done because after normalization
+# anyway `b` will be squared ( for computing norm of a vector i.e. polynomial, where b is a coefficient ).
+# That means we can just drop the sign, and that's what is done in this routine.
+#
+# To be more concrete, normalization of 12166 ( = a ) should result into -123, but absolute value 
+# 123 will be kept on stack. While normalization of 21, should result into 21, which has absolute
+# value 21 --- that's what is kept on stack.
+#
+# Expected stack state :
+#
+# [a, ...]
+#
+# After normalization ( represented using unsigned integer i.e. Miden field element ) stack looks like
+#
+# [b, ...]
+proc.normalize
+    dup
+    push.6144
+    gt
+
+    if.true
+        push.6144
+        add
+
+        push.12289
+        exec.poly512::mod_div
+
+        dup
+        push.6144
+        gte
+
+        if.true
+            push.6144
+            sub
+        else
+            push.6144
+            swap
+            sub
+        end
+    end
+end
+
+# Given four elements from Falcon prime field, on stack top, this routine 
+# normalizes each of them, using above defined `normalize()` routine.
+#
+# Expected stack state :
+#
+# [a0, a1, a2, a3, ...]
+#
+# Output stack state :
+#
+# [b0, b1, b2, b3, ...]
+#
+# b`i` = normalize(a`i`) | i ∈ [0..4)
+proc.normalize_word
+    exec.normalize
+
+    swap
+    exec.normalize
+    swap
+
+    movup.2
+    exec.normalize
+    movdn.2
+
+    movup.3
+    exec.normalize
+    movdn.3
+end
+
+# Given a degree 512 polynomial on stack, using its absolute memory addresses, this routine
+# normalizes each coefficient of the polynomial, using above defined `normalize()` routine
+#
+# Imagine, f is the given polynomial of degree 512. It can be normalized using
+#
+# g = [normalize(f[i]) for i in range(512)]
+#
+# Expected stack state :
+#
+# [f_addr0, f_addr1, ..., f_addr127, ...] | 128 absolute memory addresses
+#
+# Post normalization stack state looks like
+#
+# [g_addr0, g_addr1, ..., g_addr127, ...] | 128 absolute memory addresses
+#
+# Note, input polynomial which is provided using memory addresses, is not mutated.
+export.normalize_poly512.128
+    push.0.0.0.0
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.0
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.1
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.2
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.3
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.4
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.5
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.6
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.7
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.8
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.9
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.10
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.11
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.12
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.13
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.14
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.15
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.16
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.17
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.18
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.19
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.20
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.21
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.22
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.23
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.24
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.25
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.26
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.27
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.28
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.29
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.30
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.31
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.32
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.33
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.34
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.35
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.36
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.37
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.38
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.39
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.40
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.41
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.42
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.43
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.44
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.45
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.46
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.47
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.48
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.49
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.50
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.51
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.52
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.53
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.54
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.55
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.56
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.57
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.58
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.59
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.60
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.61
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.62
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.63
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.64
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.65
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.66
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.67
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.68
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.69
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.70
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.71
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.72
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.73
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.74
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.75
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.76
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.77
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.78
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.79
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.80
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.81
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.82
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.83
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.84
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.85
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.86
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.87
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.88
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.89
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.90
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.91
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.92
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.93
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.94
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.95
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.96
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.97
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.98
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.99
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.100
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.101
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.102
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.103
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.104
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.105
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.106
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.107
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.108
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.109
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.110
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.111
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.112
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.113
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.114
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.115
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.116
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.117
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.118
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.119
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.120
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.121
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.122
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.123
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.124
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.125
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.126
+
+    movup.4
+    loadw.mem
+
+    exec.normalize_word
+    storew.local.127
+
+    dropw
+
+    push.env.locaddr.127
+    push.env.locaddr.126
+    push.env.locaddr.125
+    push.env.locaddr.124
+    push.env.locaddr.123
+    push.env.locaddr.122
+    push.env.locaddr.121
+    push.env.locaddr.120
+    push.env.locaddr.119
+    push.env.locaddr.118
+    push.env.locaddr.117
+    push.env.locaddr.116
+    push.env.locaddr.115
+    push.env.locaddr.114
+    push.env.locaddr.113
+    push.env.locaddr.112
+    push.env.locaddr.111
+    push.env.locaddr.110
+    push.env.locaddr.109
+    push.env.locaddr.108
+    push.env.locaddr.107
+    push.env.locaddr.106
+    push.env.locaddr.105
+    push.env.locaddr.104
+    push.env.locaddr.103
+    push.env.locaddr.102
+    push.env.locaddr.101
+    push.env.locaddr.100
+    push.env.locaddr.99
+    push.env.locaddr.98
+    push.env.locaddr.97
+    push.env.locaddr.96
+    push.env.locaddr.95
+    push.env.locaddr.94
+    push.env.locaddr.93
+    push.env.locaddr.92
+    push.env.locaddr.91
+    push.env.locaddr.90
+    push.env.locaddr.89
+    push.env.locaddr.88
+    push.env.locaddr.87
+    push.env.locaddr.86
+    push.env.locaddr.85
+    push.env.locaddr.84
+    push.env.locaddr.83
+    push.env.locaddr.82
+    push.env.locaddr.81
+    push.env.locaddr.80
+    push.env.locaddr.79
+    push.env.locaddr.78
+    push.env.locaddr.77
+    push.env.locaddr.76
+    push.env.locaddr.75
+    push.env.locaddr.74
+    push.env.locaddr.73
+    push.env.locaddr.72
+    push.env.locaddr.71
+    push.env.locaddr.70
+    push.env.locaddr.69
+    push.env.locaddr.68
+    push.env.locaddr.67
+    push.env.locaddr.66
+    push.env.locaddr.65
+    push.env.locaddr.64
+    push.env.locaddr.63
+    push.env.locaddr.62
+    push.env.locaddr.61
+    push.env.locaddr.60
+    push.env.locaddr.59
+    push.env.locaddr.58
+    push.env.locaddr.57
+    push.env.locaddr.56
+    push.env.locaddr.55
+    push.env.locaddr.54
+    push.env.locaddr.53
+    push.env.locaddr.52
+    push.env.locaddr.51
+    push.env.locaddr.50
+    push.env.locaddr.49
+    push.env.locaddr.48
+    push.env.locaddr.47
+    push.env.locaddr.46
+    push.env.locaddr.45
+    push.env.locaddr.44
+    push.env.locaddr.43
+    push.env.locaddr.42
+    push.env.locaddr.41
+    push.env.locaddr.40
+    push.env.locaddr.39
+    push.env.locaddr.38
+    push.env.locaddr.37
+    push.env.locaddr.36
+    push.env.locaddr.35
+    push.env.locaddr.34
+    push.env.locaddr.33
+    push.env.locaddr.32
+    push.env.locaddr.31
+    push.env.locaddr.30
+    push.env.locaddr.29
+    push.env.locaddr.28
+    push.env.locaddr.27
+    push.env.locaddr.26
+    push.env.locaddr.25
+    push.env.locaddr.24
+    push.env.locaddr.23
+    push.env.locaddr.22
+    push.env.locaddr.21
+    push.env.locaddr.20
+    push.env.locaddr.19
+    push.env.locaddr.18
+    push.env.locaddr.17
+    push.env.locaddr.16
+    push.env.locaddr.15
+    push.env.locaddr.14
+    push.env.locaddr.13
+    push.env.locaddr.12
+    push.env.locaddr.11
+    push.env.locaddr.10
+    push.env.locaddr.9
+    push.env.locaddr.8
+    push.env.locaddr.7
+    push.env.locaddr.6
+    push.env.locaddr.5
+    push.env.locaddr.4
+    push.env.locaddr.3
+    push.env.locaddr.2
+    push.env.locaddr.1
+    push.env.locaddr.0
+end
+"),
 // ----- std::crypto::hashes::blake3 --------------------------------------------------------------
 ("std::crypto::hashes::blake3", "# Initializes four memory addresses, provided for storing initial 4x4 blake3 
 # state matrix ( i.e. 16 elements each of 32 -bit ), for computing blake3 2-to-1 hash
@@ -27776,7 +28778,7 @@ end
 # Output stack state looks like
 #
 # [c, ...] | c = a % b
-proc.mod_div
+export.mod_div
     swap
     u32split
     movup.2
