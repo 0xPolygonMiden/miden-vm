@@ -1,0 +1,5 @@
+
+## std::math::poly512
+| Procedure | Description |
+| ----------- | ------------- |
+| mul_zq.128 |  Given two polynomials of degree 512 on stack as absolute memory addresses,<br /> this routine computes Polynomial multiplication, using NTT and iNTT.<br /><br /> Imagine, two polynomials are f, g<br /><br /> h = f . g, can be computed using<br /><br /> iNTT(NTT(f) * NTT(g))<br /><br /> Note, * -> element wise multiplication of polynomial coefficients in NTT domain<br /><br /> Input stack state :<br /><br /> [f_addr0, f_addr1, ..., f_addr127, g_addr0, g_addr1, ..., g_addr127]<br /><br /> {f, g}_addr`i` -> {f, g}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients<br /><br /> Output stack state :<br /><br /> [h_addr0, h_addr1, ..., h_addr127]<br /><br /> h_addr`i` is the address of four elements \| h[ (i << 2) .. ((i+1) << 2) ) & i ∈ [0..128) |
