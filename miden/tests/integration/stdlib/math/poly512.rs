@@ -3112,7 +3112,7 @@ fn test_poly512_add_zq() {
         push.10946.1331.904.4458
         popw.local.255    
 
-        # prepare argument ( absolute memory addresses ) for multiplying two polynomials
+        # prepare argument ( absolute memory addresses ) for adding two polynomials
 
         push.env.locaddr.255
         push.env.locaddr.254
@@ -4666,4 +4666,1826 @@ fn test_poly512_add_zq() {
 
     let test = build_test!(source, &[]);
     test.get_last_stack_state();
+}
+
+#[test]
+fn test_poly512_neg_zq() {
+    let source = "
+    use.std::math::poly512
+
+    proc.wrapper.128
+        # prepare polynomial `f`
+
+        push.7741.7665.7261.4273
+        popw.local.0
+    
+        push.222.8745.7581.2447
+        popw.local.1
+    
+        push.338.516.5487.9716
+        popw.local.2
+    
+        push.11359.285.6586.6927
+        popw.local.3
+    
+        push.10394.11968.4065.8285
+        popw.local.4
+    
+        push.5902.2112.1450.2139
+        popw.local.5
+    
+        push.10743.12222.10169.5205
+        popw.local.6
+    
+        push.1081.5329.4937.10052
+        popw.local.7
+    
+        push.10821.2675.9075.7372
+        popw.local.8
+    
+        push.8559.396.12247.6781
+        popw.local.9
+    
+        push.1761.1625.7749.7955
+        popw.local.10
+    
+        push.2250.5927.756.1346
+        popw.local.11
+    
+        push.6231.6005.5565.6472
+        popw.local.12
+    
+        push.8943.2170.401.5228
+        popw.local.13
+    
+        push.10128.11840.6011.6071
+        popw.local.14
+    
+        push.3548.2877.11721.8101
+        popw.local.15
+    
+        push.6914.9576.3816.4724
+        popw.local.16
+    
+        push.267.315.3083.11614
+        popw.local.17
+    
+        push.9629.3496.1881.3547
+        popw.local.18
+    
+        push.10655.980.10403.2660
+        popw.local.19
+    
+        push.11119.9598.11661.4179
+        popw.local.20
+    
+        push.5155.7064.8521.9834
+        popw.local.21
+    
+        push.8651.1707.3859.11311
+        popw.local.22
+    
+        push.12130.7821.596.2426
+        popw.local.23
+    
+        push.4797.3518.660.9806
+        popw.local.24
+    
+        push.9044.5421.11879.9000
+        popw.local.25
+    
+        push.2878.7444.4404.917
+        popw.local.26
+    
+        push.777.6703.2011.10618
+        popw.local.27
+    
+        push.4915.4333.6051.9360
+        popw.local.28
+    
+        push.11143.325.11914.11693
+        popw.local.29
+    
+        push.7200.6053.5012.6590
+        popw.local.30
+    
+        push.2956.450.1985.3799
+        popw.local.31
+    
+        push.2286.4582.6658.1028
+        popw.local.32
+    
+        push.875.3006.165.6752
+        popw.local.33
+    
+        push.3081.628.2134.7575
+        popw.local.34
+    
+        push.460.1644.11809.12287
+        popw.local.35
+    
+        push.9948.8751.9171.6547
+        popw.local.36
+    
+        push.338.11149.5957.3241
+        popw.local.37
+    
+        push.572.11899.9000.7752
+        popw.local.38
+    
+        push.2817.11228.7751.6166
+        popw.local.39
+    
+        push.179.9839.4532.8570
+        popw.local.40
+    
+        push.4512.5462.996.11062
+        popw.local.41
+    
+        push.6122.2327.11427.6848
+        popw.local.42
+    
+        push.5857.11153.11240.4612
+        popw.local.43
+    
+        push.2132.6301.11725.3207
+        popw.local.44
+    
+        push.3202.3533.7255.7461
+        popw.local.45
+    
+        push.2439.935.3119.3873
+        popw.local.46
+    
+        push.4582.9335.1220.6826
+        popw.local.47
+    
+        push.9401.11338.10466.6425
+        popw.local.48
+    
+        push.8194.1649.1250.389
+        popw.local.49
+    
+        push.262.8865.11095.5199
+        popw.local.50
+    
+        push.492.8700.8533.8101
+        popw.local.51
+    
+        push.3300.9703.11544.8104
+        popw.local.52
+    
+        push.5387.8853.7458.2987
+        popw.local.53
+    
+        push.11947.6928.2601.6423
+        popw.local.54
+    
+        push.3629.3786.1786.4817
+        popw.local.55
+    
+        push.5536.3446.4449.11214
+        popw.local.56
+    
+        push.5141.2095.8984.3020
+        popw.local.57
+    
+        push.11361.2331.6591.5348
+        popw.local.58
+    
+        push.11891.8313.11887.8652
+        popw.local.59
+    
+        push.1956.8371.4281.5291
+        popw.local.60
+    
+        push.6645.3320.1159.7931
+        popw.local.61
+    
+        push.3758.2558.10557.3675
+        popw.local.62
+    
+        push.10651.8160.1638.7653
+        popw.local.63
+    
+        push.5805.6552.5593.8007
+        popw.local.64
+    
+        push.2090.805.857.10589
+        popw.local.65
+    
+        push.9292.10230.3098.5515
+        popw.local.66
+    
+        push.12027.11242.458.476
+        popw.local.67
+    
+        push.4893.5208.4691.12002
+        popw.local.68
+    
+        push.4570.11574.6957.3674
+        popw.local.69
+    
+        push.3813.10451.4612.6559
+        popw.local.70
+    
+        push.525.2777.6824.5224
+        popw.local.71
+    
+        push.3033.8664.4425.10411
+        popw.local.72
+    
+        push.983.9737.9042.10736
+        popw.local.73
+    
+        push.8180.5959.9958.5733
+        popw.local.74
+    
+        push.2445.8923.9845.2150
+        popw.local.75
+    
+        push.7385.1154.12268.10855
+        popw.local.76
+    
+        push.4142.7945.5279.7955
+        popw.local.77
+    
+        push.6464.10540.10477.361
+        popw.local.78
+    
+        push.5295.1524.10998.753
+        popw.local.79
+    
+        push.11472.2866.7888.8158
+        popw.local.80
+    
+        push.3871.9994.4479.6273
+        popw.local.81
+    
+        push.6329.9199.6087.1385
+        popw.local.82
+    
+        push.2173.11072.6464.8249
+        popw.local.83
+    
+        push.4747.11994.10806.9758
+        popw.local.84
+    
+        push.10870.5517.8112.1595
+        popw.local.85
+    
+        push.11219.8595.9828.7465
+        popw.local.86
+    
+        push.2276.3738.6556.3180
+        popw.local.87
+    
+        push.11734.3480.11928.6333
+        popw.local.88
+    
+        push.9461.10375.3853.8004
+        popw.local.89
+    
+        push.2119.2252.11823.270
+        popw.local.90
+    
+        push.8675.11329.10642.8782
+        popw.local.91
+    
+        push.6307.6708.3657.3722
+        popw.local.92
+    
+        push.4956.4138.11020.9757
+        popw.local.93
+    
+        push.6339.5377.11644.6737
+        popw.local.94
+    
+        push.3354.7725.10029.7792
+        popw.local.95
+    
+        push.11773.10899.10305.3477
+        popw.local.96
+    
+        push.1365.8967.4005.8545
+        popw.local.97
+    
+        push.9758.1919.10647.12028
+        popw.local.98
+    
+        push.7332.9785.5966.2857
+        popw.local.99
+    
+        push.9234.5140.10441.1853
+        popw.local.100
+    
+        push.99.12180.1530.4371
+        popw.local.101
+    
+        push.4540.3847.4077.808
+        popw.local.102
+    
+        push.10922.6405.9915.6593
+        popw.local.103
+    
+        push.2671.5121.8772.16
+        popw.local.104
+    
+        push.12110.4884.7102.12042
+        popw.local.105
+    
+        push.9506.8820.4085.5017
+        popw.local.106
+    
+        push.9043.9536.2368.475
+        popw.local.107
+    
+        push.4781.10261.895.1653
+        popw.local.108
+    
+        push.7227.9985.7521.9783
+        popw.local.109
+    
+        push.2145.7840.5485.8390
+        popw.local.110
+    
+        push.11479.9900.4260.6870
+        popw.local.111
+    
+        push.10573.9884.11532.38
+        popw.local.112
+    
+        push.4234.4261.137.9452
+        popw.local.113
+    
+        push.511.12158.8225.6257
+        popw.local.114
+    
+        push.3269.6205.6540.4020
+        popw.local.115
+    
+        push.10207.2887.3077.6994
+        popw.local.116
+    
+        push.3170.9309.10901.9773
+        popw.local.117
+    
+        push.8352.9207.5028.5367
+        popw.local.118
+    
+        push.8828.647.8870.4259
+        popw.local.119
+    
+        push.8566.14.4268.9009
+        popw.local.120
+    
+        push.4359.8772.10390.5641
+        popw.local.121
+    
+        push.1873.7103.6509.1039
+        popw.local.122
+    
+        push.10743.66.2060.9303
+        popw.local.123
+    
+        push.10094.6608.6147.8407
+        popw.local.124
+    
+        push.6074.1720.8427.3098
+        popw.local.125
+    
+        push.56.11930.8738.1190
+        popw.local.126
+    
+        push.1343.10958.11385.7831
+        popw.local.127    
+
+        # prepare argument ( absolute memory addresses ) for negating one polynomial
+
+        push.env.locaddr.127
+        push.env.locaddr.126
+        push.env.locaddr.125
+        push.env.locaddr.124
+        push.env.locaddr.123
+        push.env.locaddr.122
+        push.env.locaddr.121
+        push.env.locaddr.120
+        push.env.locaddr.119
+        push.env.locaddr.118
+        push.env.locaddr.117
+        push.env.locaddr.116
+        push.env.locaddr.115
+        push.env.locaddr.114
+        push.env.locaddr.113
+        push.env.locaddr.112
+        push.env.locaddr.111
+        push.env.locaddr.110
+        push.env.locaddr.109
+        push.env.locaddr.108
+        push.env.locaddr.107
+        push.env.locaddr.106
+        push.env.locaddr.105
+        push.env.locaddr.104
+        push.env.locaddr.103
+        push.env.locaddr.102
+        push.env.locaddr.101
+        push.env.locaddr.100
+        push.env.locaddr.99
+        push.env.locaddr.98
+        push.env.locaddr.97
+        push.env.locaddr.96
+        push.env.locaddr.95
+        push.env.locaddr.94
+        push.env.locaddr.93
+        push.env.locaddr.92
+        push.env.locaddr.91
+        push.env.locaddr.90
+        push.env.locaddr.89
+        push.env.locaddr.88
+        push.env.locaddr.87
+        push.env.locaddr.86
+        push.env.locaddr.85
+        push.env.locaddr.84
+        push.env.locaddr.83
+        push.env.locaddr.82
+        push.env.locaddr.81
+        push.env.locaddr.80
+        push.env.locaddr.79
+        push.env.locaddr.78
+        push.env.locaddr.77
+        push.env.locaddr.76
+        push.env.locaddr.75
+        push.env.locaddr.74
+        push.env.locaddr.73
+        push.env.locaddr.72
+        push.env.locaddr.71
+        push.env.locaddr.70
+        push.env.locaddr.69
+        push.env.locaddr.68
+        push.env.locaddr.67
+        push.env.locaddr.66
+        push.env.locaddr.65
+        push.env.locaddr.64
+        push.env.locaddr.63
+        push.env.locaddr.62
+        push.env.locaddr.61
+        push.env.locaddr.60
+        push.env.locaddr.59
+        push.env.locaddr.58
+        push.env.locaddr.57
+        push.env.locaddr.56
+        push.env.locaddr.55
+        push.env.locaddr.54
+        push.env.locaddr.53
+        push.env.locaddr.52
+        push.env.locaddr.51
+        push.env.locaddr.50
+        push.env.locaddr.49
+        push.env.locaddr.48
+        push.env.locaddr.47
+        push.env.locaddr.46
+        push.env.locaddr.45
+        push.env.locaddr.44
+        push.env.locaddr.43
+        push.env.locaddr.42
+        push.env.locaddr.41
+        push.env.locaddr.40
+        push.env.locaddr.39
+        push.env.locaddr.38
+        push.env.locaddr.37
+        push.env.locaddr.36
+        push.env.locaddr.35
+        push.env.locaddr.34
+        push.env.locaddr.33
+        push.env.locaddr.32
+        push.env.locaddr.31
+        push.env.locaddr.30
+        push.env.locaddr.29
+        push.env.locaddr.28
+        push.env.locaddr.27
+        push.env.locaddr.26
+        push.env.locaddr.25
+        push.env.locaddr.24
+        push.env.locaddr.23
+        push.env.locaddr.22
+        push.env.locaddr.21
+        push.env.locaddr.20
+        push.env.locaddr.19
+        push.env.locaddr.18
+        push.env.locaddr.17
+        push.env.locaddr.16
+        push.env.locaddr.15
+        push.env.locaddr.14
+        push.env.locaddr.13
+        push.env.locaddr.12
+        push.env.locaddr.11
+        push.env.locaddr.10
+        push.env.locaddr.9
+        push.env.locaddr.8
+        push.env.locaddr.7
+        push.env.locaddr.6
+        push.env.locaddr.5
+        push.env.locaddr.4
+        push.env.locaddr.3
+        push.env.locaddr.2
+        push.env.locaddr.1
+        push.env.locaddr.0
+
+        # perform polynomial negation, when one polynomial is provided
+        # as absolute memory addresses on the stack
+
+        exec.poly512::neg_zq
+
+        # check for functional correctness ( using known answer test )
+
+        pushw.mem
+        push.8016
+        assert_eq
+        push.5028
+        assert_eq
+        push.4624
+        assert_eq
+        push.4548
+        assert_eq
+
+        pushw.mem
+        push.9842
+        assert_eq
+        push.4708
+        assert_eq
+        push.3544
+        assert_eq
+        push.12067
+        assert_eq
+
+        pushw.mem
+        push.2573
+        assert_eq
+        push.6802
+        assert_eq
+        push.11773
+        assert_eq
+        push.11951
+        assert_eq
+
+        pushw.mem
+        push.5362
+        assert_eq
+        push.5703
+        assert_eq
+        push.12004
+        assert_eq
+        push.930
+        assert_eq
+
+        pushw.mem
+        push.4004
+        assert_eq
+        push.8224
+        assert_eq
+        push.321
+        assert_eq
+        push.1895
+        assert_eq
+
+        pushw.mem
+        push.10150
+        assert_eq
+        push.10839
+        assert_eq
+        push.10177
+        assert_eq
+        push.6387
+        assert_eq
+
+        pushw.mem
+        push.7084
+        assert_eq
+        push.2120
+        assert_eq
+        push.67
+        assert_eq
+        push.1546
+        assert_eq
+
+        pushw.mem
+        push.2237
+        assert_eq
+        push.7352
+        assert_eq
+        push.6960
+        assert_eq
+        push.11208
+        assert_eq
+
+        pushw.mem
+        push.4917
+        assert_eq
+        push.3214
+        assert_eq
+        push.9614
+        assert_eq
+        push.1468
+        assert_eq
+
+        pushw.mem
+        push.5508
+        assert_eq
+        push.42
+        assert_eq
+        push.11893
+        assert_eq
+        push.3730
+        assert_eq
+
+        pushw.mem
+        push.4334
+        assert_eq
+        push.4540
+        assert_eq
+        push.10664
+        assert_eq
+        push.10528
+        assert_eq
+
+        pushw.mem
+        push.10943
+        assert_eq
+        push.11533
+        assert_eq
+        push.6362
+        assert_eq
+        push.10039
+        assert_eq
+
+        pushw.mem
+        push.5817
+        assert_eq
+        push.6724
+        assert_eq
+        push.6284
+        assert_eq
+        push.6058
+        assert_eq
+
+        pushw.mem
+        push.7061
+        assert_eq
+        push.11888
+        assert_eq
+        push.10119
+        assert_eq
+        push.3346
+        assert_eq
+
+        pushw.mem
+        push.6218
+        assert_eq
+        push.6278
+        assert_eq
+        push.449
+        assert_eq
+        push.2161
+        assert_eq
+
+        pushw.mem
+        push.4188
+        assert_eq
+        push.568
+        assert_eq
+        push.9412
+        assert_eq
+        push.8741
+        assert_eq
+
+        pushw.mem
+        push.7565
+        assert_eq
+        push.8473
+        assert_eq
+        push.2713
+        assert_eq
+        push.5375
+        assert_eq
+
+        pushw.mem
+        push.675
+        assert_eq
+        push.9206
+        assert_eq
+        push.11974
+        assert_eq
+        push.12022
+        assert_eq
+
+        pushw.mem
+        push.8742
+        assert_eq
+        push.10408
+        assert_eq
+        push.8793
+        assert_eq
+        push.2660
+        assert_eq
+
+        pushw.mem
+        push.9629
+        assert_eq
+        push.1886
+        assert_eq
+        push.11309
+        assert_eq
+        push.1634
+        assert_eq
+
+        pushw.mem
+        push.8110
+        assert_eq
+        push.628
+        assert_eq
+        push.2691
+        assert_eq
+        push.1170
+        assert_eq
+
+        pushw.mem
+        push.2455
+        assert_eq
+        push.3768
+        assert_eq
+        push.5225
+        assert_eq
+        push.7134
+        assert_eq
+
+        pushw.mem
+        push.978
+        assert_eq
+        push.8430
+        assert_eq
+        push.10582
+        assert_eq
+        push.3638
+        assert_eq
+
+        pushw.mem
+        push.9863
+        assert_eq
+        push.11693
+        assert_eq
+        push.4468
+        assert_eq
+        push.159
+        assert_eq
+
+        pushw.mem
+        push.2483
+        assert_eq
+        push.11629
+        assert_eq
+        push.8771
+        assert_eq
+        push.7492
+        assert_eq
+
+        pushw.mem
+        push.3289
+        assert_eq
+        push.410
+        assert_eq
+        push.6868
+        assert_eq
+        push.3245
+        assert_eq
+
+        pushw.mem
+        push.11372
+        assert_eq
+        push.7885
+        assert_eq
+        push.4845
+        assert_eq
+        push.9411
+        assert_eq
+
+        pushw.mem
+        push.1671
+        assert_eq
+        push.10278
+        assert_eq
+        push.5586
+        assert_eq
+        push.11512
+        assert_eq
+
+        pushw.mem
+        push.2929
+        assert_eq
+        push.6238
+        assert_eq
+        push.7956
+        assert_eq
+        push.7374
+        assert_eq
+
+        pushw.mem
+        push.596
+        assert_eq
+        push.375
+        assert_eq
+        push.11964
+        assert_eq
+        push.1146
+        assert_eq
+
+        pushw.mem
+        push.5699
+        assert_eq
+        push.7277
+        assert_eq
+        push.6236
+        assert_eq
+        push.5089
+        assert_eq
+
+        pushw.mem
+        push.8490
+        assert_eq
+        push.10304
+        assert_eq
+        push.11839
+        assert_eq
+        push.9333
+        assert_eq
+
+        pushw.mem
+        push.11261
+        assert_eq
+        push.5631
+        assert_eq
+        push.7707
+        assert_eq
+        push.10003
+        assert_eq
+
+        pushw.mem
+        push.5537
+        assert_eq
+        push.12124
+        assert_eq
+        push.9283
+        assert_eq
+        push.11414
+        assert_eq
+
+        pushw.mem
+        push.4714
+        assert_eq
+        push.10155
+        assert_eq
+        push.11661
+        assert_eq
+        push.9208
+        assert_eq
+
+        pushw.mem
+        push.2
+        assert_eq
+        push.480
+        assert_eq
+        push.10645
+        assert_eq
+        push.11829
+        assert_eq
+
+        pushw.mem
+        push.5742
+        assert_eq
+        push.3118
+        assert_eq
+        push.3538
+        assert_eq
+        push.2341
+        assert_eq
+
+        pushw.mem
+        push.9048
+        assert_eq
+        push.6332
+        assert_eq
+        push.1140
+        assert_eq
+        push.11951
+        assert_eq
+
+        pushw.mem
+        push.4537
+        assert_eq
+        push.3289
+        assert_eq
+        push.390
+        assert_eq
+        push.11717
+        assert_eq
+
+        pushw.mem
+        push.6123
+        assert_eq
+        push.4538
+        assert_eq
+        push.1061
+        assert_eq
+        push.9472
+        assert_eq
+
+        pushw.mem
+        push.3719
+        assert_eq
+        push.7757
+        assert_eq
+        push.2450
+        assert_eq
+        push.12110
+        assert_eq
+
+        pushw.mem
+        push.1227
+        assert_eq
+        push.11293
+        assert_eq
+        push.6827
+        assert_eq
+        push.7777
+        assert_eq
+
+        pushw.mem
+        push.5441
+        assert_eq
+        push.862
+        assert_eq
+        push.9962
+        assert_eq
+        push.6167
+        assert_eq
+
+        pushw.mem
+        push.7677
+        assert_eq
+        push.1049
+        assert_eq
+        push.1136
+        assert_eq
+        push.6432
+        assert_eq
+
+        pushw.mem
+        push.9082
+        assert_eq
+        push.564
+        assert_eq
+        push.5988
+        assert_eq
+        push.10157
+        assert_eq
+
+        pushw.mem
+        push.4828
+        assert_eq
+        push.5034
+        assert_eq
+        push.8756
+        assert_eq
+        push.9087
+        assert_eq
+
+        pushw.mem
+        push.8416
+        assert_eq
+        push.9170
+        assert_eq
+        push.11354
+        assert_eq
+        push.9850
+        assert_eq
+
+        pushw.mem
+        push.5463
+        assert_eq
+        push.11069
+        assert_eq
+        push.2954
+        assert_eq
+        push.7707
+        assert_eq
+
+        pushw.mem
+        push.5864
+        assert_eq
+        push.1823
+        assert_eq
+        push.951
+        assert_eq
+        push.2888
+        assert_eq
+
+        pushw.mem
+        push.11900
+        assert_eq
+        push.11039
+        assert_eq
+        push.10640
+        assert_eq
+        push.4095
+        assert_eq
+
+        pushw.mem
+        push.7090
+        assert_eq
+        push.1194
+        assert_eq
+        push.3424
+        assert_eq
+        push.12027
+        assert_eq
+
+        pushw.mem
+        push.4188
+        assert_eq
+        push.3756
+        assert_eq
+        push.3589
+        assert_eq
+        push.11797
+        assert_eq
+
+        pushw.mem
+        push.4185
+        assert_eq
+        push.745
+        assert_eq
+        push.2586
+        assert_eq
+        push.8989
+        assert_eq
+
+        pushw.mem
+        push.9302
+        assert_eq
+        push.4831
+        assert_eq
+        push.3436
+        assert_eq
+        push.6902
+        assert_eq
+
+        pushw.mem
+        push.5866
+        assert_eq
+        push.9688
+        assert_eq
+        push.5361
+        assert_eq
+        push.342
+        assert_eq
+
+        pushw.mem
+        push.7472
+        assert_eq
+        push.10503
+        assert_eq
+        push.8503
+        assert_eq
+        push.8660
+        assert_eq
+
+        pushw.mem
+        push.1075
+        assert_eq
+        push.7840
+        assert_eq
+        push.8843
+        assert_eq
+        push.6753
+        assert_eq
+
+        pushw.mem
+        push.9269
+        assert_eq
+        push.3305
+        assert_eq
+        push.10194
+        assert_eq
+        push.7148
+        assert_eq
+
+        pushw.mem
+        push.6941
+        assert_eq
+        push.5698
+        assert_eq
+        push.9958
+        assert_eq
+        push.928
+        assert_eq
+
+        pushw.mem
+        push.3637
+        assert_eq
+        push.402
+        assert_eq
+        push.3976
+        assert_eq
+        push.398
+        assert_eq
+
+        pushw.mem
+        push.6998
+        assert_eq
+        push.8008
+        assert_eq
+        push.3918
+        assert_eq
+        push.10333
+        assert_eq
+
+        pushw.mem
+        push.4358
+        assert_eq
+        push.11130
+        assert_eq
+        push.8969
+        assert_eq
+        push.5644
+        assert_eq
+
+        pushw.mem
+        push.8614
+        assert_eq
+        push.1732
+        assert_eq
+        push.9731
+        assert_eq
+        push.8531
+        assert_eq
+
+        pushw.mem
+        push.4636
+        assert_eq
+        push.10651
+        assert_eq
+        push.4129
+        assert_eq
+        push.1638
+        assert_eq
+
+        pushw.mem
+        push.4282
+        assert_eq
+        push.6696
+        assert_eq
+        push.5737
+        assert_eq
+        push.6484
+        assert_eq
+
+        pushw.mem
+        push.1700
+        assert_eq
+        push.11432
+        assert_eq
+        push.11484
+        assert_eq
+        push.10199
+        assert_eq
+
+        pushw.mem
+        push.6774
+        assert_eq
+        push.9191
+        assert_eq
+        push.2059
+        assert_eq
+        push.2997
+        assert_eq
+
+        pushw.mem
+        push.11813
+        assert_eq
+        push.11831
+        assert_eq
+        push.1047
+        assert_eq
+        push.262
+        assert_eq
+
+        pushw.mem
+        push.287
+        assert_eq
+        push.7598
+        assert_eq
+        push.7081
+        assert_eq
+        push.7396
+        assert_eq
+
+        pushw.mem
+        push.8615
+        assert_eq
+        push.5332
+        assert_eq
+        push.715
+        assert_eq
+        push.7719
+        assert_eq
+
+        pushw.mem
+        push.5730
+        assert_eq
+        push.7677
+        assert_eq
+        push.1838
+        assert_eq
+        push.8476
+        assert_eq
+
+        pushw.mem
+        push.7065
+        assert_eq
+        push.5465
+        assert_eq
+        push.9512
+        assert_eq
+        push.11764
+        assert_eq
+
+        pushw.mem
+        push.1878
+        assert_eq
+        push.7864
+        assert_eq
+        push.3625
+        assert_eq
+        push.9256
+        assert_eq
+
+        pushw.mem
+        push.1553
+        assert_eq
+        push.3247
+        assert_eq
+        push.2552
+        assert_eq
+        push.11306
+        assert_eq
+
+        pushw.mem
+        push.6556
+        assert_eq
+        push.2331
+        assert_eq
+        push.6330
+        assert_eq
+        push.4109
+        assert_eq
+
+        pushw.mem
+        push.10139
+        assert_eq
+        push.2444
+        assert_eq
+        push.3366
+        assert_eq
+        push.9844
+        assert_eq
+
+        pushw.mem
+        push.1434
+        assert_eq
+        push.21
+        assert_eq
+        push.11135
+        assert_eq
+        push.4904
+        assert_eq
+
+        pushw.mem
+        push.4334
+        assert_eq
+        push.7010
+        assert_eq
+        push.4344
+        assert_eq
+        push.8147
+        assert_eq
+
+        pushw.mem
+        push.11928
+        assert_eq
+        push.1812
+        assert_eq
+        push.1749
+        assert_eq
+        push.5825
+        assert_eq
+
+        pushw.mem
+        push.11536
+        assert_eq
+        push.1291
+        assert_eq
+        push.10765
+        assert_eq
+        push.6994
+        assert_eq
+
+        pushw.mem
+        push.4131
+        assert_eq
+        push.4401
+        assert_eq
+        push.9423
+        assert_eq
+        push.817
+        assert_eq
+
+        pushw.mem
+        push.6016
+        assert_eq
+        push.7810
+        assert_eq
+        push.2295
+        assert_eq
+        push.8418
+        assert_eq
+
+        pushw.mem
+        push.10904
+        assert_eq
+        push.6202
+        assert_eq
+        push.3090
+        assert_eq
+        push.5960
+        assert_eq
+
+        pushw.mem
+        push.4040
+        assert_eq
+        push.5825
+        assert_eq
+        push.1217
+        assert_eq
+        push.10116
+        assert_eq
+
+        pushw.mem
+        push.2531
+        assert_eq
+        push.1483
+        assert_eq
+        push.295
+        assert_eq
+        push.7542
+        assert_eq
+
+        pushw.mem
+        push.10694
+        assert_eq
+        push.4177
+        assert_eq
+        push.6772
+        assert_eq
+        push.1419
+        assert_eq
+
+        pushw.mem
+        push.4824
+        assert_eq
+        push.2461
+        assert_eq
+        push.3694
+        assert_eq
+        push.1070
+        assert_eq
+
+        pushw.mem
+        push.9109
+        assert_eq
+        push.5733
+        assert_eq
+        push.8551
+        assert_eq
+        push.10013
+        assert_eq
+
+        pushw.mem
+        push.5956
+        assert_eq
+        push.361
+        assert_eq
+        push.8809
+        assert_eq
+        push.555
+        assert_eq
+
+        pushw.mem
+        push.4285
+        assert_eq
+        push.8436
+        assert_eq
+        push.1914
+        assert_eq
+        push.2828
+        assert_eq
+
+        pushw.mem
+        push.12019
+        assert_eq
+        push.466
+        assert_eq
+        push.10037
+        assert_eq
+        push.10170
+        assert_eq
+
+        pushw.mem
+        push.3507
+        assert_eq
+        push.1647
+        assert_eq
+        push.960
+        assert_eq
+        push.3614
+        assert_eq
+
+        pushw.mem
+        push.8567
+        assert_eq
+        push.8632
+        assert_eq
+        push.5581
+        assert_eq
+        push.5982
+        assert_eq
+
+        pushw.mem
+        push.2532
+        assert_eq
+        push.1269
+        assert_eq
+        push.8151
+        assert_eq
+        push.7333
+        assert_eq
+
+        pushw.mem
+        push.5552
+        assert_eq
+        push.645
+        assert_eq
+        push.6912
+        assert_eq
+        push.5950
+        assert_eq
+
+        pushw.mem
+        push.4497
+        assert_eq
+        push.2260
+        assert_eq
+        push.4564
+        assert_eq
+        push.8935
+        assert_eq
+
+        pushw.mem
+        push.8812
+        assert_eq
+        push.1984
+        assert_eq
+        push.1390
+        assert_eq
+        push.516
+        assert_eq
+
+        pushw.mem
+        push.3744
+        assert_eq
+        push.8284
+        assert_eq
+        push.3322
+        assert_eq
+        push.10924
+        assert_eq
+
+        pushw.mem
+        push.261
+        assert_eq
+        push.1642
+        assert_eq
+        push.10370
+        assert_eq
+        push.2531
+        assert_eq
+
+        pushw.mem
+        push.9432
+        assert_eq
+        push.6323
+        assert_eq
+        push.2504
+        assert_eq
+        push.4957
+        assert_eq
+
+        pushw.mem
+        push.10436
+        assert_eq
+        push.1848
+        assert_eq
+        push.7149
+        assert_eq
+        push.3055
+        assert_eq
+
+        pushw.mem
+        push.7918
+        assert_eq
+        push.10759
+        assert_eq
+        push.109
+        assert_eq
+        push.12190
+        assert_eq
+
+        pushw.mem
+        push.11481
+        assert_eq
+        push.8212
+        assert_eq
+        push.8442
+        assert_eq
+        push.7749
+        assert_eq
+
+        pushw.mem
+        push.5696
+        assert_eq
+        push.2374
+        assert_eq
+        push.5884
+        assert_eq
+        push.1367
+        assert_eq
+
+        pushw.mem
+        push.12273
+        assert_eq
+        push.3517
+        assert_eq
+        push.7168
+        assert_eq
+        push.9618
+        assert_eq
+
+        pushw.mem
+        push.247
+        assert_eq
+        push.5187
+        assert_eq
+        push.7405
+        assert_eq
+        push.179
+        assert_eq
+
+        pushw.mem
+        push.7272
+        assert_eq
+        push.8204
+        assert_eq
+        push.3469
+        assert_eq
+        push.2783
+        assert_eq
+
+        pushw.mem
+        push.11814
+        assert_eq
+        push.9921
+        assert_eq
+        push.2753
+        assert_eq
+        push.3246
+        assert_eq
+
+        pushw.mem
+        push.10636
+        assert_eq
+        push.11394
+        assert_eq
+        push.2028
+        assert_eq
+        push.7508
+        assert_eq
+
+        pushw.mem
+        push.2506
+        assert_eq
+        push.4768
+        assert_eq
+        push.2304
+        assert_eq
+        push.5062
+        assert_eq
+
+        pushw.mem
+        push.3899
+        assert_eq
+        push.6804
+        assert_eq
+        push.4449
+        assert_eq
+        push.10144
+        assert_eq
+
+        pushw.mem
+        push.5419
+        assert_eq
+        push.8029
+        assert_eq
+        push.2389
+        assert_eq
+        push.810
+        assert_eq
+
+        pushw.mem
+        push.12251
+        assert_eq
+        push.757
+        assert_eq
+        push.2405
+        assert_eq
+        push.1716
+        assert_eq
+
+        pushw.mem
+        push.2837
+        assert_eq
+        push.12152
+        assert_eq
+        push.8028
+        assert_eq
+        push.8055
+        assert_eq
+
+        pushw.mem
+        push.6032
+        assert_eq
+        push.4064
+        assert_eq
+        push.131
+        assert_eq
+        push.11778
+        assert_eq
+
+        pushw.mem
+        push.8269
+        assert_eq
+        push.5749
+        assert_eq
+        push.6084
+        assert_eq
+        push.9020
+        assert_eq
+
+        pushw.mem
+        push.5295
+        assert_eq
+        push.9212
+        assert_eq
+        push.9402
+        assert_eq
+        push.2082
+        assert_eq
+
+        pushw.mem
+        push.2516
+        assert_eq
+        push.1388
+        assert_eq
+        push.2980
+        assert_eq
+        push.9119
+        assert_eq
+
+        pushw.mem
+        push.6922
+        assert_eq
+        push.7261
+        assert_eq
+        push.3082
+        assert_eq
+        push.3937
+        assert_eq
+
+        pushw.mem
+        push.8030
+        assert_eq
+        push.3419
+        assert_eq
+        push.11642
+        assert_eq
+        push.3461
+        assert_eq
+
+        pushw.mem
+        push.3280
+        assert_eq
+        push.8021
+        assert_eq
+        push.12275
+        assert_eq
+        push.3723
+        assert_eq
+
+        pushw.mem
+        push.6648
+        assert_eq
+        push.1899
+        assert_eq
+        push.3517
+        assert_eq
+        push.7930
+        assert_eq
+
+        pushw.mem
+        push.11250
+        assert_eq
+        push.5780
+        assert_eq
+        push.5186
+        assert_eq
+        push.10416
+        assert_eq
+
+        pushw.mem
+        push.2986
+        assert_eq
+        push.10229
+        assert_eq
+        push.12223
+        assert_eq
+        push.1546
+        assert_eq
+
+        pushw.mem
+        push.3882
+        assert_eq
+        push.6142
+        assert_eq
+        push.5681
+        assert_eq
+        push.2195
+        assert_eq
+
+        pushw.mem
+        push.9191
+        assert_eq
+        push.3862
+        assert_eq
+        push.10569
+        assert_eq
+        push.6215
+        assert_eq
+
+        pushw.mem
+        push.11099
+        assert_eq
+        push.3551
+        assert_eq
+        push.359
+        assert_eq
+        push.12233
+        assert_eq
+
+        pushw.mem
+        push.4458
+        assert_eq
+        push.904
+        assert_eq
+        push.1331
+        assert_eq
+        push.10946
+        assert_eq
+    end
+
+    begin
+        exec.wrapper
+    end
+    ";
+
+    let test = build_test!(source, &[]);
+    let stack = test.get_last_stack_state();
+
+    println!("stack = {:?}", stack);
 }
