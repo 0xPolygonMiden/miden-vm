@@ -14,15 +14,23 @@ The second is done by reducing each operation to a lookup value and then using a
 ### Running product columns
 Although the multiset equality check can be thought of as comparing multiset equality between two vectors $a$ and $b$, in Miden VM it is implemented as a single running product column in the following way:
 
-- The running product column is initialized to $1$ at the beginning of the trace.
+- The running product column is initialized to a value $x$ at the beginning of the trace. (We typically use $x = 1$.)
 - All values of $a$ are multiplied into the running product column.
 - All values of $b$ are divided out of the running product column.
-- If $a$ and $b$ were multiset equal, then the running product column will equal $1$ at the end of the trace.
+- If $a$ and $b$ were multiset equal, then the running product column will equal $x$ at the end of the trace.
 
-### Cost of running product columns
-It is important to note that depending on the field in which we operate, a running product column may actually require more than one trace column. This is specifically true for small field.
+Running product columns are computed using a set of random values $\alpha_0$, $\alpha_1, ...$ sent to the prover by the verifier after the prover commits to the execution trace of the program.
 
-For example, if we are in a 64-bit field, each running product column would need to be represented by $2$ columns to achieve ~100-bit security, and by $3$ columns to achieve ~128-bit security.
+#### Length of running product columns
+
+Running product columns are computed by including information from the *current* row of the main execution trace into the *next* row of the running product column. Thus, in order to ensure that the trace is long enough to give the running product column space for its final value, a padding row may be required at the end of the trace of the component upon which the running product column depends.
+
+This is true when the data in the main trace could go all the way to the end of the trace, such as in the case of the range checker.
+
+#### Cost of running product columns
+It is important to note that depending on the field in which we operate, a running product column may actually require more than one trace column. This is specifically true for small fields.
+
+Since Miden uses a 64-bit field, each running product column needs to be represented by $2$ columns to achieve ~100-bit security and by $3$ columns to achieve ~128-bit security.
 
 ## Virtual tables
 
@@ -55,14 +63,6 @@ Analogously, when row $i$ is removed from the table, we'll update the value in c
 $$
 p' = \frac{p}{r_i}
 $$
-
-In this general approach, a value was included in $p$ for each column $t_j$ in the virtual table. However, the row reduction could also combine multiple columns into a single value for inclusion. For example, if $T$ is a 4-element value stored in columns $t_2, t_3, t_4, t_5$, row $i$ could be reduced to $r_i$ as:
-
-$$
-r_i = \alpha_0 + \alpha_1 \cdot t_{0, i} + \alpha_2 \cdot t_{1, i} + \alpha_3 \cdot T_i + \alpha_4 \cdot t_6 + ...
-$$
-
-This approach is often used by virtual tables in Miden VM when a single value spans multiple columns, such as representing Merkle tree nodes in the Hash chiplet's [sibling table](./chiplets/hasher.md#sibling-table-constraints).
 
 ### Virtual tables in Miden VM
 
@@ -109,9 +109,9 @@ These constraints can be expressed in a general way with the 2 following require
 - The lookup value must be computed using random values $\alpha_0, \alpha_1$, etc. that are provided by the verifier after the prover has committed to the main execution trace. 
 - The lookup value must include all uniquely identifying information for the component/operation and its inputs and outputs.
 
-Given an operation $op_{example}$ with inputs $i_0, i_1, ..., i_n$ and outputs $o_0, o_1, ..., o_m$, the lookup value can be computed as follows:
+Given an example operation $op_{ex}$ with inputs $i_0, ..., i_n$ and outputs $o_0, ..., o_m$, the lookup value can be computed as follows:
 
-$$lookup = \alpha_0 + \alpha_1 \cdot op_{example} + \alpha_2 \cdot i_0 + \alpha_3 \cdot i_1 + ... + \alpha_{n+2} \cdot i_n + \alpha_{n+3} \cdot o_0 + \alpha_{n+4} \cdot o_1 + ... + \alpha_{n + 2 + m} \cdot o_m$$
+$$lookup = \alpha_0 + \alpha_1 \cdot op_{ex} + \alpha_2 \cdot i_0 + ... + \alpha_{n+2} \cdot i_n + \alpha_{n+3} \cdot o_0 + ... + \alpha_{n + 2 + m} \cdot o_m$$
 
 The constraint for sending this to the bus as a request would be:
 
@@ -137,22 +137,3 @@ Miden VM currently uses 2 buses to communicate with these components:
 
 - The chiplets bus [$b_{chip}$](./chiplets/main.md#chiplet-bus), which communicates with all of the chiplets (Hash, Bitwise, and Memory).
 - The range checker bus [$b_{range}$](./range.md#communication-bus).
-
-#### The chiplet bus
-The Chiplet bus $b_{chip}$ enables offloading bitwise, memory, and hash operations to the respective chiplet.
-
-Requests are sent to the chiplets bus by the following components:
-
-- The stack sends requests for [bitwise](./stack/u32_ops.md#u32and), [memory](./stack/io_ops.md#memory-access-operations), and [cryptographic hash operations](./stack/crypto_ops.md).
-- The decoder sends requests for [hash operations](./decoder/main.md#program-block-hashing) for program block hashing.
-
-Responses are provided by the [hash](./chiplets/hasher.md#hash-chiplet-bus-constraints), [bitwise](./chiplets/bitwise.md#bitwise-chiplet-bus-constraints), and [memory](./chiplets/memory.md#memory-row-value) chiplets.
-
-#### The range checker bus
-The range checker bus $b_{range}$ enables offloading 16-bit range checks to the Range Checker.
-
-Requests are sent to the range checker bus by the following components:
-- The Stack sends requests for 16-bit range checks during some [`u32` operations](./stack/u32_ops.md#range-checks).
-- The [Memory chiplet](./chiplets/memory.md) sends requests for 16-bit range checks against the values in the $d_0$ and $d_1$ trace columns to enforce internal consistency.
-
-Responses are provided by the [range checker](./range.md#communication-bus).

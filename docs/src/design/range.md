@@ -189,6 +189,7 @@ As previously described, the columns have the following meanings:
 - $v$ contains the values to be range checked. 
   - During the 8-bit section of the trace (when $t = 0$), these values go from $0$ to $255$ and must either stay the same or increase by one at each step.
   - During the 16-bit section of the trace (when $t = 1$), these values go from $0$ to $65535$. Values must either stay the same or increase by less than $256$ at each step.
+  - The final 2 rows of the 16-bit section of the trace must both equal $65535$. The extra value of $65535$ is required in order to [pad the trace](./multiset.md#length-of-running-product-columns) so the [$b_{range}$](#communication-bus) running product bus column can be computed correctly.
 
 ### Execution trace constraints
 
@@ -274,7 +275,13 @@ In addition to the transition constraints described above, we also need to enfor
 
 ### Communication bus
 
-$b_{range}$ is the [bus](./multiset.md#communication-buses) that connects components which require 16-bit range checks to the range-checked values in the 16-bit section of the Range Checker. The other communication with $b_{range}$ comes from the [stack](./stack/u32_ops.md) and the [memory chiplet](./chiplets/memory.md).
+$b_{range}$ is the [bus](./multiset.md#communication-buses) that connects components which require 16-bit range checks to the range-checked values in the 16-bit section of the range checker. The bus constraints are defined by the components that use it to communicate.
+
+Requests are sent to the range checker bus by the following components:
+- The Stack sends requests for 16-bit range checks during some [`u32` operations](./stack/u32_ops.md#range-checks).
+- The [Memory chiplet](./chiplets/memory.md) sends requests for 16-bit range checks against the values in the $d_0$ and $d_1$ trace columns to enforce internal consistency.
+
+Responses are provided by the range checker as follows.
 
 Once again, we'll make use of variable $z$, which represents how a row in the execution trace is reduced to a single value.
 
