@@ -1816,3 +1816,543 @@ fn test_falcon512_normalize_poly() {
     let test = build_test!(source, &[]);
     test.get_last_stack_state();
 }
+
+#[test]
+fn test_falcon512_vector_squared_norm() {
+    let source = "
+    use.std::crypto::dsa::falcon
+
+    proc.wrapper.128
+        # prepare polynomial `f`
+
+        push.123.99.10.121
+        popw.local.0
+    
+        push.18.262.165.63
+        popw.local.1
+    
+        push.187.180.265.139
+        popw.local.2
+    
+        push.105.59.95.141
+        popw.local.3
+    
+        push.122.31.95.64
+        popw.local.4
+    
+        push.241.19.93.253
+        popw.local.5
+    
+        push.12.262.75.163
+        popw.local.6
+    
+        push.142.89.172.89
+        popw.local.7
+    
+        push.70.9.128.49
+        popw.local.8
+    
+        push.174.36.217.164
+        popw.local.9
+    
+        push.439.66.220.96
+        popw.local.10
+    
+        push.562.31.279.333
+        popw.local.11
+    
+        push.97.435.158.39
+        popw.local.12
+    
+        push.17.57.83.1
+        popw.local.13
+    
+        push.243.190.145.113
+        popw.local.14
+    
+        push.138.54.234.89
+        popw.local.15
+    
+        push.145.157.177.236
+        popw.local.16
+    
+        push.186.125.72.179
+        popw.local.17
+    
+        push.166.100.290.19
+        popw.local.18
+    
+        push.89.128.6.151
+        popw.local.19
+    
+        push.218.43.258.43
+        popw.local.20
+    
+        push.62.48.88.50
+        popw.local.21
+    
+        push.107.31.124.9
+        popw.local.22
+    
+        push.147.188.138.104
+        popw.local.23
+    
+        push.282.82.151.133
+        popw.local.24
+    
+        push.76.139.200.88
+        popw.local.25
+    
+        push.42.10.204.55
+        popw.local.26
+    
+        push.138.40.279.90
+        popw.local.27
+    
+        push.40.172.250.148
+        popw.local.28
+    
+        push.75.258.240.168
+        popw.local.29
+    
+        push.10.184.2.128
+        popw.local.30
+    
+        push.250.70.301.110
+        popw.local.31
+    
+        push.216.17.331.28
+        popw.local.32
+    
+        push.49.9.0.6
+        popw.local.33
+    
+        push.13.237.32.16
+        popw.local.34
+    
+        push.72.49.7.197
+        popw.local.35
+    
+        push.61.80.83.304
+        popw.local.36
+    
+        push.184.29.20.136
+        popw.local.37
+    
+        push.1.286.43.329
+        popw.local.38
+    
+        push.241.173.87.14
+        popw.local.39
+    
+        push.169.212.65.36
+        popw.local.40
+    
+        push.223.81.185.242
+        popw.local.41
+    
+        push.77.84.238.202
+        popw.local.42
+    
+        push.61.389.93.73
+        popw.local.43
+    
+        push.315.299.50.123
+        popw.local.44
+    
+        push.238.277.5.13
+        popw.local.45
+    
+        push.52.16.120.130
+        popw.local.46
+    
+        push.146.172.205.88
+        popw.local.47
+    
+        push.114.79.364.235
+        popw.local.48
+    
+        push.244.7.47.87
+        popw.local.49
+    
+        push.21.268.9.40
+        popw.local.50
+    
+        push.97.212.262.157
+        popw.local.51
+    
+        push.203.112.222.75
+        popw.local.52
+    
+        push.192.163.37.81
+        popw.local.53
+    
+        push.117.133.184.141
+        popw.local.54
+    
+        push.224.115.35.267
+        popw.local.55
+    
+        push.9.101.15.117
+        popw.local.56
+    
+        push.260.153.5.20
+        popw.local.57
+    
+        push.236.251.211.17
+        popw.local.58
+    
+        push.120.75.25.57
+        popw.local.59
+    
+        push.207.141.31.63
+        popw.local.60
+    
+        push.20.78.9.132
+        popw.local.61
+    
+        push.270.21.125.137
+        popw.local.62
+    
+        push.10.109.151.146
+        popw.local.63
+    
+        push.35.202.98.106
+        popw.local.64
+    
+        push.192.68.207.52
+        popw.local.65
+    
+        push.147.145.45.40
+        popw.local.66
+    
+        push.45.134.294.364
+        popw.local.67
+    
+        push.224.92.60.21
+        popw.local.68
+    
+        push.14.179.69.108
+        popw.local.69
+    
+        push.135.91.133.232
+        popw.local.70
+    
+        push.91.284.67.32
+        popw.local.71
+    
+        push.106.95.70.79
+        popw.local.72
+    
+        push.128.25.58.155
+        popw.local.73
+    
+        push.33.316.110.35
+        popw.local.74
+    
+        push.213.65.4.93
+        popw.local.75
+    
+        push.82.134.290.34
+        popw.local.76
+    
+        push.24.115.380.315
+        popw.local.77
+    
+        push.147.81.46.394
+        popw.local.78
+    
+        push.14.201.35.133
+        popw.local.79
+    
+        push.155.328.24.187
+        popw.local.80
+    
+        push.336.49.196.152
+        popw.local.81
+    
+        push.129.245.18.246
+        popw.local.82
+    
+        push.78.148.22.86
+        popw.local.83
+    
+        push.66.151.410.379
+        popw.local.84
+    
+        push.57.162.92.53
+        popw.local.85
+    
+        push.156.48.126.117
+        popw.local.86
+    
+        push.1.96.20.14
+        popw.local.87
+    
+        push.330.60.207.98
+        popw.local.88
+    
+        push.88.103.16.7
+        popw.local.89
+    
+        push.144.26.195.175
+        popw.local.90
+    
+        push.254.62.72.256
+        popw.local.91
+    
+        push.313.59.85.67
+        popw.local.92
+    
+        push.263.130.183.85
+        popw.local.93
+    
+        push.171.99.160.285
+        popw.local.94
+    
+        push.136.225.93.44
+        popw.local.95
+    
+        push.201.84.271.98
+        popw.local.96
+    
+        push.56.86.30.68
+        popw.local.97
+    
+        push.48.267.260.160
+        popw.local.98
+    
+        push.44.149.3.4
+        popw.local.99
+    
+        push.133.294.62.256
+        popw.local.100
+    
+        push.347.318.149.75
+        popw.local.101
+    
+        push.161.165.64.300
+        popw.local.102
+    
+        push.279.133.143.18
+        popw.local.103
+    
+        push.345.89.149.88
+        popw.local.104
+    
+        push.270.200.131.300
+        popw.local.105
+    
+        push.171.189.77.5
+        popw.local.106
+    
+        push.31.262.92.60
+        popw.local.107
+    
+        push.235.54.45.97
+        popw.local.108
+    
+        push.138.50.5.80
+        popw.local.109
+    
+        push.129.10.209.44
+        popw.local.110
+    
+        push.22.118.273.140
+        popw.local.111
+    
+        push.94.88.125.272
+        popw.local.112
+    
+        push.210.9.268.268
+        popw.local.113
+    
+        push.57.83.37.170
+        popw.local.114
+    
+        push.165.42.159.124
+        popw.local.115
+    
+        push.105.45.78.134
+        popw.local.116
+    
+        push.98.8.322.122
+        popw.local.117
+    
+        push.154.59.49.63
+        popw.local.118
+    
+        push.85.24.249.171
+        popw.local.119
+    
+        push.156.80.199.532
+        popw.local.120
+    
+        push.193.250.184.171
+        popw.local.121
+    
+        push.108.201.137.30
+        popw.local.122
+    
+        push.382.252.109.96
+        popw.local.123
+    
+        push.82.65.60.151
+        popw.local.124
+    
+        push.150.1.244.227
+        popw.local.125
+    
+        push.296.31.158.60
+        popw.local.126
+    
+        push.75.20.53.152
+        popw.local.127
+
+        # prepare argument ( absolute memory addresses ) for computing squared norm of a vector ( read polynomial )
+
+        push.env.locaddr.127
+        push.env.locaddr.126
+        push.env.locaddr.125
+        push.env.locaddr.124
+        push.env.locaddr.123
+        push.env.locaddr.122
+        push.env.locaddr.121
+        push.env.locaddr.120
+        push.env.locaddr.119
+        push.env.locaddr.118
+        push.env.locaddr.117
+        push.env.locaddr.116
+        push.env.locaddr.115
+        push.env.locaddr.114
+        push.env.locaddr.113
+        push.env.locaddr.112
+        push.env.locaddr.111
+        push.env.locaddr.110
+        push.env.locaddr.109
+        push.env.locaddr.108
+        push.env.locaddr.107
+        push.env.locaddr.106
+        push.env.locaddr.105
+        push.env.locaddr.104
+        push.env.locaddr.103
+        push.env.locaddr.102
+        push.env.locaddr.101
+        push.env.locaddr.100
+        push.env.locaddr.99
+        push.env.locaddr.98
+        push.env.locaddr.97
+        push.env.locaddr.96
+        push.env.locaddr.95
+        push.env.locaddr.94
+        push.env.locaddr.93
+        push.env.locaddr.92
+        push.env.locaddr.91
+        push.env.locaddr.90
+        push.env.locaddr.89
+        push.env.locaddr.88
+        push.env.locaddr.87
+        push.env.locaddr.86
+        push.env.locaddr.85
+        push.env.locaddr.84
+        push.env.locaddr.83
+        push.env.locaddr.82
+        push.env.locaddr.81
+        push.env.locaddr.80
+        push.env.locaddr.79
+        push.env.locaddr.78
+        push.env.locaddr.77
+        push.env.locaddr.76
+        push.env.locaddr.75
+        push.env.locaddr.74
+        push.env.locaddr.73
+        push.env.locaddr.72
+        push.env.locaddr.71
+        push.env.locaddr.70
+        push.env.locaddr.69
+        push.env.locaddr.68
+        push.env.locaddr.67
+        push.env.locaddr.66
+        push.env.locaddr.65
+        push.env.locaddr.64
+        push.env.locaddr.63
+        push.env.locaddr.62
+        push.env.locaddr.61
+        push.env.locaddr.60
+        push.env.locaddr.59
+        push.env.locaddr.58
+        push.env.locaddr.57
+        push.env.locaddr.56
+        push.env.locaddr.55
+        push.env.locaddr.54
+        push.env.locaddr.53
+        push.env.locaddr.52
+        push.env.locaddr.51
+        push.env.locaddr.50
+        push.env.locaddr.49
+        push.env.locaddr.48
+        push.env.locaddr.47
+        push.env.locaddr.46
+        push.env.locaddr.45
+        push.env.locaddr.44
+        push.env.locaddr.43
+        push.env.locaddr.42
+        push.env.locaddr.41
+        push.env.locaddr.40
+        push.env.locaddr.39
+        push.env.locaddr.38
+        push.env.locaddr.37
+        push.env.locaddr.36
+        push.env.locaddr.35
+        push.env.locaddr.34
+        push.env.locaddr.33
+        push.env.locaddr.32
+        push.env.locaddr.31
+        push.env.locaddr.30
+        push.env.locaddr.29
+        push.env.locaddr.28
+        push.env.locaddr.27
+        push.env.locaddr.26
+        push.env.locaddr.25
+        push.env.locaddr.24
+        push.env.locaddr.23
+        push.env.locaddr.22
+        push.env.locaddr.21
+        push.env.locaddr.20
+        push.env.locaddr.19
+        push.env.locaddr.18
+        push.env.locaddr.17
+        push.env.locaddr.16
+        push.env.locaddr.15
+        push.env.locaddr.14
+        push.env.locaddr.13
+        push.env.locaddr.12
+        push.env.locaddr.11
+        push.env.locaddr.10
+        push.env.locaddr.9
+        push.env.locaddr.8
+        push.env.locaddr.7
+        push.env.locaddr.6
+        push.env.locaddr.5
+        push.env.locaddr.4
+        push.env.locaddr.3
+        push.env.locaddr.2
+        push.env.locaddr.1
+        push.env.locaddr.0
+
+        exec.falcon::squared_norm_poly512
+
+        # check for functional correctness ( using known answer test )
+
+        push.13747982
+        assert_eq
+    end
+
+    begin
+        exec.wrapper
+    end
+    ";
+
+    let test = build_test!(source, &[]);
+    test.get_last_stack_state();
+}

@@ -998,3 +998,71 @@ export.normalize_poly512.128
     push.env.locaddr.1
     push.env.locaddr.0
 end
+
+# Given four elements on stack top, this routine computes squared norm of that
+# vector ( read polynomial ) with four coefficients.
+#
+# Imagine, given vector is f, which is described as
+#
+# f = [a0, a1, a2, a3]
+#
+# Norm of that vector is
+#
+# √(a0 ^ 2 + a1 ^ 2 + a2 ^ 2 + a3 ^ 2)
+#
+# But we need squared norm, which is just skipping the final square root operation.
+#
+# Expected stack state :
+#
+# [a0, a1, a2, a3, ...]
+#
+# Final stack state :
+#
+# [b, ...] | b = a0 ^ 2 + a1 ^ 2 + a2 ^ 2 + a3 ^ 2
+proc.squared_norm_word
+    dup
+    mul
+
+    swap
+    dup
+    mul
+
+    add
+
+    swap
+    dup
+    mul
+
+    add
+
+    swap
+    dup
+    mul
+
+    add
+end
+
+# Given a degree 512 polynomial in coefficient form, as absolute memory addresses on stack,
+# this routine computes squared norm of that vector, using following formula
+#
+# Say, f = [a0, a1, a2, ..., a510, a511]
+#      g = sq_norm(f) = a0 ^ 2 + a1 ^ 2 + ... + a510 ^ 2 + a511 ^ 2
+#
+# Expected input stack state :
+#
+# [f_addr0, f_addr1, ..., f_add126, f_addr127, ...] | f_addr`i` holds f[(i << 2) .. ((i+1) << 2)]
+#
+# Final stack state :
+#
+# [g, ...] | g = sq_norm(f)
+export.squared_norm_poly512
+    push.0
+
+    repeat.128
+        swap
+        pushw.mem
+
+        exec.squared_norm_word
+        add
+    end
+end
