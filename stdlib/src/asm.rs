@@ -1074,6 +1074,2007 @@ export.squared_norm_poly512
         add
     end
 end
+
+# Falcon-512 Digital Signature Verification routine
+#
+# Given four degree-512 polynomials, using absolute memory addresses on stack ( i.e. 
+# 512 memory addresses will be placed on stack ), this routine checks whether it's a valid
+# Falcon signature or not.
+#
+# Four degree-512 polynomials, which are provided ( in order )
+#
+# f = [f0, f1, ..., f510, f511] -> decompressed Falcon-512 signature
+# g = [g0, g1, ..., g510, g511] -> public key used for signing input message
+# h = [h0, h1, ..., h510, h511] -> input message hashed using SHAKE256 XOF and converted to polynomial
+# k = [k0, k1, ..., k510, k511] -> [abs(i) for i in f] | abs(a) = a < 0 ? 0 - a : a
+#
+# Each of these polynomials are represented using 128 absolute memory addresses, each holding
+# four consecutive coefficients such as
+#
+# f`i` holds f[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
+#
+# Expected stack state :
+#
+# [f_addr0, f_addr1, ..., f_addr126, f_addr127, g_addr0, g_addr1, ..., g_addr126, g_addr127, 
+#  h_addr0, h_addr1, ..., h_addr126, h_addr127, k_addr0, k_addr1, ..., k_addr126, k_addr127, ...] | 512 absolute memory addresses
+#
+# After execution of verification routine, stack looks like
+#
+# [ ... ]
+#
+# If verification fails, program execution just stops, due to asserting failure !
+#
+# Note, none of these input memory addresses ( 512 of them ) are mutated during execution of verification routine.
+export.verify.129
+    exec.poly512::mul_zq
+
+    # memcpy
+
+    push.0.0.0.0
+
+    movup.4
+    loadw.mem
+    storew.local.0
+
+    movup.4
+    loadw.mem
+    storew.local.1
+
+    movup.4
+    loadw.mem
+    storew.local.2
+
+    movup.4
+    loadw.mem
+    storew.local.3
+
+    movup.4
+    loadw.mem
+    storew.local.4
+
+    movup.4
+    loadw.mem
+    storew.local.5
+
+    movup.4
+    loadw.mem
+    storew.local.6
+
+    movup.4
+    loadw.mem
+    storew.local.7
+
+    movup.4
+    loadw.mem
+    storew.local.8
+
+    movup.4
+    loadw.mem
+    storew.local.9
+
+    movup.4
+    loadw.mem
+    storew.local.10
+
+    movup.4
+    loadw.mem
+    storew.local.11
+
+    movup.4
+    loadw.mem
+    storew.local.12
+
+    movup.4
+    loadw.mem
+    storew.local.13
+
+    movup.4
+    loadw.mem
+    storew.local.14
+
+    movup.4
+    loadw.mem
+    storew.local.15
+
+    movup.4
+    loadw.mem
+    storew.local.16
+
+    movup.4
+    loadw.mem
+    storew.local.17
+
+    movup.4
+    loadw.mem
+    storew.local.18
+
+    movup.4
+    loadw.mem
+    storew.local.19
+
+    movup.4
+    loadw.mem
+    storew.local.20
+
+    movup.4
+    loadw.mem
+    storew.local.21
+
+    movup.4
+    loadw.mem
+    storew.local.22
+
+    movup.4
+    loadw.mem
+    storew.local.23
+
+    movup.4
+    loadw.mem
+    storew.local.24
+
+    movup.4
+    loadw.mem
+    storew.local.25
+
+    movup.4
+    loadw.mem
+    storew.local.26
+
+    movup.4
+    loadw.mem
+    storew.local.27
+
+    movup.4
+    loadw.mem
+    storew.local.28
+
+    movup.4
+    loadw.mem
+    storew.local.29
+
+    movup.4
+    loadw.mem
+    storew.local.30
+
+    movup.4
+    loadw.mem
+    storew.local.31
+
+    movup.4
+    loadw.mem
+    storew.local.32
+
+    movup.4
+    loadw.mem
+    storew.local.33
+
+    movup.4
+    loadw.mem
+    storew.local.34
+
+    movup.4
+    loadw.mem
+    storew.local.35
+
+    movup.4
+    loadw.mem
+    storew.local.36
+
+    movup.4
+    loadw.mem
+    storew.local.37
+
+    movup.4
+    loadw.mem
+    storew.local.38
+
+    movup.4
+    loadw.mem
+    storew.local.39
+
+    movup.4
+    loadw.mem
+    storew.local.40
+
+    movup.4
+    loadw.mem
+    storew.local.41
+
+    movup.4
+    loadw.mem
+    storew.local.42
+
+    movup.4
+    loadw.mem
+    storew.local.43
+
+    movup.4
+    loadw.mem
+    storew.local.44
+
+    movup.4
+    loadw.mem
+    storew.local.45
+
+    movup.4
+    loadw.mem
+    storew.local.46
+
+    movup.4
+    loadw.mem
+    storew.local.47
+
+    movup.4
+    loadw.mem
+    storew.local.48
+
+    movup.4
+    loadw.mem
+    storew.local.49
+
+    movup.4
+    loadw.mem
+    storew.local.50
+
+    movup.4
+    loadw.mem
+    storew.local.51
+
+    movup.4
+    loadw.mem
+    storew.local.52
+
+    movup.4
+    loadw.mem
+    storew.local.53
+
+    movup.4
+    loadw.mem
+    storew.local.54
+
+    movup.4
+    loadw.mem
+    storew.local.55
+
+    movup.4
+    loadw.mem
+    storew.local.56
+
+    movup.4
+    loadw.mem
+    storew.local.57
+
+    movup.4
+    loadw.mem
+    storew.local.58
+
+    movup.4
+    loadw.mem
+    storew.local.59
+
+    movup.4
+    loadw.mem
+    storew.local.60
+
+    movup.4
+    loadw.mem
+    storew.local.61
+
+    movup.4
+    loadw.mem
+    storew.local.62
+
+    movup.4
+    loadw.mem
+    storew.local.63
+
+    movup.4
+    loadw.mem
+    storew.local.64
+
+    movup.4
+    loadw.mem
+    storew.local.65
+
+    movup.4
+    loadw.mem
+    storew.local.66
+
+    movup.4
+    loadw.mem
+    storew.local.67
+
+    movup.4
+    loadw.mem
+    storew.local.68
+
+    movup.4
+    loadw.mem
+    storew.local.69
+
+    movup.4
+    loadw.mem
+    storew.local.70
+
+    movup.4
+    loadw.mem
+    storew.local.71
+
+    movup.4
+    loadw.mem
+    storew.local.72
+
+    movup.4
+    loadw.mem
+    storew.local.73
+
+    movup.4
+    loadw.mem
+    storew.local.74
+
+    movup.4
+    loadw.mem
+    storew.local.75
+
+    movup.4
+    loadw.mem
+    storew.local.76
+
+    movup.4
+    loadw.mem
+    storew.local.77
+
+    movup.4
+    loadw.mem
+    storew.local.78
+
+    movup.4
+    loadw.mem
+    storew.local.79
+
+    movup.4
+    loadw.mem
+    storew.local.80
+
+    movup.4
+    loadw.mem
+    storew.local.81
+
+    movup.4
+    loadw.mem
+    storew.local.82
+
+    movup.4
+    loadw.mem
+    storew.local.83
+
+    movup.4
+    loadw.mem
+    storew.local.84
+
+    movup.4
+    loadw.mem
+    storew.local.85
+
+    movup.4
+    loadw.mem
+    storew.local.86
+
+    movup.4
+    loadw.mem
+    storew.local.87
+
+    movup.4
+    loadw.mem
+    storew.local.88
+
+    movup.4
+    loadw.mem
+    storew.local.89
+
+    movup.4
+    loadw.mem
+    storew.local.90
+
+    movup.4
+    loadw.mem
+    storew.local.91
+
+    movup.4
+    loadw.mem
+    storew.local.92
+
+    movup.4
+    loadw.mem
+    storew.local.93
+
+    movup.4
+    loadw.mem
+    storew.local.94
+
+    movup.4
+    loadw.mem
+    storew.local.95
+
+    movup.4
+    loadw.mem
+    storew.local.96
+
+    movup.4
+    loadw.mem
+    storew.local.97
+
+    movup.4
+    loadw.mem
+    storew.local.98
+
+    movup.4
+    loadw.mem
+    storew.local.99
+
+    movup.4
+    loadw.mem
+    storew.local.100
+
+    movup.4
+    loadw.mem
+    storew.local.101
+
+    movup.4
+    loadw.mem
+    storew.local.102
+
+    movup.4
+    loadw.mem
+    storew.local.103
+
+    movup.4
+    loadw.mem
+    storew.local.104
+
+    movup.4
+    loadw.mem
+    storew.local.105
+
+    movup.4
+    loadw.mem
+    storew.local.106
+
+    movup.4
+    loadw.mem
+    storew.local.107
+
+    movup.4
+    loadw.mem
+    storew.local.108
+
+    movup.4
+    loadw.mem
+    storew.local.109
+
+    movup.4
+    loadw.mem
+    storew.local.110
+
+    movup.4
+    loadw.mem
+    storew.local.111
+
+    movup.4
+    loadw.mem
+    storew.local.112
+
+    movup.4
+    loadw.mem
+    storew.local.113
+
+    movup.4
+    loadw.mem
+    storew.local.114
+
+    movup.4
+    loadw.mem
+    storew.local.115
+
+    movup.4
+    loadw.mem
+    storew.local.116
+
+    movup.4
+    loadw.mem
+    storew.local.117
+
+    movup.4
+    loadw.mem
+    storew.local.118
+
+    movup.4
+    loadw.mem
+    storew.local.119
+
+    movup.4
+    loadw.mem
+    storew.local.120
+
+    movup.4
+    loadw.mem
+    storew.local.121
+
+    movup.4
+    loadw.mem
+    storew.local.122
+
+    movup.4
+    loadw.mem
+    storew.local.123
+
+    movup.4
+    loadw.mem
+    storew.local.124
+
+    movup.4
+    loadw.mem
+    storew.local.125
+
+    movup.4
+    loadw.mem
+    storew.local.126
+
+    movup.4
+    loadw.mem
+    storew.local.127
+
+    dropw
+
+    push.env.locaddr.127
+    push.env.locaddr.126
+    push.env.locaddr.125
+    push.env.locaddr.124
+    push.env.locaddr.123
+    push.env.locaddr.122
+    push.env.locaddr.121
+    push.env.locaddr.120
+    push.env.locaddr.119
+    push.env.locaddr.118
+    push.env.locaddr.117
+    push.env.locaddr.116
+    push.env.locaddr.115
+    push.env.locaddr.114
+    push.env.locaddr.113
+    push.env.locaddr.112
+    push.env.locaddr.111
+    push.env.locaddr.110
+    push.env.locaddr.109
+    push.env.locaddr.108
+    push.env.locaddr.107
+    push.env.locaddr.106
+    push.env.locaddr.105
+    push.env.locaddr.104
+    push.env.locaddr.103
+    push.env.locaddr.102
+    push.env.locaddr.101
+    push.env.locaddr.100
+    push.env.locaddr.99
+    push.env.locaddr.98
+    push.env.locaddr.97
+    push.env.locaddr.96
+    push.env.locaddr.95
+    push.env.locaddr.94
+    push.env.locaddr.93
+    push.env.locaddr.92
+    push.env.locaddr.91
+    push.env.locaddr.90
+    push.env.locaddr.89
+    push.env.locaddr.88
+    push.env.locaddr.87
+    push.env.locaddr.86
+    push.env.locaddr.85
+    push.env.locaddr.84
+    push.env.locaddr.83
+    push.env.locaddr.82
+    push.env.locaddr.81
+    push.env.locaddr.80
+    push.env.locaddr.79
+    push.env.locaddr.78
+    push.env.locaddr.77
+    push.env.locaddr.76
+    push.env.locaddr.75
+    push.env.locaddr.74
+    push.env.locaddr.73
+    push.env.locaddr.72
+    push.env.locaddr.71
+    push.env.locaddr.70
+    push.env.locaddr.69
+    push.env.locaddr.68
+    push.env.locaddr.67
+    push.env.locaddr.66
+    push.env.locaddr.65
+    push.env.locaddr.64
+    push.env.locaddr.63
+    push.env.locaddr.62
+    push.env.locaddr.61
+    push.env.locaddr.60
+    push.env.locaddr.59
+    push.env.locaddr.58
+    push.env.locaddr.57
+    push.env.locaddr.56
+    push.env.locaddr.55
+    push.env.locaddr.54
+    push.env.locaddr.53
+    push.env.locaddr.52
+    push.env.locaddr.51
+    push.env.locaddr.50
+    push.env.locaddr.49
+    push.env.locaddr.48
+    push.env.locaddr.47
+    push.env.locaddr.46
+    push.env.locaddr.45
+    push.env.locaddr.44
+    push.env.locaddr.43
+    push.env.locaddr.42
+    push.env.locaddr.41
+    push.env.locaddr.40
+    push.env.locaddr.39
+    push.env.locaddr.38
+    push.env.locaddr.37
+    push.env.locaddr.36
+    push.env.locaddr.35
+    push.env.locaddr.34
+    push.env.locaddr.33
+    push.env.locaddr.32
+    push.env.locaddr.31
+    push.env.locaddr.30
+    push.env.locaddr.29
+    push.env.locaddr.28
+    push.env.locaddr.27
+    push.env.locaddr.26
+    push.env.locaddr.25
+    push.env.locaddr.24
+    push.env.locaddr.23
+    push.env.locaddr.22
+    push.env.locaddr.21
+    push.env.locaddr.20
+    push.env.locaddr.19
+    push.env.locaddr.18
+    push.env.locaddr.17
+    push.env.locaddr.16
+    push.env.locaddr.15
+    push.env.locaddr.14
+    push.env.locaddr.13
+    push.env.locaddr.12
+    push.env.locaddr.11
+    push.env.locaddr.10
+    push.env.locaddr.9
+    push.env.locaddr.8
+    push.env.locaddr.7
+    push.env.locaddr.6
+    push.env.locaddr.5
+    push.env.locaddr.4
+    push.env.locaddr.3
+    push.env.locaddr.2
+    push.env.locaddr.1
+    push.env.locaddr.0
+
+    exec.poly512::neg_zq
+
+    # memcpy
+
+    push.0.0.0.0
+
+    movup.4
+    loadw.mem
+    storew.local.0
+
+    movup.4
+    loadw.mem
+    storew.local.1
+
+    movup.4
+    loadw.mem
+    storew.local.2
+
+    movup.4
+    loadw.mem
+    storew.local.3
+
+    movup.4
+    loadw.mem
+    storew.local.4
+
+    movup.4
+    loadw.mem
+    storew.local.5
+
+    movup.4
+    loadw.mem
+    storew.local.6
+
+    movup.4
+    loadw.mem
+    storew.local.7
+
+    movup.4
+    loadw.mem
+    storew.local.8
+
+    movup.4
+    loadw.mem
+    storew.local.9
+
+    movup.4
+    loadw.mem
+    storew.local.10
+
+    movup.4
+    loadw.mem
+    storew.local.11
+
+    movup.4
+    loadw.mem
+    storew.local.12
+
+    movup.4
+    loadw.mem
+    storew.local.13
+
+    movup.4
+    loadw.mem
+    storew.local.14
+
+    movup.4
+    loadw.mem
+    storew.local.15
+
+    movup.4
+    loadw.mem
+    storew.local.16
+
+    movup.4
+    loadw.mem
+    storew.local.17
+
+    movup.4
+    loadw.mem
+    storew.local.18
+
+    movup.4
+    loadw.mem
+    storew.local.19
+
+    movup.4
+    loadw.mem
+    storew.local.20
+
+    movup.4
+    loadw.mem
+    storew.local.21
+
+    movup.4
+    loadw.mem
+    storew.local.22
+
+    movup.4
+    loadw.mem
+    storew.local.23
+
+    movup.4
+    loadw.mem
+    storew.local.24
+
+    movup.4
+    loadw.mem
+    storew.local.25
+
+    movup.4
+    loadw.mem
+    storew.local.26
+
+    movup.4
+    loadw.mem
+    storew.local.27
+
+    movup.4
+    loadw.mem
+    storew.local.28
+
+    movup.4
+    loadw.mem
+    storew.local.29
+
+    movup.4
+    loadw.mem
+    storew.local.30
+
+    movup.4
+    loadw.mem
+    storew.local.31
+
+    movup.4
+    loadw.mem
+    storew.local.32
+
+    movup.4
+    loadw.mem
+    storew.local.33
+
+    movup.4
+    loadw.mem
+    storew.local.34
+
+    movup.4
+    loadw.mem
+    storew.local.35
+
+    movup.4
+    loadw.mem
+    storew.local.36
+
+    movup.4
+    loadw.mem
+    storew.local.37
+
+    movup.4
+    loadw.mem
+    storew.local.38
+
+    movup.4
+    loadw.mem
+    storew.local.39
+
+    movup.4
+    loadw.mem
+    storew.local.40
+
+    movup.4
+    loadw.mem
+    storew.local.41
+
+    movup.4
+    loadw.mem
+    storew.local.42
+
+    movup.4
+    loadw.mem
+    storew.local.43
+
+    movup.4
+    loadw.mem
+    storew.local.44
+
+    movup.4
+    loadw.mem
+    storew.local.45
+
+    movup.4
+    loadw.mem
+    storew.local.46
+
+    movup.4
+    loadw.mem
+    storew.local.47
+
+    movup.4
+    loadw.mem
+    storew.local.48
+
+    movup.4
+    loadw.mem
+    storew.local.49
+
+    movup.4
+    loadw.mem
+    storew.local.50
+
+    movup.4
+    loadw.mem
+    storew.local.51
+
+    movup.4
+    loadw.mem
+    storew.local.52
+
+    movup.4
+    loadw.mem
+    storew.local.53
+
+    movup.4
+    loadw.mem
+    storew.local.54
+
+    movup.4
+    loadw.mem
+    storew.local.55
+
+    movup.4
+    loadw.mem
+    storew.local.56
+
+    movup.4
+    loadw.mem
+    storew.local.57
+
+    movup.4
+    loadw.mem
+    storew.local.58
+
+    movup.4
+    loadw.mem
+    storew.local.59
+
+    movup.4
+    loadw.mem
+    storew.local.60
+
+    movup.4
+    loadw.mem
+    storew.local.61
+
+    movup.4
+    loadw.mem
+    storew.local.62
+
+    movup.4
+    loadw.mem
+    storew.local.63
+
+    movup.4
+    loadw.mem
+    storew.local.64
+
+    movup.4
+    loadw.mem
+    storew.local.65
+
+    movup.4
+    loadw.mem
+    storew.local.66
+
+    movup.4
+    loadw.mem
+    storew.local.67
+
+    movup.4
+    loadw.mem
+    storew.local.68
+
+    movup.4
+    loadw.mem
+    storew.local.69
+
+    movup.4
+    loadw.mem
+    storew.local.70
+
+    movup.4
+    loadw.mem
+    storew.local.71
+
+    movup.4
+    loadw.mem
+    storew.local.72
+
+    movup.4
+    loadw.mem
+    storew.local.73
+
+    movup.4
+    loadw.mem
+    storew.local.74
+
+    movup.4
+    loadw.mem
+    storew.local.75
+
+    movup.4
+    loadw.mem
+    storew.local.76
+
+    movup.4
+    loadw.mem
+    storew.local.77
+
+    movup.4
+    loadw.mem
+    storew.local.78
+
+    movup.4
+    loadw.mem
+    storew.local.79
+
+    movup.4
+    loadw.mem
+    storew.local.80
+
+    movup.4
+    loadw.mem
+    storew.local.81
+
+    movup.4
+    loadw.mem
+    storew.local.82
+
+    movup.4
+    loadw.mem
+    storew.local.83
+
+    movup.4
+    loadw.mem
+    storew.local.84
+
+    movup.4
+    loadw.mem
+    storew.local.85
+
+    movup.4
+    loadw.mem
+    storew.local.86
+
+    movup.4
+    loadw.mem
+    storew.local.87
+
+    movup.4
+    loadw.mem
+    storew.local.88
+
+    movup.4
+    loadw.mem
+    storew.local.89
+
+    movup.4
+    loadw.mem
+    storew.local.90
+
+    movup.4
+    loadw.mem
+    storew.local.91
+
+    movup.4
+    loadw.mem
+    storew.local.92
+
+    movup.4
+    loadw.mem
+    storew.local.93
+
+    movup.4
+    loadw.mem
+    storew.local.94
+
+    movup.4
+    loadw.mem
+    storew.local.95
+
+    movup.4
+    loadw.mem
+    storew.local.96
+
+    movup.4
+    loadw.mem
+    storew.local.97
+
+    movup.4
+    loadw.mem
+    storew.local.98
+
+    movup.4
+    loadw.mem
+    storew.local.99
+
+    movup.4
+    loadw.mem
+    storew.local.100
+
+    movup.4
+    loadw.mem
+    storew.local.101
+
+    movup.4
+    loadw.mem
+    storew.local.102
+
+    movup.4
+    loadw.mem
+    storew.local.103
+
+    movup.4
+    loadw.mem
+    storew.local.104
+
+    movup.4
+    loadw.mem
+    storew.local.105
+
+    movup.4
+    loadw.mem
+    storew.local.106
+
+    movup.4
+    loadw.mem
+    storew.local.107
+
+    movup.4
+    loadw.mem
+    storew.local.108
+
+    movup.4
+    loadw.mem
+    storew.local.109
+
+    movup.4
+    loadw.mem
+    storew.local.110
+
+    movup.4
+    loadw.mem
+    storew.local.111
+
+    movup.4
+    loadw.mem
+    storew.local.112
+
+    movup.4
+    loadw.mem
+    storew.local.113
+
+    movup.4
+    loadw.mem
+    storew.local.114
+
+    movup.4
+    loadw.mem
+    storew.local.115
+
+    movup.4
+    loadw.mem
+    storew.local.116
+
+    movup.4
+    loadw.mem
+    storew.local.117
+
+    movup.4
+    loadw.mem
+    storew.local.118
+
+    movup.4
+    loadw.mem
+    storew.local.119
+
+    movup.4
+    loadw.mem
+    storew.local.120
+
+    movup.4
+    loadw.mem
+    storew.local.121
+
+    movup.4
+    loadw.mem
+    storew.local.122
+
+    movup.4
+    loadw.mem
+    storew.local.123
+
+    movup.4
+    loadw.mem
+    storew.local.124
+
+    movup.4
+    loadw.mem
+    storew.local.125
+
+    movup.4
+    loadw.mem
+    storew.local.126
+
+    movup.4
+    loadw.mem
+    storew.local.127
+
+    dropw
+
+    push.env.locaddr.127
+    push.env.locaddr.126
+    push.env.locaddr.125
+    push.env.locaddr.124
+    push.env.locaddr.123
+    push.env.locaddr.122
+    push.env.locaddr.121
+    push.env.locaddr.120
+    push.env.locaddr.119
+    push.env.locaddr.118
+    push.env.locaddr.117
+    push.env.locaddr.116
+    push.env.locaddr.115
+    push.env.locaddr.114
+    push.env.locaddr.113
+    push.env.locaddr.112
+    push.env.locaddr.111
+    push.env.locaddr.110
+    push.env.locaddr.109
+    push.env.locaddr.108
+    push.env.locaddr.107
+    push.env.locaddr.106
+    push.env.locaddr.105
+    push.env.locaddr.104
+    push.env.locaddr.103
+    push.env.locaddr.102
+    push.env.locaddr.101
+    push.env.locaddr.100
+    push.env.locaddr.99
+    push.env.locaddr.98
+    push.env.locaddr.97
+    push.env.locaddr.96
+    push.env.locaddr.95
+    push.env.locaddr.94
+    push.env.locaddr.93
+    push.env.locaddr.92
+    push.env.locaddr.91
+    push.env.locaddr.90
+    push.env.locaddr.89
+    push.env.locaddr.88
+    push.env.locaddr.87
+    push.env.locaddr.86
+    push.env.locaddr.85
+    push.env.locaddr.84
+    push.env.locaddr.83
+    push.env.locaddr.82
+    push.env.locaddr.81
+    push.env.locaddr.80
+    push.env.locaddr.79
+    push.env.locaddr.78
+    push.env.locaddr.77
+    push.env.locaddr.76
+    push.env.locaddr.75
+    push.env.locaddr.74
+    push.env.locaddr.73
+    push.env.locaddr.72
+    push.env.locaddr.71
+    push.env.locaddr.70
+    push.env.locaddr.69
+    push.env.locaddr.68
+    push.env.locaddr.67
+    push.env.locaddr.66
+    push.env.locaddr.65
+    push.env.locaddr.64
+    push.env.locaddr.63
+    push.env.locaddr.62
+    push.env.locaddr.61
+    push.env.locaddr.60
+    push.env.locaddr.59
+    push.env.locaddr.58
+    push.env.locaddr.57
+    push.env.locaddr.56
+    push.env.locaddr.55
+    push.env.locaddr.54
+    push.env.locaddr.53
+    push.env.locaddr.52
+    push.env.locaddr.51
+    push.env.locaddr.50
+    push.env.locaddr.49
+    push.env.locaddr.48
+    push.env.locaddr.47
+    push.env.locaddr.46
+    push.env.locaddr.45
+    push.env.locaddr.44
+    push.env.locaddr.43
+    push.env.locaddr.42
+    push.env.locaddr.41
+    push.env.locaddr.40
+    push.env.locaddr.39
+    push.env.locaddr.38
+    push.env.locaddr.37
+    push.env.locaddr.36
+    push.env.locaddr.35
+    push.env.locaddr.34
+    push.env.locaddr.33
+    push.env.locaddr.32
+    push.env.locaddr.31
+    push.env.locaddr.30
+    push.env.locaddr.29
+    push.env.locaddr.28
+    push.env.locaddr.27
+    push.env.locaddr.26
+    push.env.locaddr.25
+    push.env.locaddr.24
+    push.env.locaddr.23
+    push.env.locaddr.22
+    push.env.locaddr.21
+    push.env.locaddr.20
+    push.env.locaddr.19
+    push.env.locaddr.18
+    push.env.locaddr.17
+    push.env.locaddr.16
+    push.env.locaddr.15
+    push.env.locaddr.14
+    push.env.locaddr.13
+    push.env.locaddr.12
+    push.env.locaddr.11
+    push.env.locaddr.10
+    push.env.locaddr.9
+    push.env.locaddr.8
+    push.env.locaddr.7
+    push.env.locaddr.6
+    push.env.locaddr.5
+    push.env.locaddr.4
+    push.env.locaddr.3
+    push.env.locaddr.2
+    push.env.locaddr.1
+    push.env.locaddr.0
+
+    exec.poly512::add_zq
+
+    # memcpy
+
+    push.0.0.0.0
+
+    movup.4
+    loadw.mem
+    storew.local.0
+
+    movup.4
+    loadw.mem
+    storew.local.1
+
+    movup.4
+    loadw.mem
+    storew.local.2
+
+    movup.4
+    loadw.mem
+    storew.local.3
+
+    movup.4
+    loadw.mem
+    storew.local.4
+
+    movup.4
+    loadw.mem
+    storew.local.5
+
+    movup.4
+    loadw.mem
+    storew.local.6
+
+    movup.4
+    loadw.mem
+    storew.local.7
+
+    movup.4
+    loadw.mem
+    storew.local.8
+
+    movup.4
+    loadw.mem
+    storew.local.9
+
+    movup.4
+    loadw.mem
+    storew.local.10
+
+    movup.4
+    loadw.mem
+    storew.local.11
+
+    movup.4
+    loadw.mem
+    storew.local.12
+
+    movup.4
+    loadw.mem
+    storew.local.13
+
+    movup.4
+    loadw.mem
+    storew.local.14
+
+    movup.4
+    loadw.mem
+    storew.local.15
+
+    movup.4
+    loadw.mem
+    storew.local.16
+
+    movup.4
+    loadw.mem
+    storew.local.17
+
+    movup.4
+    loadw.mem
+    storew.local.18
+
+    movup.4
+    loadw.mem
+    storew.local.19
+
+    movup.4
+    loadw.mem
+    storew.local.20
+
+    movup.4
+    loadw.mem
+    storew.local.21
+
+    movup.4
+    loadw.mem
+    storew.local.22
+
+    movup.4
+    loadw.mem
+    storew.local.23
+
+    movup.4
+    loadw.mem
+    storew.local.24
+
+    movup.4
+    loadw.mem
+    storew.local.25
+
+    movup.4
+    loadw.mem
+    storew.local.26
+
+    movup.4
+    loadw.mem
+    storew.local.27
+
+    movup.4
+    loadw.mem
+    storew.local.28
+
+    movup.4
+    loadw.mem
+    storew.local.29
+
+    movup.4
+    loadw.mem
+    storew.local.30
+
+    movup.4
+    loadw.mem
+    storew.local.31
+
+    movup.4
+    loadw.mem
+    storew.local.32
+
+    movup.4
+    loadw.mem
+    storew.local.33
+
+    movup.4
+    loadw.mem
+    storew.local.34
+
+    movup.4
+    loadw.mem
+    storew.local.35
+
+    movup.4
+    loadw.mem
+    storew.local.36
+
+    movup.4
+    loadw.mem
+    storew.local.37
+
+    movup.4
+    loadw.mem
+    storew.local.38
+
+    movup.4
+    loadw.mem
+    storew.local.39
+
+    movup.4
+    loadw.mem
+    storew.local.40
+
+    movup.4
+    loadw.mem
+    storew.local.41
+
+    movup.4
+    loadw.mem
+    storew.local.42
+
+    movup.4
+    loadw.mem
+    storew.local.43
+
+    movup.4
+    loadw.mem
+    storew.local.44
+
+    movup.4
+    loadw.mem
+    storew.local.45
+
+    movup.4
+    loadw.mem
+    storew.local.46
+
+    movup.4
+    loadw.mem
+    storew.local.47
+
+    movup.4
+    loadw.mem
+    storew.local.48
+
+    movup.4
+    loadw.mem
+    storew.local.49
+
+    movup.4
+    loadw.mem
+    storew.local.50
+
+    movup.4
+    loadw.mem
+    storew.local.51
+
+    movup.4
+    loadw.mem
+    storew.local.52
+
+    movup.4
+    loadw.mem
+    storew.local.53
+
+    movup.4
+    loadw.mem
+    storew.local.54
+
+    movup.4
+    loadw.mem
+    storew.local.55
+
+    movup.4
+    loadw.mem
+    storew.local.56
+
+    movup.4
+    loadw.mem
+    storew.local.57
+
+    movup.4
+    loadw.mem
+    storew.local.58
+
+    movup.4
+    loadw.mem
+    storew.local.59
+
+    movup.4
+    loadw.mem
+    storew.local.60
+
+    movup.4
+    loadw.mem
+    storew.local.61
+
+    movup.4
+    loadw.mem
+    storew.local.62
+
+    movup.4
+    loadw.mem
+    storew.local.63
+
+    movup.4
+    loadw.mem
+    storew.local.64
+
+    movup.4
+    loadw.mem
+    storew.local.65
+
+    movup.4
+    loadw.mem
+    storew.local.66
+
+    movup.4
+    loadw.mem
+    storew.local.67
+
+    movup.4
+    loadw.mem
+    storew.local.68
+
+    movup.4
+    loadw.mem
+    storew.local.69
+
+    movup.4
+    loadw.mem
+    storew.local.70
+
+    movup.4
+    loadw.mem
+    storew.local.71
+
+    movup.4
+    loadw.mem
+    storew.local.72
+
+    movup.4
+    loadw.mem
+    storew.local.73
+
+    movup.4
+    loadw.mem
+    storew.local.74
+
+    movup.4
+    loadw.mem
+    storew.local.75
+
+    movup.4
+    loadw.mem
+    storew.local.76
+
+    movup.4
+    loadw.mem
+    storew.local.77
+
+    movup.4
+    loadw.mem
+    storew.local.78
+
+    movup.4
+    loadw.mem
+    storew.local.79
+
+    movup.4
+    loadw.mem
+    storew.local.80
+
+    movup.4
+    loadw.mem
+    storew.local.81
+
+    movup.4
+    loadw.mem
+    storew.local.82
+
+    movup.4
+    loadw.mem
+    storew.local.83
+
+    movup.4
+    loadw.mem
+    storew.local.84
+
+    movup.4
+    loadw.mem
+    storew.local.85
+
+    movup.4
+    loadw.mem
+    storew.local.86
+
+    movup.4
+    loadw.mem
+    storew.local.87
+
+    movup.4
+    loadw.mem
+    storew.local.88
+
+    movup.4
+    loadw.mem
+    storew.local.89
+
+    movup.4
+    loadw.mem
+    storew.local.90
+
+    movup.4
+    loadw.mem
+    storew.local.91
+
+    movup.4
+    loadw.mem
+    storew.local.92
+
+    movup.4
+    loadw.mem
+    storew.local.93
+
+    movup.4
+    loadw.mem
+    storew.local.94
+
+    movup.4
+    loadw.mem
+    storew.local.95
+
+    movup.4
+    loadw.mem
+    storew.local.96
+
+    movup.4
+    loadw.mem
+    storew.local.97
+
+    movup.4
+    loadw.mem
+    storew.local.98
+
+    movup.4
+    loadw.mem
+    storew.local.99
+
+    movup.4
+    loadw.mem
+    storew.local.100
+
+    movup.4
+    loadw.mem
+    storew.local.101
+
+    movup.4
+    loadw.mem
+    storew.local.102
+
+    movup.4
+    loadw.mem
+    storew.local.103
+
+    movup.4
+    loadw.mem
+    storew.local.104
+
+    movup.4
+    loadw.mem
+    storew.local.105
+
+    movup.4
+    loadw.mem
+    storew.local.106
+
+    movup.4
+    loadw.mem
+    storew.local.107
+
+    movup.4
+    loadw.mem
+    storew.local.108
+
+    movup.4
+    loadw.mem
+    storew.local.109
+
+    movup.4
+    loadw.mem
+    storew.local.110
+
+    movup.4
+    loadw.mem
+    storew.local.111
+
+    movup.4
+    loadw.mem
+    storew.local.112
+
+    movup.4
+    loadw.mem
+    storew.local.113
+
+    movup.4
+    loadw.mem
+    storew.local.114
+
+    movup.4
+    loadw.mem
+    storew.local.115
+
+    movup.4
+    loadw.mem
+    storew.local.116
+
+    movup.4
+    loadw.mem
+    storew.local.117
+
+    movup.4
+    loadw.mem
+    storew.local.118
+
+    movup.4
+    loadw.mem
+    storew.local.119
+
+    movup.4
+    loadw.mem
+    storew.local.120
+
+    movup.4
+    loadw.mem
+    storew.local.121
+
+    movup.4
+    loadw.mem
+    storew.local.122
+
+    movup.4
+    loadw.mem
+    storew.local.123
+
+    movup.4
+    loadw.mem
+    storew.local.124
+
+    movup.4
+    loadw.mem
+    storew.local.125
+
+    movup.4
+    loadw.mem
+    storew.local.126
+
+    movup.4
+    loadw.mem
+    storew.local.127
+
+    dropw
+
+    push.env.locaddr.127
+    push.env.locaddr.126
+    push.env.locaddr.125
+    push.env.locaddr.124
+    push.env.locaddr.123
+    push.env.locaddr.122
+    push.env.locaddr.121
+    push.env.locaddr.120
+    push.env.locaddr.119
+    push.env.locaddr.118
+    push.env.locaddr.117
+    push.env.locaddr.116
+    push.env.locaddr.115
+    push.env.locaddr.114
+    push.env.locaddr.113
+    push.env.locaddr.112
+    push.env.locaddr.111
+    push.env.locaddr.110
+    push.env.locaddr.109
+    push.env.locaddr.108
+    push.env.locaddr.107
+    push.env.locaddr.106
+    push.env.locaddr.105
+    push.env.locaddr.104
+    push.env.locaddr.103
+    push.env.locaddr.102
+    push.env.locaddr.101
+    push.env.locaddr.100
+    push.env.locaddr.99
+    push.env.locaddr.98
+    push.env.locaddr.97
+    push.env.locaddr.96
+    push.env.locaddr.95
+    push.env.locaddr.94
+    push.env.locaddr.93
+    push.env.locaddr.92
+    push.env.locaddr.91
+    push.env.locaddr.90
+    push.env.locaddr.89
+    push.env.locaddr.88
+    push.env.locaddr.87
+    push.env.locaddr.86
+    push.env.locaddr.85
+    push.env.locaddr.84
+    push.env.locaddr.83
+    push.env.locaddr.82
+    push.env.locaddr.81
+    push.env.locaddr.80
+    push.env.locaddr.79
+    push.env.locaddr.78
+    push.env.locaddr.77
+    push.env.locaddr.76
+    push.env.locaddr.75
+    push.env.locaddr.74
+    push.env.locaddr.73
+    push.env.locaddr.72
+    push.env.locaddr.71
+    push.env.locaddr.70
+    push.env.locaddr.69
+    push.env.locaddr.68
+    push.env.locaddr.67
+    push.env.locaddr.66
+    push.env.locaddr.65
+    push.env.locaddr.64
+    push.env.locaddr.63
+    push.env.locaddr.62
+    push.env.locaddr.61
+    push.env.locaddr.60
+    push.env.locaddr.59
+    push.env.locaddr.58
+    push.env.locaddr.57
+    push.env.locaddr.56
+    push.env.locaddr.55
+    push.env.locaddr.54
+    push.env.locaddr.53
+    push.env.locaddr.52
+    push.env.locaddr.51
+    push.env.locaddr.50
+    push.env.locaddr.49
+    push.env.locaddr.48
+    push.env.locaddr.47
+    push.env.locaddr.46
+    push.env.locaddr.45
+    push.env.locaddr.44
+    push.env.locaddr.43
+    push.env.locaddr.42
+    push.env.locaddr.41
+    push.env.locaddr.40
+    push.env.locaddr.39
+    push.env.locaddr.38
+    push.env.locaddr.37
+    push.env.locaddr.36
+    push.env.locaddr.35
+    push.env.locaddr.34
+    push.env.locaddr.33
+    push.env.locaddr.32
+    push.env.locaddr.31
+    push.env.locaddr.30
+    push.env.locaddr.29
+    push.env.locaddr.28
+    push.env.locaddr.27
+    push.env.locaddr.26
+    push.env.locaddr.25
+    push.env.locaddr.24
+    push.env.locaddr.23
+    push.env.locaddr.22
+    push.env.locaddr.21
+    push.env.locaddr.20
+    push.env.locaddr.19
+    push.env.locaddr.18
+    push.env.locaddr.17
+    push.env.locaddr.16
+    push.env.locaddr.15
+    push.env.locaddr.14
+    push.env.locaddr.13
+    push.env.locaddr.12
+    push.env.locaddr.11
+    push.env.locaddr.10
+    push.env.locaddr.9
+    push.env.locaddr.8
+    push.env.locaddr.7
+    push.env.locaddr.6
+    push.env.locaddr.5
+    push.env.locaddr.4
+    push.env.locaddr.3
+    push.env.locaddr.2
+    push.env.locaddr.1
+    push.env.locaddr.0
+
+    exec.normalize_poly512
+
+    # compute squared norm of s0
+
+    exec.squared_norm_poly512
+
+    pop.local.128
+
+    # compute squared norm of s1 ( where s1 is provided as polynomial
+    # with coefficients represented using absolute value i.e. signs are ignored )
+
+    exec.squared_norm_poly512
+
+    push.local.128
+    add
+
+    # check that norm of the signature is small enough
+
+    push.34034726 # constant sig_bound for Falcon-512 signature
+    lte
+    assert
+end
 "),
 // ----- std::crypto::hashes::blake3 --------------------------------------------------------------
 ("std::crypto::hashes::blake3", "# Initializes four memory addresses, provided for storing initial 4x4 blake3 
