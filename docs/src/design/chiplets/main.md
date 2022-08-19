@@ -14,7 +14,7 @@ Each chiplet executes its computations separately from the rest of the VM and pr
 
 The chiplets must be explicitly connected to the rest of the VM in order for it to use their operations. This connection must prove that all specialized operations which a given VM component claimed to offload to one of the chiplets were in fact executed by the correct chiplet with the same set of inputs and outputs as those used by the offloading component.
 
-This is achieved via a [bus](./multiset.md#communication-buses) called $b_{chip}$ where a request can be sent to any chiplet and a corresponding response will be sent back by that chiplet.
+This is achieved via a [bus](../multiset.md#communication-buses) called $b_{chip}$ where a request can be sent to any chiplet and a corresponding response will be sent back by that chiplet.
 
 The bus is implemented as a single [running product column](../multiset.md) where:
 
