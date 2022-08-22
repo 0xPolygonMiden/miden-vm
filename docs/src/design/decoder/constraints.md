@@ -12,25 +12,17 @@ AIR constraints for the decoder involve operations listed in the table below. Fo
 
 | Operation | Flag         | Degree | Effect on stack |
 | --------- | :----------: | :----: | --------------- |
-| `JOIN`    | $f_{join}$   | 5      | Stack remains unchanged. |
-| `SPLIT`   | $f_{split}$  | 5      | Top stack element is dropped. |
-| `LOOP`    | $f_{loop}$   | 5      | Top stack element is dropped. |
-| `REPEAT`  | $f_{repeat}$ | 5      | Top stack element is dropped. |
-| `SPAN`    | $f_{span}$   | 5      | Stack remains unchanged. |
-| `RESPAN`  | $f_{respan}$ | 5      | Stack remains unchanged. |
-| `END`     | $f_{end}$    | 2      | When exiting a loop block, top stack element is dropped; otherwise, the stack remains unchanged. |
-| `HALT`    | $f_{halt}$   | 2      | Stack remains unchanged. |
-| `PUSH`    | $f_{push}$   | 2      | An immediate value is pushed onto the stack. |
+| `JOIN`    | $f_{join}$   | 6      | Stack remains unchanged. |
+| `SPLIT`   | $f_{split}$  | 6      | Top stack element is dropped. |
+| `LOOP`    | $f_{loop}$   | 6      | Top stack element is dropped. |
+| `REPEAT`  | $f_{repeat}$ | 4      | Top stack element is dropped. |
+| `SPAN`    | $f_{span}$   | 6      | Stack remains unchanged. |
+| `RESPAN`  | $f_{respan}$ | 4      | Stack remains unchanged. |
+| `END`     | $f_{end}$    | 4      | When exiting a loop block, top stack element is dropped; otherwise, the stack remains unchanged. |
+| `HALT`    | $f_{halt}$   | 4      | Stack remains unchanged. |
+| `PUSH`    | $f_{push}$   | 4      | An immediate value is pushed onto the stack. |
 
-To reduce the degrees of `END`, `HALT`, and `PUSH` operations beyond $5$, we use two additional trace columns not shown in the diagram above.
-
-We also assume that the VM exposes a flag $f_{ctrl}$ which is set to $1$ when a control flow operation is being executed by the VM, and to $0$ otherwise. Naively, this flag can be computed as follows:
-
-$$
-f_{ctrl} = f_{join} + f_{split} + f_{loop} + f_{repeat} + f_{span} + f_{respan} + f_{end} + f_{halt}
-$$
-
-However, there could be more efficient ways of computing this flag (e.g., via common operation prefixes).
+We also use the [control flow flag](../stack/op_constraints.md#control-flow-flag) $f_{ctrl}$ exposed by the VM, which is set when any one of the above control flow operations is being executed. It has degree $4$.
 
 As described [previously](./main.md#program-decoding), the general idea of the decoder is that the prove provides the program to the VM by populating some of cells in the trace non-deterministically. Values in these are then used to update virtual tables (represented via multiset checks) such as block hash table, block stack table etc. Transition constraints are used to enforce that the tables are updates correctly, and we also apply boundary constraints to enforce the correct initial and final states of these tables. One of these boundary constraints binds the execution trace to the hash of the program being executed. Thus, if the virtual tables were updated correctly and boundary constraints hold, we can be convinced that the prover executed the claimed program on the VM.
 
@@ -41,13 +33,13 @@ In the sections below, we describe constraints according to their logical groupi
 When `SPLIT` or `LOOP` operation is executed, the top of the operand stack must contain a binary value:
 
 > $$
-(f_{split} + f_{loop}) \cdot (s_0^2 - s_0) = 0  \text{ | degree} = 7
+(f_{split} + f_{loop}) \cdot (s_0^2 - s_0) = 0  \text{ | degree} = 8
 $$
 
 When `REPEAT` operation is executed, the value at the top of the operand stack must be $1$:
 
 > $$
-f_{repeat} \cdot (1 - s_0) = 0 \text{ | degree} = 6
+f_{repeat} \cdot (1 - s_0) = 0 \text{ | degree} = 5
 $$
 
 Also, when `REPEAT` operation is executed, the value in $h_4$ column (the `is_loop_body` flag), must be set to $1$. This ensures that `REPEAT` operation can be executed only inside a loop:
@@ -59,31 +51,31 @@ $$
 When `RESPAN` operation is executed, we need to make sure that the block ID is incremented by $8$:
 
 > $$
-f_{respan} \cdot (a' - a - 8) = 0 \text{ | degree} = 6
+f_{respan} \cdot (a' - a - 8) = 0 \text{ | degree} = 5
 $$
 
 When `END` operation is executed and we are exiting a *loop* block (i.e., `is_loop`, value which is stored in $h_5$, is $1$), the value at the top of the operand stack must be $0$:
 
 > $$
-f_{end} \cdot h_5 \cdot s_0 = 0 \text{ | degree} = 4
+f_{end} \cdot h_5 \cdot s_0 = 0 \text{ | degree} = 6
 $$
 
 Also, when `END` operation is executed and the next operation is `REPEAT`, values in $h_0, ..., h_4$ (the hash of the current block and the `is_loop_body` flag) must be copied to the next row:
 
 > $$
-f_{end} \cdot f_{repeat}' \cdot (h_i' - h_i) = 0 \text { for } i \in 0..4 \text{ | degree} = 8
+f_{end} \cdot f_{repeat}' \cdot (h_i' - h_i) = 0 \text { for } i \in 0..4 \text{ | degree} = 9
 $$
 
 A `HALT` instruction can be followed only by another `HALT` instruction:
 
 > $$
-f_{halt} \cdot (1 - f_{halt}') = 0 \text{ | degree} = 4
+f_{halt} \cdot (1 - f_{halt}') = 0 \text{ | degree} = 8
 $$
 
 When a `HALT` operation is executed, block address column must be $0$:
 
 > $$
-f_{halt} \cdot a = 0
+f_{halt} \cdot a = 0 \text{ | degree} = 5
 $$
 
 Values in `op_bits` columns must be binary (i.e., either $1$ or $0$):
@@ -95,7 +87,7 @@ $$
 When the value in `is_span` column is set to $1$, control flow operations cannot be executed on the VM, but when `is_span` flag is $0$, only control flow operations can be executed on the VM:
 
 > $$
-1 - sp - f_{ctrl} = 0 \text{ | degree} = 5
+1 - sp - f_{ctrl} = 0 \text{ | degree} = 4
 $$
 
 ## Block hash computation constraints
@@ -140,37 +132,37 @@ Using the above variables, we define operation values as described below.
 When `JOIN` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_7$ are absorbed into the hasher. We also indicate that the number of elements to be hashed is $8$:
 
 $$
-u_{join} = f_{join} \cdot (h_{init8} + \alpha_4 \cdot 8) \text{ | degree} = 6
+u_{join} = f_{join} \cdot (h_{init8} + \alpha_4 \cdot 8) \text{ | degree} = 7
 $$
 
 When `SPLIT` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_7$ are absorbed into the hasher. We also indicate that the number of elements to be hashed is $8$:
 
 $$
-u_{split} = f_{split} \cdot (h_{init8} + \alpha_4 \cdot 8) \text{ | degree} = 6
+u_{split} = f_{split} \cdot (h_{init8} + \alpha_4 \cdot 8) \text{ | degree} = 7
 $$
 
 When `LOOP` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_3$ are absorbed into the hasher. We also indicate that the number of elements to be hashed is $4$:
 
 $$
-u_{loop} = f_{loop} \cdot (h_{init4} + \alpha_4 \cdot 4) \text{ | degree} = 6
+u_{loop} = f_{loop} \cdot (h_{init4} + \alpha_4 \cdot 4) \text{ | degree} = 7
 $$
 
 When `SPAN` operation is executed, a new hasher is initialized and contents of $h_0, ..., h_7$ are absorbed into the hasher. We also indicate that the number of operation groups to be hashed is located in the `group_count` register:
 
 $$
-u_{span} = f_{span} \cdot (h_{init8} + \alpha_4 \cdot gc) \text{ | degree} = 6
+u_{span} = f_{span} \cdot (h_{init8} + \alpha_4 \cdot gc) \text{ | degree} = 7
 $$
 
 When `RESPAN` operation is executed, contents of $h_0, ..., h_7$ (which contain the new operation batch) are absorbed into the hasher:
 
 $$
-u_{respan} = f_{respan} \cdot h_{abp} \text{ | degree} = 6
+u_{respan} = f_{respan} \cdot h_{abp} \text{ | degree} = 5
 $$
 
 When `END` operation is executed, the hash result is copied into registers $h_0, .., h_3$:
 
 $$
-u_{end} = f_{end} \cdot h_{res} \text{ | degree} = 3
+u_{end} = f_{end} \cdot h_{res} \text{ | degree} = 5
 $$
 
 Using the above definitions, we can describe the constraint for computing block hashes as follows:
@@ -182,7 +174,7 @@ $$
 
 We need to add $1$ and subtract the sum of the relevant operation flags to ensure that when none of the flags is set to $1$, the above constraint reduces to $p_0' = p_0$.
 
-The degree of this constraint is $7$.
+The degree of this constraint is $8$.
 
 ## Block stack table constraints
 As described [previously](./main.md#block-stack-table), block stack table keeps track of program blocks currently executing on the VM. Thus, whenever the VM starts executing a new block, an entry for this block is added to the block stack table. And when execution of a block completes, it is removed from the block stack table.
@@ -196,38 +188,38 @@ Before describing the constraints for the block stack table, we first describe h
 When `JOIN` operation is executed, row $(a', a, 0)$ is added to the block stack table:
 
 $$
-v_{join} = f_{join} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot a) \text{ | degree} = 6
+v_{join} = f_{join} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot a) \text{ | degree} = 7
 $$
 
 When `SPLIT` operation is executed, row $(a', a, 0)$ added to the block stack table:
 
 $$
-v_{split} = f_{split} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot a) \text{ | degree} = 6
+v_{split} = f_{split} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot a) \text{ | degree} = 7
 $$
 
 When `LOOP` operation is executed, row $(a', a, 1)$ is added to the block stack table if the value at the top of the operand stack is $1$, and row $(a', a, 0)$ is added to the block stack table if the value at the top of the operand stack is $0$:
 
 $$
-v_{loop} = f_{loop} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot a + \alpha_3 \cdot s_0) \text{ | degree} = 6
+v_{loop} = f_{loop} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot a + \alpha_3 \cdot s_0) \text{ | degree} = 7
 $$
 
 When `SPAN` operation is executed, row $(a', a, 0)$ is added to the block stack table:
 
 $$
-v_{span} = f_{span} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot a) \text{ | degree} = 6
+v_{span} = f_{span} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot a) \text{ | degree} = 7
 $$
 
 When `RESPAN` operation is executed, row $(a, h_1', 0)$ is removed from the block stack table, and row $(a', h_1', 0)$ is added to the table. The prover sets the value of register $h_1$ at the next row to the ID of the parent block:
 
 $$
-u_{respan} = f_{respan} \cdot (\alpha_0 + \alpha_1 \cdot a + \alpha_2 \cdot h_1') \text{ | degree} = 6  \\
-v_{respan} = f_{respan} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot h_1') \text{ | degree} = 6
+u_{respan} = f_{respan} \cdot (\alpha_0 + \alpha_1 \cdot a + \alpha_2 \cdot h_1') \text{ | degree} = 5  \\
+v_{respan} = f_{respan} \cdot (\alpha_0 + \alpha_1 \cdot a' + \alpha_2 \cdot h_1') \text{ | degree} = 5
 $$
 
 When `END` operation is executed, row $(a, a', h_5)$ is removed from the block span table. Register $h_5$ contains the `is_loop` flag:
 
 $$
-u_{end} = f_{end} \cdot (\alpha_0 + \alpha_1 \cdot a + \alpha_2 \cdot a' + \alpha_3 \cdot h_5) \text{ | degree} = 3
+u_{end} = f_{end} \cdot (\alpha_0 + \alpha_1 \cdot a + \alpha_2 \cdot a' + \alpha_3 \cdot h_5) \text{ | degree} = 5
 $$
 
 Using the above definitions, we can describe the constraint for updating the block stack table as follows:
@@ -239,7 +231,7 @@ $$
 
 We need to add $1$ and subtract the sum of the relevant operation flags from each side to ensure that when none of the flags is set to $1$, the above constraint reduces to $p_1' = p_1$.
 
-The degree of this constraint is $7$.
+The degree of this constraint is $8$.
 
 In addition to the above transition constraint, we also need to impose boundary constraints against the $p_1$ column to make sure the first and the last value in the column is set to $1$. This enforces that the block stack table starts and ends in an empty state.
 
@@ -274,29 +266,29 @@ Using the above variables, we define row values to be added to and removed from 
 When `JOIN` operation is executed, hashes of both child nodes are added to the block hash table. We add $\alpha_6$ term to the first child value to differentiate it from the second child (i.e., this sets `is_first_child` to $1$):
 
 $$
-v_{join} = f_{join} \cdot (ch_1 + \alpha^6) \cdot ch_2  \text{ | degree} = 7
+v_{join} = f_{join} \cdot (ch_1 + \alpha^6) \cdot ch_2  \text{ | degree} = 8
 $$
 
 When `SPLIT` operation is executed and the top of the stack is $1$, hash of the *true* branch is added to the block hash table, but when the top of the stack is $0$, hash of the *false* branch is added to the block hash table:
 
 $$
-v_{split} = f_{split} \cdot (s_0 \cdot ch_1 + (1 - s_0) \cdot ch_2)  \text{ | degree} = 7
+v_{split} = f_{split} \cdot (s_0 \cdot ch_1 + (1 - s_0) \cdot ch_2)  \text{ | degree} = 8
 $$
 
 When `LOOP` operation is executed and the top of the stack is $1$, hash of loop body is added to the block hash table. We add $\alpha_7$ term to indicate that the child is a body of a loop. The below also means that if the top of the stack is $0$, nothing is added to the block hash table as the expression evaluates to $0$:
 
 $$
-v_{loop} = f_{loop} \cdot s_0 \cdot (ch_1 + \alpha_7) \text{ | degree} = 7
+v_{loop} = f_{loop} \cdot s_0 \cdot (ch_1 + \alpha_7) \text{ | degree} = 8
 $$
 
 When `REPEAT` operation is executed, hash of loop body is added to the block hash table. We add $\alpha_7$ term to indicate that the child is a body of a loop:
 
-$$v_{repeat} = f_{repeat} \cdot (ch_1 + \alpha_7) \text{ | } \text{degree} = 6$$
+$$v_{repeat} = f_{repeat} \cdot (ch_1 + \alpha_7) \text{ | } \text{degree} = 5$$
 
 When `END` operation is executed, hash of the completed block is removed from the block hash table. However, we also need to differentiate between removing the first and the second child of a *join* block. We do this by looking at the next operation. Specifically, if the next operation is neither `END` nor `REPEAT` we know that another block is about to be executed, and thus, we have just finished executing the first child of a *join* block. Thus, if the next operation is neither `END` nor `REPEAT` we need to set the term for $\alpha_6$ coefficient to $1$ as shown below:
 
 $$
-u_{end} = f_{end} \cdot (bh + \alpha_6 \cdot (1 - (f_{end}' + f_{repeat}'))) \text{ | } \text{degree} = 7
+u_{end} = f_{end} \cdot (bh + \alpha_6 \cdot (1 - (f_{end}' + f_{repeat}'))) \text{ | } \text{degree} = 8
 $$
 
 Using the above definitions, we can describe the constraint for updating the block hash table as follows:
@@ -308,7 +300,7 @@ $$
 
 We need to add $1$ and subtract the sum of the relevant operation flags from each side to ensure that when none of the flags is set to $1$, the above constraint reduces to $p_2' = p_2$.
 
-The degree of this constraint is $8$.
+The degree of this constraint is $9$.
 
 In addition to the above transition constraint, we also need to set the following boundary constraints against the $p_2$ column:
 * The first value in the column represents a row for the entire program. Specifically, the row tuple would be `(0, program_hash, 0, 0)`. This row should be removed from the table when the last `END` operation is executed.
@@ -334,19 +326,19 @@ To enforce the above rules we need the following constraints.
 When executing `SPAN` or `RESPAN` operation, the next value in $sp$ column must be set to $1$:
 
 > $$
-(f_{span} + f_{respan}) \cdot (1 - sp') = 0 \text{ | degree} = 6
+(f_{span} + f_{respan}) \cdot (1 - sp') = 0 \text{ | degree} = 7
 $$
 
 When the next operation is `END` or `RESPAN`, the next value in $sp$ column must be set $0$.
 
 > $$
-(f_{end}' + f_{respan}') \cdot sp' = 0 \text{ | degree} = 6
+(f_{end}' + f_{respan}') \cdot sp' = 0 \text{ | degree} = 5
 $$
 
 In all other cases, the value in $sp$ column must be copied over to the next row:
 
 > $$
-(1 - f_{span} - f_{respan} - f_{end}' - f_{respan}') \cdot (sp' - sp) = 0 \text{ | degree} = 6
+(1 - f_{span} - f_{respan} - f_{end}' - f_{respan}') \cdot (sp' - sp) = 0 \text{ | degree} = 7
 $$
 
 Additionally, we will need to impose a boundary constraint which specifies that the first value in $sp = 0$. Note, however, that we do not need to impose a constraint ensuring that values in $sp$ are binary - this will follow naturally from the above constraints.
@@ -393,7 +385,7 @@ $$
 When group count is decremented inside a *span* block, either $h_0$ must be $0$ (we consumed all operations in a group) or we must be executing `PUSH` operation:
 
 > $$
-sp \cdot \Delta gc \cdot (1 - f_{push})\cdot h_0 = 0 \text{ | degree} = 5
+sp \cdot \Delta gc \cdot (1 - f_{push})\cdot h_0 = 0 \text{ | degree} = 7
 $$
 
 Notice that the above constraint does not preclude $f_{push} = 1$ and $h_0 = 0$ from being true at the same time. If this happens, op group decoding constraints (described [here](#op-group-decoding-constraints)) will force that the operation following the `PUSH` operation is a `NOOP`.
@@ -401,19 +393,19 @@ Notice that the above constraint does not preclude $f_{push} = 1$ and $h_0 = 0$ 
 When executing a `SPAN`, a `RESPAN`, or a `PUSH` operation, group count must be decremented by $1$:
 
 > $$
-(f_{span} + f_{respan} + f_{push}) \cdot (\Delta gc - 1) = 0 \text{ | degree} = 6
+(f_{span} + f_{respan} + f_{push}) \cdot (\Delta gc - 1) = 0 \text{ | degree} = 7
 $$
 
 If the next operation is either an `END` or a `RESPAN`, group count must remain the same:
 
 > $$
-\Delta gc \cdot (f_{end}' + f_{respan}') = 0 \text{ | degree} = 6
+\Delta gc \cdot (f_{end}' + f_{respan}') = 0 \text{ | degree} = 5
 $$
 
 When an `END` operation is executed, group count must be $0$:
 
 > $$
-f_{end} \cdot gc = 0 \text{ | degree} = 3
+f_{end} \cdot gc = 0 \text{ | degree} = 5
 $$
 
 ### Op group decoding constraints
@@ -442,7 +434,7 @@ Using these variables, we can describe operation group decoding constraints as f
 When a `SPAN`, a `RESPAN`, or a `PUSH` operation is executed or when the group count does not change, the value in $h_0$ should be decremented by the value of the opcode in the next row.
 
 > $$
-(f_{span} + f_{respan} + f_{push} + f_{sgc}) \cdot (h_0 - h_0' \cdot 2^7 - op') = 0 \text{ | degree} = 6
+(f_{span} + f_{respan} + f_{push} + f_{sgc}) \cdot (h_0 - h_0' \cdot 2^7 - op') = 0 \text{ | degree} = 7
 $$
 
 Notice that when the group count does change, and we are not executing $f_{span}$, $f_{respan}$, or $f_{push}$ operations, no constraints are placed against $h_0$, and thus, the prover can populate this register non-deterministically.
@@ -450,7 +442,7 @@ Notice that when the group count does change, and we are not executing $f_{span}
 When we are in a *span* block and the next operation is `END` or `RESPAN`, the current value in $h_0$ column must be $0$.
 
 > $$
-sp \cdot (f_{end}' + f_{respan}') \cdot h_0 = 0 \text{ | degree} = 7
+sp \cdot (f_{end}' + f_{respan}') \cdot h_0 = 0 \text{ | degree} = 6
 $$
 
 ### Op index constraints
@@ -468,19 +460,19 @@ The value of $ng$ is set to $1$ when we are about to start executing a new opera
 When executing `SPAN` or `RESPAN` operations the next value of `op_index` must be set to $0$:
 
 > $$
-(f_{span} + f_{respan}) \cdot ox' = 0 \text{ | degree} = 6
+(f_{span} + f_{respan}) \cdot ox' = 0 \text{ | degree} = 7
 $$ 
 
 When starting a new operation group inside a *span* block, the next value of `op_index` must be set to $0$. Note that we multiply by $sp$ to exclude the cases when the group count is decremented because of `SPAN` or `RESPAN` operations:
 
 > $$
-sp \cdot ng \cdot ox' = 0 \text{ | degree} = 4
+sp \cdot ng \cdot ox' = 0 \text{ | degree} = 6
 $$
 
 When inside a *span* block but not starting a new operation group, `op_index` must be incremented by $1$. Note that we multiply by $sp'$ to exclude the cases when we are about to exit processing of an operation batch (i.e., the next operation is either `END` or `RESPAN`):
 
 > $$
-sp \cdot sp' \cdot (1 - ng) \cdot (\Delta ox - 1) = 0 \text{ | degree} = 5
+sp \cdot sp' \cdot (1 - ng) \cdot (\Delta ox - 1) = 0 \text{ | degree} = 7
 $$
 
 Values of `op_index` must be in the range $[0, 8]$.
@@ -512,7 +504,7 @@ $$
 When `SPAN` or `RESPAN` operations is executed, one of the batch flags must be set to $1$.
 
 > $$
-(f_{span} + f_{respan}) - (f_{g1} + f_{g2} + f_{g4} + f_{g8}) = 0 \text{ | degree} = 5
+(f_{span} + f_{respan}) - (f_{g1} + f_{g2} + f_{g4} + f_{g8}) = 0 \text{ | degree} = 6
 $$
 
 When we have at most 4 groups in a batch, registers $h_4, ..., h_7$ should be set to $0$'s.
@@ -552,7 +544,7 @@ Where $i \in 1..7$. Thus, $v_1$ defines row value for group in $h_1$, $v_2$ defi
 We compute the value of the row to be removed from the op group table as follows:
 
 $$
-u = \alpha_0 + \alpha_1 \cdot a + \alpha^2 \cdot gc + \alpha_3 \cdot ((h_0' \cdot 2^7 + op') \cdot (1 - f_{push}) + s_0' \cdot f_{push}) \text{ | degree} = 3
+u = \alpha_0 + \alpha_1 \cdot a + \alpha^2 \cdot gc + \alpha_3 \cdot ((h_0' \cdot 2^7 + op') \cdot (1 - f_{push}) + s_0' \cdot f_{push}) \text{ | degree} = 5
 $$
 
 In the above, the value of the group is computed as $(h_0' \cdot 2^7 + op') \cdot (1 - f_{push}) + s_0' \cdot f_{push}$. This basically says that when we execute a `PUSH` operation we need to remove the immediate value from the table. This value is at the top of the stack (column $s_0$) in the next row. However, when we are not executing a `PUSH` operation, the value to be removed is an op group value which is a combination of values in $h_0$ and `op_bits` columns (also in the next row). Note also that value for batch address comes from the current value in the block address column ($a$), and the group position comes from the current value of the group count column ($gc$).
