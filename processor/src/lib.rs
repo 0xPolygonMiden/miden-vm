@@ -49,7 +49,7 @@ pub use errors::ExecutionError;
 mod utils;
 
 mod debug;
-pub use debug::{AsmOpInfo, VmState, VmStateIterator};
+pub use debug::{AsmOpInfo, ProcInfo, VmState, VmStateIterator};
 
 // TYPE ALIASES
 // ================================================================================================

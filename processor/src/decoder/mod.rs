@@ -9,7 +9,7 @@ use vm_core::{
         NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS,
         OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
     },
-    AssemblyOp,
+    AssemblyOp, Decorator, ProcMarker,
 };
 
 mod trace;
@@ -50,6 +50,10 @@ impl Process {
         // start decoding the JOIN block; this appends a row with JOIN operation to the decoder
         // trace. when JOIN operation is executed, the rest of the VM state does not change
         self.decoder.start_join(child1_hash, child2_hash, addr);
+        if let Some(proc_marker) = block.proc_marker() {
+            // start of procedure at this block
+            self.execute_decorator(proc_marker)?;
+        }
         self.execute_op(Operation::Noop)
     }
 
@@ -58,10 +62,12 @@ impl Process {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(block.hash().into());
-
+        if block.proc_marker().is_some() {
+            // end of procedure at this block
+            self.execute_decorator(&Decorator::ProcMarker(ProcMarker::ProcEnded))?;
+        }
         // send the end of control block to the chiplets bus to handle the final hash request.
         self.chiplets.read_hash_result();
-
         self.execute_op(Operation::Noop)
     }
 
@@ -86,6 +92,10 @@ impl Process {
         // trace. we also pop the value off the top of the stack and return it.
         self.decoder
             .start_split(child1_hash, child2_hash, addr, condition);
+        if let Some(proc_marker) = block.proc_marker() {
+            // start of procedure at this block
+            self.execute_decorator(proc_marker)?;
+        }
         self.execute_op(Operation::Drop)?;
         Ok(condition)
     }
@@ -95,10 +105,12 @@ impl Process {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(block.hash().into());
-
+        if block.proc_marker().is_some() {
+            // end of procedure at this block
+            self.execute_decorator(&Decorator::ProcMarker(ProcMarker::ProcEnded))?;
+        }
         // send the end of control block to the chiplets bus to handle the final hash request.
         self.chiplets.read_hash_result();
-
         self.execute_op(Operation::Noop)
     }
 
@@ -125,6 +137,10 @@ impl Process {
         // basically, if the top of the stack is ZERO, a LOOP operation should be immediately
         // followed by an END operation.
         self.decoder.start_loop(body_hash, addr, condition);
+        if let Some(proc_marker) = block.proc_marker() {
+            // start of procedure at this block
+            self.execute_decorator(proc_marker)?;
+        }
         self.execute_op(Operation::Drop)?;
         Ok(condition)
     }
@@ -138,10 +154,12 @@ impl Process {
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace.
         self.decoder.end_control_block(block.hash().into());
-
+        if block.proc_marker().is_some() {
+            // end of procedure at this block
+            self.execute_decorator(&Decorator::ProcMarker(ProcMarker::ProcEnded))?;
+        }
         // send the end of control block to the chiplets bus to handle the final hash request.
         self.chiplets.read_hash_result();
-
         // if we are exiting a loop, we also need to pop the top value off the stack (and this
         // value must be ZERO - otherwise, we should have stayed in the loop). but, if we never
         // entered the loop in the first place, the stack would have been popped when the LOOP
@@ -613,6 +631,11 @@ impl Decoder {
         self.debug_info.append_asmop(clk, asmop);
     }
 
+    /// Appends a ProcMarker [Decorator] at the specified clock cycle to proc markers in debug mode.
+    pub fn append_proc_marker(&mut self, clk: usize, proc_marker: Decorator) {
+        self.debug_info.append_proc_marker(clk, proc_marker);
+    }
+
     // TEST METHODS
     // --------------------------------------------------------------------------------------------
 
@@ -840,6 +863,7 @@ pub struct DebugInfo {
     in_debug_mode: bool,
     operations: Vec<Operation>,
     assembly_ops: Vec<(usize, AssemblyOp)>,
+    proc_markers: Vec<(usize, Decorator)>,
 }
 
 impl DebugInfo {
@@ -848,6 +872,7 @@ impl DebugInfo {
             in_debug_mode,
             operations: Vec::<Operation>::new(),
             assembly_ops: Vec::<(usize, AssemblyOp)>::new(),
+            proc_markers: Vec::<(usize, Decorator)>::new(),
         }
     }
 
@@ -857,7 +882,7 @@ impl DebugInfo {
         self.in_debug_mode
     }
 
-    /// Returns an operation to be executed at the specified clock cycle. Only applicable in debug mode.
+    /// Returns an operation to be executed at the specified clock cycle. Applicable in debug mode.
     pub fn operations(&self) -> &[Operation] {
         &self.operations
     }
@@ -865,6 +890,11 @@ impl DebugInfo {
     /// Returns list of assembly operations in debug mode.
     pub fn assembly_ops(&self) -> &[(usize, AssemblyOp)] {
         &self.assembly_ops
+    }
+
+    /// Returns list of ProcMarker decorators in debug mode.
+    pub fn proc_markers(&self) -> &[(usize, Decorator)] {
+        &self.proc_markers
     }
 
     /// Adds an operation to the operations vector in debug mode.
@@ -878,5 +908,10 @@ impl DebugInfo {
     /// Appends an asmop decorator at the specified clock cycle to the asmop list in debug mode.
     pub fn append_asmop(&mut self, clk: usize, asmop: AssemblyOp) {
         self.assembly_ops.push((clk, asmop));
+    }
+
+    /// Appends a ProcMarker decorator at the specified clock cycle to proc markers in debug mode.
+    pub fn append_proc_marker(&mut self, clk: usize, proc_marker: Decorator) {
+        self.proc_markers.push((clk, proc_marker));
     }
 }
