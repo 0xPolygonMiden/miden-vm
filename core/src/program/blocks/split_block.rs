@@ -1,4 +1,5 @@
 use super::{fmt, hasher, Box, CodeBlock, Digest};
+use crate::Decorator;
 
 // SPLIT BLOCK
 // ================================================================================================
@@ -15,6 +16,7 @@ use super::{fmt, hasher, Box, CodeBlock, Digest};
 pub struct Split {
     branches: Box<[CodeBlock; 2]>,
     hash: Digest,
+    proc_marker: Option<Decorator>,
 }
 
 impl Split {
@@ -26,6 +28,7 @@ impl Split {
         Self {
             branches: Box::new([t_branch, f_branch]),
             hash,
+            proc_marker: None,
         }
     }
 
@@ -47,6 +50,18 @@ impl Split {
     /// is `0`.
     pub fn on_false(&self) -> &CodeBlock {
         &self.branches[1]
+    }
+
+    /// If a procedure starts at this split block, returns ProcMarker corresponding to the procedure.
+    /// Returns None otherwise.
+    pub fn proc_marker(&self) -> &Option<Decorator> {
+        &self.proc_marker
+    }
+
+    /// If a procedure starts at this split block, set ProcMarker corresponding to the procedure
+    /// to this loop block.
+    pub fn set_proc_marker(&mut self, proc_marker: Decorator) {
+        self.proc_marker = Some(proc_marker);
     }
 }
 

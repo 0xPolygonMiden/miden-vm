@@ -18,7 +18,7 @@ pub use program::{blocks as code_blocks, Library, Program};
 
 mod operations;
 pub use operations::{
-    AdviceInjector, AssemblyOp, Decorator, DecoratorIterator, DecoratorList, Operation,
+    AdviceInjector, AssemblyOp, Decorator, DecoratorIterator, DecoratorList, Operation, ProcMarker,
 };
 
 mod inputs;

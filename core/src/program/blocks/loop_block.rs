@@ -1,4 +1,5 @@
 use super::{fmt, hasher, Box, CodeBlock, Digest};
+use crate::Decorator;
 
 // LOOP BLOCK
 // ================================================================================================
@@ -16,6 +17,7 @@ use super::{fmt, hasher, Box, CodeBlock, Digest};
 pub struct Loop {
     body: Box<CodeBlock>,
     hash: Digest,
+    proc_marker: Option<Decorator>,
 }
 
 impl Loop {
@@ -27,6 +29,7 @@ impl Loop {
         Self {
             body: Box::new(body),
             hash,
+            proc_marker: None,
         }
     }
 
@@ -41,6 +44,18 @@ impl Loop {
     /// Returns a reference to the code block which represents the body of the loop.
     pub fn body(&self) -> &CodeBlock {
         &self.body
+    }
+
+    /// If a procedure starts at this loop block, returns ProcMarker corresponding to the procedure.
+    /// Returns None otherwise.
+    pub fn proc_marker(&self) -> &Option<Decorator> {
+        &self.proc_marker
+    }
+
+    /// If a procedure starts at this loop block, set ProcMarker corresponding to the procedure
+    /// to this loop block.
+    pub fn set_proc_marker(&mut self, proc_marker: Decorator) {
+        self.proc_marker = Some(proc_marker);
     }
 }
 

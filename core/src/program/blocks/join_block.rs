@@ -1,4 +1,5 @@
 use super::{fmt, hasher, Box, CodeBlock, Digest};
+use crate::Decorator;
 
 // JOIN BLOCKS
 // ================================================================================================
@@ -12,6 +13,7 @@ use super::{fmt, hasher, Box, CodeBlock, Digest};
 pub struct Join {
     body: Box<[CodeBlock; 2]>,
     hash: Digest,
+    proc_marker: Option<Decorator>,
 }
 
 impl Join {
@@ -23,6 +25,7 @@ impl Join {
         Self {
             body: Box::new(body),
             hash,
+            proc_marker: None,
         }
     }
 
@@ -44,6 +47,18 @@ impl Join {
     /// is executed.
     pub fn second(&self) -> &CodeBlock {
         &self.body[1]
+    }
+
+    /// If a procedure starts at this join block, returns ProcMarker corresponding to the procedure.
+    /// Returns None otherwise.
+    pub fn proc_marker(&self) -> &Option<Decorator> {
+        &self.proc_marker
+    }
+
+    /// If a procedure starts at this join block, set ProcMarker corresponding to the procedure
+    /// to this loop block.
+    pub fn set_proc_marker(&mut self, proc_marker: Decorator) {
+        self.proc_marker = Some(proc_marker);
     }
 }
 
