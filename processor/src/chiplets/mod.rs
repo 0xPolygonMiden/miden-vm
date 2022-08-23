@@ -5,7 +5,7 @@ use super::{
 use crate::{trace::LookupTableRow, ExecutionError};
 use core::ops::RangeInclusive;
 use vm_core::{
-    chiplets::bitwise::{BITWISE_AND_LABEL, BITWISE_OR_LABEL, BITWISE_XOR_LABEL},
+    chiplets::bitwise::{BITWISE_AND_LABEL, BITWISE_XOR_LABEL},
     chiplets::hasher::{Digest, HasherState},
     code_blocks::OpBatch,
 };
@@ -229,18 +229,6 @@ impl Chiplets {
         Ok(result)
     }
 
-    /// Requests a bitwise OR of `a` and `b` from the Bitwise chiplet and returns the result.
-    /// We assume that `a` and `b` are 32-bit values. If that's not the case, the result of the
-    /// computation is undefined.
-    pub fn u32or(&mut self, a: Felt, b: Felt) -> Result<Felt, ExecutionError> {
-        let result = self.bitwise.u32or(a, b)?;
-
-        let bitwise_lookup = BitwiseLookup::new(BITWISE_OR_LABEL, a, b, result);
-        self.bus.request_bitwise_operation(bitwise_lookup, self.clk);
-
-        Ok(result)
-    }
-
     /// Requests a bitwise XOR of `a` and `b` from the Bitwise chiplet and returns the result.
     /// We assume that `a` and `b` are 32-bit values. If that's not the case, the result of the
     /// computation is undefined.
@@ -430,7 +418,7 @@ impl Chiplets {
                     // add bitwise segment to the bitwise fragment to be filled from the bitwise trace
                     bitwise_fragment.push_column_slice(rest_of_column, bitwise.trace_len());
                 }
-                16 => {
+                15 | 16 => {
                     // initialize hasher & memory segments and bitwise, padding segments with ZERO
                     column.resize(trace_len, Felt::ZERO);
                     // add hasher segment to the hasher fragment to be filled from the hasher trace
