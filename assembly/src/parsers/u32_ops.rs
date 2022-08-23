@@ -348,7 +348,7 @@ pub fn parse_u32divmod(
 ///
 /// We don't need to assert that inputs are u32 values because the VM does these assertions
 /// implicitly for `U32AND` operation.
-/// 
+///
 /// This takes 1 VM cycle.
 pub fn parse_u32and(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
@@ -364,7 +364,7 @@ pub fn parse_u32and(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 ///
 /// We don't need to assert that inputs are u32 values because the VM does these assertions
 /// implicitly for `U32XOR` and `U32AND` operations.
-/// 
+///
 /// This takes 6 VM cycles.
 pub fn parse_u32or(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
@@ -387,7 +387,7 @@ pub fn parse_u32or(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 ///
 /// We don't need to assert that inputs are u32 values because the VM does these assertions
 /// implicitly for `U32XOR` operation.
-/// 
+///
 /// This takes 1 VM cycle.
 pub fn parse_u32xor(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
@@ -403,8 +403,8 @@ pub fn parse_u32xor(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 ///
 /// The reason this method works is because 2^32 provides a bit mask of ones, which after
 /// subtracting the element, flips the bits of the original value to perform a bitwise NOT.
-/// 
-/// This takes 1 VM cycle.
+///
+/// This takes 5 VM cycles.
 pub fn parse_u32not(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),

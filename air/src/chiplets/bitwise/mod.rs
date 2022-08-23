@@ -1,7 +1,7 @@
 use super::{EvaluationFrame, Felt, FieldElement, Vec};
 use crate::utils::{are_equal, binary_not, is_binary, is_zero, EvaluationResult};
 use vm_core::chiplets::{
-    bitwise::{NUM_DECOMP_BITS, OP_CYCLE_LEN},
+    bitwise::{NUM_DECOMP_BITS, NUM_SELECTORS, OP_CYCLE_LEN},
     BITWISE_A_COL_IDX, BITWISE_A_COL_RANGE, BITWISE_B_COL_IDX, BITWISE_B_COL_RANGE,
     BITWISE_OUTPUT_COL_IDX, BITWISE_PREV_OUTPUT_COL_IDX, BITWISE_SELECTOR_COL_IDX,
 };
@@ -101,13 +101,13 @@ fn enforce_selectors<E: FieldElement>(
     let mut constraint_offset = 0;
     // Selector must be binary for the entire table.
     result[0] = processor_flag * is_binary(frame.selector());
-    constraint_offset += 1;
+    constraint_offset += NUM_SELECTORS;
 
     // Selector values should stay the same for the entire cycle. In other words, the value can
     // only change when there is a transition to a new cycle i.e. from the last row of a cycle &
     // the first row of the new cycle when periodic column k1=0.
     result[constraint_offset] = processor_flag * k1 * (frame.selector() - frame.selector_next());
-    constraint_offset += 1;
+    constraint_offset += NUM_SELECTORS;
 
     constraint_offset
 }
