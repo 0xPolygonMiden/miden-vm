@@ -38,13 +38,6 @@ pub fn verify(
     stack_outputs: &[u64],
     proof: StarkProof,
 ) -> Result<(), VerificationError> {
-    if stack_inputs.len() > MIN_STACK_DEPTH {
-        return Err(VerificationError::TooManyInputValues(
-            MIN_STACK_DEPTH,
-            stack_inputs.len(),
-        ));
-    }
-
     // convert stack inputs to field elements
     let mut stack_input_felts = Vec::with_capacity(stack_inputs.len());
     for &input in stack_inputs.iter().rev() {

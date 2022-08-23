@@ -3,6 +3,7 @@
 #[cfg(not(feature = "std"))]
 #[macro_use]
 extern crate alloc;
+use std::cmp::min;
 
 use vm_core::{
     chiplets::hasher::Digest,
@@ -76,8 +77,8 @@ impl Air for ProcessorAir {
         // Define the number of boundary constraints for the main execution trace segment.
         // TODO: determine dynamically
         let num_main_assertions = 2
-            + pub_inputs.stack_inputs.len()
-            + pub_inputs.stack_outputs.len()
+            + min(pub_inputs.stack_inputs.len(), MIN_STACK_DEPTH)
+            + min(pub_inputs.stack_outputs.len(), MIN_STACK_DEPTH)
             + range::NUM_ASSERTIONS
             + chiplets::NUM_ASSERTIONS;
 
@@ -127,8 +128,8 @@ impl Air for ProcessorAir {
         // first value of fmp is 2^30
         result.push(Assertion::single(FMP_COL_IDX, 0, Felt::new(2u64.pow(30))));
 
-        // stack columns at the first step should be set to stack inputs
-        for (i, &value) in self.stack_inputs.iter().enumerate() {
+        // stack columns at the first step should be set to stack inputs, excluding overflow inputs
+        for (i, &value) in self.stack_inputs.iter().take(MIN_STACK_DEPTH).enumerate() {
             result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, value));
         }
 
@@ -141,8 +142,8 @@ impl Air for ProcessorAir {
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.last_step();
 
-        // stack columns at the last step should be set to stack outputs
-        for (i, &value) in self.stack_outputs.iter().enumerate() {
+        // stack columns at the last step should be set to stack outputs, excluding overflow outputs
+        for (i, &value) in self.stack_outputs.iter().take(MIN_STACK_DEPTH).enumerate() {
             result.push(Assertion::single(STACK_TRACE_OFFSET + i, last_step, value));
         }
 
@@ -234,10 +235,6 @@ pub struct PublicInputs {
 
 impl PublicInputs {
     pub fn new(program_hash: Digest, stack_inputs: Vec<Felt>, stack_outputs: Vec<Felt>) -> Self {
-        assert!(
-            stack_inputs.len() <= MIN_STACK_DEPTH,
-            "too many stack inputs"
-        );
         assert!(
             stack_outputs.len() <= MIN_STACK_DEPTH,
             "too many stack outputs"

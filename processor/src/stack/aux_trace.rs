@@ -9,8 +9,9 @@ use winterfell::Matrix;
 /// Describes how to construct execution traces of stack-related auxiliary trace segment columns
 /// (used in multiset checks).
 pub struct AuxTraceBuilder {
-    pub(super) overflow_hints: Vec<(u32, OverflowTableUpdate)>,
+    pub(super) overflow_hints: Vec<(u64, OverflowTableUpdate)>,
     pub(super) overflow_table_rows: Vec<OverflowTableRow>,
+    pub(super) num_init_rows: usize,
 }
 
 impl AuxTraceBuilder {
@@ -29,7 +30,7 @@ impl AuxTraceBuilder {
 // OVERFLOW TABLE
 // ================================================================================================
 
-impl AuxColumnBuilder<OverflowTableUpdate, OverflowTableRow> for AuxTraceBuilder {
+impl AuxColumnBuilder<OverflowTableUpdate, OverflowTableRow, u64> for AuxTraceBuilder {
     /// Returns a list of rows which were added to and then removed from the stack overflow table.
     ///
     /// The order of the rows in the list is the same as the order in which the rows were added to
@@ -43,8 +44,8 @@ impl AuxColumnBuilder<OverflowTableUpdate, OverflowTableRow> for AuxTraceBuilder
     ///
     /// Internally, each update hint also contains an index of the row into the full list of rows
     /// which was either added or removed.
-    fn get_table_hints(&self) -> &[(u32, OverflowTableUpdate)] {
-        &self.overflow_hints
+    fn get_table_hints(&self) -> &[(u64, OverflowTableUpdate)] {
+        &self.overflow_hints[self.num_init_rows..]
     }
 
     /// Returns the value by which the running product column should be multiplied for the provided
@@ -63,5 +64,29 @@ impl AuxColumnBuilder<OverflowTableUpdate, OverflowTableRow> for AuxTraceBuilder
                 inv_row_values[removed_row_idx as usize]
             }
         }
+    }
+
+    /// Returns the initial value in the auxiliary column.
+    fn init_column_value<E: FieldElement<BaseField = Felt>>(&self, row_values: &[E]) -> E {
+        let mut init_column_value = E::ONE;
+        // iterate through the elements in the initial table
+        for (_, hint) in &self.overflow_hints[..self.num_init_rows] {
+            // no rows should have been removed from the table before execution begins.
+            if let OverflowTableUpdate::RowInserted(row) = hint {
+                init_column_value *= row_values[*row as usize];
+            } else {
+                debug_assert!(
+                    false,
+                    "overflow table row incorrectly removed before execution started"
+                )
+            }
+        }
+
+        init_column_value
+    }
+
+    /// Returns the final value in the auxiliary column.
+    fn final_column_value<E: FieldElement<BaseField = Felt>>(&self, _row_values: &[E]) -> E {
+        E::ONE
     }
 }

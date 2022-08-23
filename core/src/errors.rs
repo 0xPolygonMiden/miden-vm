@@ -4,7 +4,6 @@ use crate::utils::{collections::Vec, string::String};
 #[derive(Clone, Debug)]
 pub enum InputError {
     NotFieldElement(u64, &'static str),
-    TooManyStackValues(usize, usize),
     DuplicateAdviceRoot([u8; 32]),
 }
 

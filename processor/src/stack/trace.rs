@@ -1,6 +1,6 @@
 use super::{
-    Felt, FieldElement, ProgramInputs, StackTopState, Vec, MAX_TOP_IDX, MIN_STACK_DEPTH,
-    NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH,
+    Felt, FieldElement, StackTopState, Vec, MAX_TOP_IDX, MIN_STACK_DEPTH, NUM_STACK_HELPER_COLS,
+    STACK_TRACE_WIDTH,
 };
 use crate::utils::get_trace_len;
 use vm_core::StarkField;
@@ -21,10 +21,17 @@ pub struct StackTrace {
 impl StackTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Returns a [StackTrace] instantiated with empty vectors for all columns.
-    pub fn new(inputs: &ProgramInputs, init_trace_capacity: usize) -> Self {
+    /// Returns a [StackTrace] instantiated with the provided input values. When fewer than
+    /// `MIN_STACK_DEPTH` inputs are provided, the rest of the stack top elements are set to ZERO.
+    /// The initial stack depth and initial overflow address are used to initialize the bookkeeping
+    /// columns so they are consistent with the initial state of the overflow table.
+    pub fn new(
+        init_values: &[Felt],
+        init_trace_capacity: usize,
+        init_depth: usize,
+        init_overflow_addr: Felt,
+    ) -> Self {
         // Initialize the stack.
-        let init_values = inputs.stack_init();
         let mut stack: Vec<Vec<Felt>> = Vec::with_capacity(MIN_STACK_DEPTH);
         for i in 0..MIN_STACK_DEPTH {
             let mut column = Felt::zeroed_vector(init_trace_capacity);
@@ -36,12 +43,12 @@ impl StackTrace {
 
         // Initialize the bookkeeping & helper columns.
         let mut b0 = Felt::zeroed_vector(init_trace_capacity);
-        b0[0] = Felt::new(MIN_STACK_DEPTH as u64);
-        let helpers: [Vec<Felt>; 3] = [
-            b0,
-            Felt::zeroed_vector(init_trace_capacity),
-            Felt::zeroed_vector(init_trace_capacity),
-        ];
+        let mut b1 = Felt::zeroed_vector(init_trace_capacity);
+        // initialize b0 to the initial stack depth.
+        b0[0] = Felt::new(init_depth as u64);
+        // initialize b1 to the address of the last row in the stack overflow table.
+        b1[0] = init_overflow_addr;
+        let helpers: [Vec<Felt>; 3] = [b0, b1, Felt::zeroed_vector(init_trace_capacity)];
 
         StackTrace {
             stack: stack

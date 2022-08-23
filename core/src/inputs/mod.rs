@@ -2,7 +2,7 @@ use super::{
     chiplets::hasher,
     errors::{AdviceSetError, InputError},
     utils::IntoBytes,
-    Felt, FieldElement, Word, MIN_STACK_DEPTH,
+    Felt, FieldElement, Word,
 };
 use core::convert::TryInto;
 use winter_utils::collections::{BTreeMap, Vec};
@@ -54,13 +54,6 @@ impl ProgramInputs {
         advice_tape: &[u64],
         advice_sets: Vec<AdviceSet>,
     ) -> Result<Self, InputError> {
-        if stack_init.len() > MIN_STACK_DEPTH {
-            return Err(InputError::TooManyStackValues(
-                MIN_STACK_DEPTH,
-                stack_init.len(),
-            ));
-        }
-
         // convert initial stack values into field elements
         let mut init_stack_elements = Vec::with_capacity(stack_init.len());
         for &value in stack_init.iter().rev() {

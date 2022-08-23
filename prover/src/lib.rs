@@ -68,7 +68,17 @@ pub fn prove(
 
     // generate STARK proof
     let num_stack_inputs = inputs.stack_init().len();
-    let prover = ExecutionProver::new(options.clone(), num_stack_inputs, num_stack_outputs);
+    let overflow_inputs = if num_stack_inputs > MIN_STACK_DEPTH {
+        inputs.stack_init()[MIN_STACK_DEPTH..].to_vec()
+    } else {
+        vec![]
+    };
+    let prover = ExecutionProver::new(
+        options.clone(),
+        num_stack_inputs,
+        num_stack_outputs,
+        overflow_inputs,
+    );
     let proof = prover.prove(trace).map_err(ExecutionError::ProverError)?;
 
     Ok((outputs, proof))
@@ -81,14 +91,21 @@ struct ExecutionProver {
     options: ProofOptions,
     num_stack_inputs: usize,
     num_stack_outputs: usize,
+    overflow_inputs: Vec<Felt>,
 }
 
 impl ExecutionProver {
-    pub fn new(options: ProofOptions, num_stack_inputs: usize, num_stack_outputs: usize) -> Self {
+    pub fn new(
+        options: ProofOptions,
+        num_stack_inputs: usize,
+        num_stack_outputs: usize,
+        overflow_inputs: Vec<Felt>,
+    ) -> Self {
         Self {
             options,
             num_stack_inputs,
             num_stack_outputs,
+            overflow_inputs,
         }
     }
 }
@@ -103,9 +120,17 @@ impl Prover for ExecutionProver {
     }
 
     fn get_pub_inputs(&self, trace: &ExecutionTrace) -> PublicInputs {
+        let stack_inputs = if self.num_stack_inputs > MIN_STACK_DEPTH {
+            let mut stack_inputs = trace.init_stack_state()[..MIN_STACK_DEPTH].to_vec();
+            stack_inputs.extend_from_slice(&self.overflow_inputs);
+            stack_inputs
+        } else {
+            trace.init_stack_state()[..self.num_stack_inputs].to_vec()
+        };
+
         PublicInputs::new(
             trace.program_hash(),
-            trace.init_stack_state()[..self.num_stack_inputs].to_vec(),
+            stack_inputs,
             trace.last_stack_state()[..self.num_stack_outputs].to_vec(),
         )
     }
