@@ -8,7 +8,7 @@ use core::convert::TryInto;
 use winter_utils::collections::{BTreeMap, Vec};
 
 mod advice;
-pub use advice::AdviceSet;
+pub use advice::{AdviceSet, SparseMerkleTree, Store};
 
 // PROGRAM INPUTS
 // ================================================================================================

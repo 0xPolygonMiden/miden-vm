@@ -22,7 +22,7 @@ pub use operations::{
 };
 
 mod inputs;
-pub use inputs::{AdviceSet, ProgramInputs};
+pub use inputs::{AdviceSet, ProgramInputs, SparseMerkleTree, Store as SmtStore};
 
 pub mod utils;
 use utils::range;

@@ -6,7 +6,7 @@ use merkle_tree::MerkleTree;
 mod merkle_path_set;
 use merkle_path_set::MerklePathSet;
 mod sparse_merkle_tree;
-use sparse_merkle_tree::SparseMerkleTree;
+pub use sparse_merkle_tree::{SparseMerkleTree, Store};
 
 // ADVICE SET
 // ================================================================================================
@@ -110,7 +110,7 @@ impl AdviceSet {
     pub fn update_leaf(&mut self, index: u64, value: Word) -> Result<(), AdviceSetError> {
         match self {
             Self::MerkleTree(tree) => tree.update_leaf(index, value),
-            Self::SparseMerkleTree(tree) => tree.update_leaf(index, value),
+            Self::SparseMerkleTree(tree) => tree.update_leaf(index, None, value),
             Self::MerklePathSet(set) => set.update_leaf(index, value),
         }
     }
