@@ -68,25 +68,28 @@ fn read_modules(fs_path: &Path, ns_path: String, modules: &mut ModuleMap) -> Res
             read_modules(path.as_path(), ns_path, modules)?;
         } else if path.is_file() {
             // if the current path is a file, make sure it is a `.masm` file and read its contents
-            let extension = path
-                .extension()
-                .expect("failed to get file extension from path")
-                .to_str()
-                .expect("failed to convert file extension to string");
-            assert_eq!("masm", extension, "invalid file extension at: {:?}", path);
-            let source = fs::read_to_string(path.as_path())?;
+            let extension = path.extension();
+            if extension.is_some()
+                && extension
+                    .expect("failed to get file extension from path")
+                    .to_str()
+                    .expect("failed to convert file extension to string")
+                    == "masm"
+            {
+                let source = fs::read_to_string(path.as_path())?;
 
-            // get the name of the file without extension
-            let file_name = path
-                .with_extension("") // strip te extension
-                .as_path()
-                .file_name()
-                .expect("failed to get file name from path")
-                .to_str()
-                .expect("failed to convert file name to string")
-                .to_string();
-            // insert the module source into the module map
-            modules.insert(format!("{}::{}", ns_path, file_name), source);
+                // get the name of the file without extension
+                let file_name = path
+                    .with_extension("") // strip te extension
+                    .as_path()
+                    .file_name()
+                    .expect("failed to get file name from path")
+                    .to_str()
+                    .expect("failed to convert file name to string")
+                    .to_string();
+                // insert the module source into the module map
+                modules.insert(format!("{}::{}", ns_path, file_name), source);
+            }
         } else {
             panic!("entry not a file or directory");
         }
