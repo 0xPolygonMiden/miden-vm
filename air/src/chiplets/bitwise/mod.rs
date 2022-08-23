@@ -1,9 +1,9 @@
 use super::{EvaluationFrame, Felt, FieldElement, Vec};
 use crate::utils::{are_equal, binary_not, is_binary, is_zero, EvaluationResult};
 use vm_core::chiplets::{
-    bitwise::{NUM_DECOMP_BITS, NUM_SELECTORS, OP_CYCLE_LEN},
+    bitwise::{NUM_DECOMP_BITS, OP_CYCLE_LEN},
     BITWISE_A_COL_IDX, BITWISE_A_COL_RANGE, BITWISE_B_COL_IDX, BITWISE_B_COL_RANGE,
-    BITWISE_OUTPUT_COL_IDX, BITWISE_PREV_OUTPUT_COL_IDX, BITWISE_SELECTOR_COL_RANGE,
+    BITWISE_OUTPUT_COL_IDX, BITWISE_PREV_OUTPUT_COL_IDX, BITWISE_SELECTOR_COL_IDX,
 };
 use winter_air::TransitionConstraintDegree;
 
@@ -14,7 +14,7 @@ pub mod tests;
 // ================================================================================================
 
 /// The number of transition constraints on the bitwise chiplet.
-pub const NUM_CONSTRAINTS: usize = 19;
+pub const NUM_CONSTRAINTS: usize = 17;
 
 // PERIODIC COLUMNS
 // ================================================================================================
@@ -34,15 +34,13 @@ pub fn get_periodic_column_values() -> Vec<Vec<Felt>> {
 /// Builds the transition constraint degrees for the bitwise chiplet.
 pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
     // The degrees of constraints on the bitwise chiplet. The degree of all bitwise
-    // constraints is increased by 4 due to the chiplet selector flag (degree 2) and the internal
-    // selector flag specifying the bitwise operation (degree 2). The degree of internal selectors
+    // constraints is increased by 3 due to the chiplet selector flag (degree 2) and the internal
+    // selector flag specifying the bitwise operation (degree 1). The degree of internal selector
     // is also increased by 2 due to the selector flag from the Chiplets.
     let degrees: [TransitionConstraintDegree; NUM_CONSTRAINTS] = [
         // Internal Selector flag should be binary.
         TransitionConstraintDegree::new(4),
-        TransitionConstraintDegree::new(4),
         // Internal selector flag should remain the same throughout the cycle.
-        TransitionConstraintDegree::with_cycles(3, vec![OP_CYCLE_LEN]),
         TransitionConstraintDegree::with_cycles(3, vec![OP_CYCLE_LEN]),
         // Input decomposition values should be binary.
         TransitionConstraintDegree::new(4),
@@ -62,7 +60,7 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
         // Ensure correct output aggregation.
         TransitionConstraintDegree::with_cycles(3, vec![OP_CYCLE_LEN]),
         TransitionConstraintDegree::with_cycles(3, vec![OP_CYCLE_LEN]),
-        TransitionConstraintDegree::new(6),
+        TransitionConstraintDegree::new(5),
     ];
 
     degrees.into()
@@ -74,14 +72,14 @@ pub fn get_transition_constraint_count() -> usize {
 }
 
 /// Enforces constraints for the bitwise chiplet, which includes the constraints for the
-/// internal selectors & bitwise operations.
+/// internal selector & bitwise operations.
 pub fn enforce_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     periodic_values: &[E],
     result: &mut [E],
     bitwise_flag: E,
 ) {
-    // Enforce that the internal selectors are binary & remain the same throughout the cycle.
+    // Enforce that the internal selector is binary & remain the same throughout the cycle.
     let mut index = enforce_selectors(frame, periodic_values, result, bitwise_flag);
     // Enforce correct decomposition of the input values into the a and b columns.
     index +=
@@ -91,7 +89,7 @@ pub fn enforce_constraints<E: FieldElement>(
     enforce_output_aggregation(frame, periodic_values, &mut result[index..], bitwise_flag);
 }
 
-/// Constraint evaluation function to enforce that the Bitwise internal selector columns
+/// Constraint evaluation function to enforce that the Bitwise internal selector column
 /// must be binary and remain the same throughout the cycle.
 fn enforce_selectors<E: FieldElement>(
     frame: &EvaluationFrame<E>,
@@ -101,25 +99,15 @@ fn enforce_selectors<E: FieldElement>(
 ) -> usize {
     let k1 = periodic_values[1];
     let mut constraint_offset = 0;
-
-    // All selectors must be binary for the entire table.
-    for (idx, result) in result.iter_mut().enumerate().take(NUM_SELECTORS) {
-        *result = processor_flag * is_binary(frame.selector(idx));
-    }
-
-    constraint_offset += NUM_SELECTORS;
+    // Selector must be binary for the entire table.
+    result[0] = processor_flag * is_binary(frame.selector());
+    constraint_offset += 1;
 
     // Selector values should stay the same for the entire cycle. In other words, the value can
     // only change when there is a transition to a new cycle i.e. from the last row of a cycle &
     // the first row of the new cycle when periodic column k1=0.
-    for (idx, result) in result[constraint_offset..]
-        .iter_mut()
-        .enumerate()
-        .take(NUM_SELECTORS)
-    {
-        *result = processor_flag * k1 * (frame.selector(idx) - frame.selector_next(idx));
-    }
-    constraint_offset += NUM_SELECTORS;
+    result[constraint_offset] = processor_flag * k1 * (frame.selector() - frame.selector_next());
+    constraint_offset += 1;
 
     constraint_offset
 }
@@ -194,7 +182,7 @@ fn enforce_input_decomposition<E: FieldElement>(
 ///   copied from the previous row (`output_prev`) plus the aggregated result of the bitwise
 ///   operation applied to the current row's set of bits.
 ///
-/// Because the selectors for the AND, OR, and XOR operations are mutually exclusive, the
+/// Because the selectors for the AND and XOR operations are mutually exclusive, the
 /// constraints for different operations can be aggregated into the same result indices.
 fn enforce_output_aggregation<E: FieldElement>(
     frame: &EvaluationFrame<E>,
@@ -208,9 +196,7 @@ fn enforce_output_aggregation<E: FieldElement>(
     let k1_flag = periodic_values[1];
     // Operator flags
     let bitwise_and_flag = processor_flag * frame.bitwise_and_flag();
-    let bitwise_or_flag = processor_flag * frame.bitwise_or_flag();
     let bitwise_xor_flag = processor_flag * frame.bitwise_xor_flag();
-
     // Enforce value of `output_prev` is 0 for the first row.
     result[constraint_offset] = k0_flag * processor_flag * is_zero(frame.output_prev());
     constraint_offset += 1;
@@ -228,11 +214,6 @@ fn enforce_output_aggregation<E: FieldElement>(
         constraint_offset,
         bitwise_and_flag,
         frame.output() - (shifted_output + bitwise_and(frame.bit_decomp())),
-    );
-    result.agg_constraint(
-        constraint_offset,
-        bitwise_or_flag,
-        frame.output() - (shifted_output + bitwise_or(frame.bit_decomp())),
     );
     result.agg_constraint(
         constraint_offset,
@@ -257,19 +238,6 @@ pub fn bitwise_and<E: FieldElement>(decomposed_values: &[E]) -> E {
     result
 }
 
-/// Calculates the result of bitwise OR applied to the decomposed values provided as a bit array.
-/// The result will be the OR of the first 4 bits in the provided array with the latter 4 bits.
-pub fn bitwise_or<E: FieldElement>(decomposed_values: &[E]) -> E {
-    let mut result = E::ZERO;
-    // Aggregate the result of the bitwise OR over the decomposed bits in the row.
-    for idx in 0..NUM_DECOMP_BITS {
-        let a = decomposed_values[idx];
-        let b = decomposed_values[idx + NUM_DECOMP_BITS];
-        result += E::from(2_u64.pow(idx as u32)) * (a + b - a * b)
-    }
-    result
-}
-
 /// Calculates the result of bitwise XOR applied to the decomposed values provided as a bit array.
 /// The result will be the XOR of the first 4 bits in the provided array with the latter 4 bits.
 pub fn bitwise_xor<E: FieldElement>(decomposed_values: &[E]) -> E {
@@ -289,9 +257,9 @@ trait EvaluationFrameExt<E: FieldElement> {
     // --- Column accessors -----------------------------------------------------------------------
 
     /// Gets the current value of the specified selector column.
-    fn selector(&self, index: usize) -> E;
+    fn selector(&self) -> E;
     /// Gets the next value of the specified selector column.
-    fn selector_next(&self, index: usize) -> E;
+    fn selector_next(&self) -> E;
     /// Gets the current value of the aggregated `a` input.
     fn a(&self) -> E;
     /// Gets the value of the aggregated `a` input in the next row.
@@ -328,8 +296,6 @@ trait EvaluationFrameExt<E: FieldElement> {
 
     /// The selector flag for the bitwise AND operation.
     fn bitwise_and_flag(&self) -> E;
-    /// The selector flag for the bitwise OR operation.
-    fn bitwise_or_flag(&self) -> E;
     /// The selector flag for the bitwise XOR operation.
     fn bitwise_xor_flag(&self) -> E;
 }
@@ -338,12 +304,12 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Column accessors -----------------------------------------------------------------------
 
     #[inline(always)]
-    fn selector(&self, index: usize) -> E {
-        self.current()[BITWISE_SELECTOR_COL_RANGE.start + index]
+    fn selector(&self) -> E {
+        self.current()[BITWISE_SELECTOR_COL_IDX]
     }
     #[inline(always)]
-    fn selector_next(&self, index: usize) -> E {
-        self.next()[BITWISE_SELECTOR_COL_RANGE.start + index]
+    fn selector_next(&self) -> E {
+        self.next()[BITWISE_SELECTOR_COL_IDX]
     }
     #[inline(always)]
     fn a(&self) -> E {
@@ -408,15 +374,11 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 
     #[inline(always)]
     fn bitwise_and_flag(&self) -> E {
-        binary_not(self.selector(0)) * binary_not(self.selector(1))
-    }
-    #[inline(always)]
-    fn bitwise_or_flag(&self) -> E {
-        binary_not(self.selector(0)) * self.selector(1)
+        binary_not(self.current()[BITWISE_SELECTOR_COL_IDX])
     }
     #[inline(always)]
     fn bitwise_xor_flag(&self) -> E {
-        self.selector(0) * binary_not(self.selector(1))
+        self.current()[BITWISE_SELECTOR_COL_IDX]
     }
 }
 

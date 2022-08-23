@@ -4,7 +4,7 @@ use super::{create_range, Felt, FieldElement, Range};
 // ================================================================================================
 
 /// Number of selector columns in the trace.
-pub const NUM_SELECTORS: usize = 2;
+pub const NUM_SELECTORS: usize = 1;
 
 /// Number of columns needed to record an execution trace of the bitwise helper.
 pub const TRACE_WIDTH: usize = NUM_SELECTORS + 12;
@@ -15,21 +15,15 @@ pub const OP_CYCLE_LEN: usize = 8;
 // --- OPERATION SELECTORS ------------------------------------------------------------------------
 
 /// Specifies a bitwise AND operation.
-pub const BITWISE_AND: Selectors = [Felt::ZERO, Felt::ZERO];
+pub const BITWISE_AND: Selectors = [Felt::ZERO];
 /// Unique label for the bitwise AND operation. Computed as 1 more than the binary composition of
-/// the chiplet and operation selectors [1, 0, 0, 0].
+/// the chiplet and operation selectors [1, 0, 0].
 pub const BITWISE_AND_LABEL: Felt = Felt::new(2);
 
-/// Specifies a bitwise OR operation.
-pub const BITWISE_OR: Selectors = [Felt::ZERO, Felt::ONE];
-/// Unique label for the bitwise OR operation. Computed as 1 more than the binary composition of the
-/// chiplet and operation selectors [1, 0, 0, 1].
-pub const BITWISE_OR_LABEL: Felt = Felt::new(10);
-
 /// Specifies a bitwise XOR operation.
-pub const BITWISE_XOR: Selectors = [Felt::ONE, Felt::ZERO];
+pub const BITWISE_XOR: Selectors = [Felt::ONE];
 /// Unique label for the bitwise XOR operation. Computed as 1 more than the binary composition of
-/// the chiplet and operation selectors [1, 0, 1, 0].
+/// the chiplet and operation selectors [1, 0, 1].
 pub const BITWISE_XOR_LABEL: Felt = Felt::new(6);
 
 // --- INPUT DECOMPOSITION ------------------------------------------------------------------------

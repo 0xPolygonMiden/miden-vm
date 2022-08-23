@@ -1,12 +1,12 @@
 use super::{
     enforce_constraints, get_periodic_values, EvaluationFrame, BITWISE_A_COL_IDX,
     BITWISE_A_COL_RANGE, BITWISE_B_COL_IDX, BITWISE_B_COL_RANGE, BITWISE_OUTPUT_COL_IDX,
-    BITWISE_PREV_OUTPUT_COL_IDX, BITWISE_SELECTOR_COL_RANGE, NUM_CONSTRAINTS, NUM_DECOMP_BITS,
-    NUM_SELECTORS, OP_CYCLE_LEN,
+    BITWISE_PREV_OUTPUT_COL_IDX, BITWISE_SELECTOR_COL_IDX, NUM_CONSTRAINTS, NUM_DECOMP_BITS,
+    OP_CYCLE_LEN,
 };
 use rand_utils::rand_value;
 use vm_core::{
-    chiplets::bitwise::{Selectors, BITWISE_AND, BITWISE_OR, BITWISE_XOR},
+    chiplets::bitwise::{Selectors, BITWISE_AND, BITWISE_XOR},
     Felt, FieldElement, TRACE_WIDTH,
 };
 
@@ -15,7 +15,7 @@ use proptest::prelude::*;
 // UNIT TESTS
 // ================================================================================================
 
-/// Tests that the bitwise constraints do not all evaluate to zero if the internal selectors which
+/// Tests that the bitwise constraints do not all evaluate to zero if the internal selector which
 /// specify the operation change within a cycle.
 #[test]
 fn test_bitwise_change_ops_fail() {
@@ -25,36 +25,14 @@ fn test_bitwise_change_ops_fail() {
     let b = rand_value::<u32>();
     let cycle_row: usize = rand_value::<u8>() as usize % (OP_CYCLE_LEN - 1);
 
-    let frame = get_test_frame_with_two_ops(BITWISE_AND, BITWISE_OR, a, b, cycle_row);
-    let result = get_constraint_evaluation(frame, cycle_row);
-
-    // The second part of the selector flag changes, so that constraint should fail.
-    assert_ne!(result[3], expected[3]);
-
-    // All other constraints should evaluate to zero.
-    assert_eq!(result[0..3], expected[0..3]);
-    assert_eq!(result[4..], expected[4..]);
-
     let frame = get_test_frame_with_two_ops(BITWISE_XOR, BITWISE_AND, a, b, cycle_row);
     let result = get_constraint_evaluation(frame, cycle_row);
 
-    // The first part of the selector flag changes, so that constraint should fail.
-    assert_ne!(result[2], expected[2]);
-
+    // The selector flag changes, so that constraint should fail.
+    assert_ne!(result[1], expected[1]);
     // All other constraints should evaluate to zero.
-    assert_eq!(result[0..2], expected[0..2]);
-    assert_eq!(result[3..], expected[3..]);
-
-    let frame = get_test_frame_with_two_ops(BITWISE_OR, BITWISE_XOR, a, b, cycle_row);
-    let result = get_constraint_evaluation(frame, cycle_row);
-
-    // Both parts of the selector flags change, so those constraints should fail.
-    assert_ne!(result[2], expected[2]);
-    assert_ne!(result[3], expected[3]);
-
-    // All other constraints should evaluate to zero.
-    assert_eq!(result[0..2], expected[0..2]);
-    assert_eq!(result[4..], expected[4..]);
+    assert_eq!(result[0..1], expected[0..1]);
+    assert_eq!(result[2..], expected[2..]);
 }
 
 // RANDOMIZED TESTS
@@ -67,16 +45,6 @@ proptest! {
     fn test_bitwise_and(a in any::<u32>(), b in any::<u32>(), cycle_row in 0..(OP_CYCLE_LEN - 1)) {
         let expected = [Felt::ZERO; NUM_CONSTRAINTS];
         let frame = get_test_frame(BITWISE_AND, a, b, cycle_row);
-        let result = get_constraint_evaluation(frame, cycle_row);
-        assert_eq!(expected, result);
-    }
-
-    /// Tests that the bitwise constraints evaluate to zero on valid frames within a cycle which
-    /// compute the bitwise OR operation.
-    #[test]
-    fn test_bitwise_or(a in any::<u32>(), b in any::<u32>(), cycle_row in 0..(OP_CYCLE_LEN - 1)) {
-        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
-        let frame = get_test_frame(BITWISE_OR, a, b, cycle_row);
         let result = get_constraint_evaluation(frame, cycle_row);
         assert_eq!(expected, result);
     }
@@ -129,10 +97,8 @@ pub fn get_test_frame(
     let mut next = vec![Felt::ZERO; TRACE_WIDTH];
 
     // Set the operation selectors.
-    for idx in 0..NUM_SELECTORS {
-        current[BITWISE_SELECTOR_COL_RANGE.start + idx] = operation[idx];
-        next[BITWISE_SELECTOR_COL_RANGE.start + idx] = operation[idx];
-    }
+    current[BITWISE_SELECTOR_COL_IDX] = operation[0];
+    next[BITWISE_SELECTOR_COL_IDX] = operation[0];
 
     // Set the input aggregation and decomposition values.
     set_frame_inputs(&mut current, &mut next, a, b, cycle_row_num);
@@ -183,10 +149,8 @@ pub fn get_test_frame_with_two_ops(
     let mut next = vec![Felt::ZERO; TRACE_WIDTH];
 
     // Set the operation selectors.
-    for idx in 0..NUM_SELECTORS {
-        current[BITWISE_SELECTOR_COL_RANGE.start + idx] = op_current[idx];
-        next[BITWISE_SELECTOR_COL_RANGE.start + idx] = op_next[idx];
-    }
+    current[BITWISE_SELECTOR_COL_IDX] = op_current[0];
+    next[BITWISE_SELECTOR_COL_IDX] = op_next[0];
 
     // Set the input aggregation and decomposition values.
     set_frame_inputs(&mut current, &mut next, a, b, cycle_row_num);
@@ -255,8 +219,6 @@ fn set_frame_inputs(current: &mut [Felt], next: &mut [Felt], a: u32, b: u32, cyc
 fn get_output(operation: Selectors, a: u32, b: u32) -> u32 {
     if operation == BITWISE_AND {
         a & b
-    } else if operation == BITWISE_OR {
-        a | b
     } else if operation == BITWISE_XOR {
         a ^ b
     } else {
