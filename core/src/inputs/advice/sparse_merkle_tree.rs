@@ -83,23 +83,21 @@ impl SparseMerkleTree {
             Err(AdviceSetError::DepthTooSmall)
         } else if depth > self.depth() {
             Err(AdviceSetError::DepthTooBig(depth))
-        } else {
-            if !self.compact {
-                if depth == self.depth() {
-                    self.store.get_leaf_node(key, depth)
-                } else {
-                    let branch_node = self.store.get_branch_node(key, depth)?;
-                    Ok(hasher::merge(&[branch_node.left, branch_node.right]).into())
-                }
+        } else if !self.compact {
+            if depth == self.depth() {
+                self.store.get_leaf_node(key, depth)
             } else {
-                // Could be either leaf, branch node, or empty node
-                if let Ok(leaf_node) = self.store.get_leaf_node(key, depth) {
-                    Ok(leaf_node)
-                } else if let Ok(branch_node) = self.store.get_branch_node(key, depth) {
-                    Ok(hasher::merge(&[branch_node.left, branch_node.right]).into())
-                } else {
-                    Ok(self.store.get_empty_hash(depth as usize).into())
-                }
+                let branch_node = self.store.get_branch_node(key, depth)?;
+                Ok(hasher::merge(&[branch_node.left, branch_node.right]).into())
+            }
+        } else {
+            // Could be either leaf, branch node, or empty node
+            if let Ok(leaf_node) = self.store.get_leaf_node(key, depth) {
+                Ok(leaf_node)
+            } else if let Ok(branch_node) = self.store.get_branch_node(key, depth) {
+                Ok(hasher::merge(&[branch_node.left, branch_node.right]).into())
+            } else {
+                Ok(self.store.get_empty_hash(depth as usize).into())
             }
         }
     }
