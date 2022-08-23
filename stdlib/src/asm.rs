@@ -7545,7 +7545,7 @@ export.get
     
     # Retrieve hashed value H from Merkle tree with root R (9 cycles)
     # [H, R, K, ...]
-    mtree.get
+    mtree_get
 
     # Load claimed value V from advice tape (5 cycles)
     # [V, H, R, K, ...]
@@ -7599,7 +7599,7 @@ export.update
     
     # Retrieve hashed value H from Merkle tree with root R
     # [H, R, K, ...]
-    mtree.get
+    mtree_get
 
     # Load claimed value V from advice tape
     # [V, H, R, K, ...]
@@ -7648,7 +7648,7 @@ export.update
 
     # Compute the new Merkle root R' resulting from inserting H at depth d and key i
     # [H, R', ...]
-    mtree.set
+    mtree_set
 
     # Prepare final stack
     dropw
@@ -7725,7 +7725,7 @@ export.insert
 
     # Retrieve and store the internal node
     # [H, R, K, V]
-    mtree.get
+    mtree_get
     storew.mem.6
 
     # Load and store left child 
@@ -7874,7 +7874,7 @@ export.insert
     swapw
     drop
     drop
-    mtree.set
+    mtree_set
     dropw
     movupw.2
     swapw
