@@ -1,0 +1,518 @@
+# Copied from stdlib/asm/math/u64.masm
+# Performs right shift of one unsigned 64-bit integer using the pow2 operation.
+# The input value to be shifted is assumed to be represented using 32 bit limbs.
+# The shift value is assumed to be in the range [0, 64).
+# Stack transition looks as follows:
+# [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a >> b.
+# This takes 66 cycles.
+proc.unchecked_shr
+    unchecked_pow2
+    u32split
+
+    dup.1
+    add
+    movup.2
+    swap
+    u32unchecked_divmod
+    movup.3
+    movup.3
+    dup
+    eq.0
+    u32overflowing_sub
+    not
+    movdn.4
+    dup
+    movdn.4
+    u32unchecked_divmod
+    drop
+    push.4294967296
+    dup.5
+    mul
+    movup.4
+    div
+    movup.2
+    mul
+    add
+    movup.2
+    cswap
+end
+
+
+# Pushes the leaf value at K to the stack
+#
+# Each leaf in the tree is equal to H = hash([K, V]), where K and V are Words corresponding
+# to the uncompacted keys and value, respectively.
+# To retrieve a given leaf H, the compacted key and depth (each represented by a single field 
+# element) are added to the advice tape and consumed by the procedure.
+#
+# The only soundness checks performed in the 'get' and 'update' procedures are to verify that
+# K and V hash to the the claimed retrieved leaf in the compacted tree. Soundness checks
+# ensuring that H is located at the correct leaf node are performed at the time of insertion
+# in the 'insert' procedure.
+#
+# In the example below, the bit representation of the compacted keys are 000 for a, and 001
+# for b, which match the first 3 bits of each Word key used to generate H.
+#
+#           o
+#          /
+#         o
+#        /
+#       o
+#      / \
+#     a   b
+#
+# vars:
+# R: trie root
+# K: trie key
+# V: leaf value
+#
+# in:  [R, K, ...]
+# out: [V, R, K, ...]
+export.get
+    
+    # Load claimed depth (d) and compact key (i) from advice tape (7 cycles)
+    # [d, i, R, K, ...]
+    push.0.0.0.0
+    loadw.adv
+    drop
+    drop
+    
+    # Retrieve hashed value H from Merkle tree with root R (9 cycles)
+    # [H, R, K, ...]
+    mtree.get
+
+    # Load claimed value V from advice tape (5 cycles)
+    # [V, H, R, K, ...]
+    push.0.0.0.0
+    loadw.adv
+
+    # Duplicate key and value (8 cycles)
+    # [V, K, V, H, R, K, ...]
+    dupw.3
+    dupw.1
+
+    # Compute H' = hash([K, V]) (16 cycles)
+    # [H', V, H, R, K, ...]
+    rphash
+
+    # Test equality of H and H' (18 cycles)
+    movupw.2
+    eqw
+    assert
+
+    # Prepare final stack (8 cycles)
+    dropw
+    dropw
+end
+
+
+# Update an existing leaf node
+#
+# in:  [R, K, V ...]
+# out: [R', V, K, ...]
+proc.update
+    #---- Verify existence of a node with key K -------
+
+    # Load claimed depth (d) and compact key (i) from advice tape
+    # [d, i, R, K, ...]
+    push.0.0.0.0
+    loadw.adv
+    storew.mem.1
+    drop
+    drop
+    
+    # Retrieve hashed value H from Merkle tree with root R
+    # [H, R, K, ...]
+    mtree.get
+
+    # Load claimed value V from advice tape
+    # [V, H, R, K, ...]
+    push.0.0.0.0
+    loadw.adv
+
+    # Duplicate key and value
+    # [V, K, V, H, R, K, ...]
+    dupw.3
+    dupw.1
+
+    # Compute H' = hash([K, V])
+    # [H', V, H, R, K, ...]
+    rphash
+
+    # Test equality of H and H'
+    movupw.2
+    eqw
+    assert
+
+    # Drop hashes
+    dropw
+    dropw
+
+    # Drop value
+    dropw
+
+    #----------------------------------------------
+
+    # Rearrange stack and store K and V in memory
+    # [V, K, R]
+    movdnw.2
+    storew.mem.2
+    swapw
+    storew.mem.3
+
+    # Compute new hash value H = hash([K, V])
+    # [H, R]
+    rphash
+
+    # Load validated depth (d) and compact key (i) from memory
+    # [d, i, H, R, ...]
+    pushw.mem.1
+    drop
+    drop
+
+    # Compute the new Merkle root R' resulting from inserting H at depth d and key i
+    # [H, R', ...]
+    mtree.set
+
+    # Prepare final stack
+    dropw
+    pushw.mem.2 # K
+    pushw.mem.3 # V
+    movupw.2
+end
+
+
+# Attempt a type 2 insertion
+#
+# in:  [R, K, V ...]
+# out: [R', V, K, ...]
+proc.insert_type_2
+
+    # Load internal node key (i) and depth (d) from advice tape
+    # Load u64 representation of new key (lo, hi) from advice tape
+    # Store claimed values in memory
+    # Verify u64 representation of K
+    # [d, i, R, K, V]
+    push.0.0.0.0
+    loadw.adv
+    storew.mem.1
+    mul.4294967296
+    add
+    dup.10
+    eq
+    assert
+
+    # Retrieve and store the internal node
+    # [H, R, K, V]
+    mtree.get
+    storew.mem.6
+
+    # Load and store left child 
+    push.0.0.0.0
+    loadw.adv
+    storew.mem.2
+    dropw
+
+    # Load and store right child
+    push.0.0.0.0
+    loadw.adv
+    storew.mem.3
+    dropw
+
+    # Load and store empty hash (TODO: this should be provided by a kernel function)
+    push.0.0.0.0
+    loadw.adv
+    storew.mem.4
+    dropw
+
+    # Load branch indicator
+    # [1, H, R, K, V]
+    push.0.0.0.0
+    loadw.adv
+    drop
+    drop
+    drop
+
+    if.true
+        ## Left branch
+        # Assert that left child node is equal to empty hash
+        pushw.mem.2 
+        pushw.mem.4 
+        eqw
+        assert
+        dropw
+        dropw
+
+        ## Assert that right child node is *not* equal to empty hash
+        pushw.mem.3 
+        pushw.mem.4 
+        eqw
+        not
+        assert
+        dropw
+        dropw
+        
+        ## Append left branch path to internal node key i (i' = i*2)
+        pushw.mem.1 
+        drop
+        drop
+        #swap
+        drop
+        mul.2
+        push.0.0.0
+        storew.mem.5
+        dropw
+    else
+        ## Right branch
+        # Assert that right child node is equal to empty hash
+        pushw.mem.3 
+        pushw.mem.4 
+        eqw
+        assert
+        dropw
+        dropw
+
+        # Assert that left child node is *not* equal to empty hash
+        pushw.mem.2 
+        pushw.mem.4 
+        eqw
+        not
+        assert
+        dropw
+        dropw
+
+        # Append right branch path to internal node key i (i' = i*2 + 1)
+        pushw.mem.1 
+        drop
+        drop
+        swap
+        drop
+        mul.2
+        add.1
+        push.0.0.0
+        storew.mem.5
+        dropw
+    end
+
+    # Assert that left and right children hash to the internal node
+    # [R, K, V]
+    pushw.mem.2 
+    pushw.mem.3 
+    rphash
+    eqw
+    assert
+    dropw
+    dropw
+
+    # Shift new u64 leaf key k to align with appended key i' (k' = k >> (64 - d + 1)
+    # and perform soundness check for advice value claimed to be 64 - d
+    # TODO: Use unchecked_div instead of unchecked_shr to reduce cycle count?
+    # [k', d', R, K, V]
+    pushw.mem.1 
+    push.0.0.0.0
+    loadw.adv
+    drop
+    drop
+    drop
+    dup
+    pushw.mem.1
+    drop
+    drop
+    swap
+    drop
+    add
+    push.63
+    eq
+    assert
+    exec.unchecked_shr
+    
+    # Assert that new key limb k' is equal to appended key i' 
+    # Increment depth (d' = d + 1)
+    # [0, 0, d', i', R, K, V]
+    mul.4294967296
+    add
+    pushw.mem.5
+    drop
+    drop
+    drop
+    dup
+    eq
+    assert
+    movup.2
+    drop
+    swap
+    add.1
+    push.0.0
+
+    # Insert H = hash([K, V]) at index k' and depth d+1
+    dupw.3
+    dupw.3
+    swapw
+    rphash
+    swapw
+    drop
+    drop
+    mtree.set
+    dropw
+    movupw.2
+    swapw
+end
+
+
+# Attempt a type 1 insertion
+#
+# in:  [R, K, V ...]
+# out: [R', V, K, ...]
+proc.insert_type_1
+    ## Retrieve existing leaf node A (at compacted key k, and full key K). Store A to memory
+    
+    # Load claimed depth (d) and compact key (i) of A from advice tape
+    # [d, i, R, K, V, ...]
+    push.0.0.0.0
+    loadw.adv
+    storew.mem.1
+    drop
+    drop
+    
+    # Retrieve hashed value H from Merkle tree with root R
+    # [H, R, K, ...]
+    mtree_get
+
+    # Load claimed key K' and value V' from advice tape
+    # [V', K', H, R, K, ...]
+    push.0.0.0.0
+    loadw.adv
+    storew.mem.2
+    push.0.0.0.0
+    loadw.adv
+
+    # Compute H' = hash([K', V'])
+    # [H', H, R, K, ...]
+    rphash
+    storew.mem.3
+
+    # Test equality of H and H'
+    eqw
+    assert
+
+    # Drop hashes
+    dropw
+    dropw
+
+    ## Replace H' with the empty leaf E
+    
+    # Load empty hash (TODO: this should be provided by a kernel function)
+    push.0.0.0.0
+    loadw.adv
+
+    # Load depth (d) and compact key (i) corresponding to H' from memory
+    # [d, i, R, E, ...]
+    pushw.mem.1
+    drop
+    drop
+
+    # Compute the new Merkle root R' resulting from inserting E at depth d and key i
+    # [R', K, V, ...]
+    mtree_set
+    dropw
+
+    ## Reinsert H at i' (the claimed compact key that shares the extended common prefix)
+
+    # Push H to stack
+    # [R', H, K, V, ...]
+    pushw.mem.3
+
+    # Load extended depth d' and compact key i'
+    # [d', i', R', H, K, V, ...]
+    push.0.0.0.0
+    loadw.adv
+    drop
+    drop
+
+    # TODO: Soundness check that d' and i' match shared prefix of K' and K.
+    
+    # Change depth of SMT advice set
+    adv.set_smt_depth
+
+    # Compute the new Merkle root R'' resulting from inserting H at depth d' and key i'
+    # [R'', K, V, ...]
+    mtree_set
+    dropw
+    
+    # Proceed with insertion type 2 
+    exec.insert_type_2
+end
+
+
+# Insert value V at a new key K
+#
+# Two types of insertions are possible:
+# 1. We are adding a new compacted leaf node 'c' to an existing compacted leaf node 'b',
+#    in which case we need to identify the shared prefix between these nodes, and reinsert
+#    them at the next branching point.
+# 2. We are adding a new compacted leaf node to an internal node, in which case we simply insert
+#    the new leaf node in place of the empty child of the internal node.
+#
+# These two types are illustrated below for insertion of the 256-bit keys c and d.
+# Compacted leaf nodes are indicated by letters, and internal nodes by the symbol 'o'.
+#
+#  a: 00101...
+#  b: 01110...
+#  c. 01101...
+#  c. 01010...
+#
+#           Type 1                   |                  Type 2
+#                                    |
+#       o              o             |           o                    o
+#      /              /              |          /                    /
+#     o     --->     o               |         o                    o
+#    / \            / \              |        / \                  / \
+#   a   b          a   o             |       a   o       --->     a   o
+#                       \            |            \                  / \
+#                        o           |             o                d   o
+#                       / \          |            / \                  / \
+#                      c   b         |           c   b                c   b
+#
+# in:  [R, K, V ...]
+# out: [R', V, K, ...]
+proc.insert
+    push.0.0.0.0
+    loadw.adv
+    drop
+    drop
+    drop
+    if.true
+        exec.insert_type_1
+    else
+        exec.insert_type_2
+    end
+end
+
+
+# Set the leaf value at K and push the new root R' to the stack 
+#
+# Two scenarios:
+# 1. Empty value at key
+# 2. Existing value at key
+#
+# vars:
+# R: old trie root
+# R': new trie root
+# K: new trie key
+# V: new leaf value
+#
+# in:  [R, K, V ...]
+# out: [R', V, K, ...]
+export.set
+    # Load conditional update/insert flag
+    push.0.0.0.0
+    loadw.adv
+    drop
+    drop
+    drop
+    if.true
+        exec.update
+    else
+        exec.insert
+    end
+end
