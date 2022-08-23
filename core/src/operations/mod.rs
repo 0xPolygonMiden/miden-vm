@@ -317,30 +317,29 @@ pub enum Operation {
     /// which starts with the specified node.
     ///
     /// The stack is expected to be arranged as follows (from the top):
+    /// - value of the node, 4 elements.
     /// - depth of the path, 1 element.
     /// - index of the node, 1 element.
-    /// - value of the node, 4 elements.
     /// - root of the tree, 4 elements.
     ///
     /// The Merkle path itself is expected to be provided by the prover non-deterministically (via
     /// advice sets). If the prover is not able to provide the required path, the operation fails.
-    /// Otherwise, the state of the stack does not change.
+    /// The state of the stack does not change.
     MpVerify,
 
     /// Computes a new root of a Merkle tree where a node at the specified position is updated to
     /// the specified value.
     ///
     /// The stack is expected to be arranged as follows (from the top):
+    /// - old value of the node, 4 element
     /// - depth of the node, 1 element
     /// - index of the node, 1 element
-    /// - old value of the node, 4 element
-    /// - new value of the node, 4 element
     /// - current root of the tree, 4 elements
+    /// - new value of the node, 4 element
     ///
     /// The Merkle path for the node is expected to be provided by the prover non-deterministically
     /// (via advice sets). At the end of the operation, the old node value is replaced with the
-    /// old root value computed based on the provided path, the new node value is replaced by the
-    /// new root value computed based on the same path. Everything else on the stack remains the
+    /// new root value computed based on the provided path. Everything else on the stack remains the
     /// same.
     ///
     /// If the boolean parameter is set to false, at the end of the operation the advice set with
