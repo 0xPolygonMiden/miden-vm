@@ -18,6 +18,7 @@ pub struct SparseMerkleTree {
     root: Word,
     depth: u32,
     store: Store,
+    compact: bool,
 }
 
 impl SparseMerkleTree {
@@ -26,9 +27,36 @@ impl SparseMerkleTree {
             return Err(AdviceSetError::DepthTooBig(depth));
         }
         let (store, root) = Store::new(depth);
-        let mut tree = Self { root, depth, store };
+        let mut tree = Self {
+            root,
+            depth,
+            store,
+            compact: false,
+        };
         for (key, val) in keys.into_iter().zip(values) {
-            tree.insert_leaf(key, val)
+            tree.insert_leaf(key, depth, val)
+                .expect("Failed to insert leaf value");
+        }
+        Ok(tree)
+    }
+
+    pub fn new_compact(
+        keys: Vec<(u64, u32)>,
+        values: Vec<Word>,
+        max_depth: u32,
+    ) -> Result<Self, AdviceSetError> {
+        if max_depth > 63 {
+            return Err(AdviceSetError::DepthTooBig(max_depth));
+        }
+        let (store, root) = Store::new(max_depth);
+        let mut tree = Self {
+            root,
+            depth: max_depth,
+            store,
+            compact: true,
+        };
+        for ((key, depth), val) in keys.into_iter().zip(values) {
+            tree.insert_leaf(key, depth, val)
                 .expect("Failed to insert leaf value");
         }
         Ok(tree)
@@ -55,11 +83,24 @@ impl SparseMerkleTree {
             Err(AdviceSetError::DepthTooSmall)
         } else if depth > self.depth() {
             Err(AdviceSetError::DepthTooBig(depth))
-        } else if depth == self.depth() {
-            self.store.get_leaf_node(key)
         } else {
-            let branch_node = self.store.get_branch_node(key, depth)?;
-            Ok(hasher::merge(&[branch_node.left, branch_node.right]).into())
+            if !self.compact {
+                if depth == self.depth() {
+                    self.store.get_leaf_node(key, depth)
+                } else {
+                    let branch_node = self.store.get_branch_node(key, depth)?;
+                    Ok(hasher::merge(&[branch_node.left, branch_node.right]).into())
+                }
+            } else {
+                // Could be either leaf, branch node, or empty node
+                if let Ok(leaf_node) = self.store.get_leaf_node(key, depth) {
+                    Ok(leaf_node)
+                } else if let Ok(branch_node) = self.store.get_branch_node(key, depth) {
+                    Ok(hasher::merge(&[branch_node.left, branch_node.right]).into())
+                } else {
+                    Ok(self.store.get_empty_hash(depth as usize).into())
+                }
+            }
         }
     }
 
@@ -71,15 +112,14 @@ impl SparseMerkleTree {
     /// * The specified key does not exist as a branch or leaf node
     /// * The specified depth is greater than the depth of the tree.
     pub fn get_path(&self, depth: u32, key: u64) -> Result<Vec<Word>, AdviceSetError> {
-        if self.store.get_leaf_node(key).is_err() {
-            return Err(AdviceSetError::InvalidKey(key));
-        }
         if depth == 0 {
             return Err(AdviceSetError::DepthTooSmall);
         } else if depth > self.depth() {
             return Err(AdviceSetError::DepthTooBig(depth));
         }
-
+        if !self.compact && self.store.get_leaf_node(key, depth).is_err() {
+            return Err(AdviceSetError::InvalidKey(key));
+        }
         let mut path = Vec::with_capacity(depth as usize);
         let mut curr_key = key;
         for n in (0..depth).rev() {
@@ -100,20 +140,26 @@ impl SparseMerkleTree {
     ///
     /// # Errors
     /// Returns an error if the specified key is not a valid leaf index for this tree.
-    pub fn update_leaf(&mut self, key: u64, value: Word) -> Result<(), AdviceSetError> {
-        if self.store.get_leaf_node(key).is_err() {
+    pub fn update_leaf(
+        &mut self,
+        key: u64,
+        depth: Option<u32>,
+        value: Word,
+    ) -> Result<(), AdviceSetError> {
+        let d = depth.unwrap_or(self.depth);
+        if !self.compact && self.store.get_leaf_node(key, d).is_err() {
             return Err(AdviceSetError::InvalidKey(key));
         }
-        self.insert_leaf(key, value)?;
+        self.insert_leaf(key, d, value)?;
 
         Ok(())
     }
 
     /// Inserts a leaf located at the specified key, and recomputes hashes by walking up the tree
-    pub fn insert_leaf(&mut self, key: u64, value: Word) -> Result<(), AdviceSetError> {
-        self.store.insert_leaf_node(key, value);
+    pub fn insert_leaf(&mut self, key: u64, depth: u32, value: Word) -> Result<(), AdviceSetError> {
+        self.store.insert_leaf_node(key, depth, value);
 
-        let depth = self.depth();
+        //let depth = self.depth();
         let mut curr_key = key;
         let mut curr_node: Digest = value.into();
         for n in (0..depth).rev() {
@@ -136,6 +182,12 @@ impl SparseMerkleTree {
 
         Ok(())
     }
+
+    /// Reinterpret internal nodes at the specified depth as leaf nodes
+    pub fn truncate(&mut self, depth: u32) {
+        // TODO
+        self.depth = depth;
+    }
 }
 
 // STORE
@@ -146,20 +198,20 @@ impl SparseMerkleTree {
 /// respectively. Hashes for blank subtrees at each layer are stored in `empty_hashes`, beginning
 /// with the root hash of an empty tree, and ending with the zero value of a leaf node.
 #[derive(Clone, Debug)]
-struct Store {
+pub struct Store {
     branches: BTreeMap<(u64, u32), BranchNode>,
-    leaves: BTreeMap<u64, Word>,
+    leaves: BTreeMap<(u64, u32), Word>,
     empty_hashes: Vec<Digest>,
 }
 
 #[derive(Clone, Debug, Default)]
-struct BranchNode {
+pub struct BranchNode {
     left: Digest,
     right: Digest,
 }
 
 impl Store {
-    fn new(depth: u32) -> (Self, Word) {
+    pub fn new(depth: u32) -> (Self, Word) {
         let branches = BTreeMap::new();
         let leaves = BTreeMap::new();
 
@@ -185,6 +237,10 @@ impl Store {
         (store, root)
     }
 
+    pub fn get_empty_hash(&self, depth: usize) -> Digest {
+        self.empty_hashes[depth]
+    }
+
     fn get_empty_node(&self, depth: usize) -> BranchNode {
         let digest = self.empty_hashes[depth];
         BranchNode {
@@ -193,15 +249,15 @@ impl Store {
         }
     }
 
-    fn get_leaf_node(&self, key: u64) -> Result<Word, AdviceSetError> {
+    fn get_leaf_node(&self, key: u64, depth: u32) -> Result<Word, AdviceSetError> {
         self.leaves
-            .get(&key)
+            .get(&(key, depth))
             .cloned()
             .ok_or(AdviceSetError::InvalidKey(key))
     }
 
-    fn insert_leaf_node(&mut self, key: u64, node: Word) {
-        self.leaves.insert(key, node);
+    fn insert_leaf_node(&mut self, key: u64, depth: u32, node: Word) {
+        self.leaves.insert((key, depth), node);
     }
 
     fn get_branch_node(&self, key: u64, depth: u32) -> Result<BranchNode, AdviceSetError> {
@@ -268,7 +324,7 @@ mod tests {
         let key = 6;
         let new_node = int_to_node(7);
         values[key as usize] = new_node;
-        smt.insert_leaf(key, new_node)
+        smt.insert_leaf(key, smt.depth(), new_node)
             .expect("Failed to insert leaf");
         let mt2 = MerkleTree::new(values.clone()).unwrap();
         assert_eq!(mt2.root(), smt.root());
@@ -278,7 +334,7 @@ mod tests {
         let key = 2;
         let new_node = int_to_node(3);
         values[key as usize] = new_node;
-        smt.insert_leaf(key, new_node)
+        smt.insert_leaf(key, smt.depth(), new_node)
             .expect("Failed to insert leaf");
         let mt3 = MerkleTree::new(values).unwrap();
         assert_eq!(mt3.root(), smt.root());
@@ -335,7 +391,7 @@ mod tests {
         let expected_tree =
             super::SparseMerkleTree::new(KEYS8.to_vec(), expected_values.clone(), 3).unwrap();
 
-        tree.update_leaf(key as u64, new_node).unwrap();
+        tree.update_leaf(key as u64, None, new_node).unwrap();
         assert_eq!(expected_tree.root, tree.root);
 
         // update another value
@@ -345,7 +401,7 @@ mod tests {
         let expected_tree =
             super::SparseMerkleTree::new(KEYS8.to_vec(), expected_values.clone(), 3).unwrap();
 
-        tree.update_leaf(key as u64, new_node).unwrap();
+        tree.update_leaf(key as u64, None, new_node).unwrap();
         assert_eq!(expected_tree.root, tree.root);
     }
 
