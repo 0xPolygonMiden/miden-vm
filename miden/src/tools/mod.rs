@@ -1,3 +1,4 @@
+use super::cli::InputFile;
 use assembly::{Assembler, AssemblyError};
 use core::fmt;
 use processor::{AsmOpInfo, ExecutionError};
@@ -15,6 +16,9 @@ pub struct Analyze {
     /// Path to .masm assembly file
     #[structopt(short = "a", long = "assembly", parse(from_os_str))]
     assembly_file: PathBuf,
+    /// Path to .inputs file
+    #[structopt(short = "i", long = "input", parse(from_os_str))]
+    input_file: Option<PathBuf>,
 }
 
 /// Implements CLI execution logic
@@ -22,9 +26,10 @@ impl Analyze {
     pub fn execute(&self) -> Result<(), String> {
         let program =
             std::fs::read_to_string(&self.assembly_file).expect("Could not read masm file");
-        let program_inputs = ProgramInputs::none();
-        let program_info: ProgramInfo =
-            analyze(program.as_str(), program_inputs).expect("Could not retrieve program info");
+        // load input data from file
+        let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
+        let program_info: ProgramInfo = analyze(program.as_str(), input_data.get_program_inputs())
+            .expect("Could not retrieve program info");
         println!("{}", program_info);
         Ok(())
     }

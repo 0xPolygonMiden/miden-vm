@@ -3,7 +3,7 @@ use prover::StarkProof;
 use serde_derive::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::{fs, io::Write, time::Instant};
-use vm_core::{hasher::Digest, Program, ProgramInputs};
+use vm_core::{chiplets::hasher::Digest, Program, ProgramInputs};
 use winter_utils::{Deserializable, SliceReader};
 
 // INPUT FILE
@@ -12,13 +12,21 @@ use winter_utils::{Deserializable, SliceReader};
 /// Input file struct
 #[derive(Deserialize, Debug)]
 pub struct InputFile {
-    pub stack_inputs: Vec<u64>,
+    pub stack_init: Vec<String>,
 }
 
 /// Helper methods to interact with the input file
 impl InputFile {
     pub fn read(inputs_path: &Option<PathBuf>, program_path: &Path) -> Result<Self, String> {
-        // If inputs_path has been provided then use this as path.  Alternatively we will
+        // if file not specified explicitly and corresponding file with same name as program_path
+        // with '.inputs' extension does't exist, set stack_init to empty vector
+        if !inputs_path.is_some() && !program_path.with_extension("inputs").exists() {
+            return Ok(Self {
+                stack_init: Vec::new(),
+            });
+        }
+
+        // If inputs_path has been provided then use this as path. Alternatively we will
         // replace the program_path extension with `.inputs` and use this as a default.
         let path = match inputs_path {
             Some(path) => path.clone(),
@@ -40,7 +48,15 @@ impl InputFile {
 
     // TODO add handling of advice provider inputs
     pub fn get_program_inputs(&self) -> ProgramInputs {
-        ProgramInputs::from_stack_inputs(&self.stack_inputs).unwrap()
+        ProgramInputs::from_stack_inputs(&self.stack_init()).unwrap()
+    }
+
+    /// Parse stack_init vector of strings to a vector of u64
+    pub fn stack_init(&self) -> Vec<u64> {
+        self.stack_init
+            .iter()
+            .map(|v| v.parse::<u64>().unwrap())
+            .collect::<Vec<u64>>()
     }
 }
 
@@ -50,12 +66,22 @@ impl InputFile {
 /// Output file struct
 #[derive(Deserialize, Serialize, Debug)]
 pub struct OutputFile {
-    pub outputs: Vec<u64>,
+    pub outputs: Vec<String>,
 }
 
 /// Helper methods to interact with the output file
 impl OutputFile {
-    /// read the input file
+    /// Returns a new [OutputFile] from the specified outputs vector
+    pub fn new(outputs: Vec<u64>) -> Self {
+        Self {
+            outputs: outputs
+                .iter()
+                .map(|v| v.to_string())
+                .collect::<Vec<String>>(),
+        }
+    }
+
+    /// Read the output file
     pub fn read(outputs_path: &Option<PathBuf>, program_path: &Path) -> Result<Self, String> {
         // If outputs_path has been provided then use this as path.  Alternatively we will
         // replace the program_path extension with `.outputs` and use this as a default.
@@ -80,32 +106,37 @@ impl OutputFile {
         Ok(outputs)
     }
 
-    /// write the output file
+    /// Write the output file
     pub fn write(outputs: Vec<u64>, path: &Option<PathBuf>) -> Result<(), String> {
-        match path {
-            Some(path) => {
-                // if path provided create output file
+        if let Some(path) = path {
+            // if path provided, create output file
+            println!("Creating output file `{}`", path.display());
 
-                println!("Creating output file `{}`", path.display());
+            let file = fs::File::create(&path).map_err(|err| {
+                format!(
+                    "Failed to create output file `{}` - {}",
+                    path.display(),
+                    err
+                )
+            })?;
 
-                let file = fs::File::create(&path).map_err(|err| {
-                    format!(
-                        "Failed to create output file `{}` - {}",
-                        path.display(),
-                        err
-                    )
-                })?;
+            println!("Writing data to output file");
 
-                println!("Writing data to output file");
-
-                // write outputs to output file
-                serde_json::to_writer_pretty(file, &Self { outputs })
-            }
-
-            // no path provided - write outputs to stdout
-            None => serde_json::to_writer_pretty(std::io::stdout(), &Self { outputs }),
+            // write outputs to output file
+            serde_json::to_writer_pretty(file, &Self::new(outputs))
+        } else {
+            println!("Output: {:?}", outputs);
+            Ok(())
         }
         .map_err(|err| format!("Failed to write output data - {}", err))
+    }
+
+    /// Converts outputs vector of String to vector of u64
+    pub fn outputs(&self) -> Vec<u64> {
+        self.outputs
+            .iter()
+            .map(|v| v.parse::<u64>().unwrap())
+            .collect::<Vec<u64>>()
     }
 }
 

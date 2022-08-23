@@ -248,8 +248,8 @@ impl Memory {
     pub fn fill_trace(
         self,
         trace: &mut TraceFragment,
-        memory_start_row: usize,
         chiplets_bus: &mut ChipletsBus,
+        memory_start_row: usize,
     ) {
         debug_assert_eq!(self.trace_len(), trace.len(), "inconsistent trace lengths");
 

@@ -7,6 +7,7 @@ pub mod crypto;
 
 // CONSTANTS
 // ================================================================================================
+pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 pub const WORD_LEN: usize = 4;
 
 // TEST HANDLER

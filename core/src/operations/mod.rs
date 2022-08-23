@@ -312,9 +312,9 @@ pub enum Operation {
     /// capacity, the stack should look like [C, B, A, ...] from the top.
     RpPerm,
 
-    /// Computes a root of a Merkle path for the specified node. This operation can be used to
-    /// prove that the prover knows a path in the specified Merkle tree which starts with the
-    /// specified node.
+    /// Verifies that a Merkle path from the specified node resolves to the specified root. This
+    /// operation can be used to prove that the prover knows a path in the specified Merkle tree
+    /// which starts with the specified node.
     ///
     /// The stack is expected to be arranged as follows (from the top):
     /// - depth of the path, 1 element.
@@ -323,9 +323,8 @@ pub enum Operation {
     /// - root of the tree, 4 elements.
     ///
     /// The Merkle path itself is expected to be provided by the prover non-deterministically (via
-    /// advice sets). At the end of the operation, and the node values are replaced with the
-    /// computed root, but everything else remains the same. Thus, if the correct Merkle path was
-    /// provided, the computed root and the provided root must be the same.
+    /// advice sets). If the prover is not able to provide the required path, the operation fails.
+    /// Otherwise, the state of the stack does not change.
     MpVerify,
 
     /// Computes a new root of a Merkle tree where a node at the specified position is updated to
@@ -356,109 +355,112 @@ impl Operation {
     /// Returns the opcode of this operation.
     ///
     /// Opcode patterns have the following meanings:
-    /// - 1001xxx: operations that result in a stack left shift from index 2, but do not require
-    ///   range checks. These are the left shifting u32 and field ops without range checks.
-    /// - 1000xxx: operations that consume four range checks.
-    ///   - 100010x: an operation that consumes four range checks and shifts the stack left.
-    ///   - 1000110: an operation that consumes four range checks and shifts the stack right.
+    /// - 00xxxxx operations do not shift the stack; constraint degree can be up to 2.
+    /// - 010xxxx operations shift the stack the left; constraint degree can be up to 2.
+    /// - 011xxxx operations shift the stack to the right; constraint degree can be up to 2.
+    /// - 100xxx-: operations consume 4 range checks; constraint degree can be up to 3. These are
+    ///   used to encode most u32 operations.
+    /// - 101xxx-: operations where constraint degree can be up to 3. These include control flow
+    ///   operations and some other operations requiring high degree constraints.
+    /// - 11xxx--: operations where constraint degree can be up to 5. These include control flow
+    ///   operations and some other operations requiring very high degree constraints.
+    #[rustfmt::skip]
     pub fn op_code(&self) -> u8 {
         match self {
-            Self::Noop => 0,
-            Self::Assert => 1,
+            Self::Noop      => 0b0000_0000,
+            Self::Eqz       => 0b0000_0001,
+            Self::Neg       => 0b0000_0010,
+            Self::Inv       => 0b0000_0011,
+            Self::Incr      => 0b0000_0100,
+            Self::Not       => 0b0000_0101,
+            Self::FmpAdd    => 0b0000_0110,
+            Self::MLoad     => 0b0000_0111,
+            Self::Swap      => 0b0000_1000,
+            // <empty>      => 0b0000_1001,
+            Self::MovUp2    => 0b0000_1010,
+            Self::MovDn2    => 0b0000_1011,
+            Self::MovUp3    => 0b0000_1100,
+            Self::MovDn3    => 0b0000_1101,
+            Self::ReadW     => 0b0000_1110,
+            // <empty>      => 0b0000_1111
 
-            Self::FmpAdd => 2,
-            Self::FmpUpdate => 3,
+            Self::MovUp4    => 0b0001_0000,
+            Self::MovDn4    => 0b0001_0001,
+            Self::MovUp5    => 0b0001_0010,
+            Self::MovDn5    => 0b0001_0011,
+            Self::MovUp6    => 0b0001_0100,
+            Self::MovDn6    => 0b0001_0101,
+            Self::MovUp7    => 0b0001_0110,
+            Self::MovDn7    => 0b0001_0111,
+            Self::SwapW     => 0b0001_1000,
+            // <empty>      => 0b0001_1001
+            Self::MovUp8    => 0b0001_1010,
+            Self::MovDn8    => 0b0001_1011,
+            Self::SwapW2    => 0b0001_1100,
+            Self::SwapW3    => 0b0001_1101,
+            Self::SwapDW    => 0b0001_1110,
+            // <empty>      => 0b0001_1111
 
-            Self::Push(_) => 4,
+            Self::Assert    => 0b0010_0000,
+            Self::Eq        => 0b0010_0001,
+            Self::Add       => 0b0010_0010,
+            Self::Mul       => 0b0010_0011,
+            Self::And       => 0b0010_0100,
+            Self::Or        => 0b0010_0101,
+            Self::U32and    => 0b0010_0110,
+            Self::U32or     => 0b0010_0111,
+            Self::U32xor    => 0b0010_1000,
+            Self::Drop      => 0b0010_1001,
+            Self::CSwap     => 0b0010_1010,
+            Self::CSwapW    => 0b0010_1011,
+            Self::MLoadW    => 0b0010_1100,
+            Self::MStore    => 0b0010_1101,
+            Self::MStoreW   => 0b0010_1110,
+            Self::FmpUpdate => 0b0010_1111,
 
-            Self::Eq => 0b0100_1001,
-            Self::Eqz => 5,
+            Self::Pad       => 0b0011_0000,
+            Self::Dup0      => 0b0011_0001,
+            Self::Dup1      => 0b0011_0010,
+            Self::Dup2      => 0b0011_0011,
+            Self::Dup3      => 0b0011_0100,
+            Self::Dup4      => 0b0011_0101,
+            Self::Dup5      => 0b0011_0110,
+            Self::Dup6      => 0b0011_0111,
+            Self::Dup7      => 0b0011_1000,
+            Self::Dup9      => 0b0011_1001,
+            Self::Dup11     => 0b0011_1010,
+            Self::Dup13     => 0b0011_1011,
+            Self::Dup15     => 0b0011_1100,
+            Self::Read      => 0b0011_1101,
+            Self::SDepth    => 0b0011_1110,
+            // <empty>      => 0b0011_1111
 
-            Self::Add => 0b0100_1000,
-            Self::Neg => 7,
-            Self::Mul => 0b0100_1010,
-            Self::Inv => 8,
-            Self::Incr => 9,
-            Self::And => 0b0100_1011,
-            Self::Or => 0b0100_1100,
-            Self::Not => 11,
+            Self::U32add    => 0b0100_0000,
+            Self::U32sub    => 0b0100_0010,
+            Self::U32mul    => 0b0100_0100,
+            Self::U32div    => 0b0100_0110,
+            Self::U32split  => 0b0100_1000,
+            Self::U32assert2 => 0b0100_1010,
+            Self::U32add3   => 0b0100_1100,
+            Self::U32madd   => 0b0100_1110,
 
-            Self::Pad => 12,
-            Self::Drop => 13,
+            Self::RpPerm    => 0b0101_0000,
+            Self::MpVerify  => 0b0101_0010,
+            // <empty>      => 0b0101_0100
+            // <empty>      => 0b0101_0110
+            Self::Span      => 0b0101_1000,
+            Self::Join      => 0b0101_1010,
+            Self::Split     => 0b0101_1100,
+            Self::Loop      => 0b0101_1110,
 
-            Self::Dup0 => 14,
-            Self::Dup1 => 15,
-            Self::Dup2 => 16,
-            Self::Dup3 => 17,
-            Self::Dup4 => 18,
-            Self::Dup5 => 19,
-            Self::Dup6 => 20,
-            Self::Dup7 => 21,
-            Self::Dup9 => 22,
-            Self::Dup11 => 23,
-            Self::Dup13 => 24,
-            Self::Dup15 => 25,
-
-            Self::Swap => 26,
-            Self::SwapW => 27,
-            Self::SwapW2 => 28,
-            Self::SwapW3 => 29,
-            Self::SwapDW => 30,
-
-            Self::MovUp2 => 31,
-            Self::MovUp3 => 32,
-            Self::MovUp4 => 33,
-            Self::MovUp5 => 34,
-            Self::MovUp6 => 35,
-            Self::MovUp7 => 36,
-            Self::MovUp8 => 37,
-
-            Self::MovDn2 => 40,
-            Self::MovDn3 => 41,
-            Self::MovDn4 => 42,
-            Self::MovDn5 => 43,
-            Self::MovDn6 => 44,
-            Self::MovDn7 => 45,
-            Self::MovDn8 => 46,
-
-            Self::CSwap => 50,
-            Self::CSwapW => 51,
-
-            Self::U32add => 0b0100_0000,
-            Self::U32sub => 0b0100_0001,
-            Self::U32mul => 0b0100_0010,
-            Self::U32div => 0b0100_0011,
-            Self::U32add3 => 0b0100_0100,
-            Self::U32madd => 0b0100_0101,
-            Self::U32split => 0b0100_0110,
-            Self::U32assert2 => 0b0100_0111,
-
-            Self::U32and => 0b0100_1101,
-            Self::U32or => 0b0100_1110,
-            Self::U32xor => 0b0100_1111,
-
-            Self::MLoadW => 52,
-            Self::MStoreW => 53,
-
-            Self::Read => 54,
-            Self::ReadW => 55,
-
-            Self::SDepth => 56,
-
-            Self::RpPerm => 57,
-            Self::MpVerify => 58,
-            Self::MrUpdate(_) => 59,
-
-            Self::End => 60,
-            Self::Join => 61,
-            Self::Split => 62,
-            Self::Loop => 63,
-            Self::Repeat => 80,
-            Self::Respan => 81,
-            Self::Span => 82,
-            Self::Halt => 83,
-            Self::MLoad => 84,
-            Self::MStore => 85,
+            Self::MrUpdate(_) => 0b0110_0000,
+            Self::Push(_)   => 0b0110_0100,
+            // <empty>      => 0b0110_1000
+            // <empty>      => 0b0110_1100
+            Self::End       => 0b0111_0000,
+            Self::Repeat    => 0b0111_0100,
+            Self::Respan    => 0b0111_1000,
+            Self::Halt      => 0b0111_1100,
         }
     }
 

@@ -21,15 +21,15 @@ impl AuxTraceBuilder {
     // --------------------------------------------------------------------------------------------
 
     /// Builds and returns the Chiplets's auxiliary trace columns. Currently this consists of
-    /// a single bus column `b_aux` describing chiplet lookups requested by the stack and
+    /// a single bus column `b_chip` describing chiplet lookups requested by the stack and
     /// provided by chiplets in the Chiplets module.
     pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
         &self,
         main_trace: &Matrix<Felt>,
         rand_elements: &[E],
     ) -> Vec<Vec<E>> {
-        let b_aux = self.build_aux_column(main_trace, rand_elements);
-        vec![b_aux]
+        let b_chip = self.build_aux_column(main_trace, rand_elements);
+        vec![b_chip]
     }
 }
 

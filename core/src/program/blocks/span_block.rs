@@ -378,7 +378,7 @@ pub fn get_span_op_group_count(op_batches: &[OpBatch]) -> usize {
 /// - Assert the decorator list is in ascending order.
 /// - Assert the last op index in decorator list is less than the number of operations.
 #[cfg(debug_assertions)]
-fn validate_decorators(operations: &Vec<Operation>, decorators: &DecoratorList) {
+fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
     if !decorators.is_empty() {
         // check if decorator list is sorted
         for i in 0..(decorators.len() - 1) {

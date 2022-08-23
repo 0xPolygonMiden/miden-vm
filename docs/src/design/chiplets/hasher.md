@@ -15,8 +15,8 @@ The chiplet can be thought of as having a small instruction set of $11$ instruct
 | `RPR`       | Executes a single round of Rescue Prime. All cycles which are not one less than a multiple of $8$ execute this instruction. That is, the chiplet executes this instruction on cycles $0, 1, 2, 3, 4, 5, 6$, but not $7$, and then again, $8, 9, 10, 11, 12, 13, 14$, but not $15$ etc.                             |
 | `BP`        | Initiates computation of a single permutation, a 2-to-1 hash, or a linear hash of many elements. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                      |
 | `MP`        | Initiates Merkle path verification computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                                                                       |
-| `MV`        | Initiates Merkle path verification for the "old" node value during Merkle root update computaiton. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                    |
-| `MU`        | Initiates Merkle path verification for the "new" node value during Merkle root update computaiton. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                    |
+| `MV`        | Initiates Merkle path verification for the "old" node value during Merkle root update computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                    |
+| `MU`        | Initiates Merkle path verification for the "new" node value during Merkle root update computation. This instruction can be executed only on cycles which are multiples of $8$, and it can also be executed concurrently with `RPR` instruction.                                                                    |
 | `HOUT`      | Returns the result of the currently running computation. This instruction can be executed only on cycles which are one less than a multiple of $8$ (e.g. $7$, $15$ etc.).                                                                                                                                          |
 | `SOUT`      | Returns the whole hasher state. This instruction can be executed only on cycles which are one less than a multiple of $8$, and only if the computation was started using `BP` instruction.                                                                                                                         |
 | `ABP`       | Absorbs a new set of elements into the hasher state when computing a linear hash of many elements. This instruction can be executed only on cycles which are one less than a multiple of $8$, and only if the computation was started using `BP` instruction.                                                      |
@@ -239,15 +239,15 @@ When describing AIR constraints, we adopt the following notation: for column $x$
 As mentioned above, row address $r$ starts at $1$, and is incremented by $1$ with every row. The first condition can be enforced with a boundary constraint which specifies $r=1$ at the first row. The second condition can be enforced via the following transition constraint:
 
 >$$
-r' - r - 1 = 0  \text{ | degree } = 1
+r' - r - 1 = 0  \text{ | degree} = 1
 $$
 
-This constraint should not be applied to the very last row of the hasher execution trace, since we do not want to enforce a value that would conflict with the first row of a subsequent chiplet in the Chiplets module. Therefore we can create a special virtual flag for this constraint using the $aux\_s_0$ selector column from the [Chiplets](main.md) module that selects for the hash chiplet.
+This constraint should not be applied to the very last row of the hasher execution trace, since we do not want to enforce a value that would conflict with the first row of a subsequent chiplet in the Chiplets module. Therefore we can create a special virtual flag for this constraint using the $chip\_s_0$ selector column from the [Chiplets](main.md) module that selects for the hash chiplet.
 
 The modified row address constraint which should be applied is the following:
 
 >$$
-(1 - aux\_s_0') \cdot (r' - r - 1) = 0 \text{ | degree } = 2
+(1 - chip\_s_0') \cdot (r' - r - 1) = 0 \text{ | degree} = 2
 $$
 
 _Note: this constraint should also be multiplied by Chiplets module's selector flag $s_0$, as is true for all constraints in this chiplet._
@@ -257,28 +257,28 @@ _Note: this constraint should also be multiplied by Chiplets module's selector f
 For selector columns, first we must ensure that only binary values are allowed in these columns. This can be done with the following constraints:
 
 >$$
-s_0^2 - s_0 = 0 \text{ | degree } = 2 \\
-s_1^2 - s_1 = 0 \text{ | degree } = 2 \\
-s_2^2 - s_2 = 0 \text{ | degree } = 2
+s_0^2 - s_0 = 0 \text{ | degree} = 2 \\
+s_1^2 - s_1 = 0 \text{ | degree} = 2 \\
+s_2^2 - s_2 = 0 \text{ | degree} = 2
 $$
 
 Next, we need to make sure that unless $f_{out}=1$ or $f_{out}'=1$, the values in columns $s_1$ and $s_2$ are copied over to the next row. This can be done with the following constraints:
 
 >$$
-(s_1' - s_1) \cdot (1 - f_{out}') \cdot (1 - f_{out}) = 0  \text{ | degree } = 9 \\
-(s_2' - s_2) \cdot (1 - f_{out}') \cdot (1 - f_{out}) = 0  \text{ | degree } = 9
+(s_1' - s_1) \cdot (1 - f_{out}') \cdot (1 - f_{out}) = 0  \text{ | degree} = 9 \\
+(s_2' - s_2) \cdot (1 - f_{out}') \cdot (1 - f_{out}) = 0  \text{ | degree} = 9
 $$
 
 Next, we need to enforce that if any of $f_{abp}, f_{mpa}, f_{mva}, f_{mua}$ flags is set to $1$, the next value of $s_0$ is $0$. In all other cases, $s_0$ should be unconstrained. These flags will only be set for rows that are 1 less than a multiple of 8 (the last row of each cycle). This can be done with the following constraint:
 
 >$$
-s_0' \cdot (f_{abp} + f_{mpa} + f_{mva} + f_{mua})= 0  \text{ | degree } = 5
+s_0' \cdot (f_{abp} + f_{mpa} + f_{mva} + f_{mua})= 0  \text{ | degree} = 5
 $$
 
 Lastly, we need to make sure that no invalid combinations of flags are allowed. This can be done with the following constraints:
 
 >$$
-k_0 \cdot (1 - s_0) \cdot s_1 = 0 \text{ | degree } = 3
+k_0 \cdot (1 - s_0) \cdot s_1 = 0 \text{ | degree} = 3
 $$
 
 The above constraints enforce that on every step which is one less than a multiple of $8$, if $s_0 = 0$, then $s_1$ must also be set to $0$. Basically, if we set $s_0=0$, then we must make sure that either $f_{hout}=1$ or $f_{sout}=1$.
@@ -309,19 +309,19 @@ $$
 And then the full constraint would looks as follows:
 
 >$$
-f_{an} \cdot (b^2 - b) = 0  \text{ | degree } = 6
+f_{an} \cdot (b^2 - b) = 0  \text{ | degree} = 6
 $$
 
 Next, to make sure when a computation is finished $i=0$, we can use the following constraint:
 
 >$$
-f_{out} \cdot i = 0 \text{ | degree } = 5
+f_{out} \cdot i = 0 \text{ | degree} = 5
 $$
 
 Finally, to make sure that the value in $i$ is copied over to the next row unless we are absorbing a new row or the computation is finished, we impose the following constraint:
 
 >$$
-(1 - f_{an} - f_{out}) \cdot (i' - i) = 0 \text{ | degree } = 5
+(1 - f_{an} - f_{out}) \cdot (i' - i) = 0 \text{ | degree} = 5
 $$
 
 To satisfy these constraints for computations not related to Merkle paths (i.e., 2-to-1 hash and liner hash of elements), we can set $i = 0$ at the start of the computation. This guarantees that $i$ will remain $0$ until the end of the computation.
@@ -336,35 +336,37 @@ Hasher state columns $h_0, ..., h_{11}$ should behave as follows:
 Specifically, when absorbing the next set of elements into the state during linear hash computation (i.e., $f_{abp} = 1$), the first $4$ elements (the capacity portion) are carried over to the next row. For $j \in \{0, ..., 3\}$ this can be described as follows:
 
 >$$
-f_{abp} \cdot (h'_j - h_j) = 0 \text{ | degree } = 5
+f_{abp} \cdot (h'_j - h_j) = 0 \text{ | degree} = 5
 $$
 
 When absorbing the next node during Merkle path computation (i.e., $f_{mp} + f_{mv} + f_{mu}=1$), the result of the previous hash ($h_4, ..., h_7$) are copied over either to $(h_4', ..., h_7')$ or to $(h_8', ..., h_{11}')$ depending on the value of $b$, which is defined in the same way as in the previous section. For $j \in \{0, ..., 3\}$ this can be described as follows:
 
 >$$
-(f_{mp} + f_{mv} + f_{mu}) \cdot ((1 - b) \cdot (h_{j +4}' - h_{j+4}) + b \cdot (h_{j + 8}' - h_{j + 4})) = 0 \text{ | degree } = 6
+(f_{mp} + f_{mv} + f_{mu}) \cdot ((1 - b) \cdot (h_{j +4}' - h_{j+4}) + b \cdot (h_{j + 8}' - h_{j + 4})) = 0 \text{ | degree} = 6
 $$ 
 
 Note, that when a computation is completed (i.e., $f_{out}=1$), the next hasher state is unconstrained.
 
 ### Multiset check constraints
-In this sections we describe constraints which enforce updates for multiset check columns $p_0$ and $p_1$. These columns can be updated only on rows which are multiples of $8$ or $1$ less than a multiple of $8$. On all other rows the values in the columns remain the same.
+In this sections we describe constraints which enforce updates for [multiset check columns](../multiset.md) $p_0$ and $p_1$. These columns can be updated only on rows which are multiples of $8$ or $1$ less than a multiple of $8$. On all other rows the values in the columns remain the same.
 
 To simplify description of the constraints, we define the following variables. Below, we denote random values sent by the verifier after the prover commits to the main execution trace as $\alpha_0$, $\alpha_1$, $\alpha_2$ etc..
 
 $$
-m = k_0 + 2 \cdot k_2 + \sum_{j=0}^2 (2^{j+2} \cdot s_j) \\
+m = op_{label} + 2^4 \cdot k_0 + 2^5 \cdot k_2 \\
 v_h = \alpha_0 + \alpha_1 \cdot m + \alpha_2 \cdot r + \alpha_3 \cdot i \\
 v_a = \sum_{j=0}^{3}(\alpha_{j+4} \cdot h_j) \\
 v_b = \sum_{j=4}^{7}(\alpha_{j+4} \cdot h_j) \\
 v_c = \sum_{j=8}^{11}(\alpha_{j+4} \cdot h_j) \\
+v_d = \sum_{j=8}^{11}(\alpha_j \cdot h_j) \\
 $$
 
 In the above:
 
-- $m$ is a _transition label_ which uniquely identifies each transition function.
+- $m$ is a _transition label_, composed of the [operation label](main.md#operation-labels) and the periodic columns that uniquely identify each transition function. The values in the $k_0$ and $k_2$ periodic columns are included to identify the row in the hash cycle where the operation occurs. They serve to differentiate between operations that share selectors but occur at different rows in the cycle, such as `BP`, which uses $op_{linhash}$ at the first row in the cycle to initiatiate a linear hash, and `ABP`, which uses $op_{linhash}$ at the last row in the cycle to absorb new elements.
 - $v_h$ is a _common header_ which is a combination of transition label, row address, and node index.
 - $v_a$, $v_b$, $v_c$ are the first, second, and third words (4 elements) of the hasher state.
+- $v_d$ is the third word of the hasher state but computed using the same $\alpha$ values as used for the second word. This is needed for computing the value of $v_{leaf}$ below to ensure that the same $\alpha$ values are used for the leaf node regardless of which part of the state the node comes from.
 
 #### Hash chiplet bus constraints
 As described previously, running product column $p_0$ is used to tie the hash chiplet with the main VM's stack. When receiving inputs from or returning results to the stack, hash chiplet multiplies $p_0$ by their respective values. On other other side, when sending inputs to the hash chiplet or receiving results from the chiplet, the stack divides $p_0$ by their values.
@@ -391,7 +393,7 @@ $$
 v_{res} = v_h + v_b
 $$
 
-Using the above values, we can describe constraints for updating column $p_0$ as follows.
+Using the above values, we can describe the constraints for updating column $p_0$ as follows.
 
 >$$
 p_0' = p_0 \cdot ((f_{bp} + f_{sout}) \cdot v_{all} + (f_{mp} + f_{mv} + f_{mu}) \cdot v_{leaf} + f_{abp} \cdot v_{abp} + f_{hout} \cdot v_{res} + \\
@@ -445,7 +447,7 @@ Note that the degree of the above constraint is $7$.
 To make sure computation of the old Merkle root is immediately followed by the computation of the new Merkle root, we impose the following constraint:
 
 >$$
-(f_{bp} + f_{mp} + f_{mv}) \cdot (1 - p_1) = 0 \text{ | degree } = 5
+(f_{bp} + f_{mp} + f_{mv}) \cdot (1 - p_1) = 0 \text{ | degree} = 5
 $$
 
 The above means that whenever we start a new computation which is not the computation of the new Merkle root, the sibling table must be empty. Thus, after the hash chiplet computes the old Merkle root, the only way to clear the table is to compute the new Merkle root.

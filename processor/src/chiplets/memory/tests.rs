@@ -1,5 +1,5 @@
 use super::{
-    super::{ChipletsLookup, ChipletsLookupRow},
+    super::bus::{ChipletsLookup, ChipletsLookupRow},
     ChipletsBus, Felt, FieldElement, Memory, MemoryLookup, StarkField, TraceFragment, ONE, ZERO,
 };
 use vm_core::MEMORY_TRACE_WIDTH;
@@ -254,7 +254,7 @@ fn build_trace(mem: Memory, num_rows: usize) -> (Vec<Vec<Felt>>, ChipletsBus) {
         .map(|_| vec![Felt::ZERO; num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    mem.fill_trace(&mut fragment, 0, &mut chiplets_bus);
+    mem.fill_trace(&mut fragment, &mut chiplets_bus, 0);
 
     (trace, chiplets_bus)
 }

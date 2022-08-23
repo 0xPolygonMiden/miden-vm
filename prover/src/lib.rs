@@ -15,10 +15,14 @@ use std::time::Instant;
 // EXPORTS
 // ================================================================================================
 
-pub use air::ProofOptions;
+pub use air::{FieldExtension, HashFunction, ProofOptions};
 pub use processor::ExecutionError;
 pub use prover::StarkProof;
-pub use vm_core::{Program, ProgramInputs};
+pub use vm_core::{
+    chiplets::hasher::Digest,
+    errors::{AdviceSetError, InputError},
+    AdviceSet, Program, ProgramInputs,
+};
 
 // PROVER
 // ================================================================================================

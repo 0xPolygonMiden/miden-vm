@@ -225,6 +225,13 @@ impl RangeChecker {
             prev_value = value;
         }
 
+        // pad the trace with an extra row of 0 lookups for u16::MAX so that when b_range is built
+        // there is space for the inclusion of u16::MAX range check lookups before the trace ends.
+        // (When there is data at the end of the main trace, auxiliary bus columns always need to be
+        // one row longer than the main trace, since values in the bus column are based on data from
+        // the "current" row of the main trace but placed into the "next" row of the bus column.)
+        write_value(&mut trace, &mut i, 0, (u16::MAX).into(), &mut row_flags);
+
         RangeCheckTrace {
             trace,
             aux_builder: AuxTraceBuilder::new(self.cycle_range_checks, row_flags, start_16bit),
@@ -239,7 +246,13 @@ impl RangeChecker {
     /// to support all 16-bit lookups.
     fn build_8bit_lookup(&self) -> ([usize; 256], usize) {
         let mut result = [0; 256];
-        let mut num_16bit_rows = 0;
+
+        // pad the trace length by one, to account for an extra row of the u16::MAX value at the end
+        // of the 16-bit segment of the trace, required for building the `b_range` column.
+        let mut num_16bit_rows = 1;
+
+        // add a lookup for ZERO to account for the extra row of the u16::MAX value
+        result[0] = 1;
 
         let mut prev_value = 0u16;
         for (&value, &num_lookups) in self.lookups.iter() {
@@ -285,7 +298,7 @@ impl Default for RangeChecker {
 /// A precomputed hint value that can be used to help construct the execution trace for the
 /// auxiliary columns p0 and p1 used for multiset checks. The hint is a precomputed flag value based
 /// on the selectors s0 and s1 in the trace.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum RangeCheckFlag {
     F0,
     F1,

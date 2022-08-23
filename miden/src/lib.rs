@@ -5,6 +5,13 @@
 
 pub use air::{FieldExtension, HashFunction, ProofOptions};
 pub use assembly::{Assembler, AssemblyError};
+pub use processor::{
+    execute, execute_iter, AsmOpInfo, ExecutionError, ExecutionTrace, VmState, VmStateIterator,
+};
 pub use prover::{prove, StarkProof};
 pub use verifier::{verify, VerificationError};
-pub use vm_core::{Program, ProgramInputs};
+pub use vm_core::{
+    chiplets::hasher::Digest,
+    errors::{AdviceSetError, InputError},
+    AdviceSet, Program, ProgramInputs,
+};

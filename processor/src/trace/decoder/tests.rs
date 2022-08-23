@@ -1,6 +1,7 @@
 use super::{
     super::{
         tests::{build_trace_from_block, build_trace_from_ops},
+        utils::build_span_with_respan_ops,
         LookupTableRow, Trace, NUM_RAND_ROWS,
     },
     Felt,
@@ -10,7 +11,6 @@ use rand_utils::rand_array;
 use vm_core::{
     code_blocks::CodeBlock,
     decoder::{P1_COL_IDX, P2_COL_IDX, P3_COL_IDX},
-    utils::ToElements,
     FieldElement, Operation, AUX_TRACE_RAND_ELEMENTS, ONE, ZERO,
 };
 
@@ -713,34 +713,4 @@ fn decoder_p3_trace_two_batches() {
     for i in 20..(p3.len() - NUM_RAND_ROWS) {
         assert_eq!(ONE, p3[i]);
     }
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-fn build_span_with_respan_ops() -> (Vec<Operation>, Vec<Felt>) {
-    let iv = [1, 3, 5, 7, 9, 11, 13, 15, 17].to_elements();
-    let ops = vec![
-        Operation::Push(iv[0]),
-        Operation::Push(iv[1]),
-        Operation::Push(iv[2]),
-        Operation::Push(iv[3]),
-        Operation::Push(iv[4]),
-        Operation::Push(iv[5]),
-        Operation::Push(iv[6]),
-        // next batch
-        Operation::Push(iv[7]),
-        Operation::Push(iv[8]),
-        Operation::Add,
-        // drops to make sure stack overflow is empty on exit
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-        Operation::Drop,
-    ];
-    (ops, iv)
 }

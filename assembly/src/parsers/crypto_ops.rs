@@ -29,7 +29,7 @@ const RPHASH_NUM_ELEMENTS: u64 = 8;
 /// Returns an AssemblyError if:
 /// - the operation is malformed.
 /// - an unrecognized operation is received (anything other than rphash).
-pub fn parse_rphash(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub(super) fn parse_rphash(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     validate_operation!(op, "rphash", 0);
 
     // Add 4 elements to the stack to prepare the capacity portion for the Rescue Prime permutation
@@ -65,7 +65,7 @@ pub fn parse_rphash(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// Returns an AssemblyError if:
 /// - the operation is malformed.
 /// - an unrecognized operation is received (anything other than rpperm).
-pub fn parse_rpperm(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub(super) fn parse_rpperm(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     validate_operation!(op, "rpperm", 0);
 
     // append the machine op to the span block
@@ -76,39 +76,6 @@ pub fn parse_rpperm(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 
 // MERKLE TREES
 // ================================================================================================
-
-/// Parses the type of Merkle tree operation and appends a VM crypto operation and the stack
-/// manipulations required for correct execution of the specified mtree op.
-/// - "mtree.get" verifies that a Merkle tree with root R opens to node V at depth d and index i.
-///   It uses the MPVERIFY operation in the processor.
-/// - "mtree.set" updates a node in the Merkle tree with root R at depth d and index i to value V.
-///   It uses the MRUPDATE operation with the parameter set to "false" so the old advice set is not
-///   saved.
-/// - "mtree.cwm" copies a Merkle tree with root R and updates a node at depth d and index i to
-///   value V. It uses the MRUPDATE operation with the parameter set to "true" so the old advice
-///   set is preserved.
-///
-/// # Errors:
-/// Returns an AssemblyError if:
-/// - the operation is malformed.
-/// - an unrecognized operation is received (anything other than "mtree" with a valid variant of
-///   "get", "set", or "cwm").
-pub fn parse_mtree(
-    span_ops: &mut Vec<Operation>,
-    op: &Token,
-    decorators: &mut DecoratorList,
-) -> Result<(), AssemblyError> {
-    validate_operation!(op, "mtree.cwm|get|set", 0);
-
-    match op.parts()[1] {
-        "get" => mtree_get(span_ops, decorators),
-        "set" => mtree_set(span_ops, decorators),
-        "cwm" => mtree_cwm(span_ops, decorators),
-        _ => return Err(AssemblyError::invalid_op(op)),
-    }
-
-    Ok(())
-}
 
 /// Appends the MPVERIFY op and stack manipulations to the span block as required to verify that a
 /// Merkle tree with root R opens to node V at depth d and index i. The stack is expected to be
@@ -122,7 +89,16 @@ pub fn parse_mtree(
 /// - root of the tree, 4 elements
 ///
 /// This operation takes 12 VM cycles.
-fn mtree_get(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
+///
+/// # Errors:
+/// Returns an AssemblyError if the operation is malformed.
+pub(super) fn parse_mtree_get(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    decorators: &mut DecoratorList,
+) -> Result<(), AssemblyError> {
+    validate_operation!(op, "mtree_get", 0);
+
     // stack: [d, i, R, ...]
     // inject the node value we're looking for at the head of the advice tape
     decorators.push((
@@ -150,6 +126,8 @@ fn mtree_get(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
     // drop d, i since they're no longer needed => [V, R, ...]
     span_ops.push(Operation::Drop);
     span_ops.push(Operation::Drop);
+
+    Ok(())
 }
 
 /// Appends the MRUPDATE op with a parameter of "false" and stack manipulations to the span block
@@ -165,7 +143,16 @@ fn mtree_get(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
 /// - new root of the tree after the update, 4 elements
 ///
 /// This operation takes 38 VM cycles.
-fn mtree_set(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
+///
+/// # Errors:
+/// Returns an AssemblyError if the operation is malformed.
+pub(super) fn parse_mtree_set(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    decorators: &mut DecoratorList,
+) -> Result<(), AssemblyError> {
+    validate_operation!(op, "mtree_set", 0);
+
     // Duplicate the new value and reorder the stack as required for the call to MRUPDATE.
     // [d, i, V_new, R, ...] => [d, i, V_old, V_new, R, V_new_0, V_new_1] (overflowed)
     prep_stack_for_mrupdate(span_ops, decorators);
@@ -185,6 +172,8 @@ fn mtree_set(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
 
     // move the new value to the top of the stack => [V_new, R_new, ...]
     span_ops.push(Operation::SwapW);
+
+    Ok(())
 }
 
 /// Appends the MRUPDATE op with a parameter of "true" and stack manipulations to the span block as
@@ -201,7 +190,16 @@ fn mtree_set(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
 /// - root of the old tree which was copied, 4 elements
 ///
 /// This operation takes 34 VM cycles.
-fn mtree_cwm(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
+///
+/// # Errors:
+/// Returns an AssemblyError if the operation is malformed.
+pub(super) fn parse_mtree_cwm(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    decorators: &mut DecoratorList,
+) -> Result<(), AssemblyError> {
+    validate_operation!(op, "mtree_cwm", 0);
+
     // Duplicate the new value and reorder the stack as required for the call to MRUPDATE.
     // [d, i, V_new, R, ...] => [d, i, V_old, V_new, R, V_new_0, V_new_1] (overflowed)
     prep_stack_for_mrupdate(span_ops, decorators);
@@ -217,6 +215,8 @@ fn mtree_cwm(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
 
     // move the new value to the top of the stack => [V_new, R_new, R, ...]
     span_ops.push(Operation::SwapW2);
+
+    Ok(())
 }
 
 /// Validates that two 4 word Merkle roots at the top of the stack are equal, then drops the
@@ -409,28 +409,39 @@ mod tests {
     fn mtree_invalid() {
         // parse_mtree should return an error if called with an invalid or incorrect operation
         let mut span_ops: Vec<Operation> = Vec::new();
+        let mut decorators = DecoratorList::new();
         let op_pos = 0;
 
-        let op_too_short = Token::new("mtree", op_pos);
-        let expected = AssemblyError::invalid_op(&op_too_short);
-        let mut decorators = DecoratorList::new();
+        let op_mismatch = Token::new("mtree", op_pos);
         assert_eq!(
-            parse_mtree(&mut span_ops, &op_too_short, &mut decorators).unwrap_err(),
-            expected
+            parse_mtree_get(&mut span_ops, &op_mismatch, &mut decorators).unwrap_err(),
+            AssemblyError::unexpected_token(&op_mismatch, "mtree_get")
+        );
+        assert_eq!(
+            parse_mtree_set(&mut span_ops, &op_mismatch, &mut decorators).unwrap_err(),
+            AssemblyError::unexpected_token(&op_mismatch, "mtree_set")
+        );
+        assert_eq!(
+            parse_mtree_cwm(&mut span_ops, &op_mismatch, &mut decorators).unwrap_err(),
+            AssemblyError::unexpected_token(&op_mismatch, "mtree_cwm")
         );
 
-        let op_too_long = Token::new("mtree.get.12", op_pos);
-        let expected = AssemblyError::extra_param(&op_too_long);
+        let op_too_long1 = Token::new("mtree_get.12", op_pos);
         assert_eq!(
-            parse_mtree(&mut span_ops, &op_too_long, &mut decorators).unwrap_err(),
-            expected
+            parse_mtree_get(&mut span_ops, &op_too_long1, &mut decorators).unwrap_err(),
+            AssemblyError::extra_param(&op_too_long1)
         );
 
-        let op_mismatch = Token::new("rpperm.get", op_pos);
-        let expected = AssemblyError::unexpected_token(&op_mismatch, "mtree.cwm|get|set");
+        let op_too_long2 = Token::new("mtree_set.12", op_pos);
         assert_eq!(
-            parse_mtree(&mut span_ops, &op_mismatch, &mut decorators).unwrap_err(),
-            expected
+            parse_mtree_set(&mut span_ops, &op_too_long2, &mut decorators).unwrap_err(),
+            AssemblyError::extra_param(&op_too_long2)
+        );
+
+        let op_too_long3 = Token::new("mtree_cwm.12", op_pos);
+        assert_eq!(
+            parse_mtree_cwm(&mut span_ops, &op_too_long3, &mut decorators).unwrap_err(),
+            AssemblyError::extra_param(&op_too_long3)
         );
     }
 }

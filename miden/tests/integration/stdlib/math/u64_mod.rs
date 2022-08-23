@@ -1,4 +1,5 @@
 use super::{build_test, TestError};
+use crate::helpers::U32_BOUND;
 use proptest::prelude::*;
 use rand_utils::rand_value;
 use std::cmp;
@@ -68,11 +69,11 @@ fn checked_add_fail() {
     let test = build_test!(source, &[a0, a1, b0, b1]);
     test.expect_error(TestError::ExecutionError("FailedAssertion"));
 
-    //u32 limb assertion failure
+    // u32 limb assertion failure
     let a0 = rand_value::<u64>();
     let b0 = rand_value::<u64>();
-    let a1 = u32::MAX as u64 + 1;
-    let b1 = u32::MAX as u64 + 1;
+    let a1 = U32_BOUND;
+    let b1 = U32_BOUND;
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
     test.expect_error(TestError::ExecutionError("NotU32Value"));
@@ -177,11 +178,11 @@ fn checked_sub_fail() {
     let test = build_test!(source, &[a0, a1, b0, b1]);
     test.expect_error(TestError::ExecutionError("FailedAssertion"));
 
-    //u32 limb assertion failure
+    // u32 limb assertion failure
     let a0 = rand_value::<u64>() as u64;
     let b0 = rand_value::<u64>() as u64;
-    let a1 = u32::MAX as u64 + 1;
-    let b1 = u32::MAX as u64 + 1;
+    let a1 = U32_BOUND;
+    let b1 = U32_BOUND;
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
     test.expect_error(TestError::ExecutionError("NotU32Value"));
@@ -299,14 +300,13 @@ fn checked_mul_fail() {
         exec.u64::checked_mul
     end";
 
-    //u32 limb assertion failure
-    let a0 = u32::MAX as u64 + 1;
-    let b0 = u32::MAX as u64 + 1;
-    let a1 = u32::MAX as u64 + 1;
-    let b1 = u32::MAX as u64 + 1;
-
-    let test = build_test!(source, &[a0, a1, b0, b1]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    // u32 limb assertion failure
+    for i in 0..4 {
+        let mut stack_init = [1, 2, 3, 4];
+        stack_init[i] = U32_BOUND;
+        let test = build_test!(source, &stack_init);
+        test.expect_error(TestError::ExecutionError("NotU32Value"));
+    }
 
     // Higher bits assertion failure (a_hi * b_hi != 0)
 
@@ -603,6 +603,23 @@ fn unchecked_div() {
     test.expect_stack(&[d1, d0]);
 }
 
+#[test]
+fn checked_div_fail() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::checked_div
+        end";
+
+    // u32 limb assertion failure
+    for i in 0..4 {
+        let mut stack_init = [1, 2, 3, 4];
+        stack_init[i] = U32_BOUND;
+        let test = build_test!(source, &stack_init);
+        test.expect_error(TestError::ExecutionError("NotU32Value"));
+    }
+}
+
 // MODULO OPERATION
 // ------------------------------------------------------------------------------------------------
 
@@ -632,6 +649,23 @@ fn unchecked_mod() {
     test.expect_stack(&[d1, d0]);
 }
 
+#[test]
+fn checked_mod_fail() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::checked_mod
+        end";
+
+    // u32 limb assertion failure
+    for i in 0..4 {
+        let mut stack_init = [1, 2, 3, 4];
+        stack_init[i] = U32_BOUND;
+        let test = build_test!(source, &stack_init);
+        test.expect_error(TestError::ExecutionError("NotU32Value"));
+    }
+}
+
 // DIVMOD OPERATION
 // ------------------------------------------------------------------------------------------------
 
@@ -655,6 +689,23 @@ fn unchecked_divmod() {
 
     let test = build_test!(source, &[a0, a1, b0, b1]);
     test.expect_stack(&[r1, r0, q1, q0]);
+}
+
+#[test]
+fn checked_divmod_fail() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::checked_divmod
+        end";
+
+    // u32 limb assertion failure
+    for i in 0..4 {
+        let mut stack_init = [1, 2, 3, 4];
+        stack_init[i] = U32_BOUND;
+        let test = build_test!(source, &stack_init);
+        test.expect_error(TestError::ExecutionError("NotU32Value"));
+    }
 }
 
 // BITWISE OPERATIONS
@@ -685,8 +736,8 @@ fn checked_and_fail() {
     let a0: u64 = rand_value();
     let b0: u64 = rand_value();
 
-    let a1: u64 = u32::MAX as u64 + 1;
-    let b1: u64 = u32::MAX as u64 + 1;
+    let a1: u64 = U32_BOUND;
+    let b1: u64 = U32_BOUND;
 
     let source = "
         use.std::math::u64
@@ -723,8 +774,8 @@ fn checked_or_fail() {
     let a0: u64 = rand_value();
     let b0: u64 = rand_value();
 
-    let a1: u64 = u32::MAX as u64 + 1;
-    let b1: u64 = u32::MAX as u64 + 1;
+    let a1: u64 = U32_BOUND;
+    let b1: u64 = U32_BOUND;
 
     let source = "
         use.std::math::u64
@@ -761,8 +812,8 @@ fn checked_xor_fail() {
     let a0: u64 = rand_value();
     let b0: u64 = rand_value();
 
-    let a1: u64 = u32::MAX as u64 + 1;
-    let b1: u64 = u32::MAX as u64 + 1;
+    let a1: u64 = U32_BOUND;
+    let b1: u64 = U32_BOUND;
 
     let source = "
         use.std::math::u64

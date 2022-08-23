@@ -1,7 +1,9 @@
 use crate::{utils::get_trace_len, CodeBlock, ExecutionTrace, Operation, Process};
 use vm_core::{
-    chiplets::bitwise::{BITWISE_OR, OP_CYCLE_LEN},
-    hasher::{HASH_CYCLE_LEN, LINEAR_HASH, RETURN_STATE},
+    chiplets::{
+        bitwise::{BITWISE_OR, OP_CYCLE_LEN},
+        hasher::{HASH_CYCLE_LEN, LINEAR_HASH, RETURN_STATE},
+    },
     Felt, FieldElement, ProgramInputs, CHIPLETS_RANGE, CHIPLETS_WIDTH,
 };
 

@@ -1,6 +1,6 @@
 use rand_utils::rand_vector;
 use vm_core::{
-    hasher::{apply_permutation, hash_elements, STATE_WIDTH},
+    chiplets::hasher::{apply_permutation, hash_elements, STATE_WIDTH},
     AdviceSet, Felt, FieldElement, StarkField,
 };
 
@@ -92,7 +92,7 @@ fn rphash() {
 
 #[test]
 fn mtree_get() {
-    let asm_op = "mtree.get";
+    let asm_op = "mtree_get";
 
     let index = 3usize;
     let leaves = init_merkle_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
@@ -146,9 +146,9 @@ fn mtree_update() {
         tree.depth() as u64,
     ];
 
-    // --- mtree.set ----------------------------------------------------------------------
+    // --- mtree_set ----------------------------------------------------------------------
     // update a node value and replace the old root
-    let asm_op = "mtree.set";
+    let asm_op = "mtree_set";
 
     // expected state has the new leaf and the new root of the tree
     let final_stack = [
@@ -165,9 +165,9 @@ fn mtree_update() {
     let test = build_op_test!(asm_op, &stack_inputs, &[], vec![tree.clone()]);
     test.expect_stack(&final_stack);
 
-    // --- mtree.cwm ----------------------------------------------------------------------
+    // --- mtree_cwm ----------------------------------------------------------------------
     // update a node value and replace the old root
-    let asm_op = "mtree.cwm";
+    let asm_op = "mtree_cwm";
 
     // expected state has the new leaf, the new root of the tree, and the root of the old tree
     let final_stack = [

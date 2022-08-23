@@ -24,7 +24,7 @@ end
 In the above example we first push two 64-bit integers on the the stack, and then invoke a 64-bit addition procedure from `std::math::u64` module.
 
 ## Available modules
-CCurrently, Miden standard library contains just a few modules, which are listed below. Over time, we plan to add many more modules which will include various cryptographic primitives, additional numeric data types and operations, and many others.
+Currently, Miden standard library contains just a few modules, which are listed below. Over time, we plan to add many more modules which will include various cryptographic primitives, additional numeric data types and operations, and many others.
 
 | Module | Description |
 | ------ | ----------- |

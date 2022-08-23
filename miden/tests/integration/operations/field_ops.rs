@@ -26,7 +26,7 @@ fn assert_fail() {
 
 #[test]
 fn assert_eq() {
-    let asm_op = "assert.eq";
+    let asm_op = "assert_eq";
 
     let test = build_op_test!(asm_op, &[1, 1]);
     test.expect_stack(&[]);
@@ -37,7 +37,7 @@ fn assert_eq() {
 
 #[test]
 fn assert_eq_fail() {
-    let asm_op = "assert.eq";
+    let asm_op = "assert_eq";
 
     let test = build_op_test!(asm_op, &[2, 1]);
     test.expect_error(TestError::ExecutionError("FailedAssertion"));
