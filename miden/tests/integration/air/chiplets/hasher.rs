@@ -76,14 +76,14 @@ fn build_mtree_update_test_inputs() -> (Vec<u64>, AdviceSet) {
     new_leaves[index] = new_node;
 
     let stack_inputs = vec![
-        tree.root()[0].as_int(),
-        tree.root()[1].as_int(),
-        tree.root()[2].as_int(),
-        tree.root()[3].as_int(),
         new_node[0].as_int(),
         new_node[1].as_int(),
         new_node[2].as_int(),
         new_node[3].as_int(),
+        tree.root()[0].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[3].as_int(),
         index as u64,
         tree.depth() as u64,
     ];
