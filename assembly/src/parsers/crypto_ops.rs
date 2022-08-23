@@ -235,7 +235,7 @@ fn read_mtree_node(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList
     // can fetch the node value from the root. In the `mtree.get` operation we have the stack in
     // the following format: [d, i, R], whereas in the case of `mtree.set` and `mtree.cwm` we
     // would also have the new node value post the tree root: [d, i, R, V_new].
-    // 
+    //
     // inject the node value we're looking for at the head of the advice tape.
     decorators.push((
         span_ops.len(),
