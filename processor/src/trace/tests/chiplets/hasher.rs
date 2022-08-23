@@ -447,12 +447,12 @@ fn b_chip_mpverify() {
         tree.root()[1].as_int(),
         tree.root()[2].as_int(),
         tree.root()[3].as_int(),
+        index as u64,
+        tree.depth() as u64,
         leaves[index][0].as_int(),
         leaves[index][1].as_int(),
         leaves[index][2].as_int(),
         leaves[index][3].as_int(),
-        index as u64,
-        tree.depth() as u64,
     ];
     let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
 
