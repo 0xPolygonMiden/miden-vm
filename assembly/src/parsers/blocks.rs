@@ -2,7 +2,7 @@ use super::{
     parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, String, Token,
     TokenStream, Vec,
 };
-use vm_core::{utils::group_vector_elements, DecoratorList};
+use vm_core::{utils::group_vector_elements, CodeBlockTable, DecoratorList};
 
 // BLOCK PARSER
 // ================================================================================================
@@ -11,8 +11,8 @@ use vm_core::{utils::group_vector_elements, DecoratorList};
 pub fn parse_code_blocks(
     tokens: &mut TokenStream,
     context: &AssemblyContext,
+    cb_table: &mut CodeBlockTable,
     num_proc_locals: u32,
-    in_debug_mode: bool,
 ) -> Result<CodeBlock, AssemblyError> {
     // make sure there is something to be read
     let start_pos = tokens.pos();
@@ -23,7 +23,7 @@ pub fn parse_code_blocks(
     // parse the sequence of blocks and add each block to the list
     let mut blocks = Vec::new();
     while let Some(parser) = BlockParser::next(tokens)? {
-        let block = parser.parse(tokens, context, num_proc_locals, in_debug_mode)?;
+        let block = parser.parse(tokens, context, cb_table, num_proc_locals)?;
         blocks.push(block);
     }
 
@@ -48,6 +48,7 @@ enum BlockParser {
     While,
     Repeat(u32),
     Exec(String),
+    Call(String),
 }
 
 impl BlockParser {
@@ -56,12 +57,12 @@ impl BlockParser {
         &self,
         tokens: &mut TokenStream,
         context: &AssemblyContext,
+        cb_table: &mut CodeBlockTable,
         num_proc_locals: u32,
-        in_debug_mode: bool,
     ) -> Result<CodeBlock, AssemblyError> {
         match self {
+            // ------------------------------------------------------------------------------------
             Self::Span => {
-                // --------------------------------------------------------------------------------
                 let mut span_ops = Vec::new();
                 let mut decorators = DecoratorList::new();
                 while let Some(op) = tokens.read() {
@@ -73,20 +74,20 @@ impl BlockParser {
                         &mut span_ops,
                         num_proc_locals,
                         &mut decorators,
-                        in_debug_mode,
+                        context.in_debug_mode(),
                     )?;
                     tokens.advance();
                 }
                 Ok(CodeBlock::new_span_with_decorators(span_ops, decorators))
             }
+            // ------------------------------------------------------------------------------------
             Self::IfElse => {
-                // --------------------------------------------------------------------------------
                 // record start of the if-else block and consume the 'if' token
                 let if_start = tokens.pos();
                 tokens.advance();
 
                 // read the `if` clause
-                let t_branch = parse_code_blocks(tokens, context, num_proc_locals, in_debug_mode)?;
+                let t_branch = parse_code_blocks(tokens, context, cb_table, num_proc_locals)?;
 
                 // build the `else` clause; if the else clause is specified, then read it;
                 // otherwise, set to a Span with a single noop
@@ -100,7 +101,7 @@ impl BlockParser {
 
                             // parse the `false` branch
                             let f_branch =
-                                parse_code_blocks(tokens, context, num_proc_locals, in_debug_mode)?;
+                                parse_code_blocks(tokens, context, cb_table, num_proc_locals)?;
 
                             // consume the `end` token
                             match tokens.read() {
@@ -143,14 +144,14 @@ impl BlockParser {
 
                 Ok(CodeBlock::new_split(t_branch, f_branch))
             }
+            // ------------------------------------------------------------------------------------
             Self::While => {
-                // --------------------------------------------------------------------------------
                 // record start of the while block and consume the 'while' token
                 let while_start = tokens.pos();
                 tokens.advance();
 
                 // read the loop body
-                let loop_body = parse_code_blocks(tokens, context, num_proc_locals, in_debug_mode)?;
+                let loop_body = parse_code_blocks(tokens, context, cb_table, num_proc_locals)?;
 
                 // consume the `end` token
                 match tokens.read() {
@@ -169,14 +170,14 @@ impl BlockParser {
 
                 Ok(CodeBlock::new_loop(loop_body))
             }
+            // ------------------------------------------------------------------------------------
             Self::Repeat(iter_count) => {
-                // --------------------------------------------------------------------------------
                 // record start of the repeat block and consume the 'repeat' token
                 let repeat_start = tokens.pos();
                 tokens.advance();
 
                 // read the loop body
-                let loop_body = parse_code_blocks(tokens, context, num_proc_locals, in_debug_mode)?;
+                let loop_body = parse_code_blocks(tokens, context, cb_table, num_proc_locals)?;
 
                 // consume the `end` token
                 match tokens.read() {
@@ -205,17 +206,29 @@ impl BlockParser {
                     Ok(combine_blocks(blocks))
                 }
             }
+            // ------------------------------------------------------------------------------------
             Self::Exec(label) => {
-                // --------------------------------------------------------------------------------
                 // retrieve the procedure block from the proc map and consume the 'exec' token
-                let proc_root = context
-                    .get_proc_code(label)
-                    .ok_or_else(|| {
-                        AssemblyError::undefined_proc(tokens.read().expect("no exec token"), label)
-                    })?
-                    .clone();
+                let proc_block = context.get_proc_code(label).ok_or_else(|| {
+                    AssemblyError::undefined_proc(tokens.read().expect("no exec token"), label)
+                })?;
                 tokens.advance();
-                Ok(proc_root)
+                Ok(proc_block.clone())
+            }
+            // ------------------------------------------------------------------------------------
+            Self::Call(label) => {
+                // retrieve the procedure block from the proc map and consume the 'call' token
+                let proc_block = context.get_proc_code(label).ok_or_else(|| {
+                    AssemblyError::undefined_proc(tokens.read().expect("no call token"), label)
+                })?;
+                tokens.advance();
+
+                // if the procedure hasn't been inserted into code block table yet, insert it
+                if !cb_table.has(proc_block.hash()) {
+                    cb_table.insert(proc_block.clone());
+                }
+
+                Ok(CodeBlock::new_call(proc_block.hash()))
             }
         }
     }
@@ -244,6 +257,10 @@ impl BlockParser {
                 Token::EXEC => {
                     let label = token.parse_exec()?;
                     Some(Self::Exec(label))
+                }
+                Token::CALL => {
+                    let label = token.parse_call()?;
+                    Some(Self::Call(label))
                 }
                 Token::END => {
                     token.validate_end()?;

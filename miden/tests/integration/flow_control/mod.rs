@@ -117,3 +117,23 @@ fn if_in_loop_in_if() {
     let test = build_test!(source, &[11]);
     test.expect_stack(&[121]);
 }
+
+// FUNCTION CALLS
+// ================================================================================================
+
+#[test]
+fn local_fn_call() {
+    let source = "
+        proc.foo
+            add
+        end
+
+        begin
+            exec.foo
+        end";
+
+    let test = build_test!(source, &[1, 2]);
+    test.expect_stack(&[3]);
+
+    test.prove_and_verify(vec![1, 2], 1, false);
+}

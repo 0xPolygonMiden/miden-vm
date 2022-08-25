@@ -1,4 +1,4 @@
-use super::{AdviceSetError, CodeBlock, Felt};
+use super::{AdviceSetError, CodeBlock, Digest, Felt};
 use winterfell::ProverError;
 
 // EXECUTION ERROR
@@ -19,5 +19,5 @@ pub enum ExecutionError {
     ProverError(ProverError),
     TooManyStackOutputs(usize),
     UnexecutableCodeBlock(CodeBlock),
-    UnsupportedCodeBlock(CodeBlock),
+    CodeBlockNotFound(Digest),
 }

@@ -14,7 +14,7 @@ pub mod range;
 pub use math::{fields::f64::BaseElement as Felt, ExtensionOf, FieldElement, StarkField};
 
 mod program;
-pub use program::{blocks as code_blocks, Library, Program};
+pub use program::{blocks as code_blocks, CodeBlockTable, Library, Program};
 
 mod operations;
 pub use operations::{

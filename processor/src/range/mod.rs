@@ -55,7 +55,6 @@ mod tests;
 /// If, on the other hand, the value was range-checked 5 times, we'll need two rows in the table:
 /// (1, 1, 1, v) and (1, 1, 0, v). The first row specifies that there was 4 lookups and the second
 /// row add the fifth lookup.
-#[allow(dead_code)]
 pub struct RangeChecker {
     /// Tracks lookup count for each checked value.
     lookups: BTreeMap<u16, usize>,
@@ -65,7 +64,6 @@ pub struct RangeChecker {
     cycle_range_checks: BTreeMap<usize, CycleRangeChecks>,
 }
 
-#[allow(dead_code)]
 impl RangeChecker {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------

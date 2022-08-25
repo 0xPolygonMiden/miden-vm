@@ -14,21 +14,28 @@ use super::{BTreeMap, CodeBlock, ProcMap, Procedure, String, ToString, MODULE_PA
 pub struct AssemblyContext<'a> {
     local_procs: ProcMap,
     imported_procs: BTreeMap<String, &'a Procedure>,
+    in_debug_mode: bool,
 }
 
 impl<'a> AssemblyContext<'a> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new empty [AssemblyContext].
-    pub fn new() -> Self {
+    pub fn new(in_debug_mode: bool) -> Self {
         Self {
             local_procs: BTreeMap::new(),
             imported_procs: BTreeMap::new(),
+            in_debug_mode,
         }
     }
 
     // STATE ACCESSORS
     // --------------------------------------------------------------------------------------------
+
+    /// Returns true if the assembly context was instantiated in debug mode.
+    pub fn in_debug_mode(&self) -> bool {
+        self.in_debug_mode
+    }
 
     /// Returns true if a procedure with the specified label exists in this context.
     pub fn contains_proc(&self, label: &str) -> bool {

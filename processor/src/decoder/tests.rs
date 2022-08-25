@@ -13,7 +13,7 @@ use vm_core::{
         OP_BIT_EXTRA_COL_IDX, OP_INDEX_COL_IDX,
     },
     utils::collections::Vec,
-    StarkField, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, ONE, ZERO,
+    CodeBlockTable, StarkField, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, ONE, ZERO,
 };
 
 // CONSTANTS
@@ -913,7 +913,9 @@ fn set_user_op_helpers_many() {
 fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxTraceHints, usize) {
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(inputs);
-    process.execute_code_block(program).unwrap();
+    process
+        .execute_code_block(program, &CodeBlockTable::default())
+        .unwrap();
 
     let (trace, aux_hints) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;

@@ -33,6 +33,9 @@ pub enum Operation {
     /// Marks the beginning of a loop block.
     Loop,
 
+    /// Marks the beginning of a function call.
+    Call,
+
     /// Marks the beginning of a span code block.
     Span,
 
@@ -455,7 +458,7 @@ impl Operation {
             Self::MrUpdate(_) => 0b0110_0000,
             Self::Push(_)   => 0b0110_0100,
             // <empty>      => 0b0110_1000
-            // <empty>      => 0b0110_1100
+            Self::Call      => 0b0110_1100,
             Self::End       => 0b0111_0000,
             Self::Repeat    => 0b0111_0100,
             Self::Respan    => 0b0111_1000,
@@ -501,10 +504,11 @@ impl fmt::Display for Operation {
             Self::Join => write!(f, "join"),
             Self::Split => write!(f, "split"),
             Self::Loop => write!(f, "loop"),
-            Self::Repeat => write!(f, "repeat"),
+            Self::Call => writeln!(f, "call"),
             Self::Span => write!(f, "span"),
-            Self::Respan => write!(f, "respan"),
             Self::End => write!(f, "end"),
+            Self::Repeat => write!(f, "repeat"),
+            Self::Respan => write!(f, "respan"),
             Self::Halt => write!(f, "halt"),
 
             // ----- field operations -------------------------------------------------------------
