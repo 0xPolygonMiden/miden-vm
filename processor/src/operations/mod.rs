@@ -58,7 +58,6 @@ impl Process {
             Operation::U32div => self.op_u32div()?,
 
             Operation::U32and => self.op_u32and()?,
-            Operation::U32or => self.op_u32or()?,
             Operation::U32xor => self.op_u32xor()?,
             Operation::U32assert2 => self.op_u32assert2()?,
 

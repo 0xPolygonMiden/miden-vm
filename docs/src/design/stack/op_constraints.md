@@ -110,8 +110,8 @@ This group contains $16$ operations which shift the stack to the left (i.e., rem
 | `AND`        | $36$         | `010_0100`      | [Field ops](./field_ops.md)   | $7$         |
 | `OR`         | $37$         | `010_0101`      | [Field ops](./field_ops.md)   | $7$         |
 | `U32AND`     | $38$         | `010_0110`      | [u32 ops](./u32_ops.md)       | $7$         |
-| `U32OR`      | $39$         | `010_0111`      | [u32 ops](./u32_ops.md)       | $7$         |
-| `U32XOR`     | $40$         | `010_1000`      | [u32 ops](./u32_ops.md)       | $7$         |
+| `U32XOR`     | $39$         | `010_0111`      | [u32 ops](./u32_ops.md)       | $7$         |
+| `<unused>`   | $40$         | `010_1000`      |                               | $7$         |
 | `DROP`       | $41$         | `010_1001`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `CSWAP`      | $42$         | `010_1010`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `CSWAPW`     | $43$         | `010_1011`      | [Stack ops](./stack_ops.md)   | $7$         |

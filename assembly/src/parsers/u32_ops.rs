@@ -20,7 +20,7 @@ pub enum U32OpMode {
 
 /// Translates u32test assembly instruction to VM operations.
 ///
-/// Implemented as: `DUP U32SPLIT SWAP DROP EQZ` (5 VM cycles).
+/// This takes 5 VM cycles.
 pub fn parse_u32test(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
@@ -131,7 +131,7 @@ pub fn parse_u32assertw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
 
 /// Translates u32cast assembly instruction to VM operations.
 ///
-/// Implemented as: `U32SPLIT DROP` (2 VM cycles).
+///  This takes 2 VM cycles.
 pub fn parse_u32cast(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
@@ -346,10 +346,10 @@ pub fn parse_u32divmod(
 
 /// Translates u32checked_and assembly instruction to VM operation.
 ///
-/// Implemented as: `U32AND` (1 VM cycle).
-///
 /// We don't need to assert that inputs are u32 values because the VM does these assertions
 /// implicitly for `U32AND` operation.
+///
+/// This takes 1 VM cycle.
 pub fn parse_u32and(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
@@ -360,16 +360,23 @@ pub fn parse_u32and(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
     Ok(())
 }
 
-/// Translates u32checked_or assembly instruction to VM operation `U32OR`.
-///
-/// Implemented as: `U32OR` (1 VM cycle).
+/// Translates u32checked_or assembly instruction to a sequence of VM operations.
 ///
 /// We don't need to assert that inputs are u32 values because the VM does these assertions
-/// implicitly for `U32OR` operation.
+/// implicitly for `U32AND` operation.
+///
+/// This takes 6 VM cycles.
 pub fn parse_u32or(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
-        1 => span_ops.push(Operation::U32or),
+        1 => span_ops.extend_from_slice(&[
+            Operation::Dup1,
+            Operation::Dup1,
+            Operation::U32and,
+            Operation::Neg,
+            Operation::Add,
+            Operation::Add,
+        ]),
         _ => return Err(AssemblyError::extra_param(op)),
     }
 
@@ -378,10 +385,10 @@ pub fn parse_u32or(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 
 /// Translates u32checked_xor assembly instruction to VM operation `U32XOR`.
 ///
-/// Implemented as: `U32XOR` (1 VM cycle).
-///
 /// We don't need to assert that inputs are u32 values because the VM does these assertions
 /// implicitly for `U32XOR` operation.
+///
+/// This takes 1 VM cycle.
 pub fn parse_u32xor(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
@@ -394,11 +401,10 @@ pub fn parse_u32xor(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 
 /// Translates u32checked_not assembly instruction to VM operations.
 ///
-/// The operation is implemented as `PUSH(2^32 - 1) U32ASSERT2 SWAP U32SUB DROP`,
-/// total to 5 cycles.
-///
 /// The reason this method works is because 2^32 provides a bit mask of ones, which after
 /// subtracting the element, flips the bits of the original value to perform a bitwise NOT.
+///
+/// This takes 5 VM cycles.
 pub fn parse_u32not(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
@@ -847,9 +853,7 @@ pub fn parse_u32max(
 // ================================================================================================
 /// Asserts that the value on the top of the stack is a u32.
 ///
-/// Implemented as: `PAD U32ASSERT2 DROP`.
-///
-/// This operation takes 3 VM cycles.
+/// This takes 3 VM cycles.
 fn assert_u32(span_ops: &mut Vec<Operation>) {
     span_ops.push(Operation::Pad);
     span_ops.push(Operation::U32assert2);
@@ -859,7 +863,7 @@ fn assert_u32(span_ops: &mut Vec<Operation>) {
 /// Asserts that the value on the top of the stack is a u32 and pushes the first param of the `op`
 /// as a u32 value onto the stack.
 ///
-/// This operation takes:
+/// This takes:
 /// - 3 VM cycles when the param == 1.
 /// - 2 VM cycle when the param != 1.
 ///

@@ -48,9 +48,9 @@ In all the table below, the number of cycles it takes for the VM to execute each
 | Instruction    | Stack input    | Stack output  | Notes                                      |
 | -------------- | -------------- | ------------- | ------------------------------------------ |
 | u32checked_and <br> - *(1 cycle)*    | [b, a, ...]    | [c, ...]      | Computes $c$ as a bitwise `AND` of binary representations of $a$ and $b$. <br> Fails if $max(a,b) \ge 2^{32}$ |
-| u32checked_or <br> - *(1 cycle)*     | [b, a, ...]    | [c, ...]      | Computes $c$ as a bitwise `OR` of binary representations of $a$ and $b$. <br> Fails if $max(a,b) \ge 2^{32}$ |
+| u32checked_or <br> - *(6 cycle)s*    | [b, a, ...]    | [c, ...]      | Computes $c$ as a bitwise `OR` of binary representations of $a$ and $b$. <br> Fails if $max(a,b) \ge 2^{32}$ |
 | u32checked_xor <br> - *(1 cycle)*    | [b, a, ...]    | [c, ...]      | Computes $c$ as a bitwise `XOR` of binary representations of $a$ and $b$. <br> Fails if $max(a,b) \ge 2^{32}$ |
-| u32checked_not <br> - *(5 cycles)*    | [a, ...]       | [b, ...]      | Computes $b$ as a bitwise `NOT` of binary representation of $a$. <br> Fails if $a \ge 2^{32}$ |
+| u32checked_not <br> - *(5 cycles)*   | [a, ...]       | [b, ...]      | Computes $b$ as a bitwise `NOT` of binary representation of $a$. <br> Fails if $a \ge 2^{32}$ |
 | u32checked_shl <br> - *(47 cycles)* <br> u32checked_shl.*b*  <br> - *(4 cycles)*       | [b, a, ...] | [c, ...]    | $c \leftarrow (a \cdot 2^b) \mod 2^{32}$ <br> Fails if $a \ge 2^{32}$ or $b > 31$ |
 | u32unchecked_shl <br> - *(40 cycles)* <br> u32unchecked_shl.*b* <br> - *(3 cycles)*    | [b, a, ...] | [c, ...]    | $c \leftarrow (a \cdot 2^b) \mod 2^{32}$ <br> Undefined if $a \ge 2^{32}$ or $b > 31$ |
 | u32checked_shr <br> - *(47 cycles)*<br> u32checked_shr.*b* <br> - *(4 cycles)*         | [b, a, ...] | [c, ...] | $c \leftarrow \lfloor a/2^b \rfloor$ <br> Fails if $a \ge 2^{32}$ or $b > 31$ |

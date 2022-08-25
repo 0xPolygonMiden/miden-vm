@@ -1,17 +1,13 @@
 # Bitwise Chiplet
 
-In this note we describe how to compute bitwise AND, OR, and XOR operations on 32-bit values and the constraints required for proving correct execution.
+In this note we describe how to compute bitwise AND and XOR operations on 32-bit values and the constraints required for proving correct execution.
 
-Assume that $a$ and $b$ are field elements in a 64-bit prime field. Assume also that $a$ and $b$ are known to contain values smaller than $2^{32}$. We want to compute $a \oplus b \rightarrow z$, where $\oplus$ is either bitwise AND, OR, or XOR, and $z$ is a field element containing the result of the corresponding bitwise operation.
+Assume that $a$ and $b$ are field elements in a 64-bit prime field. Assume also that $a$ and $b$ are known to contain values smaller than $2^{32}$. We want to compute $a \oplus b \rightarrow z$, where $\oplus$ is either bitwise AND or XOR, and $z$ is a field element containing the result of the corresponding bitwise operation.
 
-First, observe that we can compute AND, OR, and XOR relations for **single bit values** as follows:
+First, observe that we can compute AND and XOR relations for **single bit values** as follows:
 
 $$
 and(a, b) = a \cdot b
-$$
-
-$$
-or(a, b) = a + b - a \cdot b
 $$
 
 $$
@@ -20,7 +16,7 @@ $$
 
 To compute bitwise operations for multi-bit values, we will decompose the values into individual bits, apply the operations to single bits, and then aggregate the bitwsie results into the final result.
 
-To perform this operation we will use a table with 11 columns, and computing a single AND, OR, or XOR operation will require 8 table rows. We will also rely on two periodic columns as shown below.
+To perform this operation we will use a table with 11 columns, and computing a single AND or XOR operation will require 8 table rows. We will also rely on two periodic columns as shown below.
 
 ![bitwise_execution_trace](../../assets/design/chiplets/bitwise/bitwise_execution_trace.png)
 
@@ -55,26 +51,17 @@ AIR constraints needed to ensure the correctness of the above table are describe
 
 The Bitwise chiplet supports three operations with the following operation selectors:
 
-- `U32AND`: $s_0 = 0$, $s_1 = 0$
-- `U32OR`: $s_0 = 0$, $s_1 = 1$
-- `U32XOR`: $s_0 = 1$, $s_1 = 0$
+- `U32AND`: $s = 0$
+- `U32XOR`: $s = 1$
 
 The constraints must require that the selectors be binary and stay the same throughout the cycle:
 
 > $$
-s_0^2 - s_0 = 0 \text{ | degree} = 2
+s^2 - s = 0 \text{ | degree} = 2
 $$
 
 > $$
-s_1^2 - s_1 = 0 \text{ | degree} = 2
-$$
-
-> $$
-k_1 \cdot (s_0' - s_0) = 0 \text{ | degree} = 2
-$$
-
-> $$
-k_1 \cdot (s_1' - s_1) = 0 \text{ | degree} = 2
+k_1 \cdot (s' - s) = 0 \text{ | degree} = 2
 $$
 
 ### Input decomposition
@@ -130,13 +117,13 @@ Lastly, we need to ensure that for all rows the value in the $z$ column is compu
 For `U32AND`, this is enforced with the following constraint:
 
 > $$
-(1 - s_0) \cdot (1 - s_1) \cdot \left(z -(z_p \cdot 16 + \sum_{i=0}^3(2^i \cdot a_i \cdot b_i))\right) = 0 \text{ | degree} = 4
+(1 - s) \cdot \left(z -(z_p \cdot 16 + \sum_{i=0}^3(2^i \cdot a_i \cdot b_i))\right) = 0 \text{ | degree} = 3
 $$
 
 For `U32XOR`, this is enforced with the following constraint:
 
 > $$
-s_0 \cdot (1 - s_1) \cdot \left(z -(z_p \cdot 16 + \sum_{i=0}^3(2^i \cdot (a_i + b_i - 2 \cdot a_i \cdot b_i)))\right) = 0 \text{ | degree} = 4
+s \cdot \left(z -(z_p \cdot 16 + \sum_{i=0}^3(2^i \cdot (a_i + b_i - 2 \cdot a_i \cdot b_i)))\right) = 0 \text{ | degree} = 3
 $$
 
 ## Bitwise chiplet bus constraints
@@ -174,69 +161,3 @@ The constraints for the two sides of the bus communication are combined as follo
 > $$
 b'_{chip} \cdot \left(\alpha_0 + u_i\right) = b_{chip} \cdot ((\alpha_0 + v_i) \cdot m_i + 1 - m_i) \text{ | degree} = 4
 $$
-
-## Reducing the number of rows
-
-It is possible to reduce the number of rows in the table from 8 to 4 by performing bitwise operations on 2-bit values (rather than on single bits). This would require some changes to the constraints, most important of which are listed below.
-
-### Limit column values to 2 bits
-
-We'll need to make sure that $a_0 .. a_3$ and $b_0 .. b_3$ columns contain 2-bit values. This can be accomplished with the following constraints:
-
-$$
-a_i \cdot (a_i - 1) \cdot (a_i - 2) \cdot (a_i - 3) = 0
-$$
-
-$$
-b_i \cdot (b_i - 1) \cdot (b_i - 2) \cdot (b_i - 3) = 0
-$$
-
-### Bitwise operations on 2-bit limbs
-
-Instead of simple formulas for single-bit bitwise operations, we'll need to compute results of bitwsie operations over 2-bit values using a sum of degree 6 polynomials.
-
-For example, assuming $a$ and $b$ are 2-bit values, their bitwise AND can be computed as a sum of the following polynomials:
-
-$$
-\frac{1}{4} \cdot a \cdot (a - 2) \cdot (a - 3) \cdot b \cdot (b - 2) \cdot (b - 3)
-$$
-
-$$
-\frac{1}{12} \cdot a \cdot (a - 2) \cdot (a - 3) \cdot b \cdot (b - 1) \cdot (b - 2)
-$$
-
-$$
-\frac{1}{2} \cdot a \cdot (a - 1) \cdot (a - 3) \cdot b \cdot (b - 1) \cdot (b - 3)
-$$
-
-$$
--\frac{1}{6} \cdot a \cdot (a - 1) \cdot (a - 3) \cdot b \cdot (b - 1) \cdot (b - 2)
-$$
-
-$$
-\frac{1}{12} \cdot a \cdot (a - 1) \cdot (a - 2) \cdot b \cdot (b - 2) \cdot (b - 3)
-$$
-
-$$
--\frac{1}{6} \cdot a \cdot (a - 1) \cdot (a - 2) \cdot b \cdot (b - 1) \cdot (b - 3)
-$$
-
-$$
-\frac{1}{12} \cdot a \cdot (a - 1) \cdot (a - 2) \cdot b \cdot (b - 1) \cdot (b - 2)
-$$
-
-We can compute 2-bit results for OR and XOR operations in a similar manner. The general idea here is that we need to list polynomials which evaluate to $1$ for a given set of input values, and then multiply each polynomial by an expected result of a bitwise operation.
-
-For example, to compute a bitwise OR of $3$ and $3$, we first need to come up with a polynomial which evaluates to $1$ for $a = 3$ and $b = 3$, and to $0$ for all other inputs. This polynomial is:
-
-$$
-\frac{1}{36} \cdot a \cdot (a - 1) \cdot (a - 2) \cdot b \cdot (b - 1) \cdot (b - 2)
-$$
-
-And then, since $or(3, 3) = 3$, we need to multiply this polynomial by $3$, obtaining:
-
-$$
-\frac{1}{12} \cdot a \cdot (a - 1) \cdot (a - 2) \cdot b \cdot (b - 1) \cdot (b - 2)
-$$
-
-We then repeat this process for all $a$ and $b$ where $or(a, b) \ne 0$ to obtain all required polynomials.

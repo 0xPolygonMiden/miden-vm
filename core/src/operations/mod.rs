@@ -149,12 +149,6 @@ pub enum Operation {
     /// If either of the elements is greater than or equal to 2^32, execution fails.
     U32and,
 
-    /// Pops two elements off the stack, computes their binary OR, and pushes the result back onto
-    /// the stack.
-    ///
-    /// If either fo the elements is greater than or equal to 2^32, execution fails.
-    U32or,
-
     /// Pops two elements off the stack, computes their binary XOR, and pushes the result back
     /// onto the stack.
     ///
@@ -407,8 +401,8 @@ impl Operation {
             Self::And       => 0b0010_0100,
             Self::Or        => 0b0010_0101,
             Self::U32and    => 0b0010_0110,
-            Self::U32or     => 0b0010_0111,
-            Self::U32xor    => 0b0010_1000,
+            Self::U32xor    => 0b0010_0111,
+            // <empty>      => 0b0010_1000
             Self::Drop      => 0b0010_1001,
             Self::CSwap     => 0b0010_1010,
             Self::CSwapW    => 0b0010_1011,
@@ -532,7 +526,6 @@ impl fmt::Display for Operation {
             Self::U32div => write!(f, "u32div"),
 
             Self::U32and => write!(f, "u32and"),
-            Self::U32or => write!(f, "u32or"),
             Self::U32xor => write!(f, "u32xor"),
 
             // ----- stack manipulation -----------------------------------------------------------
