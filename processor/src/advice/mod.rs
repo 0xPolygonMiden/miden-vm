@@ -20,7 +20,7 @@ use vm_core::{
 ///
 /// An advice provider can be instantiated from [ProgramInputs].
 pub struct AdviceProvider {
-    step: usize,
+    step: u32,
     tape: Vec<Felt>,
     sets: BTreeMap<[u8; 32], AdviceSet>,
 }

@@ -5,7 +5,7 @@ use vm_core::{utils::string::String, Operation, Word};
 /// VmState holds a current process state information at a specific clock cycle.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VmState {
-    pub clk: usize,
+    pub clk: u32,
     pub op: Option<Operation>,
     pub asmop: Option<AsmOpInfo>,
     pub fmp: Felt,
@@ -37,7 +37,7 @@ impl fmt::Display for VmState {
 pub struct VmStateIterator {
     process: Process,
     error: Option<ExecutionError>,
-    clk: usize,
+    clk: u32,
     asmop_idx: usize,
 }
 
@@ -74,7 +74,7 @@ impl VmStateIterator {
             (
                 &assembly_ops[self.asmop_idx - 1],
                 // difference between current clock cycle and start clock cycle of the current asmop
-                (self.clk - assembly_ops[self.asmop_idx - 1].0) as u8,
+                (self.clk as usize - assembly_ops[self.asmop_idx - 1].0) as u8,
             )
         } else {
             (next_asmop, 0) //dummy value, never used.
@@ -82,7 +82,7 @@ impl VmStateIterator {
 
         // if this is the first op in the sequence corresponding to the next asmop, returns a new
         // instance of [AsmOp] instantiated with next asmop, num_cycles and cycle_idx of 1.
-        if next_asmop.0 == self.clk - 1 {
+        if next_asmop.0 == self.clk as usize - 1 {
             let asmop = Some(AsmOpInfo::new(
                 next_asmop.1.op().clone(),
                 next_asmop.1.num_cycles(),
@@ -126,7 +126,7 @@ impl Iterator for VmStateIterator {
         let op = if self.clk == 0 {
             None
         } else {
-            Some(self.process.decoder.debug_info().operations()[self.clk - 1])
+            Some(self.process.decoder.debug_info().operations()[self.clk as usize - 1])
         };
         let (asmop, is_start) = self.get_asmop();
         if is_start {
@@ -137,7 +137,7 @@ impl Iterator for VmStateIterator {
             clk: self.clk,
             op,
             asmop,
-            fmp: self.process.system.get_fmp_at(self.clk),
+            fmp: self.process.system.get_fmp_at(self.clk as usize),
             stack: self.process.stack.get_state_at(self.clk),
             memory: self
                 .process

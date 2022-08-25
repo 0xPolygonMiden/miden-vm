@@ -45,6 +45,7 @@ impl Analyze {
 ///   the number of vm cycles it takes to execute the instruction and the number of times the
 ///   instruction is run as part of the given program.
 #[derive(Debug, Default, Eq, PartialEq)]
+// TODO: total_vm_cycles cannot exceed clk and can therefore also be casted as u32?
 pub struct ProgramInfo {
     total_vm_cycles: usize,
     total_noops: usize,
@@ -77,8 +78,8 @@ impl ProgramInfo {
     }
 
     /// Sets the total vm cycles to the provided value
-    pub fn set_total_vm_cycles(&mut self, total_vm_cycles: usize) {
-        self.total_vm_cycles = total_vm_cycles;
+    pub fn set_total_vm_cycles(&mut self, total_vm_cycles: u32) {
+        self.total_vm_cycles = total_vm_cycles as usize;
     }
 
     /// Records a new occurrence of asmop in the sorted asmop stats vector of this program info.

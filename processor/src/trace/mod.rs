@@ -116,12 +116,12 @@ impl ExecutionTrace {
     }
 
     /// Returns helper registers state at the specified `clk` of the VM
-    pub fn get_user_op_helpers_at(&self, clk: usize) -> [Felt; NUM_USER_OP_HELPERS] {
+    pub fn get_user_op_helpers_at(&self, clk: u32) -> [Felt; NUM_USER_OP_HELPERS] {
         let mut result = [ZERO; NUM_USER_OP_HELPERS];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self
                 .main_trace
-                .get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)[clk];
+                .get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)[clk as usize];
         }
         result
     }
@@ -263,19 +263,27 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     let clk = system.clk();
 
     // trace lengths of system and stack components must be equal to the number of executed cycles
-    assert_eq!(clk, system.trace_len(), "inconsistent system trace lengths");
     assert_eq!(
-        clk,
+        clk as usize,
+        system.trace_len(),
+        "inconsistent system trace lengths"
+    );
+    assert_eq!(
+        clk as usize,
         decoder.trace_len(),
         "inconsistent decoder trace length"
     );
-    assert_eq!(clk, stack.trace_len(), "inconsistent stack trace lengths");
+    assert_eq!(
+        clk as usize,
+        stack.trace_len(),
+        "inconsistent stack trace lengths"
+    );
 
     // Add the range checks required by the chiplets to the range checker.
     chiplets.append_range_checks(&mut range);
 
     // Get the trace length required to hold all execution trace steps.
-    let max_len = [clk, range.trace_len(), chiplets.trace_len()]
+    let max_len = [clk as usize, range.trace_len(), chiplets.trace_len()]
         .into_iter()
         .max()
         .expect("failed to get max of component trace lengths");

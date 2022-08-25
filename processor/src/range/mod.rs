@@ -104,7 +104,7 @@ impl RangeChecker {
     /// Adds range check lookups from the [Stack] to this [RangeChecker] instance. Stack lookups are
     /// guaranteed to be added at unique clock cycles, since operations are sequential and no range
     /// check lookups are added before or during the stack operation processing.
-    pub fn add_stack_checks(&mut self, clk: usize, values: &[u16; 4]) {
+    pub fn add_stack_checks(&mut self, clk: u32, values: &[u16; 4]) {
         self.add_value(values[0]);
         self.add_value(values[1]);
         self.add_value(values[2]);
@@ -112,18 +112,18 @@ impl RangeChecker {
 
         // Stack operations are added before memory operations at unique clock cycles.
         self.cycle_range_checks
-            .insert(clk, CycleRangeChecks::new_from_stack(values));
+            .insert(clk as usize, CycleRangeChecks::new_from_stack(values));
     }
 
     /// Adds range check lookups from [Memory] to this [RangeChecker] instance. Memory lookups are
     /// always added after all stack lookups have completed, since they are processed during trace
     /// finalization.
-    pub fn add_mem_checks(&mut self, clk: usize, values: &[u16; 2]) {
+    pub fn add_mem_checks(&mut self, clk: u32, values: &[u16; 2]) {
         self.add_value(values[0]);
         self.add_value(values[1]);
 
         self.cycle_range_checks
-            .entry(clk)
+            .entry(clk as usize)
             .and_modify(|entry| entry.add_memory_checks(values))
             .or_insert_with(|| CycleRangeChecks::new_from_memory(values));
     }

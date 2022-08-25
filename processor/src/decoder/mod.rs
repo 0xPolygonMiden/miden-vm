@@ -338,7 +338,7 @@ impl Decoder {
     /// operation to the trace.
     pub fn start_join(&mut self, child1_hash: Word, child2_hash: Word, addr: Felt) {
         // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len();
+        let clk = self.trace_len() as u32;
 
         // append a JOIN row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Join(false));
@@ -370,7 +370,7 @@ impl Decoder {
         stack_top: Felt,
     ) {
         // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len();
+        let clk = self.trace_len() as u32;
 
         // append a SPLIT row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Split);
@@ -397,7 +397,7 @@ impl Decoder {
     /// operation to the trace. A block is marked as a loop block only if is_loop = ONE.
     pub fn start_loop(&mut self, loop_body_hash: Word, addr: Felt, stack_top: Felt) {
         // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len();
+        let clk = self.trace_len() as u32;
 
         // append a LOOP row to the execution trace
         let enter_loop = stack_top == ONE;
@@ -424,7 +424,7 @@ impl Decoder {
     /// This appends an execution of a REPEAT operation to the trace.
     pub fn repeat(&mut self) {
         // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len();
+        let clk = self.trace_len() as u32;
 
         // append a REPEAT row to the execution trace
         let block_info = self.block_stack.peek();
@@ -444,7 +444,8 @@ impl Decoder {
     /// operation to the trace.
     pub fn start_call(&mut self, fn_hash: Word, addr: Felt) {
         // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len();
+        // clk is guaranteed never to exceed a u32 value, we can change the format here
+        let clk = self.trace_len() as u32;
 
         // append a CALL row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Call);
@@ -491,7 +492,7 @@ impl Decoder {
         let parent_addr = self.block_stack.push(addr, BlockType::Span);
 
         // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len();
+        let clk = self.trace_len() as u32;
 
         // add a SPAN row to the trace
         self.trace
@@ -506,7 +507,7 @@ impl Decoder {
 
         // mark the current cycle as a cycle at which an operation batch may have been inserted
         // into the op_group table
-        self.aux_hints.insert_op_batch(clk, num_op_groups);
+        self.aux_hints.insert_op_batch(clk as usize, num_op_groups);
 
         // mark the current cycle as the cycle at which a SPAN block has started; SPAN block has
         // no children
@@ -549,7 +550,7 @@ impl Decoder {
 
     /// Starts decoding a new operation group.
     pub fn start_op_group(&mut self, op_group: Felt) {
-        let clk = self.trace_len();
+        let clk = self.trace_len() as u32;
         let ctx = self.span_context.as_mut().expect("not in span");
 
         // mark the cycle of the last operation as a cycle at which an operation group was
@@ -572,7 +573,7 @@ impl Decoder {
     /// Decodes a user operation (i.e., not a control flow operation).
     pub fn execute_user_op(&mut self, op: Operation, op_idx: usize) {
         // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len();
+        let clk = self.trace_len() as u32;
 
         let block = self.block_stack.peek();
         let ctx = self.span_context.as_mut().expect("not in span");
@@ -661,7 +662,7 @@ impl Decoder {
     // --------------------------------------------------------------------------------------------
 
     /// Appends an asmop decorator at the specified clock cycle to the asmop list in debug mode.
-    pub fn append_asmop(&mut self, clk: usize, asmop: AssemblyOp) {
+    pub fn append_asmop(&mut self, clk: u32, asmop: AssemblyOp) {
         self.debug_info.append_asmop(clk, asmop);
     }
 
@@ -930,7 +931,7 @@ impl DebugInfo {
     }
 
     /// Appends an asmop decorator at the specified clock cycle to the asmop list in debug mode.
-    pub fn append_asmop(&mut self, clk: usize, asmop: AssemblyOp) {
-        self.assembly_ops.push((clk, asmop));
+    pub fn append_asmop(&mut self, clk: u32, asmop: AssemblyOp) {
+        self.assembly_ops.push((clk as usize, asmop));
     }
 }

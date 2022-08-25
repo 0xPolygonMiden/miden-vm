@@ -282,7 +282,7 @@ fn build_trace_row(
     let mut row = [ZERO; MEMORY_TRACE_WIDTH];
     row[0] = ctx; // ctx
     row[1] = addr;
-    row[2] = Felt::new(clk);
+    row[2] = Felt::new(clk as u64);
     row[3] = old_val[0];
     row[4] = old_val[1];
     row[5] = old_val[2];
@@ -322,7 +322,7 @@ fn verify_memory_access(
     let expected_hint = ChipletsLookup::Response(row);
 
     let lookup = chiplets_bus.get_response_row(row);
-    let hint = chiplets_bus.get_lookup_hint(row).unwrap();
+    let hint = chiplets_bus.get_lookup_hint(row as u32).unwrap();
 
     assert_eq!(expected_row, read_trace_row(trace, row));
     assert_eq!(expected_lookup, lookup);

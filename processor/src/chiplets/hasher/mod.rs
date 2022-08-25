@@ -347,7 +347,7 @@ impl Hasher {
     ) -> AuxTraceBuilder {
         // provide all lookups to the ChipletsBus.
         for lookup in self.lookups {
-            chiplets_bus.provide_hasher_lookup(lookup, lookup.cycle());
+            chiplets_bus.provide_hasher_lookup(lookup, lookup.cycle() as u32);
         }
         // fill the trace.
         self.trace.fill_trace(trace);
@@ -482,7 +482,7 @@ impl Hasher {
         sibling: Word,
         depth: usize,
     ) {
-        let step = self.trace.trace_len();
+        let step = self.trace.trace_len() as u32;
         match context {
             MerklePathContext::MrUpdateOld => {
                 self.aux_trace

@@ -130,7 +130,7 @@ pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow> {
 
     /// Returns a sequence of hints which indicate how the table was updated. Each hint consists
     /// of a clock cycle at which the update happened as well as the hint describing the update.
-    fn get_table_hints(&self) -> &[(usize, H)];
+    fn get_table_hints(&self) -> &[(u32, H)];
 
     /// Returns a value by which the current value of the column should be multiplied to get the
     /// next value. It is expected that this value should never be ZERO in practice.
@@ -166,8 +166,8 @@ pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow> {
             // if we skipped some cycles since the last update was processed, values in the last
             // updated row should by copied over until the current cycle.
             if result_idx < clk {
-                let last_value = result[result_idx];
-                result[(result_idx + 1)..=clk].fill(last_value);
+                let last_value = result[result_idx as usize];
+                result[(result_idx as usize + 1)..=clk as usize].fill(last_value);
             }
 
             // move the result pointer to the next row
@@ -178,16 +178,18 @@ pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow> {
             // get a ZERO should be negligible (i.e., it should never come up in practice).
             let multiplicand = self.get_multiplicand(*hint, &row_values, &inv_row_values);
             debug_assert_ne!(E::ZERO, multiplicand);
-            result[result_idx] = result[clk] * multiplicand;
+            result[result_idx as usize] = result[clk as usize] * multiplicand;
         }
 
         // after all updates have been processed, the table should not change; we make sure that
         // the last value in the column is equal to the expected value, and fill in all the
         // remaining column values with the last value
-        let last_value = result[result_idx];
+        let last_value = result[result_idx as usize];
         assert_eq!(last_value, self.final_column_value(alphas));
-        if result_idx < result.len() - 1 {
-            result[(result_idx + 1)..].fill(last_value);
+        // TODO check casting, I think it is correct, since result cannot exceed clk,
+        // but len() and [ ] require usize
+        if result_idx < result.len() as u32 - 1 {
+            result[(result_idx + 1) as usize..].fill(last_value);
         }
 
         result

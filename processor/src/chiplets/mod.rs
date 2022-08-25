@@ -64,7 +64,7 @@ mod tests;
 #[derive(Default)]
 pub struct Chiplets {
     /// Current clock cycle of the VM.
-    clk: usize,
+    clk: u32,
     hasher: Hasher,
     bitwise: Bitwise,
     memory: Memory,
@@ -253,7 +253,7 @@ impl Chiplets {
         let value = self.memory.read(addr);
 
         // send the memory read request to the bus
-        let memory_lookup = MemoryLookup::new(addr, self.clk as u64, value, value);
+        let memory_lookup = MemoryLookup::new(addr, self.clk, value, value);
         self.bus.request_memory_operation(memory_lookup, self.clk);
 
         value
@@ -268,7 +268,7 @@ impl Chiplets {
         self.memory.write(addr, word);
 
         // send the memory write request to the bus
-        let memory_lookup = MemoryLookup::new(addr, self.clk as u64, old_word, word);
+        let memory_lookup = MemoryLookup::new(addr, self.clk, old_word, word);
         self.bus.request_memory_operation(memory_lookup, self.clk);
 
         old_word
@@ -280,7 +280,7 @@ impl Chiplets {
         self.memory.write(addr, word);
 
         // send the memory write request to the bus
-        let memory_lookup = MemoryLookup::new(addr, self.clk as u64, old_word, word);
+        let memory_lookup = MemoryLookup::new(addr, self.clk, old_word, word);
         self.bus.request_memory_operation(memory_lookup, self.clk);
 
         old_word

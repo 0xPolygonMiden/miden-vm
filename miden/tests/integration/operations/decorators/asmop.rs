@@ -386,7 +386,7 @@ fn build_vm_state(vm_state_iterator: VmStateIterator) -> Vec<VmStatePartial> {
 /// * op: Operation executed at the specific clock cycle
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct VmStatePartial {
-    clk: usize,
+    clk: u32,
     asmop: Option<AsmOpInfo>,
     op: Option<Operation>,
 }

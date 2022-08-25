@@ -65,7 +65,7 @@ const INIT_MEM_VALUE: Word = [ZERO; 4];
 /// For the first row of the trace, values in `d0`, `d1`, and `d_inv` are set to zeros.
 pub struct Memory {
     /// Current clock cycle of the VM.
-    clk: u64,
+    clk: u32,
 
     /// Memory access trace sorted first by address and then by clock cycle.
     trace: BTreeMap<u64, Vec<(Felt, Word)>>,
@@ -166,7 +166,7 @@ impl Memory {
     /// returned. This effectively implies that memory is initialized to ZERO.
     pub fn read(&mut self, addr: Felt) -> Word {
         self.num_trace_rows += 1;
-        let clk = Felt::new(self.clk);
+        let clk = Felt::from(self.clk);
 
         // look up the previous value in the appropriate address trace and add (clk, prev_value)
         // to it; if this is the first time we access this address, create address trace for it
@@ -186,7 +186,7 @@ impl Memory {
     /// Writes the provided word (4 elements) at the specified address.
     pub fn write(&mut self, addr: Felt, value: Word) {
         self.num_trace_rows += 1;
-        let clk = Felt::new(self.clk);
+        let clk = Felt::from(self.clk);
 
         // add a tuple (clk, value) to the appropriate address trace; if this is the first time
         // we access this address, initialize address trace.
@@ -218,7 +218,7 @@ impl Memory {
             None => return,
         };
 
-        let mut row = memory_start_row;
+        let mut row = memory_start_row as u32;
         // op range check index
         for (&addr, addr_trace) in self.trace.iter() {
             // when we start a new address, we set the previous value to all zeros. the effect of
@@ -296,8 +296,9 @@ impl Memory {
                 trace.set(i, 13, delta.inv());
 
                 // provide the memory access data to the chiplets bus.
-                let memory_lookup = MemoryLookup::new(addr, clk.as_int(), prev_value, value);
-                chiplets_bus.provide_memory_operation(memory_lookup, memory_start_row + i);
+                // TODO please check 'clk.as_int() as u32' clk is spawned here as BaseElement which is u64
+                let memory_lookup = MemoryLookup::new(addr, clk.as_int() as u32, prev_value, value);
+                chiplets_bus.provide_memory_operation(memory_lookup, (memory_start_row + i) as u32);
 
                 // update values for the next iteration of the loop
                 prev_addr = addr;
@@ -332,13 +333,13 @@ impl Default for Memory {
 pub struct MemoryLookup {
     ctx: Felt,
     addr: Felt,
-    clk: u64,
+    clk: u32,
     old_word: Word,
     new_word: Word,
 }
 
 impl MemoryLookup {
-    pub fn new(addr: Felt, clk: u64, old_word: Word, new_word: Word) -> Self {
+    pub fn new(addr: Felt, clk: u32, old_word: Word, new_word: Word) -> Self {
         Self {
             ctx: ZERO,
             addr,
@@ -372,7 +373,7 @@ impl LookupTableRow for MemoryLookup {
             + alphas[1].mul_base(MEMORY_LABEL)
             + alphas[2].mul_base(self.ctx)
             + alphas[3].mul_base(self.addr)
-            + alphas[4].mul_base(Felt::new(self.clk))
+            + alphas[4].mul_base(Felt::new(self.clk as u64))
             + old_word_value
             + new_word_value
     }

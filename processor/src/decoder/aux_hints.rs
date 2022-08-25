@@ -143,14 +143,14 @@ impl AuxTraceHints {
     /// records the relevant rows for both, block stack and block hash tables.
     pub fn block_started(
         &mut self,
-        clk: usize,
+        clk: u32,
         block_info: &BlockInfo,
         child1_hash: Option<Word>,
         child2_hash: Option<Word>,
     ) {
         // insert the hint with the relevant update
         let hint = BlockTableUpdate::BlockStarted(block_info.block_type.num_children());
-        self.block_exec_hints.push((clk, hint));
+        self.block_exec_hints.push((clk as usize, hint));
 
         // create a row which would be inserted into the block stack table
         let bst_row = BlockStackTableRow::new(block_info);
@@ -183,9 +183,9 @@ impl AuxTraceHints {
 
     /// Specifies that another execution of a loop's body started at the specified clock cycle.
     /// This is triggered by the REPEAT operation.
-    pub fn loop_repeat_started(&mut self, clk: usize) {
+    pub fn loop_repeat_started(&mut self, clk: u32) {
         self.block_exec_hints
-            .push((clk, BlockTableUpdate::LoopRepeated));
+            .push((clk as usize, BlockTableUpdate::LoopRepeated));
     }
 
     /// Specifies that execution of a SPAN block was extended at the specified clock cycle. This
@@ -221,13 +221,13 @@ impl AuxTraceHints {
     /// specified clock cycle.
     pub fn remove_op_group(
         &mut self,
-        clk: usize,
+        clk: u32,
         batch_id: Felt,
         group_pos: Felt,
         group_value: Felt,
     ) {
         self.op_group_hints
-            .push((clk, OpGroupTableUpdate::RemoveRow));
+            .push((clk as usize, OpGroupTableUpdate::RemoveRow));
         // we record a row only when it is deleted because rows are added and deleted in the same
         // order. thus, a sequence of deleted rows is exactly the same as the sequence of added
         // rows.
