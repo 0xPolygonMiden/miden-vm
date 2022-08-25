@@ -1,6 +1,6 @@
 use crate::{ExecutionError, Felt, Process, StarkField, Vec};
 use core::fmt;
-use vm_core::{utils::string::String, Operation, Word};
+use vm_core::{utils::string::String, Operation, ProgramOutputs, Word};
 
 /// VmState holds a current process state information at a specific clock cycle.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -42,7 +42,7 @@ pub struct VmStateIterator {
 }
 
 impl VmStateIterator {
-    pub(super) fn new(process: Process, result: Result<(), ExecutionError>) -> Self {
+    pub(super) fn new(process: Process, result: Result<ProgramOutputs, ExecutionError>) -> Self {
         Self {
             process,
             error: result.err(),

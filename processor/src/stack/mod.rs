@@ -1,6 +1,6 @@
 use super::{
-    BTreeMap, Felt, FieldElement, ProgramInputs, StackTopState, StarkField, Vec, MIN_STACK_DEPTH,
-    NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH, ZERO,
+    BTreeMap, Felt, FieldElement, ProgramInputs, ProgramOutputs, StackTopState, StarkField, Vec,
+    MIN_STACK_DEPTH, NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH, ZERO,
 };
 use core::cmp;
 
@@ -140,6 +140,12 @@ impl Stack {
         }
 
         result
+    }
+
+    /// Returns [ProgramOutputs] consisting of all values on the stack and all addresses in the
+    /// overflow table that are required to rebuild the rows in the overflow table.
+    pub fn get_outputs(&self) -> ProgramOutputs {
+        ProgramOutputs::from_elements(self.get_values(None), self.overflow.get_addrs())
     }
 
     /// Returns an execution trace of the top 16 stack slots and helper columns as a single array

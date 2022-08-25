@@ -18,8 +18,8 @@ pub use advice::AdviceSet;
 /// Miden VM programs can receive inputs in two ways:
 /// 1. The stack can be initialized to some set of values at the beginning of the program. These
 ///    inputs are public and must be shared with the verifier for them to verify a proof of the
-///    correct execution of a Miden program. The number of elements at the top of the stack which
-///    can receive initial value is limited to 16.
+///    correct execution of a Miden program. There is no limit to the number of elements at the top
+///    of the stack which can receive an initial value.
 /// 2. The program may request nondeterministic advice inputs from the prover. These inputs are
 ///    secret inputs. This means that the prover does not need to share them with the verifier.
 ///    There are two types of advice inputs: (1) a single advice tape which can contain any number

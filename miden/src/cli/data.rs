@@ -70,6 +70,7 @@ pub struct OutputFile {
 }
 
 /// Helper methods to interact with the output file
+/// TODO: update output file reading/writing for new ProgramOutputs struct
 impl OutputFile {
     /// Returns a new [OutputFile] from the specified outputs vector
     pub fn new(outputs: Vec<u64>) -> Self {

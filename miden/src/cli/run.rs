@@ -36,20 +36,15 @@ impl RunCmd {
         print!("Executing program... ");
         let now = Instant::now();
 
-        // generate execution trace
-        let trace = processor::execute(&program, &input_data.get_program_inputs())
-            .map_err(|err| format!("Failed to generate exection trace = {:?}", err))?;
+        // execute program and generate outputs
+        let (program_outputs, _) =
+            processor::execute(&program, &input_data.get_program_inputs())
+                .map_err(|err| format!("Failed to generate exection trace = {:?}", err))?;
 
         println!("done ({} ms)", now.elapsed().as_millis());
 
-        // extract outputs from execution trace
-        let outputs = trace.last_stack_state()[..self.num_outputs]
-            .iter()
-            .map(|&v| v.as_int())
-            .collect::<Vec<_>>();
-
         // write outputs to file
-        OutputFile::write(outputs, &self.output_file)?;
+        OutputFile::write(program_outputs.into(), &self.output_file)?;
 
         Ok(())
     }

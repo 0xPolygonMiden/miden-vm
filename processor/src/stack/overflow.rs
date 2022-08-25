@@ -1,4 +1,4 @@
-use vm_core::StarkField;
+use vm_core::{utils::uninit_vector, StarkField};
 
 use super::{
     super::trace::LookupTableRow, AuxTraceBuilder, BTreeMap, Felt, FieldElement, Vec, ZERO,
@@ -144,6 +144,25 @@ impl OverflowTable {
             .collect()
     }
 
+    /// Returns the addresses of active rows in the table required to reconstruct the table (when
+    /// combined with the values). This is a vector of all of the `clk` values (the address of each
+    /// row), preceded by the `prev` value in the first row of the table. (It's also equivalent to
+    /// all of the `prev` values followed by the `clk` value in the last row of the table.)
+    pub(super) fn get_addrs(&self) -> Vec<Felt> {
+        if !self.active_rows.is_empty() {
+            let mut addrs = unsafe { uninit_vector(self.active_rows.len() + 1) };
+            // add the previous address of the first row in the overflow table.
+            addrs[0] = self.all_rows[self.active_rows[0]].prev;
+            // add the address for all the rows in the overflow table.
+            for (i, &row_idx) in self.active_rows.iter().enumerate() {
+                addrs[i + 1] = self.all_rows[row_idx].clk;
+            }
+            return addrs;
+        }
+
+        Vec::new()
+    }
+
     // AUX TRACE BUILDER GENERATION
     // --------------------------------------------------------------------------------------------
 
@@ -154,6 +173,7 @@ impl OverflowTable {
             num_init_rows: self.num_init_rows,
             overflow_hints: self.update_trace,
             overflow_table_rows: self.all_rows,
+            final_rows: self.active_rows,
         }
     }
 

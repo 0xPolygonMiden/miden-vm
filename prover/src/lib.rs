@@ -3,7 +3,7 @@
 use air::{ProcessorAir, PublicInputs};
 use processor::ExecutionTrace;
 use prover::Prover;
-use vm_core::{utils::collections::Vec, Felt, StarkField, MIN_STACK_DEPTH};
+use vm_core::{utils::collections::Vec, Felt, ProgramOutputs};
 
 #[cfg(feature = "std")]
 use log::debug;
@@ -32,8 +32,6 @@ pub use vm_core::{
 ///
 /// * `inputs` specifies the initial state of the stack as well as non-deterministic (secret)
 ///   inputs for the VM.
-/// * `num_stack_outputs` specifies the number of elements from the top of the stack to be
-///   returned.
 /// * `options` defines parameters for STARK proof generation.
 ///
 /// # Errors
@@ -41,13 +39,8 @@ pub use vm_core::{
 pub fn prove(
     program: &Program,
     inputs: &ProgramInputs,
-    num_stack_outputs: usize,
     options: &ProofOptions,
-) -> Result<(Vec<u64>, StarkProof), ExecutionError> {
-    if num_stack_outputs > MIN_STACK_DEPTH {
-        return Err(ExecutionError::TooManyStackOutputs(num_stack_outputs));
-    }
-
+) -> Result<(ProgramOutputs, StarkProof), ExecutionError> {
     // execute the program to create an execution trace
     #[cfg(feature = "std")]
     let now = Instant::now();
@@ -60,24 +53,13 @@ pub fn prove(
         now.elapsed().as_millis()
     );
 
-    // copy the stack state at the last step to return as output
-    let outputs = trace.last_stack_state()[..num_stack_outputs]
-        .iter()
-        .map(|&v| v.as_int())
-        .collect::<Vec<_>>();
+    let outputs = trace.program_outputs();
 
     // generate STARK proof
-    let num_stack_inputs = inputs.stack_init().len();
-    let overflow_inputs = if num_stack_inputs > MIN_STACK_DEPTH {
-        inputs.stack_init()[MIN_STACK_DEPTH..].to_vec()
-    } else {
-        vec![]
-    };
     let prover = ExecutionProver::new(
         options.clone(),
-        num_stack_inputs,
-        num_stack_outputs,
-        overflow_inputs,
+        inputs.stack_init().to_vec(),
+        outputs.clone(),
     );
     let proof = prover.prove(trace).map_err(ExecutionError::ProverError)?;
 
@@ -89,24 +71,51 @@ pub fn prove(
 
 struct ExecutionProver {
     options: ProofOptions,
-    num_stack_inputs: usize,
-    num_stack_outputs: usize,
-    overflow_inputs: Vec<Felt>,
+    stack_inputs: Vec<Felt>,
+    outputs: ProgramOutputs,
 }
 
 impl ExecutionProver {
-    pub fn new(
-        options: ProofOptions,
-        num_stack_inputs: usize,
-        num_stack_outputs: usize,
-        overflow_inputs: Vec<Felt>,
-    ) -> Self {
+    pub fn new(options: ProofOptions, stack_inputs: Vec<Felt>, outputs: ProgramOutputs) -> Self {
         Self {
             options,
-            num_stack_inputs,
-            num_stack_outputs,
-            overflow_inputs,
+            stack_inputs,
+            outputs,
         }
+    }
+
+    // HELPER FUNCTIONS
+    // --------------------------------------------------------------------------------------------
+
+    /// Validates the stack inputs against the provided execution trace and returns true if valid.
+    fn are_inputs_valid(&self, trace: &ExecutionTrace) -> bool {
+        for (input_element, trace_element) in self
+            .stack_inputs
+            .iter()
+            .zip(trace.init_stack_state().iter())
+        {
+            if *input_element != *trace_element {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    /// Validates the program outputs against the provided execution trace and returns true if valid.
+    fn are_outputs_valid(&self, trace: &ExecutionTrace) -> bool {
+        for (output_element, trace_element) in self
+            .outputs
+            .stack_top()
+            .iter()
+            .zip(trace.last_stack_state().iter())
+        {
+            if *output_element != *trace_element {
+                return false;
+            }
+        }
+
+        true
     }
 }
 
@@ -120,18 +129,20 @@ impl Prover for ExecutionProver {
     }
 
     fn get_pub_inputs(&self, trace: &ExecutionTrace) -> PublicInputs {
-        let stack_inputs = if self.num_stack_inputs > MIN_STACK_DEPTH {
-            let mut stack_inputs = trace.init_stack_state()[..MIN_STACK_DEPTH].to_vec();
-            stack_inputs.extend_from_slice(&self.overflow_inputs);
-            stack_inputs
-        } else {
-            trace.init_stack_state()[..self.num_stack_inputs].to_vec()
-        };
+        // ensure inputs and outputs are consistent with the execution trace.
+        debug_assert!(
+            self.are_inputs_valid(trace),
+            "provided inputs do not match the execution trace"
+        );
+        debug_assert!(
+            self.are_outputs_valid(trace),
+            "provided outputs do not match the execution trace"
+        );
 
         PublicInputs::new(
             trace.program_hash(),
-            stack_inputs,
-            trace.last_stack_state()[..self.num_stack_outputs].to_vec(),
+            self.stack_inputs.clone(),
+            self.outputs.clone(),
         )
     }
 }

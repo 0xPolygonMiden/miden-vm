@@ -7,7 +7,7 @@ extern crate alloc;
 use vm_core::{
     chiplets::hasher::Digest,
     utils::{collections::Vec, ByteWriter, Serializable},
-    ExtensionOf, CLK_COL_IDX, FMP_COL_IDX, MIN_STACK_DEPTH, STACK_TRACE_OFFSET,
+    ExtensionOf, ProgramOutputs, CLK_COL_IDX, FMP_COL_IDX, MIN_STACK_DEPTH, STACK_TRACE_OFFSET,
 };
 use winter_air::{
     Air, AirContext, Assertion, AuxTraceRandElements, EvaluationFrame,
@@ -35,7 +35,7 @@ pub use winter_air::{FieldExtension, HashFunction};
 pub struct ProcessorAir {
     context: AirContext<Felt>,
     stack_inputs: Vec<Felt>,
-    stack_outputs: Vec<Felt>,
+    outputs: ProgramOutputs,
     constraint_ranges: TransitionConstraintRange,
 }
 
@@ -96,7 +96,7 @@ impl Air for ProcessorAir {
         Self {
             context,
             stack_inputs: pub_inputs.stack_inputs,
-            stack_outputs: pub_inputs.stack_outputs,
+            outputs: pub_inputs.outputs,
             constraint_ranges,
         }
     }
@@ -227,20 +227,15 @@ impl Air for ProcessorAir {
 pub struct PublicInputs {
     program_hash: Digest,
     stack_inputs: Vec<Felt>,
-    stack_outputs: Vec<Felt>,
+    outputs: ProgramOutputs,
 }
 
 impl PublicInputs {
-    pub fn new(program_hash: Digest, stack_inputs: Vec<Felt>, stack_outputs: Vec<Felt>) -> Self {
-        assert!(
-            stack_outputs.len() <= MIN_STACK_DEPTH,
-            "too many stack outputs"
-        );
-
+    pub fn new(program_hash: Digest, stack_inputs: Vec<Felt>, outputs: ProgramOutputs) -> Self {
         Self {
             program_hash,
             stack_inputs,
-            stack_outputs,
+            outputs,
         }
     }
 }
@@ -249,6 +244,7 @@ impl Serializable for PublicInputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write(self.program_hash.as_elements());
         target.write(self.stack_inputs.as_slice());
-        target.write(self.stack_outputs.as_slice());
+        target.write(self.outputs.stack());
+        target.write(self.outputs.overflow_addrs());
     }
 }

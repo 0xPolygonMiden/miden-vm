@@ -7,8 +7,8 @@ use super::{
 };
 use vm_core::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
-    AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_STACK_DEPTH, MIN_TRACE_LEN,
-    STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO,
+    ProgramOutputs, AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET,
+    MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO,
 };
 use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
 
@@ -58,6 +58,7 @@ pub struct ExecutionTrace {
     main_trace: Matrix<Felt>,
     aux_trace_hints: AuxTraceHints,
     program_hash: Digest,
+    program_outputs: ProgramOutputs,
 }
 
 impl ExecutionTrace {
@@ -70,7 +71,7 @@ impl ExecutionTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
-    pub(super) fn new(process: Process) -> Self {
+    pub(super) fn new(process: Process, program_outputs: ProgramOutputs) -> Self {
         // use program hash to initialize random element generator; this generator will be used
         // to inject random values at the end of the trace; using program hash here is OK because
         // we are using random values only to stabilize constraint degrees, and not to achieve
@@ -85,6 +86,7 @@ impl ExecutionTrace {
             main_trace: Matrix::new(main_trace),
             aux_trace_hints,
             program_hash,
+            program_outputs,
         }
     }
 
@@ -94,6 +96,11 @@ impl ExecutionTrace {
     /// Returns hash of the program execution of which resulted in this execution trace.
     pub fn program_hash(&self) -> Digest {
         self.program_hash
+    }
+
+    /// Returns outputs of the program execution which resulted in this execution trace.
+    pub fn program_outputs(&self) -> ProgramOutputs {
+        self.program_outputs.clone()
     }
 
     /// Returns the initial state of the top 16 stack registers.

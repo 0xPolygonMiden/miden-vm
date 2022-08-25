@@ -54,7 +54,6 @@ impl ProveCmd {
         let (outputs, proof) = prover::prove(
             &program,
             &input_data.get_program_inputs(),
-            self.num_outputs,
             &self.get_proof_security(),
         )
         .map_err(|err| format!("Failed to prove program - {:?}", err))?;

@@ -12,6 +12,7 @@ pub struct AuxTraceBuilder {
     pub(super) overflow_hints: Vec<(u64, OverflowTableUpdate)>,
     pub(super) overflow_table_rows: Vec<OverflowTableRow>,
     pub(super) num_init_rows: usize,
+    pub(super) final_rows: Vec<usize>,
 }
 
 impl AuxTraceBuilder {
@@ -86,7 +87,12 @@ impl AuxColumnBuilder<OverflowTableUpdate, OverflowTableRow, u64> for AuxTraceBu
     }
 
     /// Returns the final value in the auxiliary column.
-    fn final_column_value<E: FieldElement<BaseField = Felt>>(&self, _row_values: &[E]) -> E {
-        E::ONE
+    fn final_column_value<E: FieldElement<BaseField = Felt>>(&self, row_values: &[E]) -> E {
+        let mut final_column_value = E::ONE;
+        for &row in &self.final_rows {
+            final_column_value *= row_values[row];
+        }
+
+        final_column_value
     }
 }
