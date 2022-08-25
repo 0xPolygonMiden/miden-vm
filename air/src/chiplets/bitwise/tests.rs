@@ -6,7 +6,10 @@ use super::{
 };
 use rand_utils::rand_value;
 use vm_core::{
-    chiplets::bitwise::{Selectors, BITWISE_AND, BITWISE_XOR},
+    chiplets::{
+        bitwise::{BITWISE_AND, BITWISE_XOR},
+        BITWISE_TRACE_RANGE,
+    },
     Felt, FieldElement, TRACE_WIDTH,
 };
 
@@ -33,6 +36,72 @@ fn test_bitwise_change_ops_fail() {
     // All other constraints should evaluate to zero.
     assert_eq!(result[0..1], expected[0..1]);
     assert_eq!(result[2..], expected[2..]);
+}
+
+/// Tests that the prover cannot set an incorrect output during BITWISE_AND at the first row in the
+/// cycle when the low limb of a is one.
+#[test]
+fn output_aggregation_and() {
+    let cycle_row = 0;
+
+    // create a valid test frame manually
+    let mut current = vec![Felt::ZERO; TRACE_WIDTH];
+    let mut next = vec![Felt::ZERO; TRACE_WIDTH];
+
+    let current_bitwise = [
+        // selector
+        BITWISE_AND,
+        // a
+        Felt::ONE,
+        // b
+        Felt::new(9),
+        // decomposition of a
+        Felt::ONE,
+        Felt::ZERO,
+        Felt::ZERO,
+        Felt::ZERO,
+        // decomposition of b
+        Felt::ONE,
+        Felt::ZERO,
+        Felt::ZERO,
+        Felt::ONE,
+        // previous output
+        Felt::ZERO,
+        // assert a false output
+        Felt::new(1337),
+    ];
+
+    let next_bitwise = [
+        // selector
+        BITWISE_AND,
+        // a
+        Felt::new(19),
+        // b
+        Felt::new(157),
+        // decomposition of a
+        Felt::ONE,
+        Felt::ONE,
+        Felt::ZERO,
+        Felt::ZERO,
+        // decomposition of b
+        Felt::ONE,
+        Felt::ZERO,
+        Felt::ONE,
+        Felt::ONE,
+        // previous output
+        Felt::new(1337),
+        // output
+        Felt::new(21393),
+    ];
+
+    current[BITWISE_TRACE_RANGE].copy_from_slice(&current_bitwise);
+    next[BITWISE_TRACE_RANGE].copy_from_slice(&next_bitwise);
+
+    let frame = EvaluationFrame::<Felt>::from_rows(current, next);
+    let result = get_constraint_evaluation(frame, cycle_row);
+
+    // expect a failure for the output aggregation constraint (the last one)
+    assert_ne!(Felt::ZERO, result[NUM_CONSTRAINTS - 1]);
 }
 
 // RANDOMIZED TESTS
@@ -82,7 +151,7 @@ fn get_constraint_evaluation(frame: EvaluationFrame<Felt>, row: usize) -> [Felt;
 /// It expects the specified `cycle_row_num` for the current row to be such that the next row will
 /// still be in the same cycle. It will fail if the row number input is >= OP_CYCLE_LEN - 1.
 pub fn get_test_frame(
-    operation: Selectors,
+    operation: Felt,
     a: u32,
     b: u32,
     cycle_row_num: usize,
@@ -97,8 +166,8 @@ pub fn get_test_frame(
     let mut next = vec![Felt::ZERO; TRACE_WIDTH];
 
     // Set the operation selectors.
-    current[BITWISE_SELECTOR_COL_IDX] = operation[0];
-    next[BITWISE_SELECTOR_COL_IDX] = operation[0];
+    current[BITWISE_SELECTOR_COL_IDX] = operation;
+    next[BITWISE_SELECTOR_COL_IDX] = operation;
 
     // Set the input aggregation and decomposition values.
     set_frame_inputs(&mut current, &mut next, a, b, cycle_row_num);
@@ -133,8 +202,8 @@ pub fn get_test_frame(
 /// It expects the specified `cycle_row_num` for the current row to be such that the next row will
 /// still be in the same cycle. It will fail if the row number input is >= OP_CYCLE_LEN - 1.
 pub fn get_test_frame_with_two_ops(
-    op_current: Selectors,
-    op_next: Selectors,
+    op_current: Felt,
+    op_next: Felt,
     a: u32,
     b: u32,
     cycle_row_num: usize,
@@ -148,9 +217,9 @@ pub fn get_test_frame_with_two_ops(
     let mut current = vec![Felt::ZERO; TRACE_WIDTH];
     let mut next = vec![Felt::ZERO; TRACE_WIDTH];
 
-    // Set the operation selectors.
-    current[BITWISE_SELECTOR_COL_IDX] = op_current[0];
-    next[BITWISE_SELECTOR_COL_IDX] = op_next[0];
+    // Set the operation selector.
+    current[BITWISE_SELECTOR_COL_IDX] = op_current;
+    next[BITWISE_SELECTOR_COL_IDX] = op_next;
 
     // Set the input aggregation and decomposition values.
     set_frame_inputs(&mut current, &mut next, a, b, cycle_row_num);
@@ -216,7 +285,7 @@ fn set_frame_inputs(current: &mut [Felt], next: &mut [Felt], a: u32, b: u32, cyc
 }
 
 /// Returns the final output result of applying the specified operation to the provided inputs.
-fn get_output(operation: Selectors, a: u32, b: u32) -> u32 {
+fn get_output(operation: Felt, a: u32, b: u32) -> u32 {
     if operation == BITWISE_AND {
         a & b
     } else if operation == BITWISE_XOR {

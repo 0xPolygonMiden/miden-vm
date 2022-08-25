@@ -363,7 +363,7 @@ pub fn parse_u32and(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// Translates u32checked_or assembly instruction to a sequence of VM operations.
 ///
 /// We don't need to assert that inputs are u32 values because the VM does these assertions
-/// implicitly for `U32XOR` and `U32AND` operations.
+/// implicitly for `U32AND` operation.
 ///
 /// This takes 6 VM cycles.
 pub fn parse_u32or(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
@@ -372,10 +372,10 @@ pub fn parse_u32or(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
         1 => span_ops.extend_from_slice(&[
             Operation::Dup1,
             Operation::Dup1,
-            Operation::U32xor,
-            Operation::MovDn2,
             Operation::U32and,
-            Operation::U32xor,
+            Operation::Neg,
+            Operation::Add,
+            Operation::Add,
         ]),
         _ => return Err(AssemblyError::extra_param(op)),
     }

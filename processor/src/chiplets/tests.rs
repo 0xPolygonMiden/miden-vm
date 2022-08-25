@@ -155,7 +155,7 @@ fn validate_bitwise_trace(chiplets: &ChipletsTrace, start: usize, end: usize) {
         assert_eq!(Felt::ZERO, chiplets[1][row]);
 
         // the expected start of the bitwise trace should hold the expected bitwise op selectors
-        assert_eq!(BITWISE_XOR, [chiplets[2][row]]);
+        assert_eq!(BITWISE_XOR, chiplets[2][row]);
 
         // the final columns should be padded
         assert_eq!(Felt::ZERO, chiplets[16][row]);

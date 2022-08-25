@@ -402,8 +402,8 @@ impl Operation {
             Self::And       => 0b0010_0100,
             Self::Or        => 0b0010_0101,
             Self::U32and    => 0b0010_0110,
-            // <empty>      => 0b0010_0111,
-            Self::U32xor    => 0b0010_1000,
+            Self::U32xor    => 0b0010_0111,
+            // <empty>      => 0b0010_1000
             Self::Drop      => 0b0010_1001,
             Self::CSwap     => 0b0010_1010,
             Self::CSwapW    => 0b0010_1011,

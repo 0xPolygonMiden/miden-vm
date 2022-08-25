@@ -15,13 +15,13 @@ pub const OP_CYCLE_LEN: usize = 8;
 // --- OPERATION SELECTORS ------------------------------------------------------------------------
 
 /// Specifies a bitwise AND operation.
-pub const BITWISE_AND: Selectors = [Felt::ZERO];
+pub const BITWISE_AND: Felt = Felt::ZERO;
 /// Unique label for the bitwise AND operation. Computed as 1 more than the binary composition of
 /// the chiplet and operation selectors [1, 0, 0].
 pub const BITWISE_AND_LABEL: Felt = Felt::new(2);
 
 /// Specifies a bitwise XOR operation.
-pub const BITWISE_XOR: Selectors = [Felt::ONE];
+pub const BITWISE_XOR: Felt = Felt::ONE;
 /// Unique label for the bitwise XOR operation. Computed as 1 more than the binary composition of
 /// the chiplet and operation selectors [1, 0, 1].
 pub const BITWISE_XOR_LABEL: Felt = Felt::new(6);

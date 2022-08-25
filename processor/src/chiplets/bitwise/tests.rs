@@ -28,7 +28,7 @@ fn bitwise_and() {
 
     // make sure the selector values specify bitwise AND at each step in the trace
     for row in 0..OP_CYCLE_LEN {
-        assert_eq!([trace[0][row]], BITWISE_AND);
+        assert_eq!(trace[0][row], BITWISE_AND);
     }
 
     // make sure result and result from the trace are the same
@@ -85,7 +85,7 @@ fn bitwise_xor() {
 
     // make sure the selector values specify bitwise XOR at each step in the trace
     for row in 0..OP_CYCLE_LEN {
-        assert_eq!([trace[0][row]], BITWISE_XOR);
+        assert_eq!(trace[0][row], BITWISE_XOR);
     }
 
     // make sure result and result from the trace are the same

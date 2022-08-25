@@ -3,9 +3,7 @@ use super::{
     Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, HASH_CYCLE_LEN, NUM_RAND_ROWS, ONE,
 };
 use vm_core::chiplets::{
-    bitwise::{
-        Selectors, BITWISE_AND, BITWISE_AND_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, OP_CYCLE_LEN,
-    },
+    bitwise::{BITWISE_AND, BITWISE_AND_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, OP_CYCLE_LEN},
     BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, BITWISE_TRACE_OFFSET,
 };
 
@@ -171,12 +169,11 @@ fn build_expected_bitwise(alphas: &[Felt], label: Felt, a: Felt, b: Felt, result
 }
 
 fn build_expected_bitwise_from_trace(trace: &ExecutionTrace, alphas: &[Felt], row: usize) -> Felt {
-    let s = trace.main_trace.get_column(BITWISE_TRACE_OFFSET)[row];
-    let selectors: Selectors = [s];
+    let selector = trace.main_trace.get_column(BITWISE_TRACE_OFFSET)[row];
 
-    let op_id = if selectors == BITWISE_AND {
+    let op_id = if selector == BITWISE_AND {
         BITWISE_AND_LABEL
-    } else if selectors == BITWISE_XOR {
+    } else if selector == BITWISE_XOR {
         BITWISE_XOR_LABEL
     } else {
         panic!("Execution trace contains an invalid bitwise operation.")

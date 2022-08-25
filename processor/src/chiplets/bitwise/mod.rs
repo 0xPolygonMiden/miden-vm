@@ -4,8 +4,8 @@ use super::{
 };
 use crate::utils::get_trace_len;
 use vm_core::chiplets::bitwise::{
-    A_COL_IDX, A_COL_RANGE, BITWISE_AND, BITWISE_XOR, B_COL_IDX, B_COL_RANGE, NUM_SELECTORS,
-    OP_CYCLE_LEN, OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
+    A_COL_IDX, A_COL_RANGE, BITWISE_AND, BITWISE_XOR, B_COL_IDX, B_COL_RANGE, OP_CYCLE_LEN,
+    OUTPUT_COL_IDX, PREV_OUTPUT_COL_IDX, TRACE_WIDTH,
 };
 
 #[cfg(test)]
@@ -16,11 +16,6 @@ mod tests;
 
 /// Initial capacity of each column.
 const INIT_TRACE_CAPACITY: usize = 128;
-
-// TYPE ALIASES
-// ================================================================================================
-
-type Selectors = [Felt; NUM_SELECTORS];
 
 // BITWISE
 // ================================================================================================
@@ -179,12 +174,12 @@ impl Bitwise {
             let z = self.trace[OUTPUT_COL_IDX][row];
 
             // get the operation label.
-            let op_selectors: Selectors = [self.trace[0][row]];
-            let label = if op_selectors == BITWISE_AND {
+            let op_selector: Felt = self.trace[0][row];
+            let label = if op_selector == BITWISE_AND {
                 BITWISE_AND_LABEL
             } else {
                 assert!(
-                    op_selectors == BITWISE_XOR,
+                    op_selector == BITWISE_XOR,
                     "Unrecognized operation selectors in Bitwise chiplet"
                 );
                 BITWISE_XOR_LABEL
@@ -212,8 +207,8 @@ impl Bitwise {
     /// - Columns 7 to 10 are set to the 4 least-significant bits of `b`.
     /// - Columns 11 and 12 are left for the output value and that of the previous row, which are
     ///   set elsewhere.
-    fn add_bitwise_trace_row(&mut self, selectors: Selectors, a: u64, b: u64) {
-        self.trace[0].push(selectors[0]);
+    fn add_bitwise_trace_row(&mut self, selector: Felt, a: u64, b: u64) {
+        self.trace[0].push(selector);
         self.trace[A_COL_IDX].push(Felt::new(a));
         self.trace[B_COL_IDX].push(Felt::new(b));
 

@@ -99,7 +99,7 @@ This group contains $32$ operations which do not shift the stack (this is almost
 | `<unused>`   | $31$         | `001_1111`      |                               | $7$         |
 
 ### Left stack shift operations
-This group contains $15$ operations which shift the stack to the left (i.e., remove an item from the stack). Most of left-shift operations are contained in this group. Since the op flag degree for these operations is $7$, constraints for these operations cannot exceed degree $2$.
+This group contains $16$ operations which shift the stack to the left (i.e., remove an item from the stack). Most of left-shift operations are contained in this group. Since the op flag degree for these operations is $7$, constraints for these operations cannot exceed degree $2$.
 
 | Operation    | Opcode value | Binary encoding | Operation group               | Flag degree |
 | ------------ | :----------: | :-------------: | :---------------------------: | :---------: |
@@ -110,7 +110,8 @@ This group contains $15$ operations which shift the stack to the left (i.e., rem
 | `AND`        | $36$         | `010_0100`      | [Field ops](./field_ops.md)   | $7$         |
 | `OR`         | $37$         | `010_0101`      | [Field ops](./field_ops.md)   | $7$         |
 | `U32AND`     | $38$         | `010_0110`      | [u32 ops](./u32_ops.md)       | $7$         |
-| `U32XOR`     | $40$         | `010_1000`      | [u32 ops](./u32_ops.md)       | $7$         |
+| `U32XOR`     | $39$         | `010_0111`      | [u32 ops](./u32_ops.md)       | $7$         |
+| `<unused>`   | $40$         | `010_1000`      |                               | $7$         |
 | `DROP`       | $41$         | `010_1001`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `CSWAP`      | $42$         | `010_1010`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `CSWAPW`     | $43$         | `010_1011`      | [Stack ops](./stack_ops.md)   | $7$         |

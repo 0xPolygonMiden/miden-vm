@@ -55,6 +55,13 @@ pub const BITWISE_B_COL_RANGE: Range<usize> = Range {
     start: BITWISE_TRACE_OFFSET + bitwise::B_COL_RANGE.start,
     end: BITWISE_TRACE_OFFSET + bitwise::B_COL_RANGE.end,
 };
+
+/// The column index range for the main trace of the bitwise column
+pub const BITWISE_TRACE_RANGE: Range<usize> = Range {
+    start: BITWISE_TRACE_OFFSET,
+    end: BITWISE_TRACE_OFFSET + bitwise::OUTPUT_COL_IDX + 1,
+};
+
 /// The index within the main trace of the bitwise column containing the aggregated output value of
 /// the previous row.
 pub const BITWISE_PREV_OUTPUT_COL_IDX: usize = BITWISE_TRACE_OFFSET + bitwise::PREV_OUTPUT_COL_IDX;
