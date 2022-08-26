@@ -10,7 +10,7 @@ use vm_core::{
         collections::{BTreeMap, Vec},
         string::{String, ToString},
     },
-    Library, Program,
+    CodeBlockTable, Library, Program,
 };
 use vm_stdlib::StdLibrary;
 
@@ -73,19 +73,20 @@ impl Assembler {
     /// on Miden VM.
     pub fn compile(&self, source: &str) -> Result<Program, AssemblyError> {
         let mut tokens = TokenStream::new(source)?;
-        let mut context = AssemblyContext::new();
+        let mut context = AssemblyContext::new(self.in_debug_mode);
+        let mut cb_table = CodeBlockTable::default();
 
         // parse imported modules (if any), and add exported procedures from these modules to the
         // current context; since we are in the root context here, we initialize dependency chain
         // with an empty vector.
-        self.parse_imports(&mut tokens, &mut context, &mut Vec::new())?;
+        self.parse_imports(&mut tokens, &mut context, &mut Vec::new(), &mut cb_table)?;
 
         // parse locally defined procedures (if any), and add these procedures to the current
         // context
         while let Some(token) = tokens.read() {
             let proc = match token.parts()[0] {
                 Token::PROC | Token::EXPORT => {
-                    Procedure::parse(&mut tokens, &context, false, self.in_debug_mode)?
+                    Procedure::parse(&mut tokens, &context, &mut cb_table, false)?
                 }
                 _ => break,
             };
@@ -101,8 +102,8 @@ impl Assembler {
         }
 
         // parse program body and return the resulting program
-        let program_root = parse_program(&mut tokens, &context, self.in_debug_mode)?;
-        Ok(Program::new(program_root))
+        let program_root = parse_program(&mut tokens, &context, &mut cb_table)?;
+        Ok(Program::with_table(program_root, cb_table))
     }
 
     // IMPORT PARSERS
@@ -126,6 +127,7 @@ impl Assembler {
         tokens: &mut TokenStream,
         context: &mut AssemblyContext<'a>,
         dep_chain: &mut Vec<String>,
+        cb_table: &mut CodeBlockTable,
     ) -> Result<(), AssemblyError> {
         // read tokens from the token stream until all `use` tokens are consumed
         while let Some(token) = tokens.read() {
@@ -152,7 +154,7 @@ impl Assembler {
                             self.stdlib.get_module_source(module_path).map_err(|_| {
                                 AssemblyError::missing_import_source(token, module_path)
                             })?;
-                        self.parse_module(module_source, module_path, dep_chain)?;
+                        self.parse_module(module_source, module_path, dep_chain, cb_table)?;
                     }
 
                     // get procedures from the module at the specified path; we are guaranteed to
@@ -190,20 +192,21 @@ impl Assembler {
         source: &str,
         path: &str,
         dep_chain: &mut Vec<String>,
+        cb_table: &mut CodeBlockTable,
     ) -> Result<(), AssemblyError> {
         let mut tokens = TokenStream::new(source)?;
-        let mut context = AssemblyContext::new();
+        let mut context = AssemblyContext::new(self.in_debug_mode);
 
         // parse imported modules (if any), and add exported procedures from these modules to
         // the current context
-        self.parse_imports(&mut tokens, &mut context, dep_chain)?;
+        self.parse_imports(&mut tokens, &mut context, dep_chain, cb_table)?;
 
         // parse procedures defined in the module, and add these procedures to the current
         // context
         while let Some(token) = tokens.read() {
             let proc = match token.parts()[0] {
                 Token::PROC | Token::EXPORT => {
-                    Procedure::parse(&mut tokens, &context, true, self.in_debug_mode)?
+                    Procedure::parse(&mut tokens, &context, cb_table, true)?
                 }
                 _ => break,
             };
@@ -246,7 +249,7 @@ impl Default for Assembler {
 fn parse_program(
     tokens: &mut TokenStream,
     context: &AssemblyContext,
-    in_debug_mode: bool,
+    cb_table: &mut CodeBlockTable,
 ) -> Result<CodeBlock, AssemblyError> {
     let program_start = tokens.pos();
     // consume the 'begin' token
@@ -255,7 +258,7 @@ fn parse_program(
     tokens.advance();
 
     // parse the program body
-    let root = parse_code_blocks(tokens, context, 0, in_debug_mode)?;
+    let root = parse_code_blocks(tokens, context, cb_table, 0)?;
 
     // consume the 'end' token
     match tokens.read() {

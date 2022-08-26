@@ -168,7 +168,8 @@ impl Test {
             outputs[0] += 1;
             assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_err());
         } else {
-            assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_ok());
+            let result = miden::verify(program.hash(), &pub_inputs, &outputs, proof);
+            assert!(result.is_ok(), "error: {:?}", result);
         }
     }
 

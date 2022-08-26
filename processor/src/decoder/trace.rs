@@ -82,16 +82,16 @@ impl DecoderTrace {
     // TRACE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Appends a trace row marking the start of a flow control block (JOIN, SPLIT, LOOP).
+    /// Appends a trace row marking the start of a flow control block (JOIN, SPLIT, LOOP, CALL).
     ///
     /// When a control block is starting, we do the following:
     /// - Set the address to the address of the parent block. This is not necessarily equal to the
     ///   address from the previous row because in a SPLIT block, the second child follows the
     ///   first child, rather than the parent.
-    /// - Set op_bits to opcode of the specified block (e.g., JOIN, SPLIT, LOOP).
+    /// - Set op_bits to opcode of the specified block (e.g., JOIN, SPLIT, LOOP, CALL).
     /// - Set the first half of the hasher state to the h1 parameter. For JOIN and SPLIT blocks
     ///   this will contain the hash of the left child; for LOOP block this will contain hash of
-    ///   the loop's body.
+    ///   the loop's body, for CALL block this will contain hash of the called function.
     /// - Set the second half of the hasher state to the h2 parameter. For JOIN and SPLIT blocks
     ///   this will contain hash of the right child.
     /// - Set is_span to ZERO.
@@ -121,7 +121,7 @@ impl DecoderTrace {
         self.op_batch_flag_trace[2].push(ZERO);
     }
 
-    /// Appends a trace row marking the end of a flow control block (JOIN, SPLIT, LOOP).
+    /// Appends a trace row marking the end of a flow control block (JOIN, SPLIT, LOOP, CALL).
     ///
     /// When a control block is ending, we do the following:
     /// - Set the block address to the specified address.

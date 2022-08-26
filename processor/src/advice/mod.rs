@@ -77,7 +77,6 @@ impl AdviceProvider {
     /// - The specified depth is either zero or greater than the depth of the Merkle tree
     ///   identified by the specified root.
     /// - Value of the node at the specified depth and index is not known to this advice provider.
-    #[allow(dead_code)]
     pub fn get_tree_node(
         &mut self,
         root: Word,

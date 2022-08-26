@@ -4,7 +4,7 @@ use vm_core::{
         bitwise::{BITWISE_XOR, OP_CYCLE_LEN},
         hasher::{HASH_CYCLE_LEN, LINEAR_HASH, RETURN_STATE},
     },
-    Felt, FieldElement, ProgramInputs, CHIPLETS_RANGE, CHIPLETS_WIDTH,
+    CodeBlockTable, Felt, FieldElement, ProgramInputs, CHIPLETS_RANGE, CHIPLETS_WIDTH,
 };
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
@@ -95,7 +95,9 @@ fn build_trace(stack: &[u64], operations: Vec<Operation>) -> (ChipletsTrace, usi
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(inputs);
     let program = CodeBlock::new_span(operations);
-    process.execute_code_block(&program).unwrap();
+    process
+        .execute_code_block(&program, &CodeBlockTable::default())
+        .unwrap();
 
     let (trace, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
