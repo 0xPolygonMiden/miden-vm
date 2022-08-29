@@ -3,7 +3,7 @@ use super::{
     Word, CHIPLETS_WIDTH, ONE, ZERO,
 };
 use crate::{trace::LookupTableRow, ExecutionError};
-use core::ops::RangeInclusive;
+
 use vm_core::{
     chiplets::bitwise::{BITWISE_AND_LABEL, BITWISE_XOR_LABEL},
     chiplets::hasher::{Digest, HasherState},
@@ -244,62 +244,70 @@ impl Chiplets {
     // MEMORY CHIPLET ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a word (4 elements) located in memory at the specified address.
+    /// Returns a word located in memory at the specified context/address while recording the
+    /// memory access in the memory trace.
     ///
     /// If the specified address hasn't been previously written to, four ZERO elements are
     /// returned. This effectively implies that memory is initialized to ZERO.
-    pub fn read_mem(&mut self, addr: Felt) -> Word {
+    pub fn read_mem(&mut self, ctx: u32, addr: Felt) -> Word {
         // read the word from memory
-        let value = self.memory.read(addr);
+        let value = self.memory.read(ctx, addr, self.clk);
 
         // send the memory read request to the bus
-        let memory_lookup = MemoryLookup::new(addr, self.clk, value, value);
+        let memory_lookup = MemoryLookup::from_ints(ctx, addr, self.clk, value, value);
         self.bus.request_memory_operation(memory_lookup, self.clk);
 
         value
     }
 
-    /// Writes the provided element to memory at the specified address leaving the remaining 3
+    /// Writes the provided word at the specified context/address.
+    ///
+    /// This also modifies the memory access trace.
+    pub fn write_mem(&mut self, ctx: u32, addr: Felt, word: Word) -> Word {
+        let old_word = self.memory.get_old_value(ctx, addr);
+        self.memory.write(ctx, addr, self.clk, word);
+
+        // send the memory write request to the bus
+        let memory_lookup = MemoryLookup::from_ints(ctx, addr, self.clk, old_word, word);
+        self.bus.request_memory_operation(memory_lookup, self.clk);
+
+        old_word
+    }
+
+    /// Writes the provided element into the specified context/address leaving the remaining 3
     /// elements of the word previously stored at that address unchanged.
-    pub fn write_mem_single(&mut self, addr: Felt, value: Felt) -> Word {
-        let old_word = self.memory.get_old_value(addr);
-        let word = [value, old_word[1], old_word[2], old_word[3]];
+    ///
+    /// This also modifies the memory access trace.
+    pub fn write_mem_single(&mut self, ctx: u32, addr: Felt, value: Felt) -> Word {
+        let old_word = self.memory.get_old_value(ctx, addr);
+        let new_word = [value, old_word[1], old_word[2], old_word[3]];
 
-        self.memory.write(addr, word);
+        self.memory.write(ctx, addr, self.clk, new_word);
 
         // send the memory write request to the bus
-        let memory_lookup = MemoryLookup::new(addr, self.clk, old_word, word);
+        let memory_lookup = MemoryLookup::from_ints(ctx, addr, self.clk, old_word, new_word);
         self.bus.request_memory_operation(memory_lookup, self.clk);
 
         old_word
     }
 
-    /// Writes the provided word (4 elements) to memory at the specified address.
-    pub fn write_mem(&mut self, addr: Felt, word: Word) -> Word {
-        let old_word = self.memory.get_old_value(addr);
-        self.memory.write(addr, word);
-
-        // send the memory write request to the bus
-        let memory_lookup = MemoryLookup::new(addr, self.clk, old_word, word);
-        self.bus.request_memory_operation(memory_lookup, self.clk);
-
-        old_word
+    /// Returns a word located at the specified context/address, or None if the address hasn't
+    /// been accessed previously.
+    ///
+    /// Unlike mem_read() which modifies the memory access trace, this method returns the value at
+    /// the specified address (if one exists) without altering the memory access trace.
+    pub fn get_mem_value(&self, ctx: u32, addr: u64) -> Option<Word> {
+        self.memory.get_value(ctx, addr)
     }
 
-    /// Returns a word located at the specified address, or None if the address hasn't been
-    /// accessed previously.
-    pub fn get_mem_value(&self, addr: u64) -> Option<Word> {
-        self.memory.get_value(addr)
+    /// Returns the entire memory state for the specified execution context at the specified cycle.
+    /// The state is returned as a vector of (address, value) tuples, and includes addresses which
+    /// have been accessed at least once.
+    pub fn get_mem_state_at(&self, ctx: u32, clk: u32) -> Vec<(u64, Word)> {
+        self.memory.get_state_at(ctx, clk)
     }
 
-    /// Returns values within a range of addresses, or optionally all values at the beginning of.
-    /// the specified cycle.
-    /// TODO: Refactor to something like `pub fn get_mem_state(&self, clk: u64) -> Vec<(u64, Word)>`
-    pub fn get_mem_values_at(&self, range: RangeInclusive<u64>, step: u64) -> Vec<(u64, Word)> {
-        self.memory.get_values_at(range, step)
-    }
-
-    /// Returns current size of the memory (in words).
+    /// Returns current size of the memory (in words) across all execution contexts.
     #[cfg(test)]
     pub fn get_mem_size(&self) -> usize {
         self.memory.size()
@@ -310,7 +318,6 @@ impl Chiplets {
 
     /// Increments the clock cycle.
     pub fn advance_clock(&mut self) {
-        self.memory.advance_clock();
         self.clk += 1;
     }
 

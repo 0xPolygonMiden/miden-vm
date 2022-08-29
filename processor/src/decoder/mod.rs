@@ -1,6 +1,6 @@
 use super::{
     Call, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation, Process, Span, Split,
-    StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
+    StarkField, Vec, Word, FMP_MIN, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
 use vm_core::{
     chiplets::hasher::DIGEST_LEN,
@@ -147,11 +147,9 @@ impl Process {
         // entered the loop in the first place, the stack would have been popped when the LOOP
         // operation was executed.
         if pop_stack {
+            // make sure the condition at the top of the stack is set to ZERO
             #[cfg(debug_assertions)]
-            {
-                let condition = self.stack.peek();
-                debug_assert_eq!(ZERO, condition);
-            }
+            debug_assert_eq!(ZERO, self.stack.peek());
 
             self.execute_op(Operation::Drop)
         } else {
@@ -175,7 +173,13 @@ impl Process {
         // start decoding the CALL block; this appends a row with CALL operation to the decoder
         // trace. when CALL operation is executed, the rest of the VM state does not change
         self.decoder.start_call(fn_hash, addr);
-        self.execute_op(Operation::Noop)
+        self.execute_op(Operation::Noop)?;
+
+        // set the execution context to the current clock cycle (this ensures that the context is
+        // globally unique), and reset the free memory pointer
+        self.system.set_ctx(self.system.clk() as u32);
+        self.system.set_fmp(Felt::from(FMP_MIN));
+        Ok(())
     }
 
     ///  Ends decoding of a CALL block.
