@@ -27765,18 +27765,53 @@ end
 #
 # Expected stack state
 #
-# [b, a, ...]
+# [b, a, ...] | b = 12289, though it's still parameterized
 #
 # Output stack state looks like
 #
-# [c, ...] | c = a % b
+# [c, ...] | c = a % b and b = 12289
 proc.mod_div
     swap
     u32split
     movup.2
     u32split
-    exec.u64::unchecked_mod
-    drop # higher 32 -bit must always be 0, because b = 12289
+
+    adv.u64div
+
+    push.adv.2
+    u32assert.2
+
+    swap
+    push.12289
+    u32overflowing_mul
+
+    movup.2
+    push.12289
+    u32overflowing_madd
+    drop
+
+    push.adv.2
+    drop
+    u32assert
+
+    dup
+
+    movup.3
+    u32overflowing_add
+
+    movup.3
+    u32overflowing_add
+    drop
+
+    movup.5
+    assert_eq
+    movup.4
+    assert_eq
+
+    swap
+    drop
+    swap
+    drop
 end
 
 # Given four elements on stack top, this routine reduces them by applying
