@@ -27715,19 +27715,16 @@ use.std::math::u64
 proc.mul_word
     movup.4
     mul
-
-    swap
-    movup.4
-    mul
-    swap
-
-    movup.2
-    movup.4
-    mul
-    movdn.2
+    movdn.6
 
     movup.3
-    movup.4
+    mul
+    movdn.5
+
+    movup.2
+    mul
+    movdn.4
+
     mul
     movdn.3
 end
@@ -27750,19 +27747,16 @@ end
 proc.add_word
     movup.4
     add
-
-    swap
-    movup.4
-    add
-    swap
-
-    movup.2
-    movup.4
-    add
-    movdn.2
+    movdn.6
 
     movup.3
-    movup.4
+    add
+    movdn.5
+
+    movup.2
+    add
+    movdn.4
+
     add
     movdn.3
 end
