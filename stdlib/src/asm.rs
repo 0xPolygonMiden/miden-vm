@@ -10280,23 +10280,27 @@ end
 #
 # Input stack state :
 #
-# [f_addr0, f_addr1, ..., f_addr127]
+# [f_start_addr, ...]
 #
-# f_addr`i` -> f[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
+# - f_addr`i` -> f[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
+# - f_addr0 -> f_start_addr
 #
 # Output stack state :
 #
-# [g_addr0, g_addr1, ..., g_addr127]
+# [g_start_addr, ...]
 #
-# g_addr`i` is the address of four elements | g[ (i << 2) .. ((i+1) << 2) ) & i ∈ [0..128)
+# - g_addr`i` is the address of four elements | g[ (i << 2) .. ((i+1) << 2) ) & i ∈ [0..128)
+#
+# Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
+# continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
 #
 # Note, input memory addresses are considered to be read-only, they are not mutated.
 export.neg_zq.128
-    push.env.locaddr.0
+    push.env.locaddr.127
     push.0.0.0.0
 
     repeat.128
-        movup.5
+        dup.5
         loadw.mem
 
         exec.neg_word
@@ -10304,20 +10308,20 @@ export.neg_zq.128
         dup.4
         storew.mem
 
+        movup.5
+        add.1
+        movdn.5
+
         movup.4
-        sub.1
+        add.1
         movdn.4
     end
 
     dropw
     drop
+    drop
 
     push.env.locaddr.127
-
-    repeat.127
-        dup
-        add.1
-    end
 end
 
 # Given two polynomials of degree 512 on stack as absolute memory addresses,
