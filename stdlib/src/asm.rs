@@ -7613,38 +7613,44 @@ end
 #
 # Expected stack state as input:
 #
-# [addr0, addr1, addr2, addr3, ... , addr126, addr127] | 128 absolute memory addresses
+# [start_addr, ...] | Single absolute memory address, where polynomial starts
 #
-# Note, addr{i} is the absolute memory address of i-th word of input vector V s.t.
-# each word consists of four consecutive field elements in vector of length 512.
+# Note, total 128 memory addresses are required for storing whole polynomial. Next 127
+# addresses are consecutive i.e. computable by using `add.1` instruction on previous address.
 #
-# Meaning addr{i} holds values V[(i << 2) .. ((i+1) << 2)] | i ∈ [0, 128)
+# addr{i} holds values V[(i << 2) .. ((i+1) << 2)] | i ∈ [0, 128) and addr0 = start_addr
 #
-# After applying NTT, bit-reversed order vector is returned back as 128 absolute memory
-# addresses on stack, as input was provided.
+# After applying NTT, bit-reversed order vector is returned back as single absolute memory
+# addresses on stack, where it begins storing the polynomial. Consecutive 127 addresses should be
+# computable using `add.1` instruction.
 #
-# [addr0', addr1', addr2', addr3', ... , addr126', addr127'] | 128 absolute memory addresses
+# [start_addr', ...] | Single absolute memory address, where resulting polynomial starts
 #
 # Note, input memory allocation is not mutated, instead output is stored in different memory allocation.
 export.forward.128
     # prepare input
 
-	push.env.locaddr.0
+	push.env.locaddr.127
 	push.0.0.0.0
 
 	repeat.128
-		movup.5
+		dup.5
 		loadw.mem
 
-		movup.4
-		dup
-		sub.1
+		dup.4
+		storew.mem
+
+		movup.5
+		add.1
 		movdn.5
 
-		storew.mem
+		movup.4
+		add.1
+		movdn.4
 	end
 
 	dropw
+	drop
 	drop
 
     # iter = 0
@@ -7654,12 +7660,11 @@ export.forward.128
 		dupw
 	end
 
-	push.0.0.0.0
-	dupw
+	push.0.0.0.0.0.0.0.0
 
-	push.env.locaddr.64
+	push.env.locaddr.63
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.64
@@ -7687,11 +7692,11 @@ export.forward.128
 		storew.mem
 
 		movup.8
-		sub.1
+		add.1
 		movdn.8
 
 		movup.9
-		sub.1
+		add.1
 		movdn.9
 	end
 
@@ -7716,9 +7721,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.32
+	push.env.locaddr.95
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.2
@@ -7747,20 +7752,20 @@ export.forward.128
 			storew.mem
 
 			movup.8
-			sub.1
+			add.1
 			movdn.8
 
 			movup.9
-			sub.1
+			add.1
 			movdn.9
 		end
 
 		movup.8
-		sub.32
+		add.32
 		movdn.8
 
 		movup.9
-		sub.32
+		add.32
 		movdn.9
 	end
 
@@ -7795,9 +7800,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.16
+	push.env.locaddr.111
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.4
@@ -7826,20 +7831,20 @@ export.forward.128
 			storew.mem
 
 			movup.8
-			sub.1
+			add.1
 			movdn.8
 
 			movup.9
-			sub.1
+			add.1
 			movdn.9
 		end
 
 		movup.8
-		sub.16
+		add.16
 		movdn.8
 
 		movup.9
-		sub.16
+		add.16
 		movdn.9
 	end
 
@@ -7894,9 +7899,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.8
+	push.env.locaddr.119
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.8
@@ -7925,20 +7930,20 @@ export.forward.128
 			storew.mem
 
 			movup.8
-			sub.1
+			add.1
 			movdn.8
 
 			movup.9
-			sub.1
+			add.1
 			movdn.9
 		end
 
 		movup.8
-		sub.8
+		add.8
 		movdn.8
 
 		movup.9
-		sub.8
+		add.8
 		movdn.9
 	end
 
@@ -8033,9 +8038,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.4
+	push.env.locaddr.123
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.16
@@ -8064,20 +8069,20 @@ export.forward.128
 			storew.mem
 
 			movup.8
-			sub.1
+			add.1
 			movdn.8
 
 			movup.9
-			sub.1
+			add.1
 			movdn.9
 		end
 
 		movup.8
-		sub.4
+		add.4
 		movdn.8
 
 		movup.9
-		sub.4
+		add.4
 		movdn.9
 	end
 
@@ -8188,9 +8193,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.2
+	push.env.locaddr.125
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.32
@@ -8219,20 +8224,20 @@ export.forward.128
 			storew.mem
 
 			movup.8
-			sub.1
+			add.1
 			movdn.8
 
 			movup.9
-			sub.1
+			add.1
 			movdn.9
 		end
 
 		movup.8
-		sub.2
+		add.2
 		movdn.8
 
 		movup.9
-		sub.2
+		add.2
 		movdn.9
 	end
 
@@ -8312,9 +8317,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.1
+	push.env.locaddr.126
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.64
@@ -8342,11 +8347,11 @@ export.forward.128
 		storew.mem
 
 		movup.8
-		sub.2
+		add.2
 		movdn.8
 
 		movup.9
-		sub.2
+		add.2
 		movdn.9
 	end
 
@@ -8426,9 +8431,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.1
+	push.env.locaddr.126
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.64
@@ -8466,11 +8471,11 @@ export.forward.128
 		storew.mem
 
 		movup.8
-		sub.2
+		add.2
 		movdn.8
 
 		movup.9
-		sub.2
+		add.2
 		movdn.9
 	end
 
@@ -8550,9 +8555,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.1
+	push.env.locaddr.126
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.64
@@ -8599,11 +8604,11 @@ export.forward.128
 		storew.mem
 
 		movup.8
-		sub.2
+		add.2
 		movdn.8
 
 		movup.9
-		sub.2
+		add.2
 		movdn.9
 	end
 
@@ -8613,14 +8618,11 @@ export.forward.128
 	dropw
 	dropw
 
-	# bit-reversed order NTT vector lives in these absolute memory addresses
+	# bit-reversed order NTT vector lives in absolute memory address
+	# starting at 👇; total 128 consecutive addresses are used for storing
+	# whole polynomial ( of degree 512 )
 
 	push.env.locaddr.127
-
-	repeat.127
-		dup
-		add.1
-	end
 end
 
 # Applies four inverse NTT butterflies on four different indices, given following stack state
@@ -8748,38 +8750,44 @@ end
 #
 # Expected stack state as input:
 #
-# [addr0, addr1, addr2, addr3, ... , addr126, addr127] | 128 absolute memory addresses
+# [start_addr, ...] | Single absolute memory address, where polynomial starts
 #
-# Note, addr{i} is the absolute memory address of i-th word of input vector V s.t.
-# each word consists of four consecutive field elements in vector of length 512.
+# Note, total 128 memory addresses are required for storing whole polynomial. Next 127
+# addresses are consecutive i.e. computable by using `add.1` instruction on previous address.
 #
-# Meaning addr{i} holds values V[(i << 2) .. ((i+1) << 2)] | i ∈ [0, 128)
+# addr{i} holds values V[(i << 2) .. ((i+1) << 2)] | i ∈ [0, 128) and addr0 = start_addr
 #
-# After applying iNTT, normal order vector is returned back as 128 absolute memory
-# addresses on stack, as input was provided.
+# After applying iNTT, normal order vector is returned back as single absolute memory
+# addresses on stack, where it begins storing the polynomial. Consecutive 127 addresses should 
+# similarly be computable using `add.1` instruction.
 #
-# [addr0', addr1', addr2', addr3', ... , addr126', addr127'] | 128 absolute memory addresses
+# [start_addr', ...] | Single absolute memory address, where resulting polynomial starts
 #
 # Note, input memory allocation is not mutated, instead output is stored in different memory allocation.
 export.backward.128
 	# prepare input
 
-	push.env.locaddr.0
+	push.env.locaddr.127
 	push.0.0.0.0
 
 	repeat.128
-		movup.5
+		dup.5
 		loadw.mem
 
-		movup.4
-		dup
-		sub.1
+		dup.4
+		storew.mem
+
+		movup.5
+		add.1
 		movdn.5
 
-		storew.mem
+		movup.4
+		add.1
+		movdn.4
 	end
 
 	dropw
+	drop
 	drop
 
 	# iter = 0
@@ -8852,9 +8860,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.1
+	push.env.locaddr.126
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.64
@@ -8901,11 +8909,11 @@ export.backward.128
 		storew.mem
 
 		movup.8
-		sub.2
+		add.2
 		movdn.8
 
 		movup.9
-		sub.2
+		add.2
 		movdn.9
 	end
 
@@ -8985,9 +8993,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.1
+	push.env.locaddr.126
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.64
@@ -9025,11 +9033,11 @@ export.backward.128
 		storew.mem
 
 		movup.8
-		sub.2
+		add.2
 		movdn.8
 
 		movup.9
-		sub.2
+		add.2
 		movdn.9
 	end
 
@@ -9109,9 +9117,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.1
+	push.env.locaddr.126
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.64
@@ -9139,11 +9147,11 @@ export.backward.128
 		storew.mem
 
 		movup.8
-		sub.2
+		add.2
 		movdn.8
 
 		movup.9
-		sub.2
+		add.2
 		movdn.9
 	end
 
@@ -9254,9 +9262,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.2
+	push.env.locaddr.125
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.32
@@ -9285,20 +9293,20 @@ export.backward.128
 			storew.mem
 
 			movup.8
-			sub.1
+			add.1
 			movdn.8
 
 			movup.9
-			sub.1
+			add.1
 			movdn.9
 		end
 
 		movup.8
-		sub.2
+		add.2
 		movdn.8
 
 		movup.9
-		sub.2
+		add.2
 		movdn.9
 	end
 
@@ -9393,9 +9401,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.4
+	push.env.locaddr.123
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.16
@@ -9424,20 +9432,20 @@ export.backward.128
 			storew.mem
 
 			movup.8
-			sub.1
+			add.1
 			movdn.8
 
 			movup.9
-			sub.1
+			add.1
 			movdn.9
 		end
 
 		movup.8
-		sub.4
+		add.4
 		movdn.8
 
 		movup.9
-		sub.4
+		add.4
 		movdn.9
 	end
 
@@ -9492,9 +9500,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.8
+	push.env.locaddr.119
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.8
@@ -9523,20 +9531,20 @@ export.backward.128
 			storew.mem
 
 			movup.8
-			sub.1
+			add.1
 			movdn.8
 
 			movup.9
-			sub.1
+			add.1
 			movdn.9
 		end
 
 		movup.8
-		sub.8
+		add.8
 		movdn.8
 
 		movup.9
-		sub.8
+		add.8
 		movdn.9
 	end
 
@@ -9571,9 +9579,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.16
+	push.env.locaddr.111
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.4
@@ -9602,20 +9610,20 @@ export.backward.128
 			storew.mem
 
 			movup.8
-			sub.1
+			add.1
 			movdn.8
 
 			movup.9
-			sub.1
+			add.1
 			movdn.9
 		end
 
 		movup.8
-		sub.16
+		add.16
 		movdn.8
 
 		movup.9
-		sub.16
+		add.16
 		movdn.9
 	end
 
@@ -9640,9 +9648,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.32
+	push.env.locaddr.95
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.2
@@ -9671,20 +9679,20 @@ export.backward.128
 			storew.mem
 
 			movup.8
-			sub.1
+			add.1
 			movdn.8
 
 			movup.9
-			sub.1
+			add.1
 			movdn.9
 		end
 
 		movup.8
-		sub.32
+		add.32
 		movdn.8
 
 		movup.9
-		sub.32
+		add.32
 		movdn.9
 	end
 
@@ -9704,9 +9712,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.64
+	push.env.locaddr.63
 	movdn.8
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.8
 
 	repeat.64
@@ -9734,11 +9742,11 @@ export.backward.128
 		storew.mem
 
 		movup.8
-		sub.1
+		add.1
 		movdn.8
 
 		movup.9
-		sub.1
+		add.1
 		movdn.9
 	end
 
@@ -9749,7 +9757,7 @@ export.backward.128
 
 	dropw
 
-	push.env.locaddr.0
+	push.env.locaddr.127
 	movdn.4
 
 	repeat.128
@@ -9762,21 +9770,18 @@ export.backward.128
 		storew.mem
 
 		movup.4
-		sub.1
+		add.1
 		movdn.4
 	end
 
 	dropw
 	drop
 
-	# normal order iNTT vector lives in these absolute memory addresses
+	# normal order iNTT vector lives in absolute memory address
+	# starting at 👇; total 128 consecutive addresses are used for storing
+	# whole polynomial ( of degree 512 )
 
     push.env.locaddr.127
-
-	repeat.127
-		dup
-		add.1
-	end
 end
 "),
 // ----- std::math::secp256k1 ---------------------------------------------------------------------
