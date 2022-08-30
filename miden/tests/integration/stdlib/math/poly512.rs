@@ -2343,1033 +2343,779 @@ fn test_poly512_add_zq() {
         # prepare first polynomial `f`
 
         push.7618.7764.7271.4394
-        popw.local.0
-    
+        popw.local.127
+        
         push.240.9007.7416.2384
-        popw.local.1
-    
-        push.151.696.5752.9855
-        popw.local.2
-    
-        push.11254.226.6491.7068
-        popw.local.3
-    
-        push.10516.11999.4160.8221
-        popw.local.4
-    
-        push.5661.2131.1543.1886
-        popw.local.5
-    
-        push.10731.11960.10244.5368
-        popw.local.6
-    
-        push.1223.5240.4765.9963
-        popw.local.7
-    
-        push.10751.2666.9203.7421
-        popw.local.8
-    
-        push.8385.360.12030.6617
-        popw.local.9
-    
-        push.2200.1559.7969.7859
-        popw.local.10
-    
-        push.1688.5958.1035.1013
-        popw.local.11
-    
-        push.6134.5570.5407.6433
-        popw.local.12
-    
-        push.8960.2113.318.5227
-        popw.local.13
-    
-        push.10371.11650.6156.5958
-        popw.local.14
-    
-        push.3686.2823.11955.8012
-        popw.local.15
-    
-        push.6769.9419.3993.4488
-        popw.local.16
-    
-        push.81.190.3011.11793
-        popw.local.17
-    
-        push.9463.3396.2171.3566
-        popw.local.18
-    
-        push.10744.852.10397.2509
-        popw.local.19
-    
-        push.10901.9641.11403.4222
-        popw.local.20
-    
-        push.5217.7112.8609.9784
-        popw.local.21
-    
-        push.8544.1738.3735.11320
-        popw.local.22
-    
-        push.11983.7633.734.2530
-        popw.local.23
-    
-        push.5079.3436.811.9673
-        popw.local.24
-    
-        push.8968.5560.12079.9088
-        popw.local.25
-    
-        push.2836.7454.4608.862
-        popw.local.26
-    
-        push.639.6743.1732.10708
-        popw.local.27
-    
-        push.4875.4161.6301.9212
-        popw.local.28
-    
-        push.11218.67.11674.11861
-        popw.local.29
-    
-        push.7210.5869.5014.6718
-        popw.local.30
-    
-        push.2706.380.2286.3909
-        popw.local.31
-    
-        push.2070.4599.6989.1000
-        popw.local.32
-    
-        push.826.2997.165.6746
-        popw.local.33
-    
-        push.3094.391.2166.7591
-        popw.local.34
-    
-        push.532.1595.11816.195
-        popw.local.35
-    
-        push.10009.8671.9088.6851
-        popw.local.36
-    
-        push.522.11178.5937.3377
-        popw.local.37
-    
-        push.573.12185.9043.8081
-        popw.local.38
-    
-        push.3058.11401.7664.6180
-        popw.local.39
-    
-        push.348.9627.4467.8534
-        popw.local.40
-    
-        push.4289.5381.1181.11304
-        popw.local.41
-    
-        push.6045.2243.11189.7050
-        popw.local.42
-    
-        push.5918.11542.11147.4685
-        popw.local.43
-    
-        push.1817.6002.11775.3084
-        popw.local.44
-    
-        push.3440.3810.7250.7448
-        popw.local.45
-    
-        push.2387.919.2999.4003
-        popw.local.46
-    
-        push.4436.9507.1425.6738
-        popw.local.47
-    
-        push.9287.11417.10830.6660
-        popw.local.48
-    
-        push.7950.1656.1297.476
-        popw.local.49
-    
-        push.283.8597.11086.5239
-        popw.local.50
-    
-        push.589.8488.8795.7944
-        popw.local.51
-    
-        push.3503.9815.11322.8029
-        popw.local.52
-    
-        push.5579.8690.7495.2906
-        popw.local.53
-    
-        push.12064.6795.2785.6564
-        popw.local.54
-    
-        push.3853.3671.1751.4550
-        popw.local.55
-    
-        push.5527.3345.4434.11097
-        popw.local.56
-    
-        push.5401.2248.8989.3040
-        popw.local.57
-    
-        push.11125.2582.6380.5365
-        popw.local.58
-    
-        push.11771.8238.11912.8595
-        popw.local.59
-    
-        push.2163.8230.4250.5354
-        popw.local.60
-    
-        push.6625.3398.1150.8063
-        popw.local.61
-    
-        push.3488.2537.10432.3812
-        popw.local.62
-    
-        push.10661.8269.1789.7507
-        popw.local.63
-    
-        push.5770.6350.5495.8113
-        popw.local.64
-    
-        push.2282.737.650.10641
-        popw.local.65
-    
-        push.9439.10085.3053.5555
-        popw.local.66
-    
-        push.11982.11108.164.840
-        popw.local.67
-    
-        push.5117.5300.4751.11981
-        popw.local.68
-    
-        push.4584.11753.6888.3782
-        popw.local.69
-    
-        push.3948.10542.4745.6791
-        popw.local.70
-    
-        push.434.3061.6757.5192
-        popw.local.71
-    
-        push.3139.8759.4495.10332
-        popw.local.72
-    
-        push.1111.9712.9100.10891
-        popw.local.73
-    
-        push.8147.5643.10068.5768
-        popw.local.74
-    
-        push.2232.8988.9849.2057
-        popw.local.75
-    
-        push.7467.1020.11978.10889
-        popw.local.76
-    
-        push.4118.8060.5659.7640
-        popw.local.77
-    
-        push.6317.10621.10523.755
-        popw.local.78
-    
-        push.5309.1323.10963.886
-        popw.local.79
-    
-        push.11317.3194.7864.8345
-        popw.local.80
-    
-        push.3535.10043.4283.6121
-        popw.local.81
-    
-        push.6200.8954.6105.1139
-        popw.local.82
-    
-        push.2251.11220.6486.8163
-        popw.local.83
-    
-        push.4813.11843.11216.10137
-        popw.local.84
-    
-        push.10813.5679.8204.1648
-        popw.local.85
-    
-        push.11375.8547.9702.7582
-        popw.local.86
-    
-        push.2277.3642.6576.3166
-        popw.local.87
-    
-        push.11404.3420.12135.6431
-        popw.local.88
-    
-        push.9549.10272.3869.7997
-        popw.local.89
-    
-        push.1975.2226.12018.95
-        popw.local.90
-    
-        push.8421.11391.10714.9038
-        popw.local.91
-    
-        push.6620.6649.3572.3789
-        popw.local.92
-    
-        push.5219.4008.11203.9672
-        popw.local.93
-    
-        push.6510.5476.11484.7022
-        popw.local.94
-    
-        push.3490.7500.9936.7836
-        popw.local.95
-    
-        push.11572.10815.10576.3575
-        popw.local.96
-    
-        push.1421.9053.4035.8613
-        popw.local.97
-    
-        push.9806.2186.10907.11868
-        popw.local.98
-    
-        push.7376.9934.5963.2861
-        popw.local.99
-    
-        push.9101.5434.10503.2109
-        popw.local.100
-    
-        push.446.209.1679.4296
-        popw.local.101
-    
-        push.4701.3682.4013.508
-        popw.local.102
-    
-        push.10643.6272.10058.6575
-        popw.local.103
-    
-        push.3016.5032.8623.12217
-        popw.local.104
-    
-        push.91.4684.7233.53
-        popw.local.105
-    
-        push.9335.9009.4008.5022
-        popw.local.106
-    
-        push.9012.9274.2276.415
-        popw.local.107
-    
-        push.5016.10207.940.1750
-        popw.local.108
-    
-        push.7365.10035.7526.9703
-        popw.local.109
-    
-        push.2274.7850.5694.8346
-        popw.local.110
-    
-        push.11501.10018.4533.7010
-        popw.local.111
-    
-        push.10479.9972.11407.12055
-        popw.local.112
-    
-        push.4024.4270.12158.9184
-        popw.local.113
-    
-        push.454.12075.8262.6427
-        popw.local.114
-    
-        push.3104.6247.6381.4144
-        popw.local.115
-    
-        push.10312.2842.2999.6860
-        popw.local.116
-    
-        push.3072.9317.11223.9895
-        popw.local.117
-    
-        push.8506.9148.4979.5304
-        popw.local.118
-    
-        push.8913.623.8621.4430
-        popw.local.119
-    
-        push.8722.94.4069.8477
-        popw.local.120
-    
-        push.4166.9022.10574.5812
-        popw.local.121
-    
-        push.1765.6902.6646.1069
-        popw.local.122
-    
-        push.11125.318.2169.9207
-        popw.local.123
-    
-        push.10176.6543.6207.8256
-        popw.local.124
-    
-        push.5924.1719.8671.3325
-        popw.local.125
-    
-        push.352.11961.8580.1130
         popw.local.126
-    
+        
+        push.151.696.5752.9855
+        popw.local.125
+        
+        push.11254.226.6491.7068
+        popw.local.124
+        
+        push.10516.11999.4160.8221
+        popw.local.123
+        
+        push.5661.2131.1543.1886
+        popw.local.122
+        
+        push.10731.11960.10244.5368
+        popw.local.121
+        
+        push.1223.5240.4765.9963
+        popw.local.120
+        
+        push.10751.2666.9203.7421
+        popw.local.119
+        
+        push.8385.360.12030.6617
+        popw.local.118
+        
+        push.2200.1559.7969.7859
+        popw.local.117
+        
+        push.1688.5958.1035.1013
+        popw.local.116
+        
+        push.6134.5570.5407.6433
+        popw.local.115
+        
+        push.8960.2113.318.5227
+        popw.local.114
+        
+        push.10371.11650.6156.5958
+        popw.local.113
+        
+        push.3686.2823.11955.8012
+        popw.local.112
+        
+        push.6769.9419.3993.4488
+        popw.local.111
+        
+        push.81.190.3011.11793
+        popw.local.110
+        
+        push.9463.3396.2171.3566
+        popw.local.109
+        
+        push.10744.852.10397.2509
+        popw.local.108
+        
+        push.10901.9641.11403.4222
+        popw.local.107
+        
+        push.5217.7112.8609.9784
+        popw.local.106
+        
+        push.8544.1738.3735.11320
+        popw.local.105
+        
+        push.11983.7633.734.2530
+        popw.local.104
+        
+        push.5079.3436.811.9673
+        popw.local.103
+        
+        push.8968.5560.12079.9088
+        popw.local.102
+        
+        push.2836.7454.4608.862
+        popw.local.101
+        
+        push.639.6743.1732.10708
+        popw.local.100
+        
+        push.4875.4161.6301.9212
+        popw.local.99
+        
+        push.11218.67.11674.11861
+        popw.local.98
+        
+        push.7210.5869.5014.6718
+        popw.local.97
+        
+        push.2706.380.2286.3909
+        popw.local.96
+        
+        push.2070.4599.6989.1000
+        popw.local.95
+        
+        push.826.2997.165.6746
+        popw.local.94
+        
+        push.3094.391.2166.7591
+        popw.local.93
+        
+        push.532.1595.11816.195
+        popw.local.92
+        
+        push.10009.8671.9088.6851
+        popw.local.91
+        
+        push.522.11178.5937.3377
+        popw.local.90
+        
+        push.573.12185.9043.8081
+        popw.local.89
+        
+        push.3058.11401.7664.6180
+        popw.local.88
+        
+        push.348.9627.4467.8534
+        popw.local.87
+        
+        push.4289.5381.1181.11304
+        popw.local.86
+        
+        push.6045.2243.11189.7050
+        popw.local.85
+        
+        push.5918.11542.11147.4685
+        popw.local.84
+        
+        push.1817.6002.11775.3084
+        popw.local.83
+        
+        push.3440.3810.7250.7448
+        popw.local.82
+        
+        push.2387.919.2999.4003
+        popw.local.81
+        
+        push.4436.9507.1425.6738
+        popw.local.80
+        
+        push.9287.11417.10830.6660
+        popw.local.79
+        
+        push.7950.1656.1297.476
+        popw.local.78
+        
+        push.283.8597.11086.5239
+        popw.local.77
+        
+        push.589.8488.8795.7944
+        popw.local.76
+        
+        push.3503.9815.11322.8029
+        popw.local.75
+        
+        push.5579.8690.7495.2906
+        popw.local.74
+        
+        push.12064.6795.2785.6564
+        popw.local.73
+        
+        push.3853.3671.1751.4550
+        popw.local.72
+        
+        push.5527.3345.4434.11097
+        popw.local.71
+        
+        push.5401.2248.8989.3040
+        popw.local.70
+        
+        push.11125.2582.6380.5365
+        popw.local.69
+        
+        push.11771.8238.11912.8595
+        popw.local.68
+        
+        push.2163.8230.4250.5354
+        popw.local.67
+        
+        push.6625.3398.1150.8063
+        popw.local.66
+        
+        push.3488.2537.10432.3812
+        popw.local.65
+        
+        push.10661.8269.1789.7507
+        popw.local.64
+        
+        push.5770.6350.5495.8113
+        popw.local.63
+        
+        push.2282.737.650.10641
+        popw.local.62
+        
+        push.9439.10085.3053.5555
+        popw.local.61
+        
+        push.11982.11108.164.840
+        popw.local.60
+        
+        push.5117.5300.4751.11981
+        popw.local.59
+        
+        push.4584.11753.6888.3782
+        popw.local.58
+        
+        push.3948.10542.4745.6791
+        popw.local.57
+        
+        push.434.3061.6757.5192
+        popw.local.56
+        
+        push.3139.8759.4495.10332
+        popw.local.55
+        
+        push.1111.9712.9100.10891
+        popw.local.54
+        
+        push.8147.5643.10068.5768
+        popw.local.53
+        
+        push.2232.8988.9849.2057
+        popw.local.52
+        
+        push.7467.1020.11978.10889
+        popw.local.51
+        
+        push.4118.8060.5659.7640
+        popw.local.50
+        
+        push.6317.10621.10523.755
+        popw.local.49
+        
+        push.5309.1323.10963.886
+        popw.local.48
+        
+        push.11317.3194.7864.8345
+        popw.local.47
+        
+        push.3535.10043.4283.6121
+        popw.local.46
+        
+        push.6200.8954.6105.1139
+        popw.local.45
+        
+        push.2251.11220.6486.8163
+        popw.local.44
+        
+        push.4813.11843.11216.10137
+        popw.local.43
+        
+        push.10813.5679.8204.1648
+        popw.local.42
+        
+        push.11375.8547.9702.7582
+        popw.local.41
+        
+        push.2277.3642.6576.3166
+        popw.local.40
+        
+        push.11404.3420.12135.6431
+        popw.local.39
+        
+        push.9549.10272.3869.7997
+        popw.local.38
+        
+        push.1975.2226.12018.95
+        popw.local.37
+        
+        push.8421.11391.10714.9038
+        popw.local.36
+        
+        push.6620.6649.3572.3789
+        popw.local.35
+        
+        push.5219.4008.11203.9672
+        popw.local.34
+        
+        push.6510.5476.11484.7022
+        popw.local.33
+        
+        push.3490.7500.9936.7836
+        popw.local.32
+        
+        push.11572.10815.10576.3575
+        popw.local.31
+        
+        push.1421.9053.4035.8613
+        popw.local.30
+        
+        push.9806.2186.10907.11868
+        popw.local.29
+        
+        push.7376.9934.5963.2861
+        popw.local.28
+        
+        push.9101.5434.10503.2109
+        popw.local.27
+        
+        push.446.209.1679.4296
+        popw.local.26
+        
+        push.4701.3682.4013.508
+        popw.local.25
+        
+        push.10643.6272.10058.6575
+        popw.local.24
+        
+        push.3016.5032.8623.12217
+        popw.local.23
+        
+        push.91.4684.7233.53
+        popw.local.22
+        
+        push.9335.9009.4008.5022
+        popw.local.21
+        
+        push.9012.9274.2276.415
+        popw.local.20
+        
+        push.5016.10207.940.1750
+        popw.local.19
+        
+        push.7365.10035.7526.9703
+        popw.local.18
+        
+        push.2274.7850.5694.8346
+        popw.local.17
+        
+        push.11501.10018.4533.7010
+        popw.local.16
+        
+        push.10479.9972.11407.12055
+        popw.local.15
+        
+        push.4024.4270.12158.9184
+        popw.local.14
+        
+        push.454.12075.8262.6427
+        popw.local.13
+        
+        push.3104.6247.6381.4144
+        popw.local.12
+        
+        push.10312.2842.2999.6860
+        popw.local.11
+        
+        push.3072.9317.11223.9895
+        popw.local.10
+        
+        push.8506.9148.4979.5304
+        popw.local.9
+        
+        push.8913.623.8621.4430
+        popw.local.8
+        
+        push.8722.94.4069.8477
+        popw.local.7
+        
+        push.4166.9022.10574.5812
+        popw.local.6
+        
+        push.1765.6902.6646.1069
+        popw.local.5
+        
+        push.11125.318.2169.9207
+        popw.local.4
+        
+        push.10176.6543.6207.8256
+        popw.local.3
+        
+        push.5924.1719.8671.3325
+        popw.local.2
+        
+        push.352.11961.8580.1130
+        popw.local.1
+        
         push.1268.10938.11332.7679
-        popw.local.127    
+        popw.local.0
 
         # prepare second polynomial `g`
 
         push.4548.4624.5028.8016
-        popw.local.128
-    
+        popw.local.255
+
         push.12067.3544.4708.9842
-        popw.local.129
-    
-        push.11951.11773.6802.2573
-        popw.local.130
-    
-        push.930.12004.5703.5362
-        popw.local.131
-    
-        push.1895.321.8224.4004
-        popw.local.132
-    
-        push.6387.10177.10839.10150
-        popw.local.133
-    
-        push.1546.67.2120.7084
-        popw.local.134
-    
-        push.11208.6960.7352.2237
-        popw.local.135
-    
-        push.1468.9614.3214.4917
-        popw.local.136
-    
-        push.3730.11893.42.5508
-        popw.local.137
-    
-        push.10528.10664.4540.4334
-        popw.local.138
-    
-        push.10039.6362.11533.10943
-        popw.local.139
-    
-        push.6058.6284.6724.5817
-        popw.local.140
-    
-        push.3346.10119.11888.7061
-        popw.local.141
-    
-        push.2161.449.6278.6218
-        popw.local.142
-    
-        push.8741.9412.568.4188
-        popw.local.143
-    
-        push.5375.2713.8473.7565
-        popw.local.144
-    
-        push.12022.11974.9206.675
-        popw.local.145
-    
-        push.2660.8793.10408.8742
-        popw.local.146
-    
-        push.1634.11309.1886.9629
-        popw.local.147
-    
-        push.1170.2691.628.8110
-        popw.local.148
-    
-        push.7134.5225.3768.2455
-        popw.local.149
-    
-        push.3638.10582.8430.978
-        popw.local.150
-    
-        push.159.4468.11693.9863
-        popw.local.151
-    
-        push.7492.8771.11629.2483
-        popw.local.152
-    
-        push.3245.6868.410.3289
-        popw.local.153
-    
-        push.9411.4845.7885.11372
-        popw.local.154
-    
-        push.11512.5586.10278.1671
-        popw.local.155
-    
-        push.7374.7956.6238.2929
-        popw.local.156
-    
-        push.1146.11964.375.596
-        popw.local.157
-    
-        push.5089.6236.7277.5699
-        popw.local.158
-    
-        push.9333.11839.10304.8490
-        popw.local.159
-    
-        push.10003.7707.5631.11261
-        popw.local.160
-    
-        push.11414.9283.12124.5537
-        popw.local.161
-    
-        push.9208.11661.10155.4714
-        popw.local.162
-    
-        push.11829.10645.480.2
-        popw.local.163
-    
-        push.2341.3538.3118.5742
-        popw.local.164
-    
-        push.11951.1140.6332.9048
-        popw.local.165
-    
-        push.11717.390.3289.4537
-        popw.local.166
-    
-        push.9472.1061.4538.6123
-        popw.local.167
-    
-        push.12110.2450.7757.3719
-        popw.local.168
-    
-        push.7777.6827.11293.1227
-        popw.local.169
-    
-        push.6167.9962.862.5441
-        popw.local.170
-    
-        push.6432.1136.1049.7677
-        popw.local.171
-    
-        push.10157.5988.564.9082
-        popw.local.172
-    
-        push.9087.8756.5034.4828
-        popw.local.173
-    
-        push.9850.11354.9170.8416
-        popw.local.174
-    
-        push.7707.2954.11069.5463
-        popw.local.175
-    
-        push.2888.951.1823.5864
-        popw.local.176
-    
-        push.4095.10640.11039.11900
-        popw.local.177
-    
-        push.12027.3424.1194.7090
-        popw.local.178
-    
-        push.11797.3589.3756.4188
-        popw.local.179
-    
-        push.8989.2586.745.4185
-        popw.local.180
-    
-        push.6902.3436.4831.9302
-        popw.local.181
-    
-        push.342.5361.9688.5866
-        popw.local.182
-    
-        push.8660.8503.10503.7472
-        popw.local.183
-    
-        push.6753.8843.7840.1075
-        popw.local.184
-    
-        push.7148.10194.3305.9269
-        popw.local.185
-    
-        push.928.9958.5698.6941
-        popw.local.186
-    
-        push.398.3976.402.3637
-        popw.local.187
-    
-        push.10333.3918.8008.6998
-        popw.local.188
-    
-        push.5644.8969.11130.4358
-        popw.local.189
-    
-        push.8531.9731.1732.8614
-        popw.local.190
-    
-        push.1638.4129.10651.4636
-        popw.local.191
-    
-        push.6484.5737.6696.4282
-        popw.local.192
-    
-        push.10199.11484.11432.1700
-        popw.local.193
-    
-        push.2997.2059.9191.6774
-        popw.local.194
-    
-        push.262.1047.11831.11813
-        popw.local.195
-    
-        push.7396.7081.7598.287
-        popw.local.196
-    
-        push.7719.715.5332.8615
-        popw.local.197
-    
-        push.8476.1838.7677.5730
-        popw.local.198
-    
-        push.11764.9512.5465.7065
-        popw.local.199
-    
-        push.9256.3625.7864.1878
-        popw.local.200
-    
-        push.11306.2552.3247.1553
-        popw.local.201
-    
-        push.4109.6330.2331.6556
-        popw.local.202
-    
-        push.9844.3366.2444.10139
-        popw.local.203
-    
-        push.4904.11135.21.1434
-        popw.local.204
-    
-        push.8147.4344.7010.4334
-        popw.local.205
-    
-        push.5825.1749.1812.11928
-        popw.local.206
-    
-        push.6994.10765.1291.11536
-        popw.local.207
-    
-        push.817.9423.4401.4131
-        popw.local.208
-    
-        push.8418.2295.7810.6016
-        popw.local.209
-    
-        push.5960.3090.6202.10904
-        popw.local.210
-    
-        push.10116.1217.5825.4040
-        popw.local.211
-    
-        push.7542.295.1483.2531
-        popw.local.212
-    
-        push.1419.6772.4177.10694
-        popw.local.213
-    
-        push.1070.3694.2461.4824
-        popw.local.214
-    
-        push.10013.8551.5733.9109
-        popw.local.215
-    
-        push.555.8809.361.5956
-        popw.local.216
-    
-        push.2828.1914.8436.4285
-        popw.local.217
-    
-        push.10170.10037.466.12019
-        popw.local.218
-    
-        push.3614.960.1647.3507
-        popw.local.219
-    
-        push.5982.5581.8632.8567
-        popw.local.220
-    
-        push.7333.8151.1269.2532
-        popw.local.221
-    
-        push.5950.6912.645.5552
-        popw.local.222
-    
-        push.8935.4564.2260.4497
-        popw.local.223
-    
-        push.516.1390.1984.8812
-        popw.local.224
-    
-        push.10924.3322.8284.3744
-        popw.local.225
-    
-        push.2531.10370.1642.261
-        popw.local.226
-    
-        push.4957.2504.6323.9432
-        popw.local.227
-    
-        push.3055.7149.1848.10436
-        popw.local.228
-    
-        push.12190.109.10759.7918
-        popw.local.229
-    
-        push.7749.8442.8212.11481
-        popw.local.230
-    
-        push.1367.5884.2374.5696
-        popw.local.231
-    
-        push.9618.7168.3517.12273
-        popw.local.232
-    
-        push.179.7405.5187.247
-        popw.local.233
-    
-        push.2783.3469.8204.7272
-        popw.local.234
-    
-        push.3246.2753.9921.11814
-        popw.local.235
-    
-        push.7508.2028.11394.10636
-        popw.local.236
-    
-        push.5062.2304.4768.2506
-        popw.local.237
-    
-        push.10144.4449.6804.3899
-        popw.local.238
-    
-        push.810.2389.8029.5419
-        popw.local.239
-    
-        push.1716.2405.757.12251
-        popw.local.240
-    
-        push.8055.8028.12152.2837
-        popw.local.241
-    
-        push.11778.131.4064.6032
-        popw.local.242
-    
-        push.9020.6084.5749.8269
-        popw.local.243
-    
-        push.2082.9402.9212.5295
-        popw.local.244
-    
-        push.9119.2980.1388.2516
-        popw.local.245
-    
-        push.3937.3082.7261.6922
-        popw.local.246
-    
-        push.3461.11642.3419.8030
-        popw.local.247
-    
-        push.3723.12275.8021.3280
-        popw.local.248
-    
-        push.7930.3517.1899.6648
-        popw.local.249
-    
-        push.10416.5186.5780.11250
-        popw.local.250
-    
-        push.1546.12223.10229.2986
-        popw.local.251
-    
-        push.2195.5681.6142.3882
-        popw.local.252
-    
-        push.6215.10569.3862.9191
-        popw.local.253
-    
-        push.12233.359.3551.11099
         popw.local.254
-    
+
+        push.11951.11773.6802.2573
+        popw.local.253
+
+        push.930.12004.5703.5362
+        popw.local.252
+
+        push.1895.321.8224.4004
+        popw.local.251
+
+        push.6387.10177.10839.10150
+        popw.local.250
+
+        push.1546.67.2120.7084
+        popw.local.249
+
+        push.11208.6960.7352.2237
+        popw.local.248
+
+        push.1468.9614.3214.4917
+        popw.local.247
+
+        push.3730.11893.42.5508
+        popw.local.246
+
+        push.10528.10664.4540.4334
+        popw.local.245
+
+        push.10039.6362.11533.10943
+        popw.local.244
+
+        push.6058.6284.6724.5817
+        popw.local.243
+
+        push.3346.10119.11888.7061
+        popw.local.242
+
+        push.2161.449.6278.6218
+        popw.local.241
+
+        push.8741.9412.568.4188
+        popw.local.240
+
+        push.5375.2713.8473.7565
+        popw.local.239
+
+        push.12022.11974.9206.675
+        popw.local.238
+
+        push.2660.8793.10408.8742
+        popw.local.237
+
+        push.1634.11309.1886.9629
+        popw.local.236
+
+        push.1170.2691.628.8110
+        popw.local.235
+
+        push.7134.5225.3768.2455
+        popw.local.234
+
+        push.3638.10582.8430.978
+        popw.local.233
+
+        push.159.4468.11693.9863
+        popw.local.232
+
+        push.7492.8771.11629.2483
+        popw.local.231
+
+        push.3245.6868.410.3289
+        popw.local.230
+
+        push.9411.4845.7885.11372
+        popw.local.229
+
+        push.11512.5586.10278.1671
+        popw.local.228
+
+        push.7374.7956.6238.2929
+        popw.local.227
+
+        push.1146.11964.375.596
+        popw.local.226
+
+        push.5089.6236.7277.5699
+        popw.local.225
+
+        push.9333.11839.10304.8490
+        popw.local.224
+
+        push.10003.7707.5631.11261
+        popw.local.223
+
+        push.11414.9283.12124.5537
+        popw.local.222
+
+        push.9208.11661.10155.4714
+        popw.local.221
+
+        push.11829.10645.480.2
+        popw.local.220
+
+        push.2341.3538.3118.5742
+        popw.local.219
+
+        push.11951.1140.6332.9048
+        popw.local.218
+
+        push.11717.390.3289.4537
+        popw.local.217
+
+        push.9472.1061.4538.6123
+        popw.local.216
+
+        push.12110.2450.7757.3719
+        popw.local.215
+
+        push.7777.6827.11293.1227
+        popw.local.214
+
+        push.6167.9962.862.5441
+        popw.local.213
+
+        push.6432.1136.1049.7677
+        popw.local.212
+
+        push.10157.5988.564.9082
+        popw.local.211
+
+        push.9087.8756.5034.4828
+        popw.local.210
+
+        push.9850.11354.9170.8416
+        popw.local.209
+
+        push.7707.2954.11069.5463
+        popw.local.208
+
+        push.2888.951.1823.5864
+        popw.local.207
+
+        push.4095.10640.11039.11900
+        popw.local.206
+
+        push.12027.3424.1194.7090
+        popw.local.205
+
+        push.11797.3589.3756.4188
+        popw.local.204
+
+        push.8989.2586.745.4185
+        popw.local.203
+
+        push.6902.3436.4831.9302
+        popw.local.202
+
+        push.342.5361.9688.5866
+        popw.local.201
+
+        push.8660.8503.10503.7472
+        popw.local.200
+
+        push.6753.8843.7840.1075
+        popw.local.199
+
+        push.7148.10194.3305.9269
+        popw.local.198
+
+        push.928.9958.5698.6941
+        popw.local.197
+
+        push.398.3976.402.3637
+        popw.local.196
+
+        push.10333.3918.8008.6998
+        popw.local.195
+
+        push.5644.8969.11130.4358
+        popw.local.194
+
+        push.8531.9731.1732.8614
+        popw.local.193
+
+        push.1638.4129.10651.4636
+        popw.local.192
+
+        push.6484.5737.6696.4282
+        popw.local.191
+
+        push.10199.11484.11432.1700
+        popw.local.190
+
+        push.2997.2059.9191.6774
+        popw.local.189
+
+        push.262.1047.11831.11813
+        popw.local.188
+
+        push.7396.7081.7598.287
+        popw.local.187
+
+        push.7719.715.5332.8615
+        popw.local.186
+
+        push.8476.1838.7677.5730
+        popw.local.185
+
+        push.11764.9512.5465.7065
+        popw.local.184
+
+        push.9256.3625.7864.1878
+        popw.local.183
+
+        push.11306.2552.3247.1553
+        popw.local.182
+
+        push.4109.6330.2331.6556
+        popw.local.181
+
+        push.9844.3366.2444.10139
+        popw.local.180
+
+        push.4904.11135.21.1434
+        popw.local.179
+
+        push.8147.4344.7010.4334
+        popw.local.178
+
+        push.5825.1749.1812.11928
+        popw.local.177
+
+        push.6994.10765.1291.11536
+        popw.local.176
+
+        push.817.9423.4401.4131
+        popw.local.175
+
+        push.8418.2295.7810.6016
+        popw.local.174
+
+        push.5960.3090.6202.10904
+        popw.local.173
+
+        push.10116.1217.5825.4040
+        popw.local.172
+
+        push.7542.295.1483.2531
+        popw.local.171
+
+        push.1419.6772.4177.10694
+        popw.local.170
+
+        push.1070.3694.2461.4824
+        popw.local.169
+
+        push.10013.8551.5733.9109
+        popw.local.168
+
+        push.555.8809.361.5956
+        popw.local.167
+
+        push.2828.1914.8436.4285
+        popw.local.166
+
+        push.10170.10037.466.12019
+        popw.local.165
+
+        push.3614.960.1647.3507
+        popw.local.164
+
+        push.5982.5581.8632.8567
+        popw.local.163
+
+        push.7333.8151.1269.2532
+        popw.local.162
+
+        push.5950.6912.645.5552
+        popw.local.161
+
+        push.8935.4564.2260.4497
+        popw.local.160
+
+        push.516.1390.1984.8812
+        popw.local.159
+
+        push.10924.3322.8284.3744
+        popw.local.158
+
+        push.2531.10370.1642.261
+        popw.local.157
+
+        push.4957.2504.6323.9432
+        popw.local.156
+
+        push.3055.7149.1848.10436
+        popw.local.155
+
+        push.12190.109.10759.7918
+        popw.local.154
+
+        push.7749.8442.8212.11481
+        popw.local.153
+
+        push.1367.5884.2374.5696
+        popw.local.152
+
+        push.9618.7168.3517.12273
+        popw.local.151
+
+        push.179.7405.5187.247
+        popw.local.150
+
+        push.2783.3469.8204.7272
+        popw.local.149
+
+        push.3246.2753.9921.11814
+        popw.local.148
+
+        push.7508.2028.11394.10636
+        popw.local.147
+
+        push.5062.2304.4768.2506
+        popw.local.146
+
+        push.10144.4449.6804.3899
+        popw.local.145
+
+        push.810.2389.8029.5419
+        popw.local.144
+
+        push.1716.2405.757.12251
+        popw.local.143
+
+        push.8055.8028.12152.2837
+        popw.local.142
+
+        push.11778.131.4064.6032
+        popw.local.141
+
+        push.9020.6084.5749.8269
+        popw.local.140
+
+        push.2082.9402.9212.5295
+        popw.local.139
+
+        push.9119.2980.1388.2516
+        popw.local.138
+
+        push.3937.3082.7261.6922
+        popw.local.137
+
+        push.3461.11642.3419.8030
+        popw.local.136
+
+        push.3723.12275.8021.3280
+        popw.local.135
+
+        push.7930.3517.1899.6648
+        popw.local.134
+
+        push.10416.5186.5780.11250
+        popw.local.133
+
+        push.1546.12223.10229.2986
+        popw.local.132
+
+        push.2195.5681.6142.3882
+        popw.local.131
+
+        push.6215.10569.3862.9191
+        popw.local.130
+
+        push.12233.359.3551.11099
+        popw.local.129
+
         push.10946.1331.904.4458
-        popw.local.255    
+        popw.local.128
 
         # prepare argument ( absolute memory addresses ) for adding two polynomials
 
         push.env.locaddr.255
-        push.env.locaddr.254
-        push.env.locaddr.253
-        push.env.locaddr.252
-        push.env.locaddr.251
-        push.env.locaddr.250
-        push.env.locaddr.249
-        push.env.locaddr.248
-        push.env.locaddr.247
-        push.env.locaddr.246
-        push.env.locaddr.245
-        push.env.locaddr.244
-        push.env.locaddr.243
-        push.env.locaddr.242
-        push.env.locaddr.241
-        push.env.locaddr.240
-        push.env.locaddr.239
-        push.env.locaddr.238
-        push.env.locaddr.237
-        push.env.locaddr.236
-        push.env.locaddr.235
-        push.env.locaddr.234
-        push.env.locaddr.233
-        push.env.locaddr.232
-        push.env.locaddr.231
-        push.env.locaddr.230
-        push.env.locaddr.229
-        push.env.locaddr.228
-        push.env.locaddr.227
-        push.env.locaddr.226
-        push.env.locaddr.225
-        push.env.locaddr.224
-        push.env.locaddr.223
-        push.env.locaddr.222
-        push.env.locaddr.221
-        push.env.locaddr.220
-        push.env.locaddr.219
-        push.env.locaddr.218
-        push.env.locaddr.217
-        push.env.locaddr.216
-        push.env.locaddr.215
-        push.env.locaddr.214
-        push.env.locaddr.213
-        push.env.locaddr.212
-        push.env.locaddr.211
-        push.env.locaddr.210
-        push.env.locaddr.209
-        push.env.locaddr.208
-        push.env.locaddr.207
-        push.env.locaddr.206
-        push.env.locaddr.205
-        push.env.locaddr.204
-        push.env.locaddr.203
-        push.env.locaddr.202
-        push.env.locaddr.201
-        push.env.locaddr.200
-        push.env.locaddr.199
-        push.env.locaddr.198
-        push.env.locaddr.197
-        push.env.locaddr.196
-        push.env.locaddr.195
-        push.env.locaddr.194
-        push.env.locaddr.193
-        push.env.locaddr.192
-        push.env.locaddr.191
-        push.env.locaddr.190
-        push.env.locaddr.189
-        push.env.locaddr.188
-        push.env.locaddr.187
-        push.env.locaddr.186
-        push.env.locaddr.185
-        push.env.locaddr.184
-        push.env.locaddr.183
-        push.env.locaddr.182
-        push.env.locaddr.181
-        push.env.locaddr.180
-        push.env.locaddr.179
-        push.env.locaddr.178
-        push.env.locaddr.177
-        push.env.locaddr.176
-        push.env.locaddr.175
-        push.env.locaddr.174
-        push.env.locaddr.173
-        push.env.locaddr.172
-        push.env.locaddr.171
-        push.env.locaddr.170
-        push.env.locaddr.169
-        push.env.locaddr.168
-        push.env.locaddr.167
-        push.env.locaddr.166
-        push.env.locaddr.165
-        push.env.locaddr.164
-        push.env.locaddr.163
-        push.env.locaddr.162
-        push.env.locaddr.161
-        push.env.locaddr.160
-        push.env.locaddr.159
-        push.env.locaddr.158
-        push.env.locaddr.157
-        push.env.locaddr.156
-        push.env.locaddr.155
-        push.env.locaddr.154
-        push.env.locaddr.153
-        push.env.locaddr.152
-        push.env.locaddr.151
-        push.env.locaddr.150
-        push.env.locaddr.149
-        push.env.locaddr.148
-        push.env.locaddr.147
-        push.env.locaddr.146
-        push.env.locaddr.145
-        push.env.locaddr.144
-        push.env.locaddr.143
-        push.env.locaddr.142
-        push.env.locaddr.141
-        push.env.locaddr.140
-        push.env.locaddr.139
-        push.env.locaddr.138
-        push.env.locaddr.137
-        push.env.locaddr.136
-        push.env.locaddr.135
-        push.env.locaddr.134
-        push.env.locaddr.133
-        push.env.locaddr.132
-        push.env.locaddr.131
-        push.env.locaddr.130
-        push.env.locaddr.129
-        push.env.locaddr.128
         push.env.locaddr.127
-        push.env.locaddr.126
-        push.env.locaddr.125
-        push.env.locaddr.124
-        push.env.locaddr.123
-        push.env.locaddr.122
-        push.env.locaddr.121
-        push.env.locaddr.120
-        push.env.locaddr.119
-        push.env.locaddr.118
-        push.env.locaddr.117
-        push.env.locaddr.116
-        push.env.locaddr.115
-        push.env.locaddr.114
-        push.env.locaddr.113
-        push.env.locaddr.112
-        push.env.locaddr.111
-        push.env.locaddr.110
-        push.env.locaddr.109
-        push.env.locaddr.108
-        push.env.locaddr.107
-        push.env.locaddr.106
-        push.env.locaddr.105
-        push.env.locaddr.104
-        push.env.locaddr.103
-        push.env.locaddr.102
-        push.env.locaddr.101
-        push.env.locaddr.100
-        push.env.locaddr.99
-        push.env.locaddr.98
-        push.env.locaddr.97
-        push.env.locaddr.96
-        push.env.locaddr.95
-        push.env.locaddr.94
-        push.env.locaddr.93
-        push.env.locaddr.92
-        push.env.locaddr.91
-        push.env.locaddr.90
-        push.env.locaddr.89
-        push.env.locaddr.88
-        push.env.locaddr.87
-        push.env.locaddr.86
-        push.env.locaddr.85
-        push.env.locaddr.84
-        push.env.locaddr.83
-        push.env.locaddr.82
-        push.env.locaddr.81
-        push.env.locaddr.80
-        push.env.locaddr.79
-        push.env.locaddr.78
-        push.env.locaddr.77
-        push.env.locaddr.76
-        push.env.locaddr.75
-        push.env.locaddr.74
-        push.env.locaddr.73
-        push.env.locaddr.72
-        push.env.locaddr.71
-        push.env.locaddr.70
-        push.env.locaddr.69
-        push.env.locaddr.68
-        push.env.locaddr.67
-        push.env.locaddr.66
-        push.env.locaddr.65
-        push.env.locaddr.64
-        push.env.locaddr.63
-        push.env.locaddr.62
-        push.env.locaddr.61
-        push.env.locaddr.60
-        push.env.locaddr.59
-        push.env.locaddr.58
-        push.env.locaddr.57
-        push.env.locaddr.56
-        push.env.locaddr.55
-        push.env.locaddr.54
-        push.env.locaddr.53
-        push.env.locaddr.52
-        push.env.locaddr.51
-        push.env.locaddr.50
-        push.env.locaddr.49
-        push.env.locaddr.48
-        push.env.locaddr.47
-        push.env.locaddr.46
-        push.env.locaddr.45
-        push.env.locaddr.44
-        push.env.locaddr.43
-        push.env.locaddr.42
-        push.env.locaddr.41
-        push.env.locaddr.40
-        push.env.locaddr.39
-        push.env.locaddr.38
-        push.env.locaddr.37
-        push.env.locaddr.36
-        push.env.locaddr.35
-        push.env.locaddr.34
-        push.env.locaddr.33
-        push.env.locaddr.32
-        push.env.locaddr.31
-        push.env.locaddr.30
-        push.env.locaddr.29
-        push.env.locaddr.28
-        push.env.locaddr.27
-        push.env.locaddr.26
-        push.env.locaddr.25
-        push.env.locaddr.24
-        push.env.locaddr.23
-        push.env.locaddr.22
-        push.env.locaddr.21
-        push.env.locaddr.20
-        push.env.locaddr.19
-        push.env.locaddr.18
-        push.env.locaddr.17
-        push.env.locaddr.16
-        push.env.locaddr.15
-        push.env.locaddr.14
-        push.env.locaddr.13
-        push.env.locaddr.12
-        push.env.locaddr.11
-        push.env.locaddr.10
-        push.env.locaddr.9
-        push.env.locaddr.8
-        push.env.locaddr.7
-        push.env.locaddr.6
-        push.env.locaddr.5
-        push.env.locaddr.4
-        push.env.locaddr.3
-        push.env.locaddr.2
-        push.env.locaddr.1
-        push.env.locaddr.0
 
         # perform polynomial addition, when two polynomials are provided
         # as absolute memory addresses on the stack
@@ -3378,7 +3124,8 @@ fn test_poly512_add_zq() {
 
         # check for functional correctness ( using known answer test )
 
-        pushw.mem
+		dup
+		pushw.mem
         push.121
         assert_eq
         push.10
@@ -3387,8 +3134,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12166
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12226
         assert_eq
         push.12124
@@ -3397,8 +3146,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.18
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.139
         assert_eq
         push.265
@@ -3407,8 +3158,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12102
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.141
         assert_eq
         push.12194
@@ -3417,8 +3170,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12184
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12225
         assert_eq
         push.95
@@ -3427,8 +3182,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.122
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12036
         assert_eq
         push.93
@@ -3437,8 +3194,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12048
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.163
         assert_eq
         push.75
@@ -3447,8 +3206,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12277
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12200
         assert_eq
         push.12117
@@ -3457,8 +3218,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.142
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.49
         assert_eq
         push.128
@@ -3467,8 +3230,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12219
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12125
         assert_eq
         push.12072
@@ -3477,8 +3242,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12115
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12193
         assert_eq
         push.220
@@ -3487,8 +3254,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.439
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.11956
         assert_eq
         push.279
@@ -3497,8 +3266,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.11727
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12250
         assert_eq
         push.12131
@@ -3507,8 +3278,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12192
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12288
         assert_eq
         push.12206
@@ -3517,8 +3290,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.17
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12176
         assert_eq
         push.145
@@ -3527,8 +3302,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.243
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12200
         assert_eq
         push.234
@@ -3537,8 +3314,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.138
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12053
         assert_eq
         push.177
@@ -3547,8 +3326,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12144
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.179
         assert_eq
         push.12217
@@ -3557,8 +3338,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12103
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.19
         assert_eq
         push.290
@@ -3567,8 +3350,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12123
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12138
         assert_eq
         push.12283
@@ -3577,8 +3362,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.89
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.43
         assert_eq
         push.12031
@@ -3587,8 +3374,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12071
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12239
         assert_eq
         push.88
@@ -3597,8 +3386,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.62
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.9
         assert_eq
         push.12165
@@ -3607,8 +3398,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12182
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.104
         assert_eq
         push.138
@@ -3617,8 +3410,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12142
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12156
         assert_eq
         push.151
@@ -3627,8 +3422,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.282
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.88
         assert_eq
         push.200
@@ -3637,8 +3434,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12213
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12234
         assert_eq
         push.204
@@ -3647,8 +3446,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12247
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.90
         assert_eq
         push.12010
@@ -3657,8 +3458,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12151
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12141
         assert_eq
         push.250
@@ -3667,8 +3470,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12249
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.168
         assert_eq
         push.12049
@@ -3677,8 +3482,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.75
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.128
         assert_eq
         push.2
@@ -3687,8 +3494,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.10
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.110
         assert_eq
         push.301
@@ -3697,8 +3506,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12039
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12261
         assert_eq
         push.331
@@ -3707,8 +3518,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12073
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12283
         assert_eq
         push.0
@@ -3717,8 +3530,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12240
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.16
         assert_eq
         push.32
@@ -3727,8 +3542,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.13
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.197
         assert_eq
         push.7
@@ -3737,8 +3554,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.72
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.304
         assert_eq
         push.12206
@@ -3747,8 +3566,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.61
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.136
         assert_eq
         push.12269
@@ -3757,8 +3578,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.184
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.329
         assert_eq
         push.43
@@ -3767,8 +3590,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.1
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.14
         assert_eq
         push.12202
@@ -3777,8 +3602,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.241
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12253
         assert_eq
         push.12224
@@ -3787,8 +3614,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.169
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.242
         assert_eq
         push.185
@@ -3797,8 +3626,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12066
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.202
         assert_eq
         push.12051
@@ -3807,8 +3638,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12212
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.73
         assert_eq
         push.12196
@@ -3817,8 +3650,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.61
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12166
         assert_eq
         push.50
@@ -3827,8 +3662,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.11974
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12276
         assert_eq
         push.12284
@@ -3837,8 +3674,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.238
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.130
         assert_eq
         push.12169
@@ -3847,8 +3686,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12237
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12201
         assert_eq
         push.205
@@ -3857,8 +3698,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12143
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.235
         assert_eq
         push.364
@@ -3867,8 +3710,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12175
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.87
         assert_eq
         push.47
@@ -3877,8 +3722,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12045
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.40
         assert_eq
         push.12280
@@ -3887,8 +3734,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.21
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12132
         assert_eq
         push.262
@@ -3897,8 +3746,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.97
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12214
         assert_eq
         push.12067
@@ -3907,8 +3758,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.203
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12208
         assert_eq
         push.37
@@ -3917,8 +3770,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.192
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.141
         assert_eq
         push.184
@@ -3927,8 +3782,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.117
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12022
         assert_eq
         push.12254
@@ -3937,8 +3794,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.224
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12172
         assert_eq
         push.12274
@@ -3947,8 +3806,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12280
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.20
         assert_eq
         push.5
@@ -3957,8 +3818,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.260
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.17
         assert_eq
         push.12078
@@ -3967,8 +3830,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12053
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12232
         assert_eq
         push.25
@@ -3977,8 +3842,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12169
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.63
         assert_eq
         push.12258
@@ -3987,8 +3854,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.207
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.132
         assert_eq
         push.12280
@@ -3997,8 +3866,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12269
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.137
         assert_eq
         push.12164
@@ -4007,8 +3878,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12019
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12143
         assert_eq
         push.151
@@ -4017,8 +3890,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.10
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.106
         assert_eq
         push.12191
@@ -4027,8 +3902,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12254
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.52
         assert_eq
         push.12082
@@ -4037,8 +3914,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.192
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.40
         assert_eq
         push.12244
@@ -4047,8 +3926,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.147
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.364
         assert_eq
         push.11995
@@ -4057,8 +3938,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12244
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12268
         assert_eq
         push.60
@@ -4067,8 +3950,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.224
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.108
         assert_eq
         push.12220
@@ -4077,8 +3962,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.14
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.232
         assert_eq
         push.133
@@ -4087,8 +3974,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.135
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12257
         assert_eq
         push.12222
@@ -4097,8 +3986,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12198
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12210
         assert_eq
         push.70
@@ -4107,8 +3998,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.106
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.155
         assert_eq
         push.58
@@ -4117,8 +4010,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.128
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.35
         assert_eq
         push.110
@@ -4127,8 +4022,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12256
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12196
         assert_eq
         push.4
@@ -4137,8 +4034,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12076
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.34
         assert_eq
         push.11999
@@ -4147,8 +4046,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.82
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.11974
         assert_eq
         push.380
@@ -4157,8 +4058,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12265
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.394
         assert_eq
         push.46
@@ -4167,8 +4070,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12142
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.133
         assert_eq
         push.12254
@@ -4177,8 +4082,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.14
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.187
         assert_eq
         push.12265
@@ -4187,8 +4094,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12134
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12137
         assert_eq
         push.12093
@@ -4197,8 +4106,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.11953
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12043
         assert_eq
         push.18
@@ -4207,8 +4118,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12160
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12203
         assert_eq
         push.22
@@ -4217,8 +4130,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.78
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.379
         assert_eq
         push.410
@@ -4227,8 +4142,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.66
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.53
         assert_eq
         push.92
@@ -4237,8 +4154,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12232
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.117
         assert_eq
         push.12163
@@ -4247,8 +4166,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.156
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12275
         assert_eq
         push.20
@@ -4257,8 +4178,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.1
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.98
         assert_eq
         push.207
@@ -4267,8 +4190,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.11959
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12282
         assert_eq
         push.16
@@ -4277,8 +4202,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.88
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12114
         assert_eq
         push.195
@@ -4287,8 +4214,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12145
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.256
         assert_eq
         push.72
@@ -4297,8 +4226,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12035
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.67
         assert_eq
         push.12204
@@ -4307,8 +4238,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.313
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12204
         assert_eq
         push.183
@@ -4317,8 +4250,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.263
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.285
         assert_eq
         push.12129
@@ -4327,8 +4262,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.171
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.44
         assert_eq
         push.12196
@@ -4337,8 +4274,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.136
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.98
         assert_eq
         push.271
@@ -4347,8 +4286,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12088
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.68
         assert_eq
         push.30
@@ -4357,8 +4298,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.56
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12129
         assert_eq
         push.260
@@ -4367,8 +4310,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.48
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.4
         assert_eq
         push.12286
@@ -4377,8 +4322,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.44
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.256
         assert_eq
         push.62
@@ -4387,8 +4334,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12156
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12214
         assert_eq
         push.149
@@ -4397,8 +4346,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.347
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.11989
         assert_eq
         push.12225
@@ -4407,8 +4358,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.161
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12271
         assert_eq
         push.143
@@ -4417,8 +4370,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12010
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12201
         assert_eq
         push.12140
@@ -4427,8 +4382,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.345
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.300
         assert_eq
         push.131
@@ -4437,8 +4394,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.270
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.5
         assert_eq
         push.12212
@@ -4447,8 +4406,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12118
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12229
         assert_eq
         push.12197
@@ -4457,8 +4418,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12258
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.97
         assert_eq
         push.45
@@ -4467,8 +4430,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.235
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12209
         assert_eq
         push.5
@@ -4477,8 +4442,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.138
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12245
         assert_eq
         push.209
@@ -4487,8 +4454,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.129
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.140
         assert_eq
         push.273
@@ -4497,8 +4466,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.22
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12017
         assert_eq
         push.12164
@@ -4507,8 +4478,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12195
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12021
         assert_eq
         push.12021
@@ -4517,8 +4490,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12079
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.170
         assert_eq
         push.37
@@ -4527,8 +4502,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12232
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.124
         assert_eq
         push.12130
@@ -4537,8 +4514,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12124
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12155
         assert_eq
         push.12211
@@ -4547,8 +4526,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.105
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.122
         assert_eq
         push.322
@@ -4557,8 +4538,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12191
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12226
         assert_eq
         push.12240
@@ -4567,8 +4550,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.154
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.171
         assert_eq
         push.12040
@@ -4577,8 +4562,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.85
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.11757
         assert_eq
         push.12090
@@ -4587,8 +4574,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.156
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.171
         assert_eq
         push.184
@@ -4597,8 +4586,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12096
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.30
         assert_eq
         push.137
@@ -4607,8 +4598,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12181
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12193
         assert_eq
         push.109
@@ -4617,8 +4610,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.382
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12138
         assert_eq
         push.60
@@ -4627,8 +4622,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.82
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.227
         assert_eq
         push.244
@@ -4637,8 +4634,10 @@ fn test_poly512_add_zq() {
         assert_eq
         push.12139
         assert_eq
-    
-        pushw.mem
+		add.1
+
+		dup
+		pushw.mem
         push.12229
         assert_eq
         push.12131
@@ -4647,6 +4646,7 @@ fn test_poly512_add_zq() {
         assert_eq
         push.296
         assert_eq
+		add.1
     
         pushw.mem
         push.12137

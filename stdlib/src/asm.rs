@@ -10212,41 +10212,32 @@ end
 #
 # Input stack state :
 #
-# [f_addr0, f_addr1, ..., f_addr127, g_addr0, g_addr1, ..., g_addr127]
+# [f_start_addr, g_start_addr, ...]
 #
-# {f, g}_addr`i` -> {f, g}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
+# - {f, g}_addr`i` -> {f, g}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
+# - {f, g}_addr0 -> {f, g}_start_addr
 #
 # Output stack state :
 #
-# [h_addr0, h_addr1, ..., h_addr127]
+# [h_start_addr, ...]
 #
-# h_addr`i` is the address of four elements | h[ (i << 2) .. ((i+1) << 2) ) & i ∈ [0..128)
+# - h_addr`i` is the address of four elements | h[ (i << 2) .. ((i+1) << 2) ) & i ∈ [0..128)
+#
+# Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
+# continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
 #
 # Note, input memory addresses are considered to be read-only, they are not mutated.
 export.add_zq.128
-    push.env.locaddr.0
-
-    repeat.128
-        swap
-        dup.1
-        pop.mem
-
-        sub.1
-    end
-
-    drop
-
-    push.env.locaddr.0
+    push.env.locaddr.127
     push.0.0.0.0.0.0.0.0
 
     repeat.128
-        movup.9
+        dup.9
         loadw.mem
 
         swapw
 
-        dup.8
-        push.mem
+        dup.10
         loadw.mem
 
         exec.add_word
@@ -10255,23 +10246,27 @@ export.add_zq.128
         dup.4
         storew.mem
 
+        movup.6
+        add.1
+        movdn.6
+
+        movup.5
+        add.1
+        movdn.5
+
         movup.4
-        sub.1
+        add.1
         movdn.4
 
         push.0.0.0.0
     end
 
+    push.0
     dropw
     dropw
-    drop
+    dropw
 
     push.env.locaddr.127
-
-    repeat.127
-        dup
-        add.1
-    end
 end
 
 # Given one polynomial of degree 512 on stack as absolute memory addresses,
