@@ -1,5 +1,5 @@
 ## Stack manipulation
-Miden VM stack is a push-down stack of field elements. The stack has a maximum depth of $2^{16}$, but only the top $16$ elements are directly accessible via the instructions listed below.
+Miden VM stack is a push-down stack of field elements. The stack has a maximum depth of $2^{32}$, but only the top $16$ elements are directly accessible via the instructions listed below.
 
 In addition to the typical stack manipulation instructions such as `drop`, `dup`, `swap` etc., Miden assembly provides several conditional instructions which can be used to manipulate the stack based on some condition - e.g., conditional swap `cswap` or conditional drop `cdrop`.
 
