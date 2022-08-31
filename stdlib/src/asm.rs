@@ -177,15 +177,18 @@ proc.squared_norm_word
     add
 end
 
-# Given a degree 512 polynomial in coefficient form, as absolute memory addresses on stack,
-# this routine computes squared norm of that vector, using following formula
+# Given a degree 512 polynomial in coefficient form, as starting (absolute) memory address 
+# on stack, this routine computes squared norm of that vector, using following formula
 #
 # Say, f = [a0, a1, a2, ..., a510, a511]
 #      g = sq_norm(f) = a0 ^ 2 + a1 ^ 2 + ... + a510 ^ 2 + a511 ^ 2
 #
 # Expected input stack state :
 #
-# [f_addr0, f_addr1, ..., f_add126, f_addr127, ...] | f_addr`i` holds f[(i << 2) .. ((i+1) << 2)]
+# [f_start_addr, ...] | f_addr`i` holds f[(i << 2) .. ((i+1) << 2)]
+#
+# Consecutive 127 addresses on stack can be computed using `INCR` instruction, because memory 
+# addresses are consecutive i.e. monotonically increasing by 1.
 #
 # Final stack state :
 #
@@ -194,15 +197,22 @@ export.squared_norm_poly512
     push.0.0.0.0.0
 
     repeat.128
-        movup.5
+        dup.5
         loadw.mem
 
         exec.squared_norm_word
         add
+
+        swap
+        add.1
+        swap
+
         push.0.0.0.0
     end
 
     dropw
+    swap
+    drop
 end
 
 # Falcon-512 Digital Signature Verification routine
@@ -240,89 +250,86 @@ export.verify.129
 
     # memcpy
 
-    push.env.locaddr.0
+    push.env.locaddr.127
     push.0.0.0.0
 
     repeat.128
-        movup.5
+        dup.5
         loadw.mem
 
         dup.4
         storew.mem
 
+        movup.5
+        add.1
+        movdn.5
+
         movup.4
-        sub.1
+        add.1
         movdn.4
     end
 
     dropw
     drop
+    drop
 
     push.env.locaddr.127
-
-    repeat.127
-        dup
-        add.1
-    end
-
     exec.poly512::neg_zq
 
     # memcpy
 
-    push.env.locaddr.0
+    push.env.locaddr.127
     push.0.0.0.0
 
     repeat.128
-        movup.5
+        dup.5
         loadw.mem
 
         dup.4
         storew.mem
 
+        movup.5
+        add.1
+        movdn.5
+
         movup.4
-        sub.1
+        add.1
         movdn.4
     end
 
     dropw
     drop
+    drop
 
     push.env.locaddr.127
-
-    repeat.127
-        dup
-        add.1
-    end
-
     exec.poly512::add_zq
 
     # memcpy
 
-    push.env.locaddr.0
+    push.env.locaddr.127
     push.0.0.0.0
 
     repeat.128
-        movup.5
+        dup.5
         loadw.mem
 
         dup.4
         storew.mem
 
+        movup.5
+        add.1
+        movdn.5
+
         movup.4
-        sub.1
+        add.1
         movdn.4
     end
 
     dropw
     drop
+    drop
 
     push.env.locaddr.127
-
-    repeat.127
-        dup
-        add.1
-    end
-
     exec.normalize_poly512
 
     # compute squared norm of s0
