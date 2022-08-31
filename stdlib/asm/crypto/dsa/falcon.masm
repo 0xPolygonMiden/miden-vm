@@ -80,8 +80,9 @@ proc.normalize_word
     movdn.3
 end
 
-# Given a degree 512 polynomial on stack, using its absolute memory addresses, this routine
-# normalizes each coefficient of the polynomial, using above defined `normalize()` routine
+# Given a degree 512 polynomial on stack, using its starting (absolute) memory address, 
+# this routine normalizes each coefficient of the polynomial, using above defined 
+# `normalize()` routine
 #
 # Imagine, f is the given polynomial of degree 512. It can be normalized using
 #
@@ -89,39 +90,40 @@ end
 #
 # Expected stack state :
 #
-# [f_addr0, f_addr1, ..., f_addr127, ...] | 128 absolute memory addresses
+# [f_start_addr, ...] | next 127 absolute addresses can be computed using `INCR` instruction
 #
 # Post normalization stack state looks like
 #
-# [g_addr0, g_addr1, ..., g_addr127, ...] | 128 absolute memory addresses
+# [g_start_addr, ...] | next 127 absolute addresses can be computed using `INCR` instruction
 #
 # Note, input polynomial which is provided using memory addresses, is not mutated.
 export.normalize_poly512.128
-    push.env.locaddr.0
+    push.env.locaddr.127
     push.0.0.0.0
 
     repeat.128
-        movup.5
+        dup.5
         loadw.mem
 
         exec.normalize_word
+
         dup.4
         storew.mem
 
+        movup.5
+        add.1
+        movdn.5
+
         movup.4
-        sub.1
+        add.1
         movdn.4
     end
 
     dropw
     drop
+    drop
 
     push.env.locaddr.127
-
-    repeat.127
-        dup
-        add.1
-    end
 end
 
 # Given four elements on stack top, this routine computes squared norm of that

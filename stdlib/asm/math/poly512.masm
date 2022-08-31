@@ -74,7 +74,7 @@ end
 # Output stack state looks like
 #
 # [c, ...] | c = a % b and b = 12289
-proc.mod_div
+export.mod_div
     swap
     u32split
     movup.2
