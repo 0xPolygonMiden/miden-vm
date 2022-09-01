@@ -135,8 +135,8 @@ impl Air for ProcessorAir {
         // --- set assertions for the last step ---------------------------------------------------
         let last_step = self.last_step();
 
-        // TODO: add the stack's assertions for the last step.
-        // stack::get_assertions_last_step(&mut result, last_step, &self.stack_outputs);
+        // add the stack's assertions for the last step.
+        stack::get_assertions_last_step(&mut result, last_step, &self.outputs);
 
         // Add the range checker's assertions for the last step.
         range::get_assertions_last_step(&mut result, last_step);
@@ -162,7 +162,12 @@ impl Air for ProcessorAir {
         let last_step = self.last_step();
 
         // add the stack's auxiliary column assertions for the last step.
-        stack::get_aux_assertions_last_step(&mut result, last_step);
+        stack::get_aux_assertions_last_step(
+            &mut result,
+            aux_rand_elements,
+            &self.outputs,
+            last_step,
+        );
 
         // Add the range checker's auxiliary column assertions for the last step.
         range::get_aux_assertions_last_step(&mut result, last_step);
@@ -244,7 +249,22 @@ impl Serializable for PublicInputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         target.write(self.program_hash.as_elements());
         target.write(self.stack_inputs.as_slice());
-        target.write(self.outputs.stack());
-        target.write(self.outputs.overflow_addrs());
+
+        // write program outputs.
+        let stack = self
+            .outputs
+            .stack()
+            .iter()
+            .map(|v| Felt::new(*v))
+            .collect::<Vec<_>>();
+        target.write(&stack);
+
+        let overflow_addrs = self
+            .outputs
+            .overflow_addrs()
+            .iter()
+            .map(|v| Felt::new(*v))
+            .collect::<Vec<_>>();
+        target.write(&overflow_addrs);
     }
 }
