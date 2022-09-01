@@ -9,9 +9,15 @@ use winterfell::Matrix;
 /// Describes how to construct execution traces of stack-related auxiliary trace segment columns
 /// (used in multiset checks).
 pub struct AuxTraceBuilder {
+    /// A list of updates made to the overflow table during program execution. For each update we
+    /// also track the cycle at which the update happened.
     pub(super) overflow_hints: Vec<(u64, OverflowTableUpdate)>,
+    /// A list of all rows that were added to and then removed from the overflow table.
     pub(super) overflow_table_rows: Vec<OverflowTableRow>,
+    /// The number of rows in the overflow table when execution begins.
     pub(super) num_init_rows: usize,
+    /// A list of indices into the `all_rows` vector which describes the rows remaining in the
+    /// overflow table at the end of execution.
     pub(super) final_rows: Vec<usize>,
 }
 

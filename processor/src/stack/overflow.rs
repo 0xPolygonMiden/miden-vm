@@ -16,7 +16,7 @@ use super::{
 pub struct OverflowTable {
     /// A list of all rows that were added to and then removed from the overflow table.
     all_rows: Vec<OverflowTableRow>,
-    /// A list of indices into the `all_rows` vector with describes the rows currently in the
+    /// A list of indices into the `all_rows` vector which describes the rows currently in the
     /// overflow table.
     active_rows: Vec<usize>,
     /// A list of updates made to the overflow table during program execution. For each update we
@@ -29,7 +29,7 @@ pub struct OverflowTable {
     /// whenever an update happens. This is set to true only when executing programs for debug
     /// purposes.
     trace_enabled: bool,
-    ///TODO
+    /// The number of rows in the overflow table when execution begins.
     num_init_rows: usize,
 }
 
