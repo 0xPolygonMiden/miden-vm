@@ -60,7 +60,6 @@ impl System {
     /// Trace length of the system columns is equal to the number of cycles executed by the VM.
     #[inline(always)]
     pub fn trace_len(&self) -> usize {
-        // converting from u32 is OK here because max trace length is 2^32
         self.clk as usize
     }
 
@@ -101,8 +100,8 @@ impl System {
 
     /// Returns free memory pointer at the specified clock cycle.
     #[inline(always)]
-    pub fn get_fmp_at(&self, trace_len: usize) -> Felt {
-        self.fmp_trace[trace_len]
+    pub fn get_fmp_at(&self, clk: usize) -> Felt {
+        self.fmp_trace[clk]
     }
 
     // STATE MUTATORS
@@ -131,7 +130,7 @@ impl System {
     /// Trace length is doubled every time it needs to be increased.
     pub fn ensure_trace_capacity(&mut self) {
         let current_capacity = self.clk_trace.len();
-        if self.clk + 1 >= current_capacity.try_into().unwrap() {
+        if self.clk + 1 >= current_capacity as u32 {
             let new_length = current_capacity * 2;
             self.clk_trace.resize(new_length, Felt::ZERO);
             self.fmp_trace.resize(new_length, Felt::ZERO);

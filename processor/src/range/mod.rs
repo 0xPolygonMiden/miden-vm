@@ -61,7 +61,7 @@ pub struct RangeChecker {
     // Range check lookups performed by all user operations, grouped and sorted by clock cycle. Each
     // cycle is mapped to a single CycleRangeChecks instance which includes lookups from the stack,
     // memory, or both.
-    cycle_range_checks: BTreeMap<usize, CycleRangeChecks>,
+    cycle_range_checks: BTreeMap<u32, CycleRangeChecks>,
 }
 
 impl RangeChecker {
@@ -112,7 +112,7 @@ impl RangeChecker {
 
         // Stack operations are added before memory operations at unique clock cycles.
         self.cycle_range_checks
-            .insert(clk as usize, CycleRangeChecks::new_from_stack(values));
+            .insert(clk, CycleRangeChecks::new_from_stack(values));
     }
 
     /// Adds range check lookups from [Memory] to this [RangeChecker] instance. Memory lookups are
@@ -123,7 +123,7 @@ impl RangeChecker {
         self.add_value(values[1]);
 
         self.cycle_range_checks
-            .entry(clk as usize)
+            .entry(clk)
             .and_modify(|entry| entry.add_memory_checks(values))
             .or_insert_with(|| CycleRangeChecks::new_from_memory(values));
     }

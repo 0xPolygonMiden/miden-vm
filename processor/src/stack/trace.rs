@@ -209,7 +209,7 @@ impl StackTrace {
     /// Trace length is doubled every time it needs to be increased.
     pub fn ensure_trace_capacity(&mut self, clk: u32) {
         let current_capacity = get_trace_len(&self.stack);
-        // current_capacity as trace_lenght can not be bigger than clk, so it is safe to cast to u32
+        // current_capacity as trace_length can not be bigger than clk, so it is safe to cast to u32
         if clk + 1 >= current_capacity as u32 {
             let new_length = current_capacity * 2;
             for register in self.stack.iter_mut().chain(self.helpers.iter_mut()) {

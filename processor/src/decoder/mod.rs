@@ -444,7 +444,6 @@ impl Decoder {
     /// operation to the trace.
     pub fn start_call(&mut self, fn_hash: Word, addr: Felt) {
         // get the current clock cycle here (before the trace table is updated)
-        // clk is guaranteed never to exceed a u32 value, we can change the format here
         let clk = self.trace_len() as u32;
 
         // append a CALL row to the execution trace
@@ -478,7 +477,8 @@ impl Decoder {
         );
 
         // mark this cycle as the cycle at which block execution has ended
-        self.aux_hints.block_ended(clk, block_info.is_first_child);
+        self.aux_hints
+            .block_ended(clk as u32, block_info.is_first_child);
 
         self.debug_info.append_operation(Operation::End);
     }
@@ -507,7 +507,7 @@ impl Decoder {
 
         // mark the current cycle as a cycle at which an operation batch may have been inserted
         // into the op_group table
-        self.aux_hints.insert_op_batch(clk as usize, num_op_groups);
+        self.aux_hints.insert_op_batch(clk, num_op_groups);
 
         // mark the current cycle as the cycle at which a SPAN block has started; SPAN block has
         // no children
@@ -520,7 +520,7 @@ impl Decoder {
     /// Starts decoding of the next operation batch in the current SPAN.
     pub fn respan(&mut self, op_batch: &OpBatch) {
         // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len();
+        let clk = self.trace_len() as u32;
 
         // add RESPAN row to the trace
         self.trace.append_respan(op_batch.groups());
@@ -619,7 +619,7 @@ impl Decoder {
     /// Ends decoding of a SPAN block.
     pub fn end_span(&mut self, block_hash: Word) {
         // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len();
+        let clk = self.trace_len() as u32;
 
         // remove the block from the stack of executing blocks and add an END row to the
         // execution trace

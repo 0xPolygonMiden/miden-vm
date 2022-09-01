@@ -296,7 +296,6 @@ impl Memory {
                 trace.set(i, 13, delta.inv());
 
                 // provide the memory access data to the chiplets bus.
-                // TODO please check 'clk.as_int() as u32' clk is spawned here as BaseElement which is u64
                 let memory_lookup = MemoryLookup::new(addr, clk.as_int() as u32, prev_value, value);
                 chiplets_bus.provide_memory_operation(memory_lookup, (memory_start_row + i) as u32);
 
@@ -373,7 +372,7 @@ impl LookupTableRow for MemoryLookup {
             + alphas[1].mul_base(MEMORY_LABEL)
             + alphas[2].mul_base(self.ctx)
             + alphas[3].mul_base(self.addr)
-            + alphas[4].mul_base(Felt::new(self.clk as u64))
+            + alphas[4].mul_base(Felt::from(self.clk))
             + old_word_value
             + new_word_value
     }

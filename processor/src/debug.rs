@@ -74,7 +74,7 @@ impl VmStateIterator {
             (
                 &assembly_ops[self.asmop_idx - 1],
                 // difference between current clock cycle and start clock cycle of the current asmop
-                (self.clk as usize - assembly_ops[self.asmop_idx - 1].0) as u8,
+                (self.clk - assembly_ops[self.asmop_idx - 1].0 as u32) as u8,
             )
         } else {
             (next_asmop, 0) //dummy value, never used.
@@ -82,7 +82,7 @@ impl VmStateIterator {
 
         // if this is the first op in the sequence corresponding to the next asmop, returns a new
         // instance of [AsmOp] instantiated with next asmop, num_cycles and cycle_idx of 1.
-        if next_asmop.0 == self.clk as usize - 1 {
+        if next_asmop.0 as u32 == self.clk - 1 {
             let asmop = Some(AsmOpInfo::new(
                 next_asmop.1.op().clone(),
                 next_asmop.1.num_cycles(),

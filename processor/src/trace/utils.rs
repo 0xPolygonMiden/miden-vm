@@ -186,8 +186,6 @@ pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow> {
         // remaining column values with the last value
         let last_value = result[result_idx as usize];
         assert_eq!(last_value, self.final_column_value(alphas));
-        // TODO check casting, I think it is correct, since result cannot exceed clk,
-        // but len() and [ ] require usize
         if result_idx < result.len() as u32 - 1 {
             result[(result_idx + 1) as usize..].fill(last_value);
         }

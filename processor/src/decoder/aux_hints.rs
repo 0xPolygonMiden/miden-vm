@@ -11,7 +11,7 @@ use super::{
 pub struct AuxTraceHints {
     /// A list of updates made to the block stack and block hash tables. Each entry contains a
     /// clock cycle at which the update was made, as well as the description of the update.
-    block_exec_hints: Vec<(usize, BlockTableUpdate)>,
+    block_exec_hints: Vec<(u32, BlockTableUpdate)>,
     /// A list of rows which were added and then removed from the block stack table. The rows are
     /// sorted by `block_id` in ascending order.
     block_stack_rows: Vec<BlockStackTableRow>,
@@ -21,7 +21,7 @@ pub struct AuxTraceHints {
     block_hash_rows: Vec<BlockHashTableRow>,
     /// A list of updates made to the op group table where each entry is a tuple containing the
     /// cycle at which the update was made and the update description.
-    op_group_hints: Vec<(usize, OpGroupTableUpdate)>,
+    op_group_hints: Vec<(u32, OpGroupTableUpdate)>,
     /// A list of rows which were added to and then removed from the op group table.
     op_group_rows: Vec<OpGroupTableRow>,
 }
@@ -50,7 +50,7 @@ impl AuxTraceHints {
     /// Returns hints which describe how the block stack and block hash tables were updated during
     /// program execution. Each hint consists of a clock cycle and the update description for that
     /// cycle. The hints are sorted by clock cycle in ascending order.
-    pub fn block_exec_hints(&self) -> &[(usize, BlockTableUpdate)] {
+    pub fn block_exec_hints(&self) -> &[(u32, BlockTableUpdate)] {
         &self.block_exec_hints
     }
 
@@ -75,7 +75,7 @@ impl AuxTraceHints {
 
     /// Returns hints which describe how the op group was updated during program execution. Each
     /// hint consists of a clock cycle and the update description for that cycle.
-    pub fn op_group_table_hints(&self) -> &[(usize, OpGroupTableUpdate)] {
+    pub fn op_group_table_hints(&self) -> &[(u32, OpGroupTableUpdate)] {
         &self.op_group_hints
     }
 
@@ -150,7 +150,7 @@ impl AuxTraceHints {
     ) {
         // insert the hint with the relevant update
         let hint = BlockTableUpdate::BlockStarted(block_info.block_type.num_children());
-        self.block_exec_hints.push((clk as usize, hint));
+        self.block_exec_hints.push((clk, hint));
 
         // create a row which would be inserted into the block stack table
         let bst_row = BlockStackTableRow::new(block_info);
@@ -176,7 +176,7 @@ impl AuxTraceHints {
     /// Specifies that a code block execution was completed at the specified clock cycle. We also
     /// need to specify whether the block was the first child of a JOIN block so that we can find
     /// correct block hash table row.
-    pub fn block_ended(&mut self, clk: usize, is_first_child: bool) {
+    pub fn block_ended(&mut self, clk: u32, is_first_child: bool) {
         self.block_exec_hints
             .push((clk, BlockTableUpdate::BlockEnded(is_first_child)));
     }
@@ -185,13 +185,13 @@ impl AuxTraceHints {
     /// This is triggered by the REPEAT operation.
     pub fn loop_repeat_started(&mut self, clk: u32) {
         self.block_exec_hints
-            .push((clk as usize, BlockTableUpdate::LoopRepeated));
+            .push((clk, BlockTableUpdate::LoopRepeated));
     }
 
     /// Specifies that execution of a SPAN block was extended at the specified clock cycle. This
     /// is triggered by the RESPAN operation. This also adds a row for the new span batch to the
     /// block stack table.
-    pub fn span_extended(&mut self, clk: usize, block_info: &BlockInfo) {
+    pub fn span_extended(&mut self, clk: u32, block_info: &BlockInfo) {
         let row = BlockStackTableRow::new(block_info);
         self.block_stack_rows.push(row);
         self.block_exec_hints
@@ -201,7 +201,7 @@ impl AuxTraceHints {
     /// Specifies that an operation batch may have been inserted into the op group table at the
     /// specified cycle. Operation groups are inserted into the table only if the number of groups
     /// left is greater than 1.
-    pub fn insert_op_batch(&mut self, clk: usize, num_groups_left: Felt) {
+    pub fn insert_op_batch(&mut self, clk: u32, num_groups_left: Felt) {
         // compute number of op groups in this batch
         let num_batch_groups = get_num_groups_in_next_batch(num_groups_left);
         debug_assert!(num_batch_groups > 0, "op batch is empty");
@@ -227,7 +227,7 @@ impl AuxTraceHints {
         group_value: Felt,
     ) {
         self.op_group_hints
-            .push((clk as usize, OpGroupTableUpdate::RemoveRow));
+            .push((clk, OpGroupTableUpdate::RemoveRow));
         // we record a row only when it is deleted because rows are added and deleted in the same
         // order. thus, a sequence of deleted rows is exactly the same as the sequence of added
         // rows.
