@@ -3,16 +3,14 @@ use vm_core::utils::ToElements;
 
 #[test]
 fn push() {
-    // drop's are added at the end to make sure stack overflow is empty on exit
-    let asm_op = "push.mem.0 swap drop";
+    let asm_op = "push.mem.0 swap";
 
     build_op_test!(asm_op).prove_and_verify(vec![], false);
 }
 
 #[test]
 fn pushw() {
-    // drop's are added at the end to make sure stack overflow is empty on exit
-    let asm_op = "pushw.mem.0 swapw drop drop drop drop";
+    let asm_op = "pushw.mem.0 swapw";
 
     build_op_test!(asm_op).prove_and_verify(vec![], false);
 }
@@ -91,8 +89,7 @@ fn store() {
 
 #[test]
 fn write_read() {
-    // drop's are added at the end to make sure stack overflow is empty on exit
-    let source = "begin popw.mem.0 pushw.mem.0 swapw drop drop drop drop end";
+    let source = "begin popw.mem.0 pushw.mem.0 swapw end";
     let pub_inputs = vec![4, 3, 2, 1];
 
     build_test!(source, &pub_inputs).prove_and_verify(pub_inputs, false);
@@ -100,9 +97,8 @@ fn write_read() {
 
 #[test]
 fn helper_write_read() {
-    // drop's are added at the end to make sure stack overflow is empty on exit
     // Sequence of operations: [Span, Pad, MStorew, Drop, Drop, Drop, Drop, Pad, MLoad, ... ]
-    let source = "begin popw.mem.0 push.mem.0 swapw drop end";
+    let source = "begin popw.mem.0 push.mem.0 swapw end";
     let pub_inputs = vec![4, 3, 2, 1];
 
     let trace = build_test!(source, &pub_inputs).execute().unwrap();
@@ -115,8 +111,7 @@ fn helper_write_read() {
 
 #[test]
 fn update() {
-    // drop's are added at the end to make sure stack overflow is empty on exit
-    let source = "begin pushw.mem.0 storew.mem.0 swapw drop drop drop drop end";
+    let source = "begin pushw.mem.0 storew.mem.0 swapw end";
     let pub_inputs = vec![8, 7, 6, 5, 4, 3, 2, 1];
 
     build_test!(source, &pub_inputs).prove_and_verify(pub_inputs, false);
