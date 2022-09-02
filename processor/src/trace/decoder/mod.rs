@@ -50,17 +50,17 @@ fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
     let mut started_block_idx = 0;
 
     // keep track of the last updated row in the running product column
-    let mut result_idx = 0;
+    let mut result_idx = 0_usize;
 
     // iterate through the list of updates and apply them one by one
     for (clk, update) in aux_trace_hints.block_exec_hints() {
-        let clk = *clk;
+        let clk = *clk as usize;
 
         // if we skipped some cycles since the last update was processed, values in the last
         // updated row should by copied over until the current cycle.
         if result_idx < clk {
-            let last_value = result[result_idx as usize];
-            result[(result_idx as usize + 1)..=clk as usize].fill(last_value);
+            let last_value = result[result_idx];
+            result[(result_idx + 1)..=clk].fill(last_value);
         }
 
         // move the result pointer to the next row
@@ -71,7 +71,7 @@ fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
             BlockTableUpdate::BlockStarted(_) => {
                 // when a new block is started, multiply the running product by the value
                 // representing the entry for the block in the block stack table.
-                result[result_idx as usize] = result[clk as usize] * row_values[started_block_idx];
+                result[result_idx] = result[clk] * row_values[started_block_idx];
                 started_block_idx += 1;
             }
             BlockTableUpdate::SpanExtended => {
@@ -80,31 +80,30 @@ fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
                 // new batch.
                 let old_row_value_inv = inv_row_values[started_block_idx - 1];
                 let new_row_value = row_values[started_block_idx];
-                result[result_idx as usize] =
-                    result[clk as usize] * old_row_value_inv * new_row_value;
+                result[result_idx] = result[clk] * old_row_value_inv * new_row_value;
                 started_block_idx += 1;
             }
             BlockTableUpdate::BlockEnded(_) => {
                 // when a block is ended, we need to remove the entry for the block from the
                 // block stack table; we can look up the index of the entry using the block's
                 // ID which we get from the current row of the execution trace.
-                let block_id = get_block_addr(main_trace, clk);
+                let block_id = get_block_addr(main_trace, clk as u32);
                 let row_idx = aux_trace_hints
                     .get_block_stack_row_idx(block_id)
                     .expect("block stack row not found");
-                result[result_idx as usize] = result[clk as usize] * inv_row_values[row_idx];
+                result[result_idx] = result[clk] * inv_row_values[row_idx];
             }
             // REPEAT operation has no effect on the block stack table
-            BlockTableUpdate::LoopRepeated => result[result_idx as usize] = result[clk as usize],
+            BlockTableUpdate::LoopRepeated => result[result_idx] = result[clk],
         }
     }
 
     // at this point, block stack table must be empty - so, the last value must be ONE;
     // we also fill in all the remaining values in the column with ONE's.
-    let last_value = result[result_idx as usize];
+    let last_value = result[result_idx];
     assert_eq!(last_value, E::ONE);
-    if result_idx < result.len() as u32 - 1 {
-        result[(result_idx + 1) as usize..].fill(E::ONE);
+    if result_idx < result.len() - 1 {
+        result[(result_idx + 1)..].fill(E::ONE);
     }
 
     result
@@ -136,17 +135,17 @@ fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
     let mut started_block_idx = 1;
 
     // keep track of the last updated row in the running product column
-    let mut result_idx = 0;
+    let mut result_idx = 0_usize;
 
     // iterate through the list of updates and apply them one by one
     for (clk, update) in aux_trace_hints.block_exec_hints() {
-        let clk = *clk;
+        let clk = *clk as usize;
 
         // if we skipped some cycles since the last update was processed, values in the last
         // updated row should by copied over until the current cycle.
         if result_idx < clk {
-            let last_value = result[result_idx as usize];
-            result[(result_idx as usize + 1)..=clk as usize].fill(last_value);
+            let last_value = result[result_idx];
+            result[(result_idx + 1)..=clk].fill(last_value);
         }
 
         // move the result pointer to the next row
@@ -159,16 +158,15 @@ fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
                 // table; in case this was a JOIN block with two children, the first child should
                 // have is_first_child set to true.
                 match *num_children {
-                    0 => result[result_idx as usize] = result[clk as usize],
+                    0 => result[result_idx] = result[clk],
                     1 => {
                         debug_assert!(!table_rows[started_block_idx].is_first_child());
-                        result[result_idx as usize] =
-                            result[clk as usize] * row_values[started_block_idx];
+                        result[result_idx] = result[clk] * row_values[started_block_idx];
                     }
                     2 => {
                         debug_assert!(table_rows[started_block_idx].is_first_child());
                         debug_assert!(!table_rows[started_block_idx + 1].is_first_child());
-                        result[result_idx as usize] = result[clk as usize]
+                        result[result_idx] = result[clk]
                             * row_values[started_block_idx]
                             * row_values[started_block_idx + 1];
                     }
@@ -186,11 +184,11 @@ fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
                 // operation is executed. Therefore, we can get the parent ID from the execution
                 // trace at the next row: clk + 1 (which is the same as result_idx), and use it to
                 // find this entry.
-                let parent_id = get_block_addr(main_trace, result_idx);
+                let parent_id = get_block_addr(main_trace, result_idx as u32);
                 let row_idx = aux_trace_hints
                     .get_block_hash_row_idx(parent_id, false)
                     .expect("block hash row not found");
-                result[result_idx as usize] = result[clk as usize] * row_values[row_idx];
+                result[result_idx] = result[clk] * row_values[row_idx];
             }
             BlockTableUpdate::BlockEnded(is_first_child) => {
                 // when END operation is executed, we need to remove an entry for the block from
@@ -198,23 +196,23 @@ fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
                 // from the trace in the same way as described above. we also need to know whether
                 // this block is the first or the second child of its parent, because for JOIN
                 // block, the same parent ID would map to two children.
-                let parent_id = get_block_addr(main_trace, result_idx);
+                let parent_id = get_block_addr(main_trace, result_idx as u32);
                 let row_idx = aux_trace_hints
                     .get_block_hash_row_idx(parent_id, *is_first_child)
                     .expect("block hash row not found");
-                result[result_idx as usize] = result[clk as usize] * inv_row_values[row_idx];
+                result[result_idx] = result[clk] * inv_row_values[row_idx];
             }
             // RESPAN operation has no effect on the block hash table
-            BlockTableUpdate::SpanExtended => result[result_idx as usize] = result[clk as usize],
+            BlockTableUpdate::SpanExtended => result[result_idx] = result[clk],
         }
     }
 
     // at this point, block hash table must be empty - so, the last value must be ONE;
     // we also fill in all the remaining values in the column with ONE's.
-    let last_value = result[result_idx as usize];
+    let last_value = result[result_idx];
     assert_eq!(last_value, E::ONE);
-    if result_idx < result.len() as u32 - 1 {
-        result[(result_idx as usize + 1)..].fill(E::ONE);
+    if result_idx < result.len() - 1 {
+        result[(result_idx + 1)..].fill(E::ONE);
     }
 
     result
@@ -247,17 +245,17 @@ fn build_aux_col_p3<E: FieldElement<BaseField = Felt>>(
     let mut result_idx = 0_usize;
 
     for (clk, update) in aux_trace_hints.op_group_table_hints() {
-        let clk = *clk;
+        let clk = *clk as usize;
 
         // if we skipped some cycles since the last update was processed, values in the last
         // updated row should by copied over until the current cycle.
-        if result_idx < clk as usize {
+        if result_idx < clk {
             let last_value = result[result_idx];
-            result[(result_idx + 1)..=clk as usize].fill(last_value);
+            result[(result_idx + 1)..=clk].fill(last_value);
         }
 
         // apply the relevant updates to the column
-        result_idx = clk as usize + 1;
+        result_idx = clk + 1;
         match update {
             OpGroupTableUpdate::InsertRows(num_op_groups) => {
                 // if the rows were added, multiply the current value in the column by the values
@@ -266,7 +264,7 @@ fn build_aux_col_p3<E: FieldElement<BaseField = Felt>>(
                 for i in 1..(*num_op_groups as usize) {
                     value *= row_values[inserted_group_idx + i];
                 }
-                result[result_idx] = result[clk as usize] * value;
+                result[result_idx] = result[clk] * value;
 
                 // advance the inserted group pointer by the number of inserted rows
                 inserted_group_idx += *num_op_groups as usize;
@@ -274,7 +272,7 @@ fn build_aux_col_p3<E: FieldElement<BaseField = Felt>>(
             OpGroupTableUpdate::RemoveRow => {
                 // if a row was removed, divide the current value in the column by the value
                 // of the row
-                result[result_idx] = result[clk as usize] * inv_row_values[removed_group_idx];
+                result[result_idx] = result[clk] * inv_row_values[removed_group_idx];
 
                 // advance the removed group pointer by one
                 removed_group_idx += 1;

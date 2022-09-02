@@ -155,39 +155,39 @@ impl AuxTraceBuilder {
         // index is always one row behind, since `q` is filled with intermediate values in the same
         // row as the operation is executed, whereas `p1` is filled with result values that are
         // added to the next row after the operation's execution.
-        let mut p1_idx = 0;
+        let mut p1_idx = 0_usize;
         // keep track of the next row to be included from the user op range check values.
         let mut rc_user_op_idx = 0;
 
         // the first half of the trace only includes values from the operations.
         for (clk, range_checks) in self.cycle_range_checks.range(0..=self.start_16bit as u32) {
-            let clk = *clk;
+            let clk = *clk as usize;
 
             // if we skipped some cycles since the last update was processed, values in the last
             // updated row should by copied over until the current cycle.
             if p1_idx < clk {
-                let last_value = p1[p1_idx as usize];
-                p1[(p1_idx as usize + 1)..=clk as usize].fill(last_value);
-                q[p1_idx as usize..clk as usize].fill(E::ONE);
+                let last_value = p1[p1_idx];
+                p1[(p1_idx + 1)..=clk].fill(last_value);
+                q[p1_idx..clk].fill(E::ONE);
             }
 
             // move the column pointers to the next row.
             p1_idx = clk + 1;
 
             // update the intermediate values in the q column.
-            q[clk as usize] = range_checks.to_stack_value(alphas);
+            q[clk] = range_checks.to_stack_value(alphas);
 
             // include the operation lookups in the running product.
-            p1[p1_idx as usize] = p1[clk as usize] * inv_row_values[rc_user_op_idx];
+            p1[p1_idx] = p1[clk] * inv_row_values[rc_user_op_idx];
             rc_user_op_idx += 1;
         }
 
         // if we skipped some cycles since the last update was processed, values in the last
         // updated row should by copied over until the current cycle.
-        if p1_idx < self.start_16bit as u32 {
-            let last_value = p1[p1_idx as usize];
-            p1[(p1_idx + 1) as usize..=self.start_16bit].fill(last_value);
-            q[p1_idx as usize..self.start_16bit].fill(E::ONE);
+        if p1_idx < self.start_16bit {
+            let last_value = p1[p1_idx];
+            p1[(p1_idx + 1)..=self.start_16bit].fill(last_value);
+            q[p1_idx..self.start_16bit].fill(E::ONE);
         }
 
         // for the 16-bit section of the range checker table, include `z` in the running product at
@@ -200,19 +200,16 @@ impl AuxTraceBuilder {
             .take(main_trace.num_rows() - NUM_RAND_ROWS)
             .skip(self.start_16bit)
         {
-            p1_idx = row_idx as u32 + 1;
+            p1_idx = row_idx + 1;
 
-            p1[p1_idx as usize] = p1[row_idx] * hint.to_value(*lookup, alphas);
+            p1[p1_idx] = p1[row_idx] * hint.to_value(*lookup, alphas);
 
-            // this is not beautiful, but we need to borrow row_idx as u32 in the cycle_range_checks function
-            let row_idx_u32 = row_idx as u32;
-
-            if let Some(range_check) = self.cycle_range_checks.get(&row_idx_u32) {
+            if let Some(range_check) = self.cycle_range_checks.get(&(row_idx as u32)) {
                 // update the intermediate values in the q column.
                 q[row_idx] = range_check.to_stack_value(alphas);
 
                 // include the operation lookups in the running product.
-                p1[p1_idx as usize] *= inv_row_values[rc_user_op_idx];
+                p1[p1_idx] *= inv_row_values[rc_user_op_idx];
                 rc_user_op_idx += 1;
             } else {
                 q[row_idx] = E::ONE;
@@ -221,14 +218,14 @@ impl AuxTraceBuilder {
 
         // at this point, all range checks from user operations and the range checker should be
         // matched - so, the last value must be ONE;
-        assert_eq!(q[p1_idx as usize - 1], E::ONE);
-        assert_eq!(p1[p1_idx as usize], E::ONE);
+        assert_eq!(q[p1_idx - 1], E::ONE);
+        assert_eq!(p1[p1_idx], E::ONE);
 
-        if (p1_idx - 1) < p1.len() as u32 - 1 {
-            q[p1_idx as usize..].fill(E::ONE);
+        if (p1_idx - 1) < p1.len() - 1 {
+            q[p1_idx..].fill(E::ONE);
         }
-        if p1_idx < p1.len() as u32 - 1 {
-            p1[(p1_idx as usize + 1)..].fill(E::ONE);
+        if p1_idx < p1.len() - 1 {
+            p1[(p1_idx + 1)..].fill(E::ONE);
         }
 
         (p1, q)

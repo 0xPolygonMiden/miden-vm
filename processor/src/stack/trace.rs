@@ -168,7 +168,7 @@ impl StackTrace {
         let b0 = self.helpers[0][clk as usize] + Felt::ONE;
         self.helpers[0][clk as usize + 1] = b0;
         // Set b1 to the curren tclock cycle.
-        self.helpers[1][clk as usize + 1] = Felt::new(clk as u64);
+        self.helpers[1][clk as usize + 1] = Felt::from(clk);
         // Update the helper column to 1 / (b0 - 16).
         self.helpers[2][clk as usize + 1] = Felt::ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64));
     }

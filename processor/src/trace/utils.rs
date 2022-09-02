@@ -157,17 +157,17 @@ pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow> {
         result[0] = self.init_column_value(alphas);
 
         // keep track of the last updated row in the running product column
-        let mut result_idx = 0;
+        let mut result_idx = 0_usize;
 
         // iterate through the list of updates and apply them one by one
         for (clk, hint) in self.get_table_hints() {
-            let clk = *clk;
+            let clk = *clk as usize;
 
             // if we skipped some cycles since the last update was processed, values in the last
             // updated row should by copied over until the current cycle.
             if result_idx < clk {
-                let last_value = result[result_idx as usize];
-                result[(result_idx as usize + 1)..=clk as usize].fill(last_value);
+                let last_value = result[result_idx];
+                result[(result_idx + 1)..=clk].fill(last_value);
             }
 
             // move the result pointer to the next row
@@ -178,16 +178,16 @@ pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow> {
             // get a ZERO should be negligible (i.e., it should never come up in practice).
             let multiplicand = self.get_multiplicand(*hint, &row_values, &inv_row_values);
             debug_assert_ne!(E::ZERO, multiplicand);
-            result[result_idx as usize] = result[clk as usize] * multiplicand;
+            result[result_idx] = result[clk] * multiplicand;
         }
 
         // after all updates have been processed, the table should not change; we make sure that
         // the last value in the column is equal to the expected value, and fill in all the
         // remaining column values with the last value
-        let last_value = result[result_idx as usize];
+        let last_value = result[result_idx];
         assert_eq!(last_value, self.final_column_value(alphas));
-        if result_idx < result.len() as u32 - 1 {
-            result[(result_idx + 1) as usize..].fill(last_value);
+        if result_idx < result.len() - 1 {
+            result[(result_idx + 1)..].fill(last_value);
         }
 
         result

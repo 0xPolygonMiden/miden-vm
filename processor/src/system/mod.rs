@@ -110,7 +110,7 @@ impl System {
     /// Increments the clock cycle.
     pub fn advance_clock(&mut self) {
         self.clk += 1;
-        self.clk_trace[self.clk as usize] = Felt::new(self.clk as u64);
+        self.clk_trace[self.clk as usize] = Felt::from(self.clk);
 
         self.fmp_trace[self.clk as usize] = self.fmp;
     }
