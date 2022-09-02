@@ -15,7 +15,7 @@ pub const FMP_MAX: u64 = FMP_MIN + u32::MAX as u64;
 ///
 /// Currently, this keeps track of the clock cycle and free memory pointer registers.
 pub struct System {
-    clk: usize,
+    clk: u32,
     clk_trace: Vec<Felt>,
     fmp: Felt,
     fmp_trace: Vec<Felt>,
@@ -45,7 +45,7 @@ impl System {
 
     /// Returns the current clock cycle of a process.
     #[inline(always)]
-    pub fn clk(&self) -> usize {
+    pub fn clk(&self) -> u32 {
         self.clk
     }
 
@@ -60,7 +60,7 @@ impl System {
     /// Trace length of the system columns is equal to the number of cycles executed by the VM.
     #[inline(always)]
     pub fn trace_len(&self) -> usize {
-        self.clk
+        self.clk as usize
     }
 
     /// Returns an execution trace of this system info container.
@@ -74,7 +74,7 @@ impl System {
     /// overwritten with random values. This parameter is unused because last rows are just
     /// duplicates of the prior rows and thus can be safely overwritten.
     pub fn into_trace(mut self, trace_len: usize, num_rand_rows: usize) -> SysTrace {
-        let clk = self.clk();
+        let clk = self.clk() as usize;
         // make sure that only the duplicate rows will be overwritten with random values
         assert!(
             clk + num_rand_rows <= trace_len,
@@ -110,9 +110,9 @@ impl System {
     /// Increments the clock cycle.
     pub fn advance_clock(&mut self) {
         self.clk += 1;
-        self.clk_trace[self.clk] = Felt::new(self.clk as u64);
+        self.clk_trace[self.clk as usize] = Felt::from(self.clk);
 
-        self.fmp_trace[self.clk] = self.fmp;
+        self.fmp_trace[self.clk as usize] = self.fmp;
     }
 
     /// Sets the value of free memory pointer for the next clock cycle.
@@ -130,7 +130,7 @@ impl System {
     /// Trace length is doubled every time it needs to be increased.
     pub fn ensure_trace_capacity(&mut self) {
         let current_capacity = self.clk_trace.len();
-        if self.clk + 1 >= current_capacity {
+        if self.clk + 1 >= current_capacity as u32 {
             let new_length = current_capacity * 2;
             self.clk_trace.resize(new_length, Felt::ZERO);
             self.fmp_trace.resize(new_length, Felt::ZERO);

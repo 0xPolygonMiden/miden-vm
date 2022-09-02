@@ -186,7 +186,7 @@ impl Bitwise {
             };
 
             let lookup = BitwiseLookup::new(label, a, b, z);
-            chiplets_bus.provide_bitwise_operation(lookup, bitwise_start_row + row);
+            chiplets_bus.provide_bitwise_operation(lookup, (bitwise_start_row + row) as u32);
         }
 
         // copy trace into the fragment column-by-column

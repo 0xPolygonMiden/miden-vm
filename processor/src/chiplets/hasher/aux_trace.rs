@@ -12,7 +12,7 @@ use winterfell::Matrix;
 /// table (used in Merkle root update computation).
 #[derive(Debug, Clone, Default)]
 pub struct AuxTraceBuilder {
-    pub(super) sibling_hints: Vec<(usize, SiblingTableUpdate)>,
+    pub(super) sibling_hints: Vec<(u32, SiblingTableUpdate)>,
     pub(super) sibling_rows: Vec<SiblingTableRow>,
 }
 
@@ -37,7 +37,7 @@ impl AuxTraceBuilder {
 
     /// Specifies that an entry for the provided sibling was added to the sibling table at the
     /// specified step.
-    pub fn sibling_added(&mut self, step: usize, index: Felt, sibling: Word) {
+    pub fn sibling_added(&mut self, step: u32, index: Felt, sibling: Word) {
         let row_index = self.sibling_rows.len();
         let update = SiblingTableUpdate::SiblingAdded(row_index as u32);
         self.sibling_hints.push((step, update));
@@ -47,7 +47,7 @@ impl AuxTraceBuilder {
     /// Specifies that an entry for a sibling was removed from the sibling table. The entry is
     /// defined by the provided offset. For example, if row_offset = 2, the second from the last
     /// entry was removed from the table.
-    pub fn sibling_removed(&mut self, step: usize, row_offset: usize) {
+    pub fn sibling_removed(&mut self, step: u32, row_offset: usize) {
         let row_index = self.sibling_rows.len() - row_offset - 1;
         let update = SiblingTableUpdate::SiblingRemoved(row_index as u32);
         self.sibling_hints.push((step, update));
@@ -68,7 +68,7 @@ impl AuxColumnBuilder<SiblingTableUpdate, SiblingTableRow> for AuxTraceBuilder {
     ///
     /// Internally, each update hint also contains an index of the row into the full list of rows
     /// which was either added or removed.
-    fn get_table_hints(&self) -> &[(usize, SiblingTableUpdate)] {
+    fn get_table_hints(&self) -> &[(u32, SiblingTableUpdate)] {
         &self.sibling_hints
     }
 

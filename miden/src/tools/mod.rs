@@ -46,14 +46,14 @@ impl Analyze {
 ///   instruction is run as part of the given program.
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct ProgramInfo {
-    total_vm_cycles: usize,
+    total_vm_cycles: u32,
     total_noops: usize,
     asm_op_stats: Vec<AsmOpStats>,
 }
 
 impl ProgramInfo {
     /// Returns total vm cycles to execute a program
-    pub fn total_vm_cycles(&self) -> usize {
+    pub fn total_vm_cycles(&self) -> u32 {
         self.total_vm_cycles
     }
 
@@ -77,7 +77,7 @@ impl ProgramInfo {
     }
 
     /// Sets the total vm cycles to the provided value
-    pub fn set_total_vm_cycles(&mut self, total_vm_cycles: usize) {
+    pub fn set_total_vm_cycles(&mut self, total_vm_cycles: u32) {
         self.total_vm_cycles = total_vm_cycles;
     }
 

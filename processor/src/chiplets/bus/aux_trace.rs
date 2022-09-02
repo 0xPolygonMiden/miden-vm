@@ -11,7 +11,7 @@ use winterfell::Matrix;
 /// Describes how to construct execution traces of auxiliary trace columns that depend on multiple
 /// chiplets in the Chiplets module (used in multiset checks).
 pub struct AuxTraceBuilder {
-    pub(super) lookup_hints: Vec<(usize, ChipletsLookup)>,
+    pub(super) lookup_hints: Vec<(u32, ChipletsLookup)>,
     pub(super) request_rows: Vec<ChipletsLookupRow>,
     pub(super) response_rows: Vec<ChipletsLookupRow>,
 }
@@ -49,7 +49,7 @@ impl AuxColumnBuilder<ChipletsLookup, ChipletsLookupRow> for AuxTraceBuilder {
     /// Internally, each update hint also contains an index of the row into the full list of request
     /// rows or response rows, depending on whether it is a request, a response, or both (in which
     /// case it contains 2 indices).
-    fn get_table_hints(&self) -> &[(usize, ChipletsLookup)] {
+    fn get_table_hints(&self) -> &[(u32, ChipletsLookup)] {
         &self.lookup_hints
     }
 

@@ -9,7 +9,7 @@ use winterfell::Matrix;
 /// Describes how to construct execution traces of stack-related auxiliary trace segment columns
 /// (used in multiset checks).
 pub struct AuxTraceBuilder {
-    pub(super) overflow_hints: Vec<(usize, OverflowTableUpdate)>,
+    pub(super) overflow_hints: Vec<(u32, OverflowTableUpdate)>,
     pub(super) overflow_table_rows: Vec<OverflowTableRow>,
 }
 
@@ -43,7 +43,7 @@ impl AuxColumnBuilder<OverflowTableUpdate, OverflowTableRow> for AuxTraceBuilder
     ///
     /// Internally, each update hint also contains an index of the row into the full list of rows
     /// which was either added or removed.
-    fn get_table_hints(&self) -> &[(usize, OverflowTableUpdate)] {
+    fn get_table_hints(&self) -> &[(u32, OverflowTableUpdate)] {
         &self.overflow_hints
     }
 

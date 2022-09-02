@@ -19,10 +19,10 @@ pub struct OverflowTable {
     active_rows: Vec<usize>,
     /// A list of updates made to the overflow table during program execution. For each update we
     /// also track the cycle at which the update happened.
-    update_trace: Vec<(usize, OverflowTableUpdate)>,
+    update_trace: Vec<(u32, OverflowTableUpdate)>,
     /// A map which records the full state of the overflow table at every cycle during which an
     /// update happened. This map is populated only when `trace_enabled` = true.
-    trace: BTreeMap<usize, Vec<Felt>>,
+    trace: BTreeMap<u32, Vec<Felt>>,
     /// A flag which specifies whether we should record the full state of the overflow table
     /// whenever an update happens. This is set to true only when executing programs for debug
     /// purposes.
@@ -47,7 +47,7 @@ impl OverflowTable {
     // --------------------------------------------------------------------------------------------
 
     /// Pushes the specified value into the overflow table.
-    pub fn push(&mut self, value: Felt, clk: usize) {
+    pub fn push(&mut self, value: Felt, clk: u32) {
         // get the clock cycle of the row currently at the top of the overflow table. if the
         // overflow table is empty, this is set to ZERO.
         let prev = self
@@ -74,7 +74,7 @@ impl OverflowTable {
     /// cycle of the next value in the table.
     ///
     /// If after the top value is removed the table is empty, the returned clock cycle is ZERO.
-    pub fn pop(&mut self, clk: usize) -> (Felt, Felt) {
+    pub fn pop(&mut self, clk: u32) -> (Felt, Felt) {
         // remove the top entry from the table and determine which table row corresponds to it
         let last_row_idx = self.active_rows.pop().expect("overflow table is empty");
         let last_row = &self.all_rows[last_row_idx];
@@ -104,7 +104,7 @@ impl OverflowTable {
     }
 
     /// Appends the state of the overflow table at the specified clock cycle to the provided vector.
-    pub fn append_state_into(&self, target: &mut Vec<Felt>, clk: usize) {
+    pub fn append_state_into(&self, target: &mut Vec<Felt>, clk: u32) {
         if let Some(x) = self.trace.range(0..=clk).last() {
             for item in x.1.iter().rev() {
                 target.push(*item);
@@ -148,7 +148,7 @@ pub struct OverflowTableRow {
 }
 
 impl OverflowTableRow {
-    pub fn new(clk: usize, val: Felt, prev: Felt) -> Self {
+    pub fn new(clk: u32, val: Felt, prev: Felt) -> Self {
         Self {
             val,
             clk: Felt::new(clk as u64),

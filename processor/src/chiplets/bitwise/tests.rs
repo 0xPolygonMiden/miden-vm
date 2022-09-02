@@ -67,7 +67,7 @@ fn bitwise_and() {
     // make sure the lookup was sent to the bus correctly
     let bitwise_lookup =
         BitwiseLookup::new(BITWISE_AND_LABEL, a, b, Felt::new(a.as_int() & b.as_int()));
-    verify_bus(&chiplets_bus, 0, OP_CYCLE_LEN - 1, &bitwise_lookup);
+    verify_bus(&chiplets_bus, 0, (OP_CYCLE_LEN - 1) as u32, &bitwise_lookup);
 }
 
 #[test]
@@ -124,7 +124,7 @@ fn bitwise_xor() {
     // make sure the lookup was sent to the bus correctly
     let bitwise_lookup =
         BitwiseLookup::new(BITWISE_XOR_LABEL, a, b, Felt::new(a.as_int() ^ b.as_int()));
-    verify_bus(&chiplets_bus, 0, OP_CYCLE_LEN - 1, &bitwise_lookup);
+    verify_bus(&chiplets_bus, 0, (OP_CYCLE_LEN - 1) as u32, &bitwise_lookup);
 }
 
 #[test]
@@ -242,7 +242,7 @@ fn bitwise_multiple() {
         b[0],
         Felt::new(a[0].as_int() & b[0].as_int()),
     );
-    verify_bus(&chiplets_bus, 0, OP_CYCLE_LEN - 1, &bitwise_lookup);
+    verify_bus(&chiplets_bus, 0, (OP_CYCLE_LEN - 1) as u32, &bitwise_lookup);
 
     let bitwise_lookup = BitwiseLookup::new(
         BITWISE_XOR_LABEL,
@@ -250,7 +250,12 @@ fn bitwise_multiple() {
         b[1],
         Felt::new(a[1].as_int() ^ b[1].as_int()),
     );
-    verify_bus(&chiplets_bus, 1, OP_CYCLE_LEN * 2 - 1, &bitwise_lookup);
+    verify_bus(
+        &chiplets_bus,
+        1,
+        (OP_CYCLE_LEN * 2 - 1) as u32,
+        &bitwise_lookup,
+    );
 
     let bitwise_lookup = BitwiseLookup::new(
         BITWISE_AND_LABEL,
@@ -258,7 +263,12 @@ fn bitwise_multiple() {
         b[2],
         Felt::new(a[2].as_int() & b[2].as_int()),
     );
-    verify_bus(&chiplets_bus, 2, OP_CYCLE_LEN * 3 - 1, &bitwise_lookup);
+    verify_bus(
+        &chiplets_bus,
+        2,
+        (OP_CYCLE_LEN * 3 - 1) as u32,
+        &bitwise_lookup,
+    );
 }
 
 // HELPER FUNCTIONS
@@ -318,7 +328,7 @@ fn rand_u32() -> Felt {
 fn verify_bus(
     chiplets_bus: &ChipletsBus,
     index: usize,
-    cycle: usize,
+    cycle: u32,
     bitwise_lookup: &BitwiseLookup,
 ) {
     let expected_lookup = ChipletsLookupRow::Bitwise(*bitwise_lookup);
