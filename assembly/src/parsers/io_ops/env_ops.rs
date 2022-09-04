@@ -1,5 +1,6 @@
 use super::{
-    parse_u32_param, push_value, validate_operation, AssemblyError, Felt, Operation, Token, Vec,
+    parse_u32_param, push_value, validate_operation, ArgsMap, AssemblyError, Felt, Operation,
+    Token, Vec,
 };
 
 // ENVIRONMENT INPUTS
@@ -22,6 +23,8 @@ pub fn parse_push_env(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     num_proc_locals: u32,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     validate_operation!(op, "push.env.locaddr|sdepth");
 
@@ -35,7 +38,14 @@ pub fn parse_push_env(
                 ));
             }
             validate_operation!(@only_params op, "push.env.locaddr", 1);
-            let index = parse_u32_param(op, 3, 0, num_proc_locals - 1)?;
+            let index = parse_u32_param(
+                op,
+                3,
+                0,
+                num_proc_locals - 1,
+                proc_args,
+                is_proc_declaration,
+            )?;
 
             push_value(span_ops, -Felt::new(index as u64));
             span_ops.push(Operation::FmpAdd);
@@ -58,7 +68,7 @@ mod tests {
     use super::{
         super::tests::get_parsing_error,
         super::{super::FieldElement, parse_push, AssemblyError, Felt},
-        Operation, Token,
+        ArgsMap, Operation, Token,
     };
 
     // TESTS FOR PUSHING VALUES ONTO THE STACK (PUSH)
@@ -74,7 +84,7 @@ mod tests {
         let mut expected = span_ops.clone();
         expected.push(Operation::SDepth);
 
-        parse_push(&mut span_ops, &op, num_proc_locals)
+        parse_push(&mut span_ops, &op, num_proc_locals, &ArgsMap::new(), false)
             .expect("Failed to parse push.env.sdepth with empty stack");
         assert_eq!(span_ops, expected);
     }
@@ -87,7 +97,7 @@ mod tests {
 
         let op_str = format!("{}.{}", asm_op, 1);
         let op = Token::new(&op_str, 0);
-        assert!(parse_push(&mut span_ops, &op, num_proc_locals).is_ok());
+        assert!(parse_push(&mut span_ops, &op, num_proc_locals, &ArgsMap::new(), false).is_ok());
     }
 
     #[test]
@@ -102,7 +112,14 @@ mod tests {
         let op_no_val = Token::new("push.env", pos);
         let expected = AssemblyError::invalid_op(&op_no_val);
         assert_eq!(
-            parse_push(&mut span_ops, &op_no_val, num_proc_locals).unwrap_err(),
+            parse_push(
+                &mut span_ops,
+                &op_no_val,
+                num_proc_locals,
+                &ArgsMap::new(),
+                false
+            )
+            .unwrap_err(),
             expected
         );
 
@@ -110,7 +127,14 @@ mod tests {
         let op_val_invalid = Token::new("push.env.invalid", pos);
         let expected = AssemblyError::unexpected_token(&op_val_invalid, "push.env.locaddr|sdepth");
         assert_eq!(
-            parse_push(&mut span_ops, &op_val_invalid, num_proc_locals).unwrap_err(),
+            parse_push(
+                &mut span_ops,
+                &op_val_invalid,
+                num_proc_locals,
+                &ArgsMap::new(),
+                false
+            )
+            .unwrap_err(),
             expected
         );
 
@@ -118,7 +142,14 @@ mod tests {
         let op_extra_val = Token::new("push.env.sdepth.0", pos);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
-            parse_push(&mut span_ops, &op_extra_val, num_proc_locals).unwrap_err(),
+            parse_push(
+                &mut span_ops,
+                &op_extra_val,
+                num_proc_locals,
+                &ArgsMap::new(),
+                false
+            )
+            .unwrap_err(),
             expected
         );
     }
@@ -135,7 +166,14 @@ mod tests {
         let op_extra_val = Token::new("push.env.sdepth.0", pos);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
-            parse_push(&mut span_ops, &op_extra_val, num_proc_locals).unwrap_err(),
+            parse_push(
+                &mut span_ops,
+                &op_extra_val,
+                num_proc_locals,
+                &ArgsMap::new(),
+                false
+            )
+            .unwrap_err(),
             expected
         );
     }
@@ -151,7 +189,14 @@ mod tests {
         let op_missing_param = Token::new(asm_op, pos);
         let expected = AssemblyError::missing_param(&op_missing_param);
         assert_eq!(
-            parse_push(&mut span_ops, &op_missing_param, num_proc_locals).unwrap_err(),
+            parse_push(
+                &mut span_ops,
+                &op_missing_param,
+                num_proc_locals,
+                &ArgsMap::new(),
+                false
+            )
+            .unwrap_err(),
             expected
         );
 

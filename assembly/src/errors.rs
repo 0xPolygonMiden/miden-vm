@@ -231,6 +231,22 @@ impl AssemblyError {
         }
     }
 
+    pub fn invalid_number_of_arguments(
+        token: &Token,
+        label: &str,
+        required: usize,
+        provided: usize,
+    ) -> Self {
+        AssemblyError {
+            message: format!(
+                "invalid number of arguments provided for procedure {}. Required: {}, Provided: {}",
+                label, required, provided
+            ),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
     // IMPORTS AND MODULES
     // --------------------------------------------------------------------------------------------
 

@@ -1,4 +1,4 @@
-use super::{AssemblyContext, AssemblyError, CodeBlock, Token, TokenStream};
+use super::{ArgsMap, AssemblyContext, AssemblyError, CodeBlock, Token, TokenStream};
 pub use blocks::{combine_blocks, parse_code_blocks};
 use u32_ops::U32OpMode;
 use vm_core::{
@@ -26,6 +26,8 @@ fn parse_op_token(
     num_proc_locals: u32,
     decorators: &mut DecoratorList,
     in_debug_mode: bool,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     let dec_len = decorators.len();
     // if assembler is in debug mode, populate decorators list with debug related
@@ -43,10 +45,10 @@ fn parse_op_token(
         "assert" => field_ops::parse_assert(span_ops, op),
         "assert_eq" => field_ops::parse_assert_eq(span_ops, op),
 
-        "add" => field_ops::parse_add(span_ops, op),
-        "sub" => field_ops::parse_sub(span_ops, op),
-        "mul" => field_ops::parse_mul(span_ops, op),
-        "div" => field_ops::parse_div(span_ops, op),
+        "add" => field_ops::parse_add(span_ops, op, proc_args, is_proc_declaration),
+        "sub" => field_ops::parse_sub(span_ops, op, proc_args, is_proc_declaration), // TODO: fix
+        "mul" => field_ops::parse_mul(span_ops, op, proc_args, is_proc_declaration),
+        "div" => field_ops::parse_div(span_ops, op, proc_args, is_proc_declaration), // TODO: fix
         "neg" => field_ops::parse_neg(span_ops, op),
         "inv" => field_ops::parse_inv(span_ops, op),
 
@@ -58,8 +60,8 @@ fn parse_op_token(
         "or" => field_ops::parse_or(span_ops, op),
         "xor" => field_ops::parse_xor(span_ops, op),
 
-        "eq" => field_ops::parse_eq(span_ops, op),
-        "neq" => field_ops::parse_neq(span_ops, op),
+        "eq" => field_ops::parse_eq(span_ops, op, proc_args, is_proc_declaration),
+        "neq" => field_ops::parse_neq(span_ops, op, proc_args, is_proc_declaration),
         "lt" => field_ops::parse_lt(span_ops, op),
         "lte" => field_ops::parse_lte(span_ops, op),
         "gt" => field_ops::parse_gt(span_ops, op),
@@ -74,50 +76,188 @@ fn parse_op_token(
         "u32cast" => u32_ops::parse_u32cast(span_ops, op),
         "u32split" => u32_ops::parse_u32split(span_ops, op),
 
-        "u32checked_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Checked),
-        "u32wrapping_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Wrapping),
-        "u32overflowing_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Overflowing),
+        "u32checked_add" => u32_ops::parse_u32add(
+            span_ops,
+            op,
+            U32OpMode::Checked,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "u32wrapping_add" => u32_ops::parse_u32add(
+            span_ops,
+            op,
+            U32OpMode::Wrapping,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "u32overflowing_add" => u32_ops::parse_u32add(
+            span_ops,
+            op,
+            U32OpMode::Overflowing,
+            proc_args,
+            is_proc_declaration,
+        ),
 
         "u32overflowing_add3" => u32_ops::parse_u32add3(span_ops, op, U32OpMode::Overflowing),
 
-        "u32checked_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Checked),
-        "u32wrapping_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Wrapping),
-        "u32overflowing_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Overflowing),
+        "u32checked_sub" => u32_ops::parse_u32sub(
+            span_ops,
+            op,
+            U32OpMode::Checked,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "u32wrapping_sub" => u32_ops::parse_u32sub(
+            span_ops,
+            op,
+            U32OpMode::Wrapping,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "u32overflowing_sub" => u32_ops::parse_u32sub(
+            span_ops,
+            op,
+            U32OpMode::Overflowing,
+            proc_args,
+            is_proc_declaration,
+        ),
 
-        "u32checked_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Checked),
-        "u32wrapping_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Wrapping),
-        "u32overflowing_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Overflowing),
+        "u32checked_mul" => u32_ops::parse_u32mul(
+            span_ops,
+            op,
+            U32OpMode::Checked,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "u32wrapping_mul" => u32_ops::parse_u32mul(
+            span_ops,
+            op,
+            U32OpMode::Wrapping,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "u32overflowing_mul" => u32_ops::parse_u32mul(
+            span_ops,
+            op,
+            U32OpMode::Overflowing,
+            proc_args,
+            is_proc_declaration,
+        ),
 
         "u32overflowing_madd" => u32_ops::parse_u32madd(span_ops, op, U32OpMode::Overflowing),
 
-        "u32checked_div" => u32_ops::parse_u32div(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_div" => u32_ops::parse_u32div(span_ops, op, U32OpMode::Unchecked),
+        "u32checked_div" => u32_ops::parse_u32div(
+            span_ops,
+            op,
+            U32OpMode::Checked,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "u32unchecked_div" => u32_ops::parse_u32div(
+            span_ops,
+            op,
+            U32OpMode::Unchecked,
+            proc_args,
+            is_proc_declaration,
+        ),
 
-        "u32checked_mod" => u32_ops::parse_u32mod(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_mod" => u32_ops::parse_u32mod(span_ops, op, U32OpMode::Unchecked),
+        "u32checked_mod" => u32_ops::parse_u32mod(
+            span_ops,
+            op,
+            U32OpMode::Checked,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "u32unchecked_mod" => u32_ops::parse_u32mod(
+            span_ops,
+            op,
+            U32OpMode::Unchecked,
+            proc_args,
+            is_proc_declaration,
+        ),
 
-        "u32checked_divmod" => u32_ops::parse_u32divmod(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_divmod" => u32_ops::parse_u32divmod(span_ops, op, U32OpMode::Unchecked),
+        "u32checked_divmod" => u32_ops::parse_u32divmod(
+            span_ops,
+            op,
+            U32OpMode::Checked,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "u32unchecked_divmod" => u32_ops::parse_u32divmod(
+            span_ops,
+            op,
+            U32OpMode::Unchecked,
+            proc_args,
+            is_proc_declaration,
+        ),
 
         "u32checked_and" => u32_ops::parse_u32and(span_ops, op),
         "u32checked_or" => u32_ops::parse_u32or(span_ops, op),
         "u32checked_xor" => u32_ops::parse_u32xor(span_ops, op),
         "u32checked_not" => u32_ops::parse_u32not(span_ops, op),
 
-        "u32checked_shr" => u32_ops::parse_u32shr(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_shr" => u32_ops::parse_u32shr(span_ops, op, U32OpMode::Unchecked),
+        "u32checked_shr" => u32_ops::parse_u32shr(
+            span_ops,
+            op,
+            U32OpMode::Checked,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "u32unchecked_shr" => u32_ops::parse_u32shr(
+            span_ops,
+            op,
+            U32OpMode::Unchecked,
+            proc_args,
+            is_proc_declaration,
+        ),
 
-        "u32checked_shl" => u32_ops::parse_u32shl(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_shl" => u32_ops::parse_u32shl(span_ops, op, U32OpMode::Unchecked),
+        "u32checked_shl" => u32_ops::parse_u32shl(
+            span_ops,
+            op,
+            U32OpMode::Checked,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "u32unchecked_shl" => u32_ops::parse_u32shl(
+            span_ops,
+            op,
+            U32OpMode::Unchecked,
+            proc_args,
+            is_proc_declaration,
+        ),
 
-        "u32checked_rotr" => u32_ops::parse_u32rotr(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_rotr" => u32_ops::parse_u32rotr(span_ops, op, U32OpMode::Unchecked),
+        "u32checked_rotr" => u32_ops::parse_u32rotr(
+            span_ops,
+            op,
+            U32OpMode::Checked,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "u32unchecked_rotr" => u32_ops::parse_u32rotr(
+            span_ops,
+            op,
+            U32OpMode::Unchecked,
+            proc_args,
+            is_proc_declaration,
+        ),
 
-        "u32checked_rotl" => u32_ops::parse_u32rotl(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_rotl" => u32_ops::parse_u32rotl(span_ops, op, U32OpMode::Unchecked),
+        "u32checked_rotl" => u32_ops::parse_u32rotl(
+            span_ops,
+            op,
+            U32OpMode::Checked,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "u32unchecked_rotl" => u32_ops::parse_u32rotl(
+            span_ops,
+            op,
+            U32OpMode::Unchecked,
+            proc_args,
+            is_proc_declaration,
+        ),
 
-        "u32checked_eq" => u32_ops::parse_u32eq(span_ops, op),
-        "u32checked_neq" => u32_ops::parse_u32neq(span_ops, op),
+        "u32checked_eq" => u32_ops::parse_u32eq(span_ops, op, proc_args, is_proc_declaration),
+        "u32checked_neq" => u32_ops::parse_u32neq(span_ops, op, proc_args, is_proc_declaration),
 
         "u32checked_lt" => u32_ops::parse_u32lt(span_ops, op, U32OpMode::Checked),
         "u32unchecked_lt" => u32_ops::parse_u32lt(span_ops, op, U32OpMode::Unchecked),
@@ -141,15 +281,15 @@ fn parse_op_token(
         "drop" => stack_ops::parse_drop(span_ops, op),
         "dropw" => stack_ops::parse_dropw(span_ops, op),
         "padw" => stack_ops::parse_padw(span_ops, op),
-        "dup" => stack_ops::parse_dup(span_ops, op),
-        "dupw" => stack_ops::parse_dupw(span_ops, op),
-        "swap" => stack_ops::parse_swap(span_ops, op),
-        "swapw" => stack_ops::parse_swapw(span_ops, op),
+        "dup" => stack_ops::parse_dup(span_ops, op, proc_args, is_proc_declaration),
+        "dupw" => stack_ops::parse_dupw(span_ops, op, proc_args, is_proc_declaration),
+        "swap" => stack_ops::parse_swap(span_ops, op, proc_args, is_proc_declaration),
+        "swapw" => stack_ops::parse_swapw(span_ops, op, proc_args, is_proc_declaration),
         "swapdw" => stack_ops::parse_swapdw(span_ops, op),
-        "movup" => stack_ops::parse_movup(span_ops, op),
-        "movupw" => stack_ops::parse_movupw(span_ops, op),
-        "movdn" => stack_ops::parse_movdn(span_ops, op),
-        "movdnw" => stack_ops::parse_movdnw(span_ops, op),
+        "movup" => stack_ops::parse_movup(span_ops, op, proc_args, is_proc_declaration),
+        "movupw" => stack_ops::parse_movupw(span_ops, op, proc_args, is_proc_declaration),
+        "movdn" => stack_ops::parse_movdn(span_ops, op, proc_args, is_proc_declaration),
+        "movdnw" => stack_ops::parse_movdnw(span_ops, op, proc_args, is_proc_declaration),
 
         "cswap" => stack_ops::parse_cswap(span_ops, op),
         "cswapw" => stack_ops::parse_cswapw(span_ops, op),
@@ -157,12 +297,48 @@ fn parse_op_token(
         "cdropw" => stack_ops::parse_cdropw(span_ops, op),
 
         // ----- input / output operations --------------------------------------------------------
-        "push" => io_ops::parse_push(span_ops, op, num_proc_locals),
-        "pushw" => io_ops::parse_pushw(span_ops, op, num_proc_locals),
-        "pop" => io_ops::parse_pop(span_ops, op, num_proc_locals),
-        "popw" => io_ops::parse_popw(span_ops, op, num_proc_locals),
-        "loadw" => io_ops::parse_loadw(span_ops, op, num_proc_locals),
-        "storew" => io_ops::parse_storew(span_ops, op, num_proc_locals),
+        "push" => io_ops::parse_push(
+            span_ops,
+            op,
+            num_proc_locals,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "pushw" => io_ops::parse_pushw(
+            span_ops,
+            op,
+            num_proc_locals,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "pop" => io_ops::parse_pop(
+            span_ops,
+            op,
+            num_proc_locals,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "popw" => io_ops::parse_popw(
+            span_ops,
+            op,
+            num_proc_locals,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "loadw" => io_ops::parse_loadw(
+            span_ops,
+            op,
+            num_proc_locals,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "storew" => io_ops::parse_storew(
+            span_ops,
+            op,
+            num_proc_locals,
+            proc_args,
+            is_proc_declaration,
+        ),
         "adv" => io_ops::parse_adv_inject(span_ops, op, decorators),
 
         // ----- cryptographic operations ---------------------------------------------------------
@@ -192,7 +368,12 @@ fn parse_op_token(
 // ================================================================================================
 
 /// Parses a single parameter into a valid field element.
-fn parse_element_param(op: &Token, param_idx: usize) -> Result<Felt, AssemblyError> {
+fn parse_element_param(
+    op: &Token,
+    param_idx: usize,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
+) -> Result<Felt, AssemblyError> {
     // make sure that the parameter value is available
     if op.num_parts() <= param_idx {
         return Err(AssemblyError::missing_param(op));
@@ -204,7 +385,13 @@ fn parse_element_param(op: &Token, param_idx: usize) -> Result<Felt, AssemblyErr
         parse_hex_param(op, param_idx, param_value)
     } else {
         // parse decimal number
-        parse_decimal_param(op, param_idx, param_value)
+        Ok(Felt::from(parse_decimal_param(
+            op,
+            param_idx,
+            param_value,
+            proc_args,
+            is_proc_declaration,
+        )?))
     }
 }
 
@@ -213,9 +400,21 @@ fn parse_decimal_param(
     op: &Token,
     param_idx: usize,
     param_str: &str,
-) -> Result<Felt, AssemblyError> {
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
+) -> Result<u64, AssemblyError> {
+    // if param is alphabetic
+    if char::is_ascii_alphabetic(&param_str.chars().next().unwrap()) {
+        // if being parsed during procedure declaration, ignore the argument
+        if is_proc_declaration {
+            return Ok(0);
+        }
+        if let Some(value) = proc_args.get(param_str) {
+            return Ok(*value);
+        }
+    }
     match param_str.parse::<u64>() {
-        Ok(value) => get_valid_felt(op, param_idx, value),
+        Ok(value) => Ok(value),
         Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
     }
 }
@@ -254,17 +453,38 @@ fn parse_u32_param(
     param_idx: usize,
     lower_bound: u32,
     upper_bound: u32,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<u32, AssemblyError> {
     let param_value = op.parts()[param_idx];
+    if char::is_ascii_alphabetic(&param_value.chars().next().unwrap()) {
+        // if being parsed during procedure declaration, ignore the argument
+        if is_proc_declaration {
+            Ok(0)
+        } else if proc_args.contains_key(param_value) {
+            match u32::try_from(*proc_args.get(param_value).expect("Key not found")) {
+                Ok(value) => check_u32_bounds(op, param_idx, value, lower_bound, upper_bound),
+                Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
+            }
+        } else {
+            Err(AssemblyError::invalid_param(op, param_idx))
+        }
+    } else {
+        match param_value.parse::<u32>() {
+            Ok(value) => check_u32_bounds(op, param_idx, value, lower_bound, upper_bound),
+            Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
+        }
+    }
+}
 
-    // attempt to parse the parameter value as an integer
-    let result = match param_value.parse::<u32>() {
-        Ok(i) => i,
-        Err(_) => return Err(AssemblyError::invalid_param(op, param_idx)),
-    };
-
-    // check that the parameter is within the specified bounds
-    if result < lower_bound || result > upper_bound {
+fn check_u32_bounds(
+    op: &Token,
+    param_idx: usize,
+    value: u32,
+    lower_bound: u32,
+    upper_bound: u32,
+) -> Result<u32, AssemblyError> {
+    if value < lower_bound || value > upper_bound {
         return Err(AssemblyError::invalid_param_with_reason(
             op,
             param_idx,
@@ -274,9 +494,9 @@ fn parse_u32_param(
             )
             .as_str(),
         ));
+    } else {
+        Ok(value)
     }
-
-    Ok(result)
 }
 
 /// This is a helper function that appends a PUSH operation to the span block which puts the

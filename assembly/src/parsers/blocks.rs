@@ -1,5 +1,5 @@
 use super::{
-    parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, String, Token,
+    parse_op_token, ArgsMap, AssemblyContext, AssemblyError, CodeBlock, Operation, String, Token,
     TokenStream, Vec,
 };
 use vm_core::{utils::group_vector_elements, CodeBlockTable, DecoratorList};
@@ -10,9 +10,12 @@ use vm_core::{utils::group_vector_elements, CodeBlockTable, DecoratorList};
 /// TODO: Add comments
 pub fn parse_code_blocks(
     tokens: &mut TokenStream,
-    context: &AssemblyContext,
+    context: &mut AssemblyContext,
     cb_table: &mut CodeBlockTable,
     num_proc_locals: u32,
+    proc_args: &ArgsMap,
+    proc_tokens: &mut Vec<String>,
+    copy_proc: bool,
 ) -> Result<CodeBlock, AssemblyError> {
     // make sure there is something to be read
     let start_pos = tokens.pos();
@@ -23,7 +26,15 @@ pub fn parse_code_blocks(
     // parse the sequence of blocks and add each block to the list
     let mut blocks = Vec::new();
     while let Some(parser) = BlockParser::next(tokens)? {
-        let block = parser.parse(tokens, context, cb_table, num_proc_locals)?;
+        let block = parser.parse(
+            tokens,
+            context,
+            cb_table,
+            num_proc_locals,
+            proc_args,
+            proc_tokens,
+            copy_proc,
+        )?;
         blocks.push(block);
     }
 
@@ -47,18 +58,22 @@ enum BlockParser {
     IfElse,
     While,
     Repeat(u32),
-    Exec(String),
+    Exec(String, Vec<String>),
     Call(String),
 }
 
 impl BlockParser {
     // TODO: add comments
+    #[allow(clippy::too_many_arguments)]
     pub fn parse(
         &self,
         tokens: &mut TokenStream,
-        context: &AssemblyContext,
+        context: &mut AssemblyContext,
         cb_table: &mut CodeBlockTable,
         num_proc_locals: u32,
+        proc_args: &ArgsMap,
+        proc_tokens: &mut Vec<String>,
+        copy_proc: bool,
     ) -> Result<CodeBlock, AssemblyError> {
         match self {
             // ------------------------------------------------------------------------------------
@@ -75,8 +90,10 @@ impl BlockParser {
                         num_proc_locals,
                         &mut decorators,
                         context.in_debug_mode(),
+                        proc_args,
+                        copy_proc,
                     )?;
-                    tokens.advance();
+                    tokens.advance_with_copy(copy_proc, proc_tokens);
                 }
                 Ok(CodeBlock::new_span_with_decorators(span_ops, decorators))
             }
@@ -84,10 +101,18 @@ impl BlockParser {
             Self::IfElse => {
                 // record start of the if-else block and consume the 'if' token
                 let if_start = tokens.pos();
-                tokens.advance();
+                tokens.advance_with_copy(copy_proc, proc_tokens);
 
                 // read the `if` clause
-                let t_branch = parse_code_blocks(tokens, context, cb_table, num_proc_locals)?;
+                let t_branch = parse_code_blocks(
+                    tokens,
+                    context,
+                    cb_table,
+                    num_proc_locals,
+                    proc_args,
+                    proc_tokens,
+                    copy_proc,
+                )?;
 
                 // build the `else` clause; if the else clause is specified, then read it;
                 // otherwise, set to a Span with a single noop
@@ -97,11 +122,18 @@ impl BlockParser {
                             // record start of the `else` block and consume the `else` token
                             token.validate_else()?;
                             let else_start = tokens.pos();
-                            tokens.advance();
+                            tokens.advance_with_copy(copy_proc, proc_tokens);
 
                             // parse the `false` branch
-                            let f_branch =
-                                parse_code_blocks(tokens, context, cb_table, num_proc_locals)?;
+                            let f_branch = parse_code_blocks(
+                                tokens,
+                                context,
+                                cb_table,
+                                num_proc_locals,
+                                proc_args,
+                                proc_tokens,
+                                copy_proc,
+                            )?;
 
                             // consume the `end` token
                             match tokens.read() {
@@ -116,7 +148,7 @@ impl BlockParser {
                                     )),
                                 },
                             }?;
-                            tokens.advance();
+                            tokens.advance_with_copy(copy_proc, proc_tokens);
 
                             // return the `false` branch
                             f_branch
@@ -124,7 +156,7 @@ impl BlockParser {
                         Token::END => {
                             // consume the `end` token
                             token.validate_end()?;
-                            tokens.advance();
+                            tokens.advance_with_copy(copy_proc, proc_tokens);
 
                             // when no `else` clause was specified, a Span with a single noop
                             CodeBlock::new_span(vec![Operation::Noop])
@@ -148,10 +180,18 @@ impl BlockParser {
             Self::While => {
                 // record start of the while block and consume the 'while' token
                 let while_start = tokens.pos();
-                tokens.advance();
+                tokens.advance_with_copy(copy_proc, proc_tokens);
 
                 // read the loop body
-                let loop_body = parse_code_blocks(tokens, context, cb_table, num_proc_locals)?;
+                let loop_body = parse_code_blocks(
+                    tokens,
+                    context,
+                    cb_table,
+                    num_proc_locals,
+                    proc_args,
+                    proc_tokens,
+                    copy_proc,
+                )?;
 
                 // consume the `end` token
                 match tokens.read() {
@@ -166,7 +206,7 @@ impl BlockParser {
                         )),
                     },
                 }?;
-                tokens.advance();
+                tokens.advance_with_copy(copy_proc, proc_tokens);
 
                 Ok(CodeBlock::new_loop(loop_body))
             }
@@ -174,10 +214,18 @@ impl BlockParser {
             Self::Repeat(iter_count) => {
                 // record start of the repeat block and consume the 'repeat' token
                 let repeat_start = tokens.pos();
-                tokens.advance();
+                tokens.advance_with_copy(copy_proc, proc_tokens);
 
                 // read the loop body
-                let loop_body = parse_code_blocks(tokens, context, cb_table, num_proc_locals)?;
+                let loop_body = parse_code_blocks(
+                    tokens,
+                    context,
+                    cb_table,
+                    num_proc_locals,
+                    proc_args,
+                    proc_tokens,
+                    copy_proc,
+                )?;
 
                 // consume the `end` token
                 match tokens.read() {
@@ -192,7 +240,7 @@ impl BlockParser {
                         )),
                     },
                 }?;
-                tokens.advance();
+                tokens.advance_with_copy(copy_proc, proc_tokens);
 
                 // if the body of the loop consists of a single span, unroll the loop as a single
                 // span; otherwise unroll the loop as a sequence of join blocks
@@ -207,13 +255,43 @@ impl BlockParser {
                 }
             }
             // ------------------------------------------------------------------------------------
-            Self::Exec(label) => {
+            Self::Exec(label, args) => {
                 // retrieve the procedure block from the proc map and consume the 'exec' token
-                let proc_block = context.get_proc_code(label).ok_or_else(|| {
-                    AssemblyError::undefined_proc(tokens.read().expect("no exec token"), label)
-                })?;
-                tokens.advance();
-                Ok(proc_block.clone())
+                // let proc_block = context.get_proc_code(label).ok_or_else(|| {
+                //     AssemblyError::undefined_proc(tokens.read().expect("no exec token"), label)
+                // })?;
+                let proc_block = if !copy_proc && !args.is_empty() {
+                    //TODO: Remove unwraps
+                    let (proc_tokens, params) = context.procs_with_params(label).unwrap();
+                    //TODO: Proper Error
+                    assert!(args.len() == params.len(), "Invalid number of arguments");
+                    let mut procedure_args = ArgsMap::new();
+                    let args_felt = map_args(args, proc_args, tokens.read().unwrap())?;
+                    for (param, arg) in params.iter().zip(args_felt) {
+                        procedure_args.insert(param.to_string(), arg);
+                    }
+                    // TODO: Preserve Error
+                    AssemblyContext::parse_proc_with_args(
+                        context,
+                        proc_tokens.clone(),
+                        procedure_args,
+                        cb_table,
+                        false,
+                    )
+                    .unwrap()
+                } else {
+                    context
+                        .get_proc_code(label)
+                        .ok_or_else(|| {
+                            AssemblyError::undefined_proc(
+                                tokens.read().expect("no exec token"),
+                                label,
+                            )
+                        })?
+                        .clone()
+                };
+                tokens.advance_with_copy(copy_proc, proc_tokens);
+                Ok(proc_block)
             }
             // ------------------------------------------------------------------------------------
             Self::Call(label) => {
@@ -221,7 +299,7 @@ impl BlockParser {
                 let proc_block = context.get_proc_code(label).ok_or_else(|| {
                     AssemblyError::undefined_proc(tokens.read().expect("no call token"), label)
                 })?;
-                tokens.advance();
+                tokens.advance_with_copy(copy_proc, proc_tokens);
 
                 // if the procedure hasn't been inserted into code block table yet, insert it
                 if !cb_table.has(proc_block.hash()) {
@@ -255,8 +333,8 @@ impl BlockParser {
                     Some(Self::Repeat(iter_count))
                 }
                 Token::EXEC => {
-                    let label = token.parse_exec()?;
-                    Some(Self::Exec(label))
+                    let (label, args) = token.parse_exec()?;
+                    Some(Self::Exec(label, args))
                 }
                 Token::CALL => {
                     let label = token.parse_call()?;
@@ -347,4 +425,23 @@ pub fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
         }
     });
     CodeBlock::new_span_with_decorators(ops, decorators)
+}
+
+pub fn map_args(
+    args: &[String],
+    proc_args: &ArgsMap,
+    op: &Token,
+) -> Result<Vec<u64>, AssemblyError> {
+    let mut args_u64 = Vec::new();
+    for (i, arg) in args.iter().enumerate() {
+        if let Some(arg_value) = proc_args.get(arg) {
+            args_u64.push(*arg_value);
+        } else {
+            match arg.parse::<u64>() {
+                Ok(value) => args_u64.push(value),
+                Err(_) => return Err(AssemblyError::invalid_param(op, i + 1)),
+            }
+        }
+    }
+    Ok(args_u64)
 }

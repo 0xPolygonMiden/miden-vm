@@ -1,4 +1,4 @@
-use super::{AssemblyError, Operation, Token, Vec};
+use super::{ArgsMap, AssemblyError, Operation, Token, Vec};
 use vm_core::utils::PushMany;
 
 // STACK MANIPULATION
@@ -38,43 +38,48 @@ pub fn parse_padw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 }
 
 /// Translates dup.n assembly instruction to VM operations DUPN.
-pub fn parse_dup(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_dup(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => span_ops.push(Operation::Dup0),
-        2 => match op.parts()[1] {
-            "0" => span_ops.push(Operation::Dup0),
-            "1" => span_ops.push(Operation::Dup1),
-            "2" => span_ops.push(Operation::Dup2),
-            "3" => span_ops.push(Operation::Dup3),
-            "4" => span_ops.push(Operation::Dup4),
-            "5" => span_ops.push(Operation::Dup5),
-            "6" => span_ops.push(Operation::Dup6),
-            "7" => span_ops.push(Operation::Dup7),
-            "8" => {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+            0 => span_ops.push(Operation::Dup0),
+            1 => span_ops.push(Operation::Dup1),
+            2 => span_ops.push(Operation::Dup2),
+            3 => span_ops.push(Operation::Dup3),
+            4 => span_ops.push(Operation::Dup4),
+            5 => span_ops.push(Operation::Dup5),
+            6 => span_ops.push(Operation::Dup6),
+            7 => span_ops.push(Operation::Dup7),
+            8 => {
                 span_ops.push(Operation::Pad);
                 span_ops.push(Operation::Dup9);
                 span_ops.push(Operation::Add);
             }
-            "9" => span_ops.push(Operation::Dup9),
-            "10" => {
+            9 => span_ops.push(Operation::Dup9),
+            10 => {
                 span_ops.push(Operation::Pad);
                 span_ops.push(Operation::Dup11);
                 span_ops.push(Operation::Add);
             }
-            "11" => span_ops.push(Operation::Dup11),
-            "12" => {
+            11 => span_ops.push(Operation::Dup11),
+            12 => {
                 span_ops.push(Operation::Pad);
                 span_ops.push(Operation::Dup13);
                 span_ops.push(Operation::Add);
             }
-            "13" => span_ops.push(Operation::Dup13),
-            "14" => {
+            13 => span_ops.push(Operation::Dup13),
+            14 => {
                 span_ops.push(Operation::Pad);
                 span_ops.push(Operation::Dup15);
                 span_ops.push(Operation::Add);
             }
-            "15" => span_ops.push(Operation::Dup15),
+            15 => span_ops.push(Operation::Dup15),
             _ => return Err(AssemblyError::invalid_param(op, 1)),
         },
         _ => return Err(AssemblyError::extra_param(op)),
@@ -85,7 +90,12 @@ pub fn parse_dup(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 
 /// Translates dupw.n assembly instruction to four VM operations DUP depending on
 /// the index of the word.
-pub fn parse_dupw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_dupw(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => {
@@ -94,26 +104,26 @@ pub fn parse_dupw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
             span_ops.push(Operation::Dup3);
             span_ops.push(Operation::Dup3);
         }
-        2 => match op.parts()[1] {
-            "0" => {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+            0 => {
                 span_ops.push(Operation::Dup3);
                 span_ops.push(Operation::Dup3);
                 span_ops.push(Operation::Dup3);
                 span_ops.push(Operation::Dup3);
             }
-            "1" => {
+            1 => {
                 span_ops.push(Operation::Dup7);
                 span_ops.push(Operation::Dup7);
                 span_ops.push(Operation::Dup7);
                 span_ops.push(Operation::Dup7);
             }
-            "2" => {
+            2 => {
                 span_ops.push(Operation::Dup11);
                 span_ops.push(Operation::Dup11);
                 span_ops.push(Operation::Dup11);
                 span_ops.push(Operation::Dup11);
             }
-            "3" => {
+            3 => {
                 span_ops.push(Operation::Dup15);
                 span_ops.push(Operation::Dup15);
                 span_ops.push(Operation::Dup15);
@@ -128,48 +138,53 @@ pub fn parse_dupw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 }
 
 /// Translates swap.x assembly instruction to VM operations MOVUPX MOVDN(X-1)
-pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_swap(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => span_ops.push(Operation::Swap),
-        2 => match op.parts()[1] {
-            "1" => span_ops.push(Operation::Swap),
-            "2" => {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+            1 => span_ops.push(Operation::Swap),
+            2 => {
                 span_ops.push(Operation::Swap);
                 span_ops.push(Operation::MovUp2);
             }
-            "3" => {
+            3 => {
                 span_ops.push(Operation::MovDn2);
                 span_ops.push(Operation::MovUp3);
             }
-            "4" => {
+            4 => {
                 span_ops.push(Operation::MovDn3);
                 span_ops.push(Operation::MovUp4);
             }
-            "5" => {
+            5 => {
                 span_ops.push(Operation::MovDn4);
                 span_ops.push(Operation::MovUp5);
             }
-            "6" => {
+            6 => {
                 span_ops.push(Operation::MovDn5);
                 span_ops.push(Operation::MovUp6);
             }
-            "7" => {
+            7 => {
                 span_ops.push(Operation::MovDn6);
                 span_ops.push(Operation::MovUp7);
             }
-            "8" => {
+            8 => {
                 span_ops.push(Operation::MovDn7);
                 span_ops.push(Operation::MovUp8);
             }
-            "9" => {
+            9 => {
                 span_ops.push(Operation::MovDn8);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::Swap);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp8);
             }
-            "10" => {
+            10 => {
                 span_ops.push(Operation::MovDn8);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::Swap);
@@ -177,7 +192,7 @@ pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp8);
             }
-            "11" => {
+            11 => {
                 span_ops.push(Operation::MovDn8);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovDn2);
@@ -185,7 +200,7 @@ pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp8);
             }
-            "12" => {
+            12 => {
                 span_ops.push(Operation::MovDn8);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovDn3);
@@ -193,7 +208,7 @@ pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp8);
             }
-            "13" => {
+            13 => {
                 span_ops.push(Operation::MovDn8);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovDn4);
@@ -201,7 +216,7 @@ pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp8);
             }
-            "14" => {
+            14 => {
                 span_ops.push(Operation::MovDn8);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovDn5);
@@ -209,7 +224,7 @@ pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp8);
             }
-            "15" => {
+            15 => {
                 span_ops.push(Operation::MovDn8);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovDn6);
@@ -226,14 +241,19 @@ pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assem
 }
 
 /// Translates swapw.n assembly instruction to four VM operation SWAPWN
-pub fn parse_swapw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_swapw(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => span_ops.push(Operation::SwapW),
-        2 => match op.parts()[1] {
-            "1" => span_ops.push(Operation::SwapW),
-            "2" => span_ops.push(Operation::SwapW2),
-            "3" => span_ops.push(Operation::SwapW3),
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+            1 => span_ops.push(Operation::SwapW),
+            2 => span_ops.push(Operation::SwapW2),
+            3 => span_ops.push(Operation::SwapW3),
             _ => return Err(AssemblyError::invalid_param(op, 1)),
         },
         _ => return Err(AssemblyError::extra_param(op)),
@@ -257,54 +277,59 @@ pub fn parse_swapdw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// We specifically utilize the MovUpX VM operations for indexes that match
 /// exactly with the assembly instruction.
 /// The reamaining ones we implement them PAD MOVUPX ADD.
-pub fn parse_movup(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_movup(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0..=1 => return Err(AssemblyError::missing_param(op)),
-        2 => match op.parts()[1] {
-            "2" => span_ops.push(Operation::MovUp2),
-            "3" => span_ops.push(Operation::MovUp3),
-            "4" => span_ops.push(Operation::MovUp4),
-            "5" => span_ops.push(Operation::MovUp5),
-            "6" => span_ops.push(Operation::MovUp6),
-            "7" => span_ops.push(Operation::MovUp7),
-            "8" => span_ops.push(Operation::MovUp8),
-            "9" => {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+            2 => span_ops.push(Operation::MovUp2),
+            3 => span_ops.push(Operation::MovUp3),
+            4 => span_ops.push(Operation::MovUp4),
+            5 => span_ops.push(Operation::MovUp5),
+            6 => span_ops.push(Operation::MovUp6),
+            7 => span_ops.push(Operation::MovUp7),
+            8 => span_ops.push(Operation::MovUp8),
+            9 => {
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::Swap);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp8);
             }
-            "10" => {
+            10 => {
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp2);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp8);
             }
-            "11" => {
+            11 => {
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp3);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp8);
             }
-            "12" => {
+            12 => {
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp4);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp8);
             }
-            "13" => {
+            13 => {
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp5);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp8);
             }
-            "14" => {
+            14 => {
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp6);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp8);
             }
-            "15" => {
+            15 => {
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovUp7);
                 span_ops.push(Operation::SwapDW);
@@ -323,15 +348,20 @@ pub fn parse_movup(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 /// Specifically:
 /// * movupw.2 is translated into SWAPW SWAPW2
 /// * movupw.3 is translated into SWAPW SWAPW2 SWAPW3
-pub fn parse_movupw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_movupw(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0..=1 => return Err(AssemblyError::missing_param(op)),
-        2 => match op.parts()[1] {
-            "2" => {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+            2 => {
                 span_ops.push(Operation::SwapW);
                 span_ops.push(Operation::SwapW2);
             }
-            "3" => {
+            3 => {
                 span_ops.push(Operation::SwapW);
                 span_ops.push(Operation::SwapW2);
                 span_ops.push(Operation::SwapW3);
@@ -348,54 +378,59 @@ pub fn parse_movupw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// We specifically utilize the MovDnX VM operations for indexes that match
 /// exactly with the assembly instruction.
 /// The reamaining ones we implement them PAD SWAP MOVDNX DROP.
-pub fn parse_movdn(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_movdn(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0..=1 => return Err(AssemblyError::missing_param(op)),
-        2 => match op.parts()[1] {
-            "2" => span_ops.push(Operation::MovDn2),
-            "3" => span_ops.push(Operation::MovDn3),
-            "4" => span_ops.push(Operation::MovDn4),
-            "5" => span_ops.push(Operation::MovDn5),
-            "6" => span_ops.push(Operation::MovDn6),
-            "7" => span_ops.push(Operation::MovDn7),
-            "8" => span_ops.push(Operation::MovDn8),
-            "9" => {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+            2 => span_ops.push(Operation::MovDn2),
+            3 => span_ops.push(Operation::MovDn3),
+            4 => span_ops.push(Operation::MovDn4),
+            5 => span_ops.push(Operation::MovDn5),
+            6 => span_ops.push(Operation::MovDn6),
+            7 => span_ops.push(Operation::MovDn7),
+            8 => span_ops.push(Operation::MovDn8),
+            9 => {
                 span_ops.push(Operation::MovDn8);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::Swap);
                 span_ops.push(Operation::SwapDW);
             }
-            "10" => {
+            10 => {
                 span_ops.push(Operation::MovDn8);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovDn2);
                 span_ops.push(Operation::SwapDW);
             }
-            "11" => {
+            11 => {
                 span_ops.push(Operation::MovDn8);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovDn3);
                 span_ops.push(Operation::SwapDW);
             }
-            "12" => {
+            12 => {
                 span_ops.push(Operation::MovDn8);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovDn4);
                 span_ops.push(Operation::SwapDW);
             }
-            "13" => {
+            13 => {
                 span_ops.push(Operation::MovDn8);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovDn5);
                 span_ops.push(Operation::SwapDW);
             }
-            "14" => {
+            14 => {
                 span_ops.push(Operation::MovDn8);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovDn6);
                 span_ops.push(Operation::SwapDW);
             }
-            "15" => {
+            15 => {
                 span_ops.push(Operation::MovDn8);
                 span_ops.push(Operation::SwapDW);
                 span_ops.push(Operation::MovDn7);
@@ -414,15 +449,20 @@ pub fn parse_movdn(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 /// Specifically:
 /// * movdnw.2 is translated into SWAPW2 SWAPW
 /// * movdnw.3 is translated into SWAPW3 SWAPW2 SWAPW
-pub fn parse_movdnw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_movdnw(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0..=1 => return Err(AssemblyError::missing_param(op)),
-        2 => match op.parts()[1] {
-            "2" => {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+            2 => {
                 span_ops.push(Operation::SwapW2);
                 span_ops.push(Operation::SwapW);
             }
-            "3" => {
+            3 => {
                 span_ops.push(Operation::SwapW3);
                 span_ops.push(Operation::SwapW2);
                 span_ops.push(Operation::SwapW);
@@ -489,4 +529,35 @@ pub fn parse_cdropw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
     };
 
     Ok(())
+}
+
+// UTILITY FUNCTIONS
+// ================================================================================================
+
+fn get_param_value(
+    op: &Token,
+    param_idx: usize,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
+) -> Result<u64, AssemblyError> {
+    let param_value = op.parts()[param_idx];
+    if char::is_ascii_alphabetic(&param_value.chars().next().unwrap()) {
+        // if being parsed during procedure declaration, ignore the argument
+        if is_proc_declaration {
+            // TODO: Consistent default value while proc declaration. Tricky since different
+            // instructions have different constraints.
+            // Potential solution: Take default value as input.
+            Ok(2)
+        } else {
+            match proc_args.get(param_value) {
+                Some(value) => Ok(*value),
+                None => Err(AssemblyError::invalid_param(op, param_idx)),
+            }
+        }
+    } else {
+        match param_value.parse::<u64>() {
+            Ok(value) => Ok(value),
+            Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
+        }
+    }
 }

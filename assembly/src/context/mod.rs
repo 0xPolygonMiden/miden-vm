@@ -1,4 +1,9 @@
-use super::{BTreeMap, CodeBlock, ProcMap, Procedure, String, ToString, MODULE_PATH_DELIM};
+use crate::tokens::TokenStream;
+
+use super::{
+    ArgsMap, BTreeMap, CodeBlock, ProcMap, Procedure, String, ToString, MODULE_PATH_DELIM,
+};
+use vm_core::CodeBlockTable;
 
 // ASSEMBLY CONTEXT
 // ================================================================================================
@@ -14,6 +19,7 @@ use super::{BTreeMap, CodeBlock, ProcMap, Procedure, String, ToString, MODULE_PA
 pub struct AssemblyContext<'a> {
     local_procs: ProcMap,
     imported_procs: BTreeMap<String, &'a Procedure>,
+    procs_with_params: BTreeMap<String, (String, Vec<String>)>,
     in_debug_mode: bool,
 }
 
@@ -25,6 +31,7 @@ impl<'a> AssemblyContext<'a> {
         Self {
             local_procs: BTreeMap::new(),
             imported_procs: BTreeMap::new(),
+            procs_with_params: BTreeMap::new(),
             in_debug_mode,
         }
     }
@@ -40,6 +47,10 @@ impl<'a> AssemblyContext<'a> {
     /// Returns true if a procedure with the specified label exists in this context.
     pub fn contains_proc(&self, label: &str) -> bool {
         self.local_procs.contains_key(label) || self.imported_procs.contains_key(label)
+    }
+
+    pub fn procs_with_params(&self, label: &str) -> Option<&(String, Vec<String>)> {
+        self.procs_with_params.get(label)
     }
 
     /// Returns a code root of a procedure for the specified label from this context.
@@ -60,6 +71,33 @@ impl<'a> AssemblyContext<'a> {
         } else {
             None
         }
+    }
+
+    pub fn parse_proc_with_args(
+        context: &mut AssemblyContext,
+        proc_tokens: String,
+        proc_args: ArgsMap,
+        cb_table: &mut CodeBlockTable,
+        allow_export: bool,
+    ) -> Option<CodeBlock> {
+        let mut tokens = match TokenStream::new(proc_tokens.as_str()).ok() {
+            Some(tokens) => tokens,
+            None => return None,
+        };
+        let proc = match Procedure::parse(
+            &mut tokens,
+            context,
+            cb_table,
+            allow_export,
+            &proc_args,
+            false,
+        )
+        .ok()
+        {
+            Some(proc) => proc,
+            None => return None,
+        };
+        Some(proc.code_root().clone())
     }
 
     // STATE MUTATORS
@@ -91,6 +129,15 @@ impl<'a> AssemblyContext<'a> {
             label
         );
         self.imported_procs.insert(label, proc);
+    }
+
+    pub fn add_proc_with_params(
+        &mut self,
+        label: String,
+        params: Vec<String>,
+        proc_tokens: String,
+    ) {
+        self.procs_with_params.insert(label, (proc_tokens, params));
     }
 
     /// Extracts local procedures from this context.

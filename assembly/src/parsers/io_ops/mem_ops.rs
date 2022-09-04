@@ -1,4 +1,6 @@
-use super::{parse_element_param, validate_operation, AssemblyError, Operation, Token, Vec};
+use super::{
+    parse_element_param, validate_operation, ArgsMap, AssemblyError, Operation, Token, Vec,
+};
 use vm_core::{utils::PushMany, Felt, FieldElement};
 
 // RANDOM ACCESS MEMORY
@@ -10,12 +12,17 @@ use vm_core::{utils::PushMany, Felt, FieldElement};
 /// This operation takes:
 /// - 2 VM cycles when the addresses is provided a an immediate value.
 /// - 1 VM cycle when the address is provided via the stack.
-pub fn parse_push_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_push_mem(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
+) -> Result<(), AssemblyError> {
     validate_operation!(op, "push.mem", 0..1);
 
     if op.num_parts() == 3 {
         // parse the provided memory address and push it onto the stack
-        push_mem_addr(span_ops, op)?;
+        push_mem_addr(span_ops, op, proc_args, is_proc_declaration)?;
     }
 
     // load from the memory address on top of the stack
@@ -30,12 +37,17 @@ pub fn parse_push_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), A
 /// This operation takes:
 /// - 3 VM cycles when the addresses is provided a an immediate value.
 /// - 2 VM cycle when the address is provided via the stack.
-pub fn parse_pop_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_pop_mem(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
+) -> Result<(), AssemblyError> {
     validate_operation!(op, "pop.mem", 0..1);
 
     // if the destination memory address was on top of the stack, restore it to the top
     if op.num_parts() == 3 {
-        push_mem_addr(span_ops, op)?;
+        push_mem_addr(span_ops, op, proc_args, is_proc_declaration)?;
     }
 
     span_ops.push(Operation::MStore);
@@ -73,6 +85,8 @@ pub fn parse_read_mem(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     overwrite_stack_top: bool,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     validate_operation!(@only_params op, "pushw|loadw.mem", 0..1);
 
@@ -86,10 +100,10 @@ pub fn parse_read_mem(
             span_ops.push(Operation::MovUp4);
         } else {
             // parse the provided memory address and push it onto the stack
-            push_mem_addr(span_ops, op)?;
+            push_mem_addr(span_ops, op, proc_args, is_proc_declaration)?;
         }
     } else if op.num_parts() == 3 {
-        push_mem_addr(span_ops, op)?;
+        push_mem_addr(span_ops, op, proc_args, is_proc_declaration)?;
     }
 
     // load from the memory address on top of the stack
@@ -124,11 +138,13 @@ pub fn parse_write_mem(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     retain_stack_top: bool,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     validate_operation!(@only_params op, "popw|storew.mem", 0..1);
 
     if op.num_parts() == 3 {
-        push_mem_addr(span_ops, op)?;
+        push_mem_addr(span_ops, op, proc_args, is_proc_declaration)?;
     }
 
     span_ops.push(Operation::MStoreW);
@@ -147,8 +163,13 @@ pub fn parse_write_mem(
 /// # Errors
 ///
 /// This function will return an `AssemblyError` if the address parameter does not exist.
-fn push_mem_addr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    let address = parse_element_param(op, 2)?;
+fn push_mem_addr(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
+) -> Result<(), AssemblyError> {
+    let address = parse_element_param(op, 2, proc_args, is_proc_declaration)?;
     if address == Felt::ZERO {
         span_ops.push(Operation::Pad);
     } else {
@@ -168,7 +189,7 @@ mod tests {
             parse_loadw, parse_pop, parse_popw, parse_push, parse_pushw, parse_storew,
             tests::get_parsing_error, Felt,
         },
-        AssemblyError, Operation, Token,
+        ArgsMap, AssemblyError, Operation, Token,
     };
 
     // TESTS FOR PUSHING VALUES ONTO THE STACK (PUSH)
@@ -184,7 +205,14 @@ mod tests {
         let op_push = Token::new("push.mem", 0);
         let expected = vec![Operation::MLoad];
 
-        parse_push(&mut span_ops, &op_push, num_proc_locals).expect("Failed to parse push.mem");
+        parse_push(
+            &mut span_ops,
+            &op_push,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse push.mem");
 
         assert_eq!(&span_ops, &expected);
 
@@ -193,8 +221,14 @@ mod tests {
         let op_push_addr = Token::new("push.mem.0", 0);
         let expected_addr = vec![Operation::Pad, Operation::MLoad];
 
-        parse_push(&mut span_ops_addr, &op_push_addr, num_proc_locals)
-            .expect("Failed to parse push.mem.0 (address provided by op)");
+        parse_push(
+            &mut span_ops_addr,
+            &op_push_addr,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse push.mem.0 (address provided by op)");
 
         assert_eq!(&span_ops_addr, &expected_addr);
 
@@ -203,8 +237,14 @@ mod tests {
         let op_push_addr = Token::new("push.mem.2", 0);
         let expected_addr = vec![Operation::Push(Felt::new(2)), Operation::MLoad];
 
-        parse_push(&mut span_ops_addr, &op_push_addr, num_proc_locals)
-            .expect("Failed to parse push.mem.2 (address provided by op)");
+        parse_push(
+            &mut span_ops_addr,
+            &op_push_addr,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse push.mem.2 (address provided by op)");
 
         assert_eq!(&span_ops_addr, &expected_addr);
     }
@@ -231,7 +271,14 @@ mod tests {
             Operation::MLoadW,
         ];
 
-        parse_pushw(&mut span_ops, &op_push, num_proc_locals).expect("Failed to parse pushw.mem");
+        parse_pushw(
+            &mut span_ops,
+            &op_push,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse pushw.mem");
 
         assert_eq!(&span_ops, &expected);
 
@@ -247,8 +294,14 @@ mod tests {
             Operation::MLoadW,
         ];
 
-        parse_pushw(&mut span_ops_addr, &op_push_addr, num_proc_locals)
-            .expect("Failed to parse pushw.mem.0 (address provided by op)");
+        parse_pushw(
+            &mut span_ops_addr,
+            &op_push_addr,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse pushw.mem.0 (address provided by op)");
 
         assert_eq!(&span_ops_addr, &expected_addr);
 
@@ -264,8 +317,14 @@ mod tests {
             Operation::MLoadW,
         ];
 
-        parse_pushw(&mut span_ops_addr, &op_push_addr, num_proc_locals)
-            .expect("Failed to parse pushw.mem.2 (address provided by op)");
+        parse_pushw(
+            &mut span_ops_addr,
+            &op_push_addr,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse pushw.mem.2 (address provided by op)");
 
         assert_eq!(&span_ops_addr, &expected_addr);
     }
@@ -294,7 +353,14 @@ mod tests {
         let mut span_ops: Vec<Operation> = Vec::new();
         let op_mem_pop = Token::new("pop.mem", 0);
         let expected = vec![Operation::MStore, Operation::Drop];
-        parse_pop(&mut span_ops, &op_mem_pop, num_proc_locals).expect("Failed to parse pop.mem");
+        parse_pop(
+            &mut span_ops,
+            &op_mem_pop,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse pop.mem");
         assert_eq!(&span_ops, &expected);
 
         // test pop with memory address provided directly (address 0)
@@ -302,8 +368,14 @@ mod tests {
         let op_pop_addr = Token::new("pop.mem.0", 0);
         let expected_addr = vec![Operation::Pad, Operation::MStore, Operation::Drop];
 
-        parse_pop(&mut span_ops_addr, &op_pop_addr, num_proc_locals)
-            .expect("Failed to parse pop.mem.0");
+        parse_pop(
+            &mut span_ops_addr,
+            &op_pop_addr,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse pop.mem.0");
 
         assert_eq!(&span_ops_addr, &expected_addr);
 
@@ -316,8 +388,14 @@ mod tests {
             Operation::Drop,
         ];
 
-        parse_pop(&mut span_ops_addr, &op_pop_addr, num_proc_locals)
-            .expect("Failed to parse pop.mem.2");
+        parse_pop(
+            &mut span_ops_addr,
+            &op_pop_addr,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse pop.mem.2");
 
         assert_eq!(&span_ops_addr, &expected_addr);
     }
@@ -339,7 +417,14 @@ mod tests {
             Operation::Drop,
             Operation::Drop,
         ];
-        parse_popw(&mut span_ops, &op_mem_pop, num_proc_locals).expect("Failed to parse popw.mem");
+        parse_popw(
+            &mut span_ops,
+            &op_mem_pop,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse popw.mem");
         assert_eq!(&span_ops, &expected);
 
         // test pop with memory address provided directly (address 0)
@@ -354,8 +439,14 @@ mod tests {
             Operation::Drop,
         ];
 
-        parse_popw(&mut span_ops_addr, &op_pop_addr, num_proc_locals)
-            .expect("Failed to parse popw.mem.0");
+        parse_popw(
+            &mut span_ops_addr,
+            &op_pop_addr,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse popw.mem.0");
 
         assert_eq!(&span_ops_addr, &expected_addr);
 
@@ -371,8 +462,14 @@ mod tests {
             Operation::Drop,
         ];
 
-        parse_popw(&mut span_ops_addr, &op_pop_addr, num_proc_locals)
-            .expect("Failed to parse popw.mem.2");
+        parse_popw(
+            &mut span_ops_addr,
+            &op_pop_addr,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse popw.mem.2");
 
         assert_eq!(&span_ops_addr, &expected_addr);
     }
@@ -396,7 +493,14 @@ mod tests {
         let op_push = Token::new("loadw.mem", 0);
         let expected = vec![Operation::MLoadW];
 
-        parse_loadw(&mut span_ops, &op_push, num_proc_locals).expect("Failed to parse loadw.mem");
+        parse_loadw(
+            &mut span_ops,
+            &op_push,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse loadw.mem");
 
         assert_eq!(&span_ops, &expected);
 
@@ -405,8 +509,14 @@ mod tests {
         let op_load_addr = Token::new("loadw.mem.0", 0);
         let expected_addr = vec![Operation::Pad, Operation::MLoadW];
 
-        parse_loadw(&mut span_ops_addr, &op_load_addr, num_proc_locals)
-            .expect("Failed to parse loadw.mem.0 (address provided by op)");
+        parse_loadw(
+            &mut span_ops_addr,
+            &op_load_addr,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse loadw.mem.0 (address provided by op)");
 
         assert_eq!(&span_ops_addr, &expected_addr);
 
@@ -415,8 +525,14 @@ mod tests {
         let op_load_addr = Token::new("loadw.mem.2", 0);
         let expected_addr = vec![Operation::Push(Felt::new(2)), Operation::MLoadW];
 
-        parse_loadw(&mut span_ops_addr, &op_load_addr, num_proc_locals)
-            .expect("Failed to parse loadw.mem.2 (address provided by op)");
+        parse_loadw(
+            &mut span_ops_addr,
+            &op_load_addr,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse loadw.mem.2 (address provided by op)");
 
         assert_eq!(&span_ops_addr, &expected_addr);
     }
@@ -439,8 +555,14 @@ mod tests {
         let op_store = Token::new("storew.mem", 0);
         let expected = vec![Operation::MStoreW];
 
-        parse_storew(&mut span_ops, &op_store, num_proc_locals)
-            .expect("Failed to parse storew.mem");
+        parse_storew(
+            &mut span_ops,
+            &op_store,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse storew.mem");
 
         assert_eq!(&span_ops, &expected);
 
@@ -449,8 +571,14 @@ mod tests {
         let op_store_addr = Token::new("storew.mem.0", 0);
         let expected_addr = vec![Operation::Pad, Operation::MStoreW];
 
-        parse_storew(&mut span_ops_addr, &op_store_addr, num_proc_locals)
-            .expect("Failed to parse storew.mem.0 with adddress (address provided by op)");
+        parse_storew(
+            &mut span_ops_addr,
+            &op_store_addr,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse storew.mem.0 with adddress (address provided by op)");
 
         assert_eq!(&span_ops_addr, &expected_addr);
 
@@ -459,8 +587,14 @@ mod tests {
         let op_store_addr = Token::new("storew.mem.2", 0);
         let expected_addr = vec![Operation::Push(Felt::new(2)), Operation::MStoreW];
 
-        parse_storew(&mut span_ops_addr, &op_store_addr, num_proc_locals)
-            .expect("Failed to parse storew.mem.2 with adddress (address provided by op)");
+        parse_storew(
+            &mut span_ops_addr,
+            &op_store_addr,
+            num_proc_locals,
+            &ArgsMap::new(),
+            false,
+        )
+        .expect("Failed to parse storew.mem.2 with adddress (address provided by op)");
 
         assert_eq!(&span_ops_addr, &expected_addr);
     }

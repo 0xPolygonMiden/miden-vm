@@ -42,6 +42,7 @@ const MODULE_PATH_DELIM: &str = "::";
 
 type ProcMap = BTreeMap<String, Procedure>;
 type ModuleMap = BTreeMap<String, ProcMap>;
+pub type ArgsMap = BTreeMap<String, u64>;
 
 // ASSEMBLER
 // ================================================================================================
@@ -85,9 +86,14 @@ impl Assembler {
         // context
         while let Some(token) = tokens.read() {
             let proc = match token.parts()[0] {
-                Token::PROC | Token::EXPORT => {
-                    Procedure::parse(&mut tokens, &context, &mut cb_table, false)?
-                }
+                Token::PROC | Token::EXPORT => Procedure::parse(
+                    &mut tokens,
+                    &mut context,
+                    &mut cb_table,
+                    false,
+                    &ArgsMap::new(),
+                    true,
+                )?,
                 _ => break,
             };
             context.add_local_proc(proc);
@@ -102,7 +108,7 @@ impl Assembler {
         }
 
         // parse program body and return the resulting program
-        let program_root = parse_program(&mut tokens, &context, &mut cb_table)?;
+        let program_root = parse_program(&mut tokens, &mut context, &mut cb_table)?;
         Ok(Program::with_table(program_root, cb_table))
     }
 
@@ -205,9 +211,14 @@ impl Assembler {
         // context
         while let Some(token) = tokens.read() {
             let proc = match token.parts()[0] {
-                Token::PROC | Token::EXPORT => {
-                    Procedure::parse(&mut tokens, &context, cb_table, true)?
-                }
+                Token::PROC | Token::EXPORT => Procedure::parse(
+                    &mut tokens,
+                    &mut context,
+                    cb_table,
+                    true,
+                    &ArgsMap::new(),
+                    true,
+                )?,
                 _ => break,
             };
             context.add_local_proc(proc);
@@ -248,7 +259,7 @@ impl Default for Assembler {
 /// TODO: add comments
 fn parse_program(
     tokens: &mut TokenStream,
-    context: &AssemblyContext,
+    context: &mut AssemblyContext,
     cb_table: &mut CodeBlockTable,
 ) -> Result<CodeBlock, AssemblyError> {
     let program_start = tokens.pos();
@@ -258,7 +269,15 @@ fn parse_program(
     tokens.advance();
 
     // parse the program body
-    let root = parse_code_blocks(tokens, context, cb_table, 0)?;
+    let root = parse_code_blocks(
+        tokens,
+        context,
+        cb_table,
+        0,
+        &ArgsMap::new(),
+        &mut Vec::new(),
+        false,
+    )?;
 
     // consume the 'end' token
     match tokens.read() {

@@ -144,6 +144,36 @@ fn program_with_exported_procedure() {
     assert!(assembler.compile(source).is_err());
 }
 
+// PROCEDURES WITH PARAMETERS
+// ================================================================================================
+#[test]
+fn procedure_with_one_param() {
+    let assembler = super::Assembler::default();
+    let source = "proc.foo<a> push.3 add.a mul end begin push.2 exec.foo.11 end";
+    let program = assembler.compile(source).unwrap();
+    let expected = "begin span push(2) push(3) push(11) add mul end end";
+    assert_eq!(expected, format!("{}", program));
+}
+
+#[test]
+fn procedure_with_multiple_params() {
+    let assembler = super::Assembler::default();
+    let source = "proc.foo<a,b> push.a push.b mul end begin exec.foo.3.4 end";
+    let program = assembler.compile(source).unwrap();
+    let expected = "begin span push(3) push(4) mul end end";
+    assert_eq!(expected, format!("{}", program));
+}
+
+#[test]
+fn nested_procedures_with_params() {
+    let assembler = super::Assembler::default();
+    let source =
+        "proc.bar<a> push.a end proc.foo<a,b> push.a exec.bar.b mul end begin exec.foo.3.4 end";
+    let program = assembler.compile(source).unwrap();
+    let expected = "begin span push(3) push(4) mul end end";
+    assert_eq!(expected, format!("{}", program));
+}
+
 // IMPORTS
 // ================================================================================================
 

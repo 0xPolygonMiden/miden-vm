@@ -1,8 +1,8 @@
 use vm_core::utils::PushMany;
 
 use super::{
-    super::validate_operation, parse_element_param, AssemblyError, Felt, FieldElement, Operation,
-    Token, Vec,
+    super::validate_operation, parse_element_param, ArgsMap, AssemblyError, Felt, FieldElement,
+    Operation, Token, Vec,
 };
 
 // ASSERTIONS AND TESTS
@@ -37,11 +37,16 @@ pub(super) fn parse_assert_eq(
 ///
 /// In cases when one of the parameters is provided via immediate value, the sequence of
 /// operations is: PUSH(imm) ADD, unless the imm value is 1, then the operation is just: INCR
-pub(super) fn parse_add(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub(super) fn parse_add(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         1 => span_ops.push(Operation::Add),
         2 => {
-            let imm = parse_element_param(op, 1)?;
+            let imm = parse_element_param(op, 1, proc_args, is_declaration)?;
             if imm == Felt::ONE {
                 span_ops.push(Operation::Incr);
             } else {
@@ -58,15 +63,22 @@ pub(super) fn parse_add(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
 ///
 /// In cases when one of the parameters is provided via immediate value, the sequence of
 /// operations is: PUSH(-imm) ADD
-pub(super) fn parse_sub(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub(super) fn parse_sub(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         1 => {
             span_ops.push(Operation::Neg);
             span_ops.push(Operation::Add);
         }
         2 => {
-            let imm = parse_element_param(op, 1)?;
+            let imm = parse_element_param(op, 1, proc_args, is_declaration)?;
+            println!("imm: {}", imm);
             span_ops.push(Operation::Push(-imm));
+            println!("span_ops: {:?}", span_ops);
             span_ops.push(Operation::Add);
         }
         _ => return Err(AssemblyError::extra_param(op)),
@@ -78,11 +90,16 @@ pub(super) fn parse_sub(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
 ///
 /// In cases when one of the parameters is provided via immediate value, the sequence of
 /// operations is: PUSH(imm) MUL
-pub(super) fn parse_mul(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub(super) fn parse_mul(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         1 => span_ops.push(Operation::Mul),
         2 => {
-            let imm = parse_element_param(op, 1)?;
+            let imm = parse_element_param(op, 1, proc_args, is_declaration)?;
             span_ops.push(Operation::Push(imm));
             span_ops.push(Operation::Mul);
         }
@@ -95,14 +112,19 @@ pub(super) fn parse_mul(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
 ///
 /// In cases when one of the parameters is provided via immediate value, the sequence of
 /// operations is: PUSH(imm) INV MUL
-pub(super) fn parse_div(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub(super) fn parse_div(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         1 => {
             span_ops.push(Operation::Inv);
             span_ops.push(Operation::Mul);
         }
         2 => {
-            let imm = parse_element_param(op, 1)?;
+            let imm = parse_element_param(op, 1, proc_args, is_declaration)?;
             span_ops.push(Operation::Push(imm.inv()));
             span_ops.push(Operation::Mul);
         }
@@ -208,11 +230,16 @@ pub(super) fn parse_xor(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
 /// In cases when an immediate values is supplied:
 /// - If the immediate value is zero, the appended operation is EQZ
 /// - Otherwise, the appended operations are: PUSH(imm) EQ
-pub(super) fn parse_eq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub(super) fn parse_eq(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         1 => span_ops.push(Operation::Eq),
         2 => {
-            let imm = parse_element_param(op, 1)?;
+            let imm = parse_element_param(op, 1, proc_args, is_declaration)?;
             if imm == Felt::ZERO {
                 span_ops.push(Operation::Eqz);
             } else {
@@ -230,11 +257,16 @@ pub(super) fn parse_eq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), 
 /// In cases when an immediate values is supplied:
 /// - If the immediate value is zero, the appended operations are: EQZ NOT
 /// - Otherwise, the appended operations are: PUSH(imm) EQ NOT
-pub(super) fn parse_neq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub(super) fn parse_neq(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         1 => span_ops.push(Operation::Eq),
         2 => {
-            let imm = parse_element_param(op, 1)?;
+            let imm = parse_element_param(op, 1, proc_args, is_declaration)?;
             if imm == Felt::ZERO {
                 span_ops.push(Operation::Eqz);
             } else {

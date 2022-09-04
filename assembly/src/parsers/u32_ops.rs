@@ -1,6 +1,6 @@
 use super::{
-    field_ops::append_pow2_op, parse_u32_param, push_value, AssemblyError, Felt, Operation, Token,
-    Vec,
+    field_ops::append_pow2_op, parse_u32_param, push_value, ArgsMap, AssemblyError, Felt,
+    Operation, Token, Vec,
 };
 
 // ENUMS
@@ -179,8 +179,17 @@ pub fn parse_u32add(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     op_mode: U32OpMode,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
 ) -> Result<(), AssemblyError> {
-    handle_arithmetic_operation(span_ops, op, Operation::U32add, op_mode)
+    handle_arithmetic_operation(
+        span_ops,
+        op,
+        Operation::U32add,
+        op_mode,
+        proc_args,
+        is_declaration,
+    )
 }
 
 /// Translates u32overflowing_add3 assembly instruction directly to `U32ADD3` operation.
@@ -224,8 +233,17 @@ pub fn parse_u32sub(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     op_mode: U32OpMode,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
 ) -> Result<(), AssemblyError> {
-    handle_arithmetic_operation(span_ops, op, Operation::U32sub, op_mode)
+    handle_arithmetic_operation(
+        span_ops,
+        op,
+        Operation::U32sub,
+        op_mode,
+        proc_args,
+        is_declaration,
+    )
 }
 
 /// Translates u32mul assembly instructions to VM operations.
@@ -246,8 +264,17 @@ pub fn parse_u32mul(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     op_mode: U32OpMode,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
 ) -> Result<(), AssemblyError> {
-    handle_arithmetic_operation(span_ops, op, Operation::U32mul, op_mode)
+    handle_arithmetic_operation(
+        span_ops,
+        op,
+        Operation::U32mul,
+        op_mode,
+        proc_args,
+        is_declaration,
+    )
 }
 
 /// Translates u32overflowing_madd assembly instruction directly to `U32MADD` operation.
@@ -288,8 +315,10 @@ pub fn parse_u32div(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     op_mode: U32OpMode,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
 ) -> Result<(), AssemblyError> {
-    handle_division(span_ops, op, op_mode)?;
+    handle_division(span_ops, op, op_mode, proc_args, is_declaration)?;
 
     span_ops.push(Operation::Drop);
 
@@ -311,8 +340,10 @@ pub fn parse_u32mod(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     op_mode: U32OpMode,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
 ) -> Result<(), AssemblyError> {
-    handle_division(span_ops, op, op_mode)?;
+    handle_division(span_ops, op, op_mode, proc_args, is_declaration)?;
 
     span_ops.push(Operation::Swap);
     span_ops.push(Operation::Drop);
@@ -335,8 +366,10 @@ pub fn parse_u32divmod(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     op_mode: U32OpMode,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
 ) -> Result<(), AssemblyError> {
-    handle_division(span_ops, op, op_mode)?;
+    handle_division(span_ops, op, op_mode, proc_args, is_declaration)?;
 
     Ok(())
 }
@@ -439,6 +472,8 @@ pub fn parse_u32shl(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     op_mode: U32OpMode,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
 ) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::invalid_op(op)),
@@ -455,12 +490,12 @@ pub fn parse_u32shl(
         },
         2 => match op_mode {
             U32OpMode::Checked => {
-                let x = parse_u32_param(op, 1, 0, 31)?;
+                let x = parse_u32_param(op, 1, 0, 31, proc_args, is_declaration)?;
                 span_ops.push(Operation::Push(Felt::new(2u64.pow(x))));
                 span_ops.push(Operation::U32assert2);
             }
             U32OpMode::Unchecked => {
-                let x = parse_u32_param(op, 1, 0, u32::MAX)?;
+                let x = parse_u32_param(op, 1, 0, u32::MAX, proc_args, is_declaration)?;
                 span_ops.push(Operation::Push(Felt::new(2u64.pow(x))));
             }
             _ => return Err(AssemblyError::invalid_op(op)),
@@ -489,6 +524,8 @@ pub fn parse_u32shr(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     op_mode: U32OpMode,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
 ) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::invalid_op(op)),
@@ -505,12 +542,12 @@ pub fn parse_u32shr(
         },
         2 => match op_mode {
             U32OpMode::Checked => {
-                let x = parse_u32_param(op, 1, 0, 31)?;
+                let x = parse_u32_param(op, 1, 0, 31, proc_args, is_declaration)?;
                 span_ops.push(Operation::Push(Felt::new(2u64.pow(x))));
                 span_ops.push(Operation::U32assert2);
             }
             U32OpMode::Unchecked => {
-                let x = parse_u32_param(op, 1, 0, u32::MAX)?;
+                let x = parse_u32_param(op, 1, 0, u32::MAX, proc_args, is_declaration)?;
                 span_ops.push(Operation::Push(Felt::new(2u64.pow(x))));
             }
             _ => return Err(AssemblyError::invalid_op(op)),
@@ -541,6 +578,8 @@ pub fn parse_u32rotl(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     op_mode: U32OpMode,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
 ) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::invalid_op(op)),
@@ -557,12 +596,12 @@ pub fn parse_u32rotl(
         },
         2 => match op_mode {
             U32OpMode::Checked => {
-                let x = parse_u32_param(op, 1, 0, 31)?;
+                let x = parse_u32_param(op, 1, 0, 31, proc_args, is_declaration)?;
                 span_ops.push(Operation::Push(Felt::new(2u64.pow(x))));
                 span_ops.push(Operation::U32assert2);
             }
             U32OpMode::Unchecked => {
-                let x = parse_u32_param(op, 1, 0, u32::MAX)?;
+                let x = parse_u32_param(op, 1, 0, u32::MAX, proc_args, is_declaration)?;
                 span_ops.push(Operation::Push(Felt::new(2u64.pow(x))));
             }
             _ => return Err(AssemblyError::invalid_op(op)),
@@ -592,6 +631,8 @@ pub fn parse_u32rotr(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     op_mode: U32OpMode,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
 ) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::invalid_op(op)),
@@ -631,11 +672,11 @@ pub fn parse_u32rotr(
                 // than u32 for b.
                 assert_u32(span_ops);
 
-                let x = parse_u32_param(op, 1, 0, 31)?;
+                let x = parse_u32_param(op, 1, 0, 31, proc_args, is_declaration)?;
                 span_ops.push(Operation::Push(Felt::new(2u64.pow(32 - x))));
             }
             U32OpMode::Unchecked => {
-                let x = parse_u32_param(op, 1, 0, u32::MAX)?;
+                let x = parse_u32_param(op, 1, 0, u32::MAX, proc_args, is_declaration)?;
                 span_ops.push(Operation::Push(Felt::new(2u64.pow(32 - x))));
             }
             _ => return Err(AssemblyError::invalid_op(op)),
@@ -659,11 +700,16 @@ pub fn parse_u32rotr(
 /// VM cycles per mode:
 /// - u32checked_eq: 2 cycles
 /// - u32checked_eq.b: 3 cycles
-pub fn parse_u32eq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_u32eq(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => span_ops.push(Operation::U32assert2),
-        2 => assert_and_push_u32_param(span_ops, op, 0)?,
+        2 => assert_and_push_u32_param(span_ops, op, 0, proc_args, is_declaration)?,
         _ => return Err(AssemblyError::extra_param(op)),
     }
 
@@ -680,11 +726,16 @@ pub fn parse_u32eq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Asse
 /// VM cycles per mode:
 /// - u32checked_neq: 3 cycles
 /// - u32checked_neq.b: 4 cycles
-pub fn parse_u32neq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_u32neq(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    proc_args: &ArgsMap,
+    is_declaration: bool,
+) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => span_ops.push(Operation::U32assert2),
-        2 => assert_and_push_u32_param(span_ops, op, 0)?,
+        2 => assert_and_push_u32_param(span_ops, op, 0, proc_args, is_declaration)?,
         _ => return Err(AssemblyError::extra_param(op)),
     }
 
@@ -874,9 +925,11 @@ fn assert_and_push_u32_param(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     lower_bound: u32,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     // TODO: We should investigate special case handling adding 0 or 1.
-    let value = parse_u32_param(op, 1, lower_bound, u32::MAX)?;
+    let value = parse_u32_param(op, 1, lower_bound, u32::MAX, proc_args, is_proc_declaration)?;
     push_value(span_ops, Felt::new(value as u64));
 
     // Assert both numbers are u32.
@@ -899,18 +952,40 @@ fn push_int_param(
     op: &Token,
     op_mode: U32OpMode,
     is_divisor: bool,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     let param_value = op.parts()[1];
-
-    // attempt to parse the parameter value as an integer
-    let value = match param_value.parse::<u64>() {
-        Ok(i) => i,
-        Err(_) => return Err(AssemblyError::invalid_param(op, 1)),
+    let value = if char::is_ascii_alphabetic(&param_value.chars().next().unwrap()) {
+        // if being parsed during procedure declaration, ignore the argument
+        if is_proc_declaration {
+            // TODO: Use better default value (dummy value never used)
+            2
+        } else if proc_args.contains_key(param_value) {
+            let value = *proc_args.get(param_value).expect("Key not found");
+            match check_u64_bounds(op, 1, value, u32::MAX as u64) {
+                Ok(value) => value,
+                Err(_) => return Err(AssemblyError::invalid_param(op, 1)),
+            }
+        } else {
+            return Err(AssemblyError::invalid_param(op, 1));
+        }
+    } else {
+        // attempt to parse the parameter value as an integer
+        match param_value.parse::<u64>() {
+            Ok(value) => {
+                if op_mode == U32OpMode::Checked {
+                    match check_u64_bounds(op, 1, value, u32::MAX as u64) {
+                        Ok(result) => result,
+                        Err(_) => return Err(AssemblyError::invalid_param(op, 1)),
+                    }
+                } else {
+                    value
+                }
+            }
+            Err(_) => return Err(AssemblyError::invalid_param(op, 1)),
+        }
     };
-
-    if value > (u32::MAX as u64) && op_mode == U32OpMode::Checked {
-        return Err(AssemblyError::invalid_param(op, 1));
-    }
 
     if is_divisor && value == 0 {
         return Err(AssemblyError::invalid_param_with_reason(
@@ -992,6 +1067,8 @@ fn handle_arithmetic_operation(
     op: &Token,
     arithmetic_op: Operation,
     op_mode: U32OpMode,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     let mut drop_high_bits = false;
     let mut assert_u32_res = false;
@@ -1002,19 +1079,33 @@ fn handle_arithmetic_operation(
             if num_parts == 1 {
                 span_ops.push(Operation::U32assert2);
             } else {
-                assert_and_push_u32_param(span_ops, op, 0)?;
+                assert_and_push_u32_param(span_ops, op, 0, proc_args, is_proc_declaration)?;
             }
             assert_u32_res = true;
         }
         U32OpMode::Wrapping => {
             if num_parts == 2 {
-                push_int_param(span_ops, op, U32OpMode::Wrapping, false)?;
+                push_int_param(
+                    span_ops,
+                    op,
+                    U32OpMode::Wrapping,
+                    false,
+                    proc_args,
+                    is_proc_declaration,
+                )?;
             }
             drop_high_bits = true;
         }
         U32OpMode::Overflowing => {
             if num_parts == 2 {
-                push_int_param(span_ops, op, U32OpMode::Overflowing, false)?;
+                push_int_param(
+                    span_ops,
+                    op,
+                    U32OpMode::Overflowing,
+                    false,
+                    proc_args,
+                    is_proc_declaration,
+                )?;
             }
         }
         _ => return Err(AssemblyError::invalid_op(op)),
@@ -1038,17 +1129,33 @@ fn handle_division(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     op_mode: U32OpMode,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     match op_mode {
         U32OpMode::Checked => {
             if op.num_parts() == 2 {
-                push_int_param(span_ops, op, U32OpMode::Checked, true)?;
+                push_int_param(
+                    span_ops,
+                    op,
+                    U32OpMode::Checked,
+                    true,
+                    proc_args,
+                    is_proc_declaration,
+                )?;
             }
             span_ops.push(Operation::U32assert2);
         }
         U32OpMode::Unchecked => {
             if op.num_parts() == 2 {
-                push_int_param(span_ops, op, U32OpMode::Unchecked, true)?;
+                push_int_param(
+                    span_ops,
+                    op,
+                    U32OpMode::Unchecked,
+                    true,
+                    proc_args,
+                    is_proc_declaration,
+                )?;
             }
         }
         _ => return Err(AssemblyError::invalid_op(op)),
@@ -1057,4 +1164,25 @@ fn handle_division(
     span_ops.push(Operation::U32div);
 
     Ok(())
+}
+
+fn check_u64_bounds(
+    op: &Token,
+    param_idx: usize,
+    value: u64,
+    upper_bound: u64,
+) -> Result<u64, AssemblyError> {
+    if value > upper_bound {
+        return Err(AssemblyError::invalid_param_with_reason(
+            op,
+            param_idx,
+            format!(
+                "parameter value must be less than or equal to {}",
+                upper_bound
+            )
+            .as_str(),
+        ));
+    } else {
+        Ok(value)
+    }
 }

@@ -93,6 +93,19 @@ impl<'a> TokenStream<'a> {
             }
         }
     }
+
+    /// Increments the current token position by one. If the stream is at EOF, this is noop.
+    pub fn advance_with_copy(&mut self, copy: bool, tokens: &mut Vec<String>) {
+        if !self.eof() {
+            if copy {
+                tokens.push(self.tokens[self.pos].to_string());
+            }
+            self.pos += 1;
+            if !self.eof() {
+                self.current.update(self.tokens[self.pos], self.pos);
+            }
+        }
+    }
 }
 
 impl<'a> fmt::Display for TokenStream<'a> {

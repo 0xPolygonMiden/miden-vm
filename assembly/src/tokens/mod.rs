@@ -93,6 +93,11 @@ impl<'a> Token<'a> {
         self.pos = pos;
     }
 
+    pub fn update_part(&mut self, part: &'a str, part_pos: usize) {
+        assert!(!part.is_empty(), "part cannot be an empty string");
+        self.parts[part_pos] = part;
+    }
+
     // CONTROL TOKEN PARSERS / VALIDATORS
     // --------------------------------------------------------------------------------------------
 
@@ -114,22 +119,29 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn parse_proc(&self) -> Result<(String, u32, bool), AssemblyError> {
+    pub fn parse_proc(
+        &self,
+        is_declaration: bool,
+    ) -> Result<(String, u32, bool, Vec<String>), AssemblyError> {
         assert!(
-            self.parts[0] == Self::PROC || self.parts[0] == Self::EXPORT,
+            self.parts[0] == Self::PROC
+                || self.parts[0] == Self::EXPORT
+                || self.parts[0] == Self::EXEC,
             "invalid procedure declaration"
         );
         let is_export = self.parts[0] == Self::EXPORT;
         match self.num_parts() {
             1 => Err(AssemblyError::missing_param(self)),
             2 => {
-                let label = validate_proc_declaration_label(self.parts[1], self)?;
-                Ok((label, 0, is_export))
+                let (label, params) =
+                    validate_proc_declaration_label(self.parts[1], self, is_declaration)?;
+                Ok((label, 0, is_export, params))
             }
             3 => {
-                let label = validate_proc_declaration_label(self.parts[1], self)?;
+                let (label, params) =
+                    validate_proc_declaration_label(self.parts[1], self, is_declaration)?;
                 let num_locals = validate_proc_locals(self.parts[2], self)?;
-                Ok((label, num_locals, is_export))
+                Ok((label, num_locals, is_export, params))
             }
             _ => Err(AssemblyError::extra_param(self)),
         }
@@ -185,12 +197,11 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn parse_exec(&self) -> Result<String, AssemblyError> {
+    pub fn parse_exec(&self) -> Result<(String, Vec<String>), AssemblyError> {
         assert_eq!(Self::EXEC, self.parts[0], "not an exec");
         match self.num_parts() {
             1 => Err(AssemblyError::missing_param(self)),
-            2 => validate_proc_invocation_label(self.parts[1], self),
-            _ => Err(AssemblyError::extra_param(self)),
+            _ => validate_proc_invocation_label_and_args(self.parts[1..].to_vec(), self),
         }
     }
 
@@ -222,10 +233,21 @@ impl<'a> fmt::Display for Token<'a> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Label of a declared procedure must comply with the following rules:
-/// - It must start with an ascii letter.
-/// - It can contain only ascii letters, numbers, or underscores.
-fn validate_proc_declaration_label(label: &str, token: &Token) -> Result<String, AssemblyError> {
+fn validate_proc_declaration_label(
+    label_with_params: &str,
+    token: &Token,
+    is_declaration: bool,
+) -> Result<(String, Vec<String>), AssemblyError> {
+    let label_with_params_vec: Vec<&str> = label_with_params.split_terminator('<').collect();
+    if label_with_params_vec.len() > 2 {
+        return Err(AssemblyError::invalid_proc_label(token, label_with_params));
+    }
+    let label = label_with_params_vec[0];
+    let params = if is_declaration && label_with_params_vec.len() == 2 {
+        validate_params(label_with_params_vec[1], token)?
+    } else {
+        Vec::new()
+    };
     // a label must start with a letter
     if label.is_empty() || !label.chars().next().unwrap().is_ascii_alphabetic() {
         return Err(AssemblyError::invalid_proc_label(token, label));
@@ -236,7 +258,7 @@ fn validate_proc_declaration_label(label: &str, token: &Token) -> Result<String,
         return Err(AssemblyError::invalid_proc_label(token, label));
     }
 
-    Ok(label.to_string())
+    Ok((label.to_string(), params))
 }
 
 /// A label of an invoked procedure must comply with the following rules:
@@ -262,6 +284,37 @@ fn validate_proc_invocation_label(label: &str, token: &Token) -> Result<String, 
     Ok(label.to_string())
 }
 
+/// A label of an invoked procedure must comply with the following rules:
+/// - It must start with an ascii letter.
+/// - It can contain only ascii letters, numbers, underscores, or colons.
+///
+/// As compared to procedure declaration label, colons are allowed here to support invocation
+/// of imported procedures.
+fn validate_proc_invocation_label_and_args(
+    label_with_args: Vec<&str>,
+    token: &Token,
+) -> Result<(String, Vec<String>), AssemblyError> {
+    let label = label_with_args[0];
+    let args_str = &label_with_args[1..];
+    // a label must start with a letter
+    if label.is_empty() || !label.chars().next().unwrap().is_ascii_alphabetic() {
+        return Err(AssemblyError::invalid_proc_label(token, label));
+    }
+
+    // a label can contain only letters, numbers, underscores, or colons
+    if !label
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == ':')
+    {
+        return Err(AssemblyError::invalid_proc_label(token, label));
+    }
+    //TODO: Find better way to map str to string
+    Ok((
+        label.to_string(),
+        args_str.iter().map(|arg| arg.to_string()).collect(),
+    ))
+}
+
 fn validate_proc_locals(locals: &str, token: &Token) -> Result<u32, AssemblyError> {
     match locals.parse::<u64>() {
         Ok(num_locals) => {
@@ -272,6 +325,25 @@ fn validate_proc_locals(locals: &str, token: &Token) -> Result<u32, AssemblyErro
         }
         Err(_) => Err(AssemblyError::invalid_proc_locals(token, locals)),
     }
+}
+
+fn validate_params(params_str: &str, token: &Token) -> Result<Vec<String>, AssemblyError> {
+    //TODO: naming
+    let params_vec = params_str.split('>').collect::<Vec<&str>>();
+    if params_vec[1].len() > 2 || !matches!(params_vec[1], "") {
+        //TODO: proper error
+        return Err(AssemblyError::invalid_proc_label(token, params_str));
+    }
+    for param in params_vec[0].split(',') {
+        if !param.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+            //TODO: proper error
+            return Err(AssemblyError::invalid_proc_label(token, param));
+        }
+    }
+    Ok(params_vec[0]
+        .split(',')
+        .map(|param| param.to_string())
+        .collect())
 }
 
 /// A module import path must comply with the following rules:

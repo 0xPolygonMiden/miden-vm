@@ -1,5 +1,6 @@
 use super::{
-    parse_u32_param, push_value, validate_operation, AssemblyError, Felt, Operation, Token, Vec,
+    parse_u32_param, push_value, validate_operation, ArgsMap, AssemblyError, Felt, Operation,
+    Token, Vec,
 };
 use vm_core::utils::PushMany;
 
@@ -12,10 +13,19 @@ pub fn parse_push_local(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     num_proc_locals: u32,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     validate_operation!(op, "push.local", 1);
 
-    parse_read_local(span_ops, op, num_proc_locals, false)?;
+    parse_read_local(
+        span_ops,
+        op,
+        num_proc_locals,
+        false,
+        proc_args,
+        is_proc_declaration,
+    )?;
 
     span_ops.push_many(Operation::Drop, 3);
 
@@ -28,13 +38,22 @@ pub fn parse_pop_local(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     num_proc_locals: u32,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     validate_operation!(op, "pop.local", 1);
 
     // pad to word length before calling STOREW
     span_ops.push_many(Operation::Pad, 3);
 
-    parse_write_local(span_ops, op, num_proc_locals, false)
+    parse_write_local(
+        span_ops,
+        op,
+        num_proc_locals,
+        false,
+        proc_args,
+        is_proc_declaration,
+    )
 }
 
 /// Translates the `pushw.local.i` and `loadw.local.i` assembly ops to the system's `LOADW` memory
@@ -54,6 +73,8 @@ pub fn parse_read_local(
     op: &Token,
     num_proc_locals: u32,
     overwrite_stack_top: bool,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     validate_operation!(@only_params op, "pushw|loadw.local", 1);
 
@@ -62,7 +83,13 @@ pub fn parse_read_local(
         span_ops.push_many(Operation::Pad, 4);
     }
 
-    push_local_addr(span_ops, op, num_proc_locals)?;
+    push_local_addr(
+        span_ops,
+        op,
+        num_proc_locals,
+        proc_args,
+        is_proc_declaration,
+    )?;
     span_ops.push(Operation::MLoadW);
 
     Ok(())
@@ -84,10 +111,18 @@ pub fn parse_write_local(
     op: &Token,
     num_proc_locals: u32,
     retain_stack_top: bool,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     validate_operation!(@only_params op, "popw|storew.local", 1);
 
-    push_local_addr(span_ops, op, num_proc_locals)?;
+    push_local_addr(
+        span_ops,
+        op,
+        num_proc_locals,
+        proc_args,
+        is_proc_declaration,
+    )?;
     span_ops.push(Operation::MStoreW);
 
     if !retain_stack_top {
@@ -108,6 +143,8 @@ fn push_local_addr(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     num_proc_locals: u32,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     if num_proc_locals == 0 {
         // if no procedure locals were declared, then no local mem ops are allowed
@@ -118,7 +155,14 @@ fn push_local_addr(
     }
 
     // parse the provided local memory index
-    let index = parse_u32_param(op, 2, 0, num_proc_locals - 1)?;
+    let index = parse_u32_param(
+        op,
+        2,
+        0,
+        num_proc_locals - 1,
+        proc_args,
+        is_proc_declaration,
+    )?;
 
     // put the absolute memory address on the stack
     // negate the value to use it as an offset from the fmp

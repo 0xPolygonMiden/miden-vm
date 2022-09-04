@@ -1,6 +1,6 @@
 use super::{
     super::validate_operation, parse_decimal_param, parse_element_param, parse_hex_param,
-    parse_u32_param, push_value, AssemblyError, Felt, Operation, Token, Vec,
+    parse_u32_param, push_value, ArgsMap, AssemblyError, Felt, Operation, Token, Vec,
 };
 use vm_core::{AdviceInjector, Decorator, DecoratorList};
 
@@ -52,6 +52,8 @@ pub fn parse_push(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     num_proc_locals: u32,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     if op.num_parts() < 2 {
         return Err(AssemblyError::invalid_op(op));
@@ -64,11 +66,23 @@ pub fn parse_push(
     }
 
     match op.parts()[1] {
-        "adv" => parse_push_adv(span_ops, op),
-        "env" => parse_push_env(span_ops, op, num_proc_locals),
-        "local" => parse_push_local(span_ops, op, num_proc_locals),
-        "mem" => parse_push_mem(span_ops, op),
-        _ => parse_push_constant(span_ops, op),
+        "adv" => parse_push_adv(span_ops, op, proc_args, is_proc_declaration),
+        "env" => parse_push_env(
+            span_ops,
+            op,
+            num_proc_locals,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "local" => parse_push_local(
+            span_ops,
+            op,
+            num_proc_locals,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "mem" => parse_push_mem(span_ops, op, proc_args, is_proc_declaration),
+        _ => parse_push_constant(span_ops, op, proc_args, is_proc_declaration),
     }
 }
 
@@ -92,13 +106,22 @@ pub fn parse_pushw(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     num_proc_locals: u32,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     validate_operation!(op, "pushw.local|mem");
 
     match op.parts()[1] {
         // read from mem with overwrite_stack_top set to false so the rest of the stack is kept
-        "mem" => parse_read_mem(span_ops, op, false),
-        "local" => parse_read_local(span_ops, op, num_proc_locals, false),
+        "mem" => parse_read_mem(span_ops, op, false, proc_args, is_proc_declaration),
+        "local" => parse_read_local(
+            span_ops,
+            op,
+            num_proc_locals,
+            false,
+            proc_args,
+            is_proc_declaration,
+        ),
         _ => Err(AssemblyError::invalid_op(op)),
     }
 }
@@ -124,12 +147,20 @@ pub fn parse_pop(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     num_proc_locals: u32,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     validate_operation!(op, "pop.local|mem");
 
     match op.parts()[1] {
-        "local" => parse_pop_local(span_ops, op, num_proc_locals),
-        "mem" => parse_pop_mem(span_ops, op),
+        "local" => parse_pop_local(
+            span_ops,
+            op,
+            num_proc_locals,
+            proc_args,
+            is_proc_declaration,
+        ),
+        "mem" => parse_pop_mem(span_ops, op, proc_args, is_proc_declaration),
         _ => Err(AssemblyError::invalid_op(op)),
     }
 }
@@ -155,13 +186,22 @@ pub fn parse_popw(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     num_proc_locals: u32,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     validate_operation!(op, "popw.local|mem");
 
     match op.parts()[1] {
         // write to mem with retain_stack_top set to false so the 4 elements are dropped after writing
-        "mem" => parse_write_mem(span_ops, op, false),
-        "local" => parse_write_local(span_ops, op, num_proc_locals, false),
+        "mem" => parse_write_mem(span_ops, op, false, proc_args, is_proc_declaration),
+        "local" => parse_write_local(
+            span_ops,
+            op,
+            num_proc_locals,
+            false,
+            proc_args,
+            is_proc_declaration,
+        ),
         _ => Err(AssemblyError::invalid_op(op)),
     }
 }
@@ -196,14 +236,23 @@ pub fn parse_loadw(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     num_proc_locals: u32,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     validate_operation!(op, "loadw.adv|local|mem");
 
     match op.parts()[1] {
         "adv" => parse_loadw_adv(span_ops, op),
         // read from mem with overwrite_stack_top set to true so the top 4 elements are overwritten
-        "mem" => parse_read_mem(span_ops, op, true),
-        "local" => parse_read_local(span_ops, op, num_proc_locals, true),
+        "mem" => parse_read_mem(span_ops, op, true, proc_args, is_proc_declaration),
+        "local" => parse_read_local(
+            span_ops,
+            op,
+            num_proc_locals,
+            true,
+            proc_args,
+            is_proc_declaration,
+        ),
         _ => Err(AssemblyError::invalid_op(op)),
     }
 }
@@ -234,13 +283,22 @@ pub fn parse_storew(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     num_proc_locals: u32,
+    proc_args: &ArgsMap,
+    is_proc_declaration: bool,
 ) -> Result<(), AssemblyError> {
     validate_operation!(op, "storew.local|mem");
 
     match op.parts()[1] {
         // write to mem with retain_stack_top set to true so the 4 elements are left on the stack
-        "mem" => parse_write_mem(span_ops, op, true),
-        "local" => parse_write_local(span_ops, op, num_proc_locals, true),
+        "mem" => parse_write_mem(span_ops, op, true, proc_args, is_proc_declaration),
+        "local" => parse_write_local(
+            span_ops,
+            op,
+            num_proc_locals,
+            true,
+            proc_args,
+            is_proc_declaration,
+        ),
         _ => Err(AssemblyError::invalid_op(op)),
     }
 }
@@ -279,8 +337,8 @@ pub fn parse_adv_inject(
 #[cfg(test)]
 mod tests {
     use super::{
-        parse_loadw, parse_pop, parse_popw, parse_push, parse_pushw, parse_storew, AssemblyError,
-        Operation, Token,
+        parse_loadw, parse_pop, parse_popw, parse_push, parse_pushw, parse_storew, ArgsMap,
+        AssemblyError, Operation, Token,
     };
 
     // TESTS FOR PUSHING VALUES ONTO THE STACK (PUSH)
@@ -363,12 +421,54 @@ mod tests {
         let mut span_ops: Vec<Operation> = Vec::new();
 
         match base_op {
-            "push" => parse_push(&mut span_ops, invalid_op, num_proc_locals).unwrap_err(),
-            "pushw" => parse_pushw(&mut span_ops, invalid_op, num_proc_locals).unwrap_err(),
-            "pop" => parse_pop(&mut span_ops, invalid_op, num_proc_locals).unwrap_err(),
-            "popw" => parse_popw(&mut span_ops, invalid_op, num_proc_locals).unwrap_err(),
-            "loadw" => parse_loadw(&mut span_ops, invalid_op, num_proc_locals).unwrap_err(),
-            "storew" => parse_storew(&mut span_ops, invalid_op, num_proc_locals).unwrap_err(),
+            "push" => parse_push(
+                &mut span_ops,
+                invalid_op,
+                num_proc_locals,
+                &ArgsMap::new(),
+                false,
+            )
+            .unwrap_err(),
+            "pushw" => parse_pushw(
+                &mut span_ops,
+                invalid_op,
+                num_proc_locals,
+                &ArgsMap::new(),
+                false,
+            )
+            .unwrap_err(),
+            "pop" => parse_pop(
+                &mut span_ops,
+                invalid_op,
+                num_proc_locals,
+                &ArgsMap::new(),
+                false,
+            )
+            .unwrap_err(),
+            "popw" => parse_popw(
+                &mut span_ops,
+                invalid_op,
+                num_proc_locals,
+                &ArgsMap::new(),
+                false,
+            )
+            .unwrap_err(),
+            "loadw" => parse_loadw(
+                &mut span_ops,
+                invalid_op,
+                num_proc_locals,
+                &ArgsMap::new(),
+                false,
+            )
+            .unwrap_err(),
+            "storew" => parse_storew(
+                &mut span_ops,
+                invalid_op,
+                num_proc_locals,
+                &ArgsMap::new(),
+                false,
+            )
+            .unwrap_err(),
             _ => panic!(),
         }
     }

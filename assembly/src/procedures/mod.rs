@@ -1,6 +1,6 @@
 use super::{
-    combine_blocks, parse_code_blocks, AssemblyContext, AssemblyError, CodeBlock, CodeBlockTable,
-    String, Token, TokenStream, Vec,
+    combine_blocks, parse_code_blocks, ArgsMap, AssemblyContext, AssemblyError, CodeBlock,
+    CodeBlockTable, String, Token, TokenStream, Vec,
 };
 use vm_core::{Felt, Operation};
 
@@ -50,25 +50,40 @@ impl Procedure {
     /// - The procedure body does not terminate with the `END` token.
     pub fn parse(
         tokens: &mut TokenStream,
-        context: &AssemblyContext,
+        context: &mut AssemblyContext,
         cb_table: &mut CodeBlockTable,
         allow_export: bool,
+        args_map: &ArgsMap,
+        is_declaration: bool,
     ) -> Result<Self, AssemblyError> {
         let proc_start = tokens.pos();
 
         // read procedure name and consume the procedure header token
         let header = tokens.read().expect("missing procedure header");
-        let (label, num_locals, is_export) = header.parse_proc()?;
+        let (label, num_locals, is_export, params) = header.parse_proc(is_declaration)?;
+        let mut proc_tokens = Vec::new();
+        //TODO: Remove unwrap
+        proc_tokens.push(tokens.read().unwrap().to_string());
+        // if procedure has parameters
         if !allow_export && is_export {
             return Err(AssemblyError::proc_export_not_allowed(header, &label));
         }
-        if context.contains_proc(&label) {
+        if context.contains_proc(&label) && is_declaration {
             return Err(AssemblyError::duplicate_proc_label(header, &label));
         }
         tokens.advance();
+        let copy_proc = !params.is_empty();
 
         // parse procedure body, and handle memory allocation/deallocation of locals if any are declared
-        let code_root = parse_proc_blocks(tokens, context, cb_table, num_locals)?;
+        let code_root = parse_proc_blocks(
+            tokens,
+            context,
+            cb_table,
+            num_locals,
+            args_map,
+            &mut proc_tokens,
+            copy_proc,
+        )?;
 
         // consume the 'end' token
         match tokens.read() {
@@ -82,8 +97,10 @@ impl Procedure {
                 )),
             },
         }?;
-        tokens.advance();
-
+        tokens.advance_with_copy(copy_proc, &mut proc_tokens);
+        if copy_proc {
+            context.add_proc_with_params(label.clone(), params, proc_tokens.join(" "));
+        }
         // build and return the procedure
         Ok(Self {
             label,
@@ -99,12 +116,23 @@ impl Procedure {
 
 pub fn parse_proc_blocks(
     tokens: &mut TokenStream,
-    context: &AssemblyContext,
+    context: &mut AssemblyContext,
     cb_table: &mut CodeBlockTable,
     num_proc_locals: u32,
+    proc_args: &ArgsMap,
+    proc_tokens: &mut Vec<String>,
+    copy_proc: bool,
 ) -> Result<CodeBlock, AssemblyError> {
     // parse the procedure body
-    let body = parse_code_blocks(tokens, context, cb_table, num_proc_locals)?;
+    let body = parse_code_blocks(
+        tokens,
+        context,
+        cb_table,
+        num_proc_locals,
+        proc_args,
+        proc_tokens,
+        copy_proc,
+    )?;
 
     if num_proc_locals == 0 {
         // if no allocation of locals is required, return the procedure body
