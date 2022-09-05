@@ -15,6 +15,10 @@ rust-version = "1.62"
 bench = false
 doctest = false
 
+[[bench]]
+name = "compute_op_flags"
+harness = false
+
 [features]
 default = ["std"]
 std = ["vm-core/std", "winter-air/std"]
@@ -25,4 +29,5 @@ winter-air = { package = "winter-air", version = "0.4", default-features = false
 
 [dev-dependencies]
 proptest = "1.0"
+criterion = "0.3"
 rand-utils = { package = "winter-rand-utils", version = "0.4" }

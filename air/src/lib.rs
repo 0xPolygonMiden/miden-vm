@@ -17,6 +17,7 @@ use winter_air::{
 mod chiplets;
 mod options;
 mod range;
+pub mod stack;
 mod utils;
 use utils::TransitionConstraintRange;
 

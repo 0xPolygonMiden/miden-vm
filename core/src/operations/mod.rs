@@ -361,7 +361,7 @@ impl Operation {
     /// - 11xxx--: operations where constraint degree can be up to 5. These include control flow
     ///   operations and some other operations requiring very high degree constraints.
     #[rustfmt::skip]
-    pub fn op_code(&self) -> u8 {
+    pub const fn op_code(&self) -> u8 {
         match self {
             Self::Noop      => 0b0000_0000,
             Self::Eqz       => 0b0000_0001,
