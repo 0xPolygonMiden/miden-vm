@@ -3671,1568 +3671,289 @@ proc.keccak_p.4
     exec.iota_round_24
 end
 
-# given two 32 -bit unsigned integers ( standard form ), representing upper and lower
-# portion of a 64 -bit unsigned integer ( actually a keccak-[1600, 24] lane ),
+# Given two 32 -bit unsigned integers ( standard form ), representing upper and lower
+# bits of a 64 -bit unsigned integer ( actually a keccak-[1600, 24] lane ),
 # this function converts them into bit interleaved representation, where two 32 -bit
 # unsigned integers ( even portion & then odd portion ) hold bits in even and odd
 # indices of 64 -bit unsigned integer ( remember it's represented in terms of
 # two 32 -bit elements )
 #
+# Input stack state :
+#
+# [hi, lo, ...]
+#
+# After application of bit interleaving, stack looks like
+#
+# [even, odd, ...]
+#
 # Read more about bit interleaved representation in section 2.1 of https://keccak.team/files/Keccak-implementation-3.2.pdf
 #
 # See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/utils.hpp#L123-L149
+# for reference implementation in higher level language.
 export.to_bit_interleaved
-    dup.1
-
-    push.1
-    u32checked_and
-
-    dup.2
-    u32checked_shr.1
-    push.1
-    u32checked_and
-
-    swap
-
-    dup.3
-
-    u32checked_shr.2
-    push.1
-    u32checked_and
-
-    u32checked_shl.1
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.3
-    push.1
-    u32checked_and
-
-    u32checked_shl.1
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.4
-    push.1
-    u32checked_and
-
-    u32checked_shl.2
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.5
-    push.1
-    u32checked_and
-
-    u32checked_shl.2
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.6
-    push.1
-    u32checked_and
-
-    u32checked_shl.3
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.7
-    push.1
-    u32checked_and
-
-    u32checked_shl.3
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.8
-    push.1
-    u32checked_and
-
-    u32checked_shl.4
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.9
-    push.1
-    u32checked_and
-
-    u32checked_shl.4
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.10
-    push.1
-    u32checked_and
-
-    u32checked_shl.5
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.11
-    push.1
-    u32checked_and
-
-    u32checked_shl.5
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.12
-    push.1
-    u32checked_and
-
-    u32checked_shl.6
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.13
-    push.1
-    u32checked_and
-
-    u32checked_shl.6
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.14
-    push.1
-    u32checked_and
-
-    u32checked_shl.7
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.15
-    push.1
-    u32checked_and
-
-    u32checked_shl.7
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.16
-    push.1
-    u32checked_and
-
-    u32checked_shl.8
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.17
-    push.1
-    u32checked_and
-
-    u32checked_shl.8
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.18
-    push.1
-    u32checked_and
-
-    u32checked_shl.9
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.19
-    push.1
-    u32checked_and
-
-    u32checked_shl.9
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.20
-    push.1
-    u32checked_and
-
-    u32checked_shl.10
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.21
-    push.1
-    u32checked_and
-
-    u32checked_shl.10
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.22
-    push.1
-    u32checked_and
-
-    u32checked_shl.11
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.23
-    push.1
-    u32checked_and
-
-    u32checked_shl.11
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.24
-    push.1
-    u32checked_and
-
-    u32checked_shl.12
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.25
-    push.1
-    u32checked_and
-
-    u32checked_shl.12
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.26
-    push.1
-    u32checked_and
-
-    u32checked_shl.13
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.27
-    push.1
-    u32checked_and
-
-    u32checked_shl.13
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.28
-    push.1
-    u32checked_and
-
-    u32checked_shl.14
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.29
-    push.1
-    u32checked_and
-
-    u32checked_shl.14
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.30
-    push.1
-    u32checked_and
-
-    u32checked_shl.15
-    u32checked_or
-
-    swap
-
-    dup.3
-
-    u32checked_shr.31
-    push.1
-    u32checked_and
-
-    u32checked_shl.15
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    push.1
-    u32checked_and
-
-    u32checked_shl.16
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.1
-    push.1
-    u32checked_and
-
-    u32checked_shl.16
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.2
-    push.1
-    u32checked_and
-
-    u32checked_shl.17
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.3
-    push.1
-    u32checked_and
-
-    u32checked_shl.17
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.4
-    push.1
-    u32checked_and
-
-    u32checked_shl.18
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.5
-    push.1
-    u32checked_and
-
-    u32checked_shl.18
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.6
-    push.1
-    u32checked_and
-
-    u32checked_shl.19
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.7
-    push.1
-    u32checked_and
-
-    u32checked_shl.19
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.8
-    push.1
-    u32checked_and
-
-    u32checked_shl.20
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.9
-    push.1
-    u32checked_and
-
-    u32checked_shl.20
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.10
-    push.1
-    u32checked_and
-
-    u32checked_shl.21
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.11
-    push.1
-    u32checked_and
-
-    u32checked_shl.21
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.12
-    push.1
-    u32checked_and
-
-    u32checked_shl.22
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.13
-    push.1
-    u32checked_and
-
-    u32checked_shl.22
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.14
-    push.1
-    u32checked_and
-
-    u32checked_shl.23
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.15
-    push.1
-    u32checked_and
-
-    u32checked_shl.23
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.16
-    push.1
-    u32checked_and
-
-    u32checked_shl.24
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.17
-    push.1
-    u32checked_and
-
-    u32checked_shl.24
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.18
-    push.1
-    u32checked_and
-
-    u32checked_shl.25
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.19
-    push.1
-    u32checked_and
-
-    u32checked_shl.25
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.20
-    push.1
-    u32checked_and
-
-    u32checked_shl.26
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.21
-    push.1
-    u32checked_and
-
-    u32checked_shl.26
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.22
-    push.1
-    u32checked_and
-
-    u32checked_shl.27
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.23
-    push.1
-    u32checked_and
-
-    u32checked_shl.27
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.24
-    push.1
-    u32checked_and
-
-    u32checked_shl.28
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.25
-    push.1
-    u32checked_and
-
-    u32checked_shl.28
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.26
-    push.1
-    u32checked_and
-
-    u32checked_shl.29
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.27
-    push.1
-    u32checked_and
-
-    u32checked_shl.29
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.28
-    push.1
-    u32checked_and
-
-    u32checked_shl.30
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.29
-    push.1
-    u32checked_and
-
-    u32checked_shl.30
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.30
-    push.1
-    u32checked_and
-
-    u32checked_shl.31
-    u32checked_or
-
-    swap
-
-    dup.2
-
-    u32checked_shr.31
-    push.1
-    u32checked_and
-
-    u32checked_shl.31
-    u32checked_or
-
-    swap
+    push.0.0
+
+    repeat.16
+        u32unchecked_shr.1
+        swap
+        u32unchecked_shr.1
+        swap
+
+        # ---
+
+        dup.3
+        dup.3
+
+        push.1
+        u32checked_and
+        swap
+        push.1
+        u32checked_and
+        swap
+
+        u32unchecked_shl.31
+        swap
+        u32unchecked_shl.15
+        swap
+
+        u32checked_xor
+        u32checked_xor
+
+        # ---
+
+        dup.3
+        dup.3
+
+        push.2
+        u32checked_and
+        swap
+        push.2
+        u32checked_and
+        swap
+
+        u32unchecked_shl.30
+        swap
+        u32unchecked_shl.14
+        swap
+
+        movup.3
+        u32checked_xor
+        u32checked_xor
+        swap
+
+        # ---
+
+        movup.2
+        u32unchecked_shr.2
+        movdn.2
+
+        movup.3
+        u32unchecked_shr.2
+        movdn.3
+    end
+
+    movup.2
+    drop
+    movup.2
+    drop
 end
 
-# given two 32 -bit unsigned integers ( bit interleaved form ), representing even and odd
+# Given two 32 -bit unsigned integers ( in bit interleaved form ), representing even and odd
 # positioned bits of a 64 -bit unsigned integer ( actually a keccak-[1600, 24] lane ),
 # this function converts them into standard representation, where two 32 -bit
 # unsigned integers hold higher ( 32 -bit ) and lower ( 32 -bit ) bits of standard
-# representation of 64 -bit unsigned integer ( remember it's represented in terms of
-# two 32 -bit elements )
+# representation of 64 -bit unsigned integer
+#
+# Input stack state :
+#
+# [even, odd, ...]
+#
+# After application of logic, stack looks like
+#
+# [hi, lo, ...]
 #
 # This function reverts the action done by `to_bit_interleaved` function implemented above.
 #
 # Read more about bit interleaved representation in section 2.1 of https://keccak.team/files/Keccak-implementation-3.2.pdf
 #
 # See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/utils.hpp#L151-L175
+# for reference implementation in higher level language.
 export.from_bit_interleaved
-    dup
-
-    push.1
-    u32checked_and
-
-    dup.2
-
-    push.1
-    u32checked_and
-
-    u32checked_shl.1
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.1
-    push.1
-    u32checked_and
-
-    u32checked_shl.2
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.1
-    push.1
-    u32checked_and
-
-    u32checked_shl.3
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.2
-    push.1
-    u32checked_and
-
-    u32checked_shl.4
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.2
-    push.1
-    u32checked_and
-
-    u32checked_shl.5
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.3
-    push.1
-    u32checked_and
-
-    u32checked_shl.6
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.3
-    push.1
-    u32checked_and
-
-    u32checked_shl.7
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.4
-    push.1
-    u32checked_and
-
-    u32checked_shl.8
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.4
-    push.1
-    u32checked_and
-
-    u32checked_shl.9
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.5
-    push.1
-    u32checked_and
-
-    u32checked_shl.10
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.5
-    push.1
-    u32checked_and
-
-    u32checked_shl.11
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.6
-    push.1
-    u32checked_and
-
-    u32checked_shl.12
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.6
-    push.1
-    u32checked_and
-
-    u32checked_shl.13
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.7
-    push.1
-    u32checked_and
-
-    u32checked_shl.14
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.7
-    push.1
-    u32checked_and
-
-    u32checked_shl.15
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.8
-    push.1
-    u32checked_and
-
-    u32checked_shl.16
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.8
-    push.1
-    u32checked_and
-
-    u32checked_shl.17
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.9
-    push.1
-    u32checked_and
-
-    u32checked_shl.18
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.9
-    push.1
-    u32checked_and
-
-    u32checked_shl.19
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.10
-    push.1
-    u32checked_and
-
-    u32checked_shl.20
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.10
-    push.1
-    u32checked_and
-
-    u32checked_shl.21
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.11
-    push.1
-    u32checked_and
-
-    u32checked_shl.22
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.11
-    push.1
-    u32checked_and
-
-    u32checked_shl.23
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.12
-    push.1
-    u32checked_and
-
-    u32checked_shl.24
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.12
-    push.1
-    u32checked_and
-
-    u32checked_shl.25
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.13
-    push.1
-    u32checked_and
-
-    u32checked_shl.26
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.13
-    push.1
-    u32checked_and
-
-    u32checked_shl.27
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.14
-    push.1
-    u32checked_and
-
-    u32checked_shl.28
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.14
-    push.1
-    u32checked_and
-
-    u32checked_shl.29
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.15
-    push.1
-    u32checked_and
-
-    u32checked_shl.30
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.15
-    push.1
-    u32checked_and
-
-    u32checked_shl.31
-    u32checked_or
-
-    dup.1
-
-    u32checked_shr.16
-    push.1
-    u32checked_and
-
-    dup.3
-
-    u32checked_shr.16
-    push.1
-    u32checked_and
-
-    u32checked_shl.1
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.17
-    push.1
-    u32checked_and
-
-    u32checked_shl.2
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.17
-    push.1
-    u32checked_and
-
-    u32checked_shl.3
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.18
-    push.1
-    u32checked_and
-
-    u32checked_shl.4
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.18
-    push.1
-    u32checked_and
-
-    u32checked_shl.5
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.19
-    push.1
-    u32checked_and
-
-    u32checked_shl.6
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.19
-    push.1
-    u32checked_and
-
-    u32checked_shl.7
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.20
-    push.1
-    u32checked_and
-
-    u32checked_shl.8
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.20
-    push.1
-    u32checked_and
-
-    u32checked_shl.9
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.21
-    push.1
-    u32checked_and
-
-    u32checked_shl.10
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.21
-    push.1
-    u32checked_and
-
-    u32checked_shl.11
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.22
-    push.1
-    u32checked_and
-
-    u32checked_shl.12
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.22
-    push.1
-    u32checked_and
-
-    u32checked_shl.13
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.23
-    push.1
-    u32checked_and
-
-    u32checked_shl.14
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.23
-    push.1
-    u32checked_and
-
-    u32checked_shl.15
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.24
-    push.1
-    u32checked_and
-
-    u32checked_shl.16
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.24
-    push.1
-    u32checked_and
-
-    u32checked_shl.17
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.25
-    push.1
-    u32checked_and
-
-    u32checked_shl.18
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.25
-    push.1
-    u32checked_and
-
-    u32checked_shl.19
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.26
-    push.1
-    u32checked_and
-
-    u32checked_shl.20
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.26
-    push.1
-    u32checked_and
-
-    u32checked_shl.21
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.27
-    push.1
-    u32checked_and
-
-    u32checked_shl.22
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.27
-    push.1
-    u32checked_and
-
-    u32checked_shl.23
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.28
-    push.1
-    u32checked_and
-
-    u32checked_shl.24
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.28
-    push.1
-    u32checked_and
-
-    u32checked_shl.25
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.29
-    push.1
-    u32checked_and
-
-    u32checked_shl.26
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.29
-    push.1
-    u32checked_and
-
-    u32checked_shl.27
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.30
-    push.1
-    u32checked_and
-
-    u32checked_shl.28
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.30
-    push.1
-    u32checked_and
-
-    u32checked_shl.29
-    u32checked_or
-
-    dup.2
-
-    u32checked_shr.31
-    push.1
-    u32checked_and
-
-    u32checked_shl.30
-    u32checked_or
-
-    dup.3
-
-    u32checked_shr.31
-    push.1
-    u32checked_and
-
-    u32checked_shl.31
-    u32checked_or
+    push.0.0
+
+    repeat.16
+        u32unchecked_shr.2
+        swap
+        u32unchecked_shr.2
+        swap
+
+        # ---
+
+        dup.3
+        dup.3
+
+        push.1
+        u32checked_and
+        swap
+        push.1
+        u32checked_and
+        
+        u32unchecked_shl.31
+        swap
+        u32unchecked_shl.30
+        u32checked_xor
+
+        movup.2
+        u32checked_xor
+        swap
+
+        # ---
+
+        dup.3
+        dup.3
+
+        push.65536
+        u32checked_and
+        swap
+        push.65536
+        u32checked_and
+
+        u32unchecked_shl.15
+        swap
+        u32unchecked_shl.14
+        u32checked_xor
+
+        u32checked_xor
+
+        # ---
+
+        movup.2
+        u32unchecked_shr.1
+        movdn.2
+
+        movup.3
+        u32unchecked_shr.1
+        movdn.3
+    end
+
+    movup.2
+    drop
+    movup.2
+    drop
 end
 
-# given 64 -bytes input ( in terms of sixteen u32 elements on stack top ) to 2-to-1
+# Given 64 -bytes input ( in terms of sixteen u32 elements on stack top ) to 2-to-1
 # keccak256 hash function, this function prepares 5 x 5 x 64 keccak-p[1600, 24] state
 # bit array such that each of twenty five 64 -bit wide lane is represented in bit
 # interleaved form, using two 32 -bit integers. After completion of execution of
-# this function, state array should live in allocated memory ( fifty u32 elements ).
+# this function, state array should live in allocated memory ( total fifty u32 elements, stored in
+# 13 consecutive memory addresses s.t. starting absolute address is provided ).
+#
+# Input stack state :
+#
+# [state_addr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, ...]
+#
+# Note, state_addr is the starting absolute memory address where keccak-p[1600, 24] state
+# is kept. Consecutive addresses can be computed by repeated application of `sub.1` instruction.
+#
+# Final stack state :
+#
+# [...]
 #
 # See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L73-L153
-proc.to_state_array.4
-    popw.local.0
-    popw.local.1
-    popw.local.2
-    popw.local.3
+proc.to_state_array
+    repeat.4
+        movdn.4
+        exec.to_bit_interleaved
 
-    exec.to_bit_interleaved
+        movup.3
+        movup.3
 
-    exec.rev_4_elements
-    drop
-    drop
-    swap
+        exec.to_bit_interleaved
 
-    exec.rev_4_elements
-    swap
+        movup.3
+        movup.3
 
-    exec.to_bit_interleaved
+        dup.4
+        popw.mem
 
-    exec.rev_4_elements
-    drop
-    drop
-    swap
-
-    movup.2
-    movup.3
-
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
+        sub.1
     end
-
-    popw.mem # write to state[0..4]
-
-    exec.to_bit_interleaved
-
-    exec.rev_4_elements
-    drop
-    drop
-    swap
-
-    exec.rev_4_elements
-    swap
-
-    exec.to_bit_interleaved
-
-    exec.rev_4_elements
-    drop
-    drop
-    swap
-
-    movup.2
-    movup.3
-
-    pushw.local.0
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    popw.mem # write to state[4..8]
-
-    exec.to_bit_interleaved
-
-    exec.rev_4_elements
-    drop
-    drop
-    swap
-
-    exec.rev_4_elements
-    swap
-
-    exec.to_bit_interleaved
-
-    exec.rev_4_elements
-    drop
-    drop
-    swap
-
-    movup.2
-    movup.3
-
-    pushw.local.0
-
-    drop
-    drop
-    swap
-    drop
-
-    popw.mem # write to state[8..12]
-
-    exec.to_bit_interleaved
-
-    exec.rev_4_elements
-    drop
-    drop
-    swap
-
-    exec.rev_4_elements
-    swap
-
-    exec.to_bit_interleaved
-
-    exec.rev_4_elements
-    drop
-    drop
-    swap
-
-    movup.2
-    movup.3
-
-    pushw.local.0
-
-    drop
-    drop
-    drop
-
-    popw.mem # write to state[12..16]
 
     push.0.0.0.1
+    dup.4
+    popw.mem
 
-    pushw.local.1
-
-    repeat.3
-        swap
-        drop
-    end
-
-    popw.mem # write to state[16..20]
+    sub.1
 
     push.0.0.0.0
+    dup.4
+    popw.mem
 
-    pushw.local.1
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    popw.mem # write to state[20..24]
+    sub.1
 
     push.0.0.0.0
+    dup.4
+    popw.mem
 
-    pushw.local.1
-
-    drop
-    drop
-    swap
-    drop
-
-    popw.mem # write to state[24..28]
+    sub.1
 
     push.0.0.0.0
+    dup.4
+    popw.mem
 
-    pushw.local.1
-
-    drop
-    drop
-    drop
-
-    popw.mem # write to state[28..32]
+    sub.1
 
     push.0.0.2147483648.0
+    dup.4
+    popw.mem
 
-    pushw.local.2
-
-    repeat.3
-        swap
-        drop
-    end
-
-    popw.mem # write to state[32..36]
+    sub.1
 
     push.0.0.0.0
+    dup.4
+    popw.mem
 
-    pushw.local.2
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    popw.mem # write to state[36..40]
+    sub.1
 
     push.0.0.0.0
+    dup.4
+    popw.mem
 
-    pushw.local.2
-
-    drop
-    drop
-    swap
-    drop
-
-    popw.mem # write to state[40..44]
+    sub.1
 
     push.0.0.0.0
+    dup.4
+    popw.mem
 
-    pushw.local.2
-
-    drop
-    drop
-    drop
-
-    popw.mem # write to state[44..48]
+    sub.1
 
     push.0.0.0.0
-
-    pushw.local.3
-
-    repeat.3
-        swap
-        drop
-    end
-
-    popw.mem # write to state[48..50]
+    movup.4
+    popw.mem
 end
 
-# given 32 -bytes digest ( in terms of eight u32 elements on stack top ) in bit interleaved form,
+# Given 32 -bytes digest ( in terms of eight u32 elements on stack top ) in bit interleaved form,
 # this function attempts to convert those into standard representation, where eight u32 elements
 # live on stack top, each pair of them hold higher and lower bits of 64 -bit unsigned
 # integer ( lane of keccak-p[1600, 24] state array )
 #
+# Input stack state :
+#
+# [lane0_even, lane0_odd, lane1_even, lane1_odd, lane2_even, lane2_odd, lane3_even, lane3_odd, ...]
+#
+# Output stack state :
+#
+# [dig0_hi, dig0_lo, dig1_hi, dig1_lo, dig2_hi, dig2_lo, dig3_hi, dig3_lo, ...]
+#
 # See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L180-L209
 proc.to_digest
-    movup.7
-    movup.7
+    repeat.4
+        movup.7
+        movup.7
 
-    exec.from_bit_interleaved
-
-    exec.rev_4_elements
-    drop
-    drop
-    swap
-
-    movup.7
-    movup.7
-
-    exec.from_bit_interleaved
-
-    exec.rev_4_elements
-    drop
-    drop
-    swap
-
-    movup.7
-    movup.7
-
-    exec.from_bit_interleaved
-
-    exec.rev_4_elements
-    drop
-    drop
-    swap
-
-    movup.7
-    movup.7
-
-    exec.from_bit_interleaved
-
-    exec.rev_4_elements
-    drop
-    drop
-    swap
+        exec.from_bit_interleaved
+    end
 end
 
 # given 64 -bytes input, in terms of sixteen 32 -bit unsigned integers, where each pair
@@ -5243,24 +3964,7 @@ end
 #
 # See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L232-L257
 export.hash.13
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
     push.env.locaddr.0
-
     exec.to_state_array
 
     push.0.0.0
