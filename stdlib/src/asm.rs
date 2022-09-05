@@ -759,738 +759,46 @@ proc.xor_4_elements
     u32checked_xor
 end
 
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's θ function, which is
-# implemented in terms of 32 -bit word size;
-# see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L55-L98 for original implementation
-proc.theta.7
-    popw.local.0
-    popw.local.1
-    popw.local.2
-    popw.local.3
+# Keccak-p[1600, 24] permutation's θ step mapping function, which is implemented 
+# in terms of 32 -bit word size ( bit interleaved representation )
+#
+# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L55-L98 for original implementation
+#
+# Expected stack state :
+#
+# [state_addr, ...]
+#
+# Final stack state :
+#
+# [ ... ]
+#
+# Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
+# s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
+#
+# Consecutive memory addresses can be computed by repeated application of `sub.1`.
+export.theta.3
+    dup
+    push.env.locaddr.0
+    pop.mem
 
-    # --- begin https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L71-L79 ---
+    # compute (S[0] ^ S[10] ^ S[20] ^ S[30] ^ S[40], S[1] ^ S[11] ^ S[21] ^ S[31] ^ S[41])
 
-    # compute a[0] ^ a[10] ^ a[20] ^ a[30] ^ a[40]
-    loadw.local.0
-    swap
+    # bring S[0], S[1]
+    dup
+    pushw.mem
+
+    movup.2
     drop
     movup.2
     drop
 
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
-
-    swap
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32checked_xor
-
-    pushw.local.1
-    drop
-    swap
-    drop
-
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
-
-    swap
-    pushw.mem
-    drop
-    drop
-    swap
-    drop
-
-    u32checked_xor
-    u32checked_xor
-
-    pushw.local.2
-    drop
-    drop
-    swap
-    drop
-
-    pushw.mem
-    repeat.3
-        swap
-        drop
-    end
-
-    u32checked_xor
-
-    # stack = [c_0]
-    # -----
-    # compute a[1] ^ a[11] ^ a[21] ^ a[31] ^ a[41]
-
-    pushw.local.0
-    swap
-    drop
     movup.2
-    drop
+    sub.2
 
-    pushw.mem
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    swap
-    pushw.mem
-    drop
-    drop
-    drop
-
-    u32checked_xor
-
-    pushw.local.1
-    drop
-    swap
-    drop
-
+    # bring S[10], S[11]
+    dup
     pushw.mem
 
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    swap
-
-    pushw.mem
-    drop
-    drop
-    drop
-
-    u32checked_xor
-    u32checked_xor
-
-    pushw.local.2
-    drop
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32checked_xor
-
-    # stack = [c_1, c_0]
-    # -----
-    # compute a[2] ^ a[12] ^ a[22] ^ a[32] ^ a[42]
-
-    pushw.local.0
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-    swap
-    drop
-
-    swap
-
-    pushw.mem
-
-    repeat.3
-        swap
-        drop
-    end
-
-    u32checked_xor
-
-    pushw.local.1
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-    swap
-    drop
-
-    u32checked_xor
-
-    pushw.local.2
-
-    swap
-    drop
-    movup.2
-    drop
-
-    pushw.mem
-
-    repeat.3
-        swap
-        drop
-    end
-
-    swap
-
-    pushw.mem
-
-    drop
-    drop
-    swap
-    drop
-
-    u32checked_xor
-    u32checked_xor
-
-    # stack = [c_2, c_1, c_0]
-    # -----
-    # compute a[3] ^ a[13] ^ a[23] ^ a[33] ^ a[43]
-
-    pushw.local.0
-
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-    drop
-
-    swap
-
-    pushw.mem
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32checked_xor
-
-    pushw.local.1
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-    drop
-
-    u32checked_xor
-
-    pushw.local.2
-
-    swap
-    drop
-    movup.2
-    drop
-
-    pushw.mem
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    swap
-
-    pushw.mem
-
-    drop
-    drop
-    drop
-
-    u32checked_xor
-    u32checked_xor
-
-    # stack = [c_3, c_2, c_1, c_0]
-    # -----
-    # compute a[4] ^ a[14] ^ a[24] ^ a[34] ^ a[44]
-
-    pushw.local.0
-
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    repeat.3
-        swap
-        drop
-    end
-
-    swap
-
-    pushw.mem
-
-    drop
-    drop
-    swap
-    drop
-
-    u32checked_xor
-
-    pushw.local.1
-
-    drop
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    repeat.3
-        swap
-        drop
-    end
-
-    u32checked_xor
-
-    pushw.local.2
-
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-    swap
-    drop
-
-    swap
-
-    pushw.mem
-
-    repeat.3
-        swap
-        drop
-    end
-
-    u32checked_xor
-    u32checked_xor
-
-    # stack = [c_4, c_3, c_2, c_1, c_0]
-    # -----
-    # compute a[5] ^ a[15] ^ a[25] ^ a[35] ^ a[45]
-
-    pushw.local.0
-
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    swap
-
-    pushw.mem
-
-    drop
-    drop
-    drop
-
-    u32checked_xor
-
-    pushw.local.1
-
-    drop
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32checked_xor
-
-    pushw.local.2
-
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-    drop
-
-    swap
-
-    pushw.mem
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32checked_xor
-    u32checked_xor
-
-    # stack = [c_5, c_4, c_3, c_2, c_1, c_0]
-    # -----
-    # compute a[6] ^ a[16] ^ a[26] ^ a[36] ^ a[46]
-
-    pushw.local.0
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-    swap
-    drop
-
-    pushw.local.1
-
-    swap
-    drop
-    movup.2
-    drop
-
-    pushw.mem
-
-    repeat.3
-        swap
-        drop
-    end
-
-    swap
-
-    pushw.mem
-
-    drop
-    drop
-    swap
-    drop
-
-    u32checked_xor
-    u32checked_xor
-
-    pushw.local.2
-
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    repeat.3
-        swap
-        drop
-    end
-
-    swap
-
-    pushw.mem
-
-    drop
-    drop
-    swap
-    drop
-
-    u32checked_xor
-    u32checked_xor
-
-    # stack = [c_6, c_5, c_4, c_3, c_2, c_1, c_0]
-    # -----
-    # compute a[7] ^ a[17] ^ a[27] ^ a[37] ^ a[47]
-
-    pushw.local.0
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-    drop
-
-    pushw.local.1
-
-    swap
-    drop
-    movup.2
-    drop
-
-    pushw.mem
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    swap
-
-    pushw.mem
-
-    drop
-    drop
-    drop
-
-    u32checked_xor
-    u32checked_xor
-
-    pushw.local.2
-
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    swap
-
-    pushw.mem
-
-    drop
-    drop
-    drop
-
-    u32checked_xor
-    u32checked_xor
-
-    # stack = [c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0]
-    # -----
-    # compute a[8] ^ a[18] ^ a[28] ^ a[38] ^ a[48]
-
-    pushw.local.0
-
-    drop
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    repeat.3
-        swap
-        drop
-    end
-
-    pushw.local.1
-
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-    swap
-    drop
-
-    swap
-
-    pushw.mem
-
-    repeat.3
-        swap
-        drop
-    end
-
-    u32checked_xor
-    u32checked_xor
-
-    pushw.local.2
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-    swap
-    drop
-
-    u32checked_xor
-
-    pushw.local.3
-
-    repeat.3
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    repeat.3
-        swap
-        drop
-    end
-
-    u32checked_xor
-
-    # stack = [c_8, c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0]
-    # -----
-    # compute a[9] ^ a[19] ^ a[29] ^ a[39] ^ a[49]
-
-    pushw.local.0
-
-    drop
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.local.1
-
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-    drop
-
-    swap
-
-    pushw.mem
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32checked_xor
-    u32checked_xor
-
-    pushw.local.2
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-    drop
-
-    pushw.local.3
-
-    repeat.3
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    u32checked_xor
-    u32checked_xor
-
-    push.0.0
-
-    # stack = [0, 0, c_9, c_8, c_7, c_6, c_5, c_4, c_3, c_2, c_1, c_0]
-
-    exec.rev_4_elements
-    popw.local.6 # -> to mem [c8, c9, 0, 0]
-
-    exec.rev_4_elements
-    popw.local.5 # -> to mem [c4, c5, c6, c7]
-
-    exec.rev_4_elements
-    popw.local.4 # -> to mem [c0, c1, c2, c3]
-
-    # --- end https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L71-L79 ---
-
-    # --- begin https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L81-L91 ---
-
-    pushw.local.6
-    movup.3
-    drop
-    movup.2
-    drop
-
-    pushw.local.4
     drop
     drop
 
@@ -1498,22 +806,20 @@ proc.theta.7
     u32checked_xor
 
     swap
-    movup.2
-    swap
 
-    u32checked_rotl.1
+    movup.3
     u32checked_xor
 
-    # stack = [d0, d1]
+    swap
 
-    pushw.local.4
-    movup.3
-    drop
     movup.2
-    drop
+    sub.3
 
-    pushw.local.5
-    movup.3
+    # bring S[20], S[21]
+    dup
+    pushw.mem
+
+    movup.2
     drop
     movup.2
     drop
@@ -1522,287 +828,877 @@ proc.theta.7
     u32checked_xor
 
     swap
-    u32checked_rotl.1
-    movup.2
-    u32checked_xor
-
-    # stack = [d2, d3, d0, d1]
-
-    movup.3
-    movup.3
-
-    # stack = [d0, d1, d2, d3]
-
-    pushw.local.4
-    drop
-    drop
-
-    pushw.local.5
-    drop
-    drop
 
     movup.3
     u32checked_xor
 
     swap
-    u32checked_rotl.1
+
     movup.2
-    u32checked_xor
+    sub.2
 
-    # stack = [d4, d5, d0, d1, d2, d3]
-
-    pushw.local.5
-    movup.3
-    drop
-    movup.2
-    drop
-
-    pushw.local.6
-    movup.3
-    drop
-    movup.2
-    drop
-
-    movup.3
-    u32checked_xor
-
-    swap
-    u32checked_rotl.1
-    movup.2
-    u32checked_xor
-
-    # stack = [d6, d7, d4, d5, d0, d1, d2, d3]
-
-    movup.3
-    movup.3
-
-    # stack = [d4, d5, d6, d7, d0, d1, d2, d3]
-
-    pushw.local.5
-    drop
-    drop
-
-    pushw.local.4
-    movup.3
-    drop
-    movup.2
-    drop
-
-    movup.3
-    u32checked_xor
-
-    swap
-    u32checked_rotl.1
-    movup.2
-    u32checked_xor
-
-    # stack = [d8, d9, d4, d5, d6, d7, d0, d1, d2, d3]
-
-    push.0.0
-    movup.3
-    movup.3
-
-    # stack = [d8, d9, 0, 0, d4, d5, d6, d7, d0, d1, d2, d3]
-
-    popw.local.6 # -> to mem [d8, d9, 0, 0]
-    popw.local.5 # -> to mem [d4, d5, d6, d7]
-    popw.local.4 # -> to mem [d0, d1, d2, d3]
-
-    # --- end https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L81-L91 ---
-
-    pushw.local.0
-    dupw
-
+    # bring S[30], S[31]
+    dup
     pushw.mem
 
-    pushw.local.4
-    exec.rev_4_elements
+    drop
+    drop
 
-    exec.xor_4_elements # compute state[0..4]
+    movup.3
+    u32checked_xor
 
-    movup.7
+    swap
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.2
+    sub.3
+
+    # bring S[40], S[41]
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    movup.2
+    u32checked_xor
+
+    swap
+
+    movup.2
+    u32checked_xor
+
+    swap
+
+    # stack = [c0, c1]
+    # compute (S[2] ^ S[12] ^ S[22] ^ S[32] ^ S[42], S[3] ^ S[13] ^ S[23] ^ S[33] ^ S[43])
+
+    push.env.locaddr.0
+    push.mem
+    
+    # bring S[2], S[3]
+    dup
+    pushw.mem
+
+    drop
+    drop
+
+    movup.2
+    sub.3
+
+    # bring S[12], S[13]
+    dup
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.2
+    sub.2
+
+    # bring S[22], S[23]
+    dup
+    pushw.mem
+
+    drop
+    drop
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.2
+    sub.3
+
+    # bring S[32], S[33]
+    dup
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.2
+    sub.2
+
+    # bring S[42], S[43]
+    pushw.mem
+
+    drop
+    drop
+
+    movup.2
+    u32checked_xor
+
+    swap
+
+    movup.2
+    u32checked_xor
+
+    swap
+
+    movup.3
+    movup.3
+
+    # stack = [c0, c1, c2, c3]
+
+    push.env.locaddr.1
     popw.mem
 
+    # compute (S[4] ^ S[14] ^ S[24] ^ S[34] ^ S[44], S[5] ^ S[15] ^ S[25] ^ S[35] ^ S[45])
+
+    push.env.locaddr.0
+    push.mem
+    sub.1
+
+    # bring S[4], S[5]
+    dup
     pushw.mem
 
-    pushw.local.5
-    exec.rev_4_elements
+    movup.2
+    drop
+    movup.2
+    drop
 
-    exec.xor_4_elements # compute state[4..8]
+    movup.2
+    sub.2
+
+    # bring S[14], S[15]
+    dup
+    pushw.mem
+
+    drop
+    drop
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.2
+    sub.3
+
+    # bring S[24], S[25]
+    dup
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.2
+    sub.2
+
+    # bring S[34], S[35]
+    dup
+    pushw.mem
+
+    drop
+    drop
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.2
+    sub.3
+
+    # bring S[44], S[45]
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    movup.2
+    u32checked_xor
+
+    swap
+
+    movup.2
+    u32checked_xor
+
+    swap
+
+    # stack = [c4, c5]
+    # compute (S[6] ^ S[16] ^ S[26] ^ S[36] ^ S[46], S[7] ^ S[17] ^ S[27] ^ S[37] ^ S[47])
+
+    push.env.locaddr.0
+    push.mem
+    sub.1
+    
+    # bring S[6], S[7]
+    dup
+    pushw.mem
+
+    drop
+    drop
+
+    movup.2
+    sub.3
+
+    # bring S[16], S[17]
+    dup
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.2
+    sub.2
+
+    # bring S[26], S[27]
+    dup
+    pushw.mem
+
+    drop
+    drop
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.2
+    sub.3
+
+    # bring S[36], S[37]
+    dup
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.2
+    sub.2
+
+    # bring S[46], S[47]
+    pushw.mem
+
+    drop
+    drop
+
+    movup.2
+    u32checked_xor
+
+    swap
+
+    movup.2
+    u32checked_xor
+
+    swap
+
+    movup.3
+    movup.3
+
+    # stack = [c4, c5, c6, c7]
+
+    push.env.locaddr.2
+    popw.mem
+
+    # compute (S[8] ^ S[18] ^ S[28] ^ S[38] ^ S[48], S[9] ^ S[19] ^ S[29] ^ S[39] ^ S[49])
+
+    push.env.locaddr.0
+    push.mem
+    sub.2
+
+    # bring S[8], S[9]
+    dup
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    movup.2
+    sub.2
+
+    # bring S[18], S[19]
+    dup
+    pushw.mem
+
+    drop
+    drop
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.2
+    sub.3
+
+    # bring S[28], S[29]
+    dup
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.2
+    sub.2
+
+    # bring S[38], S[39]
+    dup
+    pushw.mem
+
+    drop
+    drop
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.3
+    u32checked_xor
+
+    swap
+
+    movup.2
+    sub.3
+
+    # bring S[48], S[49]
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    movup.2
+    u32checked_xor
+
+    swap
+
+    movup.2
+    u32checked_xor
+
+    swap
+
+    # stack = [c8, c9]
+
+    push.env.locaddr.2
+    pushw.mem
+    push.env.locaddr.1
+    pushw.mem
+
+    # stack = [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9]
+
+    dup.8
+    dup.4
+    u32unchecked_rotl.1
+    u32checked_xor
+
+    dup.10
+    dup.4
+    u32checked_xor
+
+    dup.2
+    dup.8
+    u32unchecked_rotl.1
+    u32checked_xor
+
+    dup.4
+    dup.8
+    u32checked_xor
 
     movup.6
-    popw.mem
-
-    pushw.mem
-
-    pushw.local.6
-    exec.rev_4_elements
-
-    drop
-    drop
-
-    pushw.local.4
-    exec.rev_4_elements
-
-    drop
-    drop
-
-    exec.xor_4_elements # compute state[8..12]
-
-    movup.5
-    popw.mem
-
-    pushw.mem
-
-    pushw.local.4
-    drop
-    drop
-    swap
-
-    pushw.local.5
-    exec.rev_4_elements
-
-    drop
-    drop
-
-    exec.xor_4_elements # compute state[12..16]
-
-    movup.4
-    popw.mem
-
-    pushw.local.1
-    dupw
-
-    pushw.mem
-
-    pushw.local.5
-    drop
-    drop
-    swap
-
-    pushw.local.6
-    exec.rev_4_elements
-
-    drop
-    drop
-
-    exec.xor_4_elements # compute state[16..20]
+    dup.11
+    u32unchecked_rotl.1
+    u32checked_xor
 
     movup.7
-    popw.mem
+    dup.10
+    u32checked_xor
 
-    pushw.mem
+    movup.8
+    movup.13
+    u32unchecked_rotl.1
+    u32checked_xor
 
-    pushw.local.4
-    exec.rev_4_elements
+    movup.9
+    movup.12
+    u32checked_xor
 
-    exec.xor_4_elements # compute state[20..24]
+    movup.10
+    movup.10
+    u32unchecked_rotl.1
+    u32checked_xor
 
-    movup.6
-    popw.mem
+    movup.10
+    movup.10
+    u32checked_xor
 
-    pushw.mem
+    # stack = [d9, d8, d7, d6, d5, d4, d3, d2, d1, d0]
 
-    pushw.local.5
-    exec.rev_4_elements
-
-    exec.xor_4_elements # compute state[24..28]
-
-    movup.5
-    popw.mem
-
-    pushw.mem
-
-    pushw.local.6
-    exec.rev_4_elements
-
-    drop
-    drop
-
-    pushw.local.4
-    exec.rev_4_elements
-
-    drop
-    drop
-
-    exec.xor_4_elements # compute state[28..32]
-
-    movup.4
-    popw.mem
-
-    pushw.local.2
-    dupw
-
-    pushw.mem
-
-    pushw.local.4
-    drop
-    drop
     swap
-
-    pushw.local.5
-    exec.rev_4_elements
-
-    drop
-    drop
-
-    exec.xor_4_elements # compute state[32..36]
-
+    movup.2
+    movup.3
+    movup.4
+    movup.5
+    movup.6
     movup.7
-    popw.mem
+    movup.8
+    movup.9
 
-    pushw.mem
+    # stack = [d0, d1, d2, d3, d4, d5, d6, d7, d8, d9]
 
-    pushw.local.5
-    drop
-    drop
-    swap
+    push.env.locaddr.0
+    push.mem
 
-    pushw.local.6
-    exec.rev_4_elements
-
-    drop
-    drop
-
-    exec.xor_4_elements # compute state[36..40]
-
-    movup.6
-    popw.mem
-
-    pushw.mem
-
-    pushw.local.4
-    exec.rev_4_elements
-
-    exec.xor_4_elements # compute state[40..44]
-
-    movup.5
-    popw.mem
-
-    pushw.mem
-
-    pushw.local.5
-    exec.rev_4_elements
-
-    exec.xor_4_elements # compute state[44..48]
-
-    movup.4
-    popw.mem
-
-    pushw.local.3
-
-    repeat.3
-        swap
-        drop
-    end
+    # compute state[0..4)
 
     dup
     pushw.mem
 
-    pushw.local.6
-    exec.rev_4_elements
+    dup.5
+    u32checked_xor
 
-    exec.xor_4_elements # compute state[48..50]
+    swap
+    dup.6
+    u32checked_xor
+    swap
+
+    movup.2
+    dup.7
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    dup.8
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    popw.mem
+
+    sub.1
+
+    # compute state[4..8)
+
+    dup
+    pushw.mem
+
+    dup.9
+    u32checked_xor
+
+    swap
+    dup.10
+    u32checked_xor
+    swap
+
+    movup.2
+    dup.11
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    dup.12
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    popw.mem
+
+    sub.1
+
+    # compute state[8..12)
+
+    dup
+    pushw.mem
+
+    dup.13
+    u32checked_xor
+
+    swap
+    dup.14
+    u32checked_xor
+    swap
+
+    movup.2
+    dup.5
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    dup.6
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    popw.mem
+
+    sub.1
+
+    # compute state[12..16)
+
+    dup
+    pushw.mem
+
+    dup.7
+    u32checked_xor
+
+    swap
+    dup.8
+    u32checked_xor
+    swap
+
+    movup.2
+    dup.9
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    dup.10
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    popw.mem
+
+    sub.1
+
+    # compute state[16..20)
+
+    dup
+    pushw.mem
+
+    dup.11
+    u32checked_xor
+
+    swap
+    dup.12
+    u32checked_xor
+    swap
+
+    movup.2
+    dup.13
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    dup.14
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    popw.mem
+
+    sub.1
+
+    # compute state[20..24)
+
+    dup
+    pushw.mem
+
+    dup.5
+    u32checked_xor
+
+    swap
+    dup.6
+    u32checked_xor
+    swap
+
+    movup.2
+    dup.7
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    dup.8
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    popw.mem
+
+    sub.1
+
+    # compute state[24..28)
+
+    dup
+    pushw.mem
+
+    dup.9
+    u32checked_xor
+
+    swap
+    dup.10
+    u32checked_xor
+    swap
+
+    movup.2
+    dup.11
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    dup.12
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    popw.mem
+
+    sub.1
+
+    # compute state[28..32)
+
+    dup
+    pushw.mem
+
+    dup.13
+    u32checked_xor
+
+    swap
+    dup.14
+    u32checked_xor
+    swap
+
+    movup.2
+    dup.5
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    dup.6
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    popw.mem
+
+    sub.1
+
+    # compute state[32..36)
+
+    dup
+    pushw.mem
+
+    dup.7
+    u32checked_xor
+
+    swap
+    dup.8
+    u32checked_xor
+    swap
+
+    movup.2
+    dup.9
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    dup.10
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    popw.mem
+
+    sub.1
+
+    # compute state[36..40)
+
+    dup
+    pushw.mem
+
+    dup.11
+    u32checked_xor
+
+    swap
+    dup.12
+    u32checked_xor
+    swap
+
+    movup.2
+    dup.13
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    dup.14
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    popw.mem
+
+    sub.1
+
+    # compute state[40..44)
+
+    dup
+    pushw.mem
+
+    movup.5
+    u32checked_xor
+
+    swap
+    movup.5
+    u32checked_xor
+    swap
+
+    movup.2
+    movup.5
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    movup.5
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    popw.mem
+
+    sub.1
+
+    # compute state[44..48)
+
+    dup
+    pushw.mem
+
+    movup.5
+    u32checked_xor
+
+    swap
+    movup.5
+    u32checked_xor
+    swap
+
+    movup.2
+    movup.5
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    movup.5
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    popw.mem
+
+    sub.1
+
+    # compute state[48..50)
+
+    dup
+    pushw.mem
+
+    movup.5
+    u32checked_xor
+
+    swap
+    movup.5
+    u32checked_xor
+    swap
 
     movup.4
     popw.mem
@@ -3531,10 +3427,14 @@ proc.round.4
     movupw.3
     storew.local.3
 
-    # reverse placement order of four VM words
-    swapw
-    movupw.2
-    movupw.3
+    dropw
+    dropw
+    dropw
+
+    repeat.3
+        swap
+        drop
+    end
 
     exec.theta
 
