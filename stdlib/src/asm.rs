@@ -3479,465 +3479,39 @@ proc.chi.7
     popw.mem # write to state[48..50]
 end
 
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (1u, 0u) as template arguments
-proc.iota_round_1
+# Keccak-p[1600, 24] permutation's ι ( iota ) function, which is
+# implemented in terms of 32 -bit word size ( bit interleaved form ); 
+# imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
+# invoked with (c0, c1) as template arguments
+#
+# Expected stack state :
+#
+# [state_addr, c0, c1, ...]
+#
+# Final stack state :
+#
+# [ ... ]
+#
+# All this routine does is
+#
+# state[0] ^= c0
+# state[1] ^= c1
+proc.iota
     dup
     pushw.mem
 
-    push.1
+    movup.5
     u32checked_xor
 
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (0u, 137u) as template arguments
-proc.iota_round_2
-    dup
-    pushw.mem
-
     swap
 
-    push.137
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (0u, 2147483787u) as template arguments
-proc.iota_round_3
-    dup
-    pushw.mem
-
-    swap
-
-    push.2147483787
+    movup.5
     u32checked_xor
 
     swap
 
     movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (0u, 2147516544u) as template arguments
-proc.iota_round_4
-    dup
-    pushw.mem
-
-    swap
-
-    push.2147516544
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (1u, 139u) as template arguments
-proc.iota_round_5
-    dup
-    pushw.mem
-
-    push.1
-    u32checked_xor
-
-    swap
-
-    push.139
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (1u, 32768u) as template arguments
-proc.iota_round_6
-    dup
-    pushw.mem
-
-    push.1
-    u32checked_xor
-
-    swap
-
-    push.32768
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (1u, 2147516552u) as template arguments
-proc.iota_round_7
-    dup
-    pushw.mem
-
-    push.1
-    u32checked_xor
-
-    swap
-
-    push.2147516552
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (1u, 2147483778u) as template arguments
-proc.iota_round_8
-    dup
-    pushw.mem
-
-    push.1
-    u32checked_xor
-
-    swap
-
-    push.2147483778
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (0u, 11u) as template arguments
-proc.iota_round_9
-    dup
-    pushw.mem
-
-    swap
-
-    push.11
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (0u, 10u) as template arguments
-proc.iota_round_10
-    dup
-    pushw.mem
-
-    swap
-
-    push.10
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (1u, 32898u) as template arguments
-proc.iota_round_11
-    dup
-    pushw.mem
-
-    push.1
-    u32checked_xor
-
-    swap
-
-    push.32898
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (0u, 32771u) as template arguments
-proc.iota_round_12
-    dup
-    pushw.mem
-
-    swap
-
-    push.32771
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (1u, 32907u) as template arguments
-proc.iota_round_13
-    dup
-    pushw.mem
-
-    push.1
-    u32checked_xor
-
-    swap
-
-    push.32907
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (1u, 2147483659u) as template arguments
-proc.iota_round_14
-    dup
-    pushw.mem
-
-    push.1
-    u32checked_xor
-
-    swap
-
-    push.2147483659
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (1u, 2147483786u) as template arguments
-proc.iota_round_15
-    dup
-    pushw.mem
-
-    push.1
-    u32checked_xor
-
-    swap
-
-    push.2147483786
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (1u, 2147483777u) as template arguments
-proc.iota_round_16
-    dup
-    pushw.mem
-
-    push.1
-    u32checked_xor
-
-    swap
-
-    push.2147483777
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (0u, 2147483777u) as template arguments
-proc.iota_round_17
-    dup
-    pushw.mem
-
-    swap
-
-    push.2147483777
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (0u, 2147483656u) as template arguments
-proc.iota_round_18
-    dup
-    pushw.mem
-
-    swap
-
-    push.2147483656
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (0u, 131u) as template arguments
-proc.iota_round_19
-    dup
-    pushw.mem
-
-    swap
-
-    push.131
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (0u, 2147516419u) as template arguments
-proc.iota_round_20
-    dup
-    pushw.mem
-
-    swap
-
-    push.2147516419
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (1u, 2147516552u) as template arguments
-proc.iota_round_21
-    dup
-    pushw.mem
-
-    push.1
-    u32checked_xor
-
-    swap
-
-    push.2147516552
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (0u, 2147483784u) as template arguments
-proc.iota_round_22
-    dup
-    pushw.mem
-
-    swap
-
-    push.2147483784
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (1u, 32768u) as template arguments
-proc.iota_round_23
-    dup
-    pushw.mem
-
-    push.1
-    u32checked_xor
-
-    swap
-
-    push.32768
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
-end
-
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size; imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (0u, 2147516546u) as template arguments
-proc.iota_round_24
-    dup
-    pushw.mem
-
-    swap
-
-    push.2147516546
-    u32checked_xor
-
-    swap
-
-    movup.4
-    popw.mem # write to state[0..2]
+    popw.mem
 end
 
 # keccak-p[b, n_r] permutation round, without `iota` function
@@ -3990,11 +3564,19 @@ end
 # 64 -bit lane is represented in bit interleaved form ( in terms of two 32 -bit words ).
 #
 # See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L379-L427
-proc.keccak_p.4
+proc.keccak_p.5
     popw.local.0
     popw.local.1
     popw.local.2
     popw.local.3
+
+    pushw.local.0
+    repeat.3
+        swap
+        drop
+    end
+    push.env.locaddr.4
+    pop.mem
 
     # permutation round 1
     pushw.local.3
@@ -4004,14 +3586,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_1
+    push.0.1
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 2
     pushw.local.3
@@ -4021,14 +3599,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_2
+    push.137.0
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 3
     pushw.local.3
@@ -4038,14 +3612,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_3
+    push.2147483787.0
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 4
     pushw.local.3
@@ -4055,14 +3625,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_4
+    push.2147516544.0
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 5
     pushw.local.3
@@ -4072,14 +3638,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_5
+    push.139.1
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 6
     pushw.local.3
@@ -4089,14 +3651,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_6
+    push.32768.1
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 7
     pushw.local.3
@@ -4106,14 +3664,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_7
+    push.2147516552.1
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 8
     pushw.local.3
@@ -4123,14 +3677,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_8
+    push.2147483778.1
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 9
     pushw.local.3
@@ -4140,14 +3690,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_9
+    push.11.0
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 10
     pushw.local.3
@@ -4157,14 +3703,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_10
+    push.10.0
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 11
     pushw.local.3
@@ -4174,14 +3716,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_11
+    push.32898.1
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 12
     pushw.local.3
@@ -4191,14 +3729,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_12
+    push.32771.0
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 13
     pushw.local.3
@@ -4208,14 +3742,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_13
+    push.32907.1
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 14
     pushw.local.3
@@ -4225,14 +3755,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_14
+    push.2147483659.1
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 15
     pushw.local.3
@@ -4242,14 +3768,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_15
+    push.2147483786.1
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 16
     pushw.local.3
@@ -4259,14 +3781,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_16
+    push.2147483777.1
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 17
     pushw.local.3
@@ -4276,14 +3794,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_17
+    push.2147483777.0
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 18
     pushw.local.3
@@ -4293,14 +3807,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_18
+    push.2147483656.0
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 19
     pushw.local.3
@@ -4310,14 +3820,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_19
+    push.131.0
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 20
     pushw.local.3
@@ -4327,14 +3833,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_20
+    push.2147516419.0
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 21
     pushw.local.3
@@ -4344,14 +3846,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_21
+    push.2147516552.1
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 22
     pushw.local.3
@@ -4361,14 +3859,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_22
+    push.2147483784.0
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 23
     pushw.local.3
@@ -4378,14 +3872,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_23
+    push.32768.1
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 
     # permutation round 24
     pushw.local.3
@@ -4395,14 +3885,10 @@ proc.keccak_p.4
 
     exec.round
 
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    exec.iota_round_24
+    push.2147516546.0
+    push.env.locaddr.4
+    push.mem
+    exec.iota
 end
 
 # Given two 32 -bit unsigned integers ( standard form ), representing upper and lower
