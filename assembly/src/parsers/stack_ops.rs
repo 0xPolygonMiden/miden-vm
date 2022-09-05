@@ -47,7 +47,7 @@ pub fn parse_dup(
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => span_ops.push(Operation::Dup0),
-        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration, 1)? {
             0 => span_ops.push(Operation::Dup0),
             1 => span_ops.push(Operation::Dup1),
             2 => span_ops.push(Operation::Dup2),
@@ -104,7 +104,7 @@ pub fn parse_dupw(
             span_ops.push(Operation::Dup3);
             span_ops.push(Operation::Dup3);
         }
-        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration, 1)? {
             0 => {
                 span_ops.push(Operation::Dup3);
                 span_ops.push(Operation::Dup3);
@@ -147,7 +147,7 @@ pub fn parse_swap(
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => span_ops.push(Operation::Swap),
-        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration, 1)? {
             1 => span_ops.push(Operation::Swap),
             2 => {
                 span_ops.push(Operation::Swap);
@@ -250,7 +250,7 @@ pub fn parse_swapw(
     match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
         1 => span_ops.push(Operation::SwapW),
-        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration, 1)? {
             1 => span_ops.push(Operation::SwapW),
             2 => span_ops.push(Operation::SwapW2),
             3 => span_ops.push(Operation::SwapW3),
@@ -285,7 +285,7 @@ pub fn parse_movup(
 ) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0..=1 => return Err(AssemblyError::missing_param(op)),
-        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration, 2)? {
             2 => span_ops.push(Operation::MovUp2),
             3 => span_ops.push(Operation::MovUp3),
             4 => span_ops.push(Operation::MovUp4),
@@ -356,7 +356,7 @@ pub fn parse_movupw(
 ) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0..=1 => return Err(AssemblyError::missing_param(op)),
-        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration, 2)? {
             2 => {
                 span_ops.push(Operation::SwapW);
                 span_ops.push(Operation::SwapW2);
@@ -386,7 +386,7 @@ pub fn parse_movdn(
 ) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0..=1 => return Err(AssemblyError::missing_param(op)),
-        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration, 2)? {
             2 => span_ops.push(Operation::MovDn2),
             3 => span_ops.push(Operation::MovDn3),
             4 => span_ops.push(Operation::MovDn4),
@@ -457,7 +457,7 @@ pub fn parse_movdnw(
 ) -> Result<(), AssemblyError> {
     match op.num_parts() {
         0..=1 => return Err(AssemblyError::missing_param(op)),
-        2 => match get_param_value(op, 1, proc_args, is_proc_declaration)? {
+        2 => match get_param_value(op, 1, proc_args, is_proc_declaration, 2)? {
             2 => {
                 span_ops.push(Operation::SwapW2);
                 span_ops.push(Operation::SwapW);
@@ -539,15 +539,13 @@ fn get_param_value(
     param_idx: usize,
     proc_args: &ArgsMap,
     is_proc_declaration: bool,
+    default_value: u64,
 ) -> Result<u64, AssemblyError> {
     let param_value = op.parts()[param_idx];
     if char::is_ascii_alphabetic(&param_value.chars().next().unwrap()) {
         // if being parsed during procedure declaration, ignore the argument
         if is_proc_declaration {
-            // TODO: Consistent default value while proc declaration. Tricky since different
-            // instructions have different constraints.
-            // Potential solution: Take default value as input.
-            Ok(2)
+            Ok(default_value)
         } else {
             match proc_args.get(param_value) {
                 Some(value) => Ok(*value),

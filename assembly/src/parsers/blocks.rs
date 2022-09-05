@@ -257,28 +257,35 @@ impl BlockParser {
             // ------------------------------------------------------------------------------------
             Self::Exec(label, args) => {
                 // retrieve the procedure block from the proc map and consume the 'exec' token
-                // let proc_block = context.get_proc_code(label).ok_or_else(|| {
-                //     AssemblyError::undefined_proc(tokens.read().expect("no exec token"), label)
-                // })?;
                 let proc_block = if !copy_proc && !args.is_empty() {
-                    //TODO: Remove unwraps
-                    let (proc_tokens, params) = context.procs_with_params(label).unwrap();
-                    //TODO: Proper Error
-                    assert!(args.len() == params.len(), "Invalid number of arguments");
+                    let (proc_tokens, params) =
+                        context.procs_with_params(label).ok_or_else(|| {
+                            AssemblyError::undefined_proc(
+                                tokens.read().expect("no exec token"),
+                                label,
+                            )
+                        })?;
+
+                    if args.len() != params.len() {
+                        return Err(AssemblyError::invalid_number_of_arguments(
+                            tokens.read().unwrap(),
+                            label,
+                            params.len(),
+                            args.len(),
+                        ));
+                    }
                     let mut procedure_args = ArgsMap::new();
                     let args_felt = map_args(args, proc_args, tokens.read().unwrap())?;
                     for (param, arg) in params.iter().zip(args_felt) {
                         procedure_args.insert(param.to_string(), arg);
                     }
-                    // TODO: Preserve Error
                     AssemblyContext::parse_proc_with_args(
                         context,
                         proc_tokens.clone(),
                         procedure_args,
                         cb_table,
                         false,
-                    )
-                    .unwrap()
+                    )?
                 } else {
                     context
                         .get_proc_code(label)

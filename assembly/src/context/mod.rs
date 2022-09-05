@@ -1,4 +1,4 @@
-use crate::tokens::TokenStream;
+use crate::{tokens::TokenStream, AssemblyError};
 
 use super::{
     ArgsMap, BTreeMap, CodeBlock, ProcMap, Procedure, String, ToString, MODULE_PATH_DELIM,
@@ -79,25 +79,17 @@ impl<'a> AssemblyContext<'a> {
         proc_args: ArgsMap,
         cb_table: &mut CodeBlockTable,
         allow_export: bool,
-    ) -> Option<CodeBlock> {
-        let mut tokens = match TokenStream::new(proc_tokens.as_str()).ok() {
-            Some(tokens) => tokens,
-            None => return None,
-        };
-        let proc = match Procedure::parse(
+    ) -> Result<CodeBlock, AssemblyError> {
+        let mut tokens = TokenStream::new(proc_tokens.as_str())?;
+        let proc = Procedure::parse(
             &mut tokens,
             context,
             cb_table,
             allow_export,
             &proc_args,
             false,
-        )
-        .ok()
-        {
-            Some(proc) => proc,
-            None => return None,
-        };
-        Some(proc.code_root().clone())
+        )?;
+        Ok(proc.code_root().clone())
     }
 
     // STATE MUTATORS

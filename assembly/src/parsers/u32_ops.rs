@@ -954,13 +954,14 @@ fn push_int_param(
     is_divisor: bool,
     proc_args: &ArgsMap,
     is_proc_declaration: bool,
+    default_value: u64
 ) -> Result<(), AssemblyError> {
     let param_value = op.parts()[1];
     let value = if char::is_ascii_alphabetic(&param_value.chars().next().unwrap()) {
         // if being parsed during procedure declaration, ignore the argument
         if is_proc_declaration {
-            // TODO: Use better default value (dummy value never used)
-            2
+            // TODO: Dirty
+            default_value
         } else if proc_args.contains_key(param_value) {
             let value = *proc_args.get(param_value).expect("Key not found");
             match check_u64_bounds(op, 1, value, u32::MAX as u64) {
@@ -1092,6 +1093,7 @@ fn handle_arithmetic_operation(
                     false,
                     proc_args,
                     is_proc_declaration,
+                    1
                 )?;
             }
             drop_high_bits = true;
@@ -1105,6 +1107,7 @@ fn handle_arithmetic_operation(
                     false,
                     proc_args,
                     is_proc_declaration,
+                    1
                 )?;
             }
         }
@@ -1142,6 +1145,7 @@ fn handle_division(
                     true,
                     proc_args,
                     is_proc_declaration,
+                    1
                 )?;
             }
             span_ops.push(Operation::U32assert2);
@@ -1155,6 +1159,7 @@ fn handle_division(
                     true,
                     proc_args,
                     is_proc_declaration,
+                    1
                 )?;
             }
         }

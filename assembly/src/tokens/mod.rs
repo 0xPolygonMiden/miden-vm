@@ -233,6 +233,9 @@ impl<'a> fmt::Display for Token<'a> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
+/// Label of a declared procedure must comply with the following rules:
+/// - It must start with an ascii letter.
+/// - It can contain only ascii letters, numbers, or underscores.
 fn validate_proc_declaration_label(
     label_with_params: &str,
     token: &Token,
