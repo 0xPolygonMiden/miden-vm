@@ -21,6 +21,7 @@ In all the table below, the number of cycles it takes for the VM to execute each
 | u32cast <br> - *(2 cycles)*         | [a, ...]    | [b, ...]      | $b \leftarrow a \mod 2^{32}$ |
 | u32split <br> - *(1 cycle)*        | [a, ...]    | [c, b, ...]   | $b \leftarrow a \mod 2^{32}$, $c \leftarrow \lfloor{a / 2^{32}}\rfloor$ |
 
+
 ### Arithmetic operations
 
 | Instruction                                  | Stack input    | Stack output  | Notes                                      |
@@ -29,6 +30,7 @@ In all the table below, the number of cycles it takes for the VM to execute each
 | u32overflowing_add <br> - *(1 cycle)* <br> u32overflowing_add.*b* <br> - *(2-3 cycles)*    | [b, a, ...] | [d, c, ...] | $c \leftarrow (a + b) \mod 2^{32}$ <br> $d \leftarrow \begin{cases} 1, & \text{if}\ (a + b) \ge 2^{32} \\ 0, & \text{otherwise}\ \end{cases}$ <br> Undefined if $max(a, b) \ge 2^{32}$ |
 | u32wrapping_add <br> - *(2 cycles)* <br> u32wrapping_add.*b* <br> - *(3-4 cycles)*     | [b, a, ...] | [c, ...] |  $c \leftarrow (a + b) \mod 2^{32}$ <br> Undefined if $max(a, b) \ge 2^{32}$ |
 | u32overflowing_add3 <br> - *(1 cycle)* | [c, b, a, ...] | [e, d, ...]   | $d \leftarrow (a + b + c) \mod 2^{32}$, <br> $e \leftarrow \lfloor (a + b + c) / 2^{32}\rfloor$ <br> Undefined if $max(a, b, c) \ge 2^{32}$ <br> |
+| u32wrapping_add3 <br> - *(2 cycles)* | [c, b, a, ...] | [d, ...]   | $d \leftarrow (a + b + c) \mod 2^{32}$, <br> Undefined if $max(a, b, c) \ge 2^{32}$ <br> |
 | u32checked_sub <br> - *(4 cycles)* <br> u32checked_sub.*b*  <br> - *(5-6 cycles)*      | [b, a, ...] | [c, ...] | $c \leftarrow (a - b)$ <br> Fails if $max(a, b) \ge 2^{32}$ or $a < b$ |
 | u32overflowing_sub <br> - *(1 cycle)* <br> u32overflowing_sub.*b* <br> - *(2-3 cycles)*    | [b, a, ...] | [d, c, ...] | $c \leftarrow (a - b) \mod 2^{32}$ <br> $d \leftarrow \begin{cases} 1, & \text{if}\ a < b \\ 0, & \text{otherwise}\ \end{cases}$ <br> Undefined if $max(a, b) \ge 2^{32}$ |
 | u32wrapping_sub <br> - *(2 cycles)* <br> u32wrapping_sub.*b* <br> - *(3-4 cycles)*    | [b, a, ...] | [c, ...] | $c \leftarrow (a - b) \mod 2^{32}$ <br> Undefined if $max(a, b) \ge 2^{32}$ |
@@ -36,6 +38,7 @@ In all the table below, the number of cycles it takes for the VM to execute each
 | u32overflowing_mul <br> - *(1 cycle)* <br> u32overflowing_mul.*b* <br> - *(2-3 cycles)*   | [b, a, ...] | [d, c, ...] | $c \leftarrow (a \cdot b) \mod 2^{32}$ <br> $d \leftarrow \lfloor(a \cdot b) / 2^{32}\rfloor$ <br> Undefined if $max(a, b) \ge 2^{32}$ |
 | u32wrapping_mul <br> - *(2 cycles)* <br> u32wrapping_mul.*b* <br> - *(3-4 cycles)*       | [b, a, ...] | [c, ...] | $c \leftarrow (a \cdot b) \mod 2^{32}$ <br> Undefined if $max(a, b) \ge 2^{32}$ |
 | u32overflowing_madd <br> - *(1 cycle)* | [b, a, c, ...] | [e, d, ...] | $d \leftarrow (a \cdot b + c) \mod 2^{32}$ <br> $e \leftarrow \lfloor(a \cdot b + c) / 2^{32}\rfloor$ <br> Undefined if $max(a, b, c) \ge 2^{32}$ |
+| u32wrapping_madd <br> - *(2 cycles)* | [b, a, c, ...] | [d, ...] | $d \leftarrow (a \cdot b + c) \mod 2^{32}$ <br> Undefined if $max(a, b, c) \ge 2^{32}$ |
 | u32checked_div <br> - *(3 cycles)* <br> u32checked_div.*b* <br> - *(4-5 cycles)*    | [b, a, ...] | [c, ...] | $c \leftarrow \lfloor a / b\rfloor$ <br> Fails if $max(a, b) \ge 2^{32}$ or $b = 0$ |
 | u32unchecked_div <br> - *(2 cycles)* <br> u32unchecked_div.*b* <br> - *(3-4 cycles)*   | [b, a, ...] | [c, ...] | $c \leftarrow \lfloor a / b\rfloor$ <br> Fails if $b = 0$ <br> Undefined if $max(a, b) \ge 2^{32}$ |
 | u32checked_mod <br> - *(4 cycles)* <br> u32checked_mod.*b* <br> - *(5-6 cycles)*   | [b, a, ...] | [c, ...] | $c \leftarrow a \mod b$ <br> Fails if $max(a, b) \ge 2^{32}$ or $b = 0$ |

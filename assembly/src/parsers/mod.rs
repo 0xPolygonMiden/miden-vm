@@ -42,6 +42,7 @@ fn parse_op_token(
         // ----- field operations -----------------------------------------------------------------
         "assert" => field_ops::parse_assert(span_ops, op),
         "assert_eq" => field_ops::parse_assert_eq(span_ops, op),
+        "assertz" => field_ops::parse_assert_eqz(span_ops, op),
 
         "add" => field_ops::parse_add(span_ops, op),
         "sub" => field_ops::parse_sub(span_ops, op),
@@ -79,6 +80,7 @@ fn parse_op_token(
         "u32overflowing_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Overflowing),
 
         "u32overflowing_add3" => u32_ops::parse_u32add3(span_ops, op, U32OpMode::Overflowing),
+        "u32wrapping_add3" => u32_ops::parse_u32wrapping_add3(span_ops, op, U32OpMode::Wrapping),
 
         "u32checked_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Checked),
         "u32wrapping_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Wrapping),
@@ -89,6 +91,7 @@ fn parse_op_token(
         "u32overflowing_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Overflowing),
 
         "u32overflowing_madd" => u32_ops::parse_u32madd(span_ops, op, U32OpMode::Overflowing),
+        "u32wrapping_madd" => u32_ops::parse_u32wrapping_madd(span_ops, op, U32OpMode::Wrapping),
 
         "u32checked_div" => u32_ops::parse_u32div(span_ops, op, U32OpMode::Checked),
         "u32unchecked_div" => u32_ops::parse_u32div(span_ops, op, U32OpMode::Unchecked),
