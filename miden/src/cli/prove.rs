@@ -1,5 +1,6 @@
 use super::data::{InputFile, OutputFile, ProgramFile, ProofFile};
 use air::ProofOptions;
+use crypto::Digest;
 use std::path::PathBuf;
 use std::time::Instant;
 use structopt::StructOpt;
@@ -47,7 +48,10 @@ impl ProveCmd {
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
-        println!("Proving program ...");
+        println!(
+            "Proving program with hash {}...",
+            hex::encode(program.hash().as_bytes())
+        );
         let now = Instant::now();
 
         // execute program and generate proof
@@ -58,13 +62,29 @@ impl ProveCmd {
         )
         .map_err(|err| format!("Failed to prove program - {:?}", err))?;
 
-        println!("Program proved in {} ms", now.elapsed().as_millis());
+        println!(
+            "Program with hash {} proved in {} ms",
+            hex::encode(program.hash().as_bytes()),
+            now.elapsed().as_millis()
+        );
 
         // write proof to file
         ProofFile::write(proof, &self.proof_file, &self.assembly_file)?;
 
-        // write outputs
-        OutputFile::write(outputs, &self.output_file)?;
+        // provide outputs
+        if let Some(output_path) = &self.output_file {
+            // write all outputs to specified file.
+            OutputFile::write(outputs, output_path)?;
+        } else {
+            // if no output path was provided, get the stack outputs for printing to the screen.
+            let stack_outputs = outputs.stack_outputs(self.num_outputs).to_vec();
+
+            // write all outputs to default location if none was provided
+            OutputFile::write(outputs, &self.assembly_file.with_extension("outputs"))?;
+
+            // print stack outputs to screen.
+            println!("Output: {:?}", stack_outputs);
+        }
 
         Ok(())
     }
