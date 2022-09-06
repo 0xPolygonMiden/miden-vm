@@ -776,7 +776,7 @@ end
 # s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #
 # Consecutive memory addresses can be computed by repeated application of `sub.1`.
-export.theta.3
+proc.theta.3
     dup
     push.env.locaddr.0
     pop.mem
@@ -1704,250 +1704,288 @@ export.theta.3
     popw.mem
 end
 
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's ρ ( rho ) function, which is
-# implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L115-L147
-proc.rho.4
-    popw.local.0
-    popw.local.1
-    popw.local.2
-    popw.local.3
-
-    pushw.local.0
-    dupw
-
-    pushw.mem
-    exec.rev_4_elements
-
-    u32checked_rotl.1
-    swap
-
-    exec.rev_4_elements
-
-    movup.7
-    popw.mem # wrote state[0..4]
-
-    pushw.mem
-
-    u32checked_rotl.31
-    swap
-    u32checked_rotl.31
-    swap
-
-    exec.rev_4_elements
-
-    u32checked_rotl.14
-    swap
-    u32checked_rotl.14
-    swap
-
-    exec.rev_4_elements
-
-    movup.6
-    popw.mem # wrote state[4..8]
-
-    pushw.mem
-
-    u32checked_rotl.13
-    swap
-    u32checked_rotl.14
-
-    exec.rev_4_elements
-
-    u32checked_rotl.18
-    swap
-    u32checked_rotl.18
-    swap
-
-    exec.rev_4_elements
-
-    movup.5
-    popw.mem # wrote state[8..12]
-
-    pushw.mem
-
-    u32checked_rotl.22
-    swap
-    u32checked_rotl.22
-    swap
-
-    exec.rev_4_elements
-
-    u32checked_rotl.3
-    swap
-    u32checked_rotl.3
-    swap
-
-    exec.rev_4_elements
-
-    movup.4
-    popw.mem # wrote state[12..16]
-
-    pushw.local.1
-    dupw
-
-    pushw.mem
-
-    u32checked_rotl.27
-    swap
-    u32checked_rotl.28
-
-    exec.rev_4_elements
-
-    u32checked_rotl.10
-    swap
-    u32checked_rotl.10
-    swap
-
-    exec.rev_4_elements
-
-    movup.7
-    popw.mem # wrote state[16..20]
-
-    pushw.mem
-
-    u32checked_rotl.1
-    swap
-    u32checked_rotl.2
-
-    exec.rev_4_elements
-
-    u32checked_rotl.5
-    swap
-    u32checked_rotl.5
-    swap
-
-    exec.rev_4_elements
-
-    movup.6
-    popw.mem # wrote state[20..24]
-
-    pushw.mem
-
-    u32checked_rotl.21
-    swap
-    u32checked_rotl.22
-
-    exec.rev_4_elements
-
-    u32checked_rotl.13
-    swap
-    u32checked_rotl.12
-
-    exec.rev_4_elements
-
-    movup.5
-    popw.mem # wrote state[24..28]
-
-    pushw.mem
-
-    u32checked_rotl.19
-    swap
-    u32checked_rotl.20
-
-    exec.rev_4_elements
-
-    u32checked_rotl.21
-    swap
-    u32checked_rotl.20
-
-    exec.rev_4_elements
-
-    movup.4
-    popw.mem # wrote state[28..32]
-
-    pushw.local.2
-    dupw
-
-    pushw.mem
-
-    u32checked_rotl.22
-    swap
-    u32checked_rotl.23
-
-    exec.rev_4_elements
-
-    u32checked_rotl.8
-    swap
-    u32checked_rotl.7
-
-    exec.rev_4_elements
-
-    movup.7
-    popw.mem # wrote state[32..36]
-
-    pushw.mem
-
-    u32checked_rotl.10
-    swap
-    u32checked_rotl.11
-
-    exec.rev_4_elements
-
-    u32checked_rotl.4
-    swap
-    u32checked_rotl.4
-    swap
-
-    exec.rev_4_elements
-
-    movup.6
-    popw.mem # wrote state[36..40]
-
-    pushw.mem
-
-    u32checked_rotl.9
-    swap
-    u32checked_rotl.9
-    swap
-
-    exec.rev_4_elements
-
-    u32checked_rotl.1
-    swap
-    u32checked_rotl.1
-    swap
-
-    exec.rev_4_elements
-
-    movup.5
-    popw.mem # wrote state[40..44]
-
-    pushw.mem
-
-    u32checked_rotl.30
-    swap
-    u32checked_rotl.31
-
-    exec.rev_4_elements
-
-    u32checked_rotl.28
-    swap
-    u32checked_rotl.28
-    swap
-
-    exec.rev_4_elements
-
-    movup.4
-    popw.mem # wrote state[44..48]
-
-    pushw.local.3
-
-    repeat.3
-        swap
-        drop
-    end
-
+# Keccak-p[1600, 24] permutation's ρ step mapping function, which is implemented 
+# in terms of 32 -bit word size ( bit interleaved representation )
+#
+# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L115-L147 for original implementation
+#
+# Expected stack state :
+#
+# [state_addr, ...]
+#
+# Final stack state :
+#
+# [ ... ]
+#
+# Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
+# s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
+#
+# Consecutive memory addresses can be computed by repeated application of `sub.1`.
+proc.rho.1
     dup
+    push.env.locaddr.0
+    pop.mem
 
-    pushw.mem
+    # rotate state[0..4)
+    push.0.0.0.0
+    dup.4
+    loadw.mem
 
-    u32checked_rotl.7
+    movup.3
+    u32unchecked_rotl.1
+    movdn.2
+
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    storew.mem
+
+    # rotate state[4..8)
+    dup.4
+    loadw.mem
+
+    u32unchecked_rotl.31
     swap
-    u32checked_rotl.7
+    u32unchecked_rotl.31
+    swap
+
+    movup.2
+    u32unchecked_rotl.14
+    movdn.2
+    movup.3
+    u32unchecked_rotl.14
+    movdn.3
+
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    storew.mem
+
+    # rotate state[8..12)
+    dup.4
+    loadw.mem
+
+    u32unchecked_rotl.13
+    swap
+    u32unchecked_rotl.14
+
+    movup.2
+    u32unchecked_rotl.18
+    movdn.2
+    movup.3
+    u32unchecked_rotl.18
+    movdn.3
+
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    storew.mem
+
+    # rotate state[12..16)
+    dup.4
+    loadw.mem
+
+    u32unchecked_rotl.22
+    swap
+    u32unchecked_rotl.22
+    swap
+
+    movup.2
+    u32unchecked_rotl.3
+    movdn.2
+    movup.3
+    u32unchecked_rotl.3
+    movdn.3
+
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    storew.mem
+
+    # rotate state[16..20)
+    dup.4
+    loadw.mem
+
+    u32unchecked_rotl.27
+    swap
+    u32unchecked_rotl.28
+
+    movup.2
+    u32unchecked_rotl.10
+    movdn.2
+    movup.3
+    u32unchecked_rotl.10
+    movdn.3
+
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    storew.mem
+
+    # rotate state[20..24)
+    dup.4
+    loadw.mem
+
+    u32unchecked_rotl.1
+    swap
+    u32unchecked_rotl.2
+
+    movup.2
+    u32unchecked_rotl.5
+    movdn.2
+    movup.3
+    u32unchecked_rotl.5
+    movdn.3
+
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    storew.mem
+
+    # rotate state[24..28)
+    dup.4
+    loadw.mem
+
+    u32unchecked_rotl.21
+    swap
+    u32unchecked_rotl.22
+
+    movup.2
+    u32unchecked_rotl.12
+    movdn.3
+    movup.2
+    u32unchecked_rotl.13
+    movdn.2
+
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    storew.mem
+
+    # rotate state[28..32)
+    dup.4
+    loadw.mem
+
+    u32unchecked_rotl.19
+    swap
+    u32unchecked_rotl.20
+
+    movup.2
+    u32unchecked_rotl.20
+    movdn.3
+    movup.2
+    u32unchecked_rotl.21
+    movdn.2
+
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    storew.mem
+     
+    # rotate state[32..36)
+    dup.4
+    loadw.mem
+
+    u32unchecked_rotl.22
+    swap
+    u32unchecked_rotl.23
+
+    movup.2
+    u32unchecked_rotl.7
+    movdn.3
+    movup.2
+    u32unchecked_rotl.8
+    movdn.2
+
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    storew.mem
+
+    # rotate state[36..40)
+    dup.4
+    loadw.mem
+
+    u32unchecked_rotl.10
+    swap
+    u32unchecked_rotl.11
+
+    movup.2
+    u32unchecked_rotl.4
+    movdn.2
+    movup.3
+    u32unchecked_rotl.4
+    movdn.3
+
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    storew.mem
+
+    # rotate state[40..44)
+    dup.4
+    loadw.mem
+    
+    u32unchecked_rotl.9
+    swap
+    u32unchecked_rotl.9
+    swap
+
+    movup.2
+    u32unchecked_rotl.1
+    movdn.2
+    movup.3
+    u32unchecked_rotl.1
+    movdn.3
+
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    storew.mem
+
+    # rotate state[44..48)
+    dup.4
+    loadw.mem
+
+    u32unchecked_rotl.30
+    swap
+    u32unchecked_rotl.31
+
+    movup.2
+    u32unchecked_rotl.28
+    movdn.2
+    movup.3
+    u32unchecked_rotl.28
+    movdn.3
+
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    storew.mem
+
+    # rotate state[48..50)
+    dup.4
+    loadw.mem
+
+    u32unchecked_rotl.7
+    swap
+    u32unchecked_rotl.7
     swap
 
     movup.4
-    popw.mem # wrote state[48..50]
+    popw.mem
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's π function, which is
@@ -3438,10 +3476,11 @@ proc.round.4
 
     exec.theta
 
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
     pushw.local.0
+    repeat.3
+        swap
+        drop
+    end
 
     exec.rho
 
