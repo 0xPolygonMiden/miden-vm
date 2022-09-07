@@ -1665,221 +1665,34 @@ proc.pi.14
     drop
 end
 
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's χ function, which is
-# implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L233-L271
-proc.chi.7
-    popw.local.0
-    popw.local.1
-    popw.local.2
-    popw.local.3
+# Keccak-p[1600, 24] permutation's χ step mapping function, which is implemented 
+# in terms of 32 -bit word size ( bit interleaved representation )
+#
+# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L233-L271 for original implementation
+#
+# Expected stack state :
+#
+# [state_addr, ...]
+#
+# Final stack state :
+#
+# [ ... ]
+#
+# Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
+# s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
+#
+# Consecutive memory addresses can be computed by repeated application of `sub.1`.
+proc.chi.4
+    dup
+    push.env.locaddr.0
+    pop.mem
 
-    pushw.local.0
-
-    exec.rev_4_elements
-
-    drop
-    drop
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-    swap
-
-    movup.2
-
-    pushw.mem
-
-    drop
-    drop
-
-    u32checked_not
-    swap
-    u32checked_not
-    swap
-
-    movup.2
-    u32checked_and
-
-    swap
-    movup.2
-    u32checked_and
-    swap
-
-    pushw.local.0
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    u32checked_not
-    swap
-    u32checked_not
-    swap
-
-    movup.2
-    u32checked_and
-
-    swap
-    movup.2
-    u32checked_and
-
-    exec.rev_4_elements
-    swap
-
-    popw.local.4 # write to c[0..4]
-
-    pushw.local.0
-
-    drop
-    movup.2
-    drop
-
-    swap
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-    swap
-
-    movup.2
-
-    pushw.mem
-
-    drop
-    drop
-
-    u32checked_not
-    swap
-    u32checked_not
-    swap
-
-    movup.2
-    u32checked_and
-
-    swap
-    movup.2
-    u32checked_and
-
-    pushw.local.0
-
-    swap
-    drop
-    movup.2
-    drop
-    swap
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-
-    u32checked_not
-    swap
-    u32checked_not
-
-    movup.2
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-
-    movup.3
-    u32checked_and
-
-    swap
-    movup.2
-    u32checked_and
-
-    swap
-    exec.rev_4_elements
-
-    popw.local.5 # write to c[4..8]
-
-    pushw.local.0
-
-    repeat.3
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    u32checked_not
-    swap
-    u32checked_not
-    swap
-
-    movup.2
-    u32checked_and
-
-    swap
-    movup.2
-    u32checked_and
-
-    push.0.0
-    exec.rev_4_elements
-
-    popw.local.6 # write to c[8..10]
-
-    pushw.local.0
-
-    movup.3
-    drop
-
+    # process state[0..10)
     dup
     pushw.mem
-    pushw.local.4
-
-    exec.rev_4_elements
-    exec.xor_4_elements
-
-    movup.4
-
-    popw.mem # write to state[0..4]
-
-    dup
-    pushw.mem
-    pushw.local.5
-
-    exec.rev_4_elements
-    exec.xor_4_elements
-
-    movup.4
-
-    popw.mem # write to state[4..8]
-
-    dup
-    pushw.mem
-    pushw.local.6
-
-    exec.rev_4_elements
-    exec.xor_4_elements
-
-    movup.4
-
-    popw.mem # write to state[8..10]
-
-    pushw.local.0
 
     drop
     drop
-    drop
-
-    pushw.mem
 
     u32checked_not
     swap
@@ -1887,201 +1700,45 @@ proc.chi.7
     swap
 
     movup.2
-    u32checked_and
-
-    swap
-    movup.2
-    u32checked_and
-
-    swap
-    push.0.0
-
-    popw.local.4 # write to c[0..2]
-
-    pushw.local.1
-
-    repeat.3
-        swap
-        drop
-    end
+    sub.1
+    dup
+    movdn.3
 
     pushw.mem
 
-    exec.rev_4_elements
+    dup.1
+    dup.1
 
-    drop
-    drop
+    movup.6
+    u32checked_and
 
-    pushw.local.0
-
-    drop
-    drop
-    drop
-
-    pushw.mem
-
-    drop
-    drop
-
-    u32checked_not
     swap
-    u32checked_not
+
+    movup.6
+    u32checked_and
+
     swap
 
     movup.3
-    u32checked_and
-
-    swap
-    movup.2
-    u32checked_and
-
-    pushw.local.1
-
-    repeat.3
-        swap
-        drop
-    end
-
-    pushw.mem
-
     u32checked_not
-    swap
+    movup.3
     u32checked_not
-    swap
 
-    movup.2
+    movup.4
     u32checked_and
-
     swap
-    movup.2
+    movup.4
     u32checked_and
-
-    exec.rev_4_elements
-    popw.local.5 # write to c[2..6]
-
-    pushw.local.1
-
-    repeat.3
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-
-    u32checked_not
     swap
-    u32checked_not
-    swap
-
-    pushw.local.0
-
-    drop
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    drop
-    drop
-
-    movup.2
-    u32checked_and
-
-    swap
-    movup.2
-    u32checked_and
-
-    pushw.local.0
-
-    drop
-    drop
-
-    pushw.mem
-
-    drop
-    drop
-
-    u32checked_not
-    swap
-    u32checked_not
-    swap
-
-    movup.2
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
 
     movup.3
-    u32checked_and
+    movup.3
 
-    swap
-    movup.2
-    u32checked_and
-    swap
+    push.env.locaddr.1
+    storew.mem
 
-    exec.rev_4_elements
-    popw.local.6 # write to c[6..10]
-
-    pushw.local.0
-
-    drop
-    drop
-
-    dup
-    pushw.mem
-
-    pushw.local.4
-
-    exec.rev_4_elements
-    exec.xor_4_elements
-
-    movup.4
-    popw.mem # write to state[10..12]
-
-    dup
-    pushw.mem
-
-    pushw.local.5
-
-    exec.rev_4_elements
-    exec.xor_4_elements
-
-    movup.4
-    popw.mem # write to state[12..16]
-
-    pushw.local.1
-
-    repeat.3
-        swap
-        drop
-    end
-
-    dup
-    pushw.mem
-
-    pushw.local.6
-
-    exec.rev_4_elements
-    exec.xor_4_elements
-
-    movup.4
-    popw.mem # write to state[16..20]
-
-    pushw.local.1
-
-    drop
-    movup.2
-    drop
-
-    pushw.mem
+    dup.4
+    loadw.mem
 
     drop
     drop
@@ -2092,31 +1749,52 @@ proc.chi.7
     swap
 
     movup.2
+    sub.1
+    dup
+    movdn.3
 
     pushw.mem
 
-    exec.rev_4_elements
+    movup.2
+    drop
+    movup.2
+    drop
 
-    drop
-    drop
+    dup.1
+    dup.1
+
+    movup.4
+    u32checked_and
+    swap
+    movup.4
+    u32checked_and
+    swap
 
     movup.3
-    u32checked_and
+    movup.3
 
-    swap
-    movup.2
-    u32checked_and
-    swap
-
-    pushw.local.1
-
-    drop
-    drop
-    swap
-    drop
-
+    movup.4
+    add.2
     pushw.mem
 
+    movup.5
+    u32checked_not
+    movup.5
+    u32checked_not
+
+    dup.2
+    u32checked_and
+    swap
+    dup.3
+    u32checked_and
+    swap
+
+    movup.7
+    movup.7
+
+    push.env.locaddr.2
+    popw.mem
+
     u32checked_not
     swap
     u32checked_not
@@ -2124,188 +1802,127 @@ proc.chi.7
 
     movup.2
     u32checked_and
-
     swap
     movup.2
     u32checked_and
+    swap
 
-    exec.rev_4_elements
-    popw.local.4 # write to c[0..4]
+    push.env.locaddr.0
+    push.mem
 
-    pushw.local.1
+    push.0.0.0.0
 
-    drop
-    drop
+    dup.4
+    loadw.mem
 
+    push.env.locaddr.1
     pushw.mem
 
-    drop
-    drop
+    movup.4
+    u32checked_xor
 
-    u32checked_not
     swap
-    u32checked_not
+    movup.4
+    u32checked_xor
     swap
 
     movup.2
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
+    movup.4
+    u32checked_xor
+    movdn.2
 
     movup.3
-    u32checked_and
+    movup.4
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    storew.mem
+
+    movup.4
+    sub.1
+    movdn.4
+
+    dup.4
+    loadw.mem
+
+    push.env.locaddr.2
+    pushw.mem
+
+    movup.4
+    u32checked_xor
 
     swap
+    movup.4
+    u32checked_xor
+    swap
+
     movup.2
-    u32checked_and
-    swap
-
-    pushw.local.1
-
-    drop
-    drop
-    drop
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-
-    u32checked_not
-    swap
-    u32checked_not
-
-    pushw.local.1
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
+    movup.4
+    u32checked_xor
+    movdn.2
 
     movup.3
-    u32checked_and
+    movup.4
+    u32checked_xor
+    movdn.3
 
-    swap
-    movup.2
-    u32checked_and
-    swap
-
-    exec.rev_4_elements
-    popw.local.5 # write to c[4..8]
-
-    pushw.local.1
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    u32checked_not
-    swap
-    u32checked_not
-    swap
-
-    movup.2
-    u32checked_and
-
-    swap
-    movup.2
-    u32checked_and
-
-    push.0.0
-    exec.rev_4_elements
-
-    popw.local.6 # write to c[8..10]
-
-    pushw.local.1
-
-    drop
-
-    dup
-    pushw.mem
-
-    pushw.local.4
-
-    exec.rev_4_elements
-    exec.xor_4_elements
+    dup.4
+    storew.mem
 
     movup.4
-    popw.mem # write to state[20..24]
+    sub.1
+    movdn.4
 
-    dup
-    pushw.mem
+    dup.4
+    loadw.mem
 
-    pushw.local.5
+    movup.5
+    u32checked_xor
+    swap
+    movup.5
+    u32checked_xor
+    swap
 
-    exec.rev_4_elements
-    exec.xor_4_elements
+    dup.4
+    storew.mem
 
+    # process state[10..20)
     movup.4
-    popw.mem # write to state[24..28]
+    sub.1
+    movdn.4
 
-    dup
-    pushw.mem
-
-    pushw.local.6
-
-    exec.rev_4_elements
-    exec.xor_4_elements
-
-    movup.4
-    popw.mem # write to state[28..30]
-
-    pushw.local.2
-
-    repeat.3
-        swap
-        drop
-    end
-
-    pushw.mem
+    dup.4
+    loadw.mem
 
     u32checked_not
     swap
     u32checked_not
     swap
+
+    dup.3
+    dup.3
 
     movup.2
     u32checked_and
-
     swap
     movup.2
     u32checked_and
     swap
 
     push.0.0
-    popw.local.4 # write to c[0..2]
+    push.env.locaddr.1
+    storew.mem
 
-    pushw.local.2
-    movup.2
-    drop
-    movup.2
-    drop
+    movup.6
+    sub.1
+    dup
+    movdn.7
 
-    pushw.mem
+    loadw.mem
 
-    drop
-    drop
+    movup.5
+    movup.5
 
     u32checked_not
     swap
@@ -2313,24 +1930,73 @@ proc.chi.7
     swap
 
     dup.2
+    u32checked_and
+    swap
+    dup.3
+    u32checked_and
+    swap
 
-    pushw.mem
+    movup.3
+    movup.3
 
-    exec.rev_4_elements
+    u32checked_not
+    swap
+    u32checked_not
+    swap
+
+    dup.4
+    u32checked_and
+    swap
+    dup.5
+    u32checked_and
+    swap
+
+    movup.3
+    movup.3
+
+    push.env.locaddr.2
+    storew.mem
+
+    movup.6
+    add.2
+    dup
+    movdn.7
+
+    loadw.mem
 
     drop
+    drop
+
+    dup.1
+    dup.1
+
+    movup.4
+    u32checked_not
+    movup.5
+    u32checked_not
+    swap
+
+    movup.2
+    u32checked_and
+    swap
+    movup.2
+    u32checked_and
+    swap
+
+    movup.3
+    movup.3
+
+    movup.4
+    sub.1
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
     drop
 
     movup.3
-    u32checked_and
-
-    swap
-    movup.2
-    u32checked_and
-    swap
-
-    movup.2
-    pushw.mem
+    movup.3
 
     u32checked_not
     swap
@@ -2339,284 +2005,221 @@ proc.chi.7
 
     movup.2
     u32checked_and
-
     swap
     movup.2
     u32checked_and
-
-    exec.rev_4_elements
-    popw.local.5 # write to c[2..6]
-
-    pushw.local.2
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-
-    u32checked_not
     swap
-    u32checked_not
-    swap
-
-    pushw.local.1
-
-    drop
-    drop
-    drop
-
-    pushw.mem
-
-    drop
-    drop
-
-    movup.2
-    u32checked_and
-
-    swap
-    movup.2
-    u32checked_and
-
-    pushw.local.1
-
-    drop
-    drop
-    drop
-
-    pushw.mem
-
-    drop
-    drop
-
-    u32checked_not
-    swap
-    u32checked_not
-    swap
-
-    pushw.local.2
-
-    repeat.3
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
 
     movup.3
-    u32checked_and
+    movup.3
 
-    swap
-    movup.2
-    u32checked_and
-    swap
+    push.env.locaddr.3
+    storew.mem
 
-    exec.rev_4_elements
-    popw.local.6 # write to c[6..10]
+    push.env.locaddr.0
+    push.mem
+    sub.2
+    dup
+    movdn.5
+
+    loadw.mem
 
     pushw.local.1
 
-    drop
-    drop
-    drop
-
-    dup
-
-    pushw.mem
-
-    pushw.local.4
-
-    exec.rev_4_elements
-    exec.xor_4_elements
-
     movup.4
-    popw.mem # write to state[30..32]
+    u32checked_xor
 
-    pushw.local.2
-
-    exec.rev_4_elements
-
-    drop
-    drop
     swap
-
-    dup
-    pushw.mem
-
-    pushw.local.5
-
-    exec.rev_4_elements
-    exec.xor_4_elements
-
     movup.4
-    popw.mem # write to state[32..36]
-
-    dup
-    pushw.mem
-
-    pushw.local.6
-
-    exec.rev_4_elements
-    exec.xor_4_elements
-
-    movup.4
-    popw.mem # write to state[36..40]
-
-    pushw.local.2
-
-    drop
-    drop
-
-    pushw.mem
-
-    drop
-    drop
-
-    u32checked_not
-    swap
-    u32checked_not
+    u32checked_xor
     swap
 
     movup.2
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
+    movup.4
+    u32checked_xor
+    movdn.2
 
     movup.3
-    u32checked_and
+    movup.4
+    u32checked_xor
+    movdn.3
 
-    swap
-    movup.2
-    u32checked_and
-    swap
+    dup.4
+    storew.mem
 
-    pushw.local.2
+    movup.4
+    sub.1
+    movdn.4
 
-    drop
-    drop
-    drop
-
-    pushw.mem
-
-    u32checked_not
-    swap
-    u32checked_not
-    swap
-
-    movup.2
-    u32checked_and
-
-    swap
-    movup.2
-    u32checked_and
-
-    exec.rev_4_elements
-    popw.local.4 # write to c[0..4]
+    dup.4
+    loadw.mem
 
     pushw.local.2
+    
+    movup.4
+    u32checked_xor
 
-    drop
-    drop
-    drop
-
-    pushw.mem
-
-    drop
-    drop
-
-    u32checked_not
     swap
-    u32checked_not
+    movup.4
+    u32checked_xor
     swap
+
+    movup.2
+    movup.4
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    movup.4
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    storew.mem
+
+    movup.4
+    sub.1
+    movdn.4
+
+    dup.4
+    loadw.mem
 
     pushw.local.3
+    
+    movup.4
+    u32checked_xor
 
-    repeat.3
-        swap
-        drop
-    end
+    swap
+    movup.4
+    u32checked_xor
+    swap
 
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
+    movup.2
+    movup.4
+    u32checked_xor
+    movdn.2
 
     movup.3
-    u32checked_and
+    movup.4
+    u32checked_xor
+    movdn.3
 
+    dup.4
+    storew.mem
+
+    # process state[20..30)
+    movup.4
+    sub.1
+    movdn.4
+
+    dup.4
+    loadw.mem
+
+    drop
+    drop
+
+    u32checked_not
     swap
+    u32checked_not
+    swap
+
     movup.2
+    sub.1
+    movdn.2
+
+    dup.2
+    pushw.mem
+
+    dup.1
+    dup.1
+
+    movup.6
     u32checked_and
     swap
-
-    pushw.local.3
-
-    repeat.3
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-
-    u32checked_not
+    movup.6
+    u32checked_and
     swap
-    u32checked_not
-
-    pushw.local.2
-
-    drop
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
 
     movup.3
-    u32checked_and
+    movup.3
 
+    u32checked_not
+    swap
+    u32checked_not
+    swap
+
+    dup.4
+    u32checked_and
+    swap
+    dup.5
+    u32checked_and
+    swap
+
+    movup.3
+    movup.3
+
+    storew.local.1
+
+    movup.6
+    sub.1
+    movdn.6
+
+    dup.6
+    loadw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    dup.1
+    dup.1
+
+    movup.5
+    movup.5
+
+    u32checked_not
+    swap
+    u32checked_not
+    swap
+
+    movup.2
+    u32checked_and
     swap
     movup.2
     u32checked_and
     swap
 
-    exec.rev_4_elements
-    popw.local.5 # write to c[4..8]
+    movup.4
+    add.2
+    movdn.4
 
-    pushw.local.2
-
-    drop
-    drop
-    swap
-    drop
-
+    dup.4
     pushw.mem
 
+    movup.7
+    movup.7
+
+    u32checked_not
+    swap
+    u32checked_not
+    swap
+
+    dup.3
+    dup.3
+
+    movup.2
+    u32checked_and
+    swap
+    movup.2
+    u32checked_and
+    swap
+
+    movup.7
+    movup.7
+
+    popw.local.2
+
     u32checked_not
     swap
     u32checked_not
@@ -2624,60 +2227,552 @@ proc.chi.7
 
     movup.2
     u32checked_and
-
     swap
     movup.2
     u32checked_and
+    swap
 
     push.0.0
+    movdn.3
+    movdn.3
 
-    exec.rev_4_elements
-    popw.local.6 # write to c[8..10]
+    storew.local.3
+
+    dup.4
+    loadw.mem
+
+    pushw.local.1
+
+    movup.4
+    u32checked_xor
+
+    swap
+    movup.4
+    u32checked_xor
+    swap
+
+    movup.2
+    movup.4
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    movup.4
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    storew.mem
+
+    movup.4
+    sub.1
+    movdn.4
+
+    dup.4
+    loadw.mem
 
     pushw.local.2
 
-    drop
-    drop
+    movup.4
+    u32checked_xor
 
-    dup
-    pushw.mem
+    swap
+    movup.4
+    u32checked_xor
+    swap
 
-    pushw.local.4
+    movup.2
+    movup.4
+    u32checked_xor
+    movdn.2
 
-    exec.rev_4_elements
-    exec.xor_4_elements
+    movup.3
+    movup.4
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    storew.mem
 
     movup.4
-    popw.mem # write to state[40..44]
+    sub.1
+    movdn.4
 
-    dup
-    pushw.mem
-
-    pushw.local.5
-
-    exec.rev_4_elements
-    exec.xor_4_elements
-
-    movup.4
-    popw.mem # write to state[44..48]
+    dup.4
+    loadw.mem
 
     pushw.local.3
 
-    repeat.3
-        swap
-        drop
-    end
+    movup.4
+    u32checked_xor
 
-    dup
-    pushw.mem
+    swap
+    movup.4
+    u32checked_xor
+    swap
 
-    pushw.local.6
+    movup.2
+    movup.4
+    u32checked_xor
+    movdn.2
 
-    exec.rev_4_elements
-    exec.xor_4_elements
+    movup.3
+    movup.4
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    storew.mem
+
+    # process state[30..40)
+    movup.4
+    sub.1
+    movdn.4
+
+    dup.4
+    loadw.mem
+
+    u32checked_not
+    swap
+    u32checked_not
+    swap
+
+    dup.3
+    dup.3
+
+    movup.2
+    u32checked_and
+    swap
+    movup.2
+    u32checked_and
+    swap
+
+    push.0.0
+    storew.local.1
+
+    movup.6
+    sub.1
+    movdn.6
+
+    dup.6
+    loadw.mem
+
+    movup.5
+    movup.5
+
+    u32checked_not
+    swap
+    u32checked_not
+    swap
+
+    dup.3
+    dup.3
+
+    movup.2
+    u32checked_and
+    swap
+    movup.2
+    u32checked_and
+    swap
+
+    movup.3
+    movup.3
+
+    u32checked_not
+    swap
+    u32checked_not
+    swap
+
+    dup.5
+    dup.5
+
+    movup.2
+    u32checked_and
+    swap
+    movup.2
+    u32checked_and
+    swap
+
+    movup.3
+    movup.3
+
+    storew.local.2
+
+    movup.6
+    add.2
+    movdn.6
+
+    dup.6
+    loadw.mem
+
+    drop
+    drop
+
+    movup.3
+    movup.3
+
+    u32checked_not
+    swap
+    u32checked_not
+    swap
+
+    dup.3
+    dup.3
+
+    movup.2
+    u32checked_and
+    swap
+    movup.2
+    u32checked_and
+    swap
 
     movup.4
-    popw.mem # write to state[48..50]
+    sub.1
+    movdn.4
+
+    dup.4
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    movup.5
+    movup.5
+
+    u32checked_not
+    swap
+    u32checked_not
+    swap
+
+    movup.2
+    u32checked_and
+    swap
+    movup.2
+    u32checked_and
+    swap
+
+    movup.3
+    movup.3
+
+    storew.local.3
+
+    movup.4
+    add.1
+    movdn.4
+
+    dup.4
+    loadw.mem
+
+    pushw.local.1
+
+    movup.4
+    u32checked_xor
+
+    swap
+    movup.4
+    u32checked_xor
+    swap
+
+    movup.2
+    movup.4
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    movup.4
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    storew.mem
+
+    movup.4
+    sub.1
+    movdn.4
+
+    dup.4
+    loadw.mem
+
+    pushw.local.2
+
+    movup.4
+    u32checked_xor
+
+    swap
+    movup.4
+    u32checked_xor
+    swap
+
+    movup.2
+    movup.4
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    movup.4
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    storew.mem
+
+    movup.4
+    sub.1
+    movdn.4
+
+    dup.4
+    loadw.mem
+
+    pushw.local.3
+
+    movup.4
+    u32checked_xor
+
+    swap
+    movup.4
+    u32checked_xor
+    swap
+
+    movup.2
+    movup.4
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    movup.4
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    storew.mem
+
+    # process state[40..50)
+    movup.4
+    sub.1
+    movdn.4
+
+    dup.4
+    loadw.mem
+
+    drop
+    drop
+
+    movup.2
+    sub.1
+    movdn.2
+
+    dup.2
+    pushw.mem
+
+    movup.5
+    movup.5
+
+    u32checked_not
+    swap
+    u32checked_not
+    swap
+
+    dup.3
+    dup.3
+
+    movup.2
+    u32checked_and
+    swap
+    movup.2
+    u32checked_and
+    swap
+
+    movup.3
+    movup.3
+
+    u32checked_not
+    swap
+    u32checked_not
+    swap
+
+    dup.5
+    dup.5
+
+    movup.2
+    u32checked_and
+    swap
+    movup.2
+    u32checked_and
+    swap
+
+    movup.3
+    movup.3
+
+    storew.local.1
+
+    movup.6
+    sub.1
+    movdn.6
+
+    dup.6
+    loadw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    movup.3
+    movup.3
+
+    u32checked_not
+    swap
+    u32checked_not
+    swap
+
+    dup.3
+    dup.3
+
+    movup.2
+    u32checked_and
+    swap
+    movup.2
+    u32checked_and
+    swap
+
+    movup.4
+    add.2
+    movdn.4
+
+    dup.4
+    pushw.mem
+
+    movup.7
+    movup.7
+
+    u32checked_not
+    swap
+    u32checked_not
+    swap
+
+    dup.3
+    dup.3
+
+    movup.2
+    u32checked_and
+    swap
+    movup.2
+    u32checked_and
+    swap
+
+    movup.7
+    movup.7
+
+    popw.local.2
+
+    u32checked_not
+    swap
+    u32checked_not
+    swap
+
+    movup.2
+    u32checked_and
+    swap
+    movup.2
+    u32checked_and
+    swap
+
+    push.0.0
+    movdn.3
+    movdn.3
+
+    storew.local.3
+
+    dup.4
+    loadw.mem
+
+    pushw.local.1
+
+    movup.4
+    u32checked_xor
+
+    swap
+    movup.4
+    u32checked_xor
+    swap
+
+    movup.2
+    movup.4
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    movup.4
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    storew.mem
+
+    movup.4
+    sub.1
+    movdn.4
+
+    dup.4
+    loadw.mem
+
+    pushw.local.2
+
+    movup.4
+    u32checked_xor
+
+    swap
+    movup.4
+    u32checked_xor
+    swap
+
+    movup.2
+    movup.4
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    movup.4
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    storew.mem
+
+    movup.4
+    sub.1
+    movdn.4
+
+    dup.4
+    loadw.mem
+
+    pushw.local.3
+
+    movup.4
+    u32checked_xor
+
+    swap
+    movup.4
+    u32checked_xor
+    swap
+
+    movup.2
+    movup.4
+    u32checked_xor
+    movdn.2
+
+    movup.3
+    movup.4
+    u32checked_xor
+    movdn.3
+
+    dup.4
+    storew.mem
+
+    dropw
+    drop
 end
 
 # Keccak-p[1600, 24] permutation's ι ( iota ) function, which is
@@ -2759,10 +2854,11 @@ proc.round.4
 
     exec.pi
 
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
     pushw.local.0
+    repeat.3
+        swap
+        drop
+    end
 
     exec.chi
 end
