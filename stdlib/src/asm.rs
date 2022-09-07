@@ -1988,414 +1988,415 @@ proc.rho.1
     popw.mem
 end
 
-# keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's π function, which is
-# implemented in terms of 32 -bit word size; see https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L169-L207
-proc.pi.17
-    popw.local.0
-    popw.local.1
-    popw.local.2
-    popw.local.3
+# Keccak-p[1600, 24] permutation's π step mapping function, which is implemented 
+# in terms of 32 -bit word size ( bit interleaved representation )
+#
+# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L169-L207 for original implementation
+#
+# Expected stack state :
+#
+# [state_addr, ...]
+#
+# Final stack state :
+#
+# [ ... ]
+#
+# Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
+# s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
+#
+# Consecutive memory addresses can be computed by repeated application of `sub.1`.
+proc.pi.14
+    dup
+    push.env.locaddr.0
+    pop.mem
 
-    pushw.local.0
-    repeat.2
-        swap
-        drop
-    end
-
+    push.env.locaddr.1
     swap
-    pushw.mem
+    push.0.0.0.0
 
-    exec.rev_4_elements
+    # place state[0..4) to desired location(s)
+    dup.4
+    loadw.mem
 
-    drop
-    drop
-    swap
-
-    movup.2
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-    swap
-
-    popw.local.4 # wrote state[0..4]
-
-    pushw.local.2
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-    swap
-
-    pushw.local.1
-
-    drop
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-    swap
-
-    popw.local.5 # wrote state[4..8]
-
-    pushw.local.0
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-
-    pushw.local.3
-
-    repeat.3
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-    swap
-
-    popw.local.6 # wrote state[8..12]
-
-    pushw.local.1
-
-    exec.rev_4_elements
-
-    drop
-    drop
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-    swap
-
-    movup.2
-
-    pushw.mem
-
-    drop
-    drop
-
-    popw.local.7 # wrote state[12..16]
-
-    pushw.local.2
-
-    repeat.2
-        swap
-        drop
-    end
-
-    swap
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-    swap
-
-    movup.2
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-    swap
-
-    popw.local.8 # wrote state[16..20]
-
-    pushw.local.0
-
-    repeat.2
-        swap
-        drop
-    end
-
-    swap
-
-    pushw.mem
-
-    drop
-    drop
-
-    movup.2
-
-    pushw.mem
-
-    drop
-    drop
+    push.0.0
+    movdn.3
+    movdn.3
 
-    popw.local.9 # wrote state[20..24]
+    dup.7
+    storew.mem
 
-    pushw.local.2
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    drop
-    drop
-
-    pushw.local.1
-
-    drop
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    drop
-    drop
-
-    popw.local.10 # wrote state[24..28]
-
-    pushw.local.0
-
-    drop
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-    swap
-
-    pushw.local.2
-
-    drop
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-    swap
-
-    popw.local.11 # wrote state[28..32]
-
-    pushw.local.1
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
     drop
     drop
+    movdn.3
+    movdn.3
 
-    pushw.local.0
+    dup.5
+    sub.5
+    storew.mem
 
-    drop
-    drop
-    swap
-    drop
-
-    pushw.mem
-
-    drop
-    drop
-
-    popw.local.12 # wrote state[32..36]
-
-    pushw.local.2
-
-    repeat.2
-        swap
-        drop
-    end
-
-    swap
-
-    pushw.mem
-
-    drop
-    drop
-
-    movup.2
-
-    pushw.mem
-
-    drop
-    drop
-
-    popw.local.13 # wrote state[36..40]
+    # place state[4..8) to desired location(s)
+    movup.4
+    sub.1
+    movdn.4
 
-    pushw.local.1
+    dup.4
+    loadw.mem
 
-    repeat.3
-        swap
-        drop
-    end
+    push.0.0
+    movdn.3
+    movdn.3
 
-    pushw.mem
+    dup.7
+    sub.10
+    storew.mem
 
-    exec.rev_4_elements
-
-    drop
-    drop
-    swap
-
-    pushw.local.0
-
-    drop
-    repeat.2
-        swap
-        drop
-    end
-
-    pushw.mem
-
-    exec.rev_4_elements
-
-    drop
-    drop
-    swap
-
-    popw.local.14 # wrote state[40..44]
-
-    pushw.local.1
-
     drop
     drop
-    drop
-
-    pushw.mem
 
-    popw.local.15 # wrote state[44..48]
+    dup.5
+    sub.2
+    storew.mem
 
-    pushw.local.2
+    # place state[8..12) to desired location(s)
+    movup.4
+    sub.1
+    movdn.4
 
-    drop
-    drop
-    swap
-    drop
+    dup.4
+    loadw.mem
 
-    pushw.mem
-
-    drop
-    drop
     push.0.0
 
-    exec.rev_4_elements
+    dup.7
+    sub.7
+    storew.mem
 
-    swap
+    movup.2
+    drop
+    movup.2
+    drop
 
-    popw.local.16 # wrote state[48..50]
+    movdn.3
+    movdn.3
 
-    pushw.local.0
+    dup.5
+    sub.8
+    storew.mem
 
-    pushw.local.4
+    # place state[12..16) to desired location(s)
     movup.4
-    storew.mem # final write state[0..4]
+    sub.1
+    movdn.4
 
-    loadw.local.5
+    dup.4
+    loadw.mem
+
+    dup.5
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    dup.7
+    storew.mem
+
+    dup.7
+    sub.5
+    loadw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    dup.5
+    sub.5
+    storew.mem
+
+    # place state[16..20) to desired location(s)
     movup.4
-    storew.mem # final write state[4..8]
+    sub.1
+    movdn.4
 
-    loadw.local.6
+    dup.4
+    loadw.mem
+
+    dup.5
+    sub.10
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    dup.7
+    sub.10
+    storew.mem
+
+    drop
+    drop
+    drop
+    drop
+
+    push.0.0
+    movdn.3
+    movdn.3
+
+    dup.5
+    sub.3
+    storew.mem
+
+    # place state[20..24) to desired location(s)
     movup.4
-    storew.mem # final write state[8..12]
+    sub.1
+    movdn.4
 
-    loadw.local.7
+    dup.4
+    loadw.mem
+
+    dup.5
+    sub.3
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    dup.7
+    sub.3
+    storew.mem
+
+    dup.7
+    sub.8
+    loadw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    dup.5
+    sub.8
+    storew.mem
+
+    # place state[24..28) to desired location(s)
     movup.4
-    storew.mem # final write state[12..16]
+    sub.1
+    movdn.4
 
-    loadw.local.1
+    dup.4
+    loadw.mem
 
-    pushw.local.8
+    push.0.0
+    movdn.3
+    movdn.3
+
+    dup.7
+    sub.1
+    storew.mem
+
+    drop
+    drop
+    movdn.3
+    movdn.3
+
+    dup.5
+    sub.6
+    storew.mem
+
+    # place state[28..32) to desired location(s)
     movup.4
-    storew.mem # final write state[16..20]
+    sub.1
+    movdn.4
 
-    loadw.local.9
+    dup.4
+    loadw.mem
+
+    dup.5
+    sub.11
+    storew.mem
+
+    # place state[32..36) to desired location(s)
     movup.4
-    storew.mem # final write state[20..24]
+    sub.1
+    movdn.4
 
-    loadw.local.10
+    dup.4
+    loadw.mem
+
+    push.0.0
+    movdn.3
+    movdn.3
+
+    dup.7
+    sub.4
+    storew.mem
+
+    drop
+    drop
+    movdn.3
+    movdn.3
+
+    dup.5
+    sub.9
+    storew.mem
+
+    # place state[36..40) to desired location(s)
     movup.4
-    storew.mem # final write state[24..28]
+    sub.1
+    movdn.4
 
-    loadw.local.11
+    dup.4
+    loadw.mem
+
+    dup.5
+    sub.1
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    dup.7
+    sub.1
+    storew.mem
+
+    dup.7
+    sub.6
+    loadw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    dup.5
+    sub.6
+    storew.mem
+
+    # place state[40..44) to desired location(s)
     movup.4
-    storew.mem # final write state[28..32]
+    sub.1
+    movdn.4
 
-    loadw.local.2
+    dup.4
+    loadw.mem
 
-    pushw.local.12
+    dup.5
+    sub.7
+    pushw.mem
+
+    drop
+    drop
+    movup.3
+    movup.3
+
+    dup.7
+    sub.7
+    storew.mem
+
+    drop
+    drop
+    drop
+    drop
+
+    push.0.0
+    movdn.3
+    movdn.3
+
+    dup.5
+    sub.12
+    storew.mem
+
+    # place state[44..48) to desired location(s)
     movup.4
-    storew.mem # final write state[32..36]
+    sub.1
+    movdn.4
 
-    loadw.local.13
+    dup.4
+    loadw.mem
+
+    dup.5
+    sub.4
+    pushw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    dup.7
+    sub.4
+    storew.mem
+
+    dup.7
+    sub.9
+    loadw.mem
+
+    movup.2
+    drop
+    movup.2
+    drop
+
+    dup.5
+    sub.9
+    storew.mem
+
+    # place state[48..50) to desired location(s)
     movup.4
-    storew.mem # final write state[36..40]
+    sub.1
+    movdn.4
 
-    loadw.local.14
+    dup.4
+    loadw.mem
+
+    dup.5
+    sub.2
+    pushw.mem
+
+    drop
+    drop
+    movdn.3
+    movdn.3
+
+    dup.7
+    sub.2
+    storew.mem
+
+    drop
+    drop
+
+    # memcpy
     movup.4
-    storew.mem # final write state[40..44]
+    drop
+    push.env.locaddr.0
+    push.mem
+    movdn.4
 
-    loadw.local.15
-    movup.4
-    storew.mem # final write state[44..48]
+    repeat.13
+        dup.5
+        loadw.mem
 
-    loadw.local.16
+        dup.4
+        storew.mem
 
-    pushw.local.3
-    repeat.3
-        swap
-        drop
+        movup.4
+        sub.1
+        movdn.4
+
+        movup.5
+        sub.1
+        movdn.5
     end
 
-    storew.mem # final write state[48..50]
     dropw
+    drop
+    drop
 end
 
 # keccak-p[b, n_r] | b = 1600, n_r = 24, permutation's χ function, which is
@@ -3484,10 +3485,11 @@ proc.round.4
 
     exec.rho
 
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
     pushw.local.0
+    repeat.3
+        swap
+        drop
+    end
 
     exec.pi
 
