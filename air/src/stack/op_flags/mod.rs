@@ -61,11 +61,11 @@ impl<E: FieldElement> OpFlags<E> {
     // =================================================================================================
 
     /// Returns a new instance of [OpFlags] instantiated with all stack operation flags.
-    pub fn new(frame: EvaluationFrame<E>) -> Self {
-        let (degree_6_op_flags, degree_4_op_flags) = set_op_flags_degree_4_and_6(&frame);
+    pub fn new(frame: &EvaluationFrame<E>) -> Self {
+        let (degree_6_op_flags, degree_4_op_flags) = set_op_flags_degree_4_and_6(frame);
 
         Self {
-            degree7_op_flags: set_op_flags_degree_7(&frame),
+            degree7_op_flags: set_op_flags_degree_7(frame),
             degree6_op_flags: degree_6_op_flags,
             degree4_op_flags: degree_4_op_flags,
         }
@@ -77,402 +77,402 @@ impl<E: FieldElement> OpFlags<E> {
     // ------ Degree 7 operations with no shift -------------------------------------------------
 
     #[inline(always)]
-    fn noop(&self) -> E {
+    pub fn noop(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Noop.op_code())]
     }
 
     #[inline(always)]
-    fn eqz(&self) -> E {
+    pub fn eqz(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Eqz.op_code())]
     }
 
     #[inline(always)]
-    fn neg(&self) -> E {
+    pub fn neg(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Neg.op_code())]
     }
 
     #[inline(always)]
-    fn inv(&self) -> E {
+    pub fn inv(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Inv.op_code())]
     }
 
     #[inline(always)]
-    fn incr(&self) -> E {
+    pub fn incr(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Incr.op_code())]
     }
 
     #[inline(always)]
-    fn not(&self) -> E {
+    pub fn not(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Not.op_code())]
     }
 
     #[inline(always)]
-    fn fmpadd(&self) -> E {
+    pub fn fmpadd(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::FmpAdd.op_code())]
     }
 
     #[inline(always)]
-    fn mload(&self) -> E {
+    pub fn mload(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MLoad.op_code())]
     }
 
     #[inline(always)]
-    fn swap(&self) -> E {
+    pub fn swap(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Swap.op_code())]
     }
 
     #[inline(always)]
-    fn movup2(&self) -> E {
+    pub fn movup2(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MovUp2.op_code())]
     }
 
     #[inline(always)]
-    fn movdn2(&self) -> E {
+    pub fn movdn2(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MovDn2.op_code())]
     }
 
     #[inline(always)]
-    fn movup3(&self) -> E {
+    pub fn movup3(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MovUp3.op_code())]
     }
 
     #[inline(always)]
-    fn movdn3(&self) -> E {
+    pub fn movdn3(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MovDn3.op_code())]
     }
 
     #[inline(always)]
-    fn readw(&self) -> E {
+    pub fn readw(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::ReadW.op_code())]
     }
 
     #[inline(always)]
-    fn movup4(&self) -> E {
+    pub fn movup4(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MovUp4.op_code())]
     }
 
     #[inline(always)]
-    fn movdn4(&self) -> E {
+    pub fn movdn4(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MovDn4.op_code())]
     }
 
     #[inline(always)]
-    fn movup5(&self) -> E {
+    pub fn movup5(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MovUp5.op_code())]
     }
 
     #[inline(always)]
-    fn movdn5(&self) -> E {
+    pub fn movdn5(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MovDn5.op_code())]
     }
 
     #[inline(always)]
-    fn movup6(&self) -> E {
+    pub fn movup6(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MovUp6.op_code())]
     }
 
     #[inline(always)]
-    fn movdn6(&self) -> E {
+    pub fn movdn6(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MovDn6.op_code())]
     }
 
     #[inline(always)]
-    fn movup7(&self) -> E {
+    pub fn movup7(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MovUp7.op_code())]
     }
 
     #[inline(always)]
-    fn movdn7(&self) -> E {
+    pub fn movdn7(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MovDn7.op_code())]
     }
 
     #[inline(always)]
-    fn swapw(&self) -> E {
+    pub fn swapw(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::SwapW.op_code())]
     }
 
     #[inline(always)]
-    fn movup8(&self) -> E {
+    pub fn movup8(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MovUp8.op_code())]
     }
 
     #[inline(always)]
-    fn movdn8(&self) -> E {
+    pub fn movdn8(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MovDn8.op_code())]
     }
 
     #[inline(always)]
-    fn swapw2(&self) -> E {
+    pub fn swapw2(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::SwapW2.op_code())]
     }
 
     #[inline(always)]
-    fn swapw3(&self) -> E {
+    pub fn swapw3(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::SwapW3.op_code())]
     }
 
     #[inline(always)]
-    fn swapdw(&self) -> E {
+    pub fn swapdw(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::SwapDW.op_code())]
     }
 
     // ------ Degree 7 operations with left shift ----------------------------------------
 
     #[inline(always)]
-    fn assert(&self) -> E {
+    pub fn assert(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Assert.op_code())]
     }
 
     #[inline(always)]
-    fn eq(&self) -> E {
+    pub fn eq(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Eq.op_code())]
     }
 
     #[inline(always)]
-    fn add(&self) -> E {
+    pub fn add(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Add.op_code())]
     }
 
     #[inline(always)]
-    fn mul(&self) -> E {
+    pub fn mul(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Mul.op_code())]
     }
 
     #[inline(always)]
-    fn and(&self) -> E {
+    pub fn and(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::And.op_code())]
     }
 
     #[inline(always)]
-    fn or(&self) -> E {
+    pub fn or(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Or.op_code())]
     }
 
     #[inline(always)]
-    fn u32and(&self) -> E {
+    pub fn u32and(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::U32and.op_code())]
     }
 
     #[inline(always)]
-    fn u32xor(&self) -> E {
+    pub fn u32xor(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::U32xor.op_code())]
     }
 
     #[inline(always)]
-    fn drop(&self) -> E {
+    pub fn drop(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Drop.op_code())]
     }
 
     #[inline(always)]
-    fn cswap(&self) -> E {
+    pub fn cswap(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::CSwap.op_code())]
     }
 
     #[inline(always)]
-    fn cswapw(&self) -> E {
+    pub fn cswapw(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::CSwapW.op_code())]
     }
 
     #[inline(always)]
-    fn mloadw(&self) -> E {
+    pub fn mloadw(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MLoadW.op_code())]
     }
 
     #[inline(always)]
-    fn mstore(&self) -> E {
+    pub fn mstore(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MStore.op_code())]
     }
 
     #[inline(always)]
-    fn mstorew(&self) -> E {
+    pub fn mstorew(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::MStoreW.op_code())]
     }
 
     #[inline(always)]
-    fn fmpupdate(&self) -> E {
+    pub fn fmpupdate(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::FmpUpdate.op_code())]
     }
 
     // ------ Degree 7 operations with right shift -----------------------------------------------
 
     #[inline(always)]
-    fn pad(&self) -> E {
+    pub fn pad(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Pad.op_code())]
     }
 
     #[inline(always)]
-    fn dup(&self) -> E {
+    pub fn dup(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Dup0.op_code())]
     }
 
     #[inline(always)]
-    fn dup1(&self) -> E {
+    pub fn dup1(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Dup1.op_code())]
     }
 
     #[inline(always)]
-    fn dup2(&self) -> E {
+    pub fn dup2(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Dup2.op_code())]
     }
 
     #[inline(always)]
-    fn dup3(&self) -> E {
+    pub fn dup3(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Dup3.op_code())]
     }
 
     #[inline(always)]
-    fn dup4(&self) -> E {
+    pub fn dup4(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Dup4.op_code())]
     }
 
     #[inline(always)]
-    fn dup5(&self) -> E {
+    pub fn dup5(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Dup5.op_code())]
     }
 
     #[inline(always)]
-    fn dup6(&self) -> E {
+    pub fn dup6(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Dup6.op_code())]
     }
 
     #[inline(always)]
-    fn dup7(&self) -> E {
+    pub fn dup7(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Dup7.op_code())]
     }
 
     #[inline(always)]
-    fn dup9(&self) -> E {
+    pub fn dup9(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Dup9.op_code())]
     }
 
     #[inline(always)]
-    fn dup11(&self) -> E {
+    pub fn dup11(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Dup11.op_code())]
     }
 
     #[inline(always)]
-    fn dup13(&self) -> E {
+    pub fn dup13(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Dup13.op_code())]
     }
 
     #[inline(always)]
-    fn dup15(&self) -> E {
+    pub fn dup15(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Dup15.op_code())]
     }
 
     #[inline(always)]
-    fn read(&self) -> E {
+    pub fn read(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::Read.op_code())]
     }
 
     #[inline(always)]
-    fn sdepth(&self) -> E {
+    pub fn sdepth(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::SDepth.op_code())]
     }
 
     // ------ Degree 6 u32 operations  --------------------------------------------------------
 
     #[inline(always)]
-    fn u32add(&self) -> E {
+    pub fn u32add(&self) -> E {
         self.degree6_op_flags[get_op_index(Operation::U32add.op_code())]
     }
 
     #[inline(always)]
-    fn u32sub(&self) -> E {
+    pub fn u32sub(&self) -> E {
         self.degree6_op_flags[get_op_index(Operation::U32sub.op_code())]
     }
 
     #[inline(always)]
-    fn u32mul(&self) -> E {
+    pub fn u32mul(&self) -> E {
         self.degree6_op_flags[get_op_index(Operation::U32mul.op_code())]
     }
 
     #[inline(always)]
-    fn u32div(&self) -> E {
+    pub fn u32div(&self) -> E {
         self.degree6_op_flags[get_op_index(Operation::U32div.op_code())]
     }
 
     #[inline(always)]
-    fn u32split(&self) -> E {
+    pub fn u32split(&self) -> E {
         self.degree6_op_flags[get_op_index(Operation::U32split.op_code())]
     }
 
     #[inline(always)]
-    fn u32assert2(&self) -> E {
+    pub fn u32assert2(&self) -> E {
         self.degree6_op_flags[get_op_index(Operation::U32assert2.op_code())]
     }
 
     #[inline(always)]
-    fn u32add3(&self) -> E {
+    pub fn u32add3(&self) -> E {
         self.degree6_op_flags[get_op_index(Operation::U32add3.op_code())]
     }
 
     #[inline(always)]
-    fn u32madd(&self) -> E {
+    pub fn u32madd(&self) -> E {
         self.degree6_op_flags[get_op_index(Operation::U32madd.op_code())]
     }
 
     // ------ Degree 6 non u32 operations  ---------------------------------------------------
 
     #[inline(always)]
-    fn rpperm(&self) -> E {
+    pub fn rpperm(&self) -> E {
         self.degree6_op_flags[get_op_index(Operation::RpPerm.op_code())]
     }
 
     #[inline(always)]
-    fn mpverify(&self) -> E {
+    pub fn mpverify(&self) -> E {
         self.degree6_op_flags[get_op_index(Operation::MpVerify.op_code())]
     }
 
     #[inline(always)]
-    fn span(&self) -> E {
+    pub fn span(&self) -> E {
         self.degree6_op_flags[get_op_index(Operation::Span.op_code())]
     }
 
     #[inline(always)]
-    fn join(&self) -> E {
+    pub fn join(&self) -> E {
         self.degree6_op_flags[get_op_index(Operation::Join.op_code())]
     }
 
     #[inline(always)]
-    fn split(&self) -> E {
+    pub fn split(&self) -> E {
         self.degree6_op_flags[get_op_index(Operation::Split.op_code())]
     }
 
     #[inline(always)]
-    fn loop_op(&self) -> E {
+    pub fn loop_op(&self) -> E {
         self.degree6_op_flags[get_op_index(Operation::Loop.op_code())]
     }
 
     // ------ Degree 4 stack operations  -----------------------------------------------------
 
     #[inline(always)]
-    fn mrupdate(&self) -> E {
+    pub fn mrupdate(&self) -> E {
         self.degree4_op_flags[get_op_index(Operation::MrUpdate(true).op_code())]
     }
 
     #[inline(always)]
-    fn push(&self) -> E {
+    pub fn push(&self) -> E {
         self.degree4_op_flags[get_op_index(Operation::Push(ONE).op_code())]
     }
 
     #[inline(always)]
-    fn end(&self) -> E {
+    pub fn end(&self) -> E {
         self.degree4_op_flags[get_op_index(Operation::End.op_code())]
     }
 
     #[inline(always)]
-    fn repeat(&self) -> E {
+    pub fn repeat(&self) -> E {
         self.degree4_op_flags[get_op_index(Operation::Repeat.op_code())]
     }
 
     #[inline(always)]
-    fn respan(&self) -> E {
+    pub fn respan(&self) -> E {
         self.degree4_op_flags[get_op_index(Operation::Respan.op_code())]
     }
 
     #[inline(always)]
-    fn halt(&self) -> E {
+    pub fn halt(&self) -> E {
         self.degree4_op_flags[get_op_index(Operation::Halt.op_code())]
     }
 }
@@ -494,7 +494,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 
     #[inline]
     fn op_bit(&self, idx: usize) -> E {
-        self.current()[DECODER_TRACE_OFFSET + OP_BITS_RANGE.end - idx - 1]
+        self.current()[DECODER_TRACE_OFFSET + OP_BITS_RANGE.start + idx]
     }
 
     #[inline]
@@ -662,8 +662,8 @@ pub fn generate_evaluation_frame(opcode: usize) -> EvaluationFrame<Felt> {
     // set helper value in the decoder. It will be ONE only in the case of a
     // degree four operation.
     current[DECODER_TRACE_OFFSET + OP_BIT_EXTRA_COL_IDX] = current
-        [DECODER_TRACE_OFFSET + OP_BITS_RANGE.start]
-        * current[DECODER_TRACE_OFFSET + OP_BITS_RANGE.start + 1];
+        [DECODER_TRACE_OFFSET + OP_BITS_RANGE.end - 1]
+        * current[DECODER_TRACE_OFFSET + OP_BITS_RANGE.end - 2];
 
     EvaluationFrame::<Felt>::from_rows(current, next)
 }
@@ -676,10 +676,10 @@ pub fn get_op_bits(opcode: usize) -> [Felt; NUM_OP_BITS] {
     // initialise the bit array with 0.
     let mut bit_array = [ZERO; NUM_OP_BITS];
 
-    for i in 0..NUM_OP_BITS {
+    for i in bit_array.iter_mut() {
         // returns the least significant bit of the opcode.
         let bit = opcode_copy & 1;
-        bit_array[7 - i - 1] = Felt::new(bit as u64);
+        *i = Felt::new(bit as u64);
         // one left shift.
         opcode_copy >>= 1;
     }

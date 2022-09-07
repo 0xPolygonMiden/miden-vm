@@ -9,7 +9,7 @@ fn compute_op_flags(c: &mut Criterion) {
     group.bench_function("op_flags", |bench| {
         let frame = generate_evaluation_frame(36);
         bench.iter(|| {
-            let _flag = OpFlags::new(frame.clone());
+            let _flag = OpFlags::new(&frame);
         });
     });
 
