@@ -1,5 +1,8 @@
 use crate::build_op_test;
 
+mod field_ops;
+mod stack_manipualtion_ops;
+
 /// Test empty starting stack with no overflow outputs.
 #[test]
 fn empty_input() {

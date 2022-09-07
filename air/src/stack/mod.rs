@@ -1,11 +1,16 @@
-use vm_core::{utils::collections::Vec, ProgramOutputs, StarkField, STACK_AUX_TRACE_OFFSET};
-
-use super::{
-    Assertion, AuxTraceRandElements, EvaluationFrame, Felt, FieldElement, MIN_STACK_DEPTH,
-    STACK_TRACE_OFFSET,
+use vm_core::{
+    utils::collections::Vec, ProgramOutputs, StarkField, FMP_COL_IDX, STACK_AUX_TRACE_OFFSET,
 };
 
+use super::{
+    Assertion, AuxTraceRandElements, EvaluationFrame, Felt, FieldElement,
+    TransitionConstraintDegree, MIN_STACK_DEPTH, STACK_TRACE_OFFSET,
+};
+
+mod field_ops;
 pub mod op_flags;
+mod stack_manipulation;
+mod system_ops;
 
 // CONSTANTS
 // ================================================================================================
@@ -23,6 +28,69 @@ pub const NUM_ASSERTIONS: usize = 2 * MIN_STACK_DEPTH + 2;
 
 /// The number of auxiliary assertions.
 pub const NUM_AUX_ASSERTIONS: usize = 2;
+
+// STACK OPERATIONS TRANSITION CONSTRAINTS
+// ================================================================================================
+
+/// Build the transition constraint degrees for the stack module and all the stack operations.
+pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
+    // system operations contraints degrees.
+    let mut degrees = system_ops::get_transition_constraint_degrees();
+    // field operations contraints degrees.
+    degrees.append(&mut field_ops::get_transition_constraint_degrees());
+    // stack manipulation operations contraints degrees.
+    degrees.append(&mut stack_manipulation::get_transition_constraint_degrees());
+
+    degrees
+}
+
+/// Returns the number of transition constraints for the stack operations.
+pub fn get_transition_constraint_count() -> usize {
+    system_ops::get_transition_constraint_count()
+        + field_ops::get_transition_constraint_count()
+        + stack_manipulation::get_transition_constraint_count()
+}
+
+/// Enforces constraints for the stack module and all stack operations.
+pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
+    frame: &EvaluationFrame<E>,
+    result: &mut [E],
+) -> usize {
+    let mut index = 0;
+
+    let op_flag = op_flags::OpFlags::new(frame);
+
+    // Enforces stack operations unique constraints.
+    index += enforce_unique_constraints(frame, result, &op_flag);
+
+    index
+}
+
+/// Enforces unique constraints for all the stack ops.
+pub fn enforce_unique_constraints<E: FieldElement>(
+    frame: &EvaluationFrame<E>,
+    result: &mut [E],
+    op_flag: &op_flags::OpFlags<E>,
+) -> usize {
+    let mut constraint_offset = 0;
+
+    // system operations transition constraints.
+    system_ops::enforce_constraints(frame, result, op_flag);
+
+    constraint_offset += system_ops::get_transition_constraint_count();
+
+    // field operations transition constraints.
+    field_ops::enforce_constraints(frame, &mut result[constraint_offset..], op_flag);
+
+    constraint_offset += field_ops::get_transition_constraint_count();
+
+    // stack manipulation operations transition constraints.
+    stack_manipulation::enforce_constraints(frame, &mut result[constraint_offset..], op_flag);
+
+    constraint_offset += stack_manipulation::get_transition_constraint_count();
+
+    constraint_offset
+}
 
 // BOUNDARY CONSTRAINTS
 // ================================================================================================
@@ -161,4 +229,37 @@ where
     }
 
     value
+}
+
+// STACK OPERATION EXTENSION TRAIT
+// ================================================================================================
+
+trait EvaluationFrameExt<E: FieldElement> {
+    // --- Column accessors -----------------------------------------------------------------------
+
+    /// Returns the current value at the specified index in the stack.
+    fn stack_item(&self, index: usize) -> E;
+    /// Returns the next value at the specified index in the stack.
+    fn stack_item_next(&self, index: usize) -> E;
+    /// Gets the current element of the fmp register in the trace.
+    fn fmp(&self) -> E;
+}
+
+impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
+    // --- Column accessors -----------------------------------------------------------------------
+
+    #[inline(always)]
+    fn stack_item(&self, index: usize) -> E {
+        debug_assert!(index < 16, "stack index cannot exceed 15");
+        self.current()[STACK_TRACE_OFFSET + index]
+    }
+    #[inline(always)]
+    fn stack_item_next(&self, index: usize) -> E {
+        debug_assert!(index < 16, "stack index cannot exceed 15");
+        self.next()[STACK_TRACE_OFFSET + index]
+    }
+    #[inline(always)]
+    fn fmp(&self) -> E {
+        self.current()[FMP_COL_IDX]
+    }
 }

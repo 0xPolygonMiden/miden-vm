@@ -17,7 +17,7 @@ fn degree_7_op_flags() {
         let frame = generate_evaluation_frame(i);
 
         // All the operation flags are generated for the given frame.
-        let op_flags = OpFlags::new(frame);
+        let op_flags = OpFlags::new(&frame);
 
         // index of the operation flag in the op_flag's degree seven array.
         let idx_in_degree7_flags = get_op_index(i as u8);
@@ -54,7 +54,7 @@ fn degree_6_op_flags() {
         let frame = generate_evaluation_frame(i);
 
         // All the operation flags are generated for the given frame.
-        let op_flags = OpFlags::new(frame);
+        let op_flags = OpFlags::new(&frame);
 
         // index of the operation flag in the op_flag's degree six array.
         let idx_in_degree6_flags = get_op_index(i as u8);
@@ -93,7 +93,7 @@ fn degree_4_op_flags() {
         let frame = generate_evaluation_frame(i);
 
         // All the operation flags are generated for the given frame.
-        let op_flags = OpFlags::new(frame);
+        let op_flags = OpFlags::new(&frame);
 
         // index of the operation flag in the op_flag's degree four array.
         let idx_in_degree4_flags = get_op_index(i as u8);
