@@ -56,6 +56,10 @@ impl Air for ProcessorAir {
             TransitionConstraintDegree::new(1), // clk' = clk + 1
         ];
 
+        // --- stack constraints -------------------------------------------------------------------
+        let mut stack_degrees = stack::get_transition_constraint_degrees();
+        main_degrees.append(&mut stack_degrees);
+
         // --- range checker ----------------------------------------------------------------------
         let mut range_checker_degrees = range::get_transition_constraint_degrees();
         main_degrees.append(&mut range_checker_degrees);
@@ -69,6 +73,7 @@ impl Air for ProcessorAir {
         // Define the transition constraint ranges.
         let constraint_ranges = TransitionConstraintRange::new(
             1,
+            stack::get_transition_constraint_count(),
             range::get_transition_constraint_count(),
             chiplets::get_transition_constraint_count(),
         );
@@ -190,6 +195,12 @@ impl Air for ProcessorAir {
         // --- system -----------------------------------------------------------------------------
         // clk' = clk + 1
         result[0] = next[CLK_COL_IDX] - (current[CLK_COL_IDX] + E::ONE);
+
+        // --- stack operations -------------------------------------------------------------------
+        stack::enforce_constraints::<E>(
+            frame,
+            select_result_range!(result, self.constraint_ranges.stack),
+        );
 
         // --- range checker ----------------------------------------------------------------------
         range::enforce_constraints::<E>(
