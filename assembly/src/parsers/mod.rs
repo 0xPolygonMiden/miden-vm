@@ -42,7 +42,7 @@ fn parse_op_token(
         // ----- field operations -----------------------------------------------------------------
         "assert" => field_ops::parse_assert(span_ops, op),
         "assert_eq" => field_ops::parse_assert_eq(span_ops, op),
-        "assertz" => field_ops::parse_assert_eqz(span_ops, op),
+        "assertz" => field_ops::parse_assertz(span_ops, op),
 
         "add" => field_ops::parse_add(span_ops, op),
         "sub" => field_ops::parse_sub(span_ops, op),

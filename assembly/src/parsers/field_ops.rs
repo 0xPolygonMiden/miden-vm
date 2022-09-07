@@ -31,7 +31,7 @@ pub(super) fn parse_assert_eq(
 }
 
 /// Appends EQZ ASSERT operation sequence to the span block.
-pub(super) fn parse_assert_eqz(
+pub(super) fn parse_assertz(
     span_ops: &mut Vec<Operation>,
     op: &Token,
 ) -> Result<(), AssemblyError> {
@@ -718,7 +718,7 @@ mod tests {
         let expected_err = AssemblyError::extra_param(&op_err);
 
         assert_eq!(
-            parse_assert_eqz(&mut span_ops, &op_err).unwrap_err(),
+            parse_assertz(&mut span_ops, &op_err).unwrap_err(),
             expected_err
         );
     }

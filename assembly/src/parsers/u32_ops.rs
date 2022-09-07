@@ -1115,6 +1115,7 @@ mod tests {
         tokens::Token,
         AssemblyError,
     };
+
     #[test]
     fn test_parse_u32wrapping_madd() {
         let mut span_ops: Vec<Operation> = Vec::new();
