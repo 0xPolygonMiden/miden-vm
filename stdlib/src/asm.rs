@@ -732,34 +732,7 @@ export.hash.4
 end
 "),
 // ----- std::crypto::hashes::keccak256 -----------------------------------------------------------
-("std::crypto::hashes::keccak256", "# if stack top has [d, c, b, a], after completion of execution of
-# this procedure stack top should look like [a, b, c, d]
-proc.rev_4_elements
-    swap
-    movup.2
-    movup.3
-end
-
-# given four elements of from each of a, b sets, following procedure computes a[i] ^ b[i] ∀ i = [0, 3]
-proc.xor_4_elements
-    movup.7
-    u32checked_xor
-
-    swap
-
-    movup.6
-    u32checked_xor
-
-    movup.2
-    movup.5
-    u32checked_xor
-
-    movup.4
-    movup.4
-    u32checked_xor
-end
-
-# Keccak-p[1600, 24] permutation's θ step mapping function, which is implemented 
+("std::crypto::hashes::keccak256", "# Keccak-p[1600, 24] permutation's θ step mapping function, which is implemented 
 # in terms of 32 -bit word size ( bit interleaved representation )
 #
 # See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L55-L98 for original implementation
@@ -3544,387 +3517,248 @@ proc.iota
     popw.mem
 end
 
-# keccak-p[b, n_r] permutation round, without `iota` function
-# ( all other functions i.e. `theta`, `rho`, `pi`, `chi` are applied in order ) | b = 1600, n_r = 24
+# Keccak-p[1600, 24] permutation round, without `iota` function ( all other 
+# functions i.e. `theta`, `rho`, `pi`, `chi` are applied in order )
 #
-# As `iota` function involves xoring constant factors with first lane of state array ( read state[0, 0] ),
-# specialised implementations are maintained; see above; required to be invoked seperately after completion of
+# As `iota` function involves xoring constant factors with first lane of state array 
+# ( read state[0, 0] ), it's required to invoke them seperately after completion of
 # this procedure's execution.
 #
+# Expected stack state :
+#
+# [start_addr, ... ]
+#
+# After finishing execution, stack looks like
+#
+# [ ... ]
+#
+# Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
+# s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
+#
+# Consecutive memory addresses can be computed by repeated application of `sub.1`.
+#
 # See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L325-L340
-proc.round.4
-    storew.local.0
-    swapw
-    storew.local.1
-    movupw.2
-    storew.local.2
-    movupw.3
-    storew.local.3
-
-    dropw
-    dropw
-    dropw
-
-    repeat.3
-        swap
-        drop
-    end
-
+proc.round
+    dup
     exec.theta
 
-    pushw.local.0
-    repeat.3
-        swap
-        drop
-    end
-
+    dup
     exec.rho
 
-    pushw.local.0
-    repeat.3
-        swap
-        drop
-    end
-
+    dup
     exec.pi
-
-    pushw.local.0
-    repeat.3
-        swap
-        drop
-    end
 
     exec.chi
 end
 
-# keccak-p[1600, 24] permutation, which applies 24 rounds on state array of size  5 x 5 x 64, where each
-# 64 -bit lane is represented in bit interleaved form ( in terms of two 32 -bit words ).
+# Keccak-p[1600, 24] permutation, applying 24 rounds on state array of size  5 x 5 x 64, 
+# where each 64 -bit lane is represented in bit interleaved form ( in terms of two 32 -bit words ).
+#
+# Expected stack state :
+#
+# [start_addr, ... ]
+#
+# After finishing execution, stack looks like
+#
+# [ ... ]
+#
+# Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
+# s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
+#
+# Consecutive memory addresses can be computed by repeated application of `sub.1`.
 #
 # See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L379-L427
-proc.keccak_p.5
-    popw.local.0
-    popw.local.1
-    popw.local.2
-    popw.local.3
-
-    pushw.local.0
-    repeat.3
-        swap
-        drop
-    end
-    push.env.locaddr.4
-    pop.mem
-
+proc.keccak_p
     # permutation round 1
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.0.1
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 2
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.137.0
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 3
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.2147483787.0
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 4
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.2147516544.0
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 5
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.139.1
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 6
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.32768.1
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 7
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.2147516552.1
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 8
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.2147483778.1
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 9
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.11.0
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 10
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.10.0
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 11
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.32898.1
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 12
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.32771.0
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 13
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.32907.1
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 14
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.2147483659.1
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 15
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.2147483786.1
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 16
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.2147483777.1
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 17
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.2147483777.0
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 18
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.2147483656.0
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 19
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.131.0
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 20
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.2147516419.0
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 21
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.2147516552.1
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 22
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.2147483784.0
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 23
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.32768.1
-    push.env.locaddr.4
-    push.mem
+    dup.2
     exec.iota
 
     # permutation round 24
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
-
+    dup
     exec.round
 
     push.2147516546.0
-    push.env.locaddr.4
-    push.mem
+    movup.2
     exec.iota
 end
 
@@ -4213,40 +4047,34 @@ proc.to_digest
     end
 end
 
-# given 64 -bytes input, in terms of sixteen 32 -bit unsigned integers, where each pair
+# Given 64 -bytes input, in terms of sixteen 32 -bit unsigned integers, where each pair
 # of them holding higher & lower 32 -bits of 64 -bit unsigned integer ( reinterpreted on
 # host CPU from little endian byte array ) respectively, this function computes 32 -bytes
 # keccak256 digest, held on stack top, represented in terms of eight 32 -bit unsigned integers,
 # where each pair of them keeps higher and lower 32 -bits of 64 -bit unsigned integer respectively
 #
+# Expected stack state :
+#
+# [iword0, iword1, iword2, iword3, iword4, iword5, iword6, iword7, 
+#  iword8, iword9, iword10, iword11, iword12, iword13, iword14, iword15, ... ]
+#
+# Final stack state :
+#
+# [oword0, oword1, oword2, oword3, oword4, oword5, oword6, oword7, ... ]
+#
 # See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L232-L257
 export.hash.13
+    # prapare keccak256 state from input message
     push.env.locaddr.0
     exec.to_state_array
 
-    push.0.0.0
-    push.env.locaddr.12
-
-    push.env.locaddr.11
-    push.env.locaddr.10
-    push.env.locaddr.9
-    push.env.locaddr.8
-
-    push.env.locaddr.7
-    push.env.locaddr.6
-    push.env.locaddr.5
-    push.env.locaddr.4
-
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
+    # apply keccak-p[1600, 24] permutation
     push.env.locaddr.0
-
     exec.keccak_p
 
+    # prapare keccak256 digest from state
     pushw.local.1
     pushw.local.0
-
     exec.to_digest
 end
 "),
