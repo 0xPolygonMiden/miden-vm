@@ -10,6 +10,7 @@ pub mod chiplets;
 pub mod decoder;
 pub mod errors;
 pub mod range;
+pub mod stack;
 
 pub use math::{fields::f64::BaseElement as Felt, ExtensionOf, FieldElement, StarkField};
 
