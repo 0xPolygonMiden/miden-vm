@@ -7,7 +7,7 @@ extern crate alloc;
 pub use vm_core::{
     chiplets::hasher::Digest,
     errors::{AdviceSetError, InputError},
-    AdviceSet, Program, ProgramInputs,
+    AdviceSet, Program, ProgramInputs, ProgramOutputs,
 };
 use vm_core::{
     code_blocks::{
@@ -83,15 +83,15 @@ pub struct ChipletsTrace {
 // EXECUTORS
 // ================================================================================================
 
-/// Returns an execution trace resulting from executing the provided program against the provided
-/// inputs.
+/// Returns execution output and an execution trace resulting from executing the provided program
+/// against the provided inputs.
 pub fn execute(
     program: &Program,
     inputs: &ProgramInputs,
 ) -> Result<ExecutionTrace, ExecutionError> {
     let mut process = Process::new(inputs.clone());
-    process.execute(program)?;
-    let trace = ExecutionTrace::new(process);
+    let program_outputs = process.execute(program)?;
+    let trace = ExecutionTrace::new(process, program_outputs);
     assert_eq!(
         program.hash(),
         trace.program_hash(),
@@ -155,13 +155,15 @@ impl Process {
     // --------------------------------------------------------------------------------------------
 
     /// Executes the provided [Program] in this process.
-    pub fn execute(&mut self, program: &Program) -> Result<(), ExecutionError> {
+    pub fn execute(&mut self, program: &Program) -> Result<ProgramOutputs, ExecutionError> {
         assert_eq!(
             self.system.clk(),
             0,
             "a program has already been executed in this process"
         );
-        self.execute_code_block(program.root(), program.cb_table())
+        self.execute_code_block(program.root(), program.cb_table())?;
+
+        Ok(self.stack.get_outputs())
     }
 
     // CODE BLOCK EXECUTORS

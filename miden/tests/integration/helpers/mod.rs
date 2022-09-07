@@ -1,7 +1,7 @@
 pub use miden::{ProofOptions, StarkProof};
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
-pub use vm_core::{Felt, FieldElement, Program, ProgramInputs, MIN_STACK_DEPTH};
+pub use vm_core::{Felt, FieldElement, Program, ProgramInputs, ProgramOutputs, MIN_STACK_DEPTH};
 
 pub mod crypto;
 
@@ -149,23 +149,13 @@ impl Test {
     /// Compiles the test's code into a program, then generates and verifies a proof of execution
     /// using the given public inputs and the specified number of stack outputs. When `test_fail`
     /// is true, this function will force a failure by modifying the first output.
-    pub fn prove_and_verify(
-        &self,
-        pub_inputs: Vec<u64>,
-        num_stack_outputs: usize,
-        test_fail: bool,
-    ) {
+    pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let program = self.compile();
-        let (mut outputs, proof) = prover::prove(
-            &program,
-            &self.inputs,
-            num_stack_outputs,
-            &ProofOptions::default(),
-        )
-        .unwrap();
+        let (mut outputs, proof) =
+            prover::prove(&program, &self.inputs, &ProofOptions::default()).unwrap();
 
         if test_fail {
-            outputs[0] += 1;
+            outputs.stack_mut()[0] += 1;
             assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_err());
         } else {
             let result = miden::verify(program.hash(), &pub_inputs, &outputs, proof);

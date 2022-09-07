@@ -24,6 +24,9 @@ pub use operations::{
 mod inputs;
 pub use inputs::{AdviceSet, ProgramInputs};
 
+mod outputs;
+pub use outputs::ProgramOutputs;
+
 pub mod utils;
 use utils::range;
 

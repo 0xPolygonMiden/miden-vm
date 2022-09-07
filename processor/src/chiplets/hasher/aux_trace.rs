@@ -54,7 +54,7 @@ impl AuxTraceBuilder {
     }
 }
 
-impl AuxColumnBuilder<SiblingTableUpdate, SiblingTableRow> for AuxTraceBuilder {
+impl AuxColumnBuilder<SiblingTableUpdate, SiblingTableRow, u32> for AuxTraceBuilder {
     /// Returns a list of rows which were added to and then removed from the sibling table.
     ///
     /// The order of the rows in the list is the same as the order in which the rows were added to
