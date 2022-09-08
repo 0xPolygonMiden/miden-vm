@@ -119,8 +119,6 @@ mod tests {
 
     #[test]
     fn push_one() {
-        let num_proc_locals = 0;
-
         let mut span_ops: Vec<Operation> = Vec::new();
         let op_0 = Token::new("push.0", 0);
         let op_1 = Token::new("push.1", 0);
@@ -134,20 +132,16 @@ mod tests {
             Operation::Push(Felt::new(123)),
         ];
 
-        parse_push(&mut span_ops, &op_0, num_proc_locals).expect("Failed to parse push.0");
-        parse_push(&mut span_ops, &op_1, num_proc_locals).expect("Failed to parse push.1");
-        parse_push(&mut span_ops, &op_dec, num_proc_locals)
-            .expect("Failed to parse push of decimal element 123");
-        parse_push(&mut span_ops, &op_hex, num_proc_locals)
-            .expect("Failed to parse push of hex element 0x7b");
+        parse_push(&mut span_ops, &op_0).expect("Failed to parse push.0");
+        parse_push(&mut span_ops, &op_1).expect("Failed to parse push.1");
+        parse_push(&mut span_ops, &op_dec).expect("Failed to parse push of decimal element 123");
+        parse_push(&mut span_ops, &op_hex).expect("Failed to parse push of hex element 0x7b");
 
         assert_eq!(span_ops, expected);
     }
 
     #[test]
     fn push_many() {
-        let num_proc_locals = 0;
-
         // --- push 4 decimal values --------------------------------------------------------------
         let mut span_ops: Vec<Operation> = Vec::new();
         let op_4_dec = Token::new("push.4.5.6.7", 0);
@@ -155,8 +149,7 @@ mod tests {
         for a in 4..8 {
             expected.push(Operation::Push(Felt::new(a)));
         }
-        parse_push(&mut span_ops, &op_4_dec, num_proc_locals)
-            .expect("Failed to parse push.4.5.6.7");
+        parse_push(&mut span_ops, &op_4_dec).expect("Failed to parse push.4.5.6.7");
         assert_eq!(span_ops, expected);
 
         // --- push the maximum number of decimal values (16) -------------------------------------
@@ -166,7 +159,7 @@ mod tests {
         for a in 16..32 {
             expected.push(Operation::Push(Felt::new(a)));
         }
-        parse_push(&mut span_ops, &op_16_dec, num_proc_locals)
+        parse_push(&mut span_ops, &op_16_dec)
             .expect("Failed to parse push.16.17.18.19.20.21.22.23.24.25.26.27.28.29.30.31");
         assert_eq!(span_ops, expected);
 
@@ -177,7 +170,7 @@ mod tests {
         for i in 1..=5 {
             expected.push(Operation::Push(Felt::new(10_u64.pow(i))));
         }
-        parse_push(&mut span_ops, &op_5_hex, num_proc_locals)
+        parse_push(&mut span_ops, &op_5_hex)
             .expect("Failed to parse push.0xA.0x64.0x3EB.0x2710.0x186A0");
         assert_eq!(span_ops, expected);
 
@@ -188,22 +181,20 @@ mod tests {
         for i in 1_u32..=8 {
             expected.push(Operation::Push(Felt::new(2_u64.pow(i))));
         }
-        parse_push(&mut span_ops, &op_8_dec_hex, num_proc_locals)
+        parse_push(&mut span_ops, &op_8_dec_hex)
             .expect("Failed to parse push.2.4.8.0x10.0x20.0x40.128.0x100");
         assert_eq!(span_ops, expected);
     }
 
     #[test]
     fn push_without_separator() {
-        let num_proc_locals = 0;
         // --- push hexadecimal values with no period separators ----------------------------------
         let mut span_ops: Vec<Operation> = Vec::new();
         let mut expected: Vec<Operation> = Vec::new();
         let op_sep = Token::new("push.0x1234.0xabcd", 0);
         let op_no_sep = Token::new("push.0x0000000000001234000000000000abcd", 0);
-        parse_push(&mut expected, &op_sep, num_proc_locals)
-            .expect("Failed to parse push.0x1234.0xabcd");
-        parse_push(&mut span_ops, &op_no_sep, num_proc_locals)
+        parse_push(&mut expected, &op_sep).expect("Failed to parse push.0x1234.0xabcd");
+        parse_push(&mut span_ops, &op_no_sep)
             .expect("Failed to parse push.0x0000000000001234000000000000abcd");
         assert_eq!(span_ops, expected);
 
@@ -212,17 +203,26 @@ mod tests {
         let mut expected: Vec<Operation> = Vec::new();
         let op_16_dec = Token::new("push.0.1.2.3.4.5.6.7.8.9.10.11.12.13.14.15", 0);
         let op_16_no_sep = Token::new("push.0x0000000000000000000000000000000100000000000000020000000000000003000000000000000400000000000000050000000000000006000000000000000700000000000000080000000000000009000000000000000A000000000000000B000000000000000C000000000000000D000000000000000E000000000000000F", 0);
-        parse_push(&mut expected, &op_16_dec, num_proc_locals)
+        parse_push(&mut expected, &op_16_dec)
             .expect("Failed to parse push.0.1.2.3.4.5.6.7.8.9.10.11.12.13.14.15");
-        parse_push(&mut span_ops, &op_16_no_sep,num_proc_locals)
+        parse_push(&mut span_ops, &op_16_no_sep)
             .expect("Failed to parse push.0x0000000000000000000000000000000100000000000000020000000000000003000000000000000400000000000000050000000000000006000000000000000700000000000000080000000000000009000000000000000A000000000000000B000000000000000C000000000000000D000000000000000E000000000000000F");
         assert_eq!(span_ops, expected);
     }
 
     #[test]
-    fn push_invalid() {
-        let num_proc_locals = 0;
+    #[should_panic]
+    fn push_invalid_panic() {
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let pos = 0;
 
+        // wrong operation passed to parsing function
+        let op_mismatch = Token::new("pushw.0", pos);
+        parse_push(&mut span_ops, &op_mismatch).unwrap_err();
+    }
+
+    #[test]
+    fn push_invalid() {
         // fails when immediate value is invalid or missing
         let mut span_ops: Vec<Operation> = Vec::new();
         let pos = 0;
@@ -230,16 +230,13 @@ mod tests {
         // missing value or variant
         let op_no_val = Token::new("push", pos);
         let expected = AssemblyError::invalid_op(&op_no_val);
-        assert_eq!(
-            parse_push(&mut span_ops, &op_no_val, num_proc_locals).unwrap_err(),
-            expected
-        );
+        assert_eq!(parse_push(&mut span_ops, &op_no_val).unwrap_err(), expected);
 
         // invalid value
         let op_val_invalid = Token::new("push.abc", pos);
         let expected = AssemblyError::invalid_param(&op_val_invalid, 1);
         assert_eq!(
-            parse_push(&mut span_ops, &op_val_invalid, num_proc_locals).unwrap_err(),
+            parse_push(&mut span_ops, &op_val_invalid).unwrap_err(),
             expected
         );
 
@@ -248,7 +245,7 @@ mod tests {
         let op_mixed_sep = Token::new("push.4.5.0x0000000000001234000000000000abcd", 0);
         let expected = AssemblyError::invalid_param(&op_mixed_sep, 3);
         assert_eq!(
-            parse_push(&mut span_ops, &op_mixed_sep, num_proc_locals).unwrap_err(),
+            parse_push(&mut span_ops, &op_mixed_sep).unwrap_err(),
             expected
         );
 
@@ -256,7 +253,7 @@ mod tests {
         let op_mixed_sep = Token::new("push.0x0000000000001234000000000000abcd.4.5", 0);
         let expected = AssemblyError::invalid_param(&op_mixed_sep, 1);
         assert_eq!(
-            parse_push(&mut span_ops, &op_mixed_sep, num_proc_locals).unwrap_err(),
+            parse_push(&mut span_ops, &op_mixed_sep).unwrap_err(),
             expected
         );
 
@@ -264,32 +261,19 @@ mod tests {
         let op_extra_val = Token::new("push.0.1.2.3.4.5.6.7.8.9.10.11.12.13.14.15.16", pos);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
-            parse_push(&mut span_ops, &op_extra_val, num_proc_locals).unwrap_err(),
+            parse_push(&mut span_ops, &op_extra_val).unwrap_err(),
             expected
         );
-
-        // wrong operation passed to parsing function
-        let op_mismatch = Token::new("pushw.0", pos);
-        let expected = AssemblyError::unexpected_token(
-            &op_mismatch,
-            "push.{adv.n|env.var|local.i|mem|mem.a|a|a.b|a.b.c...}",
-        );
-        assert_eq!(
-            parse_push(&mut span_ops, &op_mismatch, num_proc_locals).unwrap_err(),
-            expected
-        )
     }
 
     #[test]
     fn push_invalid_hex() {
-        let num_proc_locals = 0;
-
         // --- no separators, and total number of bytes is not a multiple of 8 --------------------
         let mut span_ops: Vec<Operation> = Vec::new();
         let op_bad_hex = Token::new("push.0x00000000000012340000abcd", 0);
         let expected = AssemblyError::invalid_param(&op_bad_hex, 1);
         assert_eq!(
-            parse_push(&mut span_ops, &op_bad_hex, num_proc_locals).unwrap_err(),
+            parse_push(&mut span_ops, &op_bad_hex).unwrap_err(),
             expected
         );
 
@@ -298,7 +282,7 @@ mod tests {
         let op_bad_hex = Token::new("push.0x00001234000000000000abcd.0x5678.0x9ef0", 0);
         let expected = AssemblyError::invalid_param(&op_bad_hex, 1);
         assert_eq!(
-            parse_push(&mut span_ops, &op_bad_hex, num_proc_locals).unwrap_err(),
+            parse_push(&mut span_ops, &op_bad_hex).unwrap_err(),
             expected
         );
 
@@ -307,7 +291,7 @@ mod tests {
         let op_extra_val = Token::new("push.0x0000000000000000000000000000000100000000000000020000000000000003000000000000000400000000000000050000000000000006000000000000000700000000000000080000000000000009000000000000000A000000000000000B000000000000000C000000000000000D000000000000000E000000000000000F0000000000000010", 0);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
-            parse_push(&mut span_ops, &op_extra_val, num_proc_locals).unwrap_err(),
+            parse_push(&mut span_ops, &op_extra_val).unwrap_err(),
             expected
         );
     }

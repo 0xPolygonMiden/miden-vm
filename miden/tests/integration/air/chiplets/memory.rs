@@ -2,31 +2,24 @@ use crate::{build_op_test, build_test};
 use vm_core::utils::ToElements;
 
 #[test]
-fn push() {
-    let asm_op = "push.mem.0 swap";
+fn mem_load() {
+    let asm_op = "mem_load.0 swap";
 
     build_op_test!(asm_op).prove_and_verify(vec![], false);
 }
 
 #[test]
-fn pushw() {
-    let asm_op = "pushw.mem.0 swapw";
-
-    build_op_test!(asm_op).prove_and_verify(vec![], false);
-}
-
-#[test]
-fn pop() {
-    let asm_op = "pop.mem.0";
+fn mem_store() {
+    let asm_op = "mem_store.0 drop";
     let pub_inputs = vec![1];
 
     build_op_test!(asm_op, &pub_inputs).prove_and_verify(pub_inputs, false);
 }
 
 #[test]
-fn helper_pop() {
+fn helper_mem_store() {
     // Sequence of operations: [Span, Pad, MStore, Drop, Pad, Mstore, Drop, Pad, Mstore, Drop]
-    let asm_op = "begin pop.mem.0 pop.mem.0 pop.mem.0 end";
+    let asm_op = "begin mem_store.0 drop mem_store.0 drop mem_store.0 drop end";
     let pub_inputs = vec![1, 2];
 
     let trace = build_test!(asm_op, &pub_inputs).execute().unwrap();
@@ -47,41 +40,15 @@ fn helper_pop() {
 }
 
 #[test]
-fn popw() {
-    let asm_op = "popw.mem.0";
-    let pub_inputs = vec![1, 2, 3, 4];
-
-    build_op_test!(asm_op, &pub_inputs).prove_and_verify(pub_inputs, false);
-}
-
-#[test]
-fn helper_popow() {
-    // Sequence of operations: [Span, Pad, MStorew, Drop, Drop, Drop, Drop, Pad, Mstore, Drop,
-    //                          Drop, Drop, Drop, Pad, Mstore, Drop, Drop, Drop, Drop]
-    let asm_op = "begin popw.mem.0 popw.mem.0 popw.mem.0 end";
-    let pub_inputs = vec![213, 214, 215, 216, 217, 218, 219, 220];
-
-    let trace = build_test!(asm_op, &pub_inputs).execute().unwrap();
-    // Filling in helper registers is similar to the helper_pop test, with the difference that not
-    // one element is written to the registers, but the whole word
-    let helper_regs1 = [217, 218, 219, 220, 0, 0].to_elements();
-    // We need to check helper registers state after second MStore, which index is 8
-    assert_eq!(helper_regs1, trace.get_user_op_helpers_at(8));
-    let helper_regs1 = [213, 214, 215, 216, 0, 0].to_elements();
-    // We need to check helper registers state after second MStore, which index is 14
-    assert_eq!(helper_regs1, trace.get_user_op_helpers_at(14));
-}
-
-#[test]
-fn load() {
-    let asm_op = "loadw.mem.0";
+fn mem_loadw() {
+    let asm_op = "mem_loadw.0";
 
     build_op_test!(asm_op).prove_and_verify(vec![], false);
 }
 
 #[test]
-fn store() {
-    let asm_op = "storew.mem.0";
+fn mem_storew() {
+    let asm_op = "mem_storew.0";
     let pub_inputs = vec![1, 2, 3, 4];
 
     build_op_test!(asm_op, &pub_inputs).prove_and_verify(pub_inputs, false);
@@ -89,7 +56,8 @@ fn store() {
 
 #[test]
 fn write_read() {
-    let source = "begin popw.mem.0 pushw.mem.0 swapw end";
+    let source = "begin mem_storew.0 mem_loadw.0 swapw end";
+
     let pub_inputs = vec![4, 3, 2, 1];
 
     build_test!(source, &pub_inputs).prove_and_verify(pub_inputs, false);
@@ -98,7 +66,7 @@ fn write_read() {
 #[test]
 fn helper_write_read() {
     // Sequence of operations: [Span, Pad, MStorew, Drop, Drop, Drop, Drop, Pad, MLoad, ... ]
-    let source = "begin popw.mem.0 push.mem.0 swapw end";
+    let source = "begin mem_storew.0 dropw mem_load.0 swapw end";
     let pub_inputs = vec![4, 3, 2, 1];
 
     let trace = build_test!(source, &pub_inputs).execute().unwrap();
@@ -111,7 +79,7 @@ fn helper_write_read() {
 
 #[test]
 fn update() {
-    let source = "begin pushw.mem.0 storew.mem.0 swapw end";
+    let source = "begin push.0.0.0.0 mem_loadw.0 mem_storew.0 swapw end";
     let pub_inputs = vec![8, 7, 6, 5, 4, 3, 2, 1];
 
     build_test!(source, &pub_inputs).prove_and_verify(pub_inputs, false);
@@ -119,7 +87,7 @@ fn update() {
 
 #[test]
 fn incr_write_addr() {
-    let source = "begin storew.mem.0 storew.mem.1 end";
+    let source = "begin mem_storew.0 mem_storew.1 end";
     let pub_inputs = vec![4, 3, 2, 1];
 
     build_test!(source, &pub_inputs).prove_and_verify(pub_inputs, false);

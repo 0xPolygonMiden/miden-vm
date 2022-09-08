@@ -103,15 +103,15 @@ end
 export.forward.128
     # prepare input
 
-	push.env.locaddr.127
+	locaddr.127
 	push.0.0.0.0
 
 	repeat.128
 		dup.5
-		loadw.mem
+		mem_loadw
 
 		dup.4
-		storew.mem
+		mem_storew
 
 		movup.5
 		add.1
@@ -135,19 +135,19 @@ export.forward.128
 
 	push.0.0.0.0.0.0.0.0
 
-	push.env.locaddr.63
+	locaddr.63
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movup.13
 		movup.13
@@ -157,12 +157,12 @@ export.forward.128
 		exec.butterfly
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.1
@@ -194,20 +194,20 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.95
+	locaddr.95
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.2
 		repeat.32
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -217,12 +217,12 @@ export.forward.128
 			exec.butterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -273,20 +273,20 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.111
+	locaddr.111
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.4
 		repeat.16
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -296,12 +296,12 @@ export.forward.128
 			exec.butterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -372,20 +372,20 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.119
+	locaddr.119
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.8
 		repeat.8
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -395,12 +395,12 @@ export.forward.128
 			exec.butterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -511,20 +511,20 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.123
+	locaddr.123
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.16
 		repeat.4
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -534,12 +534,12 @@ export.forward.128
 			exec.butterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -666,20 +666,20 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.125
+	locaddr.125
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.32
 		repeat.2
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -689,12 +689,12 @@ export.forward.128
 			exec.butterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -790,19 +790,19 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.126
+	locaddr.126
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movup.13
 		movup.13
@@ -812,12 +812,12 @@ export.forward.128
 		exec.butterfly
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.2
@@ -904,19 +904,19 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.126
+	locaddr.126
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movdn.5
 		movdn.5
@@ -936,12 +936,12 @@ export.forward.128
 		movup.7
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.2
@@ -1028,19 +1028,19 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.126
+	locaddr.126
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movup.2
 		swap
@@ -1069,12 +1069,12 @@ export.forward.128
 		movup.7
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.2
@@ -1095,7 +1095,7 @@ export.forward.128
 	# starting at 👇; total 128 consecutive addresses are used for storing
 	# whole polynomial ( of degree 512 )
 
-	push.env.locaddr.127
+	locaddr.127
 end
 
 # Applies four inverse NTT butterflies on four different indices, given following stack state
@@ -1240,15 +1240,15 @@ end
 export.backward.128
 	# prepare input
 
-	push.env.locaddr.127
+	locaddr.127
 	push.0.0.0.0
 
 	repeat.128
 		dup.5
-		loadw.mem
+		mem_loadw
 
 		dup.4
-		storew.mem
+		mem_storew
 
 		movup.5
 		add.1
@@ -1333,19 +1333,19 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.126
+	locaddr.126
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movup.2
 		swap
@@ -1374,12 +1374,12 @@ export.backward.128
 		movup.7
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.2
@@ -1466,19 +1466,19 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.126
+	locaddr.126
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movdn.5
 		movdn.5
@@ -1498,12 +1498,12 @@ export.backward.128
 		movup.7
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.2
@@ -1590,19 +1590,19 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.126
+	locaddr.126
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movup.13
 		movup.13
@@ -1612,12 +1612,12 @@ export.backward.128
 		exec.ibutterfly
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.2
@@ -1735,20 +1735,20 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.125
+	locaddr.125
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.32
 		repeat.2
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -1758,12 +1758,12 @@ export.backward.128
 			exec.ibutterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -1874,20 +1874,20 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.123
+	locaddr.123
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.16
 		repeat.4
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -1897,12 +1897,12 @@ export.backward.128
 			exec.ibutterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -1973,20 +1973,20 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.119
+	locaddr.119
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.8
 		repeat.8
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -1996,12 +1996,12 @@ export.backward.128
 			exec.ibutterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -2052,20 +2052,20 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.111
+	locaddr.111
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.4
 		repeat.16
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -2075,12 +2075,12 @@ export.backward.128
 			exec.ibutterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -2121,20 +2121,20 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.95
+	locaddr.95
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.2
 		repeat.32
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -2144,12 +2144,12 @@ export.backward.128
 			exec.ibutterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -2185,19 +2185,19 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.63
+	locaddr.63
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movup.13
 		movup.13
@@ -2207,12 +2207,12 @@ export.backward.128
 		exec.ibutterfly
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.1
@@ -2230,17 +2230,17 @@ export.backward.128
 
 	dropw
 
-	push.env.locaddr.127
+	locaddr.127
 	movdn.4
 
 	repeat.128
 		dup.4
-		loadw.mem
+		mem_loadw
 
 		exec.mul_by_invN
 
 		dup.4
-		storew.mem
+		mem_storew
 
 		movup.4
 		add.1
@@ -2254,5 +2254,5 @@ export.backward.128
 	# starting at 👇; total 128 consecutive addresses are used for storing
 	# whole polynomial ( of degree 512 )
 
-    push.env.locaddr.127
+    locaddr.127
 end

@@ -160,12 +160,23 @@ fn parse_op_token(
         "cdropw" => stack_ops::parse_cdropw(span_ops, op),
 
         // ----- input / output operations --------------------------------------------------------
-        "push" => io_ops::parse_push(span_ops, op, num_proc_locals),
-        "pushw" => io_ops::parse_pushw(span_ops, op, num_proc_locals),
-        "pop" => io_ops::parse_pop(span_ops, op, num_proc_locals),
-        "popw" => io_ops::parse_popw(span_ops, op, num_proc_locals),
-        "loadw" => io_ops::parse_loadw(span_ops, op, num_proc_locals),
-        "storew" => io_ops::parse_storew(span_ops, op, num_proc_locals),
+        "push" => io_ops::parse_push(span_ops, op),
+        "sdepth" => io_ops::parse_sdepth(span_ops, op),
+        "locaddr" => io_ops::parse_locaddr(span_ops, op, num_proc_locals),
+
+        "mem_load" => io_ops::parse_mem_read(span_ops, op, num_proc_locals, false, true),
+        "loc_load" => io_ops::parse_mem_read(span_ops, op, num_proc_locals, true, true),
+
+        "mem_loadw" => io_ops::parse_mem_read(span_ops, op, num_proc_locals, false, false),
+        "loc_loadw" => io_ops::parse_mem_read(span_ops, op, num_proc_locals, true, false),
+
+        "mem_store" => io_ops::parse_mem_write(span_ops, op, num_proc_locals, false, true),
+        "loc_store" => io_ops::parse_mem_write(span_ops, op, num_proc_locals, true, true),
+
+        "mem_storew" => io_ops::parse_mem_write(span_ops, op, num_proc_locals, false, false),
+        "loc_storew" => io_ops::parse_mem_write(span_ops, op, num_proc_locals, true, false),
+
+        "loadw" => io_ops::parse_loadw_advice(span_ops, op),
         "adv" => io_ops::parse_adv_inject(span_ops, op, decorators),
 
         // ----- cryptographic operations ---------------------------------------------------------

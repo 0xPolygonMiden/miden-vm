@@ -1,144 +1,86 @@
-use super::{parse_element_param, validate_operation, AssemblyError, Operation, Token, Vec};
-use vm_core::{utils::PushMany, Felt, FieldElement};
+use super::{
+    parse_element_param, parse_u32_param, push_value, validate_operation, AssemblyError, Operation,
+    Token, Vec,
+};
+use vm_core::Felt;
 
-// RANDOM ACCESS MEMORY
-// ================================================================================================
-
-/// Pushes the first element of the word at the specified memory address onto the stack. The
-/// memory address may be provided directly as an immediate value or via the stack.
+/// Appends operations to the span block to execute a memory read operation. This includes reading
+/// a single element or an entire word from either local or global memory. Specifically, this
+/// handles mem_load, mem_loadw, loc_load, and loc_loadw instructions.
 ///
-/// This operation takes:
-/// - 2 VM cycles when the addresses is provided a an immediate value.
-/// - 1 VM cycle when the address is provided via the stack.
-pub fn parse_push_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_operation!(op, "push.mem", 0..1);
-
-    if op.num_parts() == 3 {
-        // parse the provided memory address and push it onto the stack
-        push_mem_addr(span_ops, op)?;
-    }
-
-    // load from the memory address on top of the stack
-    span_ops.push(Operation::MLoad);
-
-    Ok(())
-}
-
-/// Pops the top element off the stack and saves it at the specified memory address. The memory
-/// address may be provided directly as an immediate value or via the stack.
-///
-/// This operation takes:
-/// - 3 VM cycles when the addresses is provided a an immediate value.
-/// - 2 VM cycle when the address is provided via the stack.
-pub fn parse_pop_mem(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_operation!(op, "pop.mem", 0..1);
-
-    // if the destination memory address was on top of the stack, restore it to the top
-    if op.num_parts() == 3 {
-        push_mem_addr(span_ops, op)?;
-    }
-
-    span_ops.push(Operation::MStore);
-
-    // remove the remaining value from the top of the stack
-    span_ops.push(Operation::Drop);
-
-    Ok(())
-}
-
-/// Translates the `pushw.mem` and `loadw.mem` assembly ops to the system's `LOADW` memory read
-/// operation.
-///
-/// If the op provides an address (e.g. `pushw.mem.a`), it must be pushed to the stack directly
-/// before the `LOADW` operation. Whether provided directly or via the stack, the memory address
-/// will always be removed from the stack by `LOADW`.
-///
-/// When `overwrite_stack_top` is true, values should overwrite the top of the stack (as required by
-/// `loadw`). When `overwrite_stack_top` is false, values should be pushed onto the stack, leaving
-/// the rest of it unchanged (as required by `pushw`) except for the destination memory address
-/// removed by `LOADW`. This is achieved by first using `PAD` to make space for 4 new elements.
-/// Then, if the memory address was provided via the stack (not as part of the memory op) it must be
-/// moved to the top.
-///
-/// This operation takes:
-///  - pushw: 6 VM cycles.
-///  - loadw: 2 VM cycles when the addresses is provided a an immediate value.
-///  - loadw: 1 VM cecle when the address is provided via the stack.
-///
-/// # Errors
-///
-/// This function expects a memory read assembly operation that has already been validated. If
-/// called without validation, it could yield incorrect results or return an `AssemblyError`.
-pub fn parse_read_mem(
+/// VM cycles per operation:
+/// - mem_load(w): 1 cycle
+/// - mem_load(w).b: 2 cycles
+/// - loc_load(w).b:
+///    - 4 cycles if b = 1
+///    - 3 cycles if b != 1
+pub fn parse_mem_read(
     span_ops: &mut Vec<Operation>,
     op: &Token,
-    overwrite_stack_top: bool,
+    num_proc_locals: u32,
+    is_local: bool,
+    is_single: bool,
 ) -> Result<(), AssemblyError> {
-    validate_operation!(@only_params op, "pushw|loadw.mem", 0..1);
-
-    if !overwrite_stack_top {
-        // make space for the new elements
-        span_ops.push_many(Operation::Pad, 4);
-
-        // put the memory address on top of the stack
+    if is_local {
+        validate_operation!(op, "loc_load|loc_loadw", 1);
+        // parse the provided local address and push it onto the stack
+        push_local_addr(span_ops, op, num_proc_locals)?;
+    } else {
+        validate_operation!(op, "mem_load|mem_loadw", 0..1);
         if op.num_parts() == 2 {
-            // move the memory address to the top of the stack
-            span_ops.push(Operation::MovUp4);
-        } else {
             // parse the provided memory address and push it onto the stack
             push_mem_addr(span_ops, op)?;
         }
-    } else if op.num_parts() == 3 {
-        push_mem_addr(span_ops, op)?;
     }
 
     // load from the memory address on top of the stack
-    span_ops.push(Operation::MLoadW);
+    if is_single {
+        span_ops.push(Operation::MLoad);
+    } else {
+        span_ops.push(Operation::MLoadW);
+    }
 
     Ok(())
 }
 
-/// Translates the `popw.mem` and `storew.mem` assembly ops to the system's `STOREW` memory write
-/// operation.
+/// Appends operations to the span block to execute memory write operations. This includes writing
+/// a single element or an entire word into either local or global memory. Specifically, this
+/// handles mem_store, mem_storew, loc_store, and loc_storew instructions.
 ///
-/// If the op provides an address (e.g. `popw.mem.a`), it must be pushed to the stack directly
-/// before the `STOREW` operation. Whether provided directly or via the stack, the memory address
-/// will always be removed from the stack by `STOREW`.
-///
-/// When `retain_stack_top` is true, the values should be left on the stack after the memory write,
-/// leaving the stack unchanged (as required by `storew`) except for the destination memory address,
-/// which is removed by `STOREW`. When `retain_stack_top` is false, values should be dropped from
-/// the stack (as required by `popw`).
-///
-/// This operation takes:
-///  - popw: 6 VM cycles when the addresses is provided a an immediate value.
-///  - popw: 5 VM cycles when the address is provided via the stack.
-///  - storew: 2 VM cycles  when the addresses is provided a an immediate value.
-///  - storew: 1 VM cycles  when the address is provided via the stack.
-///
-/// # Errors
-///
-/// This function expects a memory write assembly operation that has already been validated. If
-/// called without validation, it could yield incorrect results or return an `AssemblyError`.
-pub fn parse_write_mem(
+/// VM cycles per operation:
+/// - mem_store(w): 1 cycle
+/// - mem_store(w).b: 2 cycles
+/// - loc_store(w).b:
+///    - 4 cycles if b = 1
+///    - 3 cycles if b != 1
+pub fn parse_mem_write(
     span_ops: &mut Vec<Operation>,
     op: &Token,
-    retain_stack_top: bool,
+    num_proc_locals: u32,
+    is_local: bool,
+    is_single: bool,
 ) -> Result<(), AssemblyError> {
-    validate_operation!(@only_params op, "popw|storew.mem", 0..1);
-
-    if op.num_parts() == 3 {
-        push_mem_addr(span_ops, op)?;
+    if is_local {
+        validate_operation!(op, "loc_store|loc_storew", 1);
+        push_local_addr(span_ops, op, num_proc_locals)?;
+    } else {
+        validate_operation!(op, "mem_store|mem_storew", 0..1);
+        if op.num_parts() == 2 {
+            push_mem_addr(span_ops, op)?;
+        }
     }
 
-    span_ops.push(Operation::MStoreW);
-
-    if !retain_stack_top {
-        span_ops.push_many(Operation::Drop, 4);
+    if is_single {
+        span_ops.push(Operation::MStore);
+    } else {
+        span_ops.push(Operation::MStoreW);
     }
 
     Ok(())
 }
+
+// HELPER FUNCTIONS
+// ================================================================================================
 
 /// Parses a provided memory address and pushes it onto the stack.
 ///
@@ -148,12 +90,44 @@ pub fn parse_write_mem(
 ///
 /// This function will return an `AssemblyError` if the address parameter does not exist.
 fn push_mem_addr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    let address = parse_element_param(op, 2)?;
-    if address == Felt::ZERO {
-        span_ops.push(Operation::Pad);
-    } else {
-        span_ops.push(Operation::Push(address));
+    let address = parse_element_param(op, 1)?;
+    push_value(span_ops, address);
+
+    Ok(())
+}
+
+/// Parses a provided local memory index and pushes the corresponding absolute memory location onto
+/// the stack.
+///
+/// This operation takes:
+/// - 3 VM cycles if index == 1
+/// - 2 VM cycles if index != 1
+///
+/// # Errors
+///
+/// This function will return an `AssemblyError` if the index parameter is greater than the number
+/// of locals declared by the procedure.
+fn push_local_addr(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    num_proc_locals: u32,
+) -> Result<(), AssemblyError> {
+    if num_proc_locals == 0 {
+        // if no procedure locals were declared, then no local mem ops are allowed
+        return Err(AssemblyError::invalid_op_with_reason(
+            op,
+            "no procedure locals were declared",
+        ));
     }
+
+    // parse the provided local memory index
+    let index = parse_u32_param(op, 1, 0, num_proc_locals - 1)?;
+
+    // put the absolute memory address on the stack
+    // negate the value to use it as an offset from the fmp
+    // since the fmp value was incremented when locals were allocated
+    push_value(span_ops, -Felt::from(index));
+    span_ops.push(Operation::FmpAdd);
 
     Ok(())
 }
@@ -164,341 +138,252 @@ fn push_mem_addr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{
-            parse_loadw, parse_pop, parse_popw, parse_push, parse_pushw, parse_storew,
-            tests::get_parsing_error, Felt,
-        },
+        super::{parse_mem_read, parse_mem_write, tests::get_parsing_error, Felt},
         AssemblyError, Operation, Token,
     };
 
-    // TESTS FOR PUSHING VALUES ONTO THE STACK (PUSH)
+    // TESTS FOR READING FROM MEMORY
     // ============================================================================================
 
     #[test]
-    fn push_mem() {
-        let num_proc_locals = 0;
-        // reads the first element of the word from memory and pushes it onto the stack
-
-        // test push with memory address on top of stack
-        let mut span_ops: Vec<Operation> = Vec::new();
-        let op_push = Token::new("push.mem", 0);
-        let expected = vec![Operation::MLoad];
-
-        parse_push(&mut span_ops, &op_push, num_proc_locals).expect("Failed to parse push.mem");
-
-        assert_eq!(&span_ops, &expected);
-
-        // test push with memory address provided directly (address 0)
-        let mut span_ops_addr: Vec<Operation> = Vec::new();
-        let op_push_addr = Token::new("push.mem.0", 0);
-        let expected_addr = vec![Operation::Pad, Operation::MLoad];
-
-        parse_push(&mut span_ops_addr, &op_push_addr, num_proc_locals)
-            .expect("Failed to parse push.mem.0 (address provided by op)");
-
-        assert_eq!(&span_ops_addr, &expected_addr);
-
-        // test push with memory address provided directly (address 2)
-        let mut span_ops_addr: Vec<Operation> = Vec::new();
-        let op_push_addr = Token::new("push.mem.2", 0);
-        let expected_addr = vec![Operation::Push(Felt::new(2)), Operation::MLoad];
-
-        parse_push(&mut span_ops_addr, &op_push_addr, num_proc_locals)
-            .expect("Failed to parse push.mem.2 (address provided by op)");
-
-        assert_eq!(&span_ops_addr, &expected_addr);
+    fn mem_load() {
+        test_parse_mem("mem_load", true, Operation::MLoad, parse_mem_read);
     }
 
     #[test]
-    fn push_mem_invalid() {
-        test_parse_mem("push");
+    fn loc_load() {
+        test_parse_local("loc_load", true, Operation::MLoad, parse_mem_read);
     }
 
     #[test]
-    fn pushw_mem() {
-        let num_proc_locals = 0;
-        // reads a word from memory and pushes it onto the stack
-
-        // test push with memory address on top of stack
-        let mut span_ops: Vec<Operation> = Vec::new();
-        let op_push = Token::new("pushw.mem", 0);
-        let expected = vec![
-            Operation::Pad,
-            Operation::Pad,
-            Operation::Pad,
-            Operation::Pad,
-            Operation::MovUp4,
-            Operation::MLoadW,
-        ];
-
-        parse_pushw(&mut span_ops, &op_push, num_proc_locals).expect("Failed to parse pushw.mem");
-
-        assert_eq!(&span_ops, &expected);
-
-        // test push with memory address provided directly (address 0)
-        let mut span_ops_addr: Vec<Operation> = Vec::new();
-        let op_push_addr = Token::new("pushw.mem.0", 0);
-        let expected_addr = vec![
-            Operation::Pad,
-            Operation::Pad,
-            Operation::Pad,
-            Operation::Pad,
-            Operation::Pad,
-            Operation::MLoadW,
-        ];
-
-        parse_pushw(&mut span_ops_addr, &op_push_addr, num_proc_locals)
-            .expect("Failed to parse pushw.mem.0 (address provided by op)");
-
-        assert_eq!(&span_ops_addr, &expected_addr);
-
-        // test push with memory address provided directly (address 2)
-        let mut span_ops_addr: Vec<Operation> = Vec::new();
-        let op_push_addr = Token::new("pushw.mem.2", 0);
-        let expected_addr = vec![
-            Operation::Pad,
-            Operation::Pad,
-            Operation::Pad,
-            Operation::Pad,
-            Operation::Push(Felt::new(2)),
-            Operation::MLoadW,
-        ];
-
-        parse_pushw(&mut span_ops_addr, &op_push_addr, num_proc_locals)
-            .expect("Failed to parse pushw.mem.2 (address provided by op)");
-
-        assert_eq!(&span_ops_addr, &expected_addr);
+    fn mem_load_invalid() {
+        test_parse_mem_invalid("mem_load");
     }
 
     #[test]
-    fn pushw_mem_invalid() {
-        test_parse_mem("pushw");
+    fn loc_load_invalid() {
+        test_parse_local_invalid("loc_load");
     }
 
-    // TESTS FOR REMOVING VALUES FROM THE STACK (POP)
+    #[test]
+    fn mem_loadw() {
+        test_parse_mem("mem_loadw", false, Operation::MLoadW, parse_mem_read);
+    }
+
+    #[test]
+    fn loc_loadw() {
+        test_parse_local("loc_loadw", false, Operation::MLoadW, parse_mem_read);
+    }
+
+    #[test]
+    fn mem_loadw_invalid() {
+        test_parse_mem_invalid("mem_loadw");
+    }
+
+    #[test]
+    fn loc_loadw_invalid() {
+        test_parse_local_invalid("loc_loadw");
+    }
+
+    // TESTS FOR WRITING INTO MEMORY
     // ============================================================================================
 
     #[test]
-    fn pop_mem_invalid() {
-        test_parse_mem("pop");
+    fn mem_store() {
+        test_parse_mem("mem_store", true, Operation::MStore, parse_mem_write);
     }
 
     #[test]
-    fn pop_mem() {
-        let num_proc_locals = 0;
-
-        // stores top element of the stack in memory
-        // then removes this element from the top of the stack
-
-        // test pop with memory address on top of the stack
-        let mut span_ops: Vec<Operation> = Vec::new();
-        let op_mem_pop = Token::new("pop.mem", 0);
-        let expected = vec![Operation::MStore, Operation::Drop];
-        parse_pop(&mut span_ops, &op_mem_pop, num_proc_locals).expect("Failed to parse pop.mem");
-        assert_eq!(&span_ops, &expected);
-
-        // test pop with memory address provided directly (address 0)
-        let mut span_ops_addr: Vec<Operation> = Vec::new();
-        let op_pop_addr = Token::new("pop.mem.0", 0);
-        let expected_addr = vec![Operation::Pad, Operation::MStore, Operation::Drop];
-
-        parse_pop(&mut span_ops_addr, &op_pop_addr, num_proc_locals)
-            .expect("Failed to parse pop.mem.0");
-
-        assert_eq!(&span_ops_addr, &expected_addr);
-
-        // test pop with memory address provided directly (address 2)
-        let mut span_ops_addr: Vec<Operation> = Vec::new();
-        let op_pop_addr = Token::new("pop.mem.2", 0);
-        let expected_addr = vec![
-            Operation::Push(Felt::new(2)),
-            Operation::MStore,
-            Operation::Drop,
-        ];
-
-        parse_pop(&mut span_ops_addr, &op_pop_addr, num_proc_locals)
-            .expect("Failed to parse pop.mem.2");
-
-        assert_eq!(&span_ops_addr, &expected_addr);
+    fn loc_store() {
+        test_parse_local("loc_store", true, Operation::MStore, parse_mem_write);
     }
 
     #[test]
-    fn popw_mem() {
-        let num_proc_locals = 0;
-
-        // stores the top 4 elements of the stack in memory
-        // then removes those 4 elements from the top of the stack
-
-        // test pop with memory address on top of the stack
-        let mut span_ops: Vec<Operation> = Vec::new();
-        let op_mem_pop = Token::new("popw.mem", 0);
-        let expected = vec![
-            Operation::MStoreW,
-            Operation::Drop,
-            Operation::Drop,
-            Operation::Drop,
-            Operation::Drop,
-        ];
-        parse_popw(&mut span_ops, &op_mem_pop, num_proc_locals).expect("Failed to parse popw.mem");
-        assert_eq!(&span_ops, &expected);
-
-        // test pop with memory address provided directly (address 0)
-        let mut span_ops_addr: Vec<Operation> = Vec::new();
-        let op_pop_addr = Token::new("popw.mem.0", 0);
-        let expected_addr = vec![
-            Operation::Pad,
-            Operation::MStoreW,
-            Operation::Drop,
-            Operation::Drop,
-            Operation::Drop,
-            Operation::Drop,
-        ];
-
-        parse_popw(&mut span_ops_addr, &op_pop_addr, num_proc_locals)
-            .expect("Failed to parse popw.mem.0");
-
-        assert_eq!(&span_ops_addr, &expected_addr);
-
-        // test pop with memory address provided directly (address 2)
-        let mut span_ops_addr: Vec<Operation> = Vec::new();
-        let op_pop_addr = Token::new("popw.mem.2", 0);
-        let expected_addr = vec![
-            Operation::Push(Felt::new(2)),
-            Operation::MStoreW,
-            Operation::Drop,
-            Operation::Drop,
-            Operation::Drop,
-            Operation::Drop,
-        ];
-
-        parse_popw(&mut span_ops_addr, &op_pop_addr, num_proc_locals)
-            .expect("Failed to parse popw.mem.2");
-
-        assert_eq!(&span_ops_addr, &expected_addr);
+    fn mem_store_invalid() {
+        test_parse_mem_invalid("mem_store");
     }
 
     #[test]
-    fn popw_mem_invalid() {
-        test_parse_mem("popw");
-    }
-
-    // TESTS FOR OVERWRITING VALUES ON THE STACK (LOAD)
-    // ============================================================================================
-
-    #[test]
-    fn loadw_mem() {
-        let num_proc_locals = 0;
-
-        // reads a word from memory and overwrites the top 4 stack elements
-
-        // test load with memory address on top of stack
-        let mut span_ops: Vec<Operation> = Vec::new();
-        let op_push = Token::new("loadw.mem", 0);
-        let expected = vec![Operation::MLoadW];
-
-        parse_loadw(&mut span_ops, &op_push, num_proc_locals).expect("Failed to parse loadw.mem");
-
-        assert_eq!(&span_ops, &expected);
-
-        // test load with memory address provided directly (address 0)
-        let mut span_ops_addr: Vec<Operation> = Vec::new();
-        let op_load_addr = Token::new("loadw.mem.0", 0);
-        let expected_addr = vec![Operation::Pad, Operation::MLoadW];
-
-        parse_loadw(&mut span_ops_addr, &op_load_addr, num_proc_locals)
-            .expect("Failed to parse loadw.mem.0 (address provided by op)");
-
-        assert_eq!(&span_ops_addr, &expected_addr);
-
-        // test load with memory address provided directly (address 2)
-        let mut span_ops_addr: Vec<Operation> = Vec::new();
-        let op_load_addr = Token::new("loadw.mem.2", 0);
-        let expected_addr = vec![Operation::Push(Felt::new(2)), Operation::MLoadW];
-
-        parse_loadw(&mut span_ops_addr, &op_load_addr, num_proc_locals)
-            .expect("Failed to parse loadw.mem.2 (address provided by op)");
-
-        assert_eq!(&span_ops_addr, &expected_addr);
+    fn loc_store_invalid() {
+        test_parse_local_invalid("loc_store");
     }
 
     #[test]
-    fn loadw_mem_invalid() {
-        test_parse_mem("loadw");
-    }
-
-    // TESTS FOR SAVING STACK VALUES WITHOUT REMOVING THEM (STORE)
-    // ============================================================================================
-
-    #[test]
-    fn storew_mem() {
-        let num_proc_locals = 0;
-        // stores the top 4 elements of the stack in memory
-
-        // test store with memory address on top of the stack
-        let mut span_ops: Vec<Operation> = Vec::new();
-        let op_store = Token::new("storew.mem", 0);
-        let expected = vec![Operation::MStoreW];
-
-        parse_storew(&mut span_ops, &op_store, num_proc_locals)
-            .expect("Failed to parse storew.mem");
-
-        assert_eq!(&span_ops, &expected);
-
-        // test store with memory address provided directly (address 0)
-        let mut span_ops_addr: Vec<Operation> = Vec::new();
-        let op_store_addr = Token::new("storew.mem.0", 0);
-        let expected_addr = vec![Operation::Pad, Operation::MStoreW];
-
-        parse_storew(&mut span_ops_addr, &op_store_addr, num_proc_locals)
-            .expect("Failed to parse storew.mem.0 with adddress (address provided by op)");
-
-        assert_eq!(&span_ops_addr, &expected_addr);
-
-        // test store with memory address provided directly (address 2)
-        let mut span_ops_addr: Vec<Operation> = Vec::new();
-        let op_store_addr = Token::new("storew.mem.2", 0);
-        let expected_addr = vec![Operation::Push(Felt::new(2)), Operation::MStoreW];
-
-        parse_storew(&mut span_ops_addr, &op_store_addr, num_proc_locals)
-            .expect("Failed to parse storew.mem.2 with adddress (address provided by op)");
-
-        assert_eq!(&span_ops_addr, &expected_addr);
+    fn mem_storew() {
+        test_parse_mem("mem_storew", false, Operation::MStoreW, parse_mem_write);
     }
 
     #[test]
-    fn storew_mem_invalid() {
-        test_parse_mem("storew");
+    fn loc_storew() {
+        test_parse_local("loc_storew", false, Operation::MStoreW, parse_mem_write);
+    }
+
+    #[test]
+    fn mem_storew_invalid() {
+        test_parse_mem_invalid("mem_storew");
+    }
+
+    #[test]
+    fn loc_storew_invalid() {
+        test_parse_local_invalid("loc_storew");
     }
 
     // TEST HELPERS
     // ============================================================================================
 
     /// Test that an instruction for an absolute memory operation is properly formed. It can be used
-    /// to test parameter inputs for `push.mem`, `pushw.mem`, `pop.mem`, `popw.mem`, `loadw.mem`,
-    /// and `storew.mem`.
-    fn test_parse_mem(base_op: &str) {
+    /// to test parameter inputs for `mem_load`, `mem_store`, `mem_loadw`, and `mem_storew`.
+    fn test_parse_mem_invalid(base_op: &str) {
         let num_proc_locals = 0;
 
-        // fails when immediate values to a {push|pushw|pop|popw|loadw|storew}.mem.{a|} operation
+        // fails when immediate values to a {mem_load|mem_loadw|mem_store|mem_storew}.{a|} operation
         // are invalid or missing
         let pos = 0;
 
         // invalid value provided to mem variant
-        let op_str = format!("{}.mem.abc", base_op);
+        let op_str = format!("{}.abc", base_op);
         let op_val_invalid = Token::new(&op_str, pos);
-        let expected = AssemblyError::invalid_param(&op_val_invalid, 2);
+        let expected = AssemblyError::invalid_param(&op_val_invalid, 1);
         assert_eq!(
             get_parsing_error(base_op, &op_val_invalid, num_proc_locals),
             expected
         );
 
         // extra value provided to mem variant
-        let op_str = format!("{}.mem.0.1", base_op);
+        let op_str = format!("{}.0.1", base_op);
         let op_extra_val = Token::new(&op_str, pos);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
             get_parsing_error(base_op, &op_extra_val, num_proc_locals),
             expected
         );
+    }
+
+    /// Test that an instruction for a local memory operation is properly formed. It can be used to
+    /// test parameter inputs for loc_load, loc_store, loc_loadw, and loc_storew.
+    fn test_parse_local_invalid(base_op: &str) {
+        let num_proc_locals = 1;
+
+        // fails when immediate values to a {loc_load|loc_store|loc_loadw|loc_storew}.i operation are
+        // invalid or missing
+        let pos = 0;
+
+        // insufficient values provided
+        let op_val_missing = Token::new(base_op, pos);
+        let expected = AssemblyError::missing_param(&op_val_missing);
+        assert_eq!(
+            get_parsing_error(base_op, &op_val_missing, num_proc_locals),
+            expected
+        );
+
+        // invalid value provided to local variant
+        let op_str = format!("{}.abc", base_op);
+        let op_val_invalid = Token::new(&op_str, pos);
+        let expected = AssemblyError::invalid_param(&op_val_invalid, 1);
+        assert_eq!(
+            get_parsing_error(base_op, &op_val_invalid, num_proc_locals),
+            expected
+        );
+
+        // no procedure locals declared
+        let op_str = format!("{}.{}", base_op, 1);
+        let op_no_locals = Token::new(&op_str, pos);
+        let expected = AssemblyError::invalid_op_with_reason(
+            &op_no_locals,
+            "no procedure locals were declared",
+        );
+        assert_eq!(get_parsing_error(base_op, &op_no_locals, 0), expected);
+
+        // provided local index is outside of the declared bounds of the procedure locals
+        let op_str = format!("{}.{}", base_op, num_proc_locals);
+        let op_val_invalid = Token::new(&op_str, pos);
+        let expected = AssemblyError::invalid_param_with_reason(
+            &op_val_invalid,
+            1,
+            format!(
+                "parameter value must be greater than or equal to 0 and less than or equal to {}",
+                num_proc_locals - 1
+            )
+            .as_str(),
+        );
+        assert_eq!(
+            get_parsing_error(base_op, &op_val_invalid, num_proc_locals),
+            expected
+        );
+
+        // extra value provided to local variant
+        let op_str = format!("{}.0.1", base_op);
+        let op_extra_val = Token::new(&op_str, pos);
+        let expected = AssemblyError::extra_param(&op_extra_val);
+        assert_eq!(
+            get_parsing_error(base_op, &op_extra_val, num_proc_locals),
+            expected
+        );
+    }
+
+    /// Helper function for optimizing local operations testing. It can be used to
+    /// test loc_load, loc_store, loc_loadw and loc_storew operations.
+    fn test_parse_local(
+        base_op: &str,
+        is_single: bool,
+        operation: Operation,
+        parser: fn(&mut Vec<Operation>, &Token, u32, bool, bool) -> Result<(), AssemblyError>,
+    ) {
+        let num_proc_locals = 1;
+        let pos = 0;
+
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_str = format!("{}.0", base_op);
+        let op = Token::new(&op_str, pos);
+        let expexted = vec![Operation::Pad, Operation::FmpAdd, operation];
+        let msg = format!("Failed to parse {}.0 (address provided by op)", base_op);
+
+        parser(&mut span_ops, &op, num_proc_locals, true, is_single).expect(&msg);
+
+        assert_eq!(&span_ops, &expexted);
+    }
+
+    /// Helper function for optimizing memory operations testing. It can be used to
+    /// test mem_load, mem_store, mem_loadw and mem_storew operations.
+    fn test_parse_mem(
+        base_op: &str,
+        is_single: bool,
+        operation: Operation,
+        parser: fn(&mut Vec<Operation>, &Token, u32, bool, bool) -> Result<(), AssemblyError>,
+    ) {
+        let num_proc_locals = 0;
+        let pos = 0;
+
+        // test push with memory address on top of stack
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op = Token::new(&base_op, pos);
+        let expected = vec![operation];
+        let msg = format!("Failed to parse {}", base_op);
+
+        parser(&mut span_ops, &op, num_proc_locals, false, is_single).expect(&msg);
+
+        assert_eq!(&span_ops, &expected);
+
+        // test push with memory address provided directly (address 0)
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_str = format!("{}.0", base_op);
+        let op = Token::new(&op_str, pos);
+        let expexted = vec![Operation::Pad, operation];
+        let msg = format!("Failed to parse {}.0", base_op);
+
+        parser(&mut span_ops, &op, num_proc_locals, false, is_single).expect(&msg);
+
+        assert_eq!(&span_ops, &expexted);
+
+        // test push with memory address provided directly (address 2)
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_str = format!("{}.2", base_op);
+        let op = Token::new(&op_str, pos);
+        let expexted = vec![Operation::Push(Felt::new(2)), operation];
+        let msg = format!("Failed to parse {}.2", base_op);
+
+        parser(&mut span_ops, &op, num_proc_locals, false, is_single).expect(&msg);
+
+        assert_eq!(&span_ops, &expexted);
     }
 }
