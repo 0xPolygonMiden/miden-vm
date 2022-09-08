@@ -293,6 +293,14 @@ impl AssemblyError {
         }
     }
 
+    pub fn duplicate_module_import(token: &Token, module: &str) -> Self {
+        AssemblyError {
+            message: format!("duplicate module import found: {}", module),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
     pub fn invalid_module_path(token: &Token, module_path: &str) -> Self {
         AssemblyError {
             message: format!("invalid module import path: {}", module_path),
