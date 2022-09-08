@@ -10,6 +10,7 @@ pub mod chiplets;
 pub mod decoder;
 pub mod errors;
 pub mod range;
+pub mod stack;
 
 pub use math::{fields::f64::BaseElement as Felt, ExtensionOf, FieldElement, StarkField};
 
@@ -23,6 +24,9 @@ pub use operations::{
 
 mod inputs;
 pub use inputs::{AdviceSet, ProgramInputs};
+
+mod outputs;
+pub use outputs::ProgramOutputs;
 
 pub mod utils;
 use utils::range;

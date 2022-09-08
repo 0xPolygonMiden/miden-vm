@@ -36,7 +36,7 @@ impl AuxTraceBuilder {
 // CHIPLETS LOOKUPS
 // ================================================================================================
 
-impl AuxColumnBuilder<ChipletsLookup, ChipletsLookupRow> for AuxTraceBuilder {
+impl AuxColumnBuilder<ChipletsLookup, ChipletsLookupRow, u32> for AuxTraceBuilder {
     /// This method is required, but because it is only called inside `build_row_values` which is
     /// overridden below, it is not used here and should not be called.
     fn get_table_rows(&self) -> &[ChipletsLookupRow] {

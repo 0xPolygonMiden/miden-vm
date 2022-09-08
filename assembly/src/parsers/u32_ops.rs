@@ -206,6 +206,29 @@ pub fn parse_u32add3(
     Ok(())
 }
 
+/// Translates u32wrapping_add3 assembly instruction directly to a sequence of `U32ADD3` and `Drop` operations.
+///
+/// This operation takes 2 VM cycles
+pub fn parse_u32wrapping_add3(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    op_mode: U32OpMode,
+) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => {
+            if op_mode != U32OpMode::Wrapping {
+                return Err(AssemblyError::invalid_op(op));
+            }
+            span_ops.push(Operation::U32add3);
+            span_ops.push(Operation::Drop);
+        }
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
+
+    Ok(())
+}
+
 /// Translates u32sub assembly instructions to VM operations.
 ///
 /// The base operation is `U32SUB`, but depending on the mode, additional operations may be
@@ -269,6 +292,29 @@ pub fn parse_u32madd(
     }
 
     span_ops.push(Operation::U32madd);
+
+    Ok(())
+}
+
+/// Translates u32wrapping_madd assembly instruction directly to a sequence of `U32MADD` and `Drop` operations.
+///
+/// This operation takes 2 VM cycles
+pub fn parse_u32wrapping_madd(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    op_mode: U32OpMode,
+) -> Result<(), AssemblyError> {
+    match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => {
+            if op_mode != U32OpMode::Wrapping {
+                return Err(AssemblyError::invalid_op(op));
+            }
+            span_ops.push(Operation::U32madd);
+            span_ops.push(Operation::Drop);
+        }
+        _ => return Err(AssemblyError::extra_param(op)),
+    }
 
     Ok(())
 }
@@ -1057,4 +1103,44 @@ fn handle_division(
     span_ops.push(Operation::U32div);
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use vm_core::Operation;
+
+    use crate::parsers::u32_ops::U32OpMode;
+    use crate::{
+        parsers::u32_ops::{parse_u32wrapping_add3, parse_u32wrapping_madd},
+        tokens::Token,
+        AssemblyError,
+    };
+
+    #[test]
+    fn test_parse_u32wrapping_madd() {
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_pos = 0;
+
+        let op_err = Token::new("u32wrapping_madd.1", op_pos);
+        let expected_err = AssemblyError::extra_param(&op_err);
+
+        assert_eq!(
+            parse_u32wrapping_madd(&mut span_ops, &op_err, U32OpMode::Wrapping).unwrap_err(),
+            expected_err
+        );
+    }
+
+    #[test]
+    fn test_parse_u32wrapping_add3() {
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let op_pos = 0;
+
+        let op_err = Token::new("u32wrapping_add3.2", op_pos);
+        let expected_err = AssemblyError::extra_param(&op_err);
+
+        assert_eq!(
+            parse_u32wrapping_add3(&mut span_ops, &op_err, U32OpMode::Wrapping).unwrap_err(),
+            expected_err
+        );
+    }
 }

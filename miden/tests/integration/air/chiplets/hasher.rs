@@ -8,7 +8,7 @@ fn rpperm() {
     let asm_op = "rpperm";
     let pub_inputs = rand_vector::<u64>(8);
 
-    build_op_test!(asm_op, &pub_inputs).prove_and_verify(pub_inputs, 0, false);
+    build_op_test!(asm_op, &pub_inputs).prove_and_verify(pub_inputs, false);
 }
 
 #[test]
@@ -16,13 +16,12 @@ fn rphash() {
     let asm_op = "rphash";
     let pub_inputs = rand_vector::<u64>(8);
 
-    build_op_test!(asm_op, &pub_inputs).prove_and_verify(pub_inputs, 0, false);
+    build_op_test!(asm_op, &pub_inputs).prove_and_verify(pub_inputs, false);
 }
 
 #[test]
 fn mtree_get() {
-    // drop's are added at the end to make sure stack overflow is empty on exit
-    let asm_op = "mtree_get drop drop";
+    let asm_op = "mtree_get";
 
     let index = 3usize;
     let leaves = init_merkle_leaves(&[1, 2, 3, 4, 5, 6, 7, 8]);
@@ -37,11 +36,8 @@ fn mtree_get() {
         tree.depth() as u64,
     ];
 
-    build_op_test!(asm_op, &stack_inputs, &[], vec![tree]).prove_and_verify(
-        stack_inputs.to_vec(),
-        0,
-        false,
-    );
+    build_op_test!(asm_op, &stack_inputs, &[], vec![tree])
+        .prove_and_verify(stack_inputs.to_vec(), false);
 }
 
 #[test]
@@ -49,20 +45,16 @@ fn mtree_set() {
     let asm_op = "mtree_set";
     let (stack_inputs, tree) = build_mtree_update_test_inputs();
 
-    build_op_test!(asm_op, &stack_inputs, &[], vec![tree]).prove_and_verify(
-        stack_inputs.to_vec(),
-        0,
-        false,
-    );
+    build_op_test!(asm_op, &stack_inputs, &[], vec![tree])
+        .prove_and_verify(stack_inputs.to_vec(), false);
 }
 
 #[test]
 fn mtree_cwm() {
-    // drop's are added at the end to make sure stack overflow is empty on exit
-    let asm_op = "mtree_cwm drop drop";
+    let asm_op = "mtree_cwm";
     let (stack_inputs, tree) = build_mtree_update_test_inputs();
 
-    build_op_test!(asm_op, &stack_inputs, &[], vec![tree]).prove_and_verify(stack_inputs, 0, false);
+    build_op_test!(asm_op, &stack_inputs, &[], vec![tree]).prove_and_verify(stack_inputs, false);
 }
 
 /// Helper function that builds a test stack and Merkle tree for testing mtree updates.

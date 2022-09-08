@@ -135,5 +135,5 @@ fn local_fn_call() {
     let test = build_test!(source, &[1, 2]);
     test.expect_stack(&[3]);
 
-    test.prove_and_verify(vec![1, 2], 1, false);
+    test.prove_and_verify(vec![1, 2], false);
 }

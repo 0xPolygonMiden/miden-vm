@@ -1,6 +1,9 @@
 use super::{ExecutionTrace, Felt, FieldElement, LookupTableRow, Process, Trace, NUM_RAND_ROWS};
 use rand_utils::rand_array;
-use vm_core::{code_blocks::CodeBlock, CodeBlockTable, Operation, ProgramInputs, Word, ONE, ZERO};
+use vm_core::{
+    code_blocks::CodeBlock, CodeBlockTable, Operation, ProgramInputs, ProgramOutputs, Word, ONE,
+    ZERO,
+};
 
 mod chiplets;
 mod hasher;
@@ -17,7 +20,7 @@ pub fn build_trace_from_block(program: &CodeBlock, stack: &[u64]) -> ExecutionTr
     process
         .execute_code_block(program, &CodeBlockTable::default())
         .unwrap();
-    ExecutionTrace::new(process)
+    ExecutionTrace::new(process, ProgramOutputs::default())
 }
 
 /// Builds a sample trace by executing a span block containing the specified operations. This
@@ -39,5 +42,5 @@ pub fn build_trace_from_ops_with_inputs(
     process
         .execute_code_block(&program, &CodeBlockTable::default())
         .unwrap();
-    ExecutionTrace::new(process)
+    ExecutionTrace::new(process, ProgramOutputs::default())
 }
