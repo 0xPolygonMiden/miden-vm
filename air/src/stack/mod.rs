@@ -1,10 +1,9 @@
-use vm_core::{
-    utils::collections::Vec, ProgramOutputs, StarkField, FMP_COL_IDX, STACK_AUX_TRACE_OFFSET,
-};
-
 use super::{
     Assertion, AuxTraceRandElements, EvaluationFrame, Felt, FieldElement,
-    TransitionConstraintDegree, MIN_STACK_DEPTH, STACK_TRACE_OFFSET,
+    TransitionConstraintDegree, MIN_STACK_DEPTH, ONE, STACK_TRACE_OFFSET, ZERO,
+};
+use vm_core::{
+    utils::collections::Vec, ProgramOutputs, StarkField, FMP_COL_IDX, STACK_AUX_TRACE_OFFSET,
 };
 
 mod field_ops;
@@ -34,11 +33,11 @@ pub const NUM_AUX_ASSERTIONS: usize = 2;
 
 /// Build the transition constraint degrees for the stack module and all the stack operations.
 pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
-    // system operations contraints degrees.
+    // system operations constraints degrees.
     let mut degrees = system_ops::get_transition_constraint_degrees();
-    // field operations contraints degrees.
+    // field operations constraints degrees.
     degrees.append(&mut field_ops::get_transition_constraint_degrees());
-    // stack manipulation operations contraints degrees.
+    // stack manipulation operations constraints degrees.
     degrees.append(&mut stack_manipulation::get_transition_constraint_degrees());
 
     degrees
@@ -106,15 +105,15 @@ pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>, stack_inputs
 
     // if there are remaining slots on top of the stack without specified values, set them to ZERO.
     for i in stack_inputs.len()..MIN_STACK_DEPTH {
-        result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, Felt::ZERO));
+        result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, ZERO));
     }
 
     // get the initial values for the bookkeeping columns.
     let mut depth = MIN_STACK_DEPTH;
-    let mut overflow_addr = Felt::ZERO;
+    let mut overflow_addr = ZERO;
     if stack_inputs.len() > MIN_STACK_DEPTH {
         depth = stack_inputs.len();
-        overflow_addr = Felt::new(Felt::MODULUS - 1);
+        overflow_addr = -ONE;
     }
 
     // b0 should be initialized to the depth of the stack.
@@ -190,7 +189,7 @@ where
     E: FieldElement<BaseField = Felt>,
 {
     let mut value = E::ONE;
-    let mut prev_clk = Felt::ZERO;
+    let mut prev_clk = ZERO;
     let mut clk = Felt::from(Felt::MODULUS - init_values.len() as u64);
 
     // the values are in the overflow table in reverse order, since the deepest stack
@@ -201,7 +200,7 @@ where
             + alphas[2].mul_base(input)
             + alphas[3].mul_base(prev_clk);
         prev_clk = clk;
-        clk += Felt::ONE;
+        clk += ONE;
     }
 
     value

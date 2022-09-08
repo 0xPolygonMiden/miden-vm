@@ -1,4 +1,4 @@
-use super::{BTreeMap, Felt, FieldElement, Vec};
+use super::{BTreeMap, Felt, FieldElement, Vec, ONE, ZERO};
 use crate::RangeCheckTrace;
 use vm_core::utils::uninit_vector;
 
@@ -180,9 +180,9 @@ impl RangeChecker {
         // determine the number of padding rows needed to get to target trace length and pad the
         // table with the required number of rows.
         let num_padding_rows = target_len - trace_len - num_rand_rows;
-        trace[1][..num_padding_rows].fill(Felt::ZERO);
-        trace[2][..num_padding_rows].fill(Felt::ZERO);
-        trace[3][..num_padding_rows].fill(Felt::ZERO);
+        trace[1][..num_padding_rows].fill(ZERO);
+        trace[2][..num_padding_rows].fill(ZERO);
+        trace[3][..num_padding_rows].fill(ZERO);
 
         // Initialize the padded rows of the auxiliary column hints with the default flag, F0,
         // indicating s0 = s1 = ZERO.
@@ -202,8 +202,8 @@ impl RangeChecker {
 
         // fill in the first column to indicate where the 8-bit segment ends and where the
         // 16-bit segment begins
-        trace[0][..i].fill(Felt::ZERO);
-        trace[0][i..].fill(Felt::ONE);
+        trace[0][..i].fill(ZERO);
+        trace[0][i..].fill(ONE);
 
         // build the 16-bit segment of the trace table
         let start_16bit = i;
@@ -363,7 +363,7 @@ fn write_value(
     // if the number of lookups is 0, only one trace row is required
     if num_lookups == 0 {
         row_flags[*step] = RangeCheckFlag::F0;
-        write_trace_row(trace, step, Felt::ZERO, Felt::ZERO, value as u64);
+        write_trace_row(trace, step, ZERO, ZERO, value as u64);
         return;
     }
 
@@ -371,20 +371,20 @@ fn write_value(
     let (num_rows, num_lookups) = div_rem(num_lookups, 4);
     for _ in 0..num_rows {
         row_flags[*step] = RangeCheckFlag::F3;
-        write_trace_row(trace, step, Felt::ONE, Felt::ONE, value as u64);
+        write_trace_row(trace, step, ONE, ONE, value as u64);
     }
 
     // write rows which can support 2 lookups per row
     let (num_rows, num_lookups) = div_rem(num_lookups, 2);
     for _ in 0..num_rows {
         row_flags[*step] = RangeCheckFlag::F2;
-        write_trace_row(trace, step, Felt::ZERO, Felt::ONE, value as u64);
+        write_trace_row(trace, step, ZERO, ONE, value as u64);
     }
 
     // write rows which can support only one lookup per row
     for _ in 0..num_lookups {
         row_flags[*step] = RangeCheckFlag::F1;
-        write_trace_row(trace, step, Felt::ONE, Felt::ZERO, value as u64);
+        write_trace_row(trace, step, ONE, ZERO, value as u64);
     }
 }
 

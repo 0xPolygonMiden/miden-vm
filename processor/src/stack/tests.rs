@@ -1,8 +1,7 @@
-use vm_core::{FieldElement, NUM_STACK_HELPER_COLS};
-
 use super::{
-    Felt, OverflowTableRow, ProgramInputs, Stack, StackTopState, StarkField, MIN_STACK_DEPTH,
+    Felt, OverflowTableRow, ProgramInputs, Stack, StackTopState, MIN_STACK_DEPTH, ONE, ZERO,
 };
+use vm_core::{FieldElement, StarkField, NUM_STACK_HELPER_COLS};
 
 #[test]
 fn initialize() {
@@ -14,7 +13,7 @@ fn initialize() {
     // Prepare the expected results.
     stack_inputs.reverse();
     let expected_stack = build_stack(&stack_inputs);
-    let expected_helpers = [Felt::new(MIN_STACK_DEPTH as u64), Felt::ZERO, Felt::ZERO];
+    let expected_helpers = [Felt::new(MIN_STACK_DEPTH as u64), ZERO, ZERO];
 
     // Check the stack state.
     assert_eq!(stack.trace_state(), expected_stack);
@@ -38,10 +37,15 @@ fn initialize_overflow() {
     // Prepare the expected results.
     stack_inputs.reverse();
     let expected_stack = build_stack(&stack_inputs[..MIN_STACK_DEPTH]);
-    let expected_helpers = [Felt::new(19), Felt::new(Felt::MODULUS - 1), Felt::ZERO];
+    let expected_depth = stack_inputs.len() as u64;
+    let expected_helpers = [
+        Felt::new(expected_depth),
+        -ONE,
+        Felt::new(expected_depth - MIN_STACK_DEPTH as u64).inv(),
+    ];
     let init_addr = Felt::MODULUS - 3;
     let expected_overflow_rows = vec![
-        OverflowTableRow::new(init_addr, Felt::new(1), Felt::ZERO),
+        OverflowTableRow::new(init_addr, Felt::new(1), ZERO),
         OverflowTableRow::new(init_addr + 1, Felt::new(2), Felt::new(init_addr)),
         OverflowTableRow::new(init_addr + 2, Felt::new(3), Felt::new(init_addr + 1)),
     ];
@@ -176,7 +180,7 @@ fn shift_right() {
 fn build_helpers_right(num_overflow: usize, clk: u32) -> [Felt; NUM_STACK_HELPER_COLS] {
     let b0 = Felt::new((MIN_STACK_DEPTH + num_overflow) as u64);
     let b1 = Felt::new(clk as u64);
-    let h0 = Felt::ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64));
+    let h0 = ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64));
 
     [b0, b1, h0]
 }
@@ -192,9 +196,9 @@ fn build_helpers_left(
     let b0 = Felt::new(depth as u64);
     let b1 = Felt::new(next_overflow_addr as u64);
     let h0 = if depth > MIN_STACK_DEPTH {
-        Felt::ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64))
+        ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64))
     } else {
-        Felt::ZERO
+        ZERO
     };
 
     [b0, b1, h0]
@@ -203,7 +207,7 @@ fn build_helpers_left(
 /// Builds a [StackTopState] that starts with the provided stack inputs and is padded with zeros
 /// until the minimum stack depth.
 fn build_stack(stack_inputs: &[u64]) -> StackTopState {
-    let mut expected_stack = [Felt::ZERO; MIN_STACK_DEPTH];
+    let mut expected_stack = [ZERO; MIN_STACK_DEPTH];
     for (idx, &input) in stack_inputs.iter().enumerate() {
         expected_stack[idx] = Felt::new(input);
     }
