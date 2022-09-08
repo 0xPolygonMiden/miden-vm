@@ -1,6 +1,5 @@
+use super::{BTreeMap, Felt, RangeChecker, ONE, ZERO};
 use crate::{utils::get_trace_len, RangeCheckTrace};
-
-use super::{BTreeMap, Felt, FieldElement, RangeChecker};
 use rand_utils::rand_array;
 use vm_core::{utils::ToElements, StarkField};
 
@@ -22,7 +21,7 @@ fn range_checks() {
 
     // skip the 8-bit portion of the trace
     let mut i = 0;
-    while trace[0][i] == Felt::ZERO {
+    while trace[0][i] == ZERO {
         i += 1
     }
 
@@ -65,10 +64,10 @@ fn range_checks_rand() {
 
 fn validate_row(trace: &[Vec<Felt>], row_idx: usize, value: u64, num_lookups: u64) {
     let (s0, s1) = match num_lookups {
-        0 => (Felt::ZERO, Felt::ZERO),
-        1 => (Felt::ONE, Felt::ZERO),
-        2 => (Felt::ZERO, Felt::ONE),
-        4 => (Felt::ONE, Felt::ONE),
+        0 => (ZERO, ZERO),
+        1 => (ONE, ZERO),
+        2 => (ZERO, ONE),
+        4 => (ONE, ONE),
         _ => panic!("invalid lookup value"),
     };
 
@@ -87,8 +86,8 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
     // --- validate the 8-bit segment of the trace ----------------------------
 
     // should start with a ZERO
-    assert_eq!(Felt::ZERO, trace[0][0]);
-    assert_eq!(Felt::ZERO, trace[3][0]);
+    assert_eq!(ZERO, trace[0][0]);
+    assert_eq!(ZERO, trace[3][0]);
 
     let mut lookups_8bit = BTreeMap::new();
 
@@ -96,7 +95,7 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
     // for each 8-bit value.
     let mut i = 0;
     let mut prev_value = 0u8;
-    while trace[0][i] == Felt::ZERO {
+    while trace[0][i] == ZERO {
         // make sure the value is an 8-bit value
         let value = trace[3][i].as_int();
         assert!(value <= 255, "not an 8-bit value");
@@ -129,7 +128,7 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
     let mut lookups_16bit = BTreeMap::new();
 
     // process the first row
-    assert_eq!(Felt::ZERO, trace[3][i]);
+    assert_eq!(ZERO, trace[3][i]);
     let count = get_lookup_count(trace, i);
     lookups_16bit.insert(0u16, count);
     i += 1;
@@ -138,7 +137,7 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
     let mut prev_value = 0u16;
     while i < trace_len {
         // segment identifier must be set to ONE
-        assert_eq!(Felt::ONE, trace[0][i]);
+        assert_eq!(ONE, trace[0][i]);
 
         // make sure the value is a 16-bit value
         let value = trace[3][i].as_int();
@@ -195,13 +194,13 @@ fn validate_trace(trace: &[Vec<Felt>], lookups: &[Felt]) {
 }
 
 fn get_lookup_count(trace: &[Vec<Felt>], step: usize) -> usize {
-    if trace[1][step] == Felt::ZERO && trace[2][step] == Felt::ZERO {
+    if trace[1][step] == ZERO && trace[2][step] == ZERO {
         0
-    } else if trace[1][step] == Felt::ONE && trace[2][step] == Felt::ZERO {
+    } else if trace[1][step] == ONE && trace[2][step] == ZERO {
         1
-    } else if trace[1][step] == Felt::ZERO && trace[2][step] == Felt::ONE {
+    } else if trace[1][step] == ZERO && trace[2][step] == ONE {
         2
-    } else if trace[1][step] == Felt::ONE && trace[2][step] == Felt::ONE {
+    } else if trace[1][step] == ONE && trace[2][step] == ONE {
         4
     } else {
         panic!("not a valid count");

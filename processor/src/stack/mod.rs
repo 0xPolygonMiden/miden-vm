@@ -1,6 +1,6 @@
 use super::{
-    BTreeMap, Felt, FieldElement, ProgramInputs, ProgramOutputs, StackTopState, StarkField, Vec,
-    MIN_STACK_DEPTH, NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH, ZERO,
+    BTreeMap, Felt, FieldElement, ProgramInputs, ProgramOutputs, StackTopState, Vec,
+    MIN_STACK_DEPTH, NUM_STACK_HELPER_COLS, ONE, STACK_TRACE_WIDTH, ZERO,
 };
 use core::cmp;
 
@@ -80,7 +80,7 @@ impl Stack {
                 &init_values[..MIN_STACK_DEPTH],
                 init_trace_capacity,
                 depth,
-                Felt::new(Felt::MODULUS - 1),
+                -ONE,
             );
 
             (trace, overflow)

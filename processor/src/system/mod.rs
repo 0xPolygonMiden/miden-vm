@@ -1,4 +1,4 @@
-use super::{Felt, FieldElement, SysTrace, Vec};
+use super::{Felt, FieldElement, SysTrace, Vec, ZERO};
 
 // CONSTANTS
 // ================================================================================================
@@ -28,7 +28,7 @@ impl System {
     /// Initializes the free memory pointer `fmp` used for local memory offsets to 2^30.
     pub fn new(init_trace_capacity: usize) -> Self {
         // set the first value of the fmp trace to 2^30.
-        let fmp = Felt::new(FMP_MIN);
+        let fmp = Felt::from(FMP_MIN);
         let mut fmp_trace = Felt::zeroed_vector(init_trace_capacity);
         fmp_trace[0] = fmp;
 
@@ -83,7 +83,7 @@ impl System {
 
         // complete the clk column by filling in all values after the last clock cycle. The values
         // in the clk column are equal to the index of the row in the trace table.
-        self.clk_trace.resize(trace_len, Felt::ZERO);
+        self.clk_trace.resize(trace_len, ZERO);
         for (i, clk) in self.clk_trace.iter_mut().enumerate().skip(clk) {
             // converting from u32 is OK here because max trace length is 2^32
             *clk = Felt::from(i as u32);
@@ -132,8 +132,8 @@ impl System {
         let current_capacity = self.clk_trace.len();
         if self.clk + 1 >= current_capacity as u32 {
             let new_length = current_capacity * 2;
-            self.clk_trace.resize(new_length, Felt::ZERO);
-            self.fmp_trace.resize(new_length, Felt::ZERO);
+            self.clk_trace.resize(new_length, ZERO);
+            self.fmp_trace.resize(new_length, ZERO);
         }
     }
 }

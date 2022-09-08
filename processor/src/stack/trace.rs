@@ -1,6 +1,6 @@
 use super::{
     Felt, FieldElement, StackTopState, Vec, MAX_TOP_IDX, MIN_STACK_DEPTH, NUM_STACK_HELPER_COLS,
-    STACK_TRACE_WIDTH,
+    ONE, STACK_TRACE_WIDTH, ZERO,
 };
 use crate::utils::get_trace_len;
 use vm_core::StarkField;
@@ -44,11 +44,16 @@ impl StackTrace {
         // Initialize the bookkeeping & helper columns.
         let mut b0 = Felt::zeroed_vector(init_trace_capacity);
         let mut b1 = Felt::zeroed_vector(init_trace_capacity);
+        let mut h0 = Felt::zeroed_vector(init_trace_capacity);
         // initialize b0 to the initial stack depth.
         b0[0] = Felt::new(init_depth as u64);
         // initialize b1 to the address of the last row in the stack overflow table.
         b1[0] = init_overflow_addr;
-        let helpers: [Vec<Felt>; 3] = [b0, b1, Felt::zeroed_vector(init_trace_capacity)];
+        // if the overflow table is not empty, set h0 to 1/(init_depth - 16)
+        if init_depth > MIN_STACK_DEPTH {
+            h0[0] = Felt::from((init_depth - MIN_STACK_DEPTH) as u64).inv();
+        }
+        let helpers: [Vec<Felt>; 3] = [b0, b1, h0];
 
         StackTrace {
             stack: stack
@@ -103,7 +108,7 @@ impl StackTrace {
     ///
     /// Trace state is always 16 elements long and contains the top 16 values of the stack.
     pub fn get_stack_state_at(&self, clk: u32) -> StackTopState {
-        let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
+        let mut result = [ZERO; MIN_STACK_DEPTH];
         for (result, column) in result.iter_mut().zip(self.stack.iter()) {
             *result = column[clk as usize];
         }
@@ -147,7 +152,7 @@ impl StackTrace {
     /// Returns the trace state of the stack helper columns at the specified clock cycle.
     #[allow(dead_code)]
     pub fn get_helpers_state_at(&self, clk: u32) -> [Felt; NUM_STACK_HELPER_COLS] {
-        let mut result = [Felt::ZERO; NUM_STACK_HELPER_COLS];
+        let mut result = [ZERO; NUM_STACK_HELPER_COLS];
         for (result, column) in result.iter_mut().zip(self.helpers.iter()) {
             *result = column[clk as usize];
         }
@@ -172,12 +177,12 @@ impl StackTrace {
     /// h0: Set the value to 1 / (depth - 16).
     pub fn helpers_shift_right_at(&mut self, clk: u32) {
         // Increment b0 by one.
-        let b0 = self.helpers[0][clk as usize] + Felt::ONE;
+        let b0 = self.helpers[0][clk as usize] + ONE;
         self.helpers[0][clk as usize + 1] = b0;
         // Set b1 to the curren tclock cycle.
         self.helpers[1][clk as usize + 1] = Felt::from(clk);
         // Update the helper column to 1 / (b0 - 16).
-        self.helpers[2][clk as usize + 1] = Felt::ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64));
+        self.helpers[2][clk as usize + 1] = ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64));
     }
 
     /// Updates the bookkeeping and helper columns to manage a left shift at the specified clock
@@ -193,7 +198,7 @@ impl StackTrace {
     /// depth, or to zero otherwise.
     pub fn helpers_shift_left_at(&mut self, clk: u32, next_overflow_addr: Felt) {
         // Decrement b0 by one.
-        let b0 = self.helpers[0][clk as usize] - Felt::ONE;
+        let b0 = self.helpers[0][clk as usize] - ONE;
         self.helpers[0][clk as usize + 1] = b0;
 
         // Set b1 to the overflow table address of the item at the top of the updated table.
@@ -201,9 +206,9 @@ impl StackTrace {
 
         // Update the helper column to 1 / (b0 - 16) if depth > MIN_STACK_DEPTH or 0 otherwise.
         let h0 = if b0.as_int() > MIN_STACK_DEPTH as u64 {
-            Felt::ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64))
+            ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64))
         } else {
-            Felt::ZERO
+            ZERO
         };
         self.helpers[2][clk as usize + 1] = h0;
     }
@@ -220,7 +225,7 @@ impl StackTrace {
         if clk + 1 >= current_capacity as u32 {
             let new_length = current_capacity * 2;
             for register in self.stack.iter_mut().chain(self.helpers.iter_mut()) {
-                register.resize(new_length, Felt::ZERO);
+                register.resize(new_length, ZERO);
             }
         }
     }
