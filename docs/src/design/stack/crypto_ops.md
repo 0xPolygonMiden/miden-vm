@@ -39,10 +39,10 @@ The effect of this operation on the rest of the stack is:
 The `MPVERIFY` operation verifies that a Merkle path from the specified node resolves to the specified root. This operation can be used to prove that the prover knows a path in the specified Merkle tree which starts with the specified node.
 
 Prior to the operation, the stack is expected to be arranged as follows (from the top):
-- Depth of the path, 1 element.
-- Index of the node, 1 element.
-- Value of the node, 4 elements.
-- Root of the tree, 4 elements.
+- Value of the node, 4 elements ($V$ in the below image)
+- Depth of the path, 1 element ($d$ in the below image)
+- Index of the node, 1 element ($i$ in the below image)
+- Root of the tree, 4 elements ($R$ in the below image)
 
 The Merkle path itself is expected to be provided by the prover non-deterministically (via the advice provider). If the prover is not able to provide the required path, the operation fails. Otherwise, the state of the stack does not change. The diagram below illustrates this graphically.
 
@@ -53,11 +53,11 @@ In the above, $r$ (located in the helper register $h_0$) is the row address from
 For the `MPVERIFY` operation, we define input and output values as follows:
 
 $$
-v_{input} = \alpha_0 + \alpha_1 \cdot op_{mpver} + \alpha_2 \cdot r + \alpha_3 \cdot i + \sum_{j=0}^3 \alpha_{j+8} \cdot s_{5 - j}
+v_{input} = \alpha_0 + \alpha_1 \cdot op_{mpver} + \alpha_2 \cdot h_0 + \alpha_3 \cdot s_5 + \sum_{j=0}^3 \alpha_{j+8} \cdot s_{3 - j}
 $$
 
 $$
-v_{output} = \alpha_0 + \alpha_1 \cdot op_{rethash} + \alpha_2 \cdot (h_0 + 8 \cdot s_0 - 1) + \sum_{j=0}^3\alpha_{j + 8} \cdot s_{9 - j}
+v_{output} = \alpha_0 + \alpha_1 \cdot op_{rethash} + \alpha_2 \cdot (h_0 + 8 \cdot s_4 - 1) + \sum_{j=0}^3\alpha_{j + 8} \cdot s_{9 - j}
 $$
 
 In the above, $op_{mpver}$ and $op_{rethash}$ are the unique [operation labels](../chiplets/main.md#operation-labels) for initiating a Merkle path verification computation and reading the hash result respectively. The sum expression for inputs computes the value of the leaf node, while the sum expression for the output computes the value of the tree root.
@@ -77,13 +77,13 @@ The effect of this operation on the rest of the stack is:
 The `MRUPDATE` operation computes a new root of a Merkle tree where a node at the specified position is updated to the specified value.
     
 The stack is expected to be arranged as follows (from the top):
-- depth of the node, 1 element
-- index of the node, 1 element
-- old value of the node, 4 element
-- new value of the node, 4 element
-- current root of the tree, 4 elements
+- old value of the node, 4 element ($V$ in the below image)
+- depth of the node, 1 element ($d$ in the below image)
+- index of the node, 1 element ($i$ in the below image)
+- current root of the tree, 4 elements ($R$ in the below image)
+- new value of the node, 4 element ($NV$ in the below image)
 
-The Merkle path for the node is expected to be provided by the prover non-deterministically (via advice sets). At the end of the operation, the old node value is replaced with the old root value computed based on the provided path, the new node value is replaced by the new root value computed based on the same path. Everything else on the stack remains the same. The diagram below illustrates this graphically.
+The Merkle path for the node is expected to be provided by the prover non-deterministically (via advice sets). At the end of the operation, the old node value is replaced with the new root value computed based on the provided path. Everything else on the stack remains the same. The diagram below illustrates this graphically.
 
 ![mrupdate](../../assets/design/stack/crypto_ops/MRUPDATE.png)
 
@@ -92,19 +92,19 @@ In the above, $r$ (located in the helper register $h_0$) is the row address from
 For the `MRUPDATE` operation, we define input and output values as follows:
 
 $$
-v_{inputold} = \alpha_0 + \alpha_1 \cdot op_{mruold} + \alpha_2 \cdot r + \alpha_3 \cdot i + \sum_{j=0}^3\alpha_{j + 8} \cdot s_{5 - j}
+v_{inputold} = \alpha_0 + \alpha_1 \cdot op_{mruold} + \alpha_2 \cdot h_0 + \alpha_3 \cdot s_5 + \sum_{j=0}^3\alpha_{j + 8} \cdot s_{3 - j}
 $$
 
 $$
-v_{outputold} = \alpha_0 + \alpha_1 \cdot op_{rethash} + \alpha_2 \cdot (r + 8 \cdot d - 1) + \sum_{j=0}^3\alpha_{j + 8} \cdot s_{13 - j}
+v_{outputold} = \alpha_0 + \alpha_1 \cdot op_{rethash} + \alpha_2 \cdot (h_0 + 8 \cdot s_4 - 1) + \sum_{j=0}^3\alpha_{j + 8} \cdot s_{9 - j}
 $$
 
 $$
-v_{inputnew} = \alpha_0 + \alpha_1 \cdot op_{mrunew} + \alpha_2 \cdot (r + 8 \cdot d) + \alpha_3 \cdot i + \sum_{j=0}^3\alpha_{j + 8} \cdot s_{9 - j}
+v_{inputnew} = \alpha_0 + \alpha_1 \cdot op_{mrunew} + \alpha_2 \cdot (h_0 + 8 \cdot s_4) + \alpha_3 \cdot s_5 + \sum_{j=0}^3\alpha_{j + 8} \cdot s_{13 - j}
 $$
 
 $$
-v_{outputnew} = \alpha_0 + \alpha_1 \cdot op_{rethash} + \alpha_2 \cdot (r + 2 \cdot 8 \cdot d - 1) + \sum_{j=0}^3\alpha_{j + 8} \cdot s_{9 - j}'
+v_{outputnew} = \alpha_0 + \alpha_1 \cdot op_{rethash} + \alpha_2 \cdot (h_0 + 2 \cdot 8 \cdot s_4 - 1) + \sum_{j=0}^3\alpha_{j + 8} \cdot s_{3 - j}'
 $$
 
 In the above, the first two expressions correspond to inputs and outputs for verifying the Merkle path between the old node value and the old tree root, while the last two expressions correspond to inputs and outputs for verifying the Merkle path between the new node value and the new tree root. The hash chiplet ensures the same set of sibling nodes are uses in both of these computations.
@@ -118,5 +118,4 @@ $$
 The above constraint enforces that the specified input and output rows for both, the old and the new node/root combinations, must be present in the trace of the hash chiplet, and that they must be exactly $8 \cdot d - 1$ rows apart, where $d$ is the depth of the node. It also ensures that the computation for the old node/root combination is immediately followed by the computation for the new node/root combination.
 
 The effect of this operation on the rest of the stack is:
-* **No change** for positions $0$ and $1$.
-* **No change** for positions starting from $10$.
+* **No change** for positions starting from $4$.

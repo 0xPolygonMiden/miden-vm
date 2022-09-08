@@ -51,16 +51,24 @@ impl<E: FieldElement> EvaluationResult<E> for Vec<E> {
 /// indices can be handled easily during transition evaluation.
 #[derive(Debug)]
 pub struct TransitionConstraintRange {
+    pub(super) stack: Range<usize>,
     pub(super) range_checker: Range<usize>,
     pub(super) chiplets: Range<usize>,
 }
 
 impl TransitionConstraintRange {
-    pub fn new(sys: usize, range_checker_len: usize, chiplets_len: usize) -> Self {
-        let range_checker = create_range(sys, range_checker_len);
+    pub fn new(
+        sys: usize,
+        stack_len: usize,
+        range_checker_len: usize,
+        chiplets_len: usize,
+    ) -> Self {
+        let stack = create_range(sys, stack_len);
+        let range_checker = create_range(stack.end, range_checker_len);
         let chiplets = create_range(range_checker.end, chiplets_len);
 
         Self {
+            stack,
             range_checker,
             chiplets,
         }
@@ -87,27 +95,40 @@ mod tests {
     #[test]
     fn transition_constraint_ranges() {
         let sys_constraints_len = 1;
-        let range_constraints_len = 2;
-        let aux_constraints_len = 3;
+        let stack_constraints_len = 2;
+        let range_constraints_len = 3;
+        let aux_constraints_len = 4;
 
         let constraint_ranges = TransitionConstraintRange::new(
             sys_constraints_len,
+            stack_constraints_len,
             range_constraints_len,
             aux_constraints_len,
         );
 
-        assert_eq!(constraint_ranges.range_checker.start, sys_constraints_len);
+        assert_eq!(constraint_ranges.stack.start, sys_constraints_len);
+        assert_eq!(
+            constraint_ranges.stack.end,
+            sys_constraints_len + stack_constraints_len
+        );
+        assert_eq!(
+            constraint_ranges.range_checker.start,
+            sys_constraints_len + stack_constraints_len
+        );
         assert_eq!(
             constraint_ranges.range_checker.end,
-            sys_constraints_len + range_constraints_len
+            sys_constraints_len + stack_constraints_len + range_constraints_len
         );
         assert_eq!(
             constraint_ranges.chiplets.start,
-            sys_constraints_len + range_constraints_len
+            sys_constraints_len + stack_constraints_len + range_constraints_len
         );
         assert_eq!(
             constraint_ranges.chiplets.end,
-            sys_constraints_len + range_constraints_len + aux_constraints_len
+            sys_constraints_len
+                + stack_constraints_len
+                + range_constraints_len
+                + aux_constraints_len
         );
     }
 

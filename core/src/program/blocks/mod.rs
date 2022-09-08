@@ -62,8 +62,8 @@ impl CodeBlock {
     }
 
     /// TODO: add comments
-    pub fn new_call(code_hash: Digest) -> Self {
-        Self::Call(Call::new(code_hash))
+    pub fn new_call(fn_hash: Digest) -> Self {
+        Self::Call(Call::new(fn_hash))
     }
 
     /// TODO: add comments

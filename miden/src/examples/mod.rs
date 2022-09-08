@@ -70,8 +70,7 @@ impl ExampleOptions {
 
         // execute the program and generate the proof of execution
         let now = Instant::now();
-        let (outputs, proof) =
-            miden::prove(&program, &inputs, num_outputs, &proof_options).unwrap();
+        let (outputs, proof) = miden::prove(&program, &inputs, &proof_options).unwrap();
         println!("--------------------------------");
 
         println!(
@@ -79,9 +78,10 @@ impl ExampleOptions {
             //hex::encode(program.hash()), // TODO: include into message
             now.elapsed().as_millis()
         );
-        println!("Program output: {:?}", outputs);
+        println!("Program output: {:?}", outputs.stack_outputs(num_outputs));
         assert_eq!(
-            expected_result, outputs,
+            expected_result,
+            outputs.stack_outputs(num_outputs),
             "Program result was computed incorrectly"
         );
 
@@ -120,16 +120,16 @@ pub fn test_example(example: Example, fail: bool) {
         expected_result,
     } = example;
 
-    let (mut outputs, proof) =
-        miden::prove(&program, &inputs, num_outputs, &ProofOptions::default()).unwrap();
+    let (mut outputs, proof) = miden::prove(&program, &inputs, &ProofOptions::default()).unwrap();
 
     assert_eq!(
-        expected_result, outputs,
+        expected_result,
+        outputs.stack_outputs(num_outputs),
         "Program result was computed incorrectly"
     );
 
     if fail {
-        outputs[0] += 1;
+        outputs.stack_mut()[0] += 1;
         assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_err())
     } else {
         assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_ok());

@@ -86,9 +86,9 @@ pub(super) fn parse_rpperm(span_ops: &mut Vec<Operation>, op: &Token) -> Result<
 ///
 /// After the operations are executed, the stack will be arranged as follows:
 /// - node V, 4 elements
-/// - root of the tree, 4 elements
+/// - root of the tree, 4 elements.
 ///
-/// This operation takes 12 VM cycles.
+/// This operation takes 9 VM cycles.
 ///
 /// # Errors:
 /// Returns an AssemblyError if the operation is malformed.
@@ -101,30 +101,17 @@ pub(super) fn parse_mtree_get(
 
     // stack: [d, i, R, ...]
     // inject the node value we're looking for at the head of the advice tape
-    decorators.push((
-        span_ops.len(),
-        Decorator::Advice(AdviceInjector::MerkleNode),
-    ));
-
-    // temporarily move d and i out of the way to make future stack manipulations easier
-    // => [0, 0, d, i, R, ...]
-    span_ops.push(Operation::Pad);
-    span_ops.push(Operation::Pad);
-
-    // read node value from advice tape => [V, 0, 0, d, i, R, ...]
-    span_ops.push_many(Operation::Read, 4);
-
-    // move d, i back to the top of the stack => [d, i, V, R, ...]
-    span_ops.push(Operation::SwapW);
-    span_ops.push(Operation::Drop);
-    span_ops.push(Operation::Drop);
+    read_mtree_node(span_ops, decorators);
 
     // verify the node V for root R with depth d and index i
-    // => [d, i, V, R, ...]
+    // => [V, d, i, R, ...]
     span_ops.push(Operation::MpVerify);
 
-    // drop d, i since they're no longer needed => [V, R, ...]
+    // move d, i back to the top of the stack and are dropped since they are
+    // no longer needed => [V, R, ...]
+    span_ops.push(Operation::MovUp4);
     span_ops.push(Operation::Drop);
+    span_ops.push(Operation::MovUp4);
     span_ops.push(Operation::Drop);
 
     Ok(())
@@ -135,14 +122,14 @@ pub(super) fn parse_mtree_get(
 /// The stack is expected to be arranged as follows (from the top):
 /// - depth of the node, 1 element
 /// - index of the node, 1 element
-/// - new value of the node, 4 element
 /// - current root of the tree, 4 elements
+/// - new value of the node, 4 element
 ///
 /// After the operations are executed, the stack will be arranged as follows:
-/// - new value of the node, 4 elements
 /// - new root of the tree after the update, 4 elements
+/// - new value of the node, 4 elements
 ///
-/// This operation takes 38 VM cycles.
+/// This operation takes 14 VM cycles.
 ///
 /// # Errors:
 /// Returns an AssemblyError if the operation is malformed.
@@ -153,25 +140,27 @@ pub(super) fn parse_mtree_set(
 ) -> Result<(), AssemblyError> {
     validate_operation!(op, "mtree_set", 0);
 
-    // Duplicate the new value and reorder the stack as required for the call to MRUPDATE.
-    // [d, i, V_new, R, ...] => [d, i, V_old, V_new, R, V_new_0, V_new_1] (overflowed)
-    prep_stack_for_mrupdate(span_ops, decorators);
+    // Inject the old node value onto the stack for the call to MRUPDATE.
+    // [d, i, R, V_new, ...] => [V_old, d, i, R, V_new, ...]
+    read_mtree_node(span_ops, decorators);
 
     // Update the Merkle tree with the new value without copying the old tree. This replaces the
-    // old and new node values with the computed and new Merkle roots, respectively.
-    // => [d, i, R_computed, R_new, R, V_new_0, V_new_1] (overflowed)
+    // old node value with the computed new Merkle root.
+    // => [R_new, d, i, R, V_new, ...]
     span_ops.push(Operation::MrUpdate(false));
 
-    // Validate that the computed root and the old root are equal and
-    // drop values that are no longer needed (d, i, duplicate of old root).
-    // => [R, R_new, V_new, ...]
-    validate_root_after_mrupdate(span_ops);
+    // move d, i back to the top of the stack and are dropped since they are
+    // no longer needed => [R_new, R, V_new, ...]
+    span_ops.push(Operation::MovUp4);
+    span_ops.push(Operation::Drop);
+    span_ops.push(Operation::MovUp4);
+    span_ops.push(Operation::Drop);
 
-    // drop the old root => [R_new, V_new, ...]
-    span_ops.push_many(Operation::Drop, 4);
-
-    // move the new value to the top of the stack => [V_new, R_new, ...]
+    // Move the old root to the top of the stack => [R, R_new, V_new, ...]
     span_ops.push(Operation::SwapW);
+
+    // Drop old root from the stack => [R_new, V_new ...]
+    span_ops.push_many(Operation::Drop, 4);
 
     Ok(())
 }
@@ -181,15 +170,15 @@ pub(super) fn parse_mtree_set(
 /// and index i to value V. The stack is expected to be arranged as follows (from the top):
 /// - depth of the node, 1 element; this is expected to be the depth of the Merkle tree
 /// - index of the node, 1 element
-/// - new value of the node, 4 element
 /// - current root of the tree, 4 elements
+/// - new value of the node, 4 element
 ///
 /// After the operations are executed, the stack will be arranged as follows:
-/// - new value of the node V, 4 elements
-/// - root of the new tree with the updated node value, 4 elements
+/// - new root of the tree after the update, 4 elements
+/// - new value of the node, 4 elements
 /// - root of the old tree which was copied, 4 elements
 ///
-/// This operation takes 34 VM cycles.
+/// This operation takes 12 VM cycles.
 ///
 /// # Errors:
 /// Returns an AssemblyError if the operation is malformed.
@@ -200,149 +189,62 @@ pub(super) fn parse_mtree_cwm(
 ) -> Result<(), AssemblyError> {
     validate_operation!(op, "mtree_cwm", 0);
 
-    // Duplicate the new value and reorder the stack as required for the call to MRUPDATE.
-    // [d, i, V_new, R, ...] => [d, i, V_old, V_new, R, V_new_0, V_new_1] (overflowed)
-    prep_stack_for_mrupdate(span_ops, decorators);
+    // Inject the old node value onto the stack for the call to MRUPDATE.
+    // [d, i, R, V_new, ...] => [V_old, d, i, R, V_new, ...]
+    read_mtree_node(span_ops, decorators);
 
     // update the Merkle tree with the new value and copy the old tree. This replaces the
-    // old and new node values with the computed and new Merkle roots, respectively.
-    // => [d, i, R_computed, R_new, R, V_new_0, V_new_1] (overflowed)
+    // old node value with the computed new Merkle root.
+    // => [R_new, d, i, R, V_new, ...]
     span_ops.push(Operation::MrUpdate(true));
 
-    // validate the computed root and the old root are equal and drop values no longer needed
-    // => [R, R_new, V_new, ...]
-    validate_root_after_mrupdate(span_ops);
+    // move d, i back to the top of the stack and are dropped since they are
+    // no longer needed => [R_new, R, V_new, ...]
+    span_ops.push(Operation::MovUp4);
+    span_ops.push(Operation::Drop);
+    span_ops.push(Operation::MovUp4);
+    span_ops.push(Operation::Drop);
 
-    // move the new value to the top of the stack => [V_new, R_new, R, ...]
+    // Move the new value to the top => [R_new, V_new, R ...]
+    span_ops.push(Operation::SwapW);
     span_ops.push(Operation::SwapW2);
+    span_ops.push(Operation::SwapW);
 
     Ok(())
 }
 
-/// Validates that two 4 word Merkle roots at the top of the stack are equal, then drops the
-/// duplicate. The stack is expected to be arranged as follows (from the top):
-/// - root of a Merkle tree, 4 elements
-/// - root of a Merkle tree, 4 elements
-///
-/// This operation takes 20 VM cycles.
-fn validate_and_drop_root(span_ops: &mut Vec<Operation>) {
-    // verify the provided root and the computed root are equal
-    span_ops.push(Operation::Dup7);
-    span_ops.push(Operation::Dup4);
-    span_ops.push(Operation::Eq);
-
-    span_ops.push(Operation::Dup7);
-    span_ops.push(Operation::Dup4);
-    span_ops.push(Operation::Eq);
-    span_ops.push(Operation::And);
-
-    span_ops.push(Operation::Dup6);
-    span_ops.push(Operation::Dup3);
-    span_ops.push(Operation::Eq);
-    span_ops.push(Operation::And);
-
-    span_ops.push(Operation::Dup5);
-    span_ops.push(Operation::Dup2);
-    span_ops.push(Operation::Eq);
-    span_ops.push(Operation::And);
-    span_ops.push(Operation::Assert);
-
-    // drop one of the duplicate roots
-    span_ops.push_many(Operation::Drop, 4);
-}
-
-/// This is a helper function for assembly operations that update the Merkle tree. It preserves the
-/// new node value so it can be left on the stack at the end of the assembly sequence and prepares
-/// the stack with the elements and ordering expected by the VM's MRUPDATE operation. The stack is
-/// expected to be arranged as follows (from the top):
+/// This is a helper function for assembly operations that fetches the node value from the
+/// Merkle tree using decorators and pushes it onto the stack. It prepares the stack with the
+/// elements expected by the VM's MPVERIFY & MRUPDATE operations.
+/// The stack is expected to be arranged as follows (from the top):
 /// - depth of the node, 1 element
 /// - index of the node, 1 element
-/// - new value of the node, 4 elements
 /// - root of the Merkle tree, 4 elements
+/// - new value of the node, 4 elements (only in the case of mtree_set and mtree_cwm)
 ///
 /// After the operations are executed, the stack will be arranged as follows:
+/// - old value of the node, 4 elements
 /// - depth of the node, 1 element
 /// - index of the node, 1 element
-/// - old value of the node, 4 elements
-/// - new value of the node, 4 elements
 /// - root of the Merkle tree, 4 elements
-/// - copy of the new value of the node, 4 elements
+/// - new value of the node, 4 elements (only in the case of mtree_set and mtree_cwm)
 ///
-/// This operation takes 22 VM cycles.
-fn prep_stack_for_mrupdate(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
-    // stack: [d, i, V_new, R, ...]
-
-    // temporarily add two zeroes to the top of the stack to create word with d and i to make
-    // future stack manipulations easier
-    // => [0, 0, d, i, V_new, R, ...]
-    span_ops.push(Operation::Pad);
-    span_ops.push(Operation::Pad);
-
-    // copy the new node value for use in the MRUPDATE op => [V_new, 0, 0, d, i, V_new, R, ...]
-    span_ops.push_many(Operation::Dup7, 4);
-
-    // move d, i and R to the top of the stack => [0, 0, d, i, R, V_new, V_new, ...]
-    span_ops.push(Operation::SwapW3);
-    span_ops.push(Operation::SwapW);
-
-    // drop excess zeroes to be able to inject the node value to the advice tape
-    // => [d, i, R, V_new, V_new, ...]
-    span_ops.push(Operation::Drop);
-    span_ops.push(Operation::Drop);
-
-    // inject the node value we're looking for at the head of the advice tape
+/// This operation takes 4 VM cycles.
+fn read_mtree_node(span_ops: &mut Vec<Operation>, decorators: &mut DecoratorList) {
+    // The stack should be arranged in the following way: [d, i, R, ...] so that the decorator
+    // can fetch the node value from the root. In the `mtree.get` operation we have the stack in
+    // the following format: [d, i, R], whereas in the case of `mtree.set` and `mtree.cwm` we
+    // would also have the new node value post the tree root: [d, i, R, V_new].
+    //
+    // inject the node value we're looking for at the head of the advice tape.
     decorators.push((
         span_ops.len(),
         Decorator::Advice(AdviceInjector::MerkleNode),
     ));
-    // temporarily add two zeroes to the top of the stack again
-    // => [0, 0, d, i, R, V_new, V_new, ...]
-    span_ops.push(Operation::Pad);
-    span_ops.push(Operation::Pad);
 
-    // read old node value from advice tape => [V_old, 0, 0, d, i, R, V_new, V_new, ...]
+    // read old node value from advice tape => MPVERIFY: [V_old, d, i, R, ...]
+    // MRUPDATE: [V_old, d, i, R, V_new, ...]
     span_ops.push_many(Operation::Read, 4);
-
-    // create the required order of elements => [0, 0, d, i, V_old, V_new, R, V_new, ...]
-    span_ops.push(Operation::SwapW);
-    span_ops.push(Operation::SwapDW);
-    span_ops.push(Operation::SwapW);
-    span_ops.push(Operation::SwapDW);
-
-    // drop excess zeroes => [d, i, V_old, V_new, R, V_new, ...]
-    span_ops.push(Operation::Drop);
-    span_ops.push(Operation::Drop);
-}
-
-/// This is a helper function for assembly operations that update the Merkle tree. It validates
-/// that the original and computed Merkle roots are equal and drops the values that are no longer
-/// needed (depth, index, and the duplicate Merkle root). The stack is expected to be arranged as
-/// follows (from the top):
-/// - depth of the node, 1 element
-/// - index of the node, 1 element
-/// - computed root of the old Merkle tree, 4 elements
-/// - new Merkle tree root, 4 elements
-/// - old Merkle tree root, 4 elements
-///
-/// After the operations are executed, the stack will be arranged as follows:
-/// - old Merkle tree root, 4 elements
-/// - new Merkle tree root, 4 elements
-///
-/// This operation takes 24 VM cycles.
-fn validate_root_after_mrupdate(span_ops: &mut Vec<Operation>) {
-    // drop d, i => [R_computed, R_new, R, ...]
-    span_ops.push(Operation::Drop);
-    span_ops.push(Operation::Drop);
-
-    // reorder the stack to prepare for comparing the computed and old roots
-    // => [R_new, R_computed, R, ...]
-    span_ops.push(Operation::SwapW);
-    // => [R, R_computed, R_new, ...]
-    span_ops.push(Operation::SwapW2);
-
-    // validates the top 2 Merkle roots are equal and drops one copy of the old root
-    // => [R, R_new, ...]
-    validate_and_drop_root(span_ops);
 }
 
 // TESTS

@@ -73,6 +73,6 @@ mod tests {
     #[test]
     fn lib_version() {
         let stdlib = super::StdLibrary::default();
-        assert_eq!("0.1.0", stdlib.version())
+        assert_eq!("0.2.0", stdlib.version())
     }
 }

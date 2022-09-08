@@ -176,19 +176,6 @@ impl Process {
         Ok(())
     }
 
-    /// Pops two elements off the stack, computes their bitwise OR, and pushes the result back onto
-    /// the stack.
-    pub(super) fn op_u32or(&mut self) -> Result<(), ExecutionError> {
-        let b = self.stack.get(0);
-        let a = self.stack.get(1);
-        let result = self.chiplets.u32or(a, b)?;
-
-        self.stack.set(0, result);
-        self.stack.shift_left(2);
-
-        Ok(())
-    }
-
     /// Pops two elements off the stack, computes their bitwise XOR, and pushes the result back onto
     /// the stack.
     pub(super) fn op_u32xor(&mut self) -> Result<(), ExecutionError> {
@@ -429,20 +416,6 @@ mod tests {
         // --- test with minimum stack depth ----------------------------------
         let mut process = Process::new_dummy_with_decoder_helpers();
         assert!(process.execute_op(Operation::U32and).is_ok());
-    }
-
-    #[test]
-    fn op_u32or() {
-        let mut process = Process::new_dummy_with_decoder_helpers();
-        let (a, b, c, d) = init_stack_rand(&mut process);
-
-        process.execute_op(Operation::U32or).unwrap();
-        let expected = build_expected(&[a | b, c, d]);
-        assert_eq!(expected, process.stack.trace_state());
-
-        // --- test with minimum stack depth ----------------------------------
-        let mut process = Process::new_dummy_with_decoder_helpers();
-        assert!(process.execute_op(Operation::U32or).is_ok());
     }
 
     #[test]

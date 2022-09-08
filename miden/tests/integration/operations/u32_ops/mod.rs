@@ -1,14 +1,10 @@
 use crate::build_op_test;
-use crate::helpers::{prop_randw, TestError, WORD_LEN};
+use crate::helpers::{prop_randw, TestError, U32_BOUND, WORD_LEN};
 
 mod arithmetic_ops;
 mod bitwise_ops;
 mod comparison_ops;
 mod conversion_ops;
-
-// CONSTANTS
-// ================================================================================================
-pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
 
 // HELPER FUNCTIONS
 // ================================================================================================

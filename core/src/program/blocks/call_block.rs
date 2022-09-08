@@ -10,6 +10,7 @@ use super::{fmt, hasher, Digest};
 ///
 /// Hash of a Call block is computed by hashing a concatenation of the function's body hash with
 /// zero.
+///
 /// TODO: update hashing methodology to make it different from Loop block.
 #[derive(Clone, Debug)]
 pub struct Call {

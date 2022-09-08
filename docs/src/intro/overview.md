@@ -13,7 +13,7 @@ These components are:
 In the future, additional components (e.g., storage, logs) may be added to the VM.
 
 ## Writing programs
-Our goal is to make Miden VM an easy compilation target for high-level blockchain-centric languages such as Solidity, Move, and others. We believe it is important to let people write programs in the languages of their choice. However, compilers to help with this have not been developed yet. Thus, for now, the primary way to write programs for Miden VM is to use [Miden assembly](../user_docs/assembly/main.md).
+Our goal is to make Miden VM an easy compilation target for high-level blockchain-centric languages such as Solidity, Move, Sway, and others. We believe it is important to let people write programs in the languages of their choice. However, compilers to help with this have not been developed yet. Thus, for now, the primary way to write programs for Miden VM is to use [Miden assembly](../user_docs/assembly/main.md).
 
 While writing programs in assembly is far from ideal, Miden assembly does make this task a little bit easier by supporting high-level flow control structures and named procedures.
 
@@ -32,9 +32,10 @@ For example, if we wanted to provide a thousand public input values to the VM, w
 In the future, other ways of providing public inputs and reading public outputs (e.g., storage commitments) may be added to the VM.
 
 ### Stack depth restrictions
-For reasons explained [here](../design/stack/main.md), the VM imposes the following restrictions on stack depth:
-1. Stack depth cannot be smaller than $16$. When initializing a program with fewer than $16$ inputs, the VM will pad the stack with zeros to ensure the depth is $16$ at the beginning of execution. If an operation would result in the stack depth dropping below $16$, the VM will insert a zero at the deep end of the stack to make sure the depth stays at $16$.
-2. At the end of program execution, stack depth cannot be greater than $16$. If ensuring this manually is difficult, [finalize_stack](../user_docs/stdlib/sys.md) procedure can be called at the end of program execution. This procedure will remove items deep in the stack while keeping the top $16$ items untouched.
+For reasons explained [here](../design/stack/main.md), the VM imposes the restriction that the stack depth cannot be smaller than $16$. This has the following effects:
+
+- When initializing a program with fewer than $16$ inputs, the VM will pad the stack with zeros to ensure the depth is $16$ at the beginning of execution. 
+- If an operation would result in the stack depth dropping below $16$, the VM will insert a zero at the deep end of the stack to make sure the depth stays at $16$.
 
 ### Nondeterministic inputs
 The *advice provider* component is responsible for supplying nondeterministic inputs to the VM. These inputs only need to be known to the prover (i.e., they do not need to be shared with the verifier).

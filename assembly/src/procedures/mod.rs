@@ -1,6 +1,6 @@
 use super::{
-    combine_blocks, parse_code_blocks, AssemblyContext, AssemblyError, CodeBlock, String, Token,
-    TokenStream, Vec,
+    combine_blocks, parse_code_blocks, AssemblyContext, AssemblyError, CodeBlock, CodeBlockTable,
+    String, Token, TokenStream, Vec,
 };
 use vm_core::{Felt, Operation};
 
@@ -51,8 +51,8 @@ impl Procedure {
     pub fn parse(
         tokens: &mut TokenStream,
         context: &AssemblyContext,
+        cb_table: &mut CodeBlockTable,
         allow_export: bool,
-        in_debug_mode: bool,
     ) -> Result<Self, AssemblyError> {
         let proc_start = tokens.pos();
 
@@ -68,7 +68,7 @@ impl Procedure {
         tokens.advance();
 
         // parse procedure body, and handle memory allocation/deallocation of locals if any are declared
-        let code_root = parse_proc_blocks(tokens, context, num_locals, in_debug_mode)?;
+        let code_root = parse_proc_blocks(tokens, context, cb_table, num_locals)?;
 
         // consume the 'end' token
         match tokens.read() {
@@ -100,11 +100,11 @@ impl Procedure {
 pub fn parse_proc_blocks(
     tokens: &mut TokenStream,
     context: &AssemblyContext,
+    cb_table: &mut CodeBlockTable,
     num_proc_locals: u32,
-    in_debug_mode: bool,
 ) -> Result<CodeBlock, AssemblyError> {
     // parse the procedure body
-    let body = parse_code_blocks(tokens, context, num_proc_locals, in_debug_mode)?;
+    let body = parse_code_blocks(tokens, context, cb_table, num_proc_locals)?;
 
     if num_proc_locals == 0 {
         // if no allocation of locals is required, return the procedure body

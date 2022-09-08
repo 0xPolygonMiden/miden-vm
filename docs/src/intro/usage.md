@@ -1,5 +1,5 @@
 # Usage
-Before you can use Miden VM, you'll need to make sure you have Rust [installed](https://www.rust-lang.org/tools/install). Miden VM v0.2, requires Rust version **1.62** or greater.
+Before you can use Miden VM, you'll need to make sure you have Rust [installed](https://www.rust-lang.org/tools/install). Miden VM v0.2 requires Rust version **1.62** or greater.
 
 Miden VM consists of several crates, each of which exposes a small set of functionality. The most notable of these crates are:
 * [miden-processor](https://crates.io/crates/miden-processor), which can be used to execute Miden VM programs.
@@ -11,7 +11,7 @@ The above functionality is also exposed via the single [miden](https://crates.io
 ## CLI interface
 
 ### Compiling Miden VM
-To compile Miden VM to an executable file, you can run the following command:
+To compile Miden VM into a binary, you can run the following command:
 ```
 cargo build --release --features executable
 ```
@@ -32,7 +32,7 @@ Once the executable has been compiled, you can run Miden VM like so:
 ```
 Currently, Miden VM can be executed with the following subcommands:
 * `run` - this will execute a Miden assembly program and output the result, but will not generate a proof of execution.
-* `prove` - this will execute a Miden assembly, and will also generate a STARK proof of execution.
+* `prove` - this will execute a Miden assembly program, and will also generate a STARK proof of execution.
 * `verify` - this will verify a previously generated proof of execution for a given program.
 * `compile` - this will compile a Miden assembly program (i.e., build a program [MAST](../design/programs.md)) and outputs stats about the compilation process.
 * `analyze` - this will run a Miden assembly program against specific inputs and will output stats about its execution.

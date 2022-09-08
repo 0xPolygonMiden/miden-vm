@@ -55,17 +55,15 @@ mod tests;
 /// If, on the other hand, the value was range-checked 5 times, we'll need two rows in the table:
 /// (1, 1, 1, v) and (1, 1, 0, v). The first row specifies that there was 4 lookups and the second
 /// row add the fifth lookup.
-#[allow(dead_code)]
 pub struct RangeChecker {
     /// Tracks lookup count for each checked value.
     lookups: BTreeMap<u16, usize>,
     // Range check lookups performed by all user operations, grouped and sorted by clock cycle. Each
     // cycle is mapped to a single CycleRangeChecks instance which includes lookups from the stack,
     // memory, or both.
-    cycle_range_checks: BTreeMap<usize, CycleRangeChecks>,
+    cycle_range_checks: BTreeMap<u32, CycleRangeChecks>,
 }
 
-#[allow(dead_code)]
 impl RangeChecker {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -106,7 +104,7 @@ impl RangeChecker {
     /// Adds range check lookups from the [Stack] to this [RangeChecker] instance. Stack lookups are
     /// guaranteed to be added at unique clock cycles, since operations are sequential and no range
     /// check lookups are added before or during the stack operation processing.
-    pub fn add_stack_checks(&mut self, clk: usize, values: &[u16; 4]) {
+    pub fn add_stack_checks(&mut self, clk: u32, values: &[u16; 4]) {
         self.add_value(values[0]);
         self.add_value(values[1]);
         self.add_value(values[2]);
@@ -120,7 +118,7 @@ impl RangeChecker {
     /// Adds range check lookups from [Memory] to this [RangeChecker] instance. Memory lookups are
     /// always added after all stack lookups have completed, since they are processed during trace
     /// finalization.
-    pub fn add_mem_checks(&mut self, clk: usize, values: &[u16; 2]) {
+    pub fn add_mem_checks(&mut self, clk: u32, values: &[u16; 2]) {
         self.add_value(values[0]);
         self.add_value(values[1]);
 
@@ -225,6 +223,13 @@ impl RangeChecker {
             prev_value = value;
         }
 
+        // pad the trace with an extra row of 0 lookups for u16::MAX so that when b_range is built
+        // there is space for the inclusion of u16::MAX range check lookups before the trace ends.
+        // (When there is data at the end of the main trace, auxiliary bus columns always need to be
+        // one row longer than the main trace, since values in the bus column are based on data from
+        // the "current" row of the main trace but placed into the "next" row of the bus column.)
+        write_value(&mut trace, &mut i, 0, (u16::MAX).into(), &mut row_flags);
+
         RangeCheckTrace {
             trace,
             aux_builder: AuxTraceBuilder::new(self.cycle_range_checks, row_flags, start_16bit),
@@ -239,7 +244,13 @@ impl RangeChecker {
     /// to support all 16-bit lookups.
     fn build_8bit_lookup(&self) -> ([usize; 256], usize) {
         let mut result = [0; 256];
-        let mut num_16bit_rows = 0;
+
+        // pad the trace length by one, to account for an extra row of the u16::MAX value at the end
+        // of the 16-bit segment of the trace, required for building the `b_range` column.
+        let mut num_16bit_rows = 1;
+
+        // add a lookup for ZERO to account for the extra row of the u16::MAX value
+        result[0] = 1;
 
         let mut prev_value = 0u16;
         for (&value, &num_lookups) in self.lookups.iter() {
@@ -285,7 +296,7 @@ impl Default for RangeChecker {
 /// A precomputed hint value that can be used to help construct the execution trace for the
 /// auxiliary columns p0 and p1 used for multiset checks. The hint is a precomputed flag value based
 /// on the selectors s0 and s1 in the trace.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum RangeCheckFlag {
     F0,
     F1,

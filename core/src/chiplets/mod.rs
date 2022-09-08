@@ -38,9 +38,9 @@ pub const HASHER_STATE_COL_RANGE: Range<usize> =
 /// The index of the hasher's node index column in the execution trace.
 pub const HASHER_NODE_INDEX_COL_IDX: usize = HASHER_STATE_COL_RANGE.end;
 
-/// The range within the main trace of the bitwise selector columns.
-pub const BITWISE_SELECTOR_COL_RANGE: Range<usize> =
-    create_range(BITWISE_TRACE_OFFSET, bitwise::NUM_SELECTORS);
+/// The index within the main trace of the bitwise column containing selector indicating the
+/// type of bitwise operation (AND or XOR)
+pub const BITWISE_SELECTOR_COL_IDX: usize = BITWISE_TRACE_OFFSET;
 /// The index within the main trace of the bitwise column holding the aggregated value of input `a`.
 pub const BITWISE_A_COL_IDX: usize = BITWISE_TRACE_OFFSET + bitwise::A_COL_IDX;
 /// The index within the main trace of the bitwise column holding the aggregated value of input `b`.
@@ -55,6 +55,13 @@ pub const BITWISE_B_COL_RANGE: Range<usize> = Range {
     start: BITWISE_TRACE_OFFSET + bitwise::B_COL_RANGE.start,
     end: BITWISE_TRACE_OFFSET + bitwise::B_COL_RANGE.end,
 };
+
+/// The column index range for the main trace of the bitwise column
+pub const BITWISE_TRACE_RANGE: Range<usize> = Range {
+    start: BITWISE_TRACE_OFFSET,
+    end: BITWISE_TRACE_OFFSET + bitwise::OUTPUT_COL_IDX + 1,
+};
+
 /// The index within the main trace of the bitwise column containing the aggregated output value of
 /// the previous row.
 pub const BITWISE_PREV_OUTPUT_COL_IDX: usize = BITWISE_TRACE_OFFSET + bitwise::PREV_OUTPUT_COL_IDX;

@@ -110,8 +110,8 @@ This group contains $16$ operations which shift the stack to the left (i.e., rem
 | `AND`        | $36$         | `010_0100`      | [Field ops](./field_ops.md)   | $7$         |
 | `OR`         | $37$         | `010_0101`      | [Field ops](./field_ops.md)   | $7$         |
 | `U32AND`     | $38$         | `010_0110`      | [u32 ops](./u32_ops.md)       | $7$         |
-| `U32OR`      | $39$         | `010_0111`      | [u32 ops](./u32_ops.md)       | $7$         |
-| `U32XOR`     | $40$         | `010_1000`      | [u32 ops](./u32_ops.md)       | $7$         |
+| `U32XOR`     | $39$         | `010_0111`      | [u32 ops](./u32_ops.md)       | $7$         |
+| `<unused>`   | $40$         | `010_1000`      |                               | $7$         |
 | `DROP`       | $41$         | `010_1001`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `CSWAP`      | $42$         | `010_1010`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `CSWAPW`     | $43$         | `010_1011`      | [Stack ops](./stack_ops.md)   | $7$         |
@@ -250,3 +250,26 @@ In the above:
 * $h_5$ is the helper register in the decoder which is set to $1$ when we are exiting a `LOOP` block, and to $0$ otherwise.
 
 Thus, similarly to the right-shift flag, we compute the value of the left-shift flag based on the prefix of the operation group which contains most left shift operations, and add in flag values for other operations which shift the stack to the left but are not a part of this group.
+
+### Control flow flag
+The control flow flag $f_{ctrl}$ is set to $1$ when a control flow operation is being executed by the VM, and to $0$ otherwise. Naively, this flag can be computed as follows:
+
+$$
+f_{ctrl} = f_{join} + f_{split} + f_{loop} + f_{repeat} + f_{span} + f_{respan} + f_{end} + f_{halt} \text{ | degree} = 6
+$$
+
+However, this can be computed more efficiently via the common operation prefixes for the two groups of control flow operations as follows.
+
+$$
+f_{span,join,split,loop} = b_6 \cdot (1 - b_5) \cdot b_4 \cdot b_3 \text{ | degree} = 4
+$$
+
+$$
+f_{end,repeat,respan,halt} = b_6 \cdot b_5 \cdot b_4  \text{ | degree} = 3
+$$
+
+$$
+f_{ctrl} = f_{span,join,split,loop} + f_{end,repeat,respan,halt} \text{ | degree} = 4
+$$
+
+Note that the degree of $f_{end,repeat,respan,halt}$ can be reduced to degree 2 using the extra column, but this will not affect the degree of the $f_{ctrl}$ constraint.

@@ -1,5 +1,32 @@
 // SIMPLE PROGRAMS
 // ================================================================================================
+#[test]
+fn simple_new_instrctns() {
+    let assembler = super::Assembler::default();
+    let source = "begin push.0 assertz end";
+    let program = assembler.compile(source).unwrap();
+    let expected = "\
+        begin \
+                span pad eqz assert end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+
+    let source = "begin push.10 push.50 push.2 u32wrapping_madd end";
+    let program = assembler.compile(source).unwrap();
+    let expected = "\
+        begin \
+            span push(10) push(50) push(2) u32madd drop end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+
+    let source = "begin push.10 push.50 push.2 u32wrapping_add3 end";
+    let program = assembler.compile(source).unwrap();
+    let expected = "\
+        begin \
+            span push(10) push(50) push(2) u32add3 drop end \
+        end";
+    assert_eq!(expected, format!("{program}"));
+}
 
 #[test]
 fn single_span() {

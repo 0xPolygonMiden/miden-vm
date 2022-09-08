@@ -1,6 +1,6 @@
 use super::{
-    BTreeMap, Felt, FieldElement, ProgramInputs, StackTopState, Vec, MIN_STACK_DEPTH,
-    NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH, ZERO,
+    BTreeMap, Felt, FieldElement, ProgramInputs, ProgramOutputs, StackTopState, StarkField, Vec,
+    MIN_STACK_DEPTH, NUM_STACK_HELPER_COLS, STACK_TRACE_WIDTH, ZERO,
 };
 use core::cmp;
 
@@ -53,7 +53,7 @@ const MAX_TOP_IDX: usize = MIN_STACK_DEPTH - 1;
 ///   column are set by the prover non-deterministically to 1 / (b0−16) when b0 != 16, and to any
 ///   other value otherwise.
 pub struct Stack {
-    clk: usize,
+    clk: u32,
     trace: StackTrace,
     overflow: OverflowTable,
     depth: usize,
@@ -68,11 +68,34 @@ impl Stack {
         init_trace_capacity: usize,
         keep_overflow_trace: bool,
     ) -> Self {
+        let init_values = inputs.stack_init();
+        let depth = cmp::max(MIN_STACK_DEPTH, init_values.len());
+
+        let (trace, overflow) = if init_values.len() > MIN_STACK_DEPTH {
+            let overflow = OverflowTable::new_with_inputs(
+                keep_overflow_trace,
+                &init_values[MIN_STACK_DEPTH..],
+            );
+            let trace = StackTrace::new(
+                &init_values[..MIN_STACK_DEPTH],
+                init_trace_capacity,
+                depth,
+                Felt::new(Felt::MODULUS - 1),
+            );
+
+            (trace, overflow)
+        } else {
+            let overflow = OverflowTable::new(keep_overflow_trace);
+            let trace = StackTrace::new(init_values, init_trace_capacity, depth, ZERO);
+
+            (trace, overflow)
+        };
+
         Self {
             clk: 0,
-            trace: StackTrace::new(inputs, init_trace_capacity),
-            overflow: OverflowTable::new(keep_overflow_trace),
-            depth: MIN_STACK_DEPTH,
+            trace,
+            overflow,
+            depth,
         }
     }
 
@@ -85,7 +108,7 @@ impl Stack {
     }
 
     /// Returns the current clock cycle of the execution trace.
-    pub fn current_clk(&self) -> usize {
+    pub fn current_clk(&self) -> u32 {
         self.clk
     }
 
@@ -93,7 +116,7 @@ impl Stack {
     ///
     /// Trace length of the stack is equal to the number of cycles executed by the VM.
     pub fn trace_len(&self) -> usize {
-        self.clk
+        self.clk as usize
     }
 
     /// Returns a copy of the item currently at the top of the stack.
@@ -119,6 +142,12 @@ impl Stack {
         result
     }
 
+    /// Returns [ProgramOutputs] consisting of all values on the stack and all addresses in the
+    /// overflow table that are required to rebuild the rows in the overflow table.
+    pub fn get_outputs(&self) -> ProgramOutputs {
+        ProgramOutputs::from_elements(self.get_values(None), self.overflow.get_addrs())
+    }
+
     /// Returns an execution trace of the top 16 stack slots and helper columns as a single array
     /// together with hints to be used in construction of stack-related auxiliary trace segment
     /// columns.
@@ -130,7 +159,7 @@ impl Stack {
     /// overwritten with random values. This parameter is unused because last rows are just
     /// duplicates of the prior rows and thus can be safely overwritten.
     pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> super::StackTrace {
-        let clk = self.current_clk();
+        let clk = self.current_clk() as usize;
         // make sure that only the duplicate rows will be overwritten with random values
         assert!(
             clk + num_rand_rows <= trace_len,
@@ -155,9 +184,9 @@ impl Stack {
     /// Returns stack state at the specified clock cycle.
     ///
     /// This includes the stack + overflow entries.
-    pub fn get_state_at(&self, clk: usize) -> Vec<Felt> {
+    pub fn get_state_at(&self, clk: u32) -> Vec<Felt> {
         let mut result = self.trace.get_stack_state_at(clk).to_vec();
-        self.overflow.append_state_into(&mut result, clk);
+        self.overflow.append_state_into(&mut result, clk as u64);
 
         result
     }
@@ -209,7 +238,7 @@ impl Stack {
             }
             _ => {
                 // Update the stack & overflow table.
-                let (from_overflow, prev_addr) = self.overflow.pop(self.clk);
+                let (from_overflow, prev_addr) = self.overflow.pop(self.clk as u64);
                 self.trace
                     .stack_shift_left_at(self.clk, start_pos, from_overflow);
 
@@ -237,7 +266,7 @@ impl Stack {
 
         // Update the overflow table.
         let to_overflow = self.trace.get_stack_value_at(self.clk, MAX_TOP_IDX);
-        self.overflow.push(to_overflow, self.clk);
+        self.overflow.push(to_overflow, self.clk as u64);
 
         // Update the bookkeeping & helper columns.
         self.trace.helpers_shift_right_at(self.clk);
