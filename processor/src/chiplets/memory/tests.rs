@@ -192,33 +192,87 @@ fn mem_write_read() {
 }
 
 #[test]
+fn mem_multi_context() {
+    let mut mem = Memory::default();
+
+    // write a value into ctx = 0, addr = 0; clk = 1
+    let value1 = [ONE, ZERO, ZERO, ZERO];
+    mem.write(0, ZERO, 1, value1);
+    assert_eq!(value1, mem.get_value(0, 0).unwrap());
+    assert_eq!(1, mem.size());
+    assert_eq!(1, mem.trace_len());
+
+    // write a value into ctx = 3, addr = 1; clk = 4
+    let value2 = [ZERO, ONE, ZERO, ZERO];
+    mem.write(3, ONE, 4, value2);
+    assert_eq!(value2, mem.get_value(3, 1).unwrap());
+    assert_eq!(2, mem.size());
+    assert_eq!(2, mem.trace_len());
+
+    // read a value from ctx = 3, addr = 1; clk = 6
+    assert_eq!(value2, mem.read(3, ONE, 6));
+    assert_eq!(2, mem.size());
+    assert_eq!(3, mem.trace_len());
+
+    // read a value from ctx = 0, addr = 0; clk = 8
+    assert_eq!(value1, mem.read(0, ZERO, 8));
+    assert_eq!(2, mem.size());
+    assert_eq!(4, mem.trace_len());
+
+    // check generated trace and memory data provided to the ChipletsBus; rows should be sorted by
+    // address and then clock cycle
+    let (trace, chiplets_bus) = build_trace(mem, 4);
+
+    // ctx = 0, addr = 0
+    let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
+    let memory_access = MemoryLookup::from_ints(0, ZERO, 1, [ZERO; 4], value1);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 0, &memory_access, prev_row);
+
+    let memory_access = MemoryLookup::from_ints(0, ZERO, 8, value1, value1);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 1, &memory_access, prev_row);
+
+    // ctx = 3, addr = 1
+    let memory_access = MemoryLookup::from_ints(3, ONE, 4, [ZERO; 4], value2);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 2, &memory_access, prev_row);
+
+    let memory_access = MemoryLookup::from_ints(3, ONE, 6, value2, value2);
+    verify_memory_access(&trace, &chiplets_bus, 3, &memory_access, prev_row);
+}
+
+#[test]
 fn mem_get_state_at() {
     let mut mem = Memory::default();
 
-    // Write 1 into address 5 at clk = 1.
-    // This means that mem[5] = 1 at the beginning of `clk=2`
-    let addr5 = Felt::new(5);
+    // Write 1 into (ctx = 0, addr = 5) at clk = 1.
+    // This means that mem[5] = 1 at the beginning of clk = 2
     let value1 = [ONE, ZERO, ZERO, ZERO];
-    mem.write(0, addr5, 1, value1);
+    mem.write(0, Felt::new(5), 1, value1);
 
-    // Write 4 into address 2 at clk = 2.
-    // This means that mem[4] = 2 at the beginning of `clk=3`
-    let addr2 = Felt::new(2);
+    // Write 4 into (ctx = 0, addr = 2) at clk = 2.
+    // This means that mem[2] = 4 at the beginning of clk = 3
     let value4 = [Felt::new(4), ZERO, ZERO, ZERO];
-    mem.write(0, addr2, 2, value4);
+    mem.write(0, Felt::new(2), 2, value4);
 
-    // Check that mem[5] == 1 at clk = 2.
-    assert_eq!(vec![(5_u64, value1)], mem.get_state_at(0, 2));
+    // write 7 into (ctx = 3, addr = 3) at clk = 4
+    // This means that mem[3] = 7 at the beginning of clk = 4
+    let value7 = [Felt::new(7), ZERO, ZERO, ZERO];
+    mem.write(3, Felt::new(3), 4, value7);
 
-    // Check that mem[5] == 1 and mem[4] == 2 at clk = 3 and 4
-    assert_eq!(
-        vec![(2_u64, value4), (5_u64, value1)],
-        mem.get_state_at(0, 3)
-    );
-    assert_eq!(
-        vec![(2_u64, value4), (5_u64, value1)],
-        mem.get_state_at(0, 4)
-    );
+    // Check memory state at clk = 2
+    assert_eq!(mem.get_state_at(0, 2), vec![(5, value1)]);
+    assert_eq!(mem.get_state_at(3, 2), vec![]);
+
+    // Check memory state at clk = 3
+    assert_eq!(mem.get_state_at(0, 3), vec![(2, value4), (5, value1)]);
+    assert_eq!(mem.get_state_at(3, 3), vec![]);
+
+    // Check memory state at clk = 4
+    assert_eq!(mem.get_state_at(0, 4), vec![(2, value4), (5, value1)]);
+    assert_eq!(mem.get_state_at(3, 4), vec![]);
+
+    // Check memory state at clk = 5
+    assert_eq!(mem.get_state_at(0, 5), vec![(2, value4), (5, value1)]);
+    assert_eq!(mem.get_state_at(3, 5), vec![(3, value7)]);
 }
 
 // HELPER STRUCT & FUNCTIONS
