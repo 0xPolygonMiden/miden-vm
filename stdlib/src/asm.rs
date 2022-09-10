@@ -9852,20 +9852,18 @@ proc.add_word
     movdn.3
 end
 
-# Given two operands ( i.e. field elements a, b ) on stack top, this routine computes c = a % b
+# Given dividend ( i.e. field element a ) on stack top, this routine computes c = a % 12289
 #
 # Expected stack state
 #
-# [b, a, ...] | b = 12289, though it's still parameterized
+# [a, ...]
 #
 # Output stack state looks like
 #
-# [c, ...] | c = a % b and b = 12289
-proc.mod_div
-    swap
+# [c, ...] | c = a % 12289
+proc.mod_12289
     u32split
-    movup.2
-    u32split
+    push.12289.0
 
     adv.u64div
 
@@ -9919,23 +9917,19 @@ end
 # Output stack state :
 #
 # [b0, b1, b2, b3, ...]
-proc.mod_div_word
-    push.12289
-    exec.mod_div
+proc.mod_12289_word
+    exec.mod_12289
 
     swap
-    push.12289
-    exec.mod_div
+    exec.mod_12289
     swap
 
     movup.2
-    push.12289
-    exec.mod_div
+    exec.mod_12289
     movdn.2
 
     movup.3
-    push.12289
-    exec.mod_div
+    exec.mod_12289
     movdn.3
 end
 
@@ -9955,14 +9949,7 @@ end
 #
 # [b, ...] | b ∈ [0..12289)
 proc.neg
-    dup
-    push.12289
-    gt
-
-    if.true
-        push.12289
-        exec.mod_div
-    end
+    exec.mod_12289
 
     push.12289
     swap
@@ -10027,12 +10014,11 @@ proc.reduce
     gt
 
     if.true
-        push.12289
-        exec.mod_div
+        exec.mod_12289
 
         dup
         push.7002
-        gte
+        u32unchecked_gte
 
         if.true
             sub.7002
@@ -10046,8 +10032,7 @@ proc.reduce
             sub
         end
     else
-        push.12289
-        exec.mod_div
+        exec.mod_12289
     end
 end
 
@@ -10241,7 +10226,7 @@ export.add_zq.128
         loadw.mem
 
         exec.add_word
-        exec.mod_div_word
+        exec.mod_12289_word
 
         dup.4
         storew.mem
