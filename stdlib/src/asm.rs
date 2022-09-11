@@ -10202,20 +10202,18 @@ proc.add_word
     movdn.3
 end
 
-# Given two operands ( i.e. field elements a, b ) on stack top, this routine computes c = a % b
+# Given dividend ( i.e. field element a ) on stack top, this routine computes c = a % 12289
 #
 # Expected stack state
 #
-# [b, a, ...] | b = 12289, though it's still parameterized
+# [a, ...]
 #
 # Output stack state looks like
 #
-# [c, ...] | c = a % b and b = 12289
-export.mod_div
-    swap
+# [c, ...] | c = a % 12289
+proc.mod_12289
     u32split
-    movup.2
-    u32split
+    push.12289.0
 
     adv.u64div
 
@@ -10269,23 +10267,19 @@ end
 # Output stack state :
 #
 # [b0, b1, b2, b3, ...]
-proc.mod_div_word
-    push.12289
-    exec.mod_div
+proc.mod_12289_word
+    exec.mod_12289
 
     swap
-    push.12289
-    exec.mod_div
+    exec.mod_12289
     swap
 
     movup.2
-    push.12289
-    exec.mod_div
+    exec.mod_12289
     movdn.2
 
     movup.3
-    push.12289
-    exec.mod_div
+    exec.mod_12289
     movdn.3
 end
 
@@ -10305,14 +10299,7 @@ end
 #
 # [b, ...] | b ∈ [0..12289)
 proc.neg
-    dup
-    push.12289
-    gt
-
-    if.true
-        push.12289
-        exec.mod_div
-    end
+    exec.mod_12289
 
     push.12289
     swap
@@ -10377,12 +10364,11 @@ proc.reduce
     gt
 
     if.true
-        push.12289
-        exec.mod_div
+        exec.mod_12289
 
         dup
         push.7002
-        gte
+        u32unchecked_gte
 
         if.true
             sub.7002
@@ -10396,8 +10382,7 @@ proc.reduce
             sub
         end
     else
-        push.12289
-        exec.mod_div
+        exec.mod_12289
     end
 end
 
@@ -10443,16 +10428,14 @@ end
 #
 # Input stack state :
 #
-# [f_start_addr, g_start_addr, ...]
+# [f_start_addr, g_start_addr, h_start_addr, ...]
 #
-# - {f, g}_addr`i` -> {f, g}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
-# - {f, g}_addr0 -> {f, g}_start_addr
+# - {f, g, h}_addr`i` -> {f, g, h}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
+# - {f, g, h}_addr0 -> {f, g, h}_start_addr
 #
 # Output stack state :
 #
-# [h_start_addr, ...]
-#
-# - h_addr`i` is the address of four elements | h[ (i << 2) .. ((i+1) << 2) ) & i ∈ [0..128)
+# [ ... ]
 #
 # Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
 # continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
@@ -10523,16 +10506,15 @@ export.mul_zq.128
 
     exec.ntt512::backward
 
-    push.env.locaddr.127
     push.0.0.0.0
 
     repeat.128
-        dup.5
+        dup.4
         loadw.mem
 
         exec.reduce_word
 
-        dup.4
+        dup.5
         storew.mem
 
         movup.5
@@ -10547,8 +10529,6 @@ export.mul_zq.128
     dropw
     drop
     drop
-
-    push.env.locaddr.127
 end
 
 # Given two polynomials of degree 512 on stack as absolute memory addresses,
@@ -10562,38 +10542,35 @@ end
 #
 # Input stack state :
 #
-# [f_start_addr, g_start_addr, ...]
+# [f_start_addr, g_start_addr, h_start_addr, ...]
 #
-# - {f, g}_addr`i` -> {f, g}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
-# - {f, g}_addr0 -> {f, g}_start_addr
+# - {f, g, h}_addr`i` -> {f, g, h}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
+# - {f, g, h}_addr0 -> {f, g, h}_start_addr
 #
 # Output stack state :
 #
-# [h_start_addr, ...]
-#
-# - h_addr`i` is the address of four elements | h[ (i << 2) .. ((i+1) << 2) ) & i ∈ [0..128)
+# [ ... ]
 #
 # Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
 # continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
 #
 # Note, input memory addresses are considered to be read-only, they are not mutated.
-export.add_zq.128
-    push.env.locaddr.127
+export.add_zq
     push.0.0.0.0.0.0.0.0
 
     repeat.128
-        dup.9
+        dup.8
         loadw.mem
 
         swapw
 
-        dup.10
+        dup.9
         loadw.mem
 
         exec.add_word
-        exec.mod_div_word
+        exec.mod_12289_word
 
-        dup.4
+        dup.6
         storew.mem
 
         movup.6
@@ -10615,8 +10592,6 @@ export.add_zq.128
     dropw
     dropw
     dropw
-
-    push.env.locaddr.127
 end
 
 # Given one polynomial of degree 512 on stack as absolute memory addresses,
@@ -10630,32 +10605,29 @@ end
 #
 # Input stack state :
 #
-# [f_start_addr, ...]
+# [f_start_addr, g_start_addr, ...]
 #
-# - f_addr`i` -> f[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
-# - f_addr0 -> f_start_addr
+# - {f,g}_addr`i` -> {f,g}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
+# - {f,g}_addr0 -> {f,g}_start_addr
 #
 # Output stack state :
 #
-# [g_start_addr, ...]
-#
-# - g_addr`i` is the address of four elements | g[ (i << 2) .. ((i+1) << 2) ) & i ∈ [0..128)
+# [ ... ]
 #
 # Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
 # continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
 #
 # Note, input memory addresses are considered to be read-only, they are not mutated.
-export.neg_zq.128
-    push.env.locaddr.127
+export.neg_zq
     push.0.0.0.0
 
     repeat.128
-        dup.5
+        dup.4
         loadw.mem
 
         exec.neg_word
 
-        dup.4
+        dup.5
         storew.mem
 
         movup.5
@@ -10670,8 +10642,6 @@ export.neg_zq.128
     dropw
     drop
     drop
-
-    push.env.locaddr.127
 end
 
 # Given two polynomials of degree 512 on stack as absolute memory addresses,
@@ -10685,93 +10655,26 @@ end
 #
 # Input stack state :
 #
-# [f_start_addr, g_start_addr, ...]
+# [f_start_addr, g_start_addr, h_start_addr ...]
 #
-# - {f, g}_addr`i` -> {f, g}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
-# - {f, g}_addr0 -> {f, g}_start_addr
+# - {f, g, h}_addr`i` -> {f, g, h}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
+# - {f, g, h}_addr0 -> {f, g, h}_start_addr
 #
 # Output stack state :
 #
-# [h_start_addr, ...]
-#
-# - h_addr`i` is the address of four elements | h[ (i << 2) .. ((i+1) << 2) ) & i ∈ [0..128)
+# [ ... ]
 #
 # Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
 # continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
 #
 # Note, input memory addresses are considered to be read-only, they are not mutated.
-export.sub_zq.256
+export.sub_zq.128
     push.env.locaddr.127
-
-    repeat.128
-        dup.1
-        dup.1
-        pop.mem
-
-        add.1
-        swap
-        add.1
-        swap
-    end
-
-    drop
-    drop
-
+    movup.2
     exec.neg_zq
 
-    push.env.locaddr.255
-    push.0.0.0.0
-
-    repeat.128
-        dup.5
-        loadw.mem
-
-        dup.4
-        storew.mem
-
-        movup.5
-        add.1
-        movdn.5
-
-        movup.4
-        add.1
-        movdn.4
-    end
-
-    dropw
-    drop
-    drop
-
-    push.env.locaddr.255
     push.env.locaddr.127
-    push.mem
-
     exec.add_zq
-
-    push.env.locaddr.127
-    push.0.0.0.0
-
-    repeat.128
-        dup.5
-        loadw.mem
-
-        dup.4
-        storew.mem
-
-        movup.5
-        add.1
-        movdn.5
-
-        movup.4
-        add.1
-        movdn.4
-    end
-
-    dropw
-    drop
-    drop
-
-    push.env.locaddr.127
 end
 "),
 // ----- std::math::secp256k1 ---------------------------------------------------------------------
@@ -14726,13 +14629,11 @@ end"),
 # Asserts that both values at the top of the stack are u64 values.
 # The input values are assumed to be represented using 32 bit limbs, fails if they are not.
 proc.u32assert4
-    u32assert
+    u32assert.2
     movup.3
-    u32assert
     movup.3
-    u32assert
+    u32assert.2
     movup.3
-    u32assert
     movup.3
 end
 
@@ -14765,8 +14666,14 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a + b) % 2^64
 export.checked_add
-    exec.u32assert4
-    exec.overflowing_add
+    swap
+    movup.3
+    u32assert.2
+    u32overflowing_add
+    movup.3
+    movup.3
+    u32assert.2
+    u32overflowing_add3
     eq.0
     assert
 end
@@ -14795,12 +14702,13 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a - b) % 2^64
 export.checked_sub
-    exec.u32assert4
     movup.3
     movup.2
+    u32assert.2
     u32overflowing_sub
     movup.3
     movup.3
+    u32assert.2
     u32overflowing_sub
     eq.0
     assert
@@ -14879,9 +14787,26 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a * b) % 2^64
 export.checked_mul
-    exec.u32assert4
-    exec.overflowing_mul
-    u32checked_or
+    dup.3
+    dup.2
+    u32assert.2         # make sure lower limbs of operands are 32-bit
+    u32overflowing_mul
+    dup.4
+    movup.4
+    u32overflowing_madd
+    swap
+    movup.5
+    dup.4
+    u32overflowing_madd
+    movup.5
+    movup.5
+    u32assert.2         # make sure higher limbs of operands are 32-bit
+    u32overflowing_madd
+    movup.3
+    movup.2
+    u32overflowing_add
+    add
+    add
     eq.0
     assert
 end
@@ -14911,8 +14836,19 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a < b, and 0 otherwise.
 export.checked_lt
-    exec.u32assert4
-    exec.unchecked_lt
+    movup.3
+    movup.2
+    u32assert.2
+    u32overflowing_sub
+    movdn.3
+    drop
+    u32assert.2
+    u32overflowing_sub
+    swap
+    eq.0
+    movup.2
+    and
+    or
 end
 
 # Performs greater-than comparison of two unsigned 64 bit integers.
@@ -14939,8 +14875,19 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a > b, and 0 otherwise.
 export.checked_gt
-    exec.u32assert4
-    exec.unchecked_gt
+    movup.2
+    u32assert.2
+    u32overflowing_sub
+    movup.2
+    movup.3
+    u32assert.2
+    u32overflowing_sub
+    swap
+    drop
+    movup.2
+    eq.0
+    and
+    or
 end
 
 # Performs less-than-or-equal comparison of two unsigned 64 bit integers.
@@ -14957,8 +14904,7 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a <= b, and 0 otherwise.
 export.checked_lte
-    exec.u32assert4
-    exec.unchecked_gt
+    exec.checked_gt
     not
 end
 
@@ -14976,8 +14922,7 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a >= b, and 0 otherwise.
 export.checked_gte
-    exec.u32assert4
-    exec.unchecked_lt
+    exec.checked_lt
     not
 end
 
@@ -14999,8 +14944,12 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
 export.checked_eq
-    exec.u32assert4
-    exec.unchecked_eq
+    movup.2
+    u32checked_eq
+    swap
+    movup.2
+    u32checked_eq
+    and
 end
 
 # Performs inequality comparison of two unsigned 64 bit integers.
@@ -15021,8 +14970,8 @@ end
 # Stack transition looks as follows:
 # [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
 export.checked_neq
-    exec.u32assert4
-    exec.unchecked_eq
+    exec.checked_eq
+    not
 end
 
 # Performs comparison to zero of an unsigned 64 bit integer.
@@ -15041,10 +14990,7 @@ end
 # Stack transition looks as follows:
 # [a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == 0, and 0 otherwise.
 export.checked_eqz
-    u32assert
-    swap
-    u32assert
-    swap
+    u32assert.2
     eq.0
     swap
     eq.0
@@ -15109,10 +15055,8 @@ end
 export.unchecked_div
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
-    push.adv.1          # read the quotient from the advice tape and make sure it consists of
-    u32assert           # 32-bit limbs
-    push.adv.1          # TODO: this can be optimized once we have u32assert2 instruction
-    u32assert
+    push.adv.2          # read the quotient from the advice tape and make sure it consists of
+    u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
     dup.2               # fits into 2 32-bit limbs
@@ -15133,10 +15077,8 @@ export.unchecked_div
     eq.0
     assert
 
-    push.adv.1          # read the remainder from the advice tape and make sure it consists of
-    u32assert           # 32-bit limbs
-    push.adv.1
-    u32assert
+    push.adv.2          # read the remainder from the advice tape and make sure it consists of
+    u32assert.2         # 32-bit limbs
 
     movup.7             # make sure the divisor is greater than the remainder. this also consumes
     movup.7             # the divisor
@@ -15178,10 +15120,8 @@ end
 export.unchecked_mod
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
-    push.adv.1          # read the quotient from the advice tape and make sure it consists of
-    u32assert           # 32-bit limbs
-    push.adv.1          # TODO: this can be optimized once we have u32assert2 instruction
-    u32assert
+    push.adv.2          # read the quotient from the advice tape and make sure it consists of
+    u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
     dup.2               # fits into 2 32-bit limbs
@@ -15202,10 +15142,8 @@ export.unchecked_mod
     eq.0
     assert
 
-    push.adv.1          # read the remainder from the advice tape and make sure it consists of
-    u32assert           # 32-bit limbs
-    push.adv.1
-    u32assert
+    push.adv.2          # read the remainder from the advice tape and make sure it consists of
+    u32assert.2         # 32-bit limbs
 
     movup.5             # make sure the divisor is greater than the remainder. this also consumes
     movup.5             # the divisor
@@ -15247,10 +15185,8 @@ end
 export.unchecked_divmod
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
-    push.adv.1          # read the quotient from the advice tape and make sure it consists of
-    u32assert           # 32-bit limbs
-    push.adv.1          # TODO: this can be optimized once we have u32assert2 instruction
-    u32assert
+    push.adv.2          # read the quotient from the advice tape and make sure it consists of
+    u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
     dup.2               # fits into 2 32-bit limbs
@@ -15271,10 +15207,8 @@ export.unchecked_divmod
     eq.0
     assert
 
-    push.adv.1          # read the remainder from the advice tape and make sure it consists of
-    u32assert           # 32-bit limbs 
-    push.adv.1
-    u32assert
+    push.adv.2          # read the remainder from the advice tape and make sure it consists of
+    u32assert.2         # 32-bit limbs
 
     movup.7             # make sure the divisor is greater than the remainder. this also consumes
     movup.7             # the divisor
@@ -15404,7 +15338,7 @@ end
 # The input value to be shifted is assumed to be represented using 32 bit limbs.
 # The shift value is assumed to be in the range [0, 64).
 # Stack transition looks as follows:
-# [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where (d,c) = a << b, 
+# [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where (d,c) = a << b,
 # which d contains the bits shifted out.
 # This takes 57 cycles.
 export.overflowing_shl
@@ -15526,10 +15460,12 @@ end
 "),
 // ----- std::sys ---------------------------------------------------------------------------------
 ("std::sys", "# Removes elements deep in the stack until the depth of the stack is exactly 16. The elements
-# are removed in such a way that the top 16 elements of the stack remain unchanged.
+# are removed in such a way that the top 16 elements of the stack remain unchanged. If the stack
+# would otherwise contain more than 16 elements at the end of execution, then adding a call to this 
+# function at the end will reduce the size of the public inputs that are shared with the verifier.
 # Input: Stack with 16 or more elements.
 # Output: Stack with only the original top 16 elements.
-export.finalize_stack.4
+export.truncate_stack.4
     popw.local.0
     popw.local.1
     popw.local.2

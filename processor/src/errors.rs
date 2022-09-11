@@ -1,4 +1,4 @@
-use super::{AdviceSetError, CodeBlock, Felt};
+use super::{AdviceSetError, CodeBlock, Digest, Felt};
 use winterfell::ProverError;
 
 // EXECUTION ERROR
@@ -9,9 +9,9 @@ pub enum ExecutionError {
     AdviceSetLookupFailed(AdviceSetError),
     AdviceSetNotFound([u8; 32]),
     AdviceSetUpdateFailed(AdviceSetError),
-    DivideByZero(usize),
-    EmptyAdviceTape(usize),
-    FailedAssertion(usize),
+    DivideByZero(u32),
+    EmptyAdviceTape(u32),
+    FailedAssertion(u32),
     InvalidFmpValue(Felt, Felt),
     InvalidPowerOfTwo(Felt),
     NotBinaryValue(Felt),
@@ -19,5 +19,5 @@ pub enum ExecutionError {
     ProverError(ProverError),
     TooManyStackOutputs(usize),
     UnexecutableCodeBlock(CodeBlock),
-    UnsupportedCodeBlock(CodeBlock),
+    CodeBlockNotFound(Digest),
 }

@@ -4,15 +4,20 @@
 #[macro_use]
 extern crate alloc;
 
-use vm_core::{
+pub use vm_core::{
     chiplets::hasher::Digest,
-    code_blocks::{CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE},
-    errors::AdviceSetError,
+    errors::{AdviceSetError, InputError},
+    AdviceSet, Program, ProgramInputs, ProgramOutputs,
+};
+use vm_core::{
+    code_blocks::{
+        Call, CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
+    },
     utils::collections::{BTreeMap, Vec},
-    AdviceInjector, Decorator, DecoratorIterator, Felt, FieldElement, Operation, Program,
-    ProgramInputs, StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH,
-    MIN_STACK_DEPTH, MIN_TRACE_LEN, NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH,
-    STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
+    AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, Operation,
+    StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH,
+    MIN_TRACE_LEN, NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
+    SYS_TRACE_WIDTH, ZERO,
 };
 
 mod decorators;
@@ -75,18 +80,18 @@ pub struct ChipletsTrace {
     aux_builder: chiplets::AuxTraceBuilder,
 }
 
-// EXECUTOR
+// EXECUTORS
 // ================================================================================================
 
-/// Returns an execution trace resulting from executing the provided program against the provided
-/// inputs.
+/// Returns execution output and an execution trace resulting from executing the provided program
+/// against the provided inputs.
 pub fn execute(
     program: &Program,
     inputs: &ProgramInputs,
 ) -> Result<ExecutionTrace, ExecutionError> {
     let mut process = Process::new(inputs.clone());
-    process.execute(program)?;
-    let trace = ExecutionTrace::new(process);
+    let program_outputs = process.execute(program)?;
+    let trace = ExecutionTrace::new(process, program_outputs);
     assert_eq!(
         program.hash(),
         trace.program_hash(),
@@ -150,13 +155,15 @@ impl Process {
     // --------------------------------------------------------------------------------------------
 
     /// Executes the provided [Program] in this process.
-    pub fn execute(&mut self, program: &Program) -> Result<(), ExecutionError> {
+    pub fn execute(&mut self, program: &Program) -> Result<ProgramOutputs, ExecutionError> {
         assert_eq!(
             self.system.clk(),
             0,
             "a program has already been executed in this process"
         );
-        self.execute_code_block(program.root())
+        self.execute_code_block(program.root(), program.cb_table())?;
+
+        Ok(self.stack.get_outputs())
     }
 
     // CODE BLOCK EXECUTORS
@@ -166,40 +173,52 @@ impl Process {
     ///
     /// # Errors
     /// Returns an [ExecutionError] if executing the specified block fails for any reason.
-    fn execute_code_block(&mut self, block: &CodeBlock) -> Result<(), ExecutionError> {
+    fn execute_code_block(
+        &mut self,
+        block: &CodeBlock,
+        cb_table: &CodeBlockTable,
+    ) -> Result<(), ExecutionError> {
         match block {
-            CodeBlock::Join(block) => self.execute_join_block(block),
-            CodeBlock::Split(block) => self.execute_split_block(block),
-            CodeBlock::Loop(block) => self.execute_loop_block(block),
+            CodeBlock::Join(block) => self.execute_join_block(block, cb_table),
+            CodeBlock::Split(block) => self.execute_split_block(block, cb_table),
+            CodeBlock::Loop(block) => self.execute_loop_block(block, cb_table),
+            CodeBlock::Call(block) => self.execute_call_block(block, cb_table),
             CodeBlock::Span(block) => self.execute_span_block(block),
             CodeBlock::Proxy(_) => Err(ExecutionError::UnexecutableCodeBlock(block.clone())),
-            _ => Err(ExecutionError::UnsupportedCodeBlock(block.clone())),
         }
     }
 
     /// Executes the specified [Join] block.
     #[inline(always)]
-    fn execute_join_block(&mut self, block: &Join) -> Result<(), ExecutionError> {
+    fn execute_join_block(
+        &mut self,
+        block: &Join,
+        cb_table: &CodeBlockTable,
+    ) -> Result<(), ExecutionError> {
         self.start_join_block(block)?;
 
         // execute first and then second child of the join block
-        self.execute_code_block(block.first())?;
-        self.execute_code_block(block.second())?;
+        self.execute_code_block(block.first(), cb_table)?;
+        self.execute_code_block(block.second(), cb_table)?;
 
         self.end_join_block(block)
     }
 
     /// Executes the specified [Split] block.
     #[inline(always)]
-    fn execute_split_block(&mut self, block: &Split) -> Result<(), ExecutionError> {
+    fn execute_split_block(
+        &mut self,
+        block: &Split,
+        cb_table: &CodeBlockTable,
+    ) -> Result<(), ExecutionError> {
         // start the SPLIT block; this also pops the stack and returns the popped element
         let condition = self.start_split_block(block)?;
 
         // execute either the true or the false branch of the split block based on the condition
         if condition == ONE {
-            self.execute_code_block(block.on_true())?;
+            self.execute_code_block(block.on_true(), cb_table)?;
         } else if condition == ZERO {
-            self.execute_code_block(block.on_false())?;
+            self.execute_code_block(block.on_false(), cb_table)?;
         } else {
             return Err(ExecutionError::NotBinaryValue(condition));
         }
@@ -209,14 +228,18 @@ impl Process {
 
     /// Executes the specified [Loop] block.
     #[inline(always)]
-    fn execute_loop_block(&mut self, block: &Loop) -> Result<(), ExecutionError> {
+    fn execute_loop_block(
+        &mut self,
+        block: &Loop,
+        cb_table: &CodeBlockTable,
+    ) -> Result<(), ExecutionError> {
         // start the LOOP block; this also pops the stack and returns the popped element
         let condition = self.start_loop_block(block)?;
 
         // if the top of the stack is ONE, execute the loop body; otherwise skip the loop body
         if condition == ONE {
             // execute the loop body at least once
-            self.execute_code_block(block.body())?;
+            self.execute_code_block(block.body(), cb_table)?;
 
             // keep executing the loop body until the condition on the top of the stack is no
             // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
@@ -224,7 +247,7 @@ impl Process {
             while self.stack.peek() == ONE {
                 self.decoder.repeat();
                 self.execute_op(Operation::Drop)?;
-                self.execute_code_block(block.body())?;
+                self.execute_code_block(block.body(), cb_table)?;
             }
 
             // end the LOOP block and drop the condition from the stack
@@ -236,6 +259,24 @@ impl Process {
         } else {
             Err(ExecutionError::NotBinaryValue(condition))
         }
+    }
+
+    /// Executes the specified [Call] block.
+    #[inline(always)]
+    fn execute_call_block(
+        &mut self,
+        block: &Call,
+        cb_table: &CodeBlockTable,
+    ) -> Result<(), ExecutionError> {
+        self.start_call_block(block)?;
+
+        // get function body from the code block table and execute it
+        let fn_body = cb_table
+            .get(block.fn_hash())
+            .ok_or_else(|| ExecutionError::CodeBlockNotFound(block.fn_hash()))?;
+        self.execute_code_block(fn_body, cb_table)?;
+
+        self.end_call_block(block)
     }
 
     /// Executes the specified [Span] block.

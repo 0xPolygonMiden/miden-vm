@@ -2,7 +2,7 @@
 
 use air::{ProcessorAir, PublicInputs};
 use core::fmt;
-use vm_core::{utils::collections::Vec, MIN_STACK_DEPTH};
+use vm_core::{utils::collections::Vec, ProgramOutputs};
 use winterfell::VerifierError;
 
 // EXPORTS
@@ -26,25 +26,18 @@ pub use winterfell::StarkProof;
 /// of the stack.
 ///
 /// Stack outputs are expected to be ordered as if they would be popped off the stack one by one.
-/// Thus, the value at the top of the stack is expected to be be in the first position of the
+/// Thus, the value at the top of the stack is expected to be in the first position of the
 /// `stack_outputs` slice, and the order of the rest of the output elements will also match the
-/// order on the stack. This the reverse of order of `stack_inputs` slice.
+/// order on the stack. This is the reverse of the order of the `stack_inputs` slice.
 ///
 /// # Errors
 /// Returns an error if the provided proof does not prove a correct execution of the program.
 pub fn verify(
     program_hash: Digest,
     stack_inputs: &[u64],
-    stack_outputs: &[u64],
+    outputs: &ProgramOutputs,
     proof: StarkProof,
 ) -> Result<(), VerificationError> {
-    if stack_inputs.len() > MIN_STACK_DEPTH {
-        return Err(VerificationError::TooManyInputValues(
-            MIN_STACK_DEPTH,
-            stack_inputs.len(),
-        ));
-    }
-
     // convert stack inputs to field elements
     let mut stack_input_felts = Vec::with_capacity(stack_inputs.len());
     for &input in stack_inputs.iter().rev() {
@@ -55,25 +48,8 @@ pub fn verify(
         );
     }
 
-    if stack_outputs.len() > MIN_STACK_DEPTH {
-        return Err(VerificationError::TooManyOutputValues(
-            MIN_STACK_DEPTH,
-            stack_outputs.len(),
-        ));
-    }
-
-    // convert stack outputs to field elements
-    let mut stack_output_felts = Vec::with_capacity(stack_outputs.len());
-    for &output in stack_outputs.iter() {
-        stack_output_felts.push(
-            output
-                .try_into()
-                .map_err(|_| VerificationError::OutputNotFieldElement(output))?,
-        );
-    }
-
     // build public inputs and try to verify the proof
-    let pub_inputs = PublicInputs::new(program_hash, stack_input_felts, stack_output_felts);
+    let pub_inputs = PublicInputs::new(program_hash, stack_input_felts, outputs.clone());
     winterfell::verify::<ProcessorAir>(proof, pub_inputs).map_err(VerificationError::VerifierError)
 }
 
@@ -85,9 +61,7 @@ pub fn verify(
 pub enum VerificationError {
     VerifierError(VerifierError),
     InputNotFieldElement(u64),
-    TooManyInputValues(usize, usize),
     OutputNotFieldElement(u64),
-    TooManyOutputValues(usize, usize),
 }
 
 impl fmt::Display for VerificationError {

@@ -1,10 +1,10 @@
 use crate::{utils::get_trace_len, CodeBlock, ExecutionTrace, Operation, Process};
 use vm_core::{
     chiplets::{
-        bitwise::{BITWISE_OR, OP_CYCLE_LEN},
+        bitwise::{BITWISE_XOR, OP_CYCLE_LEN},
         hasher::{HASH_CYCLE_LEN, LINEAR_HASH, RETURN_STATE},
     },
-    Felt, FieldElement, ProgramInputs, CHIPLETS_RANGE, CHIPLETS_WIDTH,
+    CodeBlockTable, Felt, FieldElement, ProgramInputs, CHIPLETS_RANGE, CHIPLETS_WIDTH,
 };
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
@@ -29,7 +29,7 @@ fn hasher_aux_trace() {
 fn bitwise_aux_trace() {
     // --- single bitwise operation with no stack manipulation ------------------------------------
     let stack = [4, 8];
-    let operations = vec![Operation::U32or];
+    let operations = vec![Operation::U32xor];
     let (chiplets_trace, trace_len) = build_trace(&stack, operations);
 
     let bitwise_end = HASH_CYCLE_LEN + OP_CYCLE_LEN;
@@ -61,7 +61,7 @@ fn stacked_aux_trace() {
     // --- operations in hasher, bitwise, and memory processors without stack manipulation --------
     let stack = [8, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 1];
     let operations = vec![
-        Operation::U32or,
+        Operation::U32xor,
         Operation::Push(Felt::ZERO),
         Operation::MStoreW,
         Operation::RpPerm,
@@ -95,7 +95,9 @@ fn build_trace(stack: &[u64], operations: Vec<Operation>) -> (ChipletsTrace, usi
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(inputs);
     let program = CodeBlock::new_span(operations);
-    process.execute_code_block(&program).unwrap();
+    process
+        .execute_code_block(&program, &CodeBlockTable::default())
+        .unwrap();
 
     let (trace, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
@@ -144,7 +146,7 @@ fn validate_hasher_trace(chiplets: &ChipletsTrace, start: usize, end: usize) {
     }
 }
 
-/// Validate the bitwise trace output by the u32or operation. The full bitwise trace is tested in
+/// Validate the bitwise trace output by the u32xor operation. The full bitwise trace is tested in
 /// the Bitwise module, so this just tests the ChipletsTrace selectors, the initial columns
 /// of the bitwise trace, and the final columns after the bitwise trace.
 fn validate_bitwise_trace(chiplets: &ChipletsTrace, start: usize, end: usize) {
@@ -155,7 +157,7 @@ fn validate_bitwise_trace(chiplets: &ChipletsTrace, start: usize, end: usize) {
         assert_eq!(Felt::ZERO, chiplets[1][row]);
 
         // the expected start of the bitwise trace should hold the expected bitwise op selectors
-        assert_eq!(BITWISE_OR, [chiplets[2][row], chiplets[3][row]]);
+        assert_eq!(BITWISE_XOR, chiplets[2][row]);
 
         // the final columns should be padded
         assert_eq!(Felt::ZERO, chiplets[16][row]);

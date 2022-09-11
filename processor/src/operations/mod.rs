@@ -28,8 +28,9 @@ impl Process {
             Operation::Join => unreachable!("control flow operation"),
             Operation::Split => unreachable!("control flow operation"),
             Operation::Loop => unreachable!("control flow operation"),
-            Operation::Repeat => unreachable!("control flow operation"),
+            Operation::Call => unreachable!("control flow operation"),
             Operation::Span => unreachable!("control flow operation"),
+            Operation::Repeat => unreachable!("control flow operation"),
             Operation::Respan => unreachable!("control flow operation"),
             Operation::End => unreachable!("control flow operation"),
             Operation::Halt => unreachable!("control flow operation"),
@@ -58,7 +59,6 @@ impl Process {
             Operation::U32div => self.op_u32div()?,
 
             Operation::U32and => self.op_u32and()?,
-            Operation::U32or => self.op_u32or()?,
             Operation::U32xor => self.op_u32xor()?,
             Operation::U32assert2 => self.op_u32assert2()?,
 

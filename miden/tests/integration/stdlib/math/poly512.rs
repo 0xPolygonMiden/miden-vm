@@ -5,7 +5,7 @@ fn test_poly512_mul_zq() {
     let source = "
     use.std::math::poly512
 
-    proc.wrapper.256
+    proc.wrapper.384
         # prepare first polynomial `f`
 
         push.18446744069414584303.128.23.18446744069414584303
@@ -780,8 +780,9 @@ fn test_poly512_mul_zq() {
 
         # prepare argument ( absolute memory addresses ) for multiplying two polynomials
 
-        push.env.locaddr.255
-        push.env.locaddr.127
+        push.env.locaddr.383 # output
+        push.env.locaddr.255 # input 1
+        push.env.locaddr.127 # input 0
 
         # perform polynomial multiplication, when two polynomials are provided
         # as absolute memory addresses on the stack
@@ -789,6 +790,8 @@ fn test_poly512_mul_zq() {
         exec.poly512::mul_zq
 
         # check for functional correctness ( using known answer test )
+
+        push.env.locaddr.383
 
         dup
         pushw.mem
@@ -2339,7 +2342,7 @@ fn test_poly512_add_zq() {
     let source = "
     use.std::math::poly512
 
-    proc.wrapper.256
+    proc.wrapper.384
         # prepare first polynomial `f`
 
         push.7618.7764.7271.4394
@@ -3114,8 +3117,9 @@ fn test_poly512_add_zq() {
 
         # prepare argument ( absolute memory addresses ) for adding two polynomials
 
-        push.env.locaddr.255
-        push.env.locaddr.127
+        push.env.locaddr.383 # output
+        push.env.locaddr.255 # input 1
+        push.env.locaddr.127 # input 0
 
         # perform polynomial addition, when two polynomials are provided
         # as absolute memory addresses on the stack
@@ -3123,6 +3127,8 @@ fn test_poly512_add_zq() {
         exec.poly512::add_zq
 
         # check for functional correctness ( using known answer test )
+
+        push.env.locaddr.383
 
 		dup
 		pushw.mem
@@ -4673,7 +4679,7 @@ fn test_poly512_neg_zq() {
     let source = "
     use.std::math::poly512
 
-    proc.wrapper.128
+    proc.wrapper.256
         # prepare polynomial `f`
 
         push.7741.7665.7261.4273
@@ -5062,14 +5068,18 @@ fn test_poly512_neg_zq() {
 
         # prepare argument ( absolute memory address ) for negating one polynomial
 
-        push.env.locaddr.127
+        push.env.locaddr.255 # output start address
+        push.env.locaddr.127 # input start address
 
         # perform polynomial negation, when one polynomial is provided
-        # as absolute memory addresses on the stack
+        # as absolute memory address on the stack, along with resulting
+        # polynomial's starting memory address
 
         exec.poly512::neg_zq
 
         # check for functional correctness ( using known answer test )
+
+        push.env.locaddr.255
 
 		dup
 		pushw.mem
@@ -6620,7 +6630,7 @@ fn test_poly512_sub_zq() {
     let source = "
     use.std::math::poly512
 
-    proc.wrapper.256
+    proc.wrapper.384
         # prepare first polynomial `f`
 
         push.7618.7764.7271.4394
@@ -7395,8 +7405,9 @@ fn test_poly512_sub_zq() {
 
         # prepare argument ( absolute memory addresses ) for subtracting two polynomials
 
-        push.env.locaddr.255
-        push.env.locaddr.127
+        push.env.locaddr.383 # output
+        push.env.locaddr.255 # input 1
+        push.env.locaddr.127 # input 0
 
         # perform polynomial subtraction, when two polynomials are provided
         # as absolute memory addresses on the stack
@@ -7404,6 +7415,8 @@ fn test_poly512_sub_zq() {
         exec.poly512::sub_zq
 
         # check for functional correctness ( using known answer test )
+
+        push.env.locaddr.383
 
 		dup
 		pushw.mem

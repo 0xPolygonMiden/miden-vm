@@ -16,7 +16,7 @@ pub struct AuxTraceBuilder {
     // TODO: once we switch to backfilling memory range checks this approach can change to tracking
     // vectors of hints and rows like in the Stack and Hasher AuxTraceBuilders, and the
     // CycleRangeChecks struct can be removed.
-    cycle_range_checks: BTreeMap<usize, CycleRangeChecks>,
+    cycle_range_checks: BTreeMap<u32, CycleRangeChecks>,
     // A trace-length vector of RangeCheckFlags which indicate how many times the range check value
     // at that row should be included in the trace.
     row_flags: Vec<RangeCheckFlag>,
@@ -28,7 +28,7 @@ impl AuxTraceBuilder {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     pub fn new(
-        cycle_range_checks: BTreeMap<usize, CycleRangeChecks>,
+        cycle_range_checks: BTreeMap<u32, CycleRangeChecks>,
         row_flags: Vec<RangeCheckFlag>,
         start_16bit: usize,
     ) -> Self {
@@ -102,7 +102,7 @@ impl AuxTraceBuilder {
         for (row_idx, &v) in v_col
             .iter()
             .enumerate()
-            .take(v_col.len() - 1)
+            .take(v_col.len() - NUM_RAND_ROWS)
             .skip(self.start_16bit)
         {
             // This is the 16-bit section, where the running product must be reduced.
@@ -155,13 +155,13 @@ impl AuxTraceBuilder {
         // index is always one row behind, since `q` is filled with intermediate values in the same
         // row as the operation is executed, whereas `p1` is filled with result values that are
         // added to the next row after the operation's execution.
-        let mut p1_idx = 0;
+        let mut p1_idx = 0_usize;
         // keep track of the next row to be included from the user op range check values.
         let mut rc_user_op_idx = 0;
 
         // the first half of the trace only includes values from the operations.
-        for (clk, range_checks) in self.cycle_range_checks.range(0..=self.start_16bit) {
-            let clk = *clk;
+        for (clk, range_checks) in self.cycle_range_checks.range(0..=self.start_16bit as u32) {
+            let clk = *clk as usize;
 
             // if we skipped some cycles since the last update was processed, values in the last
             // updated row should by copied over until the current cycle.
@@ -197,14 +197,14 @@ impl AuxTraceBuilder {
             .iter()
             .zip(main_trace.get_column(V_COL_IDX).iter())
             .enumerate()
-            .take(main_trace.num_rows() - NUM_RAND_ROWS - 1)
+            .take(main_trace.num_rows() - NUM_RAND_ROWS)
             .skip(self.start_16bit)
         {
             p1_idx = row_idx + 1;
 
             p1[p1_idx] = p1[row_idx] * hint.to_value(*lookup, alphas);
 
-            if let Some(range_check) = self.cycle_range_checks.get(&row_idx) {
+            if let Some(range_check) = self.cycle_range_checks.get(&(row_idx as u32)) {
                 // update the intermediate values in the q column.
                 q[row_idx] = range_check.to_stack_value(alphas);
 

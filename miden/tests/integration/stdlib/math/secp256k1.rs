@@ -111,6 +111,7 @@ fn test_u256_mod_add() {
 }
 
 #[test]
+#[allow(clippy::needless_range_loop)]
 fn test_u256_mod_neg() {
     let source = "
     use.std::math::secp256k1
@@ -658,12 +659,12 @@ fn mac(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
 
 fn adc(a: u32, b: u32, carry: u32) -> (u32, u32) {
     let tmp = a as u64 + b as u64 + carry as u64;
-    return ((tmp >> 32) as u32, tmp as u32);
+    ((tmp >> 32) as u32, tmp as u32)
 }
 
 fn sbb(a: u32, b: u32, borrow: u32) -> (u32, u32) {
     let tmp = (a as u64).wrapping_sub(b as u64 + (borrow >> 31) as u64);
-    return ((tmp >> 32) as u32, tmp as u32);
+    ((tmp >> 32) as u32, tmp as u32)
 }
 
 fn u256xu32(a: &mut [u32], b: u32, c: &[u32]) {
@@ -764,49 +765,49 @@ fn u256xu256_mod_mult(a: &[u32], b: &[u32]) -> [u32; 8] {
     let mut c = [0u32; 16];
     let mut pc = 0u32;
 
-    u256xu32(&mut c[0..9], b[0], &a);
+    u256xu32(&mut c[0..9], b[0], a);
 
     let d = u288_reduce(&c[0..9], pc);
     pc = d[8];
     c[1..9].copy_from_slice(&d[0..8]);
 
-    u256xu32(&mut c[1..10], b[1], &a);
+    u256xu32(&mut c[1..10], b[1], a);
 
     let d = u288_reduce(&c[1..10], pc);
     pc = d[8];
     c[2..10].copy_from_slice(&d[0..8]);
 
-    u256xu32(&mut c[2..11], b[2], &a);
+    u256xu32(&mut c[2..11], b[2], a);
 
     let d = u288_reduce(&c[2..11], pc);
     pc = d[8];
     c[3..11].copy_from_slice(&d[0..8]);
 
-    u256xu32(&mut c[3..12], b[3], &a);
+    u256xu32(&mut c[3..12], b[3], a);
 
     let d = u288_reduce(&c[3..12], pc);
     pc = d[8];
     c[4..12].copy_from_slice(&d[0..8]);
 
-    u256xu32(&mut c[4..13], b[4], &a);
+    u256xu32(&mut c[4..13], b[4], a);
 
     let d = u288_reduce(&c[4..13], pc);
     pc = d[8];
     c[5..13].copy_from_slice(&d[0..8]);
 
-    u256xu32(&mut c[5..14], b[5], &a);
+    u256xu32(&mut c[5..14], b[5], a);
 
     let d = u288_reduce(&c[5..14], pc);
     pc = d[8];
     c[6..14].copy_from_slice(&d[0..8]);
 
-    u256xu32(&mut c[6..15], b[6], &a);
+    u256xu32(&mut c[6..15], b[6], a);
 
     let d = u288_reduce(&c[6..15], pc);
     pc = d[8];
     c[7..15].copy_from_slice(&d[0..8]);
 
-    u256xu32(&mut c[7..16], b[7], &a);
+    u256xu32(&mut c[7..16], b[7], a);
 
     let d = u288_reduce(&c[7..16], pc);
     pc = d[8];
@@ -907,5 +908,5 @@ fn u256_mod_neg(a: [u32; 8]) -> [u32; 8] {
 
 /// See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/field.py#L97-L101
 fn u256_mod_sub(a: [u32; 8], b: [u32; 8]) -> [u32; 8] {
-    return u256_mod_add(a, u256_mod_neg(b));
+    u256_mod_add(a, u256_mod_neg(b))
 }

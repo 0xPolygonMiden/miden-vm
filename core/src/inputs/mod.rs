@@ -2,7 +2,7 @@ use super::{
     chiplets::hasher,
     errors::{AdviceSetError, InputError},
     utils::IntoBytes,
-    Felt, FieldElement, Word, MIN_STACK_DEPTH,
+    Felt, FieldElement, Word,
 };
 use core::convert::TryInto;
 use winter_utils::collections::{BTreeMap, Vec};
@@ -18,12 +18,12 @@ pub use advice::AdviceSet;
 /// Miden VM programs can receive inputs in two ways:
 /// 1. The stack can be initialized to some set of values at the beginning of the program. These
 ///    inputs are public and must be shared with the verifier for them to verify a proof of the
-///    correct execution of a Miden program. The number of elements at the top of the stack which
-///    can receive initial value is limited to 16.
-/// 2. The program may request non-deterministic advice inputs from the prover. These inputs are
+///    correct execution of a Miden program. There is no limit to the number of elements at the top
+///    of the stack which can receive an initial value.
+/// 2. The program may request nondeterministic advice inputs from the prover. These inputs are
 ///    secret inputs. This means that the prover does not need to share them with the verifier.
 ///    There are two types of advice inputs: (1) a single advice tape which can contain any number
-///    of elements and (2) a list of advice sets, which are used to provide non-deterministic
+///    of elements and (2) a list of advice sets, which are used to provide nondeterministic
 ///    inputs for instructions which work with Merkle trees.
 ///
 /// TODO: add more detailed explanation.
@@ -54,13 +54,6 @@ impl ProgramInputs {
         advice_tape: &[u64],
         advice_sets: Vec<AdviceSet>,
     ) -> Result<Self, InputError> {
-        if stack_init.len() > MIN_STACK_DEPTH {
-            return Err(InputError::TooManyStackValues(
-                MIN_STACK_DEPTH,
-                stack_init.len(),
-            ));
-        }
-
         // convert initial stack values into field elements
         let mut init_stack_elements = Vec::with_capacity(stack_init.len());
         for &value in stack_init.iter().rev() {

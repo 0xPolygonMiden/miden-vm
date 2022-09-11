@@ -50,11 +50,11 @@ fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
     let mut started_block_idx = 0;
 
     // keep track of the last updated row in the running product column
-    let mut result_idx = 0;
+    let mut result_idx = 0_usize;
 
     // iterate through the list of updates and apply them one by one
     for (clk, update) in aux_trace_hints.block_exec_hints() {
-        let clk = *clk;
+        let clk = *clk as usize;
 
         // if we skipped some cycles since the last update was processed, values in the last
         // updated row should by copied over until the current cycle.
@@ -87,7 +87,7 @@ fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
                 // when a block is ended, we need to remove the entry for the block from the
                 // block stack table; we can look up the index of the entry using the block's
                 // ID which we get from the current row of the execution trace.
-                let block_id = get_block_addr(main_trace, clk);
+                let block_id = get_block_addr(main_trace, clk as u32);
                 let row_idx = aux_trace_hints
                     .get_block_stack_row_idx(block_id)
                     .expect("block stack row not found");
@@ -135,11 +135,11 @@ fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
     let mut started_block_idx = 1;
 
     // keep track of the last updated row in the running product column
-    let mut result_idx = 0;
+    let mut result_idx = 0_usize;
 
     // iterate through the list of updates and apply them one by one
     for (clk, update) in aux_trace_hints.block_exec_hints() {
-        let clk = *clk;
+        let clk = *clk as usize;
 
         // if we skipped some cycles since the last update was processed, values in the last
         // updated row should by copied over until the current cycle.
@@ -184,7 +184,7 @@ fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
                 // operation is executed. Therefore, we can get the parent ID from the execution
                 // trace at the next row: clk + 1 (which is the same as result_idx), and use it to
                 // find this entry.
-                let parent_id = get_block_addr(main_trace, result_idx);
+                let parent_id = get_block_addr(main_trace, result_idx as u32);
                 let row_idx = aux_trace_hints
                     .get_block_hash_row_idx(parent_id, false)
                     .expect("block hash row not found");
@@ -196,7 +196,7 @@ fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
                 // from the trace in the same way as described above. we also need to know whether
                 // this block is the first or the second child of its parent, because for JOIN
                 // block, the same parent ID would map to two children.
-                let parent_id = get_block_addr(main_trace, result_idx);
+                let parent_id = get_block_addr(main_trace, result_idx as u32);
                 let row_idx = aux_trace_hints
                     .get_block_hash_row_idx(parent_id, *is_first_child)
                     .expect("block hash row not found");
@@ -245,7 +245,7 @@ fn build_aux_col_p3<E: FieldElement<BaseField = Felt>>(
     let mut result_idx = 0_usize;
 
     for (clk, update) in aux_trace_hints.op_group_table_hints() {
-        let clk = *clk;
+        let clk = *clk as usize;
 
         // if we skipped some cycles since the last update was processed, values in the last
         // updated row should by copied over until the current cycle.
@@ -295,6 +295,6 @@ fn build_aux_col_p3<E: FieldElement<BaseField = Felt>>(
 // ================================================================================================
 
 /// Returns the value in the block address column at the specified row.
-fn get_block_addr(main_trace: &Matrix<Felt>, row_idx: usize) -> Felt {
-    main_trace.get(ADDR_COL_IDX, row_idx)
+fn get_block_addr(main_trace: &Matrix<Felt>, row_idx: u32) -> Felt {
+    main_trace.get(ADDR_COL_IDX, row_idx as usize)
 }

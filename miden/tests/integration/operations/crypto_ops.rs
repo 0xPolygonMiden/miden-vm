@@ -134,14 +134,14 @@ fn mtree_update() {
     let new_tree = AdviceSet::new_merkle_tree(new_leaves).unwrap();
 
     let stack_inputs = [
-        tree.root()[0].as_int(),
-        tree.root()[1].as_int(),
-        tree.root()[2].as_int(),
-        tree.root()[3].as_int(),
         new_node[0].as_int(),
         new_node[1].as_int(),
         new_node[2].as_int(),
         new_node[3].as_int(),
+        tree.root()[0].as_int(),
+        tree.root()[1].as_int(),
+        tree.root()[2].as_int(),
+        tree.root()[3].as_int(),
         index as u64,
         tree.depth() as u64,
     ];
@@ -152,14 +152,14 @@ fn mtree_update() {
 
     // expected state has the new leaf and the new root of the tree
     let final_stack = [
-        new_node[3].as_int(),
-        new_node[2].as_int(),
-        new_node[1].as_int(),
-        new_node[0].as_int(),
         new_tree.root()[3].as_int(),
         new_tree.root()[2].as_int(),
         new_tree.root()[1].as_int(),
         new_tree.root()[0].as_int(),
+        new_node[3].as_int(),
+        new_node[2].as_int(),
+        new_node[1].as_int(),
+        new_node[0].as_int(),
     ];
 
     let test = build_op_test!(asm_op, &stack_inputs, &[], vec![tree.clone()]);
@@ -171,14 +171,14 @@ fn mtree_update() {
 
     // expected state has the new leaf, the new root of the tree, and the root of the old tree
     let final_stack = [
-        new_node[3].as_int(),
-        new_node[2].as_int(),
-        new_node[1].as_int(),
-        new_node[0].as_int(),
         new_tree.root()[3].as_int(),
         new_tree.root()[2].as_int(),
         new_tree.root()[1].as_int(),
         new_tree.root()[0].as_int(),
+        new_node[3].as_int(),
+        new_node[2].as_int(),
+        new_node[1].as_int(),
+        new_node[0].as_int(),
         tree.root()[3].as_int(),
         tree.root()[2].as_int(),
         tree.root()[1].as_int(),

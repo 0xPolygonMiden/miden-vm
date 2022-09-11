@@ -10,11 +10,12 @@ pub mod chiplets;
 pub mod decoder;
 pub mod errors;
 pub mod range;
+pub mod stack;
 
 pub use math::{fields::f64::BaseElement as Felt, ExtensionOf, FieldElement, StarkField};
 
 mod program;
-pub use program::{blocks as code_blocks, Library, Program};
+pub use program::{blocks as code_blocks, CodeBlockTable, Library, Program};
 
 mod operations;
 pub use operations::{
@@ -23,6 +24,9 @@ pub use operations::{
 
 mod inputs;
 pub use inputs::{AdviceSet, ProgramInputs};
+
+mod outputs;
+pub use outputs::ProgramOutputs;
 
 pub mod utils;
 use utils::range;

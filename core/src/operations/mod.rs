@@ -33,6 +33,9 @@ pub enum Operation {
     /// Marks the beginning of a loop block.
     Loop,
 
+    /// Marks the beginning of a function call.
+    Call,
+
     /// Marks the beginning of a span code block.
     Span,
 
@@ -148,12 +151,6 @@ pub enum Operation {
     ///
     /// If either of the elements is greater than or equal to 2^32, execution fails.
     U32and,
-
-    /// Pops two elements off the stack, computes their binary OR, and pushes the result back onto
-    /// the stack.
-    ///
-    /// If either fo the elements is greater than or equal to 2^32, execution fails.
-    U32or,
 
     /// Pops two elements off the stack, computes their binary XOR, and pushes the result back
     /// onto the stack.
@@ -317,30 +314,29 @@ pub enum Operation {
     /// which starts with the specified node.
     ///
     /// The stack is expected to be arranged as follows (from the top):
+    /// - value of the node, 4 elements.
     /// - depth of the path, 1 element.
     /// - index of the node, 1 element.
-    /// - value of the node, 4 elements.
     /// - root of the tree, 4 elements.
     ///
     /// The Merkle path itself is expected to be provided by the prover non-deterministically (via
     /// advice sets). If the prover is not able to provide the required path, the operation fails.
-    /// Otherwise, the state of the stack does not change.
+    /// The state of the stack does not change.
     MpVerify,
 
     /// Computes a new root of a Merkle tree where a node at the specified position is updated to
     /// the specified value.
     ///
     /// The stack is expected to be arranged as follows (from the top):
+    /// - old value of the node, 4 element
     /// - depth of the node, 1 element
     /// - index of the node, 1 element
-    /// - old value of the node, 4 element
-    /// - new value of the node, 4 element
     /// - current root of the tree, 4 elements
+    /// - new value of the node, 4 element
     ///
     /// The Merkle path for the node is expected to be provided by the prover non-deterministically
     /// (via advice sets). At the end of the operation, the old node value is replaced with the
-    /// old root value computed based on the provided path, the new node value is replaced by the
-    /// new root value computed based on the same path. Everything else on the stack remains the
+    /// new root value computed based on the provided path. Everything else on the stack remains the
     /// same.
     ///
     /// If the boolean parameter is set to false, at the end of the operation the advice set with
@@ -365,7 +361,7 @@ impl Operation {
     /// - 11xxx--: operations where constraint degree can be up to 5. These include control flow
     ///   operations and some other operations requiring very high degree constraints.
     #[rustfmt::skip]
-    pub fn op_code(&self) -> u8 {
+    pub const fn op_code(&self) -> u8 {
         match self {
             Self::Noop      => 0b0000_0000,
             Self::Eqz       => 0b0000_0001,
@@ -408,8 +404,8 @@ impl Operation {
             Self::And       => 0b0010_0100,
             Self::Or        => 0b0010_0101,
             Self::U32and    => 0b0010_0110,
-            Self::U32or     => 0b0010_0111,
-            Self::U32xor    => 0b0010_1000,
+            Self::U32xor    => 0b0010_0111,
+            // <empty>      => 0b0010_1000
             Self::Drop      => 0b0010_1001,
             Self::CSwap     => 0b0010_1010,
             Self::CSwapW    => 0b0010_1011,
@@ -456,7 +452,7 @@ impl Operation {
             Self::MrUpdate(_) => 0b0110_0000,
             Self::Push(_)   => 0b0110_0100,
             // <empty>      => 0b0110_1000
-            // <empty>      => 0b0110_1100
+            Self::Call      => 0b0110_1100,
             Self::End       => 0b0111_0000,
             Self::Repeat    => 0b0111_0100,
             Self::Respan    => 0b0111_1000,
@@ -502,10 +498,11 @@ impl fmt::Display for Operation {
             Self::Join => write!(f, "join"),
             Self::Split => write!(f, "split"),
             Self::Loop => write!(f, "loop"),
-            Self::Repeat => write!(f, "repeat"),
+            Self::Call => writeln!(f, "call"),
             Self::Span => write!(f, "span"),
-            Self::Respan => write!(f, "respan"),
             Self::End => write!(f, "end"),
+            Self::Repeat => write!(f, "repeat"),
+            Self::Respan => write!(f, "respan"),
             Self::Halt => write!(f, "halt"),
 
             // ----- field operations -------------------------------------------------------------
@@ -533,7 +530,6 @@ impl fmt::Display for Operation {
             Self::U32div => write!(f, "u32div"),
 
             Self::U32and => write!(f, "u32and"),
-            Self::U32or => write!(f, "u32or"),
             Self::U32xor => write!(f, "u32xor"),
 
             // ----- stack manipulation -----------------------------------------------------------

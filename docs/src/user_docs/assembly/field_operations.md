@@ -9,36 +9,38 @@ For instructions where one or more operands can be provided as immediate paramet
 
 | Instruction      | Stack_input | Stack_output  | Notes                         |
 | ---------------- | ----------- | ------------- | ----------------------------- |
-| assert           | [a, ...]    | [...]         | If $a = 1$, removes it from the stack. <br> Fails if $a \ne 1$ |
-| assert_eq        | [b, a, ...] | [...]         | If $a = b$, removes them from the stack. <br> Fails if $a \ne b$ |
+| assert  <br> - *(1 cycle)*          | [a, ...]    | [...]         | If $a = 1$, removes it from the stack. <br> Fails if $a \ne 1$ |
+| assertz <br> - *(2 cycles)*       | [ a, ...] | [...]              | if $a = 0$, removes it from the stack, <br> Fails if $a \ne b$ |
+| assert_eq <br> - *(2 cycles)*        | [b, a, ...] | [...]         | If $a = b$, removes them from the stack. <br> Fails if $a \ne b$ |
+
 
 ### Arithmetic and Boolean operations
 
 | Instruction      | Stack_input | Stack_output  | Notes                         |
 | ---------------- | ----------- | ------------- | ----------------------------- |
-| add <br> add.*b* | [b, a, ...] | [c, ...]      | $c \leftarrow (a + b) \mod p$          |
-| sub <br> sub.*b* | [b, a, ...] | [c, ...]      | $c \leftarrow (a - b) \mod p$          |
-| mul <br> mul.*b* | [b, a, ...] | [c, ...]      | $c \leftarrow (a \cdot b) \mod p$      |
-| div <br> div.*b* | [b, a, ...] | [c, ...]      | $c \leftarrow (a \cdot b^{-1}) \mod p$ <br> Fails if $b = 0$ |
-| neg              | [a, ...]    | [b, ...]      | $b \leftarrow -a \mod p$               |
-| inv              | [a, ...]    | [b, ...]      | $b \leftarrow a^{-1} \mod p$ <br> Fails if $a = 0$ |
-| checked_pow2     | [a, ...]    | [b, ...]      | $b \leftarrow 2^a$ <br> Fails if $a > 63$ |
-| unchecked_pow2   | [a, ...]    | [b, ...]      | $b \leftarrow 2^a$ <br> Undefined if $a > 63$ |
-| not              | [a, ...]    | [b, ...]      | $b \leftarrow 1 - a$ <br> Fails if $a > 1$ |
-| and              | [b, a, ...] | [c, ...]      | $c \leftarrow a \cdot b$ <br> Fails if $max(a, b) > 1$ |
-| or               | [b, a, ...] | [c, ...]      | $c \leftarrow a + b - a \cdot b$ <br> Fails if $max(a, b) > 1$ |
-| xor              | [b, a, ...] | [c, ...]      | $c \leftarrow a + b - 2 \cdot a \cdot b$ <br> Fails if $max(a, b) > 1$ |
+| add <br> - *(1 cycle)*  <br> add.*b* <br> - *(1-2 cycle)*  | [b, a, ...] | [c, ...]      | $c \leftarrow (a + b) \mod p$          |
+| sub <br> - *(2 cycles)*  <br> sub.*b* <br> - *(2 cycles)*  | [b, a, ...] | [c, ...]      | $c \leftarrow (a - b) \mod p$          |
+| mul <br> - *(1 cycle)*  <br> mul.*b* <br> - *(2 cycles)*  | [b, a, ...] | [c, ...]      | $c \leftarrow (a \cdot b) \mod p$      |
+| div <br> - *(2 cycles)*  <br> div.*b* <br> - *(2 cycles)*  | [b, a, ...] | [c, ...]      | $c \leftarrow (a \cdot b^{-1}) \mod p$ <br> Fails if $b = 0$ |
+| neg <br> - *(1 cycle)*              | [a, ...]    | [b, ...]      | $b \leftarrow -a \mod p$               |
+| inv <br> - *(1 cycle)*              | [a, ...]    | [b, ...]      | $b \leftarrow a^{-1} \mod p$ <br> Fails if $a = 0$ |
+| checked_pow2 <br> - *(44 cycles)*     | [a, ...]    | [b, ...]      | $b \leftarrow 2^a$ <br> Fails if $a > 63$ |
+| unchecked_pow2 <br> - *(38 cycles)*   | [a, ...]    | [b, ...]      | $b \leftarrow 2^a$ <br> Undefined if $a > 63$ |
+| not <br> - *(1 cycle)*              | [a, ...]    | [b, ...]      | $b \leftarrow 1 - a$ <br> Fails if $a > 1$ |
+| and <br> - *(1 cycle)*              | [b, a, ...] | [c, ...]      | $c \leftarrow a \cdot b$ <br> Fails if $max(a, b) > 1$ |
+| or <br> - *(1 cycle)*               | [b, a, ...] | [c, ...]      | $c \leftarrow a + b - a \cdot b$ <br> Fails if $max(a, b) > 1$ |
+| xor <br> - *(7 cycles)*              | [b, a, ...] | [c, ...]      | $c \leftarrow a + b - 2 \cdot a \cdot b$ <br> Fails if $max(a, b) > 1$ |
 
 ### Comparison operations
 
 | Instruction      | Stack_input | Stack_output   | Notes                         |
 | ---------------- | ----------- | -------------- | ----------------------------- |
-| eq <br> eq.*b*   | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a=b \\ 0, & \text{otherwise}\ \end{cases}$ |
-| neq <br> neq.*b* | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ne b \\ 0, & \text{otherwise}\ \end{cases}$ |
-| lt               | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a < b \\ 0, & \text{otherwise}\ \end{cases}$ |
-| lte              | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \le b \\ 0, & \text{otherwise}\ \end{cases}$ |
-| gt               | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a > b \\ 0, & \text{otherwise}\ \end{cases}$ |
-| gte              | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ge b \\ 0, & \text{otherwise}\ \end{cases}$ |
-| eqw              | [A, B, ...] | [c, A, B, ...] | $c \leftarrow \begin{cases} 1, & \text{if}\ a_i = b_i \; \forall i \in \{0, 1, 2, 3\} \\ 0, & \text{otherwise}\ \end{cases}$ |
+| eq <br> - *(1 cycle)*  <br> eq.*b* <br> - *(1-2 cycles)*   | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a=b \\ 0, & \text{otherwise}\ \end{cases}$ |
+| neq <br> - *(1 cycle)*  <br> neq.*b* <br> - *(1-2 cycles)*  | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ne b \\ 0, & \text{otherwise}\ \end{cases}$ |
+| lt <br> - *(17 cycles)*               | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a < b \\ 0, & \text{otherwise}\ \end{cases}$ |
+| lte <br> - *(18 cycles)*              | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \le b \\ 0, & \text{otherwise}\ \end{cases}$ |
+| gt <br> - *(18 cycles)*               | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a > b \\ 0, & \text{otherwise}\ \end{cases}$ |
+| gte <br> - *(19 cycles)*              | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ge b \\ 0, & \text{otherwise}\ \end{cases}$ |
+| eqw <br> - *(15 cycles)*              | [A, B, ...] | [c, A, B, ...] | $c \leftarrow \begin{cases} 1, & \text{if}\ a_i = b_i \; \forall i \in \{0, 1, 2, 3\} \\ 0, & \text{otherwise}\ \end{cases}$ |
 
 
