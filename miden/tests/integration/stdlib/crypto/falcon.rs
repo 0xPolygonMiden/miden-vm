@@ -5,7 +5,7 @@ fn test_falcon512_normalize_poly() {
     let source = "
     use.std::crypto::dsa::falcon
 
-    proc.wrapper.128
+    proc.wrapper.256
         # prepare polynomial `f`
 
         push.12166.99.10.121
@@ -394,11 +394,14 @@ fn test_falcon512_normalize_poly() {
 
         # prepare argument ( absolute memory address ) for normalizing given polynomial
 
-        push.env.locaddr.127
+        push.env.locaddr.255 # output
+        push.env.locaddr.127 # input
 
         exec.falcon::normalize_poly512
 
         # check for functional correctness ( using known answer test )
+
+        push.env.locaddr.255
 
 		dup
 		pushw.mem

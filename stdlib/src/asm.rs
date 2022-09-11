@@ -42,8 +42,7 @@ proc.normalize
         push.6144
         add
 
-        push.12289
-        exec.poly512::mod_div
+        exec.poly512::mod_12289
 
         dup
         push.6144
@@ -98,24 +97,23 @@ end
 #
 # Expected stack state :
 #
-# [f_start_addr, ...] | next 127 absolute addresses can be computed using `INCR` instruction
+# [f_start_addr, g_start_addr, ...] | next 127 absolute addresses can be computed using `INCR` instruction
 #
 # Post normalization stack state looks like
 #
-# [g_start_addr, ...] | next 127 absolute addresses can be computed using `INCR` instruction
+# [ ... ]
 #
 # Note, input polynomial which is provided using memory addresses, is not mutated.
-export.normalize_poly512.128
-    push.env.locaddr.127
+export.normalize_poly512
     push.0.0.0.0
 
     repeat.128
-        dup.5
+        dup.4
         loadw.mem
 
         exec.normalize_word
 
-        dup.4
+        dup.5
         storew.mem
 
         movup.5
@@ -130,8 +128,6 @@ export.normalize_poly512.128
     dropw
     drop
     drop
-
-    push.env.locaddr.127
 end
 
 # Given four elements on stack top, this routine computes squared norm of that
@@ -245,98 +241,30 @@ end
 # If verification fails, program execution just stops, due to asserting failure !
 #
 # Note, none of these input memory addresses ( 512 of them ) are mutated during execution of verification routine.
-export.verify.129
+export.verify.257
+    push.env.locaddr.127
+    movdn.2
     exec.poly512::mul_zq
 
-    # memcpy
-
-    push.env.locaddr.127
-    push.0.0.0.0
-
-    repeat.128
-        dup.5
-        loadw.mem
-
-        dup.4
-        storew.mem
-
-        movup.5
-        add.1
-        movdn.5
-
-        movup.4
-        add.1
-        movdn.4
-    end
-
-    dropw
-    drop
-    drop
-
+    push.env.locaddr.255
     push.env.locaddr.127
     exec.poly512::neg_zq
 
-    # memcpy
-
     push.env.locaddr.127
-    push.0.0.0.0
-
-    repeat.128
-        dup.5
-        loadw.mem
-
-        dup.4
-        storew.mem
-
-        movup.5
-        add.1
-        movdn.5
-
-        movup.4
-        add.1
-        movdn.4
-    end
-
-    dropw
-    drop
-    drop
-
-    push.env.locaddr.127
+    swap
+    push.env.locaddr.255
     exec.poly512::add_zq
 
-    # memcpy
-
-    push.env.locaddr.127
-    push.0.0.0.0
-
-    repeat.128
-        dup.5
-        loadw.mem
-
-        dup.4
-        storew.mem
-
-        movup.5
-        add.1
-        movdn.5
-
-        movup.4
-        add.1
-        movdn.4
-    end
-
-    dropw
-    drop
-    drop
-
+    push.env.locaddr.255
     push.env.locaddr.127
     exec.normalize_poly512
 
     # compute squared norm of s0
 
+    push.env.locaddr.255
     exec.squared_norm_poly512
 
-    push.env.locaddr.128
+    push.env.locaddr.256
     pop.mem
 
     # compute squared norm of s1 ( where s1 is provided as polynomial
@@ -344,7 +272,7 @@ export.verify.129
 
     exec.squared_norm_poly512
 
-    push.env.locaddr.128
+    push.env.locaddr.256
     push.mem
     add
 
@@ -10211,7 +10139,7 @@ end
 # Output stack state looks like
 #
 # [c, ...] | c = a % 12289
-proc.mod_12289
+export.mod_12289
     u32split
     push.12289.0
 
