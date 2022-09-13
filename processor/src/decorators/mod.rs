@@ -28,6 +28,7 @@ impl Process {
         match injector {
             AdviceInjector::MerkleNode => self.inject_merkle_node(),
             AdviceInjector::DivResultU64 => self.inject_div_result_u64(),
+            AdviceInjector::SetSmtDepth => self.inject_set_smt_depth(),
         }
     }
 
@@ -105,6 +106,22 @@ impl Process {
         self.advice.write_tape(q_hi);
         self.advice.write_tape(q_lo);
 
+        Ok(())
+    }
+
+    fn inject_set_smt_depth(&mut self) -> Result<(), ExecutionError> {
+        let a = self.advice.read_tape()?;
+        let b = self.advice.read_tape()?;
+        let c = self.advice.read_tape()?;
+        let d = self.advice.read_tape()?;
+        let root = [a, b, c, d];
+
+        let depth = self.advice.read_tape().unwrap().as_int();
+        self.advice.read_tape()?;
+        self.advice.read_tape()?;
+        self.advice.read_tape()?;
+
+        self.advice.set_smt_depth(root, depth as u32);
         Ok(())
     }
 }

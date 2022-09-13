@@ -18,6 +18,8 @@ pub enum AdviceInjector {
     /// The result is injected into the advice tape as follows: first the remainder is injected,
     /// then the quotient is injected.
     DivResultU64,
+
+    SetSmtDepth,
 }
 
 impl fmt::Display for AdviceInjector {
@@ -25,6 +27,7 @@ impl fmt::Display for AdviceInjector {
         match self {
             Self::MerkleNode => write!(f, "merkle_node"),
             Self::DivResultU64 => write!(f, "div_result_u64"),
+            Self::SetSmtDepth => write!(f, "set_smt_depth"),
         }
     }
 }

@@ -261,12 +261,21 @@ pub fn parse_adv_inject(
     op: &Token,
     decorators: &mut DecoratorList,
 ) -> Result<(), AssemblyError> {
-    validate_operation!(op, "adv.u64div");
     match op.parts()[1] {
-        "u64div" => decorators.push((
-            span_ops.len(),
-            Decorator::Advice(AdviceInjector::DivResultU64),
-        )),
+        "u64div" => {
+            validate_operation!(op, "adv.u64div");
+            decorators.push((
+                span_ops.len(),
+                Decorator::Advice(AdviceInjector::DivResultU64),
+            ))
+        }
+        "set_smt_depth" => {
+            validate_operation!(op, "adv.set_smt_depth");
+            decorators.push((
+                span_ops.len(),
+                Decorator::Advice(AdviceInjector::SetSmtDepth),
+            ))
+        }
         _ => return Err(AssemblyError::invalid_op(op)),
     };
 

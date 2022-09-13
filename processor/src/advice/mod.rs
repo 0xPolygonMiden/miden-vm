@@ -60,13 +60,24 @@ impl AdviceProvider {
         self.tape.push(value);
     }
 
-    // ADVISE SETS
+    // ADVICE SETS
     // --------------------------------------------------------------------------------------------
 
     /// Returns true if the advice set with the specified root is present in this advice provider.
     #[cfg(test)]
     pub fn has_advice_set(&self, root: Word) -> bool {
         self.sets.contains_key(&root.into_bytes())
+    }
+
+    /// Sets the depth of the sparse Merkle tree with the specified root
+    pub fn set_smt_depth(&mut self, root: Word, depth: u32) {
+        let set = self.sets.get_mut(&root.into_bytes()).unwrap();
+        match set {
+            AdviceSet::SparseMerkleTree(ref mut tree) => {
+                tree.truncate(depth);
+            }
+            _ => {}
+        }
     }
 
     /// Returns a node at the specified index in a Merkle tree with the specified root.
