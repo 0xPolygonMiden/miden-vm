@@ -122,7 +122,10 @@ impl SparseMerkleTree {
         let mut curr_key = key;
         for n in (0..depth).rev() {
             let parent_key = curr_key >> 1;
-            let parent_node = self.store.get_branch_node(parent_key, n)?;
+            let parent_node = self
+                .store
+                .get_branch_node(parent_key, n)
+                .unwrap_or_else(|_| self.store.get_empty_node((n + 1) as usize));
             let sibling_node = if curr_key & 1 == 1 {
                 parent_node.left
             } else {
