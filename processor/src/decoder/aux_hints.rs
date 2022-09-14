@@ -149,7 +149,7 @@ impl AuxTraceHints {
         child2_hash: Option<Word>,
     ) {
         // insert the hint with the relevant update
-        let hint = BlockTableUpdate::BlockStarted(block_info.block_type.num_children());
+        let hint = BlockTableUpdate::BlockStarted(block_info.num_children());
         self.block_exec_hints.push((clk, hint));
 
         // create a row which would be inserted into the block stack table

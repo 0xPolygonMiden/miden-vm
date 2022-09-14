@@ -129,11 +129,33 @@ fn local_fn_call() {
         end
 
         begin
-            exec.foo
+            call.foo
         end";
 
     let test = build_test!(source, &[1, 2]);
     test.expect_stack(&[3]);
 
     test.prove_and_verify(vec![1, 2], false);
+}
+
+#[test]
+fn local_fn_call_with_mem_access() {
+    // foo should be executed in a different memory context; thus, when we read from memory after
+    // calling foo, the value saved into memory[0] before calling foo should still be there.
+    let source = "
+        proc.foo
+            pop.mem.0
+        end
+
+        begin
+            pop.mem.0
+            call.foo
+            push.mem.0
+            eq.7
+        end";
+
+    let test = build_test!(source, &[3, 7]);
+    test.expect_stack(&[1]);
+
+    test.prove_and_verify(vec![3, 7], false);
 }
