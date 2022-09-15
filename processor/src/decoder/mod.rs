@@ -179,13 +179,15 @@ impl Process {
         let ctx = self.system.ctx();
         let fmp = self.system.fmp();
         self.decoder.start_call(fn_hash, addr, ctx, fmp);
-        self.execute_op(Operation::Noop)?;
 
-        // for the next row, set the execution context to the current clock cycle (this ensures
-        // that the context is globally unique), and reset the free memory pointer
-        self.system.set_ctx(self.system.clk());
+        // set the execution context to the current clock cycle + 1. This ensures that the context
+        // is globally unique as is never set to 0. also, reset the free memory pointer to min
+        // value
+        self.system.set_ctx(self.system.clk() + 1);
         self.system.set_fmp(Felt::from(FMP_MIN));
-        Ok(())
+
+        // the rest of the VM state does not change
+        self.execute_op(Operation::Noop)
     }
 
     /// Ends decoding of a CALL block.
@@ -197,15 +199,13 @@ impl Process {
         // send the end of control block to the chiplets bus to handle the final hash request.
         self.chiplets.read_hash_result();
 
-        self.execute_op(Operation::Noop)?;
-
         // when returning from a function call, reset the context and the free memory pointer to
-        // what they were before the call; we do this after the self.execute_op() call above to
-        // make sure the values are updated for the next cycle of the VM (not the cycle in which
-        // the END operation is executed).
+        // what they were before the call
         self.system.set_ctx(ctx);
         self.system.set_fmp(fmp);
-        Ok(())
+
+        // the rest of the VM state does not change
+        self.execute_op(Operation::Noop)
     }
 
     // SPAN BLOCK
