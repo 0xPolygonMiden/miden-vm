@@ -19,6 +19,10 @@ doctest = false
 name = "compute_op_flags"
 harness = false
 
+[[bench]]
+name = "enforce_stack_constraint"
+harness = false
+
 [features]
 default = ["std"]
 std = ["vm-core/std", "winter-air/std"]
