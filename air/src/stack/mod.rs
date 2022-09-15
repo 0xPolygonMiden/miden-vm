@@ -2,14 +2,15 @@ use super::{
     Assertion, AuxTraceRandElements, EvaluationFrame, Felt, FieldElement,
     TransitionConstraintDegree, MIN_STACK_DEPTH, ONE, STACK_TRACE_OFFSET, ZERO,
 };
+use crate::utils::are_equal;
 use vm_core::{
     utils::collections::Vec, ProgramOutputs, StarkField, FMP_COL_IDX, STACK_AUX_TRACE_OFFSET,
 };
 
-mod field_ops;
+pub mod field_ops;
 pub mod op_flags;
-mod stack_manipulation;
-mod system_ops;
+pub mod stack_manipulation;
+pub mod system_ops;
 
 // CONSTANTS
 // ================================================================================================
@@ -22,6 +23,22 @@ const B1_COL_IDX: usize = B0_COL_IDX + 1;
 /// The number of boundary constraints required by the Stack, which is all stack positions for
 /// inputs and outputs as well as the initial values of the bookkeeping columns.
 pub const NUM_ASSERTIONS: usize = 2 * MIN_STACK_DEPTH + 2;
+
+/// The number of general constraints in the stack operations.
+pub const NUM_GENERAL_CONSTRAINTS: usize = 16;
+
+/// The degrees of constraints in the general stack operations. Each operation being executed
+/// either shifts the stack to the left, right or doesn't effect it at all. Therefore, majority
+/// of the general transtitions of a stack item would be common across the operations and composite
+/// flags were introduced to compute the individual stack item transition. A particular item lets say
+/// at depth ith in the next stack frame can be transitioned into from ith depth (no shift op) or
+/// (i+1)th depth(left shift) or (i-1)th depth(right shift) in the current frame. Therefore, the VM
+/// would require only 16 general constraints to encompass all the 16 stack positions.
+pub const CONSTRAINT_DEGREES: [usize; NUM_GENERAL_CONSTRAINTS] = [
+    // Each degree are being multiplied with the respective composite flags which are of degree 7.
+    // Therefore, all the degree would incorporate 7 in their degree calculation.
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+];
 
 // --- Auxiliary column constraints ---------------------------------------------------------------
 
@@ -39,6 +56,13 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
     degrees.append(&mut field_ops::get_transition_constraint_degrees());
     // stack manipulation operations constraints degrees.
     degrees.append(&mut stack_manipulation::get_transition_constraint_degrees());
+    // Add the degrees of general constraints.
+    degrees.append(
+        &mut CONSTRAINT_DEGREES
+            .iter()
+            .map(|&degree| TransitionConstraintDegree::new(degree))
+            .collect(),
+    );
 
     degrees
 }
@@ -48,6 +72,7 @@ pub fn get_transition_constraint_count() -> usize {
     system_ops::get_transition_constraint_count()
         + field_ops::get_transition_constraint_count()
         + stack_manipulation::get_transition_constraint_count()
+        + NUM_GENERAL_CONSTRAINTS
 }
 
 /// Enforces constraints for the stack module and all stack operations.
@@ -62,10 +87,13 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
     // Enforces stack operations unique constraints.
     index += enforce_unique_constraints(frame, result, &op_flag);
 
+    // Enforces stack operations general constraints.
+    index += enforce_general_constraints(frame, &mut result[index..], &op_flag);
+
     index
 }
 
-/// Enforces unique constraints for all the stack ops.
+/// Enforces unique constraints of all the stack ops.
 pub fn enforce_unique_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -91,6 +119,41 @@ pub fn enforce_unique_constraints<E: FieldElement>(
     constraint_offset
 }
 
+/// Enforces general constraints of all the stack ops.
+pub fn enforce_general_constraints<E: FieldElement>(
+    frame: &EvaluationFrame<E>,
+    result: &mut [E],
+    op_flag: &op_flags::OpFlags<E>,
+) -> usize {
+    // enforces constraint on the 1st element in the stack in the next trace.
+    let flag_sum = op_flag.no_shift_at(0) + op_flag.left_shift_at(1);
+    let expected_next_item = op_flag.no_shift_at(0) * frame.stack_item(0)
+        + op_flag.left_shift_at(1) * frame.stack_item(1);
+    result[0] = are_equal(frame.stack_item_next(0) * flag_sum, expected_next_item);
+
+    // enforces constraint on the ith element in the stack in the next trace.
+    #[allow(clippy::needless_range_loop)]
+    for i in 1..NUM_GENERAL_CONSTRAINTS - 1 {
+        let flag_sum =
+            op_flag.no_shift_at(i) + op_flag.left_shift_at(i + 1) + op_flag.right_shift_at(i - 1);
+        let expected_next_item = op_flag.no_shift_at(i) * frame.stack_item(i)
+            + op_flag.left_shift_at(i + 1) * frame.stack_item(i + 1)
+            + op_flag.right_shift_at(i - 1) * frame.stack_item(i - 1);
+
+        result[i] = are_equal(frame.stack_item_next(i) * flag_sum, expected_next_item);
+    }
+
+    // enforces constraint on the last element in the stack in the next trace.
+    let flag_sum = op_flag.no_shift_at(15) + op_flag.right_shift_at(14);
+    let expected_next_item = op_flag.no_shift_at(15) * frame.stack_item(15)
+        + op_flag.right_shift_at(14) * frame.stack_item(14);
+    result[NUM_GENERAL_CONSTRAINTS - 1] = are_equal(
+        frame.stack_item_next(NUM_GENERAL_CONSTRAINTS - 1) * flag_sum,
+        expected_next_item,
+    );
+
+    NUM_GENERAL_CONSTRAINTS
+}
 // BOUNDARY CONSTRAINTS
 // ================================================================================================
 
