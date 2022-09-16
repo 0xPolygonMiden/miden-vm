@@ -1,51 +1,55 @@
-use super::{
-    parse_u32_param, push_value, validate_operation, AssemblyError, Felt, Operation, Token, Vec,
-};
+use super::{parse_u32_param, push_value, AssemblyError, Felt, Operation, Token, Vec};
 
 // ENVIRONMENT INPUTS
 // ================================================================================================
 
-/// Appends machine operations to the current span block according to the requested environment
-/// assembly instruction.
-///
-/// - `push.env.locaddr.i` pushes the absolute address of the local variable at index `i` onto the
-/// stack.
-/// - `push.env.sdepth` pushes the current depth of the stack onto the top of the stack, which is
-/// handled directly by the `SDEPTH` operation.
+/// Appends `locaddr.i` operation to the span block to push the absolute address of the local
+/// variable at index `i` onto the stack.
 ///
 /// # Errors
 ///
-/// This function expects a valid assembly environment op that specifies the environment input to
-/// be handled. It will return an error if the assembly instruction is malformed or the environment
-/// input is unrecognized.
-pub fn parse_push_env(
+/// It will return an error if the assembly instruction is malformed or it has inappropriate
+/// parameter value according to the number of local variables of the procedurethe
+pub fn parse_locaddr(
     span_ops: &mut Vec<Operation>,
     op: &Token,
     num_proc_locals: u32,
 ) -> Result<(), AssemblyError> {
-    validate_operation!(op, "push.env.locaddr|sdepth");
+    debug_assert_eq!(op.parts()[0], "locaddr");
 
-    // update the span block
-    match op.parts()[2] {
-        "locaddr" => {
-            if num_proc_locals == 0 {
-                return Err(AssemblyError::invalid_op_with_reason(
-                    op,
-                    "no procedure locals available in current context",
-                ));
-            }
-            validate_operation!(@only_params op, "push.env.locaddr", 1);
-            let index = parse_u32_param(op, 3, 0, num_proc_locals - 1)?;
-
-            push_value(span_ops, -Felt::new(index as u64));
-            span_ops.push(Operation::FmpAdd);
-        }
-        "sdepth" => {
-            validate_operation!(@only_params op, "push.env.sdepth", 0);
-            span_ops.push(Operation::SDepth);
-        }
-        _ => return Err(AssemblyError::invalid_op(op)),
+    if num_proc_locals == 0 {
+        return Err(AssemblyError::invalid_op_with_reason(
+            op,
+            "no procedure locals available in current context",
+        ));
     }
+
+    let index = match op.num_parts() {
+        0 | 1 => return Err(AssemblyError::missing_param(op)),
+        2 => parse_u32_param(op, 1, 0, num_proc_locals - 1)?,
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    push_value(span_ops, -Felt::from(index));
+    span_ops.push(Operation::FmpAdd);
+
+    Ok(())
+}
+
+/// Appends `sdepth` operation to the current span block to push the current depth of the stack
+/// onto the top of the stack. `sdepth` is handled directly by the `SDEPTH` operation.
+///
+/// # Errors
+///
+/// It will return an error if the assembly instruction is malformed.
+pub fn parse_sdepth(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "sdepth");
+
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+
+    span_ops.push(Operation::SDepth);
 
     Ok(())
 }
@@ -57,7 +61,7 @@ pub fn parse_push_env(
 mod tests {
     use super::{
         super::tests::get_parsing_error,
-        super::{super::FieldElement, parse_push, AssemblyError, Felt},
+        super::{super::FieldElement, parse_locaddr, parse_sdepth, AssemblyError, Felt},
         Operation, Token,
     };
 
@@ -65,84 +69,73 @@ mod tests {
     // ============================================================================================
 
     #[test]
-    fn push_env_sdepth() {
-        let num_proc_locals = 0;
-
+    fn sdepth() {
         // --- pushes the current depth of the stack onto the top of the stack --------------------
         let mut span_ops = vec![Operation::Push(Felt::ONE); 8];
-        let op = Token::new("push.env.sdepth", 0);
+        let op = Token::new("sdepth", 0);
         let mut expected = span_ops.clone();
         expected.push(Operation::SDepth);
 
-        parse_push(&mut span_ops, &op, num_proc_locals)
-            .expect("Failed to parse push.env.sdepth with empty stack");
+        parse_sdepth(&mut span_ops, &op).expect("Failed to parse sdepth with empty stack");
         assert_eq!(span_ops, expected);
     }
 
     #[test]
-    fn push_env_locaddr() {
-        let asm_op = "push.env.locaddr";
+    fn locaddr() {
+        let asm_op = "locaddr";
         let num_proc_locals = 2;
         let mut span_ops: Vec<Operation> = Vec::new();
 
         let op_str = format!("{}.{}", asm_op, 1);
         let op = Token::new(&op_str, 0);
-        assert!(parse_push(&mut span_ops, &op, num_proc_locals).is_ok());
+        assert!(parse_locaddr(&mut span_ops, &op, num_proc_locals).is_ok());
     }
 
     #[test]
-    fn push_env_invalid() {
-        let num_proc_locals = 0;
-
-        // --- fails when env op variant is invalid or missing or has too many immediate values ---
+    #[should_panic]
+    fn sdepth_invalid_panic() {
         let mut span_ops: Vec<Operation> = Vec::new();
         let pos = 0;
 
-        // --- missing env var --------------------------------------------------------------------
-        let op_no_val = Token::new("push.env", pos);
-        let expected = AssemblyError::invalid_op(&op_no_val);
-        assert_eq!(
-            parse_push(&mut span_ops, &op_no_val, num_proc_locals).unwrap_err(),
-            expected
-        );
-
         // --- invalid env var --------------------------------------------------------------------
-        let op_val_invalid = Token::new("push.env.invalid", pos);
-        let expected = AssemblyError::unexpected_token(&op_val_invalid, "push.env.locaddr|sdepth");
+        let op_val_invalid = Token::new("invalid", pos);
+        let expected = AssemblyError::unexpected_token(&op_val_invalid, "sdepth");
         assert_eq!(
-            parse_push(&mut span_ops, &op_val_invalid, num_proc_locals).unwrap_err(),
-            expected
-        );
-
-        // --- extra value ------------------------------------------------------------------------
-        let op_extra_val = Token::new("push.env.sdepth.0", pos);
-        let expected = AssemblyError::extra_param(&op_extra_val);
-        assert_eq!(
-            parse_push(&mut span_ops, &op_extra_val, num_proc_locals).unwrap_err(),
+            parse_sdepth(&mut span_ops, &op_val_invalid).unwrap_err(),
             expected
         );
     }
 
     #[test]
-    fn push_env_sdepth_invalid() {
-        let num_proc_locals = 0;
-
-        // fails when env op variant is invalid or missing or has too many immediate values
+    fn sdepth_invalid() {
+        // fails when env op variant has too many immediate values
         let mut span_ops: Vec<Operation> = Vec::new();
         let pos = 0;
 
         // --- extra param ------------------------------------------------------------------------
-        let op_extra_val = Token::new("push.env.sdepth.0", pos);
+        let op_extra_val = Token::new("sdepth.0", pos);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
-            parse_push(&mut span_ops, &op_extra_val, num_proc_locals).unwrap_err(),
+            parse_sdepth(&mut span_ops, &op_extra_val).unwrap_err(),
             expected
         );
     }
 
     #[test]
-    fn push_env_locaddr_invalid() {
-        let asm_op = "push.env.locaddr";
+    #[should_panic]
+    fn locaddr_invalid_panic() {
+        let num_proc_locals = 2;
+        let mut span_ops: Vec<Operation> = Vec::new();
+        let pos = 0;
+
+        // --- invalid env var --------------------------------------------------------------------
+        let op_val_invalid = Token::new("invalid", pos);
+        parse_locaddr(&mut span_ops, &op_val_invalid, num_proc_locals).unwrap_err();
+    }
+
+    #[test]
+    fn locaddr_invalid() {
+        let asm_op = "locaddr";
         let num_proc_locals = 2;
         let mut span_ops: Vec<Operation> = Vec::new();
         let pos = 0;
@@ -151,7 +144,7 @@ mod tests {
         let op_missing_param = Token::new(asm_op, pos);
         let expected = AssemblyError::missing_param(&op_missing_param);
         assert_eq!(
-            parse_push(&mut span_ops, &op_missing_param, num_proc_locals).unwrap_err(),
+            parse_locaddr(&mut span_ops, &op_missing_param, num_proc_locals).unwrap_err(),
             expected
         );
 
@@ -160,7 +153,7 @@ mod tests {
         let op_val_invalid = Token::new(&op_str, pos);
         let expected = AssemblyError::invalid_param_with_reason(
             &op_val_invalid,
-            3,
+            1,
             format!(
                 "parameter value must be greater than or equal to 0 and less than or equal to {}",
                 num_proc_locals - 1
@@ -168,7 +161,7 @@ mod tests {
             .as_str(),
         );
         assert_eq!(
-            get_parsing_error("push", &op_val_invalid, num_proc_locals),
+            get_parsing_error("locaddr", &op_val_invalid, num_proc_locals),
             expected
         );
 
@@ -179,6 +172,9 @@ mod tests {
             &op_context_invalid,
             "no procedure locals available in current context",
         );
-        assert_eq!(get_parsing_error("push", &op_context_invalid, 0), expected);
+        assert_eq!(
+            get_parsing_error("locaddr", &op_context_invalid, 0),
+            expected
+        );
     }
 }

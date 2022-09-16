@@ -5,22 +5,26 @@
 # Input: Stack with 16 or more elements.
 # Output: Stack with only the original top 16 elements.
 export.truncate_stack.4
-    popw.local.0
-    popw.local.1
-    popw.local.2
-    popw.local.3
-    push.env.sdepth
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
+    loc_storew.2
+    dropw
+    loc_storew.3
+    dropw
+    sdepth
     neq.16
     while.true
         dropw
-        push.env.sdepth
+        sdepth
         neq.16
     end
-    loadw.local.3
+    loc_loadw.3
     swapw.3
-    loadw.local.2
+    loc_loadw.2
     swapw.2
-    loadw.local.1
+    loc_loadw.1
     swapw.1
-    loadw.local.0
+    loc_loadw.0
 end

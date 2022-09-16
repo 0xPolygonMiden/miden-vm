@@ -50,7 +50,7 @@ pub fn parse_loadw_adv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), 
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{parse_loadw, parse_push},
+        super::{parse_loadw_advice, parse_push},
         AssemblyError, Operation, Token, ADVICE_READ_LIMIT,
     };
 
@@ -59,21 +59,17 @@ mod tests {
 
     #[test]
     fn push_adv() {
-        let num_proc_locals = 0;
-
         // remove n items from the advice tape and push them onto the stack
         let mut span_ops: Vec<Operation> = Vec::new();
         let op = Token::new("push.adv.4", 0);
         let expected = vec![Operation::Read; 4];
 
-        parse_push(&mut span_ops, &op, num_proc_locals).expect("Failed to parse push.adv.4");
+        parse_push(&mut span_ops, &op).expect("Failed to parse push.adv.4");
         assert_eq!(span_ops, expected);
     }
 
     #[test]
     fn push_adv_invalid() {
-        let num_proc_locals = 0;
-
         // fails when the instruction is malformed or unrecognized
         let mut span_ops: Vec<Operation> = Vec::new();
         let pos = 0;
@@ -81,16 +77,13 @@ mod tests {
         // missing value
         let op_no_val = Token::new("push.adv", pos);
         let expected = AssemblyError::missing_param(&op_no_val);
-        assert_eq!(
-            parse_push(&mut span_ops, &op_no_val, num_proc_locals).unwrap_err(),
-            expected
-        );
+        assert_eq!(parse_push(&mut span_ops, &op_no_val).unwrap_err(), expected);
 
         // extra value to push
         let op_extra_val = Token::new("push.adv.2.2", pos);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
-            parse_push(&mut span_ops, &op_extra_val, num_proc_locals).unwrap_err(),
+            parse_push(&mut span_ops, &op_extra_val).unwrap_err(),
             expected
         );
 
@@ -98,7 +91,7 @@ mod tests {
         let op_invalid_char = Token::new("push.adv.a", pos);
         let expected = AssemblyError::invalid_param(&op_invalid_char, 2);
         assert_eq!(
-            parse_push(&mut span_ops, &op_invalid_char, num_proc_locals).unwrap_err(),
+            parse_push(&mut span_ops, &op_invalid_char).unwrap_err(),
             expected
         );
 
@@ -106,7 +99,7 @@ mod tests {
         let op_invalid_hex = Token::new("push.adv.0x10", pos);
         let expected = AssemblyError::invalid_param(&op_invalid_hex, 2);
         assert_eq!(
-            parse_push(&mut span_ops, &op_invalid_hex, num_proc_locals).unwrap_err(),
+            parse_push(&mut span_ops, &op_invalid_hex).unwrap_err(),
             expected
         );
 
@@ -119,7 +112,7 @@ mod tests {
         let op_lower_bound = Token::new("push.adv.0", pos);
         let expected = AssemblyError::invalid_param_with_reason(&op_lower_bound, 2, &reason);
         assert_eq!(
-            parse_push(&mut span_ops, &op_lower_bound, num_proc_locals).unwrap_err(),
+            parse_push(&mut span_ops, &op_lower_bound).unwrap_err(),
             expected
         );
 
@@ -128,7 +121,7 @@ mod tests {
         let op_upper_bound = Token::new(&inst_str, pos);
         let expected = AssemblyError::invalid_param_with_reason(&op_upper_bound, 2, &reason);
         assert_eq!(
-            parse_push(&mut span_ops, &op_upper_bound, num_proc_locals).unwrap_err(),
+            parse_push(&mut span_ops, &op_upper_bound).unwrap_err(),
             expected
         );
     }
@@ -137,21 +130,17 @@ mod tests {
     // ============================================================================================
     #[test]
     fn loadw_adv() {
-        let num_proc_locals = 0;
-
         // replace the top 4 elements of the stack with 4 elements from the advice tape
         let mut span_ops: Vec<Operation> = Vec::new();
         let op = Token::new("loadw.adv", 0);
         let expected = vec![Operation::ReadW];
 
-        parse_loadw(&mut span_ops, &op, num_proc_locals).expect("Failed to parse loadw.adv");
+        parse_loadw_advice(&mut span_ops, &op).expect("Failed to parse loadw.adv");
         assert_eq!(span_ops, expected);
     }
 
     #[test]
     fn loadw_adv_invalid() {
-        let num_proc_locals = 0;
-
         // fails when the instruction is malformed or unrecognized
         let mut span_ops: Vec<Operation> = Vec::new();
         let pos = 0;
@@ -160,7 +149,7 @@ mod tests {
         let op_extra_val = Token::new("loadw.adv.0", pos);
         let expected = AssemblyError::extra_param(&op_extra_val);
         assert_eq!(
-            parse_loadw(&mut span_ops, &op_extra_val, num_proc_locals).unwrap_err(),
+            parse_loadw_advice(&mut span_ops, &op_extra_val).unwrap_err(),
             expected
         );
     }

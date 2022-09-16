@@ -17,19 +17,23 @@
 proc.initialize
     push.0xA54FF53A.0x3C6EF372.0xBB67AE85.0x6A09E667
     movup.4
-    popw.mem
+    mem_storew
+    dropw
 
     push.0x5BE0CD19.0x1F83D9AB.0x9B05688C.0x510E527F
     movup.4
-    popw.mem
+    mem_storew
+    dropw
 
     push.0xA54FF53A.0x3C6EF372.0xBB67AE85.0x6A09E667
     movup.4
-    popw.mem
+    mem_storew
+    dropw
 
     push.11.64.0.0
     movup.4
-    popw.mem
+    mem_storew
+    dropw
 end
 
 # Permutes ordered message words, kept on stack top ( = sixteen 32 -bit BLAKE3 words )
@@ -149,12 +153,14 @@ proc.columnar_mixing.1
     movup.5
     movup.4
 
-    storew.local.0
+    loc_storew.0
 
     movup.9
-    loadw.mem
+    mem_loadw
     movup.8
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.8
     dup.5
@@ -183,7 +189,9 @@ proc.columnar_mixing.1
     movdn.3
 
     movup.9
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.4
     u32checked_xor
@@ -208,7 +216,9 @@ proc.columnar_mixing.1
     movdn.3
 
     movup.12
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.4
     u32wrapping_add
@@ -253,7 +263,8 @@ proc.columnar_mixing.1
     movdn.3
 
     movupw.3
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.0
     swapw
 
     movup.4
@@ -381,12 +392,14 @@ proc.diagonal_mixing.1
     movup.5
     movup.4
 
-    storew.local.0
+    loc_storew.0
 
     movup.9
-    loadw.mem
+    mem_loadw
     movup.8
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.8
     dup.6
@@ -415,7 +428,9 @@ proc.diagonal_mixing.1
     movdn.3
 
     movup.9
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.3
     dup.4
@@ -440,7 +455,9 @@ proc.diagonal_mixing.1
     movdn.2
 
     movup.12
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     dup.7
@@ -485,7 +502,8 @@ proc.diagonal_mixing.1
     u32unchecked_rotr.12
 
     movupw.3
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.0
     swapw
 
     movup.4
@@ -608,33 +626,40 @@ end
 # i.e. mixed state matrix lives in memory addresses {state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr}, 
 # which were provided, on stack top, while invoking this routine.
 proc.round.5
-    storew.local.0
+    loc_storew.0
 
     exec.columnar_mixing
 
-    popw.local.1
-    popw.local.2
-    popw.local.3
-    popw.local.4
+    loc_storew.1
+    dropw
+    loc_storew.2
+    dropw
+    loc_storew.3
+    dropw
+    loc_storew.4
+    dropw
 
-    push.env.locaddr.4
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
+    locaddr.4
+    locaddr.3
+    locaddr.2
+    locaddr.1
 
     exec.diagonal_mixing
 
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.0
     swapw
     movup.4
-    popw.mem
+    mem_storew
+    dropw
 
     repeat.3
         push.0
         movdn.3
         swapw
         movup.4
-        popw.mem
+        mem_storew
+        dropw
     end
 
     repeat.3
@@ -664,7 +689,8 @@ end
 # which were provided, on stack top, while invoking this routine. So updated state matrix can be read by caller routine, by reading
 # the content of memory addresses where state was provided as routine input.
 proc.compress.1
-    popw.local.0
+    loc_storew.0
+    dropw
 
     # apply first 6 rounds of mixing
     repeat.6
@@ -673,13 +699,15 @@ proc.compress.1
             dupw.3
         end
 
-        pushw.local.0
+        push.0.0.0.0
+        loc_loadw.0
         exec.round
         exec.permute_msg_words
     end
 
     # round 7 ( last round, so no message word permutation required )
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.0
     exec.round
 end
 
@@ -697,10 +725,10 @@ end
 #
 # dig`i` -> 32 -bit digest word | i ∈ [0, 8)
 export.hash.4
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
+    locaddr.3
+    locaddr.2
+    locaddr.1
+    locaddr.0
 
     exec.initialize
 
@@ -708,17 +736,21 @@ export.hash.4
     # block ( = 64 -bytes ) because what we're doing here is 2-to-1 hashing i.e. 64 -bytes 
     # input being converted to 32 -bytes output
 
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
+    locaddr.3
+    locaddr.2
+    locaddr.1
+    locaddr.0
 
     exec.compress
 
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.3
+    push.0.0.0.0
+    loc_loadw.2
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
 
     exec.finalize
 end

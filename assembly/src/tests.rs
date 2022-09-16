@@ -139,9 +139,10 @@ fn program_with_proc_locals() {
     let assembler = super::Assembler::default();
     let source = "\
         proc.foo.1 \
-            pop.local.0 \
+            loc_store.0 \
+            drop \
             add \
-            push.local.0 \
+            loc_load.0 \
             mul \
         end \
         begin \
@@ -154,9 +155,9 @@ fn program_with_proc_locals() {
             span \
                 push(4) push(3) push(2) \
                 push(1) fmpupdate \
-                pad pad pad pad fmpadd mstorew drop drop drop drop \
+                pad fmpadd mstore drop \
                 add \
-                pad pad pad pad pad fmpadd mloadw drop drop drop \
+                pad fmpadd mload \
                 mul \
                 push(18446744069414584320) fmpupdate \
             end \
