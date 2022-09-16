@@ -103,9 +103,9 @@ impl Memory {
 
     /// Returns the word at the specified context/address which should be used as the "old value" for a
     /// write request. It will be the previously stored value, if one exists, or initialized memory.
-    pub fn get_old_value(&self, ctx: u32, addr: Felt) -> Word {
+    pub fn get_old_value(&self, ctx: u32, addr: u64) -> Word {
         // get the stored word or return [0, 0, 0, 0], since the memory is initialized with zeros
-        self.get_value(ctx, addr.as_int()).unwrap_or(INIT_MEM_VALUE)
+        self.get_value(ctx, addr).unwrap_or(INIT_MEM_VALUE)
     }
 
     /// Returns the entire memory state for the specified execution context at the specified cycle.

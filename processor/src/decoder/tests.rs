@@ -964,7 +964,7 @@ fn call_block() {
     assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 10));
 
     // CALL block ends in the 12th row; the second to last element of the hasher state
-    // is set to ONE because we are existing the CALL block
+    // is set to ONE because we are exiting the CALL block
     assert_eq!(fn_block_hash, get_hasher_state1(&dec_trace, 11));
     assert_eq!([ZERO, ZERO, ONE, ZERO], get_hasher_state2(&dec_trace, 11));
 

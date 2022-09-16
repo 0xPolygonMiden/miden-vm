@@ -144,13 +144,15 @@ fn local_fn_call_with_mem_access() {
     // calling foo, the value saved into memory[0] before calling foo should still be there.
     let source = "
         proc.foo
-            pop.mem.0
+            mem_store.0
+            drop
         end
 
         begin
-            pop.mem.0
+            mem_store.0
+            drop
             call.foo
-            push.mem.0
+            mem_load.0
             eq.7
         end";
 

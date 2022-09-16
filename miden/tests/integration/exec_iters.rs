@@ -169,7 +169,7 @@ fn test_exec_iter() {
             ]
             .to_elements(),
             fmp: next_fmp,
-            memory: mem.clone(),
+            memory: mem,
         },
         VmState {
             clk: 15,

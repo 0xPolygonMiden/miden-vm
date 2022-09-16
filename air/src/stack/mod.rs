@@ -103,17 +103,14 @@ pub fn enforce_unique_constraints<E: FieldElement>(
 
     // system operations transition constraints.
     system_ops::enforce_constraints(frame, result, op_flag);
-
     constraint_offset += system_ops::get_transition_constraint_count();
 
     // field operations transition constraints.
     field_ops::enforce_constraints(frame, &mut result[constraint_offset..], op_flag);
-
     constraint_offset += field_ops::get_transition_constraint_count();
 
     // stack manipulation operations transition constraints.
     stack_manipulation::enforce_constraints(frame, &mut result[constraint_offset..], op_flag);
-
     constraint_offset += stack_manipulation::get_transition_constraint_count();
 
     constraint_offset

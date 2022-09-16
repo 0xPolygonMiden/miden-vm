@@ -4,6 +4,9 @@ use super::{
 };
 use vm_core::Felt;
 
+// INSTRUCTION PARSERS
+// ================================================================================================
+
 /// Appends operations to the span block to execute a memory read operation. This includes reading
 /// a single element or an entire word from either local or global memory. Specifically, this
 /// handles mem_load, mem_loadw, loc_load, and loc_loadw instructions.
@@ -141,6 +144,8 @@ mod tests {
         super::{parse_mem_read, parse_mem_write, tests::get_parsing_error, Felt},
         AssemblyError, Operation, Token,
     };
+
+    type ParserFn = fn(&mut Vec<Operation>, &Token, u32, bool, bool) -> Result<(), AssemblyError>;
 
     // TESTS FOR READING FROM MEMORY
     // ============================================================================================
@@ -323,40 +328,30 @@ mod tests {
 
     /// Helper function for optimizing local operations testing. It can be used to
     /// test loc_load, loc_store, loc_loadw and loc_storew operations.
-    fn test_parse_local(
-        base_op: &str,
-        is_single: bool,
-        operation: Operation,
-        parser: fn(&mut Vec<Operation>, &Token, u32, bool, bool) -> Result<(), AssemblyError>,
-    ) {
+    fn test_parse_local(base_op: &str, is_single: bool, operation: Operation, parser: ParserFn) {
         let num_proc_locals = 1;
         let pos = 0;
 
         let mut span_ops: Vec<Operation> = Vec::new();
         let op_str = format!("{}.0", base_op);
         let op = Token::new(&op_str, pos);
-        let expexted = vec![Operation::Pad, Operation::FmpAdd, operation];
+        let expected = vec![Operation::Pad, Operation::FmpAdd, operation];
         let msg = format!("Failed to parse {}.0 (address provided by op)", base_op);
 
         parser(&mut span_ops, &op, num_proc_locals, true, is_single).expect(&msg);
 
-        assert_eq!(&span_ops, &expexted);
+        assert_eq!(&span_ops, &expected);
     }
 
     /// Helper function for optimizing memory operations testing. It can be used to
     /// test mem_load, mem_store, mem_loadw and mem_storew operations.
-    fn test_parse_mem(
-        base_op: &str,
-        is_single: bool,
-        operation: Operation,
-        parser: fn(&mut Vec<Operation>, &Token, u32, bool, bool) -> Result<(), AssemblyError>,
-    ) {
+    fn test_parse_mem(base_op: &str, is_single: bool, operation: Operation, parser: ParserFn) {
         let num_proc_locals = 0;
         let pos = 0;
 
         // test push with memory address on top of stack
         let mut span_ops: Vec<Operation> = Vec::new();
-        let op = Token::new(&base_op, pos);
+        let op = Token::new(base_op, pos);
         let expected = vec![operation];
         let msg = format!("Failed to parse {}", base_op);
 
@@ -368,22 +363,22 @@ mod tests {
         let mut span_ops: Vec<Operation> = Vec::new();
         let op_str = format!("{}.0", base_op);
         let op = Token::new(&op_str, pos);
-        let expexted = vec![Operation::Pad, operation];
+        let expected = vec![Operation::Pad, operation];
         let msg = format!("Failed to parse {}.0", base_op);
 
         parser(&mut span_ops, &op, num_proc_locals, false, is_single).expect(&msg);
 
-        assert_eq!(&span_ops, &expexted);
+        assert_eq!(&span_ops, &expected);
 
         // test push with memory address provided directly (address 2)
         let mut span_ops: Vec<Operation> = Vec::new();
         let op_str = format!("{}.2", base_op);
         let op = Token::new(&op_str, pos);
-        let expexted = vec![Operation::Push(Felt::new(2)), operation];
+        let expected = vec![Operation::Push(Felt::new(2)), operation];
         let msg = format!("Failed to parse {}.2", base_op);
 
         parser(&mut span_ops, &op, num_proc_locals, false, is_single).expect(&msg);
 
-        assert_eq!(&span_ops, &expexted);
+        assert_eq!(&span_ops, &expected);
     }
 }

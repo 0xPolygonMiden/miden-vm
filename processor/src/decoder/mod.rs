@@ -193,7 +193,7 @@ impl Process {
     /// Ends decoding of a CALL block.
     pub(super) fn end_call_block(&mut self, block: &Call) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace; the returned values contain
-        // execution context and free memory pointer to executing the CALL block
+        // execution context and free memory pointer prior to executing the CALL block
         let (ctx, fmp) = self.decoder.end_control_block(block.hash().into());
 
         // send the end of control block to the chiplets bus to handle the final hash request.

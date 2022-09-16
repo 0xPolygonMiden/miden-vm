@@ -4,6 +4,10 @@ use super::{BTreeMap, Felt, StarkField, Vec, Word, INIT_MEM_VALUE};
 // ================================================================================================
 
 /// Memory access trace for a single segment sorted first by address and then by clock cycle.
+///
+/// A memory segment is an isolated address space accessible from a specific execution context.
+/// Within each segment, the memory is word-addressable. That is, four field elements are located
+/// at each memory address, and we can read and write elements to/from memory in batches of four.
 #[derive(Default)]
 pub struct MemorySegmentTrace(BTreeMap<u64, Vec<(Felt, Word)>>);
 
@@ -31,9 +35,9 @@ impl MemorySegmentTrace {
             return result;
         }
 
-        // Because we want to view the memory state at the beginning of the specified cycle, we
-        // view the memory state at the previous cycle, as the current memory state is at the
-        // end of the current cycle.
+        // since we record memory state at the end of a given cycle, to get memory state at the end
+        // of a cycle, we need to look at the previous cycle. that is, memory state at the end of
+        // the previous cycle is the same as memory state the the beginning of the current cycle.
         let search_clk = (clk - 1) as u64;
 
         for (&addr, addr_trace) in self.0.iter() {

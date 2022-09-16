@@ -214,29 +214,40 @@ fn mem_multi_context() {
     assert_eq!(2, mem.size());
     assert_eq!(3, mem.trace_len());
 
-    // read a value from ctx = 0, addr = 0; clk = 8
-    assert_eq!(value1, mem.read(0, ZERO, 8));
-    assert_eq!(2, mem.size());
+    // write a value into ctx = 3, addr = 0; clk = 7
+    let value3 = [ZERO, ZERO, ONE, ZERO];
+    mem.write(3, ZERO, 7, value3);
+    assert_eq!(value3, mem.get_value(3, 0).unwrap());
+    assert_eq!(3, mem.size());
     assert_eq!(4, mem.trace_len());
+
+    // read a value from ctx = 0, addr = 0; clk = 9
+    assert_eq!(value1, mem.read(0, ZERO, 9));
+    assert_eq!(3, mem.size());
+    assert_eq!(5, mem.trace_len());
 
     // check generated trace and memory data provided to the ChipletsBus; rows should be sorted by
     // address and then clock cycle
-    let (trace, chiplets_bus) = build_trace(mem, 4);
+    let (trace, chiplets_bus) = build_trace(mem, 5);
 
     // ctx = 0, addr = 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
     let memory_access = MemoryLookup::from_ints(0, ZERO, 1, [ZERO; 4], value1);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 0, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(0, ZERO, 8, value1, value1);
+    let memory_access = MemoryLookup::from_ints(0, ZERO, 9, value1, value1);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 1, &memory_access, prev_row);
+
+    // ctx = 3, addr = 0
+    let memory_access = MemoryLookup::from_ints(3, ZERO, 7, [ZERO; 4], value3);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 2, &memory_access, prev_row);
 
     // ctx = 3, addr = 1
     let memory_access = MemoryLookup::from_ints(3, ONE, 4, [ZERO; 4], value2);
-    prev_row = verify_memory_access(&trace, &chiplets_bus, 2, &memory_access, prev_row);
+    prev_row = verify_memory_access(&trace, &chiplets_bus, 3, &memory_access, prev_row);
 
     let memory_access = MemoryLookup::from_ints(3, ONE, 6, value2, value2);
-    verify_memory_access(&trace, &chiplets_bus, 3, &memory_access, prev_row);
+    verify_memory_access(&trace, &chiplets_bus, 4, &memory_access, prev_row);
 }
 
 #[test]

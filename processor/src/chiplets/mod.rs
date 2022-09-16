@@ -264,7 +264,7 @@ impl Chiplets {
     ///
     /// This also modifies the memory access trace.
     pub fn write_mem(&mut self, ctx: u32, addr: Felt, word: Word) -> Word {
-        let old_word = self.memory.get_old_value(ctx, addr);
+        let old_word = self.memory.get_old_value(ctx, addr.as_int());
         self.memory.write(ctx, addr, self.clk, word);
 
         // send the memory write request to the bus
@@ -279,7 +279,7 @@ impl Chiplets {
     ///
     /// This also modifies the memory access trace.
     pub fn write_mem_single(&mut self, ctx: u32, addr: Felt, value: Felt) -> Word {
-        let old_word = self.memory.get_old_value(ctx, addr);
+        let old_word = self.memory.get_old_value(ctx, addr.as_int());
         let new_word = [value, old_word[1], old_word[2], old_word[3]];
 
         self.memory.write(ctx, addr, self.clk, new_word);
