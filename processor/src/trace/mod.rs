@@ -7,8 +7,9 @@ use super::{
 };
 use vm_core::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
-    ProgramOutputs, AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET,
-    MIN_STACK_DEPTH, MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO,
+    stack::STACK_TOP_SIZE,
+    ProgramOutputs, AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
+    STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO,
 };
 use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
 
@@ -105,7 +106,7 @@ impl ExecutionTrace {
 
     /// Returns the initial state of the top 16 stack registers.
     pub fn init_stack_state(&self) -> StackTopState {
-        let mut result = [ZERO; MIN_STACK_DEPTH];
+        let mut result = [ZERO; STACK_TOP_SIZE];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[0];
         }
@@ -115,7 +116,7 @@ impl ExecutionTrace {
     /// Returns the final state of the top 16 stack registers.
     pub fn last_stack_state(&self) -> StackTopState {
         let last_step = self.last_step();
-        let mut result = [ZERO; MIN_STACK_DEPTH];
+        let mut result = [ZERO; STACK_TOP_SIZE];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[last_step];
         }

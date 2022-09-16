@@ -15,9 +15,8 @@ use vm_core::{
     },
     utils::collections::{BTreeMap, Vec},
     AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, Operation,
-    StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH,
-    MIN_TRACE_LEN, NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
-    SYS_TRACE_WIDTH, ZERO,
+    StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, ONE,
+    RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
 
 mod decorators;

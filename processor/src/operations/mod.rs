@@ -1,4 +1,5 @@
 use super::{ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
+use vm_core::stack::STACK_TOP_SIZE;
 
 mod crypto_ops;
 mod field_ops;

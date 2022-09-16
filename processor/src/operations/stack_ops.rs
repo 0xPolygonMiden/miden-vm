@@ -1,4 +1,4 @@
-use super::{super::MIN_STACK_DEPTH, ExecutionError, Felt, FieldElement, Process, StarkField};
+use super::{ExecutionError, Felt, FieldElement, Process, StarkField, STACK_TOP_SIZE};
 
 impl Process {
     // STACK MANIPULATION
@@ -183,7 +183,7 @@ impl Process {
         }
 
         // all other items on the stack remain in place
-        if (n + 1) < MIN_STACK_DEPTH {
+        if (n + 1) < STACK_TOP_SIZE {
             self.stack.copy_state(n + 1);
         }
         Ok(())
@@ -204,7 +204,7 @@ impl Process {
         }
 
         // all other items on the stack remain in place
-        if (n + 1) < MIN_STACK_DEPTH {
+        if (n + 1) < STACK_TOP_SIZE {
             self.stack.copy_state(n + 1);
         }
         Ok(())
@@ -293,7 +293,7 @@ mod tests {
 
     use super::{
         super::{FieldElement, Operation, Process},
-        Felt, MIN_STACK_DEPTH,
+        Felt, STACK_TOP_SIZE,
     };
 
     #[test]
@@ -309,7 +309,7 @@ mod tests {
         process.execute_op(Operation::Pad).unwrap();
         let expected = build_expected(&[0, 1]);
 
-        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
+        assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
         assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
@@ -317,7 +317,7 @@ mod tests {
         process.execute_op(Operation::Pad).unwrap();
         let expected = build_expected(&[0, 0, 1]);
 
-        assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
+        assert_eq!(STACK_TOP_SIZE + 3, process.stack.depth());
         assert_eq!(3, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }
@@ -332,13 +332,13 @@ mod tests {
         process.execute_op(Operation::Drop).unwrap();
         let expected = build_expected(&[1]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
+        assert_eq!(STACK_TOP_SIZE + 1, process.stack.depth());
 
         // drop the next value
         process.execute_op(Operation::Drop).unwrap();
         let expected = build_expected(&[]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
+        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
 
         // calling drop with a minimum stack depth should be ok
         assert!(process.execute_op(Operation::Drop).is_ok());
@@ -388,7 +388,7 @@ mod tests {
         process.execute_op(Operation::Drop).unwrap();
         process.execute_op(Operation::Drop).unwrap();
 
-        assert_eq!(MIN_STACK_DEPTH + 15, process.stack.depth());
+        assert_eq!(STACK_TOP_SIZE + 15, process.stack.depth());
 
         assert_eq!(&expected[2..], &process.stack.trace_state()[..14]);
         assert_eq!(Felt::ONE, process.stack.trace_state()[14]);

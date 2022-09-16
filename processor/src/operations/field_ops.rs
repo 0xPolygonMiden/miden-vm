@@ -170,11 +170,10 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{init_stack_with, Felt, FieldElement, Operation},
+        super::{init_stack_with, Felt, FieldElement, Operation, STACK_TOP_SIZE},
         Process,
     };
     use rand_utils::rand_value;
-    use vm_core::{ProgramInputs, MIN_STACK_DEPTH};
 
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -189,7 +188,7 @@ mod tests {
         process.execute_op(Operation::Add).unwrap();
         let expected = build_expected(&[a + b, c]);
 
-        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
+        assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
         assert_eq!(4, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
@@ -209,7 +208,7 @@ mod tests {
         let expected = build_expected(&[-a, b, c]);
 
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
+        assert_eq!(STACK_TOP_SIZE + 3, process.stack.depth());
         assert_eq!(4, process.stack.current_clk());
     }
 
@@ -223,7 +222,7 @@ mod tests {
         process.execute_op(Operation::Mul).unwrap();
         let expected = build_expected(&[a * b, c]);
 
-        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
+        assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
         assert_eq!(4, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
@@ -243,7 +242,7 @@ mod tests {
             process.execute_op(Operation::Inv).unwrap();
             let expected = build_expected(&[a.inv(), b, c]);
 
-            assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
+            assert_eq!(STACK_TOP_SIZE + 3, process.stack.depth());
             assert_eq!(4, process.stack.current_clk());
             assert_eq!(expected, process.stack.trace_state());
         }
@@ -263,7 +262,7 @@ mod tests {
         process.execute_op(Operation::Incr).unwrap();
         let expected = build_expected(&[a + Felt::ONE, b, c]);
 
-        assert_eq!(MIN_STACK_DEPTH + 3, process.stack.depth());
+        assert_eq!(STACK_TOP_SIZE + 3, process.stack.depth());
         assert_eq!(4, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }
