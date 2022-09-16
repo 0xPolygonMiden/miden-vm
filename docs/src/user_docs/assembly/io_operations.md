@@ -33,8 +33,8 @@ In both case the values must still encode valid field elements.
 
 | Instruction     | Stack_input | Stack_output | Notes                                      |
 | --------------- | ----------- | ------------ | ------------------------------------------ |
-| push.adv.*n* <br> - *(n cycles)*   | [ ... ]         | [a, ... ]    | $a \leftarrow tape.next()$ <br> Removes the next $n$ values from advice tape and pushes them onto the stack. Valid for $n \in \{1, ..., 16\}$. <br> Fails if the advice tape has fewer than $n$ values. |
-| loadw.adv <br> - *(1 cycle)*     | [0, 0, 0, 0, ... ] | [A, ... ] | $A \leftarrow tape.next\_word()$ <br> Removes the next word (4 elements) from the advice tape and overwrites the top four stack elements with it. <br> Fails if the advice tape has fewer than $4$ values. |
+| adv_push.*n* <br> - *(n cycles)*   | [ ... ]         | [a, ... ]    | $a \leftarrow tape.next()$ <br> Removes the next $n$ values from advice tape and pushes them onto the stack. Valid for $n \in \{1, ..., 16\}$. <br> Fails if the advice tape has fewer than $n$ values. |
+| adv_loadw <br> - *(1 cycle)*     | [0, 0, 0, 0, ... ] | [A, ... ] | $A \leftarrow tape.next\_word()$ <br> Removes the next word (4 elements) from the advice tape and overwrites the top four stack elements with it. <br> Fails if the advice tape has fewer than $4$ values. |
 
 ### Random access memory
 
@@ -44,9 +44,9 @@ Memory is guaranteed to be initialized to zeros. Thus, when reading from memory 
 
 | Instruction     | Stack_input | Stack_output | Notes                                      |
 | --------------- | ----------- | ------------ | ------------------------------------------ |
-| mem_load <br> - *(1 cycle)*  <br> mem_load.*a* <br> - *(2 cycles)*   | [a, ... ] | [v, ... ] | $a \leftarrow mem[a][0]$ <br> Reads a word (4 elements) from memory at address *a*, and pushes the first element of the word onto the stack. If $a$ is provided via the stack, it is removed from the stack first. <br> Fails if $a \ge 2^{32}$ |
+| mem_load <br> - *(1 cycle)*  <br> mem_load.*a* <br> - *(2 cycles)*   | [a, ... ] | [v, ... ] | $v \leftarrow mem[a][0]$ <br> Reads a word (4 elements) from memory at address *a*, and pushes the first element of the word onto the stack. If $a$ is provided via the stack, it is removed from the stack first. <br> Fails if $a \ge 2^{32}$ |
 | mem_loadw <br> - *(1 cycle)*  <br> mem_loadw.*a* <br> - *(2 cycles)*  | [a, 0, 0, 0, 0, ... ] | [A, ... ] | $A \leftarrow mem[a]$ <br> Reads a word from memory at address $a$ and overwrites top four stack elements with it. If $a$ is provided via the stack, it is removed from the stack first. <br> Fails if $a \ge 2^{32}$ |
-| mem_store <br> - *(1 cycle)*  <br> mem_store.*a*  <br> - *(2 cycles)*   | [a, v, ... ] | [v, ... ] | $[v, 0, 0, 0] \rightarrow mem[a]$ <br> Stores the top element of the stack as the first element of the word in memory at address $a$. All other elements of the word are not affected. If $a$ is provided via the stack, it is removed from the stack first. <br> Fails if $a \ge 2^{32}$ |
+| mem_store <br> - *(1 cycle)*  <br> mem_store.*a*  <br> - *(2 cycles)*   | [a, v, ... ] | [v, ... ] | $v \rightarrow mem[a][0]$ <br> Stores the top element of the stack as the first element of the word in memory at address $a$. All other elements of the word are not affected. If $a$ is provided via the stack, it is removed from the stack first. <br> Fails if $a \ge 2^{32}$ |
 | mem_storew <br> - *(1 cycle)*  <br> mem_storew.*a* <br> - *(2 cycles)*  | [a, A, ... ] | [A, ... ] | $A \rightarrow mem[a]$ <br> Stores the top four elements of the stack in memory at address $a$. If $a$ is provided via the stack, it is removed from the stack first. <br> Fails if $a \ge 2^{32}$ |
 
 The second way to access memory is via procedure locals using the instructions listed below. These instructions are available only in procedure context. The number of locals available to a given procedure must be specified at [procedure declaration](./code_organization.md#procedures) time, and trying to access more locals than was declared will result in a compile-time error. The number of locals per procedure is not limited, but the total number of locals available to all procedures at runtime must be smaller than $2^{32}$.
@@ -55,7 +55,7 @@ The second way to access memory is via procedure locals using the instructions l
 | --------------- | ----------- | ------------ | ------------------------------------------ |
 | loc_load.*i* <br> - *(3-4 cycles)*  | [ ... ] | [v, ... ] | $v \leftarrow local[i][0]$ <br> Reads a word (4 elements) from local memory at index *i*, and pushes the first element of the word onto the stack. |
 | loc_loadw.*i*  <br> - *(3-4 cycles)* | [0, 0, 0, 0, ... ] | [A, ... ] | $A \leftarrow local[i]$ <br> Reads a word from local memory at index $i$ and overwrites top four stack elements with it. |
-| loc_store.*i* <br> - *(3-4 cycles)*  | [v, ... ] | [v, ... ] | $[v, 0, 0, 0] \rightarrow local[i]$ <br> Stores the top element of the stack as the first element of the word in local memory at index $i$. All other elements of the word are not affected. |
+| loc_store.*i* <br> - *(3-4 cycles)*  | [v, ... ] | [v, ... ] | $v \rightarrow local[i][0]$ <br> Stores the top element of the stack as the first element of the word in local memory at index $i$. All other elements of the word are not affected. |
 | loc_storew.*i* <br> - *(3-4 cycles)*  | [A, ... ] | [A, ... ] | $A \rightarrow local[i]$ <br> Stores the top four elements of the stack in local memory at index $i$. |
 
 Unlike regular memory, procedure locals are not guaranteed to be initialized to zeros. Thus, when working with locals, one must assume that before a local memory address has been written to, it contains "garbage".

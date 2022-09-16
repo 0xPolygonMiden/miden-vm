@@ -35,7 +35,7 @@ const HEX_CHUNK_SIZE: usize = 16;
 /// It will return an error if no immediate value is provided or if any of parameter formats are
 /// invalid. It will also return an error if the op token is malformed or doesn't match the expected
 /// instruction.
-pub fn parse_push_constant(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub fn parse_push(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     validate_operation!(op, "push", 1..MAX_CONST_INPUTS);
 
     let param_idx = 1;
@@ -211,25 +211,22 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
-    fn push_invalid_panic() {
-        let mut span_ops: Vec<Operation> = Vec::new();
-        let pos = 0;
-
-        // wrong operation passed to parsing function
-        let op_mismatch = Token::new("pushw.0", pos);
-        parse_push(&mut span_ops, &op_mismatch).unwrap_err();
-    }
-
-    #[test]
     fn push_invalid() {
         // fails when immediate value is invalid or missing
         let mut span_ops: Vec<Operation> = Vec::new();
         let pos = 0;
 
+        // wrong operation passed to parsing function
+        let op_mismatch = Token::new("pushw.0", pos);
+        let expected = AssemblyError::unexpected_token(&op_mismatch, "push");
+        assert_eq!(
+            parse_push(&mut span_ops, &op_mismatch).unwrap_err(),
+            expected
+        );
+
         // missing value or variant
         let op_no_val = Token::new("push", pos);
-        let expected = AssemblyError::invalid_op(&op_no_val);
+        let expected = AssemblyError::missing_param(&op_no_val);
         assert_eq!(parse_push(&mut span_ops, &op_no_val).unwrap_err(), expected);
 
         // invalid value

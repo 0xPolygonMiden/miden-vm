@@ -8167,7 +8167,7 @@ proc.mod_12289
 
     adv.u64div
 
-    push.adv.2
+    adv_push.2
     u32assert.2
 
     swap
@@ -8179,7 +8179,7 @@ proc.mod_12289
     u32overflowing_madd
     drop
 
-    push.adv.2
+    adv_push.2
     drop
     u32assert
 
@@ -13356,7 +13356,7 @@ end
 export.unchecked_div
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
-    push.adv.2          # read the quotient from the advice tape and make sure it consists of
+    adv_push.2          # read the quotient from the advice tape and make sure it consists of
     u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
@@ -13378,7 +13378,7 @@ export.unchecked_div
     eq.0
     assert
 
-    push.adv.2          # read the remainder from the advice tape and make sure it consists of
+    adv_push.2          # read the remainder from the advice tape and make sure it consists of
     u32assert.2         # 32-bit limbs
 
     movup.7             # make sure the divisor is greater than the remainder. this also consumes
@@ -13421,7 +13421,7 @@ end
 export.unchecked_mod
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
-    push.adv.2          # read the quotient from the advice tape and make sure it consists of
+    adv_push.2          # read the quotient from the advice tape and make sure it consists of
     u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
@@ -13443,7 +13443,7 @@ export.unchecked_mod
     eq.0
     assert
 
-    push.adv.2          # read the remainder from the advice tape and make sure it consists of
+    adv_push.2          # read the remainder from the advice tape and make sure it consists of
     u32assert.2         # 32-bit limbs
 
     movup.5             # make sure the divisor is greater than the remainder. this also consumes
@@ -13486,7 +13486,7 @@ end
 export.unchecked_divmod
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
-    push.adv.2          # read the quotient from the advice tape and make sure it consists of
+    adv_push.2          # read the quotient from the advice tape and make sure it consists of
     u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
@@ -13508,7 +13508,7 @@ export.unchecked_divmod
     eq.0
     assert
 
-    push.adv.2          # read the remainder from the advice tape and make sure it consists of
+    adv_push.2          # read the remainder from the advice tape and make sure it consists of
     u32assert.2         # 32-bit limbs
 
     movup.7             # make sure the divisor is greater than the remainder. this also consumes
