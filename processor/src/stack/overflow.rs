@@ -90,7 +90,7 @@ impl OverflowTable {
 
         if self.trace_enabled {
             // insert a copy of the current table state into the trace
-            self.trace.insert(clk, self.get_values());
+            self.trace.insert(clk, self.get_active_values());
         }
     }
 
@@ -109,7 +109,7 @@ impl OverflowTable {
 
         if self.trace_enabled {
             // insert a copy of the current table state into the trace
-            self.trace.insert(clk, self.get_values());
+            self.trace.insert(clk, self.get_active_values());
         }
 
         // return the removed value as well as the clock cycle of the value currently at the
@@ -121,14 +121,18 @@ impl OverflowTable {
     // --------------------------------------------------------------------------------------------
 
     /// Appends the top n values from the overflow table to the end of the provided vector.
-    pub fn append_into(&self, target: &mut Vec<Felt>, n: usize) {
-        for &idx in self.active_rows.iter().rev().take(n) {
+    pub fn append_into(&self, target: &mut Vec<Felt>) {
+        for &idx in self.active_rows.iter().rev() {
             target.push(self.all_rows[idx].val);
         }
     }
 
     /// Appends the state of the overflow table at the specified clock cycle to the provided vector.
+    ///
+    /// # Panics
+    /// Panics when this overflow table was not initialized with `enable_trace` set to true.
     pub fn append_state_into(&self, target: &mut Vec<Felt>, clk: u64) {
+        assert!(self.trace_enabled, "overflow trace not enabled");
         if let Some(x) = self.trace.range(0..=clk).last() {
             for item in x.1.iter().rev() {
                 target.push(*item);
@@ -136,31 +140,24 @@ impl OverflowTable {
         }
     }
 
-    /// Returns a vector consisting of just the value portion of each table row.
-    fn get_values(&self) -> Vec<Felt> {
-        self.active_rows
-            .iter()
-            .map(|&idx| self.all_rows[idx].val)
-            .collect()
-    }
-
     /// Returns the addresses of active rows in the table required to reconstruct the table (when
     /// combined with the values). This is a vector of all of the `clk` values (the address of each
     /// row), preceded by the `prev` value in the first row of the table. (It's also equivalent to
     /// all of the `prev` values followed by the `clk` value in the last row of the table.)
     pub(super) fn get_addrs(&self) -> Vec<Felt> {
-        if !self.active_rows.is_empty() {
-            let mut addrs = unsafe { uninit_vector(self.active_rows.len() + 1) };
-            // add the previous address of the first row in the overflow table.
-            addrs[0] = self.all_rows[self.active_rows[0]].prev;
-            // add the address for all the rows in the overflow table.
-            for (i, &row_idx) in self.active_rows.iter().enumerate() {
-                addrs[i + 1] = self.all_rows[row_idx].clk;
-            }
-            return addrs;
+        if self.active_rows.is_empty() {
+            return Vec::new();
         }
 
-        Vec::new()
+        let mut addrs = unsafe { uninit_vector(self.active_rows.len() + 1) };
+        // add the previous address of the first row in the overflow table.
+        addrs[0] = self.all_rows[self.active_rows[0]].prev;
+        // add the address for all the rows in the overflow table.
+        for (i, &row_idx) in self.active_rows.iter().enumerate() {
+            addrs[i + 1] = self.all_rows[row_idx].clk;
+        }
+
+        addrs
     }
 
     // AUX TRACE BUILDER GENERATION
@@ -175,6 +172,17 @@ impl OverflowTable {
             overflow_table_rows: self.all_rows,
             final_rows: self.active_rows,
         }
+    }
+
+    // HELPER METHODS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns a vector consisting of just the value portion of each table row.
+    fn get_active_values(&self) -> Vec<Felt> {
+        self.active_rows
+            .iter()
+            .map(|&idx| self.all_rows[idx].val)
+            .collect()
     }
 
     // TEST ACCESSORS

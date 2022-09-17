@@ -1,7 +1,19 @@
 use super::{
-    Felt, OverflowTableRow, ProgramInputs, Stack, StackTopState, MIN_STACK_DEPTH, ONE, ZERO,
+    Felt, OverflowTableRow, ProgramInputs, Stack, NUM_STACK_HELPER_COLS, ONE, STACK_TOP_SIZE, ZERO,
 };
-use vm_core::{FieldElement, StarkField, NUM_STACK_HELPER_COLS};
+use crate::StackTopState;
+use vm_core::{
+    stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX},
+    FieldElement, StarkField, STACK_TRACE_WIDTH,
+};
+
+// TYPE ALIASES
+// ================================================================================================
+
+type StackHelpersState = [Felt; NUM_STACK_HELPER_COLS];
+
+// INITIALIZATION TESTS
+// ================================================================================================
 
 #[test]
 fn initialize() {
@@ -13,16 +25,13 @@ fn initialize() {
     // Prepare the expected results.
     stack_inputs.reverse();
     let expected_stack = build_stack(&stack_inputs);
-    let expected_helpers = [Felt::new(MIN_STACK_DEPTH as u64), ZERO, ZERO];
+    let expected_helpers = [Felt::new(STACK_TOP_SIZE as u64), ZERO, ZERO];
 
     // Check the stack state.
     assert_eq!(stack.trace_state(), expected_stack);
 
     // Check the helper columns.
-    assert_eq!(
-        stack.trace.get_helpers_state_at(stack.current_clk()),
-        expected_helpers
-    );
+    assert_eq!(stack.helpers_state(), expected_helpers);
 }
 
 #[test]
@@ -36,12 +45,12 @@ fn initialize_overflow() {
 
     // Prepare the expected results.
     stack_inputs.reverse();
-    let expected_stack = build_stack(&stack_inputs[..MIN_STACK_DEPTH]);
+    let expected_stack = build_stack(&stack_inputs[..STACK_TOP_SIZE]);
     let expected_depth = stack_inputs.len() as u64;
     let expected_helpers = [
         Felt::new(expected_depth),
         -ONE,
-        Felt::new(expected_depth - MIN_STACK_DEPTH as u64).inv(),
+        Felt::new(expected_depth - STACK_TOP_SIZE as u64),
     ];
     let init_addr = Felt::MODULUS - 3;
     let expected_overflow_rows = vec![
@@ -55,10 +64,7 @@ fn initialize_overflow() {
     assert_eq!(stack.trace_state(), expected_stack);
 
     // Check the helper columns.
-    assert_eq!(
-        stack.trace.get_helpers_state_at(stack.current_clk()),
-        expected_helpers
-    );
+    assert_eq!(stack.helpers_state(), expected_helpers);
 
     // Check the overflow table state.
     assert_eq!(stack.overflow.active_rows(), expected_overflow_active_rows);
@@ -73,7 +79,7 @@ fn shift_left() {
     // ---- left shift an entire stack of minimum depth -------------------------------------------
     // Prepare the expected results.
     let expected_stack = build_stack(&[3, 2, 1]);
-    let expected_helpers = build_helpers_left(0, 0);
+    let expected_helpers = build_helpers_partial(0, 0);
 
     // Perform the left shift.
     stack.shift_left(1);
@@ -83,10 +89,7 @@ fn shift_left() {
     assert_eq!(stack.trace_state(), expected_stack);
 
     // Check the helper columns.
-    assert_eq!(
-        stack.trace.get_helpers_state_at(stack.current_clk()),
-        expected_helpers
-    );
+    assert_eq!(stack.helpers_state(), expected_helpers);
 
     // ---- left shift an entire stack with multiple overflow items -------------------------------
     let mut stack = Stack::new(&inputs, 4, false);
@@ -99,7 +102,7 @@ fn shift_left() {
 
     // Prepare the expected results.
     let expected_stack = build_stack(&[0, 4, 3, 2, 1]);
-    let expected_helpers = build_helpers_left(1, prev_overflow_addr);
+    let expected_helpers = build_helpers_partial(1, prev_overflow_addr);
 
     // Perform the left shift.
     stack.shift_left(1);
@@ -109,15 +112,12 @@ fn shift_left() {
     assert_eq!(stack.trace_state(), expected_stack);
 
     // Check the helper columns.
-    assert_eq!(
-        stack.trace.get_helpers_state_at(stack.current_clk()),
-        expected_helpers
-    );
+    assert_eq!(stack.helpers_state(), expected_helpers);
 
     // ---- left shift an entire stack with one overflow item -------------------------------------
     // Prepare the expected results.
     let expected_stack = build_stack(&[4, 3, 2, 1]);
-    let expected_helpers = build_helpers_left(0, 0);
+    let expected_helpers = build_helpers_partial(0, 0);
 
     // Perform the left shift.
     stack.ensure_trace_capacity();
@@ -128,10 +128,7 @@ fn shift_left() {
     assert_eq!(stack.trace_state(), expected_stack);
 
     // Check the helper columns.
-    assert_eq!(
-        stack.trace.get_helpers_state_at(stack.current_clk()),
-        expected_helpers
-    );
+    assert_eq!(stack.helpers_state(), expected_helpers);
 }
 
 #[test]
@@ -141,7 +138,7 @@ fn shift_right() {
 
     // ---- right shift an entire stack of minimum depth ------------------------------------------
     let expected_stack = build_stack(&[0, 4, 3, 2, 1]);
-    let expected_helpers = build_helpers_right(1, stack.current_clk());
+    let expected_helpers = build_helpers_partial(1, stack.current_clk() as usize);
 
     stack.shift_right(0);
     stack.advance_clock();
@@ -150,14 +147,11 @@ fn shift_right() {
     assert_eq!(stack.trace_state(), expected_stack);
 
     // Check the helper columns.
-    assert_eq!(
-        stack.trace.get_helpers_state_at(stack.current_clk()),
-        expected_helpers
-    );
+    assert_eq!(stack.helpers_state(), expected_helpers);
 
     // ---- right shift when the overflow table is non-empty --------------------------------------
     let expected_stack = build_stack(&[0, 0, 4, 3, 2, 1]);
-    let expected_helpers = build_helpers_right(2, stack.current_clk());
+    let expected_helpers = build_helpers_partial(2, stack.current_clk() as usize);
 
     stack.shift_right(0);
     stack.advance_clock();
@@ -166,51 +160,103 @@ fn shift_right() {
     assert_eq!(stack.trace_state(), expected_stack);
 
     // Check the helper columns.
-    assert_eq!(
-        stack.trace.get_helpers_state_at(stack.current_clk()),
-        expected_helpers
-    );
+    assert_eq!(stack.helpers_state(), expected_helpers);
+}
+
+// TRACE GENERATION
+// ================================================================================================
+
+#[test]
+fn generate_trace() {
+    let inputs = ProgramInputs::new(&[1, 2, 3, 4], &[], vec![]).unwrap();
+    let mut stack = Stack::new(&inputs, 8, false);
+
+    stack.shift_right(0);
+    stack.advance_clock();
+
+    stack.shift_right(0);
+    stack.advance_clock();
+
+    stack.shift_left(1);
+    stack.advance_clock();
+
+    stack.copy_state(0);
+    stack.advance_clock();
+
+    stack.shift_left(1);
+    stack.advance_clock();
+
+    stack.copy_state(0);
+    stack.advance_clock();
+
+    let trace = stack.into_trace(8, 1);
+    let trace = trace.trace;
+
+    assert_eq!(read_stack_top(&trace, 0), build_stack(&[4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 1), build_stack(&[0, 4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 2), build_stack(&[0, 0, 4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 3), build_stack(&[0, 4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 4), build_stack(&[0, 4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 5), build_stack(&[4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 6), build_stack(&[4, 3, 2, 1]));
+
+    assert_eq!(read_helpers(&trace, 0), build_helpers(16, 0));
+    assert_eq!(read_helpers(&trace, 1), build_helpers(17, 0));
+    assert_eq!(read_helpers(&trace, 2), build_helpers(18, 1));
+    assert_eq!(read_helpers(&trace, 3), build_helpers(17, 0));
+    assert_eq!(read_helpers(&trace, 4), build_helpers(17, 0));
+    assert_eq!(read_helpers(&trace, 5), build_helpers(16, 0));
+    assert_eq!(read_helpers(&trace, 6), build_helpers(16, 0));
 }
 
 // HELPERS
 // ================================================================================================
 
-/// Builds the trace row of stack helpers expected as the result of a right shift at clock cycle
-/// `clk` when there are `num_overflow` items in the overflow table.
-fn build_helpers_right(num_overflow: usize, clk: u32) -> [Felt; NUM_STACK_HELPER_COLS] {
-    let b0 = Felt::new((MIN_STACK_DEPTH + num_overflow) as u64);
-    let b1 = Felt::new(clk as u64);
-    let h0 = ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64));
-
-    [b0, b1, h0]
-}
-
-/// Builds the trace row of stack helpers expected as the result of a left shift when there are
-/// `num_overflow` items in the overflow table and the top row in the table has address
-/// `next_overflow_addr`.
-fn build_helpers_left(
-    num_overflow: usize,
-    next_overflow_addr: usize,
-) -> [Felt; NUM_STACK_HELPER_COLS] {
-    let depth = MIN_STACK_DEPTH + num_overflow;
-    let b0 = Felt::new(depth as u64);
-    let b1 = Felt::new(next_overflow_addr as u64);
-    let h0 = if depth > MIN_STACK_DEPTH {
-        ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64))
-    } else {
-        ZERO
-    };
-
-    [b0, b1, h0]
-}
-
 /// Builds a [StackTopState] that starts with the provided stack inputs and is padded with zeros
 /// until the minimum stack depth.
 fn build_stack(stack_inputs: &[u64]) -> StackTopState {
-    let mut expected_stack = [ZERO; MIN_STACK_DEPTH];
+    let mut result = [ZERO; STACK_TOP_SIZE];
     for (idx, &input) in stack_inputs.iter().enumerate() {
-        expected_stack[idx] = Felt::new(input);
+        result[idx] = Felt::new(input);
     }
+    result
+}
 
-    expected_stack
+/// Builds expected values of stack helper registers for the specified parameters.
+fn build_helpers(stack_depth: u64, next_overflow_addr: u64) -> StackHelpersState {
+    let b0 = Felt::new(stack_depth as u64);
+    let b1 = Felt::new(next_overflow_addr as u64);
+    let h0 = (b0 - Felt::new(STACK_TOP_SIZE as u64)).inv();
+
+    [b0, b1, h0]
+}
+
+/// Builds expected values of stack helper registers prior to finalization of execution trace.
+/// The difference between this function and build_helpers() is that this function does not invert
+/// h0 value.
+fn build_helpers_partial(num_overflow: usize, next_overflow_addr: usize) -> StackHelpersState {
+    let depth = STACK_TOP_SIZE + num_overflow;
+    let b0 = Felt::new(depth as u64);
+    let b1 = Felt::new(next_overflow_addr as u64);
+    let h0 = b0 - Felt::new(STACK_TOP_SIZE as u64);
+
+    [b0, b1, h0]
+}
+
+/// Returns values in stack top columns of the provided trace at the specified row.
+fn read_stack_top(trace: &[Vec<Felt>; STACK_TRACE_WIDTH], row: usize) -> StackTopState {
+    let mut result = [ZERO; STACK_TOP_SIZE];
+    for (value, column) in result.iter_mut().zip(trace) {
+        *value = column[row];
+    }
+    result
+}
+
+/// Returns values in the stack helper columns of the provided trace in the specified row.
+fn read_helpers(trace: &[Vec<Felt>; STACK_TRACE_WIDTH], row: usize) -> StackHelpersState {
+    [
+        trace[B0_COL_IDX][row],
+        trace[B1_COL_IDX][row],
+        trace[H0_COL_IDX][row],
+    ]
 }

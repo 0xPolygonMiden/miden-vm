@@ -126,6 +126,9 @@ impl Process {
         self.stack.set(14, a2);
         self.stack.set(15, a3);
 
+        // this is needed to ensure stack helper registers are copied over correctly
+        self.stack.copy_state(16);
+
         Ok(())
     }
 
@@ -165,6 +168,9 @@ impl Process {
         self.stack.set(14, b2);
         self.stack.set(15, b3);
 
+        // this is needed to ensure stack helper registers are copied over correctly
+        self.stack.copy_state(16);
+
         Ok(())
     }
 
@@ -172,6 +178,8 @@ impl Process {
     ///
     /// Elements between 0 and n are shifted right by one slot.
     pub(super) fn op_movup(&mut self, n: usize) -> Result<(), ExecutionError> {
+        debug_assert!(n < STACK_TOP_SIZE - 1, "n too large");
+
         // move the nth value to the top of the stack
         let value = self.stack.get(n);
         self.stack.set(0, value);
@@ -183,9 +191,7 @@ impl Process {
         }
 
         // all other items on the stack remain in place
-        if (n + 1) < STACK_TOP_SIZE {
-            self.stack.copy_state(n + 1);
-        }
+        self.stack.copy_state(n + 1);
         Ok(())
     }
 
@@ -193,6 +199,8 @@ impl Process {
     ///
     /// Elements between 0 and n are shifted left by one slot.
     pub(super) fn op_movdn(&mut self, n: usize) -> Result<(), ExecutionError> {
+        debug_assert!(n < STACK_TOP_SIZE - 1, "n too large");
+
         // move the value at the top of the stack to the nth position
         let value = self.stack.get(0);
         self.stack.set(n, value);
@@ -204,9 +212,7 @@ impl Process {
         }
 
         // all other items on the stack remain in place
-        if (n + 1) < STACK_TOP_SIZE {
-            self.stack.copy_state(n + 1);
-        }
+        self.stack.copy_state(n + 1);
         Ok(())
     }
 
