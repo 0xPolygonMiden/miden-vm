@@ -4,8 +4,8 @@ use super::{
 };
 use crate::utils::are_equal;
 use vm_core::{
-    decoder::USER_OP_HELPERS_OFFSET, utils::collections::Vec, ProgramOutputs, StarkField,
-    DECODER_TRACE_OFFSET, FMP_COL_IDX, STACK_AUX_TRACE_OFFSET, stack::STACK_TOP_SIZE
+    decoder::USER_OP_HELPERS_OFFSET, stack::STACK_TOP_SIZE, utils::collections::Vec,
+    ProgramOutputs, StarkField, DECODER_TRACE_OFFSET, FMP_COL_IDX, STACK_AUX_TRACE_OFFSET,
 };
 
 pub mod field_ops;

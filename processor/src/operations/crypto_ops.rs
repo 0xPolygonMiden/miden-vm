@@ -204,7 +204,7 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{init_stack_with, Felt, FieldElement, Operation, StarkField},
+        super::{Felt, FieldElement, Operation, StarkField},
         Process,
     };
     use crate::Word;
@@ -217,29 +217,25 @@ mod tests {
     #[test]
     fn op_rpperm() {
         // --- test hashing [ONE, ONE] ------------------------------------------------------------
-        let mut process = Process::new_dummy();
         let inputs: [u64; STATE_WIDTH] = [2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
-        let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
+        let mut process = Process::new_dummy(&inputs);
 
-        init_stack_with(&mut process, &inputs);
+        let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
         process.execute_op(Operation::RpPerm).unwrap();
         assert_eq!(expected, &process.stack.trace_state()[0..12]);
 
         // --- test hashing 8 random values -------------------------------------------------------
-        let mut process = Process::new_dummy();
         let values = rand_vector::<u64>(8);
-        // add the capacity to prepare the input vector
         let mut inputs: Vec<u64> = vec![values.len() as u64, 0, 0, 0];
         inputs.extend_from_slice(&values);
+        let mut process = Process::new_dummy(&inputs);
+
+        // add the capacity to prepare the input vector
         let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
-
-        init_stack_with(&mut process, &inputs);
         process.execute_op(Operation::RpPerm).unwrap();
-
         assert_eq!(expected, &process.stack.trace_state()[0..12]);
 
         // --- test that the rest of the stack isn't affected -------------------------------------
-        let mut process = Process::new_dummy();
         let mut inputs: Vec<u64> = vec![1, 2, 3, 4];
         let expected = inputs
             .iter()
@@ -249,7 +245,7 @@ mod tests {
         let values: Vec<u64> = vec![2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
         inputs.extend_from_slice(&values);
 
-        init_stack_with(&mut process, &inputs);
+        let mut process = Process::new_dummy(&inputs);
         process.execute_op(Operation::RpPerm).unwrap();
         assert_eq!(expected, &process.stack.trace_state()[12..16]);
     }

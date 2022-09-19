@@ -170,10 +170,11 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{init_stack_with, Felt, FieldElement, Operation, STACK_TOP_SIZE},
+        super::{Felt, FieldElement, Operation, StarkField, STACK_TOP_SIZE},
         Process,
     };
     use rand_utils::rand_value;
+    use vm_core::ProgramInputs;
 
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -181,69 +182,69 @@ mod tests {
     #[test]
     fn op_add() {
         // initialize the stack with a few values
-        let mut process = Process::new_dummy();
-        let (a, b, c) = init_stack_rand(&mut process);
+        let (a, b, c) = get_rand_values();
+        let mut process = Process::new_dummy(&[c.as_int(), b.as_int(), a.as_int()]);
 
         // add the top two values
         process.execute_op(Operation::Add).unwrap();
         let expected = build_expected(&[a + b, c]);
 
-        assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
-        assert_eq!(4, process.stack.current_clk());
+        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+        assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
         // calling add with a stack of minimum depth is ok
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy(&[]);
         assert!(process.execute_op(Operation::Add).is_ok());
     }
 
     #[test]
     fn op_neg() {
         // initialize the stack with a few values
-        let mut process = Process::new_dummy();
-        let (a, b, c) = init_stack_rand(&mut process);
+        let (a, b, c) = get_rand_values();
+        let mut process = Process::new_dummy(&[c.as_int(), b.as_int(), a.as_int()]);
 
         // negate the top value
         process.execute_op(Operation::Neg).unwrap();
         let expected = build_expected(&[-a, b, c]);
 
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(STACK_TOP_SIZE + 3, process.stack.depth());
-        assert_eq!(4, process.stack.current_clk());
+        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+        assert_eq!(2, process.stack.current_clk());
     }
 
     #[test]
     fn op_mul() {
         // initialize the stack with a few values
-        let mut process = Process::new_dummy();
-        let (a, b, c) = init_stack_rand(&mut process);
+        let (a, b, c) = get_rand_values();
+        let mut process = Process::new_dummy(&[c.as_int(), b.as_int(), a.as_int()]);
 
         // add the top two values
         process.execute_op(Operation::Mul).unwrap();
         let expected = build_expected(&[a * b, c]);
 
-        assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
-        assert_eq!(4, process.stack.current_clk());
+        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+        assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
         // calling mul with a stack of minimum depth is ok
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy(&[]);
         assert!(process.execute_op(Operation::Mul).is_ok());
     }
 
     #[test]
     fn op_inv() {
         // initialize the stack with a few values
-        let mut process = Process::new_dummy();
-        let (a, b, c) = init_stack_rand(&mut process);
+        let (a, b, c) = get_rand_values();
+        let mut process = Process::new_dummy(&[c.as_int(), b.as_int(), a.as_int()]);
 
         // invert the top value
         if b != Felt::ZERO {
             process.execute_op(Operation::Inv).unwrap();
             let expected = build_expected(&[a.inv(), b, c]);
 
-            assert_eq!(STACK_TOP_SIZE + 3, process.stack.depth());
-            assert_eq!(4, process.stack.current_clk());
+            assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+            assert_eq!(2, process.stack.current_clk());
             assert_eq!(expected, process.stack.trace_state());
         }
 
@@ -255,15 +256,15 @@ mod tests {
     #[test]
     fn op_incr() {
         // initialize the stack with a few values
-        let mut process = Process::new_dummy();
-        let (a, b, c) = init_stack_rand(&mut process);
+        let (a, b, c) = get_rand_values();
+        let mut process = Process::new_dummy(&[c.as_int(), b.as_int(), a.as_int()]);
 
         // negate the top value
         process.execute_op(Operation::Incr).unwrap();
         let expected = build_expected(&[a + Felt::ONE, b, c]);
 
-        assert_eq!(STACK_TOP_SIZE + 3, process.stack.depth());
-        assert_eq!(4, process.stack.current_clk());
+        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+        assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }
 
@@ -273,122 +274,105 @@ mod tests {
     #[test]
     fn op_and() {
         // --- test 0 AND 0 ---------------------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 0, 0]);
+        let mut process = Process::new_dummy(&[2, 0, 0]);
 
         process.execute_op(Operation::And).unwrap();
         let expected = build_expected(&[Felt::ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 1 AND 0 ---------------------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 0, 1]);
+        let mut process = Process::new_dummy(&[2, 0, 1]);
 
         process.execute_op(Operation::And).unwrap();
         let expected = build_expected(&[Felt::ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 0 AND 1 ---------------------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 1, 0]);
+        let mut process = Process::new_dummy(&[2, 1, 0]);
 
         process.execute_op(Operation::And).unwrap();
         let expected = build_expected(&[Felt::ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 1 AND 1 ---------------------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 1, 1]);
+        let mut process = Process::new_dummy(&[2, 1, 1]);
 
         process.execute_op(Operation::And).unwrap();
         let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- first operand is not binary ------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 1, 2]);
+        let mut process = Process::new_dummy(&[2, 1, 2]);
         assert!(process.execute_op(Operation::And).is_err());
 
         // --- second operand is not binary -----------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 2, 1]);
+        let mut process = Process::new_dummy(&[2, 2, 1]);
         assert!(process.execute_op(Operation::And).is_err());
 
         // --- calling AND with a stack of minimum depth is ok ----------------
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy(&[]);
         assert!(process.execute_op(Operation::And).is_ok());
     }
 
     #[test]
     fn op_or() {
         // --- test 0 OR 0 ---------------------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 0, 0]);
+        let mut process = Process::new_dummy(&[2, 0, 0]);
 
         process.execute_op(Operation::Or).unwrap();
         let expected = build_expected(&[Felt::ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 1 OR 0 ---------------------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 0, 1]);
+        let mut process = Process::new_dummy(&[2, 0, 1]);
 
         process.execute_op(Operation::Or).unwrap();
         let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 0 OR 1 ---------------------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 1, 0]);
+        let mut process = Process::new_dummy(&[2, 1, 0]);
 
         process.execute_op(Operation::Or).unwrap();
         let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test 1 OR 0 ---------------------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 1, 1]);
+        let mut process = Process::new_dummy(&[2, 1, 1]);
 
         process.execute_op(Operation::Or).unwrap();
         let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- first operand is not binary ------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 1, 2]);
+        let mut process = Process::new_dummy(&[2, 1, 2]);
         assert!(process.execute_op(Operation::Or).is_err());
 
         // --- second operand is not binary -----------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 2, 1]);
+        let mut process = Process::new_dummy(&[2, 2, 1]);
         assert!(process.execute_op(Operation::Or).is_err());
 
         // --- calling OR with a stack of minimum depth is a ok ----------------
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy(&[]);
         assert!(process.execute_op(Operation::Or).is_ok());
     }
 
     #[test]
     fn op_not() {
         // --- test NOT 0 -----------------------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 0]);
-
+        let mut process = Process::new_dummy(&[2, 0]);
         process.execute_op(Operation::Not).unwrap();
         let expected = build_expected(&[Felt::ONE, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test NOT 1 ----------------------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 1]);
-
+        let mut process = Process::new_dummy(&[2, 1]);
         process.execute_op(Operation::Not).unwrap();
         let expected = build_expected(&[Felt::ZERO, Felt::new(2)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- operand is not binary ------------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 2]);
+        let mut process = Process::new_dummy(&[2, 2]);
         assert!(process.execute_op(Operation::Not).is_err());
     }
 
@@ -441,13 +425,11 @@ mod tests {
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
-    fn init_stack_rand(process: &mut Process) -> (Felt, Felt, Felt) {
-        // push values a and b onto the stack
+    fn get_rand_values() -> (Felt, Felt, Felt) {
         let a = rand_value();
         let b = rand_value();
         let c = rand_value();
-        init_stack_with(process, &[a, b, c]);
-        (Felt::new(c), Felt::new(b), Felt::new(a))
+        (Felt::new(a), Felt::new(b), Felt::new(c))
     }
 
     fn build_expected(values: &[Felt]) -> [Felt; 16] {

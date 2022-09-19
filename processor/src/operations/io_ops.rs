@@ -199,9 +199,9 @@ mod tests {
 
     #[test]
     fn op_push() {
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy(&[]);
         assert_eq!(STACK_TOP_SIZE, process.stack.depth());
-        assert_eq!(0, process.stack.current_clk());
+        assert_eq!(1, process.stack.current_clk());
         assert_eq!([ZERO; 16], process.stack.trace_state());
 
         // push one item onto the stack
@@ -211,7 +211,7 @@ mod tests {
         expected[0] = ONE;
 
         assert_eq!(STACK_TOP_SIZE + 1, process.stack.depth());
-        assert_eq!(1, process.stack.current_clk());
+        assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
         // push another item onto the stack
@@ -222,7 +222,7 @@ mod tests {
         expected[1] = ONE;
 
         assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
-        assert_eq!(2, process.stack.current_clk());
+        assert_eq!(3, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }
 
@@ -231,7 +231,7 @@ mod tests {
 
     #[test]
     fn op_mstorew() {
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert_eq!(0, process.chiplets.get_mem_size());
 
         // push the first word onto the stack and save it at address 0
@@ -260,13 +260,13 @@ mod tests {
         assert_eq!(word2, process.chiplets.get_mem_value(0, 3).unwrap());
 
         // --- calling STOREW with a stack of minimum depth is ok ----------------
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert!(process.execute_op(Operation::MStoreW).is_ok());
     }
 
     #[test]
     fn op_mloadw() {
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert_eq!(0, process.chiplets.get_mem_size());
 
         // push a word onto the stack and save it at address 1
@@ -290,13 +290,13 @@ mod tests {
         assert_eq!(word, process.chiplets.get_mem_value(0, 1).unwrap());
 
         // --- calling LOADW with a stack of minimum depth is ok ----------------
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert!(process.execute_op(Operation::MLoadW).is_ok());
     }
 
     #[test]
     fn op_mload() {
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert_eq!(0, process.chiplets.get_mem_size());
 
         // push a word onto the stack and save it at address 2
@@ -315,13 +315,13 @@ mod tests {
         assert_eq!(word, process.chiplets.get_mem_value(0, 2).unwrap());
 
         // --- calling MLOAD with a stack of minimum depth is ok ----------------
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert!(process.execute_op(Operation::MLoad).is_ok());
     }
 
     #[test]
     fn op_mstore() {
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert_eq!(0, process.chiplets.get_mem_size());
 
         // push new element onto the stack and save it as first element of the word on
@@ -356,7 +356,7 @@ mod tests {
         assert_eq!(mem_2, process.chiplets.get_mem_value(0, 2).unwrap());
 
         // --- calling MSTORE with a stack of minimum depth is ok ----------------
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert!(process.execute_op(Operation::MStore).is_ok());
     }
 
@@ -408,7 +408,7 @@ mod tests {
     #[test]
     fn op_sdepth() {
         // stack is empty
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy(&[]);
         process.execute_op(Operation::SDepth).unwrap();
         let expected = build_expected_stack(&[STACK_TOP_SIZE as u64]);
         assert_eq!(expected, process.stack.trace_state());
