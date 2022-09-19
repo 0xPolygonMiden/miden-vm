@@ -1,9 +1,9 @@
-use super::{
-    Felt, FieldElement, Vec, MAX_TOP_IDX, NUM_STACK_HELPER_COLS, ONE, STACK_TRACE_WIDTH, ZERO,
-};
+use super::{Felt, FieldElement, Vec, MAX_TOP_IDX, ONE, STACK_TRACE_WIDTH, ZERO};
 use crate::utils::get_trace_len;
-use vm_core::stack::{H0_COL_IDX, STACK_TOP_SIZE};
-use winterfell::math::batch_inversion;
+use vm_core::{
+    stack::{H0_COL_IDX, NUM_STACK_HELPER_COLS, STACK_TOP_SIZE},
+    utils::math::batch_inversion,
+};
 
 // STACK TRACE
 // ================================================================================================
@@ -63,20 +63,31 @@ impl StackTrace {
 
     /// Copies the stack values starting at the specified position at the specified clock cycle to
     /// the same position at the next clock cycle.
-    pub fn copy_stack_state_at(&mut self, clk: u32, start_pos: usize) {
+    ///
+    /// Also, sets values in the stack helper columns for the next clock cycle to the provided
+    /// stack depth and overflow address.
+    pub fn copy_stack_state_at(
+        &mut self,
+        clk: u32,
+        start_pos: usize,
+        stack_depth: Felt,
+        next_overflow_addr: Felt,
+    ) {
+        let clk = clk as usize;
+
         // copy over stack top columns
         for i in start_pos..STACK_TOP_SIZE {
-            self.stack[i][clk as usize + 1] = self.stack[i][clk as usize];
+            self.stack[i][clk + 1] = self.stack[i][clk];
         }
 
-        // copy over stack helper columns
-        self.copy_helpers_at(clk);
+        // update stack helper columns
+        self.set_helpers_at(clk, stack_depth, next_overflow_addr);
     }
 
     /// Copies the stack values starting at the specified position at the specified clock cycle to
     /// position - 1 at the next clock cycle.
     ///
-    /// The final register is filled with the provided value in `last_value`.
+    /// The final stack item column is filled with the provided value in `last_value`.
     ///
     /// If next_overflow_addr is provided, this function assumes that the stack depth has been
     /// decreased by one and a row has been removed from the overflow table. Thus, it makes the
@@ -103,12 +114,13 @@ impl StackTrace {
 
         // update stack helper columns
         if let Some(next_overflow_addr) = next_overflow_addr {
-            let b0 = self.helpers[0][clk] - ONE;
-            self.helpers[0][clk + 1] = b0;
-            self.helpers[1][clk + 1] = next_overflow_addr;
-            self.helpers[2][clk + 1] = b0 - Felt::from(STACK_TOP_SIZE as u32);
+            let next_depth = self.helpers[0][clk] - ONE;
+            self.set_helpers_at(clk, next_depth, next_overflow_addr);
         } else {
-            self.copy_helpers_at(clk as u32);
+            // if next_overflow_addr was not provide, just copy over the values from the last row
+            let next_depth = self.helpers[0][clk];
+            let next_overflow_addr = self.helpers[1][clk];
+            self.set_helpers_at(clk, next_depth, next_overflow_addr);
         }
     }
 
@@ -131,10 +143,8 @@ impl StackTrace {
         }
 
         // update stack helper columns
-        let b0 = self.helpers[0][clk] + ONE;
-        self.helpers[0][clk + 1] = b0;
-        self.helpers[1][clk + 1] = Felt::from(clk as u32);
-        self.helpers[2][clk + 1] = b0 - Felt::from(STACK_TOP_SIZE as u32);
+        let next_depth = self.helpers[0][clk] + ONE;
+        self.set_helpers_at(clk, next_depth, Felt::from(clk as u32));
     }
 
     // UTILITY METHODS
@@ -148,8 +158,8 @@ impl StackTrace {
         // current_capacity as trace_length can not be bigger than clk, so it is safe to cast to u32
         if clk + 1 >= current_capacity as u32 {
             let new_length = current_capacity * 2;
-            for register in self.stack.iter_mut().chain(self.helpers.iter_mut()) {
-                register.resize(new_length, ZERO);
+            for column in self.stack.iter_mut().chain(self.helpers.iter_mut()) {
+                column.resize(new_length, ZERO);
             }
         }
     }
@@ -179,11 +189,14 @@ impl StackTrace {
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
-    /// Copies the helper values at the specified clock cycle to the next clock cycle.
-    fn copy_helpers_at(&mut self, clk: u32) {
-        for column in self.helpers.iter_mut() {
-            column[clk as usize + 1] = column[clk as usize];
-        }
+    /// Sets values of stack helper columns for the next clock cycle. Note that h0 column value is
+    /// set to (stack_depth - 16) rather than to 1 / (stack_depth - 16). Inverses of these values
+    /// will be computed in into_array() method (using batch inversion) after the entire trace is
+    /// constructed.
+    fn set_helpers_at(&mut self, clk: usize, stack_depth: Felt, next_overflow_addr: Felt) {
+        self.helpers[0][clk + 1] = stack_depth;
+        self.helpers[1][clk + 1] = next_overflow_addr;
+        self.helpers[2][clk + 1] = stack_depth - Felt::from(STACK_TOP_SIZE as u32);
     }
 
     // TEST HELPERS

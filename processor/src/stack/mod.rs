@@ -2,7 +2,7 @@ use super::{
     BTreeMap, Felt, FieldElement, ProgramInputs, ProgramOutputs, Vec, ONE, STACK_TRACE_WIDTH, ZERO,
 };
 use core::cmp;
-use vm_core::stack::{NUM_STACK_HELPER_COLS, STACK_TOP_SIZE};
+use vm_core::stack::STACK_TOP_SIZE;
 
 mod trace;
 use trace::StackTrace;
@@ -56,7 +56,8 @@ pub struct Stack {
     clk: u32,
     trace: StackTrace,
     overflow: OverflowTable,
-    depth: usize,
+    active_depth: usize,
+    full_depth: usize,
 }
 
 impl Stack {
@@ -93,7 +94,8 @@ impl Stack {
             clk: 0,
             trace,
             overflow,
-            depth,
+            active_depth: depth,
+            full_depth: depth,
         }
     }
 
@@ -102,7 +104,7 @@ impl Stack {
 
     /// Returns depth of the stack at the current clock cycle.
     pub fn depth(&self) -> usize {
-        self.depth
+        self.active_depth
     }
 
     /// Returns the current clock cycle of the execution trace.
@@ -128,7 +130,7 @@ impl Stack {
     /// # Panics
     /// Panics if invoked on a stack instantiated with `keep_overflow_trace` set to false.
     pub fn get_state_at(&self, clk: u32) -> Vec<Felt> {
-        let mut result = Vec::with_capacity(self.depth);
+        let mut result = Vec::with_capacity(self.active_depth);
         self.trace.append_state_into(&mut result, clk);
         self.overflow.append_state_into(&mut result, clk as u64);
 
@@ -138,7 +140,7 @@ impl Stack {
     /// Returns [ProgramOutputs] consisting of all values on the stack and all addresses in the
     /// overflow table that are required to rebuild the rows in the overflow table.
     pub fn get_outputs(&self) -> ProgramOutputs {
-        let mut stack_items = Vec::with_capacity(self.depth);
+        let mut stack_items = Vec::with_capacity(self.active_depth);
         self.trace.append_state_into(&mut stack_items, self.clk);
         self.overflow.append_into(&mut stack_items);
         ProgramOutputs::from_elements(stack_items, self.overflow.get_addrs())
@@ -162,7 +164,12 @@ impl Stack {
     /// Copies stack values starting at the specified position at the current clock cycle to the
     /// same position at the next clock cycle.
     pub fn copy_state(&mut self, start_pos: usize) {
-        self.trace.copy_stack_state_at(self.clk, start_pos);
+        self.trace.copy_stack_state_at(
+            self.clk,
+            start_pos,
+            Felt::from(self.active_depth as u64),
+            self.overflow.last_row_addr(),
+        );
     }
 
     /// Copies stack values starting at the specified position at the current clock cycle to
@@ -178,7 +185,7 @@ impl Stack {
             "start position cannot exceed stack top size"
         );
 
-        match self.depth {
+        match self.active_depth {
             0..=MAX_TOP_IDX => unreachable!("stack underflow"),
             STACK_TOP_SIZE => {
                 // Shift in a ZERO, to prevent depth shrinking below the minimum stack depth.
@@ -187,12 +194,17 @@ impl Stack {
             }
             _ => {
                 // Update the stack & overflow table.
-                let (from_overflow, prev_addr) = self.overflow.pop(self.clk as u64);
-                self.trace
-                    .stack_shift_left_at(self.clk, start_pos, from_overflow, Some(prev_addr));
+                let from_overflow = self.overflow.pop(self.clk as u64);
+                self.trace.stack_shift_left_at(
+                    self.clk,
+                    start_pos,
+                    from_overflow,
+                    Some(self.overflow.last_row_addr()),
+                );
 
                 // Stack depth only decreases when it is greater than the minimum stack depth.
-                self.depth -= 1;
+                self.active_depth -= 1;
+                self.full_depth -= 1;
             }
         }
     }
@@ -215,12 +227,32 @@ impl Stack {
         self.overflow.push(to_overflow, self.clk as u64);
 
         // Stack depth always increases on right shift.
-        self.depth += 1;
+        self.active_depth += 1;
+        self.full_depth += 1;
     }
 
-    /// Increments the clock cycle.
-    pub fn advance_clock(&mut self) {
-        self.clk += 1;
+    // CONTEXT MANAGEMENT
+    // --------------------------------------------------------------------------------------------
+
+    /// Starts a new execution context for this stack and returns the address of the overflow
+    /// table row prior to starting the new context.
+    ///
+    /// This has the effect of hiding the contents of the overflow table such that it appears as
+    /// if the overflow table in the new context is empty.
+    pub fn start_context(&mut self) -> Felt {
+        let current_overflow_addr = self.overflow.last_row_addr();
+        self.active_depth = STACK_TOP_SIZE;
+        self.overflow.set_last_row_addr(ZERO);
+        current_overflow_addr
+    }
+
+    /// Restores the prior context for this stack.
+    ///
+    /// This has the effect bringing back items previously hidden from the overflow table.
+    pub fn restore_context(&mut self, stack_depth: usize, next_overflow_addr: Felt) {
+        debug_assert!(stack_depth <= self.full_depth, "stack depth too big");
+        self.active_depth = stack_depth;
+        self.overflow.set_last_row_addr(next_overflow_addr);
     }
 
     // TRACE GENERATION
@@ -242,6 +274,13 @@ impl Stack {
         assert!(
             clk + num_rand_rows <= trace_len,
             "target trace length too small"
+        );
+
+        // at the end of program execution we must be in the root context, and thus active and
+        // full stack depth must be the same.
+        assert_eq!(
+            self.active_depth, self.full_depth,
+            "inconsistent stack depth"
         );
 
         // fill in all trace columns after the last clock cycle with the value at the last clock
@@ -269,6 +308,11 @@ impl Stack {
         self.trace.ensure_trace_capacity(self.clk);
     }
 
+    /// Increments the clock cycle.
+    pub fn advance_clock(&mut self) {
+        self.clk += 1;
+    }
+
     // TEST HELPERS
     // --------------------------------------------------------------------------------------------
 
@@ -281,7 +325,7 @@ impl Stack {
 
     /// Returns state of helper columns at the current clock cycle.
     #[cfg(test)]
-    pub fn helpers_state(&self) -> [Felt; NUM_STACK_HELPER_COLS] {
+    pub fn helpers_state(&self) -> [Felt; vm_core::stack::NUM_STACK_HELPER_COLS] {
         self.trace.get_helpers_state_at(self.clk)
     }
 }

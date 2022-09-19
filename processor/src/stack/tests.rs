@@ -1,9 +1,7 @@
-use super::{
-    Felt, OverflowTableRow, ProgramInputs, Stack, NUM_STACK_HELPER_COLS, ONE, STACK_TOP_SIZE, ZERO,
-};
+use super::{Felt, OverflowTableRow, ProgramInputs, Stack, ONE, STACK_TOP_SIZE, ZERO};
 use crate::StackTopState;
 use vm_core::{
-    stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX},
+    stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX, NUM_STACK_HELPER_COLS},
     FieldElement, StarkField, STACK_TRACE_WIDTH,
 };
 
@@ -77,22 +75,21 @@ fn shift_left() {
     let mut stack = Stack::new(&inputs, 4, false);
 
     // ---- left shift an entire stack of minimum depth -------------------------------------------
-    // Prepare the expected results.
-    let expected_stack = build_stack(&[3, 2, 1]);
-    let expected_helpers = build_helpers_partial(0, 0);
-
     // Perform the left shift.
     stack.shift_left(1);
     stack.advance_clock();
 
-    // Check the stack state.
-    assert_eq!(stack.trace_state(), expected_stack);
-
-    // Check the helper columns.
-    assert_eq!(stack.helpers_state(), expected_helpers);
+    // Check the state of stack item and helper columns.
+    assert_eq!(stack.trace_state(), build_stack(&[3, 2, 1]));
+    assert_eq!(stack.helpers_state(), build_helpers_partial(0, 0));
 
     // ---- left shift an entire stack with multiple overflow items -------------------------------
     let mut stack = Stack::new(&inputs, 4, false);
+
+    // make sure the first right shift is not executed at clk = 0
+    stack.copy_state(0);
+    stack.advance_clock();
+
     // Shift right twice to add 2 items to the overflow table.
     stack.shift_right(0);
     let prev_overflow_addr = stack.current_clk() as usize;
@@ -100,41 +97,37 @@ fn shift_left() {
     stack.shift_right(0);
     stack.advance_clock();
 
-    // Prepare the expected results.
-    let expected_stack = build_stack(&[0, 4, 3, 2, 1]);
-    let expected_helpers = build_helpers_partial(1, prev_overflow_addr);
-
-    // Perform the left shift.
-    stack.shift_left(1);
-    stack.advance_clock();
-
-    // Check the stack state.
-    assert_eq!(stack.trace_state(), expected_stack);
-
-    // Check the helper columns.
-    assert_eq!(stack.helpers_state(), expected_helpers);
-
-    // ---- left shift an entire stack with one overflow item -------------------------------------
-    // Prepare the expected results.
-    let expected_stack = build_stack(&[4, 3, 2, 1]);
-    let expected_helpers = build_helpers_partial(0, 0);
-
     // Perform the left shift.
     stack.ensure_trace_capacity();
     stack.shift_left(1);
     stack.advance_clock();
 
-    // Check the stack state.
-    assert_eq!(stack.trace_state(), expected_stack);
+    // Check the state of stack item and helper columns.
+    assert_eq!(stack.trace_state(), build_stack(&[0, 4, 3, 2, 1]));
+    assert_eq!(
+        stack.helpers_state(),
+        build_helpers_partial(1, prev_overflow_addr)
+    );
 
-    // Check the helper columns.
-    assert_eq!(stack.helpers_state(), expected_helpers);
+    // ---- left shift an entire stack with one overflow item -------------------------------------
+
+    // Perform the left shift.
+    stack.shift_left(1);
+    stack.advance_clock();
+
+    // Check the state of stack item and helper columns.
+    assert_eq!(stack.trace_state(), build_stack(&[4, 3, 2, 1]));
+    assert_eq!(stack.helpers_state(), build_helpers_partial(0, 0));
 }
 
 #[test]
 fn shift_right() {
     let inputs = ProgramInputs::new(&[1, 2, 3, 4], &[], vec![]).unwrap();
     let mut stack = Stack::new(&inputs, 4, false);
+
+    // make sure the first right shift is not executed at clk = 0
+    stack.copy_state(0);
+    stack.advance_clock();
 
     // ---- right shift an entire stack of minimum depth ------------------------------------------
     let expected_stack = build_stack(&[0, 4, 3, 2, 1]);
@@ -169,7 +162,10 @@ fn shift_right() {
 #[test]
 fn generate_trace() {
     let inputs = ProgramInputs::new(&[1, 2, 3, 4], &[], vec![]).unwrap();
-    let mut stack = Stack::new(&inputs, 8, false);
+    let mut stack = Stack::new(&inputs, 16, false);
+
+    stack.copy_state(0);
+    stack.advance_clock();
 
     stack.shift_right(0);
     stack.advance_clock();
@@ -193,20 +189,22 @@ fn generate_trace() {
     let trace = trace.trace;
 
     assert_eq!(read_stack_top(&trace, 0), build_stack(&[4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 1), build_stack(&[0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 2), build_stack(&[0, 0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 3), build_stack(&[0, 4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 1), build_stack(&[4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 2), build_stack(&[0, 4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 3), build_stack(&[0, 0, 4, 3, 2, 1]));
     assert_eq!(read_stack_top(&trace, 4), build_stack(&[0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 5), build_stack(&[4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 5), build_stack(&[0, 4, 3, 2, 1]));
     assert_eq!(read_stack_top(&trace, 6), build_stack(&[4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 7), build_stack(&[4, 3, 2, 1]));
 
     assert_eq!(read_helpers(&trace, 0), build_helpers(16, 0));
-    assert_eq!(read_helpers(&trace, 1), build_helpers(17, 0));
-    assert_eq!(read_helpers(&trace, 2), build_helpers(18, 1));
-    assert_eq!(read_helpers(&trace, 3), build_helpers(17, 0));
-    assert_eq!(read_helpers(&trace, 4), build_helpers(17, 0));
-    assert_eq!(read_helpers(&trace, 5), build_helpers(16, 0));
+    assert_eq!(read_helpers(&trace, 1), build_helpers(16, 0));
+    assert_eq!(read_helpers(&trace, 2), build_helpers(17, 1));
+    assert_eq!(read_helpers(&trace, 3), build_helpers(18, 2));
+    assert_eq!(read_helpers(&trace, 4), build_helpers(17, 1));
+    assert_eq!(read_helpers(&trace, 5), build_helpers(17, 1));
     assert_eq!(read_helpers(&trace, 6), build_helpers(16, 0));
+    assert_eq!(read_helpers(&trace, 7), build_helpers(16, 0));
 }
 
 // HELPERS
