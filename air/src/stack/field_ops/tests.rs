@@ -1,7 +1,11 @@
 use super::{enforce_constraints, EvaluationFrame, NUM_CONSTRAINTS};
 use crate::stack::op_flags::{generate_evaluation_frame, OpFlags};
 use core::ops::Neg;
-use vm_core::{Felt, FieldElement, Operation, ONE, STACK_TRACE_OFFSET, ZERO};
+use rand_utils::rand_value;
+use vm_core::{
+    decoder::USER_OP_HELPERS_OFFSET, Felt, FieldElement, Operation, StarkField,
+    DECODER_TRACE_OFFSET, ONE, STACK_TRACE_OFFSET, ZERO,
+};
 
 use proptest::prelude::*;
 
@@ -9,6 +13,27 @@ use proptest::prelude::*;
 // ================================================================================================
 
 proptest! {
+
+    // -------------------------------- EQZ test --------------------------------------------------
+
+    #[test]
+    fn test_eqz_stack_operation(a in any::<u64>()) {
+        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+
+        // ----------------- top element is anything except 0 ------------------------------------
+        if a != 0 {
+            let frame = get_eqz_test_frame(a);
+            let result = get_constraint_evaluation(frame);
+            assert_eq!(expected, result);
+        }
+
+        // ----------------- top element is 0 -----------------------------------------------------
+        let a = 0;
+        let frame = get_eqz_test_frame(a);
+        let result = get_constraint_evaluation(frame);
+        assert_eq!(expected, result);
+    }
+
     // --------------------------------INCR test --------------------------------------------------
 
     #[test]
@@ -37,12 +62,52 @@ proptest! {
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
     }
+
+    // -------------------------------- ADD test --------------------------------------------------
+
+    #[test]
+    fn test_add_stack_operation(a in any::<u64>(), b in any::<u64>()) {
+        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let frame = get_add_test_frame(a, b);
+        let result = get_constraint_evaluation(frame);
+        assert_eq!(expected, result);
+    }
+
+    // -------------------------------- MUL test --------------------------------------------------
+
+    #[test]
+    fn test_mul_stack_operation(a in any::<u64>(), b in any::<u64>()) {
+        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let frame = get_mul_test_frame(a, b);
+        let result = get_constraint_evaluation(frame);
+        assert_eq!(expected, result);
+    }
+
+    // -------------------------------- EQ test --------------------------------------------------
+
+    #[test]
+    fn test_eq_stack_operation(a in any::<u64>(), b in any::<u64>()) {
+        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+
+        // ----------------- top two elements are not same ------------------------------------
+        if a != b {
+            let frame = get_eq_test_frame(a, b);
+            let result = get_constraint_evaluation(frame);
+            assert_eq!(expected, result);
+        }
+
+        // ----------------- top two elements are same -----------------------------------------------------
+        let b = a;
+        let frame = get_eq_test_frame(a, b);
+        let result = get_constraint_evaluation(frame);
+        assert_eq!(expected, result);
+    }
 }
 
 // UNIT TESTS
 // ================================================================================================
 
-// --------------------------------NOT test --------------------------------------------------
+// -------------------------------- NOT test --------------------------------------------------
 
 #[test]
 fn test_not_stack_operation() {
@@ -61,6 +126,82 @@ fn test_not_stack_operation() {
     assert_eq!(expected, result);
 }
 
+// -------------------------------- AND test --------------------------------------------------
+
+#[test]
+fn test_and_stack_operation() {
+    let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+
+    // ----------------- top elements are 0 and 0 -----------------------------------------------------
+    let a = ZERO;
+    let b = ZERO;
+    let frame = get_and_test_frame(a, b);
+    let result = get_constraint_evaluation(frame);
+    assert_eq!(expected, result);
+
+    // ----------------- top elements are 0 and 1 -----------------------------------------------------
+
+    let a = ZERO;
+    let b = ONE;
+    let frame = get_and_test_frame(a, b);
+    let result = get_constraint_evaluation(frame);
+    assert_eq!(expected, result);
+
+    // ----------------- top elements are 1 and 0 -----------------------------------------------------
+
+    let a = ONE;
+    let b = ZERO;
+    let frame = get_and_test_frame(a, b);
+    let result = get_constraint_evaluation(frame);
+    assert_eq!(expected, result);
+
+    // ----------------- top elements are 1 and 1 -----------------------------------------------------
+
+    let a = ONE;
+    let b = ONE;
+    let frame = get_and_test_frame(a, b);
+    let result = get_constraint_evaluation(frame);
+    assert_eq!(expected, result);
+}
+
+// -------------------------------- OR test --------------------------------------------------
+
+#[test]
+fn test_or_stack_operation() {
+    let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+
+    // ----------------- top elements are 0 and 0 -----------------------------------------------------
+    let a = ZERO;
+    let b = ZERO;
+    let frame = get_or_test_frame(a, b);
+    let result = get_constraint_evaluation(frame);
+    assert_eq!(expected, result);
+
+    // ----------------- top elements are 0 and 1 -----------------------------------------------------
+
+    let a = ZERO;
+    let b = ONE;
+    let frame = get_or_test_frame(a, b);
+    let result = get_constraint_evaluation(frame);
+    assert_eq!(expected, result);
+
+    // ----------------- top elements are 1 and 0 -----------------------------------------------------
+
+    let a = ONE;
+    let b = ZERO;
+    let frame = get_or_test_frame(a, b);
+    let result = get_constraint_evaluation(frame);
+    assert_eq!(expected, result);
+
+    // ----------------- top elements are 1 and 1 -----------------------------------------------------
+
+    let a = ONE;
+    let b = ONE;
+    let frame = get_or_test_frame(a, b);
+    let result = get_constraint_evaluation(frame);
+    assert_eq!(expected, result);
+}
+
 // TEST HELPERS
 // ================================================================================================
 
@@ -73,6 +214,31 @@ fn get_constraint_evaluation(frame: EvaluationFrame<Felt>) -> [Felt; NUM_CONSTRA
     enforce_constraints(&frame, &mut result, &op_flag);
 
     result
+}
+
+/// Generates the correct current and next rows for the EQZ operation and inputs and
+/// returns an EvaluationFrame for testing.
+pub fn get_eqz_test_frame(a: u64) -> EvaluationFrame<Felt> {
+    // frame initialised with a EQZ operation using it's unique opcode.
+    let mut frame = generate_evaluation_frame(Operation::Eqz.op_code() as usize);
+
+    // Set the output. First element in the next frame should be 1 if the first element
+    // in the current frame is 0 and 0 vice-versa.
+    match a {
+        0 => {
+            frame.current_mut()[STACK_TRACE_OFFSET] = ZERO;
+            frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] =
+                Felt::new(rand_value::<u64>());
+            frame.next_mut()[STACK_TRACE_OFFSET] = ONE;
+        }
+        _ => {
+            frame.current_mut()[STACK_TRACE_OFFSET] = Felt::new(a);
+            frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] = Felt::new(a).inv();
+            frame.next_mut()[STACK_TRACE_OFFSET] = ZERO;
+        }
+    }
+
+    frame
 }
 
 /// Generates the correct current and next rows for the INCR operation and inputs and
@@ -117,6 +283,63 @@ pub fn get_neg_test_frame(a: u64) -> EvaluationFrame<Felt> {
     frame
 }
 
+/// Generates the correct current and next rows for the ADD operation and inputs and
+/// returns an EvaluationFrame for testing.
+pub fn get_add_test_frame(a: u64, b: u64) -> EvaluationFrame<Felt> {
+    // frame initialised with a ADD operation using it's unique opcode.
+    let mut frame = generate_evaluation_frame(Operation::Add.op_code() as usize);
+
+    // Set the output. First element in the next frame should be the addition of
+    // the first two elements in the current frame.
+    frame.current_mut()[STACK_TRACE_OFFSET] = Felt::new(a);
+    frame.current_mut()[STACK_TRACE_OFFSET + 1] = Felt::new(b);
+    frame.next_mut()[STACK_TRACE_OFFSET] =
+        frame.current_mut()[STACK_TRACE_OFFSET] + frame.current_mut()[STACK_TRACE_OFFSET + 1];
+
+    frame
+}
+
+/// Generates the correct current and next rows for the MUL operation and inputs and
+/// returns an EvaluationFrame for testing.
+pub fn get_mul_test_frame(a: u64, b: u64) -> EvaluationFrame<Felt> {
+    // frame initialised with a MUL operation using it's unique opcode.
+    let mut frame = generate_evaluation_frame(Operation::Mul.op_code() as usize);
+
+    // Set the output. First element in the next frame should be the product of
+    // the first two elements in the current frame.
+    frame.current_mut()[STACK_TRACE_OFFSET] = Felt::new(a);
+    frame.current_mut()[STACK_TRACE_OFFSET + 1] = Felt::new(b);
+    frame.next_mut()[STACK_TRACE_OFFSET] =
+        frame.current_mut()[STACK_TRACE_OFFSET] * frame.current_mut()[STACK_TRACE_OFFSET + 1];
+
+    frame
+}
+
+/// Generates the correct current and next rows for the EQ operation and inputs and
+/// returns an EvaluationFrame for testing.
+pub fn get_eq_test_frame(a: u64, b: u64) -> EvaluationFrame<Felt> {
+    // frame initialised with a EQ operation using it's unique opcode.
+    let mut frame = generate_evaluation_frame(Operation::Eq.op_code() as usize);
+
+    // Set the output. First element in the next frame should be 1 if the first two elements
+    // in the current frame are equal and 0 otherwise.
+    if a == b {
+        frame.current_mut()[STACK_TRACE_OFFSET] = Felt::new(a);
+        frame.current_mut()[STACK_TRACE_OFFSET + 1] = Felt::new(b);
+        frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] =
+            Felt::new(rand_value::<u64>());
+        frame.next_mut()[STACK_TRACE_OFFSET] = ONE;
+    } else {
+        frame.current_mut()[STACK_TRACE_OFFSET] = Felt::new(a);
+        frame.current_mut()[STACK_TRACE_OFFSET + 1] = Felt::new(b);
+        frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] =
+            (Felt::new(a) - Felt::new(b)).inv();
+        frame.next_mut()[STACK_TRACE_OFFSET] = ZERO;
+    }
+
+    frame
+}
+
 /// Generates the correct current and next rows for the NOT operation and inputs and
 /// returns an EvaluationFrame for testing.
 pub fn get_not_test_frame(a: Felt) -> EvaluationFrame<Felt> {
@@ -127,6 +350,36 @@ pub fn get_not_test_frame(a: Felt) -> EvaluationFrame<Felt> {
     // the first element of the current frame.
     frame.current_mut()[STACK_TRACE_OFFSET] = a;
     frame.next_mut()[STACK_TRACE_OFFSET] = ONE - a;
+
+    frame
+}
+
+/// Generates the correct current and next rows for the AND operation and inputs and
+/// returns an EvaluationFrame for testing.
+pub fn get_and_test_frame(a: Felt, b: Felt) -> EvaluationFrame<Felt> {
+    // frame initialised with an AND operation using it's unique opcode.
+    let mut frame = generate_evaluation_frame(Operation::And.op_code() as usize);
+
+    // Set the output. First element in the next frame should be the binary and of
+    // the first two elements of the current frame.
+    frame.current_mut()[STACK_TRACE_OFFSET] = a;
+    frame.current_mut()[STACK_TRACE_OFFSET + 1] = b;
+    frame.next_mut()[STACK_TRACE_OFFSET] = Felt::new(a.as_int() & b.as_int());
+
+    frame
+}
+
+/// Generates the correct current and next rows for the OR operation and inputs and
+/// returns an EvaluationFrame for testing.
+pub fn get_or_test_frame(a: Felt, b: Felt) -> EvaluationFrame<Felt> {
+    // frame initialised with a OR operation using it's unique opcode.
+    let mut frame = generate_evaluation_frame(Operation::Or.op_code() as usize);
+
+    // Set the output. First element in the next frame should be the binary or of
+    // the first two elements of the current frame.
+    frame.current_mut()[STACK_TRACE_OFFSET] = a;
+    frame.current_mut()[STACK_TRACE_OFFSET + 1] = b;
+    frame.next_mut()[STACK_TRACE_OFFSET] = Felt::new(a.as_int() | b.as_int());
 
     frame
 }
