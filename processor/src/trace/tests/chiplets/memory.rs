@@ -2,8 +2,10 @@ use super::{
     build_trace_from_ops, rand_array, ExecutionTrace, Felt, FieldElement, Operation, Trace, Word,
     AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
 };
-use vm_core::chiplets::memory::{
-    ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, MEMORY_LABEL, NUM_ELEMENTS, U_COL_RANGE, V_COL_RANGE,
+use vm_core::chiplets::{
+    memory::{MEMORY_READ, MEMORY_WRITE, NUM_ELEMENTS},
+    MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX, MEMORY_SELECTOR_COL_IDX,
+    MEMORY_V_COL_RANGE,
 };
 
 /// Tests the generation of the `b_aux` bus column when only memory lookups are included. It ensures
@@ -50,7 +52,7 @@ fn b_aux_trace_mem() {
 
     // The first memory request from the stack is sent when the `MStoreW` operation is executed, at
     // cycle 1, so the request is included in the next row. (The trace begins by executing `span`).
-    let value = build_expected_memory(&rand_elements, ZERO, ZERO, Felt::new(1), [ZERO; 4], word);
+    let value = build_expected_memory(&rand_elements, MEMORY_WRITE, ZERO, ZERO, Felt::new(1), word);
     let mut expected = value.inv();
     assert_eq!(expected, b_aux[2]);
 
@@ -61,7 +63,7 @@ fn b_aux_trace_mem() {
 
     // The next memory request from the stack is sent when `MLoad` is executed at cycle 6 and
     // included at row 7
-    let value = build_expected_memory(&rand_elements, ZERO, ZERO, Felt::new(6), word, word);
+    let value = build_expected_memory(&rand_elements, MEMORY_READ, ZERO, ZERO, Felt::new(6), word);
     expected *= value.inv();
     assert_eq!(expected, b_aux[7]);
 
@@ -76,7 +78,7 @@ fn b_aux_trace_mem() {
     // to the four Memory operations.
 
     // At cycle 8 `MLoadW` is requested by the stack and `MStoreW` is provided by memory
-    let value = build_expected_memory(&rand_elements, ZERO, ZERO, Felt::new(8), word, word);
+    let value = build_expected_memory(&rand_elements, MEMORY_READ, ZERO, ZERO, Felt::new(8), word);
     expected *= value.inv();
     expected *= build_expected_memory_from_trace(&trace, &rand_elements, 8);
     assert_eq!(expected, b_aux[9]);
@@ -92,10 +94,10 @@ fn b_aux_trace_mem() {
     // At cycle 11, `MStore` is requested by the stack and provided by memory.
     let value = build_expected_memory(
         &rand_elements,
+        MEMORY_WRITE,
         ZERO,
         ONE,
         Felt::new(11),
-        [ZERO; 4],
         [ONE, ZERO, ZERO, ZERO],
     );
     expected *= value.inv();
@@ -122,40 +124,31 @@ fn b_aux_trace_mem() {
 
 fn build_expected_memory(
     alphas: &[Felt],
+    op: Felt,
     ctx: Felt,
     addr: Felt,
     clk: Felt,
-    old_word: Word,
-    new_word: Word,
+    word: Word,
 ) -> Felt {
-    let mut old_word_value = ZERO;
-    let mut new_word_value = ZERO;
+    let mut word_value = ZERO;
 
     for i in 0..NUM_ELEMENTS {
-        old_word_value += alphas[i + 5] * old_word[i];
-        new_word_value += alphas[i + 9] * new_word[i];
+        word_value += alphas[i + 9] * word[i];
     }
 
-    alphas[0]
-        + alphas[1] * MEMORY_LABEL
-        + alphas[2] * ctx
-        + alphas[3] * addr
-        + alphas[4] * clk
-        + old_word_value
-        + new_word_value
+    alphas[0] + alphas[1] * op + alphas[2] * ctx + alphas[3] * addr + alphas[4] * clk + word_value
 }
 
 fn build_expected_memory_from_trace(trace: &ExecutionTrace, alphas: &[Felt], row: usize) -> Felt {
-    let ctx = trace.main_trace.get_column(CTX_COL_IDX)[row];
-    let addr = trace.main_trace.get_column(ADDR_COL_IDX)[row];
-    let clk = trace.main_trace.get_column(CLK_COL_IDX)[row];
-    let mut old_word = [ZERO; NUM_ELEMENTS];
+    let op = trace.main_trace.get_column(MEMORY_SELECTOR_COL_IDX)[row];
+    let ctx = trace.main_trace.get_column(MEMORY_CTX_COL_IDX)[row];
+    let addr = trace.main_trace.get_column(MEMORY_ADDR_COL_IDX)[row];
+    let clk = trace.main_trace.get_column(MEMORY_CLK_COL_IDX)[row];
     let mut new_word = [ZERO; NUM_ELEMENTS];
 
-    for i in 0..NUM_ELEMENTS {
-        old_word[i] = trace.main_trace.get_column(U_COL_RANGE.start + i)[row];
-        new_word[i] = trace.main_trace.get_column(V_COL_RANGE.start + i)[row];
+    for (i, element) in new_word.iter_mut().enumerate() {
+        *element = trace.main_trace.get_column(MEMORY_V_COL_RANGE.start + i)[row];
     }
 
-    build_expected_memory(alphas, ctx, addr, clk, old_word, new_word)
+    build_expected_memory(alphas, op, ctx, addr, clk, new_word)
 }

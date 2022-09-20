@@ -6,7 +6,10 @@ use crate::{trace::LookupTableRow, ExecutionError};
 
 use vm_core::{
     chiplets::bitwise::{BITWISE_AND_LABEL, BITWISE_XOR_LABEL},
-    chiplets::hasher::{Digest, HasherState},
+    chiplets::{
+        hasher::{Digest, HasherState},
+        memory::{MEMORY_READ_LABEL, MEMORY_WRITE_LABEL},
+    },
     code_blocks::OpBatch,
 };
 
@@ -256,7 +259,7 @@ impl Chiplets {
         let value = self.memory.read(ctx, addr, self.clk);
 
         // send the memory read request to the bus
-        let memory_lookup = MemoryLookup::from_ints(ctx, addr, self.clk, value, value);
+        let memory_lookup = MemoryLookup::from_ints(MEMORY_READ_LABEL, ctx, addr, self.clk, value);
         self.bus.request_memory_operation(memory_lookup, self.clk);
 
         value
@@ -270,7 +273,7 @@ impl Chiplets {
         self.memory.write(ctx, addr, self.clk, word);
 
         // send the memory write request to the bus
-        let memory_lookup = MemoryLookup::from_ints(ctx, addr, self.clk, old_word, word);
+        let memory_lookup = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ctx, addr, self.clk, word);
         self.bus.request_memory_operation(memory_lookup, self.clk);
 
         old_word
@@ -287,7 +290,8 @@ impl Chiplets {
         self.memory.write(ctx, addr, self.clk, new_word);
 
         // send the memory write request to the bus
-        let memory_lookup = MemoryLookup::from_ints(ctx, addr, self.clk, old_word, new_word);
+        let memory_lookup =
+            MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ctx, addr, self.clk, new_word);
         self.bus.request_memory_operation(memory_lookup, self.clk);
 
         old_word

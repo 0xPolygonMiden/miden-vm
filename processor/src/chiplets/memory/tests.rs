@@ -1,6 +1,8 @@
 use super::{
     super::bus::{ChipletsLookup, ChipletsLookupRow},
-    ChipletsBus, Felt, FieldElement, Memory, MemoryLookup, StarkField, TraceFragment, ONE, ZERO,
+    ChipletsBus, Felt, FieldElement, Memory, MemoryLookup, StarkField, TraceFragment, ADDR_COL_IDX,
+    CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, MEMORY_READ_LABEL,
+    MEMORY_WRITE_LABEL, ONE, ZERO,
 };
 use vm_core::MEMORY_TRACE_WIDTH;
 
@@ -48,18 +50,18 @@ fn mem_read() {
 
     // address 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
-    let memory_access = MemoryLookup::from_ints(0, addr0, 1, [ZERO; 4], [ZERO; 4]);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr0, 1, [ZERO; 4]);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 0, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(0, addr0, 3, [ZERO; 4], [ZERO; 4]);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr0, 3, [ZERO; 4]);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 1, &memory_access, prev_row);
 
     // address 2
-    let memory_access = MemoryLookup::from_ints(0, addr2, 4, [ZERO; 4], [ZERO; 4]);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr2, 4, [ZERO; 4]);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 2, &memory_access, prev_row);
 
     // address 3
-    let memory_access = MemoryLookup::from_ints(0, addr3, 2, [ZERO; 4], [ZERO; 4]);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr3, 2, [ZERO; 4]);
     verify_memory_access(&trace, &chiplets_bus, 3, &memory_access, prev_row);
 }
 
@@ -104,18 +106,18 @@ fn mem_write() {
 
     // address 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
-    let memory_access = MemoryLookup::from_ints(0, addr0, 1, [ZERO; 4], value1);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr0, 1, value1);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 0, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(0, addr0, 4, value1, value9);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr0, 4, value9);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 1, &memory_access, prev_row);
 
     // address 1
-    let memory_access = MemoryLookup::from_ints(0, addr1, 3, [ZERO; 4], value7);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr1, 3, value7);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 2, &memory_access, prev_row);
 
     // address 2
-    let memory_access = MemoryLookup::from_ints(0, addr2, 2, [ZERO; 4], value5);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr2, 2, value5);
     verify_memory_access(&trace, &chiplets_bus, 3, &memory_access, prev_row);
 }
 
@@ -162,32 +164,32 @@ fn mem_write_read() {
 
     // address 2
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
-    let memory_access = MemoryLookup::from_ints(0, addr2, 2, [ZERO; 4], value4);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr2, 2, value4);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 0, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(0, addr2, 5, value4, value4);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr2, 5, value4);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 1, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(0, addr2, 6, value4, value7);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr2, 6, value7);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 2, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(0, addr2, 8, value7, value7);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr2, 8, value7);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 3, &memory_access, prev_row);
 
     // address 5
-    let memory_access = MemoryLookup::from_ints(0, addr5, 1, [ZERO; 4], value1);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr5, 1, value1);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 4, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(0, addr5, 3, value1, value1);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr5, 3, value1);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 5, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(0, addr5, 4, value1, value2);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, addr5, 4, value2);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 6, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(0, addr5, 7, value2, value2);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr5, 7, value2);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 7, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(0, addr5, 9, value2, value2);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, addr5, 9, value2);
     verify_memory_access(&trace, &chiplets_bus, 8, &memory_access, prev_row);
 }
 
@@ -232,21 +234,21 @@ fn mem_multi_context() {
 
     // ctx = 0, addr = 0
     let mut prev_row = [ZERO; MEMORY_TRACE_WIDTH];
-    let memory_access = MemoryLookup::from_ints(0, ZERO, 1, [ZERO; 4], value1);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 0, ZERO, 1, value1);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 0, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(0, ZERO, 9, value1, value1);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 0, ZERO, 9, value1);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 1, &memory_access, prev_row);
 
     // ctx = 3, addr = 0
-    let memory_access = MemoryLookup::from_ints(3, ZERO, 7, [ZERO; 4], value3);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 3, ZERO, 7, value3);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 2, &memory_access, prev_row);
 
     // ctx = 3, addr = 1
-    let memory_access = MemoryLookup::from_ints(3, ONE, 4, [ZERO; 4], value2);
+    let memory_access = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, 3, ONE, 4, value2);
     prev_row = verify_memory_access(&trace, &chiplets_bus, 3, &memory_access, prev_row);
 
-    let memory_access = MemoryLookup::from_ints(3, ONE, 6, value2, value2);
+    let memory_access = MemoryLookup::from_ints(MEMORY_READ_LABEL, 3, ONE, 6, value2);
     verify_memory_access(&trace, &chiplets_bus, 4, &memory_access, prev_row);
 }
 
@@ -314,39 +316,46 @@ fn build_trace_row(
     prev_row: [Felt; MEMORY_TRACE_WIDTH],
 ) -> [Felt; MEMORY_TRACE_WIDTH] {
     let MemoryLookup {
+        label,
         ctx,
         addr,
         clk,
-        old_word: old_val,
-        new_word: new_val,
+        word: new_val,
     } = *memory_access;
 
+    debug_assert!(
+        label == MEMORY_READ_LABEL || label == MEMORY_WRITE_LABEL,
+        "unrecognized memory operation label"
+    );
+
     let mut row = [ZERO; MEMORY_TRACE_WIDTH];
-    row[0] = ctx; // ctx
-    row[1] = addr;
-    row[2] = clk;
-    row[3] = old_val[0];
-    row[4] = old_val[1];
-    row[5] = old_val[2];
-    row[6] = old_val[3];
-    row[7] = new_val[0];
-    row[8] = new_val[1];
-    row[9] = new_val[2];
-    row[10] = new_val[3];
+    let op_selector = if label == MEMORY_READ_LABEL {
+        ZERO
+    } else {
+        ONE
+    };
+    row[0] = op_selector;
+    row[CTX_COL_IDX] = ctx;
+    row[ADDR_COL_IDX] = addr;
+    row[CLK_COL_IDX] = clk;
+    row[4] = new_val[0];
+    row[5] = new_val[1];
+    row[6] = new_val[2];
+    row[7] = new_val[3];
 
     if prev_row != [ZERO; MEMORY_TRACE_WIDTH] {
-        let delta = if row[0] != prev_row[0] {
-            row[0] - prev_row[0]
-        } else if row[1] != prev_row[1] {
-            row[1] - prev_row[1]
+        let delta = if row[CTX_COL_IDX] != prev_row[CTX_COL_IDX] {
+            row[CTX_COL_IDX] - prev_row[CTX_COL_IDX]
+        } else if row[ADDR_COL_IDX] != prev_row[ADDR_COL_IDX] {
+            row[ADDR_COL_IDX] - prev_row[ADDR_COL_IDX]
         } else {
-            row[2] - prev_row[2] - ONE
+            row[CLK_COL_IDX] - prev_row[CLK_COL_IDX] - ONE
         };
 
         let (hi, lo) = super::split_element_u32_into_u16(delta);
-        row[11] = lo;
-        row[12] = hi;
-        row[13] = delta.inv();
+        row[D0_COL_IDX] = lo;
+        row[D1_COL_IDX] = hi;
+        row[D_INV_COL_IDX] = delta.inv();
     }
 
     row
