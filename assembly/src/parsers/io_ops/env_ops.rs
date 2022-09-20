@@ -99,11 +99,7 @@ mod tests {
 
         // --- invalid env var --------------------------------------------------------------------
         let op_val_invalid = Token::new("invalid", pos);
-        let expected = AssemblyError::unexpected_token(&op_val_invalid, "sdepth");
-        assert_eq!(
-            parse_sdepth(&mut span_ops, &op_val_invalid).unwrap_err(),
-            expected
-        );
+        parse_sdepth(&mut span_ops, &op_val_invalid).unwrap_err();
     }
 
     #[test]
