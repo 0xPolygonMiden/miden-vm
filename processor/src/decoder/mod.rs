@@ -1,6 +1,6 @@
 use super::{
     Call, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation, Process, Span, Split,
-    StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
+    StarkField, Vec, Word, FMP_MIN, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
 use vm_core::{
     chiplets::hasher::DIGEST_LEN,
@@ -14,6 +14,9 @@ use vm_core::{
 
 mod trace;
 use trace::DecoderTrace;
+
+mod block_stack;
+use block_stack::{BlockInfo, BlockStack, BlockType};
 
 mod aux_hints;
 pub use aux_hints::{
@@ -147,11 +150,9 @@ impl Process {
         // entered the loop in the first place, the stack would have been popped when the LOOP
         // operation was executed.
         if pop_stack {
+            // make sure the condition at the top of the stack is set to ZERO
             #[cfg(debug_assertions)]
-            {
-                let condition = self.stack.peek();
-                debug_assert_eq!(ZERO, condition);
-            }
+            debug_assert_eq!(ZERO, self.stack.peek());
 
             self.execute_op(Operation::Drop)
         } else {
@@ -173,20 +174,37 @@ impl Process {
             .hash_control_block(fn_hash, [ZERO; 4], block.hash());
 
         // start decoding the CALL block; this appends a row with CALL operation to the decoder
-        // trace. when CALL operation is executed, the rest of the VM state does not change
-        self.decoder.start_call(fn_hash, addr);
+        // trace and records the state of execution context and free memory pointer in the block
+        // stack table. these will be used to restore ctx/fmp after the function returns.
+        let ctx = self.system.ctx();
+        let fmp = self.system.fmp();
+        self.decoder.start_call(fn_hash, addr, ctx, fmp);
+
+        // set the execution context to the current clock cycle + 1. This ensures that the context
+        // is globally unique as is never set to 0. also, reset the free memory pointer to min
+        // value
+        self.system.set_ctx(self.system.clk() + 1);
+        self.system.set_fmp(Felt::from(FMP_MIN));
+
+        // the rest of the VM state does not change
         self.execute_op(Operation::Noop)
     }
 
-    ///  Ends decoding of a CALL block.
+    /// Ends decoding of a CALL block.
     pub(super) fn end_call_block(&mut self, block: &Call) -> Result<(), ExecutionError> {
-        // this appends a row with END operation to the decoder trace. when END operation is
-        // executed the rest of the VM state does not change
-        self.decoder.end_control_block(block.hash().into());
+        // this appends a row with END operation to the decoder trace; the returned values contain
+        // execution context and free memory pointer prior to executing the CALL block
+        let (ctx, fmp) = self.decoder.end_control_block(block.hash().into());
 
         // send the end of control block to the chiplets bus to handle the final hash request.
         self.chiplets.read_hash_result();
 
+        // when returning from a function call, reset the context and the free memory pointer to
+        // what they were before the call
+        self.system.set_ctx(ctx);
+        self.system.set_fmp(fmp);
+
+        // the rest of the VM state does not change
         self.execute_op(Operation::Noop)
     }
 
@@ -295,7 +313,7 @@ impl Decoder {
     /// Returns an empty instance of [Decoder].
     pub fn new(in_debug_mode: bool) -> Self {
         Self {
-            block_stack: BlockStack::new(),
+            block_stack: BlockStack::default(),
             span_context: None,
             trace: DecoderTrace::new(),
             aux_hints: AuxTraceHints::new(),
@@ -442,12 +460,12 @@ impl Decoder {
     ///
     /// This pushes a block with ID=addr onto the block stack and appends execution of a CALL
     /// operation to the trace.
-    pub fn start_call(&mut self, fn_hash: Word, addr: Felt) {
+    pub fn start_call(&mut self, fn_hash: Word, addr: Felt, parent_ctx: u32, parent_fmp: Felt) {
         // get the current clock cycle here (before the trace table is updated)
         let clk = self.trace_len() as u32;
 
-        // append a CALL row to the execution trace
-        let parent_addr = self.block_stack.push(addr, BlockType::Call);
+        // push CALL block info onto the block stack and append a CALL row to the execution trace
+        let parent_addr = self.block_stack.push_call(addr, parent_ctx, parent_fmp);
         self.trace
             .append_block_start(parent_addr, Operation::Call, fn_hash, [ZERO; 4]);
 
@@ -463,24 +481,30 @@ impl Decoder {
     ///
     /// This appends an execution of an END operation to the trace. The top block on the block
     /// stack is also popped.
-    pub fn end_control_block(&mut self, block_hash: Word) {
+    ///
+    /// If the ended block is a CALL block, this method will return values to which execution
+    /// context and free memory pointers were set before the CALL block started executing. For
+    /// non-CALL blocks these values are set to zeros and should be ignored.
+    pub fn end_control_block(&mut self, block_hash: Word) -> (u32, Felt) {
         // get the current clock cycle here (before the trace table is updated)
-        let clk = self.trace_len();
+        let clk = self.trace_len() as u32;
 
-        // add an END row to the trace
+        // remove the block from the top of the block stack and add an END row to the trace
         let block_info = self.block_stack.pop();
         self.trace.append_block_end(
             block_info.addr,
             block_hash,
             block_info.is_loop_body(),
             block_info.is_entered_loop(),
+            block_info.is_call(),
         );
 
         // mark this cycle as the cycle at which block execution has ended
-        self.aux_hints
-            .block_ended(clk as u32, block_info.is_first_child);
+        self.aux_hints.block_ended(clk, block_info.is_first_child);
 
         self.debug_info.append_operation(Operation::End);
+
+        (block_info.parent_ctx, block_info.parent_fmp)
     }
 
     // SPAN BLOCK
@@ -682,153 +706,6 @@ impl Default for Decoder {
     }
 }
 
-// BLOCK STACK
-// ================================================================================================
-
-/// Keeps track of code blocks which are currently being executed by the VM.
-struct BlockStack {
-    blocks: Vec<BlockInfo>,
-}
-
-impl BlockStack {
-    /// Returns an empty [BlockStack].
-    pub fn new() -> Self {
-        Self { blocks: Vec::new() }
-    }
-
-    /// Pushes a new code block onto the block stack and returns the address of the block's parent.
-    ///
-    /// The block is identified by its address, and we also need to know what type of a block this
-    /// is. Other information (i.e., the block's parent, whether the block is a body of
-    /// a loop or a first child of a JOIN block) is determined from the information already on the
-    /// stack.
-    pub fn push(&mut self, addr: Felt, block_type: BlockType) -> Felt {
-        let (parent_addr, is_loop_body, is_first_child) = match self.blocks.last() {
-            Some(parent) => match parent.block_type {
-                // if the parent is a LOOP block, this block must be a loop body
-                BlockType::Loop(loop_entered) => {
-                    debug_assert!(loop_entered, "parent is un-entered loop");
-                    (parent.addr, true, false)
-                }
-                // if the parent is a JOIN block, figure out if this block is the first or the
-                // second child
-                BlockType::Join(first_child_executed) => {
-                    (parent.addr, false, !first_child_executed)
-                }
-                _ => (parent.addr, false, false),
-            },
-            // if the block has no parent, it is neither a body of a loop nor the first child of
-            // a JOIN block; also, we set the parent address to ZERO.
-            None => (ZERO, false, false),
-        };
-
-        self.blocks.push(BlockInfo {
-            addr,
-            block_type,
-            parent_addr,
-            is_loop_body,
-            is_first_child,
-        });
-        parent_addr
-    }
-
-    /// Removes a block from the top of the stack and returns it.
-    pub fn pop(&mut self) -> BlockInfo {
-        let block = self.blocks.pop().expect("block stack is empty");
-        // if the parent block is a JOIN block (i.e., we just finished executing a child of a JOIN
-        // block) and if the first_child_executed hasn't been set to true yet, set it to true
-        if let Some(parent) = self.blocks.last_mut() {
-            if let BlockType::Join(first_child_executed) = parent.block_type {
-                if !first_child_executed {
-                    parent.block_type = BlockType::Join(true);
-                }
-            }
-        }
-        block
-    }
-
-    /// Returns a reference to a block at the top of the stack.
-    pub fn peek(&self) -> &BlockInfo {
-        self.blocks.last().expect("block stack is empty")
-    }
-
-    /// Returns a mutable reference to a block at the top of the stack.
-    pub fn peek_mut(&mut self) -> &mut BlockInfo {
-        self.blocks.last_mut().expect("block stack is empty")
-    }
-}
-
-/// Contains basic information about a code block.
-#[derive(Debug, Clone, Copy)]
-pub struct BlockInfo {
-    addr: Felt,
-    block_type: BlockType,
-    parent_addr: Felt,
-    is_loop_body: bool,
-    is_first_child: bool,
-}
-
-impl BlockInfo {
-    /// Returns ONE if the this block is a LOOP block and the body of the loop was executed at
-    /// least once; otherwise, returns ZERO.
-    pub fn is_entered_loop(&self) -> Felt {
-        if self.block_type == BlockType::Loop(true) {
-            ONE
-        } else {
-            ZERO
-        }
-    }
-
-    /// Returns ONE if this block is a body of a LOOP block; otherwise returns ZERO.
-    pub fn is_loop_body(&self) -> Felt {
-        if self.is_loop_body {
-            ONE
-        } else {
-            ZERO
-        }
-    }
-
-    /// Returns ONE if this block is the first child of a JOIN block; otherwise returns ZERO.
-    #[allow(dead_code)]
-    pub fn is_first_child(&self) -> Felt {
-        if self.is_first_child {
-            ONE
-        } else {
-            ZERO
-        }
-    }
-}
-
-/// Specifies type of a code block with additional info for some block types.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BlockType {
-    Join(bool), // internal value set to true when the first child is fully executed
-    Split,
-    Loop(bool), // internal value set to false if the loop is never entered
-    Call,
-    Span,
-}
-
-impl BlockType {
-    /// Returns the number of children a block has. This is an integer between 0 and 2 (both
-    /// inclusive).
-    pub fn num_children(&self) -> u32 {
-        match self {
-            Self::Join(_) => 2,
-            Self::Split => 1,
-            Self::Loop(is_entered) => {
-                if *is_entered {
-                    1
-                } else {
-                    0
-                }
-            }
-            Self::Call => 1,
-            Self::Span => 0,
-        }
-    }
-}
-
 // SPAN CONTEXT
 // ================================================================================================
 
@@ -837,18 +714,10 @@ impl BlockType {
 ///   encoded as opcodes (7 bits) appended one after another into a single field element, with the
 ///   next operation to be executed located at the least significant position.
 /// - Number of operation groups left to be executed in the entire SPAN block.
+#[derive(Default)]
 struct SpanContext {
     group_ops_left: Felt,
     num_groups_left: Felt,
-}
-
-impl Default for SpanContext {
-    fn default() -> Self {
-        Self {
-            group_ops_left: ZERO,
-            num_groups_left: ZERO,
-        }
-    }
 }
 
 // HELPER FUNCTIONS

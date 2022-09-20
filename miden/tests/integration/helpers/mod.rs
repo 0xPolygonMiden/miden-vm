@@ -105,7 +105,7 @@ impl Test {
         process.execute(&program).unwrap();
 
         // validate the memory state
-        let mem_state = process.get_memory_value(mem_addr).unwrap();
+        let mem_state = process.get_memory_value(0, mem_addr).unwrap();
         let expected_mem: Vec<Felt> = expected_mem.iter().map(|&v| Felt::new(v)).collect();
         assert_eq!(expected_mem, mem_state);
 

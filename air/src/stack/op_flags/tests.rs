@@ -5,7 +5,7 @@ use super::{
     DEGREE_6_OPCODE_ENDS, DEGREE_6_OPCODE_STARTS, DEGREE_7_OPCODE_ENDS, DEGREE_7_OPCODE_STARTS,
     NUM_DEGREE_4_OPS, NUM_DEGREE_6_OPS, NUM_DEGREE_7_OPS,
 };
-use vm_core::{decoder::USER_OP_HELPERS_OFFSET, Operation, DECODER_TRACE_OFFSET, ONE, ZERO};
+use vm_core::{decoder::IS_LOOP_FLAG_COL_IDX, Operation, DECODER_TRACE_OFFSET, ONE, ZERO};
 
 /// Asserts the op flag to ONE for degree 7 operation which is being executed in the current
 /// frame; assert all the other operation flags to ZERO as they are not present in the current
@@ -13,7 +13,7 @@ use vm_core::{decoder::USER_OP_HELPERS_OFFSET, Operation, DECODER_TRACE_OFFSET, 
 #[test]
 fn degree_7_op_flags() {
     for i in DEGREE_7_OPCODE_STARTS..=DEGREE_7_OPCODE_ENDS {
-        // frame initialised with a degree 7 operation using it's unique opcode.
+        // frame initialized with a degree 7 operation using it's unique opcode.
         let frame = generate_evaluation_frame(i);
 
         // All the operation flags are generated for the given frame.
@@ -541,7 +541,7 @@ fn composite_flags() {
 
     // ----------------------------------- left shift -----------------------------------------------
 
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 4] = ONE;
+    frame.current_mut()[DECODER_TRACE_OFFSET + IS_LOOP_FLAG_COL_IDX] = ONE;
 
     // All the operation flags are generated for the given frame.
     let op_flags = OpFlags::new(&frame);

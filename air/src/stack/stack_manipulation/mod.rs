@@ -46,7 +46,7 @@ pub fn enforce_constraints<E: FieldElement>(
 ) -> usize {
     let mut index = 0;
 
-    // Enforce constaints of the SWAP operations.
+    // Enforce constraints of the SWAP operations.
     index += enforce_swap_constraints(frame, result, op_flag.swap());
 
     index

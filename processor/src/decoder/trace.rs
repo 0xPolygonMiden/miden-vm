@@ -127,7 +127,7 @@ impl DecoderTrace {
     /// - Set the block address to the specified address.
     /// - Set op_bits to END opcode.
     /// - Put the provided block hash into the first 4 elements of the hasher state.
-    /// - Set the remaining 4 elements of the hasher state to [is_loop_body, is_loop, 0, 0].
+    /// - Set the remaining 4 elements of the hasher state to [is_loop_body, is_loop, is_call, 0].
     /// - Set in_span to ZERO.
     /// - Copy over op group count from the previous row. This group count must be ZERO.
     /// - Set operation index register to ZERO.
@@ -138,6 +138,7 @@ impl DecoderTrace {
         block_hash: Word,
         is_loop_body: Felt,
         is_loop: Felt,
+        is_call: Felt,
     ) {
         debug_assert!(is_loop_body.as_int() <= 1, "invalid loop body");
         debug_assert!(is_loop.as_int() <= 1, "invalid is loop");
@@ -152,7 +153,7 @@ impl DecoderTrace {
 
         self.hasher_trace[4].push(is_loop_body);
         self.hasher_trace[5].push(is_loop);
-        self.hasher_trace[6].push(ZERO);
+        self.hasher_trace[6].push(is_call);
         self.hasher_trace[7].push(ZERO);
 
         self.in_span_trace.push(ZERO);
