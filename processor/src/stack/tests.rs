@@ -69,6 +69,9 @@ fn initialize_overflow() {
     assert_eq!(stack.overflow.all_rows(), expected_overflow_rows);
 }
 
+// SHIFT LEFT TEST
+// ================================================================================================
+
 #[test]
 fn shift_left() {
     let inputs = ProgramInputs::new(&[1, 2, 3, 4], &[], vec![]).unwrap();
@@ -120,6 +123,9 @@ fn shift_left() {
     assert_eq!(stack.helpers_state(), build_helpers_partial(0, 0));
 }
 
+// SHIFT RIGHT TEST
+// ================================================================================================
+
 #[test]
 fn shift_right() {
     let inputs = ProgramInputs::new(&[1, 2, 3, 4], &[], vec![]).unwrap();
@@ -156,6 +162,118 @@ fn shift_right() {
     assert_eq!(stack.helpers_state(), expected_helpers);
 }
 
+// CONTEXT MANAGEMENT TEST
+// ================================================================================================
+
+#[test]
+fn start_restore_context() {
+    let stack_init = (0..16).map(|v| v as u64 + 1).collect::<Vec<u64>>();
+    let inputs = ProgramInputs::new(&stack_init, &[], vec![]).unwrap();
+    let mut stack = Stack::new(&inputs, 8, false);
+
+    // ----- when overflow table is empty -------------------------------------
+
+    // make sure the first right shift is not executed at clk = 0
+    stack.copy_state(0);
+    stack.advance_clock();
+
+    // start context
+    stack.start_context();
+    stack.copy_state(0);
+    stack.advance_clock();
+    assert_eq!(16, stack.depth());
+
+    // stack depth shouldn't change
+    stack.shift_left(1);
+    stack.advance_clock();
+    assert_eq!(16, stack.depth());
+
+    // stack depth = 17
+    stack.shift_right(0);
+    stack.advance_clock();
+    assert_eq!(17, stack.depth());
+
+    // stack depth = 16
+    stack.shift_left(1);
+    stack.advance_clock();
+    assert_eq!(16, stack.depth());
+
+    // restore previous context
+    stack.restore_context(16, ZERO);
+    stack.copy_state(0);
+    stack.advance_clock();
+    assert_eq!(16, stack.depth());
+
+    // ----- when overflow table is not empty ---------------------------------
+    let stack_init = (0..16).map(|v| v as u64 + 1).collect::<Vec<u64>>();
+    let inputs = ProgramInputs::new(&stack_init, &[], vec![]).unwrap();
+    let mut stack = Stack::new(&inputs, 8, false);
+
+    let mut stack_state = stack_init;
+    stack_state.reverse();
+
+    // make sure the first right shift is not executed at clk = 0
+    stack.copy_state(0);
+    stack.advance_clock();
+
+    // shift the stack right, stack depth = 17
+    stack.shift_right(0);
+    stack.advance_clock();
+    assert_eq!(17, stack.depth());
+
+    stack_state.insert(0, 0);
+    assert_eq!(stack.trace_state(), build_stack(&stack_state[..16]));
+    assert_eq!(stack.helpers_state(), build_helpers_partial(1, 1));
+
+    // start context, depth gets reset to 16
+    let (ctx0_depth, ctx0_next_overflow_addr) = stack.start_context();
+    stack.copy_state(0);
+    stack.advance_clock();
+    assert_eq!(16, stack.depth());
+
+    assert_eq!(stack.trace_state(), build_stack(&stack_state[..16]));
+    assert_eq!(stack.helpers_state(), build_helpers_partial(0, 0));
+
+    // stack depth = 17
+    stack.shift_right(0);
+    stack.advance_clock();
+    assert_eq!(17, stack.depth());
+
+    stack_state.insert(0, 0);
+    assert_eq!(stack.trace_state(), build_stack(&stack_state[..16]));
+    assert_eq!(stack.helpers_state(), build_helpers_partial(1, 3));
+
+    // stack depth = 16
+    stack.shift_left(1);
+    stack.advance_clock();
+    assert_eq!(16, stack.depth());
+
+    stack_state.remove(0);
+    assert_eq!(stack.trace_state(), build_stack(&stack_state[..16]));
+    assert_eq!(stack.helpers_state(), build_helpers_partial(0, 0));
+
+    // restore previous context
+    stack.restore_context(17, ctx0_next_overflow_addr);
+    stack.copy_state(0);
+    stack.advance_clock();
+    assert_eq!(17, stack.depth());
+
+    assert_eq!(stack.trace_state(), build_stack(&stack_state[..16]));
+    assert_eq!(
+        stack.helpers_state(),
+        build_helpers_partial(ctx0_depth - 16, ctx0_next_overflow_addr.as_int() as usize)
+    );
+
+    // stack depth = 16
+    stack.shift_left(1);
+    stack.advance_clock();
+    assert_eq!(16, stack.depth());
+
+    stack_state.remove(0);
+    assert_eq!(stack.trace_state(), build_stack(&stack_state[..16]));
+    assert_eq!(stack.helpers_state(), build_helpers_partial(0, 0));
+}
+
 // TRACE GENERATION
 // ================================================================================================
 
@@ -164,47 +282,104 @@ fn generate_trace() {
     let inputs = ProgramInputs::new(&[1, 2, 3, 4], &[], vec![]).unwrap();
     let mut stack = Stack::new(&inputs, 16, false);
 
+    // clk = 0
     stack.copy_state(0);
     stack.advance_clock();
 
+    // clk = 1
     stack.shift_right(0);
     stack.advance_clock();
 
+    // clk = 2
     stack.shift_right(0);
     stack.advance_clock();
 
-    stack.shift_left(1);
-    stack.advance_clock();
-
+    // start new context, clk = 3
+    let (c0_depth, c0_overflow_addr) = stack.start_context();
     stack.copy_state(0);
     stack.advance_clock();
 
-    stack.shift_left(1);
+    // clk = 4
+    stack.shift_right(0);
     stack.advance_clock();
 
+    // clk = 5
     stack.copy_state(0);
     stack.advance_clock();
 
-    let trace = stack.into_trace(8, 1);
+    // clk = 6
+    stack.shift_left(1);
+    stack.advance_clock();
+
+    // restore previous context, clk = 7
+    stack.restore_context(c0_depth, c0_overflow_addr);
+    stack.copy_state(0);
+    stack.advance_clock();
+
+    // clk = 8
+    stack.shift_right(0);
+    stack.advance_clock();
+
+    // clk = 9
+    stack.copy_state(0);
+    stack.advance_clock();
+
+    // clk = 10
+    stack.shift_left(1);
+    stack.advance_clock();
+
+    // clk = 11
+    stack.shift_left(1);
+    stack.advance_clock();
+
+    // clk = 12
+    stack.shift_left(1);
+    stack.advance_clock();
+
+    let trace = stack.into_trace(16, 1);
     let trace = trace.trace;
 
     assert_eq!(read_stack_top(&trace, 0), build_stack(&[4, 3, 2, 1]));
     assert_eq!(read_stack_top(&trace, 1), build_stack(&[4, 3, 2, 1]));
     assert_eq!(read_stack_top(&trace, 2), build_stack(&[0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 3), build_stack(&[0, 0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 4), build_stack(&[0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 5), build_stack(&[0, 4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 6), build_stack(&[4, 3, 2, 1]));
-    assert_eq!(read_stack_top(&trace, 7), build_stack(&[4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 3), build_stack(&[0, 0, 4, 3, 2, 1])); // start context
+    assert_eq!(read_stack_top(&trace, 4), build_stack(&[0, 0, 4, 3, 2, 1]));
+    assert_eq!(
+        read_stack_top(&trace, 5),
+        build_stack(&[0, 0, 0, 4, 3, 2, 1])
+    );
+    assert_eq!(
+        read_stack_top(&trace, 6),
+        build_stack(&[0, 0, 0, 4, 3, 2, 1])
+    );
+    assert_eq!(read_stack_top(&trace, 7), build_stack(&[0, 0, 4, 3, 2, 1])); // restore context
+    assert_eq!(read_stack_top(&trace, 8), build_stack(&[0, 0, 4, 3, 2, 1]));
+    assert_eq!(
+        read_stack_top(&trace, 9),
+        build_stack(&[0, 0, 0, 4, 3, 2, 1])
+    );
+    assert_eq!(
+        read_stack_top(&trace, 10),
+        build_stack(&[0, 0, 0, 4, 3, 2, 1])
+    );
+    assert_eq!(read_stack_top(&trace, 11), build_stack(&[0, 0, 4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 12), build_stack(&[0, 4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 13), build_stack(&[4, 3, 2, 1]));
 
     assert_eq!(read_helpers(&trace, 0), build_helpers(16, 0));
     assert_eq!(read_helpers(&trace, 1), build_helpers(16, 0));
     assert_eq!(read_helpers(&trace, 2), build_helpers(17, 1));
-    assert_eq!(read_helpers(&trace, 3), build_helpers(18, 2));
-    assert_eq!(read_helpers(&trace, 4), build_helpers(17, 1));
-    assert_eq!(read_helpers(&trace, 5), build_helpers(17, 1));
-    assert_eq!(read_helpers(&trace, 6), build_helpers(16, 0));
-    assert_eq!(read_helpers(&trace, 7), build_helpers(16, 0));
+    assert_eq!(read_helpers(&trace, 3), build_helpers(18, 2)); // start context
+    assert_eq!(read_helpers(&trace, 4), build_helpers(16, 0));
+    assert_eq!(read_helpers(&trace, 5), build_helpers(17, 4));
+    assert_eq!(read_helpers(&trace, 6), build_helpers(17, 4));
+    assert_eq!(read_helpers(&trace, 7), build_helpers(16, 0)); // restore context
+    assert_eq!(read_helpers(&trace, 8), build_helpers(18, 2));
+    assert_eq!(read_helpers(&trace, 9), build_helpers(19, 8));
+    assert_eq!(read_helpers(&trace, 10), build_helpers(19, 8));
+    assert_eq!(read_helpers(&trace, 11), build_helpers(18, 2));
+    assert_eq!(read_helpers(&trace, 12), build_helpers(17, 1));
+    assert_eq!(read_helpers(&trace, 13), build_helpers(16, 0));
 }
 
 // HELPERS

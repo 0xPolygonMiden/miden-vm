@@ -234,16 +234,17 @@ impl Stack {
     // CONTEXT MANAGEMENT
     // --------------------------------------------------------------------------------------------
 
-    /// Starts a new execution context for this stack and returns the address of the overflow
-    /// table row prior to starting the new context.
+    /// Starts a new execution context for this stack and returns a tuple consisting of the current
+    /// stack depth and the address of the overflow table row prior to starting the new context.
     ///
     /// This has the effect of hiding the contents of the overflow table such that it appears as
     /// if the overflow table in the new context is empty.
-    pub fn start_context(&mut self) -> Felt {
+    pub fn start_context(&mut self) -> (usize, Felt) {
+        let current_depth = self.active_depth;
         let current_overflow_addr = self.overflow.last_row_addr();
         self.active_depth = STACK_TOP_SIZE;
         self.overflow.set_last_row_addr(ZERO);
-        current_overflow_addr
+        (current_depth, current_overflow_addr)
     }
 
     /// Restores the prior context for this stack.
@@ -251,6 +252,10 @@ impl Stack {
     /// This has the effect bringing back items previously hidden from the overflow table.
     pub fn restore_context(&mut self, stack_depth: usize, next_overflow_addr: Felt) {
         debug_assert!(stack_depth <= self.full_depth, "stack depth too big");
+        debug_assert_eq!(
+            self.active_depth, STACK_TOP_SIZE,
+            "overflow table not empty"
+        );
         self.active_depth = stack_depth;
         self.overflow.set_last_row_addr(next_overflow_addr);
     }
