@@ -1,4 +1,5 @@
 use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Process};
+use vm_core::{Operation, ZERO};
 
 // FIELD OPERATIONS
 // ================================================================================================
@@ -118,11 +119,22 @@ impl Process {
     pub(super) fn op_eq(&mut self) -> Result<(), ExecutionError> {
         let b = self.stack.get(0);
         let a = self.stack.get(1);
+
+        // helper variable provided by the prover. If top elements are same, then, it can be set to anything
+        // otherwise set it to the reciprocal of the difference between the top two elements.
+        let mut h0 = ZERO;
+
         if a == b {
             self.stack.set(0, Felt::ONE);
         } else {
             self.stack.set(0, Felt::ZERO);
+            // setting h0 to the inverse of the difference between the top two elements of the stack.
+            h0 = (b - a).inv();
         }
+
+        // save h0 in the decoder helper register.
+        self.decoder.set_user_op_helpers(Operation::Eq, &[h0]);
+
         self.stack.shift_left(2);
         Ok(())
     }
@@ -131,11 +143,22 @@ impl Process {
     /// onto the stack, otherwise pushes ZERO onto the stack.
     pub(super) fn op_eqz(&mut self) -> Result<(), ExecutionError> {
         let a = self.stack.get(0);
+
+        // helper variable provided by the prover. If the top element is zero, then, h0 can be set to anything
+        // otherwise set it to the inverse of the top element in the stack.
+        let mut h0 = ZERO;
+
         if a == Felt::ZERO {
             self.stack.set(0, Felt::ONE);
         } else {
+            // setting h0 to the inverse of the top element of the stack.
+            h0 = a.inv();
             self.stack.set(0, Felt::ZERO);
         }
+
+        // save h0 in the decoder helper register.
+        self.decoder.set_user_op_helpers(Operation::Eq, &[h0]);
+
         self.stack.copy_state(1);
         Ok(())
     }
@@ -151,7 +174,7 @@ mod tests {
         Process,
     };
     use rand_utils::rand_value;
-    use vm_core::MIN_STACK_DEPTH;
+    use vm_core::{ProgramInputs, MIN_STACK_DEPTH};
 
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -376,39 +399,40 @@ mod tests {
     #[test]
     fn op_eq() {
         // --- test when top two values are equal -----------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[3, 7, 7]);
+        let inputs = ProgramInputs::new(&[3, 7, 7], &[], (&[]).to_vec()).unwrap();
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
 
         process.execute_op(Operation::Eq).unwrap();
         let expected = build_expected(&[Felt::ONE, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test when top two values are not equal -------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[3, 5, 7]);
+        let inputs = ProgramInputs::new(&[3, 5, 7], &[], (&[]).to_vec()).unwrap();
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
 
         process.execute_op(Operation::Eq).unwrap();
         let expected = build_expected(&[Felt::ZERO, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- calling EQ with a stack of minimum depth is a ok ---------------
-        let mut process = Process::new_dummy();
+        let inputs = ProgramInputs::new(&[], &[], (&[]).to_vec()).unwrap();
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
         assert!(process.execute_op(Operation::Eq).is_ok());
     }
 
     #[test]
     fn op_eqz() {
         // --- test when top is zero ------------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[3, 0]);
+        let inputs = ProgramInputs::new(&[3, 0], &[], (&[]).to_vec()).unwrap();
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
 
         process.execute_op(Operation::Eqz).unwrap();
         let expected = build_expected(&[Felt::ONE, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test when top is not zero --------------------------------------
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[3, 4]);
+        let inputs = ProgramInputs::new(&[3, 4], &[], (&[]).to_vec()).unwrap();
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
 
         process.execute_op(Operation::Eqz).unwrap();
         let expected = build_expected(&[Felt::ZERO, Felt::new(3)]);
