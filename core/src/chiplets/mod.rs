@@ -1,6 +1,5 @@
 use super::{
-    utils::range as create_range, Felt, FieldElement, Word, CHIPLETS_OFFSET,
-    HASHER_AUX_TRACE_OFFSET,
+    utils::range as create_range, Felt, Word, CHIPLETS_OFFSET, HASHER_AUX_TRACE_OFFSET, ONE, ZERO,
 };
 use core::ops::Range;
 
@@ -25,7 +24,7 @@ pub const BITWISE_TRACE_OFFSET: usize = CHIPLETS_OFFSET + NUM_BITWISE_SELECTORS;
 /// The first column of the memory chiplet.
 pub const MEMORY_TRACE_OFFSET: usize = CHIPLETS_OFFSET + NUM_MEMORY_SELECTORS;
 
-// --- GLOBALLY-INDEXED CHIPLET COLUMN ACCESSORS --------------------------------------------------
+// --- GLOBALLY-INDEXED CHIPLET COLUMN ACCESSORS: HASHER ------------------------------------------
 
 /// The column index range in the execution trace containing the selector columns in the hasher.
 pub const HASHER_SELECTOR_COL_RANGE: Range<usize> =
@@ -39,6 +38,8 @@ pub const HASHER_STATE_COL_RANGE: Range<usize> = Range {
 };
 /// The index of the hasher's node index column in the execution trace.
 pub const HASHER_NODE_INDEX_COL_IDX: usize = HASHER_STATE_COL_RANGE.end;
+
+// --- GLOBALLY-INDEXED CHIPLET COLUMN ACCESSORS: BITWISE -----------------------------------------
 
 /// The index within the main trace of the bitwise column containing selector indicating the
 /// type of bitwise operation (AND or XOR)
