@@ -80,7 +80,7 @@ impl OverflowTable {
     pub fn push(&mut self, value: Felt, clk: u64) {
         // ZERO address indicates that the overflow table is empty, and thus, no actual value
         // should be inserted into the table with this address. This is not a problem since for
-        // every real program, we first execution an operation marking the start of a code block,
+        // every real program, we first execute an operation marking the start of a code block,
         // and thus, no operation can shift the stack to the right at clk = 0.
         debug_assert_ne!(clk, 0, "cannot add value to overflow at clk=0");
 
@@ -163,7 +163,7 @@ impl OverflowTable {
         self.last_row_addr
     }
 
-    /// Appends the top n values from the overflow table to the end of the provided vector.
+    /// Appends the values from the overflow table to the end of the provided vector.
     pub fn append_into(&self, target: &mut Vec<Felt>) {
         for &idx in self.active_rows.iter().rev() {
             target.push(self.all_rows[idx].val);

@@ -256,7 +256,7 @@ fn start_restore_context() {
     stack.restore_context(17, ctx0_next_overflow_addr);
     stack.copy_state(0);
     stack.advance_clock();
-    assert_eq!(17, stack.depth());
+    assert_eq!(ctx0_depth, stack.depth());
 
     assert_eq!(stack.trace_state(), build_stack(&stack_state[..16]));
     assert_eq!(

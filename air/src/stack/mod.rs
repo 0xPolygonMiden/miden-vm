@@ -276,7 +276,7 @@ where
     let mut value = E::ONE;
 
     // When the overflow table is non-empty, we expect at least 2 addresses (the `prev` value of
-    // the first row and the address value(s) of the row(s)) and more than MIN_STACK_DEPTH
+    // the first row and the address value(s) of the row(s)) and more than STACK_TOP_SIZE
     // elements in the stack.
     let mut prev = outputs.overflow_prev();
     for (clk, val) in outputs.stack_overflow() {

@@ -14,44 +14,55 @@ impl BlockStack {
     // --------------------------------------------------------------------------------------------
 
     /// Pushes a new code block onto the block stack and returns the address of the block's parent.
-    /// block_type can be anything except for CALL block.
     ///
     /// The block is identified by its address, and we also need to know what type of a block this
-    /// is. Other information (i.e., the block's parent, whether the block is a body of
-    /// a loop or a first child of a JOIN block) is determined from the information already on the
-    /// stack.
-    ///
-    /// For non-CALL blocks, we set parent context and free memory pointer to zero values.
-    ///
-    /// # Panics
-    /// Panics if the block type is a CALL block.
-    pub fn push(&mut self, addr: Felt, block_type: BlockType) -> Felt {
-        assert_ne!(block_type, BlockType::Call, "cannot be a call block");
-        let (parent_addr, is_loop_body, is_first_child) = self.get_new_block_context();
+    /// is. Additionally, for CALL blocks, execution context info must be provided. Other
+    /// information (i.e., the block's parent, whether the block is a body of a loop or a first
+    /// child of a JOIN block) is determined from the information already on the stack.
+    pub fn push(
+        &mut self,
+        addr: Felt,
+        block_type: BlockType,
+        ctx_info: Option<ExecutionContextInfo>,
+    ) -> Felt {
+        // make sure execution context was provided when expected
+        if block_type == BlockType::Call {
+            debug_assert!(
+                ctx_info.is_some(),
+                "no execution context provided for a CALL block"
+            );
+        } else {
+            debug_assert!(
+                ctx_info.is_none(),
+                "execution context provided for a non-CALL block"
+            );
+        }
+
+        // determine additional info about the new block based on its parent
+        let (parent_addr, is_loop_body, is_first_child) = match self.blocks.last() {
+            Some(parent) => match parent.block_type {
+                // if the parent block is a LOOP block, the new block must be a loop body
+                BlockType::Loop(loop_entered) => {
+                    debug_assert!(loop_entered, "parent is un-entered loop");
+                    (parent.addr, true, false)
+                }
+                // if the parent block is a JOIN block, figure out if the new block is the first
+                // or the second child
+                BlockType::Join(first_child_executed) => {
+                    (parent.addr, false, !first_child_executed)
+                }
+                _ => (parent.addr, false, false),
+            },
+            // if the block stack is empty, a new block is neither a body of a loop nor the first
+            // child of a JOIN block; also, we set the parent address to ZERO.
+            None => (ZERO, false, false),
+        };
+
         self.blocks.push(BlockInfo {
             addr,
             block_type,
             parent_addr,
-            parent_ctx: 0,
-            parent_fmp: ZERO,
-            is_loop_body,
-            is_first_child,
-        });
-        parent_addr
-    }
-
-    /// Pushes a new CALL block onto the block stack and returns the address of the block's parent.
-    ///
-    /// This is similar to pushing any other block onto the stack but unlike with all other blocks,
-    /// we initialize parent context and free memory pointer with the specified values.
-    pub fn push_call(&mut self, addr: Felt, parent_ctx: u32, parent_fmp: Felt) -> Felt {
-        let (parent_addr, is_loop_body, is_first_child) = self.get_new_block_context();
-        self.blocks.push(BlockInfo {
-            addr,
-            block_type: BlockType::Call,
-            parent_addr,
-            parent_ctx,
-            parent_fmp,
+            ctx_info,
             is_loop_body,
             is_first_child,
         });
@@ -82,37 +93,6 @@ impl BlockStack {
     pub fn peek_mut(&mut self) -> &mut BlockInfo {
         self.blocks.last_mut().expect("block stack is empty")
     }
-
-    // HELPER METHODS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns context information for a block which is about to be pushed onto the block stack.
-    ///
-    /// Context information consists of a tuple (parent_addr, is_loop_body, is_first_child), where:
-    /// - parent_addr is the address of the block currently at the top of the stack.
-    /// - is_loop_body is set to true if the newly added block will be a body of a loop.
-    /// - is_first_child is set to true if the newly added block will be a first child in the
-    ///   JOIN block.
-    fn get_new_block_context(&self) -> (Felt, bool, bool) {
-        match self.blocks.last() {
-            Some(parent) => match parent.block_type {
-                // if the current block is a LOOP block, the new block must be a loop body
-                BlockType::Loop(loop_entered) => {
-                    debug_assert!(loop_entered, "parent is un-entered loop");
-                    (parent.addr, true, false)
-                }
-                // if the current block is a JOIN block, figure out if the new block is the first
-                // or the second child
-                BlockType::Join(first_child_executed) => {
-                    (parent.addr, false, !first_child_executed)
-                }
-                _ => (parent.addr, false, false),
-            },
-            // if the block stack is empty, a new block is neither a body of a loop nor the first
-            // child of a JOIN block; also, we set the parent address to ZERO.
-            None => (ZERO, false, false),
-        }
-    }
 }
 
 // BLOCK INFO
@@ -124,8 +104,7 @@ pub struct BlockInfo {
     pub addr: Felt,
     block_type: BlockType,
     pub parent_addr: Felt,
-    pub parent_ctx: u32,
-    pub parent_fmp: Felt,
+    pub ctx_info: Option<ExecutionContextInfo>,
     pub is_loop_body: bool,
     pub is_first_child: bool,
 }
@@ -173,6 +152,40 @@ impl BlockInfo {
             }
             BlockType::Call => 1,
             BlockType::Span => 0,
+        }
+    }
+}
+
+// BLOCK CONTEXT INFO
+// ================================================================================================
+
+/// Contains information about an execution context. Execution contexts are relevant only for CALL
+/// blocks.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct ExecutionContextInfo {
+    /// Context ID of the block's parent.
+    pub parent_ctx: u32,
+    /// Value of free memory pointer right before a CALL instruction is executed.
+    pub parent_fmp: Felt,
+    /// Depth of the operand stack right before a CALL operation is executed.
+    pub parent_stack_depth: u32,
+    /// Address of the top row in the overflow table right before a CALL operations is executed.
+    pub parent_next_overflow_addr: Felt,
+}
+
+impl ExecutionContextInfo {
+    /// Returns an new [ExecutionContextInfo] instantiated with the specified parameters.
+    pub fn new(
+        parent_ctx: u32,
+        parent_fmp: Felt,
+        parent_stack_depth: u32,
+        parent_next_overflow_addr: Felt,
+    ) -> Self {
+        Self {
+            parent_ctx,
+            parent_fmp,
+            parent_stack_depth,
+            parent_next_overflow_addr,
         }
     }
 }

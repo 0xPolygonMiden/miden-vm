@@ -23,7 +23,7 @@ impl StackTrace {
     // --------------------------------------------------------------------------------------------
     /// Returns a [StackTrace] instantiated with the provided input values.
     ///
-    /// When fewer than `MIN_STACK_DEPTH` inputs are provided, the rest of the stack top elements
+    /// When fewer than `STACK_TOP_SIZE` inputs are provided, the rest of the stack top elements
     /// are set to ZERO. The initial stack depth and initial overflow address are used to
     /// initialize the bookkeeping columns so they are consistent with the initial state of the
     /// overflow table.

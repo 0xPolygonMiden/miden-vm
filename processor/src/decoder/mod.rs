@@ -9,6 +9,7 @@ use vm_core::{
         NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS,
         OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
     },
+    stack::STACK_TOP_SIZE,
     AssemblyOp,
 };
 
@@ -16,7 +17,7 @@ mod trace;
 use trace::DecoderTrace;
 
 mod block_stack;
-use block_stack::{BlockInfo, BlockStack, BlockType};
+use block_stack::{BlockInfo, BlockStack, BlockType, ExecutionContextInfo};
 
 mod aux_hints;
 pub use aux_hints::{
@@ -173,12 +174,21 @@ impl Process {
             .chiplets
             .hash_control_block(fn_hash, [ZERO; 4], block.hash());
 
+        // start new execution context for the operand stack. this has the effect of resetting
+        // stack depth to 16.
+        let (stack_depth, next_overflow_addr) = self.stack.start_context();
+        debug_assert!(stack_depth <= u32::MAX as usize, "stack depth too big");
+
         // start decoding the CALL block; this appends a row with CALL operation to the decoder
-        // trace and records the state of execution context and free memory pointer in the block
-        // stack table. these will be used to restore ctx/fmp after the function returns.
-        let ctx = self.system.ctx();
-        let fmp = self.system.fmp();
-        self.decoder.start_call(fn_hash, addr, ctx, fmp);
+        // trace and records information about the current execution context in the block stack
+        // table. this info will be used to restore the context after the function returns.
+        let ctx_info = ExecutionContextInfo::new(
+            self.system.ctx(),
+            self.system.fmp(),
+            stack_depth as u32,
+            next_overflow_addr,
+        );
+        self.decoder.start_call(fn_hash, addr, ctx_info);
 
         // set the execution context to the current clock cycle + 1. This ensures that the context
         // is globally unique as is never set to 0. also, reset the free memory pointer to min
@@ -192,17 +202,30 @@ impl Process {
 
     /// Ends decoding of a CALL block.
     pub(super) fn end_call_block(&mut self, block: &Call) -> Result<(), ExecutionError> {
-        // this appends a row with END operation to the decoder trace; the returned values contain
-        // execution context and free memory pointer prior to executing the CALL block
-        let (ctx, fmp) = self.decoder.end_control_block(block.hash().into());
+        // when a CALL block ends, stack depth must be exactly 16
+        let stack_depth = self.stack.depth();
+        if stack_depth > STACK_TOP_SIZE {
+            return Err(ExecutionError::InvalidStackDepthOnReturn(stack_depth));
+        }
+
+        // this appends a row with END operation to the decoder trace; the returned value contains
+        // information about the execution context prior to execution of the CALL block
+        let ctx_info = self
+            .decoder
+            .end_control_block(block.hash().into())
+            .expect("no execution context");
 
         // send the end of control block to the chiplets bus to handle the final hash request.
         self.chiplets.read_hash_result();
 
         // when returning from a function call, reset the context and the free memory pointer to
-        // what they were before the call
-        self.system.set_ctx(ctx);
-        self.system.set_fmp(fmp);
+        // what they were before the call, and restore the context of the operand stack.
+        self.system.set_ctx(ctx_info.parent_ctx);
+        self.system.set_fmp(ctx_info.parent_fmp);
+        self.stack.restore_context(
+            ctx_info.parent_stack_depth as usize,
+            ctx_info.parent_next_overflow_addr,
+        );
 
         // the rest of the VM state does not change
         self.execute_op(Operation::Noop)
@@ -359,7 +382,7 @@ impl Decoder {
         let clk = self.trace_len() as u32;
 
         // append a JOIN row to the execution trace
-        let parent_addr = self.block_stack.push(addr, BlockType::Join(false));
+        let parent_addr = self.block_stack.push(addr, BlockType::Join(false), None);
         self.trace
             .append_block_start(parent_addr, Operation::Join, child1_hash, child2_hash);
 
@@ -391,7 +414,7 @@ impl Decoder {
         let clk = self.trace_len() as u32;
 
         // append a SPLIT row to the execution trace
-        let parent_addr = self.block_stack.push(addr, BlockType::Split);
+        let parent_addr = self.block_stack.push(addr, BlockType::Split, None);
         self.trace
             .append_block_start(parent_addr, Operation::Split, child1_hash, child2_hash);
 
@@ -419,7 +442,9 @@ impl Decoder {
 
         // append a LOOP row to the execution trace
         let enter_loop = stack_top == ONE;
-        let parent_addr = self.block_stack.push(addr, BlockType::Loop(enter_loop));
+        let parent_addr = self
+            .block_stack
+            .push(addr, BlockType::Loop(enter_loop), None);
         self.trace
             .append_block_start(parent_addr, Operation::Loop, loop_body_hash, [ZERO; 4]);
 
@@ -460,12 +485,12 @@ impl Decoder {
     ///
     /// This pushes a block with ID=addr onto the block stack and appends execution of a CALL
     /// operation to the trace.
-    pub fn start_call(&mut self, fn_hash: Word, addr: Felt, parent_ctx: u32, parent_fmp: Felt) {
+    pub fn start_call(&mut self, fn_hash: Word, addr: Felt, ctx_info: ExecutionContextInfo) {
         // get the current clock cycle here (before the trace table is updated)
         let clk = self.trace_len() as u32;
 
         // push CALL block info onto the block stack and append a CALL row to the execution trace
-        let parent_addr = self.block_stack.push_call(addr, parent_ctx, parent_fmp);
+        let parent_addr = self.block_stack.push(addr, BlockType::Call, Some(ctx_info));
         self.trace
             .append_block_start(parent_addr, Operation::Call, fn_hash, [ZERO; 4]);
 
@@ -485,7 +510,7 @@ impl Decoder {
     /// If the ended block is a CALL block, this method will return values to which execution
     /// context and free memory pointers were set before the CALL block started executing. For
     /// non-CALL blocks these values are set to zeros and should be ignored.
-    pub fn end_control_block(&mut self, block_hash: Word) -> (u32, Felt) {
+    pub fn end_control_block(&mut self, block_hash: Word) -> Option<ExecutionContextInfo> {
         // get the current clock cycle here (before the trace table is updated)
         let clk = self.trace_len() as u32;
 
@@ -504,7 +529,7 @@ impl Decoder {
 
         self.debug_info.append_operation(Operation::End);
 
-        (block_info.parent_ctx, block_info.parent_fmp)
+        block_info.ctx_info
     }
 
     // SPAN BLOCK
@@ -513,7 +538,7 @@ impl Decoder {
     /// Starts decoding of a SPAN block defined by the specified operation batches.
     pub fn start_span(&mut self, first_op_batch: &OpBatch, num_op_groups: Felt, addr: Felt) {
         debug_assert!(self.span_context.is_none(), "already in span");
-        let parent_addr = self.block_stack.push(addr, BlockType::Span);
+        let parent_addr = self.block_stack.push(addr, BlockType::Span, None);
 
         // get the current clock cycle here (before the trace table is updated)
         let clk = self.trace_len() as u32;

@@ -382,7 +382,7 @@ mod tests {
     #[test]
     fn op_eq() {
         // --- test when top two values are equal -----------------------------
-        let inputs = ProgramInputs::new(&[3, 7, 7], &[], (&[]).to_vec()).unwrap();
+        let inputs = ProgramInputs::new(&[3, 7, 7], &[], vec![]).unwrap();
         let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
 
         process.execute_op(Operation::Eq).unwrap();
@@ -390,7 +390,7 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test when top two values are not equal -------------------------
-        let inputs = ProgramInputs::new(&[3, 5, 7], &[], (&[]).to_vec()).unwrap();
+        let inputs = ProgramInputs::new(&[3, 5, 7], &[], vec![]).unwrap();
         let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
 
         process.execute_op(Operation::Eq).unwrap();
@@ -398,7 +398,7 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // --- calling EQ with a stack of minimum depth is a ok ---------------
-        let inputs = ProgramInputs::new(&[], &[], (&[]).to_vec()).unwrap();
+        let inputs = ProgramInputs::new(&[], &[], vec![]).unwrap();
         let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
         assert!(process.execute_op(Operation::Eq).is_ok());
     }
@@ -406,7 +406,7 @@ mod tests {
     #[test]
     fn op_eqz() {
         // --- test when top is zero ------------------------------------------
-        let inputs = ProgramInputs::new(&[3, 0], &[], (&[]).to_vec()).unwrap();
+        let inputs = ProgramInputs::new(&[3, 0], &[], vec![]).unwrap();
         let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
 
         process.execute_op(Operation::Eqz).unwrap();
@@ -414,7 +414,7 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test when top is not zero --------------------------------------
-        let inputs = ProgramInputs::new(&[3, 4], &[], (&[]).to_vec()).unwrap();
+        let inputs = ProgramInputs::new(&[3, 4], &[], vec![]).unwrap();
         let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
 
         process.execute_op(Operation::Eqz).unwrap();
