@@ -3,6 +3,7 @@ use super::{
 };
 use core::cmp;
 use vm_core::stack::STACK_TOP_SIZE;
+use vm_core::Word;
 
 mod trace;
 use trace::StackTrace;
@@ -153,6 +154,13 @@ impl Stack {
     pub fn get(&self, pos: usize) -> Felt {
         debug_assert!(pos < STACK_TOP_SIZE, "stack underflow");
         self.trace.get_stack_value_at(self.clk, pos)
+    }
+
+    /// Returns four values located at the top of the stack. The word is created in reverse order,
+    /// so that the top element of the stack will be at the last position in the word. Creating a
+    /// word does not change the state of the stack.
+    pub fn get_top_word(&self) -> Word {
+        [self.get(3), self.get(2), self.get(1), self.get(0)]
     }
 
     /// Sets the value at the specified position on the stack at the next clock cycle.

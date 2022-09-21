@@ -1,4 +1,4 @@
-use super::{AdviceSetError, CodeBlock, Digest, Felt};
+use super::{AdviceSetError, CodeBlock, Digest, Felt, Word};
 use winterfell::ProverError;
 
 // EXECUTION ERROR
@@ -6,6 +6,7 @@ use winterfell::ProverError;
 
 #[derive(Debug)]
 pub enum ExecutionError {
+    AdviceKeyNotFound(Word),
     AdviceSetLookupFailed(AdviceSetError),
     AdviceSetNotFound([u8; 32]),
     AdviceSetUpdateFailed(AdviceSetError),

@@ -28,6 +28,7 @@ impl Process {
         match injector {
             AdviceInjector::MerkleNode => self.inject_merkle_node(),
             AdviceInjector::DivResultU64 => self.inject_div_result_u64(),
+            AdviceInjector::MapValue => self.inject_map_value(),
         }
     }
 
@@ -104,6 +105,19 @@ impl Process {
         self.advice.write_tape(r_lo);
         self.advice.write_tape(q_hi);
         self.advice.write_tape(q_lo);
+
+        Ok(())
+    }
+
+    /// Injects a list of field elements at the front of the advice tape. The list is looked up in
+    /// the key-value map maintained by the advice provider using the top 4 elements on the stack
+    /// as the key.
+    ///
+    /// # Errors
+    /// Returns an error if the required key was not found in the key-value map.
+    fn inject_map_value(&mut self) -> Result<(), ExecutionError> {
+        let top_word = self.stack.get_top_word();
+        self.advice.write_tape_from_map(top_word)?;
 
         Ok(())
     }
