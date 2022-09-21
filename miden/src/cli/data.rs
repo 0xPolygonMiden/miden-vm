@@ -14,6 +14,7 @@ use winter_utils::{Deserializable, SliceReader};
 #[derive(Deserialize, Debug)]
 pub struct InputFile {
     pub stack_init: Vec<String>,
+    pub advice_tape: Option<Vec<String>>,
 }
 
 /// Helper methods to interact with the input file
@@ -24,6 +25,7 @@ impl InputFile {
         if !inputs_path.is_some() && !program_path.with_extension("inputs").exists() {
             return Ok(Self {
                 stack_init: Vec::new(),
+                advice_tape: Some(Vec::new()),
             });
         }
 
@@ -47,14 +49,24 @@ impl InputFile {
         Ok(inputs)
     }
 
-    // TODO add handling of advice provider inputs
+    /// Returns program inputs.
     pub fn get_program_inputs(&self) -> ProgramInputs {
-        ProgramInputs::from_stack_inputs(&self.stack_init()).unwrap()
+        ProgramInputs::new(&self.stack_init(), &self.advice_tape(), Vec::new()).unwrap()
     }
 
     /// Parse stack_init vector of strings to a vector of u64
     pub fn stack_init(&self) -> Vec<u64> {
         self.stack_init
+            .iter()
+            .map(|v| v.parse::<u64>().unwrap())
+            .collect::<Vec<u64>>()
+    }
+
+    /// Parse advice_tape vector of strings to a vector of u64
+    pub fn advice_tape(&self) -> Vec<u64> {
+        self.advice_tape
+            .as_ref()
+            .unwrap_or(&vec![])
             .iter()
             .map(|v| v.parse::<u64>().unwrap())
             .collect::<Vec<u64>>()
