@@ -61,34 +61,35 @@ pub const NUM_STACK_HELPER_COLS: usize = 3;
 // ------------------------------------------------------------------------------------------------
 
 //      system          decoder           stack      range checks       chiplets
-//    (2 columns)     (23 columns)    (19 columns)    (4 columns)     (18 columns)
+//    (3 columns)     (23 columns)    (19 columns)    (4 columns)     (18 columns)
 // ├───────────────┴───────────────┴───────────────┴───────────────┴─────────────────┤
 
 pub const SYS_TRACE_OFFSET: usize = 0;
-pub const SYS_TRACE_WIDTH: usize = 2;
+pub const SYS_TRACE_WIDTH: usize = 3;
 pub const SYS_TRACE_RANGE: Range<usize> = range(SYS_TRACE_OFFSET, SYS_TRACE_WIDTH);
 
 pub const CLK_COL_IDX: usize = SYS_TRACE_OFFSET;
 pub const FMP_COL_IDX: usize = SYS_TRACE_OFFSET + 1;
+pub const CTX_COL_IDX: usize = SYS_TRACE_OFFSET + 2;
 
 // decoder trace
-pub const DECODER_TRACE_OFFSET: usize = SYS_TRACE_OFFSET + SYS_TRACE_WIDTH;
+pub const DECODER_TRACE_OFFSET: usize = SYS_TRACE_RANGE.end;
 pub const DECODER_TRACE_WIDTH: usize = 23;
 pub const DECODER_TRACE_RANGE: Range<usize> = range(DECODER_TRACE_OFFSET, DECODER_TRACE_WIDTH);
 
 // Stack trace
-pub const STACK_TRACE_OFFSET: usize = DECODER_TRACE_OFFSET + DECODER_TRACE_WIDTH;
+pub const STACK_TRACE_OFFSET: usize = DECODER_TRACE_RANGE.end;
 pub const STACK_TRACE_WIDTH: usize = MIN_STACK_DEPTH + NUM_STACK_HELPER_COLS;
 pub const STACK_TRACE_RANGE: Range<usize> = range(STACK_TRACE_OFFSET, STACK_TRACE_WIDTH);
 
 // Range check trace
-pub const RANGE_CHECK_TRACE_OFFSET: usize = STACK_TRACE_OFFSET + STACK_TRACE_WIDTH;
+pub const RANGE_CHECK_TRACE_OFFSET: usize = STACK_TRACE_RANGE.end;
 pub const RANGE_CHECK_TRACE_WIDTH: usize = 4;
 pub const RANGE_CHECK_TRACE_RANGE: Range<usize> =
     range(RANGE_CHECK_TRACE_OFFSET, RANGE_CHECK_TRACE_WIDTH);
 
 // Chiplets trace
-pub const CHIPLETS_OFFSET: usize = RANGE_CHECK_TRACE_OFFSET + RANGE_CHECK_TRACE_WIDTH;
+pub const CHIPLETS_OFFSET: usize = RANGE_CHECK_TRACE_RANGE.end;
 pub const CHIPLETS_WIDTH: usize = 18;
 pub const CHIPLETS_RANGE: Range<usize> = range(CHIPLETS_OFFSET, CHIPLETS_WIDTH);
 

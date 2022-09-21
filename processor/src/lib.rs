@@ -393,8 +393,9 @@ impl Process {
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
-    pub fn get_memory_value(&self, addr: u64) -> Option<Word> {
-        self.chiplets.get_mem_value(addr)
+
+    pub fn get_memory_value(&self, ctx: u32, addr: u64) -> Option<Word> {
+        self.chiplets.get_mem_value(ctx, addr)
     }
 
     pub fn to_components(self) -> (System, Decoder, Stack, RangeChecker, Chiplets) {

@@ -4,7 +4,8 @@ use super::{
 };
 use crate::utils::are_equal;
 use vm_core::{
-    utils::collections::Vec, ProgramOutputs, StarkField, FMP_COL_IDX, STACK_AUX_TRACE_OFFSET,
+    decoder::USER_OP_HELPERS_OFFSET, utils::collections::Vec, ProgramOutputs, StarkField,
+    DECODER_TRACE_OFFSET, FMP_COL_IDX, STACK_AUX_TRACE_OFFSET,
 };
 
 pub mod field_ops;
@@ -103,17 +104,14 @@ pub fn enforce_unique_constraints<E: FieldElement>(
 
     // system operations transition constraints.
     system_ops::enforce_constraints(frame, result, op_flag);
-
     constraint_offset += system_ops::get_transition_constraint_count();
 
     // field operations transition constraints.
     field_ops::enforce_constraints(frame, &mut result[constraint_offset..], op_flag);
-
     constraint_offset += field_ops::get_transition_constraint_count();
 
     // stack manipulation operations transition constraints.
     stack_manipulation::enforce_constraints(frame, &mut result[constraint_offset..], op_flag);
-
     constraint_offset += stack_manipulation::get_transition_constraint_count();
 
     constraint_offset
@@ -305,6 +303,10 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn stack_item_next(&self, index: usize) -> E;
     /// Gets the current element of the fmp register in the trace.
     fn fmp(&self) -> E;
+    /// Gets the next element of the fmp register in the trace.
+    fn fmp_next(&self) -> E;
+    /// Gets the current value of user op helper register located at the specified index.
+    fn user_op_helper(&self, index: usize) -> E;
 }
 
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
@@ -323,5 +325,13 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     #[inline(always)]
     fn fmp(&self) -> E {
         self.current()[FMP_COL_IDX]
+    }
+    #[inline(always)]
+    fn fmp_next(&self) -> E {
+        self.next()[FMP_COL_IDX]
+    }
+    #[inline(always)]
+    fn user_op_helper(&self, index: usize) -> E {
+        self.current()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + index]
     }
 }

@@ -1,7 +1,7 @@
 use super::EvaluationFrame;
 use crate::utils::binary_not;
 use vm_core::{
-    decoder::{NUM_OP_BITS, OP_BITS_RANGE, OP_BIT_EXTRA_COL_IDX, USER_OP_HELPERS_OFFSET},
+    decoder::{IS_LOOP_FLAG_COL_IDX, NUM_OP_BITS, OP_BITS_RANGE, OP_BIT_EXTRA_COL_IDX},
     Felt, FieldElement, Operation, DECODER_TRACE_OFFSET, ONE, TRACE_WIDTH, ZERO,
 };
 
@@ -229,6 +229,7 @@ impl<E: FieldElement> OpFlags<E> {
             + degree6_op_flags[13]
             + degree4_op_flags[6]
             + degree4_op_flags[7]
+            + degree4_op_flags[3]
             + degree4_op_flags[4] * binary_not(frame.is_loop());
 
         no_shift_flags[1] = no_shift_flags[0] + no_change_1_flag;
@@ -330,7 +331,7 @@ impl<E: FieldElement> OpFlags<E> {
             f010 + add3_madd_flag + split_loop_flag + degree4_op_flags[5] + shift_left_on_end;
 
         // Flag if the current operation being executed is a control flow operation.
-        let control_flow = f111 + f1011;
+        let control_flow = f111 + f1011 + degree4_op_flags[3];
 
         Self {
             degree7_op_flags,
@@ -905,7 +906,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 
     #[inline]
     fn is_loop(&self) -> E {
-        self.current()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 4]
+        self.current()[DECODER_TRACE_OFFSET + IS_LOOP_FLAG_COL_IDX]
     }
 }
 
@@ -934,7 +935,7 @@ pub const fn get_right_shift(idx: usize) -> usize {
 }
 
 /// Accepts an integer which is a unique representation of an operation and returns
-/// a trace constaining the op bits of the operation.
+/// a trace containing the op bits of the operation.
 pub fn generate_evaluation_frame(opcode: usize) -> EvaluationFrame<Felt> {
     let operation_bit_array = get_op_bits(opcode);
 

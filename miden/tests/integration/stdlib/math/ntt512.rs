@@ -25,11 +25,14 @@ fn generate_random_test_script() -> String {
 
         input_instructions.push_str(&format!("push.{}.{}.{}.{}\n", v3, v2, v1, v0));
         input_instructions.push_str("dup.4\n");
-        input_instructions.push_str("popw.mem\n");
+        input_instructions.push_str("mem_storew\n");
+        input_instructions.push_str("dropw\n");
         input_instructions.push_str("add.1\n\n");
 
         test_instructions.push_str("dup\n");
-        test_instructions.push_str("pushw.mem\n");
+        test_instructions.push_str("push.0.0.0.0\n");
+        test_instructions.push_str("movup.4\n");
+        test_instructions.push_str("mem_loadw\n");
         test_instructions.push_str(&format!("push.{}\n", v0));
         test_instructions.push_str("assert_eq\n");
         test_instructions.push_str(&format!("push.{}\n", v1));
@@ -48,7 +51,7 @@ fn generate_random_test_script() -> String {
     proc.wrapper.128
         # prepare input vector
         
-        push.env.locaddr.127
+        locaddr.127
 
         {}
 
@@ -57,7 +60,7 @@ fn generate_random_test_script() -> String {
         # place starting absolute memory addresses on stack, where input vector is kept,
         # next addresses are computable using `add.1` instruction.
 
-        push.env.locaddr.127
+        locaddr.127
 
         exec.ntt512::forward  # apply forward NTT
         exec.ntt512::backward # apply inverse NTT

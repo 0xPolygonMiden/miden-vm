@@ -25,19 +25,23 @@ pub const MODULES: [(&str, &str); 9] = [
 proc.initialize
     push.0xA54FF53A.0x3C6EF372.0xBB67AE85.0x6A09E667
     movup.4
-    popw.mem
+    mem_storew
+    dropw
 
     push.0x5BE0CD19.0x1F83D9AB.0x9B05688C.0x510E527F
     movup.4
-    popw.mem
+    mem_storew
+    dropw
 
     push.0xA54FF53A.0x3C6EF372.0xBB67AE85.0x6A09E667
     movup.4
-    popw.mem
+    mem_storew
+    dropw
 
     push.11.64.0.0
     movup.4
-    popw.mem
+    mem_storew
+    dropw
 end
 
 # Permutes ordered message words, kept on stack top ( = sixteen 32 -bit BLAKE3 words )
@@ -157,12 +161,14 @@ proc.columnar_mixing.1
     movup.5
     movup.4
 
-    storew.local.0
+    loc_storew.0
 
     movup.9
-    loadw.mem
+    mem_loadw
     movup.8
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.8
     dup.5
@@ -191,7 +197,9 @@ proc.columnar_mixing.1
     movdn.3
 
     movup.9
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.4
     u32checked_xor
@@ -216,7 +224,9 @@ proc.columnar_mixing.1
     movdn.3
 
     movup.12
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.4
     u32wrapping_add
@@ -261,7 +271,8 @@ proc.columnar_mixing.1
     movdn.3
 
     movupw.3
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.0
     swapw
 
     movup.4
@@ -389,12 +400,14 @@ proc.diagonal_mixing.1
     movup.5
     movup.4
 
-    storew.local.0
+    loc_storew.0
 
     movup.9
-    loadw.mem
+    mem_loadw
     movup.8
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.8
     dup.6
@@ -423,7 +436,9 @@ proc.diagonal_mixing.1
     movdn.3
 
     movup.9
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.3
     dup.4
@@ -448,7 +463,9 @@ proc.diagonal_mixing.1
     movdn.2
 
     movup.12
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     dup.7
@@ -493,7 +510,8 @@ proc.diagonal_mixing.1
     u32unchecked_rotr.12
 
     movupw.3
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.0
     swapw
 
     movup.4
@@ -616,33 +634,40 @@ end
 # i.e. mixed state matrix lives in memory addresses {state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr}, 
 # which were provided, on stack top, while invoking this routine.
 proc.round.5
-    storew.local.0
+    loc_storew.0
 
     exec.columnar_mixing
 
-    popw.local.1
-    popw.local.2
-    popw.local.3
-    popw.local.4
+    loc_storew.1
+    dropw
+    loc_storew.2
+    dropw
+    loc_storew.3
+    dropw
+    loc_storew.4
+    dropw
 
-    push.env.locaddr.4
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
+    locaddr.4
+    locaddr.3
+    locaddr.2
+    locaddr.1
 
     exec.diagonal_mixing
 
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.0
     swapw
     movup.4
-    popw.mem
+    mem_storew
+    dropw
 
     repeat.3
         push.0
         movdn.3
         swapw
         movup.4
-        popw.mem
+        mem_storew
+        dropw
     end
 
     repeat.3
@@ -672,7 +697,8 @@ end
 # which were provided, on stack top, while invoking this routine. So updated state matrix can be read by caller routine, by reading
 # the content of memory addresses where state was provided as routine input.
 proc.compress.1
-    popw.local.0
+    loc_storew.0
+    dropw
 
     # apply first 6 rounds of mixing
     repeat.6
@@ -681,13 +707,15 @@ proc.compress.1
             dupw.3
         end
 
-        pushw.local.0
+        push.0.0.0.0
+        loc_loadw.0
         exec.round
         exec.permute_msg_words
     end
 
     # round 7 ( last round, so no message word permutation required )
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.0
     exec.round
 end
 
@@ -705,10 +733,10 @@ end
 #
 # dig`i` -> 32 -bit digest word | i ∈ [0, 8)
 export.hash.4
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
+    locaddr.3
+    locaddr.2
+    locaddr.1
+    locaddr.0
 
     exec.initialize
 
@@ -716,17 +744,21 @@ export.hash.4
     # block ( = 64 -bytes ) because what we're doing here is 2-to-1 hashing i.e. 64 -bytes 
     # input being converted to 32 -bytes output
 
-    push.env.locaddr.3
-    push.env.locaddr.2
-    push.env.locaddr.1
-    push.env.locaddr.0
+    locaddr.3
+    locaddr.2
+    locaddr.1
+    locaddr.0
 
     exec.compress
 
-    pushw.local.3
-    pushw.local.2
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.3
+    push.0.0.0.0
+    loc_loadw.2
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
 
     exec.finalize
 end
@@ -751,14 +783,17 @@ end
 # Consecutive memory addresses can be computed by repeated application of `sub.1`.
 proc.theta.3
     dup
-    push.env.locaddr.0
-    pop.mem
+    locaddr.0
+    mem_store
+    drop
 
     # compute (S[0] ^ S[10] ^ S[20] ^ S[30] ^ S[40], S[1] ^ S[11] ^ S[21] ^ S[31] ^ S[41])
 
     # bring S[0], S[1]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -770,7 +805,9 @@ proc.theta.3
 
     # bring S[10], S[11]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -790,7 +827,9 @@ proc.theta.3
 
     # bring S[20], S[21]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -812,7 +851,9 @@ proc.theta.3
 
     # bring S[30], S[31]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -831,7 +872,9 @@ proc.theta.3
     sub.3
 
     # bring S[40], S[41]
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -851,12 +894,14 @@ proc.theta.3
     # stack = [c0, c1]
     # compute (S[2] ^ S[12] ^ S[22] ^ S[32] ^ S[42], S[3] ^ S[13] ^ S[23] ^ S[33] ^ S[43])
 
-    push.env.locaddr.0
-    push.mem
+    locaddr.0
+    mem_load
     
     # bring S[2], S[3]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -866,7 +911,9 @@ proc.theta.3
 
     # bring S[12], S[13]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -888,7 +935,9 @@ proc.theta.3
 
     # bring S[22], S[23]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -908,7 +957,9 @@ proc.theta.3
 
     # bring S[32], S[33]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -929,7 +980,9 @@ proc.theta.3
     sub.2
 
     # bring S[42], S[43]
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -949,18 +1002,21 @@ proc.theta.3
 
     # stack = [c0, c1, c2, c3]
 
-    push.env.locaddr.1
-    popw.mem
+    locaddr.1
+    mem_storew
+    dropw
 
     # compute (S[4] ^ S[14] ^ S[24] ^ S[34] ^ S[44], S[5] ^ S[15] ^ S[25] ^ S[35] ^ S[45])
 
-    push.env.locaddr.0
-    push.mem
+    locaddr.0
+    mem_load
     sub.1
 
     # bring S[4], S[5]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -972,7 +1028,9 @@ proc.theta.3
 
     # bring S[14], S[15]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -992,7 +1050,9 @@ proc.theta.3
 
     # bring S[24], S[25]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -1014,7 +1074,9 @@ proc.theta.3
 
     # bring S[34], S[35]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -1033,7 +1095,9 @@ proc.theta.3
     sub.3
 
     # bring S[44], S[45]
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -1053,13 +1117,15 @@ proc.theta.3
     # stack = [c4, c5]
     # compute (S[6] ^ S[16] ^ S[26] ^ S[36] ^ S[46], S[7] ^ S[17] ^ S[27] ^ S[37] ^ S[47])
 
-    push.env.locaddr.0
-    push.mem
+    locaddr.0
+    mem_load
     sub.1
     
     # bring S[6], S[7]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -1069,7 +1135,9 @@ proc.theta.3
 
     # bring S[16], S[17]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -1091,7 +1159,9 @@ proc.theta.3
 
     # bring S[26], S[27]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -1111,7 +1181,9 @@ proc.theta.3
 
     # bring S[36], S[37]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -1132,7 +1204,9 @@ proc.theta.3
     sub.2
 
     # bring S[46], S[47]
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -1152,18 +1226,21 @@ proc.theta.3
 
     # stack = [c4, c5, c6, c7]
 
-    push.env.locaddr.2
-    popw.mem
+    locaddr.2
+    mem_storew
+    dropw
 
     # compute (S[8] ^ S[18] ^ S[28] ^ S[38] ^ S[48], S[9] ^ S[19] ^ S[29] ^ S[39] ^ S[49])
 
-    push.env.locaddr.0
-    push.mem
+    locaddr.0
+    mem_load
     sub.2
 
     # bring S[8], S[9]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -1175,7 +1252,9 @@ proc.theta.3
 
     # bring S[18], S[19]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -1195,7 +1274,9 @@ proc.theta.3
 
     # bring S[28], S[29]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -1217,7 +1298,9 @@ proc.theta.3
 
     # bring S[38], S[39]
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -1236,7 +1319,9 @@ proc.theta.3
     sub.3
 
     # bring S[48], S[49]
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -1255,10 +1340,14 @@ proc.theta.3
 
     # stack = [c8, c9]
 
-    push.env.locaddr.2
-    pushw.mem
-    push.env.locaddr.1
-    pushw.mem
+    locaddr.2
+    push.0.0.0.0
+    movup.4
+    mem_loadw
+    locaddr.1
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     # stack = [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9]
 
@@ -1321,13 +1410,15 @@ proc.theta.3
 
     # stack = [d0, d1, d2, d3, d4, d5, d6, d7, d8, d9]
 
-    push.env.locaddr.0
-    push.mem
+    locaddr.0
+    mem_load
 
     # compute state[0..4)
 
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.5
     u32checked_xor
@@ -1348,14 +1439,17 @@ proc.theta.3
     movdn.3
 
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     # compute state[4..8)
 
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.9
     u32checked_xor
@@ -1376,14 +1470,17 @@ proc.theta.3
     movdn.3
 
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     # compute state[8..12)
 
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.13
     u32checked_xor
@@ -1404,14 +1501,17 @@ proc.theta.3
     movdn.3
 
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     # compute state[12..16)
 
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.7
     u32checked_xor
@@ -1432,14 +1532,17 @@ proc.theta.3
     movdn.3
 
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     # compute state[16..20)
 
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.11
     u32checked_xor
@@ -1460,14 +1563,17 @@ proc.theta.3
     movdn.3
 
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     # compute state[20..24)
 
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.5
     u32checked_xor
@@ -1488,14 +1594,17 @@ proc.theta.3
     movdn.3
 
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     # compute state[24..28)
 
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.9
     u32checked_xor
@@ -1516,14 +1625,17 @@ proc.theta.3
     movdn.3
 
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     # compute state[28..32)
 
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.13
     u32checked_xor
@@ -1544,14 +1656,17 @@ proc.theta.3
     movdn.3
 
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     # compute state[32..36)
 
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.7
     u32checked_xor
@@ -1572,14 +1687,17 @@ proc.theta.3
     movdn.3
 
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     # compute state[36..40)
 
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.11
     u32checked_xor
@@ -1600,14 +1718,17 @@ proc.theta.3
     movdn.3
 
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     # compute state[40..44)
 
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.5
     u32checked_xor
@@ -1628,14 +1749,17 @@ proc.theta.3
     movdn.3
 
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     # compute state[44..48)
 
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.5
     u32checked_xor
@@ -1656,14 +1780,17 @@ proc.theta.3
     movdn.3
 
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     # compute state[48..50)
 
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.5
     u32checked_xor
@@ -1674,7 +1801,8 @@ proc.theta.3
     swap
 
     movup.4
-    popw.mem
+    mem_storew
+    dropw
 end
 
 # Keccak-p[1600, 24] permutation's ρ step mapping function, which is implemented 
@@ -1696,13 +1824,14 @@ end
 # Consecutive memory addresses can be computed by repeated application of `sub.1`.
 proc.rho.1
     dup
-    push.env.locaddr.0
-    pop.mem
+    locaddr.0
+    mem_store
+    drop
 
     # rotate state[0..4)
     push.0.0.0.0
     dup.4
-    loadw.mem
+    mem_loadw
 
     movup.3
     u32unchecked_rotl.1
@@ -1712,11 +1841,11 @@ proc.rho.1
     dup
     sub.1
     movdn.5
-    storew.mem
+    mem_storew
 
     # rotate state[4..8)
     dup.4
-    loadw.mem
+    mem_loadw
 
     u32unchecked_rotl.31
     swap
@@ -1734,11 +1863,11 @@ proc.rho.1
     dup
     sub.1
     movdn.5
-    storew.mem
+    mem_storew
 
     # rotate state[8..12)
     dup.4
-    loadw.mem
+    mem_loadw
 
     u32unchecked_rotl.13
     swap
@@ -1755,11 +1884,11 @@ proc.rho.1
     dup
     sub.1
     movdn.5
-    storew.mem
+    mem_storew
 
     # rotate state[12..16)
     dup.4
-    loadw.mem
+    mem_loadw
 
     u32unchecked_rotl.22
     swap
@@ -1777,11 +1906,11 @@ proc.rho.1
     dup
     sub.1
     movdn.5
-    storew.mem
+    mem_storew
 
     # rotate state[16..20)
     dup.4
-    loadw.mem
+    mem_loadw
 
     u32unchecked_rotl.27
     swap
@@ -1798,11 +1927,11 @@ proc.rho.1
     dup
     sub.1
     movdn.5
-    storew.mem
+    mem_storew
 
     # rotate state[20..24)
     dup.4
-    loadw.mem
+    mem_loadw
 
     u32unchecked_rotl.1
     swap
@@ -1819,11 +1948,11 @@ proc.rho.1
     dup
     sub.1
     movdn.5
-    storew.mem
+    mem_storew
 
     # rotate state[24..28)
     dup.4
-    loadw.mem
+    mem_loadw
 
     u32unchecked_rotl.21
     swap
@@ -1840,11 +1969,11 @@ proc.rho.1
     dup
     sub.1
     movdn.5
-    storew.mem
+    mem_storew
 
     # rotate state[28..32)
     dup.4
-    loadw.mem
+    mem_loadw
 
     u32unchecked_rotl.19
     swap
@@ -1861,11 +1990,11 @@ proc.rho.1
     dup
     sub.1
     movdn.5
-    storew.mem
+    mem_storew
      
     # rotate state[32..36)
     dup.4
-    loadw.mem
+    mem_loadw
 
     u32unchecked_rotl.22
     swap
@@ -1882,11 +2011,11 @@ proc.rho.1
     dup
     sub.1
     movdn.5
-    storew.mem
+    mem_storew
 
     # rotate state[36..40)
     dup.4
-    loadw.mem
+    mem_loadw
 
     u32unchecked_rotl.10
     swap
@@ -1903,11 +2032,11 @@ proc.rho.1
     dup
     sub.1
     movdn.5
-    storew.mem
+    mem_storew
 
     # rotate state[40..44)
     dup.4
-    loadw.mem
+    mem_loadw
     
     u32unchecked_rotl.9
     swap
@@ -1925,11 +2054,11 @@ proc.rho.1
     dup
     sub.1
     movdn.5
-    storew.mem
+    mem_storew
 
     # rotate state[44..48)
     dup.4
-    loadw.mem
+    mem_loadw
 
     u32unchecked_rotl.30
     swap
@@ -1946,11 +2075,11 @@ proc.rho.1
     dup
     sub.1
     movdn.5
-    storew.mem
+    mem_storew
 
     # rotate state[48..50)
     dup.4
-    loadw.mem
+    mem_loadw
 
     u32unchecked_rotl.7
     swap
@@ -1958,7 +2087,8 @@ proc.rho.1
     swap
 
     movup.4
-    popw.mem
+    mem_storew
+    dropw
 end
 
 # Keccak-p[1600, 24] permutation's π step mapping function, which is implemented 
@@ -1980,23 +2110,24 @@ end
 # Consecutive memory addresses can be computed by repeated application of `sub.1`.
 proc.pi.14
     dup
-    push.env.locaddr.0
-    pop.mem
+    locaddr.0
+    mem_store
+    drop
 
-    push.env.locaddr.1
+    locaddr.1
     swap
     push.0.0.0.0
 
     # place state[0..4) to desired location(s)
     dup.4
-    loadw.mem
+    mem_loadw
 
     push.0.0
     movdn.3
     movdn.3
 
     dup.7
-    storew.mem
+    mem_storew
 
     drop
     drop
@@ -2005,7 +2136,7 @@ proc.pi.14
 
     dup.5
     sub.5
-    storew.mem
+    mem_storew
 
     # place state[4..8) to desired location(s)
     movup.4
@@ -2013,7 +2144,7 @@ proc.pi.14
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     push.0.0
     movdn.3
@@ -2021,14 +2152,14 @@ proc.pi.14
 
     dup.7
     sub.10
-    storew.mem
+    mem_storew
 
     drop
     drop
 
     dup.5
     sub.2
-    storew.mem
+    mem_storew
 
     # place state[8..12) to desired location(s)
     movup.4
@@ -2036,13 +2167,13 @@ proc.pi.14
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     push.0.0
 
     dup.7
     sub.7
-    storew.mem
+    mem_storew
 
     movup.2
     drop
@@ -2054,7 +2185,7 @@ proc.pi.14
 
     dup.5
     sub.8
-    storew.mem
+    mem_storew
 
     # place state[12..16) to desired location(s)
     movup.4
@@ -2062,10 +2193,12 @@ proc.pi.14
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     dup.5
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -2073,11 +2206,11 @@ proc.pi.14
     drop
 
     dup.7
-    storew.mem
+    mem_storew
 
     dup.7
     sub.5
-    loadw.mem
+    mem_loadw
 
     movup.2
     drop
@@ -2086,7 +2219,7 @@ proc.pi.14
 
     dup.5
     sub.5
-    storew.mem
+    mem_storew
 
     # place state[16..20) to desired location(s)
     movup.4
@@ -2094,11 +2227,13 @@ proc.pi.14
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     dup.5
     sub.10
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -2107,12 +2242,9 @@ proc.pi.14
 
     dup.7
     sub.10
-    storew.mem
+    mem_storew
 
-    drop
-    drop
-    drop
-    drop
+    dropw
 
     push.0.0
     movdn.3
@@ -2120,7 +2252,7 @@ proc.pi.14
 
     dup.5
     sub.3
-    storew.mem
+    mem_storew
 
     # place state[20..24) to desired location(s)
     movup.4
@@ -2128,11 +2260,13 @@ proc.pi.14
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     dup.5
     sub.3
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -2141,11 +2275,11 @@ proc.pi.14
 
     dup.7
     sub.3
-    storew.mem
+    mem_storew
 
     dup.7
     sub.8
-    loadw.mem
+    mem_loadw
 
     movup.2
     drop
@@ -2154,7 +2288,7 @@ proc.pi.14
 
     dup.5
     sub.8
-    storew.mem
+    mem_storew
 
     # place state[24..28) to desired location(s)
     movup.4
@@ -2162,7 +2296,7 @@ proc.pi.14
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     push.0.0
     movdn.3
@@ -2170,7 +2304,7 @@ proc.pi.14
 
     dup.7
     sub.1
-    storew.mem
+    mem_storew
 
     drop
     drop
@@ -2179,7 +2313,7 @@ proc.pi.14
 
     dup.5
     sub.6
-    storew.mem
+    mem_storew
 
     # place state[28..32) to desired location(s)
     movup.4
@@ -2187,11 +2321,11 @@ proc.pi.14
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     dup.5
     sub.11
-    storew.mem
+    mem_storew
 
     # place state[32..36) to desired location(s)
     movup.4
@@ -2199,7 +2333,7 @@ proc.pi.14
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     push.0.0
     movdn.3
@@ -2207,7 +2341,7 @@ proc.pi.14
 
     dup.7
     sub.4
-    storew.mem
+    mem_storew
 
     drop
     drop
@@ -2216,7 +2350,7 @@ proc.pi.14
 
     dup.5
     sub.9
-    storew.mem
+    mem_storew
 
     # place state[36..40) to desired location(s)
     movup.4
@@ -2224,11 +2358,13 @@ proc.pi.14
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     dup.5
     sub.1
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -2237,11 +2373,11 @@ proc.pi.14
 
     dup.7
     sub.1
-    storew.mem
+    mem_storew
 
     dup.7
     sub.6
-    loadw.mem
+    mem_loadw
 
     movup.2
     drop
@@ -2250,7 +2386,7 @@ proc.pi.14
 
     dup.5
     sub.6
-    storew.mem
+    mem_storew
 
     # place state[40..44) to desired location(s)
     movup.4
@@ -2258,11 +2394,13 @@ proc.pi.14
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     dup.5
     sub.7
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -2271,12 +2409,9 @@ proc.pi.14
 
     dup.7
     sub.7
-    storew.mem
+    mem_storew
 
-    drop
-    drop
-    drop
-    drop
+    dropw
 
     push.0.0
     movdn.3
@@ -2284,7 +2419,7 @@ proc.pi.14
 
     dup.5
     sub.12
-    storew.mem
+    mem_storew
 
     # place state[44..48) to desired location(s)
     movup.4
@@ -2292,11 +2427,13 @@ proc.pi.14
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     dup.5
     sub.4
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -2305,11 +2442,11 @@ proc.pi.14
 
     dup.7
     sub.4
-    storew.mem
+    mem_storew
 
     dup.7
     sub.9
-    loadw.mem
+    mem_loadw
 
     movup.2
     drop
@@ -2318,7 +2455,7 @@ proc.pi.14
 
     dup.5
     sub.9
-    storew.mem
+    mem_storew
 
     # place state[48..50) to desired location(s)
     movup.4
@@ -2326,11 +2463,13 @@ proc.pi.14
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     dup.5
     sub.2
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -2339,7 +2478,7 @@ proc.pi.14
 
     dup.7
     sub.2
-    storew.mem
+    mem_storew
 
     drop
     drop
@@ -2347,16 +2486,16 @@ proc.pi.14
     # memcpy
     movup.4
     drop
-    push.env.locaddr.0
-    push.mem
+    locaddr.0
+    mem_load
     movdn.4
 
     repeat.13
         dup.5
-        loadw.mem
+        mem_loadw
 
         dup.4
-        storew.mem
+        mem_storew
 
         movup.4
         sub.1
@@ -2391,12 +2530,15 @@ end
 # Consecutive memory addresses can be computed by repeated application of `sub.1`.
 proc.chi.4
     dup
-    push.env.locaddr.0
-    pop.mem
+    locaddr.0
+    mem_store
+    drop
 
     # process state[0..10)
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     drop
     drop
@@ -2411,7 +2553,9 @@ proc.chi.4
     dup
     movdn.3
 
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.1
     dup.1
@@ -2441,11 +2585,11 @@ proc.chi.4
     movup.3
     movup.3
 
-    push.env.locaddr.1
-    storew.mem
+    locaddr.1
+    mem_storew
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     drop
     drop
@@ -2460,7 +2604,9 @@ proc.chi.4
     dup
     movdn.3
 
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -2482,7 +2628,9 @@ proc.chi.4
 
     movup.4
     add.2
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.5
     u32checked_not
@@ -2499,8 +2647,9 @@ proc.chi.4
     movup.7
     movup.7
 
-    push.env.locaddr.2
-    popw.mem
+    locaddr.2
+    mem_storew
+    dropw
 
     u32checked_not
     swap
@@ -2514,16 +2663,18 @@ proc.chi.4
     u32checked_and
     swap
 
-    push.env.locaddr.0
-    push.mem
+    locaddr.0
+    mem_load
 
     push.0.0.0.0
 
     dup.4
-    loadw.mem
+    mem_loadw
 
-    push.env.locaddr.1
-    pushw.mem
+    locaddr.1
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.4
     u32checked_xor
@@ -2544,17 +2695,19 @@ proc.chi.4
     movdn.3
 
     dup.4
-    storew.mem
+    mem_storew
 
     movup.4
     sub.1
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
-    push.env.locaddr.2
-    pushw.mem
+    locaddr.2
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.4
     u32checked_xor
@@ -2575,14 +2728,14 @@ proc.chi.4
     movdn.3
 
     dup.4
-    storew.mem
+    mem_storew
 
     movup.4
     sub.1
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     movup.5
     u32checked_xor
@@ -2592,7 +2745,7 @@ proc.chi.4
     swap
 
     dup.4
-    storew.mem
+    mem_storew
 
     # process state[10..20)
     movup.4
@@ -2600,7 +2753,7 @@ proc.chi.4
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     u32checked_not
     swap
@@ -2618,15 +2771,15 @@ proc.chi.4
     swap
 
     push.0.0
-    push.env.locaddr.1
-    storew.mem
+    locaddr.1
+    mem_storew
 
     movup.6
     sub.1
     dup
     movdn.7
 
-    loadw.mem
+    mem_loadw
 
     movup.5
     movup.5
@@ -2661,15 +2814,15 @@ proc.chi.4
     movup.3
     movup.3
 
-    push.env.locaddr.2
-    storew.mem
+    locaddr.2
+    mem_storew
 
     movup.6
     add.2
     dup
     movdn.7
 
-    loadw.mem
+    mem_loadw
 
     drop
     drop
@@ -2695,7 +2848,9 @@ proc.chi.4
 
     movup.4
     sub.1
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -2720,18 +2875,19 @@ proc.chi.4
     movup.3
     movup.3
 
-    push.env.locaddr.3
-    storew.mem
+    locaddr.3
+    mem_storew
 
-    push.env.locaddr.0
-    push.mem
+    locaddr.0
+    mem_load
     sub.2
     dup
     movdn.5
 
-    loadw.mem
+    mem_loadw
 
-    pushw.local.1
+    push.0.0.0.0
+    loc_loadw.1
 
     movup.4
     u32checked_xor
@@ -2752,16 +2908,17 @@ proc.chi.4
     movdn.3
 
     dup.4
-    storew.mem
+    mem_storew
 
     movup.4
     sub.1
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
-    pushw.local.2
+    push.0.0.0.0
+    loc_loadw.2
     
     movup.4
     u32checked_xor
@@ -2782,16 +2939,17 @@ proc.chi.4
     movdn.3
 
     dup.4
-    storew.mem
+    mem_storew
 
     movup.4
     sub.1
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
-    pushw.local.3
+    push.0.0.0.0
+    loc_loadw.3
     
     movup.4
     u32checked_xor
@@ -2812,7 +2970,7 @@ proc.chi.4
     movdn.3
 
     dup.4
-    storew.mem
+    mem_storew
 
     # process state[20..30)
     movup.4
@@ -2820,7 +2978,7 @@ proc.chi.4
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     drop
     drop
@@ -2835,7 +2993,9 @@ proc.chi.4
     movdn.2
 
     dup.2
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     dup.1
     dup.1
@@ -2865,14 +3025,14 @@ proc.chi.4
     movup.3
     movup.3
 
-    storew.local.1
+    loc_storew.1
 
     movup.6
     sub.1
     movdn.6
 
     dup.6
-    loadw.mem
+    mem_loadw
 
     movup.2
     drop
@@ -2902,7 +3062,9 @@ proc.chi.4
     movdn.4
 
     dup.4
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.7
     movup.7
@@ -2925,7 +3087,8 @@ proc.chi.4
     movup.7
     movup.7
 
-    popw.local.2
+    loc_storew.2
+    dropw
 
     u32checked_not
     swap
@@ -2943,12 +3106,13 @@ proc.chi.4
     movdn.3
     movdn.3
 
-    storew.local.3
+    loc_storew.3
 
     dup.4
-    loadw.mem
+    mem_loadw
 
-    pushw.local.1
+    push.0.0.0.0
+    loc_loadw.1
 
     movup.4
     u32checked_xor
@@ -2969,16 +3133,17 @@ proc.chi.4
     movdn.3
 
     dup.4
-    storew.mem
+    mem_storew
 
     movup.4
     sub.1
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
-    pushw.local.2
+    push.0.0.0.0
+    loc_loadw.2
 
     movup.4
     u32checked_xor
@@ -2999,16 +3164,17 @@ proc.chi.4
     movdn.3
 
     dup.4
-    storew.mem
+    mem_storew
 
     movup.4
     sub.1
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
-    pushw.local.3
+    push.0.0.0.0
+    loc_loadw.3
 
     movup.4
     u32checked_xor
@@ -3029,7 +3195,7 @@ proc.chi.4
     movdn.3
 
     dup.4
-    storew.mem
+    mem_storew
 
     # process state[30..40)
     movup.4
@@ -3037,7 +3203,7 @@ proc.chi.4
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     u32checked_not
     swap
@@ -3055,14 +3221,14 @@ proc.chi.4
     swap
 
     push.0.0
-    storew.local.1
+    loc_storew.1
 
     movup.6
     sub.1
     movdn.6
 
     dup.6
-    loadw.mem
+    mem_loadw
 
     movup.5
     movup.5
@@ -3103,14 +3269,14 @@ proc.chi.4
     movup.3
     movup.3
 
-    storew.local.2
+    loc_storew.2
 
     movup.6
     add.2
     movdn.6
 
     dup.6
-    loadw.mem
+    mem_loadw
 
     drop
     drop
@@ -3138,7 +3304,9 @@ proc.chi.4
     movdn.4
 
     dup.4
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.2
     drop
@@ -3163,16 +3331,17 @@ proc.chi.4
     movup.3
     movup.3
 
-    storew.local.3
+    loc_storew.3
 
     movup.4
     add.1
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
-    pushw.local.1
+    push.0.0.0.0
+    loc_loadw.1
 
     movup.4
     u32checked_xor
@@ -3193,16 +3362,17 @@ proc.chi.4
     movdn.3
 
     dup.4
-    storew.mem
+    mem_storew
 
     movup.4
     sub.1
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
-    pushw.local.2
+    push.0.0.0.0
+    loc_loadw.2
 
     movup.4
     u32checked_xor
@@ -3223,16 +3393,17 @@ proc.chi.4
     movdn.3
 
     dup.4
-    storew.mem
+    mem_storew
 
     movup.4
     sub.1
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
-    pushw.local.3
+    push.0.0.0.0
+    loc_loadw.3
 
     movup.4
     u32checked_xor
@@ -3253,7 +3424,7 @@ proc.chi.4
     movdn.3
 
     dup.4
-    storew.mem
+    mem_storew
 
     # process state[40..50)
     movup.4
@@ -3261,7 +3432,7 @@ proc.chi.4
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
     drop
     drop
@@ -3271,7 +3442,9 @@ proc.chi.4
     movdn.2
 
     dup.2
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.5
     movup.5
@@ -3312,14 +3485,14 @@ proc.chi.4
     movup.3
     movup.3
 
-    storew.local.1
+    loc_storew.1
 
     movup.6
     sub.1
     movdn.6
 
     dup.6
-    loadw.mem
+    mem_loadw
 
     movup.2
     drop
@@ -3349,7 +3522,9 @@ proc.chi.4
     movdn.4
 
     dup.4
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.7
     movup.7
@@ -3372,7 +3547,8 @@ proc.chi.4
     movup.7
     movup.7
 
-    popw.local.2
+    loc_storew.2
+    dropw
 
     u32checked_not
     swap
@@ -3390,12 +3566,13 @@ proc.chi.4
     movdn.3
     movdn.3
 
-    storew.local.3
+    loc_storew.3
 
     dup.4
-    loadw.mem
+    mem_loadw
 
-    pushw.local.1
+    push.0.0.0.0
+    loc_loadw.1
 
     movup.4
     u32checked_xor
@@ -3416,16 +3593,17 @@ proc.chi.4
     movdn.3
 
     dup.4
-    storew.mem
+    mem_storew
 
     movup.4
     sub.1
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
-    pushw.local.2
+    push.0.0.0.0
+    loc_loadw.2
 
     movup.4
     u32checked_xor
@@ -3446,16 +3624,17 @@ proc.chi.4
     movdn.3
 
     dup.4
-    storew.mem
+    mem_storew
 
     movup.4
     sub.1
     movdn.4
 
     dup.4
-    loadw.mem
+    mem_loadw
 
-    pushw.local.3
+    push.0.0.0.0
+    loc_loadw.3
 
     movup.4
     u32checked_xor
@@ -3476,7 +3655,7 @@ proc.chi.4
     movdn.3
 
     dup.4
-    storew.mem
+    mem_storew
 
     dropw
     drop
@@ -3501,7 +3680,9 @@ end
 # state[1] ^= c1
 proc.iota
     dup
-    pushw.mem
+    push.0.0.0.0
+    movup.4
+    mem_loadw
 
     movup.5
     u32checked_xor
@@ -3514,7 +3695,8 @@ proc.iota
     swap
 
     movup.4
-    popw.mem
+    mem_storew
+    dropw
 end
 
 # Keccak-p[1600, 24] permutation round, without `iota` function ( all other 
@@ -3966,62 +4148,72 @@ proc.to_state_array
         movup.3
 
         dup.4
-        popw.mem
+        mem_storew
+        dropw
 
         sub.1
     end
 
     push.0.0.0.1
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     push.0.0.0.0
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     push.0.0.0.0
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     push.0.0.0.0
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     push.0.0.2147483648.0
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     push.0.0.0.0
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     push.0.0.0.0
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     push.0.0.0.0
     dup.4
-    popw.mem
+    mem_storew
+    dropw
 
     sub.1
 
     push.0.0.0.0
     movup.4
-    popw.mem
+    mem_storew
+    dropw
 end
 
 # Given 32 -bytes digest ( in terms of eight u32 elements on stack top ) in bit interleaved form,
@@ -4065,19 +4257,20 @@ end
 # See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L232-L257
 export.hash.13
     # prapare keccak256 state from input message
-    push.env.locaddr.0
+    locaddr.0
     exec.to_state_array
 
     # apply keccak-p[1600, 24] permutation
-    push.env.locaddr.0
+    locaddr.0
     exec.keccak_p
 
     # prapare keccak256 digest from state
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.to_digest
-end
-"),
+end"),
 // ----- std::crypto::hashes::sha256 --------------------------------------------------------------
 ("std::crypto::hashes::sha256", "# Given [x, ...] on stack top, this routine computes [y, ...]
 # such that y = σ_0(x), as defined in SHA specification
@@ -4301,8 +4494,10 @@ end
 # See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L89-L113
 # & https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop body execution when i = 0 )
 proc.prepare_message_schedule_and_consume.2
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     dup.15
     dup.15
@@ -4344,8 +4539,10 @@ proc.prepare_message_schedule_and_consume.2
     swapw
 
     push.0x428a2f98
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[0]
 
     push.0x71374491
@@ -4360,8 +4557,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[3]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     dup.15
     dup.15
@@ -4401,8 +4600,10 @@ proc.prepare_message_schedule_and_consume.2
     movupw.2
 
     push.0x3956c25b
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[4]
 
     push.0x59f111f1
@@ -4417,8 +4618,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[7]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     dup.6
     dup.2
@@ -4454,8 +4657,10 @@ proc.prepare_message_schedule_and_consume.2
     movupw.3
 
     push.0xd807aa98
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[8]
 
     push.0x12835b01
@@ -4470,8 +4675,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[11]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
     movupw.3
@@ -4511,8 +4718,10 @@ proc.prepare_message_schedule_and_consume.2
     movupw.2
 
     push.0x72be5d74
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[12]
 
     push.0x80deb1fe
@@ -4527,8 +4736,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[15]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -4568,8 +4779,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0xe49b69c1
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[16]
 
     push.0xefbe4786
@@ -4584,8 +4797,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[19]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -4625,8 +4840,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0x2de92c6f
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[20]
 
     push.0x4a7484aa
@@ -4641,8 +4858,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[23]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -4682,8 +4901,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0x983e5152
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[24]
 
     push.0xa831c66d
@@ -4698,8 +4919,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[27]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -4739,8 +4962,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0xc6e00bf3
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[28]
 
     push.0xd5a79147
@@ -4755,8 +4980,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[31]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -4796,8 +5023,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0x27b70a85
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[32]
 
     push.0x2e1b2138
@@ -4812,8 +5041,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[35]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -4853,8 +5084,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0x650a7354
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[36]
 
     push.0x766a0abb
@@ -4869,8 +5102,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[39]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -4910,8 +5145,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0xa2bfe8a1
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[40]
 
     push.0xa81a664b
@@ -4926,8 +5163,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[43]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -4967,8 +5206,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0xd192e819
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[44]
 
     push.0xd6990624
@@ -4983,8 +5224,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[47]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.2
     movupw.3
@@ -4993,8 +5236,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0x19a4c116
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[48]
 
     push.0x1e376c08
@@ -5685,15 +5930,15 @@ end
 export.forward.128
     # prepare input
 
-	push.env.locaddr.127
+	locaddr.127
 	push.0.0.0.0
 
 	repeat.128
 		dup.5
-		loadw.mem
+		mem_loadw
 
 		dup.4
-		storew.mem
+		mem_storew
 
 		movup.5
 		add.1
@@ -5717,19 +5962,19 @@ export.forward.128
 
 	push.0.0.0.0.0.0.0.0
 
-	push.env.locaddr.63
+	locaddr.63
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movup.13
 		movup.13
@@ -5739,12 +5984,12 @@ export.forward.128
 		exec.butterfly
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.1
@@ -5776,20 +6021,20 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.95
+	locaddr.95
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.2
 		repeat.32
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -5799,12 +6044,12 @@ export.forward.128
 			exec.butterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -5855,20 +6100,20 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.111
+	locaddr.111
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.4
 		repeat.16
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -5878,12 +6123,12 @@ export.forward.128
 			exec.butterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -5954,20 +6199,20 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.119
+	locaddr.119
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.8
 		repeat.8
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -5977,12 +6222,12 @@ export.forward.128
 			exec.butterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -6093,20 +6338,20 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.123
+	locaddr.123
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.16
 		repeat.4
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -6116,12 +6361,12 @@ export.forward.128
 			exec.butterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -6248,20 +6493,20 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.125
+	locaddr.125
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.32
 		repeat.2
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -6271,12 +6516,12 @@ export.forward.128
 			exec.butterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -6372,19 +6617,19 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.126
+	locaddr.126
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movup.13
 		movup.13
@@ -6394,12 +6639,12 @@ export.forward.128
 		exec.butterfly
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.2
@@ -6486,19 +6731,19 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.126
+	locaddr.126
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movdn.5
 		movdn.5
@@ -6518,12 +6763,12 @@ export.forward.128
 		movup.7
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.2
@@ -6610,19 +6855,19 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.126
+	locaddr.126
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movup.2
 		swap
@@ -6651,12 +6896,12 @@ export.forward.128
 		movup.7
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.2
@@ -6677,7 +6922,7 @@ export.forward.128
 	# starting at 👇; total 128 consecutive addresses are used for storing
 	# whole polynomial ( of degree 512 )
 
-	push.env.locaddr.127
+	locaddr.127
 end
 
 # Applies four inverse NTT butterflies on four different indices, given following stack state
@@ -6822,15 +7067,15 @@ end
 export.backward.128
 	# prepare input
 
-	push.env.locaddr.127
+	locaddr.127
 	push.0.0.0.0
 
 	repeat.128
 		dup.5
-		loadw.mem
+		mem_loadw
 
 		dup.4
-		storew.mem
+		mem_storew
 
 		movup.5
 		add.1
@@ -6915,19 +7160,19 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.126
+	locaddr.126
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movup.2
 		swap
@@ -6956,12 +7201,12 @@ export.backward.128
 		movup.7
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.2
@@ -7048,19 +7293,19 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.126
+	locaddr.126
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movdn.5
 		movdn.5
@@ -7080,12 +7325,12 @@ export.backward.128
 		movup.7
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.2
@@ -7172,19 +7417,19 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.126
+	locaddr.126
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movup.13
 		movup.13
@@ -7194,12 +7439,12 @@ export.backward.128
 		exec.ibutterfly
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.2
@@ -7317,20 +7562,20 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.125
+	locaddr.125
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.32
 		repeat.2
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -7340,12 +7585,12 @@ export.backward.128
 			exec.ibutterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -7456,20 +7701,20 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.123
+	locaddr.123
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.16
 		repeat.4
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -7479,12 +7724,12 @@ export.backward.128
 			exec.ibutterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -7555,20 +7800,20 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.119
+	locaddr.119
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.8
 		repeat.8
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -7578,12 +7823,12 @@ export.backward.128
 			exec.ibutterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -7634,20 +7879,20 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.111
+	locaddr.111
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.4
 		repeat.16
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -7657,12 +7902,12 @@ export.backward.128
 			exec.ibutterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -7703,20 +7948,20 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.95
+	locaddr.95
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.2
 		repeat.32
 			dup.8
-			loadw.mem
+			mem_loadw
 
 			swapw
 
 			dup.9
-			loadw.mem
+			mem_loadw
 
 			movup.13
 			movup.13
@@ -7726,12 +7971,12 @@ export.backward.128
 			exec.ibutterfly
 
 			dup.9
-			storew.mem
+			mem_storew
 
 			swapw
 
 			dup.8
-			storew.mem
+			mem_storew
 
 			movup.8
 			add.1
@@ -7767,19 +8012,19 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	push.env.locaddr.63
+	locaddr.63
 	movdn.8
-	push.env.locaddr.127
+	locaddr.127
 	movdn.8
 
 	repeat.64
 		dup.8
-		loadw.mem
+		mem_loadw
 
 		swapw
 
 		dup.9
-		loadw.mem
+		mem_loadw
 
 		movup.13
 		movup.13
@@ -7789,12 +8034,12 @@ export.backward.128
 		exec.ibutterfly
 
 		dup.9
-		storew.mem
+		mem_storew
 
 		swapw
 
 		dup.8
-		storew.mem
+		mem_storew
 
 		movup.8
 		add.1
@@ -7812,17 +8057,17 @@ export.backward.128
 
 	dropw
 
-	push.env.locaddr.127
+	locaddr.127
 	movdn.4
 
 	repeat.128
 		dup.4
-		loadw.mem
+		mem_loadw
 
 		exec.mul_by_invN
 
 		dup.4
-		storew.mem
+		mem_storew
 
 		movup.4
 		add.1
@@ -7836,7 +8081,7 @@ export.backward.128
 	# starting at 👇; total 128 consecutive addresses are used for storing
 	# whole polynomial ( of degree 512 )
 
-    push.env.locaddr.127
+    locaddr.127
 end
 "),
 // ----- std::math::poly512 -----------------------------------------------------------------------
@@ -7922,7 +8167,7 @@ proc.mod_12289
 
     adv.u64div
 
-    push.adv.2
+    adv_push.2
     u32assert.2
 
     swap
@@ -7934,7 +8179,7 @@ proc.mod_12289
     u32overflowing_madd
     drop
 
-    push.adv.2
+    adv_push.2
     drop
     u32assert
 
@@ -8149,15 +8394,15 @@ end
 export.mul_zq.128
     exec.ntt512::forward
 
-    push.env.locaddr.127
+    locaddr.127
     push.0.0.0.0
 
     repeat.128
         dup.5
-        loadw.mem
+        mem_loadw
 
         dup.4
-        storew.mem
+        mem_storew
 
         movup.5
         add.1
@@ -8174,22 +8419,22 @@ export.mul_zq.128
 
     exec.ntt512::forward
 
-    push.env.locaddr.127
+    locaddr.127
     push.0.0.0.0.0.0.0.0
 
     repeat.128
         dup.9
-        loadw.mem
+        mem_loadw
 
         swapw
 
         dup.8
-        loadw.mem
+        mem_loadw
 
         exec.mul_word
 
         dup.4
-        storew.mem
+        mem_storew
 
         movup.5
         add.1
@@ -8207,7 +8452,7 @@ export.mul_zq.128
     drop
     drop
 
-    push.env.locaddr.127
+    locaddr.127
 
     exec.ntt512::backward
 
@@ -8215,12 +8460,12 @@ export.mul_zq.128
 
     repeat.128
         dup.4
-        loadw.mem
+        mem_loadw
 
         exec.reduce_word
 
         dup.5
-        storew.mem
+        mem_storew
 
         movup.5
         add.1
@@ -8265,18 +8510,18 @@ export.add_zq
 
     repeat.128
         dup.8
-        loadw.mem
+        mem_loadw
 
         swapw
 
         dup.9
-        loadw.mem
+        mem_loadw
 
         exec.add_word
         exec.mod_12289_word
 
         dup.6
-        storew.mem
+        mem_storew
 
         movup.6
         add.1
@@ -8328,12 +8573,12 @@ export.neg_zq
 
     repeat.128
         dup.4
-        loadw.mem
+        mem_loadw
 
         exec.neg_word
 
         dup.5
-        storew.mem
+        mem_storew
 
         movup.5
         add.1
@@ -8374,11 +8619,11 @@ end
 #
 # Note, input memory addresses are considered to be read-only, they are not mutated.
 export.sub_zq.128
-    push.env.locaddr.127
+    locaddr.127
     movup.2
     exec.neg_zq
 
-    push.env.locaddr.127
+    locaddr.127
     exec.add_zq
 end
 "),
@@ -8624,9 +8869,9 @@ end
 # is used, which is why a[0..8], b[0..8] are expected to be in montgomery form,
 # while computed c[0..8] will also be in montgomery form.
 export.u256_mod_mul.2
-  storew.local.0
+  loc_storew.0
   swapw
-  storew.local.1
+  loc_storew.1
   swapw
 
   exec.u256xu32
@@ -8646,56 +8891,70 @@ export.u256_mod_mul.2
   exec.u288_reduce
 
   movup.9
-  pushw.local.1
-  pushw.local.0
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0
 
   exec.u256xu32
   exec.u288_add_u256
   exec.u288_reduce
 
   movup.9
-  pushw.local.1
-  pushw.local.0
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0
 
   exec.u256xu32
   exec.u288_add_u256
   exec.u288_reduce
 
   movup.9
-  pushw.local.1
-  pushw.local.0
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0
 
   exec.u256xu32
   exec.u288_add_u256
   exec.u288_reduce
 
   movup.9
-  pushw.local.1
-  pushw.local.0
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0
 
   exec.u256xu32
   exec.u288_add_u256
   exec.u288_reduce
 
   movup.9
-  pushw.local.1
-  pushw.local.0
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0
 
   exec.u256xu32
   exec.u288_add_u256
   exec.u288_reduce
 
   movup.9
-  pushw.local.1
-  pushw.local.0
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0
 
   exec.u256xu32
   exec.u288_add_u256
   exec.u288_reduce
 
   movup.9
-  pushw.local.1
-  pushw.local.0
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0
 
   exec.u256xu32
   exec.u288_add_u256
@@ -8940,18 +9199,22 @@ end
 #   [x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
 export.point_doubling.12
   dup.3
-  pushw.mem
+  push.0.0.0.0
+  movup.4
+  mem_loadw
   dup.6
-  pushw.mem         # y -coordinate on stack top
+  push.0.0.0.0
+  movup.4
+  mem_loadw         # y -coordinate on stack top
 
   dupw.1
   dupw.1            # repeated y -coordinate
 
   exec.u256_mod_mul # = t0
 
-  storew.local.0
+  loc_storew.0
   swapw
-  storew.local.1
+  loc_storew.1
   swapw             # cache t0
 
   dupw.1
@@ -8969,28 +9232,44 @@ export.point_doubling.12
 
   exec.u256_mod_add # = z3
 
-  popw.local.2
-  popw.local.3      # cache z3
+  loc_storew.2
+  dropw       
+  loc_storew.3
+  dropw             # cache z3
 
   dup.5
-  pushw.mem
+  push.0.0.0.0
+  movup.4
+  mem_loadw
   dup.8
-  pushw.mem         # z -coordinate on stack top
+  push.0.0.0.0
+  movup.4
+  mem_loadw         # z -coordinate on stack top
 
   dup.11
-  pushw.mem
+  push.0.0.0.0
+  movup.4
+  mem_loadw
   dup.14
-  pushw.mem         # y -coordinate on stack top
+  push.0.0.0.0
+  movup.4
+  mem_loadw         # y -coordinate on stack top
 
   exec.u256_mod_mul # = t1
 
-  popw.local.4
-  popw.local.5      # cache t1
+  loc_storew.4
+  dropw       
+  loc_storew.5
+  dropw             # cache t1
 
   dup.5
-  pushw.mem
+  push.0.0.0.0
+  movup.4
+  mem_loadw
   dup.8
-  pushw.mem         # z -coordinate on stack top
+  push.0.0.0.0
+  movup.4
+  mem_loadw         # z -coordinate on stack top
 
   dupw.1
   dupw.1            # repeated z
@@ -9002,91 +9281,129 @@ export.point_doubling.12
 
   exec.u256_mod_mul # = t2
 
-  storew.local.6
+  loc_storew.6
   swapw
-  storew.local.7    # cache t2
+  loc_storew.7    # cache t2
   swapw
 
-  pushw.local.3
-  pushw.local.2     # = z3
+  push.0.0.0.0
+  loc_loadw.3
+  push.0.0.0.0
+  loc_loadw.2     # = z3
 
   exec.u256_mod_mul # = x3
 
-  popw.local.8
-  popw.local.9      # cache x3
+  loc_storew.8
+  dropw       
+  loc_storew.9
+  dropw             # cache x3
 
-  pushw.local.7
-  pushw.local.6     # = t2
+  push.0.0.0.0
+  loc_loadw.7
+  push.0.0.0.0
+  loc_loadw.6     # = t2
 
-  pushw.local.1
-  pushw.local.0     # = t0
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0     # = t0
 
   exec.u256_mod_add # = y3
 
-  popw.local.10
-  popw.local.11     # cache y3
+  loc_storew.10
+  dropw       
+  loc_storew.11
+  dropw           # cache y3
 
-  pushw.local.5
-  pushw.local.4     # = t1
+  push.0.0.0.0
+  loc_loadw.5
+  push.0.0.0.0
+  loc_loadw.4     # = t1
 
-  pushw.local.3
-  pushw.local.2     # = z3
+  push.0.0.0.0
+  loc_loadw.3
+  push.0.0.0.0
+  loc_loadw.2     # = z3
 
   exec.u256_mod_mul # = z3
 
-  popw.local.2
-  popw.local.3      # cache z3
+  loc_storew.2
+  dropw       
+  loc_storew.3
+  dropw             # cache z3
 
-  pushw.local.7
-  pushw.local.6     # = t2
+  push.0.0.0.0
+  loc_loadw.7
+  push.0.0.0.0
+  loc_loadw.6     # = t2
 
   dupw.1
   dupw.1            # repeated t2
 
   exec.u256_mod_add # = t1
 
-  pushw.local.7
-  pushw.local.6     # = t2
+  push.0.0.0.0
+  loc_loadw.7
+  push.0.0.0.0
+  loc_loadw.6     # = t2
 
   exec.u256_mod_add # = t2
 
-  pushw.local.1
-  pushw.local.0     # = t0
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0     # = t0
 
   exec.u256_mod_sub # = t0
 
-  storew.local.0
+  loc_storew.0
   swapw
-  storew.local.1
+  loc_storew.1
   swapw             # cache t0
 
-  pushw.local.11
-  pushw.local.10    # = y3
+  push.0.0.0.0
+  loc_loadw.11
+  push.0.0.0.0
+  loc_loadw.10    # = y3
 
   exec.u256_mod_mul # = y3
 
-  pushw.local.9
-  pushw.local.8     # = x3
+  push.0.0.0.0
+  loc_loadw.9
+  push.0.0.0.0
+  loc_loadw.8     # = x3
 
   exec.u256_mod_add # = y3
 
-  popw.local.10
-  popw.local.11     # cache y3
+  loc_storew.10
+  dropw       
+  loc_storew.11
+  dropw            # cache y3
 
   dup.3
-  pushw.mem
+  push.0.0.0.0
+  movup.4
+  mem_loadw
   dup.6
-  pushw.mem         # y -coordinate on stack top
+  push.0.0.0.0
+  movup.4
+  mem_loadw         # y -coordinate on stack top
 
   dup.9
-  pushw.mem
+  push.0.0.0.0
+  movup.4
+  mem_loadw
   dup.12
-  pushw.mem         # x -coordinate on stack top
+  push.0.0.0.0
+  movup.4
+  mem_loadw         # x -coordinate on stack top
 
   exec.u256_mod_mul # = t1
 
-  pushw.local.1
-  pushw.local.0     # = t0
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0     # = t0
 
   exec.u256_mod_mul # = x3
 
@@ -9095,42 +9412,56 @@ export.point_doubling.12
 
   exec.u256_mod_add # = x3
 
-  popw.local.8
-  popw.local.9      # cache x3
+  loc_storew.8
+  dropw       
+  loc_storew.9
+  dropw             # cache x3
 
   dropw
   drop
   drop
 
   dup
-  pushw.local.8
+  push.0.0.0.0
+  loc_loadw.8
   movup.4
-  popw.mem          # write x3[0..4] to memory
+  mem_storew
+  dropw              # write x3[0..4] to memory
 
   dup.1
-  pushw.local.9
+  push.0.0.0.0
+  loc_loadw.9
   movup.4
-  popw.mem          # write x3[4..8] to memory
+  mem_storew
+  dropw              # write x3[4..8] to memory
 
   dup.2
-  pushw.local.10
+  push.0.0.0.0
+  loc_loadw.10
   movup.4
-  popw.mem          # write y3[0..4] to memory
+  mem_storew
+  dropw              # write y3[0..4] to memory
 
   dup.3
-  pushw.local.11
+  push.0.0.0.0
+  loc_loadw.11
   movup.4
-  popw.mem          # write y3[4..8] to memory
+  mem_storew
+  dropw              # write y3[4..8] to memory
 
   dup.4
-  pushw.local.2
+  push.0.0.0.0
+  loc_loadw.2
   movup.4
-  popw.mem          # write z3[0..4] to memory
+  mem_storew
+  dropw              # write z3[0..4] to memory
 
   dup.5
-  pushw.local.3
+  push.0.0.0.0
+  loc_loadw.3
   movup.4
-  popw.mem          # write z3[4..8] to memory
+  mem_storew
+  dropw              # write z3[4..8] to memory
 end
 
 # Given two secp256k1 points in projective coordinate system ( i.e. with x, y, z -coordinates
@@ -9168,138 +9499,208 @@ export.point_addition.16
   dup.6
   dup.8
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # x2 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # x2 on stack top
 
   dup.8
   dup.10
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # x1 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # x1 on stack top
 
   exec.u256_mod_mul # = t0
 
-  popw.local.0
-  popw.local.1 # cache t0
+  loc_storew.0
+  dropw       
+  loc_storew.1
+  dropw        # cache t0
 
   dup.8
   dup.10
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # y2 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # y2 on stack top
 
   dup.10
   dup.12
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # y1 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # y1 on stack top
 
   exec.u256_mod_mul # = t1
 
-  popw.local.2
-  popw.local.3 # cache t1
+  loc_storew.2
+  dropw       
+  loc_storew.3
+  dropw        # cache t1
 
   dup.10
   dup.12
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # z2 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # z2 on stack top
 
   dup.12
   dup.14
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # z1 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # z1 on stack top
 
   exec.u256_mod_mul # = t2
 
-  popw.local.4
-  popw.local.5 # cache t2
+  loc_storew.4
+  dropw       
+  loc_storew.5
+  dropw        # cache t2
 
   dup.2
   dup.4
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # y1 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # y1 on stack top
 
   dup.8
   dup.10
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # x1 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # x1 on stack top
 
   exec.u256_mod_add # = t3
 
-  popw.local.6
-  popw.local.7 # cache t3
+  loc_storew.6
+  dropw       
+  loc_storew.7
+  dropw        # cache t3
 
   dup.8
   dup.10
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # y2 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # y2 on stack top
 
   dup.15
   dup.15
   swap
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # x2 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # x2 on stack top
   
   exec.u256_mod_add # = t4
 
-  pushw.local.7
-  pushw.local.6 # t3 loaded back
+  push.0.0.0.0
+  loc_loadw.7
+  push.0.0.0.0
+  loc_loadw.6 # t3 loaded back
 
   exec.u256_mod_mul # = t3
 
-  popw.local.6
-  popw.local.7 # cache t3
+  loc_storew.6
+  dropw       
+  loc_storew.7
+  dropw        # cache t3
 
-  pushw.local.3
-  pushw.local.2 # t1 loaded back
+  push.0.0.0.0
+  loc_loadw.3
+  push.0.0.0.0
+  loc_loadw.2 # t1 loaded back
 
-  pushw.local.1
-  pushw.local.0 # t0 loaded back
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0 # t0 loaded back
 
   exec.u256_mod_add # = t4
 
-  pushw.local.7
-  pushw.local.6 # t3 loaded back
+  push.0.0.0.0
+  loc_loadw.7
+  push.0.0.0.0
+  loc_loadw.6 # t3 loaded back
 
   exec.u256_mod_sub # = t3
 
-  popw.local.6
-  popw.local.7 # cache t3
+  loc_storew.6
+  dropw       
+  loc_storew.7
+  dropw        # cache t3
 
   dup.2
   dup.4
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # y1 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # y1 on stack top
 
   dup.12
   dup.14
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # z1 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # z1 on stack top
 
   exec.u256_mod_add # = t4
 
-  popw.local.8
-  popw.local.9 # cache t4
+  loc_storew.8
+  dropw       
+  loc_storew.9
+  dropw        # cache t4
 
   dup.11
   dup.11
@@ -9307,275 +9708,397 @@ export.point_addition.16
   dup.10
   dup.12
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # y2 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # y2 on stack top
 
   movup.8
   movup.9
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # z2 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # z2 on stack top
 
   exec.u256_mod_add # = x3
 
-  pushw.local.9
-  pushw.local.8 # t4 loaded back
+  push.0.0.0.0
+  loc_loadw.9
+  push.0.0.0.0
+  loc_loadw.8 # t4 loaded back
 
   exec.u256_mod_mul # = t4
 
-  popw.local.8
-  popw.local.9 # cache t4
+  loc_storew.8
+  dropw       
+  loc_storew.9
+  dropw        # cache t4
 
-  pushw.local.5
-  pushw.local.4 # t2 loaded back
+  push.0.0.0.0
+  loc_loadw.5
+  push.0.0.0.0
+  loc_loadw.4 # t2 loaded back
 
-  pushw.local.3
-  pushw.local.2 # t1 loaded back
+  push.0.0.0.0
+  loc_loadw.3
+  push.0.0.0.0
+  loc_loadw.2 # t1 loaded back
 
   exec.u256_mod_add # = x3
 
-  pushw.local.9
-  pushw.local.8 # t4 loaded back
+  push.0.0.0.0
+  loc_loadw.9
+  push.0.0.0.0
+  loc_loadw.8 # t4 loaded back
 
   exec.u256_mod_sub # = t4
 
-  popw.local.8
-  popw.local.9 # cache t4
+  loc_storew.8
+  dropw       
+  loc_storew.9
+  dropw        # cache t4
 
   dup.4
   dup.6
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # z1 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # z1 on stack top
 
   dup.8
   dup.10
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # x1 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # x1 on stack top
 
   exec.u256_mod_add # = x3
 
-  popw.local.10
-  popw.local.11 # cache x3
+  loc_storew.10
+  dropw       
+  loc_storew.11
+  dropw       # cache x3
 
   dup.10
   dup.12
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # z2 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # z2 on stack top
 
   dup.15
   dup.15
   swap
 
-  pushw.mem
+  push.0.0.0.0
   movup.4
-  pushw.mem # x2 on stack top
+  mem_loadw
+  movup.4
+  push.0.0.0.0
+  movup.4
+  mem_loadw # x2 on stack top
 
   exec.u256_mod_add # = y3
 
-  pushw.local.11
-  pushw.local.10 # x3 loaded back
+  push.0.0.0.0
+  loc_loadw.11
+  push.0.0.0.0
+  loc_loadw.10 # x3 loaded back
 
   exec.u256_mod_mul # = x3
 
-  popw.local.10
-  popw.local.11 # cache x3
+  loc_storew.10
+  dropw       
+  loc_storew.11
+  dropw       # cache x3
 
-  pushw.local.5
-  pushw.local.4 # t2 loaded back
+  push.0.0.0.0
+  loc_loadw.5
+  push.0.0.0.0
+  loc_loadw.4 # t2 loaded back
 
-  pushw.local.1
-  pushw.local.0 # t0 loaded back
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0 # t0 loaded back
 
   exec.u256_mod_add # = y3
 
-  pushw.local.11
-  pushw.local.10 # x3 loaded back
+  push.0.0.0.0
+  loc_loadw.11
+  push.0.0.0.0
+  loc_loadw.10 # x3 loaded back
 
   exec.u256_mod_sub # = y3
 
-  popw.local.12
-  popw.local.13 # cache y3
+  loc_storew.12
+  dropw       
+  loc_storew.13
+  dropw       # cache y3
 
-  pushw.local.1
-  pushw.local.0 # t0 loaded back
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0 # t0 loaded back
 
   dupw.1
   dupw.1
 
   exec.u256_mod_add # = x3
 
-  storew.local.10
+  loc_storew.10
   swapw
-  storew.local.11
+  loc_storew.11
   swapw # cache x3
 
-  pushw.local.1
-  pushw.local.0 # t0 loaded back
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0 # t0 loaded back
 
   exec.u256_mod_add # = t0
 
-  popw.local.0
-  popw.local.1 # cache t0
+  loc_storew.0
+  dropw       
+  loc_storew.1
+  dropw        # cache t0
 
   push.0.0.0.0
   push.0.0.21.20517 # b3 on stack top
 
-  pushw.local.5
-  pushw.local.4 # t2 loaded back
+  push.0.0.0.0
+  loc_loadw.5
+  push.0.0.0.0
+  loc_loadw.4 # t2 loaded back
 
   exec.u256_mod_mul # = t2
 
-  storew.local.4
+  loc_storew.4
   swapw
-  storew.local.5
+  loc_storew.5
   swapw # cache t2
 
-  pushw.local.3
-  pushw.local.2 # t1 loaded back
+  push.0.0.0.0
+  loc_loadw.3
+  push.0.0.0.0
+  loc_loadw.2 # t1 loaded back
 
   exec.u256_mod_add # = z3
 
-  popw.local.14
-  popw.local.15 # cache z3
+  loc_storew.14
+  dropw       
+  loc_storew.15
+  dropw       # cache z3
 
-  pushw.local.5
-  pushw.local.4 # t2 loaded back
+  push.0.0.0.0
+  loc_loadw.5
+  push.0.0.0.0
+  loc_loadw.4 # t2 loaded back
 
-  pushw.local.3
-  pushw.local.2 # t1 loaded back
+  push.0.0.0.0
+  loc_loadw.3
+  push.0.0.0.0
+  loc_loadw.2 # t1 loaded back
 
   exec.u256_mod_sub # = t1
 
-  popw.local.2
-  popw.local.3 # cache t1
+  loc_storew.2
+  dropw       
+  loc_storew.3
+  dropw        # cache t1
 
   push.0.0.0.0
   push.0.0.21.20517 # b3 on stack top
 
-  pushw.local.13
-  pushw.local.12 # y3 loaded back
+  push.0.0.0.0
+  loc_loadw.13
+  push.0.0.0.0
+  loc_loadw.12 # y3 loaded back
 
   exec.u256_mod_mul # = y3
 
-  storew.local.12
+  loc_storew.12
   swapw
-  storew.local.13
+  loc_storew.13
   swapw # cache y3
 
-  pushw.local.9
-  pushw.local.8 # t4 loaded back
+  push.0.0.0.0
+  loc_loadw.9
+  push.0.0.0.0
+  loc_loadw.8 # t4 loaded back
 
   exec.u256_mod_mul # = x3
 
-  popw.local.10
-  popw.local.11 # cache x3
+  loc_storew.10
+  dropw       
+  loc_storew.11
+  dropw       # cache x3
 
-  pushw.local.3
-  pushw.local.2 # t1 loaded back
+  push.0.0.0.0
+  loc_loadw.3
+  push.0.0.0.0
+  loc_loadw.2 # t1 loaded back
 
-  pushw.local.7
-  pushw.local.6 # t3 loaded back
+  push.0.0.0.0
+  loc_loadw.7
+  push.0.0.0.0
+  loc_loadw.6 # t3 loaded back
 
   exec.u256_mod_mul # = t2
 
-  pushw.local.11
-  pushw.local.10 # x3 loaded back
+  push.0.0.0.0
+  loc_loadw.11
+  push.0.0.0.0
+  loc_loadw.10 # x3 loaded back
 
   exec.u256_mod_neg
   exec.u256_mod_add # = x3
 
-  popw.local.10
-  popw.local.11 # cache x3
+  loc_storew.10
+  dropw       
+  loc_storew.11
+  dropw       # cache x3
 
-  pushw.local.1
-  pushw.local.0 # t0 loaded back
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0 # t0 loaded back
 
-  pushw.local.13
-  pushw.local.12 # y3 loaded back
+  push.0.0.0.0
+  loc_loadw.13
+  push.0.0.0.0
+  loc_loadw.12 # y3 loaded back
 
   exec.u256_mod_mul # = y3
 
-  popw.local.12
-  popw.local.13 # cache y3
+  loc_storew.12
+  dropw       
+  loc_storew.13
+  dropw       # cache y3
 
-  pushw.local.15
-  pushw.local.14 # z3 loaded back
+  push.0.0.0.0
+  loc_loadw.15
+  push.0.0.0.0
+  loc_loadw.14 # z3 loaded back
 
-  pushw.local.3
-  pushw.local.2 # t1 loaded back
+  push.0.0.0.0
+  loc_loadw.3
+  push.0.0.0.0
+  loc_loadw.2 # t1 loaded back
 
   exec.u256_mod_mul # = t1
 
-  pushw.local.13
-  pushw.local.12 # y3 loaded back
+  push.0.0.0.0
+  loc_loadw.13
+  push.0.0.0.0
+  loc_loadw.12 # y3 loaded back
 
   exec.u256_mod_add # = y3
 
-  popw.local.12
-  popw.local.13 # cache y3
+  loc_storew.12
+  dropw       
+  loc_storew.13
+  dropw       # cache y3
 
-  pushw.local.7
-  pushw.local.6 # t3 loaded back
+  push.0.0.0.0
+  loc_loadw.7
+  push.0.0.0.0
+  loc_loadw.6 # t3 loaded back
 
-  pushw.local.1
-  pushw.local.0 # t0 loaded back
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0 # t0 loaded back
 
   exec.u256_mod_mul # = t0
 
-  popw.local.0
-  popw.local.1 # cache t0
+  loc_storew.0
+  dropw       
+  loc_storew.1
+  dropw        # cache t0
 
-  pushw.local.9
-  pushw.local.8 # t4 loaded back
+  push.0.0.0.0
+  loc_loadw.9
+  push.0.0.0.0
+  loc_loadw.8 # t4 loaded back
 
-  pushw.local.15
-  pushw.local.14 # z3 loaded back
+  push.0.0.0.0
+  loc_loadw.15
+  push.0.0.0.0
+  loc_loadw.14 # z3 loaded back
 
   exec.u256_mod_mul # = z3
 
-  pushw.local.1
-  pushw.local.0 # t0 loaded back
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0 # t0 loaded back
 
   exec.u256_mod_add # = z3
 
-  popw.local.14
-  popw.local.15 # cache z3
+  loc_storew.14
+  dropw       
+  loc_storew.15
+  dropw       # cache z3
 
   dropw
   dropw
   dropw
 
-  pushw.local.10
+  push.0.0.0.0
+  loc_loadw.10
   dup.4
-  popw.mem          # write x3[0..4] to memory
+  mem_storew
+  dropw              # write x3[0..4] to memory
 
-  pushw.local.11
+  push.0.0.0.0
+  loc_loadw.11
   dup.5
-  popw.mem          # write x3[4..8] to memory
+  mem_storew
+  dropw              # write x3[4..8] to memory
 
-  pushw.local.12
+  push.0.0.0.0
+  loc_loadw.12
   dup.6
-  popw.mem          # write y3[0..4] to memory
+  mem_storew
+  dropw              # write y3[0..4] to memory
 
-  pushw.local.13
+  push.0.0.0.0
+  loc_loadw.13
   dup.7
-  popw.mem          # write y3[4..8] to memory
+  mem_storew
+  dropw              # write y3[4..8] to memory
 
-  pushw.local.14
+  push.0.0.0.0
+  loc_loadw.14
   dup.8
-  popw.mem          # write z3[0..4] to memory
+  mem_storew
+  dropw              # write z3[0..4] to memory
 
-  pushw.local.15
+  push.0.0.0.0
+  loc_loadw.15
   dup.9
-  popw.mem          # write z3[4..8] to memory
+  mem_storew
+  dropw              # write z3[4..8] to memory
 end
 
 # Given a 256 -bit scalar, in radix-2^32 representation ( such that it
@@ -9614,22 +10137,30 @@ export.point_mul.20
   # identity point of group (0, 1, 0) in projective coordinate
   # see https://github.com/itzmeanjan/secp256k1/blob/d23ea7d/point.py#L40-L45
   push.0.0.0.0
-  popw.local.0
+  loc_storew.0
+  dropw       
   push.0.0.0.0
-  popw.local.1 # init & cache res_X
+  loc_storew.1
+  dropw        # init & cache res_X
 
   push.0.0.1.977
-  popw.local.2
+  loc_storew.2
+  dropw       
   push.0.0.0.0
-  popw.local.3  # init & cache res_Y
+  loc_storew.3
+  dropw         # init & cache res_Y
 
   push.0.0.0.0
-  popw.local.4
+  loc_storew.4
+  dropw       
   push.0.0.0.0
-  popw.local.5  # init & cache res_Z
+  loc_storew.5
+  dropw         # init & cache res_Z
 
-  popw.local.18
-  popw.local.19
+  loc_storew.18
+  dropw       
+  loc_storew.19
+  dropw       
 
   # push (2^255)G into stack
   push.1767015067.3527058907.3725831105.456741272
@@ -11682,62 +12213,70 @@ export.point_mul.20
   repeat.2
     repeat.4
       repeat.32
-        pushw.local.18
+        push.0.0.0.0
+        loc_loadw.18
         dup
         push.1
         u32checked_and
         movdn.4
         u32unchecked_shr.1
-        popw.local.18
+        loc_storew.18
+        dropw       
 
         if.true
-          popw.local.12
-          popw.local.13
-          popw.local.14
-          popw.local.15      
-          popw.local.16
-          popw.local.17
+          loc_storew.12
+          dropw       
+          loc_storew.13
+          dropw       
+          loc_storew.14
+          dropw       
+          loc_storew.15
+          dropw             
+          loc_storew.16
+          dropw       
+          loc_storew.17
+          dropw       
 
-          push.env.locaddr.11
-          push.env.locaddr.10
-          push.env.locaddr.9
-          push.env.locaddr.8
-          push.env.locaddr.7
-          push.env.locaddr.6
+          locaddr.11
+          locaddr.10
+          locaddr.9
+          locaddr.8
+          locaddr.7
+          locaddr.6
 
-          push.env.locaddr.17
-          push.env.locaddr.16
-          push.env.locaddr.15
-          push.env.locaddr.14
-          push.env.locaddr.13
-          push.env.locaddr.12
+          locaddr.17
+          locaddr.16
+          locaddr.15
+          locaddr.14
+          locaddr.13
+          locaddr.12
 
-          push.env.locaddr.5
-          push.env.locaddr.4
-          push.env.locaddr.3
-          push.env.locaddr.2
-          push.env.locaddr.1
-          push.env.locaddr.0
+          locaddr.5
+          locaddr.4
+          locaddr.3
+          locaddr.2
+          locaddr.1
+          locaddr.0
 
           exec.point_addition
 
           drop
           drop
 
-          loadw.local.6
-          storew.local.0
-          loadw.local.7
-          storew.local.1
+          loc_loadw.6
+          loc_storew.0
+          loc_loadw.7
+          loc_storew.1
 
-          loadw.local.8
-          storew.local.2
-          loadw.local.9
-          storew.local.3
+          loc_loadw.8
+          loc_storew.2
+          loc_loadw.9
+          loc_storew.3
 
-          loadw.local.10
-          storew.local.4
-          loadw.local.11
-          storew.local.5
+          loc_loadw.10
+          loc_storew.4
+          loc_loadw.11
+          loc_storew.5
 
           dropw
         else
@@ -11747,44 +12286,60 @@ export.point_mul.20
         end
       end
 
-      pushw.local.18
+      push.0.0.0.0
+      loc_loadw.18
       movdn.3
-      popw.local.18
+      loc_storew.18
+      dropw       
     end
 
-    pushw.local.19
-    popw.local.18
+    push.0.0.0.0
+    loc_loadw.19
+    loc_storew.18
+    dropw       
   end
 
   dup
-  pushw.local.0
+  push.0.0.0.0
+  loc_loadw.0
   movup.4
-  popw.mem          # write x[0..4] to memory
+  mem_storew
+  dropw              # write x[0..4] to memory
 
   dup.1
-  pushw.local.1
+  push.0.0.0.0
+  loc_loadw.1
   movup.4
-  popw.mem          # write x[4..8] to memory
+  mem_storew
+  dropw              # write x[4..8] to memory
 
   dup.2
-  pushw.local.2
+  push.0.0.0.0
+  loc_loadw.2
   movup.4
-  popw.mem          # write y[0..4] to memory
+  mem_storew
+  dropw              # write y[0..4] to memory
 
   dup.3
-  pushw.local.3
+  push.0.0.0.0
+  loc_loadw.3
   movup.4
-  popw.mem          # write y[4..8] to memory
+  mem_storew
+  dropw              # write y[4..8] to memory
 
   dup.4
-  pushw.local.4
+  push.0.0.0.0
+  loc_loadw.4
   movup.4
-  popw.mem          # write z[0..4] to memory
+  mem_storew
+  dropw              # write z[0..4] to memory
 
   dup.5
-  pushw.local.5
+  push.0.0.0.0
+  loc_loadw.5
   movup.4
-  popw.mem          # write z[4..8] to memory
+  mem_storew
+  dropw              # write z[4..8] to memory
 end
 "),
 // ----- std::math::u256 --------------------------------------------------------------------------
@@ -12038,27 +12593,29 @@ end
 # where c = (a * b) % 2^256, and a0, b0, and c0 are least significant 32-bit limbs of a, b, and c respectively.
 export.mul_unsafe.6
     # Memory storing setup
-    popw.local.0
+    loc_storew.0
+    dropw
     # b[5-8] at 0
-    storew.local.1
+    loc_storew.1
     # b[0-4] at 1
     push.0 dropw
     # b[0] at top of stack, followed by a[0-7]
     movdn.8
-    storew.local.2
+    loc_storew.2
     # a[0-4] at 2
     swapw
-    storew.local.3
+    loc_storew.3
     # a[5-8] at 3
     padw
-    storew.local.4
-    storew.local.5
+    loc_storew.4
+    loc_storew.5
     # p at 4 and 5
 
     # b[0]
     dropw
     swapw
-    pushw.local.4
+    push.0.0.0.0
+    loc_loadw.4
     movdnw.2
     movup.12
 
@@ -12067,8 +12624,10 @@ export.mul_unsafe.6
     movdn.9
     movdn.9
     swapw
-    popw.local.4
-    pushw.local.5
+    loc_storew.4
+    dropw
+    push.0.0.0.0
+    loc_loadw.5
     swapw
     movup.9
     movup.9
@@ -12101,15 +12660,21 @@ export.mul_unsafe.6
     exec.mulstep
 
     drop
-    popw.local.5
+    loc_storew.5
+    dropw
 
     # b[1]
-    pushw.local.4
-    pushw.local.5
+    push.0.0.0.0
+    loc_loadw.4
+    push.0.0.0.0
+    loc_loadw.5
     movup.7
     dropw
-    pushw.local.3 pushw.local.2 # load the xs
-    pushw.local.1
+    push.0.0.0.0
+    loc_loadw.3 push.0.0.0.0
+    loc_loadw.2 # load the xs
+    push.0.0.0.0
+    loc_loadw.1
     movup.2
     movdn.3
     push.0 dropw # only need b[1]
@@ -12120,13 +12685,16 @@ export.mul_unsafe.6
     movdn.9
     swapw
     movdn.3
-    pushw.local.4
+    push.0.0.0.0
+    loc_loadw.4
     push.0 dropw # only need p[0]
     movdn.3
     # save p[0-3] to memory, not needed any more
-    popw.local.4
+    loc_storew.4
+    dropw
 
-    pushw.local.5
+    push.0.0.0.0
+    loc_loadw.5
     movup.3
     drop
     swapw
@@ -12156,16 +12724,22 @@ export.mul_unsafe.6
     drop
     swap
     drop
-    popw.local.5
+    loc_storew.5
+    dropw
 
     # b[2]
-    pushw.local.4
-    pushw.local.5
+    push.0.0.0.0
+    loc_loadw.4
+    push.0.0.0.0
+    loc_loadw.5
     movup.7
     movup.7
     dropw
-    pushw.local.3 pushw.local.2 # load the xs
-    pushw.local.1
+    push.0.0.0.0
+    loc_loadw.3 push.0.0.0.0
+    loc_loadw.2 # load the xs
+    push.0.0.0.0
+    loc_loadw.1
     swap
     movdn.3
     push.0 dropw # only need b[1]
@@ -12177,13 +12751,16 @@ export.mul_unsafe.6
     swapw
     movdn.3
     movdn.3
-    pushw.local.4
+    push.0.0.0.0
+    loc_loadw.4
     drop drop
     movdn.3
     movdn.3
-    popw.local.4
+    loc_storew.4
+    dropw
 
-    pushw.local.5
+    push.0.0.0.0
+    loc_loadw.5
     movup.3
     movup.3
     drop
@@ -12208,17 +12785,23 @@ export.mul_unsafe.6
     swap drop
     movdn.3
     drop drop drop
-    popw.local.5
+    loc_storew.5
+    dropw
 
     # b[3]
-    pushw.local.4
-    pushw.local.5
+    push.0.0.0.0
+    loc_loadw.4
+    push.0.0.0.0
+    loc_loadw.5
 
     movup.7 movup.7 movup.7
     dropw
-    pushw.local.3 pushw.local.2
+    push.0.0.0.0
+    loc_loadw.3 push.0.0.0.0
+    loc_loadw.2
 
-    pushw.local.1
+    push.0.0.0.0
+    loc_loadw.1
     movdn.3
     push.0 dropw
 
@@ -12229,12 +12812,15 @@ export.mul_unsafe.6
 
     swapw
     movup.3
-    pushw.local.4
+    push.0.0.0.0
+    loc_loadw.4
     drop
     movup.3
 
-    popw.local.4
-    pushw.local.5
+    loc_storew.4
+    dropw
+    push.0.0.0.0
+    loc_loadw.5
     movdn.3
     push.0 dropw
     swapw
@@ -12252,18 +12838,23 @@ export.mul_unsafe.6
     push.0 dropw
 
     # b[4]
-    pushw.local.3 pushw.local.2 # load the xs
+    push.0.0.0.0
+    loc_loadw.3 push.0.0.0.0
+    loc_loadw.2 # load the xs
     # OPTIM: don't need a[4-7], but can't use mulstep4 if we don't load
 
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.0
     push.0 dropw # b[4]
 
     exec.mulstep4
     dropw drop drop # OPTIM: don't need a[4-7], but can't use mulstep4 if we don't load
 
     # b[5]
-    pushw.local.3
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.3
+    push.0.0.0.0
+    loc_loadw.0
     movup.2 movdn.3
     push.0 dropw
     movup.7
@@ -12290,8 +12881,10 @@ export.mul_unsafe.6
     drop
 
     # b[6]
-    pushw.local.3
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.3
+    push.0.0.0.0
+    loc_loadw.0
     swap
     movdn.3
     push.0 dropw
@@ -12312,8 +12905,10 @@ export.mul_unsafe.6
     drop drop
 
     # b[7]
-    pushw.local.3
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.3
+    push.0.0.0.0
+    loc_loadw.0
 
     movdn.3 push.0 dropw
     movup.4
@@ -12325,7 +12920,8 @@ export.mul_unsafe.6
     movdn.3
     drop drop drop
 
-    pushw.local.4
+    push.0.0.0.0
+    loc_loadw.4
     swapw
 end"),
 // ----- std::math::u64 ---------------------------------------------------------------------------
@@ -12760,7 +13356,7 @@ end
 export.unchecked_div
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
-    push.adv.2          # read the quotient from the advice tape and make sure it consists of
+    adv_push.2          # read the quotient from the advice tape and make sure it consists of
     u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
@@ -12782,7 +13378,7 @@ export.unchecked_div
     eq.0
     assert
 
-    push.adv.2          # read the remainder from the advice tape and make sure it consists of
+    adv_push.2          # read the remainder from the advice tape and make sure it consists of
     u32assert.2         # 32-bit limbs
 
     movup.7             # make sure the divisor is greater than the remainder. this also consumes
@@ -12825,7 +13421,7 @@ end
 export.unchecked_mod
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
-    push.adv.2          # read the quotient from the advice tape and make sure it consists of
+    adv_push.2          # read the quotient from the advice tape and make sure it consists of
     u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
@@ -12847,7 +13443,7 @@ export.unchecked_mod
     eq.0
     assert
 
-    push.adv.2          # read the remainder from the advice tape and make sure it consists of
+    adv_push.2          # read the remainder from the advice tape and make sure it consists of
     u32assert.2         # 32-bit limbs
 
     movup.5             # make sure the divisor is greater than the remainder. this also consumes
@@ -12890,7 +13486,7 @@ end
 export.unchecked_divmod
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
-    push.adv.2          # read the quotient from the advice tape and make sure it consists of
+    adv_push.2          # read the quotient from the advice tape and make sure it consists of
     u32assert.2         # 32-bit limbs
 
     dup.3               # multiply quotient by the divisor and make sure the resulting value
@@ -12912,7 +13508,7 @@ export.unchecked_divmod
     eq.0
     assert
 
-    push.adv.2          # read the remainder from the advice tape and make sure it consists of
+    adv_push.2          # read the remainder from the advice tape and make sure it consists of
     u32assert.2         # 32-bit limbs
 
     movup.7             # make sure the divisor is greater than the remainder. this also consumes
@@ -13171,24 +13767,28 @@ end
 # Input: Stack with 16 or more elements.
 # Output: Stack with only the original top 16 elements.
 export.truncate_stack.4
-    popw.local.0
-    popw.local.1
-    popw.local.2
-    popw.local.3
-    push.env.sdepth
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
+    loc_storew.2
+    dropw
+    loc_storew.3
+    dropw
+    sdepth
     neq.16
     while.true
         dropw
-        push.env.sdepth
+        sdepth
         neq.16
     end
-    loadw.local.3
+    loc_loadw.3
     swapw.3
-    loadw.local.2
+    loc_loadw.2
     swapw.2
-    loadw.local.1
+    loc_loadw.1
     swapw.1
-    loadw.local.0
+    loc_loadw.0
 end
 "),
 ];

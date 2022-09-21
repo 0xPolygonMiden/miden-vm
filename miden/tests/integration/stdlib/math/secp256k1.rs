@@ -272,42 +272,50 @@ fn test_secp256k1_point_doubling() {
     proc.point_doubling_test_wrapper.12
         # push X -coordinate to memory
         push.589179219.700212955.3610652250.1216225431
-        popw.local.0
+        loc_storew.0
+        dropw
         push.2575427139.3909656392.2543798464.872223388
-        popw.local.1
+        loc_storew.1
+        dropw
 
         # push Y -coordinate to memory
         push.2382126429.522045005.2975770322.3554388962
-        popw.local.2
+        loc_storew.2
+        dropw
         push.3477046559.3567616726.1891022234.2887369014
-        popw.local.3
+        loc_storew.3
+        dropw
 
         # push Z -coordinate to memory
         push.0.0.1.977
-        popw.local.4
+        loc_storew.4
+        dropw
         push.0.0.0.0
-        popw.local.5
+        loc_storew.5
+        dropw
 
         # input/ output memory addresses for point doubling purpose
-        push.env.locaddr.11
-        push.env.locaddr.10
-        push.env.locaddr.9
-        push.env.locaddr.8
-        push.env.locaddr.7
-        push.env.locaddr.6
+        locaddr.11
+        locaddr.10
+        locaddr.9
+        locaddr.8
+        locaddr.7
+        locaddr.6
 
-        push.env.locaddr.5
-        push.env.locaddr.4
-        push.env.locaddr.3
-        push.env.locaddr.2
-        push.env.locaddr.1
-        push.env.locaddr.0
+        locaddr.5
+        locaddr.4
+        locaddr.3
+        locaddr.2
+        locaddr.1
+        locaddr.0
 
         # elliptic curve point doubling
         exec.secp256k1::point_doubling
 
         # --- start asserting X3 ---
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.474728642
         assert
@@ -318,7 +326,9 @@ fn test_secp256k1_point_doubling() {
         u32checked_eq.3437933890
         assert
 
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.4191201175
         assert
@@ -331,7 +341,9 @@ fn test_secp256k1_point_doubling() {
         # --- end asserting X3 ---
 
         # --- start asserting Y3 ---
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.3875396767
         assert
@@ -342,7 +354,9 @@ fn test_secp256k1_point_doubling() {
         u32checked_eq.2826781693
         assert
 
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.2758035882
         assert
@@ -355,7 +369,9 @@ fn test_secp256k1_point_doubling() {
         # --- end asserting Y3 ---
 
         # --- start asserting Z3 ---
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.2545792257
         assert
@@ -366,7 +382,9 @@ fn test_secp256k1_point_doubling() {
         u32checked_eq.2688095969
         assert
 
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.2687252166
         assert
@@ -402,67 +420,81 @@ fn test_secp256k1_point_addition() {
     proc.point_addition_test_wrapper.18
         # push X1 -coordinate to memory
         push.589179219.700212955.3610652250.1216225431
-        popw.local.0
+        loc_storew.0
+        dropw
         push.2575427139.3909656392.2543798464.872223388
-        popw.local.1
+        loc_storew.1
+        dropw
 
         # push Y1 -coordinate to memory
         push.2382126429.522045005.2975770322.3554388962
-        popw.local.2
+        loc_storew.2
+        dropw
         push.3477046559.3567616726.1891022234.2887369014
-        popw.local.3
+        loc_storew.3
+        dropw
 
         # push Z1 -coordinate to memory
         push.0.0.1.977
-        popw.local.4
+        loc_storew.4
+        dropw
         push.0.0.0.0
-        popw.local.5
+        loc_storew.5
+        dropw
 
         # push X2 -coordinate to memory
         push.589179219.700212955.3610652250.1216225431
-        popw.local.6
+        loc_storew.6
+        dropw
         push.2575427139.3909656392.2543798464.872223388
-        popw.local.7
+        loc_storew.7
+        dropw
 
         # push Y2 -coordinate to memory
         push.2382126429.522045005.2975770322.3554388962
-        popw.local.8
+        loc_storew.8
+        dropw
         push.3477046559.3567616726.1891022234.2887369014
-        popw.local.9
+        loc_storew.9
+        dropw
 
         # push Z2 -coordinate to memory
         push.0.0.1.977
-        popw.local.10
+        loc_storew.10
+        dropw
         push.0.0.0.0
-        popw.local.11
+        loc_storew.11
+        dropw
 
         # input/ output memory addresses for point doubling purpose
-        push.env.locaddr.17
-        push.env.locaddr.16
-        push.env.locaddr.15
-        push.env.locaddr.14
-        push.env.locaddr.13
-        push.env.locaddr.12
+        locaddr.17
+        locaddr.16
+        locaddr.15
+        locaddr.14
+        locaddr.13
+        locaddr.12
 
-        push.env.locaddr.11
-        push.env.locaddr.10
-        push.env.locaddr.9
-        push.env.locaddr.8
-        push.env.locaddr.7
-        push.env.locaddr.6
+        locaddr.11
+        locaddr.10
+        locaddr.9
+        locaddr.8
+        locaddr.7
+        locaddr.6
 
-        push.env.locaddr.5
-        push.env.locaddr.4
-        push.env.locaddr.3
-        push.env.locaddr.2
-        push.env.locaddr.1
-        push.env.locaddr.0
+        locaddr.5
+        locaddr.4
+        locaddr.3
+        locaddr.2
+        locaddr.1
+        locaddr.0
 
         # elliptic curve point addition
         exec.secp256k1::point_addition
 
         # --- start asserting X3 ---
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.474728642
         assert
@@ -473,7 +505,9 @@ fn test_secp256k1_point_addition() {
         u32checked_eq.3437933890
         assert
 
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.4191201175
         assert
@@ -486,7 +520,9 @@ fn test_secp256k1_point_addition() {
         # --- end asserting X3 ---
 
         # --- start asserting Y3 ---
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.3875396767
         assert
@@ -497,7 +533,9 @@ fn test_secp256k1_point_addition() {
         u32checked_eq.2826781693
         assert
 
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.2758035882
         assert
@@ -510,7 +548,9 @@ fn test_secp256k1_point_addition() {
         # --- end asserting Y3 ---
 
         # --- start asserting Z3 ---
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.2545792257
         assert
@@ -521,7 +561,9 @@ fn test_secp256k1_point_addition() {
         u32checked_eq.2688095969
         assert
 
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.2687252166
         assert
@@ -557,12 +599,12 @@ fn test_secp256k1_point_multiplication() {
     proc.point_multiplication_test_wrapper.6
         # resulting point ( in projective coordinate system ) 
         # will be stored in these addresses
-        push.env.locaddr.5
-        push.env.locaddr.4
-        push.env.locaddr.3
-        push.env.locaddr.2
-        push.env.locaddr.1
-        push.env.locaddr.0
+        locaddr.5
+        locaddr.4
+        locaddr.3
+        locaddr.2
+        locaddr.1
+        locaddr.0
 
         # scalar
         push.3754378978.2737387451.3951838026.2457684815
@@ -572,7 +614,9 @@ fn test_secp256k1_point_multiplication() {
         exec.secp256k1::point_mul
 
         # --- start asserting X ---
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.1096602412
         assert
@@ -583,7 +627,9 @@ fn test_secp256k1_point_multiplication() {
         u32checked_eq.2379704491
         assert
 
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.2174658910
         assert
@@ -596,7 +642,9 @@ fn test_secp256k1_point_multiplication() {
         # --- end asserting X ---
 
         # --- start asserting Y ---
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.3362845704
         assert
@@ -607,7 +655,9 @@ fn test_secp256k1_point_multiplication() {
         u32checked_eq.3674781461
         assert
 
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.3620120701
         assert
@@ -620,7 +670,9 @@ fn test_secp256k1_point_multiplication() {
         # --- end asserting Y ---
 
         # --- start asserting Z ---
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.440013615
         assert
@@ -631,7 +683,9 @@ fn test_secp256k1_point_multiplication() {
         u32checked_eq.3947728772
         assert
 
-        pushw.mem
+        push.0.0.0.0
+        movup.4
+        mem_loadw
 
         u32checked_eq.2287684084
         assert

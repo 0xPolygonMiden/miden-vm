@@ -6,7 +6,7 @@ use rand_utils::rand_value;
 
 #[test]
 fn advice_inject_u64div() {
-    let source = "begin adv.u64div push.adv.4 end";
+    let source = "begin adv.u64div adv_push.4 end";
 
     // get two random 64-bit integers and split them into 32-bit limbs
     let a = rand_value::<u64>();
@@ -45,7 +45,7 @@ fn advice_inject_u64div_repeat() {
         repeat.7 
             adv.u64div 
             drop drop
-            push.adv.2
+            adv_push.2
             push.2
             push.0
         end
@@ -78,7 +78,7 @@ fn advice_inject_u64div_repeat() {
 
 #[test]
 fn advice_inject_u64div_local_procedure() {
-    let source = "proc.foo adv.u64div push.adv.4 end begin exec.foo end";
+    let source = "proc.foo adv.u64div adv_push.4 end begin exec.foo end";
 
     // get two random 64-bit integers and split them into 32-bit limbs
     let a = rand_value::<u64>();
@@ -107,7 +107,7 @@ fn advice_inject_u64div_local_procedure() {
 
 #[test]
 fn advice_inject_u64div_conditional_execution() {
-    let source = "begin eq if.true adv.u64div push.adv.4 else padw end end";
+    let source = "begin eq if.true adv.u64div adv_push.4 else padw end end";
 
     // if branch
     let test = build_test!(source, &[8, 0, 4, 0, 1, 1]);
