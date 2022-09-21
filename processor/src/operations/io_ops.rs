@@ -65,6 +65,7 @@ impl Process {
         self.stack.set(0, word[0]);
         self.stack.copy_state(1);
 
+        // write the 3 unused elements to the helpers so they're available for constraint evaluation
         self.decoder
             .set_user_op_helpers(Operation::MLoad, &word[1..]);
 
@@ -95,16 +96,13 @@ impl Process {
         ];
 
         // write the word to memory and get the previous word
-        let old_word = self.chiplets.write_mem(ctx, addr, word);
+        self.chiplets.write_mem(ctx, addr, word);
 
         // update the stack state
         for (i, &value) in word.iter().rev().enumerate() {
             self.stack.set(i, value);
         }
         self.stack.shift_left(5);
-
-        self.decoder
-            .set_user_op_helpers(Operation::MStoreW, &old_word);
 
         Ok(())
     }
@@ -130,8 +128,9 @@ impl Process {
         // write the value to the memory and get the previous word
         let old_word = self.chiplets.write_mem_single(ctx, addr, value);
 
+        // write the 3 unused elements to the helpers so they're available for constraint evaluation
         self.decoder
-            .set_user_op_helpers(Operation::MStore, &old_word);
+            .set_user_op_helpers(Operation::MStore, &old_word[1..]);
 
         // update the stack state
         self.stack.shift_left(1);

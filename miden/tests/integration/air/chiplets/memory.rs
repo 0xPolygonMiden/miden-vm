@@ -18,24 +18,21 @@ fn mem_store() {
 
 #[test]
 fn helper_mem_store() {
-    // Sequence of operations: [Span, Pad, MStore, Drop, Pad, Mstore, Drop, Pad, Mstore, Drop]
-    let asm_op = "begin mem_store.0 drop mem_store.0 drop mem_store.0 drop end";
-    let pub_inputs = vec![1, 2];
+    // Sequence of operations: [Span, Pad, MStoreW, Drop, Pad, Mstore, Drop, Pad, Mstore, Drop]
+    let asm_op = "begin mem_storew.0 drop mem_store.0 drop mem_store.0 drop end";
+    let pub_inputs = vec![1, 2, 3, 4, 5];
 
     let trace = build_test!(asm_op, &pub_inputs).execute().unwrap();
     // Since the MStore operation stores in helper registers the value that was previously in
     // memory, after the first call to MStore, the helper registers will be filled with zeros
-    // (since memory is initialized with zeros by default). And an element taken from the
-    // top of the stack, that is, 2, will be written to memory. On the second call, the memory will
-    // be overwritten by 1, and the previous value that was in memory, that is, 2, will be written
-    // to the helper registers.
-    let helper_regs = [2, 0, 0, 0, 0, 0].to_elements();
-    // We need to check helper registers state after second MStore, which index is 5
+    // (since memory is initialized with zeros by default).
+    let helper_regs = [0, 0, 0, 0, 0, 0].to_elements();
+    assert_eq!(helper_regs, trace.get_user_op_helpers_at(2));
+    // The 3 elements in the word which are not touched are placed in the helper registers.
+    let helper_regs = [3, 4, 5, 0, 0, 0].to_elements();
+    // We need to check helper registers state after second MStore at clock cycle 5
     assert_eq!(helper_regs, trace.get_user_op_helpers_at(5));
-    // The next time the MStore operation is called, the memory will be overwritten again, and the
-    // 1 lying there before that will be written to the helper register
-    let helper_regs = [1, 0, 0, 0, 0, 0].to_elements();
-    // We need to check helper registers state after third MStore, which index is 8
+    // We need to check helper registers state after third MStore at clock cycle 8
     assert_eq!(helper_regs, trace.get_user_op_helpers_at(8));
 }
 

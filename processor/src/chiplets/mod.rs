@@ -268,15 +268,12 @@ impl Chiplets {
     /// Writes the provided word at the specified context/address.
     ///
     /// This also modifies the memory access trace.
-    pub fn write_mem(&mut self, ctx: u32, addr: Felt, word: Word) -> Word {
-        let old_word = self.memory.get_old_value(ctx, addr.as_int());
+    pub fn write_mem(&mut self, ctx: u32, addr: Felt, word: Word) {
         self.memory.write(ctx, addr, self.clk, word);
 
         // send the memory write request to the bus
         let memory_lookup = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ctx, addr, self.clk, word);
         self.bus.request_memory_operation(memory_lookup, self.clk);
-
-        old_word
     }
 
     /// Writes the provided element into the specified context/address leaving the remaining 3
