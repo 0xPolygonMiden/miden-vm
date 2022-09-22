@@ -36,6 +36,9 @@ pub enum Operation {
     /// Marks the beginning of a function call.
     Call,
 
+    /// Marks the beginning of a kernel call.
+    SysCall,
+
     /// Marks the beginning of a span code block.
     Span,
 
@@ -451,7 +454,7 @@ impl Operation {
 
             Self::MrUpdate(_) => 0b0110_0000,
             Self::Push(_)   => 0b0110_0100,
-            // <empty>      => 0b0110_1000
+            Self::SysCall   => 0b0110_1000,
             Self::Call      => 0b0110_1100,
             Self::End       => 0b0111_0000,
             Self::Repeat    => 0b0111_0100,
@@ -499,6 +502,7 @@ impl fmt::Display for Operation {
             Self::Split => write!(f, "split"),
             Self::Loop => write!(f, "loop"),
             Self::Call => writeln!(f, "call"),
+            Self::SysCall => writeln!(f, "syscall"),
             Self::Span => write!(f, "span"),
             Self::End => write!(f, "end"),
             Self::Repeat => write!(f, "repeat"),

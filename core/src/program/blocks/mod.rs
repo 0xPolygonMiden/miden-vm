@@ -66,6 +66,11 @@ impl CodeBlock {
         Self::Call(Call::new(fn_hash))
     }
 
+    pub fn new_syscall(_fn_hash: Digest) -> Self {
+        unimplemented!()
+        // TODO: create a Call block
+    }
+
     /// TODO: add comments
     pub fn new_proxy(code_hash: Digest) -> Self {
         Self::Proxy(Proxy::new(code_hash))
