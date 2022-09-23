@@ -532,3 +532,27 @@ export.inv
     movup.5
     mul
 end
+
+# Given two GF(p^5) elements ( say a, b ) on stack, this routine computes
+# modular division over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#
+# Expected stack state :
+#
+# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#
+# After application of routine stack :
+#
+# [c0, c1, c2, c3, c4, ...]
+#
+# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#
+# For reference implementation in high level language, see 
+# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L777-L781
+export.div
+    repeat.5
+        movup.9
+    end
+
+    exec.inv
+    exec.mul
+end
