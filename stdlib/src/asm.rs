@@ -5856,6 +5856,38 @@ export.add
     add
     movdn.4
 end
+
+# Given two GF(p^5) elements on stack, this routine subtracts second
+# element from first one, over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#
+# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#
+# For reference implementation in high level language, see 
+# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L629-L638
+export.sub
+    movup.5
+    sub
+
+    swap
+    movup.5
+    sub
+    swap
+
+    movup.2
+    movup.5
+    sub
+    movdn.2
+
+    movup.3
+    movup.5
+    sub
+    movdn.3
+
+    movup.4
+    movup.5
+    sub
+    movdn.4
+end
 "),
 // ----- std::math::ntt512 ------------------------------------------------------------------------
 ("std::math::ntt512", "# Applies four NTT butterflies on four different indices, given following stack state
