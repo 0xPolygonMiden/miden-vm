@@ -1,0 +1,31 @@
+# Given two GF(p^5) elements on stack, this routine computes modular
+# addition over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#
+# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#
+# For reference implementation in high level language, see 
+# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L607-L616
+export.add
+    movup.5
+    add
+
+    swap
+    movup.5
+    add
+    swap
+
+    movup.2
+    movup.5
+    add
+    movdn.2
+
+    movup.3
+    movup.5
+    add
+    movdn.3
+
+    movup.4
+    movup.5
+    add
+    movdn.4
+end

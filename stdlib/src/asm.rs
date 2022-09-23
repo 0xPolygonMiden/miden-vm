@@ -4,7 +4,7 @@
 ///
 /// Entries in the array are tuples containing module namespace and module source code.
 #[rustfmt::skip]
-pub const MODULES: [(&str, &str); 9] = [
+pub const MODULES: [(&str, &str); 10] = [
 // ----- std::crypto::hashes::blake3 --------------------------------------------------------------
 ("std::crypto::hashes::blake3", "# Initializes four memory addresses, provided for storing initial 4x4 blake3 
 # state matrix ( i.e. 16 elements each of 32 -bit ), for computing blake3 2-to-1 hash
@@ -5822,6 +5822,39 @@ export.hash
 
     exec.prepare_message_schedule_and_consume
     exec.consume_padding_message_schedule
+end
+"),
+// ----- std::math::gfp5 --------------------------------------------------------------------------
+("std::math::gfp5", "# Given two GF(p^5) elements on stack, this routine computes modular
+# addition over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#
+# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#
+# For reference implementation in high level language, see 
+# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L607-L616
+export.add
+    movup.5
+    add
+
+    swap
+    movup.5
+    add
+    swap
+
+    movup.2
+    movup.5
+    add
+    movdn.2
+
+    movup.3
+    movup.5
+    add
+    movdn.3
+
+    movup.4
+    movup.5
+    add
+    movdn.4
 end
 "),
 // ----- std::math::ntt512 ------------------------------------------------------------------------
