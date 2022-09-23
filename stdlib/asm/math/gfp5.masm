@@ -1,6 +1,14 @@
 # Given two GF(p^5) elements on stack, this routine computes modular
 # addition over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
 #
+# Expected stack state :
+#
+# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#
+# After application of routine stack :
+#
+# [c0, c1, c2, c3, c4, ...]
+#
 # See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #
 # For reference implementation in high level language, see 
@@ -32,6 +40,14 @@ end
 
 # Given two GF(p^5) elements on stack, this routine subtracts second
 # element from first one, over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#
+# Expected stack state :
+#
+# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#
+# After application of routine stack :
+#
+# [c0, c1, c2, c3, c4, ...]
 #
 # See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #
@@ -65,6 +81,14 @@ end
 # Given two GF(p^5) elements on stack, this routine computes modular
 # multiplication ( including reduction by irreducible polynomial ) 
 # over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#
+# Expected stack state :
+#
+# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#
+# After application of routine stack :
+#
+# [c0, c1, c2, c3, c4, ...]
 #
 # See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #
@@ -226,6 +250,126 @@ export.mul
     movup.6
     mul
     mul.3
+
+    add
+end
+
+# Given one GF(p^5) element on stack, this routine computes modular
+# squaring ( including reduction by irreducible polynomial ) 
+# over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#
+# This routine has same effect as calling mul(a, a) | a ∈ GF(p^5)
+#
+# Expected stack state :
+#
+# [a0, a1, a2, a3, a4, ...]
+#
+# After application of routine stack :
+#
+# [b0, b1, b2, b3, b4, ...]
+#
+# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#
+# For reference implementation in high level language, see 
+# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L709-L715
+export.square
+    # compute {b0, b1, b2, b3, b4} - five coefficients of resulting
+    # degree-4 polynomial
+
+    # compute b4
+    dup.2
+    dup.3
+    mul
+
+    dup.5
+    dup.2
+    mul
+    mul.2
+
+    add
+
+    dup.4
+    dup.3
+    mul
+    mul.2
+
+    add
+
+    # compute b3
+    dup.4
+    dup.2
+    mul
+    mul.2
+
+    dup.4
+    dup.4
+    mul
+    mul.2
+
+    add
+
+    dup.6
+    dup.7
+    mul
+    mul.3
+
+    add
+
+    # compute b2
+    dup.3
+    dup.4
+    mul
+    
+    dup.5
+    dup.4
+    mul
+    mul.2
+
+    add
+
+    dup.7
+    dup.7
+    mul
+    mul.6
+
+    add
+
+    # compute b1
+    dup.4
+    dup.4
+    mul
+    mul.2
+
+    dup.7
+    dup.8
+    mul
+    mul.3
+
+    add
+
+    dup.8
+    dup.7
+    mul
+    mul.6
+
+    add
+
+    # compute b0
+    dup.4
+    movup.5
+    mul
+
+    movup.8
+    movup.6
+    mul
+    mul.6
+
+    add
+
+    movup.6
+    movup.6
+    mul
+    mul.6
 
     add
 end

@@ -32,6 +32,20 @@ impl GFp5 {
             a4: rand_utils::rand_value::<Felt>(),
         }
     }
+
+    pub fn square(self) -> Self {
+        let two = Felt::new(2);
+        let three = Felt::new(3);
+        let six = two * three;
+
+        Self {
+            a0: self.a0 * self.a0 + six * (self.a1 * self.a4 + self.a2 * self.a3),
+            a1: two * self.a0 * self.a1 + three * (self.a3 * self.a3 + two * self.a2 * self.a4),
+            a2: self.a1 * self.a1 + two * self.a0 * self.a2 + six * self.a3 * self.a4,
+            a3: two * (self.a0 * self.a3 + self.a1 * self.a2) + three * self.a4 * self.a4,
+            a4: self.a2 * self.a2 + two * (self.a0 * self.a4 + self.a1 * self.a3),
+        }
+    }
 }
 
 impl Add for GFp5 {
@@ -200,4 +214,35 @@ fn test_gfp5_mul() {
     assert_eq!(strace[2], c.a2);
     assert_eq!(strace[3], c.a3);
     assert_eq!(strace[4], c.a4);
+}
+
+#[test]
+fn test_gfp5_square() {
+    let source = "
+    use.std::math::gfp5
+
+    begin
+        exec.gfp5::square
+    end";
+
+    let a = GFp5::rand();
+    let b = a.square();
+
+    let mut stack = [
+        a.a0.as_int(),
+        a.a1.as_int(),
+        a.a2.as_int(),
+        a.a3.as_int(),
+        a.a4.as_int(),
+    ];
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    assert_eq!(strace[0], b.a0);
+    assert_eq!(strace[1], b.a1);
+    assert_eq!(strace[2], b.a2);
+    assert_eq!(strace[3], b.a3);
+    assert_eq!(strace[4], b.a4);
 }
