@@ -5888,6 +5888,174 @@ export.sub
     sub
     movdn.4
 end
+
+# Given two GF(p^5) elements on stack, this routine computes modular
+# multiplication ( including reduction by irreducible polynomial ) 
+# over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#
+# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#
+# For reference implementation in high level language, see 
+# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L676-L689
+export.mul
+    # compute {c0, c1, c2, c3, c4} - five coefficients of resulting
+    # degree-4 polynomial
+    
+    # compute c4
+    dup.9
+    dup.1
+    mul
+
+    dup.9
+    dup.3
+    mul
+
+    add
+
+    dup.8
+    dup.4
+    mul
+
+    add
+
+    dup.7
+    dup.5
+    mul
+
+    add
+
+    dup.6
+    dup.6
+    mul
+    
+    add
+
+    # compute c3
+    dup.9
+    dup.2
+    mul
+
+    dup.9
+    dup.4
+    mul
+    
+    add
+
+    dup.8
+    dup.5
+    mul
+
+    add
+
+    dup.7
+    dup.6
+    mul
+
+    add
+
+    dup.11
+    dup.7
+    mul
+    mul.3
+
+    add
+
+    # compute c2
+    dup.9
+    dup.3
+    mul
+
+    dup.9
+    dup.5
+    mul
+
+    add
+
+    dup.8
+    dup.6
+    mul
+    
+    add
+
+    dup.12
+    dup.7
+    mul
+    mul.3
+
+    add
+
+    dup.11
+    dup.8
+    mul
+    mul.3
+
+    add
+
+    # compute c1
+    dup.9
+    dup.4
+    mul
+
+    dup.9
+    dup.6
+    mul
+
+    add
+
+    dup.13
+    dup.7
+    mul
+    mul.3
+
+    add
+
+    dup.12
+    dup.8
+    mul
+    mul.3
+
+    add
+
+    dup.11
+    dup.9
+    mul
+    mul.3
+
+    add
+
+    # compute c0
+    movup.9
+    movup.5
+    mul
+
+    movup.12
+    movup.6
+    mul
+    mul.3
+
+    add
+
+    movup.10
+    movup.6
+    mul
+    mul.3
+
+    add
+
+    movup.8
+    movup.6
+    mul
+    mul.3
+
+    add
+
+    movup.6
+    movup.6
+    mul
+    mul.3
+
+    add
+end
 "),
 // ----- std::math::ntt512 ------------------------------------------------------------------------
 ("std::math::ntt512", "# Applies four NTT butterflies on four different indices, given following stack state
