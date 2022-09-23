@@ -2,7 +2,7 @@ use super::{build_test, Felt};
 use std::ops::{Add, Mul, Sub};
 use vm_core::StarkField;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 struct GFp5 {
     pub a0: Felt,
     pub a1: Felt,
@@ -44,6 +44,48 @@ impl GFp5 {
             a2: self.a1 * self.a1 + two * self.a0 * self.a2 + six * self.a3 * self.a4,
             a3: two * (self.a0 * self.a3 + self.a1 * self.a2) + three * self.a4 * self.a4,
             a4: self.a2 * self.a2 + two * (self.a0 * self.a4 + self.a1 * self.a3),
+        }
+    }
+
+    fn frobenius_once(self) -> Self {
+        Self {
+            a0: self.a0,
+            a1: self.a1 * Felt::new(1041288259238279555),
+            a2: self.a2 * Felt::new(15820824984080659046),
+            a3: self.a3 * Felt::new(211587555138949697),
+            a4: self.a4 * Felt::new(1373043270956696022),
+        }
+    }
+
+    fn frobenius_twice(self) -> Self {
+        Self {
+            a0: self.a0,
+            a1: self.a1 * Felt::new(15820824984080659046),
+            a2: self.a2 * Felt::new(1373043270956696022),
+            a3: self.a3 * Felt::new(1041288259238279555),
+            a4: self.a4 * Felt::new(211587555138949697),
+        }
+    }
+
+    pub fn inv(self) -> Self {
+        let t0 = self.frobenius_once();
+        let t1 = t0 * t0.frobenius_once();
+        let t2 = t1 * t1.frobenius_twice();
+
+        let t3 = self.a0 * t2.a0
+            + Felt::new(3)
+                * (self.a1 * t2.a4 + self.a2 * t2.a3 + self.a3 * t2.a2 + self.a4 * t2.a1);
+
+        let flg = t3 == Felt::new(0);
+        let t3 = t3 + Felt::new(flg as u64);
+        let t4 = Felt::new(1) / t3;
+
+        Self {
+            a0: t4 * t2.a0,
+            a1: t4 * t2.a1,
+            a2: t4 * t2.a2,
+            a3: t4 * t2.a3,
+            a4: t4 * t2.a4,
         }
     }
 }
@@ -227,6 +269,37 @@ fn test_gfp5_square() {
 
     let a = GFp5::rand();
     let b = a.square();
+
+    let mut stack = [
+        a.a0.as_int(),
+        a.a1.as_int(),
+        a.a2.as_int(),
+        a.a3.as_int(),
+        a.a4.as_int(),
+    ];
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    assert_eq!(strace[0], b.a0);
+    assert_eq!(strace[1], b.a1);
+    assert_eq!(strace[2], b.a2);
+    assert_eq!(strace[3], b.a3);
+    assert_eq!(strace[4], b.a4);
+}
+
+#[test]
+fn test_gfp5_inv() {
+    let source = "
+    use.std::math::gfp5
+
+    begin
+        exec.gfp5::inv
+    end";
+
+    let a = GFp5::rand();
+    let b = a.inv();
 
     let mut stack = [
         a.a0.as_int(),

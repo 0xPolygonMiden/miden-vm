@@ -6200,6 +6200,165 @@ export.square
 
     add
 end
+
+# Given an element a ∈ GF(p^5), this routine applies Frobenius operator
+# once, raising the element to the power of p | p = 2^64 - 2^32 + 1.
+#
+# Expected stack state :
+#
+# [a0, a1, a2, a3, a4, ...]
+#
+# Final stack state :
+#
+# [b0, b1, b2, b3, b4, ...]
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L723-L737
+# for reference implementation in high-level language.
+proc.frobenius_once
+    swap
+    mul.1041288259238279555
+    swap
+
+    movup.2
+    mul.15820824984080659046
+    movdn.2
+
+    movup.3
+    mul.211587555138949697
+    movdn.3
+
+    movup.4
+    mul.1373043270956696022
+    movdn.4
+end
+
+# Given an element a ∈ GF(p^5), this routine applies Frobenius operator
+# twice, raising the element to the power of p^2 | p = 2^64 - 2^32 + 1.
+#
+# Expected stack state :
+#
+# [a0, a1, a2, a3, a4, ...]
+#
+# Final stack state :
+#
+# [b0, b1, b2, b3, b4, ...]
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L739-L749
+# for reference implementation in high-level language.
+proc.frobenius_twice
+    swap
+    mul.15820824984080659046
+    swap
+
+    movup.2
+    mul.1373043270956696022
+    movdn.2
+
+    movup.3
+    mul.1041288259238279555
+    movdn.3
+
+    movup.4
+    mul.211587555138949697
+    movdn.4
+end
+
+# Given one GF(p^5) element on stack, this routine computes multiplicative
+# inverse over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#
+# Expected stack state :
+#
+# [a0, a1, a2, a3, a4, ...]
+#
+# After application of routine stack :
+#
+# [b0, b1, b2, b3, b4, ...]
+#
+# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#
+# For reference implementation in high level language, see 
+# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L751-L775
+#
+# Note, this routine will not panic even when operand `a` is zero.
+export.inv
+    repeat.5
+        dup.4
+    end
+
+    exec.frobenius_once # = t0
+
+    repeat.5
+        dup.4
+    end
+
+    exec.frobenius_once # = t0.frobenius_once()
+    exec.mul            # = t1
+
+    repeat.5
+        dup.4
+    end
+
+    exec.frobenius_twice # = t1.frobenius_twice()
+    exec.mul             # = t2
+
+    movup.5
+    dup.1
+    mul
+
+    movup.6
+    dup.6
+    mul
+    mul.3
+
+    add
+
+    movup.6
+    dup.5
+    mul
+    mul.3
+
+    add
+
+    movup.6
+    dup.4
+    mul
+    mul.3
+
+    add
+
+    movup.6
+    dup.3
+    mul
+    mul.3
+
+    add                    # = t3
+
+    dup
+    push.0
+    eq
+    add
+    inv                    # = t4
+
+    movup.5
+    dup.1
+    mul
+
+    movup.5
+    dup.2
+    mul
+
+    movup.5
+    dup.3
+    mul
+
+    movup.5
+    dup.4
+    mul
+
+    movup.5
+    movup.5
+    mul
+end
 "),
 // ----- std::math::ntt512 ------------------------------------------------------------------------
 ("std::math::ntt512", "# Applies four NTT butterflies on four different indices, given following stack state
