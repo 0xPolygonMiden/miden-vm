@@ -1,4 +1,8 @@
-use crate::{build_test, helpers::TestError};
+use crate::{
+    build_test,
+    helpers::{Test, TestError},
+};
+use vm_core::ProgramInputs;
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -183,4 +187,29 @@ fn local_fn_call_with_mem_access() {
     test.expect_stack(&[1]);
 
     test.prove_and_verify(vec![3, 7], false);
+}
+
+#[test]
+fn simple_syscall() {
+    let kernel_source = "
+        export.foo
+            add
+        end
+    ";
+
+    let program_source = "
+        begin
+            syscall.foo
+        end";
+
+    // TODO: update and use macro?
+    let test = Test {
+        source: program_source.to_string(),
+        kernel: Some(kernel_source.to_string()),
+        inputs: ProgramInputs::from_stack_inputs(&[1, 2]).unwrap(),
+        in_debug_mode: false,
+    };
+    test.expect_stack(&[3]);
+
+    test.prove_and_verify(vec![1, 2], false);
 }

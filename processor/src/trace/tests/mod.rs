@@ -1,8 +1,8 @@
 use super::{ExecutionTrace, Felt, FieldElement, LookupTableRow, Process, Trace, NUM_RAND_ROWS};
 use rand_utils::rand_array;
 use vm_core::{
-    code_blocks::CodeBlock, CodeBlockTable, Operation, ProgramInputs, ProgramOutputs, Word, ONE,
-    ZERO,
+    code_blocks::CodeBlock, CodeBlockTable, Kernel, Operation, ProgramInputs, ProgramOutputs, Word,
+    ONE, ZERO,
 };
 
 mod chiplets;
@@ -18,7 +18,7 @@ pub fn build_trace_from_block(program: &CodeBlock, stack: &[u64]) -> ExecutionTr
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(inputs);
     process
-        .execute_code_block(program, &CodeBlockTable::default())
+        .execute_code_block(program, &Kernel::default(), &CodeBlockTable::default())
         .unwrap();
     ExecutionTrace::new(process, ProgramOutputs::default())
 }
@@ -40,7 +40,7 @@ pub fn build_trace_from_ops_with_inputs(
     let mut process = Process::new(inputs);
     let program = CodeBlock::new_span(operations);
     process
-        .execute_code_block(&program, &CodeBlockTable::default())
+        .execute_code_block(&program, &Kernel::default(), &CodeBlockTable::default())
         .unwrap();
     ExecutionTrace::new(process, ProgramOutputs::default())
 }

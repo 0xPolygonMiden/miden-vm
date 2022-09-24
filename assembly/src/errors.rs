@@ -223,9 +223,41 @@ impl AssemblyError {
         }
     }
 
+    pub fn undefined_kernel_proc(token: &Token, label: &str) -> Self {
+        AssemblyError {
+            message: format!("undefined kernel procedure: {}", label),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
     pub fn proc_export_not_allowed(token: &Token, label: &str) -> Self {
         AssemblyError {
             message: format!("exported procedures not allowed in this context: {}", label),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn proc_not_in_kernel(token: &Token, label: &str) -> Self {
+        AssemblyError {
+            message: format!("procedure '{}' is not a part of the kernel", label),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn syscall_in_kernel(token: &Token) -> Self {
+        AssemblyError {
+            message: "syscall inside kernel".to_string(),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn call_in_kernel(token: &Token) -> Self {
+        AssemblyError {
+            message: "call inside kernel".to_string(),
             step: token.pos(),
             op: token.to_string(),
         }

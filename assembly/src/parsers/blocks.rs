@@ -218,6 +218,12 @@ impl BlockParser {
             }
             // ------------------------------------------------------------------------------------
             Self::Call(label) => {
+                // making a function call in kernel context is not allowed
+                if context.in_kernel() {
+                    let token = tokens.read().expect("no syscall token");
+                    AssemblyError::call_in_kernel(token);
+                }
+
                 // retrieve the procedure block from the proc map and consume the 'call' token
                 let proc_block = context.get_proc_code(label).ok_or_else(|| {
                     AssemblyError::undefined_proc(tokens.read().expect("no call token"), label)
@@ -233,9 +239,16 @@ impl BlockParser {
             }
             // ------------------------------------------------------------------------------------
             Self::SysCall(label) => {
-                // retrieve the procedure block from the proc map and consume the 'sys' token
-                let proc_block = context.get_proc_code(label).ok_or_else(|| {
-                    AssemblyError::undefined_proc(tokens.read().expect("no syscall token"), label)
+                // making a syscall in kernel context is not allowed
+                if context.in_kernel() {
+                    let token = tokens.read().expect("no syscall token");
+                    AssemblyError::syscall_in_kernel(token);
+                }
+
+                // retrieve the procedure block from the proc map and consume the 'syscall' token
+                let proc_block = context.get_kernel_proc_code(label).ok_or_else(|| {
+                    let token = tokens.read().expect("no syscall token");
+                    AssemblyError::undefined_kernel_proc(token, label)
                 })?;
                 tokens.advance();
 

@@ -66,9 +66,9 @@ impl CodeBlock {
         Self::Call(Call::new(fn_hash))
     }
 
-    pub fn new_syscall(_fn_hash: Digest) -> Self {
-        unimplemented!()
-        // TODO: create a Call block
+    /// TODO: add comments
+    pub fn new_syscall(fn_hash: Digest) -> Self {
+        Self::Call(Call::new_syscall(fn_hash))
     }
 
     /// TODO: add comments
