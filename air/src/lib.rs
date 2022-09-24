@@ -7,8 +7,7 @@ extern crate alloc;
 use vm_core::{
     chiplets::hasher::Digest,
     utils::{collections::Vec, ByteWriter, Serializable},
-    ExtensionOf, ProgramOutputs, CLK_COL_IDX, FMP_COL_IDX, MIN_STACK_DEPTH, ONE,
-    STACK_TRACE_OFFSET, ZERO,
+    ExtensionOf, ProgramOutputs, CLK_COL_IDX, FMP_COL_IDX, ONE, STACK_TRACE_OFFSET, ZERO,
 };
 use winter_air::{
     Air, AirContext, Assertion, AuxTraceRandElements, EvaluationFrame,

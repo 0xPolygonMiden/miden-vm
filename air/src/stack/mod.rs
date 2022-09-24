@@ -1,11 +1,11 @@
 use super::{
     Assertion, AuxTraceRandElements, EvaluationFrame, Felt, FieldElement,
-    TransitionConstraintDegree, MIN_STACK_DEPTH, ONE, STACK_TRACE_OFFSET, ZERO,
+    TransitionConstraintDegree, ONE, STACK_TRACE_OFFSET, ZERO,
 };
 use crate::utils::are_equal;
 use vm_core::{
-    decoder::USER_OP_HELPERS_OFFSET, utils::collections::Vec, ProgramOutputs, StarkField,
-    DECODER_TRACE_OFFSET, FMP_COL_IDX, STACK_AUX_TRACE_OFFSET,
+    decoder::USER_OP_HELPERS_OFFSET, stack::STACK_TOP_SIZE, utils::collections::Vec,
+    ProgramOutputs, StarkField, DECODER_TRACE_OFFSET, FMP_COL_IDX, STACK_AUX_TRACE_OFFSET,
 };
 
 pub mod field_ops;
@@ -16,14 +16,14 @@ pub mod system_ops;
 // CONSTANTS
 // ================================================================================================
 
-const B0_COL_IDX: usize = STACK_TRACE_OFFSET + MIN_STACK_DEPTH;
+const B0_COL_IDX: usize = STACK_TRACE_OFFSET + STACK_TOP_SIZE;
 const B1_COL_IDX: usize = B0_COL_IDX + 1;
 
 // --- Main constraints ---------------------------------------------------------------------------
 
 /// The number of boundary constraints required by the Stack, which is all stack positions for
 /// inputs and outputs as well as the initial values of the bookkeeping columns.
-pub const NUM_ASSERTIONS: usize = 2 * MIN_STACK_DEPTH + 2;
+pub const NUM_ASSERTIONS: usize = 2 * STACK_TOP_SIZE + 2;
 
 /// The number of general constraints in the stack operations.
 pub const NUM_GENERAL_CONSTRAINTS: usize = 16;
@@ -160,19 +160,19 @@ pub fn enforce_general_constraints<E: FieldElement>(
 /// Returns the stack's boundary assertions for the main trace at the first step.
 pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>, stack_inputs: &[Felt]) {
     // stack columns at the first step should be set to stack inputs, excluding overflow inputs.
-    for (i, &value) in stack_inputs.iter().take(MIN_STACK_DEPTH).enumerate() {
+    for (i, &value) in stack_inputs.iter().take(STACK_TOP_SIZE).enumerate() {
         result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, value));
     }
 
     // if there are remaining slots on top of the stack without specified values, set them to ZERO.
-    for i in stack_inputs.len()..MIN_STACK_DEPTH {
+    for i in stack_inputs.len()..STACK_TOP_SIZE {
         result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, ZERO));
     }
 
     // get the initial values for the bookkeeping columns.
-    let mut depth = MIN_STACK_DEPTH;
+    let mut depth = STACK_TOP_SIZE;
     let mut overflow_addr = ZERO;
-    if stack_inputs.len() > MIN_STACK_DEPTH {
+    if stack_inputs.len() > STACK_TOP_SIZE {
         depth = stack_inputs.len();
         overflow_addr = -ONE;
     }
@@ -208,10 +208,10 @@ pub fn get_aux_assertions_first_step<E: FieldElement>(
     E: FieldElement<BaseField = Felt>,
 {
     let step = 0;
-    let value = if stack_inputs.len() > MIN_STACK_DEPTH {
+    let value = if stack_inputs.len() > STACK_TOP_SIZE {
         get_overflow_table_init(
             alphas.get_segment_elements(0),
-            &stack_inputs[MIN_STACK_DEPTH..],
+            &stack_inputs[STACK_TOP_SIZE..],
         )
     } else {
         E::ONE
@@ -276,7 +276,7 @@ where
     let mut value = E::ONE;
 
     // When the overflow table is non-empty, we expect at least 2 addresses (the `prev` value of
-    // the first row and the address value(s) of the row(s)) and more than MIN_STACK_DEPTH
+    // the first row and the address value(s) of the row(s)) and more than STACK_TOP_SIZE
     // elements in the stack.
     let mut prev = outputs.overflow_prev();
     for (clk, val) in outputs.stack_overflow() {

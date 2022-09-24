@@ -1,8 +1,7 @@
-use vm_core::{utils::uninit_vector, StarkField};
-
 use super::{
     super::trace::LookupTableRow, AuxTraceBuilder, BTreeMap, Felt, FieldElement, Vec, ZERO,
 };
+use vm_core::{utils::uninit_vector, StarkField};
 
 // OVERFLOW TABLE
 // ================================================================================================
@@ -31,6 +30,10 @@ pub struct OverflowTable {
     trace_enabled: bool,
     /// The number of rows in the overflow table when execution begins.
     num_init_rows: usize,
+    /// Holds the address (the clock cycle) of the row at to top of the overflow table. When
+    /// entering new execution context, this value is set to ZERO, and thus, will differ from the
+    /// row address actually at the top of the table.
+    last_row_addr: Felt,
 }
 
 impl OverflowTable {
@@ -45,6 +48,7 @@ impl OverflowTable {
             trace: BTreeMap::new(),
             trace_enabled: enable_trace,
             num_init_rows: 0,
+            last_row_addr: ZERO,
         }
     }
 
@@ -59,8 +63,8 @@ impl OverflowTable {
         overflow_table.num_init_rows = init_values.len();
 
         let mut clk = Felt::MODULUS - init_values.len() as u64;
-        for val in init_values.iter().rev() {
-            overflow_table.push(*val, clk);
+        for &val in init_values.iter().rev() {
+            overflow_table.push(val, clk);
             clk += 1;
         }
 
@@ -71,37 +75,52 @@ impl OverflowTable {
     // --------------------------------------------------------------------------------------------
 
     /// Pushes the specified value into the overflow table.
+    ///
+    /// Parameter clk specifies the clock cycle at which the value is added to the table.
     pub fn push(&mut self, value: Felt, clk: u64) {
-        // get the clock cycle of the row currently at the top of the overflow table. if the
-        // overflow table is empty, this is set to ZERO.
-        let prev = self
-            .active_rows
-            .last()
-            .map_or(ZERO, |&last_row_idx| self.all_rows[last_row_idx].clk);
+        // ZERO address indicates that the overflow table is empty, and thus, no actual value
+        // should be inserted into the table with this address. This is not a problem since for
+        // every real program, we first execute an operation marking the start of a code block,
+        // and thus, no operation can shift the stack to the right at clk = 0.
+        debug_assert_ne!(clk, 0, "cannot add value to overflow at clk=0");
 
         // create and record the new row, and also put it at the top of the overflow table
-        let row_idx = self.all_rows.len();
-        self.all_rows.push(OverflowTableRow::new(clk, value, prev));
-        self.active_rows.push(row_idx);
+        let row_idx = self.all_rows.len() as u32;
+        let new_row = OverflowTableRow::new(clk, value, self.last_row_addr);
+        self.all_rows.push(new_row);
+        self.active_rows.push(row_idx as usize);
+
+        // set the last row address to the address of the newly added row
+        self.last_row_addr = Felt::from(clk);
 
         // mark this clock cycle as the cycle at which a new row was inserted into the table
         self.update_trace
-            .push((clk, OverflowTableUpdate::RowInserted(row_idx as u32)));
+            .push((clk, OverflowTableUpdate::RowInserted(row_idx)));
 
         if self.trace_enabled {
             // insert a copy of the current table state into the trace
-            self.trace.insert(clk, self.get_values());
+            self.save_current_state(clk);
         }
     }
 
-    /// Removes the last value from the overflow table and returns it together with the clock
-    /// cycle of the next value in the table.
-    ///
-    /// If after the top value is removed the table is empty, the returned clock cycle is ZERO.
-    pub fn pop(&mut self, clk: u64) -> (Felt, Felt) {
+    /// Removes the last value from the overflow table and returns it.
+    pub fn pop(&mut self, clk: u64) -> Felt {
+        // if last_row_addr is ZERO, any rows in the overflow table are not accessible from the
+        // current context. Thus, we should not be able to remove them.
+        debug_assert_ne!(
+            self.last_row_addr, ZERO,
+            "overflow table is empty in the current context"
+        );
+
         // remove the top entry from the table and determine which table row corresponds to it
         let last_row_idx = self.active_rows.pop().expect("overflow table is empty");
         let last_row = &self.all_rows[last_row_idx];
+
+        // get the value from the last row and also update the last row address to point to the
+        // row currently at the top of the table. note that this is context specific. that is,
+        // last row address points to the next row in the current execution context.
+        let removed_value = last_row.val;
+        self.last_row_addr = last_row.prev;
 
         // mark this clock cycle as the clock cycle at which a row was removed from the table
         self.update_trace
@@ -109,26 +128,54 @@ impl OverflowTable {
 
         if self.trace_enabled {
             // insert a copy of the current table state into the trace
-            self.trace.insert(clk, self.get_values());
+            self.save_current_state(clk);
         }
 
-        // return the removed value as well as the clock cycle of the value currently at the
-        // top of the table
-        (last_row.val, last_row.prev)
+        // return the removed value
+        removed_value
+    }
+
+    /// Set the last row address pointer to the specified value.
+    ///
+    /// This can be used to indicate start/end of an execution context. Specifically:
+    /// - Setting the last row address to ZERO has the effect of clearing the overflow table
+    ///   (without actually removing the values from it).
+    /// - Changing the last row address to the address of the row actually at the top of the table
+    ///   has the effect of restoring the previous context.
+    pub fn set_last_row_addr(&mut self, last_row_addr: Felt) {
+        if last_row_addr != ZERO {
+            // if we are not setting the last row address to ZERO, we can set it only to the
+            // address of the row actually at the top of the table.
+            let last_row_idx = *self.active_rows.last().expect("overflow table is empty");
+            assert_eq!(self.all_rows[last_row_idx].clk, last_row_addr);
+        }
+        self.last_row_addr = last_row_addr;
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Appends the top n values from the overflow table to the end of the provided vector.
-    pub fn append_into(&self, target: &mut Vec<Felt>, n: usize) {
-        for &idx in self.active_rows.iter().rev().take(n) {
+    /// Returns address of the row at the top of the overflow table.
+    ///
+    /// If the overflow table in the current execution context is empty, this will return ZERO,
+    /// even if the overall overflow table contains values.
+    pub fn last_row_addr(&self) -> Felt {
+        self.last_row_addr
+    }
+
+    /// Appends the values from the overflow table to the end of the provided vector.
+    pub fn append_into(&self, target: &mut Vec<Felt>) {
+        for &idx in self.active_rows.iter().rev() {
             target.push(self.all_rows[idx].val);
         }
     }
 
     /// Appends the state of the overflow table at the specified clock cycle to the provided vector.
+    ///
+    /// # Panics
+    /// Panics when this overflow table was not initialized with `enable_trace` set to true.
     pub fn append_state_into(&self, target: &mut Vec<Felt>, clk: u64) {
+        assert!(self.trace_enabled, "overflow trace not enabled");
         if let Some(x) = self.trace.range(0..=clk).last() {
             for item in x.1.iter().rev() {
                 target.push(*item);
@@ -136,31 +183,24 @@ impl OverflowTable {
         }
     }
 
-    /// Returns a vector consisting of just the value portion of each table row.
-    fn get_values(&self) -> Vec<Felt> {
-        self.active_rows
-            .iter()
-            .map(|&idx| self.all_rows[idx].val)
-            .collect()
-    }
-
     /// Returns the addresses of active rows in the table required to reconstruct the table (when
     /// combined with the values). This is a vector of all of the `clk` values (the address of each
     /// row), preceded by the `prev` value in the first row of the table. (It's also equivalent to
     /// all of the `prev` values followed by the `clk` value in the last row of the table.)
     pub(super) fn get_addrs(&self) -> Vec<Felt> {
-        if !self.active_rows.is_empty() {
-            let mut addrs = unsafe { uninit_vector(self.active_rows.len() + 1) };
-            // add the previous address of the first row in the overflow table.
-            addrs[0] = self.all_rows[self.active_rows[0]].prev;
-            // add the address for all the rows in the overflow table.
-            for (i, &row_idx) in self.active_rows.iter().enumerate() {
-                addrs[i + 1] = self.all_rows[row_idx].clk;
-            }
-            return addrs;
+        if self.active_rows.is_empty() {
+            return Vec::new();
         }
 
-        Vec::new()
+        let mut addrs = unsafe { uninit_vector(self.active_rows.len() + 1) };
+        // add the previous address of the first row in the overflow table.
+        addrs[0] = self.all_rows[self.active_rows[0]].prev;
+        // add the address for all the rows in the overflow table.
+        for (i, &row_idx) in self.active_rows.iter().enumerate() {
+            addrs[i + 1] = self.all_rows[row_idx].clk;
+        }
+
+        addrs
     }
 
     // AUX TRACE BUILDER GENERATION
@@ -175,6 +215,20 @@ impl OverflowTable {
             overflow_table_rows: self.all_rows,
             final_rows: self.active_rows,
         }
+    }
+
+    // HELPER METHODS
+    // --------------------------------------------------------------------------------------------
+
+    /// Saves a copy of the current table state into the trace at the specified clock cycle.
+    fn save_current_state(&mut self, clk: u64) {
+        debug_assert!(self.trace_enabled, "overflow table trace not enabled");
+        let current_state = self
+            .active_rows
+            .iter()
+            .map(|&idx| self.all_rows[idx].val)
+            .collect();
+        self.trace.insert(clk, current_state);
     }
 
     // TEST ACCESSORS
@@ -210,7 +264,7 @@ impl OverflowTableRow {
     pub fn new(clk: u64, val: Felt, prev: Felt) -> Self {
         Self {
             val,
-            clk: Felt::new(clk),
+            clk: Felt::from(clk),
             prev,
         }
     }

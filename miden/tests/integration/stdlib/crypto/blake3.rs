@@ -1,4 +1,4 @@
-use super::{build_test, Felt, MIN_STACK_DEPTH};
+use super::{build_test, Felt, STACK_TOP_SIZE};
 use std::convert::TryInto;
 use vm_core::utils::IntoBytes;
 
@@ -21,10 +21,10 @@ fn blake3_2_to_1_hash() {
     i_digest[32..].copy_from_slice(&i_digest_1);
 
     // allocate space on stack so that bytes can be converted to blake3 words
-    let mut i_words = [0u64; MIN_STACK_DEPTH];
+    let mut i_words = [0u64; STACK_TOP_SIZE];
 
     // convert each of four consecutive little endian bytes (of input) to blake3 words
-    for (i, word) in i_words.iter_mut().enumerate().take(MIN_STACK_DEPTH) {
+    for (i, word) in i_words.iter_mut().enumerate().take(STACK_TOP_SIZE) {
         let frm = i << 2;
         let to = (i + 1) << 2;
         *word = u32::from_le_bytes(i_digest[frm..to].try_into().unwrap()) as u64;
@@ -36,13 +36,13 @@ fn blake3_2_to_1_hash() {
 
     // prepare digest in desired blake3 word form so that assertion writing becomes easier
     let digest_bytes = digest.as_bytes();
-    let mut digest_words = [0u64; MIN_STACK_DEPTH >> 1];
+    let mut digest_words = [0u64; STACK_TOP_SIZE >> 1];
 
     // convert each of four consecutive little endian bytes (of digest) to blake3 words
     for (i, word) in digest_words
         .iter_mut()
         .enumerate()
-        .take(MIN_STACK_DEPTH >> 1)
+        .take(STACK_TOP_SIZE >> 1)
     {
         let frm = i << 2;
         let to = (i + 1) << 2;

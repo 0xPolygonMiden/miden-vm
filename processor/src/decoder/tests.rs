@@ -2,7 +2,10 @@ use super::{
     build_op_group, AuxTraceHints, BlockHashTableRow, BlockStackTableRow, BlockTableUpdate,
     OpGroupTableRow, OpGroupTableUpdate,
 };
-use crate::{utils::get_trace_len, ExecutionTrace, Felt, Operation, Process, ProgramInputs, Word};
+use crate::{
+    decoder::block_stack::ExecutionContextInfo, utils::get_trace_len, ExecutionTrace, Felt,
+    Operation, Process, ProgramInputs, Word,
+};
 use rand_utils::rand_value;
 use vm_core::{
     code_blocks::{CodeBlock, Span, OP_BATCH_SIZE},
@@ -894,7 +897,11 @@ fn call_block() {
     //    stack[0] <- fmp
     // end
 
-    let span1 = CodeBlock::new_span(vec![Operation::Push(TWO), Operation::FmpUpdate]);
+    let span1 = CodeBlock::new_span(vec![
+        Operation::Push(TWO),
+        Operation::FmpUpdate,
+        Operation::Pad,
+    ]);
     let span2 = CodeBlock::new_span(vec![Operation::Push(ONE), Operation::FmpUpdate]);
     let span3 = CodeBlock::new_span(vec![Operation::FmpAdd]);
 
@@ -914,28 +921,33 @@ fn call_block() {
     check_op_decoding(&dec_trace, 2, join1_addr, Operation::Span, 2, 0, 0);
     check_op_decoding(&dec_trace, 3, span1_addr, Operation::Push(TWO), 1, 0, 1);
     check_op_decoding(&dec_trace, 4, span1_addr, Operation::FmpUpdate, 0, 1, 1);
-    check_op_decoding(&dec_trace, 5, span1_addr, Operation::End, 0, 0, 0);
+    // as PAD operation is executed, the last item from the stack top moves to the overflow table.
+    // thus, the overflow address for the top row in the table will be set to the clock cycle at
+    // which PAD was executed - which is 5.
+    let overflow_addr_after_pad = Felt::new(5);
+    check_op_decoding(&dec_trace, 5, span1_addr, Operation::Pad, 0, 2, 1);
+    check_op_decoding(&dec_trace, 6, span1_addr, Operation::End, 0, 0, 0);
     // starting CALL block
     let call_addr = span1_addr + EIGHT;
-    check_op_decoding(&dec_trace, 6, join1_addr, Operation::Call, 0, 0, 0);
+    check_op_decoding(&dec_trace, 7, join1_addr, Operation::Call, 0, 0, 0);
     // starting second SPAN block
     let span2_addr = call_addr + EIGHT;
-    check_op_decoding(&dec_trace, 7, call_addr, Operation::Span, 2, 0, 0);
-    check_op_decoding(&dec_trace, 8, span2_addr, Operation::Push(ONE), 1, 0, 1);
-    check_op_decoding(&dec_trace, 9, span2_addr, Operation::FmpUpdate, 0, 1, 1);
-    check_op_decoding(&dec_trace, 10, span2_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 8, call_addr, Operation::Span, 2, 0, 0);
+    check_op_decoding(&dec_trace, 9, span2_addr, Operation::Push(ONE), 1, 0, 1);
+    check_op_decoding(&dec_trace, 10, span2_addr, Operation::FmpUpdate, 0, 1, 1);
+    check_op_decoding(&dec_trace, 11, span2_addr, Operation::End, 0, 0, 0);
     // ending CALL block
-    check_op_decoding(&dec_trace, 11, call_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 12, call_addr, Operation::End, 0, 0, 0);
     // ending internal JOIN block
-    check_op_decoding(&dec_trace, 12, join1_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 13, join1_addr, Operation::End, 0, 0, 0);
     // starting the 3rd SPAN block
     let span3_addr = span2_addr + EIGHT;
-    check_op_decoding(&dec_trace, 13, INIT_ADDR, Operation::Span, 1, 0, 0);
-    check_op_decoding(&dec_trace, 14, span3_addr, Operation::FmpAdd, 0, 0, 1);
-    check_op_decoding(&dec_trace, 15, span3_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 14, INIT_ADDR, Operation::Span, 1, 0, 0);
+    check_op_decoding(&dec_trace, 15, span3_addr, Operation::FmpAdd, 0, 0, 1);
+    check_op_decoding(&dec_trace, 16, span3_addr, Operation::End, 0, 0, 0);
     // ending the program
-    check_op_decoding(&dec_trace, 16, INIT_ADDR, Operation::End, 0, 0, 0);
-    check_op_decoding(&dec_trace, 17, ZERO, Operation::Halt, 0, 0, 0);
+    check_op_decoding(&dec_trace, 17, INIT_ADDR, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 18, ZERO, Operation::Halt, 0, 0, 0);
 
     // --- check hasher state columns -------------------------------------------------------------
     // in the first row, the hasher state is set to hashes of (join1, span3)
@@ -951,38 +963,38 @@ fn call_block() {
     assert_eq!(fn_block_hash, get_hasher_state2(&dec_trace, 1));
 
     // at the end of the first SPAN, the hasher state is set to the hash of the first child
-    assert_eq!(span1_hash, get_hasher_state1(&dec_trace, 5));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 5));
+    assert_eq!(span1_hash, get_hasher_state1(&dec_trace, 6));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 6));
 
     // in the 7th row, we start the CALL block which hash span2 as its only child
     let span2_hash: Word = span2.hash().into();
-    assert_eq!(span2_hash, get_hasher_state1(&dec_trace, 6));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 5));
+    assert_eq!(span2_hash, get_hasher_state1(&dec_trace, 7));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 7));
 
     // span2 ends in the 11th row
-    assert_eq!(span2_hash, get_hasher_state1(&dec_trace, 10));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 10));
+    assert_eq!(span2_hash, get_hasher_state1(&dec_trace, 11));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 11));
 
     // CALL block ends in the 12th row; the second to last element of the hasher state
     // is set to ONE because we are exiting the CALL block
-    assert_eq!(fn_block_hash, get_hasher_state1(&dec_trace, 11));
-    assert_eq!([ZERO, ZERO, ONE, ZERO], get_hasher_state2(&dec_trace, 11));
+    assert_eq!(fn_block_hash, get_hasher_state1(&dec_trace, 12));
+    assert_eq!([ZERO, ZERO, ONE, ZERO], get_hasher_state2(&dec_trace, 12));
 
     // internal JOIN block ends in the 13th row
-    assert_eq!(join1_hash, get_hasher_state1(&dec_trace, 12));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 12));
+    assert_eq!(join1_hash, get_hasher_state1(&dec_trace, 13));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 13));
 
     // span3 ends in the 14th row
-    assert_eq!(span3_hash, get_hasher_state1(&dec_trace, 15));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 15));
+    assert_eq!(span3_hash, get_hasher_state1(&dec_trace, 16));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 16));
 
     // the program ends in the 17th row
     let program_hash: Word = program.hash().into();
-    assert_eq!(program_hash, get_hasher_state1(&dec_trace, 16));
-    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 16));
+    assert_eq!(program_hash, get_hasher_state1(&dec_trace, 17));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 17));
 
     // HALT opcode and program hash gets propagated to the last row
-    for i in 17..trace_len {
+    for i in 18..trace_len {
         assert!(contains_op(&dec_trace, i, Operation::Halt));
         assert_eq!(ONE, dec_trace[OP_BIT_EXTRA_COL_IDX][i]);
         assert_eq!(program_hash, get_hasher_state1(&dec_trace, i));
@@ -991,17 +1003,17 @@ fn call_block() {
     // --- check the ctx column -------------------------------------------------------------------
 
     // for the first 7 cycles, we are in the root context
-    for i in 0..7 {
+    for i in 0..8 {
         assert_eq!(sys_trace[CTX_COL_IDX][i], ZERO);
     }
 
     // when CALL operation is executed, we switch to the new context
-    for i in 7..12 {
-        assert_eq!(sys_trace[CTX_COL_IDX][i], Felt::new(7));
+    for i in 8..13 {
+        assert_eq!(sys_trace[CTX_COL_IDX][i], Felt::new(8));
     }
 
     // once the CALL block exited, we go back to the root context
-    for i in 12..trace_len {
+    for i in 13..trace_len {
         assert_eq!(sys_trace[CTX_COL_IDX][i], ZERO);
     }
 
@@ -1013,23 +1025,23 @@ fn call_block() {
     }
 
     // when the first FmpUpdate is executed, fmp gets gets incremented by 2
-    for i in 5..7 {
+    for i in 5..8 {
         assert_eq!(sys_trace[FMP_COL_IDX][i], FMP_MIN + TWO);
     }
 
     // when CALL operation is executed, fmp gets reset to the initial value
-    for i in 7..10 {
+    for i in 8..11 {
         assert_eq!(sys_trace[FMP_COL_IDX][i], FMP_MIN);
     }
 
     // when the second FmpUpdate is executed, fmp gets gets incremented by 1
-    for i in 10..12 {
+    for i in 11..13 {
         assert_eq!(sys_trace[FMP_COL_IDX][i], FMP_MIN + ONE);
     }
 
     // once the CALL block exited, fmp gets reset back to FMP_MIN + 2, and it remains unchanged
     // until the end of the trace
-    for i in 12..trace_len {
+    for i in 13..trace_len {
         assert_eq!(sys_trace[FMP_COL_IDX][i], FMP_MIN + TWO);
     }
 
@@ -1038,24 +1050,25 @@ fn call_block() {
         (0, BlockTableUpdate::BlockStarted(2)),
         (1, BlockTableUpdate::BlockStarted(2)),
         (2, BlockTableUpdate::BlockStarted(0)),
-        (5, BlockTableUpdate::BlockEnded(true)),
-        (6, BlockTableUpdate::BlockStarted(1)),
-        (7, BlockTableUpdate::BlockStarted(0)),
-        (10, BlockTableUpdate::BlockEnded(false)),
+        (6, BlockTableUpdate::BlockEnded(true)),
+        (7, BlockTableUpdate::BlockStarted(1)),
+        (8, BlockTableUpdate::BlockStarted(0)),
         (11, BlockTableUpdate::BlockEnded(false)),
-        (12, BlockTableUpdate::BlockEnded(true)),
-        (13, BlockTableUpdate::BlockStarted(0)),
-        (15, BlockTableUpdate::BlockEnded(false)),
+        (12, BlockTableUpdate::BlockEnded(false)),
+        (13, BlockTableUpdate::BlockEnded(true)),
+        (14, BlockTableUpdate::BlockStarted(0)),
         (16, BlockTableUpdate::BlockEnded(false)),
+        (17, BlockTableUpdate::BlockEnded(false)),
     ];
     assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table rows -----------------------------------------------------------
+    let call_ctx = ExecutionContextInfo::new(0, FMP_MIN + TWO, 17, overflow_addr_after_pad);
     let expected_rows = vec![
         BlockStackTableRow::new_test(INIT_ADDR, ZERO, false),
         BlockStackTableRow::new_test(join1_addr, INIT_ADDR, false),
         BlockStackTableRow::new_test(span1_addr, join1_addr, false),
-        BlockStackTableRow::new_test(call_addr, join1_addr, false),
+        BlockStackTableRow::new_test_with_ctx(call_addr, join1_addr, false, call_ctx),
         BlockStackTableRow::new_test(span2_addr, call_addr, false),
         BlockStackTableRow::new_test(span3_addr, INIT_ADDR, false),
     ];

@@ -1,7 +1,9 @@
 pub use miden::{ProofOptions, StarkProof};
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
-pub use vm_core::{Felt, FieldElement, Program, ProgramInputs, ProgramOutputs, MIN_STACK_DEPTH};
+pub use vm_core::{
+    stack::STACK_TOP_SIZE, Felt, FieldElement, Program, ProgramInputs, ProgramOutputs,
+};
 
 pub mod crypto;
 
@@ -172,7 +174,7 @@ impl Test {
     }
 
     /// Returns the last state of the stack after executing a test.
-    pub fn get_last_stack_state(&self) -> [Felt; MIN_STACK_DEPTH] {
+    pub fn get_last_stack_state(&self) -> [Felt; STACK_TOP_SIZE] {
         let trace = self.execute().unwrap();
 
         trace.last_stack_state()
@@ -182,10 +184,10 @@ impl Test {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Takes an array of u64 values and builds a stack, perserving their order and converting them to
+/// Takes an array of u64 values and builds a stack, preserving their order and converting them to
 /// field elements.
-pub fn convert_to_stack(values: &[u64]) -> [Felt; MIN_STACK_DEPTH] {
-    let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
+pub fn convert_to_stack(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
+    let mut result = [Felt::ZERO; STACK_TOP_SIZE];
     for (&value, result) in values.iter().zip(result.iter_mut()) {
         *result = Felt::new(value);
     }

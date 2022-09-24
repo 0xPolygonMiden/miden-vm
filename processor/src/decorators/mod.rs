@@ -147,6 +147,7 @@ mod tests {
 
         let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
         let mut process = Process::new(inputs);
+        process.execute_op(Operation::Noop).unwrap();
 
         // inject the node into the advice tape
         process

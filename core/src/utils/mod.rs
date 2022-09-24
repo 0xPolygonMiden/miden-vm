@@ -21,6 +21,10 @@ pub use winter_utils::{
 
 pub use crypto::{RandomCoin, RandomCoinError};
 
+pub mod math {
+    pub use math::{batch_inversion, log2};
+}
+
 // TO ELEMENTS
 // ================================================================================================
 
