@@ -22,6 +22,7 @@ use vm_core::{
 pub struct AdviceProvider {
     step: u32,
     tape: Vec<Felt>,
+    values: BTreeMap<[u8; 32], Vec<Felt>>,
     sets: BTreeMap<[u8; 32], AdviceSet>,
 }
 
@@ -30,7 +31,7 @@ impl AdviceProvider {
     // --------------------------------------------------------------------------------------------
     /// Returns a new advice provider instantiated from the specified program inputs.
     pub fn new(inputs: ProgramInputs) -> Self {
-        let (_, mut advice_tape, advice_sets) = inputs.into_parts();
+        let (_, mut advice_tape, advice_map, advice_sets) = inputs.into_parts();
 
         // reverse the advice tape so that we can pop elements off the end
         advice_tape.reverse();
@@ -38,6 +39,7 @@ impl AdviceProvider {
         Self {
             step: 0,
             tape: advice_tape,
+            values: advice_map,
             sets: advice_sets,
         }
     }
@@ -58,6 +60,24 @@ impl AdviceProvider {
     /// Writes the provided value at the head of the advice tape.
     pub fn write_tape(&mut self, value: Felt) {
         self.tape.push(value);
+    }
+
+    /// Retrieves a list of elements from a key-value map for the specified key, reverses it, and
+    /// writes the reversed list at the head of the advice tape. This way, the first element in the
+    /// list is located at the head of the advice tape.
+    ///
+    /// # Errors
+    /// Returns an error if the key was not found in a key-value map.
+    pub fn write_tape_from_map(&mut self, key: Word) -> Result<(), ExecutionError> {
+        let values = self
+            .values
+            .get(&key.into_bytes())
+            .ok_or(ExecutionError::AdviceKeyNotFound(key))?;
+        for &elem in values.iter().rev() {
+            self.tape.push(elem);
+        }
+
+        Ok(())
     }
 
     // ADVISE SETS

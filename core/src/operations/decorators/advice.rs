@@ -18,6 +18,11 @@ pub enum AdviceInjector {
     /// The result is injected into the advice tape as follows: first the remainder is injected,
     /// then the quotient is injected.
     DivResultU64,
+
+    /// Injects a list of field elements at the front of the advice tape. The list is looked up in
+    /// the key-value map maintained by the advice provider using the top 4 elements on the stack
+    /// as the key.
+    MapValue,
 }
 
 impl fmt::Display for AdviceInjector {
@@ -25,6 +30,7 @@ impl fmt::Display for AdviceInjector {
         match self {
             Self::MerkleNode => write!(f, "merkle_node"),
             Self::DivResultU64 => write!(f, "div_result_u64"),
+            Self::MapValue => write!(f, "map_value"),
         }
     }
 }
