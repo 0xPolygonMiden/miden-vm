@@ -1,6 +1,30 @@
 use super::{build_test, Felt};
+use ::air::FieldElement;
 use std::ops::{Add, Div, Mul, Sub};
 use vm_core::StarkField;
+
+// Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine raises
+// it to the power 2^n, by means of n successive squarings
+//
+// See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L461-L469
+fn msquare(v: Felt, n: usize) -> Felt {
+    let mut v_ = v;
+    for _ in 0..n {
+        v_ = v_.square();
+    }
+    v_
+}
+
+// Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine raises
+// it to the power (p - 1) / 2
+//
+// See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L448-L459
+fn legendre(v: Felt) -> Felt {
+    let v0 = msquare(v, 31);
+    let v1 = msquare(v0, 32);
+    let v2 = v1 / v0;
+    v2
+}
 
 #[derive(Copy, Clone, Debug)]
 struct GFp5 {
@@ -87,6 +111,18 @@ impl GFp5 {
             a3: t4 * t2.a3,
             a4: t4 * t2.a4,
         }
+    }
+
+    pub fn legendre(self) -> Felt {
+        let t0 = self.frobenius_once();
+        let t1 = t0 * t0.frobenius_once();
+        let t2 = t1 * t1.frobenius_twice();
+
+        let t3 = self.a0 * t2.a0
+            + Felt::new(3)
+                * (self.a1 * t2.a4 + self.a2 * t2.a3 + self.a3 * t2.a2 + self.a4 * t2.a1);
+
+        legendre(t3)
     }
 }
 
@@ -363,4 +399,31 @@ fn test_gfp5_div() {
     assert_eq!(strace[2], c.a2);
     assert_eq!(strace[3], c.a3);
     assert_eq!(strace[4], c.a4);
+}
+
+#[test]
+fn test_gfp5_legendre() {
+    let source = "
+    use.std::math::gfp5
+
+    begin
+        exec.gfp5::legendre
+    end";
+
+    let a = GFp5::rand();
+    let b = a.legendre();
+
+    let mut stack = [
+        a.a0.as_int(),
+        a.a1.as_int(),
+        a.a2.as_int(),
+        a.a3.as_int(),
+        a.a4.as_int(),
+    ];
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    assert_eq!(strace[0], b);
 }

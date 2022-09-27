@@ -6345,6 +6345,108 @@ export.div
     exec.inv
     exec.mul
 end
+
+# Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine computes
+# legendre symbol, by raising that element to the power (p-1) / 2
+#
+# Expected stack state :
+#
+# [v, ...]
+#
+# After finishing execution stack looks like
+#
+# [v', ...] s.t. v' = legendre symbol of v
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L448-L459
+# for reference implementation in higher level language.
+proc.gf_legendre
+    repeat.31
+        dup
+        mul
+    end
+
+    dup
+
+    repeat.32
+        dup
+        mul
+    end
+
+    swap
+    dup
+    eq.0
+    add
+
+    div
+end
+
+# Given an element v ∈ GF(p^5), this routine computes its legendre symbol,
+# which is an element ∈ GF(p) | p = 2^64 - 2^32 + 1
+#
+# At beginning stack looks like
+#
+# [a0, a1, a2, a3, a4, ...]
+#
+# At end stack looks like
+#
+# [b, ...] s.t. b = legendre symbol of a
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L857-L877
+# for reference implementation in higher level language.
+export.legendre
+    repeat.5
+        dup.4
+    end
+
+    exec.frobenius_once
+
+    repeat.5
+        dup.4
+    end
+
+    exec.frobenius_once
+    exec.mul
+
+    repeat.5
+        dup.4
+    end
+
+    exec.frobenius_twice
+    exec.mul
+
+    movup.5
+    mul
+
+    movup.5
+    movup.5
+    mul
+    mul.3
+    
+    add
+
+    movup.4
+    movup.4
+    mul
+    mul.3
+
+    add
+
+    movup.3
+    movup.3
+    mul
+    mul.3
+
+    add
+
+    movup.2
+    movup.2
+    mul
+    mul.3
+
+    add
+
+    exec.gf_legendre
+end
 "),
 // ----- std::math::ntt512 ------------------------------------------------------------------------
 ("std::math::ntt512", "# Applies four NTT butterflies on four different indices, given following stack state
