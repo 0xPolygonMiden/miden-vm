@@ -5834,35 +5834,18 @@ end
 #
 # After application of routine stack :
 #
-# [c0, c1, c2, c3, c4, ...]
+# [c0, c1, c2, c3, c4, ...] s.t. c = a + b
 #
 # See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #
 # For reference implementation in high level language, see 
 # https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L607-L616
 export.add
-    movup.5
-    add
-
-    swap
-    movup.5
-    add
-    swap
-
-    movup.2
-    movup.5
-    add
-    movdn.2
-
-    movup.3
-    movup.5
-    add
-    movdn.3
-
-    movup.4
-    movup.5
-    add
-    movdn.4
+    repeat.5
+        movup.5
+        add
+        movdn.4
+    end
 end
 
 # Given two GF(p^5) elements on stack, this routine subtracts second
@@ -5874,35 +5857,18 @@ end
 #
 # After application of routine stack :
 #
-# [c0, c1, c2, c3, c4, ...]
+# [c0, c1, c2, c3, c4, ...] s.t. c = a - b
 #
 # See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #
 # For reference implementation in high level language, see 
 # https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L629-L638
 export.sub
-    movup.5
-    sub
-
-    swap
-    movup.5
-    sub
-    swap
-
-    movup.2
-    movup.5
-    sub
-    movdn.2
-
-    movup.3
-    movup.5
-    sub
-    movdn.3
-
-    movup.4
-    movup.5
-    sub
-    movdn.4
+    repeat.5
+        movup.5
+        sub
+        movdn.4
+    end
 end
 
 # Given two GF(p^5) elements on stack, this routine computes modular
@@ -5915,7 +5881,7 @@ end
 #
 # After application of routine stack :
 #
-# [c0, c1, c2, c3, c4, ...]
+# [c0, c1, c2, c3, c4, ...] s.t. c = a * b
 #
 # See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #
@@ -6093,7 +6059,7 @@ end
 #
 # After application of routine stack :
 #
-# [b0, b1, b2, b3, b4, ...]
+# [b0, b1, b2, b3, b4, ...] s.t. b = a * a
 #
 # See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #
@@ -6215,21 +6181,19 @@ end
 # See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L723-L737
 # for reference implementation in high-level language.
 proc.frobenius_once
-    swap
-    mul.1041288259238279555
-    swap
-
-    movup.2
-    mul.15820824984080659046
-    movdn.2
-
-    movup.3
-    mul.211587555138949697
-    movdn.3
-
     movup.4
     mul.1373043270956696022
-    movdn.4
+
+    movup.4
+    mul.211587555138949697
+
+    movup.4
+    mul.15820824984080659046
+
+    movup.4
+    mul.1041288259238279555
+
+    movup.4
 end
 
 # Given an element a ∈ GF(p^5), this routine applies Frobenius operator
@@ -6246,21 +6210,19 @@ end
 # See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L739-L749
 # for reference implementation in high-level language.
 proc.frobenius_twice
-    swap
-    mul.15820824984080659046
-    swap
-
-    movup.2
-    mul.1373043270956696022
-    movdn.2
-
-    movup.3
-    mul.1041288259238279555
-    movdn.3
-
     movup.4
     mul.211587555138949697
-    movdn.4
+
+    movup.4
+    mul.1041288259238279555
+
+    movup.4
+    mul.1373043270956696022
+
+    movup.4
+    mul.15820824984080659046
+
+    movup.4
 end
 
 # Given one GF(p^5) element on stack, this routine computes multiplicative
@@ -6272,7 +6234,7 @@ end
 #
 # After application of routine stack :
 #
-# [b0, b1, b2, b3, b4, ...]
+# [b0, b1, b2, b3, b4, ...] s.t. b = 1 / a
 #
 # See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #
@@ -6369,7 +6331,7 @@ end
 #
 # After application of routine stack :
 #
-# [c0, c1, c2, c3, c4, ...]
+# [c0, c1, c2, c3, c4, ...] s.t. c = a / b
 #
 # See section 3.2 of https://eprint.iacr.org/2022/274.pdf
 #
