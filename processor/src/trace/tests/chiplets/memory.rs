@@ -57,7 +57,7 @@ fn b_aux_trace_mem() {
         MEMORY_WRITE_LABEL,
         ZERO,
         ZERO,
-        Felt::new(1),
+        Felt::ONE,
         word,
     );
     let mut expected = value.inv();
