@@ -2,7 +2,7 @@ use super::{
     Assertion, AuxTraceRandElements, EvaluationFrame, Felt, FieldElement,
     TransitionConstraintDegree, ONE, STACK_TRACE_OFFSET, ZERO,
 };
-use crate::utils::are_equal;
+use crate::utils::{are_equal, is_binary};
 use vm_core::{
     decoder::USER_OP_HELPERS_OFFSET, stack::STACK_TOP_SIZE, utils::collections::Vec,
     ProgramOutputs, StarkField, DECODER_TRACE_OFFSET, FMP_COL_IDX, STACK_AUX_TRACE_OFFSET,
@@ -26,7 +26,7 @@ const B1_COL_IDX: usize = B0_COL_IDX + 1;
 pub const NUM_ASSERTIONS: usize = 2 * STACK_TOP_SIZE + 2;
 
 /// The number of general constraints in the stack operations.
-pub const NUM_GENERAL_CONSTRAINTS: usize = 16;
+pub const NUM_GENERAL_CONSTRAINTS: usize = 17;
 
 /// The degrees of constraints in the general stack operations. Each operation being executed
 /// either shifts the stack to the left, right or doesn't effect it at all. Therefore, majority
@@ -35,10 +35,11 @@ pub const NUM_GENERAL_CONSTRAINTS: usize = 16;
 /// at depth ith in the next stack frame can be transitioned into from ith depth (no shift op) or
 /// (i+1)th depth(left shift) or (i-1)th depth(right shift) in the current frame. Therefore, the VM
 /// would require only 16 general constraints to encompass all the 16 stack positions.
+/// The last constraint checks if the top element in the stack is a binary or not.
 pub const CONSTRAINT_DEGREES: [usize; NUM_GENERAL_CONSTRAINTS] = [
     // Each degree are being multiplied with the respective composite flags which are of degree 7.
     // Therefore, all the degree would incorporate 7 in their degree calculation.
-    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9,
 ];
 
 // --- Auxiliary column constraints ---------------------------------------------------------------
@@ -131,7 +132,7 @@ pub fn enforce_general_constraints<E: FieldElement>(
 
     // enforces constraint on the ith element in the stack in the next trace.
     #[allow(clippy::needless_range_loop)]
-    for i in 1..NUM_GENERAL_CONSTRAINTS - 1 {
+    for i in 1..NUM_GENERAL_CONSTRAINTS - 2 {
         let flag_sum =
             op_flag.no_shift_at(i) + op_flag.left_shift_at(i + 1) + op_flag.right_shift_at(i - 1);
         let expected_next_item = op_flag.no_shift_at(i) * frame.stack_item(i)
@@ -145,10 +146,14 @@ pub fn enforce_general_constraints<E: FieldElement>(
     let flag_sum = op_flag.no_shift_at(15) + op_flag.right_shift_at(14);
     let expected_next_item = op_flag.no_shift_at(15) * frame.stack_item(15)
         + op_flag.right_shift_at(14) * frame.stack_item(14);
-    result[NUM_GENERAL_CONSTRAINTS - 1] = are_equal(
-        frame.stack_item_next(NUM_GENERAL_CONSTRAINTS - 1) * flag_sum,
+    result[NUM_GENERAL_CONSTRAINTS - 2] = are_equal(
+        frame.stack_item_next(NUM_GENERAL_CONSTRAINTS - 2) * flag_sum,
         expected_next_item,
     );
+
+    // enforces constraint on the top element being binary or not.
+    let top_binary_flag = op_flag.top_binary();
+    result[NUM_GENERAL_CONSTRAINTS - 1] = top_binary_flag * is_binary(frame.stack_item(0));
 
     NUM_GENERAL_CONSTRAINTS
 }

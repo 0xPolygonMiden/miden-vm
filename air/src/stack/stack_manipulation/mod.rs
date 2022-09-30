@@ -1,7 +1,7 @@
 use super::{op_flags::OpFlags, EvaluationFrame, Vec};
 use crate::{
     stack::EvaluationFrameExt,
-    utils::{are_equal, binary_not, is_binary},
+    utils::{are_equal, binary_not},
 };
 use vm_core::FieldElement;
 use winter_air::TransitionConstraintDegree;
@@ -13,7 +13,7 @@ pub mod tests;
 // ================================================================================================
 
 /// The number of unique transition constraints in stack manipulation operations.
-pub const NUM_CONSTRAINTS: usize = 50;
+pub const NUM_CONSTRAINTS: usize = 49;
 
 /// The degrees of constraints in individual stack manipulation operations.
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
@@ -26,7 +26,7 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     8, // 8 constraints for SWAPWX operations including 8 constraints of SWAPDW operation
     8, 8, 8, 8, 8, 8, 8, 8, // 8 constraints for SWAPDW operations
     8, 8, 8, 8, 8, 8, 8, // 7 constraints for MOVDNn operations
-    8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, // 11 constraints for CSWAP and CSWAPW operations
+    9, 9, 9, 9, 9, 9, 9, 9, 9, 9, // 10 constraints for CSWAP and CSWAPW operations
 ];
 
 // STACK MANIPULATION OPERATIONS TRANSITION CONSTRAINTS
@@ -268,13 +268,13 @@ pub fn enforce_movdnn_constraints<E: FieldElement>(
 
 /// Enforces constraints of the CSWAP and CSWAPW operation. Each of the operation effects
 /// the stack in the following way:
+/// - The top element in the stack should be binary and is enforced as a general constraint.
 /// - The CSWAP operation swaps the elements 1,2 in the stack if the first element is 1. The stack
 ///   remains the same if the top element is 0.
 /// - The CSWAP operation swaps the elements 1,2,3,4 with 5,6,7,8 in the stack if the first element
 ///   is 1. The stack remains the same if the top element is 0.
 ///
 /// Therefore, the following constraints are enforced:
-/// - The top element should be a binary. s0**2 - s0 = 0.
 /// - The top two elements or elements 1,2,3,4 should be swapped in the case of CSWAP and
 ///   CSWAPW respectively if the top element is 1, the state remains the same if the top
 ///   element is 0.
@@ -284,6 +284,8 @@ pub fn enforce_cswapx_constraints<E: FieldElement>(
     result: &mut [E],
     op_flag: &OpFlags<E>,
 ) -> usize {
+    // condition should be binary and is enforced as a general constraint. It is used to
+    // decide if the respective elements/words needs to be swapped or not.
     let condition = frame.stack_item(0);
     let not_condition = binary_not(frame.stack_item(0));
 
@@ -292,17 +294,13 @@ pub fn enforce_cswapx_constraints<E: FieldElement>(
     let c = frame.stack_item_next(0);
     let d = frame.stack_item_next(1);
 
-    let cswap_or_cswapw = op_flag.cswap() + op_flag.cswapw();
-    // Enforces the top element in the current is a binary.
-    result[0] = cswap_or_cswapw * is_binary(condition);
-
     // Enforces that b is moved to the top of the stack if the condition is 1 else a is
     //  moved to the top.
-    result[1] = op_flag.cswap() * are_equal(c, a * not_condition + b * condition);
+    result[0] = op_flag.cswap() * are_equal(c, a * not_condition + b * condition);
 
     // Enforces that b is at depth 2 in the stack if the condition is 0 else a should be
     // at depth 2.
-    result[2] = op_flag.cswap() * are_equal(d, a * condition + b * not_condition);
+    result[1] = op_flag.cswap() * are_equal(d, a * condition + b * not_condition);
 
     // Enforces the correct transition of a and b into item at index 0,1,2,3 in the next frame.
     for i in 0..4 {
@@ -310,7 +308,7 @@ pub fn enforce_cswapx_constraints<E: FieldElement>(
         let b = frame.stack_item(i + 5);
         let c = frame.stack_item_next(i);
 
-        result[i + 3] = op_flag.cswapw() * are_equal(c, a * not_condition + b * condition);
+        result[i + 2] = op_flag.cswapw() * are_equal(c, a * not_condition + b * condition);
     }
 
     // Enforces the correct transition of a and b into item at index 4,5,6,7 in the next frame.
@@ -319,8 +317,8 @@ pub fn enforce_cswapx_constraints<E: FieldElement>(
         let b = frame.stack_item(i + 5);
         let c = frame.stack_item_next(i + 4);
 
-        result[i + 7] = op_flag.cswapw() * are_equal(c, a * condition + b * not_condition);
+        result[i + 6] = op_flag.cswapw() * are_equal(c, a * condition + b * not_condition);
     }
 
-    11
+    10
 }
