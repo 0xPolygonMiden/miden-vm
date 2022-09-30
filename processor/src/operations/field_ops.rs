@@ -1,5 +1,5 @@
 use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Process};
-use vm_core::{Operation, ZERO};
+use vm_core::{Operation, StarkField, ZERO};
 
 // FIELD OPERATIONS
 // ================================================================================================
@@ -162,6 +162,55 @@ impl Process {
         self.stack.copy_state(1);
         Ok(())
     }
+
+    /// Computes a single turn of exp accumulation for the given inputs. The top 4 elements in the
+    /// stack is arranged as follows (from the top):
+    /// - least significant bit of the exponent in the previous trace if there's an expacc call,
+    /// otherwise ZERO
+    /// - exponent of base for this turn
+    /// - accumulated power of base so far
+    /// - number which needs to be shifted to the right
+    ///
+    /// To perform the operation we do the following:
+    /// 1. Pops top three elements off the stack and calculate the least significant bit of the
+    /// number `b`.
+    /// 2. Use this bit to decide if the current `base` raise to the power exponent needs to be
+    /// included in the accumulator.
+    /// 3. Update exponent with its square and the number b with one right shift.
+    /// 4. Pushes the calcuted new values to the stack in the mentioned order.
+    pub(super) fn op_expacc(&mut self) -> Result<(), ExecutionError> {
+        let mut exp = self.stack.get(1);
+        let mut acc = self.stack.get(2);
+        let mut b = self.stack.get(3);
+
+        // least significant bit of the number b.
+        let bit = b.as_int() & 1;
+
+        // value which would be incorporated in the accumulator.
+        let value = Felt::new((exp.as_int() - 1) * bit + 1);
+
+        // current value of acc after including the value based on whether the bit is
+        // 1 or not.
+        acc *= value;
+
+        // number `b` shifted right by one bit.
+        b = Felt::new(b.as_int() >> 1);
+
+        // exponent updated with its square.
+        exp *= exp;
+
+        // save val in the decoder helper register.
+        self.decoder
+            .set_user_op_helpers(Operation::Expacc, &[value]);
+
+        self.stack.set(0, Felt::new(bit));
+        self.stack.set(1, exp);
+        self.stack.set(2, acc);
+        self.stack.set(3, b);
+        self.stack.copy_state(4);
+
+        Ok(())
+    }
 }
 
 // TESTS
@@ -174,7 +223,7 @@ mod tests {
         Process,
     };
     use rand_utils::rand_value;
-    use vm_core::ProgramInputs;
+    use vm_core::{ProgramInputs, ONE, ZERO};
 
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -419,6 +468,52 @@ mod tests {
 
         process.execute_op(Operation::Eqz).unwrap();
         let expected = build_expected(&[Felt::ZERO, Felt::new(3)]);
+        assert_eq!(expected, process.stack.trace_state());
+    }
+
+    // EXPONENT OPERATIONS
+    // --------------------------------------------------------------------------------------------
+
+    #[test]
+    fn op_expacc() {
+        // --- test when b become 0 ---------------------------------------------------------------
+
+        let a = 0;
+        let b = 32;
+        let c = 4;
+
+        let inputs = ProgramInputs::new(&[a, b, c, 0], &[], vec![]).unwrap();
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+
+        process.execute_op(Operation::Expacc).unwrap();
+        let expected = build_expected(&[ZERO, Felt::new(16), Felt::new(32), Felt::new(a >> 1)]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- test when bit from b is 1 ---------------------------------------------------------------------------
+
+        let a = 3;
+        let b = 1;
+        let c = 16;
+
+        let inputs = ProgramInputs::new(&[a, b, c, 0], &[], vec![]).unwrap();
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+
+        process.execute_op(Operation::Expacc).unwrap();
+        let expected = build_expected(&[ONE, Felt::new(256), Felt::new(16), Felt::new(a >> 1)]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // --- test when bit from b is 1 & exp is 2**32. exp will overflow the field after this operation -----------
+
+        let a = 17;
+        let b = 5;
+        let c = 625;
+
+        let inputs = ProgramInputs::new(&[a, b, c, 0], &[], vec![]).unwrap();
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+
+        process.execute_op(Operation::Expacc).unwrap();
+        let expected =
+            build_expected(&[ONE, Felt::new(390625), Felt::new(3125), Felt::new(a >> 1)]);
         assert_eq!(expected, process.stack.trace_state());
     }
 

@@ -50,6 +50,8 @@ impl Process {
             Operation::Eq => self.op_eq()?,
             Operation::Eqz => self.op_eqz()?,
 
+            Operation::Expacc => self.op_expacc()?,
+
             // ----- u32 operations ---------------------------------------------------------------
             Operation::U32split => self.op_u32split()?,
             Operation::U32add => self.op_u32add()?,
