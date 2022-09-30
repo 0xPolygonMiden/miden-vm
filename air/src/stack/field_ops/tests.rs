@@ -102,6 +102,19 @@ proptest! {
         let result = get_constraint_evaluation(frame);
         assert_eq!(expected, result);
     }
+
+    // -------------------------------- EXPACC test --------------------------------------------------
+
+    #[test]
+    fn test_expacc_stack_operation(a in any::<u64>(), b in any::<u64>()) {
+        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let no_bits_stack = (b as f64).log2().ceil() as u64;
+        for c in 0..no_bits_stack{
+            let frame = get_expacc_test_frame(c, a, b);
+            let result = get_constraint_evaluation(frame);
+            assert_eq!(expected, result);
+        }
+    }
 }
 
 // UNIT TESTS
@@ -382,4 +395,51 @@ pub fn get_or_test_frame(a: Felt, b: Felt) -> EvaluationFrame<Felt> {
     frame.next_mut()[STACK_TRACE_OFFSET] = Felt::new(a.as_int() | b.as_int());
 
     frame
+}
+
+/// Generates the correct current and next rows for the EXPACC operation and inputs and
+/// returns an EvaluationFrame for testing.
+pub fn get_expacc_test_frame(a: u64, base: u64, exp: u64) -> EvaluationFrame<Felt> {
+    // frame initialised with a EXPACC operation using it's unique opcode.
+    let mut frame = generate_evaluation_frame(Operation::Expacc.op_code() as usize);
+
+    let (exp, res, b) = expacc_helper(a, base, exp);
+
+    // Set the output.
+    frame.current_mut()[STACK_TRACE_OFFSET + 1] = exp;
+    frame.current_mut()[STACK_TRACE_OFFSET + 2] = res;
+    frame.current_mut()[STACK_TRACE_OFFSET + 3] = b;
+
+    let bit = Felt::new(b.as_int() & 1);
+    let val = (exp - ONE) * bit + ONE;
+    let b = Felt::new(b.as_int() >> 1);
+
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] = val;
+    frame.next_mut()[STACK_TRACE_OFFSET] = bit;
+    frame.next_mut()[STACK_TRACE_OFFSET + 1] = exp * exp;
+    frame.next_mut()[STACK_TRACE_OFFSET + 2] = res * val;
+    frame.next_mut()[STACK_TRACE_OFFSET + 3] = b;
+
+    frame
+}
+
+// This helper computes the power of base raised to exp.
+fn expacc_helper(mut a: u64, base: u64, mut pow: u64) -> (Felt, Felt, Felt) {
+    let mut res = ONE;
+    let mut base_exp = Felt::new(base);
+    while a > 0 {
+        let bit = pow & 1;
+
+        if bit == 1 {
+            res *= base_exp;
+        }
+
+        pow >>= 1;
+
+        base_exp *= base_exp;
+
+        a -= 1;
+    }
+
+    (base_exp, res, Felt::new(pow))
 }

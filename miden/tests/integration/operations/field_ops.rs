@@ -651,6 +651,17 @@ proptest! {
 
         build_op_test!(asm_op, &[b as u64]).prop_expect_stack(&[expected as u64])?;
     }
+    #[test]
+    fn exp_proptest(a in any::<u64>(), b in any::<u64>()) {
+        let asm_op = "exp";
+        let base = a;
+        let pow = b;
+        let expected = Felt::new(base).exp(pow);
+
+        let test = build_op_test!(asm_op, &[base, pow]);
+        test.expect_stack(&[expected.as_int()]);
+        assert!(test.execute().is_ok());
+    }
 }
 
 // FIELD OPS COMPARISON - RANDOMIZED TESTS

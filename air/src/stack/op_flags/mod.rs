@@ -65,6 +65,7 @@ pub struct OpFlags<E: FieldElement> {
     left_shift: E,
     right_shift: E,
     control_flow: E,
+    top_binary: E,
 }
 
 #[allow(dead_code)]
@@ -84,6 +85,8 @@ impl<E: FieldElement> OpFlags<E> {
     /// - composite flag for the stack if the stack has been shifted to the left.
     /// - composite flag for the stack if the stack has been shifted to the right.
     /// - composite flag if the current operation being executed is a control flow operation or not.
+    /// - composite flag if the current operation being executed has a binary element constraint on
+    /// the top element in the stack.
     pub fn new(frame: &EvaluationFrame<E>) -> Self {
         // intermediary array to cache the value of intermediate flags.
         let mut degree7_op_flags = [E::ZERO; NUM_DEGREE_7_OPS];
@@ -169,6 +172,7 @@ impl<E: FieldElement> OpFlags<E> {
         let mov7_flag = degree7_op_flags[22];
         let mov8_flag = degree7_op_flags[26];
         let swapwx_flag = degree7_op_flags[28];
+        let readw_expacc = degree7_op_flags[14];
 
         // adding the least significant bit.
         for i in (0..64).step_by(2) {
@@ -235,11 +239,8 @@ impl<E: FieldElement> OpFlags<E> {
         no_shift_flags[1] = no_shift_flags[0] + no_change_1_flag;
         no_shift_flags[2] = no_shift_flags[1] + degree7_op_flags[8] + f1000;
         no_shift_flags[3] = no_shift_flags[2] + mov2_flag;
-        no_shift_flags[4] = no_shift_flags[3]
-            + mov3_flag
-            + degree7_op_flags[14]
-            + swapwx_flag
-            + degree4_op_flags[0];
+        no_shift_flags[4] =
+            no_shift_flags[3] + mov3_flag + readw_expacc + swapwx_flag + degree4_op_flags[0];
 
         no_shift_flags[5] = no_shift_flags[4] + mov4_flag;
         no_shift_flags[6] = no_shift_flags[5] + mov5_flag;
@@ -333,6 +334,14 @@ impl<E: FieldElement> OpFlags<E> {
         // Flag if the current operation being executed is a control flow operation.
         let control_flow = f111 + f1011 + degree4_op_flags[3];
 
+        // Flag if the top element in the stack should be binary or not.
+        let top_binary = degree7_op_flags[5] // OR op
+            + degree7_op_flags[15]  // EXPACC op
+            + degree7_op_flags[36]  // AND op
+            + degree7_op_flags[37]  // OR op
+            + degree7_op_flags[42]  // CSWAP op
+            + degree7_op_flags[43]; // CSWAPW op
+
         Self {
             degree7_op_flags,
             degree6_op_flags,
@@ -343,6 +352,7 @@ impl<E: FieldElement> OpFlags<E> {
             left_shift,
             right_shift,
             control_flow,
+            top_binary,
         }
     }
 
@@ -433,6 +443,12 @@ impl<E: FieldElement> OpFlags<E> {
     #[inline(always)]
     pub fn readw(&self) -> E {
         self.degree7_op_flags[get_op_index(Operation::ReadW.op_code())]
+    }
+
+    /// Operation Flag of EXPACC operation.
+    #[inline(always)]
+    pub fn expacc(&self) -> E {
+        self.degree7_op_flags[get_op_index(Operation::Expacc.op_code())]
     }
 
     /// Operation Flag of MOVUP4 operation.
@@ -872,6 +888,12 @@ impl<E: FieldElement> OpFlags<E> {
     #[inline(always)]
     pub fn control_flow(&self) -> E {
         self.control_flow
+    }
+
+    /// Returns the flag when the stack operation needs the top element to be binary.
+    #[inline(always)]
+    pub fn top_binary(&self) -> E {
+        self.top_binary
     }
 }
 
