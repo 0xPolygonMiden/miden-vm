@@ -129,7 +129,8 @@ fn push_local_addr(
     // put the absolute memory address on the stack
     // negate the value to use it as an offset from the fmp
     // since the fmp value was incremented when locals were allocated
-    push_value(span_ops, -Felt::from(index));
+    // As the index increases, so does the memory address
+    push_value(span_ops, -Felt::from(num_proc_locals - 1 - index));
     span_ops.push(Operation::FmpAdd);
 
     Ok(())
