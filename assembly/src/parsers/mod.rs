@@ -53,6 +53,7 @@ fn parse_op_token(
 
         "checked_pow2" => field_ops::parse_pow2(span_ops, op, true),
         "unchecked_pow2" => field_ops::parse_pow2(span_ops, op, false),
+        "exp" => field_ops::parse_exp(span_ops, op),
 
         "not" => field_ops::parse_not(span_ops, op),
         "and" => field_ops::parse_and(span_ops, op),

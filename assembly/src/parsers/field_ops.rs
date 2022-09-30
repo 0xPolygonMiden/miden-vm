@@ -164,6 +164,32 @@ pub(super) fn parse_pow2(
     Ok(())
 }
 
+/// Translates exp assembly instructions to VM operations.
+///
+/// Appends a sequence of operations to raise the base(second element) to the power specified by
+/// the top element in the stack.
+///
+/// VM cycles - 73 cycles
+pub(super) fn parse_exp(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+
+    span_ops.push(Operation::Pad);
+    span_ops.push(Operation::Incr);
+    span_ops.push(Operation::MovUp2);
+    span_ops.push(Operation::Pad);
+
+    span_ops.push_many(Operation::Expacc, 64);
+
+    span_ops.push_many(Operation::Drop, 2);
+    span_ops.push(Operation::Swap);
+    span_ops.push(Operation::Eqz);
+    span_ops.push(Operation::Assert);
+
+    Ok(())
+}
+
 // BOOLEAN OPERATIONS
 // ================================================================================================
 
