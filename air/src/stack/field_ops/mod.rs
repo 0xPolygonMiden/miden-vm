@@ -13,7 +13,7 @@ pub mod tests;
 // ================================================================================================
 
 /// The number of transition constraints in all the field operations.
-pub const NUM_CONSTRAINTS: usize = 17;
+pub const NUM_CONSTRAINTS: usize = 18;
 
 /// The degrees of constraints in individual stack operations of the field operations.
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
@@ -24,11 +24,12 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     9, // constraint for MUL field operation.
     9, // constraint for INV field operation.
     8, // constraint for INCR field operation.
-    9, 8, // two constraints for NOT field operation.
-    9, 9, 9, // three constraints for AND field operation.
-    9, 9, 9, // three constraints for OR field operation.
+    8, // constraint for NOT field operation.
+    9, 9, // two constraints for AND field operation.
+    9, 9, // two constraints for OR field operation.
     9, 9, // two constraints for EQ field operation.
     9, 9, // two constraints for EQZ field operation.
+    9, 9, 9, 8, // four constraints for EXPACC field operation.
 ];
 
 // FIELD OPERATIONS TRANSITION CONSTRAINTS
@@ -84,6 +85,9 @@ pub fn enforce_constraints<E: FieldElement>(
 
     // Enforce constaints of the EQZ operation.
     index += enforce_eqz_constraints(frame, &mut result[index..], op_flag.eqz());
+
+    // Enforce constaints of the EXPACC operation.
+    index += enforce_expacc_constraints(frame, &mut result[index..], op_flag.expacc());
 
     index
 }
@@ -179,7 +183,7 @@ pub fn enforce_incr_constraints<E: FieldElement>(
 /// Enforces constraints of the NOT operation. The NOT operation updates the top element
 /// in the stack with its bitwise not value. Therefore, the following constraints are
 /// enforced:
-/// - The top element in the stack should be a binary. s0*2 - s0 = 0.
+/// - The top element should be a binary. It is enforced as a general constraint.
 /// - The first element of the next frame should be a binary not of the first element of
 /// the current frame. s0` + s0 = 1.
 pub fn enforce_not_constraints<E: FieldElement>(
@@ -190,19 +194,17 @@ pub fn enforce_not_constraints<E: FieldElement>(
     let a = frame.stack_item(0);
     let b = frame.stack_item_next(0);
 
-    // Enforce that a is a binary.
-    result[0] = op_flag * is_binary(a);
-
+    // The top element should be a binary and is enforced as a general constraint.
     // Enforce that b is the binary not of a.
-    result[1] = op_flag * are_equal(a + b, E::ONE);
+    result[0] = op_flag * are_equal(a + b, E::ONE);
 
-    2
+    1
 }
 
 /// Enforces constraints of the AND operation. The AND operation computes the bitwise and of the
 /// first two elements in the current trace. Therefore, the following constraints are enforced:
-/// - The top two elements in the current frame of the stack should be binary. s0*2 - s0 = 0,
-///   s1*2 - s1 = 0.
+/// - The top two element in the current frame of the stack should be binary. s0^2 - s0 = 0,
+/// s1^2 - s1 = 0. The top element is binary or not is enforced as a general constraint.
 /// - The first element of the next frame should be a binary and of the first two elements in the
 ///   current frame. s0` - s0 * s1 = 0.
 pub fn enforce_and_constraints<E: FieldElement>(
@@ -214,23 +216,22 @@ pub fn enforce_and_constraints<E: FieldElement>(
     let b = frame.stack_item(1);
     let c = frame.stack_item_next(0);
 
-    // Enforce that a and b are binary values.
-    result[0] = op_flag * is_binary(a);
-    result[1] = op_flag * is_binary(b);
+    // Enforce that b is a binary. a is binary is enforced as a general constraint.
+    result[0] = op_flag * is_binary(b);
 
     // bitwise and of a and b.
     let and_value = a * b;
 
     // Enforce that c is the bitwise and of a & b.
-    result[2] = op_flag * are_equal(c, and_value);
+    result[1] = op_flag * are_equal(c, and_value);
 
-    3
+    2
 }
 
 /// Enforces constraints of the OR operation. The OR operation computes the bitwise or of the
 /// first two elements in the current trace. Therefore, the following constraints are enforced:
-/// - The top two elements in the current frame of the stack should be binary. s0*2 - s0 = 0,
-///   s1*2 - s1 = 0.
+/// - The top two element in the current frame of the stack should be binary. s0^2 - s0 = 0,
+/// s1^2 - s1 = 0. The top element is binary or not is enforced as a general constraint.
 /// - The first element of the next frame should be a binary or of the first two elements in the
 ///   current frame. s0` - ( s0 + s1 - s0 * s1 ) = 0.
 pub fn enforce_or_constraints<E: FieldElement>(
@@ -242,17 +243,16 @@ pub fn enforce_or_constraints<E: FieldElement>(
     let b = frame.stack_item(1);
     let c = frame.stack_item_next(0);
 
-    // Enforce that a and b are binary values.
-    result[0] = op_flag * is_binary(a);
-    result[1] = op_flag * is_binary(b);
+    // Enforce that b is a binary. a is binary is enforced as a general constraint.
+    result[0] = op_flag * is_binary(b);
 
     // bitwise or of a and b.
     let or_value = a + b - a * b;
 
     // Enforce that c is the bitwise or of a and b.
-    result[2] = op_flag * are_equal(c, or_value);
+    result[1] = op_flag * are_equal(c, or_value);
 
-    3
+    2
 }
 
 /// Enforces constraints of the EQ operation. The EQ operation checks if the top two elements in the
@@ -311,4 +311,42 @@ pub fn enforce_eqz_constraints<E: FieldElement>(
     result[1] = op_flag * are_equal(b, helper_agg_value);
 
     2
+}
+
+/// Enforces constraints of the EXPACC operation. The EXPACC operation computes a single turn of exponent
+/// accumulation for the given inputs. Therefore, the following constraints are enforced:
+/// - The first element in the next frame should be a binary which is enforced as a general constraint.
+/// - The exp value in the next frame should be the square of exp value in the current frame.
+/// - The accumulation value in the next frame is the product of the accumulation value in the
+/// current frame and the value which needs to be included in this turn.
+/// - The b value is right shifted by 1 bit.
+pub fn enforce_expacc_constraints<E: FieldElement>(
+    frame: &EvaluationFrame<E>,
+    result: &mut [E],
+    op_flag: E,
+) -> usize {
+    let exp = frame.stack_item(1);
+    let acc = frame.stack_item(2);
+    let b = frame.stack_item(3);
+
+    let bit = frame.stack_item_next(0);
+    let val = frame.user_op_helper(0);
+    let exp_next = frame.stack_item_next(1);
+    let acc_next = frame.stack_item_next(2);
+    let b_next = frame.stack_item_next(3);
+
+    // bit should be binary and is enforced as a general constaint.
+    // Enforces that exp_next is a square of exp.
+    result[0] = op_flag * are_equal(exp_next, exp * exp);
+
+    // Enforces that val is calculated correctly using exp and bit.
+    result[1] = op_flag * are_equal(val - E::ONE, (exp - E::ONE) * bit);
+
+    // Enforces that acc_next is the product of val and acc.
+    result[2] = op_flag * are_equal(acc_next, acc * val);
+
+    // Enforces that b_next is equal to b after a right shift.
+    result[3] = op_flag * are_equal(b, b_next * E::from(2u32) + bit);
+
+    4
 }
