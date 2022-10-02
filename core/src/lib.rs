@@ -12,7 +12,10 @@ pub mod errors;
 pub mod range;
 pub mod stack;
 
-pub use math::{fields::f64::BaseElement as Felt, ExtensionOf, FieldElement, StarkField};
+pub use math::{
+    fields::{f64::BaseElement as Felt, QuadExtension},
+    ExtensionOf, FieldElement, StarkField,
+};
 
 mod program;
 pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Library, Program};
