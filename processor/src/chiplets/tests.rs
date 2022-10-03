@@ -1,4 +1,4 @@
-use crate::{utils::get_trace_len, CodeBlock, ExecutionTrace, Operation, Process};
+use crate::{utils::get_trace_len, CodeBlock, ExecutionTrace, Kernel, Operation, Process};
 use vm_core::{
     chiplets::{
         bitwise::{BITWISE_XOR, OP_CYCLE_LEN},
@@ -96,7 +96,7 @@ fn build_trace(stack: &[u64], operations: Vec<Operation>) -> (ChipletsTrace, usi
     let mut process = Process::new(inputs);
     let program = CodeBlock::new_span(operations);
     process
-        .execute_code_block(&program, &CodeBlockTable::default())
+        .execute_code_block(&program, &Kernel::default(), &CodeBlockTable::default())
         .unwrap();
 
     let (trace, _) = ExecutionTrace::test_finalize_trace(process);

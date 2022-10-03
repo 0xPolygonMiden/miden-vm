@@ -3,7 +3,7 @@ use super::{
     OpGroupTableRow, OpGroupTableUpdate,
 };
 use crate::{
-    decoder::block_stack::ExecutionContextInfo, utils::get_trace_len, ExecutionTrace, Felt,
+    decoder::block_stack::ExecutionContextInfo, utils::get_trace_len, ExecutionTrace, Felt, Kernel,
     Operation, Process, ProgramInputs, Word,
 };
 use rand_utils::rand_value;
@@ -1123,7 +1123,7 @@ fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxTraceHin
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(inputs);
     process
-        .execute_code_block(program, &CodeBlockTable::default())
+        .execute_code_block(program, &Kernel::default(), &CodeBlockTable::default())
         .unwrap();
 
     let (trace, aux_hints) = ExecutionTrace::test_finalize_trace(process);
@@ -1150,7 +1150,9 @@ fn build_call_trace(
     let mut cb_table = CodeBlockTable::default();
     cb_table.insert(fn_block);
 
-    process.execute_code_block(program, &cb_table).unwrap();
+    process
+        .execute_code_block(program, &Kernel::default(), &cb_table)
+        .unwrap();
 
     let (trace, aux_hints) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;

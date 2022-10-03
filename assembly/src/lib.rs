@@ -10,7 +10,7 @@ use vm_core::{
         collections::{BTreeMap, Vec},
         string::{String, ToString},
     },
-    CodeBlockTable, Library, Program,
+    CodeBlockTable, Kernel, Library, Program,
 };
 use vm_stdlib::StdLibrary;
 
@@ -46,24 +46,62 @@ type ModuleMap = BTreeMap<String, ProcMap>;
 // ASSEMBLER
 // ================================================================================================
 
-/// TODO: add comments
+/// Miden Assembler which can be used to convert Miden assembly source code into program MAST (
+/// represented by the [Program] struct). The assembler can be instantiated in two ways:
+/// - Via the `with_kernel()` constructor. In this case, the specified kernel source is compiled
+///   into a set of kernel procedures during instantiation. Programs compiled using such assembler
+///   can make calls to kernel procedures via `syscall` instruction.
+/// - Via the `new()` constructor. In this case, the kernel is assumed to be empty, and the
+///   programs compiled using such assembler cannot contain `syscall` instructions.
 pub struct Assembler {
     stdlib: StdLibrary,
     parsed_modules: ModuleMap,
+    kernel_procs: ProcMap,
+    kernel: Kernel,
     in_debug_mode: bool,
 }
 
 impl Assembler {
-    // CONSTRUCTOR
+    // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of [Assembler] instantiated with empty module map.
-    /// Debug related decorators are added to span blocks when debug mode is on.
+    ///
+    /// Debug related decorators are added to span blocks when debug mode is enabled.
     pub fn new(in_debug_mode: bool) -> Self {
         Self {
             stdlib: StdLibrary::default(),
-            parsed_modules: BTreeMap::new(),
+            parsed_modules: BTreeMap::default(),
+            kernel_procs: BTreeMap::default(),
+            kernel: Kernel::default(),
             in_debug_mode,
         }
+    }
+
+    /// Returns a new instance of [Assembler] instantiated with the specified kernel.
+    ///
+    /// Debug related decorators are added to span blocks when debug mode is enabled.
+    ///
+    /// # Errors
+    /// Returns an error if compiling kernel source results in an error.
+    pub fn with_kernel(kernel_source: &str, in_debug_mode: bool) -> Result<Self, AssemblyError> {
+        let mut assembler = Self::new(in_debug_mode);
+        assembler.set_kernel(kernel_source)?;
+        Ok(assembler)
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns true if this assembler was instantiated in debug mode.
+    pub fn in_debug_mode(&self) -> bool {
+        self.in_debug_mode
+    }
+
+    /// Returns a reference to the kernel for this assembler.
+    ///
+    /// If the assembler was instantiated without a kernel, the internal kernel will be empty.
+    pub fn kernel(&self) -> &Kernel {
+        &self.kernel
     }
 
     // PROGRAM COMPILER
@@ -73,7 +111,7 @@ impl Assembler {
     /// on Miden VM.
     pub fn compile(&self, source: &str) -> Result<Program, AssemblyError> {
         let mut tokens = TokenStream::new(source)?;
-        let mut context = AssemblyContext::new(self.in_debug_mode);
+        let mut context = AssemblyContext::new(Some(&self.kernel_procs), self.in_debug_mode);
         let mut cb_table = CodeBlockTable::default();
 
         // parse imported modules (if any), and add exported procedures from these modules to the
@@ -103,7 +141,11 @@ impl Assembler {
 
         // parse program body and return the resulting program
         let program_root = parse_program(&mut tokens, &context, &mut cb_table)?;
-        Ok(Program::with_table(program_root, cb_table))
+        Ok(Program::with_kernel(
+            program_root,
+            self.kernel.clone(),
+            cb_table,
+        ))
     }
 
     // IMPORT PARSERS
@@ -195,7 +237,7 @@ impl Assembler {
         cb_table: &mut CodeBlockTable,
     ) -> Result<(), AssemblyError> {
         let mut tokens = TokenStream::new(source)?;
-        let mut context = AssemblyContext::new(self.in_debug_mode);
+        let mut context = AssemblyContext::new(Some(&self.kernel_procs), self.in_debug_mode);
 
         // parse imported modules (if any), and add exported procedures from these modules to
         // the current context
@@ -230,6 +272,58 @@ impl Assembler {
             let mutable_self = &mut *(self as *const _ as *mut Assembler);
             mutable_self.parsed_modules.insert(path, module_procs);
         }
+
+        Ok(())
+    }
+
+    /// Parses the specified source module and sets the set of procedures exported from this module
+    /// as the kernel for this assembler.
+    fn set_kernel(&mut self, kernel_source: &str) -> Result<(), AssemblyError> {
+        let mut tokens = TokenStream::new(kernel_source)?;
+        let mut context = AssemblyContext::new(None, self.in_debug_mode);
+        let mut cb_table = CodeBlockTable::default();
+
+        // parse imported modules (if any), and add exported procedures from these modules to
+        // the current context
+        self.parse_imports(&mut tokens, &mut context, &mut Vec::new(), &mut cb_table)?;
+
+        // parse procedures defined in the module, and add these procedures to the current
+        // context
+        while let Some(token) = tokens.read() {
+            let proc = match token.parts()[0] {
+                Token::PROC | Token::EXPORT => {
+                    Procedure::parse(&mut tokens, &context, &mut cb_table, true)?
+                }
+                _ => break,
+            };
+            context.add_local_proc(proc);
+        }
+
+        // make sure there are no dangling instructions after all procedures have been read
+        if !tokens.eof() {
+            let token = tokens.read().expect("no token before eof");
+            return Err(AssemblyError::dangling_ops_after_module(token, "kernel"));
+        }
+
+        // we might be able to relax this limitation in the future
+        assert!(
+            cb_table.is_empty(),
+            "kernel procedures cannot rely on the code block table"
+        );
+
+        // extract the exported local procedures from the context set the kernel of this assembler
+        // to these procedures
+        let mut module_procs = context.into_local_procs();
+        module_procs.retain(|_, p| p.is_export());
+        self.kernel_procs = module_procs;
+
+        // build a list of procedure hashes and instantiate a kernel with them
+        let kernel_proc_hashes = self
+            .kernel_procs
+            .values()
+            .map(|p| p.code_root().hash())
+            .collect::<Vec<_>>();
+        self.kernel = Kernel::new(&kernel_proc_hashes);
 
         Ok(())
     }

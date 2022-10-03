@@ -19,5 +19,6 @@ pub enum ExecutionError {
     NotBinaryValue(Felt),
     NotU32Value(Felt),
     ProverError(ProverError),
+    SyscallTargetNotInKernel(Digest),
     UnexecutableCodeBlock(CodeBlock),
 }

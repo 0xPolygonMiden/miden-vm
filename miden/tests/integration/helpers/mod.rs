@@ -39,6 +39,7 @@ pub enum TestError<'a> {
 ///   an ExecutionError which contains the specified substring.
 pub struct Test {
     pub source: String,
+    pub kernel: Option<String>,
     pub inputs: ProgramInputs,
     pub in_debug_mode: bool,
 }
@@ -51,6 +52,7 @@ impl Test {
     pub fn new(source: &str, in_debug_mode: bool) -> Self {
         Test {
             source: String::from(source),
+            kernel: None,
             inputs: ProgramInputs::none(),
             in_debug_mode,
         }
@@ -135,7 +137,11 @@ impl Test {
 
     /// Compiles a test's source and returns the resulting Program.
     pub fn compile(&self) -> Program {
-        let assembler = assembly::Assembler::new(self.in_debug_mode);
+        let assembler = match self.kernel {
+            Some(ref kernel) => assembly::Assembler::with_kernel(kernel, self.in_debug_mode)
+                .expect("kernel compilation failed"),
+            None => assembly::Assembler::new(self.in_debug_mode),
+        };
         assembler
             .compile(&self.source)
             .expect("Failed to compile test source.")
@@ -166,7 +172,7 @@ impl Test {
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
-    /// VmStateIterator that allows us to iterate through each clock cycle and inpsect the process
+    /// VmStateIterator that allows us to iterate through each clock cycle and inspect the process
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
         let program = self.compile();
