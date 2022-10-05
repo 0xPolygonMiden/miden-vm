@@ -13585,12 +13585,13 @@ end
 
 # Performs left shift of one unsigned 64-bit integer using the pow2 operation.
 # The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value is assumed to be in the range [0, 64).
+# The shift value should be in the range [0, 64), otherwise it will result in an
+# error.
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 50 cycles.
+# This takes 28 cycles.
 export.unchecked_shl
-    unchecked_pow2
+    pow2
     u32split
     exec.wrapping_mul
 end
@@ -13598,12 +13599,13 @@ end
 
 # Performs right shift of one unsigned 64-bit integer using the pow2 operation.
 # The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value is assumed to be in the range [0, 64).
+# The shift value should be in the range [0, 64), otherwise it will result in an
+# error.
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a >> b.
-# This takes 66 cycles.
+# This takes 44 cycles.
 export.unchecked_shr
-    unchecked_pow2
+    pow2
     u32split
 
     dup.1
@@ -13637,13 +13639,14 @@ end
 # Performs left shift of one unsigned 64-bit integer preserving the overflow and
 # using the pow2 operation.
 # The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value is assumed to be in the range [0, 64).
+# The shift value should be in the range [0, 64), otherwise it will result in an
+# error.
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where (d,c) = a << b,
 # which d contains the bits shifted out.
-# This takes 57 cycles.
+# This takes 35 cycles.
 export.overflowing_shl
-    unchecked_pow2
+    pow2
     u32split
     exec.overflowing_mul
 end
@@ -13651,10 +13654,11 @@ end
 # Performs right shift of one unsigned 64-bit integer preserving the overflow and
 # using the pow2 operation.
 # The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value is assumed to be in the range [0, 64).
+# The shift value should be in the range [0, 64), otherwise it will result in an
+# error.
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where c = a >> b, d = a << (64 - b).
-# This takes 138 cycles.
+# This takes 94 cycles.
 export.overflowing_shr
     push.64             # (64 - b)
     dup.1
@@ -13682,10 +13686,11 @@ end
 
 # Performs left rotation of one unsigned 64-bit integer using the pow2 operation.
 # The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value is assumed to be in the range [0, 64).
+# The shift value should be in the range [0, 64), otherwise it will result in an
+# error.
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 57 cycles.
+# This takes 35 cycles.
 export.unchecked_rotl
     push.31
     dup.1
@@ -13697,7 +13702,7 @@ export.unchecked_rotl
     # Shift the low limb.
     push.31
     u32checked_and
-    unchecked_pow2
+    pow2
     dup
     movup.3
     u32overflowing_mul
@@ -13719,10 +13724,11 @@ end
 
 # Performs right rotation of one unsigned 64-bit integer using the pow2 operation.
 # The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value is assumed to be in the range [0, 64).
+# The shift value should be in the range [0, 64), otherwise it will result in an
+# error.
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 62 cycles.
+# This takes 40 cycles.
 export.unchecked_rotr
     push.31
     dup.1
@@ -13738,7 +13744,7 @@ export.unchecked_rotr
     swap
     u32overflowing_sub
     drop
-    unchecked_pow2
+    pow2
     dup
     movup.3
     u32overflowing_mul
