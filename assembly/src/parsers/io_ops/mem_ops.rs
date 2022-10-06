@@ -126,10 +126,11 @@ fn push_local_addr(
     // parse the provided local memory index
     let index = parse_u32_param(op, 1, 0, num_proc_locals - 1)?;
 
-    // put the absolute memory address on the stack
-    // negate the value to use it as an offset from the fmp
-    // since the fmp value was incremented when locals were allocated
-    push_value(span_ops, -Felt::from(index));
+    // put the absolute memory address on the stack; the absolute address is computed by
+    // subtracting index of the local from the fmp value. this way, the first local is located at
+    // fmp - (num_proc_locals - 1) (i.e., the smallest address) and the last local is located at
+    // fmp (i.e., the largest address).
+    push_value(span_ops, -Felt::from(num_proc_locals - index - 1));
     span_ops.push(Operation::FmpAdd);
 
     Ok(())

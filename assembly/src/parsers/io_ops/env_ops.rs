@@ -29,8 +29,7 @@ pub fn parse_locaddr(
         2 => parse_u32_param(op, 1, 0, num_proc_locals - 1)?,
         _ => return Err(AssemblyError::extra_param(op)),
     };
-
-    push_value(span_ops, -Felt::from(index));
+    push_value(span_ops, -Felt::from(num_proc_locals - index - 1));
     span_ops.push(Operation::FmpAdd);
 
     Ok(())
