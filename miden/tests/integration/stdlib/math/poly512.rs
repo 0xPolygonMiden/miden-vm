@@ -1,8 +1,12 @@
 use super::build_test;
 use math::fields::f64::BaseElement;
-use math::polynom::mul;
+use math::polynom;
 use std::fmt::Write;
 use vm_core::StarkField;
+
+const POLYNOMIAL_LENGTH: usize = 512;
+const WORDS: usize = 128;
+const Q: u32 = 12289; // Prime Number
 
 #[test]
 fn test_poly512_add_zq() {
@@ -13,10 +17,6 @@ fn test_poly512_add_zq() {
 }
 
 fn generate_test_script_add_zq() -> String {
-    const POLYNOMIAL_LENGTH: usize = 512;
-    const WORDS: usize = 128;
-    const Q: u32 = 12289; // Prime Number
-
     let polynomial_1 = rand_utils::rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
     let polynomial_2 = rand_utils::rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
 
@@ -30,40 +30,42 @@ fn generate_test_script_add_zq() -> String {
 
     for i in 0..WORDS {
         // fill script for polynomial 1
-        let _ = writeln!(
+        writeln!(
             polynomial_1_script,
             "push.{}.{}.{}.{}",
             polynomial_1[4 * i + 3],
             polynomial_1[4 * i + 2],
             polynomial_1[4 * i + 1],
             polynomial_1[4 * i]
-        );
-        let _ = writeln!(polynomial_1_script, "loc_storew.{}", i);
-        polynomial_1_script.push_str("dropw\n");
+        )
+        .unwrap();
+        writeln!(polynomial_1_script, "loc_storew.{}", i).unwrap();
+        writeln!(polynomial_1_script, "dropw").unwrap();
 
         // fill script for polynomial 2
-        let _ = writeln!(
+        writeln!(
             polynomial_2_script,
             "push.{}.{}.{}.{}",
             polynomial_2[4 * i + 3],
             polynomial_2[4 * i + 2],
             polynomial_2[4 * i + 1],
             polynomial_2[4 * i]
-        );
-        let _ = writeln!(polynomial_2_script, "loc_storew.{}", i + 128);
-        polynomial_2_script.push_str("dropw\n");
+        )
+        .unwrap();
+        writeln!(polynomial_2_script, "loc_storew.{}", i + 128).unwrap();
+        writeln!(polynomial_2_script, "dropw").unwrap();
 
         // fill script for checking the result
-        check_result_script.push_str("push.0.0.0.0\n");
-        let _ = writeln!(check_result_script, "loc_loadw.{}", i + 256);
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i]);
-        check_result_script.push_str("assert_eq\n");
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 1]);
-        check_result_script.push_str("assert_eq\n");
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 2]);
-        check_result_script.push_str("assert_eq\n");
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 3]);
-        check_result_script.push_str("assert_eq\n");
+        writeln!(check_result_script, "push.0.0.0.0").unwrap();
+        writeln!(check_result_script, "loc_loadw.{}", i + 256).unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 1]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 2]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 3]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
     }
 
     let script = format!(
@@ -102,10 +104,6 @@ fn test_poly512_neg_zq() {
 }
 
 fn generate_test_script_neg_zq() -> String {
-    const POLYNOMIAL_LENGTH: usize = 512;
-    const WORDS: usize = 128;
-    const Q: u32 = 12289; // Prime Number
-
     let polynomial_1 = rand_utils::rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
 
     let result_polynomial: Vec<u32> = (0..POLYNOMIAL_LENGTH)
@@ -117,28 +115,29 @@ fn generate_test_script_neg_zq() -> String {
 
     for i in 0..WORDS {
         // fill script for polynomial 1
-        let _ = writeln!(
+        writeln!(
             polynomial_1_script,
             "push.{}.{}.{}.{}",
             polynomial_1[4 * i + 3],
             polynomial_1[4 * i + 2],
             polynomial_1[4 * i + 1],
             polynomial_1[4 * i]
-        );
-        let _ = writeln!(polynomial_1_script, "loc_storew.{}", i);
-        polynomial_1_script.push_str("dropw\n");
+        )
+        .unwrap();
+        writeln!(polynomial_1_script, "loc_storew.{}", i).unwrap();
+        writeln!(polynomial_1_script, "dropw").unwrap();
 
         // fill script for checking the result
-        check_result_script.push_str("push.0.0.0.0\n");
-        let _ = writeln!(check_result_script, "loc_loadw.{}", i + 128);
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i]);
-        check_result_script.push_str("assert_eq\n");
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 1]);
-        check_result_script.push_str("assert_eq\n");
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 2]);
-        check_result_script.push_str("assert_eq\n");
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 3]);
-        check_result_script.push_str("assert_eq\n");
+        writeln!(check_result_script, "push.0.0.0.0").unwrap();
+        writeln!(check_result_script, "loc_loadw.{}", i + 128).unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 1]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 2]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 3]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
     }
 
     let script = format!(
@@ -174,10 +173,6 @@ fn test_poly512_sub_zq() {
 }
 
 fn generate_test_script_sub_zq() -> String {
-    const POLYNOMIAL_LENGTH: usize = 512;
-    const WORDS: usize = 128;
-    const Q: u32 = 12289; // Prime Number
-
     let polynomial_1 = rand_utils::rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
     let polynomial_2 = rand_utils::rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
 
@@ -191,40 +186,42 @@ fn generate_test_script_sub_zq() -> String {
 
     for i in 0..WORDS {
         // fill script for polynomial 1
-        let _ = writeln!(
+        writeln!(
             polynomial_1_script,
             "push.{}.{}.{}.{}",
             polynomial_1[4 * i + 3],
             polynomial_1[4 * i + 2],
             polynomial_1[4 * i + 1],
             polynomial_1[4 * i]
-        );
-        let _ = writeln!(polynomial_1_script, "loc_storew.{}", i);
-        polynomial_1_script.push_str("dropw\n");
+        )
+        .unwrap();
+        writeln!(polynomial_1_script, "loc_storew.{}", i).unwrap();
+        writeln!(polynomial_1_script, "dropw").unwrap();
 
         // fill script for polynomial 2
-        let _ = writeln!(
+        writeln!(
             polynomial_2_script,
             "push.{}.{}.{}.{}",
             polynomial_2[4 * i + 3],
             polynomial_2[4 * i + 2],
             polynomial_2[4 * i + 1],
             polynomial_2[4 * i]
-        );
-        let _ = writeln!(polynomial_2_script, "loc_storew.{}", i + 128);
-        polynomial_2_script.push_str("dropw\n");
+        )
+        .unwrap();
+        writeln!(polynomial_2_script, "loc_storew.{}", i + 128).unwrap();
+        writeln!(polynomial_1_script, "dropw").unwrap();
 
         // fill script for checking the result
-        check_result_script.push_str("push.0.0.0.0\n");
-        let _ = writeln!(check_result_script, "loc_loadw.{}", i + 256);
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i]);
-        check_result_script.push_str("assert_eq\n");
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 1]);
-        check_result_script.push_str("assert_eq\n");
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 2]);
-        check_result_script.push_str("assert_eq\n");
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 3]);
-        check_result_script.push_str("assert_eq\n");
+        writeln!(check_result_script, "push.0.0.0.0").unwrap();
+        writeln!(check_result_script, "loc_loadw.{}", i + 256).unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 1]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 2]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 3]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
     }
 
     let script = format!(
@@ -260,12 +257,9 @@ fn test_poly512_mul_zq() {
 
     let test = build_test!(source, &[]);
     test.get_last_stack_state();
-    // test.expect_stack(&[1337, 69]);
 }
 
 fn generate_test_script_mul_zq() -> String {
-    const POLYNOMIAL_LENGTH: usize = 512;
-    const WORDS: usize = 128;
     const Q: u64 = 12289; // Prime Number
 
     let polynomial_1 =
@@ -273,13 +267,13 @@ fn generate_test_script_mul_zq() -> String {
     let polynomial_2 =
         rand_utils::rand_array::<u64, POLYNOMIAL_LENGTH>().map(|v| BaseElement::new(v % Q));
 
-    let result_polynomial: Vec<u64> = mul(&polynomial_1, &polynomial_2)
+    let result_polynomial: Vec<u64> = polynom::mul(&polynomial_1, &polynomial_2)
         .iter()
         .map(|v| v.as_int() % Q)
         .collect();
 
-    let lower = result_polynomial[..512].to_vec();
-    let mut upper = result_polynomial[512..].to_vec();
+    let (lower, upper) = result_polynomial.split_at(512);
+    let mut upper = upper.to_vec();
     upper.push(0);
 
     let result_polynomial: Vec<u64> = (0..POLYNOMIAL_LENGTH)
@@ -292,43 +286,42 @@ fn generate_test_script_mul_zq() -> String {
 
     for i in 0..WORDS {
         // fill script for polynomial 1
-        let _ = writeln!(
+        writeln!(
             polynomial_1_script,
             "push.{}.{}.{}.{}",
             polynomial_1[4 * i + 3],
             polynomial_1[4 * i + 2],
             polynomial_1[4 * i + 1],
             polynomial_1[4 * i]
-        );
-        let _ = writeln!(polynomial_1_script, "loc_storew.{}", i);
-        polynomial_1_script.push_str("dropw\n");
+        )
+        .unwrap();
+        writeln!(polynomial_1_script, "loc_storew.{}", i).unwrap();
+        writeln!(polynomial_1_script, "dropw").unwrap();
 
         // fill script for polynomial 2
-        let _ = writeln!(
+        writeln!(
             polynomial_2_script,
             "push.{}.{}.{}.{}",
             polynomial_2[4 * i + 3],
             polynomial_2[4 * i + 2],
             polynomial_2[4 * i + 1],
             polynomial_2[4 * i]
-        );
-        let _ = writeln!(polynomial_2_script, "loc_storew.{}", i + 128);
-        polynomial_2_script.push_str("dropw\n");
+        )
+        .unwrap();
+        writeln!(polynomial_2_script, "loc_storew.{}", i + 128).unwrap();
+        writeln!(polynomial_1_script, "dropw").unwrap();
 
         // fill script for checking the result
-        check_result_script.push_str("dup\n");
-        check_result_script.push_str("push.0.0.0.0\n");
-        check_result_script.push_str("movup.4\n");
-        check_result_script.push_str("mem_loadw\n");
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i]);
-        check_result_script.push_str("assert_eq\n");
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 1]);
-        check_result_script.push_str("assert_eq\n");
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 2]);
-        check_result_script.push_str("assert_eq\n");
-        let _ = writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 3]);
-        check_result_script.push_str("assert_eq\n");
-        check_result_script.push_str("add.1\n");
+        writeln!(check_result_script, "push.0.0.0.0").unwrap();
+        writeln!(check_result_script, "loc_loadw.{}", i + 256).unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 1]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 2]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
+        writeln!(check_result_script, "push.{}", result_polynomial[4 * i + 3]).unwrap();
+        writeln!(check_result_script, "assert_eq").unwrap();
     }
 
     let script = format!(
@@ -345,8 +338,6 @@ fn generate_test_script_mul_zq() -> String {
             locaddr.0 # input 0
 
             exec.poly512::mul_zq
-
-            locaddr.256
 
             {}
         end
