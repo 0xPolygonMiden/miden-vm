@@ -4,7 +4,7 @@
 ///
 /// Entries in the array are tuples containing module namespace and module source code.
 #[rustfmt::skip]
-pub const MODULES: [(&str, &str); 10] = [
+pub const MODULES: [(&str, &str); 11] = [
 // ----- std::crypto::hashes::blake3 --------------------------------------------------------------
 ("std::crypto::hashes::blake3", "# Initializes four memory addresses, provided for storing initial 4x4 blake3 
 # state matrix ( i.e. 16 elements each of 32 -bit ), for computing blake3 2-to-1 hash
@@ -5878,6 +5878,240 @@ export.sub
     movdn.2     #[a1,b1,a0-b0,...]
     swap        #[b1,a1,a0-b0,...]
     sub         #[a1-b1,a0-b0,...]
+end"),
+// ----- std::math::fri ---------------------------------------------------------------------------
+("std::math::fri", "use.std::math::ext2
+
+# Given a stack in the following initial configuration [a1,a0,b1,b0,c1,c0,d1,d0,...] the following
+# procedure computes (a + b + ((a - b) * c * d^(-1))) with the assumption that d1 is equal to 0
+export.fold_2
+    dupw                #[a1,a0,b1,b0,a1,a0,b1,b0,c1,c0,d1,d0,...]
+    exec.ext2::sub      #[(a-b)1,(a-b)0,a1,a0,b1,b0,c1,c0,d1,d0,...]
+    push.0.0            #[0,0,(a-b)1,(a-b)0,a1,a0,b1,b0,c1,c0,d1,d0,...]
+    movupw.2            #[c1,c0,d1,d0,0,0,(a-b)1,(a-b)0,a1,a0,b1,b0,...]
+    movup.2             #[d1,c1,c0,d0,0,0,(a-b)1,(a-b)0,a1,a0,b1,b0,...]
+    drop                #[c1,c0,d0,0,0,(a-b)1,(a-b)0,a1,a0,b1,b0,...]
+    movup.2             #[d0,c1,c0,0,0,(a-b)1,(a-b)0,a1,a0,b1,b0,...]
+    inv                 #[d0_inv,c1,c0,0,0,(a-b)1,(a-b)0,a1,a0,b1,b0,...]
+    exec.ext2::mul_base       #[y1,y0,0,0,(a-b)1,(a-b)0,a1,a0,b1,b0,...]
+    movup.2             #[0,y1,y0,0,(a-b)1,(a-b)0,a1,a0,b1,b0,...]
+    movup.3             #[0,0,y1,y0,(a-b)1,(a-b)0,a1,a0,b1,b0,...]
+    drop                #[0,y1,y0,(a-b)1,(a-b)0,a1,a0,b1,b0,...]
+    drop                #[y1,y0,(a-b)1,(a-b)0,a1,a0,b1,b0,...]
+    exec.ext2::mul      #[w1,w0,a1,a0,b1,b0,...]
+    exec.ext2::add      #[v1,v0,b1,b0,...]
+    exec.ext2::add      #[o1,o0,...]
+    push.9223372034707292161 #[2_inv,o1,o0]
+    exec.ext2::mul_base
+end
+
+# This procedure computes the folded position in the exponent of the corresponding domain generator
+# normalized by the offset. It uses an algebraic relationship between the original and folded positions
+# given by multiplication with the 2nd primitive root of unity in our field.
+# input:    #[?,poe,poe,...]
+# output:   #[poe_sq,xs,...]
+export.next_pos_exp
+    dup.1                               #[poe,?,poe,poe,...]   
+    push.18446744069414584320           #[nor,poe,?,poe,poe,...]
+    mul                                 #[poe/nor,?,poe,poe,...]
+    swap                                #[?,poe/nor,poe,poe,...]
+    cdrop                               #[xs,poe,...]
+    mul.7                               #mul by offset 
+    swap                                #[poe,xs,...]
+    dup mul                             #[poe_sq,xs,...]
+end
+
+# Preprocess the commitments C as well as num_q (number of queries), d (initial domain size),
+# g (intial domain generator) and t_d (initial tree depth). The address of the word (num_q,d,g,t_d)
+# will be at locaddr.0. The commitments will be at the subsequent addresses. The total 
+# number of such commitments is t_d - 3 (excluding the remainder).
+proc.preprocess
+    adv_push.4                  #[num_q,d,g,t_d,add,..]
+    dup.3                       #[t_d,num_q,d,g,t_d,add,..]
+    movdn.4                     #[num_q,d,g,t_d,t_d,add,..]
+    dup.5                       #[add,num_q,d,g,t_d,t_d,add,..]
+    mem_storew dropw            #[t_d,add,..]
+    dup
+    u32checked_neq.3            #[?,t_d-1,add,..]
+    while.true
+        push.0.0.0.0
+        adv_loadw                       #[C,t_d,add,..]
+        movup.5                         #[add,C,t_d,..]
+        u32wrapping_add.1               #[add+1,C,t_d,..]
+        dup movdn.6                     #[add+1,C,t_d,add+1,..]
+        mem_storew                      #[C,t_d,add+1,..]
+        adv_loadw                       #[0,0,a1,a0,t_d,add+1,..]
+        movup.5                         #[add+1,0,0,a1,a0,t_d,..]
+        u32wrapping_add.1               #[add+2,0,0,a1,a0,t_d,..]
+        dup movdn.6                     #[add+2,0,0,a1,a0,t_d,add+2,..]
+        mem_storew dropw                #[t_d,add+2,..]
+        u32wrapping_sub.1 dup           #[t_d-1,t_d-1,add+2,..]
+        u32checked_neq.3                #[?,t_d-1,add+2,..]
+    end
+    #[0,add,..]
+    drop
+    # value of the remainder codeword
+    adv_push.2
+    movup.2
+end
+
+# Input: [t_d,e1,e0,p,d,poe,add',..]
+# Output: [d,p,C,t_d,e1,e0,poe,a1,a0,..]
+export.prepare_next_new
+    push.0.0.0.0                           #[0,0,0,0,t_d,e1,e0,p,d,poe,add',..]
+    movup.10 sub.1 dup                     #[add'-1,add'-1,0,0,0,0,t_d,e1,e0,p,d,poe,..]
+    movdn.11                               #[add'-1,0,0,0,0,t_d,e1,e0,p,d,poe,add'-1,..]
+    mem_loadw drop drop                    #[a1,a0,t_d,e1,e0,p,d,poe,add'-1,..]
+    swapw                                  #[e0,p,d,poe,a,a,t_d,e1,add'-1,..]
+    push.0.0.0.0 movup.12                  #[add'-1,0,0,0,0,e0,p,d,poe,a,a,t_d,e1,..]
+    sub.1 dup                              #[add'-2,add'-2,0,0,0,0,e0,p,d,poe,a,a,t_d,e1,..]
+    movdn.13 mem_loadw                     #[C,e0,p,d,poe,a,a,t_d,e1,add'-2,..]
+    movup.5 movup.6                        #[d,p,C,e0,poe,a,a,t_d,e1,add'-2,..]
+    movup.11                               #[e1,d,p,C,e0,poe,a,a,t_d,add'-2,..]
+    movdn.6                                #[d,p,C,e1,e0,poe,a,a,t_d,add'-2,..]
+    movup.11                               #[t_d,d,p,C,e1,e0,poe,a,a,add'-2,..]
+    movdn.6                                #[d,p,C,t_d,e1,e0,poe,a1,a0,add'-2,..]
+end
+
+# Given a stack in the following initial configuration [d,p,C,t_d,e1,e0,poe,a1,a0,..] the following
+# procedure computes an iteration of fri verification for a query.
+# TODO: Check where/if some checks are needed in the beginning, like p < d (p&d are u32) and that 2^t_d == d 
+export.verify_query_layer
+    u32unchecked_div.2          #[d/2,p,C,t_d,...]
+    dup                         #[d/2,d/2,p,C,t_d,...]
+    dup.2 swap                  #[d/2,p,d/2,p,C,t_d,...]
+    u32checked_divmod           #[p%d/2,?,d/2,p,C,t_d,...]
+    swapw                       #[C,p%d/2,?,d/2,p,t_d,...]
+    dup.4                       #[p%d/2,C,p%d/2,?,d/2,p,t_d,...]
+    dup.9                       #[t_d,p%d/2,C,p%d/2,?,d/2,p,t_d,...]
+    mtree_get  swapw            #[C,V',p%d/2,?,d/2,p,t_d,...]  V' are the digest of values V = (v3,v2,v1,v0)
+    
+    # Unhash query values
+    adv_loadw                   #[V,V',p%d/2,?,d/2,p,t_d,...]   TODO: replace with adv.keyval
+    dupw movdnw.2    
+    push.4.0.0.0
+    swapw
+    push.0.0.0.0
+    rpperm
+    dropw swapw dropw
+    eqw 
+    drop dropw dropw
+
+    dupw  movdnw.2              #[v3,v2,v1,v0,p%d/2,?,d/2,p,V,t_d,...]
+    movup.2 swap                #[v3,v1,v2,v0,p%d/2,?,d/2,p,V,t_d,...]
+    dup.5                       #[?,v3,v1,v2,v0,p%d/2,?,d/2,p,V,t_d,...]
+    cdrop                       #[v1,v2,v0,p%d/2,?,d/2,p,V,t_d,...]
+    movdn.2                     #[v2,v0,v1,p%d/2,?,d/2,p,V,t_d,...]
+    dup.4                       #[?,v2,v0,v1,p%d/2,?,d/2,p,V,t_d,...]
+    cdrop   swap                #[v1,v0,p%d/2,?,d/2,p,V,t_d,...]
+                                #[v1,v0,p%d/2,?,d/2,p,V,t_d,e1,e0..]
+    dup                         #[v1,v1,v0,p%d/2,?,d/2,p,V,t_d,e1,e0..]
+    movup.12                    #[e1,v1,v1,v0,p%d/2,?,d/2,p,t_d,e0..]
+    assert_eq                   #[v1,v0,p%d/2,?,d/2,p,V,t_d,e0..]
+    dup.1                       #[v0,v1,v0,p%d/2,?,d/2,p,V,t_d,e0..]
+    movup.12                    #[e0,v0,v1,v0,p%d/2,?,d/2,p,V,t_d..]
+    assert_eq                   #[v1,v0,p%d/2,?,d/2,p,V,t_d,poe,..] #poe is position in the exponent
+    drop drop swapw             #[V,p%d/2,?,d/2,p,t_d,poe,..]
+    movup.9                     #[poe,V,p%d/2,?,d/2,p,t_d,..]
+    dup                         #[poe,poe,V,p%d/2,?,d/2,p,t_d,..]
+    movup.7                     #[?,poe,poe,V,p%d/2,d/2,p,t_d,..]
+    exec.next_pos_exp           #[poe_sq,xs,V,p%d/2,d/2,p,t_d,..]
+    swap.8 drop                 #[xs,V,p%d/2,d/2,poe_sq,t_d,..]
+    push.0                      #[0,xs,V,p%d/2,d/2,poe_sq,t_d,..]
+                                #[0,xs,V,p%d/2,d/2,poe_sq,t_d,a1,a0,..]
+    movup.11 movup.11           #[a1,a0,0,xs,v3,v2,v1,v0,p%d/2,d/2,poe_sq,t_d,..]   
+    swapw                       #[v3,v2,v1,v0,a1,a0,0,xs,p%d/2,d/2,poe_sq,t_d,..] #Should simplify fri since d1 is always equal to zero
+    movup.3 movup.3
+    exec.fold_2                 #[e1,e0,p%d/2,d/2,poe_sq,t_d,..]
+    movup.5 u32wrapping_sub.1   #[t_d-1,e1,e0,p%d/2,d/2,poe_sq,add',..]
+
+end
+
+export.outer.1
+
+    locaddr.0
+    exec.preprocess
+
+    push.0.0.0.0
+    locaddr.0
+    mem_loadw
+    locaddr.0                       #[add,num_q,d,g,t_d,add',...]
+
+    push.1
+    while.true
+        dup                         #[add,add,num_q,d,g,t_d,add',...]
+        movdn.6                     #[add,num_q,d,g,t_d,add',add,...]
+        mem_storew                  #[num_q,d,g,t_d,...]
+        push.0.0.0
+        adv_loadw                   #[0,p,e1,e0,d,g,t_d,...]
+        drop                        #[p,e1,e0,d,g,t_d,...]
+        dup                         #[p,p,e1,e0,d,g,t_d,...]
+        movup.5                     #[g,p,p,e1,e0,d,t_d,...]
+        swap exp.u32                #[poe,p,e1,e0,d,t_d,...]  
+        dup.6                       #[add',poe,p,e1,e0,d,t_d,add',...]
+        push.0.0.0.0 dup.4 mem_loadw    #[0,0,a1,a0,add',poe,p,e1,e0,d,t_d,...]
+        drop drop movup.2           #[add',a1,a0,poe,p,e1,e0,d,t_d,...]
+        sub.1                       #[add'-1,a1,a0,poe,p,e1,e0,d,t_d,...] #This is justified by the previous code generating add'
+        push.0.0.0.0                #[0,0,0,0,add'-1,a1,a0,poe,p,e1,e0,d,t_d,...]
+        movup.4 dup                 #[add'-1,add'-1,0,0,0,0,a1,a0,poe,p,e1,e0,d,t_d,...]
+        movdn.13                    #[add'-1,0,0,0,0,a1,a0,poe,p,e1,e0,d,t_d,add'-1,...]
+        mem_loadw                   #[C,a1,a0,poe,p,e1,e0,d,t_d,add'-1,...]
+        swapw                       #[a1,a0,poe,p,C,e1,e0,d,t_d,add'-1,...]
+        movup.2                     #[poe,a1,a0,p,C,e1,e0,d,t_d,add'-1,...]
+        movup.9                     #[e0,poe,a1,a0,p,C,e1,d,t_d,add'-1,...]
+        movdnw.2                    #[p,C,e1,d,t_d,e0,poe,a1,a0,add'-1,...]
+        movup.6                     #[d,p,C,e1,t_d,e0,poe,a1,a0,add'-1,...]
+        movup.6                     #[e1,d,p,C,t_d,e0,poe,a1,a0,add'-1,...]
+        movdn.7                     #[d,p,C,t_d,e1,e0,poe,a1,a0,add'-1,...]
+
+        ## Prepare initial is done for query p
+        # Call verify query full by iterating verify query layer 
+
+        exec.verify_query_layer
+        #[t_d-1,e1,e0,p%d/2,d/2,poe_sq,add',..]
+
+        dup u32checked_neq.3
+        while.true
+            exec.prepare_next_new
+            exec.verify_query_layer
+            dup u32checked_neq.3
+        end
+
+        ## Verify remainder 
+        drop
+        dup.8 assert_eq
+        dup.8 assert_eq
+
+        ## Prepare for next iteration of while loop
+        dup.5               #[add,0,d,g,t_d,add',add,...]
+        mem_loadw  
+        u32wrapping_sub.1 
+        dup
+        u32checked_neq.0    #[?,num_q-1,d,g,t_d,add',add,...]
+        movup.6 swap        #[?,add,num_q-1,d,g,t_d,add',...]
+    end
+
+    ## Verify the remainder commitment
+    # Efficient Merkle proof verification in the case of deg(remainder) = 0
+    dropw                  #[r1,r0,..]
+    drop drop
+    dup.1 dup.1
+    push.4.0.0.0
+    swapw
+    push.0.0.0.0
+
+    # compute the leaf
+    rpperm
+    dropw swapw dropw
+
+    # compute the Merkle tree root
+    dupw rphash     
+    dupw rphash
+    push.0.0.0.0
+    adv_loadw
+    eqw
+    assert
+    dropw dropw
 end"),
 // ----- std::math::ntt512 ------------------------------------------------------------------------
 ("std::math::ntt512", "# Applies four NTT butterflies on four different indices, given following stack state
