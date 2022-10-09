@@ -49,7 +49,7 @@ impl AdviceSet {
     /// Returns a new [AdviceSet] instantiated as a Merkle path set with a given depth.
     ///
     /// # Errors
-    /// 
+    ///
     pub fn new_merkle_path_set(depth: u32) -> Result<Self, AdviceSetError> {
         Ok(Self::MerklePathSet(MerklePathSet::new(depth)?))
     }
@@ -137,7 +137,7 @@ impl AdviceSet {
         index: u64,
         value: Word,
         path: Vec<Word>,
-    ) -> Result<(), AdviceSetError>{
+    ) -> Result<(), AdviceSetError> {
         match self {
             Self::MerklePathSet(set) => set.add_path(index, value, path),
             _ => Ok(()),

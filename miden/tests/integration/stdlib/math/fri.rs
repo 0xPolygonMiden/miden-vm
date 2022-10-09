@@ -59,7 +59,8 @@ fn prepare_advice(
 
     let mut info_str = String::new();
 
-    let mut f = File::open("./tests/integration/stdlib/math/fri/set.txt").expect("Unable to open file");
+    let mut f =
+        File::open("./tests/integration/stdlib/math/fri/set.txt").expect("Unable to open file");
     f.read_to_string(&mut info_str)
         .expect("Unable to read string");
 
