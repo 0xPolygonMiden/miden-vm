@@ -3,7 +3,7 @@ authors = []
 language = "en"
 multilingual = false
 src = "src"
-title = "Miden VM"
+title = "Polygon Miden VM"
 
 [output.katex]
 [output.html]
