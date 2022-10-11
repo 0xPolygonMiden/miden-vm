@@ -46,12 +46,23 @@ impl AdviceSet {
         )?))
     }
 
-    /// Returns a new [AdviceSet] instantiated as a Merkle path set with a given depth.
+    /// Returns a new [AdviceSet] instantiated as a Merkle path set with a given depth for the provided
+    /// lists of indices, values and paths.
     ///
     /// # Errors
-    ///
-    pub fn new_merkle_path_set(depth: u32) -> Result<Self, AdviceSetError> {
-        Ok(Self::MerklePathSet(MerklePathSet::new(depth)?))
+    /// Returns an error if the paths do not resolve to the same root.
+    pub fn new_merkle_path_set(
+        indices: Vec<u64>,
+        values: Vec<Word>,
+        paths: Vec<Vec<Word>>,
+        depth: u32,
+    ) -> Result<Self, AdviceSetError> {
+        let mut set = MerklePathSet::new(depth)?;
+
+        for (i, (v, p)) in indices.iter().zip(values.iter().zip(paths.iter())) {
+            set.add_path(*i, *v, p.to_vec())?
+        }
+        Ok(Self::MerklePathSet(set))
     }
 
     // PUBLIC ACCESSORS
@@ -120,27 +131,6 @@ impl AdviceSet {
             Self::MerkleTree(tree) => tree.update_leaf(index, value),
             Self::SparseMerkleTree(tree) => tree.update_leaf(index, value),
             Self::MerklePathSet(set) => set.update_leaf(index, value),
-        }
-    }
-
-    /// Adds the specified Merkle path to the Merkle path set. The `index` and `value` parameters
-    /// specify the leaf node at which the path starts.
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - The specified index is not valid in the context of this Merkle path set (i.e., the index
-    ///   implies a greater depth than is specified for this set).
-    /// - The specified path is not consistent with other paths in the set (i.e., resolves to a
-    ///   different root).
-    pub fn add_path(
-        &mut self,
-        index: u64,
-        value: Word,
-        path: Vec<Word>,
-    ) -> Result<(), AdviceSetError> {
-        match self {
-            Self::MerklePathSet(set) => set.add_path(index, value, path),
-            _ => Ok(()),
         }
     }
 }

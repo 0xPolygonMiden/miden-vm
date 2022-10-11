@@ -1,7 +1,7 @@
 use.std::math::ext2
 
 # Given a stack in the following initial configuration [a1,a0,b1,b0,c1,c0,d1,d0,...] the following
-# procedure computes (a + b + ((a - b) * c * d^(-1))) with the assumption that d1 is equal to 0
+# procedure computes (a + b + ((a - b) * c * d^(-1)))/2 with the assumption that d1 is equal to 0
 export.fold_2
     dupw                #[a1,a0,b1,b0,a1,a0,b1,b0,c1,c0,d1,d0,...]
     exec.ext2::sub      #[(a-b)1,(a-b)0,a1,a0,b1,b0,c1,c0,d1,d0,...]
@@ -43,7 +43,8 @@ end
 # g (intial domain generator) and t_d (initial tree depth). The address of the word (num_q,d,g,t_d)
 # will be at locaddr.0. The commitments will be at the subsequent addresses. The total 
 # number of such commitments is t_d - 3 (excluding the remainder).
-proc.preprocess
+export.preprocess.1
+    locaddr.0                   #[add,..]
     adv_push.4                  #[num_q,d,g,t_d,add,..]
     dup.3                       #[t_d,num_q,d,g,t_d,add,..]
     movdn.4                     #[num_q,d,g,t_d,t_d,add,..]
@@ -71,11 +72,16 @@ proc.preprocess
     # value of the remainder codeword
     adv_push.2
     movup.2
+
+    push.0.0.0.0
+    locaddr.0
+    mem_loadw
+    locaddr.0
 end
 
 # Input: [t_d,e1,e0,p,d,poe,add',..]
-# Output: [d,p,C,t_d,e1,e0,poe,a1,a0,..]
-export.prepare_next_new
+# Output: [d,p,C,t_d,e1,e0,poe,a1,a0,add'-2,..]
+export.prepare_next
     push.0.0.0.0                           #[0,0,0,0,t_d,e1,e0,p,d,poe,add',..]
     movup.10 sub.1 dup                     #[add'-1,add'-1,0,0,0,0,t_d,e1,e0,p,d,poe,..]
     movdn.11                               #[add'-1,0,0,0,0,t_d,e1,e0,p,d,poe,add'-1,..]
@@ -92,7 +98,7 @@ export.prepare_next_new
 end
 
 # Given a stack in the following initial configuration [d,p,C,t_d,e1,e0,poe,a1,a0,..] the following
-# procedure computes an iteration of fri verification for a query.
+# procedure computes an iteration of FRI verification for a query.
 # TODO: Check where/if some checks are needed in the beginning, like p < d (p&d are u32) and that 2^t_d == d 
 export.verify_query_layer
     u32unchecked_div.2          #[d/2,p,C,t_d,...]
@@ -145,16 +151,54 @@ export.verify_query_layer
 
 end
 
-export.outer.1
+# Verify a single Fri verification query. The expected stack configuration is [add,num_q,d,g,t_d,add',...]
+# where add is the address storing the current (num_q,d,g,t_d), num_q is the index of the current query,
+# d is the domain size of the LDE, g is its generator and add' is the address of the commitment to 
+# the first layer with the commitments to subsequent layers laid out, in alternating order with the layer
+# alphas, in the subsequent addresses i.e. add' + 1, add' + 2 ...
+export.verify_query
+    exec.verify_query_layer
+    #[t_d-1,e1,e0,p%d/2,d/2,poe_sq,add',..]
 
-    locaddr.0
-    exec.preprocess
+    dup u32checked_neq.3
+    while.true
+        exec.prepare_next
+        exec.verify_query_layer
+        dup u32checked_neq.3
+    end
 
+    ## Verify remainder 
+    drop
+    dup.8 assert_eq
+    dup.8 assert_eq
+end
+
+# Verify that the hash of the remainder codeword is equal to the commitment provided by the prover
+# The following implementation relies on the assumption that the blowup factor is 8 and that the degree
+# of the remainder is zero.
+export.verify_remainder_com
+    dropw                  #[r1,r0,..]
+    drop drop
+    dup.1 dup.1
+    push.4.0.0.0
+    swapw
     push.0.0.0.0
-    locaddr.0
-    mem_loadw
-    locaddr.0                       #[add,num_q,d,g,t_d,add',...]
 
+    # compute the leaf
+    rpperm
+    dropw swapw dropw
+
+    # compute the Merkle tree root
+    dupw rphash     
+    dupw rphash
+    push.0.0.0.0
+    adv_loadw
+    eqw
+    assert
+    dropw dropw
+end
+
+export.verify
     push.1
     while.true
         dup                         #[add,add,num_q,d,g,t_d,add',...]
@@ -184,21 +228,7 @@ export.outer.1
 
         ## Prepare initial is done for query p
         # Call verify query full by iterating verify query layer 
-
-        exec.verify_query_layer
-        #[t_d-1,e1,e0,p%d/2,d/2,poe_sq,add',..]
-
-        dup u32checked_neq.3
-        while.true
-            exec.prepare_next_new
-            exec.verify_query_layer
-            dup u32checked_neq.3
-        end
-
-        ## Verify remainder 
-        drop
-        dup.8 assert_eq
-        dup.8 assert_eq
+        exec.verify_query
 
         ## Prepare for next iteration of while loop
         dup.5               #[add,0,d,g,t_d,add',add,...]
@@ -209,25 +239,12 @@ export.outer.1
         movup.6 swap        #[?,add,num_q-1,d,g,t_d,add',...]
     end
 
-    ## Verify the remainder commitment
-    # Efficient Merkle proof verification in the case of deg(remainder) = 0
-    dropw                  #[r1,r0,..]
-    drop drop
-    dup.1 dup.1
-    push.4.0.0.0
-    swapw
-    push.0.0.0.0
+    exec.verify_remainder_com
+end 
 
-    # compute the leaf
-    rpperm
-    dropw swapw dropw
-
-    # compute the Merkle tree root
-    dupw rphash     
-    dupw rphash
-    push.0.0.0.0
-    adv_loadw
-    eqw
-    assert
-    dropw dropw
+# Prepares the memory by populating it with the layer commitments as well as other relevant parameters
+# needed in order to verify the FRI proof. It then calls ver
+export.outer
+    exec.preprocess
+    exec.verify
 end
