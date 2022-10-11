@@ -2,11 +2,14 @@ use super::{
     ChipletsBus, Felt, FieldElement, HasherState, LookupTableRow, OpBatch, StarkField,
     TraceFragment, Vec, Word, ZERO,
 };
-use vm_core::chiplets::hasher::{
-    absorb_into_state, get_digest, init_state, init_state_from_words, Selectors, LINEAR_HASH,
-    LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW, MR_UPDATE_NEW_LABEL,
-    MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH, RETURN_HASH_LABEL, RETURN_STATE,
-    RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
+use vm_core::{
+    chiplets::hasher::{
+        absorb_into_state, get_digest, init_state, init_state_from_words, Digest, Selectors,
+        HASH_CYCLE_LEN, LINEAR_HASH, LINEAR_HASH_LABEL, MP_VERIFY, MP_VERIFY_LABEL, MR_UPDATE_NEW,
+        MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH, RETURN_HASH_LABEL,
+        RETURN_STATE, RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
+    },
+    utils::collections::BTreeMap,
 };
 
 mod lookups;
@@ -64,6 +67,11 @@ mod tests;
 /// - a vector of [HasherLookup]s, each of which specifies the data for one of the lookup rows which
 ///   are required for verification of the communication between the stack/decoder and the Hash
 ///   Chiplet via the Chiplets Bus.
+/// - a map of memoized execution trace, which keeps track of start and end rows of the sections of
+///   the trace of a control or span block that can be copied to be used later for program blocks
+///   encountered with the same digest instead of building it from scratch everytime. The only
+///   thing that changes in the copied trace are the `addr` column rows. The hash of the block
+///   is used as the key here after converting it to a bytes array.
 #[derive(Default)]
 pub struct Hasher {
     trace: HasherTrace,
@@ -75,6 +83,7 @@ pub struct Hasher {
     //    during `fill_trace`.
     // There are probably other options as well, so this should be investigated & benchmarked.
     lookups: Vec<HasherLookup>,
+    memoized_trace_map: BTreeMap<[u8; 32], (usize, usize)>,
 }
 
 impl Hasher {
@@ -154,14 +163,20 @@ impl Hasher {
         (addr, state, lookups)
     }
 
-    /// Merges the provided words by computing hash(h1, h2) and returns the result. It also records
-    /// the execution trace of this computation as well as the lookups required for verifying its
-    /// correctness so that they can be provided to the Chiplets Bus when the trace is finalized.
+    /// Computes the hash of the control block by computing hash(h1, h2) and returns the result.
+    /// It also records the execution trace of this computation as well as the lookups required for
+    /// verifying its correctness so that they can be provided to the Chiplets Bus when the trace
+    /// is finalized.
     ///
     /// The returned tuple also contains the row address of the execution trace at which the hash
     /// computation started and the lookups required to verify the computation so that the correct
     /// requests can be sent by the caller to the Chiplets Bus.
-    pub(super) fn merge(&mut self, h1: Word, h2: Word) -> (Felt, Word, &[HasherLookup]) {
+    pub(super) fn hash_control_block(
+        &mut self,
+        h1: Word,
+        h2: Word,
+        expected_hash: Digest,
+    ) -> (Felt, Word, &[HasherLookup]) {
         let addr = self.trace.next_row_addr();
         let init_lookup_idx = self.next_lookup_idx();
         let mut state = init_state_from_words(&h1, &h2);
@@ -169,15 +184,23 @@ impl Hasher {
         // add the lookup for the hash initialization.
         self.append_lookup(LINEAR_HASH_LABEL, state, ZERO, HasherLookupContext::Start);
 
-        // perform the hash.
-        self.trace
-            .append_permutation(&mut state, LINEAR_HASH, RETURN_HASH);
+        if let Some((start_row, end_row)) = self.get_memoized_trace(expected_hash) {
+            // copy the trace of a block with same hash instead of building it again.
+            self.trace.copy_trace(&mut state, *start_row..*end_row);
+        } else {
+            // perform the hash.
+            self.trace
+                .append_permutation(&mut state, LINEAR_HASH, RETURN_HASH);
+
+            self.insert_to_memoized_trace_map(addr, expected_hash);
+        };
 
         // add the lookup for the hash result.
         self.append_lookup(RETURN_HASH_LABEL, state, ZERO, HasherLookupContext::Return);
 
         let result = get_digest(&state);
         let lookups = self.get_last_lookups(init_lookup_idx);
+
         (addr, result, lookups)
     }
 
@@ -189,10 +212,13 @@ impl Hasher {
     /// The returned tuple also contains the row address of the execution trace at which the hash
     /// computation started and the lookups required to verify the computation so that the correct
     /// requests can be sent by the caller to the Chiplets Bus.
+    /// TODO: Refactor to require fewer is_memoized checks. This can be done if the intermediary
+    /// states don't need to be passed to the lookup.
     pub(super) fn hash_span_block(
         &mut self,
         op_batches: &[OpBatch],
         num_op_groups: usize,
+        expected_hash: Digest,
     ) -> (Felt, Word, &[HasherLookup]) {
         const START: Selectors = LINEAR_HASH;
         const START_LABEL: u8 = LINEAR_HASH_LABEL;
@@ -216,11 +242,26 @@ impl Hasher {
         // add the lookup for the hash initialization.
         self.append_lookup(START_LABEL, state, ZERO, HasherLookupContext::Start);
 
+        // check if a span block with same hash has been encountered before in which case we can
+        // directly copy it's trace.
+        let (start_row, end_row, is_memoized) =
+            if let Some((start_row, end_row)) = self.get_memoized_trace(expected_hash) {
+                (*start_row, *end_row, true)
+            } else {
+                (0, 0, false)
+            };
+
         let num_batches = op_batches.len();
         if num_batches == 1 {
-            // if there is only one batch to hash, we need only one permutation
-            self.trace.append_permutation(&mut state, START, RETURN);
+            if is_memoized {
+                // copy trace if trace exists
+                self.trace.copy_trace(&mut state, start_row..end_row);
+            } else {
+                // if there is only one batch to hash, we need only one permutation
+                self.trace.append_permutation(&mut state, START, RETURN);
+            }
         } else {
+            let mut row = start_row;
             // if there is more than one batch, we need to process the first, the last, and the
             // middle permutations a bit differently. Specifically, selector flags for the
             // permutations need to be set as follows:
@@ -230,7 +271,15 @@ impl Hasher {
             //   operation batch on the last row.
             // - last permutation: continue hashing on the first row, and return the result
             //   on the last row.
-            self.trace.append_permutation(&mut state, START, ABSORB);
+            if is_memoized {
+                // copy trace if trace exists
+                self.trace
+                    .copy_trace(&mut state, row..(row + HASH_CYCLE_LEN));
+                row += HASH_CYCLE_LEN;
+            } else {
+                self.trace.append_permutation(&mut state, START, ABSORB);
+            }
+
             let mut last_state = state;
 
             for batch in op_batches.iter().take(num_batches - 1).skip(1) {
@@ -243,7 +292,14 @@ impl Hasher {
                     HasherLookupContext::Absorb(state),
                 );
 
-                self.trace.append_permutation(&mut state, CONTINUE, ABSORB);
+                if is_memoized {
+                    self.trace
+                        .copy_trace(&mut state, row..(row + HASH_CYCLE_LEN));
+                    row += HASH_CYCLE_LEN;
+                } else {
+                    self.trace.append_permutation(&mut state, CONTINUE, ABSORB);
+                }
+
                 last_state = state;
             }
 
@@ -255,14 +311,22 @@ impl Hasher {
                 ZERO,
                 HasherLookupContext::Absorb(state),
             );
-            self.trace.append_permutation(&mut state, CONTINUE, RETURN);
+            if is_memoized {
+                self.trace.copy_trace(&mut state, row..end_row);
+            } else {
+                self.trace.append_permutation(&mut state, CONTINUE, RETURN);
+            }
         }
 
         // add the lookup for the hash result.
         self.append_lookup(RETURN_LABEL, state, ZERO, HasherLookupContext::Return);
 
+        if !is_memoized {
+            self.insert_to_memoized_trace_map(addr, expected_hash);
+        }
         let result = get_digest(&state);
         let lookups = self.get_last_lookups(init_lookup_idx);
+
         (addr, result, lookups)
     }
 
@@ -499,6 +563,21 @@ impl Hasher {
             }
             _ => (),
         }
+    }
+
+    /// Checks if a trace for a program block already exists and returns the start and end rows
+    /// of the memoized trace. Returns None otherwise.
+    fn get_memoized_trace(&self, hash: Digest) -> Option<&(usize, usize)> {
+        let key: [u8; 32] = hash.into();
+        self.memoized_trace_map.get(&key)
+    }
+
+    /// Inserts start and end rows of trace for a program block to the memoized_trace_map.
+    fn insert_to_memoized_trace_map(&mut self, addr: Felt, hash: Digest) {
+        let key: [u8; 32] = hash.into();
+        let start_row = addr.as_int() as usize - 1;
+        let end_row = self.trace.next_row_addr().as_int() as usize - 1;
+        self.memoized_trace_map.insert(key, (start_row, end_row));
     }
 }
 

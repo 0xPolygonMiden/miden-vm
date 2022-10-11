@@ -1,12 +1,15 @@
 use super::{
-    init_state_from_words, AuxTraceBuilder, ChipletsBus, Felt, Hasher, HasherState, Selectors,
-    SiblingTableRow, SiblingTableUpdate, TraceFragment, Word, LINEAR_HASH, MP_VERIFY,
+    init_state_from_words, AuxTraceBuilder, ChipletsBus, Digest, Felt, Hasher, HasherState,
+    Selectors, SiblingTableRow, SiblingTableUpdate, TraceFragment, Word, LINEAR_HASH, MP_VERIFY,
     MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
 };
 use rand_utils::rand_array;
 use vm_core::{
-    chiplets::hasher::{self, NUM_ROUNDS},
-    AdviceSet, ONE, ZERO,
+    chiplets::hasher::{
+        self, DIGEST_LEN, HASH_CYCLE_LEN, NUM_ROUNDS, NUM_SELECTORS, STATE_COL_RANGE,
+    },
+    code_blocks::{get_span_op_group_count, CodeBlock},
+    AdviceSet, Operation, StarkField, ONE, ZERO,
 };
 
 // LINEAR HASH TESTS
@@ -298,6 +301,266 @@ fn hasher_update_merkle_root() {
     assert_eq!(expected_sibling_rows, aux_hints.sibling_rows);
 }
 
+// MEMOIZATION TESTS
+// ================================================================================================
+
+#[test]
+fn hash_memoization_control_blocks() {
+    // --- Join block with 2 same split blocks as children, having the same hasher execution trace.
+    //           Join
+    //          /    \
+    //         /     \
+    //        /      \
+    //      Split1     Split2 (memoized)
+
+    let t_branch = CodeBlock::new_span(vec![Operation::Push(Felt::new(1))]);
+    let f_branch = CodeBlock::new_span(vec![Operation::Push(Felt::new(0))]);
+    let split1_block = CodeBlock::new_split(t_branch.clone(), f_branch.clone());
+    let split2_block = CodeBlock::new_split(t_branch.clone(), f_branch.clone());
+    let join_block = CodeBlock::new_join([split1_block.clone(), split2_block.clone()]);
+
+    let mut hasher = Hasher::default();
+    let h1: [Felt; DIGEST_LEN] = split1_block
+        .hash()
+        .as_elements()
+        .try_into()
+        .expect("Could not convert slice to array");
+    let h2: [Felt; DIGEST_LEN] = split2_block
+        .hash()
+        .as_elements()
+        .try_into()
+        .expect("Could not convert slice to array");
+
+    let expected_hash = join_block.hash();
+
+    // builds the trace of the join block.
+    let (_, final_state, _) = hasher.hash_control_block(h1, h2, expected_hash);
+    // make sure the hash of the final state is the same as the expected hash.
+    assert_eq!(Digest::new(final_state), expected_hash);
+
+    let h1: [Felt; DIGEST_LEN] = t_branch
+        .hash()
+        .as_elements()
+        .try_into()
+        .expect("Could not convert slice to array");
+    let h2: [Felt; DIGEST_LEN] = f_branch
+        .hash()
+        .as_elements()
+        .try_into()
+        .expect("Could not convert slice to array");
+
+    let expected_hash = split1_block.hash();
+    // builds the hash execution trace of the first split block from scratch.
+    let (addr, final_state, _) = hasher.hash_control_block(h1, h2, expected_hash);
+    let first_block_final_state = final_state;
+
+    // make sure the hash of the final state of the first split block is the same as the expected
+    // hash.
+    assert_eq!(Digest::new(final_state), expected_hash);
+
+    let start_row = addr.as_int() as usize - 1;
+    let end_row = hasher.trace_len() - 1;
+
+    let h1: [Felt; DIGEST_LEN] = t_branch
+        .hash()
+        .as_elements()
+        .try_into()
+        .expect("Could not convert slice to array");
+    let h2: [Felt; DIGEST_LEN] = f_branch
+        .hash()
+        .as_elements()
+        .try_into()
+        .expect("Could not convert slice to array");
+    let expected_hash = split2_block.hash();
+    // builds the hash execution trace of the second split block by copying it from the trace of
+    // the first split block.
+    let (addr, final_state, _) = hasher.hash_control_block(h1, h2, expected_hash);
+
+    // make sure the hash of the final state of the second split block is the same as the expected
+    // hash.
+    assert_eq!(Digest::new(final_state), expected_hash);
+    // make sure the hash of the first and second split blocks is the same.
+    assert_eq!(first_block_final_state, final_state);
+
+    let copied_start_row = addr.as_int() as usize - 1;
+    let copied_end_row = hasher.trace_len() - 1;
+
+    let (trace, _) = build_trace(hasher, copied_end_row + 1);
+
+    // check row addresses of trace to make sure they start from 1 and incremented by 1 each row.
+    check_row_addr_trace(&trace);
+    //  check the row address at which memoized block starts.
+    let hash_cycle_len: u64 = HASH_CYCLE_LEN
+        .try_into()
+        .expect("Could not convert usize to u64");
+    assert_eq!(Felt::new(hash_cycle_len * 2 + 1), addr);
+    // check the trace length of the final trace.
+    assert_eq!(trace.last().unwrap(), &[ZERO; HASH_CYCLE_LEN * 3]);
+
+    // check correct copy of the memoized trace.
+    check_memoized_trace(&trace, start_row, end_row, copied_start_row, copied_end_row);
+}
+
+#[test]
+fn hash_memoization_span_blocks() {
+    // --- span block with 1 batch ----------------------------------------------------------------
+    let span_block = CodeBlock::new_span(vec![Operation::Push(Felt::new(10)), Operation::Drop]);
+
+    hash_memoization_span_blocks_check(span_block);
+
+    // --- span block with multiple batches -------------------------------------------------------
+    let span_block = CodeBlock::new_span(vec![
+        Operation::Push(Felt::new(1)),
+        Operation::Push(Felt::new(2)),
+        Operation::Push(Felt::new(3)),
+        Operation::Push(Felt::new(4)),
+        Operation::Push(Felt::new(5)),
+        Operation::Push(Felt::new(6)),
+        Operation::Push(Felt::new(7)),
+        Operation::Push(Felt::new(8)),
+        Operation::Push(Felt::new(9)),
+        Operation::Push(Felt::new(10)),
+        Operation::Push(Felt::new(11)),
+        Operation::Push(Felt::new(12)),
+        Operation::Push(Felt::new(13)),
+        Operation::Push(Felt::new(14)),
+        Operation::Push(Felt::new(15)),
+        Operation::Push(Felt::new(16)),
+        Operation::Push(Felt::new(17)),
+        Operation::Push(Felt::new(18)),
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+        Operation::Drop,
+    ]);
+
+    hash_memoization_span_blocks_check(span_block);
+}
+
+fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
+    // Join block with a join and span block as children. The span child of the first join
+    // child block is the same as the span child of root join block. Here the hash execution
+    // trace of the second span block is built by copying the trace built for the first same
+    // span block.
+    //           Join1
+    //          /    \
+    //         /     \
+    //        /      \
+    //      Join2     Span2 (memoized)
+    //       / \
+    //      /   \
+    //     /     \
+    //  Span1   Loop
+
+    let span1_block = span_block.clone();
+    let loop_body = CodeBlock::new_span(vec![Operation::Pad, Operation::Eq, Operation::Not]);
+    let loop_block = CodeBlock::new_loop(loop_body);
+    let join2_block = CodeBlock::new_join([span1_block.clone(), loop_block.clone()]);
+    let span2_block = span_block;
+    let join1_block = CodeBlock::new_join([join2_block.clone(), span2_block.clone()]);
+
+    let mut hasher = Hasher::default();
+    let h1: [Felt; DIGEST_LEN] = join2_block
+        .hash()
+        .as_elements()
+        .try_into()
+        .expect("Could not convert slice to array");
+    let h2: [Felt; DIGEST_LEN] = span2_block
+        .hash()
+        .as_elements()
+        .try_into()
+        .expect("Could not convert slice to array");
+    let expected_hash = join1_block.hash();
+
+    // builds the trace of the Join1 block.
+    let (_, final_state, _) = hasher.hash_control_block(h1, h2, expected_hash);
+    // make sure the hash of the final state of Join1 is the same as the expected hash.
+    assert_eq!(Digest::new(final_state), expected_hash);
+
+    let h1: [Felt; DIGEST_LEN] = span1_block
+        .hash()
+        .as_elements()
+        .try_into()
+        .expect("Could not convert slice to array");
+    let h2: [Felt; DIGEST_LEN] = loop_block
+        .hash()
+        .as_elements()
+        .try_into()
+        .expect("Could not convert slice to array");
+    let expected_hash = join2_block.hash();
+
+    let (_, final_state, _) = hasher.hash_control_block(h1, h2, expected_hash);
+    // make sure the hash of the final state of Join2 is the same as the expected hash.
+    assert_eq!(Digest::new(final_state), expected_hash);
+
+    let span1_block_val = if let CodeBlock::Span(span) = span1_block.clone() {
+        span
+    } else {
+        unreachable!()
+    };
+
+    // builds the hash execution trace of the first span block from scratch.
+    let (addr, final_state, _) = hasher.hash_span_block(
+        span1_block_val.op_batches(),
+        get_span_op_group_count(span1_block_val.op_batches()),
+        span1_block.hash(),
+    );
+    let first_span_block_final_state = final_state;
+
+    // make sure the hash of the final state of Span1 block is the same as the expected hash.
+    let expected_hash = span1_block.hash();
+    assert_eq!(Digest::new(final_state), expected_hash);
+
+    let start_row = addr.as_int() as usize - 1;
+    let end_row = hasher.trace_len() - 1;
+
+    let span2_block_val = if let CodeBlock::Span(span) = span2_block.clone() {
+        span
+    } else {
+        unreachable!()
+    };
+
+    // builds the hash execution trace of the second span block by copying the sections of the
+    // trace corresponding to the first span block with the same hash.
+    let (addr, final_state, _) = hasher.hash_span_block(
+        span2_block_val.op_batches(),
+        get_span_op_group_count(span2_block_val.op_batches()),
+        span2_block.hash(),
+    );
+
+    let expected_hash = span2_block.hash();
+    // make sure the hash of the final state of Span2 block is the same as the expected hash.
+    assert_eq!(Digest::new(final_state), expected_hash);
+
+    // make sure the hash of the first and second span blocks is the same.
+    assert_eq!(first_span_block_final_state, final_state);
+
+    let copied_start_row = addr.as_int() as usize - 1;
+    let copied_end_row = hasher.trace_len() - 1;
+
+    let (trace, _) = build_trace(hasher, copied_end_row + 1);
+
+    // check row addresses of trace to make sure they start from 1 and incremented by 1 each row.
+    check_row_addr_trace(&trace);
+
+    // check correct copy after memoization
+    check_memoized_trace(&trace, start_row, end_row, copied_start_row, copied_end_row);
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -394,13 +657,43 @@ fn check_selector_trace(
 /// Makes sure hasher state columns (columns 4 through 15) are valid for an 8-row cycle starting
 /// with row_idx.
 fn check_hasher_state_trace(trace: &[Vec<Felt>], row_idx: usize, init_state: HasherState) {
-    let trace = &trace[4..16];
+    let trace = &trace[STATE_COL_RANGE];
     let mut state = init_state;
 
     assert_row_equal(trace, row_idx, &state);
     for i in 0..NUM_ROUNDS {
         hasher::apply_round(&mut state, i);
         assert_row_equal(trace, row_idx + i + 1, &state);
+    }
+}
+
+/// Makes sure that the trace is copied correctly on memoization
+fn check_memoized_trace(
+    trace: &[Vec<Felt>],
+    start_row: usize,
+    end_row: usize,
+    copied_start_row: usize,
+    copied_end_row: usize,
+) {
+    // make sure the number of copied rows are equal as the original.
+    assert_eq!(end_row - start_row, copied_end_row - copied_start_row);
+
+    // make sure selector trace is copied correctly
+    let selector_trace = &trace[0..NUM_SELECTORS];
+    for column in selector_trace.iter() {
+        assert_eq!(
+            column[start_row..end_row],
+            column[copied_start_row..copied_end_row]
+        )
+    }
+
+    // make sure hasher state trace is copied correctly
+    let hasher_state_trace = &trace[STATE_COL_RANGE];
+    for column in hasher_state_trace.iter() {
+        assert_eq!(
+            column[start_row..end_row],
+            column[copied_start_row..copied_end_row]
+        )
     }
 }
 

@@ -151,11 +151,11 @@ impl Chiplets {
     /// hash(h1, h2) against the provided `expected_result`.
     ///
     /// It returns the row address of the execution trace at which the hash computation started.
-    pub fn hash_control_block(&mut self, h1: Word, h2: Word, expected_result: Digest) -> Felt {
-        let (addr, result, lookups) = self.hasher.merge(h1, h2);
+    pub fn hash_control_block(&mut self, h1: Word, h2: Word, expected_hash: Digest) -> Felt {
+        let (addr, result, lookups) = self.hasher.hash_control_block(h1, h2, expected_hash);
 
         // make sure the result computed by the hasher is the same as the expected block hash
-        debug_assert_eq!(expected_result, result.into());
+        debug_assert_eq!(expected_hash, result.into());
 
         // send the request for the hash initialization
         self.bus.request_hasher_lookup(lookups[0], self.clk);
@@ -174,12 +174,14 @@ impl Chiplets {
         &mut self,
         op_batches: &[OpBatch],
         num_op_groups: usize,
-        expected_result: Digest,
+        expected_hash: Digest,
     ) -> Felt {
-        let (addr, result, lookups) = self.hasher.hash_span_block(op_batches, num_op_groups);
+        let (addr, result, lookups) =
+            self.hasher
+                .hash_span_block(op_batches, num_op_groups, expected_hash);
 
         // make sure the result computed by the hasher is the same as the expected block hash
-        debug_assert_eq!(expected_result, result.into());
+        debug_assert_eq!(expected_hash, result.into());
 
         // send the request for the hash initialization
         self.bus.request_hasher_lookup(lookups[0], self.clk);

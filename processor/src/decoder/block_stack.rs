@@ -143,13 +143,7 @@ impl BlockInfo {
         match self.block_type {
             BlockType::Join(_) => 2,
             BlockType::Split => 1,
-            BlockType::Loop(is_entered) => {
-                if is_entered {
-                    1
-                } else {
-                    0
-                }
-            }
+            BlockType::Loop(is_entered) => u32::from(is_entered),
             BlockType::Call => 1,
             BlockType::Span => 0,
         }

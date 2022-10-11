@@ -1,6 +1,6 @@
 //! TODO: add docs
 
-use super::{Felt, FieldElement, Word, HASHER_AUX_TRACE_OFFSET};
+use super::{create_range, Felt, FieldElement, Word, HASHER_AUX_TRACE_OFFSET};
 use core::ops::Range;
 use crypto::{ElementHasher, Hasher as HashFn};
 
@@ -30,6 +30,12 @@ pub type HasherState = [Felt; STATE_WIDTH];
 /// reserved for capacity. This configuration enables computation of 2-to-1 hash in a single
 /// permutation.
 pub const STATE_WIDTH: usize = Hasher::STATE_WIDTH;
+
+/// Index of the column holding row addresses in the trace.
+pub const ROW_COL_IDX: usize = NUM_SELECTORS;
+
+/// The hasher state portion of the execution trace, located in 4 .. 16 columns.
+pub const STATE_COL_RANGE: Range<usize> = create_range(ROW_COL_IDX + 1, STATE_WIDTH);
 
 /// Number of field elements in the rate portion of the hasher's state.
 pub const RATE_LEN: usize = 8;
