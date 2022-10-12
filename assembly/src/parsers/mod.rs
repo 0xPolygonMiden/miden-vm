@@ -16,6 +16,8 @@ mod io_ops;
 mod stack_ops;
 mod u32_ops;
 
+mod ast;
+
 // OP PARSER
 // ================================================================================================
 
@@ -51,8 +53,8 @@ fn parse_op_token(
         "neg" => field_ops::parse_neg(span_ops, op),
         "inv" => field_ops::parse_inv(span_ops, op),
 
-        "checked_pow2" => field_ops::parse_pow2(span_ops, op, true),
-        "unchecked_pow2" => field_ops::parse_pow2(span_ops, op, false),
+        "pow2" => field_ops::parse_pow2(span_ops, op),
+        "exp" => field_ops::parse_exp(span_ops, op),
 
         "not" => field_ops::parse_not(span_ops, op),
         "and" => field_ops::parse_and(span_ops, op),
@@ -160,12 +162,26 @@ fn parse_op_token(
         "cdropw" => stack_ops::parse_cdropw(span_ops, op),
 
         // ----- input / output operations --------------------------------------------------------
-        "push" => io_ops::parse_push(span_ops, op, num_proc_locals),
-        "pushw" => io_ops::parse_pushw(span_ops, op, num_proc_locals),
-        "pop" => io_ops::parse_pop(span_ops, op, num_proc_locals),
-        "popw" => io_ops::parse_popw(span_ops, op, num_proc_locals),
-        "loadw" => io_ops::parse_loadw(span_ops, op, num_proc_locals),
-        "storew" => io_ops::parse_storew(span_ops, op, num_proc_locals),
+        "push" => io_ops::parse_push(span_ops, op),
+
+        "sdepth" => io_ops::parse_sdepth(span_ops, op),
+        "locaddr" => io_ops::parse_locaddr(span_ops, op, num_proc_locals),
+
+        "mem_load" => io_ops::parse_mem_read(span_ops, op, num_proc_locals, false, true),
+        "loc_load" => io_ops::parse_mem_read(span_ops, op, num_proc_locals, true, true),
+
+        "mem_loadw" => io_ops::parse_mem_read(span_ops, op, num_proc_locals, false, false),
+        "loc_loadw" => io_ops::parse_mem_read(span_ops, op, num_proc_locals, true, false),
+
+        "mem_store" => io_ops::parse_mem_write(span_ops, op, num_proc_locals, false, true),
+        "loc_store" => io_ops::parse_mem_write(span_ops, op, num_proc_locals, true, true),
+
+        "mem_storew" => io_ops::parse_mem_write(span_ops, op, num_proc_locals, false, false),
+        "loc_storew" => io_ops::parse_mem_write(span_ops, op, num_proc_locals, true, false),
+
+        "adv_push" => io_ops::parse_adv_push(span_ops, op),
+        "adv_loadw" => io_ops::parse_adv_loadw(span_ops, op),
+
         "adv" => io_ops::parse_adv_inject(span_ops, op, decorators),
 
         // ----- cryptographic operations ---------------------------------------------------------
@@ -228,6 +244,21 @@ fn parse_hex_param(op: &Token, param_idx: usize, param_str: &str) -> Result<Felt
     match u64::from_str_radix(param_str, 16) {
         Ok(value) => get_valid_felt(op, param_idx, value),
         Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
+    }
+}
+
+/// Parses the bits length in `exp` assembly operation into usize.
+fn parse_bit_len_param(op: &Token, param_idx: usize) -> Result<usize, AssemblyError> {
+    let param_value = op.parts()[param_idx];
+
+    if let Some(param) = param_value.strip_prefix('u') {
+        // parse bits len param
+        match param.parse::<usize>() {
+            Ok(value) => Ok(value),
+            Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
+        }
+    } else {
+        Err(AssemblyError::invalid_param(op, param_idx))
     }
 }
 

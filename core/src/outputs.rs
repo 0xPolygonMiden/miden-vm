@@ -1,4 +1,4 @@
-use crate::{StackTopState, MIN_STACK_DEPTH};
+use crate::{stack::STACK_TOP_SIZE, StackTopState};
 
 use super::{Felt, StarkField};
 use winter_utils::collections::Vec;
@@ -83,7 +83,7 @@ impl ProgramOutputs {
     pub fn stack_top(&self) -> StackTopState {
         self.stack
             .iter()
-            .take(MIN_STACK_DEPTH)
+            .take(STACK_TOP_SIZE)
             .map(|v| Felt::new(*v))
             .collect::<Vec<_>>()
             .try_into()
@@ -114,7 +114,7 @@ impl ProgramOutputs {
             .overflow_addrs
             .iter()
             .skip(1)
-            .zip(self.stack.iter().skip(MIN_STACK_DEPTH).rev())
+            .zip(self.stack.iter().skip(STACK_TOP_SIZE).rev())
         {
             overflow.push((Felt::new(*addr), Felt::new(*val)));
         }

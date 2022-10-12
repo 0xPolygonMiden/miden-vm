@@ -1,4 +1,4 @@
-use super::{AdviceSetError, CodeBlock, Digest, Felt};
+use super::{AdviceSetError, CodeBlock, Digest, Felt, Word};
 use winterfell::ProverError;
 
 // EXECUTION ERROR
@@ -6,18 +6,19 @@ use winterfell::ProverError;
 
 #[derive(Debug)]
 pub enum ExecutionError {
+    AdviceKeyNotFound(Word),
     AdviceSetLookupFailed(AdviceSetError),
     AdviceSetNotFound([u8; 32]),
     AdviceSetUpdateFailed(AdviceSetError),
+    CodeBlockNotFound(Digest),
     DivideByZero(u32),
     EmptyAdviceTape(u32),
     FailedAssertion(u32),
     InvalidFmpValue(Felt, Felt),
-    InvalidPowerOfTwo(Felt),
+    InvalidStackDepthOnReturn(usize),
     NotBinaryValue(Felt),
     NotU32Value(Felt),
     ProverError(ProverError),
-    TooManyStackOutputs(usize),
+    SyscallTargetNotInKernel(Digest),
     UnexecutableCodeBlock(CodeBlock),
-    CodeBlockNotFound(Digest),
 }

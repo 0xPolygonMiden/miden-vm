@@ -67,6 +67,11 @@ impl CodeBlock {
     }
 
     /// TODO: add comments
+    pub fn new_syscall(fn_hash: Digest) -> Self {
+        Self::Call(Call::new_syscall(fn_hash))
+    }
+
+    /// TODO: add comments
     pub fn new_proxy(code_hash: Digest) -> Self {
         Self::Proxy(Proxy::new(code_hash))
     }

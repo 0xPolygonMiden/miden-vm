@@ -24,12 +24,12 @@ For instructions where one or more operands can be provided as immediate paramet
 | div <br> - *(2 cycles)*  <br> div.*b* <br> - *(2 cycles)*  | [b, a, ...] | [c, ...]      | $c \leftarrow (a \cdot b^{-1}) \mod p$ <br> Fails if $b = 0$ |
 | neg <br> - *(1 cycle)*              | [a, ...]    | [b, ...]      | $b \leftarrow -a \mod p$               |
 | inv <br> - *(1 cycle)*              | [a, ...]    | [b, ...]      | $b \leftarrow a^{-1} \mod p$ <br> Fails if $a = 0$ |
-| checked_pow2 <br> - *(44 cycles)*     | [a, ...]    | [b, ...]      | $b \leftarrow 2^a$ <br> Fails if $a > 63$ |
-| unchecked_pow2 <br> - *(38 cycles)*   | [a, ...]    | [b, ...]      | $b \leftarrow 2^a$ <br> Undefined if $a > 63$ |
+| pow2 <br> - *(16 cycles)*           | [a, ...]    | [b, ...]      | $b \leftarrow 2^a$ <br> Fails if $a > 63$ |
+| exp.*uxx* <br> - *(9 + xx cycles)*  <br> exp.*b* <br> - *(9 + log2(b) cycles)* | [b, a, ...] | [c, ...]      | $c \leftarrow a^b$ <br> Fails if xx is outside [0, 63) <br> exp is equivalent to exp.u64 and needs 73 cycles|
 | not <br> - *(1 cycle)*              | [a, ...]    | [b, ...]      | $b \leftarrow 1 - a$ <br> Fails if $a > 1$ |
 | and <br> - *(1 cycle)*              | [b, a, ...] | [c, ...]      | $c \leftarrow a \cdot b$ <br> Fails if $max(a, b) > 1$ |
 | or <br> - *(1 cycle)*               | [b, a, ...] | [c, ...]      | $c \leftarrow a + b - a \cdot b$ <br> Fails if $max(a, b) > 1$ |
-| xor <br> - *(7 cycles)*              | [b, a, ...] | [c, ...]      | $c \leftarrow a + b - 2 \cdot a \cdot b$ <br> Fails if $max(a, b) > 1$ |
+| xor <br> - *(7 cycles)*             | [b, a, ...] | [c, ...]      | $c \leftarrow a + b - 2 \cdot a \cdot b$ <br> Fails if $max(a, b) > 1$ |
 
 ### Comparison operations
 

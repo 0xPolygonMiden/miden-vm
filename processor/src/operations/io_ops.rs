@@ -30,9 +30,10 @@ impl Process {
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
     pub(super) fn op_mloadw(&mut self) -> Result<(), ExecutionError> {
-        // get the address from the stack and read the word from memory
+        // get the address from the stack and read the word from current memory context
+        let ctx = self.system.ctx();
         let addr = self.stack.get(0);
-        let word = self.chiplets.read_mem(addr);
+        let word = self.chiplets.read_mem(ctx, addr);
 
         // update the stack state
         for (i, &value) in word.iter().rev().enumerate() {
@@ -56,8 +57,9 @@ impl Process {
     /// to the stack.
     pub(super) fn op_mload(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from memory
+        let ctx = self.system.ctx();
         let addr = self.stack.get(0);
-        let word = self.chiplets.read_mem(addr);
+        let word = self.chiplets.read_mem(ctx, addr);
 
         // update the stack state
         self.stack.set(0, word[0]);
@@ -82,6 +84,7 @@ impl Process {
     /// the operation.
     pub(super) fn op_mstorew(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and build the word to be saved from the stack values
+        let ctx = self.system.ctx();
         let addr = self.stack.get(0);
 
         let word = [
@@ -92,7 +95,7 @@ impl Process {
         ];
 
         // write the word to memory and get the previous word
-        let old_word = self.chiplets.write_mem(addr, word);
+        let old_word = self.chiplets.write_mem(ctx, addr, word);
 
         // update the stack state
         for (i, &value) in word.iter().rev().enumerate() {
@@ -120,11 +123,12 @@ impl Process {
     /// the operation.
     pub(super) fn op_mstore(&mut self) -> Result<(), ExecutionError> {
         // get the address and the value from the stack
+        let ctx = self.system.ctx();
         let addr = self.stack.get(0);
         let value = self.stack.get(1);
 
         // write the value to the memory and get the previous word
-        let old_word = self.chiplets.write_mem_single(addr, value);
+        let old_word = self.chiplets.write_mem_single(ctx, addr, value);
 
         self.decoder
             .set_user_op_helpers(Operation::MStore, &old_word);
@@ -188,26 +192,26 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{FieldElement, Operation},
+        super::{Operation, STACK_TOP_SIZE},
         Felt, Process,
     };
-    use vm_core::{utils::ToElements, MIN_STACK_DEPTH, ZERO};
+    use vm_core::{utils::ToElements, ONE, ZERO};
 
     #[test]
     fn op_push() {
-        let mut process = Process::new_dummy();
-        assert_eq!(MIN_STACK_DEPTH, process.stack.depth());
-        assert_eq!(0, process.stack.current_clk());
+        let mut process = Process::new_dummy(&[]);
+        assert_eq!(STACK_TOP_SIZE, process.stack.depth());
+        assert_eq!(1, process.stack.current_clk());
         assert_eq!([ZERO; 16], process.stack.trace_state());
 
         // push one item onto the stack
-        let op = Operation::Push(Felt::ONE);
+        let op = Operation::Push(ONE);
         process.execute_op(op).unwrap();
         let mut expected = [ZERO; 16];
-        expected[0] = Felt::ONE;
+        expected[0] = ONE;
 
-        assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
-        assert_eq!(1, process.stack.current_clk());
+        assert_eq!(STACK_TOP_SIZE + 1, process.stack.depth());
+        assert_eq!(2, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
 
         // push another item onto the stack
@@ -215,10 +219,10 @@ mod tests {
         process.execute_op(op).unwrap();
         let mut expected = [ZERO; 16];
         expected[0] = Felt::new(3);
-        expected[1] = Felt::ONE;
+        expected[1] = ONE;
 
-        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
-        assert_eq!(2, process.stack.current_clk());
+        assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
+        assert_eq!(3, process.stack.current_clk());
         assert_eq!(expected, process.stack.trace_state());
     }
 
@@ -227,7 +231,7 @@ mod tests {
 
     #[test]
     fn op_mstorew() {
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert_eq!(0, process.chiplets.get_mem_size());
 
         // push the first word onto the stack and save it at address 0
@@ -240,7 +244,7 @@ mod tests {
 
         // check memory state
         assert_eq!(1, process.chiplets.get_mem_size());
-        assert_eq!(word1, process.chiplets.get_mem_value(0).unwrap());
+        assert_eq!(word1, process.chiplets.get_mem_value(0, 0).unwrap());
 
         // push the second word onto the stack and save it at address 3
         let word2 = [2, 4, 6, 8].to_elements().try_into().unwrap();
@@ -252,17 +256,17 @@ mod tests {
 
         // check memory state
         assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(word1, process.chiplets.get_mem_value(0).unwrap());
-        assert_eq!(word2, process.chiplets.get_mem_value(3).unwrap());
+        assert_eq!(word1, process.chiplets.get_mem_value(0, 0).unwrap());
+        assert_eq!(word2, process.chiplets.get_mem_value(0, 3).unwrap());
 
         // --- calling STOREW with a stack of minimum depth is ok ----------------
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert!(process.execute_op(Operation::MStoreW).is_ok());
     }
 
     #[test]
     fn op_mloadw() {
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert_eq!(0, process.chiplets.get_mem_size());
 
         // push a word onto the stack and save it at address 1
@@ -275,7 +279,7 @@ mod tests {
         }
 
         // push the address onto the stack and load the word
-        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
+        process.execute_op(Operation::Push(ONE)).unwrap();
         process.execute_op(Operation::MLoadW).unwrap();
 
         let expected_stack = build_expected_stack(&[7, 5, 3, 1, 7, 5, 3, 1]);
@@ -283,16 +287,16 @@ mod tests {
 
         // check memory state
         assert_eq!(1, process.chiplets.get_mem_size());
-        assert_eq!(word, process.chiplets.get_mem_value(1).unwrap());
+        assert_eq!(word, process.chiplets.get_mem_value(0, 1).unwrap());
 
         // --- calling LOADW with a stack of minimum depth is ok ----------------
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert!(process.execute_op(Operation::MLoadW).is_ok());
     }
 
     #[test]
     fn op_mload() {
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert_eq!(0, process.chiplets.get_mem_size());
 
         // push a word onto the stack and save it at address 2
@@ -308,16 +312,16 @@ mod tests {
 
         // check memory state
         assert_eq!(1, process.chiplets.get_mem_size());
-        assert_eq!(word, process.chiplets.get_mem_value(2).unwrap());
+        assert_eq!(word, process.chiplets.get_mem_value(0, 2).unwrap());
 
         // --- calling MLOAD with a stack of minimum depth is ok ----------------
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert!(process.execute_op(Operation::MLoad).is_ok());
     }
 
     #[test]
     fn op_mstore() {
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert_eq!(0, process.chiplets.get_mem_size());
 
         // push new element onto the stack and save it as first element of the word on
@@ -332,7 +336,7 @@ mod tests {
         // check memory state
         let mem_0 = [element, ZERO, ZERO, ZERO];
         assert_eq!(1, process.chiplets.get_mem_size());
-        assert_eq!(mem_0, process.chiplets.get_mem_value(0).unwrap());
+        assert_eq!(mem_0, process.chiplets.get_mem_value(0, 0).unwrap());
 
         // push the word onto the stack and save it at address 2
         let word_2 = [1, 3, 5, 7].to_elements().try_into().unwrap();
@@ -349,10 +353,10 @@ mod tests {
         // check memory state to make sure the other 3 elements were not affected
         let mem_2 = [element, Felt::new(3), Felt::new(5), Felt::new(7)];
         assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(mem_2, process.chiplets.get_mem_value(2).unwrap());
+        assert_eq!(mem_2, process.chiplets.get_mem_value(0, 2).unwrap());
 
         // --- calling MSTORE with a stack of minimum depth is ok ----------------
-        let mut process = Process::new_dummy_with_decoder_helpers();
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert!(process.execute_op(Operation::MStore).is_ok());
     }
 
@@ -363,7 +367,7 @@ mod tests {
     fn op_read() {
         // reading from tape should push the value onto the stack
         let mut process = Process::new_dummy_with_advice_tape(&[3]);
-        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
+        process.execute_op(Operation::Push(ONE)).unwrap();
         process.execute_op(Operation::Read).unwrap();
         let expected = build_expected_stack(&[3, 1]);
         assert_eq!(expected, process.stack.trace_state());
@@ -376,7 +380,7 @@ mod tests {
     fn op_readw() {
         // reading from tape should overwrite top 4 values
         let mut process = Process::new_dummy_with_advice_tape(&[3, 4, 5, 6]);
-        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
+        process.execute_op(Operation::Push(ONE)).unwrap();
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::Pad).unwrap();
@@ -390,7 +394,7 @@ mod tests {
 
         // should not return an error if the stack has fewer than 4 values
         let mut process = Process::new_dummy_with_advice_tape(&[3, 4, 5, 6]);
-        process.execute_op(Operation::Push(Felt::ONE)).unwrap();
+        process.execute_op(Operation::Push(ONE)).unwrap();
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::Pad).unwrap();
         assert!(process.execute_op(Operation::ReadW).is_ok());
@@ -404,29 +408,29 @@ mod tests {
     #[test]
     fn op_sdepth() {
         // stack is empty
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy(&[]);
         process.execute_op(Operation::SDepth).unwrap();
-        let expected = build_expected_stack(&[MIN_STACK_DEPTH as u64]);
+        let expected = build_expected_stack(&[STACK_TOP_SIZE as u64]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(MIN_STACK_DEPTH + 1, process.stack.depth());
+        assert_eq!(STACK_TOP_SIZE + 1, process.stack.depth());
 
         // stack has one item
         process.execute_op(Operation::SDepth).unwrap();
-        let expected = build_expected_stack(&[MIN_STACK_DEPTH as u64 + 1, MIN_STACK_DEPTH as u64]);
+        let expected = build_expected_stack(&[STACK_TOP_SIZE as u64 + 1, STACK_TOP_SIZE as u64]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(MIN_STACK_DEPTH + 2, process.stack.depth());
+        assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
 
         // stack has 3 items
         process.execute_op(Operation::Pad).unwrap();
         process.execute_op(Operation::SDepth).unwrap();
         let expected = build_expected_stack(&[
-            MIN_STACK_DEPTH as u64 + 3,
+            STACK_TOP_SIZE as u64 + 3,
             0,
-            MIN_STACK_DEPTH as u64 + 1,
-            MIN_STACK_DEPTH as u64,
+            STACK_TOP_SIZE as u64 + 1,
+            STACK_TOP_SIZE as u64,
         ]);
         assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(MIN_STACK_DEPTH + 4, process.stack.depth());
+        assert_eq!(STACK_TOP_SIZE + 4, process.stack.depth());
     }
 
     // HELPER METHODS

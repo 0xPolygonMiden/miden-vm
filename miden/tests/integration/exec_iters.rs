@@ -6,7 +6,7 @@ use vm_core::{utils::ToElements, Felt, FieldElement, Operation};
 // =================================================================
 #[test]
 fn test_exec_iter() {
-    let source = "proc.foo.1 pop.local.0 end begin popw.mem.1 push.17 exec.foo end";
+    let source = "proc.foo.1 loc_store.0 drop end begin mem_storew.1 dropw push.17 exec.foo end";
     let mut init_stack: Vec<u64> = Vec::new();
     (1..=16).for_each(|i| {
         init_stack.push(i);
@@ -19,6 +19,7 @@ fn test_exec_iter() {
     let expected_states = vec![
         VmState {
             clk: 0,
+            ctx: 0,
             op: None,
             asmop: None,
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
@@ -27,6 +28,7 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 1,
+            ctx: 0,
             op: Some(Operation::Span),
             asmop: None,
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1].to_elements(),
@@ -35,62 +37,88 @@ fn test_exec_iter() {
         },
         VmState {
             clk: 2,
-            op: Some(Operation::Push(Felt::new(1))),
-            asmop: Some(AsmOpInfo::new("popw.mem.1".to_string(), 6, 1)),
-            stack: [1, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2].to_elements(),
+            ctx: 0,
+            op: Some(Operation::Pad),
+            asmop: Some(AsmOpInfo::new("mem_storew.1".to_string(), 3, 1)),
+            stack: [0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
             fmp,
             memory: Vec::new(),
         },
         VmState {
             clk: 3,
+            ctx: 0,
+            op: Some(Operation::Incr),
+            asmop: Some(AsmOpInfo::new("mem_storew.1".to_string(), 3, 2)),
+            stack: [1, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2].to_elements(),
+            fmp,
+            memory: Vec::new(),
+        },
+        VmState {
+            clk: 4,
+            ctx: 0,
             op: Some(Operation::MStoreW),
-            asmop: Some(AsmOpInfo::new("popw.mem.1".to_string(), 6, 2)),
+            asmop: Some(AsmOpInfo::new("mem_storew.1".to_string(), 3, 3)),
             stack: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].to_elements(),
             fmp,
             memory: mem.clone(),
         },
         VmState {
-            clk: 4,
+            clk: 5,
+            ctx: 0,
             op: Some(Operation::Drop),
-            asmop: Some(AsmOpInfo::new("popw.mem.1".to_string(), 6, 3)),
+            asmop: Some(AsmOpInfo::new("dropw".to_string(), 4, 1)),
             stack: [15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].to_elements(),
             fmp,
             memory: mem.clone(),
         },
         VmState {
-            clk: 5,
+            clk: 6,
+            ctx: 0,
             op: Some(Operation::Drop),
-            asmop: Some(AsmOpInfo::new("popw.mem.1".to_string(), 6, 4)),
+            asmop: Some(AsmOpInfo::new("dropw".to_string(), 4, 2)),
             stack: [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0].to_elements(),
             fmp,
             memory: mem.clone(),
         },
         VmState {
-            clk: 6,
+            clk: 7,
+            ctx: 0,
             op: Some(Operation::Drop),
-            asmop: Some(AsmOpInfo::new("popw.mem.1".to_string(), 6, 5)),
+            asmop: Some(AsmOpInfo::new("dropw".to_string(), 4, 3)),
             stack: [13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp,
             memory: mem.clone(),
         },
         VmState {
-            clk: 7,
+            clk: 8,
+            ctx: 0,
             op: Some(Operation::Drop),
-            asmop: Some(AsmOpInfo::new("popw.mem.1".to_string(), 6, 6)),
+            asmop: Some(AsmOpInfo::new("dropw".to_string(), 4, 4)),
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp,
             memory: mem.clone(),
         },
         VmState {
-            clk: 8,
+            clk: 9,
+            ctx: 0,
             op: Some(Operation::Push(Felt::new(17))),
             asmop: Some(AsmOpInfo::new("push.17".to_string(), 1, 1)),
+            stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
+            fmp,
+            memory: mem.clone(),
+        },
+        VmState {
+            clk: 10,
+            ctx: 0,
+            op: Some(Operation::Noop),
+            asmop: None,
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp,
             memory: mem.clone(),
         },
         VmState {
-            clk: 9,
+            clk: 11,
+            ctx: 0,
             op: Some(Operation::Push(Felt::new(1))),
             asmop: None,
             stack: [1, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
@@ -98,7 +126,8 @@ fn test_exec_iter() {
             memory: mem.clone(),
         },
         VmState {
-            clk: 10,
+            clk: 12,
+            ctx: 0,
             op: Some(Operation::FmpUpdate),
             asmop: None,
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
@@ -106,55 +135,21 @@ fn test_exec_iter() {
             memory: mem.clone(),
         },
         VmState {
-            clk: 11,
-            op: Some(Operation::Pad),
-            asmop: Some(AsmOpInfo::new("pop.local.0".to_string(), 10, 1)),
-            stack: [0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
-            fmp: next_fmp,
-            memory: mem.clone(),
-        },
-        VmState {
-            clk: 12,
-            op: Some(Operation::Pad),
-            asmop: Some(AsmOpInfo::new("pop.local.0".to_string(), 10, 2)),
-            stack: [
-                0, 0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0,
-            ]
-            .to_elements(),
-            fmp: next_fmp,
-            memory: mem.clone(),
-        },
-        VmState {
             clk: 13,
+            ctx: 0,
             op: Some(Operation::Pad),
-            asmop: Some(AsmOpInfo::new("pop.local.0".to_string(), 10, 3)),
-            stack: [
-                0, 0, 0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1, 0, 0, 0, 0,
-            ]
-            .to_elements(),
+            asmop: Some(AsmOpInfo::new("loc_store.0".to_string(), 3, 1)),
+            stack: [0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp: next_fmp,
             memory: mem.clone(),
         },
         VmState {
             clk: 14,
-            op: Some(Operation::Pad),
-            asmop: Some(AsmOpInfo::new("pop.local.0".to_string(), 10, 4)),
-            stack: [
-                0, 0, 0, 0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0,
-            ]
-            .to_elements(),
-            fmp: next_fmp,
-            memory: mem.clone(),
-        },
-        VmState {
-            clk: 15,
+            ctx: 0,
             op: Some(Operation::FmpAdd),
-            asmop: Some(AsmOpInfo::new("pop.local.0".to_string(), 10, 5)),
+            asmop: Some(AsmOpInfo::new("loc_store.0".to_string(), 3, 2)),
             stack: [
                 2u64.pow(30) + 1,
-                0,
-                0,
-                0,
                 17,
                 12,
                 11,
@@ -167,7 +162,7 @@ fn test_exec_iter() {
                 4,
                 3,
                 2,
-                0,
+                1,
                 0,
                 0,
                 0,
@@ -177,10 +172,11 @@ fn test_exec_iter() {
             memory: mem,
         },
         VmState {
-            clk: 16,
-            op: Some(Operation::MStoreW),
-            asmop: Some(AsmOpInfo::new("pop.local.0".to_string(), 10, 6)),
-            stack: [0, 0, 0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
+            clk: 15,
+            ctx: 0,
+            op: Some(Operation::MStore),
+            asmop: Some(AsmOpInfo::new("loc_store.0".to_string(), 3, 3)),
+            stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp: next_fmp,
             memory: vec![
                 (1_u64, slice_to_word(&[13, 14, 15, 16])),
@@ -188,10 +184,11 @@ fn test_exec_iter() {
             ],
         },
         VmState {
-            clk: 17,
+            clk: 16,
+            ctx: 0,
             op: Some(Operation::Drop),
-            asmop: Some(AsmOpInfo::new("pop.local.0".to_string(), 10, 7)),
-            stack: [0, 0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
+            asmop: Some(AsmOpInfo::new("drop".to_string(), 1, 1)),
+            stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp: next_fmp,
             memory: vec![
                 (1_u64, slice_to_word(&[13, 14, 15, 16])),

@@ -1,28 +1,46 @@
-use vm_core::{
-    utils::collections::Vec, ProgramOutputs, StarkField, FMP_COL_IDX, STACK_AUX_TRACE_OFFSET,
-};
-
 use super::{
     Assertion, AuxTraceRandElements, EvaluationFrame, Felt, FieldElement,
-    TransitionConstraintDegree, MIN_STACK_DEPTH, STACK_TRACE_OFFSET,
+    TransitionConstraintDegree, ONE, STACK_TRACE_OFFSET, ZERO,
+};
+use crate::utils::{are_equal, is_binary};
+use vm_core::{
+    decoder::USER_OP_HELPERS_OFFSET, stack::STACK_TOP_SIZE, utils::collections::Vec,
+    ProgramOutputs, StarkField, DECODER_TRACE_OFFSET, FMP_COL_IDX, STACK_AUX_TRACE_OFFSET,
 };
 
-mod field_ops;
+pub mod field_ops;
 pub mod op_flags;
-mod stack_manipulation;
-mod system_ops;
+pub mod stack_manipulation;
+pub mod system_ops;
 
 // CONSTANTS
 // ================================================================================================
 
-const B0_COL_IDX: usize = STACK_TRACE_OFFSET + MIN_STACK_DEPTH;
+const B0_COL_IDX: usize = STACK_TRACE_OFFSET + STACK_TOP_SIZE;
 const B1_COL_IDX: usize = B0_COL_IDX + 1;
 
 // --- Main constraints ---------------------------------------------------------------------------
 
 /// The number of boundary constraints required by the Stack, which is all stack positions for
 /// inputs and outputs as well as the initial values of the bookkeeping columns.
-pub const NUM_ASSERTIONS: usize = 2 * MIN_STACK_DEPTH + 2;
+pub const NUM_ASSERTIONS: usize = 2 * STACK_TOP_SIZE + 2;
+
+/// The number of general constraints in the stack operations.
+pub const NUM_GENERAL_CONSTRAINTS: usize = 17;
+
+/// The degrees of constraints in the general stack operations. Each operation being executed
+/// either shifts the stack to the left, right or doesn't effect it at all. Therefore, majority
+/// of the general transtitions of a stack item would be common across the operations and composite
+/// flags were introduced to compute the individual stack item transition. A particular item lets say
+/// at depth ith in the next stack frame can be transitioned into from ith depth (no shift op) or
+/// (i+1)th depth(left shift) or (i-1)th depth(right shift) in the current frame. Therefore, the VM
+/// would require only 16 general constraints to encompass all the 16 stack positions.
+/// The last constraint checks if the top element in the stack is a binary or not.
+pub const CONSTRAINT_DEGREES: [usize; NUM_GENERAL_CONSTRAINTS] = [
+    // Each degree are being multiplied with the respective composite flags which are of degree 7.
+    // Therefore, all the degree would incorporate 7 in their degree calculation.
+    8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9,
+];
 
 // --- Auxiliary column constraints ---------------------------------------------------------------
 
@@ -34,12 +52,19 @@ pub const NUM_AUX_ASSERTIONS: usize = 2;
 
 /// Build the transition constraint degrees for the stack module and all the stack operations.
 pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
-    // system operations contraints degrees.
+    // system operations constraints degrees.
     let mut degrees = system_ops::get_transition_constraint_degrees();
-    // field operations contraints degrees.
+    // field operations constraints degrees.
     degrees.append(&mut field_ops::get_transition_constraint_degrees());
-    // stack manipulation operations contraints degrees.
+    // stack manipulation operations constraints degrees.
     degrees.append(&mut stack_manipulation::get_transition_constraint_degrees());
+    // Add the degrees of general constraints.
+    degrees.append(
+        &mut CONSTRAINT_DEGREES
+            .iter()
+            .map(|&degree| TransitionConstraintDegree::new(degree))
+            .collect(),
+    );
 
     degrees
 }
@@ -49,6 +74,7 @@ pub fn get_transition_constraint_count() -> usize {
     system_ops::get_transition_constraint_count()
         + field_ops::get_transition_constraint_count()
         + stack_manipulation::get_transition_constraint_count()
+        + NUM_GENERAL_CONSTRAINTS
 }
 
 /// Enforces constraints for the stack module and all stack operations.
@@ -63,10 +89,13 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
     // Enforces stack operations unique constraints.
     index += enforce_unique_constraints(frame, result, &op_flag);
 
+    // Enforces stack operations general constraints.
+    index += enforce_general_constraints(frame, &mut result[index..], &op_flag);
+
     index
 }
 
-/// Enforces unique constraints for all the stack ops.
+/// Enforces unique constraints of all the stack ops.
 pub fn enforce_unique_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
@@ -76,22 +105,58 @@ pub fn enforce_unique_constraints<E: FieldElement>(
 
     // system operations transition constraints.
     system_ops::enforce_constraints(frame, result, op_flag);
-
     constraint_offset += system_ops::get_transition_constraint_count();
 
     // field operations transition constraints.
     field_ops::enforce_constraints(frame, &mut result[constraint_offset..], op_flag);
-
     constraint_offset += field_ops::get_transition_constraint_count();
 
     // stack manipulation operations transition constraints.
     stack_manipulation::enforce_constraints(frame, &mut result[constraint_offset..], op_flag);
-
     constraint_offset += stack_manipulation::get_transition_constraint_count();
 
     constraint_offset
 }
 
+/// Enforces general constraints of all the stack ops.
+pub fn enforce_general_constraints<E: FieldElement>(
+    frame: &EvaluationFrame<E>,
+    result: &mut [E],
+    op_flag: &op_flags::OpFlags<E>,
+) -> usize {
+    // enforces constraint on the 1st element in the stack in the next trace.
+    let flag_sum = op_flag.no_shift_at(0) + op_flag.left_shift_at(1);
+    let expected_next_item = op_flag.no_shift_at(0) * frame.stack_item(0)
+        + op_flag.left_shift_at(1) * frame.stack_item(1);
+    result[0] = are_equal(frame.stack_item_next(0) * flag_sum, expected_next_item);
+
+    // enforces constraint on the ith element in the stack in the next trace.
+    #[allow(clippy::needless_range_loop)]
+    for i in 1..NUM_GENERAL_CONSTRAINTS - 2 {
+        let flag_sum =
+            op_flag.no_shift_at(i) + op_flag.left_shift_at(i + 1) + op_flag.right_shift_at(i - 1);
+        let expected_next_item = op_flag.no_shift_at(i) * frame.stack_item(i)
+            + op_flag.left_shift_at(i + 1) * frame.stack_item(i + 1)
+            + op_flag.right_shift_at(i - 1) * frame.stack_item(i - 1);
+
+        result[i] = are_equal(frame.stack_item_next(i) * flag_sum, expected_next_item);
+    }
+
+    // enforces constraint on the last element in the stack in the next trace.
+    let flag_sum = op_flag.no_shift_at(15) + op_flag.right_shift_at(14);
+    let expected_next_item = op_flag.no_shift_at(15) * frame.stack_item(15)
+        + op_flag.right_shift_at(14) * frame.stack_item(14);
+    result[NUM_GENERAL_CONSTRAINTS - 2] = are_equal(
+        frame.stack_item_next(NUM_GENERAL_CONSTRAINTS - 2) * flag_sum,
+        expected_next_item,
+    );
+
+    // enforces constraint on the top element being binary or not.
+    let top_binary_flag = op_flag.top_binary();
+    result[NUM_GENERAL_CONSTRAINTS - 1] = top_binary_flag * is_binary(frame.stack_item(0));
+
+    NUM_GENERAL_CONSTRAINTS
+}
 // BOUNDARY CONSTRAINTS
 // ================================================================================================
 
@@ -100,21 +165,21 @@ pub fn enforce_unique_constraints<E: FieldElement>(
 /// Returns the stack's boundary assertions for the main trace at the first step.
 pub fn get_assertions_first_step(result: &mut Vec<Assertion<Felt>>, stack_inputs: &[Felt]) {
     // stack columns at the first step should be set to stack inputs, excluding overflow inputs.
-    for (i, &value) in stack_inputs.iter().take(MIN_STACK_DEPTH).enumerate() {
+    for (i, &value) in stack_inputs.iter().take(STACK_TOP_SIZE).enumerate() {
         result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, value));
     }
 
     // if there are remaining slots on top of the stack without specified values, set them to ZERO.
-    for i in stack_inputs.len()..MIN_STACK_DEPTH {
-        result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, Felt::ZERO));
+    for i in stack_inputs.len()..STACK_TOP_SIZE {
+        result.push(Assertion::single(STACK_TRACE_OFFSET + i, 0, ZERO));
     }
 
     // get the initial values for the bookkeeping columns.
-    let mut depth = MIN_STACK_DEPTH;
-    let mut overflow_addr = Felt::ZERO;
-    if stack_inputs.len() > MIN_STACK_DEPTH {
+    let mut depth = STACK_TOP_SIZE;
+    let mut overflow_addr = ZERO;
+    if stack_inputs.len() > STACK_TOP_SIZE {
         depth = stack_inputs.len();
-        overflow_addr = Felt::new(Felt::MODULUS - 1);
+        overflow_addr = -ONE;
     }
 
     // b0 should be initialized to the depth of the stack.
@@ -148,10 +213,10 @@ pub fn get_aux_assertions_first_step<E: FieldElement>(
     E: FieldElement<BaseField = Felt>,
 {
     let step = 0;
-    let value = if stack_inputs.len() > MIN_STACK_DEPTH {
+    let value = if stack_inputs.len() > STACK_TOP_SIZE {
         get_overflow_table_init(
             alphas.get_segment_elements(0),
-            &stack_inputs[MIN_STACK_DEPTH..],
+            &stack_inputs[STACK_TOP_SIZE..],
         )
     } else {
         E::ONE
@@ -190,7 +255,7 @@ where
     E: FieldElement<BaseField = Felt>,
 {
     let mut value = E::ONE;
-    let mut prev_clk = Felt::ZERO;
+    let mut prev_clk = ZERO;
     let mut clk = Felt::from(Felt::MODULUS - init_values.len() as u64);
 
     // the values are in the overflow table in reverse order, since the deepest stack
@@ -201,7 +266,7 @@ where
             + alphas[2].mul_base(input)
             + alphas[3].mul_base(prev_clk);
         prev_clk = clk;
-        clk += Felt::ONE;
+        clk += ONE;
     }
 
     value
@@ -216,7 +281,7 @@ where
     let mut value = E::ONE;
 
     // When the overflow table is non-empty, we expect at least 2 addresses (the `prev` value of
-    // the first row and the address value(s) of the row(s)) and more than MIN_STACK_DEPTH
+    // the first row and the address value(s) of the row(s)) and more than STACK_TOP_SIZE
     // elements in the stack.
     let mut prev = outputs.overflow_prev();
     for (clk, val) in outputs.stack_overflow() {
@@ -243,6 +308,10 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn stack_item_next(&self, index: usize) -> E;
     /// Gets the current element of the fmp register in the trace.
     fn fmp(&self) -> E;
+    /// Gets the next element of the fmp register in the trace.
+    fn fmp_next(&self) -> E;
+    /// Gets the current value of user op helper register located at the specified index.
+    fn user_op_helper(&self, index: usize) -> E;
 }
 
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
@@ -261,5 +330,13 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     #[inline(always)]
     fn fmp(&self) -> E {
         self.current()[FMP_COL_IDX]
+    }
+    #[inline(always)]
+    fn fmp_next(&self) -> E {
+        self.next()[FMP_COL_IDX]
+    }
+    #[inline(always)]
+    fn user_op_helper(&self, index: usize) -> E {
+        self.current()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + index]
     }
 }

@@ -1,7 +1,9 @@
 pub use miden::{ProofOptions, StarkProof};
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
-pub use vm_core::{Felt, FieldElement, Program, ProgramInputs, ProgramOutputs, MIN_STACK_DEPTH};
+pub use vm_core::{
+    stack::STACK_TOP_SIZE, Felt, FieldElement, Program, ProgramInputs, ProgramOutputs,
+};
 
 pub mod crypto;
 
@@ -37,6 +39,7 @@ pub enum TestError<'a> {
 ///   an ExecutionError which contains the specified substring.
 pub struct Test {
     pub source: String,
+    pub kernel: Option<String>,
     pub inputs: ProgramInputs,
     pub in_debug_mode: bool,
 }
@@ -49,6 +52,7 @@ impl Test {
     pub fn new(source: &str, in_debug_mode: bool) -> Self {
         Test {
             source: String::from(source),
+            kernel: None,
             inputs: ProgramInputs::none(),
             in_debug_mode,
         }
@@ -105,7 +109,7 @@ impl Test {
         process.execute(&program).unwrap();
 
         // validate the memory state
-        let mem_state = process.get_memory_value(mem_addr).unwrap();
+        let mem_state = process.get_memory_value(0, mem_addr).unwrap();
         let expected_mem: Vec<Felt> = expected_mem.iter().map(|&v| Felt::new(v)).collect();
         assert_eq!(expected_mem, mem_state);
 
@@ -133,7 +137,11 @@ impl Test {
 
     /// Compiles a test's source and returns the resulting Program.
     pub fn compile(&self) -> Program {
-        let assembler = assembly::Assembler::new(self.in_debug_mode);
+        let assembler = match self.kernel {
+            Some(ref kernel) => assembly::Assembler::with_kernel(kernel, self.in_debug_mode)
+                .expect("kernel compilation failed"),
+            None => assembly::Assembler::new(self.in_debug_mode),
+        };
         assembler
             .compile(&self.source)
             .expect("Failed to compile test source.")
@@ -164,7 +172,7 @@ impl Test {
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
-    /// VmStateIterator that allows us to iterate through each clock cycle and inpsect the process
+    /// VmStateIterator that allows us to iterate through each clock cycle and inspect the process
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
         let program = self.compile();
@@ -172,7 +180,7 @@ impl Test {
     }
 
     /// Returns the last state of the stack after executing a test.
-    pub fn get_last_stack_state(&self) -> [Felt; MIN_STACK_DEPTH] {
+    pub fn get_last_stack_state(&self) -> [Felt; STACK_TOP_SIZE] {
         let trace = self.execute().unwrap();
 
         trace.last_stack_state()
@@ -182,10 +190,10 @@ impl Test {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Takes an array of u64 values and builds a stack, perserving their order and converting them to
+/// Takes an array of u64 values and builds a stack, preserving their order and converting them to
 /// field elements.
-pub fn convert_to_stack(values: &[u64]) -> [Felt; MIN_STACK_DEPTH] {
-    let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
+pub fn convert_to_stack(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
+    let mut result = [Felt::ZERO; STACK_TOP_SIZE];
     for (&value, result) in values.iter().zip(result.iter_mut()) {
         *result = Felt::new(value);
     }

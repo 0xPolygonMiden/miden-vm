@@ -28,6 +28,7 @@ impl<'a> Token<'a> {
     pub const REPEAT: &'static str = "repeat";
     pub const EXEC: &'static str = "exec";
     pub const CALL: &'static str = "call";
+    pub const SYSCALL: &'static str = "syscall";
     pub const END: &'static str = "end";
 
     // CONSTRUCTOR
@@ -76,6 +77,7 @@ impl<'a> Token<'a> {
                 | Self::REPEAT
                 | Self::EXEC
                 | Self::CALL
+                | Self::SYSCALL
                 | Self::END
         )
     }
@@ -196,6 +198,15 @@ impl<'a> Token<'a> {
 
     pub fn parse_call(&self) -> Result<String, AssemblyError> {
         assert_eq!(Self::CALL, self.parts[0], "not a call");
+        match self.num_parts() {
+            1 => Err(AssemblyError::missing_param(self)),
+            2 => validate_proc_invocation_label(self.parts[1], self),
+            _ => Err(AssemblyError::extra_param(self)),
+        }
+    }
+
+    pub fn parse_syscall(&self) -> Result<String, AssemblyError> {
+        assert_eq!(Self::SYSCALL, self.parts[0], "not a syscall");
         match self.num_parts() {
             1 => Err(AssemblyError::missing_param(self)),
             2 => validate_proc_invocation_label(self.parts[1], self),

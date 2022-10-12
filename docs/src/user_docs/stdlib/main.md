@@ -29,6 +29,6 @@ Currently, Miden standard library contains just a few modules, which are listed 
 | Module | Description |
 | ------ | ----------- |
 | [std::crypto::hashes::blake3](./crypto/hashes.md#blake3) | Contains procedures for computing hashes using BLAKE3 hash function. |
-| [std::crypto::hashes::sha265](./crypto/hashes.md#sha256) | Contains procedures for computing hashes using SHA256 hash function. |
+| [std::crypto::hashes::sha256](./crypto/hashes.md#sha256) | Contains procedures for computing hashes using SHA256 hash function. |
 | [std::math::u64](./math/u64.md) | Contains procedures for working with 64-bit unsigned integers. |
 | [std::sys](./sys.md)            | Contains system-level utility procedures. |

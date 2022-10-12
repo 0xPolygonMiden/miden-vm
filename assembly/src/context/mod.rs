@@ -6,23 +6,33 @@ use super::{BTreeMap, CodeBlock, ProcMap, Procedure, String, ToString, MODULE_PA
 /// Context for a compilation of a given program.
 ///
 /// An assembly context contains a set of procedures which can be called from the parsed code.
-/// The procedures are divided into local and imported procedures. Local procedures are procedures
-/// parsed from the body of a program, while imported procedures are imported from external
-/// libraries.
+/// The procedures are divided into 3 groups:
+/// 1. Local procedures, which are procedures parsed from the body of a program.
+/// 2. Imported procedures, which are procedures imported from external libraries.
+/// 3. Kernel procedures, which are procedures provided by the kernel specified for the program.
 ///
-/// Local procedures are owned by the context, while imported procedures are stored by reference.
+/// Local procedures are owned by the context, while imported and kernel procedures are stored by
+/// reference.
 pub struct AssemblyContext<'a> {
     local_procs: ProcMap,
     imported_procs: BTreeMap<String, &'a Procedure>,
+    kernel_procs: Option<&'a ProcMap>,
     in_debug_mode: bool,
 }
 
 impl<'a> AssemblyContext<'a> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Returns a new empty [AssemblyContext].
-    pub fn new(in_debug_mode: bool) -> Self {
+    /// Returns a new [AssemblyContext] with the specified set of kernel procedures. If kernel
+    /// procedures are not provided, it is assumed that the context is created for compiling kernel
+    /// procedures. That implies that the context can be instantiated in two modes:
+    /// - A mode for compiling a kernel (when kernel_procs parameter is set to None). In this mode
+    ///   in_kernel() method returns true.
+    /// - A mode for compiling regular programs (when kernel_procs parameter contains a set of
+    ///   kernel procedures). In this mode, in_kernel() method returns false.
+    pub fn new(kernel_procs: Option<&'a ProcMap>, in_debug_mode: bool) -> Self {
         Self {
+            kernel_procs,
             local_procs: BTreeMap::new(),
             imported_procs: BTreeMap::new(),
             in_debug_mode,
@@ -60,6 +70,20 @@ impl<'a> AssemblyContext<'a> {
         } else {
             None
         }
+    }
+
+    /// Returns true if this context is used for compiling kernel module.
+    pub fn in_kernel(&self) -> bool {
+        self.kernel_procs.is_none()
+    }
+
+    /// Returns a code root of a kernel procedure for the specified label in this context.
+    pub fn get_kernel_proc_code(&self, label: &str) -> Option<&CodeBlock> {
+        // `expect()` is OK here because we first check if the kernel is set
+        self.kernel_procs
+            .expect("no kernel")
+            .get(label)
+            .map(|c| c.code_root())
     }
 
     // STATE MUTATORS

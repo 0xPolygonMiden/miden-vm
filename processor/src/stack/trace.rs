@@ -1,9 +1,9 @@
-use super::{
-    Felt, FieldElement, StackTopState, Vec, MAX_TOP_IDX, MIN_STACK_DEPTH, NUM_STACK_HELPER_COLS,
-    STACK_TRACE_WIDTH,
-};
+use super::{Felt, FieldElement, Vec, MAX_TOP_IDX, ONE, STACK_TRACE_WIDTH, ZERO};
 use crate::utils::get_trace_len;
-use vm_core::StarkField;
+use vm_core::{
+    stack::{H0_COL_IDX, NUM_STACK_HELPER_COLS, STACK_TOP_SIZE},
+    utils::math::batch_inversion,
+};
 
 // STACK TRACE
 // ================================================================================================
@@ -14,61 +14,29 @@ use vm_core::StarkField;
 /// - 16 stack columns holding the top of the stack.
 /// - 3 columns for bookkeeping and helper values that manage left and right shifts.
 pub struct StackTrace {
-    stack: [Vec<Felt>; MIN_STACK_DEPTH],
+    stack: [Vec<Felt>; STACK_TOP_SIZE],
     helpers: [Vec<Felt>; NUM_STACK_HELPER_COLS],
 }
 
 impl StackTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Returns a [StackTrace] instantiated with the provided input values. When fewer than
-    /// `MIN_STACK_DEPTH` inputs are provided, the rest of the stack top elements are set to ZERO.
-    /// The initial stack depth and initial overflow address are used to initialize the bookkeeping
-    /// columns so they are consistent with the initial state of the overflow table.
+    /// Returns a [StackTrace] instantiated with the provided input values.
+    ///
+    /// When fewer than `STACK_TOP_SIZE` inputs are provided, the rest of the stack top elements
+    /// are set to ZERO. The initial stack depth and initial overflow address are used to
+    /// initialize the bookkeeping columns so they are consistent with the initial state of the
+    /// overflow table.
     pub fn new(
         init_values: &[Felt],
         init_trace_capacity: usize,
         init_depth: usize,
         init_overflow_addr: Felt,
     ) -> Self {
-        // Initialize the stack.
-        let mut stack: Vec<Vec<Felt>> = Vec::with_capacity(MIN_STACK_DEPTH);
-        for i in 0..MIN_STACK_DEPTH {
-            let mut column = Felt::zeroed_vector(init_trace_capacity);
-            if i < init_values.len() {
-                column[0] = init_values[i];
-            }
-            stack.push(column)
-        }
-
-        // Initialize the bookkeeping & helper columns.
-        let mut b0 = Felt::zeroed_vector(init_trace_capacity);
-        let mut b1 = Felt::zeroed_vector(init_trace_capacity);
-        // initialize b0 to the initial stack depth.
-        b0[0] = Felt::new(init_depth as u64);
-        // initialize b1 to the address of the last row in the stack overflow table.
-        b1[0] = init_overflow_addr;
-        let helpers: [Vec<Felt>; 3] = [b0, b1, Felt::zeroed_vector(init_trace_capacity)];
-
         StackTrace {
-            stack: stack
-                .try_into()
-                .expect("Failed to convert vector to an array"),
-            helpers,
+            stack: init_stack_columns(init_trace_capacity, init_values),
+            helpers: init_helper_columns(init_trace_capacity, init_depth, init_overflow_addr),
         }
-    }
-
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    pub fn into_array(self) -> [Vec<Felt>; STACK_TRACE_WIDTH] {
-        let mut trace = Vec::with_capacity(STACK_TRACE_WIDTH);
-        trace.extend_from_slice(&self.stack);
-        trace.extend_from_slice(&self.helpers);
-
-        trace
-            .try_into()
-            .expect("Failed to convert vector to an array")
     }
 
     // STACK ACCESSORS AND MUTATORS
@@ -93,119 +61,90 @@ impl StackTrace {
         self.stack[pos][clk as usize] = value;
     }
 
-    /// Return the specified number of states from the top of the stack at the specified clock
-    /// cycle.
-    pub fn get_stack_values_at(&self, clk: u32, num_items: usize) -> Vec<Felt> {
-        self.get_stack_state_at(clk)[..num_items].to_vec()
-    }
-
-    /// Returns the stack trace state at the specified clock cycle.
-    ///
-    /// Trace state is always 16 elements long and contains the top 16 values of the stack.
-    pub fn get_stack_state_at(&self, clk: u32) -> StackTopState {
-        let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
-        for (result, column) in result.iter_mut().zip(self.stack.iter()) {
-            *result = column[clk as usize];
-        }
-        result
-    }
-
     /// Copies the stack values starting at the specified position at the specified clock cycle to
     /// the same position at the next clock cycle.
-    pub fn copy_stack_state_at(&mut self, clk: u32, start_pos: usize) {
-        debug_assert!(
-            start_pos < MIN_STACK_DEPTH,
-            "start cannot exceed stack top size"
-        );
-        for i in start_pos..MIN_STACK_DEPTH {
-            self.stack[i][clk as usize + 1] = self.stack[i][clk as usize];
+    ///
+    /// Also, sets values in the stack helper columns for the next clock cycle to the provided
+    /// stack depth and overflow address.
+    pub fn copy_stack_state_at(
+        &mut self,
+        clk: u32,
+        start_pos: usize,
+        stack_depth: Felt,
+        next_overflow_addr: Felt,
+    ) {
+        let clk = clk as usize;
+
+        // copy over stack top columns
+        for i in start_pos..STACK_TOP_SIZE {
+            self.stack[i][clk + 1] = self.stack[i][clk];
         }
+
+        // update stack helper columns
+        self.set_helpers_at(clk, stack_depth, next_overflow_addr);
     }
 
     /// Copies the stack values starting at the specified position at the specified clock cycle to
     /// position - 1 at the next clock cycle.
     ///
-    /// The final register is filled with the provided value in `last_value`.
-    pub fn stack_shift_left_at(&mut self, clk: u32, start_pos: usize, last_value: Felt) {
+    /// The final stack item column is filled with the provided value in `last_value`.
+    ///
+    /// If next_overflow_addr is provided, this function assumes that the stack depth has been
+    /// decreased by one and a row has been removed from the overflow table. Thus, it makes the
+    /// following changes to the helper columns:
+    /// - Decrement the stack depth (b0) by one.
+    /// - Sets b1 to the address of the top row in the overflow table to the specified
+    ///   `next_overflow_addr`.
+    /// - Set h0 to (depth - 16). Inverses of these values will be computed in into_array() method
+    ///   after the entire trace is constructed.
+    pub fn stack_shift_left_at(
+        &mut self,
+        clk: u32,
+        start_pos: usize,
+        last_value: Felt,
+        next_overflow_addr: Option<Felt>,
+    ) {
+        let clk = clk as usize;
+
+        // update stack top columns
         for i in start_pos..=MAX_TOP_IDX {
-            self.stack[i - 1][clk as usize + 1] = self.stack[i][clk as usize];
+            self.stack[i - 1][clk + 1] = self.stack[i][clk];
         }
-        self.stack[MAX_TOP_IDX][clk as usize + 1] = last_value;
+        self.stack[MAX_TOP_IDX][clk + 1] = last_value;
+
+        // update stack helper columns
+        if let Some(next_overflow_addr) = next_overflow_addr {
+            let next_depth = self.helpers[0][clk] - ONE;
+            self.set_helpers_at(clk, next_depth, next_overflow_addr);
+        } else {
+            // if next_overflow_addr was not provide, just copy over the values from the last row
+            let next_depth = self.helpers[0][clk];
+            let next_overflow_addr = self.helpers[1][clk];
+            self.set_helpers_at(clk, next_depth, next_overflow_addr);
+        }
     }
 
     /// Copies stack values starting at the specified position at the specified clock cycle to
     /// position + 1 at the next clock cycle.
-    pub fn stack_shift_right_at(&mut self, clk: u32, start_pos: usize) {
-        for i in start_pos..MAX_TOP_IDX {
-            self.stack[i + 1][clk as usize + 1] = self.stack[i][clk as usize];
-        }
-    }
-
-    // BOOKKEEPING & HELPER COLUMN ACCESSORS AND MUTATORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns the trace state of the stack helper columns at the specified clock cycle.
-    #[allow(dead_code)]
-    pub fn get_helpers_state_at(&self, clk: u32) -> [Felt; NUM_STACK_HELPER_COLS] {
-        let mut result = [Felt::ZERO; NUM_STACK_HELPER_COLS];
-        for (result, column) in result.iter_mut().zip(self.helpers.iter()) {
-            *result = column[clk as usize];
-        }
-        result
-    }
-
-    /// Copies the helper values at the specified clock cycle to the next clock cycle.
-    pub fn copy_helpers_at(&mut self, clk: u32) {
-        for i in 0..NUM_STACK_HELPER_COLS {
-            self.helpers[i][clk as usize + 1] = self.helpers[i][clk as usize];
-        }
-    }
-
-    /// Updates the bookkeeping and helper columns to manage a right shift at the specified clock
-    /// cycle.
     ///
     /// This function assumes that the stack depth has been increased by one and a new row has been
-    /// added to the overflow table. It makes the following changes to the helper columns.
-    ///
-    /// b0: Increment the stack depth by one.
-    /// b1: Save the address of the new top row in overflow table, which is the current clock cycle.
-    /// h0: Set the value to 1 / (depth - 16).
-    pub fn helpers_shift_right_at(&mut self, clk: u32) {
-        // Increment b0 by one.
-        let b0 = self.helpers[0][clk as usize] + Felt::ONE;
-        self.helpers[0][clk as usize + 1] = b0;
-        // Set b1 to the curren tclock cycle.
-        self.helpers[1][clk as usize + 1] = Felt::from(clk);
-        // Update the helper column to 1 / (b0 - 16).
-        self.helpers[2][clk as usize + 1] = Felt::ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64));
-    }
+    /// added to the overflow table. It also makes the following changes to the helper columns:
+    /// - Increments the stack depth (b0) by one.
+    /// - Sets b1 to the address of the new top row in overflow table, which is the current clock
+    ///   cycle.
+    /// - Set h0 to (depth - 16). Inverses of these values will be computed in into_array() method
+    ///   after the entire trace is constructed.
+    pub fn stack_shift_right_at(&mut self, clk: u32, start_pos: usize) {
+        let clk = clk as usize;
 
-    /// Updates the bookkeeping and helper columns to manage a left shift at the specified clock
-    /// cycle.
-    ///
-    /// This function assumes that the stack depth has been decreased by one and a row has been
-    /// removed from the overflow table. It makes the following changes to the helper columns.
-    ///
-    /// b0: Decrement the stack depth by one.
-    /// b1: Update the address of the top row in the overflow table to the specified
-    /// `next_overflow_addr`.
-    /// h0: Set the value to 1 / (depth - 16) if the depth is still greater than the minimum stack
-    /// depth, or to zero otherwise.
-    pub fn helpers_shift_left_at(&mut self, clk: u32, next_overflow_addr: Felt) {
-        // Decrement b0 by one.
-        let b0 = self.helpers[0][clk as usize] - Felt::ONE;
-        self.helpers[0][clk as usize + 1] = b0;
+        // update stack top columns
+        for i in start_pos..MAX_TOP_IDX {
+            self.stack[i + 1][clk + 1] = self.stack[i][clk];
+        }
 
-        // Set b1 to the overflow table address of the item at the top of the updated table.
-        self.helpers[1][clk as usize + 1] = next_overflow_addr;
-
-        // Update the helper column to 1 / (b0 - 16) if depth > MIN_STACK_DEPTH or 0 otherwise.
-        let h0 = if b0.as_int() > MIN_STACK_DEPTH as u64 {
-            Felt::ONE / (b0 - Felt::new(MIN_STACK_DEPTH as u64))
-        } else {
-            Felt::ZERO
-        };
-        self.helpers[2][clk as usize + 1] = h0;
+        // update stack helper columns
+        let next_depth = self.helpers[0][clk] + ONE;
+        self.set_helpers_at(clk, next_depth, Felt::from(clk as u32));
     }
 
     // UTILITY METHODS
@@ -219,9 +158,110 @@ impl StackTrace {
         // current_capacity as trace_length can not be bigger than clk, so it is safe to cast to u32
         if clk + 1 >= current_capacity as u32 {
             let new_length = current_capacity * 2;
-            for register in self.stack.iter_mut().chain(self.helpers.iter_mut()) {
-                register.resize(new_length, Felt::ZERO);
+            for column in self.stack.iter_mut().chain(self.helpers.iter_mut()) {
+                column.resize(new_length, ZERO);
             }
         }
     }
+
+    /// Appends stack top state (16 items) at the specified clock cycle into the provided vector.
+    pub fn append_state_into(&self, result: &mut Vec<Felt>, clk: u32) {
+        for column in self.stack.iter() {
+            result.push(column[clk as usize]);
+        }
+    }
+
+    /// Combines all columns of the trace (stack + helpers) into a single array of vectors.
+    pub fn into_array(self) -> [Vec<Felt>; STACK_TRACE_WIDTH] {
+        let mut trace = Vec::with_capacity(STACK_TRACE_WIDTH);
+        self.stack.into_iter().for_each(|col| trace.push(col));
+        self.helpers.into_iter().for_each(|col| trace.push(col));
+
+        // compute inverses in the h0 helper column using batch inversion; any ZERO in the vector
+        // will remain unchanged
+        trace[H0_COL_IDX] = batch_inversion(&trace[H0_COL_IDX]);
+
+        trace
+            .try_into()
+            .expect("Failed to convert vector to an array")
+    }
+
+    // HELPER METHODS
+    // --------------------------------------------------------------------------------------------
+
+    /// Sets values of stack helper columns for the next clock cycle. Note that h0 column value is
+    /// set to (stack_depth - 16) rather than to 1 / (stack_depth - 16). Inverses of these values
+    /// will be computed in into_array() method (using batch inversion) after the entire trace is
+    /// constructed.
+    fn set_helpers_at(&mut self, clk: usize, stack_depth: Felt, next_overflow_addr: Felt) {
+        self.helpers[0][clk + 1] = stack_depth;
+        self.helpers[1][clk + 1] = next_overflow_addr;
+        self.helpers[2][clk + 1] = stack_depth - Felt::from(STACK_TOP_SIZE as u32);
+    }
+
+    // TEST HELPERS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns the stack trace state at the specified clock cycle.
+    #[cfg(test)]
+    pub fn get_stack_state_at(&self, clk: u32) -> [Felt; STACK_TOP_SIZE] {
+        let mut result = [ZERO; STACK_TOP_SIZE];
+        for (result, column) in result.iter_mut().zip(self.stack.iter()) {
+            *result = column[clk as usize];
+        }
+        result
+    }
+
+    /// Returns the trace state of the stack helper columns at the specified clock cycle.
+    #[cfg(test)]
+    pub fn get_helpers_state_at(&self, clk: u32) -> [Felt; NUM_STACK_HELPER_COLS] {
+        let mut result = [ZERO; NUM_STACK_HELPER_COLS];
+        for (result, column) in result.iter_mut().zip(self.helpers.iter()) {
+            *result = column[clk as usize];
+        }
+        result
+    }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Initializes the 16 stack top columns.
+fn init_stack_columns(
+    init_trace_capacity: usize,
+    init_values: &[Felt],
+) -> [Vec<Felt>; STACK_TOP_SIZE] {
+    let mut stack: Vec<Vec<Felt>> = Vec::with_capacity(STACK_TOP_SIZE);
+    for i in 0..STACK_TOP_SIZE {
+        let mut column = Felt::zeroed_vector(init_trace_capacity);
+        if i < init_values.len() {
+            column[0] = init_values[i];
+        }
+        stack.push(column)
+    }
+
+    stack
+        .try_into()
+        .expect("Failed to convert vector to an array")
+}
+
+/// Initializes the bookkeeping & helper columns.
+fn init_helper_columns(
+    init_trace_capacity: usize,
+    init_depth: usize,
+    init_overflow_addr: Felt,
+) -> [Vec<Felt>; NUM_STACK_HELPER_COLS] {
+    // initialize b0 to the initial stack depth.
+    let mut b0 = Felt::zeroed_vector(init_trace_capacity);
+    b0[0] = Felt::new(init_depth as u64);
+
+    // initialize b1 to the address of the last row in the stack overflow table.
+    let mut b1 = Felt::zeroed_vector(init_trace_capacity);
+    b1[0] = init_overflow_addr;
+
+    // if the overflow table is not empty, set h0 to (init_depth - 16)
+    let mut h0 = Felt::zeroed_vector(init_trace_capacity);
+    h0[0] = Felt::from((init_depth - STACK_TOP_SIZE) as u64);
+
+    [b0, b1, h0]
 }

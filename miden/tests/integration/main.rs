@@ -107,6 +107,7 @@ macro_rules! build_test_by_mode {
 
         $crate::helpers::Test {
             source: String::from($source),
+            kernel: None,
             inputs,
             in_debug_mode: $in_debug_mode,
         }
@@ -117,6 +118,7 @@ macro_rules! build_test_by_mode {
 
         $crate::helpers::Test {
             source: String::from($source),
+            kernel: None,
             inputs,
             in_debug_mode: $in_debug_mode,
         }

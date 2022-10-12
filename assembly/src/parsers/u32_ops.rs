@@ -477,9 +477,9 @@ pub fn parse_u32not(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
 /// asserted to be between 0-31 and the value to be shifted is asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32checked_shl: 47 cycles
+/// - u32checked_shl: 19 cycles
 /// - u32checked_shl.b: 4 cycles
-/// - u32unchecked_shl: 40 cycles
+/// - u32unchecked_shl: 18 cycles
 /// - u32unchecked_shl.b: 3 cycles
 pub fn parse_u32shl(
     span_ops: &mut Vec<Operation>,
@@ -491,11 +491,11 @@ pub fn parse_u32shl(
         1 => match op_mode {
             U32OpMode::Checked => {
                 // Assume the dynamic shift value b is on top of the stack.
-                append_pow2_op(span_ops, true);
+                append_pow2_op(span_ops);
                 span_ops.push(Operation::U32assert2);
             }
             U32OpMode::Unchecked => {
-                append_pow2_op(span_ops, false);
+                append_pow2_op(span_ops);
             }
             _ => return Err(AssemblyError::invalid_op(op)),
         },
@@ -527,9 +527,9 @@ pub fn parse_u32shl(
 /// to be between 0-31 and the value to be shifted is asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32checked_shr: 47 cycles
+/// - u32checked_shr: 19 cycles
 /// - u32checked_shr.b: 4 cycles
-/// - u32unchecked_shr: 40 cycles
+/// - u32unchecked_shr: 18 cycles
 /// - u32unchecked_shr.b: 3 cycles
 pub fn parse_u32shr(
     span_ops: &mut Vec<Operation>,
@@ -541,11 +541,11 @@ pub fn parse_u32shr(
         1 => match op_mode {
             U32OpMode::Checked => {
                 // Assume the dynamic shift value b is on top of the stack.
-                append_pow2_op(span_ops, true);
+                append_pow2_op(span_ops);
                 span_ops.push(Operation::U32assert2);
             }
             U32OpMode::Unchecked => {
-                append_pow2_op(span_ops, false);
+                append_pow2_op(span_ops);
             }
             _ => return Err(AssemblyError::invalid_op(op)),
         },
@@ -579,9 +579,9 @@ pub fn parse_u32shr(
 /// asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32checked_rotl: 47 cycles
+/// - u32checked_rotl: 19 cycles
 /// - u32checked_rotl.b: 4 cycles
-/// - u32unchecked_rotl: 40 cycles
+/// - u32unchecked_rotl: 18 cycles
 /// - u32unchecked_rotl.b: 3 cycles
 pub fn parse_u32rotl(
     span_ops: &mut Vec<Operation>,
@@ -593,11 +593,11 @@ pub fn parse_u32rotl(
         1 => match op_mode {
             U32OpMode::Checked => {
                 // Assume the dynamic shift value b is on top of the stack.
-                append_pow2_op(span_ops, true);
+                append_pow2_op(span_ops);
                 span_ops.push(Operation::U32assert2);
             }
             U32OpMode::Unchecked => {
-                append_pow2_op(span_ops, false);
+                append_pow2_op(span_ops);
             }
             _ => return Err(AssemblyError::invalid_op(op)),
         },
@@ -630,9 +630,9 @@ pub fn parse_u32rotl(
 /// asserted to be a 32-bit value.
 ///
 /// VM cycles per mode:
-/// - u32checked_rotr: 59 cycles
+/// - u32checked_rotr: 31 cycles
 /// - u32checked_rotr.b: 6 cycles
-/// - u32unchecked_rotr: 44 cycles
+/// - u32unchecked_rotr: 22 cycles
 /// - u32unchecked_rotr.b: 3 cycles
 pub fn parse_u32rotr(
     span_ops: &mut Vec<Operation>,
@@ -658,7 +658,7 @@ pub fn parse_u32rotr(
                 span_ops.push(Operation::Not);
                 span_ops.push(Operation::CSwap);
                 span_ops.push(Operation::Drop);
-                append_pow2_op(span_ops, true);
+                append_pow2_op(span_ops);
                 span_ops.push(Operation::Swap);
             }
             U32OpMode::Unchecked => {
@@ -666,7 +666,7 @@ pub fn parse_u32rotr(
                 span_ops.push(Operation::Swap);
                 span_ops.push(Operation::U32sub);
                 span_ops.push(Operation::Drop);
-                append_pow2_op(span_ops, false);
+                append_pow2_op(span_ops);
             }
             _ => return Err(AssemblyError::invalid_op(op)),
         },

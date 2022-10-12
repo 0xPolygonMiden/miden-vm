@@ -294,8 +294,8 @@ fn inv_fail() {
 }
 
 #[test]
-fn checked_pow2() {
-    let asm_op = "checked_pow2";
+fn pow2() {
+    let asm_op = "pow2";
 
     build_op_test!(asm_op, &[0]).expect_stack(&[1]);
     build_op_test!(asm_op, &[31]).expect_stack(&[1 << 31]);
@@ -303,36 +303,62 @@ fn checked_pow2() {
 }
 
 #[test]
-fn checked_pow2_fail() {
-    let asm_op = "checked_pow2";
+fn pow2_fail() {
+    let asm_op = "pow2";
+
+    // --- random u32 values > 63 ------------------------------------------------------
 
     let mut value = rand_value::<u32>() as u64;
     value += (u32::MAX as u64) + 1;
 
-    // --- random u32 values > 63 ------------------------------------------------------
-    build_op_test!(asm_op, &[64]).expect_error(TestError::ExecutionError("FailedAssertion"));
-
-    // --- random u64 values > u32MAX  ------------------------------------------------
-    build_op_test!(asm_op, &[value]).expect_error(TestError::ExecutionError("NotU32Value"))
+    build_op_test!(asm_op, &[value]).expect_error(TestError::ExecutionError("FailedAssertion"));
 }
 
 #[test]
-fn unchecked_pow2() {
-    let asm_op = "unchecked_pow2";
+fn exp_bits_length() {
+    let build_asm_op = |param: u64| format!("exp.u{}", param);
 
-    let value = 64;
+    //---------------------- exp with parameter containing bits length ----------------------------
 
-    // This tests that when the `unchecked_pow2` assembly instruction is executed on
-    // out-of-bounds input it does not fail.
+    let base = 9;
+    let pow = 1021;
+    let expected = Felt::new(base).exp(pow);
 
-    // --- value = 64 > 63 -------------------------------------------------------------
-    let test = build_op_test!(asm_op, &[value]);
-    assert!(test.execute().is_ok());
+    let test = build_op_test!(build_asm_op(10), &[base, pow]);
+    test.expect_stack(&[expected.as_int()]);
+}
 
-    // --- random u64 values > 63 ------------------------------------------------------
-    let value = rand_value::<u64>() as u32;
-    let test = build_op_test!(asm_op, &[value as u64]);
-    assert!(test.execute().is_ok());
+#[test]
+fn exp_bits_length_fail() {
+    let build_asm_op = |param: u64| format!("exp.u{}", param);
+
+    //---------------------- exp containing more bits than specified in the parameter ------------
+
+    let base = 9;
+    let pow = 1021; // pow is a 10 bit number
+
+    build_op_test!(build_asm_op(9), &[base, pow])
+        .expect_error(TestError::ExecutionError("FailedAssertion"));
+
+    //---------------------- exp containing more than 64 bits -------------------------------------
+
+    let base = 9;
+    let pow = 1021; // pow is a 10 bit number
+
+    let test = build_op_test!(build_asm_op(65), &[base, pow]);
+    test.expect_error(TestError::AssemblyError("parameter"));
+}
+
+#[test]
+fn exp_small_pow() {
+    let build_asm_op = |param: u64| format!("exp.{}", param);
+
+    let base = rand_value::<u64>();
+    let pow = 7;
+    let expected = Felt::new(base).exp(pow);
+
+    let test = build_op_test!(build_asm_op(pow), &[base]);
+    test.expect_stack(&[expected.as_int()]);
 }
 
 // FIELD OPS BOOLEAN - MANUAL TESTS
@@ -637,20 +663,38 @@ proptest! {
     }
 
     #[test]
-    fn checked_pow2_proptest(b in 0_u32..64) {
-        let asm_op = "checked_pow2";
+    fn pow2_proptest(b in 0_u32..64) {
+        let asm_op = "pow2";
         let expected = 2_u64.wrapping_pow(b);
 
         build_op_test!(asm_op, &[b as u64]).prop_expect_stack(&[expected as u64])?;
     }
 
     #[test]
-    fn unchecked_pow2_proptest(b in 0_u32..64) {
-        let asm_op = "unchecked_pow2";
-        let expected = 2_u64.wrapping_pow(b);
+    fn exp_proptest(a in any::<u64>(), b in any::<u64>()) {
 
-        build_op_test!(asm_op, &[b as u64]).prop_expect_stack(&[expected as u64])?;
+        //---------------------- exp with no parameter -------------------------------------
+
+        let asm_op = "exp";
+        let base = a;
+        let pow = b;
+        let expected = Felt::new(base).exp(pow);
+
+        let test = build_op_test!(asm_op, &[base, pow]);
+        test.expect_stack(&[expected.as_int()]);
+
+        //----------------------- exp with parameter containing pow ----------------
+
+        let build_asm_op = |param: u64| format!("exp.{}", param);
+        let base = a;
+        let pow = b;
+        let expected = Felt::new(base).exp(pow);
+
+        let test = build_op_test!(build_asm_op(pow), &[base]);
+        test.expect_stack(&[expected.as_int()]);
+
     }
+
 }
 
 // FIELD OPS COMPARISON - RANDOMIZED TESTS

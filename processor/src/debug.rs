@@ -6,6 +6,7 @@ use vm_core::{utils::string::String, Operation, ProgramOutputs, Word};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VmState {
     pub clk: u32,
+    pub ctx: u32,
     pub op: Option<Operation>,
     pub asmop: Option<AsmOpInfo>,
     pub fmp: Felt,
@@ -123,11 +124,14 @@ impl Iterator for VmStateIterator {
             }
         }
 
+        let ctx = self.process.system.get_ctx_at(self.clk);
+
         let op = if self.clk == 0 {
             None
         } else {
             Some(self.process.decoder.debug_info().operations()[self.clk as usize - 1])
         };
+
         let (asmop, is_start) = self.get_asmop();
         if is_start {
             self.asmop_idx += 1;
@@ -135,14 +139,12 @@ impl Iterator for VmStateIterator {
 
         let result = Some(Ok(VmState {
             clk: self.clk,
+            ctx,
             op,
             asmop,
-            fmp: self.process.system.get_fmp_at(self.clk as usize),
+            fmp: self.process.system.get_fmp_at(self.clk),
             stack: self.process.stack.get_state_at(self.clk),
-            memory: self
-                .process
-                .chiplets
-                .get_mem_values_at(0..=u64::MAX, self.clk as u64),
+            memory: self.process.chiplets.get_mem_state_at(ctx, self.clk),
         }));
 
         self.clk += 1;
@@ -152,7 +154,7 @@ impl Iterator for VmStateIterator {
 }
 
 // HELPER FUNCTIONS
-// =================================================================
+// ================================================================================================
 fn word_to_ints(word: &Word) -> [u64; 4] {
     [
         word[0].as_int(),

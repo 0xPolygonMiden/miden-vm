@@ -80,7 +80,7 @@ export.mod_12289
 
     adv.u64div
 
-    push.adv.2
+    adv_push.2
     u32assert.2
 
     swap
@@ -92,7 +92,7 @@ export.mod_12289
     u32overflowing_madd
     drop
 
-    push.adv.2
+    adv_push.2
     drop
     u32assert
 
@@ -307,15 +307,15 @@ end
 export.mul_zq.128
     exec.ntt512::forward
 
-    push.env.locaddr.127
+    locaddr.0
     push.0.0.0.0
 
     repeat.128
         dup.5
-        loadw.mem
+        mem_loadw
 
         dup.4
-        storew.mem
+        mem_storew
 
         movup.5
         add.1
@@ -332,22 +332,22 @@ export.mul_zq.128
 
     exec.ntt512::forward
 
-    push.env.locaddr.127
+    locaddr.0
     push.0.0.0.0.0.0.0.0
 
     repeat.128
         dup.9
-        loadw.mem
+        mem_loadw
 
         swapw
 
         dup.8
-        loadw.mem
+        mem_loadw
 
         exec.mul_word
 
         dup.4
-        storew.mem
+        mem_storew
 
         movup.5
         add.1
@@ -365,7 +365,7 @@ export.mul_zq.128
     drop
     drop
 
-    push.env.locaddr.127
+    locaddr.0
 
     exec.ntt512::backward
 
@@ -373,12 +373,12 @@ export.mul_zq.128
 
     repeat.128
         dup.4
-        loadw.mem
+        mem_loadw
 
         exec.reduce_word
 
         dup.5
-        storew.mem
+        mem_storew
 
         movup.5
         add.1
@@ -423,18 +423,18 @@ export.add_zq
 
     repeat.128
         dup.8
-        loadw.mem
+        mem_loadw
 
         swapw
 
         dup.9
-        loadw.mem
+        mem_loadw
 
         exec.add_word
         exec.mod_12289_word
 
         dup.6
-        storew.mem
+        mem_storew
 
         movup.6
         add.1
@@ -486,12 +486,12 @@ export.neg_zq
 
     repeat.128
         dup.4
-        loadw.mem
+        mem_loadw
 
         exec.neg_word
 
         dup.5
-        storew.mem
+        mem_storew
 
         movup.5
         add.1
@@ -532,10 +532,10 @@ end
 #
 # Note, input memory addresses are considered to be read-only, they are not mutated.
 export.sub_zq.128
-    push.env.locaddr.127
+    locaddr.0
     movup.2
     exec.neg_zq
 
-    push.env.locaddr.127
+    locaddr.0
     exec.add_zq
 end

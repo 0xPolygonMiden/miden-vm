@@ -80,10 +80,10 @@ This group contains $32$ operations which do not shift the stack (this is almost
 | `MOVUP3`     | $12$         | `000_1100`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `MOVDN3`     | $13$         | `000_1101`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `READW`      | $14$         | `000_1110`      | [I/O ops](./io_ops.md)        | $7$         |
-| `<unused>`   | $15$         | `000_1111`      |                               | $7$         |
-| `MOVDN4`     | $16$         | `001_0000`      | [Stack ops](./stack_ops.md)   | $7$         |
-| `MOVUP4`     | $17$         | `001_0001`      | [Stack ops](./stack_ops.md)   | $7$         |
-| `MOVDN5`     | $18$         | `001_0010`      | [Stack ops](./stack_ops.md)   | $7$         |
+| `EXPACC`     | $15$         | `000_1111`      | [Field ops](./field_ops.md)   | $7$         |
+| `MOVUP4`     | $16$         | `001_0000`      | [Stack ops](./stack_ops.md)   | $7$         |
+| `MOVDN4`     | $17$         | `001_0001`      | [Stack ops](./stack_ops.md)   | $7$         |
+| `MOVUP5`     | $18$         | `001_0010`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `MOVDN5`     | $19$         | `001_0011`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `MOVUP6`     | $20$         | `001_0100`      | [Stack ops](./stack_ops.md)   | $7$         |
 | `MOVDN6`     | $21$         | `001_0101`      | [Stack ops](./stack_ops.md)   | $7$         |
