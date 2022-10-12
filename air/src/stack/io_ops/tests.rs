@@ -1,6 +1,10 @@
 use super::{enforce_constraints, EvaluationFrame, NUM_CONSTRAINTS};
-use crate::stack::op_flags::{generate_evaluation_frame, OpFlags};
-use vm_core::{stack::B0_COL_IDX, Felt, FieldElement, Operation, STACK_TRACE_OFFSET};
+use crate::stack::{
+    op_flags::{generate_evaluation_frame, OpFlags},
+    B0_COL_IDX,
+};
+use rand_utils::rand_value;
+use vm_core::{Felt, FieldElement, Operation, STACK_TRACE_OFFSET};
 
 // UNIT TESTS
 // ================================================================================================
@@ -8,11 +12,11 @@ use vm_core::{stack::B0_COL_IDX, Felt, FieldElement, Operation, STACK_TRACE_OFFS
 #[test]
 fn test_sdepth_operation() {
     let expected = [Felt::ZERO; NUM_CONSTRAINTS];
-    for i in 0..15 {
-        let frame = get_sdepth_test_frame(i);
-        let result = get_constraint_evaluation(frame);
-        assert_eq!(expected, result);
-    }
+    let depth = rand_value::<u32>() as u64;
+
+    let frame = get_sdepth_test_frame(depth);
+    let result = get_constraint_evaluation(frame);
+    assert_eq!(expected, result);
 }
 
 // TEST HELPERS
@@ -39,7 +43,6 @@ pub fn get_sdepth_test_frame(depth: u64) -> EvaluationFrame<Felt> {
     // element in the next frame.
     frame.current_mut()[B0_COL_IDX] = Felt::new(depth);
     frame.next_mut()[STACK_TRACE_OFFSET] = Felt::new(depth);
-    frame.next_mut()[B0_COL_IDX] = Felt::new(depth + 1);
 
     frame
 }
