@@ -6346,6 +6346,858 @@ export.div
     exec.mul
 end
 
+# Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, and n on stack, this routine
+# raises it to the power 2^n, by means of n successive squarings
+#
+# Expected stack stack
+#
+# [v, n, ...] | n >= 0
+#
+# After finishing execution stack
+#
+# [v', ...] s.t. v' = v ^ (2^n)
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L461-L469
+# for reference implementation in higher level language
+proc.gf_msquare
+    swap
+    dup
+    neq.0
+
+    while.true
+        sub.1
+        swap
+        dup
+        mul
+
+        swap
+        dup
+        neq.0
+    end
+
+    drop
+end
+
+# Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine attempts to compute
+# square root of v, if that number is a square.
+#
+# Expected stack state :
+#
+# [v, ...]
+#
+# After finishing execution stack looks like :
+#
+# [v', flg, ...]
+#
+# If flg = 1, it denotes v' is square root of v i.e. v' * v' = v ( mod q )
+# If flg = 0, then v' = 0, denoting v doesn't have a square root
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L349-L446
+# for reference implementation in higher level language.
+export.gf_sqrt
+    dup # = x
+
+    push.31
+    swap
+    exec.gf_msquare # = u
+
+    dup
+    dup
+    mul # = u^2
+
+    movup.2
+    dup
+    eq.0
+    add
+
+    div # = v
+
+    # j = 1
+    # i = 32 - j = 31
+    dup
+    push.30
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.4614640910117430873
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.1753635133440165772
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 2
+    # i = 32 - j = 30
+    dup
+    push.29
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.9123114210336311365
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.4614640910117430873
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 3
+    # i = 32 - j = 29
+    dup
+    push.28
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.16116352524544190054
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.9123114210336311365
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 4
+    # i = 32 - j = 28
+    dup
+    push.27
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.6414415596519834757
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.16116352524544190054
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 5
+    # i = 32 - j = 27
+    dup
+    push.26
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.1213594585890690845
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.6414415596519834757
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 6
+    # i = 32 - j = 26
+    dup
+    push.25
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.17096174751763063430
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.1213594585890690845
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 7
+    # i = 32 - j = 25
+    dup
+    push.24
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.5456943929260765144
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.17096174751763063430
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 8
+    # i = 32 - j = 24
+    dup
+    push.23
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.9713644485405565297
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.5456943929260765144
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 9
+    # i = 32 - j = 23
+    dup
+    push.22
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.16905767614792059275
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.9713644485405565297
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 10
+    # i = 32 - j = 22
+    dup
+    push.21
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.5416168637041100469
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.16905767614792059275
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 11
+    # i = 32 - j = 21
+    dup
+    push.20
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.17654865857378133588
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.5416168637041100469
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 12
+    # i = 32 - j = 20
+    dup
+    push.19
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.3511170319078647661
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.17654865857378133588
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 13
+    # i = 32 - j = 19
+    dup
+    push.18
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.18146160046829613826
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.3511170319078647661
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 14
+    # i = 32 - j = 18
+    dup
+    push.17
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.9306717745644682924
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.18146160046829613826
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 15
+    # i = 32 - j = 17
+    dup
+    push.16
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.12380578893860276750
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.9306717745644682924
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 16
+    # i = 32 - j = 16
+    dup
+    push.15
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.6115771955107415310
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.12380578893860276750
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 17
+    # i = 32 - j = 15
+    dup
+    push.14
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.17776499369601055404
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.6115771955107415310
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 18
+    # i = 32 - j = 14
+    dup
+    push.13
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.16207902636198568418
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.17776499369601055404
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 19
+    # i = 32 - j = 13
+    dup
+    push.12
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.1532612707718625687
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.16207902636198568418
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 20
+    # i = 32 - j = 12
+    dup
+    push.11
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.17492915097719143606
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.1532612707718625687
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 21
+    # i = 32 - j = 11
+    dup
+    push.10
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.455906449640507599
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.17492915097719143606
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 22
+    # i = 32 - j = 10
+    dup
+    push.9
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.11353340290879379826
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.455906449640507599
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 23
+    # i = 32 - j = 9
+    dup
+    push.8
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.1803076106186727246
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.11353340290879379826
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 24
+    # i = 32 - j = 8
+    dup
+    push.7
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.13797081185216407910
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.1803076106186727246
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 25
+    # i = 32 - j = 7
+    dup
+    push.6
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.17870292113338400769
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.13797081185216407910
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 26
+    # i = 32 - j = 6
+    dup
+    push.5
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.549755813888
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.17870292113338400769
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 27
+    # i = 32 - j = 5
+    dup
+    push.4
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.70368744161280
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.549755813888
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 28
+    # i = 32 - j = 4
+    dup
+    push.3
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.17293822564807737345
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.70368744161280
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 29
+    # i = 32 - j = 3
+    dup
+    push.2
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.18446744069397807105
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.17293822564807737345
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 30
+    # i = 32 - j = 2
+    dup
+    push.1
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.281474976710656
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.18446744069397807105
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap
+
+    # j = 31
+    # i = 32 - j = 1
+    dup
+    push.0
+    swap
+    exec.gf_msquare # = w
+
+    eq.18446744069414584320 # = cc
+
+    dup.1
+    mul.18446744069414584320
+    movup.2
+    swap
+    dup.2
+    cdrop # = v'
+
+    dup.2
+    mul.281474976710656
+    movup.3
+    swap
+    movup.3
+    cdrop # = u'
+
+    swap # On stack [v, u, ...]
+
+    dup
+    eq.0
+    swap
+    eq.1
+    or # = cc
+
+    swap
+    dup.1
+    mul # On stack [u * cc, cc, ...]
+end
+
 # Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine computes
 # legendre symbol, by raising that element to the power (p-1) / 2
 #

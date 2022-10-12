@@ -26,6 +26,77 @@ fn legendre(v: Felt) -> Felt {
     v2
 }
 
+fn is_zero(a: Felt) -> Felt {
+    Felt::new((a == Felt::ZERO) as u64)
+}
+
+fn is_one(a: Felt) -> Felt {
+    Felt::new((a == Felt::ONE) as u64)
+}
+
+fn bv_or(a: Felt, b: Felt) -> Felt {
+    let flg_a = (a == Felt::ZERO) | (a == Felt::ONE);
+    let flg_b = (b == Felt::ZERO) | (b == Felt::ONE);
+
+    assert_eq!(flg_a & flg_b, true);
+
+    let c = a.as_int() | b.as_int();
+    Felt::new(c)
+}
+
+fn sqrt(x: Felt) -> (Felt, Felt) {
+    const GG: [u64; 32] = [
+        1753635133440165772,
+        4614640910117430873,
+        9123114210336311365,
+        16116352524544190054,
+        6414415596519834757,
+        1213594585890690845,
+        17096174751763063430,
+        5456943929260765144,
+        9713644485405565297,
+        16905767614792059275,
+        5416168637041100469,
+        17654865857378133588,
+        3511170319078647661,
+        18146160046829613826,
+        9306717745644682924,
+        12380578893860276750,
+        6115771955107415310,
+        17776499369601055404,
+        16207902636198568418,
+        1532612707718625687,
+        17492915097719143606,
+        455906449640507599,
+        11353340290879379826,
+        1803076106186727246,
+        13797081185216407910,
+        17870292113338400769,
+        549755813888,
+        70368744161280,
+        17293822564807737345,
+        18446744069397807105,
+        281474976710656,
+        18446744069414584320,
+    ];
+
+    let mut u = msquare(x, 31);
+    let mut v = u.square() / (x + is_zero(x));
+
+    const N: usize = 32;
+    for j in 1..N {
+        let i = N - j;
+        let w = msquare(v, i - 1);
+        let cc = w == Felt::new(Felt::MODULUS - 1);
+
+        v = if !cc { v } else { v * Felt::new(GG[N - i]) };
+        u = if !cc { u } else { u * Felt::new(GG[N - i - 1]) };
+    }
+
+    let cc = bv_or(is_zero(v), is_one(v));
+    (u * cc, cc)
+}
+
 #[derive(Copy, Clone, Debug)]
 struct GFp5 {
     pub a0: Felt,
@@ -426,4 +497,26 @@ fn test_gfp5_legendre() {
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], b);
+}
+
+#[test]
+fn test_gf_sqrt() {
+    let source = "
+    use.std::math::gfp5
+
+    begin
+        exec.gfp5::gf_sqrt
+    end";
+
+    let a = Felt::new(31);
+    let (b, c) = sqrt(a);
+
+    let mut stack = [a.as_int()];
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    assert_eq!(strace[0], b);
+    assert_eq!(strace[1], c);
 }
