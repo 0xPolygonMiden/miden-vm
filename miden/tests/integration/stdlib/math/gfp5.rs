@@ -195,6 +195,36 @@ impl GFp5 {
 
         legendre(t3)
     }
+
+    pub fn msquare(self, n: usize) -> Self {
+        let mut v_ = self;
+        for _ in 0..n {
+            v_ = v_.square();
+        }
+        v_
+    }
+
+    pub fn sqrt(self) -> (Self, Felt) {
+        let v = self.msquare(31);
+        let d = (self * v.msquare(32)) / v;
+        let e = (d * d.frobenius_twice()).frobenius_once();
+        let f = e.square();
+        let g = self.a0 * f.a0
+            + Felt::new(3) * (self.a1 * f.a4 + self.a2 * f.a3 + self.a3 * f.a2 + self.a4 * f.a1);
+        let (s, c) = sqrt(g);
+        let e = e.inv();
+
+        (
+            GFp5 {
+                a0: e.a0 * s,
+                a1: e.a1 * s,
+                a2: e.a2 * s,
+                a3: e.a3 * s,
+                a4: e.a4 * s,
+            },
+            c,
+        )
+    }
 }
 
 impl Add for GFp5 {
@@ -500,23 +530,33 @@ fn test_gfp5_legendre() {
 }
 
 #[test]
-fn test_gf_sqrt() {
+fn test_gfp5_sqrt() {
     let source = "
     use.std::math::gfp5
 
     begin
-        exec.gfp5::gf_sqrt
+        exec.gfp5::sqrt
     end";
 
-    let a = Felt::new(31);
-    let (b, c) = sqrt(a);
+    let a = GFp5::rand();
+    let (b, c) = a.sqrt();
 
-    let mut stack = [a.as_int()];
+    let mut stack = [
+        a.a0.as_int(),
+        a.a1.as_int(),
+        a.a2.as_int(),
+        a.a3.as_int(),
+        a.a4.as_int(),
+    ];
     stack.reverse();
 
     let test = build_test!(source, &stack);
     let strace = test.get_last_stack_state();
 
-    assert_eq!(strace[0], b);
-    assert_eq!(strace[1], c);
+    assert_eq!(strace[0], b.a0);
+    assert_eq!(strace[1], b.a1);
+    assert_eq!(strace[2], b.a2);
+    assert_eq!(strace[3], b.a3);
+    assert_eq!(strace[4], b.a4);
+    assert_eq!(strace[5], c);
 }

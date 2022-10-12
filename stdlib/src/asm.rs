@@ -6394,7 +6394,7 @@ end
 #
 # See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L349-L446
 # for reference implementation in higher level language.
-export.gf_sqrt
+proc.gf_sqrt
     dup # = x
 
     push.31
@@ -7298,6 +7298,114 @@ export.legendre
     add
 
     exec.gf_legendre
+end
+
+# Given an element v ∈ GF(p^5), this routine attempts to compute square root of v, 
+# if that number is a square.
+#
+# At beginning stack looks like
+#
+# [a0, a1, a2, a3, a4, ...]
+#
+# At end stack looks like
+#
+# [b0, b1, b2, b3, b4, flg, ...]
+#
+# If flg = 1, it denotes v' = {b0, b1, b2, b3, b4} is square root of v i.e. v' * v' = v ( mod GF(p^5) )
+# If flg = 0, then v' = {0, 0, 0, 0, 0}, denoting v doesn't have a square root
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L879-L910
+# for reference implementation in higher level language.
+export.sqrt
+    repeat.5
+        dup.4
+    end
+
+    repeat.31
+        repeat.5
+            dup.4
+        end
+
+        exec.mul
+    end # = v
+
+    repeat.5
+        dup.4
+    end
+
+    repeat.32
+        repeat.5
+            dup.4
+        end
+
+        exec.mul
+    end
+
+    exec.div
+
+    repeat.5
+        dup.9
+    end
+
+    exec.mul # = d
+
+    repeat.5
+        dup.4
+    end
+
+    exec.frobenius_twice
+    exec.mul
+    exec.frobenius_once # = e
+
+    repeat.5
+        dup.4
+    end
+
+    exec.square # = f
+
+    movup.10
+    mul
+
+    swap
+    movup.13
+    mul
+    mul.3
+    add
+
+    swap
+    movup.11
+    mul
+    mul.3
+    add
+
+    swap
+    movup.9
+    mul
+    mul.3
+    add
+
+    swap
+    movup.7
+    mul
+    mul.3
+    add # = g
+
+    exec.gf_sqrt # On stack [s, c, e0, e1, e2, e3, e4, ...]
+
+    repeat.5
+        movup.6
+    end
+
+    exec.inv # = e'
+
+    repeat.5
+        movup.4
+        dup.5
+        mul
+    end
+
+    movup.5
+    drop # On stack [e0, e1, e2, e3, e4, c, ...]
 end
 "),
 // ----- std::math::ntt512 ------------------------------------------------------------------------
