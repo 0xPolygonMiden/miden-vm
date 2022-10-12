@@ -97,8 +97,11 @@ export.prepare_next
     movdn.6                                #[d,p,C,t_d,e1,e0,poe,a1,a0,add'-2,..]
 end
 
-# Given a stack in the following initial configuration [d,p,C,t_d,e1,e0,poe,a1,a0,..] the following
-# procedure computes an iteration of FRI verification for a query.
+# The stack starts in the following initial configuration [d,p,C,t_d,e1,e0,poe,a1,a0,..] where d is 
+# the current domain size, p the current position, C root of Merkle tree of current layer t_d 
+# its corresponding tree depth, (e1,e0) is the evaluation point, poe is the position in the exponent
+# of the domain generator, (a1,a0) is the alpha to compute the next evaluation point.
+# The following procedure, then, computes an iteration of FRI verification for a query.
 # TODO: Check where/if some checks are needed in the beginning, like p < d (p&d are u32) and that 2^t_d == d 
 export.verify_query_layer
     u32unchecked_div.2          #[d/2,p,C,t_d,...]
@@ -240,11 +243,4 @@ export.verify
     end
 
     exec.verify_remainder_com
-end 
-
-# Prepares the memory by populating it with the layer commitments as well as other relevant parameters
-# needed in order to verify the FRI proof. It then calls ver
-export.outer
-    exec.preprocess
-    exec.verify
 end
