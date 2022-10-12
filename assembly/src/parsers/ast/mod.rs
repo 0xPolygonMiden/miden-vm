@@ -1,6 +1,8 @@
 #![allow(dead_code)]
+
 use super::{AssemblyError, Token, TokenStream, Vec};
-use crate::MODULE_PATH_DELIM;
+use crate::{errors::SerializationError, MODULE_PATH_DELIM};
+use serde::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_core::utils::{collections::BTreeMap, string::String, string::ToString};
 
 mod nodes;
@@ -10,6 +12,7 @@ mod context;
 use context::ParserContext;
 
 mod io_ops;
+mod serde;
 mod stack_ops;
 mod u32_ops;
 
@@ -23,17 +26,93 @@ type ProcMap = BTreeMap<String, ProcedureAst>;
 /// Represents a parsed program AST.
 /// This AST can then be furthur processed to generate MAST.
 /// A program has to have a body and no exported procedures.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ProgramAst {
     pub procedures: ProcMap,
     pub body: Vec<Node>,
 }
 
+impl ProgramAst {
+    /// Returns byte representation of the `ProgramAst`.
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut byte_writer = ByteWriter::new();
+
+        // procedures
+        byte_writer.write_u16(self.procedures.len() as u16);
+        for (key, value) in self.procedures.iter() {
+            byte_writer
+                .write_string(key)
+                .expect("String serialization failure");
+            value.write_into(&mut byte_writer);
+        }
+
+        // body
+        self.body.write_into(&mut byte_writer);
+
+        byte_writer.into_bytes()
+    }
+
+    /// Returns a `ProgramAst` struct by its byte representation.
+    pub fn from_bytes(bytes: &mut &[u8]) -> Result<Self, SerializationError> {
+        let mut byte_reader = ByteReader::new(bytes.to_vec());
+
+        let mut procedures = ProcMap::new();
+
+        let num_procedures = byte_reader.read_u16()?;
+        for _ in 0..num_procedures {
+            let proc_name = byte_reader.read_string()?;
+            let proc_ast = ProcedureAst::read_from(&mut byte_reader)?;
+
+            procedures.insert(proc_name, proc_ast);
+        }
+
+        let body = Deserializable::read_from(&mut byte_reader)?;
+
+        Ok(ProgramAst { procedures, body })
+    }
+}
+
 /// Represents a parsed module AST.
 /// A module can only have exported and local procedures, but no body.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ModuleAst {
     pub procedures: ProcMap,
+}
+
+impl ModuleAst {
+    /// Returns byte representation of the `ModuleAst.
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut module_ast_bytes = ByteWriter::new();
+
+        // procedures
+        module_ast_bytes.write_u16(self.procedures.len() as u16);
+        for (key, value) in self.procedures.iter() {
+            module_ast_bytes
+                .write_string(key)
+                .expect("String serialization failure");
+            value.write_into(&mut module_ast_bytes);
+        }
+
+        module_ast_bytes.into_bytes()
+    }
+
+    /// Returns a `ModuleAst` struct by its byte representation.
+    pub fn from_bytes(bytes: &mut &[u8]) -> Result<Self, SerializationError> {
+        let mut byte_reader = ByteReader::new(bytes.to_vec());
+
+        let mut procedures = ProcMap::new();
+
+        let procedures_len = byte_reader.read_u16()?;
+
+        for _ in 0..procedures_len {
+            let proc_name = byte_reader.read_string()?;
+            let proc_ast = ProcedureAst::read_from(&mut byte_reader)?;
+
+            procedures.insert(proc_name, proc_ast);
+        }
+
+        Ok(ModuleAst { procedures })
+    }
 }
 
 /// Procedure holds information about a defnied procedure in a Miden program.
@@ -44,6 +123,37 @@ pub struct ProcedureAst {
     pub body: Vec<Node>,
     pub is_export: bool,
     pub index: u32,
+}
+
+impl Serializable for ProcedureAst {
+    /// Writes byte representation of the `ProcedureAst` into the provided `ByteWriter` struct.
+    fn write_into(&self, target: &mut ByteWriter) {
+        target.write_u16(self.index as u16);
+        target
+            .write_string(&self.name)
+            .expect("String serialization failure");
+        target.write_bool(self.is_export);
+        target.write_u16(self.num_locals as u16);
+        self.body.write_into(target);
+    }
+}
+
+impl Deserializable for ProcedureAst {
+    /// Returns a `ProcedureAst` from its byte representation stored in provided `ByteReader` struct.
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        let index = bytes.read_u16()?.into();
+        let name = bytes.read_string()?;
+        let is_export = bytes.read_bool()?;
+        let num_locals = bytes.read_u16()?.into();
+        let body = Deserializable::read_from(bytes)?;
+        Ok(ProcedureAst {
+            name,
+            num_locals,
+            body,
+            is_export,
+            index,
+        })
+    }
 }
 
 // PARSERS

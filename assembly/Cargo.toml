@@ -26,6 +26,7 @@ std = ["vm-core/std"]
 [dependencies]
 vm-core = { package = "miden-core", path = "../core", version = "0.3", default-features = false }
 vm-stdlib = { package = "miden-stdlib", path = "../stdlib", version = "0.2", default-features = false }
+num_enum = "0.5.7"
 
 [dev-dependencies]
 criterion = "0.3"
