@@ -1,9 +1,15 @@
 use super::{
-    EvaluationFrame, ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX,
-    NUM_ELEMENTS, U_COL_RANGE, V_COL_RANGE,
+    EvaluationFrame, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
+    MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_V_COL_RANGE, NUM_ELEMENTS,
 };
 use crate::{chiplets::memory, Felt, FieldElement};
-use vm_core::TRACE_WIDTH;
+use vm_core::{
+    chiplets::{
+        memory::{Selectors, MEMORY_COPY_READ, MEMORY_INIT_READ, MEMORY_WRITE},
+        MEMORY_TRACE_OFFSET,
+    },
+    TRACE_WIDTH,
+};
 
 use rand_utils::rand_value;
 
@@ -18,15 +24,30 @@ fn test_memory_write() {
     let new_values = vec![1, 0, 0, 0];
 
     // Write to a new context.
-    let result = get_constraint_evaluation(MemoryTestDeltaType::Context, &old_values, &new_values);
+    let result = get_constraint_evaluation(
+        MEMORY_WRITE,
+        MemoryTestDeltaType::Context,
+        &old_values,
+        &new_values,
+    );
     assert_eq!(expected, result);
 
     // Write to a new address in the same context.
-    let result = get_constraint_evaluation(MemoryTestDeltaType::Address, &old_values, &new_values);
+    let result = get_constraint_evaluation(
+        MEMORY_WRITE,
+        MemoryTestDeltaType::Address,
+        &old_values,
+        &new_values,
+    );
     assert_eq!(expected, result);
 
     // Write to the same context and address at a new clock cycle.
-    let result = get_constraint_evaluation(MemoryTestDeltaType::Clock, &old_values, &new_values);
+    let result = get_constraint_evaluation(
+        MEMORY_WRITE,
+        MemoryTestDeltaType::Clock,
+        &old_values,
+        &new_values,
+    );
     assert_eq!(expected, result);
 }
 
@@ -34,11 +55,34 @@ fn test_memory_write() {
 fn test_memory_read() {
     let expected = [Felt::ZERO; memory::NUM_CONSTRAINTS];
 
+    let init_values = vec![0, 0, 0, 0];
     let old_values = vec![1, 0, 0, 0];
-    let new_values = vec![1, 0, 0, 0];
 
-    // Memory reads only happen when neither the context nor the address have changed.
-    let result = get_constraint_evaluation(MemoryTestDeltaType::Clock, &old_values, &new_values);
+    // Read from a new context.
+    let result = get_constraint_evaluation(
+        MEMORY_INIT_READ,
+        MemoryTestDeltaType::Context,
+        &old_values,
+        &init_values,
+    );
+    assert_eq!(expected, result);
+
+    // Read from a new address in the same context.
+    let result = get_constraint_evaluation(
+        MEMORY_INIT_READ,
+        MemoryTestDeltaType::Address,
+        &old_values,
+        &init_values,
+    );
+    assert_eq!(expected, result);
+
+    // Read from the same context and address at a new clock cycle.
+    let result = get_constraint_evaluation(
+        MEMORY_COPY_READ,
+        MemoryTestDeltaType::Clock,
+        &old_values,
+        &old_values,
+    );
     assert_eq!(expected, result);
 }
 
@@ -64,12 +108,13 @@ enum MemoryTestDeltaType {
 /// - To test a valid read, the `delta_type` must be Clock and the `old_values` and `new_values`
 /// must be equal.
 fn get_constraint_evaluation(
+    selectors: Selectors,
     delta_type: MemoryTestDeltaType,
     old_values: &[u32],
     new_values: &[u32],
 ) -> [Felt; memory::NUM_CONSTRAINTS] {
     let delta_row = get_test_delta_row(&delta_type);
-    let frame = get_test_frame(&delta_type, &delta_row, old_values, new_values);
+    let frame = get_test_frame(selectors, &delta_type, &delta_row, old_values, new_values);
 
     let mut result = [Felt::ZERO; memory::NUM_CONSTRAINTS];
 
@@ -84,12 +129,14 @@ fn get_constraint_evaluation(
 /// in the next row and therefore the transition from current to next. The generated frame will be
 /// valid when valid inputs are provided.
 ///
+/// - `selectors`: specifies the memory operation selectors in the next row which is being tested.
 /// - `delta_type`: specifies the column over which the delta value should be calculated.
 /// - `delta_row`: specifies the values of the context, address, and clock columns in the next row.
-/// - `old_values`: specifies the old values, which are placed in the "new" value columns of the
-///   current row and the "old" value columns of the next row.
-/// - `new_values`: specifies the new values, which are placed in the "new" columns of the next row.
+/// - `old_values`: specifies the old values, which are placed in the value columns of the
+///   current row.
+/// - `new_values`: specifies the new values, which are placed in the value columns of the next row.
 fn get_test_frame(
+    selectors: Selectors,
     delta_type: &MemoryTestDeltaType,
     delta_row: &[u64],
     old_values: &[u32],
@@ -98,26 +145,28 @@ fn get_test_frame(
     let mut current = vec![Felt::ZERO; TRACE_WIDTH];
     let mut next = vec![Felt::ZERO; TRACE_WIDTH];
 
+    // Set the operation in the next row.
+    next[MEMORY_TRACE_OFFSET] = selectors[0];
+    next[MEMORY_TRACE_OFFSET + 1] = selectors[1];
+
     // Set the context, addr, and clock columns in the next row to the values in the delta row.
-    next[CTX_COL_IDX] = Felt::new(delta_row[0]);
-    next[ADDR_COL_IDX] = Felt::new(delta_row[1]);
-    next[CLK_COL_IDX] = Felt::new(delta_row[2]);
+    next[MEMORY_CTX_COL_IDX] = Felt::new(delta_row[0]);
+    next[MEMORY_ADDR_COL_IDX] = Felt::new(delta_row[1]);
+    next[MEMORY_CLK_COL_IDX] = Felt::new(delta_row[2]);
 
     // Set the old and new values.
     for idx in 0..NUM_ELEMENTS {
         let old_value = Felt::new(old_values[idx] as u64);
         // Add a write for the old values to the current row.
-        current[U_COL_RANGE.start + idx] = Felt::ZERO;
-        current[V_COL_RANGE.start + idx] = old_value;
+        current[MEMORY_V_COL_RANGE.start + idx] = old_value;
         // Change the values from old to new in the next row.
-        next[U_COL_RANGE.start + idx] = old_value;
-        next[V_COL_RANGE.start + idx] = Felt::new(new_values[idx] as u64);
+        next[MEMORY_V_COL_RANGE.start + idx] = Felt::new(new_values[idx] as u64);
     }
 
     // Set the delta and delta inverse values. Treat the current row as if it's the first row.
-    current[D0_COL_IDX] = Felt::ZERO;
-    current[D1_COL_IDX] = Felt::ZERO;
-    current[D_INV_COL_IDX] = Felt::ZERO;
+    current[MEMORY_D0_COL_IDX] = Felt::ZERO;
+    current[MEMORY_D1_COL_IDX] = Felt::ZERO;
+    current[MEMORY_D_INV_COL_IDX] = Felt::ZERO;
 
     // Set the delta in the next row according to the specified delta type.
     let delta: u64 = match delta_type {
@@ -125,9 +174,9 @@ fn get_test_frame(
         MemoryTestDeltaType::Context => delta_row[MemoryTestDeltaType::Context as usize],
         MemoryTestDeltaType::Address => delta_row[MemoryTestDeltaType::Address as usize],
     };
-    next[D0_COL_IDX] = Felt::new(delta as u16 as u64);
-    next[D1_COL_IDX] = Felt::new(delta >> 16);
-    next[D_INV_COL_IDX] = (Felt::new(delta)).inv();
+    next[MEMORY_D0_COL_IDX] = Felt::new(delta as u16 as u64);
+    next[MEMORY_D1_COL_IDX] = Felt::new(delta >> 16);
+    next[MEMORY_D_INV_COL_IDX] = (Felt::new(delta)).inv();
 
     EvaluationFrame::<Felt>::from_rows(current, next)
 }

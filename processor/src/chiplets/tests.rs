@@ -5,6 +5,7 @@ use vm_core::{
         hasher::{HASH_CYCLE_LEN, LINEAR_HASH, RETURN_STATE},
     },
     CodeBlockTable, Felt, FieldElement, ProgramInputs, CHIPLETS_RANGE, CHIPLETS_WIDTH,
+    MEMORY_TRACE_WIDTH,
 };
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
@@ -50,7 +51,7 @@ fn memory_aux_trace() {
     // Skip the hash cycle created by the span block when building the trace.
     // Check the memory trace.
     let memory_end = HASH_CYCLE_LEN + memory_trace_len;
-    validate_memory_trace(&chiplets_trace, HASH_CYCLE_LEN, memory_end, 2);
+    validate_memory_trace(&chiplets_trace, HASH_CYCLE_LEN, memory_end);
 
     // Validate that the trace was padded correctly.
     validate_padding(&chiplets_trace, memory_end, trace_len);
@@ -80,7 +81,7 @@ fn stacked_aux_trace() {
 
     // expect 1 row of memory trace
     let memory_end = bitwise_end + memory_len;
-    validate_memory_trace(&chiplets_trace, bitwise_end, memory_end, 0);
+    validate_memory_trace(&chiplets_trace, bitwise_end, memory_end);
 
     // Validate that the trace was padded correctly.
     validate_padding(&chiplets_trace, memory_end, trace_len);
@@ -166,21 +167,19 @@ fn validate_bitwise_trace(chiplets: &ChipletsTrace, start: usize, end: usize) {
 }
 
 /// Validate the bitwise trace output by the storew operation. The full memory trace is tested in
-/// the Memory module, so this just tests the ChipletsTrace selectors, the initial columns
-/// of the memory trace, and the final column after the memory trace.
-fn validate_memory_trace(chiplets: &ChipletsTrace, start: usize, end: usize, addr: u64) {
+/// the Memory module, so this just tests the ChipletsTrace selectors and the final columns after
+/// the memory trace.
+fn validate_memory_trace(chiplets: &ChipletsTrace, start: usize, end: usize) {
     for row in start..end {
-        // The selectors in the first row should match the memory selectors
+        // The selectors should match the memory selectors
         assert_eq!(Felt::ONE, chiplets[0][row]);
         assert_eq!(Felt::ONE, chiplets[1][row]);
         assert_eq!(Felt::ZERO, chiplets[2][row]);
 
-        // the expected start of the memory trace should hold the memory ctx and addr
-        assert_eq!(Felt::ZERO, chiplets[3][row]);
-        assert_eq!(Felt::new(addr), chiplets[4][row]);
-
-        // the final column should be padded
-        assert_eq!(Felt::ZERO, chiplets[17][row]);
+        // the final columns should be padded
+        for column in chiplets.iter().skip(MEMORY_TRACE_WIDTH) {
+            assert_eq!(Felt::ZERO, column[row]);
+        }
     }
 }
 

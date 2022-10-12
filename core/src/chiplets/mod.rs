@@ -1,6 +1,5 @@
 use super::{
-    utils::range as create_range, Felt, FieldElement, Word, CHIPLETS_OFFSET,
-    HASHER_AUX_TRACE_OFFSET,
+    utils::range as create_range, Felt, Word, CHIPLETS_OFFSET, HASHER_AUX_TRACE_OFFSET, ONE, ZERO,
 };
 use core::ops::Range;
 
@@ -25,7 +24,7 @@ pub const BITWISE_TRACE_OFFSET: usize = CHIPLETS_OFFSET + NUM_BITWISE_SELECTORS;
 /// The first column of the memory chiplet.
 pub const MEMORY_TRACE_OFFSET: usize = CHIPLETS_OFFSET + NUM_MEMORY_SELECTORS;
 
-// --- GLOBALLY-INDEXED CHIPLET COLUMN ACCESSORS --------------------------------------------------
+// --- GLOBALLY-INDEXED CHIPLET COLUMN ACCESSORS: HASHER ------------------------------------------
 
 /// The column index range in the execution trace containing the selector columns in the hasher.
 pub const HASHER_SELECTOR_COL_RANGE: Range<usize> =
@@ -39,6 +38,8 @@ pub const HASHER_STATE_COL_RANGE: Range<usize> = Range {
 };
 /// The index of the hasher's node index column in the execution trace.
 pub const HASHER_NODE_INDEX_COL_IDX: usize = HASHER_STATE_COL_RANGE.end;
+
+// --- GLOBALLY-INDEXED CHIPLET COLUMN ACCESSORS: BITWISE -----------------------------------------
 
 /// The index within the main trace of the bitwise column containing selector indicating the
 /// type of bitwise operation (AND or XOR)
@@ -69,3 +70,31 @@ pub const BITWISE_TRACE_RANGE: Range<usize> = Range {
 pub const BITWISE_PREV_OUTPUT_COL_IDX: usize = BITWISE_TRACE_OFFSET + bitwise::PREV_OUTPUT_COL_IDX;
 /// The index within the main trace of the bitwise column containing the aggregated output value.
 pub const BITWISE_OUTPUT_COL_IDX: usize = BITWISE_TRACE_OFFSET + bitwise::OUTPUT_COL_IDX;
+
+// --- GLOBALLY-INDEXED CHIPLET COLUMN ACCESSORS: MEMORY ------------------------------------------
+
+/// The index within the main trace of the column containing the first memory selector, which
+/// indicates the operation (read or write).
+pub const MEMORY_SELECTORS_COL_IDX: usize = MEMORY_TRACE_OFFSET;
+/// The index within the main trace of the column containing the memory context.
+pub const MEMORY_CTX_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::CTX_COL_IDX;
+/// The index within the main trace of the column containing the memory address.
+pub const MEMORY_ADDR_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::ADDR_COL_IDX;
+/// The index within the main trace of the column containing the clock cycle of the memory
+/// access.
+pub const MEMORY_CLK_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::CLK_COL_IDX;
+/// The column index range within the main trace which holds the memory value elements.
+pub const MEMORY_V_COL_RANGE: Range<usize> = Range {
+    start: MEMORY_TRACE_OFFSET + memory::V_COL_RANGE.start,
+    end: MEMORY_TRACE_OFFSET + memory::V_COL_RANGE.end,
+};
+/// The column index within the main trace for the lower 16-bits of the delta between two
+/// consecutive memory context IDs, addresses, or clock cycles.
+pub const MEMORY_D0_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::D0_COL_IDX;
+/// The column index within the main trace for the upper 16-bits of the delta between two
+/// consecutive memory context IDs, addresses, or clock cycles.
+pub const MEMORY_D1_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::D1_COL_IDX;
+/// The column index within the main trace for the inverse of the delta between two consecutive
+/// memory context IDs, addresses, or clock cycles, used to enforce that changes are correctly
+/// constrained.
+pub const MEMORY_D_INV_COL_IDX: usize = MEMORY_TRACE_OFFSET + memory::D_INV_COL_IDX;
