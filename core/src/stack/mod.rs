@@ -3,29 +3,26 @@ use super::{range, Range};
 // CONSTANTS
 // ================================================================================================
 
-/// Length of a stack word.
-pub const WORD_LENGTH: usize = 4;
+/// Index at which stack item columns start in the stack trace.
+pub const STACK_TOP_OFFSET: usize = 0;
 
-/// Index at which the first word starts in the stack trace.
-pub const WORD1_OFFSET: usize = 0;
+/// The number of stack registers which can be accessed by the VM directly. This is also the
+/// minimum stack depth enforced by the VM.
+pub const STACK_TOP_SIZE: usize = 16;
 
-/// Location of first word in the stack trace.
-pub const WORD1_RANGE: Range<usize> = range(WORD1_OFFSET, WORD_LENGTH);
+/// Location of stack top items in the stack trace.
+pub const STACK_TOP_RANGE: Range<usize> = range(STACK_TOP_OFFSET, STACK_TOP_SIZE);
 
-/// Index at which the second word starts in the stack trace.
-pub const WORD2_OFFSET: usize = WORD1_RANGE.end;
+/// Number of bookkeeping and helper columns in the stack trace.
+pub const NUM_STACK_HELPER_COLS: usize = 3;
 
-/// Location of second word in the stack trace.
-pub const WORD2_RANGE: Range<usize> = range(WORD2_OFFSET, WORD_LENGTH);
+/// Index of the b0 helper column in the stack trace. This column holds the current stack depth.
+pub const B0_COL_IDX: usize = STACK_TOP_RANGE.end;
 
-/// Index at which the third word starts in the stack trace.
-pub const WORD3_OFFSET: usize = WORD2_RANGE.end;
+/// Index of the b1 helper column in the stack trace. This column holds the address of the top
+/// item in the stack overflow table.
+pub const B1_COL_IDX: usize = STACK_TOP_RANGE.end + 1;
 
-/// Location of third word in the stack trace.
-pub const WORD3_RANGE: Range<usize> = range(WORD3_OFFSET, WORD_LENGTH);
-
-/// Index at which the fourth word starts in the stack trace.
-pub const WORD4_OFFSET: usize = WORD3_RANGE.end;
-
-/// Location of fourth word in the stack trace.
-pub const WORD4_RANGE: Range<usize> = range(WORD4_OFFSET, WORD_LENGTH);
+/// Index of the h0 helper column in the stack trace. This column contains 1 / (b0 - 16) when
+/// b0 != 16, and ZERO otherwise.
+pub const H0_COL_IDX: usize = STACK_TOP_RANGE.end + 2;

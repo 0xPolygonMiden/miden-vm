@@ -1,9 +1,8 @@
-use vm_core::utils::PushMany;
-
 use super::{
-    super::validate_operation, parse_element_param, AssemblyError, Felt, FieldElement, Operation,
-    Token, Vec,
+    super::validate_operation, parse_bit_len_param, parse_element_param, AssemblyError, Felt,
+    FieldElement, Operation, Token, Vec,
 };
+use vm_core::{utils::PushMany, StarkField};
 
 // ASSERTIONS AND TESTS
 // ================================================================================================
@@ -145,21 +144,86 @@ pub(super) fn parse_inv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
 /// Translates pow2 assembly instructions to VM operations.
 ///
 /// Appends a sequence of operations to raise value 2 to the power specified by the element at the
-/// top of the stack. In the unchecked mode, we skip the check of verifying that the top element
-/// is less than 64.
+/// top of the stack.
 ///
-/// VM cycles per mode:
-/// - checked_pow2: 44 cycles
-/// - unchecked_pow2: 38 cycles
-pub(super) fn parse_pow2(
-    span_ops: &mut Vec<Operation>,
-    op: &Token,
-    checked_mode: bool,
-) -> Result<(), AssemblyError> {
+/// VM cycles: 16 cycles
+pub(super) fn parse_pow2(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     if op.num_parts() > 1 {
         return Err(AssemblyError::extra_param(op));
     }
-    append_pow2_op(span_ops, checked_mode);
+
+    append_pow2_op(span_ops);
+
+    Ok(())
+}
+
+/// Translates exp assembly instructions to VM operations.
+///
+/// Appends a sequence of operations to raise the base(second element) to the power specified by
+/// the top element in the stack.
+///
+/// VM cycles per mode
+/// - exp: 73 cycles
+/// - exp.uxx: 9 + xx cycles
+/// - exp.b: 9 + Ceil(log2(b))
+pub(super) fn parse_exp(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    // returns the number of `expacc` instruction call needed for the operation.
+    let n = match op.num_parts() {
+        1 => 64,
+        2 => {
+            let param_value = op.parts()[1];
+
+            if param_value.strip_prefix('u').is_some() {
+                // parse the bits length of the exponent from the immediate value.
+                let bits_len = parse_bit_len_param(op, 1)?;
+
+                // the specified bits length can not be more than 64 bits.
+                if bits_len > 64 {
+                    return Err(AssemblyError::invalid_param_with_reason(
+                        op,
+                        1,
+                        format!("parameter can at max be a u64 but found u{}", bits_len).as_str(),
+                    ));
+                }
+
+                bits_len
+            } else {
+                // parse immediate value.
+                let imm = parse_element_param(op, 1)?;
+
+                // fetching the bits lenght of the exponent.
+                let num_bits_in_imm = (64 - imm.as_int().leading_zeros()) as usize;
+
+                if imm.as_int() as usize <= 7 {
+                    append_exp_op_for_small_pow(span_ops, imm.as_int() as usize);
+                    return Ok(());
+                }
+
+                // pushing the exponent onto the stack.
+                span_ops.push(Operation::Push(imm));
+
+                num_bits_in_imm as usize
+            }
+        }
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    // arranging the stack to prepare it for expacc instruction.
+    span_ops.push(Operation::Pad);
+    span_ops.push(Operation::Incr);
+    span_ops.push(Operation::MovUp2);
+    span_ops.push(Operation::Pad);
+
+    // calling expacc instruction n times.
+    span_ops.push_many(Operation::Expacc, n);
+
+    // drop the top two elements bit and exp value of the latest bit.
+    span_ops.push_many(Operation::Drop, 2);
+
+    // taking `b` to the top and asserting if it's equal to ZERO after all the right shifts.
+    span_ops.push(Operation::Swap);
+    span_ops.push(Operation::Eqz);
+    span_ops.push(Operation::Assert);
 
     Ok(())
 }
@@ -425,89 +489,85 @@ pub(super) fn parse_gte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
     Ok(())
 }
 
-// POWER OF TWO HELPER FUNCTIONS
+// EXPONENTIATION HELPER FUNCTIONS
 // ================================================================================================
 
-/// Extracts the least significant bit of the top element iteratively and performs power of 2
-/// operation on the individual bit. These individual powers are combined later to calculate the
-/// power of 2 on the top value of the stack.
+/// If the immediate value of `exp` assembly is less than 8, then, it would be cheaper to compute the
+/// exponentiation of the base to the power imm value using `dup` and `mul` instruction.
 ///
 /// The expected starting state of the stack (from the top) is: [a, ...].
 ///
-/// After these operations, the stack state will be: [2^a, ...].
+/// After these operations, the stack state will be: [a^b, ...], where b is the immediate value and b
+/// is less than 8.
 ///
 /// VM cycles per mode:
-/// - checked: 44 cycles
-/// - unchecked: 38 cycles
-pub(super) fn append_pow2_op(span_ops: &mut Vec<Operation>, checked_mode: bool) {
-    const MOST_SIGNIFICANT_BIT: u32 = 5;
-
-    if checked_mode {
-        // Checks if the top element of the stack is less than 64 or not. U32assert2 will
-        // ensure if the element to which we are raising 2 to is u32 or not before u32div.
-        // U32div operates on only u32 values.
-        span_ops.push(Operation::Push(Felt::new(64)));
-        span_ops.push(Operation::U32assert2);
-        span_ops.push(Operation::U32div);
-        span_ops.push(Operation::Swap);
-        span_ops.push(Operation::Eqz);
-        span_ops.push(Operation::Assert);
+/// - b = 0: 3 cycles
+/// - b = 1: 0 cycles
+/// - b = 2: 2 cycles
+/// - b = 3: 4 cycles
+/// - b = 4: 6 cycles
+/// - b = 5: 8 cycles
+/// - b = 6: 10 cycles
+/// - b = 7: 12 cycles
+pub(super) fn append_exp_op_for_small_pow(span_ops: &mut Vec<Operation>, exp_value: usize) {
+    match exp_value {
+        0 => {
+            span_ops.push(Operation::Drop);
+            span_ops.push(Operation::Pad);
+            span_ops.push(Operation::Incr);
+        }
+        1 => (),
+        2 => {
+            span_ops.push(Operation::Dup0);
+            span_ops.push(Operation::Mul);
+        }
+        3 => {
+            span_ops.push_many(Operation::Dup0, 2);
+            span_ops.push_many(Operation::Mul, 2);
+        }
+        4 => {
+            span_ops.push_many(Operation::Dup0, 3);
+            span_ops.push_many(Operation::Mul, 3);
+        }
+        5 => {
+            span_ops.push_many(Operation::Dup0, 4);
+            span_ops.push_many(Operation::Mul, 4);
+        }
+        6 => {
+            span_ops.push_many(Operation::Dup0, 5);
+            span_ops.push_many(Operation::Mul, 5);
+        }
+        7 => {
+            span_ops.push_many(Operation::Dup0, 6);
+            span_ops.push_many(Operation::Mul, 6);
+        }
+        _ => panic!("The exp value should be less than 8"),
     }
+}
 
+/// Appends relevant operations to the span block for the computation of power of 2.
+pub(super) fn append_pow2_op(span_ops: &mut Vec<Operation>) {
+    // push base 2 onto the stack: [exp, .....] -> [2, exp, ......]
     span_ops.push(Operation::Push(Felt::new(2)));
-    span_ops.push(Operation::Swap);
-    span_ops.push(Operation::Dup1);
-    span_ops.push(Operation::U32div);
-    span_ops.push(Operation::Incr);
-    span_ops.push(Operation::Swap);
 
-    // Extract the least significant bit of the top value in the stack & calculate the power of 2
-    // for this bit. Eg. 1100111 (59) after 1st iteration will become 11001. The least significant
-    // bit is 1 & the power of 2 for this bit in this iteration would be
-    // (1 * 2 ^ ((2 ^ 2 - 1)) + 1  = 8. Similarily in the next iteration the power of two of the
-    // least significant bit will be 1 as the bit is zero.
-    for idx in 1..MOST_SIGNIFICANT_BIT {
-        let pow_two_at_exp = pow_of_two_at_bit(idx);
-
-        call_dup_opcode(span_ops, idx);
-        span_ops.push(Operation::U32div);
-        span_ops.push(Operation::Push(Felt::new(pow_two_at_exp - 1)));
-        span_ops.push(Operation::Mul);
-        span_ops.push(Operation::Incr);
-        span_ops.push(Operation::Swap);
-    }
-
-    // Pow of 2 at 2^5.
-    let pow_two_at_five = pow_of_two_at_bit(MOST_SIGNIFICANT_BIT);
-
-    span_ops.push(Operation::Push(Felt::new(pow_two_at_five - 1)));
-    span_ops.push(Operation::Mul);
+    // introduce initial value of acc onto the stack: [2, exp, ....] -> [1, 2, exp, ....]
+    span_ops.push(Operation::Pad);
     span_ops.push(Operation::Incr);
 
-    // Aggregates all the individual power of 2 at each bit to calculate the final result
-    // of the power of two operation.
-    span_ops.push_many(Operation::Mul, 5);
-}
+    // arrange the top of the stack for `EXPACC` instruction: [1, 2, exp, ....] -> [0, 2, 1, exp, ...]
+    span_ops.push(Operation::Swap);
+    span_ops.push(Operation::Pad);
 
-/// This is a helper function to fetch respective `Dup` & `MovUp` instruction for a particular
-/// iteration in the calculation of power of 2 for individual bits. The fetched instruction
-/// will introduce value `2` at the top of the stack.
-fn call_dup_opcode(span_ops: &mut Vec<Operation>, index: u32) {
-    match index {
-        1 => span_ops.push(Operation::Dup2),
-        2 => span_ops.push(Operation::Dup3),
-        3 => span_ops.push(Operation::Dup4),
-        4 => span_ops.push(Operation::MovUp5),
-        _ => (),
-    }
-}
+    // calling expacc instruction 7 times.
+    span_ops.push_many(Operation::Expacc, 6);
 
-/// Calculates the power of two at 2^idx.
-fn pow_of_two_at_bit(bit_idx: u32) -> u64 {
-    let base = 2u64;
-    let exponent = base.pow(bit_idx) as u32;
+    // drop the top two elements bit and exp value of the latest bit.
+    span_ops.push_many(Operation::Drop, 2);
 
-    base.pow(exponent)
+    // taking `b` to the top and asserting if it's equal to ZERO after all the right shifts.
+    span_ops.push(Operation::Swap);
+    span_ops.push(Operation::Eqz);
+    span_ops.push(Operation::Assert);
 }
 
 // COMPARISON OPERATION HELPER FUNCTIONS

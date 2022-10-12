@@ -103,7 +103,7 @@ end
 export.forward.128
     # prepare input
 
-	locaddr.127
+	locaddr.0
 	push.0.0.0.0
 
 	repeat.128
@@ -135,9 +135,9 @@ export.forward.128
 
 	push.0.0.0.0.0.0.0.0
 
-	locaddr.63
+	locaddr.64
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -194,9 +194,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.95
+	locaddr.32
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.2
@@ -273,9 +273,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.111
+	locaddr.16
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.4
@@ -372,9 +372,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.119
+	locaddr.8
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.8
@@ -511,9 +511,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.123
+	locaddr.4
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.16
@@ -666,9 +666,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.125
+	locaddr.2
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.32
@@ -790,9 +790,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.126
+	locaddr.1
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -904,9 +904,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.126
+	locaddr.1
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -1028,9 +1028,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.126
+	locaddr.1
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -1095,7 +1095,7 @@ export.forward.128
 	# starting at 👇; total 128 consecutive addresses are used for storing
 	# whole polynomial ( of degree 512 )
 
-	locaddr.127
+	locaddr.0
 end
 
 # Applies four inverse NTT butterflies on four different indices, given following stack state
@@ -1240,7 +1240,7 @@ end
 export.backward.128
 	# prepare input
 
-	locaddr.127
+	locaddr.0
 	push.0.0.0.0
 
 	repeat.128
@@ -1333,9 +1333,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.126
+	locaddr.1
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -1466,9 +1466,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.126
+	locaddr.1
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -1590,9 +1590,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.126
+	locaddr.1
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -1735,9 +1735,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.125
+	locaddr.2
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.32
@@ -1874,9 +1874,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.123
+	locaddr.4
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.16
@@ -1973,9 +1973,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.119
+	locaddr.8
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.8
@@ -2052,9 +2052,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.111
+	locaddr.16
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.4
@@ -2121,9 +2121,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.95
+	locaddr.32
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.2
@@ -2185,9 +2185,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.63
+	locaddr.64
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -2230,7 +2230,7 @@ export.backward.128
 
 	dropw
 
-	locaddr.127
+	locaddr.0
 	movdn.4
 
 	repeat.128
@@ -2254,5 +2254,5 @@ export.backward.128
 	# starting at 👇; total 128 consecutive addresses are used for storing
 	# whole polynomial ( of degree 512 )
 
-    locaddr.127
+    locaddr.0
 end

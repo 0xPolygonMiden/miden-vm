@@ -4,7 +4,7 @@
 ///
 /// Entries in the array are tuples containing module namespace and module source code.
 #[rustfmt::skip]
-pub const MODULES: [(&str, &str); 10] = [
+pub const MODULES: [(&str, &str); 11] = [
 // ----- std::crypto::hashes::blake3 --------------------------------------------------------------
 ("std::crypto::hashes::blake3", "# Initializes four memory addresses, provided for storing initial 4x4 blake3 
 # state matrix ( i.e. 16 elements each of 32 -bit ), for computing blake3 2-to-1 hash
@@ -780,7 +780,7 @@ end
 # Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
 # s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #
-# Consecutive memory addresses can be computed by repeated application of `sub.1`.
+# Consecutive memory addresses can be computed by repeated application of `add.1`.
 proc.theta.3
     dup
     locaddr.0
@@ -801,7 +801,7 @@ proc.theta.3
     drop
 
     movup.2
-    sub.2
+    add.2
 
     # bring S[10], S[11]
     dup
@@ -823,7 +823,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.3
+    add.3
 
     # bring S[20], S[21]
     dup
@@ -847,7 +847,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.2
+    add.2
 
     # bring S[30], S[31]
     dup
@@ -869,7 +869,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.3
+    add.3
 
     # bring S[40], S[41]
     push.0.0.0.0
@@ -907,7 +907,7 @@ proc.theta.3
     drop
 
     movup.2
-    sub.3
+    add.3
 
     # bring S[12], S[13]
     dup
@@ -931,7 +931,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.2
+    add.2
 
     # bring S[22], S[23]
     dup
@@ -953,7 +953,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.3
+    add.3
 
     # bring S[32], S[33]
     dup
@@ -977,7 +977,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.2
+    add.2
 
     # bring S[42], S[43]
     push.0.0.0.0
@@ -1010,7 +1010,7 @@ proc.theta.3
 
     locaddr.0
     mem_load
-    sub.1
+    add.1
 
     # bring S[4], S[5]
     dup
@@ -1024,7 +1024,7 @@ proc.theta.3
     drop
 
     movup.2
-    sub.2
+    add.2
 
     # bring S[14], S[15]
     dup
@@ -1046,7 +1046,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.3
+    add.3
 
     # bring S[24], S[25]
     dup
@@ -1070,7 +1070,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.2
+    add.2
 
     # bring S[34], S[35]
     dup
@@ -1092,7 +1092,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.3
+    add.3
 
     # bring S[44], S[45]
     push.0.0.0.0
@@ -1119,7 +1119,7 @@ proc.theta.3
 
     locaddr.0
     mem_load
-    sub.1
+    add.1
     
     # bring S[6], S[7]
     dup
@@ -1131,7 +1131,7 @@ proc.theta.3
     drop
 
     movup.2
-    sub.3
+    add.3
 
     # bring S[16], S[17]
     dup
@@ -1155,7 +1155,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.2
+    add.2
 
     # bring S[26], S[27]
     dup
@@ -1177,7 +1177,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.3
+    add.3
 
     # bring S[36], S[37]
     dup
@@ -1201,7 +1201,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.2
+    add.2
 
     # bring S[46], S[47]
     push.0.0.0.0
@@ -1234,7 +1234,7 @@ proc.theta.3
 
     locaddr.0
     mem_load
-    sub.2
+    add.2
 
     # bring S[8], S[9]
     dup
@@ -1248,7 +1248,7 @@ proc.theta.3
     drop
 
     movup.2
-    sub.2
+    add.2
 
     # bring S[18], S[19]
     dup
@@ -1270,7 +1270,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.3
+    add.3
 
     # bring S[28], S[29]
     dup
@@ -1294,7 +1294,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.2
+    add.2
 
     # bring S[38], S[39]
     dup
@@ -1316,7 +1316,7 @@ proc.theta.3
     swap
 
     movup.2
-    sub.3
+    add.3
 
     # bring S[48], S[49]
     push.0.0.0.0
@@ -1442,7 +1442,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     # compute state[4..8)
 
@@ -1473,7 +1473,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     # compute state[8..12)
 
@@ -1504,7 +1504,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     # compute state[12..16)
 
@@ -1535,7 +1535,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     # compute state[16..20)
 
@@ -1566,7 +1566,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     # compute state[20..24)
 
@@ -1597,7 +1597,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     # compute state[24..28)
 
@@ -1628,7 +1628,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     # compute state[28..32)
 
@@ -1659,7 +1659,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     # compute state[32..36)
 
@@ -1690,7 +1690,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     # compute state[36..40)
 
@@ -1721,7 +1721,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     # compute state[40..44)
 
@@ -1752,7 +1752,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     # compute state[44..48)
 
@@ -1783,7 +1783,7 @@ proc.theta.3
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     # compute state[48..50)
 
@@ -1821,7 +1821,7 @@ end
 # Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
 # s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #
-# Consecutive memory addresses can be computed by repeated application of `sub.1`.
+# Consecutive memory addresses can be computed by repeated application of `add.1`.
 proc.rho.1
     dup
     locaddr.0
@@ -1839,7 +1839,7 @@ proc.rho.1
 
     movup.4
     dup
-    sub.1
+    add.1
     movdn.5
     mem_storew
 
@@ -1861,7 +1861,7 @@ proc.rho.1
 
     movup.4
     dup
-    sub.1
+    add.1
     movdn.5
     mem_storew
 
@@ -1882,7 +1882,7 @@ proc.rho.1
 
     movup.4
     dup
-    sub.1
+    add.1
     movdn.5
     mem_storew
 
@@ -1904,7 +1904,7 @@ proc.rho.1
 
     movup.4
     dup
-    sub.1
+    add.1
     movdn.5
     mem_storew
 
@@ -1925,7 +1925,7 @@ proc.rho.1
 
     movup.4
     dup
-    sub.1
+    add.1
     movdn.5
     mem_storew
 
@@ -1946,7 +1946,7 @@ proc.rho.1
 
     movup.4
     dup
-    sub.1
+    add.1
     movdn.5
     mem_storew
 
@@ -1967,7 +1967,7 @@ proc.rho.1
 
     movup.4
     dup
-    sub.1
+    add.1
     movdn.5
     mem_storew
 
@@ -1988,7 +1988,7 @@ proc.rho.1
 
     movup.4
     dup
-    sub.1
+    add.1
     movdn.5
     mem_storew
      
@@ -2009,7 +2009,7 @@ proc.rho.1
 
     movup.4
     dup
-    sub.1
+    add.1
     movdn.5
     mem_storew
 
@@ -2030,7 +2030,7 @@ proc.rho.1
 
     movup.4
     dup
-    sub.1
+    add.1
     movdn.5
     mem_storew
 
@@ -2052,7 +2052,7 @@ proc.rho.1
 
     movup.4
     dup
-    sub.1
+    add.1
     movdn.5
     mem_storew
 
@@ -2073,7 +2073,7 @@ proc.rho.1
 
     movup.4
     dup
-    sub.1
+    add.1
     movdn.5
     mem_storew
 
@@ -2107,7 +2107,7 @@ end
 # Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
 # s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #
-# Consecutive memory addresses can be computed by repeated application of `sub.1`.
+# Consecutive memory addresses can be computed by repeated application of `add.1`.
 proc.pi.14
     dup
     locaddr.0
@@ -2135,12 +2135,12 @@ proc.pi.14
     movdn.3
 
     dup.5
-    sub.5
+    add.5
     mem_storew
 
     # place state[4..8) to desired location(s)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -2151,19 +2151,19 @@ proc.pi.14
     movdn.3
 
     dup.7
-    sub.10
+    add.10
     mem_storew
 
     drop
     drop
 
     dup.5
-    sub.2
+    add.2
     mem_storew
 
     # place state[8..12) to desired location(s)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -2172,7 +2172,7 @@ proc.pi.14
     push.0.0
 
     dup.7
-    sub.7
+    add.7
     mem_storew
 
     movup.2
@@ -2184,12 +2184,12 @@ proc.pi.14
     movdn.3
 
     dup.5
-    sub.8
+    add.8
     mem_storew
 
     # place state[12..16) to desired location(s)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -2209,7 +2209,7 @@ proc.pi.14
     mem_storew
 
     dup.7
-    sub.5
+    add.5
     mem_loadw
 
     movup.2
@@ -2218,19 +2218,19 @@ proc.pi.14
     drop
 
     dup.5
-    sub.5
+    add.5
     mem_storew
 
     # place state[16..20) to desired location(s)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
     mem_loadw
 
     dup.5
-    sub.10
+    add.10
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -2241,7 +2241,7 @@ proc.pi.14
     drop
 
     dup.7
-    sub.10
+    add.10
     mem_storew
 
     dropw
@@ -2251,19 +2251,19 @@ proc.pi.14
     movdn.3
 
     dup.5
-    sub.3
+    add.3
     mem_storew
 
     # place state[20..24) to desired location(s)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
     mem_loadw
 
     dup.5
-    sub.3
+    add.3
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -2274,11 +2274,11 @@ proc.pi.14
     drop
 
     dup.7
-    sub.3
+    add.3
     mem_storew
 
     dup.7
-    sub.8
+    add.8
     mem_loadw
 
     movup.2
@@ -2287,12 +2287,12 @@ proc.pi.14
     drop
 
     dup.5
-    sub.8
+    add.8
     mem_storew
 
     # place state[24..28) to desired location(s)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -2303,7 +2303,7 @@ proc.pi.14
     movdn.3
 
     dup.7
-    sub.1
+    add.1
     mem_storew
 
     drop
@@ -2312,24 +2312,24 @@ proc.pi.14
     movdn.3
 
     dup.5
-    sub.6
+    add.6
     mem_storew
 
     # place state[28..32) to desired location(s)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
     mem_loadw
 
     dup.5
-    sub.11
+    add.11
     mem_storew
 
     # place state[32..36) to desired location(s)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -2340,7 +2340,7 @@ proc.pi.14
     movdn.3
 
     dup.7
-    sub.4
+    add.4
     mem_storew
 
     drop
@@ -2349,19 +2349,19 @@ proc.pi.14
     movdn.3
 
     dup.5
-    sub.9
+    add.9
     mem_storew
 
     # place state[36..40) to desired location(s)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
     mem_loadw
 
     dup.5
-    sub.1
+    add.1
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -2372,11 +2372,11 @@ proc.pi.14
     drop
 
     dup.7
-    sub.1
+    add.1
     mem_storew
 
     dup.7
-    sub.6
+    add.6
     mem_loadw
 
     movup.2
@@ -2385,19 +2385,19 @@ proc.pi.14
     drop
 
     dup.5
-    sub.6
+    add.6
     mem_storew
 
     # place state[40..44) to desired location(s)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
     mem_loadw
 
     dup.5
-    sub.7
+    add.7
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -2408,7 +2408,7 @@ proc.pi.14
     movup.3
 
     dup.7
-    sub.7
+    add.7
     mem_storew
 
     dropw
@@ -2418,19 +2418,19 @@ proc.pi.14
     movdn.3
 
     dup.5
-    sub.12
+    add.12
     mem_storew
 
     # place state[44..48) to desired location(s)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
     mem_loadw
 
     dup.5
-    sub.4
+    add.4
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -2441,11 +2441,11 @@ proc.pi.14
     drop
 
     dup.7
-    sub.4
+    add.4
     mem_storew
 
     dup.7
-    sub.9
+    add.9
     mem_loadw
 
     movup.2
@@ -2454,19 +2454,19 @@ proc.pi.14
     drop
 
     dup.5
-    sub.9
+    add.9
     mem_storew
 
     # place state[48..50) to desired location(s)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
     mem_loadw
 
     dup.5
-    sub.2
+    add.2
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -2477,7 +2477,7 @@ proc.pi.14
     movdn.3
 
     dup.7
-    sub.2
+    add.2
     mem_storew
 
     drop
@@ -2498,11 +2498,11 @@ proc.pi.14
         mem_storew
 
         movup.4
-        sub.1
+        add.1
         movdn.4
 
         movup.5
-        sub.1
+        add.1
         movdn.5
     end
 
@@ -2527,7 +2527,7 @@ end
 # Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
 # s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #
-# Consecutive memory addresses can be computed by repeated application of `sub.1`.
+# Consecutive memory addresses can be computed by repeated application of `add.1`.
 proc.chi.4
     dup
     locaddr.0
@@ -2549,7 +2549,7 @@ proc.chi.4
     swap
 
     movup.2
-    sub.1
+    add.1
     dup
     movdn.3
 
@@ -2600,7 +2600,7 @@ proc.chi.4
     swap
 
     movup.2
-    sub.1
+    add.1
     dup
     movdn.3
 
@@ -2627,7 +2627,7 @@ proc.chi.4
     movup.3
 
     movup.4
-    add.2
+    sub.2
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -2698,7 +2698,7 @@ proc.chi.4
     mem_storew
 
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -2731,7 +2731,7 @@ proc.chi.4
     mem_storew
 
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -2749,7 +2749,7 @@ proc.chi.4
 
     # process state[10..20)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -2775,7 +2775,7 @@ proc.chi.4
     mem_storew
 
     movup.6
-    sub.1
+    add.1
     dup
     movdn.7
 
@@ -2818,7 +2818,7 @@ proc.chi.4
     mem_storew
 
     movup.6
-    add.2
+    sub.2
     dup
     movdn.7
 
@@ -2847,7 +2847,7 @@ proc.chi.4
     movup.3
 
     movup.4
-    sub.1
+    add.1
     push.0.0.0.0
     movup.4
     mem_loadw
@@ -2880,7 +2880,7 @@ proc.chi.4
 
     locaddr.0
     mem_load
-    sub.2
+    add.2
     dup
     movdn.5
 
@@ -2911,7 +2911,7 @@ proc.chi.4
     mem_storew
 
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -2942,7 +2942,7 @@ proc.chi.4
     mem_storew
 
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -2974,7 +2974,7 @@ proc.chi.4
 
     # process state[20..30)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -2989,7 +2989,7 @@ proc.chi.4
     swap
 
     movup.2
-    sub.1
+    add.1
     movdn.2
 
     dup.2
@@ -3028,7 +3028,7 @@ proc.chi.4
     loc_storew.1
 
     movup.6
-    sub.1
+    add.1
     movdn.6
 
     dup.6
@@ -3058,7 +3058,7 @@ proc.chi.4
     swap
 
     movup.4
-    add.2
+    sub.2
     movdn.4
 
     dup.4
@@ -3136,7 +3136,7 @@ proc.chi.4
     mem_storew
 
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -3167,7 +3167,7 @@ proc.chi.4
     mem_storew
 
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -3199,7 +3199,7 @@ proc.chi.4
 
     # process state[30..40)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -3224,7 +3224,7 @@ proc.chi.4
     loc_storew.1
 
     movup.6
-    sub.1
+    add.1
     movdn.6
 
     dup.6
@@ -3272,7 +3272,7 @@ proc.chi.4
     loc_storew.2
 
     movup.6
-    add.2
+    sub.2
     movdn.6
 
     dup.6
@@ -3300,7 +3300,7 @@ proc.chi.4
     swap
 
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -3334,7 +3334,7 @@ proc.chi.4
     loc_storew.3
 
     movup.4
-    add.1
+    sub.1
     movdn.4
 
     dup.4
@@ -3365,7 +3365,7 @@ proc.chi.4
     mem_storew
 
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -3396,7 +3396,7 @@ proc.chi.4
     mem_storew
 
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -3428,7 +3428,7 @@ proc.chi.4
 
     # process state[40..50)
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -3438,7 +3438,7 @@ proc.chi.4
     drop
 
     movup.2
-    sub.1
+    add.1
     movdn.2
 
     dup.2
@@ -3488,7 +3488,7 @@ proc.chi.4
     loc_storew.1
 
     movup.6
-    sub.1
+    add.1
     movdn.6
 
     dup.6
@@ -3518,7 +3518,7 @@ proc.chi.4
     swap
 
     movup.4
-    add.2
+    sub.2
     movdn.4
 
     dup.4
@@ -3596,7 +3596,7 @@ proc.chi.4
     mem_storew
 
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -3627,7 +3627,7 @@ proc.chi.4
     mem_storew
 
     movup.4
-    sub.1
+    add.1
     movdn.4
 
     dup.4
@@ -3717,7 +3717,7 @@ end
 # Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
 # s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #
-# Consecutive memory addresses can be computed by repeated application of `sub.1`.
+# Consecutive memory addresses can be computed by repeated application of `add.1`.
 #
 # See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L325-L340
 proc.round
@@ -3747,7 +3747,7 @@ end
 # Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
 # s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
 #
-# Consecutive memory addresses can be computed by repeated application of `sub.1`.
+# Consecutive memory addresses can be computed by repeated application of `add.1`.
 #
 # See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L379-L427
 proc.keccak_p
@@ -4127,7 +4127,7 @@ end
 # [state_addr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, ...]
 #
 # Note, state_addr is the starting absolute memory address where keccak-p[1600, 24] state
-# is kept. Consecutive addresses can be computed by repeated application of `sub.1` instruction.
+# is kept. Consecutive addresses can be computed by repeated application of `add.1` instruction.
 #
 # Final stack state :
 #
@@ -4151,7 +4151,7 @@ proc.to_state_array
         mem_storew
         dropw
 
-        sub.1
+        add.1
     end
 
     push.0.0.0.1
@@ -4159,56 +4159,56 @@ proc.to_state_array
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     push.0.0.0.0
     dup.4
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     push.0.0.0.0
     dup.4
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     push.0.0.0.0
     dup.4
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     push.0.0.2147483648.0
     dup.4
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     push.0.0.0.0
     dup.4
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     push.0.0.0.0
     dup.4
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     push.0.0.0.0
     dup.4
     mem_storew
     dropw
 
-    sub.1
+    add.1
 
     push.0.0.0.0
     movup.4
@@ -5824,8 +5824,63 @@ export.hash
     exec.consume_padding_message_schedule
 end
 "),
-// ----- std::math::gfp5 --------------------------------------------------------------------------
-("std::math::gfp5", "# Given two GF(p^5) elements on stack, this routine computes modular
+// ----- std::math::ext2 --------------------------------------------------------------------------
+("std::math::ext2", "# Given a stack with initial configuration given by [a1,a0,b1,b0,...] where a = (a0,a1) and
+# b = (b0,b1) represent elements in the extension field of degree 2, the procedure outputs the 
+# product c = (c1,c0) where c0 = a0b0 - 2(a1b1) and c1 = (a0 + a1)(b0 + b1) - a0b0
+export.mul
+    dupw            #[a1,a0,b1,b0,a1,a0,b1,b0,...]
+    swap.3          #[b0,a0,b1,a1,a1,a0,b1,b0,...]
+    mul             #[b0a0,b1,a1,a1,a0,b1,b0,...]
+    dup             #[b0a0,b0a0,b1,a1,a1,a0,b1,b0,...]
+    movdn.7         #[b0a0,b1,a1,a1,a0,b1,b0,b0a0,...]
+    movdn.2         #[b1,a1,b0a0,a1,a0,b1,b0,b0a0,...]
+    mul.2           #[2b1,a1,b0a0,a1,a0,b1,b0,b0a0,...]
+    mul             #[2b1a1,b0a0,a1,a0,b1,b0,b0a0,...]
+    sub             #[b0a0-2b1a1,a1,a0,b1,b0,b0a0,...]
+    movdn.5         #[a1,a0,b1,b0,b0a0,b0a0-2b1a1,...]
+    add             #[a1+a0,b1,b0,b0a0,b0a0-2b1a1,...]
+    swap.2          #[b0,b1,a1+a0,b0a0,b0a0-2b1a1,...]
+    add             #[b0+b1,a1+a0,b0a0,b0a0-2b1a1,...]
+    mul             #[(b0+b1)(a1+a0),b0a0,b0a0-2b1a1,...]
+    swap            #[b0a0,(b0+b1)(a1+a0),b0a0-2b1a1,...]
+    sub             #[(b0+b1)(a1+a0)-b0a0,b0a0-2b1a1,...]
+end
+
+# Given a stack with initial configuration given by [x,a1,a0,...] where a = (a0,a1) is an element
+# in the field extension and x is an element of the base field, this procedure computes the multiplication
+# of x, when looked at as (x,0), with a in the extension field. The output is [xa1,xa0,...]
+export.mul_base
+    dup         #[x,x,a1,a0,...]
+    movdn.3     #[x,a1,a0,x,...]
+    mul         #[xa1,a0,x,...]
+    movdn.2     #[a0,x,xa1,...]
+    mul         #[xa0,xa1,...]
+    swap        #[xa1,xa0,...]
+end
+
+# Given a stack in the following initial configuration [a1,a0,b1,b0,...] the following
+# procedure computes [a1+b1,a0+b0,...]
+export.add
+    swap        #[a0,a1,b1,b0,...]
+    movup.3     #[b0,a0,a1,b1,...]
+    add         #[b0+a0,a1,b1,...]
+    movdn.2     #[a1,b1,b0+a0,...]
+    add         #[a1+b1,b0+a0,...]
+end
+
+# Given a stack in the following initial configuration [a1,a0,b1,b0,...] the following
+# procedure computes [a1-b1,a0-b0,...]
+export.sub
+    swap        #[a0,a1,b1,b0,...]
+    movup.3     #[b0,a0,a1,b1,...]
+    sub         #[a0-b0,a1,b1,...]
+    movdn.2     #[a1,b1,a0-b0,...]
+    swap        #[b1,a1,a0-b0,...]
+    sub         #[a1-b1,a0-b0,...]
+end"),
+// ----- std::math::ext5 --------------------------------------------------------------------------
+("std::math::ext5", "# Given two GF(p^5) elements on stack, this routine computes modular
 # addition over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
 #
 # Expected stack state :
@@ -6359,7 +6414,7 @@ end
 #
 # See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L461-L469
 # for reference implementation in higher level language
-proc.gf_msquare
+proc.base_msquare
     swap
     dup
     neq.0
@@ -6394,12 +6449,12 @@ end
 #
 # See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L349-L446
 # for reference implementation in higher level language.
-proc.gf_sqrt
+proc.base_sqrt
     dup # = x
 
     push.31
     swap
-    exec.gf_msquare # = u
+    exec.base_msquare # = u
 
     dup
     dup
@@ -6417,7 +6472,7 @@ proc.gf_sqrt
     dup
     push.30
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6442,7 +6497,7 @@ proc.gf_sqrt
     dup
     push.29
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6467,7 +6522,7 @@ proc.gf_sqrt
     dup
     push.28
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6492,7 +6547,7 @@ proc.gf_sqrt
     dup
     push.27
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6517,7 +6572,7 @@ proc.gf_sqrt
     dup
     push.26
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6542,7 +6597,7 @@ proc.gf_sqrt
     dup
     push.25
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6567,7 +6622,7 @@ proc.gf_sqrt
     dup
     push.24
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6592,7 +6647,7 @@ proc.gf_sqrt
     dup
     push.23
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6617,7 +6672,7 @@ proc.gf_sqrt
     dup
     push.22
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6642,7 +6697,7 @@ proc.gf_sqrt
     dup
     push.21
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6667,7 +6722,7 @@ proc.gf_sqrt
     dup
     push.20
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6692,7 +6747,7 @@ proc.gf_sqrt
     dup
     push.19
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6717,7 +6772,7 @@ proc.gf_sqrt
     dup
     push.18
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6742,7 +6797,7 @@ proc.gf_sqrt
     dup
     push.17
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6767,7 +6822,7 @@ proc.gf_sqrt
     dup
     push.16
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6792,7 +6847,7 @@ proc.gf_sqrt
     dup
     push.15
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6817,7 +6872,7 @@ proc.gf_sqrt
     dup
     push.14
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6842,7 +6897,7 @@ proc.gf_sqrt
     dup
     push.13
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6867,7 +6922,7 @@ proc.gf_sqrt
     dup
     push.12
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6892,7 +6947,7 @@ proc.gf_sqrt
     dup
     push.11
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6917,7 +6972,7 @@ proc.gf_sqrt
     dup
     push.10
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6942,7 +6997,7 @@ proc.gf_sqrt
     dup
     push.9
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6967,7 +7022,7 @@ proc.gf_sqrt
     dup
     push.8
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -6992,7 +7047,7 @@ proc.gf_sqrt
     dup
     push.7
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -7017,7 +7072,7 @@ proc.gf_sqrt
     dup
     push.6
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -7042,7 +7097,7 @@ proc.gf_sqrt
     dup
     push.5
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -7067,7 +7122,7 @@ proc.gf_sqrt
     dup
     push.4
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -7092,7 +7147,7 @@ proc.gf_sqrt
     dup
     push.3
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -7117,7 +7172,7 @@ proc.gf_sqrt
     dup
     push.2
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -7142,7 +7197,7 @@ proc.gf_sqrt
     dup
     push.1
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -7167,7 +7222,7 @@ proc.gf_sqrt
     dup
     push.0
     swap
-    exec.gf_msquare # = w
+    exec.base_msquare # = w
 
     eq.18446744069414584320 # = cc
 
@@ -7211,7 +7266,7 @@ end
 #
 # See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L448-L459
 # for reference implementation in higher level language.
-proc.gf_legendre
+proc.base_legendre
     repeat.31
         dup
         mul
@@ -7297,7 +7352,7 @@ export.legendre
 
     add
 
-    exec.gf_legendre
+    exec.base_legendre
 end
 
 # Given an element v ∈ GF(p^5), this routine attempts to compute square root of v, 
@@ -7390,7 +7445,7 @@ export.sqrt
     mul.3
     add # = g
 
-    exec.gf_sqrt # On stack [s, c, e0, e1, e2, e3, e4, ...]
+    exec.base_sqrt # On stack [s, c, e0, e1, e2, e3, e4, ...]
 
     repeat.5
         movup.6
@@ -7514,7 +7569,7 @@ end
 export.forward.128
     # prepare input
 
-	locaddr.127
+	locaddr.0
 	push.0.0.0.0
 
 	repeat.128
@@ -7546,9 +7601,9 @@ export.forward.128
 
 	push.0.0.0.0.0.0.0.0
 
-	locaddr.63
+	locaddr.64
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -7605,9 +7660,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.95
+	locaddr.32
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.2
@@ -7684,9 +7739,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.111
+	locaddr.16
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.4
@@ -7783,9 +7838,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.119
+	locaddr.8
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.8
@@ -7922,9 +7977,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.123
+	locaddr.4
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.16
@@ -8077,9 +8132,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.125
+	locaddr.2
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.32
@@ -8201,9 +8256,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.126
+	locaddr.1
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -8315,9 +8370,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.126
+	locaddr.1
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -8439,9 +8494,9 @@ export.forward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.126
+	locaddr.1
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -8506,7 +8561,7 @@ export.forward.128
 	# starting at 👇; total 128 consecutive addresses are used for storing
 	# whole polynomial ( of degree 512 )
 
-	locaddr.127
+	locaddr.0
 end
 
 # Applies four inverse NTT butterflies on four different indices, given following stack state
@@ -8651,7 +8706,7 @@ end
 export.backward.128
 	# prepare input
 
-	locaddr.127
+	locaddr.0
 	push.0.0.0.0
 
 	repeat.128
@@ -8744,9 +8799,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.126
+	locaddr.1
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -8877,9 +8932,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.126
+	locaddr.1
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -9001,9 +9056,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.126
+	locaddr.1
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -9146,9 +9201,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.125
+	locaddr.2
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.32
@@ -9285,9 +9340,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.123
+	locaddr.4
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.16
@@ -9384,9 +9439,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.119
+	locaddr.8
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.8
@@ -9463,9 +9518,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.111
+	locaddr.16
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.4
@@ -9532,9 +9587,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.95
+	locaddr.32
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.2
@@ -9596,9 +9651,9 @@ export.backward.128
 	push.0.0.0.0
 	dupw
 
-	locaddr.63
+	locaddr.64
 	movdn.8
-	locaddr.127
+	locaddr.0
 	movdn.8
 
 	repeat.64
@@ -9641,7 +9696,7 @@ export.backward.128
 
 	dropw
 
-	locaddr.127
+	locaddr.0
 	movdn.4
 
 	repeat.128
@@ -9665,7 +9720,7 @@ export.backward.128
 	# starting at 👇; total 128 consecutive addresses are used for storing
 	# whole polynomial ( of degree 512 )
 
-    locaddr.127
+    locaddr.0
 end
 "),
 // ----- std::math::poly512 -----------------------------------------------------------------------
@@ -9978,7 +10033,7 @@ end
 export.mul_zq.128
     exec.ntt512::forward
 
-    locaddr.127
+    locaddr.0
     push.0.0.0.0
 
     repeat.128
@@ -10003,7 +10058,7 @@ export.mul_zq.128
 
     exec.ntt512::forward
 
-    locaddr.127
+    locaddr.0
     push.0.0.0.0.0.0.0.0
 
     repeat.128
@@ -10036,7 +10091,7 @@ export.mul_zq.128
     drop
     drop
 
-    locaddr.127
+    locaddr.0
 
     exec.ntt512::backward
 
@@ -10203,11 +10258,11 @@ end
 #
 # Note, input memory addresses are considered to be read-only, they are not mutated.
 export.sub_zq.128
-    locaddr.127
+    locaddr.0
     movup.2
     exec.neg_zq
 
-    locaddr.127
+    locaddr.0
     exec.add_zq
 end
 "),
@@ -15169,12 +15224,13 @@ end
 
 # Performs left shift of one unsigned 64-bit integer using the pow2 operation.
 # The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value is assumed to be in the range [0, 64).
+# The shift value should be in the range [0, 64), otherwise it will result in an
+# error.
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 50 cycles.
+# This takes 28 cycles.
 export.unchecked_shl
-    unchecked_pow2
+    pow2
     u32split
     exec.wrapping_mul
 end
@@ -15182,12 +15238,13 @@ end
 
 # Performs right shift of one unsigned 64-bit integer using the pow2 operation.
 # The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value is assumed to be in the range [0, 64).
+# The shift value should be in the range [0, 64), otherwise it will result in an
+# error.
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a >> b.
-# This takes 66 cycles.
+# This takes 44 cycles.
 export.unchecked_shr
-    unchecked_pow2
+    pow2
     u32split
 
     dup.1
@@ -15221,13 +15278,14 @@ end
 # Performs left shift of one unsigned 64-bit integer preserving the overflow and
 # using the pow2 operation.
 # The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value is assumed to be in the range [0, 64).
+# The shift value should be in the range [0, 64), otherwise it will result in an
+# error.
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where (d,c) = a << b,
 # which d contains the bits shifted out.
-# This takes 57 cycles.
+# This takes 35 cycles.
 export.overflowing_shl
-    unchecked_pow2
+    pow2
     u32split
     exec.overflowing_mul
 end
@@ -15235,10 +15293,11 @@ end
 # Performs right shift of one unsigned 64-bit integer preserving the overflow and
 # using the pow2 operation.
 # The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value is assumed to be in the range [0, 64).
+# The shift value should be in the range [0, 64), otherwise it will result in an
+# error.
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where c = a >> b, d = a << (64 - b).
-# This takes 138 cycles.
+# This takes 94 cycles.
 export.overflowing_shr
     push.64             # (64 - b)
     dup.1
@@ -15266,10 +15325,11 @@ end
 
 # Performs left rotation of one unsigned 64-bit integer using the pow2 operation.
 # The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value is assumed to be in the range [0, 64).
+# The shift value should be in the range [0, 64), otherwise it will result in an
+# error.
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 57 cycles.
+# This takes 35 cycles.
 export.unchecked_rotl
     push.31
     dup.1
@@ -15281,7 +15341,7 @@ export.unchecked_rotl
     # Shift the low limb.
     push.31
     u32checked_and
-    unchecked_pow2
+    pow2
     dup
     movup.3
     u32overflowing_mul
@@ -15303,10 +15363,11 @@ end
 
 # Performs right rotation of one unsigned 64-bit integer using the pow2 operation.
 # The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value is assumed to be in the range [0, 64).
+# The shift value should be in the range [0, 64), otherwise it will result in an
+# error.
 # Stack transition looks as follows:
 # [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 62 cycles.
+# This takes 40 cycles.
 export.unchecked_rotr
     push.31
     dup.1
@@ -15322,7 +15383,7 @@ export.unchecked_rotr
     swap
     u32overflowing_sub
     drop
-    unchecked_pow2
+    pow2
     dup
     movup.3
     u32overflowing_mul

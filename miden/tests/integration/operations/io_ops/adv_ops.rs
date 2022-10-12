@@ -4,7 +4,7 @@ use super::{build_op_test, TestError};
 // ================================================================================================
 
 #[test]
-fn push_adv() {
+fn adv_push() {
     let asm_op = "adv_push";
     let advice_tape = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
     let test_n = |n: usize| {
@@ -25,7 +25,7 @@ fn push_adv() {
 }
 
 #[test]
-fn push_adv_invalid() {
+fn adv_push_invalid() {
     // attempting to read from empty advice tape should throw an error
     let test = build_op_test!("adv_push.1");
     test.expect_error(TestError::ExecutionError("EmptyAdviceTape"));
@@ -35,7 +35,7 @@ fn push_adv_invalid() {
 // ================================================================================================
 
 #[test]
-fn loadw_adv() {
+fn adv_loadw() {
     let asm_op = "adv_loadw";
     let advice_tape = [1, 2, 3, 4];
     let mut final_stack = advice_tape;
@@ -46,7 +46,7 @@ fn loadw_adv() {
 }
 
 #[test]
-fn loadw_adv_invalid() {
+fn adv_loadw_invalid() {
     // attempting to read from empty advice tape should throw an error
     let test = build_op_test!("adv_loadw", &[0, 0, 0, 0]);
     test.expect_error(TestError::ExecutionError("EmptyAdviceTape"));

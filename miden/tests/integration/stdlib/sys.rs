@@ -1,7 +1,7 @@
 use super::build_test;
 use proptest::prelude::*;
 use rand_utils::rand_vector;
-use vm_core::MIN_STACK_DEPTH;
+use vm_core::stack::STACK_TOP_SIZE;
 
 #[test]
 fn truncate_stack() {
@@ -15,7 +15,7 @@ fn truncate_stack() {
 
 proptest! {
     #[test]
-    fn truncate_stack_proptest(test_values in prop::collection::vec(any::<u64>(), MIN_STACK_DEPTH), n in 1_usize..100) {
+    fn truncate_stack_proptest(test_values in prop::collection::vec(any::<u64>(), STACK_TOP_SIZE), n in 1_usize..100) {
         let mut push_values = rand_vector::<u64>(n);
         let mut source_vec = vec!["use.std::sys".to_string(), "begin".to_string()];
         for value in push_values.iter() {
@@ -28,7 +28,7 @@ proptest! {
         let mut expected_values = test_values.clone();
         expected_values.append(&mut push_values);
         expected_values.reverse();
-        expected_values.truncate(MIN_STACK_DEPTH);
+        expected_values.truncate(STACK_TOP_SIZE);
         build_test!(source, &test_values).prop_expect_stack(&expected_values)?;
     }
 }

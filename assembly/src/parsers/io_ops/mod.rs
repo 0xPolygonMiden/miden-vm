@@ -24,17 +24,19 @@ mod mem_ops;
 /// - adv.u64div: this operation interprets four elements at the top of the stack as two 64-bit
 ///   values (represented by 32-bit limbs), divides one value by another, and injects the quotient
 ///   and the remainder into the advice tape.
+/// - adv.keyval: this operation reads four elements at the top of the stack, uses it as a key to
+///   take vector from key-value map and injects elements of this vector into the advice tape.
 pub fn parse_adv_inject(
     span_ops: &mut [Operation],
     op: &Token,
     decorators: &mut DecoratorList,
 ) -> Result<(), AssemblyError> {
-    validate_operation!(op, "adv.u64div");
     match op.parts()[1] {
         "u64div" => decorators.push((
             span_ops.len(),
             Decorator::Advice(AdviceInjector::DivResultU64),
         )),
+        "keyval" => decorators.push((span_ops.len(), Decorator::Advice(AdviceInjector::MapValue))),
         _ => return Err(AssemblyError::invalid_op(op)),
     };
 

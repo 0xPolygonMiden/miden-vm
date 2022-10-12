@@ -176,3 +176,43 @@ To satisfy the above constraints, the prover must populate the value of helper r
 
 The effect on the rest of the stack is:
 * **No change** starting from position $1$.
+
+## EXPACC
+The `EXPACC` operation pops top $4$ elements from the top of the stack, performs a single round of exponent aggregation, and pushes the resulting $4$ values onto the stack. The diagram below illustrates this graphically.
+
+![eqz](../../assets/design/stack/field_operations/EXPACC.png)
+
+Stack transition for this operation must satisfy the following constraints:
+
+`bit` should be a binary.
+
+>$$
+s_0'^{2} - s_0' = 0 \text{ | degree} = 2
+$$
+
+The `exp` in the next frame should be the square of the `exp` in the current frame.
+
+>$$
+s_1' - s_1^{2} = 0 \text{ | degree} = 2
+$$
+
+The value `val` in the helper register is computed correctly using the `bit` and `exp` in next and current frame respectively.
+
+>$$
+h_0 - ((s_1 - 1) * s_0' + 1) = 0 \text{ | degree} = 2
+$$
+
+The `acc` in the next frame is the product of `val` and `acc` in the current frame.
+
+>$$
+s_2' - s_2 * h_0 = 0 \text{ | degree} = 2
+$$
+
+`b` in the next frame is the right shift of `b` in the current frame.
+
+>$$
+s_3' - (s_3 * 2 + s_0')  = 0 \text{ | degree} = 1
+$$
+
+The effect on the rest of the stack is:
+* **No change** starting from position $4$.

@@ -12,10 +12,13 @@ pub mod errors;
 pub mod range;
 pub mod stack;
 
-pub use math::{fields::f64::BaseElement as Felt, ExtensionOf, FieldElement, StarkField};
+pub use math::{
+    fields::{f64::BaseElement as Felt, QuadExtension},
+    ExtensionOf, FieldElement, StarkField,
+};
 
 mod program;
-pub use program::{blocks as code_blocks, CodeBlockTable, Library, Program};
+pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Library, Program};
 
 mod operations;
 pub use operations::{
@@ -36,7 +39,7 @@ use utils::range;
 
 pub type Word = [Felt; 4];
 
-pub type StackTopState = [Felt; MIN_STACK_DEPTH];
+pub type StackTopState = [Felt; stack::STACK_TOP_SIZE];
 
 // CONSTANTS
 // ================================================================================================
@@ -49,13 +52,6 @@ pub const ONE: Felt = Felt::ONE;
 
 /// The minimum length of the execution trace. This is the minimum required to support range checks.
 pub const MIN_TRACE_LEN: usize = 1024;
-
-/// The minimum stack depth enforced by the VM. This is also the number of stack registers which can
-/// be accessed by the VM directly.
-pub const MIN_STACK_DEPTH: usize = 16;
-
-/// Number of bookkeeping and helper columns in the stack trace.
-pub const NUM_STACK_HELPER_COLS: usize = 3;
 
 // MAIN TRACE LAYOUT
 // ------------------------------------------------------------------------------------------------
@@ -79,7 +75,7 @@ pub const DECODER_TRACE_RANGE: Range<usize> = range(DECODER_TRACE_OFFSET, DECODE
 
 // Stack trace
 pub const STACK_TRACE_OFFSET: usize = DECODER_TRACE_RANGE.end;
-pub const STACK_TRACE_WIDTH: usize = MIN_STACK_DEPTH + NUM_STACK_HELPER_COLS;
+pub const STACK_TRACE_WIDTH: usize = 19;
 pub const STACK_TRACE_RANGE: Range<usize> = range(STACK_TRACE_OFFSET, STACK_TRACE_WIDTH);
 
 // Range check trace

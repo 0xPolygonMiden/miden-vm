@@ -36,6 +36,9 @@ pub enum Operation {
     /// Marks the beginning of a function call.
     Call,
 
+    /// Marks the beginning of a kernel call.
+    SysCall,
+
     /// Marks the beginning of a span code block.
     Span,
 
@@ -95,6 +98,21 @@ pub enum Operation {
     /// Pops an element off the stack and compares it to 0. If the element is 0, pushes 1 onto
     /// the stack, otherwise pushes 0 onto the stack.
     Eqz,
+
+    /// Computes a single turn of exponent accumulation for the given inputs. This operation can be
+    /// be used to compute a single turn of power of a field element.
+    ///
+    /// The top 4 elements of the stack are expected to be arranged as follows (form the top):
+    /// - least significant bit of the exponent in the previous trace if there's an expacc call,
+    /// otherwise ZERO
+    /// - exponent of base number `a` for this turn
+    /// - accumulated power of base number `a` so far
+    /// - number which needs to be shifted to the right
+    ///
+    /// At the end of the operation, exponent is replaced with its square, current value of power of base
+    /// number `a` on exponent is incorported into the accumulator and the number is shifted to the right
+    /// by one bit.
+    Expacc,
 
     // ----- u32 operations -----------------------------------------------------------------------
     /// Pops an element off the stack, splits it into upper and lower 32-bit values, and pushes
@@ -378,7 +396,7 @@ impl Operation {
             Self::MovUp3    => 0b0000_1100,
             Self::MovDn3    => 0b0000_1101,
             Self::ReadW     => 0b0000_1110,
-            // <empty>      => 0b0000_1111
+            Self::Expacc    => 0b0000_1111,
 
             Self::MovUp4    => 0b0001_0000,
             Self::MovDn4    => 0b0001_0001,
@@ -451,7 +469,7 @@ impl Operation {
 
             Self::MrUpdate(_) => 0b0110_0000,
             Self::Push(_)   => 0b0110_0100,
-            // <empty>      => 0b0110_1000
+            Self::SysCall   => 0b0110_1000,
             Self::Call      => 0b0110_1100,
             Self::End       => 0b0111_0000,
             Self::Repeat    => 0b0111_0100,
@@ -499,6 +517,7 @@ impl fmt::Display for Operation {
             Self::Split => write!(f, "split"),
             Self::Loop => write!(f, "loop"),
             Self::Call => writeln!(f, "call"),
+            Self::SysCall => writeln!(f, "syscall"),
             Self::Span => write!(f, "span"),
             Self::End => write!(f, "end"),
             Self::Repeat => write!(f, "repeat"),
@@ -518,6 +537,8 @@ impl fmt::Display for Operation {
 
             Self::Eq => write!(f, "eq"),
             Self::Eqz => write!(f, "eqz"),
+
+            Self::Expacc => write!(f, "expacc"),
 
             // ----- u32 operations ---------------------------------------------------------------
             Self::U32assert2 => write!(f, "u32assert2"),

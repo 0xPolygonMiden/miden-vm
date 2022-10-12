@@ -307,7 +307,7 @@ end
 export.mul_zq.128
     exec.ntt512::forward
 
-    locaddr.127
+    locaddr.0
     push.0.0.0.0
 
     repeat.128
@@ -332,7 +332,7 @@ export.mul_zq.128
 
     exec.ntt512::forward
 
-    locaddr.127
+    locaddr.0
     push.0.0.0.0.0.0.0.0
 
     repeat.128
@@ -365,7 +365,7 @@ export.mul_zq.128
     drop
     drop
 
-    locaddr.127
+    locaddr.0
 
     exec.ntt512::backward
 
@@ -532,10 +532,10 @@ end
 #
 # Note, input memory addresses are considered to be read-only, they are not mutated.
 export.sub_zq.128
-    locaddr.127
+    locaddr.0
     movup.2
     exec.neg_zq
 
-    locaddr.127
+    locaddr.0
     exec.add_zq
 end

@@ -14,10 +14,9 @@ use vm_core::{
         Call, CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
     utils::collections::{BTreeMap, Vec},
-    AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, Operation,
-    StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_STACK_DEPTH,
-    MIN_TRACE_LEN, NUM_STACK_HELPER_COLS, ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH,
-    SYS_TRACE_WIDTH, ZERO,
+    AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, Kernel,
+    Operation, StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN,
+    ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
 
 mod decorators;
@@ -161,7 +160,7 @@ impl Process {
             0,
             "a program has already been executed in this process"
         );
-        self.execute_code_block(program.root(), program.cb_table())?;
+        self.execute_code_block(program.root(), program.kernel(), program.cb_table())?;
 
         Ok(self.stack.get_outputs())
     }
@@ -176,13 +175,14 @@ impl Process {
     fn execute_code_block(
         &mut self,
         block: &CodeBlock,
+        kernel: &Kernel,
         cb_table: &CodeBlockTable,
     ) -> Result<(), ExecutionError> {
         match block {
-            CodeBlock::Join(block) => self.execute_join_block(block, cb_table),
-            CodeBlock::Split(block) => self.execute_split_block(block, cb_table),
-            CodeBlock::Loop(block) => self.execute_loop_block(block, cb_table),
-            CodeBlock::Call(block) => self.execute_call_block(block, cb_table),
+            CodeBlock::Join(block) => self.execute_join_block(block, kernel, cb_table),
+            CodeBlock::Split(block) => self.execute_split_block(block, kernel, cb_table),
+            CodeBlock::Loop(block) => self.execute_loop_block(block, kernel, cb_table),
+            CodeBlock::Call(block) => self.execute_call_block(block, kernel, cb_table),
             CodeBlock::Span(block) => self.execute_span_block(block),
             CodeBlock::Proxy(_) => Err(ExecutionError::UnexecutableCodeBlock(block.clone())),
         }
@@ -193,13 +193,14 @@ impl Process {
     fn execute_join_block(
         &mut self,
         block: &Join,
+        kernel: &Kernel,
         cb_table: &CodeBlockTable,
     ) -> Result<(), ExecutionError> {
         self.start_join_block(block)?;
 
         // execute first and then second child of the join block
-        self.execute_code_block(block.first(), cb_table)?;
-        self.execute_code_block(block.second(), cb_table)?;
+        self.execute_code_block(block.first(), kernel, cb_table)?;
+        self.execute_code_block(block.second(), kernel, cb_table)?;
 
         self.end_join_block(block)
     }
@@ -209,6 +210,7 @@ impl Process {
     fn execute_split_block(
         &mut self,
         block: &Split,
+        kernel: &Kernel,
         cb_table: &CodeBlockTable,
     ) -> Result<(), ExecutionError> {
         // start the SPLIT block; this also pops the stack and returns the popped element
@@ -216,9 +218,9 @@ impl Process {
 
         // execute either the true or the false branch of the split block based on the condition
         if condition == ONE {
-            self.execute_code_block(block.on_true(), cb_table)?;
+            self.execute_code_block(block.on_true(), kernel, cb_table)?;
         } else if condition == ZERO {
-            self.execute_code_block(block.on_false(), cb_table)?;
+            self.execute_code_block(block.on_false(), kernel, cb_table)?;
         } else {
             return Err(ExecutionError::NotBinaryValue(condition));
         }
@@ -231,6 +233,7 @@ impl Process {
     fn execute_loop_block(
         &mut self,
         block: &Loop,
+        kernel: &Kernel,
         cb_table: &CodeBlockTable,
     ) -> Result<(), ExecutionError> {
         // start the LOOP block; this also pops the stack and returns the popped element
@@ -239,7 +242,7 @@ impl Process {
         // if the top of the stack is ONE, execute the loop body; otherwise skip the loop body
         if condition == ONE {
             // execute the loop body at least once
-            self.execute_code_block(block.body(), cb_table)?;
+            self.execute_code_block(block.body(), kernel, cb_table)?;
 
             // keep executing the loop body until the condition on the top of the stack is no
             // longer ONE; each iteration of the loop is preceded by executing REPEAT operation
@@ -247,7 +250,7 @@ impl Process {
             while self.stack.peek() == ONE {
                 self.decoder.repeat();
                 self.execute_op(Operation::Drop)?;
-                self.execute_code_block(block.body(), cb_table)?;
+                self.execute_code_block(block.body(), kernel, cb_table)?;
             }
 
             // end the LOOP block and drop the condition from the stack
@@ -266,15 +269,21 @@ impl Process {
     fn execute_call_block(
         &mut self,
         block: &Call,
+        kernel: &Kernel,
         cb_table: &CodeBlockTable,
     ) -> Result<(), ExecutionError> {
+        // if this is a syscall, make sure the call target exists in the kernel
+        if block.is_syscall() && !kernel.contains_proc(block.fn_hash()) {
+            return Err(ExecutionError::SyscallTargetNotInKernel(block.fn_hash()));
+        }
+
         self.start_call_block(block)?;
 
         // get function body from the code block table and execute it
         let fn_body = cb_table
             .get(block.fn_hash())
             .ok_or_else(|| ExecutionError::CodeBlockNotFound(block.fn_hash()))?;
-        self.execute_code_block(fn_body, cb_table)?;
+        self.execute_code_block(fn_body, kernel, cb_table)?;
 
         self.end_call_block(block)
     }

@@ -149,6 +149,7 @@ fn composite_flags() {
 
         assert_eq!(op_flags.right_shift(), ZERO);
         assert_eq!(op_flags.left_shift(), ZERO);
+        assert_eq!(op_flags.top_binary(), ZERO);
 
         if op == Operation::MpVerify {
             assert_eq!(op_flags.control_flow(), ZERO);
@@ -184,6 +185,7 @@ fn composite_flags() {
     assert_eq!(op_flags.right_shift(), ZERO);
     assert_eq!(op_flags.left_shift(), ZERO);
     assert_eq!(op_flags.control_flow(), ZERO);
+    assert_eq!(op_flags.top_binary(), ZERO);
 
     // ------ no change 2 ---------------------------------------------------------------------
 
@@ -212,6 +214,7 @@ fn composite_flags() {
         assert_eq!(op_flags.right_shift(), ZERO);
         assert_eq!(op_flags.left_shift(), ZERO);
         assert_eq!(op_flags.control_flow(), ZERO);
+        assert_eq!(op_flags.top_binary(), ZERO);
     }
 
     // ------ no change 4 ---------------------------------------------------------------------
@@ -242,10 +245,8 @@ fn composite_flags() {
 
         assert_eq!(op_flags.right_shift(), ZERO);
         assert_eq!(op_flags.left_shift(), ZERO);
-
-        assert_eq!(op_flags.right_shift(), ZERO);
-        assert_eq!(op_flags.left_shift(), ZERO);
         assert_eq!(op_flags.control_flow(), ZERO);
+        assert_eq!(op_flags.top_binary(), ZERO);
     }
 
     // ------ No change 12 ---------------------------------------------------------------------
@@ -273,6 +274,7 @@ fn composite_flags() {
     assert_eq!(op_flags.right_shift(), ZERO);
     assert_eq!(op_flags.left_shift(), ZERO);
     assert_eq!(op_flags.control_flow(), ZERO);
+    assert_eq!(op_flags.top_binary(), ZERO);
 
     // ------ Left shift 1 ---------------------------------------------------------------------
 
@@ -298,10 +300,11 @@ fn composite_flags() {
     assert_eq!(op_flags.right_shift(), ZERO);
     assert_eq!(op_flags.left_shift(), ONE);
     assert_eq!(op_flags.control_flow(), ONE);
+    assert_eq!(op_flags.top_binary(), ZERO);
 
     // ------ Left shift 2 ---------------------------------------------------------------------
 
-    let op = Operation::Add;
+    let op = Operation::And;
     // frame initialised with an op operation.
     let frame = generate_evaluation_frame(op.op_code().into());
 
@@ -324,6 +327,7 @@ fn composite_flags() {
     assert_eq!(op_flags.right_shift(), ZERO);
     assert_eq!(op_flags.left_shift(), ONE);
     assert_eq!(op_flags.control_flow(), ZERO);
+    assert_eq!(op_flags.top_binary(), ONE);
 
     // ------ Left shift 2 ---------------------------------------------------------------------
 
@@ -351,6 +355,7 @@ fn composite_flags() {
     assert_eq!(op_flags.right_shift(), ZERO);
     assert_eq!(op_flags.left_shift(), ONE);
     assert_eq!(op_flags.control_flow(), ZERO);
+    assert_eq!(op_flags.top_binary(), ZERO);
 
     // ------ Left shift 5 ---------------------------------------------------------------------
 
@@ -380,6 +385,7 @@ fn composite_flags() {
     assert_eq!(op_flags.right_shift(), ZERO);
     assert_eq!(op_flags.left_shift(), ONE);
     assert_eq!(op_flags.control_flow(), ZERO);
+    assert_eq!(op_flags.top_binary(), ZERO);
 
     // ------ Right shift 0 ---------------------------------------------------------------------
 
@@ -427,6 +433,7 @@ fn composite_flags() {
             assert_eq!(op_flags.left_shift(), ZERO);
             assert_eq!(op_flags.control_flow(), ZERO);
         }
+        assert_eq!(op_flags.top_binary(), ZERO);
     }
 
     // ------ SWAPDX ---------------------------------------------------------------------
@@ -453,6 +460,7 @@ fn composite_flags() {
     assert_eq!(op_flags.right_shift(), ZERO);
     assert_eq!(op_flags.left_shift(), ZERO);
     assert_eq!(op_flags.control_flow(), ZERO);
+    assert_eq!(op_flags.top_binary(), ZERO);
 
     // ------ SWAPW2 ---------------------------------------------------------------------
 
@@ -482,6 +490,7 @@ fn composite_flags() {
     assert_eq!(op_flags.right_shift(), ZERO);
     assert_eq!(op_flags.left_shift(), ZERO);
     assert_eq!(op_flags.control_flow(), ZERO);
+    assert_eq!(op_flags.top_binary(), ZERO);
 
     // ------ SWAPW3 ---------------------------------------------------------------------
 
@@ -511,6 +520,7 @@ fn composite_flags() {
     assert_eq!(op_flags.right_shift(), ZERO);
     assert_eq!(op_flags.left_shift(), ZERO);
     assert_eq!(op_flags.control_flow(), ZERO);
+    assert_eq!(op_flags.top_binary(), ZERO);
 
     // ------ END operation -----------------------------------------------------------------------
 
@@ -538,6 +548,7 @@ fn composite_flags() {
     assert_eq!(op_flags.right_shift(), ZERO);
     assert_eq!(op_flags.left_shift(), ZERO);
     assert_eq!(op_flags.control_flow(), ONE);
+    assert_eq!(op_flags.top_binary(), ZERO);
 
     // ----------------------------------- left shift -----------------------------------------------
 
@@ -561,4 +572,5 @@ fn composite_flags() {
     assert_eq!(op_flags.right_shift(), ZERO);
     assert_eq!(op_flags.left_shift(), ONE);
     assert_eq!(op_flags.control_flow(), ONE);
+    assert_eq!(op_flags.top_binary(), ZERO);
 }

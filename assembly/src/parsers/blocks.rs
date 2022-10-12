@@ -49,6 +49,7 @@ enum BlockParser {
     Repeat(u32),
     Exec(String),
     Call(String),
+    SysCall(String),
 }
 
 impl BlockParser {
@@ -217,6 +218,12 @@ impl BlockParser {
             }
             // ------------------------------------------------------------------------------------
             Self::Call(label) => {
+                // making a function call in kernel context is not allowed
+                if context.in_kernel() {
+                    let token = tokens.read().expect("no syscall token");
+                    AssemblyError::call_in_kernel(token);
+                }
+
                 // retrieve the procedure block from the proc map and consume the 'call' token
                 let proc_block = context.get_proc_code(label).ok_or_else(|| {
                     AssemblyError::undefined_proc(tokens.read().expect("no call token"), label)
@@ -229,6 +236,28 @@ impl BlockParser {
                 }
 
                 Ok(CodeBlock::new_call(proc_block.hash()))
+            }
+            // ------------------------------------------------------------------------------------
+            Self::SysCall(label) => {
+                // making a syscall in kernel context is not allowed
+                if context.in_kernel() {
+                    let token = tokens.read().expect("no syscall token");
+                    AssemblyError::syscall_in_kernel(token);
+                }
+
+                // retrieve the procedure block from the proc map and consume the 'syscall' token
+                let proc_block = context.get_kernel_proc_code(label).ok_or_else(|| {
+                    let token = tokens.read().expect("no syscall token");
+                    AssemblyError::undefined_kernel_proc(token, label)
+                })?;
+                tokens.advance();
+
+                // if the procedure hasn't been inserted into code block table yet, insert it
+                if !cb_table.has(proc_block.hash()) {
+                    cb_table.insert(proc_block.clone());
+                }
+
+                Ok(CodeBlock::new_syscall(proc_block.hash()))
             }
         }
     }
@@ -261,6 +290,10 @@ impl BlockParser {
                 Token::CALL => {
                     let label = token.parse_call()?;
                     Some(Self::Call(label))
+                }
+                Token::SYSCALL => {
+                    let label = token.parse_syscall()?;
+                    Some(Self::SysCall(label))
                 }
                 Token::END => {
                     token.validate_end()?;

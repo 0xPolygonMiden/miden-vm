@@ -6,7 +6,7 @@ use vm_core::StarkField;
 // Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine raises
 // it to the power 2^n, by means of n successive squarings
 //
-// See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L461-L469
+// See https://github.com/pornin/ecext5/blob/ce059c6/python/ecExt5.py#L461-L469
 fn msquare(v: Felt, n: usize) -> Felt {
     let mut v_ = v;
     for _ in 0..n {
@@ -18,7 +18,7 @@ fn msquare(v: Felt, n: usize) -> Felt {
 // Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine raises
 // it to the power (p - 1) / 2
 //
-// See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L448-L459
+// See https://github.com/pornin/ecext5/blob/ce059c6/python/ecExt5.py#L448-L459
 fn legendre(v: Felt) -> Felt {
     let v0 = msquare(v, 31);
     let v1 = msquare(v0, 32);
@@ -98,7 +98,7 @@ fn sqrt(x: Felt) -> (Felt, Felt) {
 }
 
 #[derive(Copy, Clone, Debug)]
-struct GFp5 {
+struct Ext5 {
     pub a0: Felt,
     pub a1: Felt,
     pub a2: Felt,
@@ -106,7 +106,7 @@ struct GFp5 {
     pub a4: Felt,
 }
 
-impl GFp5 {
+impl Ext5 {
     #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
@@ -215,7 +215,7 @@ impl GFp5 {
         let e = e.inv();
 
         (
-            GFp5 {
+            Ext5 {
                 a0: e.a0 * s,
                 a1: e.a1 * s,
                 a2: e.a2 * s,
@@ -227,7 +227,7 @@ impl GFp5 {
     }
 }
 
-impl Add for GFp5 {
+impl Add for Ext5 {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -241,7 +241,7 @@ impl Add for GFp5 {
     }
 }
 
-impl Sub for GFp5 {
+impl Sub for Ext5 {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -255,7 +255,7 @@ impl Sub for GFp5 {
     }
 }
 
-impl Mul for GFp5 {
+impl Mul for Ext5 {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -284,7 +284,7 @@ impl Mul for GFp5 {
     }
 }
 
-impl Div for GFp5 {
+impl Div for Ext5 {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
@@ -293,16 +293,16 @@ impl Div for GFp5 {
 }
 
 #[test]
-fn test_gfp5_add() {
+fn test_ext5_add() {
     let source = "
-    use.std::math::gfp5
+    use.std::math::ext5
 
     begin
-        exec.gfp5::add
+        exec.ext5::add
     end";
 
-    let a = GFp5::rand();
-    let b = GFp5::rand();
+    let a = Ext5::rand();
+    let b = Ext5::rand();
     let c = a + b;
 
     let mut stack = [
@@ -330,16 +330,16 @@ fn test_gfp5_add() {
 }
 
 #[test]
-fn test_gfp5_sub() {
+fn test_ext5_sub() {
     let source = "
-    use.std::math::gfp5
+    use.std::math::ext5
 
     begin
-        exec.gfp5::sub
+        exec.ext5::sub
     end";
 
-    let a = GFp5::rand();
-    let b = GFp5::rand();
+    let a = Ext5::rand();
+    let b = Ext5::rand();
     let c = a - b;
 
     let mut stack = [
@@ -367,16 +367,16 @@ fn test_gfp5_sub() {
 }
 
 #[test]
-fn test_gfp5_mul() {
+fn test_ext5_mul() {
     let source = "
-    use.std::math::gfp5
+    use.std::math::ext5
 
     begin
-        exec.gfp5::mul
+        exec.ext5::mul
     end";
 
-    let a = GFp5::rand();
-    let b = GFp5::rand();
+    let a = Ext5::rand();
+    let b = Ext5::rand();
     let c = a * b;
 
     let mut stack = [
@@ -404,15 +404,15 @@ fn test_gfp5_mul() {
 }
 
 #[test]
-fn test_gfp5_square() {
+fn test_ext5_square() {
     let source = "
-    use.std::math::gfp5
+    use.std::math::ext5
 
     begin
-        exec.gfp5::square
+        exec.ext5::square
     end";
 
-    let a = GFp5::rand();
+    let a = Ext5::rand();
     let b = a.square();
 
     let mut stack = [
@@ -435,15 +435,15 @@ fn test_gfp5_square() {
 }
 
 #[test]
-fn test_gfp5_inv() {
+fn test_ext5_inv() {
     let source = "
-    use.std::math::gfp5
+    use.std::math::ext5
 
     begin
-        exec.gfp5::inv
+        exec.ext5::inv
     end";
 
-    let a = GFp5::rand();
+    let a = Ext5::rand();
     let b = a.inv();
 
     let mut stack = [
@@ -466,16 +466,16 @@ fn test_gfp5_inv() {
 }
 
 #[test]
-fn test_gfp5_div() {
+fn test_ext5_div() {
     let source = "
-    use.std::math::gfp5
+    use.std::math::ext5
 
     begin
-        exec.gfp5::div
+        exec.ext5::div
     end";
 
-    let a = GFp5::rand();
-    let b = GFp5::rand();
+    let a = Ext5::rand();
+    let b = Ext5::rand();
     let c = a / b;
 
     let mut stack = [
@@ -503,15 +503,15 @@ fn test_gfp5_div() {
 }
 
 #[test]
-fn test_gfp5_legendre() {
+fn test_ext5_legendre() {
     let source = "
-    use.std::math::gfp5
+    use.std::math::ext5
 
     begin
-        exec.gfp5::legendre
+        exec.ext5::legendre
     end";
 
-    let a = GFp5::rand();
+    let a = Ext5::rand();
     let b = a.legendre();
 
     let mut stack = [
@@ -530,15 +530,15 @@ fn test_gfp5_legendre() {
 }
 
 #[test]
-fn test_gfp5_sqrt() {
+fn test_ext5_sqrt() {
     let source = "
-    use.std::math::gfp5
+    use.std::math::ext5
 
     begin
-        exec.gfp5::sqrt
+        exec.ext5::sqrt
     end";
 
-    let a = GFp5::rand();
+    let a = Ext5::rand();
     let (b, c) = a.sqrt();
 
     let mut stack = [
