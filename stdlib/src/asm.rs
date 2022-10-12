@@ -213,34 +213,36 @@ end
 
 # Falcon-512 Digital Signature Verification routine
 #
-# Given four degree-512 polynomials, using absolute memory addresses on stack ( i.e. 
-# 512 memory addresses will be placed on stack ), this routine checks whether it's a valid
-# Falcon signature or not.
+# Given four degree-511 polynomials, using initial absolute memory addresses on stack, 
+# this routine checks whether it's a valid Falcon signature or not.
 #
-# Four degree-512 polynomials, which are provided ( in order )
+# Four degree-511 polynomials, which are provided ( in order )
 #
 # f = [f0, f1, ..., f510, f511] -> decompressed Falcon-512 signature
 # g = [g0, g1, ..., g510, g511] -> public key used for signing input message
 # h = [h0, h1, ..., h510, h511] -> input message hashed using SHAKE256 XOF and converted to polynomial
 # k = [k0, k1, ..., k510, k511] -> [abs(i) for i in f] | abs(a) = a < 0 ? 0 - a : a
 #
-# Each of these polynomials are represented using 128 absolute memory addresses, each holding
-# four consecutive coefficients such as
+# Each of these polynomials are represented using starting absolute memory address. Contiguous 127 
+# memory addresses can be computed by repeated application of INCR instruction ( read add.1 ) on previous
+# absolute memory address.
 #
 # f`i` holds f[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
+# g`i` holds g[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
+# h`i` holds h[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
+# k`i` holds k[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
 #
 # Expected stack state :
 #
-# [f_addr0, f_addr1, ..., f_addr126, f_addr127, g_addr0, g_addr1, ..., g_addr126, g_addr127, 
-#  h_addr0, h_addr1, ..., h_addr126, h_addr127, k_addr0, k_addr1, ..., k_addr126, k_addr127, ...] | 512 absolute memory addresses
+# [f_start_addr, g_start_addr, h_start_addr, k_start_addr, ...]
 #
 # After execution of verification routine, stack looks like
 #
 # [ ... ]
 #
-# If verification fails, program execution just stops, due to asserting failure !
+# If verification fails, program panics, due to failure in assertion !
 #
-# Note, none of these input memory addresses ( 512 of them ) are mutated during execution of verification routine.
+# Note, input memory addresses are considered to be immutable.
 export.verify.257
     locaddr.0
     movdn.2
