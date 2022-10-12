@@ -35,7 +35,7 @@ impl Process {
         let addr = self.stack.get(0);
         let word = self.chiplets.read_mem(ctx, addr);
 
-        // update the stack state
+        // reverse the order of the memory word & update the stack state
         for (i, &value) in word.iter().rev().enumerate() {
             self.stack.set(i, value);
         }
@@ -54,20 +54,23 @@ impl Process {
     /// - The first element of the word retrieved from memory is pushed to the top of the stack.
     ///
     /// The first 3 helper registers are filled with the elements of the word which were not pushed
-    /// to the stack.
+    /// to the stack. They are stored in stack order, with the last element of the word in helper
+    /// register 0.
     pub(super) fn op_mload(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and read the word from memory
         let ctx = self.system.ctx();
         let addr = self.stack.get(0);
-        let word = self.chiplets.read_mem(ctx, addr);
+        let mut word = self.chiplets.read_mem(ctx, addr);
+        // put the retrieved word into stack order
+        word.reverse();
 
         // update the stack state
-        self.stack.set(0, word[0]);
+        self.stack.set(0, word[3]);
         self.stack.copy_state(1);
 
         // write the 3 unused elements to the helpers so they're available for constraint evaluation
         self.decoder
-            .set_user_op_helpers(Operation::MLoad, &word[1..]);
+            .set_user_op_helpers(Operation::MLoad, &word[..3]);
 
         Ok(())
     }
@@ -80,14 +83,12 @@ impl Process {
     ///   removed from the stack.
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
-    ///
-    /// The first 4 helper registers are filled with the values which were stored in memory before
-    /// the operation.
     pub(super) fn op_mstorew(&mut self) -> Result<(), ExecutionError> {
         // get the address from the stack and build the word to be saved from the stack values
         let ctx = self.system.ctx();
         let addr = self.stack.get(0);
 
+        // build the word in memory order (reverse of stack order)
         let word = [
             self.stack.get(4),
             self.stack.get(3),
@@ -98,7 +99,7 @@ impl Process {
         // write the word to memory and get the previous word
         self.chiplets.write_mem(ctx, addr, word);
 
-        // update the stack state
+        // reverse the order of the memory word & update the stack state
         for (i, &value) in word.iter().rev().enumerate() {
             self.stack.set(i, value);
         }
@@ -117,8 +118,9 @@ impl Process {
     ///
     /// Thus, the net result of the operation is that the stack is shifted left by one item.
     ///
-    /// The first 4 helper registers are filled with the values which were stored in memory before
-    /// the operation.
+    /// The first 3 helper registers are filled with the remaining elements of the word which were
+    /// previously stored in memory and not overwritten by the operation. They are stored in stack
+    /// order, with the last element at helper register 0.
     pub(super) fn op_mstore(&mut self) -> Result<(), ExecutionError> {
         // get the address and the value from the stack
         let ctx = self.system.ctx();
@@ -126,11 +128,13 @@ impl Process {
         let value = self.stack.get(1);
 
         // write the value to the memory and get the previous word
-        let old_word = self.chiplets.write_mem_single(ctx, addr, value);
+        let mut old_word = self.chiplets.write_mem_single(ctx, addr, value);
+        // put the retrieved word into stack order
+        old_word.reverse();
 
         // write the 3 unused elements to the helpers so they're available for constraint evaluation
         self.decoder
-            .set_user_op_helpers(Operation::MStore, &old_word[1..]);
+            .set_user_op_helpers(Operation::MStore, &old_word[..3]);
 
         // update the stack state
         self.stack.shift_left(1);
