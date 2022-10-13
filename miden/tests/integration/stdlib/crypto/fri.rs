@@ -5,11 +5,11 @@ use air::StarkField;
 use math::log2;
 use miden::AdviceSet;
 use rand_utils::rand_value;
-use vm_core::QuadExtension;
 use serde_json_any_key::*;
 use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::Read;
+use vm_core::QuadExtension;
 
 mod data;
 use data::*;
@@ -103,10 +103,7 @@ fn fold_2() {
         Felt::new(rand_value::<u64>()),
         Felt::new(rand_value::<u64>()),
     );
-    let d = ExtElement::new(
-        Felt::new(rand_value::<u64>()),
-        Felt::new(0),
-    );
+    let d = ExtElement::new(Felt::new(rand_value::<u64>()), Felt::new(0));
 
     let arr_a = vec![a];
     let arr_a = ExtElement::as_base_elements(&arr_a);
@@ -130,7 +127,7 @@ fn fold_2() {
             arr_a[1].as_int()
         ]
     );
-    let result = (a + b + ((a - b) * c / d))/two;
+    let result = (a + b + ((a - b) * c / d)) / two;
 
     let arr_r = vec![result];
     let arr_r = ExtElement::as_base_elements(&arr_r);
@@ -145,7 +142,7 @@ fn next_pos_exp() {
         begin
             exec.fri::next_pos_exp
         end";
-    
+
     let nor = Felt::new(18446744069414584320);
     let offset = Felt::new(7);
     // --- simple case 1----------------------------------------------------------------------------
@@ -203,7 +200,8 @@ fn prepare_next() {
 
     let test = build_test!(
         source,
-        &[  add_p.as_int(),
+        &[
+            add_p.as_int(),
             poe.as_int(),
             d.as_int(),
             p.as_int(),
@@ -235,7 +233,7 @@ fn prepare_next() {
         poe.as_int(),
         a1.as_int(),
         a0.as_int(),
-        (add_p - Felt::new(2)).as_int()
+        (add_p - Felt::new(2)).as_int(),
     ]);
 }
 
@@ -281,7 +279,6 @@ fn prepare_advice(
     let mut mp_set_all = vec![];
     let mut depth = depth as u32;
     for c in COM[..10].iter() {
-        
         let set = map.get(&c.to_vec()).unwrap();
         let mut indices = vec![];
         let mut paths = vec![];
@@ -292,7 +289,7 @@ fn prepare_advice(
             paths.push(to_path(&v[1..]));
             values.push(to_word(&v[0]));
         });
-        let mp_set = AdviceSet::new_merkle_path_set(indices,values,paths,depth).unwrap();
+        let mp_set = AdviceSet::new_merkle_path_set(indices, values, paths, depth).unwrap();
 
         depth -= 1;
         mp_set_all.push(mp_set);
