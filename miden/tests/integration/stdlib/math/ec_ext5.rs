@@ -99,6 +99,21 @@ impl ECExt5 {
             c,
         )
     }
+
+    // Given an elliptic curve point as Weierstraß coordinates (X, Y), this routine
+    // encodes it to single element ∈ GF(p^5) | p = 2^64 - 2^32 + 1
+    //
+    // See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1214-L1216 for reference implementation
+    pub fn encode(self) -> Ext5 {
+        let w = self.y / (Self::adiv3() - self.x);
+        let flg = self.point_at_infinity == Felt::ONE;
+
+        if flg {
+            Ext5::zero()
+        } else {
+            w
+        }
+    }
 }
 
 // Test vectors taken from https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1528-L1556
@@ -194,4 +209,55 @@ fn test_ec_ext5_point_decode(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, should
     assert_eq!(strace[10], point.point_at_infinity);
     assert_eq!(strace[11], flg);
     assert_eq!(strace[11], Felt::new(should_decode as u64));
+}
+
+// Test vectors taken from https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1528-L1548
+#[test_case(0, 0, 0, 0, 0; "[0] should decode")]
+#[test_case(12539254003028696409, 15524144070600887654, 15092036948424041984, 11398871370327264211, 10958391180505708567; "[1] should decode")]
+#[test_case(11001943240060308920, 17075173755187928434, 3940989555384655766, 15017795574860011099, 5548543797011402287; "[2] should decode")]
+#[test_case(246872606398642312, 4900963247917836450, 7327006728177203977, 13945036888436667069, 3062018119121328861; "[3] should decode")]
+#[test_case(8058035104653144162, 16041715455419993830, 7448530016070824199, 11253639182222911208, 6228757819849640866; "[4] should decode")]
+#[test_case(10523134687509281194, 11148711503117769087, 9056499921957594891, 13016664454465495026, 16494247923890248266; "[5] should decode")]
+#[test_case(12173306542237620, 6587231965341539782, 17027985748515888117, 17194831817613584995, 10056734072351459010; "[6] should decode")]
+#[test_case(9420857400785992333, 4695934009314206363, 14471922162341187302, 13395190104221781928, 16359223219913018041; "[7] should decode")]
+fn test_ec_ext5_point_encode(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64) {
+    let source = "
+    use.std::math::ec_ext5
+
+    begin
+        exec.ec_ext5::encode
+    end";
+
+    let w = Ext5::new(a0, a1, a2, a3, a4);
+    let (point, flg) = ECExt5::decode(w);
+
+    assert_eq!(flg, Felt::ONE);
+
+    let w_prime = point.encode();
+
+    assert_eq!(w, w_prime);
+
+    let mut stack = [
+        point.x.a0.as_int(),
+        point.x.a1.as_int(),
+        point.x.a2.as_int(),
+        point.x.a3.as_int(),
+        point.x.a4.as_int(),
+        point.y.a0.as_int(),
+        point.y.a1.as_int(),
+        point.y.a2.as_int(),
+        point.y.a3.as_int(),
+        point.y.a4.as_int(),
+        point.point_at_infinity.as_int(),
+    ];
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    assert_eq!(strace[0], w_prime.a0);
+    assert_eq!(strace[1], w_prime.a1);
+    assert_eq!(strace[2], w_prime.a2);
+    assert_eq!(strace[3], w_prime.a3);
+    assert_eq!(strace[4], w_prime.a4);
 }

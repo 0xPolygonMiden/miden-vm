@@ -1,5 +1,6 @@
 use super::{build_test, Felt};
 use ::air::FieldElement;
+use std::cmp::PartialEq;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use vm_core::StarkField;
 
@@ -344,6 +345,19 @@ impl Div for Ext5 {
 
     fn div(self, rhs: Self) -> Self::Output {
         self * rhs.inv()
+    }
+}
+
+impl PartialEq for Ext5 {
+    fn eq(&self, other: &Self) -> bool {
+        let flg0 = self.a0 == other.a0;
+        let flg1 = self.a1 == other.a1;
+        let flg2 = self.a2 == other.a2;
+        let flg3 = self.a3 == other.a3;
+        let flg4 = self.a4 == other.a4;
+
+        let flg = flg0 & flg1 & flg2 & flg3 & flg4;
+        flg
     }
 }
 

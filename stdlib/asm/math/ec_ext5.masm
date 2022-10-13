@@ -58,12 +58,12 @@ end
 #
 # Final state state 
 #
-# [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, flg]
+# [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, flg, ...]
 #
-# If `w` can be decoded, flg = 1
+# If `w` has be decoded, flg = 1
 # Else flg = 0 and x, y = (0, 0)
 #
-# Note, when w = (0, 0, 0, 0, 0), it can be successfully decoded to
+# Note, when w = (0, 0, 0, 0, 0), it will be successfully decoded to
 # point-at-infinity i.e. x, y = (0, 0) and flg = 1
 #
 # See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1022-L1041
@@ -171,4 +171,41 @@ export.decode
     end
 
     add.6148914689804861441 # = x
+end
+
+# Given an elliptic curve point as Weierstraß coordinates (X, Y) along with
+# boolean field element `inf`, denoting whether this is point-at-infinity or not, 
+# this routine encodes it to a single element ∈ GF(p^5) | p = 2^64 - 2^32 + 1
+#
+# Expected stack state 
+#
+# [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, ...]
+#
+# Final stack state 
+#
+# [w0, w1, w2, w3, w4, ...]
+#
+# Note, when inf = 1, encoded point w = (0, 0, 0, 0, 0)
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1214-L1216
+# for reference implementation.
+export.encode
+    push.0.0.0.0.6148914689804861441 # = a/ 3
+
+    exec.ext5::sub # = (a/ 3) - x
+
+    repeat.5
+        movup.9
+    end
+
+    exec.ext5::div # = w = y/ ((a/ 3) - x)
+
+    movup.5
+    if.true
+        repeat.5
+            drop
+        end
+
+        push.0.0.0.0.0
+    end
 end
