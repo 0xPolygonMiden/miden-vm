@@ -334,7 +334,11 @@ impl MemoryLookup {
 impl LookupTableRow for MemoryLookup {
     /// Reduces this row to a single field element in the field specified by E. This requires
     /// at least 9 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, _main_trace: &Matrix<Felt>, alphas: &[E]) -> E {
+    fn to_value<E: FieldElement<BaseField = Felt>>(
+        &self,
+        _main_trace: &Matrix<Felt>,
+        alphas: &[E],
+    ) -> E {
         let word_value = self
             .word
             .iter()

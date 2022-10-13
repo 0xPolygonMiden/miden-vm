@@ -90,7 +90,7 @@ pub trait LookupTableRow {
 pub fn build_lookup_table_row_values<E: FieldElement<BaseField = Felt>, R: LookupTableRow>(
     rows: &[R],
     main_trace: &Matrix<Felt>,
-    rand_values: &[E],    
+    rand_values: &[E],
 ) -> (Vec<E>, Vec<E>) {
     let mut row_values = unsafe { uninit_vector(rows.len()) };
     let mut inv_row_values = unsafe { uninit_vector(rows.len()) };
