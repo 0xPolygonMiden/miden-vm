@@ -6,7 +6,7 @@ use vm_core::StarkField;
 // Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine raises
 // it to the power 2^n, by means of n successive squarings
 //
-// See https://github.com/pornin/ecext5/blob/ce059c6/python/ecExt5.py#L461-L469
+// See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L461-L469
 fn msquare(v: Felt, n: usize) -> Felt {
     let mut v_ = v;
     for _ in 0..n {
@@ -18,7 +18,7 @@ fn msquare(v: Felt, n: usize) -> Felt {
 // Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine raises
 // it to the power (p - 1) / 2
 //
-// See https://github.com/pornin/ecext5/blob/ce059c6/python/ecExt5.py#L448-L459
+// See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L448-L459
 fn legendre(v: Felt) -> Felt {
     let v0 = msquare(v, 31);
     let v1 = msquare(v0, 32);
@@ -34,7 +34,7 @@ fn is_one(a: Felt) -> Felt {
     Felt::new((a == Felt::ONE) as u64)
 }
 
-fn bv_or(a: Felt, b: Felt) -> Felt {
+pub fn bv_or(a: Felt, b: Felt) -> Felt {
     let flg_a = (a == Felt::ZERO) | (a == Felt::ONE);
     let flg_b = (b == Felt::ZERO) | (b == Felt::ONE);
 
@@ -98,7 +98,7 @@ fn sqrt(x: Felt) -> (Felt, Felt) {
 }
 
 #[derive(Copy, Clone, Debug)]
-struct Ext5 {
+pub struct Ext5 {
     pub a0: Felt,
     pub a1: Felt,
     pub a2: Felt,
@@ -108,13 +108,43 @@ struct Ext5 {
 
 impl Ext5 {
     #[allow(dead_code)]
-    pub fn new() -> Self {
+    pub fn new(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64) -> Self {
+        Self {
+            a0: Felt::new(a0),
+            a1: Felt::new(a1),
+            a2: Felt::new(a2),
+            a3: Felt::new(a3),
+            a4: Felt::new(a4),
+        }
+    }
+
+    pub fn zero() -> Self {
         Self {
             a0: Felt::new(0),
             a1: Felt::new(0),
             a2: Felt::new(0),
             a3: Felt::new(0),
             a4: Felt::new(0),
+        }
+    }
+
+    pub fn from_int(a: u64) -> Self {
+        Self {
+            a0: Felt::new(a),
+            a1: Felt::new(0),
+            a2: Felt::new(0),
+            a3: Felt::new(0),
+            a4: Felt::new(0),
+        }
+    }
+
+    pub fn subk1(self, b: Felt) -> Self {
+        Self {
+            a0: self.a0,
+            a1: self.a1 - b,
+            a2: self.a2,
+            a3: self.a3,
+            a4: self.a4,
         }
     }
 
@@ -224,6 +254,17 @@ impl Ext5 {
             },
             c,
         )
+    }
+
+    pub fn is_zero(self) -> Felt {
+        let flg0 = self.a0 == Felt::ZERO;
+        let flg1 = self.a1 == Felt::ZERO;
+        let flg2 = self.a2 == Felt::ZERO;
+        let flg3 = self.a3 == Felt::ZERO;
+        let flg4 = self.a4 == Felt::ZERO;
+
+        let flg = flg0 & flg1 & flg2 & flg3 & flg4;
+        Felt::new(flg as u64)
     }
 }
 

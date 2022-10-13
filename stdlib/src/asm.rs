@@ -4,7 +4,7 @@
 ///
 /// Entries in the array are tuples containing module namespace and module source code.
 #[rustfmt::skip]
-pub const MODULES: [(&str, &str); 11] = [
+pub const MODULES: [(&str, &str); 12] = [
 // ----- std::crypto::hashes::blake3 --------------------------------------------------------------
 ("std::crypto::hashes::blake3", "# Initializes four memory addresses, provided for storing initial 4x4 blake3 
 # state matrix ( i.e. 16 elements each of 32 -bit ), for computing blake3 2-to-1 hash
@@ -5822,6 +5822,56 @@ export.hash
 
     exec.prepare_message_schedule_and_consume
     exec.consume_padding_message_schedule
+end
+"),
+// ----- std::math::ec_ext5 -----------------------------------------------------------------------
+("std::math::ec_ext5", "use.std::math::ext5
+
+# Given an encoded elliptic curve point `w` s.t. it's expressed using
+# an element ∈ GF(p^5) | p = 2^64 - 2^32 + 1, this routine verifies whether
+# given point can be successfully decoded or not
+#
+# Expected stack state 
+#
+# [w0, w1, w2, w3, w4, ...]
+#
+# Final stack state 
+#
+# [flg, ...]
+#
+# If w can be decoded, flg = 1
+# Else flg = 0
+#
+# Note, if w = (0, 0, 0, 0, 0), it can be successfully decoded to point 
+# at infinity i.e. flg = 1, in that case.
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1043-L1052
+# for reference implementation
+export.validate
+    repeat.5
+        dup.4
+    end
+
+    exec.ext5::square
+    sub.2 # = e
+
+    exec.ext5::square
+    swap
+    sub.1052
+    swap # = delta
+    
+    exec.ext5::legendre
+    eq.1
+    movdn.5
+
+    push.1
+    repeat.5
+        swap
+        eq.0
+        and
+    end
+
+    or
 end
 "),
 // ----- std::math::ext2 --------------------------------------------------------------------------

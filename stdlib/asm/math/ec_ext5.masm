@@ -1,0 +1,48 @@
+use.std::math::ext5
+
+# Given an encoded elliptic curve point `w` s.t. it's expressed using
+# an element ∈ GF(p^5) | p = 2^64 - 2^32 + 1, this routine verifies whether
+# given point can be successfully decoded or not
+#
+# Expected stack state 
+#
+# [w0, w1, w2, w3, w4, ...]
+#
+# Final stack state 
+#
+# [flg, ...]
+#
+# If w can be decoded, flg = 1
+# Else flg = 0
+#
+# Note, if w = (0, 0, 0, 0, 0), it can be successfully decoded to point 
+# at infinity i.e. flg = 1, in that case.
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1043-L1052
+# for reference implementation
+export.validate
+    repeat.5
+        dup.4
+    end
+
+    exec.ext5::square
+    sub.2 # = e
+
+    exec.ext5::square
+    swap
+    sub.1052
+    swap # = delta
+    
+    exec.ext5::legendre
+    eq.1
+    movdn.5
+
+    push.1
+    repeat.5
+        swap
+        eq.0
+        and
+    end
+
+    or
+end
