@@ -122,7 +122,6 @@ impl HasherTrace {
             self.append_row(selectors, &hasher_state, node_index);
         }
 
-        // TODO: remove this after the state is removed from the HasherLookup struct
         // copy the latest hasher state to the provided state slice
         for (state_col, hasher_col) in state.iter_mut().zip(hasher_state.iter()) {
             *state_col = *hasher_col

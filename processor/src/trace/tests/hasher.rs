@@ -66,9 +66,9 @@ fn hasher_p1_mr_update() {
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [
-        SiblingTableRow::new(Felt::new(index), path[0]).to_value(&alphas),
-        SiblingTableRow::new(Felt::new(index >> 1), path[1]).to_value(&alphas),
-        SiblingTableRow::new(Felt::new(index >> 2), path[2]).to_value(&alphas),
+        SiblingTableRow::new(Felt::new(index), path[0]).to_value(&trace.main_trace, &alphas),
+        SiblingTableRow::new(Felt::new(index >> 1), path[1]).to_value(&trace.main_trace, &alphas),
+        SiblingTableRow::new(Felt::new(index >> 2), path[2]).to_value(&trace.main_trace, &alphas),
     ];
 
     // make sure the first entry is ONE

@@ -74,7 +74,11 @@ impl<'a> TraceFragment<'a> {
 pub trait LookupTableRow {
     /// Returns a single element representing the row in the field defined by E. The value is
     /// computed using the provided random values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, rand_values: &[E]) -> E;
+    fn to_value<E: FieldElement<BaseField = Felt>>(
+        &self,
+        main_trace: &Matrix<Felt>,
+        rand_values: &[E],
+    ) -> E;
 }
 
 /// Computes values as well as inverse value for all specified lookup table rows.
@@ -85,7 +89,8 @@ pub trait LookupTableRow {
 /// computationally infeasible.
 pub fn build_lookup_table_row_values<E: FieldElement<BaseField = Felt>, R: LookupTableRow>(
     rows: &[R],
-    rand_values: &[E],
+    main_trace: &Matrix<Felt>,
+    rand_values: &[E],    
 ) -> (Vec<E>, Vec<E>) {
     let mut row_values = unsafe { uninit_vector(rows.len()) };
     let mut inv_row_values = unsafe { uninit_vector(rows.len()) };
@@ -98,7 +103,7 @@ pub fn build_lookup_table_row_values<E: FieldElement<BaseField = Felt>, R: Looku
         .zip(inv_row_values.iter_mut())
     {
         *inv_value = acc;
-        *value = row.to_value(rand_values);
+        *value = row.to_value(main_trace, rand_values);
         debug_assert_ne!(*value, E::ZERO, "row value cannot be ZERO");
 
         acc *= *value;
@@ -195,11 +200,11 @@ pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow, U: HintCycle> {
 
     /// Builds and returns row values and their inverses for all rows which were added to the
     /// lookup table managed by this column builder.
-    fn build_row_values<E>(&self, _main_trace: &Matrix<Felt>, alphas: &[E]) -> (Vec<E>, Vec<E>)
+    fn build_row_values<E>(&self, main_trace: &Matrix<Felt>, alphas: &[E]) -> (Vec<E>, Vec<E>)
     where
         E: FieldElement<BaseField = Felt>,
     {
-        build_lookup_table_row_values(self.get_table_rows(), alphas)
+        build_lookup_table_row_values(self.get_table_rows(), main_trace, alphas)
     }
 
     /// Returns the initial value in the auxiliary column. Default implementation of this method

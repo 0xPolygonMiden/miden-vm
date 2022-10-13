@@ -22,7 +22,12 @@ pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
 ) -> Vec<Vec<E>> {
     let p1 = build_aux_col_p1(main_trace, aux_trace_hints, rand_elements);
     let p2 = build_aux_col_p2(main_trace, aux_trace_hints, rand_elements);
-    let p3 = build_aux_col_p3(main_trace.num_rows(), aux_trace_hints, rand_elements);
+    let p3 = build_aux_col_p3(
+        main_trace.num_rows(),
+        aux_trace_hints,
+        rand_elements,
+        main_trace,
+    );
     vec![p1, p2, p3]
 }
 
@@ -38,7 +43,8 @@ fn build_aux_col_p1<E: FieldElement<BaseField = Felt>>(
 ) -> Vec<E> {
     // compute row values and their inverses for all rows that were added to the block stack table
     let table_rows = aux_trace_hints.block_stack_table_rows();
-    let (row_values, inv_row_values) = build_lookup_table_row_values(table_rows, alphas);
+    let (row_values, inv_row_values) =
+        build_lookup_table_row_values(table_rows, main_trace, alphas);
 
     // allocate memory for the running product column and set the initial value to ONE
     let mut result = unsafe { uninit_vector(main_trace.num_rows()) };
@@ -121,7 +127,8 @@ fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
 ) -> Vec<E> {
     // compute row values and their inverses for all rows that were added to the block hash table
     let table_rows = aux_trace_hints.block_hash_table_rows();
-    let (row_values, inv_row_values) = build_lookup_table_row_values(table_rows, alphas);
+    let (row_values, inv_row_values) =
+        build_lookup_table_row_values(table_rows, main_trace, alphas);
 
     // initialize memory for the running product column, and set the first value in the column to
     // the value of the first row (which represents an entry for the root block of the program)
@@ -227,6 +234,7 @@ fn build_aux_col_p3<E: FieldElement<BaseField = Felt>>(
     trace_len: usize,
     aux_trace_hints: &AuxTraceHints,
     alphas: &[E],
+    main_trace: &Matrix<Felt>,
 ) -> Vec<E> {
     // allocate memory for the column and set the starting value to ONE
     let mut result = unsafe { uninit_vector(trace_len) };
@@ -234,7 +242,7 @@ fn build_aux_col_p3<E: FieldElement<BaseField = Felt>>(
 
     // compute row values and their inverses for all rows which were added to the op group table
     let (row_values, inv_row_values) =
-        build_lookup_table_row_values(aux_trace_hints.op_group_table_rows(), alphas);
+        build_lookup_table_row_values(aux_trace_hints.op_group_table_rows(), main_trace, alphas);
 
     // keep track of indexes into the list of op group table rows separately for inserted and
     // removed rows
