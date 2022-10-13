@@ -1,6 +1,6 @@
 use super::{build_test, Felt};
 use ::air::FieldElement;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 use vm_core::StarkField;
 
 // Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine raises
@@ -278,6 +278,20 @@ impl Add for Ext5 {
             a2: self.a2 + rhs.a2,
             a3: self.a3 + rhs.a3,
             a4: self.a4 + rhs.a4,
+        }
+    }
+}
+
+impl Neg for Ext5 {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self {
+            a0: -self.a0,
+            a1: -self.a1,
+            a2: -self.a2,
+            a3: -self.a3,
+            a4: -self.a4,
         }
     }
 }

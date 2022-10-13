@@ -46,3 +46,129 @@ export.validate
 
     or
 end
+
+# Given an encoded elliptic curve point `w` s.t. it's expressed using
+# an element ∈ GF(p^5) | p = 2^64 - 2^32 + 1, this routine attempts to decode
+# it into x, y coordinates, along with boolean field element denoting whether it's
+# point-at-infinity or not.
+#
+# Expected stack state 
+#
+# [w0, w1, w2, w3, w4, ...]
+#
+# Final state state 
+#
+# [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, flg]
+#
+# If `w` can be decoded, flg = 1
+# Else flg = 0 and x, y = (0, 0)
+#
+# Note, when w = (0, 0, 0, 0, 0), it can be successfully decoded to
+# point-at-infinity i.e. x, y = (0, 0) and flg = 1
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1022-L1041
+# for reference implementation
+export.decode
+    repeat.5
+        dup.4
+    end
+
+    exec.ext5::square
+    sub.2 # = e
+
+    repeat.5
+        dup.4
+    end
+
+    exec.ext5::square
+    swap
+    sub.1052
+    swap # = delta
+
+    exec.ext5::sqrt # = (r, c)
+
+    repeat.5
+        dup.10
+    end
+
+    repeat.5
+        dup.9
+    end
+
+    exec.ext5::add
+    push.0.0.0.0.9223372034707292161
+    exec.ext5::mul # = x1
+
+    repeat.5
+        movup.9
+    end
+
+    repeat.5
+        movup.15
+    end
+
+    exec.ext5::sub
+    push.0.0.0.0.9223372034707292161
+    exec.ext5::mul # = x2
+
+    repeat.5
+        movup.9
+    end
+
+    repeat.5
+        dup.4
+    end
+
+    exec.ext5::legendre
+    eq.1
+
+    if.true
+        repeat.5
+            movup.5
+            drop
+        end
+    else
+        repeat.5
+            drop
+        end
+    end # = x
+
+    repeat.5
+        dup.10
+    end
+
+    repeat.5
+        dup.9
+    end
+
+    exec.ext5::mul
+    repeat.5
+        movup.4
+        neg
+    end # = y
+
+    dup.10
+    not # = inf
+
+    push.1
+    repeat.5
+        movup.13
+        eq.0
+        and
+    end
+
+    movup.12
+    or # = c
+
+    swap
+
+    repeat.5
+        movup.6
+    end
+
+    repeat.5
+        movup.11
+    end
+
+    add.6148914689804861441 # = x
+end

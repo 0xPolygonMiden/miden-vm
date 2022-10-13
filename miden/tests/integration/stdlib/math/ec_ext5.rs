@@ -29,7 +29,6 @@ impl ECExt5 {
     }
 
     // Taken from https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L999
-    #[allow(dead_code)]
     pub fn adiv3() -> Ext5 {
         Self::a() / Ext5::from_int(3)
     }
@@ -71,6 +70,33 @@ impl ECExt5 {
         bv_or(
             Felt::new((delta.legendre() == Felt::ONE) as u64),
             w.is_zero(),
+        )
+    }
+
+    // Given an encoded elliptic curve point, this routine attempts to decode it using
+    // algorithm described in https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1022-L1041
+    //
+    // You can find more details in section 3.3 of https://ia.cr/2022/274
+    pub fn decode(w: Ext5) -> (Self, Felt) {
+        let e = w.square() - Self::a();
+        let delta = e.square().subk1(Self::bmul4_1());
+        let (r, c) = delta.sqrt();
+        let x1 = (e + r) / Ext5::from_int(2);
+        let x2 = (e - r) / Ext5::from_int(2);
+
+        let flg = x1.legendre() == Felt::ONE;
+        let x = if flg { x1 } else { x2 };
+        let y = -w * x;
+        let inf = Felt::ONE - c;
+        let c = bv_or(c, w.is_zero());
+
+        (
+            ECExt5 {
+                x: x + Self::adiv3(),
+                y: y,
+                point_at_infinity: inf,
+            },
+            c,
         )
     }
 }
@@ -115,4 +141,57 @@ fn test_ec_ext5_point_validate(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, shou
 
     assert_eq!(strace[0], flg);
     assert_eq!(strace[0], Felt::new(should_validate as u64));
+}
+
+// Test vectors taken from https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1528-L1556
+#[test_case(0, 0, 0, 0, 0, true; "[0] should decode")]
+#[test_case(12539254003028696409, 15524144070600887654, 15092036948424041984, 11398871370327264211, 10958391180505708567, true; "[1] should decode")]
+#[test_case(11001943240060308920, 17075173755187928434, 3940989555384655766, 15017795574860011099, 5548543797011402287, true; "[2] should decode")]
+#[test_case(246872606398642312, 4900963247917836450, 7327006728177203977, 13945036888436667069, 3062018119121328861, true; "[3] should decode")]
+#[test_case(8058035104653144162, 16041715455419993830, 7448530016070824199, 11253639182222911208, 6228757819849640866, true; "[4] should decode")]
+#[test_case(10523134687509281194, 11148711503117769087, 9056499921957594891, 13016664454465495026, 16494247923890248266, true; "[5] should decode")]
+#[test_case(12173306542237620, 6587231965341539782, 17027985748515888117, 17194831817613584995, 10056734072351459010, true; "[6] should decode")]
+#[test_case(9420857400785992333, 4695934009314206363, 14471922162341187302, 13395190104221781928, 16359223219913018041, true; "[7] should decode")]
+#[test_case(13557832913345268708, 15669280705791538619, 8534654657267986396, 12533218303838131749, 5058070698878426028, false; "[8] should not decode")]
+#[test_case(135036726621282077, 17283229938160287622, 13113167081889323961, 1653240450380825271, 520025869628727862, false; "[9] should not decode")]
+#[test_case(6727960962624180771, 17240764188796091916, 3954717247028503753, 1002781561619501488, 4295357288570643789, false; "[10] should not decode")]
+#[test_case(4578929270179684956, 3866930513245945042, 7662265318638150701, 9503686272550423634, 12241691520798116285, false; "[11] should not decode")]
+#[test_case(16890297404904119082, 6169724643582733633, 9725973298012340311, 5977049210035183790, 11379332130141664883, false; "[12] should not decode")]
+#[test_case(13777379982711219130, 14715168412651470168, 17942199593791635585, 6188824164976547520, 15461469634034461986, false; "[13] should not decode")]
+fn test_ec_ext5_point_decode(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, should_decode: bool) {
+    let source = "
+    use.std::math::ec_ext5
+
+    begin
+        exec.ec_ext5::decode
+    end";
+
+    let w = Ext5::new(a0, a1, a2, a3, a4);
+    let (point, flg) = ECExt5::decode(w);
+
+    let mut stack = [
+        w.a0.as_int(),
+        w.a1.as_int(),
+        w.a2.as_int(),
+        w.a3.as_int(),
+        w.a4.as_int(),
+    ];
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    assert_eq!(strace[0], point.x.a0);
+    assert_eq!(strace[1], point.x.a1);
+    assert_eq!(strace[2], point.x.a2);
+    assert_eq!(strace[3], point.x.a3);
+    assert_eq!(strace[4], point.x.a4);
+    assert_eq!(strace[5], point.y.a0);
+    assert_eq!(strace[6], point.y.a1);
+    assert_eq!(strace[7], point.y.a2);
+    assert_eq!(strace[8], point.y.a3);
+    assert_eq!(strace[9], point.y.a4);
+    assert_eq!(strace[10], point.point_at_infinity);
+    assert_eq!(strace[11], flg);
+    assert_eq!(strace[11], Felt::new(should_decode as u64));
 }
