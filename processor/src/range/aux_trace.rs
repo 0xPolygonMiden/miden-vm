@@ -177,7 +177,7 @@ impl AuxTraceBuilder {
             p1_idx = clk + 1;
 
             // update the intermediate values in the q column.
-            q[clk] = range_checks.to_stack_value(alphas, main_trace);
+            q[clk] = range_checks.to_stack_value(main_trace, alphas);
 
             // include the operation lookups in the running product.
             p1[p1_idx] = p1[clk] * inv_row_values[rc_user_op_idx];
@@ -208,7 +208,7 @@ impl AuxTraceBuilder {
 
             if let Some(range_check) = self.cycle_range_checks.get(&(row_idx as u32)) {
                 // update the intermediate values in the q column.
-                q[row_idx] = range_check.to_stack_value(alphas, main_trace);
+                q[row_idx] = range_check.to_stack_value(main_trace, alphas);
 
                 // include the operation lookups in the running product.
                 p1[p1_idx] *= inv_row_values[rc_user_op_idx];

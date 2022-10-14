@@ -23,10 +23,10 @@ pub fn build_aux_columns<E: FieldElement<BaseField = Felt>>(
     let p1 = build_aux_col_p1(main_trace, aux_trace_hints, rand_elements);
     let p2 = build_aux_col_p2(main_trace, aux_trace_hints, rand_elements);
     let p3 = build_aux_col_p3(
+        main_trace,
         main_trace.num_rows(),
         aux_trace_hints,
         rand_elements,
-        main_trace,
     );
     vec![p1, p2, p3]
 }
@@ -231,10 +231,10 @@ fn build_aux_col_p2<E: FieldElement<BaseField = Felt>>(
 /// Builds the execution trace of the decoder's `p3` column which describes the state of the op
 /// group table via multiset checks.
 fn build_aux_col_p3<E: FieldElement<BaseField = Felt>>(
+    main_trace: &Matrix<Felt>,
     trace_len: usize,
     aux_trace_hints: &AuxTraceHints,
     alphas: &[E],
-    main_trace: &Matrix<Felt>,
 ) -> Vec<E> {
     // allocate memory for the column and set the starting value to ONE
     let mut result = unsafe { uninit_vector(trace_len) };
