@@ -114,6 +114,21 @@ impl ECExt5 {
             w
         }
     }
+
+    pub fn double(self) -> Self {
+        let lamb0 = Ext5::from_int(3) * self.x.square() + Self::a_prime();
+        let lamb1 = Ext5::from_int(2) * self.y;
+        let lamb = lamb0 / lamb1;
+
+        let x2 = lamb.square() - self.x * Ext5::from_int(2);
+        let y2 = lamb * (self.x - x2) - self.y;
+
+        Self {
+            x: x2,
+            y: y2,
+            point_at_infinity: self.point_at_infinity,
+        }
+    }
 }
 
 impl Add for ECExt5 {
@@ -400,4 +415,66 @@ fn test_ec_ext5_point_addition(
     assert_eq!(strace[8], q2.y.a3);
     assert_eq!(strace[9], q2.y.a4);
     assert_eq!(strace[10], q2.point_at_infinity);
+}
+
+// Test vectors taken from https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1528-L1548
+#[test_case(12539254003028696409, 15524144070600887654, 15092036948424041984, 11398871370327264211, 10958391180505708567, 8058035104653144162, 16041715455419993830, 7448530016070824199, 11253639182222911208, 6228757819849640866; "0")]
+#[test_case(11001943240060308920, 17075173755187928434, 3940989555384655766, 15017795574860011099, 5548543797011402287, 10523134687509281194, 11148711503117769087, 9056499921957594891, 13016664454465495026, 16494247923890248266; "1")]
+fn test_ec_ext5_point_doubling(
+    a0: u64,
+    a1: u64,
+    a2: u64,
+    a3: u64,
+    a4: u64,
+    b0: u64,
+    b1: u64,
+    b2: u64,
+    b3: u64,
+    b4: u64,
+) {
+    let source = "
+    use.std::math::ec_ext5
+
+    begin
+        exec.ec_ext5::double
+    end";
+
+    let w0 = Ext5::new(a0, a1, a2, a3, a4);
+    let w1 = Ext5::new(b0, b1, b2, b3, b4);
+
+    let (p0, _) = ECExt5::decode(w0);
+    let (p1, _) = ECExt5::decode(w1);
+
+    let q1 = p0.double();
+    assert_eq!(q1.encode(), p1.encode());
+
+    let mut stack = [
+        p0.x.a0.as_int(),
+        p0.x.a1.as_int(),
+        p0.x.a2.as_int(),
+        p0.x.a3.as_int(),
+        p0.x.a4.as_int(),
+        p0.y.a0.as_int(),
+        p0.y.a1.as_int(),
+        p0.y.a2.as_int(),
+        p0.y.a3.as_int(),
+        p0.y.a4.as_int(),
+        p0.point_at_infinity.as_int(),
+    ];
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    assert_eq!(strace[0], q1.x.a0);
+    assert_eq!(strace[1], q1.x.a1);
+    assert_eq!(strace[2], q1.x.a2);
+    assert_eq!(strace[3], q1.x.a3);
+    assert_eq!(strace[4], q1.x.a4);
+    assert_eq!(strace[5], q1.y.a0);
+    assert_eq!(strace[6], q1.y.a1);
+    assert_eq!(strace[7], q1.y.a2);
+    assert_eq!(strace[8], q1.y.a3);
+    assert_eq!(strace[9], q1.y.a4);
+    assert_eq!(strace[10], q1.point_at_infinity);
 }

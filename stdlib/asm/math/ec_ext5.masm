@@ -213,7 +213,7 @@ end
 # Given two elliptic curve points ( say a, b ) as Weierstraß coordinates (X, Y) on stack,
 # this routine computes elliptic curve point c, resulting from a + b.
 #
-# Following point addition formulas are complete and they work when two points are 
+# Following point addition formula is complete and it works when two points are 
 # same/ different or input operands are point-at-infinity.
 #
 # Expected stack state
@@ -475,5 +475,116 @@ export.add.10
     loc_load.9 # bring inf2
     cdrop
 
+    movdn.10
+end
+
+# Given one elliptic curve point ( say a ) as Weierstraß coordinates (X, Y) on stack,
+# this routine computes elliptic curve point b s.t. b = 2 * a.
+#
+# Following point doubling formula is complete and it works only when input operand is
+# a non-infinity point, then resulting point b should also be non-infinity.
+#
+# Note, result of add(a, b) = double(a) | a = b
+#
+# Expected stack state
+#
+# [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, ...]
+#
+# s.t. x{0..5} -> x, y{0..5} -> y |> a = (x, y, inf)
+#
+# Final stack state
+#
+# [x'0, x'1, x'2, x'3, x'4, y'0, y'1, y'2, y'3, y'4, inf, ...]
+#
+# Read point addition section ( on page 8 ) of https://ia.cr/2022/274
+# For reference implementation see https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1270-L1280
+export.double.5
+    loc_storew.0
+    dropw
+    loc_store.1 # cached x
+    drop
+
+    loc_storew.2
+    dropw
+    loc_store.3 # cached y
+    drop
+
+    loc_store.4 # cached inf
+    drop
+
+    loc_load.3
+    push.0.0.0.0
+    loc_loadw.2 # bring y
+
+    repeat.5
+        movup.4
+        mul.2
+    end # compute λ1
+
+    loc_load.1
+    push.0.0.0.0
+    loc_loadw.0 # bring x
+
+    exec.ext5::square
+
+    repeat.5
+        movup.4
+        mul.3
+    end
+
+    add.6148914689804861439
+    swap
+    add.263
+    swap # compute λ0
+
+    exec.ext5::div # compute λ
+
+    loc_load.1
+    push.0.0.0.0
+    loc_loadw.0 # bring x
+
+    repeat.5
+        movup.4
+        mul.2
+    end
+
+    repeat.5
+        dup.9
+    end
+
+    exec.ext5::square
+    exec.ext5::sub # compute x'
+
+    repeat.5
+        dup.4
+    end
+
+    loc_load.1
+    push.0.0.0.0
+    loc_loadw.0 # bring x
+
+    exec.ext5::sub
+
+    repeat.5
+        movup.14
+    end
+
+    exec.ext5::mul
+
+    loc_load.3
+    push.0.0.0.0
+    loc_loadw.2 # bring y
+
+    repeat.5
+        movup.9
+    end
+
+    exec.ext5::sub # compute y'
+
+    repeat.5
+        movup.9
+    end
+
+    loc_load.4
     movdn.10
 end
