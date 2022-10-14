@@ -6036,6 +6036,274 @@ export.encode
         push.0.0.0.0.0
     end
 end
+
+# Given two elliptic curve points ( say a, b ) as Weierstraß coordinates (X, Y) on stack,
+# this routine computes elliptic curve point c, resulting from a + b.
+#
+# Following point addition formulas are complete and they work when two points are 
+# same/ different or input operands are point-at-infinity.
+#
+# Expected stack state
+#
+# [x1_0, x1_1, x1_2, x1_3, x1_4, y1_0, y1_1, y1_2, y1_3, y1_4, inf1, x2_0, x2_1, x2_2, x2_3, x2_4, y2_0, y2_1, y2_2, y2_3, y2_4, inf2, ...]
+#
+# s.t. x1_{0..5} -> x1, y1_{0..5} -> y1 |> a = (x1, y1, inf1)
+#      x2_{0..5} -> x2, y2_{0..5} -> y2 |> b = (x2, y2, inf2)
+#
+# Final stack state
+#
+# [x3_0, x3_1, x3_2, x3_3, x3_4, y3_0, y3_1, y3_2, y3_3, y3_4, inf3, ...]
+#
+# Read point addition section ( on page 8 ) of https://ia.cr/2022/274
+# For reference implementation see https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1228-L1255
+export.add.10
+    loc_storew.0
+    dropw
+    loc_store.1 # cached x1
+    drop
+
+    loc_storew.2
+    dropw
+    loc_store.3 # cached y1
+    drop
+
+    loc_store.4 # cached inf1
+    drop
+
+    loc_storew.5
+    dropw
+    loc_store.6 # cached x2
+    drop
+
+    loc_storew.7
+    dropw
+    loc_store.8 # cached y2
+    drop
+
+    loc_store.9 # cached inf2
+    drop
+
+    loc_load.6
+    push.0.0.0.0
+    loc_loadw.5 # bring x2
+
+    loc_load.1
+    push.0.0.0.0
+    loc_loadw.0 # bring x1
+
+    exec.ext5::eq
+    dup
+
+    if.true
+        loc_load.1
+        push.0.0.0.0
+        loc_loadw.0 # bring x1
+
+        exec.ext5::square
+
+        repeat.5
+            movup.4
+            mul.3
+        end
+
+        add.6148914689804861439
+        swap
+        add.263
+        swap
+    else
+        loc_load.3
+        push.0.0.0.0
+        loc_loadw.2 # bring y1
+
+        loc_load.8
+        push.0.0.0.0
+        loc_loadw.7 # bring y2
+
+        exec.ext5::sub
+    end # = λ0
+
+    dup.5
+
+    if.true
+        loc_load.3
+        push.0.0.0.0
+        loc_loadw.2 # bring y1
+
+        repeat.5
+            movup.4
+            mul.2
+        end
+    else
+        loc_load.1
+        push.0.0.0.0
+        loc_loadw.0 # bring x1
+
+        loc_load.6
+        push.0.0.0.0
+        loc_loadw.5 # bring x2
+
+        exec.ext5::sub
+    end # = λ1
+
+    repeat.5
+        movup.9
+    end
+
+    exec.ext5::div # = λ
+
+    repeat.5
+        dup.4
+    end
+
+    exec.ext5::square # = λ^2
+
+    loc_load.6
+    push.0.0.0.0
+    loc_loadw.5 # bring x2
+
+    loc_load.1
+    push.0.0.0.0
+    loc_loadw.0 # bring x1
+
+    exec.ext5::add
+
+    repeat.5
+        movup.9
+    end
+
+    exec.ext5::sub # compute x3
+
+    repeat.5
+        dup.4
+    end
+
+    loc_load.1
+    push.0.0.0.0
+    loc_loadw.0 # bring x1
+
+    exec.ext5::sub
+
+    repeat.5
+        movup.14
+    end
+
+    exec.ext5::mul
+
+    loc_load.3
+    push.0.0.0.0
+    loc_loadw.2 # bring y1
+
+    repeat.5
+        movup.9
+    end
+
+    exec.ext5::sub # compute y3
+
+    movup.10
+
+    loc_load.3
+    push.0.0.0.0
+    loc_loadw.2 # bring y1
+
+    loc_load.8
+    push.0.0.0.0
+    loc_loadw.7 # bring y2
+
+    exec.ext5::neq
+
+    and # compute inf3
+
+    movdn.5
+
+    # finalize selection of y3
+
+    loc_load.8
+    push.0.0.0.0
+    loc_loadw.7 # bring y2
+
+    loc_load.4 # bring inf1
+
+    if.true
+        repeat.5
+            movup.5
+            drop
+        end
+    else
+        repeat.5
+            drop
+        end
+    end
+
+    loc_load.3
+    push.0.0.0.0
+    loc_loadw.2 # bring y1
+
+    loc_load.9 # bring inf2
+
+    if.true
+        repeat.5
+            movup.5
+            drop
+        end
+    else
+        repeat.5
+            drop
+        end
+    end
+
+    # finalize selection of x3
+
+    repeat.5
+        movup.10
+    end
+
+    loc_load.6
+    push.0.0.0.0
+    loc_loadw.5 # bring x2
+
+    loc_load.4 # bring inf1
+
+    if.true
+        repeat.5
+            movup.5
+            drop
+        end
+    else
+        repeat.5
+            drop
+        end
+    end
+
+    loc_load.1
+    push.0.0.0.0
+    loc_loadw.0 # bring x1
+
+    loc_load.9 # bring inf2
+
+    if.true
+        repeat.5
+            movup.5
+            drop
+        end
+    else
+        repeat.5
+            drop
+        end
+    end
+
+    # finalize selection of inf3
+
+    movup.10
+    loc_load.9 # bring inf2
+    loc_load.4 # bring inf1
+    cdrop
+
+    loc_load.4 # bring inf1
+    loc_load.9 # bring inf2
+    cdrop
+
+    movdn.10
+end
 "),
 // ----- std::math::ext2 --------------------------------------------------------------------------
 ("std::math::ext2", "# Given a stack with initial configuration given by [a1,a0,b1,b0,...] where a = (a0,a1) and
@@ -7674,6 +7942,94 @@ export.sqrt
 
     movup.5
     drop # On stack [e0, e1, e2, e3, e4, c, ...]
+end
+
+# Given two elements a, b ∈ GF(p^5), this routine produces single field element r,
+# denoting whether a == b.
+#
+# Expected stack state 
+#
+# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#
+# Final stack state 
+#
+# [r, ...]
+#
+# If a == b { r = 1 } Else { r = 0 }
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L797-L806
+# for reference implementation.
+export.eq
+    push.1
+
+    swap
+    movup.6
+    eq
+    and
+
+    swap
+    movup.5
+    eq
+    and
+
+    swap
+    movup.4
+    eq
+    and
+
+    swap
+    movup.3
+    eq
+    and
+
+    swap
+    movup.2
+    eq
+    and
+end
+
+# Given two elements a, b ∈ GF(p^5), this routine produces single field element r,
+# denoting whether a != b.
+#
+# Expected stack state 
+#
+# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#
+# Final stack state 
+#
+# [r, ...]
+#
+# If a != b { r = 1 } Else { r = 0 }
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L813-L822
+# for reference implementation.
+export.neq
+    push.0
+
+    swap
+    movup.6
+    neq
+    or
+
+    swap
+    movup.5
+    neq
+    or
+
+    swap
+    movup.4
+    neq
+    or
+
+    swap
+    movup.3
+    neq
+    or
+
+    swap
+    movup.2
+    neq
+    or
 end
 "),
 // ----- std::math::ntt512 ------------------------------------------------------------------------

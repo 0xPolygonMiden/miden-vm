@@ -1580,3 +1580,91 @@ export.sqrt
     movup.5
     drop # On stack [e0, e1, e2, e3, e4, c, ...]
 end
+
+# Given two elements a, b ∈ GF(p^5), this routine produces single field element r,
+# denoting whether a == b.
+#
+# Expected stack state 
+#
+# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#
+# Final stack state 
+#
+# [r, ...]
+#
+# If a == b { r = 1 } Else { r = 0 }
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L797-L806
+# for reference implementation.
+export.eq
+    push.1
+
+    swap
+    movup.6
+    eq
+    and
+
+    swap
+    movup.5
+    eq
+    and
+
+    swap
+    movup.4
+    eq
+    and
+
+    swap
+    movup.3
+    eq
+    and
+
+    swap
+    movup.2
+    eq
+    and
+end
+
+# Given two elements a, b ∈ GF(p^5), this routine produces single field element r,
+# denoting whether a != b.
+#
+# Expected stack state 
+#
+# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#
+# Final stack state 
+#
+# [r, ...]
+#
+# If a != b { r = 1 } Else { r = 0 }
+#
+# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L813-L822
+# for reference implementation.
+export.neq
+    push.0
+
+    swap
+    movup.6
+    neq
+    or
+
+    swap
+    movup.5
+    neq
+    or
+
+    swap
+    movup.4
+    neq
+    or
+
+    swap
+    movup.3
+    neq
+    or
+
+    swap
+    movup.2
+    neq
+    or
+end

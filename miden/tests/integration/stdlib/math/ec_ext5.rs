@@ -1,10 +1,10 @@
 use super::ext5::{bv_or, Ext5};
 use super::{build_test, Felt};
 use ::air::FieldElement;
+use std::ops::Add;
 use test_case::test_case;
 use vm_core::StarkField;
 
-#[allow(dead_code)]
 #[derive(Copy, Clone, Debug)]
 struct ECExt5 {
     pub x: Ext5,
@@ -112,6 +112,63 @@ impl ECExt5 {
             Ext5::zero()
         } else {
             w
+        }
+    }
+}
+
+impl Add for ECExt5 {
+    type Output = ECExt5;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let samex = self.x == rhs.x;
+        let diffy = self.y != rhs.y;
+
+        let lamb0 = if samex {
+            Ext5::from_int(3) * self.x.square() + Self::a_prime()
+        } else {
+            rhs.y - self.y
+        };
+
+        let lamb1 = if samex {
+            Ext5::from_int(2) * self.y
+        } else {
+            rhs.x - self.x
+        };
+
+        let lamb = lamb0 / lamb1;
+
+        let x3 = lamb.square() - self.x - rhs.x;
+        let y3 = lamb * (self.x - x3) - self.y;
+        let inf3 = Felt::new((samex & diffy) as u64);
+
+        Self {
+            x: if rhs.point_at_infinity == Felt::ONE {
+                self.x
+            } else {
+                if self.point_at_infinity == Felt::ONE {
+                    rhs.x
+                } else {
+                    x3
+                }
+            },
+            y: if rhs.point_at_infinity == Felt::ONE {
+                self.y
+            } else {
+                if self.point_at_infinity == Felt::ONE {
+                    rhs.y
+                } else {
+                    y3
+                }
+            },
+            point_at_infinity: if rhs.point_at_infinity == Felt::ONE {
+                self.point_at_infinity
+            } else {
+                if self.point_at_infinity == Felt::ONE {
+                    rhs.point_at_infinity
+                } else {
+                    inf3
+                }
+            },
         }
     }
 }
@@ -260,4 +317,87 @@ fn test_ec_ext5_point_encode(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64) {
     assert_eq!(strace[2], w_prime.a2);
     assert_eq!(strace[3], w_prime.a3);
     assert_eq!(strace[4], w_prime.a4);
+}
+
+// Test vectors taken from https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1528-L1548
+#[test_case(12539254003028696409, 15524144070600887654, 15092036948424041984, 11398871370327264211, 10958391180505708567, 11001943240060308920, 17075173755187928434, 3940989555384655766, 15017795574860011099, 5548543797011402287, 246872606398642312, 4900963247917836450, 7327006728177203977, 13945036888436667069, 3062018119121328861; "addition [0]")]
+#[test_case(12539254003028696409, 15524144070600887654, 15092036948424041984, 11398871370327264211, 10958391180505708567, 12539254003028696409, 15524144070600887654, 15092036948424041984, 11398871370327264211, 10958391180505708567, 8058035104653144162, 16041715455419993830, 7448530016070824199, 11253639182222911208, 6228757819849640866; "doubling [0]")]
+#[test_case(11001943240060308920, 17075173755187928434, 3940989555384655766, 15017795574860011099, 5548543797011402287, 11001943240060308920, 17075173755187928434, 3940989555384655766, 15017795574860011099, 5548543797011402287, 10523134687509281194, 11148711503117769087, 9056499921957594891, 13016664454465495026, 16494247923890248266; "doubling [1]")]
+#[test_case(8058035104653144162, 16041715455419993830, 7448530016070824199, 11253639182222911208, 6228757819849640866, 11001943240060308920, 17075173755187928434, 3940989555384655766, 15017795574860011099, 5548543797011402287, 12173306542237620, 6587231965341539782, 17027985748515888117, 17194831817613584995, 10056734072351459010; "addition [1]")]
+#[test_case(12539254003028696409, 15524144070600887654, 15092036948424041984, 11398871370327264211, 10958391180505708567, 10523134687509281194, 11148711503117769087, 9056499921957594891, 13016664454465495026, 16494247923890248266, 9420857400785992333, 4695934009314206363, 14471922162341187302, 13395190104221781928, 16359223219913018041; "addition [2]")]
+fn test_ec_ext5_point_addition(
+    a0: u64,
+    a1: u64,
+    a2: u64,
+    a3: u64,
+    a4: u64,
+    b0: u64,
+    b1: u64,
+    b2: u64,
+    b3: u64,
+    b4: u64,
+    c0: u64,
+    c1: u64,
+    c2: u64,
+    c3: u64,
+    c4: u64,
+) {
+    let source = "
+    use.std::math::ec_ext5
+
+    begin
+        exec.ec_ext5::add
+    end";
+
+    let w0 = Ext5::new(a0, a1, a2, a3, a4);
+    let w1 = Ext5::new(b0, b1, b2, b3, b4);
+    let w2 = Ext5::new(c0, c1, c2, c3, c4);
+
+    let (p0, _) = ECExt5::decode(w0);
+    let (p1, _) = ECExt5::decode(w1);
+    let (p2, _) = ECExt5::decode(w2);
+
+    let q2 = p0 + p1;
+    assert_eq!(q2.encode(), p2.encode());
+
+    let mut stack = [
+        p0.x.a0.as_int(),
+        p0.x.a1.as_int(),
+        p0.x.a2.as_int(),
+        p0.x.a3.as_int(),
+        p0.x.a4.as_int(),
+        p0.y.a0.as_int(),
+        p0.y.a1.as_int(),
+        p0.y.a2.as_int(),
+        p0.y.a3.as_int(),
+        p0.y.a4.as_int(),
+        p0.point_at_infinity.as_int(),
+        p1.x.a0.as_int(),
+        p1.x.a1.as_int(),
+        p1.x.a2.as_int(),
+        p1.x.a3.as_int(),
+        p1.x.a4.as_int(),
+        p1.y.a0.as_int(),
+        p1.y.a1.as_int(),
+        p1.y.a2.as_int(),
+        p1.y.a3.as_int(),
+        p1.y.a4.as_int(),
+        p1.point_at_infinity.as_int(),
+    ];
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    assert_eq!(strace[0], q2.x.a0);
+    assert_eq!(strace[1], q2.x.a1);
+    assert_eq!(strace[2], q2.x.a2);
+    assert_eq!(strace[3], q2.x.a3);
+    assert_eq!(strace[4], q2.x.a4);
+    assert_eq!(strace[5], q2.y.a0);
+    assert_eq!(strace[6], q2.y.a1);
+    assert_eq!(strace[7], q2.y.a2);
+    assert_eq!(strace[8], q2.y.a3);
+    assert_eq!(strace[9], q2.y.a4);
+    assert_eq!(strace[10], q2.point_at_infinity);
 }
