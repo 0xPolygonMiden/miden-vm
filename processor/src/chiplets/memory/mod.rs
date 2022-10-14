@@ -6,7 +6,9 @@ use crate::{
     trace::LookupTableRow,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
 };
-use vm_core::chiplets::memory::MEMORY_LABEL;
+use vm_core::chiplets::memory::{
+    ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
+};
 
 mod segment;
 use segment::MemorySegmentTrace;
@@ -40,10 +42,15 @@ const INIT_MEM_VALUE: Word = [ZERO; 4];
 /// ## Execution trace
 /// The layout of the memory access trace is shown below.
 ///
-///   ctx   addr   clk   u0   u1   u2   u3   v0   v1   v2   v3   d0   d1   d_inv
-/// ├─────┴──────┴─────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴───────┤
+///   s0   s1   ctx  addr   clk   v0   v1   v2   v3   d0   d1   d_inv
+/// ├────┴────┴────┴──────┴─────┴────┴────┴────┴────┴────┴────┴───────┤
 ///
 /// In the above, the meaning of the columns is as follows:
+/// - `s0` is a selector column used to identify whether the memory access is a read or a write. A
+///   value of ZERO indicates a write, and ONE indicates a read.
+/// - `s1` is a selector column used to identify whether the memory access is a read of an existing
+///   memory value or not (i.e., this context/addr combination already existed and is being read).
+///   A value of ONE indicates a read of existing memory, meaning the previous value must be copied.
 /// - `ctx` contains execution context ID. Values in this column must increase monotonically but
 ///   there can be gaps between two consecutive context IDs of up to 2^32. Also, two consecutive
 ///   values can be the same.
@@ -53,11 +60,8 @@ const INIT_MEM_VALUE: Word = [ZERO; 4];
 /// - `clk` contains clock cycle at which a memory operation happened. Values in this column must
 ///   increase monotonically for a given context and memory address but there can be gaps between
 ///   two consecutive values of up to 2^32.
-/// - Columns `u0`, `u1`, `u2`, `u3` contain field elements stored at a given context/address/clock
-///   cycle prior to a memory operation.
 /// - Columns `v0`, `v1`, `v2`, `v3` contain field elements stored at a given context/address/clock
-///   cycle after the memory operation. Notice that for a READ operation `u0` = `v0`, `u1` = `v1`
-///   etc.
+///   cycle after the memory operation.
 /// - Columns `d0` and `d1` contain lower and upper 16 bits of the delta between two consecutive
 ///   context IDs, addresses, or clock cycles. Specifically:
 ///   - When the context changes, these columns contain (`new_ctx` - `old_ctx`).
@@ -167,8 +171,8 @@ impl Memory {
             for (&addr, addr_trace) in segment.inner().iter() {
                 // when we start a new address, we set the previous value to all zeros. the effect of
                 // this is that memory is always initialized to zero.
-                for (clk, _) in addr_trace {
-                    let clk = clk.as_int();
+                for memory_access in addr_trace {
+                    let clk = memory_access.clk().as_int();
 
                     // compute delta as difference between context IDs, addresses, or clock cycles
                     let delta = if prev_ctx != ctx {
@@ -211,7 +215,7 @@ impl Memory {
 
         // iterate through addresses in ascending order, and write trace row for each memory access
         // into the trace. we expect the trace to be 14 columns wide.
-        let mut i = 0;
+        let mut row = 0;
 
         for (ctx, segment) in self.trace {
             let ctx = Felt::from(ctx);
@@ -219,19 +223,19 @@ impl Memory {
                 // when we start a new address, we set the previous value to all zeros. the effect of
                 // this is that memory is always initialized to zero.
                 let addr = Felt::new(addr);
-                let mut prev_value = INIT_MEM_VALUE;
-                for (clk, value) in addr_trace {
-                    trace.set(i, 0, ctx);
-                    trace.set(i, 1, addr);
-                    trace.set(i, 2, clk);
-                    trace.set(i, 3, prev_value[0]);
-                    trace.set(i, 4, prev_value[1]);
-                    trace.set(i, 5, prev_value[2]);
-                    trace.set(i, 6, prev_value[3]);
-                    trace.set(i, 7, value[0]);
-                    trace.set(i, 8, value[1]);
-                    trace.set(i, 9, value[2]);
-                    trace.set(i, 10, value[3]);
+                for memory_access in addr_trace {
+                    let clk = memory_access.clk();
+                    let value = memory_access.value();
+
+                    let selectors = memory_access.op_selectors();
+                    trace.set(row, 0, selectors[0]);
+                    trace.set(row, 1, selectors[1]);
+                    trace.set(row, CTX_COL_IDX, ctx);
+                    trace.set(row, ADDR_COL_IDX, addr);
+                    trace.set(row, CLK_COL_IDX, clk);
+                    for (idx, col) in V_COL_RANGE.enumerate() {
+                        trace.set(row, col, value[idx]);
+                    }
 
                     // compute delta as difference between context IDs, addresses, or clock cycles
                     let delta = if prev_ctx != ctx {
@@ -243,22 +247,22 @@ impl Memory {
                     };
 
                     let (delta_hi, delta_lo) = split_element_u32_into_u16(delta);
-                    trace.set(i, 11, delta_lo);
-                    trace.set(i, 12, delta_hi);
+                    trace.set(row, D0_COL_IDX, delta_lo);
+                    trace.set(row, D1_COL_IDX, delta_hi);
                     // TODO: switch to batch inversion to improve efficiency.
-                    trace.set(i, 13, delta.inv());
+                    trace.set(row, D_INV_COL_IDX, delta.inv());
 
                     // provide the memory access data to the chiplets bus.
-                    let memory_lookup = MemoryLookup::new(ctx, addr, clk, prev_value, value);
+                    let memory_lookup =
+                        MemoryLookup::new(memory_access.op_label(), ctx, addr, clk, value);
                     chiplets_bus
-                        .provide_memory_operation(memory_lookup, (memory_start_row + i) as u32);
+                        .provide_memory_operation(memory_lookup, (memory_start_row + row) as u32);
 
                     // update values for the next iteration of the loop
                     prev_ctx = ctx;
                     prev_addr = addr;
                     prev_clk = clk;
-                    prev_value = value;
-                    i += 1;
+                    row += 1;
                 }
             }
         }
@@ -277,7 +281,7 @@ impl Memory {
 
         let (&addr, addr_trace) = segment.inner().iter().next().expect("empty memory segment");
 
-        Some((ctx, addr, addr_trace[0].0))
+        Some((ctx, addr, addr_trace[0].clk()))
     }
 
     // TEST HELPERS
@@ -296,60 +300,53 @@ impl Memory {
 /// Contains the data required to describe a memory read or write.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct MemoryLookup {
+    // unique label identifying the memory operation
+    label: u8,
     ctx: Felt,
     addr: Felt,
     clk: Felt,
-    old_word: Word,
-    new_word: Word,
+    word: Word,
 }
 
 impl MemoryLookup {
-    pub fn new(ctx: Felt, addr: Felt, clk: Felt, old_word: Word, new_word: Word) -> Self {
+    pub fn new(label: u8, ctx: Felt, addr: Felt, clk: Felt, word: Word) -> Self {
         Self {
+            label,
             ctx,
             addr,
             clk,
-            old_word,
-            new_word,
+            word,
         }
     }
 
-    pub fn from_ints(ctx: u32, addr: Felt, clk: u32, old_word: Word, new_word: Word) -> Self {
+    pub fn from_ints(label: u8, ctx: u32, addr: Felt, clk: u32, word: Word) -> Self {
         Self {
+            label,
             ctx: Felt::from(ctx),
             addr,
             clk: Felt::from(clk),
-            old_word,
-            new_word,
+            word,
         }
     }
 }
 
 impl LookupTableRow for MemoryLookup {
     /// Reduces this row to a single field element in the field specified by E. This requires
-    /// at least 13 alpha values.
+    /// at least 9 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
-        let old_word_value = self
-            .old_word
+        let word_value = self
+            .word
             .iter()
             .enumerate()
             .fold(E::ZERO, |acc, (j, element)| {
                 acc + alphas[j + 5].mul_base(*element)
             });
-        let new_word_value = self
-            .new_word
-            .iter()
-            .enumerate()
-            .fold(E::ZERO, |acc, (j, element)| {
-                acc + alphas[j + 9].mul_base(*element)
-            });
 
         alphas[0]
-            + alphas[1].mul_base(MEMORY_LABEL)
+            + alphas[1].mul_base(Felt::from(self.label))
             + alphas[2].mul_base(self.ctx)
             + alphas[3].mul_base(self.addr)
             + alphas[4].mul_base(self.clk)
-            + old_word_value
-            + new_word_value
+            + word_value
     }
 }

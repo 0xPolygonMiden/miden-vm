@@ -85,7 +85,7 @@ Requiring that memory addresses are contiguous may also be a difficult limitatio
 In the above, the prover sets the value in the new column `t` to $0$ when the address doesn't change, and to $1 / (a' - a)$ otherwise. To simplify constraint description, we'll define variable $n$ computed as follows:
 
 $$
-n = (a' - a) \cdot t
+n = (a' - a) \cdot t'
 $$
 
 Then, to make sure the prover sets the value of $t$ correctly, we'll impose the following constraints:
@@ -172,10 +172,11 @@ The layout of Miden VM memory table is shown below:
 
 where:
 
+- `s0` is a selector column which is set to $1$ for read operations and $0$ for write operations.
+- `s1` is a selector oclumn which is set to $1$ when previously accessed memory is being read and $0$ otherwise. In other words, it is set to $1$ only when the context and address are the same as they were in the previous row and the `s0` operation selector is set to $1$ (indicating a read).
 - `ctx` contains context ID. Values in this column must increase monotonically but there can be gaps between two consecutive values of up to $2^{32}$. Also, two consecutive values can be the same. In AIR constraint description below, we refer to this column as $c$.
 - `addr` contains memory address. Values in this column must increase monotonically for a given context but there can be gaps between two consecutive values of up to $2^{32}$. Also, two consecutive values can be the same. In AIR constraint description below, we refer to this column as $a$.
 - `clk` contains clock cycle at which the memory operation happened. Values in this column must increase monotonically for a given context and memory address but there can be gaps between two consecutive values of up to $2^{32}$. In AIR constraint description below, we refer to this column as $i$.
-- `u0, u1, u2, u3` columns contain field elements stored at a given context/address/clock cycle prior to the memory operation.
 - `v0, v1, v2, v3` columns contain field elements stored at a given context/address/clock cycle after the memory operation.
 - Columns `d0` and `d1` contain lower and upper $16$ bits of the delta between two consecutive context IDs, addresses, or clock cycles. Specifically:
   - When the context changes, these columns contain $(c' - c)$.
@@ -186,7 +187,7 @@ where:
   - When the context remains the same but the address changes, this column contains the inverse of $(a' - a)$.
   - When both the context and the address remain the same, this column contains the inverse of $(i' - i - 1)$.
 
-For every memory access operation (i.e., read or write), a new row is added to the memory table. For read operations values in `u` columns are equal to the corresponding values in `v` columns. For write operations, the values may be different. Memory values are always initialized to $0$.
+For every memory access operation (i.e., read or write), a new row is added to the memory table. For read operations, `s0` is set to $1$. If neither `ctx` nor `addr` have changed, then `s1` is set to $1$ and the `v` columns are set to equal the values from the previous row. If `ctx` or `addr` have changed, then `s1` is set to $0$ and the `v` columns are initialized to $0$. For write operations, the values may be different, and both selector columns `s0` and `s1` are set to $0$.
 
 The amortized cost of reading or writing a single value is between $4$ and $5$ trace cells (this accounts for the trace cells needed for $16$-bit range checks). Thus, from performance standpoint, this approach is roughly $2.5$x worse than the simple contiguous write-once memory described earlier. However, our view is that this trade-off is worth it given that this approach provides read-write memory, context separation, and eliminates the contiguous memory requirement.
 
@@ -195,8 +196,8 @@ The amortized cost of reading or writing a single value is between $4$ and $5$ t
 To simplify description of constraints, we'll define two variables $n_0$ and $n_1$ as follows:
 
 $$
-n_0 = \Delta c \cdot t \\
-n_1 = \Delta a \cdot t
+n_0 = \Delta c \cdot t' \\
+n_1 = \Delta a \cdot t'
 $$
 
 Where $\Delta c = c' - c$ and $\Delta a = a' - a$.
@@ -221,6 +222,29 @@ $$
 
 The above constraints guarantee that when context changes, $n_0 = 1$. When context remains the same but address changes, $(1 - n_0) \cdot n_1 = 1$. And when neither the context nor the address change, $(1 - n_0) \cdot (1 - n_1) = 1$.
 
+To enforce the values of the selector columns, we first require that they both contain only binary values.
+
+>$$
+s_0^2 - s_0 = 0 \text{ | degree} = 2
+$$
+
+>$$
+s_1^2 - s_1 = 0 \text{ | degree} = 2
+$$
+
+Then we require that $s_1$ is always set to $1$ during read operations when the context and address did not change and to $0$ in all other cases.
+
+>$$
+(1 - n_0) \cdot (1 - n_1) \cdot s'_0 \cdot (1 - s'_1) = 0 \text{ | degree} = 6
+$$
+
+>$$
+(n_0 + (1 - n_0) \cdot n_1  + (1 - s'_0)) \cdot s'_1 = 0 \text{ | degree} = 5
+$$
+
+The first constraint enforces that `s_1` is $1$ when the operation is a read and `ctx` and `addr` are both unchanged. The second constraint enforces that when either the context changed, the address changed, or the operation is a write, then `s_1` is set to $0$.
+
+
 To enforce the values of context ID, address, and clock cycle grow monotonically as described in the previous section, we define the following constraint.
 
 >$$
@@ -234,22 +258,22 @@ In addition to this constraint, we also need to make sure that values in registe
 Next, we need to make sure that values at a given memory address are always initialized to $0$. This can be done with the following constraint:
 
 >$$
-(n_0 + (1 - n_0) \cdot n_1) \cdot u_i' = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 5
+s_0 \cdot (1 - s_1) \cdot v_i = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 3
 $$
 
-Thus, when either the context changes, or the address changes, values in $u_i$ columns are guaranteed to be zeros.
+Thus, when the operation is a read and either the context changes or the address changes, values in the $v_i$ columns are guaranteed to be zeros.
 
-Lastly, we need to make sure that for the same context/address combination, the $v_i$ columns of the current row are equal to the corresponding $u_i$ columns of the next row. This can be done with the following constraints:
+Lastly, we need to make sure that for the same context/address combination, the $v_i$ columns of the current row are equal to the corresponding $v_i$ columns of the next row. This can be done with the following constraints:
 
 >$$
-(1 - n_0) \cdot (1 - n_1) \cdot (u_i' - v_i) = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 5
+s_1 \cdot (v_i' - v_i) = 0 \text{ for } i \in \{0, 1, 2, 3\} \text{ | degree} = 2
 $$
 
 #### Memory row value
 Communication between the memory chiplet and the stack is accomplished via the chiplet bus $b_{chip}$. To respond to memory access requests from the stack, we need to divide the current value in $b_{chip}$ by the value representing a row in the memory table. This value can be computed as follows:
 
 $$
-v_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot c + \alpha_3 \cdot a + \alpha_4 \cdot i + \sum_{j=0}^3(\alpha_{j+5} \cdot u_j) + \sum_{j=0}^3(\alpha_{j+9} \cdot v_j)
+v_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_2 \cdot c + \alpha_3 \cdot a + \alpha_4 \cdot i + \sum_{j=0}^3(\alpha_{j + 5} \cdot v_j)
 $$
 
 Where, $op_{mem}$ is the unique [operation label](./main.md#operation-labels) of the memory access operation.

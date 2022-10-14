@@ -9,9 +9,11 @@ use vm_core::{
 };
 
 pub mod field_ops;
+pub mod io_ops;
 pub mod op_flags;
 pub mod stack_manipulation;
 pub mod system_ops;
+pub mod u32_ops;
 
 // CONSTANTS
 // ================================================================================================
@@ -58,6 +60,10 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
     degrees.append(&mut field_ops::get_transition_constraint_degrees());
     // stack manipulation operations constraints degrees.
     degrees.append(&mut stack_manipulation::get_transition_constraint_degrees());
+    // u32 operations constraints degrees.
+    degrees.append(&mut u32_ops::get_transition_constraint_degrees());
+    // input/output operations constraints degrees.
+    degrees.append(&mut io_ops::get_transition_constraint_degrees());
     // Add the degrees of general constraints.
     degrees.append(
         &mut CONSTRAINT_DEGREES
@@ -74,6 +80,8 @@ pub fn get_transition_constraint_count() -> usize {
     system_ops::get_transition_constraint_count()
         + field_ops::get_transition_constraint_count()
         + stack_manipulation::get_transition_constraint_count()
+        + u32_ops::get_transition_constraint_count()
+        + io_ops::get_transition_constraint_count()
         + NUM_GENERAL_CONSTRAINTS
 }
 
@@ -114,6 +122,14 @@ pub fn enforce_unique_constraints<E: FieldElement>(
     // stack manipulation operations transition constraints.
     stack_manipulation::enforce_constraints(frame, &mut result[constraint_offset..], op_flag);
     constraint_offset += stack_manipulation::get_transition_constraint_count();
+
+    // u32 operations transition constraints.
+    u32_ops::enforce_constraints(frame, &mut result[constraint_offset..], op_flag);
+    constraint_offset += u32_ops::get_transition_constraint_count();
+
+    // input/output operations transition constraints.
+    io_ops::enforce_constraints(frame, &mut result[constraint_offset..], op_flag);
+    constraint_offset += io_ops::get_transition_constraint_count();
 
     constraint_offset
 }
@@ -310,6 +326,8 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn fmp(&self) -> E;
     /// Gets the next element of the fmp register in the trace.
     fn fmp_next(&self) -> E;
+    /// Gets the depth of the stack at the current step.
+    fn depth(&self) -> E;
     /// Gets the current value of user op helper register located at the specified index.
     fn user_op_helper(&self, index: usize) -> E;
 }
@@ -334,6 +352,10 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     #[inline(always)]
     fn fmp_next(&self) -> E {
         self.next()[FMP_COL_IDX]
+    }
+    #[inline(always)]
+    fn depth(&self) -> E {
+        self.current()[B0_COL_IDX]
     }
     #[inline(always)]
     fn user_op_helper(&self, index: usize) -> E {

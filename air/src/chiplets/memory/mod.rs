@@ -1,8 +1,9 @@
 use super::{EvaluationFrame, FieldElement, Vec};
 use crate::utils::{binary_not, is_binary, EvaluationResult};
-use vm_core::chiplets::memory::{
-    ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, NUM_ELEMENTS,
-    U_COL_RANGE, V_COL_RANGE,
+use vm_core::chiplets::{
+    memory::NUM_ELEMENTS, MEMORY_ADDR_COL_IDX, MEMORY_CLK_COL_IDX, MEMORY_CTX_COL_IDX,
+    MEMORY_D0_COL_IDX, MEMORY_D1_COL_IDX, MEMORY_D_INV_COL_IDX, MEMORY_TRACE_OFFSET,
+    MEMORY_V_COL_RANGE,
 };
 use winter_air::TransitionConstraintDegree;
 
@@ -13,14 +14,16 @@ mod tests;
 // ================================================================================================
 
 /// The number of constraints on the management of the memory chiplet.
-pub const NUM_CONSTRAINTS: usize = 13;
-/// The degrees of constraints on the management of the memory chiplet.
+pub const NUM_CONSTRAINTS: usize = 17;
+/// The degrees of constraints on the management of the memory chiplet. All constraint degrees are
+/// increased by 3 due to the selectors for the memory chiplet.
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
+    5, 5, // Enforce that the memory selectors are binary.
+    9, 8, // Enforce s1 is set to 1 when reading existing memory and 0 otherwise.
     7, 6, 9, 8, // Constrain the values in the d inverse column.
     8, // Enforce values in ctx, addr, clk transition correctly.
-    8, 8, 8, 8, // Enforce memory is initialized to zero.
-    8, 8, 8,
-    8, // Ensure next old values equal current new values when ctx and addr don't change.
+    6, 6, 6, 6, // Enforce correct memory initialization when reading from new memory.
+    5, 5, 5, 5, // Enforce correct memory copy when reading from existing memory
 ];
 
 // MEMORY TRANSITION CONSTRAINTS
@@ -45,8 +48,11 @@ pub fn enforce_constraints<E: FieldElement>(
     result: &mut [E],
     memory_flag: E,
 ) {
+    // Constrain the operation selectors.
+    let mut index = enforce_selectors(frame, result, memory_flag);
+
     // Constrain the values in the d inverse column.
-    let mut index = enforce_d_inv(frame, result, memory_flag);
+    index += enforce_d_inv(frame, &mut result[index..], memory_flag);
 
     // Enforce values in ctx, addr, clk transition correctly.
     index += enforce_delta(frame, &mut result[index..], memory_flag);
@@ -57,6 +63,37 @@ pub fn enforce_constraints<E: FieldElement>(
 
 // TRANSITION CONSTRAINT HELPERS
 // ================================================================================================
+
+fn enforce_selectors<E: FieldElement>(
+    frame: &EvaluationFrame<E>,
+    result: &mut [E],
+    memory_flag: E,
+) -> usize {
+    let mut index = 0;
+
+    // s0 and s1 are binary.
+    result[index] = memory_flag * is_binary(frame.selector(0));
+    index += 1;
+    result[index] = memory_flag * is_binary(frame.selector(1));
+    index += 1;
+
+    // s1 is set to 1 when existing memory is being read. this happens when ctx and addr haven't
+    // changed, and the next operation is a read (s0 is set).
+    result[index] = memory_flag
+        * frame.reaccess_flag()
+        * frame.selector_next(0)
+        * binary_not(frame.selector_next(1));
+    index += 1;
+
+    // s1 is set to 0 in all other cases. this happens when ctx changed, or ctx stayed the same but
+    // addr changed, or the operation was a write.
+    result[index] = memory_flag
+        * (frame.n0() + frame.not_n0() * frame.n1() + binary_not(frame.selector_next(0)))
+        * frame.selector_next(1);
+    index += 1;
+
+    index
+}
 
 /// A constraint evaluation function to enforce that the `d_inv` "delta inverse" column used to
 /// constrain the delta between two consecutive contexts, addresses, or clock cycles is updated
@@ -71,11 +108,7 @@ fn enforce_d_inv<E: FieldElement>(
     result.agg_constraint(0, memory_flag, is_binary(frame.n0()));
     result.agg_constraint(1, memory_flag * frame.not_n0(), frame.ctx_change());
     result.agg_constraint(2, memory_flag * frame.not_n0(), is_binary(frame.n1()));
-    result.agg_constraint(
-        3,
-        memory_flag * frame.not_n0() * frame.not_n1(),
-        frame.addr_change(),
-    );
+    result.agg_constraint(3, memory_flag * frame.reaccess_flag(), frame.addr_change());
 
     constraint_count
 }
@@ -104,28 +137,28 @@ fn enforce_delta<E: FieldElement>(
     constraint_count
 }
 
-/// A constraint evaluation function to enforce that memory is initialized to zero and that when
-/// memory is accessed again the old values are always set to equal the previous new values.
+/// A constraint evaluation function to enforce that memory is initialized to zero when it is read
+/// before being written and that when existing memory values are read they remain unchanged.
 fn enforce_values<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     memory_flag: E,
 ) -> usize {
-    let constraint_count = NUM_ELEMENTS * 2;
+    let mut index = 0;
 
+    // initialize memory to zero when reading from new context and address pair.
     for i in 0..NUM_ELEMENTS {
-        // Memory must be initialized to zero.
-        result.agg_constraint(i, memory_flag * frame.init_memory_flag(), frame.u_next(i));
-
-        // The next old values must equal the current new values when ctx and addr don't change.
-        result.agg_constraint(
-            NUM_ELEMENTS + i,
-            memory_flag * frame.copy_memory_flag(),
-            frame.u_next(i) - frame.v(i),
-        );
+        result[index] = memory_flag * frame.init_read_flag() * frame.v(i);
+        index += 1;
     }
 
-    constraint_count
+    // copy previous values when reading memory that was previously accessed.
+    for i in 0..NUM_ELEMENTS {
+        result[index] = memory_flag * frame.copy_read_flag() * (frame.v_next(i) - frame.v(i));
+        index += 1;
+    }
+
+    index
 }
 
 // MEMORY FRAME EXTENSION TRAIT
@@ -136,6 +169,10 @@ fn enforce_values<E: FieldElement>(
 trait EvaluationFrameExt<E: FieldElement> {
     // --- Column accessors -----------------------------------------------------------------------
 
+    /// Gets the value of the specified selector column in the current row.
+    fn selector(&self, idx: usize) -> E;
+    /// Gets the value of the specified selector column in the next row.
+    fn selector_next(&self, idx: usize) -> E;
     /// The current context value.
     fn ctx(&self) -> E;
     /// The current address.
@@ -144,12 +181,10 @@ trait EvaluationFrameExt<E: FieldElement> {
     fn clk(&self) -> E;
     /// The next clock cycle.
     fn clk_next(&self) -> E;
-    /// The value from the specified index of the old values (0, 1, 2, 3) in the current row.
-    fn u(&self, index: usize) -> E;
-    /// The value from the specified index of the old values (0, 1, 2, 3) in the next row.
-    fn u_next(&self, index: usize) -> E;
-    /// The value from the specified index of the new values (0, 1, 2, 3) in the current row.
+    /// The value from the specified index of the values (0, 1, 2, 3) in the current row.
     fn v(&self, index: usize) -> E;
+    /// The value from the specified index of the values (0, 1, 2, 3) in the next row.
+    fn v_next(&self, index: usize) -> E;
     /// The next value of the lower 16-bits of the delta value being tracked between two consecutive
     /// context IDs, addresses, or clock cycles.
     fn d0_next(&self) -> E;
@@ -185,55 +220,65 @@ trait EvaluationFrameExt<E: FieldElement> {
 
     // --- Flags ----------------------------------------------------------------------------------
 
-    /// A flag to indicate memory is being accessed for the first time and should be initialized.
-    fn init_memory_flag(&self) -> E;
-    /// A flag to indicate that memory is being re-accessed and the current new values should be
-    /// copied to the next old values.
-    fn copy_memory_flag(&self) -> E;
+    /// A flag to indicate that previously assigned memory is being accessed. In other words, the
+    /// context and address have not changed.
+    fn reaccess_flag(&self) -> E;
+
+    /// A flag to indicate that there is a read in the current row which requires the values to be
+    /// initialized to zero.
+    fn init_read_flag(&self) -> E;
+
+    /// A flag to indicate that the operation in the next row is a read which requires copying the
+    /// values from the current row to the next row.
+    fn copy_read_flag(&self) -> E;
 }
 
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Column accessors -----------------------------------------------------------------------
 
     #[inline(always)]
+    fn selector(&self, idx: usize) -> E {
+        self.current()[MEMORY_TRACE_OFFSET + idx]
+    }
+    #[inline(always)]
+    fn selector_next(&self, idx: usize) -> E {
+        self.next()[MEMORY_TRACE_OFFSET + idx]
+    }
+    #[inline(always)]
     fn ctx(&self) -> E {
-        self.current()[CTX_COL_IDX]
+        self.current()[MEMORY_CTX_COL_IDX]
     }
     #[inline(always)]
     fn addr(&self) -> E {
-        self.next()[ADDR_COL_IDX]
+        self.next()[MEMORY_ADDR_COL_IDX]
     }
     #[inline(always)]
     fn clk(&self) -> E {
-        self.current()[CLK_COL_IDX]
+        self.current()[MEMORY_CLK_COL_IDX]
     }
     #[inline(always)]
     fn clk_next(&self) -> E {
-        self.next()[CLK_COL_IDX]
-    }
-    #[inline(always)]
-    fn u(&self, index: usize) -> E {
-        self.current()[U_COL_RANGE.start + index]
-    }
-    #[inline(always)]
-    fn u_next(&self, index: usize) -> E {
-        self.next()[U_COL_RANGE.start + index]
+        self.next()[MEMORY_CLK_COL_IDX]
     }
     #[inline(always)]
     fn v(&self, index: usize) -> E {
-        self.current()[V_COL_RANGE.start + index]
+        self.current()[MEMORY_V_COL_RANGE.start + index]
+    }
+    #[inline(always)]
+    fn v_next(&self, index: usize) -> E {
+        self.next()[MEMORY_V_COL_RANGE.start + index]
     }
     #[inline(always)]
     fn d0_next(&self) -> E {
-        self.next()[D0_COL_IDX]
+        self.next()[MEMORY_D0_COL_IDX]
     }
     #[inline(always)]
     fn d1_next(&self) -> E {
-        self.next()[D1_COL_IDX]
+        self.next()[MEMORY_D1_COL_IDX]
     }
     #[inline(always)]
     fn d_inv_next(&self) -> E {
-        self.next()[D_INV_COL_IDX]
+        self.next()[MEMORY_D_INV_COL_IDX]
     }
 
     // --- Intermediate variables & helpers -------------------------------------------------------
@@ -245,7 +290,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 
     #[inline(always)]
     fn n0(&self) -> E {
-        self.change(CTX_COL_IDX) * self.d_inv_next()
+        self.change(MEMORY_CTX_COL_IDX) * self.d_inv_next()
     }
 
     #[inline(always)]
@@ -255,7 +300,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 
     #[inline(always)]
     fn n1(&self) -> E {
-        self.change(ADDR_COL_IDX) * self.d_inv_next()
+        self.change(MEMORY_ADDR_COL_IDX) * self.d_inv_next()
     }
 
     #[inline(always)]
@@ -265,17 +310,17 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
 
     #[inline(always)]
     fn ctx_change(&self) -> E {
-        self.change(CTX_COL_IDX)
+        self.change(MEMORY_CTX_COL_IDX)
     }
 
     #[inline(always)]
     fn addr_change(&self) -> E {
-        self.change(ADDR_COL_IDX)
+        self.change(MEMORY_ADDR_COL_IDX)
     }
 
     #[inline(always)]
     fn clk_change(&self) -> E {
-        self.change(CLK_COL_IDX) - E::ONE
+        self.change(MEMORY_CLK_COL_IDX) - E::ONE
     }
 
     #[inline(always)]
@@ -286,13 +331,18 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     // --- Flags ----------------------------------------------------------------------------------
 
     #[inline(always)]
-    fn init_memory_flag(&self) -> E {
-        self.n0() + self.not_n0() * self.n1()
+    fn reaccess_flag(&self) -> E {
+        self.not_n0() * self.not_n1()
     }
 
     #[inline(always)]
-    fn copy_memory_flag(&self) -> E {
-        self.not_n0() * self.not_n1()
+    fn init_read_flag(&self) -> E {
+        self.selector(0) * binary_not(self.selector(1))
+    }
+
+    #[inline(always)]
+    fn copy_read_flag(&self) -> E {
+        self.selector_next(1)
     }
 }
 
@@ -316,10 +366,10 @@ impl<E: FieldElement> MemoryFrameExt<E> for &EvaluationFrame<E> {
 
     #[inline(always)]
     fn memory_d0(&self) -> E {
-        self.current()[D0_COL_IDX]
+        self.current()[MEMORY_D0_COL_IDX]
     }
     #[inline(always)]
     fn memory_d1(&self) -> E {
-        self.current()[D1_COL_IDX]
+        self.current()[MEMORY_D1_COL_IDX]
     }
 }
