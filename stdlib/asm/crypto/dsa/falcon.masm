@@ -1,0 +1,279 @@
+use.std::math::poly512
+
+# Given an element on stack top, this routine normalizes that element in 
+# interval (-q/2, q/2] | q = 12289
+#
+# Imagine, a is the provided element, which needs to be normalized
+#
+# b = normalize(a)
+#   = (a + (q >> 1)) % q - (q >> 1) | a ∈ [0, q), q = 12289
+#
+# Note, normalization requires that we can represent the number as signed integer,
+# which is not allowed inside Miden VM stack. But we can ignore the sign of integer and only
+# store the absolute value as field element. This can be safely done because after normalization
+# anyway `b` will be squared ( for computing norm of a vector i.e. polynomial, where b is a coefficient ).
+# That means we can just drop the sign, and that's what is done in this routine.
+#
+# To be more concrete, normalization of 12166 ( = a ) should result into -123, but absolute value 
+# 123 will be kept on stack. While normalization of 21, should result into 21, which has absolute
+# value 21 --- that's what is kept on stack.
+#
+# Expected stack state :
+#
+# [a, ...]
+#
+# After normalization ( represented using unsigned integer i.e. Miden field element ) stack looks like
+#
+# [b, ...]
+proc.normalize
+    dup
+    push.6144
+    gt
+
+    if.true
+        push.6144
+        add
+
+        exec.poly512::mod_12289
+
+        dup
+        push.6144
+        gte
+
+        if.true
+            push.6144
+            sub
+        else
+            push.6144
+            swap
+            sub
+        end
+    end
+end
+
+# Given four elements from Falcon prime field, on stack top, this routine 
+# normalizes each of them, using above defined `normalize()` routine.
+#
+# Expected stack state :
+#
+# [a0, a1, a2, a3, ...]
+#
+# Output stack state :
+#
+# [b0, b1, b2, b3, ...]
+#
+# b`i` = normalize(a`i`) | i ∈ [0..4)
+proc.normalize_word
+    exec.normalize
+
+    swap
+    exec.normalize
+    swap
+
+    movup.2
+    exec.normalize
+    movdn.2
+
+    movup.3
+    exec.normalize
+    movdn.3
+end
+
+# Given a degree 512 polynomial on stack, using its starting (absolute) memory address, 
+# this routine normalizes each coefficient of the polynomial, using above defined 
+# `normalize()` routine
+#
+# Imagine, f is the given polynomial of degree 512. It can be normalized using
+#
+# g = [normalize(f[i]) for i in range(512)]
+#
+# Expected stack state :
+#
+# [f_start_addr, g_start_addr, ...] | next 127 absolute addresses can be computed using `INCR` instruction
+#
+# Post normalization stack state looks like
+#
+# [ ... ]
+#
+# Note, input polynomial which is provided using memory addresses, is not mutated.
+export.normalize_poly512
+    push.0.0.0.0
+
+    repeat.128
+        dup.4
+        mem_loadw
+
+        exec.normalize_word
+
+        dup.5
+        mem_storew
+
+        movup.5
+        add.1
+        movdn.5
+
+        movup.4
+        add.1
+        movdn.4
+    end
+
+    dropw
+    drop
+    drop
+end
+
+# Given four elements on stack top, this routine computes squared norm of that
+# vector ( read polynomial ) with four coefficients.
+#
+# Imagine, given vector is f, which is described as
+#
+# f = [a0, a1, a2, a3]
+#
+# Norm of that vector is
+#
+# √(a0 ^ 2 + a1 ^ 2 + a2 ^ 2 + a3 ^ 2)
+#
+# But we need squared norm, which is just skipping the final square root operation.
+#
+# Expected stack state :
+#
+# [a0, a1, a2, a3, ...]
+#
+# Final stack state :
+#
+# [b, ...] | b = a0 ^ 2 + a1 ^ 2 + a2 ^ 2 + a3 ^ 2
+proc.squared_norm_word
+    dup
+    mul
+
+    swap
+    dup
+    mul
+
+    add
+
+    swap
+    dup
+    mul
+
+    add
+
+    swap
+    dup
+    mul
+
+    add
+end
+
+# Given a degree 512 polynomial in coefficient form, as starting (absolute) memory address 
+# on stack, this routine computes squared norm of that vector, using following formula
+#
+# Say, f = [a0, a1, a2, ..., a510, a511]
+#      g = sq_norm(f) = a0 ^ 2 + a1 ^ 2 + ... + a510 ^ 2 + a511 ^ 2
+#
+# Expected input stack state :
+#
+# [f_start_addr, ...] | f_addr`i` holds f[(i << 2) .. ((i+1) << 2)]
+#
+# Consecutive 127 addresses on stack can be computed using `INCR` instruction, because memory 
+# addresses are consecutive i.e. monotonically increasing by 1.
+#
+# Final stack state :
+#
+# [g, ...] | g = sq_norm(f)
+export.squared_norm_poly512
+    push.0.0.0.0.0
+
+    repeat.128
+        dup.5
+        mem_loadw
+
+        exec.squared_norm_word
+        add
+
+        swap
+        add.1
+        swap
+
+        push.0.0.0.0
+    end
+
+    dropw
+    swap
+    drop
+end
+
+# Falcon-512 Digital Signature Verification routine
+#
+# Given four degree-511 polynomials, using initial absolute memory addresses on stack, 
+# this routine checks whether it's a valid Falcon signature or not.
+#
+# Four degree-511 polynomials, which are provided ( in order )
+#
+# f = [f0, f1, ..., f510, f511] -> decompressed Falcon-512 signature
+# g = [g0, g1, ..., g510, g511] -> public key used for signing input message
+# h = [h0, h1, ..., h510, h511] -> input message hashed using SHAKE256 XOF and converted to polynomial
+# k = [k0, k1, ..., k510, k511] -> [abs(i) for i in f] | abs(a) = a < 0 ? 0 - a : a
+#
+# Each of these polynomials are represented using starting absolute memory address. Contiguous 127 
+# memory addresses can be computed by repeated application of INCR instruction ( read add.1 ) on previous
+# absolute memory address.
+#
+# f`i` holds f[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
+# g`i` holds g[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
+# h`i` holds h[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
+# k`i` holds k[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
+#
+# Expected stack state :
+#
+# [f_start_addr, g_start_addr, h_start_addr, k_start_addr, ...]
+#
+# After execution of verification routine, stack looks like
+#
+# [ ... ]
+#
+# If verification fails, program panics, due to failure in assertion !
+#
+# Note, input memory addresses are considered to be immutable.
+export.verify.257
+    locaddr.0
+    movdn.2
+    exec.poly512::mul_zq
+
+    locaddr.128
+    locaddr.0
+    exec.poly512::neg_zq
+
+    locaddr.0
+    swap
+    locaddr.128
+    exec.poly512::add_zq
+
+    locaddr.128
+    locaddr.0
+    exec.normalize_poly512
+
+    # compute squared norm of s0
+
+    locaddr.128
+    exec.squared_norm_poly512
+
+    locaddr.256
+    mem_store
+    drop
+
+    # compute squared norm of s1 ( where s1 is provided as polynomial
+    # with coefficients represented using absolute value i.e. signs are ignored )
+
+    exec.squared_norm_poly512
+
+    locaddr.256
+    mem_load
+    add
+
+    # check that norm of the signature is small enough
+
+    push.34034726 # constant sig_bound for Falcon-512 signature
+    lte
+    assert
+end

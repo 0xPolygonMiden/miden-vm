@@ -64,7 +64,7 @@ The resulting order is as follows:
 | --------------- | :----------: | :-------------: | :---------------------: | :----------: | :-----: | --------------------- |
 | Hash chiplet    |      8       |        8        |            1            |       9      |   17    | $\{0\}$               |
 | Bitwise chiplet |      8       |        3        |            2            |       5      |   13    | $\{1, 0\}$            |
-| Memory          |      -       |        6        |            3            |       9      |   14    | $\{1, 1, 0\}$         |
+| Memory          |      -       |        6        |            3            |       9      |   12    | $\{1, 1, 0\}$         |
 | Padding         |      -       |        -        |            -            |       -      |   -     | $\{1, 1, 1\}$         |
 
 ### Additional requirements for stacking execution traces
@@ -97,7 +97,8 @@ The labels are composed from the flag values of the chiplet selector(s) and inte
 | `HASHER_RETURN_STATE`  |        $\{0\}$        |     $\{0, 0, 1\}$      | $\{0, 0, 0, 1\}$ |   9   |
 | `BITWISE_AND`          |      $\{1, 0\}$       |       $\{0\}$          | $\{1, 0, 0\}$    |   2   |
 | `BITWISE_XOR`          |      $\{1, 0\}$       |       $\{1\}$          | $\{1, 0, 1\}$    |   6   |
-| `MEMORY`               |     $\{1, 1, 1\}$     |           NA           | $\{1, 1, 1\}$    |   8   |
+| `MEMORY_READ`          |     $\{1, 1, 0\}$     |       $\{1\}$          | $\{1, 1, 0, 1\}$ |   12  |
+| `MEMORY_WRITE`         |     $\{1, 1, 0\}$     |       $\{0\}$          | $\{1, 1, 0, 0\}$ |   4   |
 
 ## Chiplets module constraints
 

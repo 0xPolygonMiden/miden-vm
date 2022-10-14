@@ -66,6 +66,7 @@ pub struct OpFlags<E: FieldElement> {
     right_shift: E,
     control_flow: E,
     top_binary: E,
+    u32_rc_op: E,
 }
 
 #[allow(dead_code)]
@@ -111,9 +112,12 @@ impl<E: FieldElement> OpFlags<E> {
         degree7_op_flags[32] = frame.op_bit(5) * not_4;
         degree7_op_flags[48] = frame.op_bit(5) * frame.op_bit(4);
 
+        // flag of prefix when the first 4 elements in op_bits are `100`. It's a flag of
+        // all the degree 6 u32 operations.
+        let f100 = degree7_op_flags[0] * frame.op_bit(6);
         // flag of prefix when the first 4 elements in op_bits are `1000`. Caching the result
         // for the compution of no_change_2. It's a flag for u32 arithmetic operations.
-        let f1000 = degree7_op_flags[0] * not_3 * frame.op_bit(6);
+        let f1000 = f100 * not_3;
         // flag of prefix when the first 4 elements in op_bits are `1011`. Caching the result
         // for the compution of control flow op flag. It's a flag for control flow op flag whose degree is
         // 6.
@@ -334,6 +338,9 @@ impl<E: FieldElement> OpFlags<E> {
         // Flag if the current operation being executed is a control flow operation.
         let control_flow = f111 + f1011 + degree4_op_flags[3];
 
+        // Flag if the current operation being executed is a degree 6 u32 operation.
+        let u32_rc_op = f100;
+
         // Flag if the top element in the stack should be binary or not.
         let top_binary = degree7_op_flags[5] // OR op
             + degree7_op_flags[15]  // EXPACC op
@@ -353,6 +360,7 @@ impl<E: FieldElement> OpFlags<E> {
             right_shift,
             control_flow,
             top_binary,
+            u32_rc_op,
         }
     }
 
@@ -888,6 +896,12 @@ impl<E: FieldElement> OpFlags<E> {
     #[inline(always)]
     pub fn control_flow(&self) -> E {
         self.control_flow
+    }
+
+    /// Returns the flag when the stack operation is a u32 operation.
+    #[inline(always)]
+    pub fn u32_rc_op(&self) -> E {
+        self.u32_rc_op
     }
 
     /// Returns the flag when the stack operation needs the top element to be binary.
