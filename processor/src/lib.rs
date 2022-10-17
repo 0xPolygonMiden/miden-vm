@@ -19,6 +19,8 @@ use vm_core::{
     ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
 
+use winterfell::Matrix;
+
 mod decorators;
 mod operations;
 

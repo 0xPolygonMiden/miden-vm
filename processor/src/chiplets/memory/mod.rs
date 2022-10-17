@@ -5,6 +5,7 @@ use crate::{
     range::RangeChecker,
     trace::LookupTableRow,
     utils::{split_element_u32_into_u16, split_u32_into_u16},
+    Matrix,
 };
 use vm_core::chiplets::memory::{
     ADDR_COL_IDX, CLK_COL_IDX, CTX_COL_IDX, D0_COL_IDX, D1_COL_IDX, D_INV_COL_IDX, V_COL_RANGE,
@@ -333,7 +334,11 @@ impl MemoryLookup {
 impl LookupTableRow for MemoryLookup {
     /// Reduces this row to a single field element in the field specified by E. This requires
     /// at least 9 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+    fn to_value<E: FieldElement<BaseField = Felt>>(
+        &self,
+        _main_trace: &Matrix<Felt>,
+        alphas: &[E],
+    ) -> E {
         let word_value = self
             .word
             .iter()

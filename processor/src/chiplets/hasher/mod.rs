@@ -77,9 +77,7 @@ pub struct Hasher {
     trace: HasherTrace,
     aux_trace: AuxTraceBuilder,
     // TODO: Investigate optimization options, since these lookups are also stored in the bus.
-    // 1. HasherLookup can be lightened to reduce the cost by removing the state from it and looking
-    //    it up in the execution trace when the lookup values are computed and to b_chip.
-    // 2. The Hasher could "provide" lookups immediately instead of storing them and providing them
+    // - The Hasher could "provide" lookups immediately instead of storing them and providing them
     //    during `fill_trace`.
     // There are probably other options as well, so this should be investigated & benchmarked.
     lookups: Vec<HasherLookup>,
@@ -103,13 +101,7 @@ impl Hasher {
     /// When starting a hash operation, it should be called before any rows are recorded in the
     /// trace. In all other cases, it should be called immediately after the corresponding row is
     /// appended to the trace, so that the address of the row is equal to the trace length.
-    fn append_lookup(
-        &mut self,
-        label: u8,
-        state: HasherState,
-        index: Felt,
-        context: HasherLookupContext,
-    ) {
+    fn append_lookup(&mut self, label: u8, index: Felt, context: HasherLookupContext) {
         let addr = match context {
             // when starting a new hash operation, lookups are added before the operation begins.
             HasherLookupContext::Start => self.trace.next_row_addr().as_int() as u32,
@@ -118,7 +110,19 @@ impl Hasher {
         };
 
         self.lookups
-            .push(HasherLookup::new(label, state, addr, index, context));
+            .push(HasherLookup::new(label, addr, index, context));
+    }
+
+    /// Records a HasherLookup with the specified data at the specified row address.
+    fn append_lookup_at(
+        &mut self,
+        addr: usize,
+        label: u8,
+        index: Felt,
+        context: HasherLookupContext,
+    ) {
+        self.lookups
+            .push(HasherLookup::new(label, addr as u32, index, context));
     }
 
     /// Returns the index at which the next lookup will be appended.
@@ -150,14 +154,14 @@ impl Hasher {
         let init_lookup_idx = self.next_lookup_idx();
 
         // add the lookup for the hash initialization.
-        self.append_lookup(LINEAR_HASH_LABEL, state, ZERO, HasherLookupContext::Start);
+        self.append_lookup(LINEAR_HASH_LABEL, ZERO, HasherLookupContext::Start);
 
         // perform the hash.
         self.trace
             .append_permutation(&mut state, LINEAR_HASH, RETURN_STATE);
 
         // add the lookup for the hash result.
-        self.append_lookup(RETURN_STATE_LABEL, state, ZERO, HasherLookupContext::Return);
+        self.append_lookup(RETURN_STATE_LABEL, ZERO, HasherLookupContext::Return);
 
         let lookups = self.get_last_lookups(init_lookup_idx);
         (addr, state, lookups)
@@ -182,7 +186,7 @@ impl Hasher {
         let mut state = init_state_from_words(&h1, &h2);
 
         // add the lookup for the hash initialization.
-        self.append_lookup(LINEAR_HASH_LABEL, state, ZERO, HasherLookupContext::Start);
+        self.append_lookup(LINEAR_HASH_LABEL, ZERO, HasherLookupContext::Start);
 
         if let Some((start_row, end_row)) = self.get_memoized_trace(expected_hash) {
             // copy the trace of a block with same hash instead of building it again.
@@ -196,7 +200,7 @@ impl Hasher {
         };
 
         // add the lookup for the hash result.
-        self.append_lookup(RETURN_HASH_LABEL, state, ZERO, HasherLookupContext::Return);
+        self.append_lookup(RETURN_HASH_LABEL, ZERO, HasherLookupContext::Return);
 
         let result = get_digest(&state);
         let lookups = self.get_last_lookups(init_lookup_idx);
@@ -212,8 +216,6 @@ impl Hasher {
     /// The returned tuple also contains the row address of the execution trace at which the hash
     /// computation started and the lookups required to verify the computation so that the correct
     /// requests can be sent by the caller to the Chiplets Bus.
-    /// TODO: Refactor to require fewer is_memoized checks. This can be done if the intermediary
-    /// states don't need to be passed to the lookup.
     pub(super) fn hash_span_block(
         &mut self,
         op_batches: &[OpBatch],
@@ -240,7 +242,7 @@ impl Hasher {
         let mut state = init_state(op_batches[0].groups(), num_op_groups);
 
         // add the lookup for the hash initialization.
-        self.append_lookup(START_LABEL, state, ZERO, HasherLookupContext::Start);
+        self.append_lookup(START_LABEL, ZERO, HasherLookupContext::Start);
 
         // check if a span block with same hash has been encountered before in which case we can
         // directly copy it's trace.
@@ -252,78 +254,60 @@ impl Hasher {
             };
 
         let num_batches = op_batches.len();
-        if num_batches == 1 {
-            if is_memoized {
-                // copy trace if trace exists
-                self.trace.copy_trace(&mut state, start_row..end_row);
-            } else {
+
+        // if the span block is encountered for the first time and it's trace is not memoized,
+        // we need to build the trace from scratch.
+        if !is_memoized {
+            if num_batches == 1 {
                 // if there is only one batch to hash, we need only one permutation
                 self.trace.append_permutation(&mut state, START, RETURN);
-            }
-        } else {
-            let mut row = start_row;
-            // if there is more than one batch, we need to process the first, the last, and the
-            // middle permutations a bit differently. Specifically, selector flags for the
-            // permutations need to be set as follows:
-            // - first permutation: init linear hash on the first row, and absorb the next
-            //   operation batch on the last row.
-            // - middle permutations: continue hashing on the first row, and absorb the next
-            //   operation batch on the last row.
-            // - last permutation: continue hashing on the first row, and return the result
-            //   on the last row.
-            if is_memoized {
-                // copy trace if trace exists
-                self.trace
-                    .copy_trace(&mut state, row..(row + HASH_CYCLE_LEN));
-                row += HASH_CYCLE_LEN;
             } else {
+                // if there is more than one batch, we need to process the first, the last, and the
+                // middle permutations a bit differently. Specifically, selector flags for the
+                // permutations need to be set as follows:
+                // - first permutation: init linear hash on the first row, and absorb the next
+                //   operation batch on the last row.
+                // - middle permutations: continue hashing on the first row, and absorb the next
+                //   operation batch on the last row.
+                // - last permutation: continue hashing on the first row, and return the result
+                //   on the last row.
                 self.trace.append_permutation(&mut state, START, ABSORB);
-            }
 
-            let mut last_state = state;
-
-            for batch in op_batches.iter().take(num_batches - 1).skip(1) {
-                absorb_into_state(&mut state, batch.groups());
-                // add the lookup for absorbing the next operation batch.
-                self.append_lookup(
-                    ABSORB_LABEL,
-                    last_state,
-                    ZERO,
-                    HasherLookupContext::Absorb(state),
-                );
-
-                if is_memoized {
-                    self.trace
-                        .copy_trace(&mut state, row..(row + HASH_CYCLE_LEN));
-                    row += HASH_CYCLE_LEN;
-                } else {
+                for batch in op_batches.iter().take(num_batches - 1).skip(1) {
+                    absorb_into_state(&mut state, batch.groups());
+                    // add the lookup for absorbing the next operation batch.
+                    self.append_lookup(ABSORB_LABEL, ZERO, HasherLookupContext::Absorb);
                     self.trace.append_permutation(&mut state, CONTINUE, ABSORB);
                 }
 
-                last_state = state;
-            }
-
-            absorb_into_state(&mut state, op_batches[num_batches - 1].groups());
-            // add the lookup for absorbing the final operation batch.
-            self.append_lookup(
-                ABSORB_LABEL,
-                last_state,
-                ZERO,
-                HasherLookupContext::Absorb(state),
-            );
-            if is_memoized {
-                self.trace.copy_trace(&mut state, row..end_row);
-            } else {
+                absorb_into_state(&mut state, op_batches[num_batches - 1].groups());
+                // add the lookup for absorbing the final operation batch.
+                self.append_lookup(ABSORB_LABEL, ZERO, HasherLookupContext::Absorb);
                 self.trace.append_permutation(&mut state, CONTINUE, RETURN);
             }
+            self.insert_to_memoized_trace_map(addr, expected_hash);
+        } else if num_batches == 1 {
+            self.trace.copy_trace(&mut state, start_row..end_row);
+        } else {
+            for i in 1..num_batches - 1 {
+                // add the lookup for absorbing the next operation batch. Here we add the
+                // lookups before actually copying the memoized trace.
+                self.append_lookup_at(
+                    self.trace_len() + i * HASH_CYCLE_LEN,
+                    ABSORB_LABEL,
+                    ZERO,
+                    HasherLookupContext::Absorb,
+                );
+            }
+
+            self.trace.copy_trace(&mut state, start_row..end_row);
+            // add the lookup for absorbing the final operation batch.
+            self.append_lookup(ABSORB_LABEL, ZERO, HasherLookupContext::Absorb);
         }
 
         // add the lookup for the hash result.
-        self.append_lookup(RETURN_LABEL, state, ZERO, HasherLookupContext::Return);
+        self.append_lookup(RETURN_LABEL, ZERO, HasherLookupContext::Return);
 
-        if !is_memoized {
-            self.insert_to_memoized_trace_map(addr, expected_hash);
-        }
         let result = get_digest(&state);
         let lookups = self.get_last_lookups(init_lookup_idx);
 
@@ -502,7 +486,7 @@ impl Hasher {
         // add the lookup for the hash initialization if this is the beginning.
         let context = HasherLookupContext::Start;
         if let Some(label) = get_selector_context_label(init_selectors, context) {
-            self.append_lookup(label, state, Felt::new(*index), context);
+            self.append_lookup(label, Felt::new(*index), context);
         }
 
         // determine values for the node index column for this permutation. if the first selector
@@ -530,7 +514,7 @@ impl Hasher {
         // add the lookup for the hash result if this is the end.
         let context = HasherLookupContext::Return;
         if let Some(label) = get_selector_context_label(final_selectors, context) {
-            self.append_lookup(label, state, Felt::new(*index), context);
+            self.append_lookup(label, Felt::new(*index), context);
         }
 
         get_digest(&state)

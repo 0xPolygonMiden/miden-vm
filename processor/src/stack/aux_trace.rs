@@ -1,7 +1,7 @@
 use super::{
     super::trace::AuxColumnBuilder, Felt, FieldElement, OverflowTableRow, OverflowTableUpdate, Vec,
 };
-use winterfell::Matrix;
+use crate::Matrix;
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================

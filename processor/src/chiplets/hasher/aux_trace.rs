@@ -1,6 +1,8 @@
 use super::{Felt, FieldElement, StarkField, Vec, Word};
-use crate::trace::{AuxColumnBuilder, LookupTableRow};
-use winterfell::Matrix;
+use crate::{
+    trace::{AuxColumnBuilder, LookupTableRow},
+    Matrix,
+};
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
@@ -121,7 +123,11 @@ impl SiblingTableRow {
 impl LookupTableRow for SiblingTableRow {
     /// Reduces this row to a single field element in the field specified by E. This requires
     /// at least 6 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+    fn to_value<E: FieldElement<BaseField = Felt>>(
+        &self,
+        _main_trace: &Matrix<Felt>,
+        alphas: &[E],
+    ) -> E {
         // when the least significant bit of the index is 0, the sibling will be in the 3rd word
         // of the hasher state, and when the least significant bit is 1, it will be in the 2nd
         // word. we compute the value in this way to make constraint evaluation a bit easier since
