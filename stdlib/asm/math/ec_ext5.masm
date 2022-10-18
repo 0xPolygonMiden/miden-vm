@@ -588,3 +588,150 @@ export.double.5
     loc_load.4
     movdn.10
 end
+
+# Given an elliptic curve point ( say a ) as Weierstraß coordinates (X, Y) and a 319 -bit scalar ( say e )
+# on stack, this routine computes elliptic curve point b s.t. b =  e * a, using double-and-add technique.
+#
+# Scalar e should be lesser than 1067993516717146951041484916571792702745057740581727230159139685185762082554198619328292418486241 ( prime number ).
+# Note, scalar e should be provided as 10 limbs on stack, each of 32 -bit ( in little endian byte order ).
+# 
+# Given a scalar e ( as arbitrary width big integer ), following python code snippet should convert it to desired input form
+#
+# [(a >> (32*i)) & 0xffff_ffff for i in range(10)]
+#
+# Expected stack state
+#
+# [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, ...]
+#
+# Point a = (x, y, inf)
+# Scalar e = (e0, e1, e2, e3, e4, e5, e6, e7, e8, e9)
+#
+# Final stack state
+#
+# [x'0, x'1, x'2, x'3, x'4, y'0, y'1, y'2, y'3, y'4, inf, ...]
+#
+# Point b = (x', y' inf') | b = e * a
+#
+# See https://github.com/itzmeanjan/secp256k1/blob/cbbe199/point.py#L174-L186 for source of inpiration.
+export.mul.10
+    loc_storew.0
+    dropw
+    loc_store.1 # cached base_x
+    drop
+
+    loc_storew.2
+    dropw
+    loc_store.3 # cached base_y
+    drop
+
+    loc_store.4 # cached base_inf
+    drop
+
+    push.0.0.0.0
+    loc_storew.5
+    dropw
+    push.0
+    loc_store.6 # initialize and cache res_x
+    drop
+
+    push.0.0.0.0
+    loc_storew.7
+    dropw
+    push.0
+    loc_store.8 # initialize and cache res_y
+    drop
+
+    push.1
+    loc_store.9 # initialize and cache res_inf
+    drop
+
+    repeat.10
+        repeat.32
+            dup
+            push.1
+            u32checked_and
+
+            if.true
+                # bring base
+                loc_load.4
+
+                loc_load.3
+                push.0.0.0.0
+                loc_loadw.2
+
+                loc_load.1
+                push.0.0.0.0
+                loc_loadw.0
+
+                # bring res
+                loc_load.9
+
+                loc_load.8
+                push.0.0.0.0
+                loc_loadw.7
+
+                loc_load.6
+                push.0.0.0.0
+                loc_loadw.5
+
+                exec.add
+
+                # write back res
+                loc_storew.5
+                dropw
+                loc_store.6
+                drop
+
+                loc_storew.7
+                dropw
+                loc_store.8
+                drop
+
+                loc_store.9
+                drop
+            end
+
+            # bring base
+            loc_load.4
+
+            loc_load.3
+            push.0.0.0.0
+            loc_loadw.2
+
+            loc_load.1
+            push.0.0.0.0
+            loc_loadw.0
+
+            exec.double
+
+            # write back base
+            loc_storew.0
+            dropw
+            loc_store.1
+            drop
+
+            loc_storew.2
+            dropw
+            loc_store.3
+            drop
+
+            loc_store.4
+            drop
+
+            u32unchecked_shr.1
+        end
+
+        drop
+    end
+
+    # bring res
+    loc_load.9
+
+    loc_load.8
+    push.0.0.0.0
+    loc_loadw.7
+
+    loc_load.6
+    push.0.0.0.0
+    loc_loadw.5
+end

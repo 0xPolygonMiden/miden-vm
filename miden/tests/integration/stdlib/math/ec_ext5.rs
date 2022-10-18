@@ -129,6 +129,27 @@ impl ECExt5 {
             point_at_infinity: self.point_at_infinity,
         }
     }
+
+    // Multiply an elliptic curve point by 319 -bit scalar ( which should be lesser
+    // than prime number 1067993516717146951041484916571792702745057740581727230159139685185762082554198619328292418486241 )
+    // using double-and-add rule, while collecting inspiration from https://github.com/itzmeanjan/secp256k1/blob/cbbe199/point.py#L174-L186
+    pub fn scalar_mul(self, scalar: &[u32; 10]) -> Self {
+        let mut base = self;
+        let mut res = ECExt5::neutral();
+
+        for s in scalar {
+            for i in 0..32u32 {
+                let bit = (*s >> i) & 0b1u32;
+                if bit == 1u32 {
+                    res = res + base;
+                }
+
+                base = base.double();
+            }
+        }
+
+        res
+    }
 }
 
 impl Add for ECExt5 {
@@ -477,4 +498,91 @@ fn test_ec_ext5_point_doubling(
     assert_eq!(strace[8], q1.y.a3);
     assert_eq!(strace[9], q1.y.a4);
     assert_eq!(strace[10], q1.point_at_infinity);
+}
+
+// Test vectors taken from https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1528-L1558
+#[test]
+fn test_ec_ext5_point_multiplication() {
+    let source = "
+    use.std::math::ec_ext5
+
+    begin
+        exec.ec_ext5::mul
+    end";
+
+    let w0 = Ext5::new(
+        12539254003028696409,
+        15524144070600887654,
+        15092036948424041984,
+        11398871370327264211,
+        10958391180505708567,
+    );
+    let w1 = Ext5::new(
+        11001943240060308920,
+        17075173755187928434,
+        3940989555384655766,
+        15017795574860011099,
+        5548543797011402287,
+    );
+    // = 841809598287430541331763924924406256080383779033370172527955679319982746101779529382447999363236
+    //
+    // Converted using https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1054-L1069
+    let e = [
+        666904740u32,
+        1257318652u32,
+        4031728122u32,
+        3689598853u32,
+        703808805u32,
+        386793741u32,
+        2898811333u32,
+        4092670716u32,
+        1596344924u32,
+        1692681010u32,
+    ];
+
+    let (p0, _) = ECExt5::decode(w0);
+    let (p1, _) = ECExt5::decode(w1);
+    let q1 = p0.scalar_mul(&e);
+
+    assert_eq!(q1.encode(), p1.encode());
+
+    let mut stack = [
+        p0.x.a0.as_int(),
+        p0.x.a1.as_int(),
+        p0.x.a2.as_int(),
+        p0.x.a3.as_int(),
+        p0.x.a4.as_int(),
+        p0.y.a0.as_int(),
+        p0.y.a1.as_int(),
+        p0.y.a2.as_int(),
+        p0.y.a3.as_int(),
+        p0.y.a4.as_int(),
+        p0.point_at_infinity.as_int(),
+        e[0] as u64,
+        e[1] as u64,
+        e[2] as u64,
+        e[3] as u64,
+        e[4] as u64,
+        e[5] as u64,
+        e[6] as u64,
+        e[7] as u64,
+        e[8] as u64,
+        e[9] as u64,
+    ];
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    assert_eq!(strace[0], p1.x.a0);
+    assert_eq!(strace[1], p1.x.a1);
+    assert_eq!(strace[2], p1.x.a2);
+    assert_eq!(strace[3], p1.x.a3);
+    assert_eq!(strace[4], p1.x.a4);
+    assert_eq!(strace[5], p1.y.a0);
+    assert_eq!(strace[6], p1.y.a1);
+    assert_eq!(strace[7], p1.y.a2);
+    assert_eq!(strace[8], p1.y.a3);
+    assert_eq!(strace[9], p1.y.a4);
+    assert_eq!(strace[10], p1.point_at_infinity);
 }
