@@ -305,8 +305,8 @@ impl Process {
         // if the span contains more operation batches, execute them. each additional batch is
         // preceded by a RESPAN operation; executing RESPAN operation does not change the state
         // of the stack
-        for op_batch in block.op_batches().iter().skip(1) {
-            self.respan(op_batch);
+        for (i, op_batch) in block.op_batches().iter().skip(1).enumerate() {
+            self.respan(i, op_batch, block, i == block.op_batches().len() - 2);
             self.execute_op(Operation::Noop)?;
             self.execute_op_batch(op_batch, &mut decorators, op_offset)?;
             op_offset += op_batch.ops().len();

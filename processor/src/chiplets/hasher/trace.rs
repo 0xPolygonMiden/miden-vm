@@ -1,6 +1,7 @@
 use super::{Felt, HasherState, Selectors, TraceFragment, Vec, STATE_WIDTH, TRACE_WIDTH, ZERO};
 use core::ops::Range;
 use vm_core::chiplets::hasher::{apply_round, NUM_ROUNDS, NUM_SELECTORS};
+
 // HASHER TRACE
 // ================================================================================================
 
@@ -26,6 +27,15 @@ impl HasherTrace {
     /// Returns current length of this execution trace.
     pub fn trace_len(&self) -> usize {
         self.row_addr.len()
+    }
+
+    pub fn get_state_at(&self, addr: usize) -> HasherState {
+        let row = addr - 1;
+        let mut hasher_state: [Felt; STATE_WIDTH] = Default::default();
+        for (col, state) in hasher_state.iter_mut().enumerate() {
+            *state = self.hasher_state[col][row];
+        }
+        hasher_state
     }
 
     /// Returns next row address. The address is equal to the current trace length + 1.

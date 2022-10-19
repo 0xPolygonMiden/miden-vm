@@ -64,7 +64,7 @@ impl Process {
         self.decoder.end_control_block(block.hash().into());
 
         // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
+        self.chiplets.read_control_hash_result();
 
         self.execute_op(Operation::Noop)
     }
@@ -101,7 +101,7 @@ impl Process {
         self.decoder.end_control_block(block.hash().into());
 
         // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
+        self.chiplets.read_control_hash_result();
 
         self.execute_op(Operation::Noop)
     }
@@ -144,7 +144,7 @@ impl Process {
         self.decoder.end_control_block(block.hash().into());
 
         // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
+        self.chiplets.read_control_hash_result();
 
         // if we are exiting a loop, we also need to pop the top value off the stack (and this
         // value must be ZERO - otherwise, we should have stayed in the loop). but, if we never
@@ -216,7 +216,7 @@ impl Process {
             .expect("no execution context");
 
         // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
+        self.chiplets.read_control_hash_result();
 
         // when returning from a function call, reset the context and the free memory pointer to
         // what they were before the call, and restore the context of the operand stack.
@@ -244,7 +244,7 @@ impl Process {
         let num_op_groups = get_span_op_group_count(op_batches);
         let addr = self
             .chiplets
-            .hash_span_block(op_batches, num_op_groups, block.hash());
+            .init_span_block(op_batches, num_op_groups, block.hash());
 
         // start decoding the first operation batch; this also appends a row with SPAN operation
         // to the decoder trace. we also need the total number of operation groups so that we can
@@ -255,11 +255,24 @@ impl Process {
     }
 
     /// Continues decoding a SPAN block by absorbing the next batch of operations.
-    pub(super) fn respan(&mut self, op_batch: &OpBatch) {
+    pub(super) fn respan(
+        &mut self,
+        batch_idx: usize,
+        op_batch: &OpBatch,
+        block: &Span,
+        is_last_batch: bool,
+    ) {
         self.decoder.respan(op_batch);
 
         // send a request to the chiplets to continue the hash and absorb new elements.
-        self.chiplets.absorb_span_batch();
+        let start_addr = self.decoder.get_last_block_addr();
+        if is_last_batch {
+            self.chiplets
+                .absorb_last_span_batch(start_addr, batch_idx, op_batch, block.hash());
+        } else {
+            self.chiplets
+                .absorb_span_batch(start_addr, batch_idx, op_batch, block.hash());
+        }
     }
 
     /// Ends decoding a SPAN block.
@@ -269,7 +282,7 @@ impl Process {
         self.decoder.end_span(block.hash().into());
 
         // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
+        self.chiplets.end_span_block();
 
         self.execute_op(Operation::Noop)
     }
@@ -368,6 +381,10 @@ impl Decoder {
     /// Returns whether this decoder instance is instantiated in debug mode.
     pub fn in_debug_mode(&self) -> bool {
         self.debug_info.in_debug_mode()
+    }
+
+    pub fn get_last_block_addr(&self) -> Felt {
+        self.block_stack.peek().addr
     }
 
     // CONTROL BLOCKS

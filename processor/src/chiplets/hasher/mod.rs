@@ -25,6 +25,19 @@ pub use aux_trace::{AuxTraceBuilder, SiblingTableRow, SiblingTableUpdate};
 #[cfg(test)]
 mod tests;
 
+const START: Selectors = LINEAR_HASH;
+const START_LABEL: u8 = LINEAR_HASH_LABEL;
+const RETURN: Selectors = RETURN_HASH;
+const RETURN_LABEL: u8 = RETURN_HASH_LABEL;
+// absorb selectors are the same as linear hash selectors, but absorb selectors are
+// applied on the last row of a permutation cycle, while linear hash selectors are
+// applied on the first row of a permutation cycle.
+const ABSORB: Selectors = LINEAR_HASH;
+const ABSORB_LABEL: u8 = LINEAR_HASH_LABEL;
+// to continue linear hash we need retain the 2nd and 3rd selector flags and set the
+// 1st flag to ZERO.
+const CONTINUE: Selectors = [ZERO, LINEAR_HASH[1], LINEAR_HASH[2]];
+
 // HASH PROCESSOR
 // ================================================================================================
 
@@ -142,14 +155,12 @@ impl Hasher {
         h1: Word,
         h2: Word,
         expected_hash: Digest,
-        lookups: &mut Vec<HasherLookup>,
-    ) -> (Felt, Word) {
+    ) -> (Felt, Word, HasherLookup) {
         let addr = self.trace.next_row_addr();
         let mut state = init_state_from_words(&h1, &h2);
 
         // add the lookup for the hash initialization.
         let lookup = self.get_lookup(LINEAR_HASH_LABEL, ZERO, HasherLookupContext::Start);
-        lookups.push(lookup);
 
         if let Some((start_row, end_row)) = self.get_memoized_trace(expected_hash) {
             // copy the trace of a block with same hash instead of building it again.
@@ -162,52 +173,26 @@ impl Hasher {
             self.insert_to_memoized_trace_map(addr, expected_hash);
         };
 
-        // add the lookup for the hash result.
-        let lookup = self.get_lookup(RETURN_HASH_LABEL, ZERO, HasherLookupContext::Return);
-        lookups.push(lookup);
-
         let result = get_digest(&state);
 
-        (addr, result)
+        (addr, result, lookup)
     }
 
-    /// Computes a sequential hash of all operation batches in the list and returns the result. It
-    /// also records the execution trace of this computation, as well as the lookups required for
-    /// verifying its correctness so that they can be provided to the Chiplets Bus.
-    ///
-    /// The returned tuple also contains the row address of the execution trace at which the hash
-    /// computation started.
-    pub(super) fn hash_span_block(
+    pub(super) fn read_hash_result(&mut self) -> HasherLookup {
+        // add the lookup for the hash result.
+        self.get_lookup(RETURN_HASH_LABEL, ZERO, HasherLookupContext::Return)
+    }
+
+    pub(super) fn init_span_block(
         &mut self,
         op_batches: &[OpBatch],
         num_op_groups: usize,
         expected_hash: Digest,
-        lookups: &mut Vec<HasherLookup>,
-    ) -> (Felt, Word) {
-        const START: Selectors = LINEAR_HASH;
-        const START_LABEL: u8 = LINEAR_HASH_LABEL;
-        const RETURN: Selectors = RETURN_HASH;
-        const RETURN_LABEL: u8 = RETURN_HASH_LABEL;
-        // absorb selectors are the same as linear hash selectors, but absorb selectors are
-        // applied on the last row of a permutation cycle, while linear hash selectors are
-        // applied on the first row of a permutation cycle.
-        const ABSORB: Selectors = LINEAR_HASH;
-        const ABSORB_LABEL: u8 = LINEAR_HASH_LABEL;
-        // to continue linear hash we need retain the 2nd and 3rd selector flags and set the
-        // 1st flag to ZERO.
-        const CONTINUE: Selectors = [ZERO, LINEAR_HASH[1], LINEAR_HASH[2]];
-
+    ) -> (Felt, HasherLookup) {
         let addr = self.trace.next_row_addr();
-
-        // initialize the state and absorb the first operation batch into it
         let mut state = init_state(op_batches[0].groups(), num_op_groups);
-
-        // add the lookup for the hash initialization.
-        let lookup = self.get_lookup(START_LABEL, ZERO, HasherLookupContext::Start);
-        lookups.push(lookup);
-
-        // check if a span block with same hash has been encountered before in which case we can
-        // directly copy it's trace.
+        let lookup = self.get_lookup(LINEAR_HASH_LABEL, ZERO, HasherLookupContext::Start);
+        let num_batches = op_batches.len();
         let (start_row, end_row, is_memoized) =
             if let Some((start_row, end_row)) = self.get_memoized_trace(expected_hash) {
                 (*start_row, *end_row, true)
@@ -215,71 +200,76 @@ impl Hasher {
                 (0, 0, false)
             };
 
-        let num_batches = op_batches.len();
-
-        // if the span block is encountered for the first time and it's trace is not memoized,
-        // we need to build the trace from scratch.
-        if !is_memoized {
-            if num_batches == 1 {
-                // if there is only one batch to hash, we need only one permutation
-                self.trace.append_permutation(&mut state, START, RETURN);
-            } else {
-                // if there is more than one batch, we need to process the first, the last, and the
-                // middle permutations a bit differently. Specifically, selector flags for the
-                // permutations need to be set as follows:
-                // - first permutation: init linear hash on the first row, and absorb the next
-                //   operation batch on the last row.
-                // - middle permutations: continue hashing on the first row, and absorb the next
-                //   operation batch on the last row.
-                // - last permutation: continue hashing on the first row, and return the result
-                //   on the last row.
-                self.trace.append_permutation(&mut state, START, ABSORB);
-
-                for batch in op_batches.iter().take(num_batches - 1).skip(1) {
-                    absorb_into_state(&mut state, batch.groups());
-
-                    // add the lookup for absorbing the next operation batch.
-                    let lookup = self.get_lookup(ABSORB_LABEL, ZERO, HasherLookupContext::Absorb);
-                    lookups.push(lookup);
-
-                    self.trace.append_permutation(&mut state, CONTINUE, ABSORB);
-                }
-
-                absorb_into_state(&mut state, op_batches[num_batches - 1].groups());
-
-                // add the lookup for absorbing the final operation batch.
-                let lookup = self.get_lookup(ABSORB_LABEL, ZERO, HasherLookupContext::Absorb);
-                lookups.push(lookup);
-
-                self.trace.append_permutation(&mut state, CONTINUE, RETURN);
-            }
-            self.insert_to_memoized_trace_map(addr, expected_hash);
+        if is_memoized {
+            self.trace.copy_trace(&mut state, start_row..end_row);
         } else if num_batches == 1 {
-            self.trace.copy_trace(&mut state, start_row..end_row);
+            self.trace.append_permutation(&mut state, START, RETURN);
+            self.insert_to_memoized_trace_map(addr, expected_hash);
         } else {
-            for i in 1..num_batches {
-                // add the lookup for absorbing the next operation batch. Here we add the
-                // lookups before actually copying the memoized trace.
-                let lookup_addr = self.trace_len() + i * HASH_CYCLE_LEN;
-                let lookup = HasherLookup::new(
-                    ABSORB_LABEL,
-                    lookup_addr as u32,
-                    ZERO,
-                    HasherLookupContext::Absorb,
-                );
-                lookups.push(lookup);
-            }
-
-            self.trace.copy_trace(&mut state, start_row..end_row);
+            self.trace.append_permutation(&mut state, START, ABSORB);
         }
+        (addr, lookup)
+    }
 
-        // add the lookup for the hash result.
-        let lookup = self.get_lookup(RETURN_LABEL, ZERO, HasherLookupContext::Return);
-        lookups.push(lookup);
+    pub(super) fn absorb_span_batch(
+        &mut self,
+        start_addr: Felt,
+        batch_idx: usize,
+        op_batch: &OpBatch,
+        expected_hash: Digest,
+    ) -> HasherLookup {
+        let is_memoized = self.is_memoized(expected_hash);
+        let addr = self.trace.next_row_addr();
 
+        let mut state = self.trace.get_state_at(addr.as_int() as usize - 1);
+        absorb_into_state(&mut state, op_batch.groups());
+        self.trace.append_permutation(&mut state, CONTINUE, ABSORB);
+
+        if !is_memoized {
+            let addr = self.trace.next_row_addr();
+            let mut state = self.trace.get_state_at(addr.as_int() as usize - 1);
+            absorb_into_state(&mut state, op_batch.groups());
+            self.trace.append_permutation(&mut state, CONTINUE, ABSORB);
+            self.get_lookup(ABSORB_LABEL, ZERO, HasherLookupContext::Absorb)
+        } else {
+            let lookup_addr = batch_idx * HASH_CYCLE_LEN + start_addr.as_int() as usize - 1;
+            HasherLookup::new(
+                ABSORB_LABEL,
+                lookup_addr as u32,
+                ZERO,
+                HasherLookupContext::Absorb,
+            )
+        }
+    }
+
+    pub(super) fn absorb_last_span_batch(
+        &mut self,
+        start_addr: Felt,
+        batch_idx: usize,
+        op_batch: &OpBatch,
+        expected_hash: Digest,
+    ) -> (Word, HasherLookup) {
+        let addr = self.trace.next_row_addr();
+        let is_memoized = self.is_memoized(expected_hash);
+
+        let lookup = if !is_memoized {
+            let mut state = self.trace.get_state_at(addr.as_int() as usize - 1);
+            absorb_into_state(&mut state, op_batch.groups());
+            self.trace.append_permutation(&mut state, CONTINUE, RETURN);
+            self.insert_to_memoized_trace_map(start_addr, expected_hash);
+            self.get_lookup(ABSORB_LABEL, ZERO, HasherLookupContext::Absorb)
+        } else {
+            let lookup_addr = batch_idx * HASH_CYCLE_LEN + start_addr.as_int() as usize - 1;
+            HasherLookup::new(
+                ABSORB_LABEL,
+                lookup_addr as u32,
+                ZERO,
+                HasherLookupContext::Absorb,
+            )
+        };
+        let state = self.trace.get_state_at(self.trace_len() as usize);
         let result = get_digest(&state);
-
-        (addr, result)
+        (result, lookup)
     }
 
     /// Performs Merkle path verification computation and records its execution trace, as well as
@@ -554,6 +544,11 @@ impl Hasher {
     fn get_memoized_trace(&self, hash: Digest) -> Option<&(usize, usize)> {
         let key: [u8; 32] = hash.into();
         self.memoized_trace_map.get(&key)
+    }
+
+    fn is_memoized(&self, hash: Digest) -> bool {
+        let key: [u8; 32] = hash.into();
+        self.memoized_trace_map.contains_key(&key)
     }
 
     /// Inserts start and end rows of trace for a program block to the memoized_trace_map.

@@ -170,55 +170,35 @@ impl Chiplets {
     ///
     /// It returns the row address of the execution trace at which the hash computation started.
     pub fn hash_control_block(&mut self, h1: Word, h2: Word, expected_hash: Digest) -> Felt {
-        let mut lookups = Vec::new();
-        let (addr, result) = self
-            .hasher
-            .hash_control_block(h1, h2, expected_hash, &mut lookups);
+        let (addr, result, lookup) = self.hasher.hash_control_block(h1, h2, expected_hash);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(expected_hash, result.into());
 
         // send the request for the hash initialization
-        self.bus.request_hasher_lookup(lookups[0], self.clk);
-
-        // enqueue the request for the hash result
-        self.bus.enqueue_hasher_request(lookups[1]);
+        self.bus.request_hasher_lookup(lookup, self.clk);
 
         // provide the responses to the bus
-        self.bus.provide_hasher_lookups(&lookups);
+        self.bus.provide_hasher_lookup(lookup, lookup.cycle());
 
         addr
     }
 
-    /// Requests computation a sequential hash of all operation batches in the list from the Hash
-    /// chiplet and checks the result against the provided `expected_result`.
-    ///
-    /// It returns the row address of the execution trace at which the hash computation started.
-    pub fn hash_span_block(
+    pub fn init_span_block(
         &mut self,
         op_batches: &[OpBatch],
         num_op_groups: usize,
         expected_hash: Digest,
     ) -> Felt {
-        let mut lookups = Vec::new();
-        let (addr, result) =
-            self.hasher
-                .hash_span_block(op_batches, num_op_groups, expected_hash, &mut lookups);
-
-        // make sure the result computed by the hasher is the same as the expected block hash
-        debug_assert_eq!(expected_hash, result.into());
+        let (addr, lookup) = self
+            .hasher
+            .init_span_block(op_batches, num_op_groups, expected_hash);
 
         // send the request for the hash initialization
-        self.bus.request_hasher_lookup(lookups[0], self.clk);
-
-        // enqueue the rest of the requests in reverse order so that the next request is at
-        // the top of the queue.
-        for lookup in lookups.iter().skip(1).rev() {
-            self.bus.enqueue_hasher_request(*lookup);
-        }
+        self.bus.request_hasher_lookup(lookup, self.clk);
 
         // provide the responses to the bus
-        self.bus.provide_hasher_lookups(&lookups);
+        self.bus.provide_hasher_lookup(lookup, lookup.cycle());
 
         addr
     }
@@ -229,19 +209,63 @@ impl Chiplets {
     /// It's processed by moving the corresponding lookup from the Chiplets bus' queued lookups to
     /// its requested lookups. Therefore, the next queued lookup is expected to be a precomputed
     /// lookup for absorbing new elements into the hasher state.
-    pub fn absorb_span_batch(&mut self) {
-        self.bus.send_queued_hasher_request(self.clk);
+    pub fn absorb_span_batch(
+        &mut self,
+        start_addr: Felt,
+        batch_idx: usize,
+        op_batch: &OpBatch,
+        expected_hash: Digest,
+    ) {
+        let lookup = self
+            .hasher
+            .absorb_span_batch(start_addr, batch_idx, op_batch, expected_hash);
+
+        // send the request for the hash
+        self.bus.request_hasher_lookup(lookup, self.clk);
+
+        // provide the responses to the bus
+        self.bus.provide_hasher_lookup(lookup, lookup.cycle());
     }
 
-    /// Sends a request for a control block hash result to the Chiplets Bus. It's expected to be
-    /// called by the decoder to request the finalization (return hash) of a control block hash
-    /// computation for the control block it has just finished decoding.
+    /// Sends a request for a [HasherLookup] required for verifying absorption of a new `SPAN` batch
+    /// to the Chiplets Bus. It's expected to be called by the decoder while processing a `RESPAN`.
     ///
     /// It's processed by moving the corresponding lookup from the Chiplets bus' queued lookups to
     /// its requested lookups. Therefore, the next queued lookup is expected to be a precomputed
-    /// lookup for returning a hash result.
-    pub fn read_hash_result(&mut self) {
-        self.bus.send_queued_hasher_request(self.clk);
+    /// lookup for absorbing new elements into the hasher state.
+    pub fn absorb_last_span_batch(
+        &mut self,
+        start_addr: Felt,
+        batch_idx: usize,
+        op_batch: &OpBatch,
+        expected_hash: Digest,
+    ) {
+        let (result, lookup) =
+            self.hasher
+                .absorb_last_span_batch(start_addr, batch_idx, op_batch, expected_hash);
+
+        // make sure the result computed by the hasher is the same as the expected block hash
+        debug_assert_eq!(expected_hash, result.into());
+        // send the request for the hash
+        self.bus.request_hasher_lookup(lookup, self.clk);
+        // provide the responses to the bus
+        self.bus.provide_hasher_lookup(lookup, lookup.cycle());
+    }
+
+    pub fn end_span_block(&mut self) {
+        let lookup = self.hasher.read_hash_result();
+        // send the request for the hash initialization
+        self.bus.request_hasher_lookup(lookup, self.clk);
+        // provide the responses to the bus
+        self.bus.provide_hasher_lookup(lookup, lookup.cycle());
+    }
+
+    pub fn read_control_hash_result(&mut self) {
+        let lookup = self.hasher.read_hash_result();
+        // send the request for the hash initialization
+        self.bus.request_hasher_lookup(lookup, self.clk);
+        // provide the responses to the bus
+        self.bus.provide_hasher_lookup(lookup, lookup.cycle());
     }
 
     // BITWISE CHIPLET ACCESSORS

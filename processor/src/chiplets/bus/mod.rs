@@ -25,11 +25,6 @@ pub struct ChipletsBus {
     lookup_hints: BTreeMap<u32, ChipletsLookup>,
     request_rows: Vec<ChipletsLookupRow>,
     response_rows: Vec<ChipletsLookupRow>,
-    // TODO: remove queued requests by refactoring the hasher/decoder interactions so that the
-    // lookups are built as they are requested. This will be made easier by removing state info from
-    // the HasherLookup struct. Primarily it will require a refactor of `hash_span_block`,
-    // `start_span_block`, `respan`, and `end_span_block`.
-    queued_requests: Vec<HasherLookup>,
 }
 
 impl ChipletsBus {
@@ -94,28 +89,6 @@ impl ChipletsBus {
     pub fn request_hasher_lookup(&mut self, lookup: HasherLookup, cycle: u32) {
         self.request_lookup(cycle);
         self.request_rows.push(ChipletsLookupRow::Hasher(lookup));
-    }
-
-    /// Adds the request for the specified lookup to a queue from which it can be sent later when
-    /// the cycle of the request is known. Queued requests are expected to originate from the
-    /// decoder, since the hash is computed at the start of each control block (along with all
-    /// required lookups), but the decoder does not request intermediate and final lookups until the
-    /// end of the control block or until a `RESPAN`, in the case of `SPAN` blocks with more than
-    /// one operation batch.
-    pub fn enqueue_hasher_request(&mut self, lookup: HasherLookup) {
-        self.queued_requests.push(lookup);
-    }
-
-    /// Pops the top HasherLookup request off the queue and sends it to the bus. This request is
-    /// expected to originate from the decoder as it continues or finalizes control blocks with
-    /// `RESPAN` or `END`.
-    pub fn send_queued_hasher_request(&mut self, cycle: u32) {
-        let lookup = self.queued_requests.pop();
-        debug_assert!(lookup.is_some(), "no queued requests");
-
-        if let Some(lookup) = lookup {
-            self.request_hasher_lookup(lookup, cycle);
-        }
     }
 
     /// Provides the data of a hash chiplet operation contained in the [Hasher] table. The hash
