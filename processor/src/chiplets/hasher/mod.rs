@@ -257,7 +257,7 @@ impl Hasher {
         } else if num_batches == 1 {
             self.trace.copy_trace(&mut state, start_row..end_row);
         } else {
-            for i in 1..num_batches - 1 {
+            for i in 1..num_batches {
                 // add the lookup for absorbing the next operation batch. Here we add the
                 // lookups before actually copying the memoized trace.
                 let lookup_addr = self.trace_len() + i * HASH_CYCLE_LEN;
@@ -271,10 +271,6 @@ impl Hasher {
             }
 
             self.trace.copy_trace(&mut state, start_row..end_row);
-
-            // add the lookup for absorbing the final operation batch.
-            let lookup = self.get_lookup(ABSORB_LABEL, ZERO, HasherLookupContext::Absorb);
-            lookups.push(lookup);
         }
 
         // add the lookup for the hash result.
