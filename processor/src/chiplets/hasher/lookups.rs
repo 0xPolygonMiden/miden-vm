@@ -56,10 +56,10 @@ impl HasherLookup {
     }
 
     /// The cycle at which the lookup is provided by the hasher.
-    pub(super) fn cycle(&self) -> usize {
+    pub fn cycle(&self) -> u32 {
         // the hasher's addresses start from one instead of zero, so the cycle at which each lookup
         // is provided is one less than its address
-        self.addr as usize - 1
+        self.addr - 1
     }
 
     /// Returns the common header value which describes this hash operation. It is a combination of

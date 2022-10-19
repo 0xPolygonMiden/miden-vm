@@ -39,13 +39,19 @@ impl ChipletsBus {
     /// Requests lookups for a single operation at the specified cycle. A Hasher operation request
     /// can contain one or more lookups, while Bitwise and Memory requests will only contain a
     /// single lookup.
-    fn request_lookup(&mut self, cycle: u32) {
-        // all requests are sent from the stack before responses are provided (during Chiplets trace
-        // finalization). requests are guaranteed not to share cycles with other requests, since
-        // only one operation will be executed at a time.
+    fn request_lookup(&mut self, request_cycle: u32) {
+        // All requests are sent from the stack. Requests are guaranteed not to share cycles with
+        // other requests, but they might share a cycle with a response which has already been
+        // sent.
         let request_idx = self.request_rows.len();
         self.lookup_hints
-            .insert(cycle, ChipletsLookup::Request(request_idx));
+            .entry(request_cycle)
+            .and_modify(|lookup| {
+                if let ChipletsLookup::Response(response_idx) = *lookup {
+                    *lookup = ChipletsLookup::RequestAndResponse((request_idx, response_idx));
+                }
+            })
+            .or_insert_with(|| ChipletsLookup::Request(request_idx));
     }
 
     /// Provides lookup data at the specified cycle, which is the row of the Chiplets execution
@@ -119,6 +125,15 @@ impl ChipletsBus {
     pub fn provide_hasher_lookup(&mut self, lookup: HasherLookup, response_cycle: u32) {
         self.provide_lookup(response_cycle);
         self.response_rows.push(ChipletsLookupRow::Hasher(lookup));
+    }
+
+    /// Provides multiple hash lookup values and their response cycles, which are the rows of the
+    /// execution trace which contains the corresponding hasher row for either the start or end of
+    /// a hasher operation cycle.
+    pub fn provide_hasher_lookups(&mut self, lookups: &[HasherLookup]) {
+        for lookup in lookups.iter() {
+            self.provide_hasher_lookup(*lookup, lookup.cycle());
+        }
     }
 
     // BITWISE LOOKUPS

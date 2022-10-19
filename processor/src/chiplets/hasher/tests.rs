@@ -1,12 +1,16 @@
+use crate::chiplets::hasher::{lookups::HasherLookupContext, HasherLookup};
+
 use super::{
-    init_state_from_words, AuxTraceBuilder, ChipletsBus, Digest, Felt, Hasher, HasherState,
-    Selectors, SiblingTableRow, SiblingTableUpdate, TraceFragment, Word, LINEAR_HASH, MP_VERIFY,
+    init_state_from_words, AuxTraceBuilder, Digest, Felt, Hasher, HasherState, Selectors,
+    SiblingTableRow, SiblingTableUpdate, TraceFragment, Word, LINEAR_HASH, MP_VERIFY,
     MR_UPDATE_NEW, MR_UPDATE_OLD, RETURN_HASH, RETURN_STATE, TRACE_WIDTH,
 };
 use rand_utils::rand_array;
 use vm_core::{
     chiplets::hasher::{
-        self, DIGEST_LEN, HASH_CYCLE_LEN, NUM_ROUNDS, NUM_SELECTORS, STATE_COL_RANGE,
+        self, DIGEST_LEN, HASH_CYCLE_LEN, LINEAR_HASH_LABEL, MP_VERIFY_LABEL, MR_UPDATE_NEW_LABEL,
+        MR_UPDATE_OLD_LABEL, NUM_ROUNDS, NUM_SELECTORS, RETURN_HASH_LABEL, RETURN_STATE_LABEL,
+        STATE_COL_RANGE,
     },
     code_blocks::{get_span_op_group_count, CodeBlock},
     AdviceSet, Operation, StarkField, ONE, ZERO,
@@ -22,7 +26,31 @@ fn hasher_permute() {
     // initialize the hasher and perform one permutation
     let mut hasher = Hasher::default();
     let init_state: HasherState = rand_array();
-    let (addr, final_state, _) = hasher.permute(init_state);
+    let mut lookups = Vec::new();
+    let (addr, final_state) = hasher.permute(init_state, &mut lookups);
+
+    let lookup_start_addr = 1;
+    // there should be two lookups for start and end rows of hasher operation
+    let expected_lookups_len = 2;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let expected_lookup_start = HasherLookup::new(
+        LINEAR_HASH_LABEL,
+        lookup_start_addr,
+        ZERO,
+        HasherLookupContext::Start,
+    );
+
+    let expected_lookup_end = HasherLookup::new(
+        RETURN_STATE_LABEL,
+        lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    check_lookups_validity(
+        lookups,
+        expected_lookups_len,
+        vec![expected_lookup_start, expected_lookup_end],
+    );
 
     // address of the permutation should be ONE (as hasher address starts at ONE)
     assert_eq!(ONE, addr);
@@ -49,10 +77,12 @@ fn hasher_permute() {
     // initialize the hasher and perform two permutations
     let mut hasher = Hasher::default();
     let init_state1: HasherState = rand_array();
-    let (addr1, final_state1, _) = hasher.permute(init_state1);
+    let mut lookups1 = Vec::new();
+    let (addr1, final_state1) = hasher.permute(init_state1, &mut lookups1);
 
+    let mut lookups2 = Vec::new();
     let init_state2: HasherState = rand_array();
-    let (addr2, final_state2, _) = hasher.permute(init_state2);
+    let (addr2, final_state2) = hasher.permute(init_state2, &mut lookups2);
 
     // make sure the returned addresses are correct (they must be 8 rows apart)
     assert_eq!(ONE, addr1);
@@ -95,9 +125,56 @@ fn hasher_build_merkle_root() {
     // initialize the hasher and perform two Merkle branch verifications
     let mut hasher = Hasher::default();
     let path0 = tree.get_path(1, 0).unwrap();
-    hasher.build_merkle_root(leaves[0], &path0, ZERO);
+    let mut lookups = Vec::new();
+    hasher.build_merkle_root(leaves[0], &path0, ZERO, &mut lookups);
+
+    // there should be two lookups for start and end rows of hasher operation
+    let expected_lookups_len = 2;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let lookup_start_addr = 1;
+    let expected_lookup_start = HasherLookup::new(
+        MP_VERIFY_LABEL,
+        lookup_start_addr,
+        ZERO,
+        HasherLookupContext::Start,
+    );
+    let expected_lookup_end = HasherLookup::new(
+        RETURN_HASH_LABEL,
+        lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    check_lookups_validity(
+        lookups,
+        expected_lookups_len,
+        vec![expected_lookup_start, expected_lookup_end],
+    );
+
     let path1 = tree.get_path(1, 1).unwrap();
-    hasher.build_merkle_root(leaves[1], &path1, ONE);
+    let mut lookups = Vec::new();
+    hasher.build_merkle_root(leaves[1], &path1, ONE, &mut lookups);
+
+    let lookup_start_addr = 9;
+    // there should be two lookups for start and end rows of hasher operation
+    let expected_lookups_len = 2;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let expected_lookup_start = HasherLookup::new(
+        MP_VERIFY_LABEL,
+        lookup_start_addr,
+        ONE,
+        HasherLookupContext::Start,
+    );
+    let expected_lookup_end = HasherLookup::new(
+        RETURN_HASH_LABEL,
+        lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    check_lookups_validity(
+        lookups,
+        expected_lookups_len,
+        vec![expected_lookup_start, expected_lookup_end],
+    );
 
     // build the trace
     let (trace, aux_hints) = build_trace(hasher, 16);
@@ -126,7 +203,30 @@ fn hasher_build_merkle_root() {
     // initialize the hasher and perform one Merkle branch verifications
     let mut hasher = Hasher::default();
     let path = tree.get_path(3, 5).unwrap();
-    hasher.build_merkle_root(leaves[5], &path, Felt::new(5));
+    let mut lookups = Vec::new();
+    hasher.build_merkle_root(leaves[5], &path, Felt::new(5), &mut lookups);
+
+    let lookup_start_addr = 1;
+    // there should be two lookups for start and end rows of hasher operation
+    let expected_lookups_len = 2;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let expected_lookup_start = HasherLookup::new(
+        MP_VERIFY_LABEL,
+        lookup_start_addr,
+        Felt::new(5),
+        HasherLookupContext::Start,
+    );
+    let expected_lookup_end = HasherLookup::new(
+        RETURN_HASH_LABEL,
+        lookup_start_addr + 3 * HASH_CYCLE_LEN as u32 - 1,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    check_lookups_validity(
+        lookups,
+        expected_lookups_len,
+        vec![expected_lookup_start, expected_lookup_end],
+    );
 
     // build and check the trace for validity
     let (trace, aux_hints) = build_trace(hasher, 24);
@@ -142,16 +242,108 @@ fn hasher_build_merkle_root() {
     let mut hasher = Hasher::default();
 
     let path0 = tree.get_path(3, 0).unwrap();
-    hasher.build_merkle_root(leaves[0], &path0, ZERO);
+    let mut lookups = Vec::new();
+    hasher.build_merkle_root(leaves[0], &path0, ZERO, &mut lookups);
+
+    let lookup_start_addr = 1;
+    // there should be two lookups for start and end rows of hasher operation
+    let expected_lookups_len = 2;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let expected_lookup_start = HasherLookup::new(
+        MP_VERIFY_LABEL,
+        lookup_start_addr,
+        ZERO,
+        HasherLookupContext::Start,
+    );
+    let expected_lookup_end = HasherLookup::new(
+        RETURN_HASH_LABEL,
+        lookup_start_addr + 3 * HASH_CYCLE_LEN as u32 - 1,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    check_lookups_validity(
+        lookups,
+        expected_lookups_len,
+        vec![expected_lookup_start, expected_lookup_end],
+    );
 
     let path3 = tree.get_path(3, 3).unwrap();
-    hasher.build_merkle_root(leaves[3], &path3, Felt::new(3));
+    let mut lookups = Vec::new();
+    hasher.build_merkle_root(leaves[3], &path3, Felt::new(3), &mut lookups);
+
+    let lookup_start_addr = 25;
+    // there should be two lookups for start and end rows of hasher operation
+    let expected_lookups_len = 2;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let expected_lookup_start = HasherLookup::new(
+        MP_VERIFY_LABEL,
+        lookup_start_addr,
+        Felt::new(3),
+        HasherLookupContext::Start,
+    );
+    let expected_lookup_end = HasherLookup::new(
+        RETURN_HASH_LABEL,
+        lookup_start_addr + 3 * HASH_CYCLE_LEN as u32 - 1,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    check_lookups_validity(
+        lookups,
+        expected_lookups_len,
+        vec![expected_lookup_start, expected_lookup_end],
+    );
 
     let path7 = tree.get_path(3, 7).unwrap();
-    hasher.build_merkle_root(leaves[7], &path7, Felt::new(7));
+    let mut lookups = Vec::new();
+    hasher.build_merkle_root(leaves[7], &path7, Felt::new(7), &mut lookups);
+
+    let lookup_start_addr = 49;
+    // there should be two lookups for start and end rows of hasher operation
+    let expected_lookups_len = 2;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let expected_lookup_start = HasherLookup::new(
+        MP_VERIFY_LABEL,
+        lookup_start_addr,
+        Felt::new(7),
+        HasherLookupContext::Start,
+    );
+    let expected_lookup_end = HasherLookup::new(
+        RETURN_HASH_LABEL,
+        lookup_start_addr + 3 * HASH_CYCLE_LEN as u32 - 1,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    check_lookups_validity(
+        lookups,
+        expected_lookups_len,
+        vec![expected_lookup_start, expected_lookup_end],
+    );
 
     // path3 again
-    hasher.build_merkle_root(leaves[3], &path3, Felt::new(3));
+    let mut lookups = Vec::new();
+    hasher.build_merkle_root(leaves[3], &path3, Felt::new(3), &mut lookups);
+
+    let lookup_start_addr = 73;
+    // there should be two lookups for start and end rows of hasher operation
+    let expected_lookups_len = 2;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let expected_lookup_start = HasherLookup::new(
+        MP_VERIFY_LABEL,
+        lookup_start_addr,
+        Felt::new(3),
+        HasherLookupContext::Start,
+    );
+    let expected_lookup_end = HasherLookup::new(
+        RETURN_HASH_LABEL,
+        lookup_start_addr + 3 * HASH_CYCLE_LEN as u32 - 1,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    check_lookups_validity(
+        lookups,
+        expected_lookups_len,
+        vec![expected_lookup_start, expected_lookup_end],
+    );
 
     // build and check the trace for validity
     let (trace, aux_hints) = build_trace(hasher, 96);
@@ -178,13 +370,78 @@ fn hasher_update_merkle_root() {
 
     let path0 = tree.get_path(1, 0).unwrap();
     let new_leaf0 = init_leaf(3);
-    hasher.update_merkle_root(leaves[0], new_leaf0, &path0, ZERO);
+    let mut lookups = Vec::new();
+    let lookup_start_addr = 1;
+    hasher.update_merkle_root(leaves[0], new_leaf0, &path0, ZERO, &mut lookups);
     tree.update_leaf(0, new_leaf0).unwrap();
+
+    let expected_lookups_len = 4;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let expected_lookups = vec![
+        HasherLookup::new(
+            MR_UPDATE_OLD_LABEL,
+            lookup_start_addr,
+            ZERO,
+            HasherLookupContext::Start,
+        ),
+        HasherLookup::new(
+            RETURN_HASH_LABEL,
+            lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
+            ZERO,
+            HasherLookupContext::Return,
+        ),
+        HasherLookup::new(
+            MR_UPDATE_NEW_LABEL,
+            lookup_start_addr + HASH_CYCLE_LEN as u32,
+            ZERO,
+            HasherLookupContext::Start,
+        ),
+        HasherLookup::new(
+            RETURN_HASH_LABEL,
+            lookup_start_addr + 2 * HASH_CYCLE_LEN as u32 - 1,
+            ZERO,
+            HasherLookupContext::Return,
+        ),
+    ];
+    check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
     let path1 = tree.get_path(1, 1).unwrap();
     let new_leaf1 = init_leaf(4);
-    hasher.update_merkle_root(leaves[1], new_leaf1, &path1, ONE);
+    let mut lookups = Vec::new();
+
+    hasher.update_merkle_root(leaves[1], new_leaf1, &path1, ONE, &mut lookups);
     tree.update_leaf(1, new_leaf1).unwrap();
+
+    let lookup_start_addr = 17;
+    let expected_lookups_len = 4;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let expected_lookups = vec![
+        HasherLookup::new(
+            MR_UPDATE_OLD_LABEL,
+            lookup_start_addr,
+            ONE,
+            HasherLookupContext::Start,
+        ),
+        HasherLookup::new(
+            RETURN_HASH_LABEL,
+            lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
+            ZERO,
+            HasherLookupContext::Return,
+        ),
+        HasherLookup::new(
+            MR_UPDATE_NEW_LABEL,
+            lookup_start_addr + HASH_CYCLE_LEN as u32,
+            ONE,
+            HasherLookupContext::Start,
+        ),
+        HasherLookup::new(
+            RETURN_HASH_LABEL,
+            lookup_start_addr + 2 * HASH_CYCLE_LEN as u32 - 1,
+            ZERO,
+            HasherLookupContext::Return,
+        ),
+    ];
+    check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
     // build the trace
     let (trace, aux_hints) = build_trace(hasher, 32);
@@ -234,20 +491,116 @@ fn hasher_update_merkle_root() {
 
     let path3 = tree.get_path(3, 3).unwrap();
     let new_leaf3 = init_leaf(23);
-    hasher.update_merkle_root(leaves[3], new_leaf3, &path3, Felt::new(3));
+    let mut lookups = Vec::new();
+    hasher.update_merkle_root(leaves[3], new_leaf3, &path3, Felt::new(3), &mut lookups);
     tree.update_leaf(3, new_leaf3).unwrap();
+
+    let lookup_start_addr = 1;
+    let expected_lookups_len = 4;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let expected_lookups = vec![
+        HasherLookup::new(
+            MR_UPDATE_OLD_LABEL,
+            lookup_start_addr,
+            Felt::new(3),
+            HasherLookupContext::Start,
+        ),
+        HasherLookup::new(
+            RETURN_HASH_LABEL,
+            lookup_start_addr + 3 * HASH_CYCLE_LEN as u32 - 1,
+            ZERO,
+            HasherLookupContext::Return,
+        ),
+        HasherLookup::new(
+            MR_UPDATE_NEW_LABEL,
+            lookup_start_addr + 3 * HASH_CYCLE_LEN as u32,
+            Felt::new(3),
+            HasherLookupContext::Start,
+        ),
+        HasherLookup::new(
+            RETURN_HASH_LABEL,
+            lookup_start_addr + 3 * HASH_CYCLE_LEN as u32 + 3 * HASH_CYCLE_LEN as u32 - 1,
+            ZERO,
+            HasherLookupContext::Return,
+        ),
+    ];
+    check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
     let path6 = tree.get_path(3, 6).unwrap();
     let new_leaf6 = init_leaf(25);
-    hasher.update_merkle_root(leaves[6], new_leaf6, &path6, Felt::new(6));
+    let mut lookups = Vec::new();
+    hasher.update_merkle_root(leaves[6], new_leaf6, &path6, Felt::new(6), &mut lookups);
     tree.update_leaf(6, new_leaf6).unwrap();
+
+    let lookup_start_addr = 49;
+    let expected_lookups_len = 4;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let expected_lookups = vec![
+        HasherLookup::new(
+            MR_UPDATE_OLD_LABEL,
+            lookup_start_addr,
+            Felt::new(6),
+            HasherLookupContext::Start,
+        ),
+        HasherLookup::new(
+            RETURN_HASH_LABEL,
+            lookup_start_addr + 3 * HASH_CYCLE_LEN as u32 - 1,
+            ZERO,
+            HasherLookupContext::Return,
+        ),
+        HasherLookup::new(
+            MR_UPDATE_NEW_LABEL,
+            lookup_start_addr + 3 * HASH_CYCLE_LEN as u32,
+            Felt::new(6),
+            HasherLookupContext::Start,
+        ),
+        HasherLookup::new(
+            RETURN_HASH_LABEL,
+            lookup_start_addr + 3 * HASH_CYCLE_LEN as u32 + 3 * HASH_CYCLE_LEN as u32 - 1,
+            ZERO,
+            HasherLookupContext::Return,
+        ),
+    ];
+    check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
     // update leaf 3 again
     let path3_2 = tree.get_path(3, 3).unwrap();
     let new_leaf3_2 = init_leaf(27);
-    hasher.update_merkle_root(new_leaf3, new_leaf3_2, &path3_2, Felt::new(3));
+    let mut lookups = Vec::new();
+    hasher.update_merkle_root(new_leaf3, new_leaf3_2, &path3_2, Felt::new(3), &mut lookups);
     tree.update_leaf(3, new_leaf3_2).unwrap();
     assert_ne!(path3, path3_2);
+
+    let lookup_start_addr = 97;
+    let expected_lookups_len = 4;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let expected_lookups = vec![
+        HasherLookup::new(
+            MR_UPDATE_OLD_LABEL,
+            lookup_start_addr,
+            Felt::new(3),
+            HasherLookupContext::Start,
+        ),
+        HasherLookup::new(
+            RETURN_HASH_LABEL,
+            lookup_start_addr + 3 * HASH_CYCLE_LEN as u32 - 1,
+            ZERO,
+            HasherLookupContext::Return,
+        ),
+        HasherLookup::new(
+            MR_UPDATE_NEW_LABEL,
+            lookup_start_addr + 3 * HASH_CYCLE_LEN as u32,
+            Felt::new(3),
+            HasherLookupContext::Start,
+        ),
+        HasherLookup::new(
+            RETURN_HASH_LABEL,
+            lookup_start_addr + 3 * HASH_CYCLE_LEN as u32 + 3 * HASH_CYCLE_LEN as u32 - 1,
+            ZERO,
+            HasherLookupContext::Return,
+        ),
+    ];
+    check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
     // build and check the trace for validity
     let (trace, aux_hints) = build_trace(hasher, 144);
@@ -313,8 +666,8 @@ fn hash_memoization_control_blocks() {
     //        /      \
     //      Split1     Split2 (memoized)
 
-    let t_branch = CodeBlock::new_span(vec![Operation::Push(Felt::new(1))]);
-    let f_branch = CodeBlock::new_span(vec![Operation::Push(Felt::new(0))]);
+    let t_branch = CodeBlock::new_span(vec![Operation::Push(ZERO)]);
+    let f_branch = CodeBlock::new_span(vec![Operation::Push(ONE)]);
     let split1_block = CodeBlock::new_split(t_branch.clone(), f_branch.clone());
     let split2_block = CodeBlock::new_split(t_branch.clone(), f_branch.clone());
     let join_block = CodeBlock::new_join([split1_block.clone(), split2_block.clone()]);
@@ -333,8 +686,31 @@ fn hash_memoization_control_blocks() {
 
     let expected_hash = join_block.hash();
 
+    let mut lookups = Vec::new();
     // builds the trace of the join block.
-    let (_, final_state, _) = hasher.hash_control_block(h1, h2, expected_hash);
+    let (_, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+
+    let lookup_start_addr = 1;
+    let expected_lookups_len = 2;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let lookup_start = HasherLookup::new(
+        LINEAR_HASH_LABEL,
+        lookup_start_addr,
+        ZERO,
+        HasherLookupContext::Start,
+    );
+    let lookup_end = HasherLookup::new(
+        RETURN_HASH_LABEL,
+        lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    check_lookups_validity(
+        lookups,
+        expected_lookups_len,
+        vec![lookup_start, lookup_end],
+    );
+
     // make sure the hash of the final state is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
 
@@ -350,8 +726,32 @@ fn hash_memoization_control_blocks() {
         .expect("Could not convert slice to array");
 
     let expected_hash = split1_block.hash();
+
+    let mut lookups = Vec::new();
     // builds the hash execution trace of the first split block from scratch.
-    let (addr, final_state, _) = hasher.hash_control_block(h1, h2, expected_hash);
+    let (addr, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+
+    let lookup_start_addr = 9;
+    let expected_lookups_len = 2;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let lookup_start = HasherLookup::new(
+        LINEAR_HASH_LABEL,
+        lookup_start_addr,
+        ZERO,
+        HasherLookupContext::Start,
+    );
+    let lookup_end = HasherLookup::new(
+        RETURN_HASH_LABEL,
+        lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    check_lookups_validity(
+        lookups,
+        expected_lookups_len,
+        vec![lookup_start, lookup_end],
+    );
+
     let first_block_final_state = final_state;
 
     // make sure the hash of the final state of the first split block is the same as the expected
@@ -372,9 +772,32 @@ fn hash_memoization_control_blocks() {
         .try_into()
         .expect("Could not convert slice to array");
     let expected_hash = split2_block.hash();
+
+    let mut lookups = Vec::new();
     // builds the hash execution trace of the second split block by copying it from the trace of
     // the first split block.
-    let (addr, final_state, _) = hasher.hash_control_block(h1, h2, expected_hash);
+    let (addr, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+
+    let lookup_start_addr = 17;
+    let expected_lookups_len = 2;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let lookup_start = HasherLookup::new(
+        LINEAR_HASH_LABEL,
+        lookup_start_addr,
+        ZERO,
+        HasherLookupContext::Start,
+    );
+    let lookup_end = HasherLookup::new(
+        RETURN_HASH_LABEL,
+        lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    check_lookups_validity(
+        lookups,
+        expected_lookups_len,
+        vec![lookup_start, lookup_end],
+    );
 
     // make sure the hash of the final state of the second split block is the same as the expected
     // hash.
@@ -486,8 +909,30 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
         .expect("Could not convert slice to array");
     let expected_hash = join1_block.hash();
 
+    let mut lookups = Vec::new();
     // builds the trace of the Join1 block.
-    let (_, final_state, _) = hasher.hash_control_block(h1, h2, expected_hash);
+    let (_, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+
+    let lookup_start_addr = 1;
+    let expected_lookups_len = 2;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let lookup_start = HasherLookup::new(
+        LINEAR_HASH_LABEL,
+        lookup_start_addr,
+        ZERO,
+        HasherLookupContext::Start,
+    );
+    let lookup_end = HasherLookup::new(
+        RETURN_HASH_LABEL,
+        lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    check_lookups_validity(
+        lookups,
+        expected_lookups_len,
+        vec![lookup_start, lookup_end],
+    );
     // make sure the hash of the final state of Join1 is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
 
@@ -503,7 +948,30 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
         .expect("Could not convert slice to array");
     let expected_hash = join2_block.hash();
 
-    let (_, final_state, _) = hasher.hash_control_block(h1, h2, expected_hash);
+    let mut lookups = Vec::new();
+    let (_, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+
+    let lookup_start_addr = 9;
+    let expected_lookups_len = 2;
+    // make sure the lookups have correct labels, addresses, indices and contexts.
+    let lookup_start = HasherLookup::new(
+        LINEAR_HASH_LABEL,
+        lookup_start_addr,
+        ZERO,
+        HasherLookupContext::Start,
+    );
+    let lookup_end = HasherLookup::new(
+        RETURN_HASH_LABEL,
+        lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    check_lookups_validity(
+        lookups,
+        expected_lookups_len,
+        vec![lookup_start, lookup_end],
+    );
+
     // make sure the hash of the final state of Join2 is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
 
@@ -514,11 +982,55 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
     };
 
     // builds the hash execution trace of the first span block from scratch.
-    let (addr, final_state, _) = hasher.hash_span_block(
+    let mut lookups = Vec::new();
+    let (addr, final_state) = hasher.hash_span_block(
         span1_block_val.op_batches(),
         get_span_op_group_count(span1_block_val.op_batches()),
         span1_block.hash(),
+        &mut lookups,
     );
+
+    let num_batches = span1_block_val.op_batches().len();
+    let lookup_start_addr = 17;
+
+    let expected_lookups_len = 2 + num_batches - 1;
+
+    let mut expected_lookups = Vec::new();
+
+    // add lookup for start of span block
+    let lookup_start = HasherLookup::new(
+        LINEAR_HASH_LABEL,
+        lookup_start_addr,
+        ZERO,
+        HasherLookupContext::Start,
+    );
+    expected_lookups.push(lookup_start);
+
+    // add lookups for absorbed batches
+    for i in 1..num_batches {
+        let lookup = HasherLookup::new(
+            LINEAR_HASH_LABEL,
+            lookup_start_addr + (i * HASH_CYCLE_LEN) as u32 - 1,
+            ZERO,
+            HasherLookupContext::Absorb,
+        );
+        expected_lookups.push(lookup);
+    }
+
+    let last_lookup_addr_memoized_block =
+        lookup_start_addr + (num_batches * HASH_CYCLE_LEN) as u32 - 1;
+
+    // add lookup for end of span block
+    let lookup_end = HasherLookup::new(
+        RETURN_HASH_LABEL,
+        last_lookup_addr_memoized_block,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    expected_lookups.push(lookup_end);
+
+    check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
+
     let first_span_block_final_state = final_state;
 
     // make sure the hash of the final state of Span1 block is the same as the expected hash.
@@ -534,13 +1046,53 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
         unreachable!()
     };
 
+    let mut lookups = Vec::new();
     // builds the hash execution trace of the second span block by copying the sections of the
     // trace corresponding to the first span block with the same hash.
-    let (addr, final_state, _) = hasher.hash_span_block(
+    let (addr, final_state) = hasher.hash_span_block(
         span2_block_val.op_batches(),
         get_span_op_group_count(span2_block_val.op_batches()),
         span2_block.hash(),
+        &mut lookups,
     );
+
+    let num_batches = span2_block_val.op_batches().len();
+    let lookup_start_addr = last_lookup_addr_memoized_block + 1;
+
+    let expected_lookups_len = 2 + num_batches - 1;
+
+    let mut expected_lookups = Vec::new();
+
+    // add lookup for start of span block
+    let lookup_start = HasherLookup::new(
+        LINEAR_HASH_LABEL,
+        lookup_start_addr,
+        ZERO,
+        HasherLookupContext::Start,
+    );
+    expected_lookups.push(lookup_start);
+
+    // add lookups for absorbed batches
+    for i in 1..num_batches {
+        let lookup = HasherLookup::new(
+            LINEAR_HASH_LABEL,
+            lookup_start_addr + (i * HASH_CYCLE_LEN) as u32 - 1,
+            ZERO,
+            HasherLookupContext::Absorb,
+        );
+        expected_lookups.push(lookup);
+    }
+
+    // add lookup for end of span block
+    let lookup_end = HasherLookup::new(
+        RETURN_HASH_LABEL,
+        lookup_start_addr + (num_batches * HASH_CYCLE_LEN) as u32 - 1,
+        ZERO,
+        HasherLookupContext::Return,
+    );
+    expected_lookups.push(lookup_end);
+
+    check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
     let expected_hash = span2_block.hash();
     // make sure the hash of the final state of Span2 block is the same as the expected hash.
@@ -571,7 +1123,7 @@ fn build_trace(hasher: Hasher, num_rows: usize) -> (Vec<Vec<Felt>>, AuxTraceBuil
         .map(|_| vec![Felt::new(0); num_rows])
         .collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
-    let aux_trace_builder = hasher.fill_trace(&mut fragment, &mut ChipletsBus::default());
+    let aux_trace_builder = hasher.fill_trace(&mut fragment);
     (trace, aux_trace_builder)
 }
 
@@ -694,6 +1246,24 @@ fn check_memoized_trace(
             column[start_row..end_row],
             column[copied_start_row..copied_end_row]
         )
+    }
+}
+
+/// Makes sure the lookups are built correctly.
+fn check_lookups_validity(
+    lookups: Vec<HasherLookup>,
+    expected_lookups_length: usize,
+    expected_lookups: Vec<HasherLookup>,
+) {
+    // make sure the length of the lookups is what we expect.
+    assert_eq!(expected_lookups_length, lookups.len());
+
+    // make sure the length of lookups and expected lookups is same.
+    assert_eq!(expected_lookups.len(), lookups.len());
+
+    for (lookup, expected_lookup) in lookups.iter().zip(expected_lookups) {
+        // make sure the lookups match with what we expect.
+        assert_eq!(expected_lookup, *lookup);
     }
 }
 
