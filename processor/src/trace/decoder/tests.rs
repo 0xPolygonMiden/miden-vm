@@ -27,8 +27,9 @@ fn decoder_p1_span_with_respan() {
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [
-        BlockStackTableRow::new_test(ONE, ZERO, false).to_value(&alphas),
-        BlockStackTableRow::new_test(Felt::new(9), ZERO, false).to_value(&alphas),
+        BlockStackTableRow::new_test(ONE, ZERO, false).to_value(&trace.main_trace, &alphas),
+        BlockStackTableRow::new_test(Felt::new(9), ZERO, false)
+            .to_value(&trace.main_trace, &alphas),
     ];
 
     // make sure the first entry is ONE
@@ -75,9 +76,9 @@ fn decoder_p1_join() {
     let a_9 = Felt::new(9);
     let a_17 = Felt::new(17);
     let row_values = [
-        BlockStackTableRow::new_test(ONE, ZERO, false).to_value(&alphas),
-        BlockStackTableRow::new_test(a_9, ONE, false).to_value(&alphas),
-        BlockStackTableRow::new_test(a_17, ONE, false).to_value(&alphas),
+        BlockStackTableRow::new_test(ONE, ZERO, false).to_value(&trace.main_trace, &alphas),
+        BlockStackTableRow::new_test(a_9, ONE, false).to_value(&trace.main_trace, &alphas),
+        BlockStackTableRow::new_test(a_17, ONE, false).to_value(&trace.main_trace, &alphas),
     ];
 
     // make sure the first entry is ONE
@@ -134,8 +135,8 @@ fn decoder_p1_split() {
 
     let a_9 = Felt::new(9);
     let row_values = [
-        BlockStackTableRow::new_test(ONE, ZERO, false).to_value(&alphas),
-        BlockStackTableRow::new_test(a_9, ONE, false).to_value(&alphas),
+        BlockStackTableRow::new_test(ONE, ZERO, false).to_value(&trace.main_trace, &alphas),
+        BlockStackTableRow::new_test(a_9, ONE, false).to_value(&trace.main_trace, &alphas),
     ];
 
     // make sure the first entry is ONE
@@ -187,13 +188,13 @@ fn decoder_p1_loop_with_repeat() {
     let a_41 = Felt::new(41); // address of the first SPAN block in the second iteration
     let a_49 = Felt::new(49); // address of the second SPAN block in the second iteration
     let row_values = [
-        BlockStackTableRow::new_test(ONE, ZERO, true).to_value(&alphas),
-        BlockStackTableRow::new_test(a_9, ONE, false).to_value(&alphas),
-        BlockStackTableRow::new_test(a_17, a_9, false).to_value(&alphas),
-        BlockStackTableRow::new_test(a_25, a_9, false).to_value(&alphas),
-        BlockStackTableRow::new_test(a_33, ONE, false).to_value(&alphas),
-        BlockStackTableRow::new_test(a_41, a_33, false).to_value(&alphas),
-        BlockStackTableRow::new_test(a_49, a_33, false).to_value(&alphas),
+        BlockStackTableRow::new_test(ONE, ZERO, true).to_value(&trace.main_trace, &alphas),
+        BlockStackTableRow::new_test(a_9, ONE, false).to_value(&trace.main_trace, &alphas),
+        BlockStackTableRow::new_test(a_17, a_9, false).to_value(&trace.main_trace, &alphas),
+        BlockStackTableRow::new_test(a_25, a_9, false).to_value(&trace.main_trace, &alphas),
+        BlockStackTableRow::new_test(a_33, ONE, false).to_value(&trace.main_trace, &alphas),
+        BlockStackTableRow::new_test(a_41, a_33, false).to_value(&trace.main_trace, &alphas),
+        BlockStackTableRow::new_test(a_49, a_33, false).to_value(&trace.main_trace, &alphas),
     ];
 
     // make sure the first entry is ONE
@@ -294,8 +295,10 @@ fn decoder_p2_span_with_respan() {
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
-    let row_values =
-        [BlockHashTableRow::new_test(ZERO, span.hash().into(), false, false).to_value(&alphas)];
+    let row_values = [
+        BlockHashTableRow::new_test(ZERO, span.hash().into(), false, false)
+            .to_value(&trace.main_trace, &alphas),
+    ];
 
     // make sure the first entry is initialized to program hash
     let mut expected_value = row_values[0];
@@ -327,9 +330,12 @@ fn decoder_p2_join() {
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, span1.hash().into(), true, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, span2.hash().into(), false, false).to_value(&alphas),
+        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false)
+            .to_value(&trace.main_trace, &alphas),
+        BlockHashTableRow::new_test(ONE, span1.hash().into(), true, false)
+            .to_value(&trace.main_trace, &alphas),
+        BlockHashTableRow::new_test(ONE, span2.hash().into(), false, false)
+            .to_value(&trace.main_trace, &alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -380,8 +386,10 @@ fn decoder_p2_split_true() {
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, span1.hash().into(), false, false).to_value(&alphas),
+        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false)
+            .to_value(&trace.main_trace, &alphas),
+        BlockHashTableRow::new_test(ONE, span1.hash().into(), false, false)
+            .to_value(&trace.main_trace, &alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -424,8 +432,10 @@ fn decoder_p2_split_false() {
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, span2.hash().into(), false, false).to_value(&alphas),
+        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false)
+            .to_value(&trace.main_trace, &alphas),
+        BlockHashTableRow::new_test(ONE, span2.hash().into(), false, false)
+            .to_value(&trace.main_trace, &alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -471,12 +481,18 @@ fn decoder_p2_loop_with_repeat() {
     let a_9 = Felt::new(9); // address of the JOIN block in the first iteration
     let a_33 = Felt::new(33); // address of the JOIN block in the second iteration
     let row_values = [
-        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(ONE, body.hash().into(), false, true).to_value(&alphas),
-        BlockHashTableRow::new_test(a_9, span1.hash().into(), true, false).to_value(&alphas),
-        BlockHashTableRow::new_test(a_9, span2.hash().into(), false, false).to_value(&alphas),
-        BlockHashTableRow::new_test(a_33, span1.hash().into(), true, false).to_value(&alphas),
-        BlockHashTableRow::new_test(a_33, span2.hash().into(), false, false).to_value(&alphas),
+        BlockHashTableRow::new_test(ZERO, program.hash().into(), false, false)
+            .to_value(&trace.main_trace, &alphas),
+        BlockHashTableRow::new_test(ONE, body.hash().into(), false, true)
+            .to_value(&trace.main_trace, &alphas),
+        BlockHashTableRow::new_test(a_9, span1.hash().into(), true, false)
+            .to_value(&trace.main_trace, &alphas),
+        BlockHashTableRow::new_test(a_9, span2.hash().into(), false, false)
+            .to_value(&trace.main_trace, &alphas),
+        BlockHashTableRow::new_test(a_33, span1.hash().into(), true, false)
+            .to_value(&trace.main_trace, &alphas),
+        BlockHashTableRow::new_test(a_33, span2.hash().into(), false, false)
+            .to_value(&trace.main_trace, &alphas),
     ];
 
     // make sure the first entry is initialized to program hash
@@ -602,10 +618,12 @@ fn decoder_p3_trace_one_batch() {
 
     // make sure 3 groups were inserted at clock cycle 1; these entries are for the two immediate
     // values and the second operation group consisting of [SWAP, MUL, ADD]
-    let g1_value = OpGroupTableRow::new(ONE, Felt::new(3), ONE).to_value(&alphas);
-    let g2_value = OpGroupTableRow::new(ONE, Felt::new(2), Felt::new(2)).to_value(&alphas);
-    let g3_value =
-        OpGroupTableRow::new(ONE, Felt::new(1), build_op_group(&ops[9..])).to_value(&alphas);
+    let g1_value =
+        OpGroupTableRow::new(ONE, Felt::new(3), ONE).to_value(&trace.main_trace, &alphas);
+    let g2_value =
+        OpGroupTableRow::new(ONE, Felt::new(2), Felt::new(2)).to_value(&trace.main_trace, &alphas);
+    let g3_value = OpGroupTableRow::new(ONE, Felt::new(1), build_op_group(&ops[9..]))
+        .to_value(&trace.main_trace, &alphas);
     let expected_value = g1_value * g2_value * g3_value;
     assert_eq!(expected_value, p3[1]);
 
@@ -656,13 +674,13 @@ fn decoder_p3_trace_two_batches() {
     // --- first batch ----------------------------------------------------------------------------
     // make sure entries for 7 groups were inserted at clock cycle 1
     let b0_values = [
-        OpGroupTableRow::new(ONE, Felt::new(11), iv[0]).to_value(&alphas),
-        OpGroupTableRow::new(ONE, Felt::new(10), iv[1]).to_value(&alphas),
-        OpGroupTableRow::new(ONE, Felt::new(9), iv[2]).to_value(&alphas),
-        OpGroupTableRow::new(ONE, Felt::new(8), iv[3]).to_value(&alphas),
-        OpGroupTableRow::new(ONE, Felt::new(7), iv[4]).to_value(&alphas),
-        OpGroupTableRow::new(ONE, Felt::new(6), iv[5]).to_value(&alphas),
-        OpGroupTableRow::new(ONE, Felt::new(5), iv[6]).to_value(&alphas),
+        OpGroupTableRow::new(ONE, Felt::new(11), iv[0]).to_value(&trace.main_trace, &alphas),
+        OpGroupTableRow::new(ONE, Felt::new(10), iv[1]).to_value(&trace.main_trace, &alphas),
+        OpGroupTableRow::new(ONE, Felt::new(9), iv[2]).to_value(&trace.main_trace, &alphas),
+        OpGroupTableRow::new(ONE, Felt::new(8), iv[3]).to_value(&trace.main_trace, &alphas),
+        OpGroupTableRow::new(ONE, Felt::new(7), iv[4]).to_value(&trace.main_trace, &alphas),
+        OpGroupTableRow::new(ONE, Felt::new(6), iv[5]).to_value(&trace.main_trace, &alphas),
+        OpGroupTableRow::new(ONE, Felt::new(5), iv[6]).to_value(&trace.main_trace, &alphas),
     ];
     let mut expected_value: Felt = b0_values.iter().fold(ONE, |acc, &val| acc * val);
     assert_eq!(expected_value, p3[1]);
@@ -685,9 +703,10 @@ fn decoder_p3_trace_two_batches() {
     let batch1_addr = ONE + Felt::new(8);
     let op_group3 = build_op_group(&[Operation::Drop; 2]);
     let b1_values = [
-        OpGroupTableRow::new(batch1_addr, Felt::new(3), iv[7]).to_value(&alphas),
-        OpGroupTableRow::new(batch1_addr, Felt::new(2), iv[8]).to_value(&alphas),
-        OpGroupTableRow::new(batch1_addr, Felt::new(1), op_group3).to_value(&alphas),
+        OpGroupTableRow::new(batch1_addr, Felt::new(3), iv[7]).to_value(&trace.main_trace, &alphas),
+        OpGroupTableRow::new(batch1_addr, Felt::new(2), iv[8]).to_value(&trace.main_trace, &alphas),
+        OpGroupTableRow::new(batch1_addr, Felt::new(1), op_group3)
+            .to_value(&trace.main_trace, &alphas),
     ];
     let mut expected_value: Felt = b1_values.iter().fold(ONE, |acc, &val| acc * val);
     assert_eq!(expected_value, p3[10]);

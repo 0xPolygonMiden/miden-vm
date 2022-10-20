@@ -1,8 +1,10 @@
 use vm_core::{range::V_COL_IDX, utils::uninit_vector};
-use winterfell::Matrix;
 
 use super::{BTreeMap, CycleRangeChecks, Felt, FieldElement, RangeCheckFlag, Vec};
-use crate::trace::{build_lookup_table_row_values, NUM_RAND_ROWS};
+use crate::{
+    trace::{build_lookup_table_row_values, NUM_RAND_ROWS},
+    Matrix,
+};
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
@@ -143,7 +145,7 @@ impl AuxTraceBuilder {
     ) -> (Vec<E>, Vec<E>) {
         // compute the inverses for range checks performed by operations.
         let (_, inv_row_values) =
-            build_lookup_table_row_values(&self.cycle_range_check_values(), alphas);
+            build_lookup_table_row_values(&self.cycle_range_check_values(), main_trace, alphas);
 
         // allocate memory for the running product column and set the initial value to ONE
         let mut q = unsafe { uninit_vector(main_trace.num_rows()) };
@@ -175,7 +177,7 @@ impl AuxTraceBuilder {
             p1_idx = clk + 1;
 
             // update the intermediate values in the q column.
-            q[clk] = range_checks.to_stack_value(alphas);
+            q[clk] = range_checks.to_stack_value(main_trace, alphas);
 
             // include the operation lookups in the running product.
             p1[p1_idx] = p1[clk] * inv_row_values[rc_user_op_idx];
@@ -206,7 +208,7 @@ impl AuxTraceBuilder {
 
             if let Some(range_check) = self.cycle_range_checks.get(&(row_idx as u32)) {
                 // update the intermediate values in the q column.
-                q[row_idx] = range_check.to_stack_value(alphas);
+                q[row_idx] = range_check.to_stack_value(main_trace, alphas);
 
                 // include the operation lookups in the running product.
                 p1[p1_idx] *= inv_row_values[rc_user_op_idx];

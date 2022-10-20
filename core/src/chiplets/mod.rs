@@ -36,6 +36,17 @@ pub const HASHER_STATE_COL_RANGE: Range<usize> = Range {
     start: HASHER_TRACE_OFFSET + hasher::STATE_COL_RANGE.start,
     end: HASHER_TRACE_OFFSET + hasher::STATE_COL_RANGE.end,
 };
+/// The range of columns in the execution trace that contains the capacity portion of the hasher
+/// state.
+pub const HASHER_CAPACITY_COL_RANGE: Range<usize> = Range {
+    start: HASHER_TRACE_OFFSET + hasher::CAPACITY_COL_RANGE.start,
+    end: HASHER_TRACE_OFFSET + hasher::CAPACITY_COL_RANGE.end,
+};
+/// The range of columns in the execution trace that contains the rate portion of the hasher state.
+pub const HASHER_RATE_COL_RANGE: Range<usize> = Range {
+    start: HASHER_TRACE_OFFSET + hasher::RATE_COL_RANGE.start,
+    end: HASHER_TRACE_OFFSET + hasher::RATE_COL_RANGE.end,
+};
 /// The index of the hasher's node index column in the execution trace.
 pub const HASHER_NODE_INDEX_COL_IDX: usize = HASHER_STATE_COL_RANGE.end;
 

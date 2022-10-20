@@ -2,6 +2,7 @@ use super::{
     super::trace::LookupTableRow, get_num_groups_in_next_batch, BlockInfo, Felt, FieldElement,
     StarkField, Vec, Word, ONE, ZERO,
 };
+use crate::Matrix;
 
 // AUXILIARY TRACE HINTS
 // ================================================================================================
@@ -343,7 +344,11 @@ impl BlockStackTableRow {
 impl LookupTableRow for BlockStackTableRow {
     /// Reduces this row to a single field element in the field specified by E. This requires
     /// at least 8 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+    fn to_value<E: FieldElement<BaseField = Felt>>(
+        &self,
+        _main_trace: &Matrix<Felt>,
+        alphas: &[E],
+    ) -> E {
         let is_loop = if self.is_loop { ONE } else { ZERO };
         alphas[0]
             + alphas[1].mul_base(self.block_id)
@@ -421,7 +426,11 @@ impl BlockHashTableRow {
 impl LookupTableRow for BlockHashTableRow {
     /// Reduces this row to a single field element in the field specified by E. This requires
     /// at least 8 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+    fn to_value<E: FieldElement<BaseField = Felt>>(
+        &self,
+        _main_trace: &Matrix<Felt>,
+        alphas: &[E],
+    ) -> E {
         let is_first_child = if self.is_first_child { ONE } else { ZERO };
         let is_loop_body = if self.is_loop_body { ONE } else { ZERO };
         alphas[0]
@@ -461,7 +470,11 @@ impl OpGroupTableRow {
 impl LookupTableRow for OpGroupTableRow {
     /// Reduces this row to a single field element in the field specified by E. This requires
     /// at least 4 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+    fn to_value<E: FieldElement<BaseField = Felt>>(
+        &self,
+        _main_trace: &Matrix<Felt>,
+        alphas: &[E],
+    ) -> E {
         alphas[0]
             + alphas[1].mul_base(self.batch_id)
             + alphas[2].mul_base(self.group_pos)

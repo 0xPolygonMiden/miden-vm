@@ -37,11 +37,23 @@ pub const ROW_COL_IDX: usize = NUM_SELECTORS;
 /// The hasher state portion of the execution trace, located in 4 .. 16 columns.
 pub const STATE_COL_RANGE: Range<usize> = create_range(ROW_COL_IDX + 1, STATE_WIDTH);
 
+/// Number of field elements in the capacity portion of the hasher's state.
+pub const CAPACITY_LEN: usize = STATE_WIDTH - RATE_LEN;
+
+/// The capacity portion of the hasher state in the execution trace, located in 4 .. 8 columns.
+pub const CAPACITY_COL_RANGE: Range<usize> = Range {
+    start: STATE_COL_RANGE.start,
+    end: STATE_COL_RANGE.start + CAPACITY_LEN,
+};
+
 /// Number of field elements in the rate portion of the hasher's state.
 pub const RATE_LEN: usize = 8;
 
-/// Number of field elements in the capacity portion of the hasher's state.
-pub const CAPACITY_LEN: usize = STATE_WIDTH - RATE_LEN;
+/// The rate portion of the hasher state in the execution trace, located in 8 .. 16 columns.
+pub const RATE_COL_RANGE: Range<usize> = Range {
+    start: CAPACITY_COL_RANGE.end,
+    end: CAPACITY_COL_RANGE.end + RATE_LEN,
+};
 
 // The length of the output portion of the hash state.
 pub const DIGEST_LEN: usize = 4;
