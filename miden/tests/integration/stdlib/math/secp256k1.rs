@@ -258,40 +258,43 @@ fn test_u256_mod_add_sub_cycle() {
     }
 }
 
-#[test]
-fn test_secp256k1_point_doubling() {
-    let source = "
+// Wrapper types introduced for parameterized testing
+struct FieldElement([u32; 8]);
+struct Point([FieldElement; 3]);
+
+#[test_case(Point([FieldElement([1725045020, 1243934934, 83748696, 1271163719, 2490525753, 3709155749, 1579712529, 1757200845]), FieldElement([258440691, 3022796594, 2607846704, 163567449, 1396660245, 61235791, 73386979, 3569717]), FieldElement([628236075, 1776096883, 1596640373, 1237597377, 2238764922, 2503475385, 3619273576, 3366549089])]), Point([FieldElement([1571365520, 1799368815, 7428921, 1427940723, 3919221800, 2377651848, 3160934912, 2085994872]), FieldElement([2329310267, 2767739398, 1113377320, 447109814, 536421003, 2795624768, 2178970503, 2186442817]), FieldElement([1088857644, 2485825496, 3157339099, 1571409508, 3480032262, 4248989966, 223221158, 3053614628])]) ; "0")]
+#[test_case(Point([FieldElement([1557300347, 3826368586, 2537306948, 1194350582, 2206313690, 2155850976, 910320597, 3536848074]), FieldElement([124257772, 3353686949, 2778858866, 3272416768, 3192211612, 670334657, 2786774514, 1334286332]), FieldElement([2312297066, 2925488368, 3267009695, 2498870966, 1732427718, 4239428087, 1550410695, 627716766])]), Point([FieldElement([3659723495, 2637562175, 4037957238, 1456041611, 1290327999, 237726701, 1767809589, 2855059581]), FieldElement([4155167893, 4134499992, 4079637937, 1309846292, 1954278775, 592701051, 257001688, 2968630199]), FieldElement([43236963, 3205695541, 4093727030, 1974224130, 1389148406, 3751401424, 3638701209, 1284385121])]) ; "1")]
+#[test_case(Point([FieldElement([3527372762, 3507857639, 1594370824, 3718082544, 2518725024, 2545775599, 1088522187, 1093635599]), FieldElement([3614258408, 1260438099, 1063020787, 456123286, 4107569356, 1151599969, 3890268877, 1968252526]), FieldElement([3558741386, 268995358, 367673520, 1545535419, 2508499329, 1109236387, 895079977, 1740167655])]), Point([FieldElement([3785081520, 3370100016, 4156379850, 4091951425, 423340917, 252431339, 193520024, 1385386899]), FieldElement([3276376364, 188198541, 524857368, 3507707470, 1074382731, 911770899, 1564099145, 931832751]), FieldElement([646221711, 1099045009, 2864871562, 1462352998, 1135851116, 4048420382, 3606347384, 1645193827])]) ; "2")]
+fn test_secp256k1_point_doubling(src: Point, dst: Point) {
+    let source = format!(
+        "
     use.std::math::secp256k1
 
-    # Given generator point of secp256k1 elliptic curve, this routine first computes
-    # point doubling of generator point in projective coordinate & then asserts
+    # Given a point of secp256k1 elliptic curve, this routine first computes
+    # point doubling of that point in projective coordinate & then asserts
     # each coordinate limb-by-limb for ensuring correctness.
-    #
-    # Note, this test is not yet very generic i.e. it can't be generalized to work
-    # with any point generated from curve generator & test for correctness of execution
-    # of point doubling assembly routine. This is what I'd like to make it, in sometime future.
     proc.point_doubling_test_wrapper.12
         # push X -coordinate to memory
-        push.589179219.700212955.3610652250.1216225431
+        push.{}.{}.{}.{}
         loc_storew.0
         dropw
-        push.2575427139.3909656392.2543798464.872223388
+        push.{}.{}.{}.{}
         loc_storew.1
         dropw
 
         # push Y -coordinate to memory
-        push.2382126429.522045005.2975770322.3554388962
+        push.{}.{}.{}.{}
         loc_storew.2
         dropw
-        push.3477046559.3567616726.1891022234.2887369014
+        push.{}.{}.{}.{}
         loc_storew.3
         dropw
 
         # push Z -coordinate to memory
-        push.0.0.1.977
+        push.{}.{}.{}.{}
         loc_storew.4
         dropw
-        push.0.0.0.0
+        push.{}.{}.{}.{}
         loc_storew.5
         dropw
 
@@ -318,26 +321,26 @@ fn test_secp256k1_point_doubling() {
         movup.4
         mem_loadw
 
-        u32checked_eq.474728642
+        u32checked_eq.{}
         assert
-        u32checked_eq.4256012599
+        u32checked_eq.{}
         assert
-        u32checked_eq.2072183026
+        u32checked_eq.{}
         assert
-        u32checked_eq.3437933890
+        u32checked_eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.4191201175
+        u32checked_eq.{}
         assert
-        u32checked_eq.1644336685
+        u32checked_eq.{}
         assert
-        u32checked_eq.3276311816
+        u32checked_eq.{}
         assert
-        u32checked_eq.617223735
+        u32checked_eq.{}
         assert
         # --- end asserting X3 ---
 
@@ -346,26 +349,26 @@ fn test_secp256k1_point_doubling() {
         movup.4
         mem_loadw
 
-        u32checked_eq.3875396767
+        u32checked_eq.{}
         assert
-        u32checked_eq.483526712
+        u32checked_eq.{}
         assert
-        u32checked_eq.3043178571
+        u32checked_eq.{}
         assert
-        u32checked_eq.2826781693
+        u32checked_eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.2758035882
+        u32checked_eq.{}
         assert
-        u32checked_eq.3425160008
+        u32checked_eq.{}
         assert
-        u32checked_eq.524996660
+        u32checked_eq.{}
         assert
-        u32checked_eq.1440660280
+        u32checked_eq.{}
         assert
         # --- end asserting Y3 ---
 
@@ -374,96 +377,144 @@ fn test_secp256k1_point_doubling() {
         movup.4
         mem_loadw
 
-        u32checked_eq.2545792257
+        u32checked_eq.{}
         assert
-        u32checked_eq.4082826636
+        u32checked_eq.{}
         assert
-        u32checked_eq.1673463056
+        u32checked_eq.{}
         assert
-        u32checked_eq.2688095969
+        u32checked_eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.2687252166
+        u32checked_eq.{}
         assert
-        u32checked_eq.3884180958
+        u32checked_eq.{}
         assert
-        u32checked_eq.1848170264
+        u32checked_eq.{}
         assert
-        u32checked_eq.579919648
+        u32checked_eq.{}
         assert
         # --- end asserting Z3 ---
     end
 
     begin
         exec.point_doubling_test_wrapper
-    end";
+    end",
+        src.0[0].0[3],
+        src.0[0].0[2],
+        src.0[0].0[1],
+        src.0[0].0[0],
+        src.0[0].0[7],
+        src.0[0].0[6],
+        src.0[0].0[5],
+        src.0[0].0[4],
+        src.0[1].0[3],
+        src.0[1].0[2],
+        src.0[1].0[1],
+        src.0[1].0[0],
+        src.0[1].0[7],
+        src.0[1].0[6],
+        src.0[1].0[5],
+        src.0[1].0[4],
+        src.0[2].0[3],
+        src.0[2].0[2],
+        src.0[2].0[1],
+        src.0[2].0[0],
+        src.0[2].0[7],
+        src.0[2].0[6],
+        src.0[2].0[5],
+        src.0[2].0[4],
+        dst.0[0].0[0],
+        dst.0[0].0[1],
+        dst.0[0].0[2],
+        dst.0[0].0[3],
+        dst.0[0].0[4],
+        dst.0[0].0[5],
+        dst.0[0].0[6],
+        dst.0[0].0[7],
+        dst.0[1].0[0],
+        dst.0[1].0[1],
+        dst.0[1].0[2],
+        dst.0[1].0[3],
+        dst.0[1].0[4],
+        dst.0[1].0[5],
+        dst.0[1].0[6],
+        dst.0[1].0[7],
+        dst.0[2].0[0],
+        dst.0[2].0[1],
+        dst.0[2].0[2],
+        dst.0[2].0[3],
+        dst.0[2].0[4],
+        dst.0[2].0[5],
+        dst.0[2].0[6],
+        dst.0[2].0[7],
+    );
 
     let test = build_test!(source, &[]);
-    let _ = test.get_last_stack_state();
+    test.execute().unwrap();
 }
 
-#[test]
-fn test_secp256k1_point_addition() {
-    let source = "
+#[test_case(Point([FieldElement([1725045020, 1243934934, 83748696, 1271163719, 2490525753, 3709155749, 1579712529, 1757200845]), FieldElement([258440691, 3022796594, 2607846704, 163567449, 1396660245, 61235791, 73386979, 3569717]), FieldElement([628236075, 1776096883, 1596640373, 1237597377, 2238764922, 2503475385, 3619273576, 3366549089])]), Point([FieldElement([1557300347, 3826368586, 2537306948, 1194350582, 2206313690, 2155850976, 910320597, 3536848074]), FieldElement([124257772, 3353686949, 2778858866, 3272416768, 3192211612, 670334657, 2786774514, 1334286332]), FieldElement([2312297066, 2925488368, 3267009695, 2498870966, 1732427718, 4239428087, 1550410695, 627716766])]), Point([FieldElement([2309099704, 2158014047, 854312809, 3276656657, 3455091323, 3708360608, 3832958189, 1030676036]), FieldElement([133738327, 3330962811, 3584096721, 299911668, 2650033490, 422639790, 3556231157, 1827621109]), FieldElement([154840996, 2382379548, 82306663, 1374755238, 3331244496, 1158573656, 1766956234, 1263003926])]) ; "0")]
+#[test_case(Point([FieldElement([1557300347, 3826368586, 2537306948, 1194350582, 2206313690, 2155850976, 910320597, 3536848074]), FieldElement([124257772, 3353686949, 2778858866, 3272416768, 3192211612, 670334657, 2786774514, 1334286332]), FieldElement([2312297066, 2925488368, 3267009695, 2498870966, 1732427718, 4239428087, 1550410695, 627716766])]), Point([FieldElement([3527372762, 3507857639, 1594370824, 3718082544, 2518725024, 2545775599, 1088522187, 1093635599]), FieldElement([3614258408, 1260438099, 1063020787, 456123286, 4107569356, 1151599969, 3890268877, 1968252526]), FieldElement([3558741386, 268995358, 367673520, 1545535419, 2508499329, 1109236387, 895079977, 1740167655])]), Point([FieldElement([864003654, 239222195, 2420094174, 1839306128, 504066392, 3866056574, 1497267227, 949039869]), FieldElement([1768840249, 1785217230, 2513616209, 3186527350, 4099081547, 1300046179, 3896530411, 1706704480]), FieldElement([254418902, 1324758382, 3468964171, 3612550032, 4021338715, 3720724604, 2848891937, 4161447991])]); "1")]
+#[test_case(Point([FieldElement([3785081520, 3370100016, 4156379850, 4091951425, 423340917, 252431339, 193520024, 1385386899]), FieldElement([3276376364, 188198541, 524857368, 3507707470, 1074382731, 911770899, 1564099145, 931832751]), FieldElement([646221711, 1099045009, 2864871562, 1462352998, 1135851116, 4048420382, 3606347384, 1645193827])]), Point([FieldElement([3527372762, 3507857639, 1594370824, 3718082544, 2518725024, 2545775599, 1088522187, 1093635599]), FieldElement([3614258408, 1260438099, 1063020787, 456123286, 4107569356, 1151599969, 3890268877, 1968252526]), FieldElement([3558741386, 268995358, 367673520, 1545535419, 2508499329, 1109236387, 895079977, 1740167655])]), Point([FieldElement([2262227686, 3058325312, 2312740210, 2450516566, 2065187793, 3014075136, 686692524, 1785101118]), FieldElement([3723609786, 2213349074, 3667058099, 958054847, 3286828331, 2991920902, 2720867700, 2661623893]), FieldElement([1788545644, 1974633727, 3957640342, 2535384457, 4085672768, 2180047934, 928802070, 1210497449])]); "2")]
+fn test_secp256k1_point_addition(src0: Point, src1: Point, dst: Point) {
+    let source = format!(
+        "
     use.std::math::secp256k1
 
-    # Given generator point of secp256k1 elliptic curve ( twice ), this routine first computes
-    # point addition of generator point with itself ( i.e. it's equivalent to point doubling ) 
-    # in projective coordinate & then asserts each coordinate limb-by-limb for ensuring correctness.
-    #
-    # Note, this test is not yet very generic i.e. it can't be generalized to work
-    # with any points generated from curve generator & test for correctness of execution
-    # of point addition assembly routine. This is what I'd like to make it, in sometime future.
+    # Given two points of secp256k1 elliptic curve ( twice ), this routine first computes
+    # point addition of them in projective coordinate & then asserts each coordinate 
+    # limb-by-limb for ensuring correctness.
     proc.point_addition_test_wrapper.18
         # push X1 -coordinate to memory
-        push.589179219.700212955.3610652250.1216225431
+        push.{}.{}.{}.{}
         loc_storew.0
         dropw
-        push.2575427139.3909656392.2543798464.872223388
+        push.{}.{}.{}.{}
         loc_storew.1
         dropw
 
         # push Y1 -coordinate to memory
-        push.2382126429.522045005.2975770322.3554388962
+        push.{}.{}.{}.{}
         loc_storew.2
         dropw
-        push.3477046559.3567616726.1891022234.2887369014
+        push.{}.{}.{}.{}
         loc_storew.3
         dropw
 
         # push Z1 -coordinate to memory
-        push.0.0.1.977
+        push.{}.{}.{}.{}
         loc_storew.4
         dropw
-        push.0.0.0.0
+        push.{}.{}.{}.{}
         loc_storew.5
         dropw
 
         # push X2 -coordinate to memory
-        push.589179219.700212955.3610652250.1216225431
+        push.{}.{}.{}.{}
         loc_storew.6
         dropw
-        push.2575427139.3909656392.2543798464.872223388
+        push.{}.{}.{}.{}
         loc_storew.7
         dropw
 
         # push Y2 -coordinate to memory
-        push.2382126429.522045005.2975770322.3554388962
+        push.{}.{}.{}.{}
         loc_storew.8
         dropw
-        push.3477046559.3567616726.1891022234.2887369014
+        push.{}.{}.{}.{}
         loc_storew.9
         dropw
 
         # push Z2 -coordinate to memory
-        push.0.0.1.977
+        push.{}.{}.{}.{}
         loc_storew.10
         dropw
-        push.0.0.0.0
+        push.{}.{}.{}.{}
         loc_storew.11
         dropw
 
@@ -497,26 +548,26 @@ fn test_secp256k1_point_addition() {
         movup.4
         mem_loadw
 
-        u32checked_eq.474728642
+        u32checked_eq.{}
         assert
-        u32checked_eq.4256012599
+        u32checked_eq.{}
         assert
-        u32checked_eq.2072183026
+        u32checked_eq.{}
         assert
-        u32checked_eq.3437933890
+        u32checked_eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.4191201175
+        u32checked_eq.{}
         assert
-        u32checked_eq.1644336685
+        u32checked_eq.{}
         assert
-        u32checked_eq.3276311816
+        u32checked_eq.{}
         assert
-        u32checked_eq.617223735
+        u32checked_eq.{}
         assert
         # --- end asserting X3 ---
 
@@ -525,26 +576,26 @@ fn test_secp256k1_point_addition() {
         movup.4
         mem_loadw
 
-        u32checked_eq.3875396767
+        u32checked_eq.{}
         assert
-        u32checked_eq.483526712
+        u32checked_eq.{}
         assert
-        u32checked_eq.3043178571
+        u32checked_eq.{}
         assert
-        u32checked_eq.2826781693
+        u32checked_eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.2758035882
+        u32checked_eq.{}
         assert
-        u32checked_eq.3425160008
+        u32checked_eq.{}
         assert
-        u32checked_eq.524996660
+        u32checked_eq.{}
         assert
-        u32checked_eq.1440660280
+        u32checked_eq.{}
         assert
         # --- end asserting Y3 ---
 
@@ -553,40 +604,110 @@ fn test_secp256k1_point_addition() {
         movup.4
         mem_loadw
 
-        u32checked_eq.2545792257
+        u32checked_eq.{}
         assert
-        u32checked_eq.4082826636
+        u32checked_eq.{}
         assert
-        u32checked_eq.1673463056
+        u32checked_eq.{}
         assert
-        u32checked_eq.2688095969
+        u32checked_eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.2687252166
+        u32checked_eq.{}
         assert
-        u32checked_eq.3884180958
+        u32checked_eq.{}
         assert
-        u32checked_eq.1848170264
+        u32checked_eq.{}
         assert
-        u32checked_eq.579919648
+        u32checked_eq.{}
         assert
         # --- end asserting Z3 ---
     end
 
     begin
         exec.point_addition_test_wrapper
-    end";
+    end",
+        src0.0[0].0[3],
+        src0.0[0].0[2],
+        src0.0[0].0[1],
+        src0.0[0].0[0],
+        src0.0[0].0[7],
+        src0.0[0].0[6],
+        src0.0[0].0[5],
+        src0.0[0].0[4],
+        src0.0[1].0[3],
+        src0.0[1].0[2],
+        src0.0[1].0[1],
+        src0.0[1].0[0],
+        src0.0[1].0[7],
+        src0.0[1].0[6],
+        src0.0[1].0[5],
+        src0.0[1].0[4],
+        src0.0[2].0[3],
+        src0.0[2].0[2],
+        src0.0[2].0[1],
+        src0.0[2].0[0],
+        src0.0[2].0[7],
+        src0.0[2].0[6],
+        src0.0[2].0[5],
+        src0.0[2].0[4],
+        src1.0[0].0[3],
+        src1.0[0].0[2],
+        src1.0[0].0[1],
+        src1.0[0].0[0],
+        src1.0[0].0[7],
+        src1.0[0].0[6],
+        src1.0[0].0[5],
+        src1.0[0].0[4],
+        src1.0[1].0[3],
+        src1.0[1].0[2],
+        src1.0[1].0[1],
+        src1.0[1].0[0],
+        src1.0[1].0[7],
+        src1.0[1].0[6],
+        src1.0[1].0[5],
+        src1.0[1].0[4],
+        src1.0[2].0[3],
+        src1.0[2].0[2],
+        src1.0[2].0[1],
+        src1.0[2].0[0],
+        src1.0[2].0[7],
+        src1.0[2].0[6],
+        src1.0[2].0[5],
+        src1.0[2].0[4],
+        dst.0[0].0[0],
+        dst.0[0].0[1],
+        dst.0[0].0[2],
+        dst.0[0].0[3],
+        dst.0[0].0[4],
+        dst.0[0].0[5],
+        dst.0[0].0[6],
+        dst.0[0].0[7],
+        dst.0[1].0[0],
+        dst.0[1].0[1],
+        dst.0[1].0[2],
+        dst.0[1].0[3],
+        dst.0[1].0[4],
+        dst.0[1].0[5],
+        dst.0[1].0[6],
+        dst.0[1].0[7],
+        dst.0[2].0[0],
+        dst.0[2].0[1],
+        dst.0[2].0[2],
+        dst.0[2].0[3],
+        dst.0[2].0[4],
+        dst.0[2].0[5],
+        dst.0[2].0[6],
+        dst.0[2].0[7],
+    );
 
     let test = build_test!(source, &[]);
-    let _ = test.get_last_stack_state();
+    test.execute().unwrap();
 }
-
-struct FieldElement([u32; 8]);
-struct Point([FieldElement; 3]);
 
 #[test_case(Point([FieldElement([1725045020, 1243934934, 83748696, 1271163719, 2490525753, 3709155749, 1579712529, 1757200845]), FieldElement([258440691, 3022796594, 2607846704, 163567449, 1396660245, 61235791, 73386979, 3569717]), FieldElement([628236075, 1776096883, 1596640373, 1237597377, 2238764922, 2503475385, 3619273576, 3366549089])]), FieldElement([2301743426,2075099376, 2969588298, 1793611799, 2457684815, 3951838026, 2737387451, 3754378978]), Point([FieldElement([1557300347, 3826368586, 2537306948, 1194350582, 2206313690, 2155850976, 910320597, 3536848074]), FieldElement([124257772, 3353686949, 2778858866, 3272416768, 3192211612, 670334657, 2786774514, 1334286332]), FieldElement([2312297066, 2925488368, 3267009695, 2498870966, 1732427718, 4239428087, 1550410695, 627716766])]); "0")]
 #[test_case(Point([FieldElement([1557300347, 3826368586, 2537306948, 1194350582, 2206313690, 2155850976, 910320597, 3536848074]), FieldElement([124257772, 3353686949, 2778858866, 3272416768, 3192211612, 670334657, 2786774514, 1334286332]), FieldElement([2312297066, 2925488368, 3267009695, 2498870966, 1732427718, 4239428087, 1550410695, 627716766])]), FieldElement([2301743426,2075099376, 2969588298, 1793611799, 2457684815, 3951838026, 2737387451, 3754378978]), Point([FieldElement([3527372762, 3507857639, 1594370824, 3718082544, 2518725024, 2545775599, 1088522187, 1093635599]),FieldElement([3614258408, 1260438099, 1063020787, 456123286, 4107569356, 1151599969, 3890268877, 1968252526]), FieldElement([3558741386, 268995358, 367673520, 1545535419, 2508499329, 1109236387, 895079977, 1740167655])]); "1")]
