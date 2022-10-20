@@ -119,7 +119,7 @@ To simplify constraint descriptions, we'll assume that the VM exposes two binary
 
 | Flag      | Degree | Description |
 | --------- | ------ | ----------- |
-| $f_{shr}$ | 7      | When this flag is set to $1$, the instruction executing on the VM is performing a "right shift". |
+| $f_{shr}$ | 6      | When this flag is set to $1$, the instruction executing on the VM is performing a "right shift". |
 | $f_{shl}$ | 5      | When this flag is set to $1$, the instruction executing on the VM is performing a "left shift". |
 
 These flags are mutually exclusive. That is, if $f_{shl}=1$, then $f_{shr}=0$ and vice versa. However, both flags can be set to $0$ simultaneously. This happens when the executed instruction does not shift the stack. How these flags are computed is described [here](./op_constraints.md).
@@ -191,7 +191,7 @@ Notice that in the case of the left shift, the constraint forces the prover to s
 In case of a right shift, we also need to make sure that the next value of $b_1$ is set to the current value of $k_0$. This can be done with the following constraint:
 
 >$$
-f_{shr} \cdot (b'_1 - k_0) = 0 \text{ | degree} = 8
+f_{shr} \cdot (b'_1 - k_0) = 0 \text{ | degree} = 7
 $$
 
 In case of a left shift, when the overflow table is empty, we need to make sure that a $0$ is "shifted in" from the right (i.e., $s_{15}$ is set to $0$). This can be done with the following constraint:
