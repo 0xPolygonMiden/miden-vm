@@ -55,3 +55,4 @@ proptest = "1.0.0"
 rand-utils = { package = "winter-rand-utils", version = "0.4" }
 sha2 = "0.10"
 sha3 = "0.10"
+test-case = "2.2.2"

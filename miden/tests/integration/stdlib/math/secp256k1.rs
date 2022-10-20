@@ -1,4 +1,5 @@
 use super::{build_test, Felt};
+use test_case::test_case;
 
 #[test]
 fn test_to_and_from_mont_repr() {
@@ -584,9 +585,15 @@ fn test_secp256k1_point_addition() {
     let _ = test.get_last_stack_state();
 }
 
-#[test]
-fn test_secp256k1_point_multiplication() {
-    let source = "
+struct FieldElement([u32; 8]);
+struct Point([FieldElement; 3]);
+
+#[test_case(Point([FieldElement([1725045020, 1243934934, 83748696, 1271163719, 2490525753, 3709155749, 1579712529, 1757200845]), FieldElement([258440691, 3022796594, 2607846704, 163567449, 1396660245, 61235791, 73386979, 3569717]), FieldElement([628236075, 1776096883, 1596640373, 1237597377, 2238764922, 2503475385, 3619273576, 3366549089])]), FieldElement([2301743426,2075099376, 2969588298, 1793611799, 2457684815, 3951838026, 2737387451, 3754378978]), Point([FieldElement([1557300347, 3826368586, 2537306948, 1194350582, 2206313690, 2155850976, 910320597, 3536848074]), FieldElement([124257772, 3353686949, 2778858866, 3272416768, 3192211612, 670334657, 2786774514, 1334286332]), FieldElement([2312297066, 2925488368, 3267009695, 2498870966, 1732427718, 4239428087, 1550410695, 627716766])]); "0")]
+#[test_case(Point([FieldElement([1557300347, 3826368586, 2537306948, 1194350582, 2206313690, 2155850976, 910320597, 3536848074]), FieldElement([124257772, 3353686949, 2778858866, 3272416768, 3192211612, 670334657, 2786774514, 1334286332]), FieldElement([2312297066, 2925488368, 3267009695, 2498870966, 1732427718, 4239428087, 1550410695, 627716766])]), FieldElement([2301743426,2075099376, 2969588298, 1793611799, 2457684815, 3951838026, 2737387451, 3754378978]), Point([FieldElement([3527372762, 3507857639, 1594370824, 3718082544, 2518725024, 2545775599, 1088522187, 1093635599]),FieldElement([3614258408, 1260438099, 1063020787, 456123286, 4107569356, 1151599969, 3890268877, 1968252526]), FieldElement([3558741386, 268995358, 367673520, 1545535419, 2508499329, 1109236387, 895079977, 1740167655])]); "1")]
+#[test_case(Point([FieldElement([3527372762, 3507857639, 1594370824, 3718082544, 2518725024, 2545775599, 1088522187, 1093635599]), FieldElement([3614258408, 1260438099, 1063020787, 456123286, 4107569356, 1151599969, 3890268877, 1968252526]), FieldElement([3558741386, 268995358, 367673520, 1545535419, 2508499329, 1109236387, 895079977, 1740167655])]), FieldElement([2301743426,2075099376, 2969588298, 1793611799, 2457684815, 3951838026, 2737387451, 3754378978]), Point([FieldElement([3575801888, 1578089417, 2395624562, 564065581, 2066984214, 2348140603, 765785243, 3808292373]), FieldElement([361245020, 2527203120, 3484075690, 3129019989, 661091683, 2687745598, 4167871392, 778426466]), FieldElement([3338036891, 4208971587, 1993683533, 4189224997, 2780649411, 2819629975, 3646250205, 1195817501])]); "2")]
+fn test_secp256k1_point_multiplication(src_point: Point, scalar: FieldElement, dst_point: Point) {
+    let source = format!(
+        "
     use.std::math::secp256k1
 
     # Given an elliptic curve point ( in projective coordinate system ) and a 256 -bit scalar 
@@ -602,31 +609,31 @@ fn test_secp256k1_point_multiplication() {
         locaddr.6
 
         # scalar
-        push.3754378978.2737387451.3951838026.2457684815
-        push.1793611799.2969588298.2075099376.2301743426
+        push.{}.{}.{}.{}
+        push.{}.{}.{}.{}
 
         # EC point
-        push.589179219.700212955.3610652250.1216225431
+        push.{}.{}.{}.{}
         loc_storew.0
         dropw
 
-        push.2575427139.3909656392.2543798464.872223388
+        push.{}.{}.{}.{}
         loc_storew.1
         dropw
 
-        push.2382126429.522045005.2975770322.3554388962
+        push.{}.{}.{}.{}
         loc_storew.2
         dropw
 
-        push.3477046559.3567616726.1891022234.2887369014
+        push.{}.{}.{}.{}
         loc_storew.3
         dropw
         
-        push.0.0.1.977
+        push.{}.{}.{}.{}
         loc_storew.4
         dropw
 
-        push.0.0.0.0
+        push.{}.{}.{}.{}
         loc_storew.5
         dropw
 
@@ -645,26 +652,26 @@ fn test_secp256k1_point_multiplication() {
         movup.4
         mem_loadw
 
-        u32checked_eq.1096602412
+        u32checked_eq.{}
         assert
-        u32checked_eq.1336778744
+        u32checked_eq.{}
         assert
-        u32checked_eq.4237851429
+        u32checked_eq.{}
         assert
-        u32checked_eq.2379704491
+        u32checked_eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.2174658910
+        u32checked_eq.{}
         assert
-        u32checked_eq.1179196601
+        u32checked_eq.{}
         assert
-        u32checked_eq.696486755
+        u32checked_eq.{}
         assert
-        u32checked_eq.2826869248
+        u32checked_eq.{}
         assert
         # --- end asserting X ---
 
@@ -673,26 +680,26 @@ fn test_secp256k1_point_multiplication() {
         movup.4
         mem_loadw
 
-        u32checked_eq.3362845704
+        u32checked_eq.{}
         assert
-        u32checked_eq.129965728
+        u32checked_eq.{}
         assert
-        u32checked_eq.1311711770
+        u32checked_eq.{}
         assert
-        u32checked_eq.3674781461
+        u32checked_eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.3620120701
+        u32checked_eq.{}
         assert
-        u32checked_eq.1257229422
+        u32checked_eq.{}
         assert
-        u32checked_eq.162674263
+        u32checked_eq.{}
         assert
-        u32checked_eq.1366999099
+        u32checked_eq.{}
         assert
         # --- end asserting Y ---
 
@@ -701,36 +708,93 @@ fn test_secp256k1_point_multiplication() {
         movup.4
         mem_loadw
 
-        u32checked_eq.440013615
+        u32checked_eq.{}
         assert
-        u32checked_eq.548226205
+        u32checked_eq.{}
         assert
-        u32checked_eq.868197170
+        u32checked_eq.{}
         assert
-        u32checked_eq.3947728772
+        u32checked_eq.{}
         assert
 
         push.0.0.0.0
         movup.4
         mem_loadw
 
-        u32checked_eq.2287684084
+        u32checked_eq.{}
         assert
-        u32checked_eq.3056380747
+        u32checked_eq.{}
         assert
-        u32checked_eq.2298699306
+        u32checked_eq.{}
         assert
-        u32checked_eq.2987928230
+        u32checked_eq.{}
         assert
         # --- end asserting Z ---
     end
 
     begin
         exec.point_multiplication_test_wrapper
-    end";
+    end",
+        scalar.0[7],
+        scalar.0[6],
+        scalar.0[5],
+        scalar.0[4],
+        scalar.0[3],
+        scalar.0[2],
+        scalar.0[1],
+        scalar.0[0],
+        src_point.0[0].0[3],
+        src_point.0[0].0[2],
+        src_point.0[0].0[1],
+        src_point.0[0].0[0],
+        src_point.0[0].0[7],
+        src_point.0[0].0[6],
+        src_point.0[0].0[5],
+        src_point.0[0].0[4],
+        src_point.0[1].0[3],
+        src_point.0[1].0[2],
+        src_point.0[1].0[1],
+        src_point.0[1].0[0],
+        src_point.0[1].0[7],
+        src_point.0[1].0[6],
+        src_point.0[1].0[5],
+        src_point.0[1].0[4],
+        src_point.0[2].0[3],
+        src_point.0[2].0[2],
+        src_point.0[2].0[1],
+        src_point.0[2].0[0],
+        src_point.0[2].0[7],
+        src_point.0[2].0[6],
+        src_point.0[2].0[5],
+        src_point.0[2].0[4],
+        dst_point.0[0].0[0],
+        dst_point.0[0].0[1],
+        dst_point.0[0].0[2],
+        dst_point.0[0].0[3],
+        dst_point.0[0].0[4],
+        dst_point.0[0].0[5],
+        dst_point.0[0].0[6],
+        dst_point.0[0].0[7],
+        dst_point.0[1].0[0],
+        dst_point.0[1].0[1],
+        dst_point.0[1].0[2],
+        dst_point.0[1].0[3],
+        dst_point.0[1].0[4],
+        dst_point.0[1].0[5],
+        dst_point.0[1].0[6],
+        dst_point.0[1].0[7],
+        dst_point.0[2].0[0],
+        dst_point.0[2].0[1],
+        dst_point.0[2].0[2],
+        dst_point.0[2].0[3],
+        dst_point.0[2].0[4],
+        dst_point.0[2].0[5],
+        dst_point.0[2].0[6],
+        dst_point.0[2].0[7],
+    );
 
     let test = build_test!(source, &[]);
-    let _ = test.get_last_stack_state();
+    test.execute().unwrap();
 }
 
 fn mac(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
