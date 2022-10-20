@@ -589,26 +589,53 @@ fn test_secp256k1_point_multiplication() {
     let source = "
     use.std::math::secp256k1
 
-    # Given 256 -bit scalar in radix-2^32 form ( i.e. 8 limbs, each of 32 -bit width ), 
-    # this routine first multiplies the identity point of group ( i.e. 0, 1, 0 in projective 
-    # coordinate system ), by (given) scalar and then asserts for correctness with known answer.
-    #
-    # Note, this test is not yet very generic i.e. it can't be generalized to work
-    # with any 256 -bit random scalar & test for correctness of execution of point 
-    # multiplication assembly routine. This is what I'd like to make it, in sometime future.
-    proc.point_multiplication_test_wrapper.6
-        # resulting point ( in projective coordinate system ) 
-        # will be stored in these addresses
+    # Given an elliptic curve point ( in projective coordinate system ) and a 256 -bit scalar 
+    # in radix-2^32 form ( i.e. 8 limbs, each of 32 -bit width ), this routine first multiplies
+    # the EC point with provided scalar and then asserts for correctness with known answer.
+    proc.point_multiplication_test_wrapper.12
+        # resulting point
+        locaddr.11
+        locaddr.10
+        locaddr.9
+        locaddr.8
+        locaddr.7
+        locaddr.6
+
+        # scalar
+        push.3754378978.2737387451.3951838026.2457684815
+        push.1793611799.2969588298.2075099376.2301743426
+
+        # EC point
+        push.589179219.700212955.3610652250.1216225431
+        loc_storew.0
+        dropw
+
+        push.2575427139.3909656392.2543798464.872223388
+        loc_storew.1
+        dropw
+
+        push.2382126429.522045005.2975770322.3554388962
+        loc_storew.2
+        dropw
+
+        push.3477046559.3567616726.1891022234.2887369014
+        loc_storew.3
+        dropw
+        
+        push.0.0.1.977
+        loc_storew.4
+        dropw
+
+        push.0.0.0.0
+        loc_storew.5
+        dropw
+
         locaddr.5
         locaddr.4
         locaddr.3
         locaddr.2
         locaddr.1
         locaddr.0
-
-        # scalar
-        push.3754378978.2737387451.3951838026.2457684815
-        push.1793611799.2969588298.2075099376.2301743426
 
         # elliptic curve point multiplication
         exec.secp256k1::point_mul
