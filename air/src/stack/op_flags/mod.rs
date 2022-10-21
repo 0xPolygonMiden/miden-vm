@@ -1,8 +1,10 @@
-use super::EvaluationFrame;
+use super::{EvaluationFrame, B0_COL_IDX};
 use crate::utils::binary_not;
 use vm_core::{
     decoder::{IS_LOOP_FLAG_COL_IDX, NUM_OP_BITS, OP_BITS_RANGE, OP_BIT_EXTRA_COL_IDX},
-    Felt, FieldElement, Operation, DECODER_TRACE_OFFSET, ONE, TRACE_WIDTH, ZERO,
+    stack::H0_COL_IDX,
+    Felt, FieldElement, Operation, DECODER_TRACE_OFFSET, ONE, STACK_TRACE_OFFSET, TRACE_WIDTH,
+    ZERO,
 };
 
 #[cfg(test)]
@@ -65,6 +67,7 @@ pub struct OpFlags<E: FieldElement> {
     left_shift: E,
     right_shift: E,
     control_flow: E,
+    overflow: E,
     top_binary: E,
     u32_rc_op: E,
 }
@@ -216,7 +219,7 @@ impl<E: FieldElement> OpFlags<E> {
 
         // flag of END operation shifting stack to the left. It's effect on stack depends if the current
         // block being executed is a loop block or not.
-        let shift_left_on_end = degree4_op_flags[4] * frame.is_loop();
+        let shift_left_on_end = degree4_op_flags[4] * frame.is_loop_end();
 
         // The degree 6 flag (`10xxxxx`) is clubbed with both 6th bit and it's boolean not value to
         // reduce the number of multiplications.
@@ -238,7 +241,7 @@ impl<E: FieldElement> OpFlags<E> {
             + degree4_op_flags[6]
             + degree4_op_flags[7]
             + degree4_op_flags[3]
-            + degree4_op_flags[4] * binary_not(frame.is_loop());
+            + degree4_op_flags[4] * binary_not(frame.is_loop_end());
 
         no_shift_flags[1] = no_shift_flags[0] + no_change_1_flag;
         no_shift_flags[2] = no_shift_flags[1] + degree7_op_flags[8] + f1000;
@@ -336,7 +339,10 @@ impl<E: FieldElement> OpFlags<E> {
             f010 + add3_madd_flag + split_loop_flag + degree4_op_flags[5] + shift_left_on_end;
 
         // Flag if the current operation being executed is a control flow operation.
-        let control_flow = f111 + f1011 + degree4_op_flags[3];
+        let control_flow = f111
+            + f1011
+            + degree4_op_flags[2]  // SYSCALL op
+            + degree4_op_flags[3]; // CALL op
 
         // Flag if the current operation being executed is a degree 6 u32 operation.
         let u32_rc_op = f100;
@@ -349,6 +355,9 @@ impl<E: FieldElement> OpFlags<E> {
             + degree7_op_flags[42]  // CSWAP op
             + degree7_op_flags[43]; // CSWAPW op
 
+        // Flag if the overflow table contains values or not.
+        let overflow = (frame.stack_depth() - E::from(16u32)) * frame.overflow_register();
+
         Self {
             degree7_op_flags,
             degree6_op_flags,
@@ -359,6 +368,7 @@ impl<E: FieldElement> OpFlags<E> {
             left_shift,
             right_shift,
             control_flow,
+            overflow,
             top_binary,
             u32_rc_op,
         }
@@ -829,6 +839,18 @@ impl<E: FieldElement> OpFlags<E> {
         self.degree4_op_flags[get_op_index(Operation::Push(ONE).op_code())]
     }
 
+    /// Operation Flag of CALL operation.
+    #[inline(always)]
+    pub fn call(&self) -> E {
+        self.degree4_op_flags[get_op_index(Operation::Call.op_code())]
+    }
+
+    /// Operation Flag of SYSCALL operation.
+    #[inline(always)]
+    pub fn syscall(&self) -> E {
+        self.degree4_op_flags[get_op_index(Operation::SysCall.op_code())]
+    }
+
     /// Operation Flag of END operation.
     #[inline(always)]
     pub fn end(&self) -> E {
@@ -904,6 +926,12 @@ impl<E: FieldElement> OpFlags<E> {
         self.u32_rc_op
     }
 
+    /// Returns the flag if the stack overflow table contains values or not.
+    #[inline(always)]
+    pub fn overflow(&self) -> E {
+        self.overflow
+    }
+
     /// Returns the flag when the stack operation needs the top element to be binary.
     #[inline(always)]
     pub fn top_binary(&self) -> E {
@@ -922,9 +950,15 @@ trait EvaluationFrameExt<E: FieldElement> {
     /// flags for degree 4 operations where the two most significant bits are ONE.
     fn op_bit_helper(&self) -> E;
 
+    /// Returns the h0 bookeeeping register value in the current frame.
+    fn overflow_register(&self) -> E;
+
+    /// Returns the depth of the stack at the current step.
+    fn stack_depth(&self) -> E;
+
     /// Returns the value if the `h5` helper register in the decoder which is set to ONE if the
     /// exiting block is a `LOOP` block.
-    fn is_loop(&self) -> E;
+    fn is_loop_end(&self) -> E;
 }
 
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
@@ -941,7 +975,17 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     }
 
     #[inline]
-    fn is_loop(&self) -> E {
+    fn overflow_register(&self) -> E {
+        self.current()[STACK_TRACE_OFFSET + H0_COL_IDX]
+    }
+
+    #[inline]
+    fn stack_depth(&self) -> E {
+        self.current()[B0_COL_IDX]
+    }
+
+    #[inline]
+    fn is_loop_end(&self) -> E {
         self.current()[DECODER_TRACE_OFFSET + IS_LOOP_FLAG_COL_IDX]
     }
 }

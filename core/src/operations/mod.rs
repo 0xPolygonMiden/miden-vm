@@ -498,6 +498,8 @@ impl Operation {
                 | Self::Respan
                 | Self::Span
                 | Self::Halt
+                | Self::Call
+                | Self::SysCall
         )
     }
 }

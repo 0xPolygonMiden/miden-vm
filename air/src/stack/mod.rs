@@ -4,13 +4,17 @@ use super::{
 };
 use crate::utils::{are_equal, is_binary};
 use vm_core::{
-    decoder::USER_OP_HELPERS_OFFSET, stack::STACK_TOP_SIZE, utils::collections::Vec,
-    ProgramOutputs, StarkField, DECODER_TRACE_OFFSET, FMP_COL_IDX, STACK_AUX_TRACE_OFFSET,
+    decoder::{IS_CALL_FLAG_COL_IDX, USER_OP_HELPERS_OFFSET},
+    stack::STACK_TOP_SIZE,
+    utils::collections::Vec,
+    ProgramOutputs, StarkField, CLK_COL_IDX, DECODER_TRACE_OFFSET, FMP_COL_IDX,
+    STACK_AUX_TRACE_OFFSET,
 };
 
 pub mod field_ops;
 pub mod io_ops;
 pub mod op_flags;
+pub mod overflow;
 pub mod stack_manipulation;
 pub mod system_ops;
 pub mod u32_ops;
@@ -20,6 +24,7 @@ pub mod u32_ops;
 
 const B0_COL_IDX: usize = STACK_TRACE_OFFSET + STACK_TOP_SIZE;
 const B1_COL_IDX: usize = B0_COL_IDX + 1;
+const H0_COL_IDX: usize = B1_COL_IDX + 1;
 
 // --- Main constraints ---------------------------------------------------------------------------
 
@@ -54,8 +59,9 @@ pub const NUM_AUX_ASSERTIONS: usize = 2;
 
 /// Build the transition constraint degrees for the stack module and all the stack operations.
 pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
+    let mut degrees = overflow::get_transition_constraint_degrees();
     // system operations constraints degrees.
-    let mut degrees = system_ops::get_transition_constraint_degrees();
+    degrees.append(&mut system_ops::get_transition_constraint_degrees());
     // field operations constraints degrees.
     degrees.append(&mut field_ops::get_transition_constraint_degrees());
     // stack manipulation operations constraints degrees.
@@ -77,7 +83,8 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
 
 /// Returns the number of transition constraints for the stack operations.
 pub fn get_transition_constraint_count() -> usize {
-    system_ops::get_transition_constraint_count()
+    overflow::get_transition_constraint_count()
+        + system_ops::get_transition_constraint_count()
         + field_ops::get_transition_constraint_count()
         + stack_manipulation::get_transition_constraint_count()
         + u32_ops::get_transition_constraint_count()
@@ -111,8 +118,11 @@ pub fn enforce_unique_constraints<E: FieldElement>(
 ) -> usize {
     let mut constraint_offset = 0;
 
+    overflow::enforce_constraints(frame, result, op_flag);
+    constraint_offset += overflow::get_transition_constraint_count();
+
     // system operations transition constraints.
-    system_ops::enforce_constraints(frame, result, op_flag);
+    system_ops::enforce_constraints(frame, &mut result[constraint_offset..], op_flag);
     constraint_offset += system_ops::get_transition_constraint_count();
 
     // field operations transition constraints.
@@ -320,16 +330,40 @@ trait EvaluationFrameExt<E: FieldElement> {
 
     /// Returns the current value at the specified index in the stack.
     fn stack_item(&self, index: usize) -> E;
+
     /// Returns the next value at the specified index in the stack.
     fn stack_item_next(&self, index: usize) -> E;
+
+    /// Gets the depth of the stack at the current step.
+    fn stack_depth(&self) -> E;
+
+    /// Gets the depth of the stack at the next step.
+    fn stack_depth_next(&self) -> E;
+
+    /// Returns the value of the bookkeeping column `b1` at the next step.
+    fn stack_overflow_addr_next(&self) -> E;
+
+    /// Returns the current value of stack helper column `h0`.
+    fn stack_helper(&self) -> E;
+
+    /// Gets the current element of the clk register in the trace.
+    fn clk(&self) -> E;
+
+    /// Gets the next element of the clk register in the trace.
+    fn clk_next(&self) -> E;
+
     /// Gets the current element of the fmp register in the trace.
     fn fmp(&self) -> E;
+
     /// Gets the next element of the fmp register in the trace.
     fn fmp_next(&self) -> E;
-    /// Gets the depth of the stack at the current step.
-    fn depth(&self) -> E;
+
     /// Gets the current value of user op helper register located at the specified index.
     fn user_op_helper(&self, index: usize) -> E;
+
+    /// Returns the value if the `h6` helper register in the decoder which is set to ONE if the
+    /// ending block is a `CALL` block.
+    fn is_call_end(&self) -> E;
 }
 
 impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
@@ -340,25 +374,60 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
         debug_assert!(index < 16, "stack index cannot exceed 15");
         self.current()[STACK_TRACE_OFFSET + index]
     }
+
     #[inline(always)]
     fn stack_item_next(&self, index: usize) -> E {
         debug_assert!(index < 16, "stack index cannot exceed 15");
         self.next()[STACK_TRACE_OFFSET + index]
     }
+
+    #[inline(always)]
+    fn stack_depth(&self) -> E {
+        self.current()[B0_COL_IDX]
+    }
+
+    #[inline(always)]
+    fn stack_depth_next(&self) -> E {
+        self.next()[B0_COL_IDX]
+    }
+
+    #[inline(always)]
+    fn stack_overflow_addr_next(&self) -> E {
+        self.next()[B1_COL_IDX]
+    }
+
+    #[inline(always)]
+    fn stack_helper(&self) -> E {
+        self.current()[H0_COL_IDX]
+    }
+
+    #[inline(always)]
+    fn clk(&self) -> E {
+        self.current()[CLK_COL_IDX]
+    }
+
+    #[inline(always)]
+    fn clk_next(&self) -> E {
+        self.next()[CLK_COL_IDX]
+    }
+
     #[inline(always)]
     fn fmp(&self) -> E {
         self.current()[FMP_COL_IDX]
     }
+
     #[inline(always)]
     fn fmp_next(&self) -> E {
         self.next()[FMP_COL_IDX]
     }
-    #[inline(always)]
-    fn depth(&self) -> E {
-        self.current()[B0_COL_IDX]
-    }
+
     #[inline(always)]
     fn user_op_helper(&self, index: usize) -> E {
         self.current()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + index]
+    }
+
+    #[inline]
+    fn is_call_end(&self) -> E {
+        self.current()[DECODER_TRACE_OFFSET + IS_CALL_FLAG_COL_IDX]
     }
 }

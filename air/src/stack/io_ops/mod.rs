@@ -57,7 +57,7 @@ pub fn enforce_sdepth_constraint<E: FieldElement>(
     op_flag: E,
 ) -> usize {
     // Enforces the depth of the stack is equal to the top element in the next frame.
-    result[0] = op_flag * are_equal(frame.stack_item_next(0), frame.depth());
+    result[0] = op_flag * are_equal(frame.stack_item_next(0), frame.stack_depth());
 
     1
 }

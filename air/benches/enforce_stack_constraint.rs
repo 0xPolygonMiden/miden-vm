@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use miden_air::{
     stack::{
-        enforce_constraints, field_ops, io_ops, op_flags::generate_evaluation_frame,
+        enforce_constraints, field_ops, io_ops, op_flags::generate_evaluation_frame, overflow,
         stack_manipulation, system_ops, u32_ops, NUM_GENERAL_CONSTRAINTS,
     },
     Felt, FieldElement,
@@ -14,7 +14,8 @@ fn enforce_stack_constraint(c: &mut Criterion) {
     group.measurement_time(Duration::from_secs(10));
 
     group.bench_function("enforce_stack", |bench| {
-        const NUM_CONSTRAINTS: usize = system_ops::NUM_CONSTRAINTS
+        const NUM_CONSTRAINTS: usize = overflow::NUM_CONSTRAINTS
+            + system_ops::NUM_CONSTRAINTS
             + u32_ops::NUM_CONSTRAINTS
             + field_ops::NUM_CONSTRAINTS
             + stack_manipulation::NUM_CONSTRAINTS
