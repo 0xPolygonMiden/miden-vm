@@ -918,6 +918,158 @@ fn test_secp256k1_point_multiplication(src_point: Point, scalar: FieldElement, d
     test.execute().unwrap();
 }
 
+#[test_case(FieldElement([2301743426,2075099376, 2969588298, 1793611799, 2457684815, 3951838026, 2737387451, 3754378978]), Point([FieldElement([1096602412, 1336778744, 4237851429, 2379704491, 2174658910, 1179196601, 696486755, 2826869248]), FieldElement([3362845704, 129965728, 1311711770, 3674781461, 3620120701, 1257229422, 162674263, 1366999099]), FieldElement([440013615, 548226205, 868197170, 3947728772, 2287684084, 3056380747, 2298699306, 2987928230])]); "0")]
+#[test_case(FieldElement([278420554, 274302291, 1226739346, 2847213784, 2559002059, 1576177591, 3232826642, 3734504736]), Point([FieldElement([2853151047, 507904927, 3967775652, 327717944, 4063402783, 1708337738, 2386716410, 3508073450]), FieldElement([2460268912, 1629689126, 1367585067, 3501806633, 3311638194, 667141611, 1619993686, 1135413519]), FieldElement([1479849294, 1358829318, 218593263, 1441654470, 4085241462, 916003429, 3637705774, 1404604942])]); "1")]
+fn test_secp256k1_generator_multiplication(scalar: FieldElement, point: Point) {
+    let source = format!(
+        "
+    use.std::math::secp256k1
+
+    # Given a 256 -bit scalar in radix-2^32 form ( i.e. 8 limbs, each of 32 -bit width ), 
+    # this routine first multiplies the secp256k1 generator point with provided scalar and 
+    # then asserts for correctness with known answer.
+    proc.generator_multiplication_test_wrapper.12
+        # resulting point
+        locaddr.11
+        locaddr.10
+        locaddr.9
+        locaddr.8
+        locaddr.7
+        locaddr.6
+
+        # scalar
+        push.{}.{}.{}.{}
+        push.{}.{}.{}.{}
+
+        # elliptic curve generator point multiplication
+        exec.secp256k1::gen_mul
+
+        # --- start asserting X ---
+        push.0.0.0.0
+        movup.4
+        mem_loadw
+
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+
+        push.0.0.0.0
+        movup.4
+        mem_loadw
+
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        # --- end asserting X ---
+
+        # --- start asserting Y ---
+        push.0.0.0.0
+        movup.4
+        mem_loadw
+
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+
+        push.0.0.0.0
+        movup.4
+        mem_loadw
+
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        # --- end asserting Y ---
+
+        # --- start asserting Z ---
+        push.0.0.0.0
+        movup.4
+        mem_loadw
+
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+
+        push.0.0.0.0
+        movup.4
+        mem_loadw
+
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        u32checked_eq.{}
+        assert
+        # --- end asserting Z ---
+    end
+
+    begin
+        exec.generator_multiplication_test_wrapper
+    end",
+        scalar.0[7],
+        scalar.0[6],
+        scalar.0[5],
+        scalar.0[4],
+        scalar.0[3],
+        scalar.0[2],
+        scalar.0[1],
+        scalar.0[0],
+        point.0[0].0[0],
+        point.0[0].0[1],
+        point.0[0].0[2],
+        point.0[0].0[3],
+        point.0[0].0[4],
+        point.0[0].0[5],
+        point.0[0].0[6],
+        point.0[0].0[7],
+        point.0[1].0[0],
+        point.0[1].0[1],
+        point.0[1].0[2],
+        point.0[1].0[3],
+        point.0[1].0[4],
+        point.0[1].0[5],
+        point.0[1].0[6],
+        point.0[1].0[7],
+        point.0[2].0[0],
+        point.0[2].0[1],
+        point.0[2].0[2],
+        point.0[2].0[3],
+        point.0[2].0[4],
+        point.0[2].0[5],
+        point.0[2].0[6],
+        point.0[2].0[7],
+    );
+
+    let test = build_test!(source, &[]);
+    test.execute().unwrap();
+}
+
 fn mac(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
     let tmp = a as u64 + (b as u64 * c as u64) + carry as u64;
     ((tmp >> 32) as u32, tmp as u32)
