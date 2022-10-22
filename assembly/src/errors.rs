@@ -324,6 +324,15 @@ impl AssemblyError {
     }
 }
 
+#[derive(Debug)]
+pub enum SerializationError {
+    InvalidBoolValue,
+    StringTooLong,
+    EndOfReader,
+    InvalidOpCode,
+    InvalidFieldElement,
+}
+
 // COMMON TRAIT IMPLEMENTATIONS
 // ================================================================================================
 

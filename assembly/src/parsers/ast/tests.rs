@@ -1,4 +1,5 @@
 use super::{parse_module, parse_program, BTreeMap, Instruction, Node, ProcMap, ProcedureAst};
+use crate::parsers::ast::{ModuleAst, ProgramAst};
 use vm_core::{Felt, FieldElement};
 
 // UNIT TESTS
@@ -99,6 +100,94 @@ fn test_ast_parsing_use() {
         "std::abc::foo::bar",
     )))];
     assert_program_output(source, procedures, nodes);
+}
+
+// SERIALIZATION AND DESERIALIZATION TESTS
+// ================================================================================================
+
+#[test]
+fn test_ast_program_serde_simple() {
+    let source = "begin push.0 assertz end";
+    let program = parse_program(source).unwrap();
+    let program_serialized = program.to_bytes();
+    let program_deserialized = ProgramAst::from_bytes(&mut program_serialized.as_slice()).unwrap();
+
+    assert_eq!(program, program_deserialized);
+}
+
+#[test]
+fn test_ast_program_serde_local_procs() {
+    let source = "\
+    proc.foo.1 
+        loc_load.0
+    end
+    proc.bar.2 
+        padw
+    end  
+    begin
+        exec.foo
+        exec.bar
+    end";
+    let program = parse_program(source).unwrap();
+    let program_serialized = program.to_bytes();
+    let program_deserialized = ProgramAst::from_bytes(&mut program_serialized.as_slice()).unwrap();
+
+    assert_eq!(program, program_deserialized);
+}
+
+#[test]
+fn test_ast_program_serde_exported_procs() {
+    let source = "\
+    export.foo.1 
+        loc_load.0
+    end
+    export.bar.2 
+        padw
+    end";
+    let module = parse_module(source).unwrap();
+    let module_serialized = module.to_bytes();
+    let module_deserialized = ModuleAst::from_bytes(&mut module_serialized.as_slice()).unwrap();
+
+    assert_eq!(module, module_deserialized);
+}
+
+#[test]
+fn test_ast_program_serde_control_flow() {
+    let source = "\
+    begin
+        repeat.3
+            push.1
+            push.0
+            push.1
+        end 
+
+        if.true
+            and
+            loc_store.0
+        else
+            padw
+        end
+        
+        while.true
+            push.5
+            push.7
+            u32checked_add
+            loc_store.1
+            push.0
+        end
+
+        repeat.3
+            push.2
+            u32overflowing_mul
+        end
+
+    end";
+
+    let program = parse_program(source).unwrap();
+    let program_serialized = program.to_bytes();
+    let program_deserialized = ProgramAst::from_bytes(&mut program_serialized.as_slice()).unwrap();
+
+    assert_eq!(program, program_deserialized);
 }
 
 fn assert_program_output(source: &str, procedures: ProcMap, body: Vec<Node>) {
