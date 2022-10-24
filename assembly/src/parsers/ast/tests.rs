@@ -107,7 +107,7 @@ fn test_ast_parsing_use() {
 
 #[test]
 fn test_ast_program_serde_simple() {
-    let source = "begin push.0 assertz end";
+    let source = "begin push.0xabc234 push.0 assertz end";
     let program = parse_program(source).unwrap();
     let program_serialized = program.to_bytes();
     let program_deserialized = ProgramAst::from_bytes(&mut program_serialized.as_slice()).unwrap();
@@ -157,8 +157,7 @@ fn test_ast_program_serde_control_flow() {
     begin
         repeat.3
             push.1
-            push.0
-            push.1
+            push.0.1
         end 
 
         if.true
@@ -169,8 +168,7 @@ fn test_ast_program_serde_control_flow() {
         end
         
         while.true
-            push.5
-            push.7
+            push.5.7
             u32checked_add
             loc_store.1
             push.0
