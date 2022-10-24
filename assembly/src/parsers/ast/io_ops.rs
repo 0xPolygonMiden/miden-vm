@@ -6,6 +6,9 @@ use vm_core::Felt;
 // CONSTANTS
 // ================================================================================================
 
+/// The maximum number of constant inputs allowed by `push` operation.
+const MAX_CONST_INPUTS: usize = 16;
+
 // Push constant
 
 /// The required length of the hexadecimal representation for an input value when more than one hex
@@ -44,7 +47,7 @@ pub fn parse_push_constants(op: &Token, constants: &mut Vec<Felt>) -> Result<(),
 }
 
 pub fn parse_push(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "push", 1);
+    validate_operation!(op, "push", 1..MAX_CONST_INPUTS);
 
     let mut constants = Vec::<Felt>::new();
     parse_push_constants(op, &mut constants)?;
