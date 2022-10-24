@@ -102,10 +102,11 @@ impl Test {
         mem_addr: u64,
         expected_mem: &[u64],
     ) {
-        let mut process = Process::new(self.inputs.clone());
+        // compile the program
+        let program = self.compile();
 
         // execute the test
-        let program = self.compile();
+        let mut process = Process::new(program.kernel(), self.inputs.clone());
         process.execute(&program).unwrap();
 
         // validate the memory state

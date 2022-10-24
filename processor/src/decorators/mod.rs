@@ -138,7 +138,7 @@ fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Felt, FieldElement, Operation, StarkField},
+        super::{Felt, FieldElement, Kernel, Operation, StarkField},
         Process,
     };
     use crate::Word;
@@ -160,7 +160,7 @@ mod tests {
         ];
 
         let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new(inputs);
+        let mut process = Process::new(&Kernel::default(), inputs);
         process.execute_op(Operation::Noop).unwrap();
 
         // inject the node into the advice tape

@@ -16,9 +16,9 @@ mod stack;
 /// Builds a sample trace by executing the provided code block against the provided stack inputs.
 pub fn build_trace_from_block(program: &CodeBlock, stack: &[u64]) -> ExecutionTrace {
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
-    let mut process = Process::new(inputs);
+    let mut process = Process::new(&Kernel::default(), inputs);
     process
-        .execute_code_block(program, &Kernel::default(), &CodeBlockTable::default())
+        .execute_code_block(program, &CodeBlockTable::default())
         .unwrap();
     ExecutionTrace::new(process, ProgramOutputs::default())
 }
@@ -37,10 +37,10 @@ pub fn build_trace_from_ops_with_inputs(
     operations: Vec<Operation>,
     inputs: ProgramInputs,
 ) -> ExecutionTrace {
-    let mut process = Process::new(inputs);
+    let mut process = Process::new(&Kernel::default(), inputs);
     let program = CodeBlock::new_span(operations);
     process
-        .execute_code_block(&program, &Kernel::default(), &CodeBlockTable::default())
+        .execute_code_block(&program, &CodeBlockTable::default())
         .unwrap();
     ExecutionTrace::new(process, ProgramOutputs::default())
 }

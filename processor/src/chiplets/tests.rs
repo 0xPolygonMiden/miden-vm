@@ -94,10 +94,10 @@ fn stacked_aux_trace() {
 /// results in 1 additional hash cycle (8 rows) at the beginning of the hash chiplet.
 fn build_trace(stack: &[u64], operations: Vec<Operation>) -> (ChipletsTrace, usize) {
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
-    let mut process = Process::new(inputs);
+    let mut process = Process::new(&Kernel::default(), inputs);
     let program = CodeBlock::new_span(operations);
     process
-        .execute_code_block(&program, &Kernel::default(), &CodeBlockTable::default())
+        .execute_code_block(&program, &CodeBlockTable::default())
         .unwrap();
 
     let (trace, _) = ExecutionTrace::test_finalize_trace(process);
@@ -191,9 +191,10 @@ fn validate_padding(chiplets: &ChipletsTrace, start: usize, end: usize) {
         assert_eq!(Felt::ONE, chiplets[0][row]);
         assert_eq!(Felt::ONE, chiplets[1][row]);
         assert_eq!(Felt::ONE, chiplets[2][row]);
+        assert_eq!(Felt::ONE, chiplets[3][row]);
 
         // padding
-        chiplets.iter().skip(3).for_each(|column| {
+        chiplets.iter().skip(4).for_each(|column| {
             assert_eq!(Felt::ZERO, column[row]);
         });
     }

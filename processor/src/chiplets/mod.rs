@@ -3,7 +3,6 @@ use super::{
     Word, CHIPLETS_WIDTH, ONE, ZERO,
 };
 use crate::{trace::LookupTableRow, ExecutionError};
-
 use vm_core::{
     chiplets::bitwise::{BITWISE_AND_LABEL, BITWISE_XOR_LABEL},
     chiplets::{
@@ -11,6 +10,7 @@ use vm_core::{
         memory::{MEMORY_READ_LABEL, MEMORY_WRITE_LABEL},
     },
     code_blocks::OpBatch,
+    Kernel,
 };
 
 mod bitwise;
@@ -23,19 +23,23 @@ pub use hasher::{AuxTraceBuilder as HasherAuxTraceBuilder, SiblingTableRow};
 mod memory;
 use memory::{Memory, MemoryLookup};
 
+mod kernel_rom;
+use kernel_rom::KernelRom;
+
 mod bus;
 pub use bus::{AuxTraceBuilder, ChipletsBus};
 
 #[cfg(test)]
 mod tests;
 
-// CHIPLETS MODULE OF HASHER, BITWISE, AND MEMORY CHIPLETS
+// CHIPLETS MODULE OF HASHER, BITWISE, MEMORY, AND KERNEL ROM CHIPLETS
 // ================================================================================================
 
-/// This module manages the VM's hasher, bitwise, and memory chiplets and is responsible for
-/// building a final execution trace from their stacked execution traces and chiplet selectors.
+/// This module manages the VM's hasher, bitwise, memory, and kernel ROM chiplets and is
+/// responsible for building a final execution trace from their stacked execution traces and
+/// chiplet selectors.
 ///
-/// The module's trace can be thought of as 4 stacked chiplet segments in the following form:
+/// The module's trace can be thought of as 5 stacked chiplet segments in the following form:
 /// * Hasher segment: contains the trace and selector for the hasher chiplet *
 /// This segment fills the first rows of the trace up to the length of the hasher `trace_len`.
 /// - column 0: selector column with values set to ZERO
@@ -46,35 +50,55 @@ mod tests;
 /// the `trace_len` of the bitwise chiplet.
 /// - column 0: selector column with values set to ONE
 /// - column 1: selector column with values set to ZERO
-/// - columns 2-15: execution trace of bitwise chiplet
-/// - column 16-17: unused columns padded with ZERO
+/// - columns 2-14: execution trace of bitwise chiplet
+/// - columns 15-17: unused columns padded with ZERO
 ///
 /// * Memory segment: contains the trace and selectors for the memory chiplet *
 /// This segment begins at the end of the bitwise segment and fills the next rows of the trace for
 /// the `trace_len` of the memory chiplet.
 /// - column 0-1: selector columns with values set to ONE
 /// - column 2: selector column with values set to ZERO
-/// - columns 3-16: execution trace of memory chiplet
-/// - column 17: unused column padded with ZERO
+/// - columns 3-14: execution trace of memory chiplet
+/// - columns 15-17: unused column padded with ZERO
+///
+/// /// * Kernel ROM segment: contains the trace and selectors for the kernel ROM chiplet *
+/// This segment begins at the end of the memory segment and fills the next rows of the trace for
+/// the `trace_len` of the kernel ROM chiplet.
+/// - column 0-2: selector columns with values set to ONE
+/// - column 3: selector column with values set to ZERO
+/// - columns 4-9: execution trace of kernel ROM chiplet
+/// - columns 10-17: unused column padded with ZERO
 ///
 /// * Padding segment: unused *
-/// This segment begins at the end of the memory segment and fills the rest of the execution trace
-/// minus the number of random rows. When it finishes, the execution trace should have exactly
-/// enough rows remaining for the specified number of random rows.
-/// - columns 0-2: selector columns with values set to ONE
+/// This segment begins at the end of the kernel ROM segment and fills the rest of the execution
+/// trace minus the number of random rows. When it finishes, the execution trace should have
+/// exactly enough rows remaining for the specified number of random rows.
+/// - columns 0-3: selector columns with values set to ONE
 /// - columns 3-17: unused columns padded with ZERO
-///
-#[derive(Default)]
 pub struct Chiplets {
     /// Current clock cycle of the VM.
     clk: u32,
     hasher: Hasher,
     bitwise: Bitwise,
     memory: Memory,
+    kernel_rom: KernelRom,
     bus: ChipletsBus,
 }
 
 impl Chiplets {
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+    pub fn new(kernel: &Kernel) -> Self {
+        Self {
+            clk: 0,
+            hasher: Hasher::default(),
+            bitwise: Bitwise::default(),
+            memory: Memory::default(),
+            kernel_rom: KernelRom::new(kernel),
+            bus: ChipletsBus::default(),
+        }
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -82,12 +106,31 @@ impl Chiplets {
     /// mandatory padding row required for ensuring sufficient trace length for auxiliary connector
     /// columns that rely on the memory chiplet.
     pub fn trace_len(&self) -> usize {
-        self.hasher.trace_len() + self.bitwise.trace_len() + self.memory.trace_len() + 1
+        self.hasher.trace_len()
+            + self.bitwise.trace_len()
+            + self.memory.trace_len()
+            + 1
+            + self.kernel_rom.trace_len()
+    }
+
+    /// Returns the index of the first row of [Bitwise] execution trace.
+    pub fn bitwise_start(&self) -> usize {
+        self.hasher.trace_len()
     }
 
     /// Returns the index of the first row of the [Memory] execution trace.
     pub fn memory_start(&self) -> usize {
-        self.hasher.trace_len() + self.bitwise.trace_len()
+        self.bitwise_start() + self.bitwise.trace_len()
+    }
+
+    /// Returns the index of the first row of [KernelRom] execution trace.
+    pub fn kernel_rom_start(&self) -> usize {
+        self.memory_start() + self.memory.trace_len()
+    }
+
+    /// Returns the index of the first row of the padding section of the execution trace.
+    pub fn padding_start(&self) -> usize {
+        self.kernel_rom_start() + self.kernel_rom.trace_len()
     }
 
     // HASH CHIPLET ACCESSORS FOR OPERATIONS
@@ -341,6 +384,18 @@ impl Chiplets {
         self.memory.size()
     }
 
+    // KERNEL ROM ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Increments access counter for the specified kernel procedure.
+    ///
+    /// # Errors
+    /// Returns an error if the procedure with the specified hash does not exist in the kernel
+    /// with which the kernel ROM was instantiated.
+    pub fn access_kernel_proc(&mut self, proc_hash: Digest) -> Result<(), ExecutionError> {
+        self.kernel_rom.access_proc(proc_hash)
+    }
+
     // CONTEXT MANAGEMENT
     // --------------------------------------------------------------------------------------------
 
@@ -372,16 +427,13 @@ impl Chiplets {
         );
 
         // Allocate columns for the trace of the chiplets.
-        // note: it may be possible to optimize this by initializing with Felt::zeroed_vector,
-        // depending on how the compiler reduces Felt(0) and whether initializing here + iterating
-        // to update selector values is faster than using resize to initialize all values
         let mut trace = (0..CHIPLETS_WIDTH)
-            .map(|_| Vec::<Felt>::with_capacity(trace_len))
+            .map(|_| Felt::zeroed_vector(trace_len))
             .collect::<Vec<_>>()
             .try_into()
             .expect("failed to convert vector to array");
 
-        let (hasher_aux_builder, aux_builder) = self.fill_trace(&mut trace, trace_len);
+        let (hasher_aux_builder, aux_builder) = self.fill_trace(&mut trace);
 
         ChipletsTrace {
             trace,
@@ -397,91 +449,66 @@ impl Chiplets {
     /// Hasher, Bitwise, and Memory chiplets, along with selector columns to identify each chiplet
     /// trace and padding to fill the rest of the trace.
     ///
-    /// It returns the auxiilary trace builders for generating auxiliary trace columns that depend
+    /// It returns the auxiliary trace builders for generating auxiliary trace columns that depend
     /// on data from [Chiplets].
     fn fill_trace(
         self,
         trace: &mut [Vec<Felt>; CHIPLETS_WIDTH],
-        trace_len: usize,
     ) -> (HasherAuxTraceBuilder, AuxTraceBuilder) {
         // get the rows where chiplets begin.
-        let bitwise_start = self.hasher.trace_len();
+        let bitwise_start = self.bitwise_start();
         let memory_start = self.memory_start();
+        let kernel_rom_start = self.kernel_rom_start();
+        let padding_start = self.padding_start();
+
         let Chiplets {
             clk: _,
             hasher,
             bitwise,
             memory,
+            kernel_rom,
             mut bus,
         } = self;
+
+        // populate external selector columns for all chiplets
+        trace[0][bitwise_start..].fill(ONE);
+        trace[1][memory_start..].fill(ONE);
+        trace[2][kernel_rom_start..].fill(ONE);
+        trace[3][padding_start..].fill(ONE);
 
         // allocate fragments to be filled with the respective execution traces of each chiplet
         let mut hasher_fragment = TraceFragment::new(CHIPLETS_WIDTH);
         let mut bitwise_fragment = TraceFragment::new(CHIPLETS_WIDTH);
         let mut memory_fragment = TraceFragment::new(CHIPLETS_WIDTH);
+        let mut kernel_rom_fragment = TraceFragment::new(CHIPLETS_WIDTH);
 
-        // set the selectors and padding as required by each column and segment
-        // and add the hasher, bitwise, and memory segments to their respective fragments
-        // so they can be filled with the chiplet traces
-        for (column_num, column) in trace.iter_mut().enumerate() {
+        // and add the hasher, bitwise, memory, and kernel ROM segments to their respective
+        // fragments so they can be filled with the chiplet traces
+        for (column_num, column) in trace.iter_mut().enumerate().skip(1) {
             match column_num {
-                0 => {
-                    // set the selector value for the hasher segment to ZERO
-                    column.resize(hasher.trace_len(), Felt::ZERO);
-                    // set the selector value for all other segments ONE
-                    column.resize(trace_len, Felt::ONE);
-                }
-                1 => {
-                    // initialize hasher segment and set bitwise segment selector value to ZERO
-                    column.resize(hasher.trace_len() + bitwise.trace_len(), Felt::ZERO);
-                    // set selector value for all other segments to ONE
-                    column.resize(trace_len, Felt::ONE);
-                    // add hasher segment to the hasher fragment to be filled from the hasher trace
+                1 | 15..=17 => {
+                    // columns 1 and 15 - 17 are relevant only for the hasher
                     hasher_fragment.push_column_slice(column, hasher.trace_len());
                 }
                 2 => {
-                    // initialize hasher and bitwise segments and set memory segment selector to ZERO
-                    column.resize(
-                        hasher.trace_len() + bitwise.trace_len() + memory.trace_len(),
-                        Felt::ZERO,
-                    );
-                    // set selector value for the final segment to ONE
-                    column.resize(trace_len, Felt::ONE);
-                    // add hasher segment to the hasher fragment to be filled from the hasher trace
-                    let rest_of_column =
-                        hasher_fragment.push_column_slice(column, hasher.trace_len());
-                    // add bitwise segment to the bitwise fragment to be filled from the bitwise trace
-                    bitwise_fragment.push_column_slice(rest_of_column, bitwise.trace_len());
+                    // column 2 is relevant to the hasher and to bitwise chiplet
+                    let rest = hasher_fragment.push_column_slice(column, hasher.trace_len());
+                    bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
                 }
-                15 | 16 => {
-                    // initialize hasher & memory segments and bitwise, padding segments with ZERO
-                    column.resize(trace_len, Felt::ZERO);
-                    // add hasher segment to the hasher fragment to be filled from the hasher trace
-                    let rest_of_column =
-                        hasher_fragment.push_column_slice(column, hasher.trace_len());
-                    // split the column to skip bitwise which have already been padded.
-                    let (_, rest_of_column) = rest_of_column.split_at_mut(bitwise.trace_len());
-                    // add memory segment to the memory fragment to be filled from the memory trace
-                    memory_fragment.push_column_slice(rest_of_column, memory.trace_len());
+                3 | 10..=14 => {
+                    // columns 3 and 10 - 14 are relevant for hasher, bitwise, and memory chiplets
+                    let rest = hasher_fragment.push_column_slice(column, hasher.trace_len());
+                    let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
+                    memory_fragment.push_column_slice(rest, memory.trace_len());
                 }
-                17 => {
-                    // initialize hasher segment and pad bitwise, memory, padding segments with ZERO
-                    column.resize(trace_len, Felt::ZERO);
-                    // add hasher segment to the hasher fragment to be filled from the hasher trace
-                    hasher_fragment.push_column_slice(column, hasher.trace_len());
+                4..=9 => {
+                    // columns 4 - 9 are relevant to all chiplets
+                    let rest = hasher_fragment.push_column_slice(column, hasher.trace_len());
+                    let rest = bitwise_fragment.push_column_slice(rest, bitwise.trace_len());
+                    let rest = memory_fragment.push_column_slice(rest, memory.trace_len());
+                    kernel_rom_fragment.push_column_slice(rest, kernel_rom.trace_len());
                 }
-                _ => {
-                    // initialize hasher, bitwise, memory segments and pad the rest with ZERO
-                    column.resize(trace_len, Felt::ZERO);
-                    // add hasher segment to the hasher fragment to be filled from the hasher trace
-                    let rest_of_column =
-                        hasher_fragment.push_column_slice(column, hasher.trace_len());
-                    // add bitwise segment to the bitwise fragment to be filled from the bitwise trace
-                    let rest_of_column =
-                        bitwise_fragment.push_column_slice(rest_of_column, bitwise.trace_len());
-                    // add memory segment to the memory fragment to be filled from the memory trace
-                    memory_fragment.push_column_slice(rest_of_column, memory.trace_len());
-                }
+                _ => panic!("invalid column index"),
             }
         }
 
@@ -490,6 +517,7 @@ impl Chiplets {
         let hasher_aux_builder = hasher.fill_trace(&mut hasher_fragment);
         bitwise.fill_trace(&mut bitwise_fragment, &mut bus, bitwise_start);
         memory.fill_trace(&mut memory_fragment, &mut bus, memory_start);
+        kernel_rom.fill_trace(&mut kernel_rom_fragment);
 
         (hasher_aux_builder, bus.into_aux_builder())
     }
