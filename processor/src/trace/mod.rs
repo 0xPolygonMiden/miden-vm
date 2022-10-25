@@ -290,11 +290,11 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     // Add the range checks required by the chiplets to the range checker.
     chiplets.append_range_checks(&mut range);
 
+    // Generate the 8bit tables for the range trace.
+    let range_table = range.build_8bit_lookup();
+
     // Get the trace length required to hold all execution trace steps.
-    let max_len = [clk as usize, range.trace_len(), chiplets.trace_len()]
-        .into_iter()
-        .max()
-        .expect("failed to get max of component trace lengths");
+    let max_len = range_table.len.max(clk as usize).max(chiplets.trace_len());
 
     // pad the trace length to the next power of two and ensure that there is space for the
     // rows to hold random values
@@ -310,8 +310,10 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     let system_trace = system.into_trace(trace_len, NUM_RAND_ROWS);
     let decoder_trace = decoder.into_trace(trace_len, NUM_RAND_ROWS);
     let stack_trace = stack.into_trace(trace_len, NUM_RAND_ROWS);
-    let range_check_trace = range.into_trace(trace_len, NUM_RAND_ROWS);
     let chiplets_trace = chiplets.into_trace(trace_len, NUM_RAND_ROWS);
+
+    // combine the range trace segument using the support lookup table
+    let range_check_trace = range.into_trace_with_table(range_table, trace_len, NUM_RAND_ROWS);
 
     let mut trace = system_trace
         .into_iter()

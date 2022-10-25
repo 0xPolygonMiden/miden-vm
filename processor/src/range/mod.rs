@@ -11,6 +11,24 @@ use request::CycleRangeChecks;
 #[cfg(test)]
 mod tests;
 
+// Range check trace table
+pub const RANGE_CHECK_TRACE_TABLE_WIDTH: usize = 256;
+
+// RANGE CHECKER TRACE TABLE
+// ================================================================================================
+
+/// Range checker trace table.
+///
+/// This component will store 8-bit lookup tables so it won't have to be reconstructed multiple
+/// times. It will also contain the combined length of the 8-bit and 16-bit tables.
+///
+/// This is intended as internal helper structure and is not intended to be exported as part of the
+/// public API.
+pub struct RangeCheckTraceTable {
+    pub lookups_8bit: [usize; RANGE_CHECK_TRACE_TABLE_WIDTH],
+    pub len: usize,
+}
+
 // RANGE CHECKER
 // ================================================================================================
 
@@ -80,17 +98,6 @@ impl RangeChecker {
         }
     }
 
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns length of execution trace required to describe all 16-bit range checks performed
-    /// by the VM.
-    pub fn trace_len(&self) -> usize {
-        let (lookups_8bit, num_16bit_rows) = self.build_8bit_lookup();
-        let num_8bit_rows = get_num_8bit_rows(&lookups_8bit);
-        num_8bit_rows + num_16bit_rows
-    }
-
     // TRACE MUTATORS
     // --------------------------------------------------------------------------------------------
     /// Adds the specified value to the trace of this range checker's lookups.
@@ -128,7 +135,7 @@ impl RangeChecker {
             .or_insert_with(|| CycleRangeChecks::new_from_memory(values));
     }
 
-    // EXECUTION TRACE GENERATION
+    // EXECUTION TRACE GENERATION (INTERNAL)
     // --------------------------------------------------------------------------------------------
 
     /// Converts this [RangeChecker] into an execution trace with 4 columns and the number of rows
@@ -143,7 +150,12 @@ impl RangeChecker {
     /// # Panics
     /// Panics if `target_len` is not a power of two or is smaller than the trace length needed
     /// to represent all lookups in this range checker.
-    pub fn into_trace(self, target_len: usize, num_rand_rows: usize) -> RangeCheckTrace {
+    pub fn into_trace_with_table(
+        self,
+        table: RangeCheckTraceTable,
+        target_len: usize,
+        num_rand_rows: usize,
+    ) -> RangeCheckTrace {
         assert!(
             target_len.is_power_of_two(),
             "target trace length is not a power of two"
@@ -156,9 +168,7 @@ impl RangeChecker {
         // we do the trace length computation here instead of using Self::trace_len() because we
         // need to use lookups_8bit table later in this function, and we don't want to create it
         // twice.
-        let (lookups_8bit, num_16_bit_rows) = self.build_8bit_lookup();
-        let num_8bit_rows = get_num_8bit_rows(&lookups_8bit);
-        let trace_len = num_8bit_rows + num_16_bit_rows;
+        let trace_len = table.len;
         assert!(
             trace_len + num_rand_rows <= target_len,
             "target trace length too small"
@@ -190,7 +200,7 @@ impl RangeChecker {
 
         // build the 8-bit segment of the trace table
         let mut i = num_padding_rows;
-        for (value, num_lookups) in lookups_8bit.into_iter().enumerate() {
+        for (value, num_lookups) in table.lookups_8bit.into_iter().enumerate() {
             write_value(
                 &mut trace,
                 &mut i,
@@ -236,21 +246,21 @@ impl RangeChecker {
         }
     }
 
-    // HELPER METHODS
+    // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
     /// Builds an 8-bit lookup table required to support all 16-bit lookups currently in
     /// self.lookups, and returns this table together with the number of 16-bit table rows needed
     /// to support all 16-bit lookups.
-    fn build_8bit_lookup(&self) -> ([usize; 256], usize) {
-        let mut result = [0; 256];
+    pub fn build_8bit_lookup(&self) -> RangeCheckTraceTable {
+        let mut lookups_8bit = [0; 256];
 
         // pad the trace length by one, to account for an extra row of the u16::MAX value at the end
         // of the 16-bit segment of the trace, required for building the `b_range` column.
         let mut num_16bit_rows = 1;
 
         // add a lookup for ZERO to account for the extra row of the u16::MAX value
-        result[0] = 1;
+        lookups_8bit[0] = 1;
 
         let mut prev_value = 0u16;
         for (&value, &num_lookups) in self.lookups.iter() {
@@ -258,7 +268,7 @@ impl RangeChecker {
             // is greater than 1, we also need 8-bit lookups for ZERO value since the delta between
             // rows of the same value is zero.
             let num_rows = lookups_to_rows(num_lookups);
-            result[0] += num_rows - 1;
+            lookups_8bit[0] += num_rows - 1;
             num_16bit_rows += num_rows;
 
             // determine the delta between this and the previous value. we need to know this delta
@@ -269,18 +279,42 @@ impl RangeChecker {
             let (delta_q, delta_r) = div_rem(delta as usize, 255);
 
             if delta_q != 0 {
-                result[255] += delta_q;
+                lookups_8bit[255] += delta_q;
                 let num_bridge_rows = if delta_r == 0 { delta_q - 1 } else { delta_q };
                 num_16bit_rows += num_bridge_rows;
             }
             if delta_r != 0 {
-                result[delta_r] += 1;
+                lookups_8bit[delta_r] += 1;
             }
 
             prev_value = value;
         }
 
-        (result, num_16bit_rows)
+        let num_8bit_rows = get_num_8bit_rows(&lookups_8bit);
+        let len = num_8bit_rows + num_16bit_rows;
+
+        RangeCheckTraceTable { lookups_8bit, len }
+    }
+
+    // TEST HELPERS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns length of execution trace required to describe all 16-bit range checks performed
+    /// by the VM.
+    #[cfg(test)]
+    pub fn trace_len(&self) -> usize {
+        self.build_8bit_lookup().len
+    }
+
+    /// Converts this [RangeChecker] into an execution trace with 4 columns and the number of rows
+    /// specified by the `target_len` parameter.
+    ///
+    /// Wrapper for [`RangeChecker::into_trace_with_table`].
+    #[cfg(test)]
+    pub fn into_trace(self, target_len: usize, num_rand_rows: usize) -> RangeCheckTrace {
+        let table = self.build_8bit_lookup();
+
+        self.into_trace_with_table(table, target_len, num_rand_rows)
     }
 }
 
