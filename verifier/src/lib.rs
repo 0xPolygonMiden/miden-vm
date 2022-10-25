@@ -81,7 +81,7 @@ pub fn verify(
 // ================================================================================================
 
 /// TODO: add docs, implement Display
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum VerificationError {
     VerifierError(VerifierError),
     InputNotFieldElement(u64),
