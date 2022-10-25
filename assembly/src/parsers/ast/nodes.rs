@@ -1,4 +1,4 @@
-use vm_core::utils::{collections::Vec, string::String};
+use vm_core::utils::collections::Vec;
 use vm_core::Felt;
 
 // Nodes
@@ -237,7 +237,7 @@ pub enum Instruction {
 
     // ----- exec / call ----------------------------------------------------------------------
     ExecLocal(u32),
-    ExecImported(String),
+    ExecImported([u8; 24]),
     CallLocal(u32),
-    CallImported(String),
+    CallImported([u8; 24]),
 }

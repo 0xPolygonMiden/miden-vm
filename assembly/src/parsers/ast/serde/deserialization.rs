@@ -1,5 +1,8 @@
 use super::{
-    super::nodes::{Instruction, Node},
+    super::{
+        nodes::{Instruction, Node},
+        PROC_DIGEST_SIZE,
+    },
     OpCode, IF_ELSE_OPCODE, REPEAT_OPCODE, WHILE_OPCODE,
 };
 use crate::errors::SerializationError;
@@ -74,6 +77,14 @@ impl ByteReader {
         let string_bytes = &self.bytes[self.pos..self.pos + length as usize];
         self.pos += length as usize;
         Ok(String::from_utf8(string_bytes.to_vec()).expect("String conversion failure"))
+    }
+
+    pub fn read_proc_hash(&mut self) -> Result<[u8; PROC_DIGEST_SIZE], SerializationError> {
+        self.check_eor(PROC_DIGEST_SIZE)?;
+        let mut hash = [0; PROC_DIGEST_SIZE];
+        hash.copy_from_slice(&self.bytes[self.pos..self.pos + PROC_DIGEST_SIZE]);
+        self.pos += PROC_DIGEST_SIZE;
+        Ok(hash)
     }
 
     pub fn read_opcode(&mut self) -> Result<OpCode, SerializationError> {
@@ -388,9 +399,9 @@ impl Deserializable for Instruction {
 
             // ----- exec / call ----------------------------------------------------------------------
             OpCode::ExecLocal => Ok(Instruction::ExecLocal(bytes.read_u32()?)),
-            OpCode::ExecImported => Ok(Instruction::ExecImported(bytes.read_string()?)),
+            OpCode::ExecImported => Ok(Instruction::ExecImported(bytes.read_proc_hash()?)),
             OpCode::CallLocal => Ok(Instruction::CallLocal(bytes.read_u32()?)),
-            OpCode::CallImported => Ok(Instruction::CallImported(bytes.read_string()?)),
+            OpCode::CallImported => Ok(Instruction::CallImported(bytes.read_proc_hash()?)),
         }
     }
 }
