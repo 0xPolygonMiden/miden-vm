@@ -27,7 +27,6 @@ std = ["vm-core/std"]
 crypto = { package = "winter-crypto", version = "0.4", default-features = false }
 num_enum = "0.5.7"
 vm-core = { package = "miden-core", path = "../core", version = "0.3", default-features = false }
-vm-stdlib = { package = "miden-stdlib", path = "../stdlib", version = "0.2", default-features = false }
 
 [dev-dependencies]
 criterion = "0.3"
