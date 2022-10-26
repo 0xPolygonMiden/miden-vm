@@ -5,6 +5,7 @@ use vm_core::{
         hasher::{Digest, HASH_CYCLE_LEN, LINEAR_HASH, RETURN_STATE},
         kernel_rom::TRACE_WIDTH as KERNEL_ROM_TRACE_WIDTH,
         memory::TRACE_WIDTH as MEMORY_TRACE_WIDTH,
+        NUM_BITWISE_SELECTORS, NUM_KERNEL_ROM_SELECTORS, NUM_MEMORY_SELECTORS,
     },
     CodeBlockTable, Felt, ProgramInputs, CHIPLETS_RANGE, CHIPLETS_WIDTH, ONE, ZERO,
 };
@@ -172,7 +173,10 @@ fn validate_bitwise_trace(trace: &ChipletsTrace, start: usize, end: usize) {
         assert_eq!(BITWISE_XOR, trace[2][row]);
 
         // the final columns should be padded
-        for column in trace.iter().skip(BITWISE_TRACE_WIDTH + 2) {
+        for column in trace
+            .iter()
+            .skip(BITWISE_TRACE_WIDTH + NUM_BITWISE_SELECTORS)
+        {
             assert_eq!(ZERO, column[row]);
         }
     }
@@ -189,18 +193,18 @@ fn validate_memory_trace(trace: &ChipletsTrace, start: usize, end: usize) {
         assert_eq!(ZERO, trace[2][row]);
 
         // the final columns should be padded
-        for column in trace.iter().skip(MEMORY_TRACE_WIDTH + 3) {
+        for column in trace.iter().skip(MEMORY_TRACE_WIDTH + NUM_MEMORY_SELECTORS) {
             assert_eq!(ZERO, column[row]);
         }
     }
 }
 
-/// Validate the kernel ROM trace output a kernel with two procedures and no access calls. The
+/// Validate the kernel ROM trace output for a kernel with two procedures and no access calls. The
 /// full kernel ROM trace is tested in the KernelRom module, so this just tests the ChipletsTrace
-/// selectors, the first column of the trace, and the final columns after the kernel ROm trace.
+/// selectors, the first column of the trace, and the final columns after the kernel ROM trace.
 fn validate_kernel_rom_trace(trace: &ChipletsTrace, start: usize, end: usize) {
     for row in start..end {
-        // The selectors should match the memory selectors
+        // The selectors should match the kernel selectors
         assert_eq!(ONE, trace[0][row]);
         assert_eq!(ONE, trace[1][row]);
         assert_eq!(ONE, trace[2][row]);
@@ -210,13 +214,16 @@ fn validate_kernel_rom_trace(trace: &ChipletsTrace, start: usize, end: usize) {
         assert_eq!(ZERO, trace[4][row]);
 
         // the final columns should be padded
-        for column in trace.iter().skip(KERNEL_ROM_TRACE_WIDTH + 4) {
+        for column in trace
+            .iter()
+            .skip(KERNEL_ROM_TRACE_WIDTH + NUM_KERNEL_ROM_SELECTORS)
+        {
             assert_eq!(ZERO, column[row]);
         }
     }
 }
 
-/// Checks that the final section of the chiplets module's trace after the memory chiplet is
+/// Checks that the final section of the chiplets module's trace after the kernel ROM chiplet is
 /// padded and has the correct selectors.
 fn validate_padding(trace: &ChipletsTrace, start: usize, end: usize) {
     for row in start..end {

@@ -1,4 +1,13 @@
 use super::{BTreeMap, Digest, ExecutionError, Felt, Kernel, TraceFragment, Word, ONE, ZERO};
+use vm_core::chiplets::kernel_rom::TRACE_WIDTH;
+
+#[cfg(test)]
+mod tests;
+
+// TYPE ALIASES
+// ================================================================================================
+
+type ProcHashBytes = [u8; 32];
 
 // KERNEL ROM
 // ================================================================================================
@@ -27,7 +36,7 @@ use super::{BTreeMap, Digest, ExecutionError, Felt, Kernel, TraceFragment, Word,
 /// - `h0` - `h3` columns contain roots of procedures in a given kernel. Together with `idx`
 ///   column, these form tuples (index, procedure root) for all procedures in the kernel.
 pub struct KernelRom {
-    access_map: BTreeMap<[u8; 32], ProcAccessInfo>,
+    access_map: BTreeMap<ProcHashBytes, ProcAccessInfo>,
     trace_len: usize,
 }
 
@@ -54,7 +63,7 @@ impl KernelRom {
     // --------------------------------------------------------------------------------------------
 
     /// Returns length of execution trace required to describe kernel ROM.
-    pub fn trace_len(&self) -> usize {
+    pub const fn trace_len(&self) -> usize {
         self.trace_len
     }
 
@@ -64,9 +73,9 @@ impl KernelRom {
     /// Marks the specified procedure as accessed from the program.
     ///
     /// # Errors
-    /// If the specified procedure does not exist in this kernel ROM, and error is returned.
+    /// If the specified procedure does not exist in this kernel ROM, an error is returned.
     pub fn access_proc(&mut self, proc_hash: Digest) -> Result<(), ExecutionError> {
-        let proc_hash_bytes: [u8; 32] = proc_hash.into();
+        let proc_hash_bytes: ProcHashBytes = proc_hash.into();
         let access_info = self
             .access_map
             .get_mut(&proc_hash_bytes)
@@ -85,6 +94,11 @@ impl KernelRom {
 
     /// Populates the provided execution trace fragment with execution trace of this kernel ROM.
     pub fn fill_trace(self, trace: &mut TraceFragment) {
+        debug_assert_eq!(
+            TRACE_WIDTH,
+            trace.width(),
+            "inconsistent trace fragment width"
+        );
         let mut row = 0;
         for (idx, access_info) in self.access_map.values().enumerate() {
             let idx = Felt::from(idx as u16);

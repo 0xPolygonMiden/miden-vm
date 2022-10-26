@@ -61,7 +61,7 @@ mod tests;
 /// - columns 3-14: execution trace of memory chiplet
 /// - columns 15-17: unused column padded with ZERO
 ///
-/// /// * Kernel ROM segment: contains the trace and selectors for the kernel ROM chiplet *
+/// * Kernel ROM segment: contains the trace and selectors for the kernel ROM chiplet *
 /// This segment begins at the end of the memory segment and fills the next rows of the trace for
 /// the `trace_len` of the kernel ROM chiplet.
 /// - column 0-2: selector columns with values set to ONE
@@ -88,6 +88,7 @@ pub struct Chiplets {
 impl Chiplets {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
+    /// Returns a new [Chiplets] component instantiated with the provided Kernel.
     pub fn new(kernel: &Kernel) -> Self {
         Self {
             clk: 0,
@@ -109,8 +110,8 @@ impl Chiplets {
         self.hasher.trace_len()
             + self.bitwise.trace_len()
             + self.memory.trace_len()
-            + 1
             + self.kernel_rom.trace_len()
+            + 1
     }
 
     /// Returns the index of the first row of [Bitwise] execution trace.
@@ -394,6 +395,8 @@ impl Chiplets {
     /// with which the kernel ROM was instantiated.
     pub fn access_kernel_proc(&mut self, proc_hash: Digest) -> Result<(), ExecutionError> {
         self.kernel_rom.access_proc(proc_hash)
+
+        // TODO: record the access in the chiplet bus
     }
 
     // CONTEXT MANAGEMENT
@@ -482,8 +485,8 @@ impl Chiplets {
         let mut memory_fragment = TraceFragment::new(CHIPLETS_WIDTH);
         let mut kernel_rom_fragment = TraceFragment::new(CHIPLETS_WIDTH);
 
-        // and add the hasher, bitwise, memory, and kernel ROM segments to their respective
-        // fragments so they can be filled with the chiplet traces
+        // add the hasher, bitwise, memory, and kernel ROM segments to their respective fragments
+        // so they can be filled with the chiplet traces
         for (column_num, column) in trace.iter_mut().enumerate().skip(1) {
             match column_num {
                 1 | 15..=17 => {
