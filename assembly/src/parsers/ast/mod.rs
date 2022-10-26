@@ -19,6 +19,8 @@ mod u32_ops;
 #[cfg(test)]
 pub mod tests;
 
+const PROC_DIGEST_SIZE: usize = 24;
+
 // TYPE ALIASES
 // ================================================================================================
 type ProcMap = BTreeMap<String, ProcedureAst>;

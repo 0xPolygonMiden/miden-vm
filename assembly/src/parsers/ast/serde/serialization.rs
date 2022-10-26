@@ -51,6 +51,10 @@ impl ByteWriter {
         Ok(())
     }
 
+    pub fn write_proc_hash(&mut self, val: &[u8; 24]) {
+        self.0.append(&mut val.to_vec());
+    }
+
     pub fn write_felt(&mut self, val: Felt) {
         self.write_u64(val.as_int());
     }
@@ -474,9 +478,7 @@ impl Serializable for Instruction {
             }
             Self::ExecImported(imported) => {
                 target.write_opcode(OpCode::ExecImported);
-                target
-                    .write_string(imported)
-                    .expect("String serialization failure");
+                target.write_proc_hash(imported);
             }
             Self::CallLocal(v) => {
                 target.write_opcode(OpCode::CallLocal);
@@ -484,9 +486,7 @@ impl Serializable for Instruction {
             }
             Self::CallImported(imported) => {
                 target.write_opcode(OpCode::CallImported);
-                target
-                    .write_string(imported)
-                    .expect("String serialization failure");
+                target.write_proc_hash(imported);
             }
         }
     }
