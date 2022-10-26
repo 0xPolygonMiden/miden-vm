@@ -1,8 +1,10 @@
 use super::cli::InputFile;
-use assembly::{Assembler, AssemblyError};
+use assembly::AssemblyError;
 use core::fmt;
+use miden::Assembler;
 use processor::{AsmOpInfo, ExecutionError};
 use std::path::PathBuf;
+use stdlib::StdLibrary;
 use structopt::StructOpt;
 use vm_core::{utils::collections::Vec, Operation, ProgramInputs};
 
@@ -139,8 +141,9 @@ impl fmt::Display for ProgramInfo {
 
 /// Returns program analysis of a given program.
 pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, ProgramError> {
-    let assembler = Assembler::new(true);
-    let program = assembler
+    let program = Assembler::new()
+        .with_debug_mode(true)
+        .with_module_provider(StdLibrary::default())
         .compile(program)
         .map_err(ProgramError::AssemblyError)?;
     let vm_state_iterator = processor::execute_iter(&program, &inputs);

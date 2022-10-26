@@ -42,6 +42,7 @@ prover = { package = "miden-prover", path = "../prover", version = "0.3", defaul
 serde = {version = "1.0.117", optional = true }
 serde_derive = {version = "1.0.117", optional = true }
 serde_json = {version = "1.0.59", optional = true }
+stdlib = { package = "miden-stdlib", path = "../stdlib", version = "0.2", default-features = false }
 structopt = { version = "0.3", default-features = false, optional = true }
 verifier = { package = "miden-verifier", path = "../verifier", version = "0.3", default-features = false }
 winter-utils = { package = "winter-utils", version = "0.4", optional = true }
