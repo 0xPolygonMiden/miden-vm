@@ -89,9 +89,6 @@ pub const CHIPLETS_OFFSET: usize = RANGE_CHECK_TRACE_RANGE.end;
 pub const CHIPLETS_WIDTH: usize = 18;
 pub const CHIPLETS_RANGE: Range<usize> = range(CHIPLETS_OFFSET, CHIPLETS_WIDTH);
 
-// Chiplets components
-pub const MEMORY_TRACE_WIDTH: usize = 12;
-
 pub const TRACE_WIDTH: usize = CHIPLETS_OFFSET + CHIPLETS_WIDTH;
 
 // AUXILIARY COLUMNS LAYOUT
