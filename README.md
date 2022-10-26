@@ -11,14 +11,14 @@ A STARK-based virtual machine.
 ## Overview
 Miden VM is a zero-knowledge virtual machine written in Rust. For any program executed on Miden VM, a STARK-based proof of execution is automatically generated. This proof can then be used by anyone to verify that the program was executed correctly without the need for re-executing the program or even knowing the contents of the program.
 
-* If you'd like to learn more about how Miden VM works, check out the [documentation](https://maticnetwork.github.io/miden/).
+* If you'd like to learn more about how Miden VM works, check out the [documentation](https://wiki.polygon.technology/docs/miden/intro/main/).
 * If you'd like to start using Miden VM, check out the [miden](miden) crate.
 * If you'd like to learn more about STARKs, check out the [references](#references) section.
 
 ### Status and features
 Miden VM is currently on v0.2 release. In this release, most of the core features of the VM have been stabilized, and most of the STARK proof generation has been implemented. While we expect to keep making changes to the VM internals, the external interfaces should remain relatively stable, and we will do our best to minimize the amount of breaking changes going forward.
 
-The next version of the VM is being developed in the [next](https://github.com/maticnetwork/miden/tree/next) branch.
+The next version of the VM is being developed in the [next](https://github.com/maticnetwork/miden/tree/next) branch. There is also a documentation for the latest features and changes in the next branch [documentation next branch](https://maticnetwork.github.io/miden/intro/main.html).
 
 #### Feature highlights
 Miden VM is a fully-featured virtual machine. Despite being optimized for zero-knowledge proof generation, it provides all the features one would expect from a regular VM. To highlight a few:
