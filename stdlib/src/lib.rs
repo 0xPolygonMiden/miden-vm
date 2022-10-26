@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use vm_assembly::ModuleProvider;
 use vm_core::{
     errors::LibraryError,
     utils::{collections::BTreeMap, string::ToString},
@@ -25,6 +26,12 @@ type ModuleMap = BTreeMap<&'static str, &'static str>;
 /// TODO: add docs
 pub struct StdLibrary {
     modules: ModuleMap,
+}
+
+impl ModuleProvider for StdLibrary {
+    fn get_source(&self, path: &str) -> Option<&str> {
+        self.get_module_source(path).ok()
+    }
 }
 
 impl Library for StdLibrary {
