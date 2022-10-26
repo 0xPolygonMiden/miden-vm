@@ -164,6 +164,7 @@ fn u32checked_neq_b() {
 }
 
 #[test]
+#[should_panic]
 fn u32checked_neq_b_fail() {
     let asm_op = "u32checked_neq";
 
@@ -173,7 +174,7 @@ fn u32checked_neq_b_fail() {
     // should fail when b is a valid parameter but a is out of bounds
     let asm_op = format!("{}.{}", asm_op, 1);
     let test = build_op_test!(&asm_op, &[U32_BOUND]);
-    test.expect_error(TestError::ExecutionError("NotU32Value"));
+    test.execute().unwrap();
 }
 
 #[test]

@@ -1,5 +1,8 @@
 use super::{
-    super::nodes::{Instruction, Node},
+    super::{
+        nodes::{Instruction, Node},
+        PROC_DIGEST_SIZE,
+    },
     OpCode, IF_ELSE_OPCODE, REPEAT_OPCODE, WHILE_OPCODE,
 };
 use crate::errors::SerializationError;
@@ -74,6 +77,14 @@ impl ByteReader {
         let string_bytes = &self.bytes[self.pos..self.pos + length as usize];
         self.pos += length as usize;
         Ok(String::from_utf8(string_bytes.to_vec()).expect("String conversion failure"))
+    }
+
+    pub fn read_proc_hash(&mut self) -> Result<[u8; PROC_DIGEST_SIZE], SerializationError> {
+        self.check_eor(PROC_DIGEST_SIZE)?;
+        let mut hash = [0; PROC_DIGEST_SIZE];
+        hash.copy_from_slice(&self.bytes[self.pos..self.pos + PROC_DIGEST_SIZE]);
+        self.pos += PROC_DIGEST_SIZE;
+        Ok(hash)
     }
 
     pub fn read_opcode(&mut self) -> Result<OpCode, SerializationError> {
@@ -169,6 +180,8 @@ impl Deserializable for Instruction {
             OpCode::Inv => Ok(Instruction::Inv),
             OpCode::Pow2 => Ok(Instruction::Pow2),
             OpCode::Exp => Ok(Instruction::Exp),
+            OpCode::ExpImm => Ok(Instruction::ExpImm(bytes.read_felt()?)),
+            OpCode::ExpBitLength => Ok(Instruction::ExpBitLength(bytes.read_u32()?)),
             OpCode::Not => Ok(Instruction::Not),
             OpCode::And => Ok(Instruction::And),
             OpCode::Or => Ok(Instruction::Or),
@@ -187,34 +200,35 @@ impl Deserializable for Instruction {
             OpCode::U32Test => Ok(Instruction::U32Test),
             OpCode::U32TestW => Ok(Instruction::U32TestW),
             OpCode::U32Assert => Ok(Instruction::U32Assert),
+            OpCode::U32Assert2 => Ok(Instruction::U32Assert2),
             OpCode::U32AssertW => Ok(Instruction::U32AssertW),
             OpCode::U32Split => Ok(Instruction::U32Split),
             OpCode::U32Cast => Ok(Instruction::U32Cast),
             OpCode::U32CheckedAdd => Ok(Instruction::U32CheckedAdd),
             OpCode::U32CheckedAddImm => Ok(Instruction::U32CheckedAddImm(bytes.read_u32()?)),
             OpCode::U32WrappingAdd => Ok(Instruction::U32WrappingAdd),
-            OpCode::U32WrappingAddImm => Ok(Instruction::U32WrappingAddImm(bytes.read_u32()?)),
+            OpCode::U32WrappingAddImm => Ok(Instruction::U32WrappingAddImm(bytes.read_u64()?)),
             OpCode::U32OverflowingAdd => Ok(Instruction::U32OverflowingAdd),
             OpCode::U32OverflowingAddImm => {
-                Ok(Instruction::U32OverflowingAddImm(bytes.read_u32()?))
+                Ok(Instruction::U32OverflowingAddImm(bytes.read_u64()?))
             }
             OpCode::U32OverflowingAdd3 => Ok(Instruction::U32OverflowingAdd3),
             OpCode::U32WrappingAdd3 => Ok(Instruction::U32WrappingAdd3),
             OpCode::U32CheckedSub => Ok(Instruction::U32CheckedSub),
             OpCode::U32CheckedSubImm => Ok(Instruction::U32CheckedSubImm(bytes.read_u32()?)),
             OpCode::U32WrappingSub => Ok(Instruction::U32WrappingSub),
-            OpCode::U32WrappingSubImm => Ok(Instruction::U32WrappingSubImm(bytes.read_u32()?)),
+            OpCode::U32WrappingSubImm => Ok(Instruction::U32WrappingSubImm(bytes.read_u64()?)),
             OpCode::U32OverflowingSub => Ok(Instruction::U32OverflowingSub),
             OpCode::U32OverflowingSubImm => {
-                Ok(Instruction::U32OverflowingSubImm(bytes.read_u32()?))
+                Ok(Instruction::U32OverflowingSubImm(bytes.read_u64()?))
             }
             OpCode::U32CheckedMul => Ok(Instruction::U32CheckedMul),
             OpCode::U32CheckedMulImm => Ok(Instruction::U32CheckedMulImm(bytes.read_u32()?)),
             OpCode::U32WrappingMul => Ok(Instruction::U32WrappingMul),
-            OpCode::U32WrappingMulImm => Ok(Instruction::U32WrappingMulImm(bytes.read_u32()?)),
+            OpCode::U32WrappingMulImm => Ok(Instruction::U32WrappingMulImm(bytes.read_u64()?)),
             OpCode::U32OverflowingMul => Ok(Instruction::U32OverflowingMul),
             OpCode::U32OverflowingMulImm => {
-                Ok(Instruction::U32OverflowingMulImm(bytes.read_u32()?))
+                Ok(Instruction::U32OverflowingMulImm(bytes.read_u64()?))
             }
             OpCode::U32OverflowingMadd => Ok(Instruction::U32OverflowingMadd),
             OpCode::U32WrappingMadd => Ok(Instruction::U32WrappingMadd),
@@ -351,20 +365,20 @@ impl Deserializable for Instruction {
 
             // ----- input / output operations --------------------------------------------------------
             OpCode::Adv => Ok(Instruction::Adv(bytes.read_felt()?)),
-            OpCode::Locaddr => Ok(Instruction::Locaddr(bytes.read_felt()?)),
+            OpCode::Locaddr => Ok(Instruction::Locaddr(bytes.read_u32()?)),
             OpCode::Sdepth => Ok(Instruction::Sdepth),
             OpCode::MemLoad => Ok(Instruction::MemLoad),
             OpCode::MemLoadImm => Ok(Instruction::MemLoadImm(bytes.read_felt()?)),
             OpCode::MemLoadW => Ok(Instruction::MemLoadW),
             OpCode::MemLoadWImm => Ok(Instruction::MemLoadWImm(bytes.read_felt()?)),
-            OpCode::LocLoad => Ok(Instruction::LocLoad(bytes.read_felt()?)),
-            OpCode::LocLoadW => Ok(Instruction::LocLoadW(bytes.read_felt()?)),
+            OpCode::LocLoad => Ok(Instruction::LocLoad(bytes.read_u32()?)),
+            OpCode::LocLoadW => Ok(Instruction::LocLoadW(bytes.read_u32()?)),
             OpCode::MemStore => Ok(Instruction::MemStore),
             OpCode::MemStoreImm => Ok(Instruction::MemStoreImm(bytes.read_felt()?)),
-            OpCode::LocStore => Ok(Instruction::LocStore(bytes.read_felt()?)),
+            OpCode::LocStore => Ok(Instruction::LocStore(bytes.read_u32()?)),
             OpCode::MemStoreW => Ok(Instruction::MemStoreW),
             OpCode::MemStoreWImm => Ok(Instruction::MemStoreWImm(bytes.read_felt()?)),
-            OpCode::LocStoreW => Ok(Instruction::LocStoreW(bytes.read_felt()?)),
+            OpCode::LocStoreW => Ok(Instruction::LocStoreW(bytes.read_u32()?)),
             OpCode::LoadWAdv => Ok(Instruction::LoadWAdv),
 
             OpCode::PushConstants => {
@@ -376,8 +390,9 @@ impl Deserializable for Instruction {
                 Ok(Instruction::PushConstants(constants))
             }
             OpCode::AdvU64Div => Ok(Instruction::AdvU64Div),
-            OpCode::AdvPush => Ok(Instruction::AdvPush(bytes.read_felt()?)),
-            OpCode::AdvLoadW => Ok(Instruction::AdvLoadW(bytes.read_felt()?)),
+            OpCode::AdvKeyVal => Ok(Instruction::AdvKeyVal),
+            OpCode::AdvLoadW => Ok(Instruction::AdvLoadW),
+            OpCode::AdvPush => Ok(Instruction::AdvPush(bytes.read_u32()?)),
 
             // ----- cryptographic operations ---------------------------------------------------------
             OpCode::RPHash => Ok(Instruction::RPHash),
@@ -388,9 +403,10 @@ impl Deserializable for Instruction {
 
             // ----- exec / call ----------------------------------------------------------------------
             OpCode::ExecLocal => Ok(Instruction::ExecLocal(bytes.read_u32()?)),
-            OpCode::ExecImported => Ok(Instruction::ExecImported(bytes.read_string()?)),
+            OpCode::ExecImported => Ok(Instruction::ExecImported(bytes.read_proc_hash()?)),
             OpCode::CallLocal => Ok(Instruction::CallLocal(bytes.read_u32()?)),
-            OpCode::CallImported => Ok(Instruction::CallImported(bytes.read_string()?)),
+            OpCode::CallImported => Ok(Instruction::CallImported(bytes.read_proc_hash()?)),
+            OpCode::SysCall => Ok(Instruction::SysCall(bytes.read_string()?)),
         }
     }
 }

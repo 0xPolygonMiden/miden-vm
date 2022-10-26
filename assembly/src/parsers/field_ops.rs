@@ -1,42 +1,24 @@
-use super::{
-    super::validate_operation, parse_bit_len_param, parse_element_param, AssemblyError, Felt,
-    FieldElement, Operation, Token, Vec,
-};
+use super::{AssemblyError, Felt, FieldElement, Operation};
 use vm_core::{utils::PushMany, StarkField};
 
 // ASSERTIONS AND TESTS
 // ================================================================================================
 
 /// Appends ASSERT operation to the span block.
-pub(super) fn parse_assert(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op));
-    }
+pub(super) fn parse_assert(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     span_ops.push(Operation::Assert);
     Ok(())
 }
 
 /// Appends EQ ASSERT operation sequence to the span block.
-pub(super) fn parse_assert_eq(
-    span_ops: &mut Vec<Operation>,
-    op: &Token,
-) -> Result<(), AssemblyError> {
-    if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op));
-    }
+pub(super) fn parse_assert_eq(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     span_ops.push(Operation::Eq);
     span_ops.push(Operation::Assert);
     Ok(())
 }
 
 /// Appends EQZ ASSERT operation sequence to the span block.
-pub(super) fn parse_assertz(
-    span_ops: &mut Vec<Operation>,
-    op: &Token,
-) -> Result<(), AssemblyError> {
-    if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op));
-    }
+pub(super) fn parse_assertz(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     span_ops.push(Operation::Eqz);
     span_ops.push(Operation::Assert);
     Ok(())
@@ -46,97 +28,73 @@ pub(super) fn parse_assertz(
 // ================================================================================================
 
 /// Appends ADD operation to the span block.
-///
-/// In cases when one of the parameters is provided via immediate value, the sequence of
-/// operations is: PUSH(imm) ADD, unless the imm value is 1, then the operation is just: INCR
-pub(super) fn parse_add(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        1 => span_ops.push(Operation::Add),
-        2 => {
-            let imm = parse_element_param(op, 1)?;
-            if imm == Felt::ONE {
-                span_ops.push(Operation::Incr);
-            } else {
-                span_ops.push(Operation::Push(imm));
-                span_ops.push(Operation::Add);
-            }
-        }
-        _ => return Err(AssemblyError::extra_param(op)),
+pub(super) fn parse_add(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
+    span_ops.push(Operation::Add);
+    Ok(())
+}
+
+/// Appends the sequence of operations is: PUSH(imm) ADD, unless the imm value is 1,
+/// then the operation is just: INCR
+pub(super) fn parse_add_imm(span_ops: &mut Vec<Operation>, imm: Felt) -> Result<(), AssemblyError> {
+    if imm == Felt::ONE {
+        span_ops.push(Operation::Incr);
+    } else {
+        span_ops.push(Operation::Push(imm));
+        span_ops.push(Operation::Add);
     }
+
     Ok(())
 }
 
 /// Appends NEG ADD operations to the span block.
-///
-/// In cases when one of the parameters is provided via immediate value, the sequence of
-/// operations is: PUSH(-imm) ADD
-pub(super) fn parse_sub(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        1 => {
-            span_ops.push(Operation::Neg);
-            span_ops.push(Operation::Add);
-        }
-        2 => {
-            let imm = parse_element_param(op, 1)?;
-            span_ops.push(Operation::Push(-imm));
-            span_ops.push(Operation::Add);
-        }
-        _ => return Err(AssemblyError::extra_param(op)),
-    }
+pub(super) fn parse_sub(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
+    span_ops.push(Operation::Neg);
+    span_ops.push(Operation::Add);
+    Ok(())
+}
+
+/// Appends the sequence of operations is: PUSH(-imm) ADD
+pub(super) fn parse_sub_imm(span_ops: &mut Vec<Operation>, imm: Felt) -> Result<(), AssemblyError> {
+    span_ops.push(Operation::Push(-imm));
+    span_ops.push(Operation::Add);
     Ok(())
 }
 
 /// Appends MUL operation to the span block.
-///
-/// In cases when one of the parameters is provided via immediate value, the sequence of
-/// operations is: PUSH(imm) MUL
-pub(super) fn parse_mul(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        1 => span_ops.push(Operation::Mul),
-        2 => {
-            let imm = parse_element_param(op, 1)?;
-            span_ops.push(Operation::Push(imm));
-            span_ops.push(Operation::Mul);
-        }
-        _ => return Err(AssemblyError::extra_param(op)),
-    }
+pub(super) fn parse_mul(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
+    span_ops.push(Operation::Mul);
+    Ok(())
+}
+
+/// Appends PUSH(imm) MUL operation to the span block.
+pub(super) fn parse_mul_imm(span_ops: &mut Vec<Operation>, imm: Felt) -> Result<(), AssemblyError> {
+    span_ops.push(Operation::Push(imm));
+    span_ops.push(Operation::Mul);
     Ok(())
 }
 
 /// Appends INV MUL operations to the span block.
-///
-/// In cases when one of the parameters is provided via immediate value, the sequence of
-/// operations is: PUSH(imm) INV MUL
-pub(super) fn parse_div(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        1 => {
-            span_ops.push(Operation::Inv);
-            span_ops.push(Operation::Mul);
-        }
-        2 => {
-            let imm = parse_element_param(op, 1)?;
-            span_ops.push(Operation::Push(imm.inv()));
-            span_ops.push(Operation::Mul);
-        }
-        _ => return Err(AssemblyError::extra_param(op)),
-    }
+pub(super) fn parse_div(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
+    span_ops.push(Operation::Inv);
+    span_ops.push(Operation::Mul);
+    Ok(())
+}
+
+/// Appends PUSH(imm) INV MUL operations to the span block.
+pub(super) fn parse_div_imm(span_ops: &mut Vec<Operation>, imm: Felt) -> Result<(), AssemblyError> {
+    span_ops.push(Operation::Push(imm.inv()));
+    span_ops.push(Operation::Mul);
     Ok(())
 }
 
 /// Appends NEG operation to the span block.
-pub(super) fn parse_neg(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op));
-    }
+pub(super) fn parse_neg(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     span_ops.push(Operation::Neg);
     Ok(())
 }
 
 /// Appends INV operation to the span block.
-pub(super) fn parse_inv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op));
-    }
+pub(super) fn parse_inv(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     span_ops.push(Operation::Inv);
     Ok(())
 }
@@ -147,13 +105,8 @@ pub(super) fn parse_inv(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
 /// top of the stack.
 ///
 /// VM cycles: 16 cycles
-pub(super) fn parse_pow2(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op));
-    }
-
+pub(super) fn parse_pow2(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     append_pow2_op(span_ops);
-
     Ok(())
 }
 
@@ -166,47 +119,11 @@ pub(super) fn parse_pow2(span_ops: &mut Vec<Operation>, op: &Token) -> Result<()
 /// - exp: 73 cycles
 /// - exp.uxx: 9 + xx cycles
 /// - exp.b: 9 + Ceil(log2(b))
-pub(super) fn parse_exp(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+pub(super) fn parse_exp(
+    span_ops: &mut Vec<Operation>,
+    num_bits_in_len: u32,
+) -> Result<(), AssemblyError> {
     // returns the number of `expacc` instruction call needed for the operation.
-    let n = match op.num_parts() {
-        1 => 64,
-        2 => {
-            let param_value = op.parts()[1];
-
-            if param_value.strip_prefix('u').is_some() {
-                // parse the bits length of the exponent from the immediate value.
-                let bits_len = parse_bit_len_param(op, 1)?;
-
-                // the specified bits length can not be more than 64 bits.
-                if bits_len > 64 {
-                    return Err(AssemblyError::invalid_param_with_reason(
-                        op,
-                        1,
-                        format!("parameter can at max be a u64 but found u{}", bits_len).as_str(),
-                    ));
-                }
-
-                bits_len
-            } else {
-                // parse immediate value.
-                let imm = parse_element_param(op, 1)?;
-
-                // fetching the bits lenght of the exponent.
-                let num_bits_in_imm = (64 - imm.as_int().leading_zeros()) as usize;
-
-                if imm.as_int() as usize <= 7 {
-                    append_exp_op_for_small_pow(span_ops, imm.as_int() as usize);
-                    return Ok(());
-                }
-
-                // pushing the exponent onto the stack.
-                span_ops.push(Operation::Push(imm));
-
-                num_bits_in_imm as usize
-            }
-        }
-        _ => return Err(AssemblyError::extra_param(op)),
-    };
 
     // arranging the stack to prepare it for expacc instruction.
     span_ops.push(Operation::Pad);
@@ -215,7 +132,7 @@ pub(super) fn parse_exp(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
     span_ops.push(Operation::Pad);
 
     // calling expacc instruction n times.
-    span_ops.push_many(Operation::Expacc, n);
+    span_ops.push_many(Operation::Expacc, num_bits_in_len as usize);
 
     // drop the top two elements bit and exp value of the latest bit.
     span_ops.push_many(Operation::Drop, 2);
@@ -228,32 +145,38 @@ pub(super) fn parse_exp(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
     Ok(())
 }
 
+pub(super) fn parse_exp_imm(span_ops: &mut Vec<Operation>, imm: Felt) -> Result<(), AssemblyError> {
+    if imm.as_int() as usize <= 7 {
+        append_exp_op_for_small_pow(span_ops, imm.as_int() as usize);
+        return Ok(());
+    }
+
+    // fetching the bits lenght of the exponent.
+    let num_bits_in_imm = 64 - imm.as_int().leading_zeros();
+
+    // pushing the exponent onto the stack.
+    span_ops.push(Operation::Push(imm));
+
+    parse_exp(span_ops, num_bits_in_imm)
+}
+
 // BOOLEAN OPERATIONS
 // ================================================================================================
 
 /// Appends NOT operation to the span block.
-pub(super) fn parse_not(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op));
-    }
+pub(super) fn parse_not(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     span_ops.push(Operation::Not);
     Ok(())
 }
 
 /// Appends AND operation to the span block.
-pub(super) fn parse_and(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op));
-    }
+pub(super) fn parse_and(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     span_ops.push(Operation::And);
     Ok(())
 }
 
 /// Appends OR operation to the span block.
-pub(super) fn parse_or(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op));
-    }
+pub(super) fn parse_or(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     span_ops.push(Operation::Or);
     Ok(())
 }
@@ -261,10 +184,7 @@ pub(super) fn parse_or(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), 
 /// Appends a sequence of operations emulating an XOR operation to the span block.
 ///
 /// The sequence is: DUP0 DUP2 OR MOVDN2 AND NOT AND
-pub(super) fn parse_xor(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op));
-    }
+pub(super) fn parse_xor(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     span_ops.extend_from_slice(&[
         Operation::Dup0,
         Operation::Dup2,
@@ -281,45 +201,38 @@ pub(super) fn parse_xor(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
 // ================================================================================================
 
 /// Appends EQ operation to the span block.
-///
-/// In cases when an immediate values is supplied:
-/// - If the immediate value is zero, the appended operation is EQZ
-/// - Otherwise, the appended operations are: PUSH(imm) EQ
-pub(super) fn parse_eq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        1 => span_ops.push(Operation::Eq),
-        2 => {
-            let imm = parse_element_param(op, 1)?;
-            if imm == Felt::ZERO {
-                span_ops.push(Operation::Eqz);
-            } else {
-                span_ops.push(Operation::Push(imm));
-                span_ops.push(Operation::Eq);
-            }
-        }
-        _ => return Err(AssemblyError::extra_param(op)),
+pub(super) fn parse_eq(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
+    span_ops.push(Operation::Eq);
+    Ok(())
+}
+
+/// If the immediate value is zero, the appended operation is EQZ
+/// Otherwise, the appended operations are: PUSH(imm) EQ
+pub(super) fn parse_eq_imm(span_ops: &mut Vec<Operation>, imm: Felt) -> Result<(), AssemblyError> {
+    if imm == Felt::ZERO {
+        span_ops.push(Operation::Eqz);
+    } else {
+        span_ops.push(Operation::Push(imm));
+        span_ops.push(Operation::Eq);
     }
     Ok(())
 }
 
 /// Appends EQ NOT operation to the span block.
-///
-/// In cases when an immediate values is supplied:
-/// - If the immediate value is zero, the appended operations are: EQZ NOT
-/// - Otherwise, the appended operations are: PUSH(imm) EQ NOT
-pub(super) fn parse_neq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        1 => span_ops.push(Operation::Eq),
-        2 => {
-            let imm = parse_element_param(op, 1)?;
-            if imm == Felt::ZERO {
-                span_ops.push(Operation::Eqz);
-            } else {
-                span_ops.push(Operation::Push(imm));
-                span_ops.push(Operation::Eq);
-            }
-        }
-        _ => return Err(AssemblyError::extra_param(op)),
+pub(super) fn parse_neq(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
+    span_ops.push(Operation::Eq);
+    span_ops.push(Operation::Not);
+    Ok(())
+}
+
+/// If the immediate value is zero, the appended operations are: EQZ NOT
+/// Other wise, the appended operations are: PUSH(imm) EQ NOT
+pub(super) fn parse_neq_imm(span_ops: &mut Vec<Operation>, imm: Felt) -> Result<(), AssemblyError> {
+    if imm == Felt::ZERO {
+        span_ops.push(Operation::Eqz);
+    } else {
+        span_ops.push(Operation::Push(imm));
+        span_ops.push(Operation::Eq);
     }
     span_ops.push(Operation::Not);
     Ok(())
@@ -334,12 +247,7 @@ pub(super) fn parse_neq(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
 /// The original words are left on the stack.
 ///
 /// This operation takes 15 VM cycles.
-///
-/// # Errors
-/// Returns an error if the assembly operation token is malformed or incorrect.
-pub(super) fn parse_eqw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_operation!(op, "eqw", 0);
-
+pub(super) fn parse_eqw(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     // duplicate first pair of for comparison(4th elements of each word) in reverse order
     // to avoid using dup.8 after stack shifting(dup.X where X > 7, takes more VM cycles )
     span_ops.push(Operation::Dup7);
@@ -370,12 +278,7 @@ pub(super) fn parse_eqw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
 /// of 1 is pushed onto the stack if a < b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 17 VM cycles.
-///
-/// # Errors
-/// Returns an error if the assembly operation token is malformed or incorrect.
-pub(super) fn parse_lt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_operation!(op, "lt", 0);
-
+pub(super) fn parse_lt(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span_ops);
@@ -401,12 +304,7 @@ pub(super) fn parse_lt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), 
 /// A value of 1 is pushed onto the stack if a <= b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 18 VM cycles.
-///
-/// # Errors
-/// Returns an error if the assembly operation token is malformed or incorrect.
-pub(super) fn parse_lte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_operation!(op, "lte", 0);
-
+pub(super) fn parse_lte(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span_ops);
@@ -432,12 +330,7 @@ pub(super) fn parse_lte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
 /// of 1 is pushed onto the stack if a > b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 18 VM cycles.
-///
-/// # Errors
-/// Returns an error if the assembly operation token is malformed or incorrect.
-pub(super) fn parse_gt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_operation!(op, "gt", 0);
-
+pub(super) fn parse_gt(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span_ops);
@@ -463,12 +356,7 @@ pub(super) fn parse_gt(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), 
 /// A value of 1 is pushed onto the stack if a >= b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 19 VM cycles.
-///
-/// # Errors
-/// Returns an error if the assembly operation token is malformed or incorrect.
-pub(super) fn parse_gte(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    validate_operation!(op, "gte", 0);
-
+pub(super) fn parse_gte(span_ops: &mut Vec<Operation>) -> Result<(), AssemblyError> {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span_ops);
@@ -739,119 +627,4 @@ fn set_result(span_ops: &mut Vec<Operation>) {
 
     // Set the result flag if the above check passed OR the high-bit comparison was true
     span_ops.push(Operation::Or);
-}
-
-// TESTS
-// ================================================================================================
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn eqw() {
-        // parse_eqw should return an error if called with an invalid or incorrect operation
-        let mut span_ops: Vec<Operation> = Vec::new();
-        let op_pos = 0;
-
-        let op_too_long = Token::new("eqw.12", op_pos);
-        let expected = AssemblyError::extra_param(&op_too_long);
-        assert_eq!(
-            parse_eqw(&mut span_ops, &op_too_long).unwrap_err(),
-            expected
-        );
-
-        let op_mismatch = Token::new("eq", op_pos);
-        let expected = AssemblyError::unexpected_token(&op_mismatch, "eqw");
-        assert_eq!(
-            parse_eqw(&mut span_ops, &op_mismatch).unwrap_err(),
-            expected
-        );
-    }
-
-    #[test]
-    fn assertz() {
-        let mut span_ops: Vec<Operation> = Vec::new();
-        let op_pos = 0;
-
-        let op_err = Token::new("assertz.2", op_pos);
-        let expected_err = AssemblyError::extra_param(&op_err);
-
-        assert_eq!(
-            parse_assertz(&mut span_ops, &op_err).unwrap_err(),
-            expected_err
-        );
-    }
-
-    #[test]
-    fn lt() {
-        // parse_lt should return an error if called with an invalid or incorrect operation
-        let mut span_ops: Vec<Operation> = Vec::new();
-        let op_pos = 0;
-
-        let op_too_long = Token::new("lt.1", op_pos);
-        let expected = AssemblyError::extra_param(&op_too_long);
-        assert_eq!(parse_lt(&mut span_ops, &op_too_long).unwrap_err(), expected);
-
-        let op_mismatch = Token::new("eq", op_pos);
-        let expected = AssemblyError::unexpected_token(&op_mismatch, "lt");
-        assert_eq!(parse_lt(&mut span_ops, &op_mismatch).unwrap_err(), expected);
-    }
-
-    #[test]
-    fn lte() {
-        // parse_lte should return an error if called with an invalid or incorrect operation
-        let mut span_ops: Vec<Operation> = Vec::new();
-        let op_pos = 0;
-
-        let op_too_long = Token::new("lte.5", op_pos);
-        let expected = AssemblyError::extra_param(&op_too_long);
-        assert_eq!(
-            parse_lte(&mut span_ops, &op_too_long).unwrap_err(),
-            expected
-        );
-
-        let op_mismatch = Token::new("lt", op_pos);
-        let expected = AssemblyError::unexpected_token(&op_mismatch, "lte");
-        assert_eq!(
-            parse_lte(&mut span_ops, &op_mismatch).unwrap_err(),
-            expected
-        );
-    }
-
-    #[test]
-    fn gt() {
-        // parse_gt should return an error if called with an invalid or incorrect operation
-        let mut span_ops: Vec<Operation> = Vec::new();
-        let op_pos = 0;
-
-        let op_too_long = Token::new("gt.0x10", op_pos);
-        let expected = AssemblyError::extra_param(&op_too_long);
-        assert_eq!(parse_gt(&mut span_ops, &op_too_long).unwrap_err(), expected);
-
-        let op_mismatch = Token::new("lt", op_pos);
-        let expected = AssemblyError::unexpected_token(&op_mismatch, "gt");
-        assert_eq!(parse_gt(&mut span_ops, &op_mismatch).unwrap_err(), expected);
-    }
-
-    #[test]
-    fn gte() {
-        // parse_gte should return an error if called with an invalid or incorrect operation
-        let mut span_ops: Vec<Operation> = Vec::new();
-        let op_pos = 0;
-
-        let op_too_long = Token::new("gte.25", op_pos);
-        let expected = AssemblyError::extra_param(&op_too_long);
-        assert_eq!(
-            parse_gte(&mut span_ops, &op_too_long).unwrap_err(),
-            expected
-        );
-
-        let op_mismatch = Token::new("lt", op_pos);
-        let expected = AssemblyError::unexpected_token(&op_mismatch, "gte");
-        assert_eq!(
-            parse_gte(&mut span_ops, &op_mismatch).unwrap_err(),
-            expected
-        );
-    }
 }

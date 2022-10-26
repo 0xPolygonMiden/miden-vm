@@ -1,310 +1,206 @@
+use crate::{ModuleMap, MODULE_PATH_DELIM};
+
 use super::{
-    parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, String, Token,
-    TokenStream, Vec,
+    ast::nodes::{Instruction, Node},
+    parse_op_instruction, AssemblyContext, AssemblyError, CodeBlock, Operation, Vec,
 };
 use vm_core::{utils::group_vector_elements, CodeBlockTable, DecoratorList};
 
 // BLOCK PARSER
 // ================================================================================================
 
-/// TODO: Add comments
-pub fn parse_code_blocks(
-    tokens: &mut TokenStream,
+/// parses a program body which is a list of ast nodes, that can be either control flow
+/// or instructions.
+pub fn parse_body(
+    nodes: &Vec<Node>,
     context: &AssemblyContext,
     cb_table: &mut CodeBlockTable,
+    parsed_modules: &mut ModuleMap,
     num_proc_locals: u32,
 ) -> Result<CodeBlock, AssemblyError> {
-    // make sure there is something to be read
-    let start_pos = tokens.pos();
-    if tokens.eof() {
-        return Err(AssemblyError::unexpected_eof(start_pos));
-    }
-
     // parse the sequence of blocks and add each block to the list
     let mut blocks = Vec::new();
-    while let Some(parser) = BlockParser::next(tokens)? {
-        let block = parser.parse(tokens, context, cb_table, num_proc_locals)?;
-        blocks.push(block);
+    let mut decorators = DecoratorList::new();
+    let mut span_ops = Vec::<Operation>::new();
+    for node in nodes {
+        let block = parse_node(
+            node,
+            context,
+            cb_table,
+            &mut decorators,
+            &mut span_ops,
+            parsed_modules,
+            num_proc_locals,
+        )?;
+        if let Some(cb) = block {
+            blocks.push(cb);
+        }
+    }
+
+    if !span_ops.is_empty() {
+        blocks.push(CodeBlock::new_span_with_decorators(span_ops, decorators))
     }
 
     // make sure at least one block has been read
     if blocks.is_empty() {
-        let start_op = tokens.read_at(start_pos).expect("no start token");
-        Err(AssemblyError::empty_block(start_op))
+        Err(AssemblyError::invalid_ast_body())
     } else {
         // build a binary tree out of the parsed list of blocks
         Ok(combine_blocks(blocks))
     }
 }
 
-// CODE BLOCK PARSER
+// AST NODE PARSER
 // ================================================================================================
 
-// TODO: add comments
-#[derive(Debug)]
-enum BlockParser {
-    Span,
-    IfElse,
-    While,
-    Repeat(u32),
-    Exec(String),
-    Call(String),
-    SysCall(String),
-}
+// parses the ast node and optionally return a codeblock.
+fn parse_node<'a>(
+    node: &Node,
+    context: &AssemblyContext<'a>,
+    cb_table: &mut CodeBlockTable,
+    decorators: &mut DecoratorList,
+    span_ops: &mut Vec<Operation>,
+    parsed_modules: &'a mut ModuleMap,
+    num_proc_locals: u32,
+) -> Result<Option<CodeBlock>, AssemblyError> {
+    match node {
+        // ------------------------------------------------------------------------------------
+        Node::Instruction(instruction) => {
+            match instruction {
+                Instruction::ExecImported(label) => {
+                    let (module_name, _) = label.rsplit_once(MODULE_PATH_DELIM).unwrap();
+                    context.parse_imports(
+                        &String::from(module_name),
+                        &mut Vec::new(),
+                        parsed_modules,
+                        cb_table,
+                    )?;
 
-impl BlockParser {
-    // TODO: add comments
-    pub fn parse(
-        &self,
-        tokens: &mut TokenStream,
-        context: &AssemblyContext,
-        cb_table: &mut CodeBlockTable,
-        num_proc_locals: u32,
-    ) -> Result<CodeBlock, AssemblyError> {
-        match self {
-            // ------------------------------------------------------------------------------------
-            Self::Span => {
-                let mut span_ops = Vec::new();
-                let mut decorators = DecoratorList::new();
-                while let Some(op) = tokens.read() {
-                    if op.is_control_token() {
-                        break;
+                    // retrieve the procedure block from the proc map and consume the 'exec' token
+                    let proc_block = context
+                        .get_proc_code(label)
+                        .ok_or_else(|| AssemblyError::undefined_proc(label))?;
+                    Ok(Some(proc_block.clone()))
+                }
+                Instruction::ExecLocal(index) => {
+                    // retrieve the procedure block from the proc map and consume the 'exec' token
+                    let proc_block = context
+                        .get_local_proc_code(*index)
+                        .ok_or_else(|| AssemblyError::undefined_local_proc(*index))?;
+                    Ok(Some(proc_block.clone()))
+                }
+                Instruction::CallLocal(index) => {
+                    // making a function call in kernel context is not allowed
+                    if context.in_kernel() {
+                        return Err(AssemblyError::call_in_kernel());
                     }
-                    parse_op_token(
-                        op,
-                        &mut span_ops,
+
+                    // retrieve the procedure block from the proc map and consume the 'call' token
+                    let proc_block = context
+                        .get_local_proc_code(*index)
+                        .ok_or_else(|| AssemblyError::undefined_local_proc(*index))?;
+
+                    // if the procedure hasn't been inserted into code block table yet, insert it
+                    if !cb_table.has(proc_block.hash()) {
+                        cb_table.insert(proc_block.clone());
+                    }
+
+                    Ok(Some(CodeBlock::new_call(proc_block.hash())))
+                }
+                Instruction::CallImported(label) => {
+                    // making a function call in kernel context is not allowed
+                    if context.in_kernel() {
+                        return Err(AssemblyError::call_in_kernel());
+                    }
+
+                    let (module_name, _) = label.rsplit_once(MODULE_PATH_DELIM).unwrap();
+                    context.parse_imports(
+                        &String::from(module_name),
+                        &mut Vec::new(),
+                        parsed_modules,
+                        cb_table,
+                    )?;
+
+                    // retrieve the procedure block from the proc map and consume the 'call' token
+                    let proc_block = context
+                        .get_proc_code(label)
+                        .ok_or_else(|| AssemblyError::undefined_proc(label))?;
+
+                    // if the procedure hasn't been inserted into code block table yet, insert it
+                    if !cb_table.has(proc_block.hash()) {
+                        cb_table.insert(proc_block.clone());
+                    }
+
+                    Ok(Some(CodeBlock::new_call(proc_block.hash())))
+                }
+                Instruction::SysCall(label) => {
+                    // making a syscall in kernel context is not allowed
+                    if context.in_kernel() {
+                        AssemblyError::syscall_in_kernel();
+                    }
+
+                    // retrieve the procedure block from the proc map and consume the 'syscall' token
+                    let proc_block = context
+                        .get_kernel_proc_code(label)
+                        .ok_or_else(|| AssemblyError::undefined_kernel_proc(label))?;
+
+                    // if the procedure hasn't been inserted into code block table yet, insert it
+                    if !cb_table.has(proc_block.hash()) {
+                        cb_table.insert(proc_block.clone());
+                    }
+
+                    Ok(Some(CodeBlock::new_syscall(proc_block.hash())))
+                }
+                _ => {
+                    parse_op_instruction(
+                        instruction,
+                        span_ops,
                         num_proc_locals,
-                        &mut decorators,
+                        decorators,
                         context.in_debug_mode(),
                     )?;
-                    tokens.advance();
+                    Ok(None)
                 }
-                Ok(CodeBlock::new_span_with_decorators(span_ops, decorators))
-            }
-            // ------------------------------------------------------------------------------------
-            Self::IfElse => {
-                // record start of the if-else block and consume the 'if' token
-                let if_start = tokens.pos();
-                tokens.advance();
-
-                // read the `if` clause
-                let t_branch = parse_code_blocks(tokens, context, cb_table, num_proc_locals)?;
-
-                // build the `else` clause; if the else clause is specified, then read it;
-                // otherwise, set to a Span with a single noop
-                let f_branch = match tokens.read() {
-                    Some(token) => match token.parts()[0] {
-                        Token::ELSE => {
-                            // record start of the `else` block and consume the `else` token
-                            token.validate_else()?;
-                            let else_start = tokens.pos();
-                            tokens.advance();
-
-                            // parse the `false` branch
-                            let f_branch =
-                                parse_code_blocks(tokens, context, cb_table, num_proc_locals)?;
-
-                            // consume the `end` token
-                            match tokens.read() {
-                                None => Err(AssemblyError::unmatched_else(
-                                    tokens.read_at(else_start).expect("no else token"),
-                                )),
-                                Some(token) => match token.parts()[0] {
-                                    Token::END => token.validate_end(),
-                                    Token::ELSE => Err(AssemblyError::dangling_else(token)),
-                                    _ => Err(AssemblyError::unmatched_else(
-                                        tokens.read_at(else_start).expect("no else token"),
-                                    )),
-                                },
-                            }?;
-                            tokens.advance();
-
-                            // return the `false` branch
-                            f_branch
-                        }
-                        Token::END => {
-                            // consume the `end` token
-                            token.validate_end()?;
-                            tokens.advance();
-
-                            // when no `else` clause was specified, a Span with a single noop
-                            CodeBlock::new_span(vec![Operation::Noop])
-                        }
-                        _ => {
-                            return Err(AssemblyError::unmatched_if(
-                                tokens.read_at(if_start).expect("no if token"),
-                            ))
-                        }
-                    },
-                    None => {
-                        return Err(AssemblyError::unmatched_if(
-                            tokens.read_at(if_start).expect("no if token"),
-                        ))
-                    }
-                };
-
-                Ok(CodeBlock::new_split(t_branch, f_branch))
-            }
-            // ------------------------------------------------------------------------------------
-            Self::While => {
-                // record start of the while block and consume the 'while' token
-                let while_start = tokens.pos();
-                tokens.advance();
-
-                // read the loop body
-                let loop_body = parse_code_blocks(tokens, context, cb_table, num_proc_locals)?;
-
-                // consume the `end` token
-                match tokens.read() {
-                    None => Err(AssemblyError::unmatched_while(
-                        tokens.read_at(while_start).expect("no if token"),
-                    )),
-                    Some(token) => match token.parts()[0] {
-                        Token::END => token.validate_end(),
-                        Token::ELSE => Err(AssemblyError::dangling_else(token)),
-                        _ => Err(AssemblyError::unmatched_while(
-                            tokens.read_at(while_start).expect("no if token"),
-                        )),
-                    },
-                }?;
-                tokens.advance();
-
-                Ok(CodeBlock::new_loop(loop_body))
-            }
-            // ------------------------------------------------------------------------------------
-            Self::Repeat(iter_count) => {
-                // record start of the repeat block and consume the 'repeat' token
-                let repeat_start = tokens.pos();
-                tokens.advance();
-
-                // read the loop body
-                let loop_body = parse_code_blocks(tokens, context, cb_table, num_proc_locals)?;
-
-                // consume the `end` token
-                match tokens.read() {
-                    None => Err(AssemblyError::unmatched_repeat(
-                        tokens.read_at(repeat_start).expect("no repeat token"),
-                    )),
-                    Some(token) => match token.parts()[0] {
-                        Token::END => token.validate_end(),
-                        Token::ELSE => Err(AssemblyError::dangling_else(token)),
-                        _ => Err(AssemblyError::unmatched_repeat(
-                            tokens.read_at(repeat_start).expect("no repeat token"),
-                        )),
-                    },
-                }?;
-                tokens.advance();
-
-                // if the body of the loop consists of a single span, unroll the loop as a single
-                // span; otherwise unroll the loop as a sequence of join blocks
-                if let CodeBlock::Span(span) = loop_body {
-                    Ok(CodeBlock::Span(span.replicate(*iter_count as usize)))
-                } else {
-                    // TODO: transform the loop to a while loop instead?
-                    let blocks = (0..*iter_count)
-                        .map(|_| loop_body.clone())
-                        .collect::<Vec<_>>();
-                    Ok(combine_blocks(blocks))
-                }
-            }
-            // ------------------------------------------------------------------------------------
-            Self::Exec(label) => {
-                // retrieve the procedure block from the proc map and consume the 'exec' token
-                let proc_block = context.get_proc_code(label).ok_or_else(|| {
-                    AssemblyError::undefined_proc(tokens.read().expect("no exec token"), label)
-                })?;
-                tokens.advance();
-                Ok(proc_block.clone())
-            }
-            // ------------------------------------------------------------------------------------
-            Self::Call(label) => {
-                // making a function call in kernel context is not allowed
-                if context.in_kernel() {
-                    let token = tokens.read().expect("no syscall token");
-                    AssemblyError::call_in_kernel(token);
-                }
-
-                // retrieve the procedure block from the proc map and consume the 'call' token
-                let proc_block = context.get_proc_code(label).ok_or_else(|| {
-                    AssemblyError::undefined_proc(tokens.read().expect("no call token"), label)
-                })?;
-                tokens.advance();
-
-                // if the procedure hasn't been inserted into code block table yet, insert it
-                if !cb_table.has(proc_block.hash()) {
-                    cb_table.insert(proc_block.clone());
-                }
-
-                Ok(CodeBlock::new_call(proc_block.hash()))
-            }
-            // ------------------------------------------------------------------------------------
-            Self::SysCall(label) => {
-                // making a syscall in kernel context is not allowed
-                if context.in_kernel() {
-                    let token = tokens.read().expect("no syscall token");
-                    AssemblyError::syscall_in_kernel(token);
-                }
-
-                // retrieve the procedure block from the proc map and consume the 'syscall' token
-                let proc_block = context.get_kernel_proc_code(label).ok_or_else(|| {
-                    let token = tokens.read().expect("no syscall token");
-                    AssemblyError::undefined_kernel_proc(token, label)
-                })?;
-                tokens.advance();
-
-                // if the procedure hasn't been inserted into code block table yet, insert it
-                if !cb_table.has(proc_block.hash()) {
-                    cb_table.insert(proc_block.clone());
-                }
-
-                Ok(CodeBlock::new_syscall(proc_block.hash()))
             }
         }
-    }
+        // ------------------------------------------------------------------------------------
+        Node::IfElse(t_branch, f_branch) => {
+            // read the `if` clause
+            let t_branch_block =
+                parse_body(t_branch, context, cb_table, parsed_modules, num_proc_locals)?;
 
-    // TODO: add comments
-    fn next(tokens: &mut TokenStream) -> Result<Option<Self>, AssemblyError> {
-        let parser = match tokens.read() {
-            None => None,
-            Some(token) => match token.parts()[0] {
-                Token::IF => {
-                    token.validate_if()?;
-                    Some(Self::IfElse)
-                }
-                Token::ELSE => {
-                    token.validate_else()?;
-                    None
-                }
-                Token::WHILE => {
-                    token.validate_while()?;
-                    Some(Self::While)
-                }
-                Token::REPEAT => {
-                    let iter_count = token.parse_repeat()?;
-                    Some(Self::Repeat(iter_count))
-                }
-                Token::EXEC => {
-                    let label = token.parse_exec()?;
-                    Some(Self::Exec(label))
-                }
-                Token::CALL => {
-                    let label = token.parse_call()?;
-                    Some(Self::Call(label))
-                }
-                Token::SYSCALL => {
-                    let label = token.parse_syscall()?;
-                    Some(Self::SysCall(label))
-                }
-                Token::END => {
-                    token.validate_end()?;
-                    None
-                }
-                Token::USE | Token::EXPORT | Token::PROC | Token::BEGIN => None,
-                _ => Some(Self::Span),
-            },
-        };
+            // build the `else` clause; if the else clause is specified, then read it;
+            // otherwise, set to a Span with a single noop
+            let f_branch_block = match f_branch.len() {
+                0 => CodeBlock::new_span(vec![Operation::Noop]),
+                _ => parse_body(f_branch, context, cb_table, parsed_modules, num_proc_locals)?,
+            };
 
-        Ok(parser)
+            Ok(Some(CodeBlock::new_split(t_branch_block, f_branch_block)))
+        }
+        // ------------------------------------------------------------------------------------
+        Node::While(body) => {
+            // read the loop body
+            let loop_body = parse_body(body, context, cb_table, parsed_modules, num_proc_locals)?;
+            Ok(Some(CodeBlock::new_loop(loop_body)))
+        }
+        // ------------------------------------------------------------------------------------
+        Node::Repeat(iter_count, body) => {
+            // read the loop body
+            let loop_body = parse_body(body, context, cb_table, parsed_modules, num_proc_locals)?;
+
+            // if the body of the loop consists of a single span, unroll the loop as a single
+            // span; otherwise unroll the loop as a sequence of join blocks
+            if let CodeBlock::Span(span) = loop_body {
+                Ok(Some(CodeBlock::Span(span.replicate(*iter_count as usize))))
+            } else {
+                // TODO: transform the loop to a while loop instead?
+                let blocks = (0..*iter_count)
+                    .map(|_| loop_body.clone())
+                    .collect::<Vec<_>>();
+                Ok(Some(combine_blocks(blocks)))
+            }
+        }
     }
 }
 

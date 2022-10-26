@@ -50,6 +50,14 @@ impl AssemblyError {
         }
     }
 
+    pub fn invalid_ast_body() -> Self {
+        AssemblyError {
+            message: "ast body contains no instructions".to_string(),
+            step: 0,
+            op: "".to_string(),
+        }
+    }
+
     pub fn invalid_op(token: &Token) -> Self {
         AssemblyError {
             message: format!("instruction '{}' is invalid", token),
@@ -85,6 +93,25 @@ impl AssemblyError {
             ),
             step: token.pos(),
             op: token.to_string(),
+        }
+    }
+
+    pub fn invalid_instruction(instruction: &str) -> Self {
+        AssemblyError {
+            message: format!("invalid instruction `{}` is invalid", instruction,),
+            step: 0,
+            op: "".to_string(),
+        }
+    }
+
+    pub fn invalid_instruction_with_reason(instruction: &str, reason: &str) -> Self {
+        AssemblyError {
+            message: format!(
+                "invalid instruction `{}` is invalid: {}",
+                instruction, reason
+            ),
+            step: 0,
+            op: "".to_string(),
         }
     }
 
@@ -215,19 +242,27 @@ impl AssemblyError {
         }
     }
 
-    pub fn undefined_proc(token: &Token, label: &str) -> Self {
+    pub fn undefined_proc(label: &str) -> Self {
         AssemblyError {
             message: format!("undefined procedure: {}", label),
-            step: token.pos(),
-            op: token.to_string(),
+            step: 0,
+            op: "".to_string(),
         }
     }
 
-    pub fn undefined_kernel_proc(token: &Token, label: &str) -> Self {
+    pub fn undefined_local_proc(index: u32) -> Self {
+        AssemblyError {
+            message: format!("undefined local procedure: {}", index),
+            step: 0,
+            op: "".to_string(),
+        }
+    }
+
+    pub fn undefined_kernel_proc(label: &str) -> Self {
         AssemblyError {
             message: format!("undefined kernel procedure: {}", label),
-            step: token.pos(),
-            op: token.to_string(),
+            step: 0,
+            op: "".to_string(),
         }
     }
 
@@ -247,30 +282,30 @@ impl AssemblyError {
         }
     }
 
-    pub fn syscall_in_kernel(token: &Token) -> Self {
+    pub fn syscall_in_kernel() -> Self {
         AssemblyError {
             message: "syscall inside kernel".to_string(),
-            step: token.pos(),
-            op: token.to_string(),
+            step: 0,
+            op: "".to_string(),
         }
     }
 
-    pub fn call_in_kernel(token: &Token) -> Self {
+    pub fn call_in_kernel() -> Self {
         AssemblyError {
             message: "call inside kernel".to_string(),
-            step: token.pos(),
-            op: token.to_string(),
+            step: 0,
+            op: "".to_string(),
         }
     }
 
     // IMPORTS AND MODULES
     // --------------------------------------------------------------------------------------------
 
-    pub fn missing_import_source(token: &Token, module_path: &str) -> Self {
+    pub fn missing_import_source(module_path: &str) -> Self {
         AssemblyError {
             message: format!("module source not found: {}", module_path),
-            step: token.pos(),
-            op: token.to_string(),
+            step: 0,
+            op: "".to_string(),
         }
     }
 
@@ -282,14 +317,14 @@ impl AssemblyError {
         }
     }
 
-    pub fn circular_module_dependency(token: &Token, module_chain: &[String]) -> Self {
+    pub fn circular_module_dependency(module_chain: &[String]) -> Self {
         AssemblyError {
             message: format!(
                 "circular module dependency in the following chain: {:?}",
                 module_chain
             ),
-            step: token.pos(),
-            op: token.to_string(),
+            step: 0,
+            op: "".to_string(),
         }
     }
 

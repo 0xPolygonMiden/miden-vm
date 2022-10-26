@@ -1,4 +1,4 @@
-use vm_core::utils::{collections::Vec, string::String};
+use vm_core::utils::collections::Vec;
 use vm_core::Felt;
 
 // Nodes
@@ -16,7 +16,7 @@ pub enum Node {
 /// This holds the list of instructions supported in a Miden program.
 /// This instruction list is used to hold reference to the instruction, and future be
 /// used for MAST generation.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Display)]
 pub enum Instruction {
     Assert,
     AssertEq,
@@ -33,6 +33,8 @@ pub enum Instruction {
     Inv,
     Pow2,
     Exp,
+    ExpImm(Felt),
+    ExpBitLength(u32),
     Not,
     And,
     Or,
@@ -51,29 +53,30 @@ pub enum Instruction {
     U32Test,
     U32TestW,
     U32Assert,
+    U32Assert2,
     U32AssertW,
     U32Split,
     U32Cast,
     U32CheckedAdd,
     U32CheckedAddImm(u32),
     U32WrappingAdd,
-    U32WrappingAddImm(u32),
+    U32WrappingAddImm(u64),
     U32OverflowingAdd,
-    U32OverflowingAddImm(u32),
+    U32OverflowingAddImm(u64),
     U32OverflowingAdd3,
     U32WrappingAdd3,
     U32CheckedSub,
     U32CheckedSubImm(u32),
     U32WrappingSub,
-    U32WrappingSubImm(u32),
+    U32WrappingSubImm(u64),
     U32OverflowingSub,
-    U32OverflowingSubImm(u32),
+    U32OverflowingSubImm(u64),
     U32CheckedMul,
     U32CheckedMulImm(u32),
     U32WrappingMul,
-    U32WrappingMulImm(u32),
+    U32WrappingMulImm(u64),
     U32OverflowingMul,
-    U32OverflowingMulImm(u32),
+    U32OverflowingMulImm(u64),
     U32OverflowingMadd,
     U32WrappingMadd,
     U32CheckedDiv,
@@ -207,26 +210,27 @@ pub enum Instruction {
 
     // ----- input / output operations --------------------------------------------------------
     Adv(Felt),
-    Locaddr(Felt),
+    Locaddr(u32),
     Sdepth,
     MemLoad,
     MemLoadImm(Felt),
     MemLoadW,
     MemLoadWImm(Felt),
-    LocLoad(Felt),
-    LocLoadW(Felt),
+    LocLoad(u32),
+    LocLoadW(u32),
     MemStore,
     MemStoreImm(Felt),
-    LocStore(Felt),
+    LocStore(u32),
     MemStoreW,
     MemStoreWImm(Felt),
-    LocStoreW(Felt),
+    LocStoreW(u32),
     LoadWAdv,
 
     PushConstants(Vec<Felt>),
     AdvU64Div,
-    AdvPush(Felt),
-    AdvLoadW(Felt),
+    AdvKeyVal,
+    AdvPush(u32),
+    AdvLoadW,
 
     // ----- cryptographic operations ---------------------------------------------------------
     RPHash,
@@ -237,7 +241,12 @@ pub enum Instruction {
 
     // ----- exec / call ----------------------------------------------------------------------
     ExecLocal(u32),
-    ExecImported(String),
+    ExecImported([u8; 24]),
     CallLocal(u32),
+<<<<<<< HEAD
+    CallImported([u8; 24]),
+=======
     CallImported(String),
+    SysCall(String),
+>>>>>>> c8c4b55 (feat: complete AST to MAST generation)
 }

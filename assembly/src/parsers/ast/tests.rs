@@ -1,5 +1,6 @@
 use super::{parse_module, parse_program, BTreeMap, Instruction, Node, ProcMap, ProcedureAst};
 use crate::parsers::ast::{ModuleAst, ProgramAst};
+use crypto::{hashers::Blake3_192, Digest, Hasher};
 use vm_core::{Felt, FieldElement};
 
 // UNIT TESTS
@@ -31,7 +32,7 @@ fn test_ast_parsing_program_proc() {
         exec.foo
         exec.bar
     end";
-    let proc_body1: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(Felt::ZERO))];
+    let proc_body1: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
     let mut procedures: ProcMap = BTreeMap::new();
     procedures.insert(
         String::from("foo"),
@@ -68,7 +69,7 @@ fn test_ast_parsing_module() {
         loc_load.0
     end";
     let mut procedures: ProcMap = BTreeMap::new();
-    let proc_body: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(Felt::ZERO))];
+    let proc_body: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
     procedures.insert(
         String::from("foo"),
         ProcedureAst {
@@ -96,9 +97,10 @@ fn test_ast_parsing_use() {
         exec.foo::bar
     end";
     let procedures: ProcMap = BTreeMap::new();
-    let nodes: Vec<Node> = vec![Node::Instruction(Instruction::ExecImported(String::from(
-        "std::abc::foo::bar",
-    )))];
+    let proc_name_digest = Blake3_192::<Felt>::hash(String::from("std::abc::foo::bar").as_bytes());
+    let mut proc_name_hash = [0; 24];
+    proc_name_hash.copy_from_slice(&proc_name_digest.as_bytes()[..24]);
+    let nodes: Vec<Node> = vec![Node::Instruction(Instruction::ExecImported(proc_name_hash))];
     assert_program_output(source, procedures, nodes);
 }
 

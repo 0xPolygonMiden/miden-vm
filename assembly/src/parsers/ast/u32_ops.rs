@@ -1,12 +1,27 @@
 use super::{parse_param, Instruction, Node};
 use crate::{validate_operation, AssemblyError, Token, Vec};
 
+pub fn parse_u32assert(op: &Token) -> Result<Node, AssemblyError> {
+    let instruction = match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => Instruction::U32Assert,
+        2 => match op.parts()[1] {
+            "1" => Instruction::U32Assert,
+            "2" => Instruction::U32Assert2,
+            _ => return Err(AssemblyError::invalid_param(op, 1)),
+        },
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    Ok(Node::Instruction(instruction))
+}
+
 pub fn parse_u32checked_add(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32checked_add", 0..1);
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u32>(op, 2)?;
+            let value = parse_param::<u32>(op, 1)?;
             Node::Instruction(Instruction::U32CheckedAddImm(value))
         }
         _ => Node::Instruction(Instruction::U32CheckedAdd),
@@ -20,7 +35,7 @@ pub fn parse_u32wrapping_add(op: &Token) -> Result<Node, AssemblyError> {
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u32>(op, 2)?;
+            let value = parse_param::<u64>(op, 1)?;
             Node::Instruction(Instruction::U32WrappingAddImm(value))
         }
         _ => Node::Instruction(Instruction::U32WrappingAdd),
@@ -34,7 +49,7 @@ pub fn parse_u32overflowing_add(op: &Token) -> Result<Node, AssemblyError> {
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u32>(op, 2)?;
+            let value = parse_param::<u64>(op, 1)?;
             Node::Instruction(Instruction::U32OverflowingAddImm(value))
         }
         _ => Node::Instruction(Instruction::U32OverflowingAdd),
@@ -48,7 +63,7 @@ pub fn parse_u32checked_sub(op: &Token) -> Result<Node, AssemblyError> {
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u32>(op, 2)?;
+            let value = parse_param::<u32>(op, 1)?;
             Node::Instruction(Instruction::U32CheckedSubImm(value))
         }
         _ => Node::Instruction(Instruction::U32CheckedSub),
@@ -62,7 +77,7 @@ pub fn parse_u32wrapping_sub(op: &Token) -> Result<Node, AssemblyError> {
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u32>(op, 2)?;
+            let value = parse_param::<u64>(op, 1)?;
             Node::Instruction(Instruction::U32WrappingSubImm(value))
         }
         _ => Node::Instruction(Instruction::U32WrappingSub),
@@ -76,7 +91,7 @@ pub fn parse_u32overflowing_sub(op: &Token) -> Result<Node, AssemblyError> {
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u32>(op, 2)?;
+            let value = parse_param::<u64>(op, 1)?;
             Node::Instruction(Instruction::U32OverflowingSubImm(value))
         }
         _ => Node::Instruction(Instruction::U32OverflowingSub),
@@ -90,7 +105,7 @@ pub fn parse_u32checked_mul(op: &Token) -> Result<Node, AssemblyError> {
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u32>(op, 2)?;
+            let value = parse_param::<u32>(op, 1)?;
             Node::Instruction(Instruction::U32CheckedMulImm(value))
         }
         _ => Node::Instruction(Instruction::U32CheckedMul),
@@ -104,7 +119,7 @@ pub fn parse_u32wrapping_mul(op: &Token) -> Result<Node, AssemblyError> {
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u32>(op, 2)?;
+            let value = parse_param::<u64>(op, 1)?;
             Node::Instruction(Instruction::U32WrappingMulImm(value))
         }
         _ => Node::Instruction(Instruction::U32WrappingMul),
@@ -118,7 +133,7 @@ pub fn parse_u32overflowing_mul(op: &Token) -> Result<Node, AssemblyError> {
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u32>(op, 2)?;
+            let value = parse_param::<u64>(op, 1)?;
             Node::Instruction(Instruction::U32OverflowingMulImm(value))
         }
         _ => Node::Instruction(Instruction::U32OverflowingMul),
@@ -132,7 +147,7 @@ pub fn parse_u32_div(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u32>(op, 2)?;
+            let value = parse_param::<u32>(op, 1)?;
             if checked {
                 Node::Instruction(Instruction::U32CheckedDivImm(value))
             } else {
@@ -156,7 +171,7 @@ pub fn parse_u32_mod(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u32>(op, 2)?;
+            let value = parse_param::<u32>(op, 1)?;
             if checked {
                 Node::Instruction(Instruction::U32CheckedModImm(value))
             } else {
@@ -180,7 +195,7 @@ pub fn parse_u32_divmod(op: &Token, checked: bool) -> Result<Node, AssemblyError
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u32>(op, 2)?;
+            let value = parse_param::<u32>(op, 1)?;
             if checked {
                 Node::Instruction(Instruction::U32CheckedDivModImm(value))
             } else {
@@ -204,7 +219,7 @@ pub fn parse_u32_shr(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u8>(op, 2)?;
+            let value = parse_param::<u8>(op, 1)?;
             if checked {
                 Node::Instruction(Instruction::U32CheckedShrImm(value))
             } else {
@@ -228,7 +243,7 @@ pub fn parse_u32_shl(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u8>(op, 2)?;
+            let value = parse_param::<u8>(op, 1)?;
             if checked {
                 Node::Instruction(Instruction::U32CheckedShlImm(value))
             } else {
@@ -252,7 +267,7 @@ pub fn parse_u32_rotr(op: &Token, checked: bool) -> Result<Node, AssemblyError> 
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u8>(op, 2)?;
+            let value = parse_param::<u8>(op, 1)?;
             if checked {
                 Node::Instruction(Instruction::U32CheckedRotrImm(value))
             } else {
@@ -276,7 +291,7 @@ pub fn parse_u32_rotl(op: &Token, checked: bool) -> Result<Node, AssemblyError> 
 
     let node = match op.num_parts() {
         2 => {
-            let value = parse_param::<u8>(op, 2)?;
+            let value = parse_param::<u8>(op, 1)?;
             if checked {
                 Node::Instruction(Instruction::U32CheckedRotlImm(value))
             } else {
@@ -290,6 +305,34 @@ pub fn parse_u32_rotl(op: &Token, checked: bool) -> Result<Node, AssemblyError> 
                 Node::Instruction(Instruction::U32UncheckedRotl)
             }
         }
+    };
+
+    Ok(node)
+}
+
+pub fn parse_u32_neq(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "u32checked_neq", 0..1);
+
+    let node = match op.num_parts() {
+        2 => {
+            let value = parse_param::<u32>(op, 1)?;
+            Node::Instruction(Instruction::U32CheckedNeqImm(value))
+        }
+        _ => Node::Instruction(Instruction::U32CheckedNeq),
+    };
+
+    Ok(node)
+}
+
+pub fn parse_u32_eq(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "u32checked_eq", 0..1);
+
+    let node = match op.num_parts() {
+        2 => {
+            let value = parse_param::<u32>(op, 1)?;
+            Node::Instruction(Instruction::U32CheckedEqImm(value))
+        }
+        _ => Node::Instruction(Instruction::U32CheckedEq),
     };
 
     Ok(node)

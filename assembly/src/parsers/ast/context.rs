@@ -1,10 +1,14 @@
 use super::{
-    io_ops, stack_ops, u32_ops, AssemblyError, Instruction, Node, ProcMap, ProcedureAst, Token,
-    TokenStream, MODULE_PATH_DELIM,
+    field_ops, io_ops, stack_ops, u32_ops, AssemblyError, Instruction, Node, ProcMap, ProcedureAst,
+    Token, TokenStream, MODULE_PATH_DELIM,
 };
-use vm_core::utils::{
-    collections::{BTreeMap, Vec},
-    string::{String, ToString},
+use crypto::{hashers::Blake3_192, Digest, Hasher};
+use vm_core::{
+    utils::{
+        collections::{BTreeMap, Vec},
+        string::{String, ToString},
+    },
+    Felt,
 };
 
 // Context
@@ -151,7 +155,8 @@ impl ParserContext {
 
         if label.contains(MODULE_PATH_DELIM) {
             let full_proc_name = self.get_full_imported_proc_name(label);
-            Ok(Node::Instruction(Instruction::ExecImported(full_proc_name)))
+            let proc_name_hash = self.get_proc_name_hash(full_proc_name);
+            Ok(Node::Instruction(Instruction::ExecImported(proc_name_hash)))
         } else {
             let index = self.procedures.get(&label).unwrap().index;
             Ok(Node::Instruction(Instruction::ExecLocal(index)))
@@ -163,7 +168,8 @@ impl ParserContext {
         tokens.advance();
         if label.contains(MODULE_PATH_DELIM) {
             let full_proc_name = self.get_full_imported_proc_name(label);
-            Ok(Node::Instruction(Instruction::CallImported(full_proc_name)))
+            let proc_name_hash = self.get_proc_name_hash(full_proc_name);
+            Ok(Node::Instruction(Instruction::CallImported(proc_name_hash)))
         } else {
             let index = self.procedures.get(&label).unwrap().index;
             Ok(Node::Instruction(Instruction::CallLocal(index)))
@@ -267,6 +273,10 @@ impl ParserContext {
                     let label = token.parse_call()?;
                     nodes.push(self.parse_call(label, tokens)?);
                 }
+                Token::SYSCALL => {
+                    let label = token.parse_syscall()?;
+                    nodes.push(Node::Instruction(Instruction::SysCall(label)));
+                }
                 Token::END => token.validate_end()?,
                 Token::USE | Token::EXPORT | Token::PROC | Token::BEGIN => {
                     unreachable!("invalid control token (use|export|proc|begin) found in body");
@@ -295,6 +305,13 @@ impl ParserContext {
         let full_module_name = self.imports.get(module_name).unwrap();
         format!("{}{}{}", full_module_name, MODULE_PATH_DELIM, proc_name)
     }
+
+    fn get_proc_name_hash(&self, proc_name: String) -> [u8; PROC_DIGEST_SIZE] {
+        let proc_name_digest = Blake3_192::<Felt>::hash(proc_name.as_bytes());
+        let mut proc_name_hash = [0; PROC_DIGEST_SIZE];
+        proc_name_hash.copy_from_slice(&proc_name_digest.as_bytes()[..PROC_DIGEST_SIZE]);
+        proc_name_hash
+    }
 }
 
 /// Parses a Token into a node instruction.
@@ -314,7 +331,7 @@ fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
         "inv" => Node::Instruction(Instruction::Inv),
 
         "pow2" => Node::Instruction(Instruction::Pow2),
-        "exp" => Node::Instruction(Instruction::Exp),
+        "exp" => field_ops::parse_exp(op)?,
 
         "not" => Node::Instruction(Instruction::Not),
         "and" => Node::Instruction(Instruction::And),
@@ -332,7 +349,7 @@ fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
         // ----- u32 operations -------------------------------------------------------------------
         "u32test" => Node::Instruction(Instruction::U32Test),
         "u32testw" => Node::Instruction(Instruction::U32TestW),
-        "u32assert" => Node::Instruction(Instruction::U32Assert),
+        "u32assert" => u32_ops::parse_u32assert(op)?,
         "u32assertw" => Node::Instruction(Instruction::U32AssertW),
         "u32cast" => Node::Instruction(Instruction::U32Cast),
         "u32split" => Node::Instruction(Instruction::U32Split),
@@ -381,8 +398,8 @@ fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
         "u32checked_rotl" => u32_ops::parse_u32_rotl(op, true)?,
         "u32unchecked_rotl" => u32_ops::parse_u32_rotl(op, false)?,
 
-        "u32checked_eq" => Node::Instruction(Instruction::U32CheckedEq),
-        "u32checked_neq" => Node::Instruction(Instruction::U32CheckedNeq),
+        "u32checked_eq" => u32_ops::parse_u32_eq(op)?,
+        "u32checked_neq" => u32_ops::parse_u32_neq(op)?,
 
         "u32checked_lt" => Node::Instruction(Instruction::U32CheckedLt),
         "u32unchecked_lt" => Node::Instruction(Instruction::U32UncheckedLt),
@@ -424,7 +441,7 @@ fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
         // ----- input / output operations --------------------------------------------------------
         "push" => io_ops::parse_push(op)?,
 
-        "sdepth" => Node::Instruction(Instruction::Sdepth),
+        "sdepth" => io_ops::parse_sdepth(op)?,
         "locaddr" => io_ops::parse_locaddr(op)?,
 
         "mem_load" => io_ops::parse_mem_load(op)?,

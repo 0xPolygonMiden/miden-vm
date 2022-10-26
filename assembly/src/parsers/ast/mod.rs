@@ -1,16 +1,16 @@
 #![allow(dead_code)]
-
 use super::{AssemblyError, Token, TokenStream, Vec};
 use crate::{errors::SerializationError, MODULE_PATH_DELIM};
 use serde::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_core::utils::{collections::BTreeMap, string::String, string::ToString};
 
-mod nodes;
+pub mod nodes;
 use nodes::{Instruction, Node};
 
 mod context;
 use context::ParserContext;
 
+mod field_ops;
 mod io_ops;
 mod serde;
 mod stack_ops;
@@ -19,9 +19,11 @@ mod u32_ops;
 #[cfg(test)]
 pub mod tests;
 
+const PROC_DIGEST_SIZE: usize = 24;
+
 // TYPE ALIASES
 // ================================================================================================
-type ProcMap = BTreeMap<String, ProcedureAst>;
+pub type ProcMap = BTreeMap<String, ProcedureAst>;
 
 /// Represents a parsed program AST.
 /// This AST can then be furthur processed to generate MAST.
