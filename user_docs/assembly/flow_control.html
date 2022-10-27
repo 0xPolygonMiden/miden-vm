@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Flow Control - Polygon Miden VM</title>
+        <title>Flow Control - Miden VM</title>
         <!-- Custom HTML head -->
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
@@ -104,7 +104,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Polygon Miden VM</h1>
+                    <h1 class="menu-title">Miden VM</h1>
 
                     <div class="right-buttons">
                         <a href="../../print.html" title="Print this book" aria-label="Print this book">
@@ -185,16 +185,6 @@ c. If the popped value is not binary, the execution fails.</li>
 <li>If the value of the item is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span>, execution of loop body is skipped.</li>
 <li>If the value is not binary, the execution fails.</li>
 </ol>
-<p>Example:</p>
-<pre><code># push the boolean true to the stack
-push.1
-
-# pop the top element of the stack and loop while it is true
-while.true
-    # push the boolean false to the stack, finishing the loop for the next iteration
-    push.0
-end
-</code></pre>
 
                     </main>
 

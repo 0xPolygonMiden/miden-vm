@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Overview - Polygon Miden VM</title>
+        <title>Overview - Miden VM</title>
         <!-- Custom HTML head -->
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
@@ -104,7 +104,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Polygon Miden VM</h1>
+                    <h1 class="menu-title">Miden VM</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -160,11 +160,11 @@
 <p>For example, if we wanted to provide a thousand public input values to the VM, we could put these values into a Merkle tree, initialize the stack with the root of this tree, initialize the advice provider with the tree itself, and then retrieve values from the tree during program execution using <code>mtree_get</code> instruction (described <a href="../user_docs/assembly/cryptographic_operations.html#hashing-and-merkle-trees">here</a>).</p>
 <p>In the future, other ways of providing public inputs and reading public outputs (e.g., storage commitments) may be added to the VM.</p>
 <h3 id="stack-depth-restrictions"><a class="header" href="#stack-depth-restrictions">Stack depth restrictions</a></h3>
-<p>For reasons explained <a href="../design/stack/main.html">here</a>, the VM imposes the restriction that the stack depth cannot be smaller than <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">16</span></span></span></span>. This has the following effects:</p>
-<ul>
-<li>When initializing a program with fewer than <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">16</span></span></span></span> inputs, the VM will pad the stack with zeros to ensure the depth is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">16</span></span></span></span> at the beginning of execution. </li>
-<li>If an operation would result in the stack depth dropping below <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">16</span></span></span></span>, the VM will insert a zero at the deep end of the stack to make sure the depth stays at <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">16</span></span></span></span>.</li>
-</ul>
+<p>For reasons explained <a href="../design/stack/main.html">here</a>, the VM imposes the following restrictions on stack depth:</p>
+<ol>
+<li>Stack depth cannot be smaller than <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">16</span></span></span></span>. When initializing a program with fewer than <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">16</span></span></span></span> inputs, the VM will pad the stack with zeros to ensure the depth is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">16</span></span></span></span> at the beginning of execution. If an operation would result in the stack depth dropping below <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">16</span></span></span></span>, the VM will insert a zero at the deep end of the stack to make sure the depth stays at <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">16</span></span></span></span>.</li>
+<li>At the end of program execution, stack depth cannot be greater than <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">16</span></span></span></span>. If ensuring this manually is difficult, <a href="../user_docs/stdlib/sys.html">finalize_stack</a> procedure can be called at the end of program execution. This procedure will remove items deep in the stack while keeping the top <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">16</span></span></span></span> items untouched.</li>
+</ol>
 <h3 id="nondeterministic-inputs"><a class="header" href="#nondeterministic-inputs">Nondeterministic inputs</a></h3>
 <p>The <em>advice provider</em> component is responsible for supplying nondeterministic inputs to the VM. These inputs only need to be known to the prover (i.e., they do not need to be shared with the verifier).</p>
 <p>The advice provider consists of two components:</p>
