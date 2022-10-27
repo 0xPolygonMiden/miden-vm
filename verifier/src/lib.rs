@@ -67,6 +67,6 @@ pub enum VerificationError {
 impl fmt::Display for VerificationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // TODO: implement friendly messages
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }

@@ -64,7 +64,7 @@ fn read_modules(fs_path: &Path, ns_path: String, modules: &mut ModuleMap) -> Res
                 .expect("failed to get directory name from path")
                 .to_str()
                 .expect("failed to convert directory name to string");
-            let ns_path = format!("{}::{}", ns_path, dir_name);
+            let ns_path = format!("{ns_path}::{dir_name}");
             read_modules(path.as_path(), ns_path, modules)?;
         } else if path.is_file() {
             // if the current path is a file, make sure it is a `.masm` file and read its contents
@@ -73,7 +73,7 @@ fn read_modules(fs_path: &Path, ns_path: String, modules: &mut ModuleMap) -> Res
                 .expect("failed to get file extension from path")
                 .to_str()
                 .expect("failed to convert file extension to string");
-            assert_eq!("masm", extension, "invalid file extension at: {:?}", path);
+            assert_eq!("masm", extension, "invalid file extension at: {path:?}");
             let source = fs::read_to_string(path.as_path())?;
 
             // get the name of the file without extension
@@ -86,7 +86,7 @@ fn read_modules(fs_path: &Path, ns_path: String, modules: &mut ModuleMap) -> Res
                 .expect("failed to convert file name to string")
                 .to_string();
             // insert the module source into the module map
-            modules.insert(format!("{}::{}", ns_path, file_name), source);
+            modules.insert(format!("{ns_path}::{file_name}"), source);
         } else {
             panic!("entry not a file or directory");
         }
@@ -112,8 +112,8 @@ fn write_asm_rs(modules: &ModuleMap) -> Result<()> {
     // write each module into the module file
     for (ns, source) in modules {
         let separator_suffix = (0..(89 - ns.len())).map(|_| "-").collect::<String>();
-        writeln!(asm_file, "// ----- {} {}", ns, separator_suffix)?;
-        writeln!(asm_file, "(\"{}\", \"{}\"),", ns, source)?;
+        writeln!(asm_file, "// ----- {ns} {separator_suffix}")?;
+        writeln!(asm_file, "(\"{ns}\", \"{source}\"),")?;
     }
 
     // close the array

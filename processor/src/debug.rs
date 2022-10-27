@@ -24,8 +24,8 @@ impl fmt::Display for VmState {
             .collect();
         write!(
             f,
-            "clk={}, fmp={}, stack={:?}, memory={:?}",
-            self.clk, self.fmp, stack, memory
+            "clk={}, fmp={}, stack={stack:?}, memory={memory:?}",
+            self.clk, self.fmp
         )
     }
 }

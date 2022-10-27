@@ -22,7 +22,7 @@ pub enum Decorator {
 impl fmt::Display for Decorator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Advice(injector) => write!(f, "advice({})", injector),
+            Self::Advice(injector) => write!(f, "advice({injector})"),
             Self::AsmOp(assembly_op) => {
                 write!(
                     f,

@@ -103,7 +103,7 @@ impl RangeChecker {
     /// Adds the specified value to the trace of this range checker's lookups.
     pub fn add_value(&mut self, value: u16) {
         self.lookups
-            .entry(value as u16)
+            .entry(value)
             .and_modify(|v| *v += 1)
             .or_insert(1);
     }
@@ -397,7 +397,7 @@ fn write_value(
     // if the number of lookups is 0, only one trace row is required
     if num_lookups == 0 {
         row_flags[*step] = RangeCheckFlag::F0;
-        write_trace_row(trace, step, ZERO, ZERO, value as u64);
+        write_trace_row(trace, step, ZERO, ZERO, value);
         return;
     }
 
@@ -405,20 +405,20 @@ fn write_value(
     let (num_rows, num_lookups) = div_rem(num_lookups, 4);
     for _ in 0..num_rows {
         row_flags[*step] = RangeCheckFlag::F3;
-        write_trace_row(trace, step, ONE, ONE, value as u64);
+        write_trace_row(trace, step, ONE, ONE, value);
     }
 
     // write rows which can support 2 lookups per row
     let (num_rows, num_lookups) = div_rem(num_lookups, 2);
     for _ in 0..num_rows {
         row_flags[*step] = RangeCheckFlag::F2;
-        write_trace_row(trace, step, ZERO, ONE, value as u64);
+        write_trace_row(trace, step, ZERO, ONE, value);
     }
 
     // write rows which can support only one lookup per row
     for _ in 0..num_lookups {
         row_flags[*step] = RangeCheckFlag::F1;
-        write_trace_row(trace, step, ONE, ZERO, value as u64);
+        write_trace_row(trace, step, ONE, ZERO, value);
     }
 }
 
