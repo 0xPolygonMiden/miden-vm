@@ -299,7 +299,7 @@ impl ParserContext {
     fn get_full_imported_proc_name(&self, short_name: String) -> String {
         let (module_name, proc_name) = short_name.split_once(MODULE_PATH_DELIM).unwrap();
         let full_module_name = self.imports.get(module_name).unwrap();
-        format!("{}{}{}", full_module_name, MODULE_PATH_DELIM, proc_name)
+        format!("{full_module_name}{MODULE_PATH_DELIM}{proc_name}")
     }
 
     fn get_proc_name_hash(&self, proc_name: String) -> [u8; PROC_DIGEST_SIZE] {

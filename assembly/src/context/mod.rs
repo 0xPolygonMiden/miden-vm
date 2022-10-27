@@ -97,7 +97,7 @@ impl<'a> AssemblyContext<'a> {
     /// Panics if a procedure with the specified label already exists in this context.
     pub fn add_local_proc(&mut self, proc: Procedure) {
         let label = proc.label();
-        assert!(!self.contains_proc(label), "duplicate procedure: {}", label);
+        assert!(!self.contains_proc(label), "duplicate procedure: {label}");
         self.local_procs.insert(label.to_string(), proc);
     }
 
@@ -108,12 +108,8 @@ impl<'a> AssemblyContext<'a> {
     /// # Panics
     /// Panics if a procedure with the specified label already exists in this context.
     pub fn add_imported_proc(&mut self, prefix: &str, proc: &'a Procedure) {
-        let label = format!("{}{}{}", prefix, MODULE_PATH_DELIM, proc.label());
-        assert!(
-            !self.contains_proc(&label),
-            "duplicate procedure: {}",
-            label
-        );
+        let label = format!("{prefix}{MODULE_PATH_DELIM}{}", proc.label());
+        assert!(!self.contains_proc(&label), "duplicate procedure: {label}");
         self.imported_procs.insert(label, proc);
     }
 

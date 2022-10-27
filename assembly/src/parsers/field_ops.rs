@@ -182,7 +182,7 @@ pub(super) fn parse_exp(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
                     return Err(AssemblyError::invalid_param_with_reason(
                         op,
                         1,
-                        format!("parameter can at max be a u64 but found u{}", bits_len).as_str(),
+                        format!("parameter can at max be a u64 but found u{bits_len}").as_str(),
                     ));
                 }
 
@@ -202,7 +202,7 @@ pub(super) fn parse_exp(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(),
                 // pushing the exponent onto the stack.
                 span_ops.push(Operation::Push(imm));
 
-                num_bits_in_imm as usize
+                num_bits_in_imm
             }
         }
         _ => return Err(AssemblyError::extra_param(op)),

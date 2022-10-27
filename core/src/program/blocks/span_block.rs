@@ -141,7 +141,7 @@ impl fmt::Display for Span {
         write!(f, "span")?;
         for batch in self.op_batches.iter() {
             for op in batch.ops.iter() {
-                write!(f, " {}", op)?;
+                write!(f, " {op}")?;
             }
         }
         write!(f, " end")

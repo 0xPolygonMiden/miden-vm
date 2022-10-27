@@ -33,10 +33,7 @@ impl AssemblyError {
 
     pub fn unexpected_token(token: &Token, expected: &str) -> Self {
         AssemblyError {
-            message: format!(
-                "unexpected token: expected '{}' but was '{}'",
-                expected, token
-            ),
+            message: format!("unexpected token: expected '{expected}' but was '{token}'"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -52,7 +49,7 @@ impl AssemblyError {
 
     pub fn invalid_op(token: &Token) -> Self {
         AssemblyError {
-            message: format!("instruction '{}' is invalid", token),
+            message: format!("instruction '{token}' is invalid"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -60,7 +57,7 @@ impl AssemblyError {
 
     pub fn invalid_op_with_reason(token: &Token, reason: &str) -> Self {
         AssemblyError {
-            message: format!("instruction '{}' is invalid: {}", token, reason),
+            message: format!("instruction '{token}' is invalid: {reason}"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -68,10 +65,7 @@ impl AssemblyError {
 
     pub fn missing_param(token: &Token) -> Self {
         AssemblyError {
-            message: format!(
-                "malformed instruction '{}': missing required parameter",
-                token
-            ),
+            message: format!("malformed instruction '{token}': missing required parameter"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -79,10 +73,7 @@ impl AssemblyError {
 
     pub fn extra_param(token: &Token) -> Self {
         AssemblyError {
-            message: format!(
-                "malformed instruction '{}': too many parameters provided",
-                token
-            ),
+            message: format!("malformed instruction '{token}': too many parameters provided"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -91,8 +82,7 @@ impl AssemblyError {
     pub fn invalid_param(token: &Token, part_idx: usize) -> Self {
         AssemblyError {
             message: format!(
-                "malformed instruction `{}`: parameter '{}' is invalid",
-                token,
+                "malformed instruction `{token}`: parameter '{}' is invalid",
                 token.parts()[part_idx]
             ),
             step: token.pos(),
@@ -103,10 +93,8 @@ impl AssemblyError {
     pub fn invalid_param_with_reason(token: &Token, part_idx: usize, reason: &str) -> Self {
         AssemblyError {
             message: format!(
-                "malformed instruction '{}', parameter {} is invalid: {}",
-                token,
+                "malformed instruction '{token}', parameter {} is invalid: {reason}",
                 token.parts()[part_idx],
-                reason
             ),
             step: token.pos(),
             op: token.to_string(),
@@ -185,7 +173,7 @@ impl AssemblyError {
 
     pub fn duplicate_proc_label(token: &Token, label: &str) -> Self {
         AssemblyError {
-            message: format!("duplicate procedure label: {}", label),
+            message: format!("duplicate procedure label: {label}"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -193,7 +181,7 @@ impl AssemblyError {
 
     pub fn invalid_proc_label(token: &Token, label: &str) -> Self {
         AssemblyError {
-            message: format!("invalid procedure label: {}", label),
+            message: format!("invalid procedure label: {label}"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -201,7 +189,7 @@ impl AssemblyError {
 
     pub fn invalid_proc_locals(token: &Token, locals: &str) -> Self {
         AssemblyError {
-            message: format!("invalid procedure locals: {}", locals),
+            message: format!("invalid procedure locals: {locals}"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -217,7 +205,7 @@ impl AssemblyError {
 
     pub fn undefined_proc(token: &Token, label: &str) -> Self {
         AssemblyError {
-            message: format!("undefined procedure: {}", label),
+            message: format!("undefined procedure: {label}"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -225,7 +213,7 @@ impl AssemblyError {
 
     pub fn undefined_kernel_proc(token: &Token, label: &str) -> Self {
         AssemblyError {
-            message: format!("undefined kernel procedure: {}", label),
+            message: format!("undefined kernel procedure: {label}"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -233,7 +221,7 @@ impl AssemblyError {
 
     pub fn proc_export_not_allowed(token: &Token, label: &str) -> Self {
         AssemblyError {
-            message: format!("exported procedures not allowed in this context: {}", label),
+            message: format!("exported procedures not allowed in this context: {label}"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -241,7 +229,7 @@ impl AssemblyError {
 
     pub fn proc_not_in_kernel(token: &Token, label: &str) -> Self {
         AssemblyError {
-            message: format!("procedure '{}' is not a part of the kernel", label),
+            message: format!("procedure '{label}' is not a part of the kernel"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -268,7 +256,7 @@ impl AssemblyError {
 
     pub fn missing_import_source(token: &Token, module_path: &str) -> Self {
         AssemblyError {
-            message: format!("module source not found: {}", module_path),
+            message: format!("module source not found: {module_path}"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -276,7 +264,7 @@ impl AssemblyError {
 
     pub fn dangling_ops_after_module(token: &Token, module_path: &str) -> Self {
         AssemblyError {
-            message: format!("dangling instructions after module end at {}", module_path),
+            message: format!("dangling instructions after module end at {module_path}"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -284,10 +272,7 @@ impl AssemblyError {
 
     pub fn circular_module_dependency(token: &Token, module_chain: &[String]) -> Self {
         AssemblyError {
-            message: format!(
-                "circular module dependency in the following chain: {:?}",
-                module_chain
-            ),
+            message: format!("circular module dependency in the following chain: {module_chain:?}"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -295,7 +280,7 @@ impl AssemblyError {
 
     pub fn duplicate_module_import(token: &Token, module: &str) -> Self {
         AssemblyError {
-            message: format!("duplicate module import found: {}", module),
+            message: format!("duplicate module import found: {module}"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -303,7 +288,7 @@ impl AssemblyError {
 
     pub fn invalid_module_path(token: &Token, module_path: &str) -> Self {
         AssemblyError {
-            message: format!("invalid module import path: {}", module_path),
+            message: format!("invalid module import path: {module_path}"),
             step: token.pos(),
             op: token.to_string(),
         }

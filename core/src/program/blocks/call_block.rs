@@ -73,7 +73,7 @@ impl fmt::Display for Call {
 
         let fn_hash_bytes: [u8; 32] = self.fn_hash.into();
         for byte in fn_hash_bytes {
-            write!(f, "{:02x}", byte)?;
+            write!(f, "{byte:02x}")?;
         }
 
         Ok(())
