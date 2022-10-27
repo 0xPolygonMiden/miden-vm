@@ -20,8 +20,6 @@ Miden VM is currently on v0.2 release. In this release, most of the core feature
 
 The next version of the VM is being developed in the [next](https://github.com/maticnetwork/miden/tree/next) branch. There is also a documentation for the latest features and changes in the next branch [documentation next branch](https://maticnetwork.github.io/miden/intro/main.html).
 
-The next version of the VM is being developed in the [next](https://github.com/maticnetwork/miden/tree/next) branch.
-
 #### Feature highlights
 Miden VM is a fully-featured virtual machine. Despite being optimized for zero-knowledge proof generation, it provides all the features one would expect from a regular VM. To highlight a few:
 
