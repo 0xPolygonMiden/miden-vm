@@ -1,6 +1,6 @@
 use super::{
     Call, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation, Process, Span, Split,
-    StarkField, Vec, Word, FMP_MIN, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
+    StarkField, Vec, Word, FMP_MIN, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, SYSCALL_FMP_MIN, ZERO,
 };
 use vm_core::{
     chiplets::hasher::DIGEST_LEN,
@@ -164,11 +164,11 @@ impl Process {
     // CALL BLOCK
     // --------------------------------------------------------------------------------------------
 
-    /// Starts decoding of a CALL block.
+    /// Starts decoding of a CALL or a SYSCALL block.
     pub(super) fn start_call_block(&mut self, block: &Call) -> Result<(), ExecutionError> {
-        // use the hasher to compute the hash of the CALL block; the row address returned by the
-        // hasher is used as the ID of the block; the result of the hash is expected to be in
-        // row addr + 7.
+        // use the hasher to compute the hash of the CALL or SYSCALL block; the row address
+        // returned by the hasher is used as the ID of the block; the result of the hash is
+        // expected to be in row addr + 7.
         let fn_hash = block.fn_hash().into();
         let addr = self
             .chiplets
@@ -179,7 +179,7 @@ impl Process {
         let (stack_depth, next_overflow_addr) = self.stack.start_context();
         debug_assert!(stack_depth <= u32::MAX as usize, "stack depth too big");
 
-        // start decoding the CALL block; this appends a row with CALL operation to the decoder
+        // start decoding the block; this appends a row with CALL/SYSCALL operation to the decoder
         // trace and records information about the current execution context in the block stack
         // table. this info will be used to restore the context after the function returns.
         let ctx_info = ExecutionContextInfo::new(
@@ -188,19 +188,28 @@ impl Process {
             stack_depth as u32,
             next_overflow_addr,
         );
-        self.decoder.start_call(fn_hash, addr, ctx_info);
 
-        // set the execution context to the current clock cycle + 1. This ensures that the context
-        // is globally unique as is never set to 0. also, reset the free memory pointer to min
-        // value
-        self.system.set_ctx(self.system.clk() + 1);
-        self.system.set_fmp(Felt::from(FMP_MIN));
+        if block.is_syscall() {
+            self.decoder.start_syscall(fn_hash, addr, ctx_info);
+            // set execution context to 0 as SYSCALL takes us back to memory context of the kernel;
+            // set the free memory pointer to 2^31 so that we don't overlap with procedure locals
+            // from the original kernel context
+            self.system.set_ctx(0);
+            self.system.set_fmp(Felt::from(SYSCALL_FMP_MIN));
+        } else {
+            self.decoder.start_call(fn_hash, addr, ctx_info);
+            // set the execution context to the current clock cycle + 1. This ensures that the
+            // context is globally unique as is never set to 0. also, reset the free memory
+            // pointer to min value
+            self.system.set_ctx(self.system.clk() + 1);
+            self.system.set_fmp(Felt::from(FMP_MIN));
+        }
 
         // the rest of the VM state does not change
         self.execute_op(Operation::Noop)
     }
 
-    /// Ends decoding of a CALL block.
+    /// Ends decoding of a CALL or a SYSCALL block.
     pub(super) fn end_call_block(&mut self, block: &Call) -> Result<(), ExecutionError> {
         // when a CALL block ends, stack depth must be exactly 16
         let stack_depth = self.stack.depth();
@@ -489,7 +498,7 @@ impl Decoder {
         // get the current clock cycle here (before the trace table is updated)
         let clk = self.trace_len() as u32;
 
-        // push CALL block info onto the block stack and append a CALL row to the execution trace
+        // push block info onto the block stack and append a row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Call, Some(ctx_info));
         self.trace
             .append_block_start(parent_addr, Operation::Call, fn_hash, [ZERO; 4]);
@@ -502,14 +511,37 @@ impl Decoder {
         self.debug_info.append_operation(Operation::Call);
     }
 
+    /// Starts decoding of a SYSCALL block.
+    ///
+    /// This pushes a block with ID=addr onto the block stack and appends execution of a SYSCALL
+    /// operation to the trace.
+    pub fn start_syscall(&mut self, fn_hash: Word, addr: Felt, ctx_info: ExecutionContextInfo) {
+        // get the current clock cycle here (before the trace table is updated)
+        let clk = self.trace_len() as u32;
+
+        // push block info onto the block stack and append a row to the execution trace
+        let parent_addr = self
+            .block_stack
+            .push(addr, BlockType::SysCall, Some(ctx_info));
+        self.trace
+            .append_block_start(parent_addr, Operation::SysCall, fn_hash, [ZERO; 4]);
+
+        // mark this cycle as the cycle at which a new SYSCALL block began execution (this affects
+        // block stack and block hash tables). A SYSCALL block has only a single child.
+        self.aux_hints
+            .block_started(clk, self.block_stack.peek(), Some(fn_hash), None);
+
+        self.debug_info.append_operation(Operation::SysCall);
+    }
+
     /// Ends decoding of a control block (i.e., a non-SPAN block).
     ///
     /// This appends an execution of an END operation to the trace. The top block on the block
     /// stack is also popped.
     ///
-    /// If the ended block is a CALL block, this method will return values to which execution
-    /// context and free memory pointers were set before the CALL block started executing. For
-    /// non-CALL blocks these values are set to zeros and should be ignored.
+    /// If the ended block is a CALL or a SYSCALL block, this method will return values to which
+    /// execution context and free memory pointers were set before the CALL block started
+    /// executing. For non-CALL blocks these values are set to zeros and should be ignored.
     pub fn end_control_block(&mut self, block_hash: Word) -> Option<ExecutionContextInfo> {
         // get the current clock cycle here (before the trace table is updated)
         let clk = self.trace_len() as u32;
@@ -522,6 +554,7 @@ impl Decoder {
             block_info.is_loop_body(),
             block_info.is_entered_loop(),
             block_info.is_call(),
+            block_info.is_syscall(),
         );
 
         // mark this cycle as the cycle at which block execution has ended

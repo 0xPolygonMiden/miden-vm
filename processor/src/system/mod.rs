@@ -5,10 +5,21 @@ use super::{Felt, FieldElement, SysTrace, Vec, ZERO};
 // CONSTANTS
 // ================================================================================================
 
-// Memory addresses for procedure locals should start at 2^30 and not go below.
+// We assign the following special meanings to memory segments in each context:
+// - First 2^30 addresses (0 to 2^30 - 1) are reserved for global memory.
+// - The next 2^30 addresses (2^30 to 2^31 - 1) are reserved for procedure locals.
+// - The next 2^30 addresses (2^31 to 3 * 2^30 - 1) are reserved for procedure locals of SYSCALLs.
+// - All remaining addresses do not have any special meaning.
+//
+// Note that the above assignment is purely conventional: a program can read from and write to any
+// address in a given context, regardless of which memory segment it belongs to.
+
+/// Memory addresses for procedure locals start at 2^30.
 pub const FMP_MIN: u64 = 2_u64.pow(30);
-// The total number of locals available to all procedures at runtime must be smaller than 2^32.
-pub const FMP_MAX: u64 = FMP_MIN + u32::MAX as u64;
+/// Memory address for procedure locals within a SYSCALL starts at 2^31.
+pub const SYSCALL_FMP_MIN: u64 = 2_u64.pow(31);
+/// Value of FMP register should not exceed 3 * 2^30 - 1.
+pub const FMP_MAX: u64 = 3 * 2_u64.pow(30) - 1;
 
 // SYSTEM INFO
 // ================================================================================================

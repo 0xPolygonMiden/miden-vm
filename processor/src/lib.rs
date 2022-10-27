@@ -26,7 +26,7 @@ mod operations;
 
 mod system;
 use system::System;
-pub use system::FMP_MIN;
+pub use system::{FMP_MIN, SYSCALL_FMP_MIN};
 
 mod decoder;
 use decoder::Decoder;

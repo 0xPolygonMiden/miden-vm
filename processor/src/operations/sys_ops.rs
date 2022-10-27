@@ -61,6 +61,8 @@ impl Process {
 mod tests {
     use super::{super::Operation, Felt, FieldElement, Process, FMP_MAX, FMP_MIN};
 
+    const MAX_PROC_LOCALS: u64 = 2_u64.pow(31) - 1;
+
     #[test]
     fn op_assert() {
         // calling assert with a minimum stack should be an ok, as long as the top value is ONE
@@ -99,12 +101,12 @@ mod tests {
         assert!(process.execute_op(Operation::FmpUpdate).is_err());
 
         // going up to the max fmp value should be OK
-        let mut process = Process::new_dummy(&[u32::MAX as u64]);
+        let mut process = Process::new_dummy(&[MAX_PROC_LOCALS]);
         process.execute_op(Operation::FmpUpdate).unwrap();
         assert_eq!(Felt::new(FMP_MAX), process.system.fmp());
 
         // but going beyond that should be an error
-        let mut process = Process::new_dummy(&[u32::MAX as u64 + 1]);
+        let mut process = Process::new_dummy(&[MAX_PROC_LOCALS + 1]);
         assert!(process.execute_op(Operation::FmpUpdate).is_err());
 
         // should not affect the rest of the stack state
