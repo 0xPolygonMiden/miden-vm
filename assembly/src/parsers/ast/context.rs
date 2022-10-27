@@ -288,7 +288,7 @@ impl ParserContext {
                     }
                 }
             }
-        };
+        }
 
         Ok(())
     }

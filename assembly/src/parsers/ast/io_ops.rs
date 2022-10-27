@@ -106,7 +106,7 @@ pub fn parse_loc_load(op: &Token) -> Result<Node, AssemblyError> {
 }
 
 pub fn parse_mem_loadw(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "mem_load", 0..1);
+    validate_operation!(op, "mem_loadw", 0..1);
     let node = match op.num_parts() {
         2 => {
             let address = parse_element_param(op, 1)?;
