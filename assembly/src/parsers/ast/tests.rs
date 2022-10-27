@@ -20,6 +20,41 @@ fn test_ast_parsing_program_simple() {
 }
 
 #[test]
+fn test_ast_parsing_program_u32() {
+    let source = "\
+    begin
+        push.3
+
+        u32checked_add.5
+        u32wrapping_add.5
+        u32overflowing_add.5
+
+        u32checked_sub.1
+        u32wrapping_sub.1
+        u32overflowing_sub.1
+
+        u32checked_mul.2
+        u32wrapping_mul.2
+        u32overflowing_mul.2
+
+    end";
+    let nodes: Vec<Node> = vec![
+        Node::Instruction(Instruction::PushConstants([Felt::new(3)].to_vec())),
+        Node::Instruction(Instruction::U32CheckedAddImm(5)),
+        Node::Instruction(Instruction::U32WrappingAddImm(5)),
+        Node::Instruction(Instruction::U32OverflowingAddImm(5)),
+        Node::Instruction(Instruction::U32CheckedSubImm(1)),
+        Node::Instruction(Instruction::U32WrappingSubImm(1)),
+        Node::Instruction(Instruction::U32OverflowingSubImm(1)),
+        Node::Instruction(Instruction::U32CheckedMulImm(2)),
+        Node::Instruction(Instruction::U32WrappingMulImm(2)),
+        Node::Instruction(Instruction::U32OverflowingMulImm(2)),
+    ];
+
+    assert_program_output(source, BTreeMap::new(), nodes);
+}
+
+#[test]
 fn test_ast_parsing_program_proc() {
     let source = "\
     proc.foo.1 
