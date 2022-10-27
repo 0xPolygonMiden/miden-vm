@@ -6,7 +6,7 @@ use vm_core::{
     Library,
 };
 
-mod asm;
+pub mod asm;
 use asm::MODULES;
 
 // CONSTANTS

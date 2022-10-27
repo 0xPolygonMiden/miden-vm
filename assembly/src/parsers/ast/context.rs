@@ -33,7 +33,7 @@ impl ParserContext {
 
         let mut t_branch = Vec::<Node>::new();
         // read the `if` clause
-        self.parse_body(tokens, &mut t_branch)?;
+        self.parse_body(tokens, &mut t_branch, true)?;
 
         // build the `else` clause; if the else clause is specified, then read it;
         // otherwise, set to a Span with a single noop
@@ -48,7 +48,7 @@ impl ParserContext {
 
                     let mut f_branch = Vec::<Node>::new();
                     // parse the `false` branch
-                    self.parse_body(tokens, &mut f_branch)?;
+                    self.parse_body(tokens, &mut f_branch, false)?;
 
                     // consume the `end` token
                     match tokens.read() {
@@ -98,7 +98,7 @@ impl ParserContext {
 
         let mut loop_body = Vec::<Node>::new();
         // read the loop body
-        self.parse_body(tokens, &mut loop_body)?;
+        self.parse_body(tokens, &mut loop_body, false)?;
 
         // consume the `end` token
         match tokens.read() {
@@ -126,7 +126,7 @@ impl ParserContext {
 
         let mut loop_body = Vec::<Node>::new();
         // read the loop body
-        self.parse_body(tokens, &mut loop_body)?;
+        self.parse_body(tokens, &mut loop_body, false)?;
 
         // consume the `end` token
         match tokens.read() {
@@ -219,7 +219,7 @@ impl ParserContext {
 
         let mut body = Vec::<Node>::new();
         // parse procedure body
-        self.parse_body(tokens, &mut body)?;
+        self.parse_body(tokens, &mut body, false)?;
 
         // consume the 'end' token
         match tokens.read() {
@@ -255,10 +255,16 @@ impl ParserContext {
         &self,
         tokens: &mut TokenStream,
         nodes: &mut Vec<Node>,
+        break_on_else: bool,
     ) -> Result<(), AssemblyError> {
-        if let Some(token) = tokens.read() {
+        while let Some(token) = tokens.read() {
             match token.parts()[0] {
-                Token::ELSE => return Err(AssemblyError::dangling_else(token)),
+                Token::ELSE => {
+                    if break_on_else {
+                        break;
+                    }
+                    return Err(AssemblyError::dangling_else(token));
+                }
                 Token::IF => {
                     token.validate_if()?;
                     nodes.push(self.parse_if(tokens)?);
@@ -273,7 +279,10 @@ impl ParserContext {
                     let label = token.parse_call()?;
                     nodes.push(self.parse_call(label, tokens)?);
                 }
-                Token::END => token.validate_end()?,
+                Token::END => {
+                    token.validate_end()?;
+                    break;
+                }
                 Token::USE | Token::EXPORT | Token::PROC | Token::BEGIN => {
                     unreachable!("invalid control token (use|export|proc|begin) found in body");
                 }

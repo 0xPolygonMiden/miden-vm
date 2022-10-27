@@ -201,7 +201,7 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
     let beginning_node_count = body.len();
     while !end_of_nodes {
         let node_count = body.len();
-        context.parse_body(&mut tokens, &mut body)?;
+        context.parse_body(&mut tokens, &mut body, false)?;
         end_of_nodes = body.len() == node_count;
     }
 

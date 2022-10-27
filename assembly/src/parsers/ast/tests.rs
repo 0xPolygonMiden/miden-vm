@@ -139,6 +139,128 @@ fn test_ast_parsing_use() {
     assert_program_output(source, procedures, nodes);
 }
 
+#[test]
+fn test_ast_parsing_module_multiple_if() {
+    let source = "\
+    proc.foo
+        push.1
+        if.true
+            push.0
+            push.1
+            if.true
+                push.0
+                sub
+            else
+                push.1
+                sub
+            end
+        end
+    end";
+
+    let mut procedures: ProcMap = BTreeMap::new();
+    let proc_body: Vec<Node> = vec![
+        Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+        Node::IfElse(
+            [
+                Node::Instruction(Instruction::PushConstants([Felt::ZERO].to_vec())),
+                Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+                Node::IfElse(
+                    [
+                        Node::Instruction(Instruction::PushConstants([Felt::ZERO].to_vec())),
+                        Node::Instruction(Instruction::Sub),
+                    ]
+                    .to_vec(),
+                    [
+                        Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+                        Node::Instruction(Instruction::Sub),
+                    ]
+                    .to_vec(),
+                ),
+            ]
+            .to_vec(),
+            vec![],
+        ),
+    ];
+    procedures.insert(
+        String::from("foo"),
+        ProcedureAst {
+            name: String::from("foo"),
+            is_export: false,
+            num_locals: 0,
+            index: 0,
+            body: proc_body,
+        },
+    );
+    parse_program(source).expect_err("Program should contain body and no export");
+    let module = parse_module(source).unwrap();
+    assert_eq!(module.procedures.len(), procedures.len());
+    for (name, proc) in module.procedures {
+        assert!(procedures.contains_key(&name));
+        assert_eq!(procedures.get(&name).unwrap(), &proc);
+    }
+}
+
+#[test]
+fn test_ast_parsing_module_sequential_if() {
+    let source = "\
+    proc.foo
+        push.1
+        if.true
+            push.5
+            push.1
+        end
+        if.true
+            push.0
+            sub
+        else
+            push.1
+            sub
+        end
+    end";
+
+    let mut procedures: ProcMap = BTreeMap::new();
+    let proc_body: Vec<Node> = vec![
+        Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+        Node::IfElse(
+            [
+                Node::Instruction(Instruction::PushConstants([Felt::new(5)].to_vec())),
+                Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+            ]
+            .to_vec(),
+            vec![],
+        ),
+        Node::IfElse(
+            [
+                Node::Instruction(Instruction::PushConstants([Felt::ZERO].to_vec())),
+                Node::Instruction(Instruction::Sub),
+            ]
+            .to_vec(),
+            [
+                Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+                Node::Instruction(Instruction::Sub),
+            ]
+            .to_vec(),
+        ),
+    ];
+    procedures.insert(
+        String::from("foo"),
+        ProcedureAst {
+            name: String::from("foo"),
+            is_export: false,
+            num_locals: 0,
+            index: 0,
+            body: proc_body,
+        },
+    );
+    parse_program(source).expect_err("Program should contain body and no export");
+    let module = parse_module(source).unwrap();
+    assert_eq!(module.procedures.len(), procedures.len());
+    for (name, proc) in module.procedures {
+        assert!(procedures.contains_key(&name));
+        assert_eq!(procedures.get(&name).unwrap(), &proc);
+    }
+}
+
 // SERIALIZATION AND DESERIALIZATION TESTS
 // ================================================================================================
 
