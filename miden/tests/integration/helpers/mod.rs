@@ -1,6 +1,7 @@
 pub use miden::{ProofOptions, StarkProof};
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
+use stdlib::StdLibrary;
 pub use vm_core::{
     stack::STACK_TOP_SIZE, Felt, FieldElement, Program, ProgramInputs, ProgramOutputs,
 };
@@ -137,14 +138,18 @@ impl Test {
 
     /// Compiles a test's source and returns the resulting Program.
     pub fn compile(&self) -> Program {
-        let assembler = match self.kernel {
-            Some(ref kernel) => assembly::Assembler::with_kernel(kernel, self.in_debug_mode)
+        let assembler = assembly::Assembler::new()
+            .with_debug_mode(self.in_debug_mode)
+            .with_module_provider(StdLibrary::default());
+
+        match self.kernel.as_ref() {
+            Some(kernel) => assembler
+                .with_kernel(kernel)
                 .expect("kernel compilation failed"),
-            None => assembly::Assembler::new(self.in_debug_mode),
-        };
-        assembler
-            .compile(&self.source)
-            .expect("Failed to compile test source.")
+            None => assembler,
+        }
+        .compile(&self.source)
+        .expect("Failed to compile test source.")
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a

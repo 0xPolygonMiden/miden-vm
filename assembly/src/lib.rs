@@ -9,10 +9,10 @@ use vm_core::{
     utils::{
         collections::{BTreeMap, Vec},
         string::{String, ToString},
+        Box,
     },
-    CodeBlockTable, Kernel, Library, Program,
+    CodeBlockTable, Kernel, Program,
 };
-use vm_stdlib::StdLibrary;
 
 mod context;
 use context::AssemblyContext;
@@ -43,6 +43,28 @@ const MODULE_PATH_DELIM: &str = "::";
 type ProcMap = BTreeMap<String, Procedure>;
 type ModuleMap = BTreeMap<String, ProcMap>;
 
+// MODULE PROVIDER
+// ================================================================================================
+
+/// The module provider is now a simplified version of a module cache. It is expected to evolve to
+/// a general solution for the module lookup
+///
+/// TODO compute a procedure index deterministically from a module path & procedure label. The
+/// initial expected layout for the index is `[u8; 20]`. The module provider should map procedures
+/// from these indexes, and this is expected to result in code simplification + optimization for
+/// the compiler.
+pub trait ModuleProvider {
+    /// Fetch source contents provided a module path
+    fn get_source(&self, path: &str) -> Option<&str>;
+}
+
+// A default provider that won't resolve modules
+impl ModuleProvider for () {
+    fn get_source(&self, _path: &str) -> Option<&str> {
+        None
+    }
+}
+
 // ASSEMBLER
 // ================================================================================================
 
@@ -54,7 +76,7 @@ type ModuleMap = BTreeMap<String, ProcMap>;
 /// - Via the `new()` constructor. In this case, the kernel is assumed to be empty, and the
 ///   programs compiled using such assembler cannot contain `syscall` instructions.
 pub struct Assembler {
-    stdlib: StdLibrary,
+    module_provider: Box<dyn ModuleProvider>,
     parsed_modules: ModuleMap,
     kernel_procs: ProcMap,
     kernel: Kernel,
@@ -65,28 +87,37 @@ impl Assembler {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of [Assembler] instantiated with empty module map.
-    ///
-    /// Debug related decorators are added to span blocks when debug mode is enabled.
-    pub fn new(in_debug_mode: bool) -> Self {
+    pub fn new() -> Self {
         Self {
-            stdlib: StdLibrary::default(),
+            module_provider: Box::new(()),
             parsed_modules: BTreeMap::default(),
             kernel_procs: BTreeMap::default(),
             kernel: Kernel::default(),
-            in_debug_mode,
+            in_debug_mode: false,
         }
+    }
+
+    /// Debug related decorators are added to span blocks when debug mode is enabled.
+    pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
+        self.in_debug_mode = in_debug_mode;
+        self
+    }
+
+    /// Create a new assembler with a given module provider
+    pub fn with_module_provider<P>(mut self, provider: P) -> Self
+    where
+        P: ModuleProvider + 'static,
+    {
+        self.module_provider = Box::new(provider);
+        self
     }
 
     /// Returns a new instance of [Assembler] instantiated with the specified kernel.
     ///
-    /// Debug related decorators are added to span blocks when debug mode is enabled.
-    ///
     /// # Errors
     /// Returns an error if compiling kernel source results in an error.
-    pub fn with_kernel(kernel_source: &str, in_debug_mode: bool) -> Result<Self, AssemblyError> {
-        let mut assembler = Self::new(in_debug_mode);
-        assembler.set_kernel(kernel_source)?;
-        Ok(assembler)
+    pub fn with_kernel(mut self, kernel_source: &str) -> Result<Self, AssemblyError> {
+        self.set_kernel(kernel_source).map(|_| self)
     }
 
     // PUBLIC ACCESSORS
@@ -192,11 +223,12 @@ impl Assembler {
                     // and attempt to parse it; if the parsing is successful, this will also add
                     // the parsed module to `self.parsed_modules`
                     if !self.parsed_modules.contains_key(module_path) {
-                        let module_source =
-                            self.stdlib.get_module_source(module_path).map_err(|_| {
-                                AssemblyError::missing_import_source(token, module_path)
+                        self.module_provider
+                            .get_source(module_path)
+                            .ok_or_else(|| AssemblyError::missing_import_source(token, module_path))
+                            .and_then(|module_source| {
+                                self.parse_module(module_source, module_path, dep_chain, cb_table)
                             })?;
-                        self.parse_module(module_source, module_path, dep_chain, cb_table)?;
                     }
 
                     // get procedures from the module at the specified path; we are guaranteed to
@@ -267,6 +299,8 @@ impl Assembler {
 
         // insert exported procedures into `self.parsed_procedures`
         // TODO: figure out how to do this using interior mutability
+        // When the module provider maps index to procedures, it might be implemented with a
+        // send/sync friendly approach (maybe std::sync?).
         unsafe {
             let path = path.to_string();
             let mutable_self = &mut *(self as *const _ as *mut Assembler);
@@ -330,9 +364,8 @@ impl Assembler {
 }
 
 impl Default for Assembler {
-    /// Returns a new instance of [Assembler] instantiated with empty module map in non-debug mode.
     fn default() -> Self {
-        Self::new(false)
+        Self::new()
     }
 }
 

@@ -1,8 +1,9 @@
-use assembly::Assembler;
+use miden::Assembler;
 use prover::StarkProof;
 use serde_derive::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::{fs, io::Write, time::Instant};
+use stdlib::StdLibrary;
 use vm_core::ProgramOutputs;
 use vm_core::{chiplets::hasher::Digest, Program, ProgramInputs};
 use winter_utils::{Deserializable, SliceReader};
@@ -179,7 +180,8 @@ impl ProgramFile {
         let now = Instant::now();
 
         // compile program
-        let program = Assembler::default()
+        let program = Assembler::new()
+            .with_module_provider(StdLibrary::default())
             .compile(&program_file)
             .map_err(|err| format!("Failed to compile program - {}", err))?;
 
