@@ -1,4 +1,4 @@
-use crate::{ModuleMap, MODULE_PATH_DELIM};
+use crate::ModuleMap;
 
 use super::{
     ast::nodes::{Instruction, Node},
@@ -68,7 +68,6 @@ fn parse_node<'a>(
         Node::Instruction(instruction) => {
             match instruction {
                 Instruction::ExecImported(label) => {
-                    let (module_name, _) = label.rsplit_once(MODULE_PATH_DELIM).unwrap();
                     context.parse_imports(
                         &String::from(module_name),
                         &mut Vec::new(),
@@ -113,7 +112,6 @@ fn parse_node<'a>(
                         return Err(AssemblyError::call_in_kernel());
                     }
 
-                    let (module_name, _) = label.rsplit_once(MODULE_PATH_DELIM).unwrap();
                     context.parse_imports(
                         &String::from(module_name),
                         &mut Vec::new(),

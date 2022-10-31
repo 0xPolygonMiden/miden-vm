@@ -2,6 +2,7 @@ use super::{
     field_ops, io_ops, stack_ops, u32_ops, AssemblyError, Instruction, Node, ProcMap, ProcedureAst,
     Token, TokenStream, MODULE_PATH_DELIM,
 };
+use crate::parsers::ast::PROC_DIGEST_SIZE;
 use crypto::{hashers::Blake3_192, Digest, Hasher};
 use vm_core::{
     utils::{
@@ -176,6 +177,17 @@ impl ParserContext {
         }
     }
 
+    /// Parse syscall token into AST nodes.
+    fn parse_syscall(
+        &self,
+        label: String,
+        tokens: &mut TokenStream,
+    ) -> Result<Node, AssemblyError> {
+        tokens.advance();
+        let proc_name_hash = self.get_proc_name_hash(label);
+        Ok(Node::Instruction(Instruction::SysCall(proc_name_hash)))
+    }
+
     // PROCEDURE PARSERS
     // ================================================================================================
 
@@ -275,7 +287,7 @@ impl ParserContext {
                 }
                 Token::SYSCALL => {
                     let label = token.parse_syscall()?;
-                    nodes.push(Node::Instruction(Instruction::SysCall(label)));
+                    nodes.push(self.parse_syscall(label, tokens)?);
                 }
                 Token::END => token.validate_end()?,
                 Token::USE | Token::EXPORT | Token::PROC | Token::BEGIN => {

@@ -2,8 +2,8 @@ use super::{AssemblyContext, AssemblyError, CodeBlock, Token, TokenStream};
 pub use blocks::{combine_blocks, parse_body};
 use u32_ops::U32OpMode;
 use vm_core::{
-    utils::{collections::Vec, string::ToString},
-    AssemblyOp, Decorator, DecoratorList, Felt, FieldElement, Operation, StarkField,
+    utils::collections::Vec, AssemblyOp, Decorator, DecoratorList, Felt, FieldElement, Operation,
+    StarkField,
 };
 
 mod blocks;

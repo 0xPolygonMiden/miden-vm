@@ -242,9 +242,9 @@ impl AssemblyError {
         }
     }
 
-    pub fn undefined_proc(label: &str) -> Self {
+    pub fn undefined_proc(proc_hash: &[u8; 24]) -> Self {
         AssemblyError {
-            message: format!("undefined procedure: {}", label),
+            message: format!("undefined procedure hash: {:?}", proc_hash),
             step: 0,
             op: "".to_string(),
         }
@@ -258,9 +258,9 @@ impl AssemblyError {
         }
     }
 
-    pub fn undefined_kernel_proc(label: &str) -> Self {
+    pub fn undefined_kernel_proc(proc_hash: &[u8; 24]) -> Self {
         AssemblyError {
-            message: format!("undefined kernel procedure: {}", label),
+            message: format!("undefined kernel procedure hash: {:?}", proc_hash),
             step: 0,
             op: "".to_string(),
         }

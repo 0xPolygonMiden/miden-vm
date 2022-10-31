@@ -9,14 +9,9 @@ use vm_core::Felt;
 /// The maximum number of constant inputs allowed by `push` operation.
 const MAX_CONST_INPUTS: usize = 16;
 
-// Push constant
-
 /// The required length of the hexadecimal representation for an input value when more than one hex
 /// input is provided to `push` without period separators.
 const HEX_CHUNK_SIZE: usize = 16;
-
-/// The maximum number of constant inputs allowed by `push` operation.
-const MAX_CONST_INPUTS: usize = 16;
 
 fn parse_push_constants(op: &Token) -> Result<Vec<Felt>, AssemblyError> {
     let mut constants = Vec::<Felt>::new();

@@ -496,9 +496,7 @@ impl Serializable for Instruction {
             }
             Self::SysCall(imported) => {
                 target.write_opcode(OpCode::SysCall);
-                target
-                    .write_string(imported)
-                    .expect("String serialization failure");
+                target.write_proc_hash(imported);
             }
         }
     }

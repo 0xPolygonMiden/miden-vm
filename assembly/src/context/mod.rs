@@ -1,8 +1,6 @@
 use super::{
-    parse_local_procs, parse_module, AssemblyError, BTreeMap, CodeBlock, ModuleAst, ModuleMap,
-    ProcMap, Procedure, StdLibrary, String, ToString, MODULE_PATH_DELIM,
+    BTreeMap, CodeBlock, ProcMap, Procedure, StdLibrary, String, ToString, MODULE_PATH_DELIM,
 };
-use vm_core::{CodeBlockTable, Library};
 
 // ASSEMBLY CONTEXT
 // ================================================================================================
@@ -18,8 +16,8 @@ use vm_core::{CodeBlockTable, Library};
 /// Local procedures are owned by the context, while imported and kernel procedures are stored by
 /// reference.
 pub struct AssemblyContext<'a> {
-    local_procs: ProcMap,
-    imported_procs: BTreeMap<String, &'a Procedure>,
+    local_procs: BTreeMap<[u8; 24], Procedure>,
+    imported_procs: BTreeMap<[u8; 24], &'a Procedure>,
     kernel_procs: Option<&'a ProcMap>,
     stdlib: StdLibrary,
     in_debug_mode: bool,
@@ -59,7 +57,7 @@ impl<'a> AssemblyContext<'a> {
     }
 
     /// Returns a code root of a procedure for the specified label from this context.
-    pub fn get_proc_code(&self, label: &str) -> Option<&CodeBlock> {
+    pub fn get_proc_code(&self, hash: &[u8; 24]) -> Option<&CodeBlock> {
         // `expect()`'s are OK here because we first check if a given map contains the key
         if self.imported_procs.contains_key(label) {
             let proc = *self
@@ -95,7 +93,7 @@ impl<'a> AssemblyContext<'a> {
     }
 
     /// Returns a code root of a kernel procedure for the specified label in this context.
-    pub fn get_kernel_proc_code(&self, label: &str) -> Option<&CodeBlock> {
+    pub fn get_kernel_proc_code(&self, hash: &[u8; 24]) -> Option<&CodeBlock> {
         // `expect()` is OK here because we first check if the kernel is set
         self.kernel_procs
             .expect("no kernel")
@@ -135,111 +133,7 @@ impl<'a> AssemblyContext<'a> {
     }
 
     /// Extracts local procedures from this context.
-    pub fn into_local_procs(self) -> BTreeMap<String, Procedure> {
+    pub fn into_local_procs(self) -> ProcMap {
         self.local_procs
-    }
-
-    /// Handles module import from exec/call/syscall operations.
-    /// For each module import, it retrieves exported procedures from the specified module and
-    /// inserts them into the provided context.
-    ///
-    /// If the module hasn't been parsed yet, parses it, and adds
-    /// the parsed module into the provided `self.parsed_modules`.
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - The `use` instruction is malformed.
-    /// - A module specified by the `use` instruction could not be found.
-    /// - Parsing the specified module results in an error.
-    #[allow(clippy::cast_ref_to_mut)]
-    pub fn parse_imports(
-        &self,
-        module_path: &String,
-        dep_chain: &mut Vec<String>,
-        parsed_modules: &'a mut ModuleMap,
-        cb_table: &mut CodeBlockTable,
-    ) -> Result<(), AssemblyError> {
-        // check if a module with the same path is currently being parsed somewhere up
-        // the chain; if it is, then we have a circular dependency.
-        if dep_chain.iter().any(|v| v == module_path) {
-            dep_chain.push(module_path.clone());
-            return Err(AssemblyError::circular_module_dependency(dep_chain));
-        }
-
-        // add the current module to the dependency chain
-        dep_chain.push(module_path.clone());
-
-        // if the module hasn't been parsed yet, retrieve its source from the library
-        // and attempt to parse it; if the parsing is successful, this will also add
-        // the parsed module to the parsed_module cache.
-        if !parsed_modules.contains_key(module_path) {
-            let module_source = self
-                .stdlib
-                .get_module_source(module_path)
-                .map_err(|_| AssemblyError::missing_import_source(module_path))?;
-            let module_ast = parse_module(module_source)?;
-            self.parse_module(
-                module_path,
-                &module_ast,
-                parsed_modules,
-                dep_chain,
-                cb_table,
-            )?;
-        }
-
-        // get procedures from the module at the specified path; we are guaranteed to
-        // not fail here because the above code block ensures that either there is a
-        // parsed module for the specified path, or the function returns with an error
-        let module_procs = parsed_modules.get(module_path).expect("no module procs");
-
-        let path_parts = module_path.split(MODULE_PATH_DELIM).collect::<Vec<_>>();
-        let num_parts = path_parts.len();
-
-        unsafe {
-            let mutable_self = &mut *(self as *const _ as *mut AssemblyContext);
-
-            // add all procedures to the current context; procedure labels are set to be
-            // `last_part_of_module_path::procedure_name`. For example, `u256::add`.
-            for proc in module_procs.values() {
-                mutable_self.add_imported_proc(path_parts[num_parts - 1], proc);
-            }
-        }
-
-        dep_chain.pop();
-
-        Ok(())
-    }
-
-    /// Parses a set of exported procedures from the specified source code and adds these
-    /// procedures to `self.parsed_modules` using the specified path as the key.
-    #[allow(clippy::cast_ref_to_mut)]
-    fn parse_module(
-        &self,
-        path: &str,
-        module_ast: &ModuleAst,
-        parsed_modules: &'a mut ModuleMap,
-        dep_chain: &mut Vec<String>,
-        cb_table: &mut CodeBlockTable,
-    ) -> Result<(), AssemblyError> {
-        let mut context = AssemblyContext::new(self.kernel_procs, self.in_debug_mode);
-
-        // parse imported modules (if any), and add exported procedures from these modules to
-        // the current context
-        self.parse_imports(&String::from(path), dep_chain, parsed_modules, cb_table)?;
-
-        parse_local_procs(
-            &module_ast.procedures,
-            &mut context,
-            cb_table,
-            parsed_modules,
-        )?;
-
-        // extract the exported local procedures from the context
-        let mut module_procs = context.into_local_procs();
-        module_procs.retain(|_, p| p.is_export());
-
-        parsed_modules.insert(String::from(path), module_procs);
-
-        Ok(())
     }
 }

@@ -30,6 +30,7 @@ pub type ProcMap = BTreeMap<String, ProcedureAst>;
 /// A program has to have a body and no exported procedures.
 #[derive(Debug, Eq, PartialEq)]
 pub struct ProgramAst {
+    pub imports: Vec<String>,
     pub procedures: ProcMap,
     pub body: Vec<Node>,
 }
@@ -38,6 +39,14 @@ impl ProgramAst {
     /// Returns byte representation of the `ProgramAst`.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut byte_writer = ByteWriter::new();
+
+        // imports
+        byte_writer.write_u16(self.imports.len() as u16);
+        for import in self.imports.iter() {
+            byte_writer
+                .write_string(import)
+                .expect("String serialization failure");
+        }
 
         // procedures
         byte_writer.write_u16(self.procedures.len() as u16);
@@ -58,6 +67,13 @@ impl ProgramAst {
     pub fn from_bytes(bytes: &mut &[u8]) -> Result<Self, SerializationError> {
         let mut byte_reader = ByteReader::new(bytes.to_vec());
 
+        let mut imports = Vec::<String>::new();
+        let num_imports = byte_reader.read_u16()?;
+        for _ in 0..num_imports {
+            let import = byte_reader.read_string()?;
+            imports.push(import);
+        }
+
         let mut procedures = ProcMap::new();
 
         let num_procedures = byte_reader.read_u16()?;
@@ -70,7 +86,11 @@ impl ProgramAst {
 
         let body = Deserializable::read_from(&mut byte_reader)?;
 
-        Ok(ProgramAst { procedures, body })
+        Ok(ProgramAst {
+            imports,
+            procedures,
+            body,
+        })
     }
 }
 
@@ -78,6 +98,7 @@ impl ProgramAst {
 /// A module can only have exported and local procedures, but no body.
 #[derive(Debug, Eq, PartialEq)]
 pub struct ModuleAst {
+    pub imports: Vec<String>,
     pub procedures: ProcMap,
 }
 
@@ -85,6 +106,14 @@ impl ModuleAst {
     /// Returns byte representation of the `ModuleAst.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut module_ast_bytes = ByteWriter::new();
+
+        // imports
+        module_ast_bytes.write_u16(self.imports.len() as u16);
+        for import in self.imports.iter() {
+            module_ast_bytes
+                .write_string(import)
+                .expect("String serialization failure");
+        }
 
         // procedures
         module_ast_bytes.write_u16(self.procedures.len() as u16);
@@ -102,6 +131,13 @@ impl ModuleAst {
     pub fn from_bytes(bytes: &mut &[u8]) -> Result<Self, SerializationError> {
         let mut byte_reader = ByteReader::new(bytes.to_vec());
 
+        let mut imports = Vec::<String>::new();
+        let num_imports = byte_reader.read_u16()?;
+        for _ in 0..num_imports {
+            let import = byte_reader.read_string()?;
+            imports.push(import);
+        }
+
         let mut procedures = ProcMap::new();
 
         let procedures_len = byte_reader.read_u16()?;
@@ -113,7 +149,10 @@ impl ModuleAst {
             procedures.insert(proc_name, proc_ast);
         }
 
-        Ok(ModuleAst { procedures })
+        Ok(ModuleAst {
+            imports,
+            procedures,
+        })
     }
 }
 
@@ -231,7 +270,10 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
         return Err(AssemblyError::dangling_ops_after_program(token));
     }
 
+    let imports = imports.into_iter().map(|(_, name)| name).collect();
+
     let program = ProgramAst {
+        imports,
         body,
         procedures: context.procedures,
     };
@@ -256,7 +298,10 @@ pub fn parse_module(source: &str) -> Result<ModuleAst, AssemblyError> {
         return Err(AssemblyError::unexpected_eof(tokens.pos()));
     }
 
+    let imports = imports.into_iter().map(|(_, name)| name).collect();
+
     let module = ModuleAst {
+        imports,
         procedures: context.procedures,
     };
 

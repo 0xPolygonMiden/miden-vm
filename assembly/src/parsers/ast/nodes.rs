@@ -1,3 +1,4 @@
+use strum::Display;
 use vm_core::utils::collections::Vec;
 use vm_core::Felt;
 
@@ -243,10 +244,6 @@ pub enum Instruction {
     ExecLocal(u32),
     ExecImported([u8; 24]),
     CallLocal(u32),
-<<<<<<< HEAD
     CallImported([u8; 24]),
-=======
-    CallImported(String),
-    SysCall(String),
->>>>>>> c8c4b55 (feat: complete AST to MAST generation)
+    SysCall([u8; 24]),
 }

@@ -406,7 +406,7 @@ impl Deserializable for Instruction {
             OpCode::ExecImported => Ok(Instruction::ExecImported(bytes.read_proc_hash()?)),
             OpCode::CallLocal => Ok(Instruction::CallLocal(bytes.read_u32()?)),
             OpCode::CallImported => Ok(Instruction::CallImported(bytes.read_proc_hash()?)),
-            OpCode::SysCall => Ok(Instruction::SysCall(bytes.read_string()?)),
+            OpCode::SysCall => Ok(Instruction::SysCall(bytes.read_proc_hash()?)),
         }
     }
 }
