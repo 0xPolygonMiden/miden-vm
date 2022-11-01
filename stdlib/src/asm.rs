@@ -6,7 +6,7 @@
 #[rustfmt::skip]
 pub const MODULES: [(&str, &str); 13] = [
 // ----- std::crypto::dsa::falcon -----------------------------------------------------------------
-("std::crypto::dsa::falcon", "use.std::math::poly512
+("std::crypto::dsa::falcon", r#"use.std::math::poly512
 
 # Given an element on stack top, this routine normalizes that element in 
 # interval (-q/2, q/2] | q = 12289
@@ -285,9 +285,9 @@ export.verify.257
     lte
     assert
 end
-"),
+"#),
 // ----- std::crypto::hashes::blake3 --------------------------------------------------------------
-("std::crypto::hashes::blake3", "# Initializes four memory addresses, provided for storing initial 4x4 blake3 
+("std::crypto::hashes::blake3", r#"# Initializes four memory addresses, provided for storing initial 4x4 blake3 
 # state matrix ( i.e. 16 elements each of 32 -bit ), for computing blake3 2-to-1 hash
 #
 # Expected stack state:
@@ -1043,9 +1043,9 @@ export.hash.4
 
     exec.finalize
 end
-"),
+"#),
 // ----- std::crypto::hashes::keccak256 -----------------------------------------------------------
-("std::crypto::hashes::keccak256", "# Keccak-p[1600, 24] permutation's θ step mapping function, which is implemented 
+("std::crypto::hashes::keccak256", r#"# Keccak-p[1600, 24] permutation's θ step mapping function, which is implemented 
 # in terms of 32 -bit word size ( bit interleaved representation )
 #
 # See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L55-L98 for original implementation
@@ -4551,9 +4551,9 @@ export.hash.13
     push.0.0.0.0
     loc_loadw.0
     exec.to_digest
-end"),
+end"#),
 // ----- std::crypto::hashes::sha256 --------------------------------------------------------------
-("std::crypto::hashes::sha256", "# Given [x, ...] on stack top, this routine computes [y, ...]
+("std::crypto::hashes::sha256", r#"# Given [x, ...] on stack top, this routine computes [y, ...]
 # such that y = σ_0(x), as defined in SHA specification
 #
 # See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L73-L79
@@ -6104,9 +6104,9 @@ export.hash
     exec.prepare_message_schedule_and_consume
     exec.consume_padding_message_schedule
 end
-"),
+"#),
 // ----- std::math::ec_ext5 -----------------------------------------------------------------------
-("std::math::ec_ext5", "use.std::math::ext5
+("std::math::ec_ext5", r#"use.std::math::ext5
 
 # Given an encoded elliptic curve point `w` s.t. it's expressed using
 # an element ∈ GF(p^5) | p = 2^64 - 2^32 + 1, this routine verifies whether
@@ -6843,9 +6843,9 @@ export.mul.10
     push.0.0.0.0
     loc_loadw.5
 end
-"),
+"#),
 // ----- std::math::ext2 --------------------------------------------------------------------------
-("std::math::ext2", "# Given a stack with initial configuration given by [a1,a0,b1,b0,...] where a = (a0,a1) and
+("std::math::ext2", r#"# Given a stack with initial configuration given by [a1,a0,b1,b0,...] where a = (a0,a1) and
 # b = (b0,b1) represent elements in the extension field of degree 2, the procedure outputs the 
 # product c = (c1,c0) where c0 = a0b0 - 2(a1b1) and c1 = (a0 + a1)(b0 + b1) - a0b0
 export.mul
@@ -6898,9 +6898,9 @@ export.sub
     movdn.2     #[a1,b1,a0-b0,...]
     swap        #[b1,a1,a0-b0,...]
     sub         #[a1-b1,a0-b0,...]
-end"),
+end"#),
 // ----- std::math::ext5 --------------------------------------------------------------------------
-("std::math::ext5", "# Given two GF(p^5) elements on stack, this routine computes modular
+("std::math::ext5", r#"# Given two GF(p^5) elements on stack, this routine computes modular
 # addition over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
 #
 # Expected stack state :
@@ -8570,9 +8570,9 @@ export.neq
     neq
     or
 end
-"),
+"#),
 // ----- std::math::ntt512 ------------------------------------------------------------------------
-("std::math::ntt512", "# Applies four NTT butterflies on four different indices, given following stack state
+("std::math::ntt512", r#"# Applies four NTT butterflies on four different indices, given following stack state
 #
 # [k0, k1, k2, k3, A0, B0, C0, D0, A1, B1, C1, D1]
 # 
@@ -10830,9 +10830,9 @@ export.backward.128
 
     locaddr.0
 end
-"),
+"#),
 // ----- std::math::poly512 -----------------------------------------------------------------------
-("std::math::poly512", "use.std::math::ntt512
+("std::math::poly512", r#"use.std::math::ntt512
 use.std::math::u64
 
 # Given two consecutive words on stack, this routine performs 
@@ -11373,9 +11373,9 @@ export.sub_zq.128
     locaddr.0
     exec.add_zq
 end
-"),
+"#),
 // ----- std::math::secp256k1 ---------------------------------------------------------------------
-("std::math::secp256k1", "# Given [b, c, a, carry] on stack top, following function computes
+("std::math::secp256k1", r#"# Given [b, c, a, carry] on stack top, following function computes
 #
 #  tmp = a + (b * c) + carry
 #  hi = tmp >> 32
@@ -15322,9 +15322,9 @@ export.gen_mul.20
   mem_storew
   dropw              # write z[4..8] to memory
 end
-"),
+"#),
 // ----- std::math::u256 --------------------------------------------------------------------------
-("std::math::u256", "export.add_unsafe
+("std::math::u256", r#"export.add_unsafe
     swapw.3
     movup.3
     movup.7
@@ -15904,9 +15904,9 @@ export.mul_unsafe.6
     push.0.0.0.0
     loc_loadw.4
     swapw
-end"),
+end"#),
 // ----- std::math::u64 ---------------------------------------------------------------------------
-("std::math::u64", "# ===== HELPER FUNCTIONS ==========================================================================
+("std::math::u64", r#"# ===== HELPER FUNCTIONS ==========================================================================
 
 # Asserts that both values at the top of the stack are u64 values.
 # The input values are assumed to be represented using 32 bit limbs, fails if they are not.
@@ -16745,9 +16745,9 @@ export.unchecked_rotr
     not
     cswap
 end
-"),
+"#),
 // ----- std::sys ---------------------------------------------------------------------------------
-("std::sys", "# Removes elements deep in the stack until the depth of the stack is exactly 16. The elements
+("std::sys", r#"# Removes elements deep in the stack until the depth of the stack is exactly 16. The elements
 # are removed in such a way that the top 16 elements of the stack remain unchanged. If the stack
 # would otherwise contain more than 16 elements at the end of execution, then adding a call to this 
 # function at the end will reduce the size of the public inputs that are shared with the verifier.
@@ -16777,5 +16777,5 @@ export.truncate_stack.4
     swapw.1
     loc_loadw.0
 end
-"),
+"#),
 ];

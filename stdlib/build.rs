@@ -113,7 +113,7 @@ fn write_asm_rs(modules: &ModuleMap) -> Result<()> {
     for (ns, source) in modules {
         let separator_suffix = (0..(89 - ns.len())).map(|_| "-").collect::<String>();
         writeln!(asm_file, "// ----- {ns} {separator_suffix}")?;
-        writeln!(asm_file, "(\"{ns}\", \"{source}\"),")?;
+        writeln!(asm_file, "(\"{ns}\", r#\"{source}\"#),")?;
     }
 
     // close the array
