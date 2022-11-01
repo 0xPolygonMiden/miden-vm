@@ -1471,10 +1471,241 @@ export.point_addition.16
   dropw              # write z3[4..8] to memory
 end
 
-# Given a 256 -bit scalar, in radix-2^32 representation ( such that it
-# takes 8 stack elements to represent whole scalar, where each limb is 
-# of 32 -bit width ), this routine multiplies group identity point 
-# ( 0, 1, 0 in projective coordinate system ) with given scalar, producing
+# Given an elliptic curve point in projective coordinate system ( total 24 field elements 
+# required for representing x, y, z coordinate values s.t. they are provided by 6 distinct 
+# memory addresses ) and a 256 -bit scalar, in radix-2^32 representation ( such that it 
+# takes 8 stack elements to represent whole scalar, where each limb is of 32 -bit width ), 
+# this routine multiplies elliptic curve point by given scalar, producing another point 
+# on secp256k1 curve, which will also be presented in projective coordinate system.
+#
+# Input:
+#
+# During invocation, this routine expects stack in following form
+#
+# [X_addr_0, X_addr_1, Y_addr_0, Y_addr_1, Z_addr_0, Z_addr_1, Sc0, Sc1, Sc2, Sc3, Sc4, Sc5, Sc6, Sc7, X'_addr_0, X'_addr_1, Y'_addr_0, Y'_addr_1, Z'_addr_0, Z'_addr_1, ...]
+#
+# X_addr_0, X_addr_1 -> Input secp256k1 point's X -coordinate to be placed, in Montgomery form, in given addresses
+# Y_addr_0, Y_addr_1 -> Input secp256k1 point's Y -coordinate to be placed, in Montgomery form, in given addresses
+# Z_addr_1, Z_addr_1 -> Input secp256k1 point's Z -coordinate to be placed, in Montgomery form, in given addresses
+# Sc{0..8}           -> 256 -bit scalar in radix-2^32 form | Sc0 is least significant limb & Sc7 is most significant limb
+# X'_addr_0, X'_addr_1 -> Resulting secp256k1 point's X -coordinate to be placed, in Montgomery form, in given addresses
+# Y'_addr_0, Y'_addr_1 -> Resulting secp256k1 point's Y -coordinate to be placed, in Montgomery form, in given addresses
+# Z'_addr_1, Z'_addr_1 -> Resulting secp256k1 point's Z -coordinate to be placed, in Montgomery form, in given addresses
+#
+# Output:
+#
+# At end of execution of this routine, stack should look like below
+#
+# [X_addr_0, X_addr_1, Y_addr_0, Y_addr_1, Z_addr_0, Z_addr_1, ...]
+#
+# X_addr_0, X_addr_1 -> Resulting secp256k1 point's X -coordinate written, in Montgomery form, in given addresses
+# Y_addr_0, Y_addr_1 -> Resulting secp256k1 point's Y -coordinate written, in Montgomery form, in given addresses
+# Z_addr_0, Z_addr_1 -> Resulting secp256k1 point's Z -coordinate written, in Montgomery form, in given addresses
+#
+# One interested in resulting point, should read from provided addresses on stack.
+# 
+# This routine implements double-and-add algorithm, while following 
+# https://github.com/itzmeanjan/secp256k1/blob/d23ea7d/point.py#L174-L186
+#
+# If base point being multiplied is secp256k1 curve generator point, one should use `gen_point` routine,
+# which is almost 2x faster !
+export.point_mul.18
+  # initialize `base`
+  push.0.0.0.0
+
+  movup.4
+  mem_loadw
+  loc_storew.0
+
+  movup.4
+  mem_loadw
+  loc_storew.1
+
+  movup.4
+  mem_loadw
+  loc_storew.2
+
+  movup.4
+  mem_loadw
+  loc_storew.3
+
+  movup.4
+  mem_loadw
+  loc_storew.4
+
+  movup.4
+  mem_loadw
+  loc_storew.5
+
+  dropw
+
+  # initialize `res` ( with group identity )
+  # See https://github.com/itzmeanjan/secp256k1/blob/d23ea7d/point.py#L40-L45
+  push.0.0.0.0
+  loc_storew.6
+  loc_storew.7
+  dropw
+
+  push.0.0.1.977
+  loc_storew.8
+  dropw
+  push.0.0.0.0
+  loc_storew.9
+
+  loc_storew.10
+  loc_storew.11
+
+  dropw
+
+  repeat.8
+    repeat.32
+      dup
+      push.1
+      u32checked_and
+
+      if.true
+        # res = base + res
+        locaddr.17
+        locaddr.16
+        locaddr.15
+        locaddr.14
+        locaddr.13
+        locaddr.12
+
+        # res
+        locaddr.11
+        locaddr.10
+        locaddr.9
+        locaddr.8
+        locaddr.7
+        locaddr.6
+
+        # base
+        locaddr.5
+        locaddr.4
+        locaddr.3
+        locaddr.2
+        locaddr.1
+        locaddr.0
+
+        exec.point_addition
+
+        # write res back
+        push.0.0.0.0
+
+        movup.4
+        mem_loadw
+        loc_storew.6
+
+        movup.4
+        mem_loadw
+        loc_storew.7
+
+        movup.4
+        mem_loadw
+        loc_storew.8
+
+        movup.4
+        mem_loadw
+        loc_storew.9
+
+        movup.4
+        mem_loadw
+        loc_storew.10
+
+        movup.4
+        mem_loadw
+        loc_storew.11
+
+        dropw
+      end
+
+      # base = base + base
+      locaddr.17
+      locaddr.16
+      locaddr.15
+      locaddr.14
+      locaddr.13
+      locaddr.12
+
+      # base
+      locaddr.5
+      locaddr.4
+      locaddr.3
+      locaddr.2
+      locaddr.1
+      locaddr.0
+
+      exec.point_doubling
+
+      # write base back
+      push.0.0.0.0
+
+      movup.4
+      mem_loadw
+      loc_storew.0
+
+      movup.4
+      mem_loadw
+      loc_storew.1
+
+      movup.4
+      mem_loadw
+      loc_storew.2
+
+      movup.4
+      mem_loadw
+      loc_storew.3
+
+      movup.4
+      mem_loadw
+      loc_storew.4
+
+      movup.4
+      mem_loadw
+      loc_storew.5
+
+      dropw
+
+      u32unchecked_shr.1
+    end
+  
+    drop
+  end
+
+  # write resulting point to provided output memory addresses
+  push.0.0.0.0
+
+  loc_loadw.6
+  dup.4
+  mem_storew
+
+  loc_loadw.7
+  dup.5
+  mem_storew
+
+  loc_loadw.8
+  dup.6
+  mem_storew
+
+  loc_loadw.9
+  dup.7
+  mem_storew
+
+  loc_loadw.10
+  dup.8
+  mem_storew
+
+  loc_loadw.11
+  dup.9
+  mem_storew
+
+  dropw
+end
+
+# Given a 256 -bit scalar, in radix-2^32 representation ( such that it takes 8 stack elements
+# to represent whole scalar, where each limb is of 32 -bit width ), this routine multiplies
+# secp256k1 generator point ( in projective coordinate system ) with given scalar, producing
 # another point on secp256k1 curve, which will also be presented in projective coordinate
 # system.
 #
@@ -1482,7 +1713,7 @@ end
 #
 # During invocation, this routine expects stack in following form
 #
-# [Sc0, Sc1, Sc2, Sc3, Sc4, Sc5, Sc6, Sc7, X_addr_0, X_addr_1, Y_addr_0, Y_addr_1, Z_addr_0, Z_addr_1]
+# [Sc0, Sc1, Sc2, Sc3, Sc4, Sc5, Sc6, Sc7, X_addr_0, X_addr_1, Y_addr_0, Y_addr_1, Z_addr_0, Z_addr_1, ...]
 #
 # Sc{0..8}           -> 256 -bit scalar in radix-2^32 form | Sc0 is least significant limb & Sc7 is most significant limb
 # X_addr_0, X_addr_1 -> Resulting secp256k1 point's X -coordinate to be placed, in Montgomery form, in given addresses
@@ -1493,7 +1724,7 @@ end
 #
 # At end of execution of this routine, stack should look like below
 #
-# [X_addr_0, X_addr_1, Y_addr_0, Y_addr_1, Z_addr_0, Z_addr_1]
+# [X_addr_0, X_addr_1, Y_addr_0, Y_addr_1, Z_addr_0, Z_addr_1, ...]
 #
 # X_addr_0, X_addr_1 -> Resulting secp256k1 point's X -coordinate written, in Montgomery form, in given addresses
 # Y_addr_0, Y_addr_1 -> Resulting secp256k1 point's Y -coordinate written, in Montgomery form, in given addresses
@@ -1503,7 +1734,10 @@ end
 # 
 # This routine implements double-and-add algorithm, while following 
 # https://github.com/itzmeanjan/secp256k1/blob/d23ea7d/point.py#L174-L186 
-export.point_mul.20
+#
+# Note, this routine is a specialised instantiation of secp256k1 point multiplication, where we know what the base
+# point is, so we enjoy faster computation ( because all point doublings can be precomputed, saving us 256 point doublings ! ).
+export.gen_mul.20
   # identity point of group (0, 1, 0) in projective coordinate
   # see https://github.com/itzmeanjan/secp256k1/blob/d23ea7d/point.py#L40-L45
   push.0.0.0.0
