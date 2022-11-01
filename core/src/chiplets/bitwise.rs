@@ -6,7 +6,7 @@ use super::{create_range, Felt, Range, ONE, ZERO};
 /// Number of selector columns in the trace.
 pub const NUM_SELECTORS: usize = 1;
 
-/// Number of columns needed to record an execution trace of the bitwise helper.
+/// Number of columns needed to record an execution trace of the bitwise chiplet.
 pub const TRACE_WIDTH: usize = NUM_SELECTORS + 12;
 
 /// The number of rows required to compute an operation in the Bitwise chiplet.

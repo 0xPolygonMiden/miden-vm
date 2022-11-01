@@ -5,6 +5,7 @@ use core::ops::Range;
 
 pub mod bitwise;
 pub mod hasher;
+pub mod kernel_rom;
 pub mod memory;
 
 // CONSTANTS
@@ -16,6 +17,8 @@ pub const NUM_HASHER_SELECTORS: usize = 1;
 pub const NUM_BITWISE_SELECTORS: usize = 2;
 /// The number of columns in the chiplets which are used as selectors for the memory chiplet.
 pub const NUM_MEMORY_SELECTORS: usize = 3;
+/// The number of columns in the chiplets which are used as selectors for the kernel ROM chiplet.
+pub const NUM_KERNEL_ROM_SELECTORS: usize = 4;
 
 /// The first column of the hash chiplet.
 pub const HASHER_TRACE_OFFSET: usize = CHIPLETS_OFFSET + NUM_HASHER_SELECTORS;
