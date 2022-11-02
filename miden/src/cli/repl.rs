@@ -1,5 +1,4 @@
 use crate::repl::start_repl;
-
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
@@ -10,7 +9,6 @@ impl ReplCmd {
     pub fn execute(&self) -> Result<(), String> {
         // initiates repl tool.
         start_repl();
-
         Ok(())
     }
 }
