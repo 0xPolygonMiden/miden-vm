@@ -1,6 +1,7 @@
 use super::data::{InputFile, OutputFile, ProgramFile, ProofFile};
 use air::ProofOptions;
 use crypto::Digest;
+use std::io::Write;
 use std::path::PathBuf;
 use std::time::Instant;
 use structopt::StructOpt;
@@ -41,6 +42,12 @@ impl ProveCmd {
         println!("============================================================");
         println!("Prove program");
         println!("============================================================");
+
+        // configure logging
+        env_logger::Builder::new()
+            .format(|buf, record| writeln!(buf, "{}", record.args()))
+            .filter_level(log::LevelFilter::Debug)
+            .init();
 
         // load program from file and compile
         let program = ProgramFile::read(&self.assembly_file)?;

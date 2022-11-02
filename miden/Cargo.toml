@@ -27,13 +27,14 @@ doctest = false
 [features]
 concurrent = ["prover/concurrent", "std"]
 default = ["std"]
-executable = ["crypto", "env_logger", "hex/std", "std", "serde/std", "serde_derive", "serde_json/std", "structopt", "winter-utils"]
+executable = ["crypto", "env_logger", "hex/std", "std", "serde/std", "serde_derive", "serde_json/std", "structopt", "winter-utils", "rustyline"]
 std = ["air/std", "assembly/std", "log/std", "processor/std", "prover/std", "verifier/std", "vm-core/std"]
 
 [dependencies]
 air = { package = "miden-air", path = "../air", version = "0.3", default-features = false }
 assembly = { package = "miden-assembly", path = "../assembly", version = "0.3", default-features = false }
 crypto = { package = "winter-crypto", version = "0.4", default-features = false, optional = true }
+rustyline = { version = "10.0.0", default-features = false, optional = true}
 env_logger = { version = "0.9", default-features = false, optional = true }
 hex = { version = "0.4", optional = true }
 log = { version = "0.4", default-features = false }
