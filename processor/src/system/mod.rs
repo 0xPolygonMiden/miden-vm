@@ -1,6 +1,4 @@
-use vm_core::StarkField;
-
-use super::{Felt, FieldElement, SysTrace, Vec, ZERO};
+use super::{Felt, FieldElement, StarkField, SysTrace, Vec, ZERO};
 
 // CONSTANTS
 // ================================================================================================

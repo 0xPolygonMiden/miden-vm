@@ -24,10 +24,12 @@ use vm_core::{
 // ================================================================================================
 
 const TWO: Felt = Felt::new(2);
+const THREE: Felt = Felt::new(3);
 const EIGHT: Felt = Felt::new(8);
 
 const INIT_ADDR: Felt = ONE;
 const FMP_MIN: Felt = Felt::new(crate::FMP_MIN);
+const SYSCALL_FMP_MIN: Felt = Felt::new(crate::SYSCALL_FMP_MIN);
 
 // TYPE ALIASES
 // ================================================================================================
@@ -909,7 +911,8 @@ fn call_block() {
     let join1 = CodeBlock::new_join([span1.clone(), fn_block.clone()]);
     let program = CodeBlock::new_join([join1.clone(), span3.clone()]);
 
-    let (sys_trace, dec_trace, aux_hints, trace_len) = build_call_trace(&program, span2.clone());
+    let (sys_trace, dec_trace, aux_hints, trace_len) =
+        build_call_trace(&program, span2.clone(), None);
 
     // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
     check_op_decoding(&dec_trace, 0, ZERO, Operation::Join, 0, 0, 0);
@@ -1009,7 +1012,7 @@ fn call_block() {
 
     // when CALL operation is executed, we switch to the new context
     for i in 8..13 {
-        assert_eq!(sys_trace[CTX_COL_IDX][i], Felt::new(8));
+        assert_eq!(sys_trace[CTX_COL_IDX][i], EIGHT);
     }
 
     // once the CALL block exited, we go back to the root context
@@ -1086,6 +1089,345 @@ fn call_block() {
     assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
 }
 
+// SYSCALL BLOCK TESTS
+// ================================================================================================
+
+#[test]
+fn syscall_block() {
+    // build a program which looks like this:
+    //
+    // --- kernel ---
+    // export.foo
+    //     fmp <- fmp + 3
+    // end
+    //
+    // --- program ---
+    // proc.bar
+    //     fmp <- fmp + 2
+    //     syscall.foo
+    // end
+    //
+    // being
+    //    fmp <- fmp + 1
+    //    syscall.bar
+    //    stack[0] <- fmp
+    // end
+
+    // build foo procedure body
+    let foo_span = CodeBlock::new_span(vec![Operation::Push(THREE), Operation::FmpUpdate]);
+
+    // build bar procedure body
+    let bar_span = CodeBlock::new_span(vec![Operation::Push(TWO), Operation::FmpUpdate]);
+    let foo_call = CodeBlock::new_syscall(foo_span.hash());
+    let bar_join = CodeBlock::new_join([bar_span.clone(), foo_call.clone()]);
+
+    // build the program
+    let first_span = CodeBlock::new_span(vec![
+        Operation::Push(ONE),
+        Operation::FmpUpdate,
+        Operation::Pad,
+    ]);
+    let last_span = CodeBlock::new_span(vec![Operation::FmpAdd]);
+
+    let bar_call = CodeBlock::new_call(bar_join.hash());
+    let inner_join = CodeBlock::new_join([first_span.clone(), bar_call.clone()]);
+    let program = CodeBlock::new_join([inner_join.clone(), last_span.clone()]);
+
+    let (sys_trace, dec_trace, aux_hints, trace_len) =
+        build_call_trace(&program, bar_join.clone(), Some(foo_span.clone()));
+
+    // --- check block address, op_bits, group count, op_index, and in_span columns ---------------
+    check_op_decoding(&dec_trace, 0, ZERO, Operation::Join, 0, 0, 0);
+    // starting the internal JOIN block
+    let inner_join_addr = INIT_ADDR + EIGHT;
+    check_op_decoding(&dec_trace, 1, INIT_ADDR, Operation::Join, 0, 0, 0);
+    // starting first SPAN block
+    let first_span_addr = inner_join_addr + EIGHT;
+    check_op_decoding(&dec_trace, 2, inner_join_addr, Operation::Span, 2, 0, 0);
+    check_op_decoding(
+        &dec_trace,
+        3,
+        first_span_addr,
+        Operation::Push(TWO),
+        1,
+        0,
+        1,
+    );
+    check_op_decoding(
+        &dec_trace,
+        4,
+        first_span_addr,
+        Operation::FmpUpdate,
+        0,
+        1,
+        1,
+    );
+    // as PAD operation is executed, the last item from the stack top moves to the overflow table.
+    // thus, the overflow address for the top row in the table will be set to the clock cycle at
+    // which PAD was executed - which is 5.
+    let overflow_addr_after_pad = Felt::new(5);
+    check_op_decoding(&dec_trace, 5, first_span_addr, Operation::Pad, 0, 2, 1);
+    check_op_decoding(&dec_trace, 6, first_span_addr, Operation::End, 0, 0, 0);
+
+    // starting CALL block for bar
+    let call_addr = first_span_addr + EIGHT;
+    check_op_decoding(&dec_trace, 7, inner_join_addr, Operation::Call, 0, 0, 0);
+    // starting JOIN block inside bar
+    let bar_join_addr = call_addr + EIGHT;
+    check_op_decoding(&dec_trace, 8, call_addr, Operation::Join, 0, 0, 0);
+    // starting SPAN block inside bar
+    let bar_span_addr = bar_join_addr + EIGHT;
+    check_op_decoding(&dec_trace, 9, bar_join_addr, Operation::Span, 2, 0, 0);
+    check_op_decoding(&dec_trace, 10, bar_span_addr, Operation::Push(ONE), 1, 0, 1);
+    check_op_decoding(&dec_trace, 11, bar_span_addr, Operation::FmpUpdate, 0, 1, 1);
+    check_op_decoding(&dec_trace, 12, bar_span_addr, Operation::End, 0, 0, 0);
+
+    // starting SYSCALL block for bar
+    let syscall_addr = bar_span_addr + EIGHT;
+    check_op_decoding(&dec_trace, 13, bar_join_addr, Operation::SysCall, 0, 0, 0);
+    // starting SPAN block within syscall
+    let syscall_span_addr = syscall_addr + EIGHT;
+    check_op_decoding(&dec_trace, 14, syscall_addr, Operation::Span, 2, 0, 0);
+    check_op_decoding(
+        &dec_trace,
+        15,
+        syscall_span_addr,
+        Operation::Push(THREE),
+        1,
+        0,
+        1,
+    );
+    check_op_decoding(
+        &dec_trace,
+        16,
+        syscall_span_addr,
+        Operation::FmpUpdate,
+        0,
+        1,
+        1,
+    );
+    check_op_decoding(&dec_trace, 17, syscall_span_addr, Operation::End, 0, 0, 0);
+    // ending SYSCALL block
+    check_op_decoding(&dec_trace, 18, syscall_addr, Operation::End, 0, 0, 0);
+
+    // ending CALL block
+    check_op_decoding(&dec_trace, 19, bar_join_addr, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 20, call_addr, Operation::End, 0, 0, 0);
+
+    // ending the inner JOIN block
+    check_op_decoding(&dec_trace, 21, inner_join_addr, Operation::End, 0, 0, 0);
+
+    // starting the last SPAN block
+    let last_span_addr = syscall_span_addr + EIGHT;
+    check_op_decoding(&dec_trace, 22, INIT_ADDR, Operation::Span, 1, 0, 0);
+    check_op_decoding(&dec_trace, 23, last_span_addr, Operation::FmpAdd, 0, 0, 1);
+    check_op_decoding(&dec_trace, 24, last_span_addr, Operation::End, 0, 0, 0);
+
+    // ending the program
+    check_op_decoding(&dec_trace, 25, INIT_ADDR, Operation::End, 0, 0, 0);
+    check_op_decoding(&dec_trace, 26, ZERO, Operation::Halt, 0, 0, 0);
+
+    // --- check hasher state columns -------------------------------------------------------------
+    // in the first row, the hasher state is set to hashes of (inner_join, last_span)
+    let inner_join_hash: Word = inner_join.hash().into();
+    let last_span_hash: Word = last_span.hash().into();
+    assert_eq!(inner_join_hash, get_hasher_state1(&dec_trace, 0));
+    assert_eq!(last_span_hash, get_hasher_state2(&dec_trace, 0));
+
+    // in the second row, the hasher state is set to hashes of (first_span, bar_call)
+    let first_span_hash: Word = first_span.hash().into();
+    let bar_call_hash: Word = bar_call.hash().into();
+    assert_eq!(first_span_hash, get_hasher_state1(&dec_trace, 1));
+    assert_eq!(bar_call_hash, get_hasher_state2(&dec_trace, 1));
+
+    // at the end of the first SPAN, the hasher state is set to the hash of the first child
+    assert_eq!(first_span_hash, get_hasher_state1(&dec_trace, 6));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 6));
+
+    // in the 7th row, we start the CALL block which has bar_join as its only child
+    let bar_join_hash: Word = bar_join.hash().into();
+    assert_eq!(bar_join_hash, get_hasher_state1(&dec_trace, 7));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 7));
+
+    // in the 8th row, the hasher state is set to hashes of (bar_span, foo_call)
+    let bar_span_hash: Word = bar_span.hash().into();
+    let foo_call_hash: Word = foo_call.hash().into();
+    assert_eq!(bar_span_hash, get_hasher_state1(&dec_trace, 8));
+    assert_eq!(foo_call_hash, get_hasher_state2(&dec_trace, 8));
+
+    // at the end of the bar_span, the hasher state is set to the hash of the first child
+    assert_eq!(bar_span_hash, get_hasher_state1(&dec_trace, 12));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 12));
+
+    // in the 13th row, we start the SYSCALL block which has foo_span as its only child
+    let foo_span_hash: Word = foo_span.hash().into();
+    assert_eq!(foo_span_hash, get_hasher_state1(&dec_trace, 13));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 13));
+
+    // at the end of the foo_span_hash, the hasher state is set to the hash of the first child
+    assert_eq!(foo_span_hash, get_hasher_state1(&dec_trace, 17));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 17));
+
+    // SYSCALL block ends in the 18th row; the last element of the hasher state
+    // is set to ONE because we are exiting a SYSCALL block
+    assert_eq!(foo_call_hash, get_hasher_state1(&dec_trace, 18));
+    assert_eq!([ZERO, ZERO, ZERO, ONE], get_hasher_state2(&dec_trace, 18));
+
+    // internal bar_join block ends in the 19th row
+    assert_eq!(bar_join_hash, get_hasher_state1(&dec_trace, 19));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 19));
+
+    // CALL block ends in the 20th row; the second to last element of the hasher state
+    // is set to ONE because we are exiting a CALL block
+    assert_eq!(bar_call_hash, get_hasher_state1(&dec_trace, 20));
+    assert_eq!([ZERO, ZERO, ONE, ZERO], get_hasher_state2(&dec_trace, 20));
+
+    // internal JOIN block ends in the 21st row
+    assert_eq!(inner_join_hash, get_hasher_state1(&dec_trace, 21));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 21));
+
+    // last span ends in the 24th row
+    assert_eq!(last_span_hash, get_hasher_state1(&dec_trace, 24));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 24));
+
+    // the program ends in the 25th row
+    let program_hash: Word = program.hash().into();
+    assert_eq!(program_hash, get_hasher_state1(&dec_trace, 25));
+    assert_eq!([ZERO, ZERO, ZERO, ZERO], get_hasher_state2(&dec_trace, 25));
+
+    // HALT opcode and program hash gets propagated to the last row
+    for i in 26..trace_len {
+        assert!(contains_op(&dec_trace, i, Operation::Halt));
+        assert_eq!(ONE, dec_trace[OP_BIT_EXTRA_COL_IDX][i]);
+        assert_eq!(program_hash, get_hasher_state1(&dec_trace, i));
+    }
+
+    // --- check the ctx column -------------------------------------------------------------------
+
+    // for the first 7 cycles, we are in the root context
+    for i in 0..8 {
+        assert_eq!(sys_trace[CTX_COL_IDX][i], ZERO);
+    }
+
+    // when CALL operation is executed, we switch to the new context; the ID of this context is 8
+    // because we switch to it at the 8th cycle
+    for i in 8..14 {
+        assert_eq!(sys_trace[CTX_COL_IDX][i], EIGHT);
+    }
+
+    // when SYSCALL operation is executed, we switch back to the root context (0)
+    // because we switch to it at the 8th cycle
+    for i in 14..18 {
+        assert_eq!(sys_trace[CTX_COL_IDX][i], ZERO);
+    }
+
+    // when SYSCALL ends, we return to the context of the CALL block
+    for i in 19..21 {
+        assert_eq!(sys_trace[CTX_COL_IDX][i], EIGHT);
+    }
+
+    // once the CALL block exited, we go back to the root context
+    for i in 21..trace_len {
+        assert_eq!(sys_trace[CTX_COL_IDX][i], ZERO);
+    }
+
+    // --- check the fmp column -------------------------------------------------------------------
+
+    // for the first 5 cycles fmp stays at initial value
+    for i in 0..5 {
+        assert_eq!(sys_trace[FMP_COL_IDX][i], FMP_MIN);
+    }
+
+    // when the first FmpUpdate is executed, fmp gets gets incremented by 1
+    for i in 5..8 {
+        assert_eq!(sys_trace[FMP_COL_IDX][i], FMP_MIN + ONE);
+    }
+
+    // when CALL operation is executed, fmp gets reset to the initial value
+    for i in 8..12 {
+        assert_eq!(sys_trace[FMP_COL_IDX][i], FMP_MIN);
+    }
+
+    // when the second FmpUpdate is executed, fmp gets gets incremented by 2
+    for i in 12..14 {
+        assert_eq!(sys_trace[FMP_COL_IDX][i], FMP_MIN + TWO);
+    }
+
+    // when SYSCALL operation is executed, fmp gets reset to the initial value for syscalls
+    for i in 14..17 {
+        assert_eq!(sys_trace[FMP_COL_IDX][i], SYSCALL_FMP_MIN);
+    }
+
+    // when the third FmpUpdate is executed, fmp gets gets incremented by 3
+    for i in 17..19 {
+        assert_eq!(sys_trace[FMP_COL_IDX][i], SYSCALL_FMP_MIN + THREE);
+    }
+
+    // once the SYSCALL block exited, fmp gets reset back to FMP_MIN + 2
+    for i in 19..21 {
+        assert_eq!(sys_trace[FMP_COL_IDX][i], FMP_MIN + TWO);
+    }
+
+    // once the CALL block exited, fmp gets reset back to FMP_MIN + 1, and it remains unchanged
+    // until the end of the trace
+    for i in 21..trace_len {
+        assert_eq!(sys_trace[FMP_COL_IDX][i], FMP_MIN + ONE);
+    }
+
+    // --- check block execution hints ------------------------------------------------------------
+    let expected_hints = vec![
+        (0, BlockTableUpdate::BlockStarted(2)),    // join0
+        (1, BlockTableUpdate::BlockStarted(2)),    // join1
+        (2, BlockTableUpdate::BlockStarted(0)),    // span0
+        (6, BlockTableUpdate::BlockEnded(true)),   // end span0
+        (7, BlockTableUpdate::BlockStarted(1)),    // call
+        (8, BlockTableUpdate::BlockStarted(2)),    // join2
+        (9, BlockTableUpdate::BlockStarted(0)),    // span1
+        (12, BlockTableUpdate::BlockEnded(true)),  // end span1
+        (13, BlockTableUpdate::BlockStarted(1)),   // syscall
+        (14, BlockTableUpdate::BlockStarted(0)),   // span2
+        (17, BlockTableUpdate::BlockEnded(false)), // end span2
+        (18, BlockTableUpdate::BlockEnded(false)), // end syscall
+        (19, BlockTableUpdate::BlockEnded(false)), // end join2
+        (20, BlockTableUpdate::BlockEnded(false)), // end join1
+        (21, BlockTableUpdate::BlockEnded(true)),  // end join0
+        (22, BlockTableUpdate::BlockStarted(0)),   // span3
+        (24, BlockTableUpdate::BlockEnded(false)), // end span3
+        (25, BlockTableUpdate::BlockEnded(false)), // end program
+    ];
+    assert_eq!(expected_hints, aux_hints.block_exec_hints());
+
+    // --- check block stack table rows -----------------------------------------------------------
+    let call_ctx = ExecutionContextInfo::new(0, FMP_MIN + ONE, 17, overflow_addr_after_pad);
+    let syscall_ctx = ExecutionContextInfo::new(8, FMP_MIN + TWO, 16, ZERO);
+    let expected_rows = vec![
+        BlockStackTableRow::new_test(INIT_ADDR, ZERO, false),
+        BlockStackTableRow::new_test(inner_join_addr, INIT_ADDR, false),
+        BlockStackTableRow::new_test(first_span_addr, inner_join_addr, false),
+        BlockStackTableRow::new_test_with_ctx(call_addr, inner_join_addr, false, call_ctx),
+        BlockStackTableRow::new_test(bar_join_addr, call_addr, false),
+        BlockStackTableRow::new_test(bar_span_addr, bar_join_addr, false),
+        BlockStackTableRow::new_test_with_ctx(syscall_addr, bar_join_addr, false, syscall_ctx),
+        BlockStackTableRow::new_test(syscall_span_addr, syscall_addr, false),
+        BlockStackTableRow::new_test(last_span_addr, INIT_ADDR, false),
+    ];
+    assert_eq!(expected_rows, aux_hints.block_stack_table_rows());
+
+    // --- check block hash table hints ----------------------------------------------------------
+    let expected_rows = vec![
+        BlockHashTableRow::from_program_hash(program_hash),
+        BlockHashTableRow::new_test(INIT_ADDR, inner_join_hash, true, false),
+        BlockHashTableRow::new_test(INIT_ADDR, last_span_hash, false, false),
+        BlockHashTableRow::new_test(inner_join_addr, first_span_hash, true, false),
+        BlockHashTableRow::new_test(inner_join_addr, bar_call_hash, false, false),
+        BlockHashTableRow::new_test(call_addr, bar_join_hash, false, false),
+        BlockHashTableRow::new_test(bar_join_addr, bar_span_hash, true, false),
+        BlockHashTableRow::new_test(bar_join_addr, foo_call_hash, false, false),
+        BlockHashTableRow::new_test(syscall_addr, foo_span_hash, false, false),
+    ];
+    assert_eq!(expected_rows, aux_hints.block_hash_table_rows());
+}
+
 // HELPER REGISTERS TESTS
 // ================================================================================================
 #[test]
@@ -1142,13 +1484,21 @@ fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxTraceHin
 fn build_call_trace(
     program: &CodeBlock,
     fn_block: CodeBlock,
+    kernel_proc: Option<CodeBlock>,
 ) -> (SystemTrace, DecoderTrace, AuxTraceHints, usize) {
+    let kernel = match kernel_proc {
+        Some(ref proc) => Kernel::new(&[proc.hash()]),
+        None => Kernel::default(),
+    };
     let inputs = ProgramInputs::new(&[], &[], vec![]).unwrap();
-    let mut process = Process::new(&Kernel::default(), inputs);
+    let mut process = Process::new(&kernel, inputs);
 
     // build code block table
     let mut cb_table = CodeBlockTable::default();
     cb_table.insert(fn_block);
+    if let Some(proc) = kernel_proc {
+        cb_table.insert(proc);
+    }
 
     process.execute_code_block(program, &cb_table).unwrap();
 
