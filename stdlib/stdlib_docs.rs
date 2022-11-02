@@ -8,9 +8,8 @@ use std::path::Path;
 // CONSTANTS
 // ================================================================================================
 
-pub const COMMENT_PREFIX: &str = "#";
+pub const DOC_COMMENT_PREFIX: &str = "#!";
 pub const FUNC_PREFIX: &str = "export.";
-pub const MODULE_COMMENT_PREFIX: &str = "#!";
 
 /// Holds a stdlib function name and comments for docs purposes.
 pub struct Function {
@@ -106,7 +105,6 @@ enum AsmSourceState {
     Empty,
     Comment,
     Func,
-    ModuleComment,
 }
 
 // Writes Miden standard library modules documentation markdown files based on the available modules and comments.
@@ -153,15 +151,12 @@ fn parse_module(ns: String, source: String, stdlib: &mut Stdlib) {
                     });
                     comments.clear();
                 }
-                AsmSourceState::Comment => comments.push(remove_prefix(COMMENT_PREFIX, line)),
+                AsmSourceState::Comment => comments.push(remove_prefix(DOC_COMMENT_PREFIX, line)),
                 AsmSourceState::Empty => comments.clear(),
-                AsmSourceState::ModuleComment => module
-                    .comments
-                    .push(remove_prefix(MODULE_COMMENT_PREFIX, line)),
             }
         } else {
             match new_state {
-                AsmSourceState::Comment => comments.push(remove_prefix(COMMENT_PREFIX, line)),
+                AsmSourceState::Comment => comments.push(remove_prefix(DOC_COMMENT_PREFIX, line)),
                 AsmSourceState::Empty => comments.clear(),
                 _ => (),
             }
@@ -173,9 +168,7 @@ fn parse_module(ns: String, source: String, stdlib: &mut Stdlib) {
 // ================================================================================================
 
 fn parse_new_state(line: &str) -> AsmSourceState {
-    if line.starts_with(MODULE_COMMENT_PREFIX) {
-        AsmSourceState::ModuleComment
-    } else if line.starts_with(COMMENT_PREFIX) {
+    if line.starts_with(DOC_COMMENT_PREFIX) {
         AsmSourceState::Comment
     } else if line.starts_with(FUNC_PREFIX) {
         AsmSourceState::Func

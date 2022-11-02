@@ -8,31 +8,31 @@ pub const MODULES: [(&str, &str); 13] = [
 // ----- std::crypto::dsa::falcon -----------------------------------------------------------------
 ("std::crypto::dsa::falcon", r#"use.std::math::poly512
 
-# Given an element on stack top, this routine normalizes that element in 
-# interval (-q/2, q/2] | q = 12289
-#
-# Imagine, a is the provided element, which needs to be normalized
-#
-# b = normalize(a)
-#   = (a + (q >> 1)) % q - (q >> 1) | a ∈ [0, q), q = 12289
-#
-# Note, normalization requires that we can represent the number as signed integer,
-# which is not allowed inside Miden VM stack. But we can ignore the sign of integer and only
-# store the absolute value as field element. This can be safely done because after normalization
-# anyway `b` will be squared ( for computing norm of a vector i.e. polynomial, where b is a coefficient ).
-# That means we can just drop the sign, and that's what is done in this routine.
-#
-# To be more concrete, normalization of 12166 ( = a ) should result into -123, but absolute value 
-# 123 will be kept on stack. While normalization of 21, should result into 21, which has absolute
-# value 21 --- that's what is kept on stack.
-#
-# Expected stack state :
-#
-# [a, ...]
-#
-# After normalization ( represented using unsigned integer i.e. Miden field element ) stack looks like
-#
-# [b, ...]
+#! Given an element on stack top, this routine normalizes that element in 
+#! interval (-q/2, q/2] | q = 12289
+#!
+#! Imagine, a is the provided element, which needs to be normalized
+#!
+#! b = normalize(a)
+#!   = (a + (q >> 1)) % q - (q >> 1) | a ∈ [0, q), q = 12289
+#!
+#! Note, normalization requires that we can represent the number as signed integer,
+#! which is not allowed inside Miden VM stack. But we can ignore the sign of integer and only
+#! store the absolute value as field element. This can be safely done because after normalization
+#! anyway `b` will be squared ( for computing norm of a vector i.e. polynomial, where b is a coefficient ).
+#! That means we can just drop the sign, and that's what is done in this routine.
+#!
+#! To be more concrete, normalization of 12166 ( = a ) should result into -123, but absolute value 
+#! 123 will be kept on stack. While normalization of 21, should result into 21, which has absolute
+#! value 21 --- that's what is kept on stack.
+#!
+#! Expected stack state :
+#!
+#! [a, ...]
+#!
+#! After normalization ( represented using unsigned integer i.e. Miden field element ) stack looks like
+#!
+#! [b, ...]
 proc.normalize
     dup
     push.6144
@@ -59,18 +59,18 @@ proc.normalize
     end
 end
 
-# Given four elements from Falcon prime field, on stack top, this routine 
-# normalizes each of them, using above defined `normalize()` routine.
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, ...]
-#
-# Output stack state :
-#
-# [b0, b1, b2, b3, ...]
-#
-# b`i` = normalize(a`i`) | i ∈ [0..4)
+#! Given four elements from Falcon prime field, on stack top, this routine 
+#! normalizes each of them, using above defined `normalize()` routine.
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, ...]
+#!
+#! Output stack state :
+#!
+#! [b0, b1, b2, b3, ...]
+#!
+#! b`i` = normalize(a`i`) | i ∈ [0..4)
 proc.normalize_word
     exec.normalize
 
@@ -87,23 +87,23 @@ proc.normalize_word
     movdn.3
 end
 
-# Given a degree 512 polynomial on stack, using its starting (absolute) memory address, 
-# this routine normalizes each coefficient of the polynomial, using above defined 
-# `normalize()` routine
-#
-# Imagine, f is the given polynomial of degree 512. It can be normalized using
-#
-# g = [normalize(f[i]) for i in range(512)]
-#
-# Expected stack state :
-#
-# [f_start_addr, g_start_addr, ...] | next 127 absolute addresses can be computed using `INCR` instruction
-#
-# Post normalization stack state looks like
-#
-# [ ... ]
-#
-# Note, input polynomial which is provided using memory addresses, is not mutated.
+#! Given a degree 512 polynomial on stack, using its starting (absolute) memory address, 
+#! this routine normalizes each coefficient of the polynomial, using above defined 
+#! `normalize()` routine
+#!
+#! Imagine, f is the given polynomial of degree 512. It can be normalized using
+#!
+#! g = [normalize(f[i]) for i in range(512)]
+#!
+#! Expected stack state :
+#!
+#! [f_start_addr, g_start_addr, ...] | next 127 absolute addresses can be computed using `INCR` instruction
+#!
+#! Post normalization stack state looks like
+#!
+#! [ ... ]
+#!
+#! Note, input polynomial which is provided using memory addresses, is not mutated.
 export.normalize_poly512
     push.0.0.0.0
 
@@ -130,26 +130,26 @@ export.normalize_poly512
     drop
 end
 
-# Given four elements on stack top, this routine computes squared norm of that
-# vector ( read polynomial ) with four coefficients.
-#
-# Imagine, given vector is f, which is described as
-#
-# f = [a0, a1, a2, a3]
-#
-# Norm of that vector is
-#
-# √(a0 ^ 2 + a1 ^ 2 + a2 ^ 2 + a3 ^ 2)
-#
-# But we need squared norm, which is just skipping the final square root operation.
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, ...]
-#
-# Final stack state :
-#
-# [b, ...] | b = a0 ^ 2 + a1 ^ 2 + a2 ^ 2 + a3 ^ 2
+#! Given four elements on stack top, this routine computes squared norm of that
+#! vector ( read polynomial ) with four coefficients.
+#!
+#! Imagine, given vector is f, which is described as
+#!
+#! f = [a0, a1, a2, a3]
+#!
+#! Norm of that vector is
+#!
+#! √(a0 ^ 2 + a1 ^ 2 + a2 ^ 2 + a3 ^ 2)
+#!
+#! But we need squared norm, which is just skipping the final square root operation.
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, ...]
+#!
+#! Final stack state :
+#!
+#! [b, ...] | b = a0 ^ 2 + a1 ^ 2 + a2 ^ 2 + a3 ^ 2
 proc.squared_norm_word
     dup
     mul
@@ -173,22 +173,22 @@ proc.squared_norm_word
     add
 end
 
-# Given a degree 512 polynomial in coefficient form, as starting (absolute) memory address 
-# on stack, this routine computes squared norm of that vector, using following formula
-#
-# Say, f = [a0, a1, a2, ..., a510, a511]
-#      g = sq_norm(f) = a0 ^ 2 + a1 ^ 2 + ... + a510 ^ 2 + a511 ^ 2
-#
-# Expected input stack state :
-#
-# [f_start_addr, ...] | f_addr`i` holds f[(i << 2) .. ((i+1) << 2)]
-#
-# Consecutive 127 addresses on stack can be computed using `INCR` instruction, because memory 
-# addresses are consecutive i.e. monotonically increasing by 1.
-#
-# Final stack state :
-#
-# [g, ...] | g = sq_norm(f)
+#! Given a degree 512 polynomial in coefficient form, as starting (absolute) memory address 
+#! on stack, this routine computes squared norm of that vector, using following formula
+#!
+#! Say, f = [a0, a1, a2, ..., a510, a511]
+#!      g = sq_norm(f) = a0 ^ 2 + a1 ^ 2 + ... + a510 ^ 2 + a511 ^ 2
+#!
+#! Expected input stack state :
+#!
+#! [f_start_addr, ...] | f_addr`i` holds f[(i << 2) .. ((i+1) << 2)]
+#!
+#! Consecutive 127 addresses on stack can be computed using `INCR` instruction, because memory 
+#! addresses are consecutive i.e. monotonically increasing by 1.
+#!
+#! Final stack state :
+#!
+#! [g, ...] | g = sq_norm(f)
 export.squared_norm_poly512
     push.0.0.0.0.0
 
@@ -211,38 +211,38 @@ export.squared_norm_poly512
     drop
 end
 
-# Falcon-512 Digital Signature Verification routine
-#
-# Given four degree-511 polynomials, using initial absolute memory addresses on stack, 
-# this routine checks whether it's a valid Falcon signature or not.
-#
-# Four degree-511 polynomials, which are provided ( in order )
-#
-# f = [f0, f1, ..., f510, f511] -> decompressed Falcon-512 signature
-# g = [g0, g1, ..., g510, g511] -> public key used for signing input message
-# h = [h0, h1, ..., h510, h511] -> input message hashed using SHAKE256 XOF and converted to polynomial
-# k = [k0, k1, ..., k510, k511] -> [abs(i) for i in f] | abs(a) = a < 0 ? 0 - a : a
-#
-# Each of these polynomials are represented using starting absolute memory address. Contiguous 127 
-# memory addresses can be computed by repeated application of INCR instruction ( read add.1 ) on previous
-# absolute memory address.
-#
-# f`i` holds f[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
-# g`i` holds g[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
-# h`i` holds h[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
-# k`i` holds k[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
-#
-# Expected stack state :
-#
-# [f_start_addr, g_start_addr, h_start_addr, k_start_addr, ...]
-#
-# After execution of verification routine, stack looks like
-#
-# [ ... ]
-#
-# If verification fails, program panics, due to failure in assertion !
-#
-# Note, input memory addresses are considered to be immutable.
+#! Falcon-512 Digital Signature Verification routine
+#!
+#! Given four degree-511 polynomials, using initial absolute memory addresses on stack, 
+#! this routine checks whether it's a valid Falcon signature or not.
+#!
+#! Four degree-511 polynomials, which are provided ( in order )
+#!
+#! f = [f0, f1, ..., f510, f511] -> decompressed Falcon-512 signature
+#! g = [g0, g1, ..., g510, g511] -> public key used for signing input message
+#! h = [h0, h1, ..., h510, h511] -> input message hashed using SHAKE256 XOF and converted to polynomial
+#! k = [k0, k1, ..., k510, k511] -> [abs(i) for i in f] | abs(a) = a < 0 ? 0 - a : a
+#!
+#! Each of these polynomials are represented using starting absolute memory address. Contiguous 127 
+#! memory addresses can be computed by repeated application of INCR instruction ( read add.1 ) on previous
+#! absolute memory address.
+#!
+#! f`i` holds f[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
+#! g`i` holds g[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
+#! h`i` holds h[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
+#! k`i` holds k[(i << 2) .. ((i+1) << 2)] | i ∈ [0..128)
+#!
+#! Expected stack state :
+#!
+#! [f_start_addr, g_start_addr, h_start_addr, k_start_addr, ...]
+#!
+#! After execution of verification routine, stack looks like
+#!
+#! [ ... ]
+#!
+#! If verification fails, program panics, due to failure in assertion !
+#!
+#! Note, input memory addresses are considered to be immutable.
 export.verify.257
     locaddr.0
     movdn.2
@@ -287,22 +287,22 @@ export.verify.257
 end
 "#),
 // ----- std::crypto::hashes::blake3 --------------------------------------------------------------
-("std::crypto::hashes::blake3", r#"# Initializes four memory addresses, provided for storing initial 4x4 blake3 
-# state matrix ( i.e. 16 elements each of 32 -bit ), for computing blake3 2-to-1 hash
-#
-# Expected stack state:
-#
-# [state_0_3_addr, state_4_7_addr, state_8_11_addr, state_12_15_addr]
-#
-# Note, state_`i`_`j`_addr -> absolute address of {state[i], state[i+1], state[i+2], state[i+3]} in memory | j = i+3
-#
-# Final stack state:
-#
-# [...]
-#
-# Initialized stack state is written back to provided memory addresses.
-#
-# Functionally this routine is equivalent to https://github.com/itzmeanjan/blake3/blob/f07d32e/include/blake3.hpp#L1709-L1713
+("std::crypto::hashes::blake3", r#"#! Initializes four memory addresses, provided for storing initial 4x4 blake3 
+#! state matrix ( i.e. 16 elements each of 32 -bit ), for computing blake3 2-to-1 hash
+#!
+#! Expected stack state:
+#!
+#! [state_0_3_addr, state_4_7_addr, state_8_11_addr, state_12_15_addr]
+#!
+#! Note, state_`i`_`j`_addr -> absolute address of {state[i], state[i+1], state[i+2], state[i+3]} in memory | j = i+3
+#!
+#! Final stack state:
+#!
+#! [...]
+#!
+#! Initialized stack state is written back to provided memory addresses.
+#!
+#! Functionally this routine is equivalent to https://github.com/itzmeanjan/blake3/blob/f07d32e/include/blake3.hpp#!L1709-L1713
 proc.initialize
     push.0xA54FF53A.0x3C6EF372.0xBB67AE85.0x6A09E667
     movup.4
@@ -325,18 +325,18 @@ proc.initialize
     dropw
 end
 
-# Permutes ordered message words, kept on stack top ( = sixteen 32 -bit BLAKE3 words )
-#
-# Expected stack top: 
-#
-# [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15]
-#
-# After permutation, stack top:
-#
-# [s2, s6, s3, s10, s7, s0, s4, s13, s1, s11, s12, s5, s9, s14, s15, s8]
-#
-# See https://github.com/itzmeanjan/blake3/blob/f07d32ec10cbc8a10663b7e6539e0b1dab3e453b/include/blake3.hpp#L1623-L1639
-# and https://github.com/maticnetwork/miden/pull/313#discussion_r922627984
+#! Permutes ordered message words, kept on stack top ( = sixteen 32 -bit BLAKE3 words )
+#!
+#! Expected stack top: 
+#!
+#! [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15]
+#!
+#! After permutation, stack top:
+#!
+#! [s2, s6, s3, s10, s7, s0, s4, s13, s1, s11, s12, s5, s9, s14, s15, s8]
+#!
+#! See https://github.com/itzmeanjan/blake3/blob/f07d32ec10cbc8a10663b7e6539e0b1dab3e453b/include/blake3.hpp#!L1623-L1639
+#! and https://github.com/maticnetwork/miden/pull/313#!discussion_r922627984
 proc.permute_msg_words
     movdn.7
     movup.5
@@ -360,20 +360,20 @@ proc.permute_msg_words
     swapdw
 end
 
-# Given blake3 state matrix on stack top ( in order ) as 16 elements ( each of 32 -bit ),
-# this routine computes output chaining value i.e. 2-to-1 hashing digest.
-#
-# Expected stack state:
-#
-# [state0, state1, state2, state3, state4, state5, state6, state7, state8, state9, state10, state11, state12, state13, state14, state15]
-#
-# After finalizing, stack should look like
-#
-# [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7]
-#
-# See https://github.com/BLAKE3-team/BLAKE3/blob/da4c792/reference_impl/reference_impl.rs#L116-L119 ,
-# you'll notice I've skipped executing second statement in loop body of above hyperlinked implementation,
-# that's because it doesn't dictate what output of 2-to-1 hash will be.
+#! Given blake3 state matrix on stack top ( in order ) as 16 elements ( each of 32 -bit ),
+#! this routine computes output chaining value i.e. 2-to-1 hashing digest.
+#!
+#! Expected stack state:
+#!
+#! [state0, state1, state2, state3, state4, state5, state6, state7, state8, state9, state10, state11, state12, state13, state14, state15]
+#!
+#! After finalizing, stack should look like
+#!
+#! [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7]
+#!
+#! See https://github.com/BLAKE3-team/BLAKE3/blob/da4c792/reference_impl/reference_impl.rs#!L116-L119 ,
+#! you'll notice I've skipped executing second statement in loop body of above hyperlinked implementation,
+#! that's because it doesn't dictate what output of 2-to-1 hash will be.
 proc.finalize
     movup.8
     u32checked_xor
@@ -414,25 +414,25 @@ proc.finalize
     movdn.7
 end
 
-# Given blake3 state matrix ( total 16 elements, each of 32 -bit ) and 
-# 8 message words ( each of 32 -bit ), this routine performs column-wise mixing
-# of message words into blake3 hash state.
-#
-# Functionality wise this routine is equivalent to https://github.com/BLAKE3-team/BLAKE3/blob/da4c792/reference_impl/reference_impl.rs#L55-L59
-#
-# Expected stack state:
-#
-# [state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr, m0, m1, m2, m3, m4, m5, m6, m7]
-#
-# Note, state_`i`_`j`_addr -> absolute address of {state[i], state[i+1], state[i+2], state[i+3]} in memory | j = i+3
-#
-# Meaning four consecutive blake3 state words can be read from memory easily.
-#
-# Final stack state:
-#
-# [state0, state1, state2, state3, state4, state5, state6, state7, state8, state9, state10, state11, state12, state13, state14, state15]
-#
-# i.e. whole blake3 state is placed on stack ( in order ).
+#! Given blake3 state matrix ( total 16 elements, each of 32 -bit ) and 
+#! 8 message words ( each of 32 -bit ), this routine performs column-wise mixing
+#! of message words into blake3 hash state.
+#!
+#! Functionality wise this routine is equivalent to https://github.com/BLAKE3-team/BLAKE3/blob/da4c792/reference_impl/reference_impl.rs#!L55-L59
+#!
+#! Expected stack state:
+#!
+#! [state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr, m0, m1, m2, m3, m4, m5, m6, m7]
+#!
+#! Note, state_`i`_`j`_addr -> absolute address of {state[i], state[i+1], state[i+2], state[i+3]} in memory | j = i+3
+#!
+#! Meaning four consecutive blake3 state words can be read from memory easily.
+#!
+#! Final stack state:
+#!
+#! [state0, state1, state2, state3, state4, state5, state6, state7, state8, state9, state10, state11, state12, state13, state14, state15]
+#!
+#! i.e. whole blake3 state is placed on stack ( in order ).
 proc.columnar_mixing.1
     swapw.2
     swapw
@@ -653,25 +653,25 @@ proc.columnar_mixing.1
     movupw.3
 end
 
-# Given blake3 state matrix ( total 16 elements, each of 32 -bit ) and 
-# 8 message words ( each of 32 -bit ), this routine performs diagonal-wise mixing
-# of message words into blake3 hash state.
-#
-# Functionality wise this routine is equivalent to https://github.com/BLAKE3-team/BLAKE3/blob/da4c792/reference_impl/reference_impl.rs#L61-L64
-#
-# Expected stack state:
-#
-# [state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr, m0, m1, m2, m3, m4, m5, m6, m7]
-#
-# Note, state_`i`_`j`_addr -> absolute address of {state[i], state[i+1], state[i+2], state[i+3]} in memory | j = i+3
-#
-# Meaning four consecutive blake3 state words can be read from memory easily.
-#
-# Final stack state:
-#
-# [state0, state1, state2, state3, state4, state5, state6, state7, state8, state9, state10, state11, state12, state13, state14, state15]
-#
-# i.e. whole blake3 state is placed on stack ( in order ).
+#! Given blake3 state matrix ( total 16 elements, each of 32 -bit ) and 
+#! 8 message words ( each of 32 -bit ), this routine performs diagonal-wise mixing
+#! of message words into blake3 hash state.
+#!
+#! Functionality wise this routine is equivalent to https://github.com/BLAKE3-team/BLAKE3/blob/da4c792/reference_impl/reference_impl.rs#!L61-L64
+#!
+#! Expected stack state:
+#!
+#! [state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr, m0, m1, m2, m3, m4, m5, m6, m7]
+#!
+#! Note, state_`i`_`j`_addr -> absolute address of {state[i], state[i+1], state[i+2], state[i+3]} in memory | j = i+3
+#!
+#! Meaning four consecutive blake3 state words can be read from memory easily.
+#!
+#! Final stack state:
+#!
+#! [state0, state1, state2, state3, state4, state5, state6, state7, state8, state9, state10, state11, state12, state13, state14, state15]
+#!
+#! i.e. whole blake3 state is placed on stack ( in order ).
 proc.diagonal_mixing.1
     swapw.2
     swapw
@@ -892,28 +892,28 @@ proc.diagonal_mixing.1
     movupw.3
 end
 
-# Given blake3 state matrix ( total 16 elements, each of 32 -bit ) and 
-# 16 message words ( each of 32 -bit ), this routine applies single round of mixing
-# of message words into hash state i.e. msg_word[0..8] are mixed into hash state using
-# columnar mixing while remaining message words ( msg_word[8..16] ) are mixed into hash state
-# using diagonal mixing.
-#
-# Functionality wise this routine is equivalent to https://github.com/BLAKE3-team/BLAKE3/blob/da4c792/reference_impl/reference_impl.rs#L54-L65
-#
-# Expected stack state:
-#
-# [state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr, m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15]
-#
-# Note, state_`i`_`j`_addr -> absolute address of {state[i], state[i+1], state[i+2], state[i+3]} in memory | j = i+3
-#
-# Meaning four consecutive blake3 state words can be read from memory easily.
-#
-# Final stack state:
-#
-# [...]
-#
-# i.e. mixed state matrix lives in memory addresses {state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr}, 
-# which were provided, on stack top, while invoking this routine.
+#! Given blake3 state matrix ( total 16 elements, each of 32 -bit ) and 
+#! 16 message words ( each of 32 -bit ), this routine applies single round of mixing
+#! of message words into hash state i.e. msg_word[0..8] are mixed into hash state using
+#! columnar mixing while remaining message words ( msg_word[8..16] ) are mixed into hash state
+#! using diagonal mixing.
+#!
+#! Functionality wise this routine is equivalent to https://github.com/BLAKE3-team/BLAKE3/blob/da4c792/reference_impl/reference_impl.rs#!L54-L65
+#!
+#! Expected stack state:
+#!
+#! [state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr, m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15]
+#!
+#! Note, state_`i`_`j`_addr -> absolute address of {state[i], state[i+1], state[i+2], state[i+3]} in memory | j = i+3
+#!
+#! Meaning four consecutive blake3 state words can be read from memory easily.
+#!
+#! Final stack state:
+#!
+#! [...]
+#!
+#! i.e. mixed state matrix lives in memory addresses {state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr}, 
+#! which were provided, on stack top, while invoking this routine.
 proc.round.5
     loc_storew.0
 
@@ -956,27 +956,27 @@ proc.round.5
     end
 end
 
-# Given blake3 state matrix ( total 16 elements, each of 32 -bit ) and a message block
-# i.e. 16 message words ( each of 32 -bit ), this routine applies 7 rounds of mixing
-# of (permuted) message words into hash state.
-#
-# Functionality wise this routine is equivalent to https://github.com/BLAKE3-team/BLAKE3/blob/da4c792/reference_impl/reference_impl.rs#L75-L114
-#
-# Expected stack state:
-#
-# [state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr, m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15]
-#
-# Note, state_`i`_`j`_addr -> absolute address of {state[i], state[i+1], state[i+2], state[i+3]} in memory | j = i+3
-#
-# Meaning four consecutive blake3 state words can be read from memory easily.
-#
-# Final stack state:
-#
-# [...]
-#
-# i.e. 7 -round mixed state matrix lives in memory addresses {state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr}, 
-# which were provided, on stack top, while invoking this routine. So updated state matrix can be read by caller routine, by reading
-# the content of memory addresses where state was provided as routine input.
+#! Given blake3 state matrix ( total 16 elements, each of 32 -bit ) and a message block
+#! i.e. 16 message words ( each of 32 -bit ), this routine applies 7 rounds of mixing
+#! of (permuted) message words into hash state.
+#!
+#! Functionality wise this routine is equivalent to https://github.com/BLAKE3-team/BLAKE3/blob/da4c792/reference_impl/reference_impl.rs#!L75-L114
+#!
+#! Expected stack state:
+#!
+#! [state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr, m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15]
+#!
+#! Note, state_`i`_`j`_addr -> absolute address of {state[i], state[i+1], state[i+2], state[i+3]} in memory | j = i+3
+#!
+#! Meaning four consecutive blake3 state words can be read from memory easily.
+#!
+#! Final stack state:
+#!
+#! [...]
+#!
+#! i.e. 7 -round mixed state matrix lives in memory addresses {state0_3_addr, state4_7_addr, state8_11_addr, state12_15_addr}, 
+#! which were provided, on stack top, while invoking this routine. So updated state matrix can be read by caller routine, by reading
+#! the content of memory addresses where state was provided as routine input.
 proc.compress.1
     loc_storew.0
     dropw
@@ -1000,19 +1000,19 @@ proc.compress.1
     exec.round
 end
 
-# Blake3 2-to-1 hash function, which takes 64 -bytes input and produces 32 -bytes output digest
-#
-# Expected stack state:
-#
-# [msg0, msg1, msg2, msg3, msg4, msg5, msg6, msg7, msg8, msg9, msg10, msg11, msg12, msg13, msg14, msg15]
-#
-# msg`i` -> 32 -bit message word | i ∈ [0, 16)
-#
-# Output stack state:
-#
-# [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7]
-#
-# dig`i` -> 32 -bit digest word | i ∈ [0, 8)
+#! Blake3 2-to-1 hash function, which takes 64 -bytes input and produces 32 -bytes output digest
+#!
+#! Expected stack state:
+#!
+#! [msg0, msg1, msg2, msg3, msg4, msg5, msg6, msg7, msg8, msg9, msg10, msg11, msg12, msg13, msg14, msg15]
+#!
+#! msg`i` -> 32 -bit message word | i ∈ [0, 16)
+#!
+#! Output stack state:
+#!
+#! [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7]
+#!
+#! dig`i` -> 32 -bit digest word | i ∈ [0, 8)
 export.hash.4
     locaddr.3
     locaddr.2
@@ -1045,23 +1045,23 @@ export.hash.4
 end
 "#),
 // ----- std::crypto::hashes::keccak256 -----------------------------------------------------------
-("std::crypto::hashes::keccak256", r#"# Keccak-p[1600, 24] permutation's θ step mapping function, which is implemented 
-# in terms of 32 -bit word size ( bit interleaved representation )
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L55-L98 for original implementation
-#
-# Expected stack state :
-#
-# [state_addr, ...]
-#
-# Final stack state :
-#
-# [ ... ]
-#
-# Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
-# s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
-#
-# Consecutive memory addresses can be computed by repeated application of `add.1`.
+("std::crypto::hashes::keccak256", r#"#! Keccak-p[1600, 24] permutation's θ step mapping function, which is implemented 
+#! in terms of 32 -bit word size ( bit interleaved representation )
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L55-L98 for original implementation
+#!
+#! Expected stack state :
+#!
+#! [state_addr, ...]
+#!
+#! Final stack state :
+#!
+#! [ ... ]
+#!
+#! Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
+#! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
+#!
+#! Consecutive memory addresses can be computed by repeated application of `add.1`.
 proc.theta.3
     dup
     locaddr.0
@@ -2086,23 +2086,23 @@ proc.theta.3
     dropw
 end
 
-# Keccak-p[1600, 24] permutation's ρ step mapping function, which is implemented 
-# in terms of 32 -bit word size ( bit interleaved representation )
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L115-L147 for original implementation
-#
-# Expected stack state :
-#
-# [state_addr, ...]
-#
-# Final stack state :
-#
-# [ ... ]
-#
-# Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
-# s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
-#
-# Consecutive memory addresses can be computed by repeated application of `add.1`.
+#! Keccak-p[1600, 24] permutation's ρ step mapping function, which is implemented 
+#! in terms of 32 -bit word size ( bit interleaved representation )
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L115-L147 for original implementation
+#!
+#! Expected stack state :
+#!
+#! [state_addr, ...]
+#!
+#! Final stack state :
+#!
+#! [ ... ]
+#!
+#! Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
+#! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
+#!
+#! Consecutive memory addresses can be computed by repeated application of `add.1`.
 proc.rho.1
     dup
     locaddr.0
@@ -2372,23 +2372,23 @@ proc.rho.1
     dropw
 end
 
-# Keccak-p[1600, 24] permutation's π step mapping function, which is implemented 
-# in terms of 32 -bit word size ( bit interleaved representation )
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L169-L207 for original implementation
-#
-# Expected stack state :
-#
-# [state_addr, ...]
-#
-# Final stack state :
-#
-# [ ... ]
-#
-# Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
-# s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
-#
-# Consecutive memory addresses can be computed by repeated application of `add.1`.
+#! Keccak-p[1600, 24] permutation's π step mapping function, which is implemented 
+#! in terms of 32 -bit word size ( bit interleaved representation )
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L169-L207 for original implementation
+#!
+#! Expected stack state :
+#!
+#! [state_addr, ...]
+#!
+#! Final stack state :
+#!
+#! [ ... ]
+#!
+#! Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
+#! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
+#!
+#! Consecutive memory addresses can be computed by repeated application of `add.1`.
 proc.pi.14
     dup
     locaddr.0
@@ -2792,23 +2792,23 @@ proc.pi.14
     drop
 end
 
-# Keccak-p[1600, 24] permutation's χ step mapping function, which is implemented 
-# in terms of 32 -bit word size ( bit interleaved representation )
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L233-L271 for original implementation
-#
-# Expected stack state :
-#
-# [state_addr, ...]
-#
-# Final stack state :
-#
-# [ ... ]
-#
-# Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
-# s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
-#
-# Consecutive memory addresses can be computed by repeated application of `add.1`.
+#! Keccak-p[1600, 24] permutation's χ step mapping function, which is implemented 
+#! in terms of 32 -bit word size ( bit interleaved representation )
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L233-L271 for original implementation
+#!
+#! Expected stack state :
+#!
+#! [state_addr, ...]
+#!
+#! Final stack state :
+#!
+#! [ ... ]
+#!
+#! Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
+#! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
+#!
+#! Consecutive memory addresses can be computed by repeated application of `add.1`.
 proc.chi.4
     dup
     locaddr.0
@@ -3942,23 +3942,23 @@ proc.chi.4
     drop
 end
 
-# Keccak-p[1600, 24] permutation's ι ( iota ) function, which is
-# implemented in terms of 32 -bit word size ( bit interleaved form ); 
-# imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
-# invoked with (c0, c1) as template arguments
-#
-# Expected stack state :
-#
-# [state_addr, c0, c1, ...]
-#
-# Final stack state :
-#
-# [ ... ]
-#
-# All this routine does is
-#
-# state[0] ^= c0
-# state[1] ^= c1
+#! Keccak-p[1600, 24] permutation's ι ( iota ) function, which is
+#! implemented in terms of 32 -bit word size ( bit interleaved form ); 
+#! imagine https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L288-L306
+#! invoked with (c0, c1) as template arguments
+#!
+#! Expected stack state :
+#!
+#! [state_addr, c0, c1, ...]
+#!
+#! Final stack state :
+#!
+#! [ ... ]
+#!
+#! All this routine does is
+#!
+#! state[0] ^= c0
+#! state[1] ^= c1
 proc.iota
     dup
     push.0.0.0.0
@@ -3980,27 +3980,27 @@ proc.iota
     dropw
 end
 
-# Keccak-p[1600, 24] permutation round, without `iota` function ( all other 
-# functions i.e. `theta`, `rho`, `pi`, `chi` are applied in order )
-#
-# As `iota` function involves xoring constant factors with first lane of state array 
-# ( read state[0, 0] ), it's required to invoke them seperately after completion of
-# this procedure's execution.
-#
-# Expected stack state :
-#
-# [start_addr, ... ]
-#
-# After finishing execution, stack looks like
-#
-# [ ... ]
-#
-# Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
-# s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
-#
-# Consecutive memory addresses can be computed by repeated application of `add.1`.
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L325-L340
+#! Keccak-p[1600, 24] permutation round, without `iota` function ( all other 
+#! functions i.e. `theta`, `rho`, `pi`, `chi` are applied in order )
+#!
+#! As `iota` function involves xoring constant factors with first lane of state array 
+#! ( read state[0, 0] ), it's required to invoke them seperately after completion of
+#! this procedure's execution.
+#!
+#! Expected stack state :
+#!
+#! [start_addr, ... ]
+#!
+#! After finishing execution, stack looks like
+#!
+#! [ ... ]
+#!
+#! Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
+#! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
+#!
+#! Consecutive memory addresses can be computed by repeated application of `add.1`.
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L325-L340
 proc.round
     dup
     exec.theta
@@ -4014,23 +4014,23 @@ proc.round
     exec.chi
 end
 
-# Keccak-p[1600, 24] permutation, applying 24 rounds on state array of size  5 x 5 x 64, 
-# where each 64 -bit lane is represented in bit interleaved form ( in terms of two 32 -bit words ).
-#
-# Expected stack state :
-#
-# [start_addr, ... ]
-#
-# After finishing execution, stack looks like
-#
-# [ ... ]
-#
-# Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
-# s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
-#
-# Consecutive memory addresses can be computed by repeated application of `add.1`.
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L379-L427
+#! Keccak-p[1600, 24] permutation, applying 24 rounds on state array of size  5 x 5 x 64, 
+#! where each 64 -bit lane is represented in bit interleaved form ( in terms of two 32 -bit words ).
+#!
+#! Expected stack state :
+#!
+#! [start_addr, ... ]
+#!
+#! After finishing execution, stack looks like
+#!
+#! [ ... ]
+#!
+#! Whole keccak-p[1600, 24] state can be represented using fifty u32 elements i.e. 13 absolute memory addresses
+#! s.t. last two elements of 12 -th ( when indexed from zero ) memory address are zeroed.
+#!
+#! Consecutive memory addresses can be computed by repeated application of `add.1`.
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/sha3.hpp#L379-L427
 proc.keccak_p
     # permutation round 1
     dup
@@ -4225,25 +4225,25 @@ proc.keccak_p
     exec.iota
 end
 
-# Given two 32 -bit unsigned integers ( standard form ), representing upper and lower
-# bits of a 64 -bit unsigned integer ( actually a keccak-[1600, 24] lane ),
-# this function converts them into bit interleaved representation, where two 32 -bit
-# unsigned integers ( even portion & then odd portion ) hold bits in even and odd
-# indices of 64 -bit unsigned integer ( remember it's represented in terms of
-# two 32 -bit elements )
-#
-# Input stack state :
-#
-# [hi, lo, ...]
-#
-# After application of bit interleaving, stack looks like
-#
-# [even, odd, ...]
-#
-# Read more about bit interleaved representation in section 2.1 of https://keccak.team/files/Keccak-implementation-3.2.pdf
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/utils.hpp#L123-L149
-# for reference implementation in higher level language.
+#! Given two 32 -bit unsigned integers ( standard form ), representing upper and lower
+#! bits of a 64 -bit unsigned integer ( actually a keccak-[1600, 24] lane ),
+#! this function converts them into bit interleaved representation, where two 32 -bit
+#! unsigned integers ( even portion & then odd portion ) hold bits in even and odd
+#! indices of 64 -bit unsigned integer ( remember it's represented in terms of
+#! two 32 -bit elements )
+#!
+#! Input stack state :
+#!
+#! [hi, lo, ...]
+#!
+#! After application of bit interleaving, stack looks like
+#!
+#! [even, odd, ...]
+#!
+#! Read more about bit interleaved representation in section 2.1 of https://keccak.team/files/Keccak-implementation-3.2.pdf
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/utils.hpp#L123-L149
+#! for reference implementation in higher level language.
 export.to_bit_interleaved
     push.0.0
 
@@ -4312,26 +4312,26 @@ export.to_bit_interleaved
     drop
 end
 
-# Given two 32 -bit unsigned integers ( in bit interleaved form ), representing even and odd
-# positioned bits of a 64 -bit unsigned integer ( actually a keccak-[1600, 24] lane ),
-# this function converts them into standard representation, where two 32 -bit
-# unsigned integers hold higher ( 32 -bit ) and lower ( 32 -bit ) bits of standard
-# representation of 64 -bit unsigned integer
-#
-# Input stack state :
-#
-# [even, odd, ...]
-#
-# After application of logic, stack looks like
-#
-# [hi, lo, ...]
-#
-# This function reverts the action done by `to_bit_interleaved` function implemented above.
-#
-# Read more about bit interleaved representation in section 2.1 of https://keccak.team/files/Keccak-implementation-3.2.pdf
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/utils.hpp#L151-L175
-# for reference implementation in higher level language.
+#! Given two 32 -bit unsigned integers ( in bit interleaved form ), representing even and odd
+#! positioned bits of a 64 -bit unsigned integer ( actually a keccak-[1600, 24] lane ),
+#! this function converts them into standard representation, where two 32 -bit
+#! unsigned integers hold higher ( 32 -bit ) and lower ( 32 -bit ) bits of standard
+#! representation of 64 -bit unsigned integer
+#!
+#! Input stack state :
+#!
+#! [even, odd, ...]
+#!
+#! After application of logic, stack looks like
+#!
+#! [hi, lo, ...]
+#!
+#! This function reverts the action done by `to_bit_interleaved` function implemented above.
+#!
+#! Read more about bit interleaved representation in section 2.1 of https://keccak.team/files/Keccak-implementation-3.2.pdf
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/utils.hpp#L151-L175
+#! for reference implementation in higher level language.
 export.from_bit_interleaved
     push.0.0
 
@@ -4396,25 +4396,25 @@ export.from_bit_interleaved
     drop
 end
 
-# Given 64 -bytes input ( in terms of sixteen u32 elements on stack top ) to 2-to-1
-# keccak256 hash function, this function prepares 5 x 5 x 64 keccak-p[1600, 24] state
-# bit array such that each of twenty five 64 -bit wide lane is represented in bit
-# interleaved form, using two 32 -bit integers. After completion of execution of
-# this function, state array should live in allocated memory ( total fifty u32 elements, stored in
-# 13 consecutive memory addresses s.t. starting absolute address is provided ).
-#
-# Input stack state :
-#
-# [state_addr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, ...]
-#
-# Note, state_addr is the starting absolute memory address where keccak-p[1600, 24] state
-# is kept. Consecutive addresses can be computed by repeated application of `add.1` instruction.
-#
-# Final stack state :
-#
-# [...]
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L73-L153
+#! Given 64 -bytes input ( in terms of sixteen u32 elements on stack top ) to 2-to-1
+#! keccak256 hash function, this function prepares 5 x 5 x 64 keccak-p[1600, 24] state
+#! bit array such that each of twenty five 64 -bit wide lane is represented in bit
+#! interleaved form, using two 32 -bit integers. After completion of execution of
+#! this function, state array should live in allocated memory ( total fifty u32 elements, stored in
+#! 13 consecutive memory addresses s.t. starting absolute address is provided ).
+#!
+#! Input stack state :
+#!
+#! [state_addr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, ...]
+#!
+#! Note, state_addr is the starting absolute memory address where keccak-p[1600, 24] state
+#! is kept. Consecutive addresses can be computed by repeated application of `add.1` instruction.
+#!
+#! Final stack state :
+#!
+#! [...]
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L73-L153
 proc.to_state_array
     repeat.4
         movdn.4
@@ -4497,20 +4497,20 @@ proc.to_state_array
     dropw
 end
 
-# Given 32 -bytes digest ( in terms of eight u32 elements on stack top ) in bit interleaved form,
-# this function attempts to convert those into standard representation, where eight u32 elements
-# live on stack top, each pair of them hold higher and lower bits of 64 -bit unsigned
-# integer ( lane of keccak-p[1600, 24] state array )
-#
-# Input stack state :
-#
-# [lane0_even, lane0_odd, lane1_even, lane1_odd, lane2_even, lane2_odd, lane3_even, lane3_odd, ...]
-#
-# Output stack state :
-#
-# [dig0_hi, dig0_lo, dig1_hi, dig1_lo, dig2_hi, dig2_lo, dig3_hi, dig3_lo, ...]
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L180-L209
+#! Given 32 -bytes digest ( in terms of eight u32 elements on stack top ) in bit interleaved form,
+#! this function attempts to convert those into standard representation, where eight u32 elements
+#! live on stack top, each pair of them hold higher and lower bits of 64 -bit unsigned
+#! integer ( lane of keccak-p[1600, 24] state array )
+#!
+#! Input stack state :
+#!
+#! [lane0_even, lane0_odd, lane1_even, lane1_odd, lane2_even, lane2_odd, lane3_even, lane3_odd, ...]
+#!
+#! Output stack state :
+#!
+#! [dig0_hi, dig0_lo, dig1_hi, dig1_lo, dig2_hi, dig2_lo, dig3_hi, dig3_lo, ...]
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L180-L209
 proc.to_digest
     repeat.4
         movup.7
@@ -4520,22 +4520,22 @@ proc.to_digest
     end
 end
 
-# Given 64 -bytes input, in terms of sixteen 32 -bit unsigned integers, where each pair
-# of them holding higher & lower 32 -bits of 64 -bit unsigned integer ( reinterpreted on
-# host CPU from little endian byte array ) respectively, this function computes 32 -bytes
-# keccak256 digest, held on stack top, represented in terms of eight 32 -bit unsigned integers,
-# where each pair of them keeps higher and lower 32 -bits of 64 -bit unsigned integer respectively
-#
-# Expected stack state :
-#
-# [iword0, iword1, iword2, iword3, iword4, iword5, iword6, iword7, 
-#  iword8, iword9, iword10, iword11, iword12, iword13, iword14, iword15, ... ]
-#
-# Final stack state :
-#
-# [oword0, oword1, oword2, oword3, oword4, oword5, oword6, oword7, ... ]
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L232-L257
+#! Given 64 -bytes input, in terms of sixteen 32 -bit unsigned integers, where each pair
+#! of them holding higher & lower 32 -bits of 64 -bit unsigned integer ( reinterpreted on
+#! host CPU from little endian byte array ) respectively, this function computes 32 -bytes
+#! keccak256 digest, held on stack top, represented in terms of eight 32 -bit unsigned integers,
+#! where each pair of them keeps higher and lower 32 -bits of 64 -bit unsigned integer respectively
+#!
+#! Expected stack state :
+#!
+#! [iword0, iword1, iword2, iword3, iword4, iword5, iword6, iword7, 
+#!  iword8, iword9, iword10, iword11, iword12, iword13, iword14, iword15, ... ]
+#!
+#! Final stack state :
+#!
+#! [oword0, oword1, oword2, oword3, oword4, oword5, oword6, oword7, ... ]
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/1d35aae9da7fed20127489f362b4bc93242a516c/include/keccak_256.hpp#L232-L257
 export.hash.13
     # prapare keccak256 state from input message
     locaddr.0
@@ -4553,10 +4553,10 @@ export.hash.13
     exec.to_digest
 end"#),
 // ----- std::crypto::hashes::sha256 --------------------------------------------------------------
-("std::crypto::hashes::sha256", r#"# Given [x, ...] on stack top, this routine computes [y, ...]
-# such that y = σ_0(x), as defined in SHA specification
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L73-L79
+("std::crypto::hashes::sha256", r#"#! Given [x, ...] on stack top, this routine computes [y, ...]
+#! such that y = σ_0(x), as defined in SHA specification
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L73-L79
 proc.small_sigma_0
     dup
     u32unchecked_rotr.7
@@ -4574,10 +4574,10 @@ proc.small_sigma_0
     u32checked_xor
 end
 
-# Given [x, ...] on stack top, this routine computes [y, ...]
-# such that y = σ_1(x), as defined in SHA specification
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L81-L87
+#! Given [x, ...] on stack top, this routine computes [y, ...]
+#! such that y = σ_1(x), as defined in SHA specification
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L81-L87
 proc.small_sigma_1
     dup
     u32unchecked_rotr.17
@@ -4595,10 +4595,10 @@ proc.small_sigma_1
     u32checked_xor
 end
 
-# Given [x, ...] on stack top, this routine computes [y, ...]
-# such that y = Σ_0(x), as defined in SHA specification
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L57-L63
+#! Given [x, ...] on stack top, this routine computes [y, ...]
+#! such that y = Σ_0(x), as defined in SHA specification
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L57-L63
 proc.cap_sigma_0
     dup
     u32unchecked_rotr.2
@@ -4616,10 +4616,10 @@ proc.cap_sigma_0
     u32checked_xor
 end
 
-# Given [x, ...] on stack top, this routine computes [y, ...]
-# such that y = Σ_1(x), as defined in SHA specification
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L65-L71
+#! Given [x, ...] on stack top, this routine computes [y, ...]
+#! such that y = Σ_1(x), as defined in SHA specification
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L65-L71
 proc.cap_sigma_1
     dup
     u32unchecked_rotr.6
@@ -4637,10 +4637,10 @@ proc.cap_sigma_1
     u32checked_xor
 end
 
-# Given [x, y, z, ...] on stack top, this routine computes [o, ...]
-# such that o = ch(x, y, z), as defined in SHA specification
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L37-L45
+#! Given [x, y, z, ...] on stack top, this routine computes [o, ...]
+#! such that o = ch(x, y, z), as defined in SHA specification
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L37-L45
 proc.ch
     swap
     dup.1
@@ -4655,10 +4655,10 @@ proc.ch
     u32checked_xor
 end
 
-# Given [x, y, z, ...] on stack top, this routine computes [o, ...]
-# such that o = maj(x, y, z), as defined in SHA specification
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L47-L55
+#! Given [x, y, z, ...] on stack top, this routine computes [o, ...]
+#! such that o = maj(x, y, z), as defined in SHA specification
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L47-L55
 proc.maj
     dup.1
     dup.1
@@ -4676,28 +4676,28 @@ proc.maj
     u32checked_xor
 end
 
-# Given [a, b, c, d, ...] on stack top, this routine reverses order of first 
-# four elements on stack top such that final stack state looks like [d, c, b, a, ...]
+#! Given [a, b, c, d, ...] on stack top, this routine reverses order of first 
+#! four elements on stack top such that final stack state looks like [d, c, b, a, ...]
 proc.rev_element_order
     swap
     movup.2
     movup.3
 end
 
-# Given [a, b, c, d, ...] on stack top, this routine computes next message schedule word
-# using following formula
-#
-# t0 = small_sigma_1(a) + b
-# t1 = small_sigma_0(c) + d
-# return t0 + t1
-#
-# If to be computed message schedule word has index i ∈ [16, 64), then 
-# a, b, c, d will have following indices in message schedule
-#
-# a = msg[i - 2]
-# b = msg[i - 7]
-# c = msg[i - 15]
-# d = msg[i - 16]
+#! Given [a, b, c, d, ...] on stack top, this routine computes next message schedule word
+#! using following formula
+#!
+#! t0 = small_sigma_1(a) + b
+#! t1 = small_sigma_0(c) + d
+#! return t0 + t1
+#!
+#! If to be computed message schedule word has index i ∈ [16, 64), then 
+#! a, b, c, d will have following indices in message schedule
+#!
+#! a = msg[i - 2]
+#! b = msg[i - 7]
+#! c = msg[i - 15]
+#! d = msg[i - 16]
 proc.compute_message_schedule_word
     exec.small_sigma_1
     movup.2
@@ -4708,19 +4708,19 @@ proc.compute_message_schedule_word
     u32wrapping_add
 end
 
-# Given eight working variables of SHA256 ( i.e. hash state ), a 32 -bit round constant & 
-# 32 -bit message word on stack top, this routine consumes constant & message word into 
-# hash state.
-#
-# Expected stack state looks like
-#
-# [a, b, c, d, e, f, g, h, CONST_i, WORD_i] | i ∈ [0, 64)
-#
-# After finishing execution, stack looks like
-#
-# [a', b', c', d', e', f', g', h']
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L165-L175
+#! Given eight working variables of SHA256 ( i.e. hash state ), a 32 -bit round constant & 
+#! 32 -bit message word on stack top, this routine consumes constant & message word into 
+#! hash state.
+#!
+#! Expected stack state looks like
+#!
+#! [a, b, c, d, e, f, g, h, CONST_i, WORD_i] | i ∈ [0, 64)
+#!
+#! After finishing execution, stack looks like
+#!
+#! [a', b', c', d', e', f', g', h']
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L165-L175
 proc.consume_message_word
     dup.6
     dup.6
@@ -4758,22 +4758,22 @@ proc.consume_message_word
     u32wrapping_add
 end
 
-# Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and 64 -bytes input 
-# message ( in terms of 16 SHA256 words ) on stack top, this routine computes
-# whole message schedule of 64 message words and consumes them into hash state.
-#
-# Expected stack state:
-#
-# [state0, state1, state2, state3, state4, state5, state6, state7, msg0, msg1, msg2, msg3, msg4, msg5, msg6, msg7, msg8, msg9, msg10, msg11, msg12, msg13, msg14, msg15]
-#
-# Final stack state after completion of execution
-#
-# [state0', state1', state2', state3', state4', state5', state6', state7']
-#
-# Note, each SHA256 word is 32 -bit wide
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L89-L113
-# & https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop body execution when i = 0 )
+#! Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and 64 -bytes input 
+#! message ( in terms of 16 SHA256 words ) on stack top, this routine computes
+#! whole message schedule of 64 message words and consumes them into hash state.
+#!
+#! Expected stack state:
+#!
+#! [state0, state1, state2, state3, state4, state5, state6, state7, msg0, msg1, msg2, msg3, msg4, msg5, msg6, msg7, msg8, msg9, msg10, msg11, msg12, msg13, msg14, msg15]
+#!
+#! Final stack state after completion of execution
+#!
+#! [state0', state1', state2', state3', state4', state5', state6', state7']
+#!
+#! Note, each SHA256 word is 32 -bit wide
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L89-L113
+#! & https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop body execution when i = 0 )
 proc.prepare_message_schedule_and_consume.2
     loc_storew.0
     dropw
@@ -5634,27 +5634,27 @@ proc.prepare_message_schedule_and_consume.2
     movdn.7
 end
 
-# Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and precomputed message 
-# schedule of padding bytes ( in terms of 64 message words ), this routine consumes
-# that into hash state, leaving final hash state, which is 32 -bytes SHA256 digest.
-#
-# Note, in SHA256 2-to-1 hashing, 64 -bytes are padded, which is processed as second message
-# block ( each SHA256 message block is 64 -bytes wide ). That message block is used for generating 
-# message schedule of 64 SHA256 words. That's exactly what can be precomputed & is consumed here 
-# ( in this routine ) into provided hash state.
-#
-# Expected stack state:
-#
-# [state0, state1, state2, state3, state4, state5, state6, state7, ...]
-#
-# Final stack state after completion of execution
-#
-# [state0', state1', state2', state3', state4', state5', state6', state7']
-#
-# Note, each SHA256 word is 32 -bit wide
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop 
-# body execution when i = 1 i.e. consuming padding bytes )
+#! Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and precomputed message 
+#! schedule of padding bytes ( in terms of 64 message words ), this routine consumes
+#! that into hash state, leaving final hash state, which is 32 -bytes SHA256 digest.
+#!
+#! Note, in SHA256 2-to-1 hashing, 64 -bytes are padded, which is processed as second message
+#! block ( each SHA256 message block is 64 -bytes wide ). That message block is used for generating 
+#! message schedule of 64 SHA256 words. That's exactly what can be precomputed & is consumed here 
+#! ( in this routine ) into provided hash state.
+#!
+#! Expected stack state:
+#!
+#! [state0, state1, state2, state3, state4, state5, state6, state7, ...]
+#!
+#! Final stack state after completion of execution
+#!
+#! [state0', state1', state2', state3', state4', state5', state6', state7']
+#!
+#! Note, each SHA256 word is 32 -bit wide
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop 
+#! body execution when i = 1 i.e. consuming padding bytes )
 proc.consume_padding_message_schedule
     dupw.1
     dupw.1
@@ -6082,21 +6082,21 @@ proc.consume_padding_message_schedule
     movdn.7
 end
 
-# Given 64 -bytes input, this routine computes 32 -bytes SAH256 digest
-#
-# Expected stack state:
-#
-# [m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15] | m[0,16) = 32 -bit word
-#
-# Note, each SHA256 word is 32 -bit wide, so that's how input is expected.
-# If you've 64 -bytes, consider packing 4 consecutive bytes into single word, 
-# maintaining big endian byte order.
-#
-# Final stack state:
-#
-# [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7]
-#
-# SHA256 digest is represented in terms of eight 32 -bit words ( big endian byte order ).
+#! Given 64 -bytes input, this routine computes 32 -bytes SAH256 digest
+#!
+#! Expected stack state:
+#!
+#! [m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15] | m[0,16) = 32 -bit word
+#!
+#! Note, each SHA256 word is 32 -bit wide, so that's how input is expected.
+#! If you've 64 -bytes, consider packing 4 consecutive bytes into single word, 
+#! maintaining big endian byte order.
+#!
+#! Final stack state:
+#!
+#! [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7]
+#!
+#! SHA256 digest is represented in terms of eight 32 -bit words ( big endian byte order ).
 export.hash
     push.0x5be0cd19.0x1f83d9ab.0x9b05688c.0x510e527f
     push.0xa54ff53a.0x3c6ef372.0xbb67ae85.0x6a09e667
@@ -6108,26 +6108,26 @@ end
 // ----- std::math::ec_ext5 -----------------------------------------------------------------------
 ("std::math::ec_ext5", r#"use.std::math::ext5
 
-# Given an encoded elliptic curve point `w` s.t. it's expressed using
-# an element ∈ GF(p^5) | p = 2^64 - 2^32 + 1, this routine verifies whether
-# given point can be successfully decoded or not
-#
-# Expected stack state 
-#
-# [w0, w1, w2, w3, w4, ...]
-#
-# Final stack state 
-#
-# [flg, ...]
-#
-# If w can be decoded, flg = 1
-# Else flg = 0
-#
-# Note, if w = (0, 0, 0, 0, 0), it can be successfully decoded to point 
-# at infinity i.e. flg = 1, in that case.
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1043-L1052
-# for reference implementation
+#! Given an encoded elliptic curve point `w` s.t. it's expressed using
+#! an element ∈ GF(p^5) | p = 2^64 - 2^32 + 1, this routine verifies whether
+#! given point can be successfully decoded or not
+#!
+#! Expected stack state 
+#!
+#! [w0, w1, w2, w3, w4, ...]
+#!
+#! Final stack state 
+#!
+#! [flg, ...]
+#!
+#! If w can be decoded, flg = 1
+#! Else flg = 0
+#!
+#! Note, if w = (0, 0, 0, 0, 0), it can be successfully decoded to point 
+#! at infinity i.e. flg = 1, in that case.
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1043-L1052
+#! for reference implementation
 export.validate
     repeat.5
         dup.4
@@ -6155,27 +6155,27 @@ export.validate
     or
 end
 
-# Given an encoded elliptic curve point `w` s.t. it's expressed using
-# an element ∈ GF(p^5) | p = 2^64 - 2^32 + 1, this routine attempts to decode
-# it into x, y coordinates, along with boolean field element denoting whether it's
-# point-at-infinity or not.
-#
-# Expected stack state 
-#
-# [w0, w1, w2, w3, w4, ...]
-#
-# Final state state 
-#
-# [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, flg, ...]
-#
-# If `w` has be decoded, flg = 1
-# Else flg = 0 and x, y = (0, 0)
-#
-# Note, when w = (0, 0, 0, 0, 0), it will be successfully decoded to
-# point-at-infinity i.e. x, y = (0, 0) and flg = 1
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1022-L1041
-# for reference implementation
+#! Given an encoded elliptic curve point `w` s.t. it's expressed using
+#! an element ∈ GF(p^5) | p = 2^64 - 2^32 + 1, this routine attempts to decode
+#! it into x, y coordinates, along with boolean field element denoting whether it's
+#! point-at-infinity or not.
+#!
+#! Expected stack state 
+#!
+#! [w0, w1, w2, w3, w4, ...]
+#!
+#! Final state state 
+#!
+#! [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, flg, ...]
+#!
+#! If `w` has be decoded, flg = 1
+#! Else flg = 0 and x, y = (0, 0)
+#!
+#! Note, when w = (0, 0, 0, 0, 0), it will be successfully decoded to
+#! point-at-infinity i.e. x, y = (0, 0) and flg = 1
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1022-L1041
+#! for reference implementation
 export.decode
     repeat.5
         dup.4
@@ -6281,22 +6281,22 @@ export.decode
     add.6148914689804861441 # = x
 end
 
-# Given an elliptic curve point as Weierstraß coordinates (X, Y) along with
-# boolean field element `inf`, denoting whether this is point-at-infinity or not, 
-# this routine encodes it to a single element ∈ GF(p^5) | p = 2^64 - 2^32 + 1
-#
-# Expected stack state 
-#
-# [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, ...]
-#
-# Final stack state 
-#
-# [w0, w1, w2, w3, w4, ...]
-#
-# Note, when inf = 1, encoded point w = (0, 0, 0, 0, 0)
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1214-L1216
-# for reference implementation.
+#! Given an elliptic curve point as Weierstraß coordinates (X, Y) along with
+#! boolean field element `inf`, denoting whether this is point-at-infinity or not, 
+#! this routine encodes it to a single element ∈ GF(p^5) | p = 2^64 - 2^32 + 1
+#!
+#! Expected stack state 
+#!
+#! [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, ...]
+#!
+#! Final stack state 
+#!
+#! [w0, w1, w2, w3, w4, ...]
+#!
+#! Note, when inf = 1, encoded point w = (0, 0, 0, 0, 0)
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1214-L1216
+#! for reference implementation.
 export.encode
     push.0.0.0.0.6148914689804861441 # = a/ 3
 
@@ -6318,25 +6318,25 @@ export.encode
     end
 end
 
-# Given two elliptic curve points ( say a, b ) as Weierstraß coordinates (X, Y) on stack,
-# this routine computes elliptic curve point c, resulting from a + b.
-#
-# Following point addition formula is complete and it works when two points are 
-# same/ different or input operands are point-at-infinity.
-#
-# Expected stack state
-#
-# [x1_0, x1_1, x1_2, x1_3, x1_4, y1_0, y1_1, y1_2, y1_3, y1_4, inf1, x2_0, x2_1, x2_2, x2_3, x2_4, y2_0, y2_1, y2_2, y2_3, y2_4, inf2, ...]
-#
-# s.t. x1_{0..5} -> x1, y1_{0..5} -> y1 |> a = (x1, y1, inf1)
-#      x2_{0..5} -> x2, y2_{0..5} -> y2 |> b = (x2, y2, inf2)
-#
-# Final stack state
-#
-# [x3_0, x3_1, x3_2, x3_3, x3_4, y3_0, y3_1, y3_2, y3_3, y3_4, inf3, ...]
-#
-# Read point addition section ( on page 8 ) of https://ia.cr/2022/274
-# For reference implementation see https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1228-L1255
+#! Given two elliptic curve points ( say a, b ) as Weierstraß coordinates (X, Y) on stack,
+#! this routine computes elliptic curve point c, resulting from a + b.
+#!
+#! Following point addition formula is complete and it works when two points are 
+#! same/ different or input operands are point-at-infinity.
+#!
+#! Expected stack state
+#!
+#! [x1_0, x1_1, x1_2, x1_3, x1_4, y1_0, y1_1, y1_2, y1_3, y1_4, inf1, x2_0, x2_1, x2_2, x2_3, x2_4, y2_0, y2_1, y2_2, y2_3, y2_4, inf2, ...]
+#!
+#! s.t. x1_{0..5} -> x1, y1_{0..5} -> y1 |> a = (x1, y1, inf1)
+#!      x2_{0..5} -> x2, y2_{0..5} -> y2 |> b = (x2, y2, inf2)
+#!
+#! Final stack state
+#!
+#! [x3_0, x3_1, x3_2, x3_3, x3_4, y3_0, y3_1, y3_2, y3_3, y3_4, inf3, ...]
+#!
+#! Read point addition section ( on page 8 ) of https://ia.cr/2022/274
+#! For reference implementation see https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1228-L1255
 export.add.10
     loc_storew.0
     dropw
@@ -6586,26 +6586,26 @@ export.add.10
     movdn.10
 end
 
-# Given one elliptic curve point ( say a ) as Weierstraß coordinates (X, Y) on stack,
-# this routine computes elliptic curve point b s.t. b = 2 * a.
-#
-# Following point doubling formula is complete and it works only when input operand is
-# a non-infinity point, then resulting point b should also be non-infinity.
-#
-# Note, result of add(a, b) = double(a) | a = b
-#
-# Expected stack state
-#
-# [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, ...]
-#
-# s.t. x{0..5} -> x, y{0..5} -> y |> a = (x, y, inf)
-#
-# Final stack state
-#
-# [x'0, x'1, x'2, x'3, x'4, y'0, y'1, y'2, y'3, y'4, inf, ...]
-#
-# Read point addition section ( on page 8 ) of https://ia.cr/2022/274
-# For reference implementation see https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1270-L1280
+#! Given one elliptic curve point ( say a ) as Weierstraß coordinates (X, Y) on stack,
+#! this routine computes elliptic curve point b s.t. b = 2 * a.
+#!
+#! Following point doubling formula is complete and it works only when input operand is
+#! a non-infinity point, then resulting point b should also be non-infinity.
+#!
+#! Note, result of add(a, b) = double(a) | a = b
+#!
+#! Expected stack state
+#!
+#! [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, ...]
+#!
+#! s.t. x{0..5} -> x, y{0..5} -> y |> a = (x, y, inf)
+#!
+#! Final stack state
+#!
+#! [x'0, x'1, x'2, x'3, x'4, y'0, y'1, y'2, y'3, y'4, inf, ...]
+#!
+#! Read point addition section ( on page 8 ) of https://ia.cr/2022/274
+#! For reference implementation see https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1270-L1280
 export.double.5
     loc_storew.0
     dropw
@@ -6697,30 +6697,30 @@ export.double.5
     movdn.10
 end
 
-# Given an elliptic curve point ( say a ) as Weierstraß coordinates (X, Y) and a 319 -bit scalar ( say e )
-# on stack, this routine computes elliptic curve point b s.t. b =  e * a, using double-and-add technique.
-#
-# Scalar e should be lesser than 1067993516717146951041484916571792702745057740581727230159139685185762082554198619328292418486241 ( prime number ).
-# Note, scalar e should be provided as 10 limbs on stack, each of 32 -bit ( in little endian byte order ).
-# 
-# Given a scalar e ( as arbitrary width big integer ), following python code snippet should convert it to desired input form
-#
-# [(a >> (32*i)) & 0xffff_ffff for i in range(10)]
-#
-# Expected stack state
-#
-# [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, ...]
-#
-# Point a = (x, y, inf)
-# Scalar e = (e0, e1, e2, e3, e4, e5, e6, e7, e8, e9)
-#
-# Final stack state
-#
-# [x'0, x'1, x'2, x'3, x'4, y'0, y'1, y'2, y'3, y'4, inf, ...]
-#
-# Point b = (x', y' inf') | b = e * a
-#
-# See https://github.com/itzmeanjan/secp256k1/blob/cbbe199/point.py#L174-L186 for source of inpiration.
+#! Given an elliptic curve point ( say a ) as Weierstraß coordinates (X, Y) and a 319 -bit scalar ( say e )
+#! on stack, this routine computes elliptic curve point b s.t. b =  e * a, using double-and-add technique.
+#!
+#! Scalar e should be lesser than 1067993516717146951041484916571792702745057740581727230159139685185762082554198619328292418486241 ( prime number ).
+#! Note, scalar e should be provided as 10 limbs on stack, each of 32 -bit ( in little endian byte order ).
+#! 
+#! Given a scalar e ( as arbitrary width big integer ), following python code snippet should convert it to desired input form
+#!
+#! [(a >> (32*i)) & 0xffff_ffff for i in range(10)]
+#!
+#! Expected stack state
+#!
+#! [x0, x1, x2, x3, x4, y0, y1, y2, y3, y4, inf, e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, ...]
+#!
+#! Point a = (x, y, inf)
+#! Scalar e = (e0, e1, e2, e3, e4, e5, e6, e7, e8, e9)
+#!
+#! Final stack state
+#!
+#! [x'0, x'1, x'2, x'3, x'4, y'0, y'1, y'2, y'3, y'4, inf, ...]
+#!
+#! Point b = (x', y' inf') | b = e * a
+#!
+#! See https://github.com/itzmeanjan/secp256k1/blob/cbbe199/point.py#L174-L186 for source of inpiration.
 export.mul.10
     loc_storew.0
     dropw
@@ -6845,9 +6845,9 @@ export.mul.10
 end
 "#),
 // ----- std::math::ext2 --------------------------------------------------------------------------
-("std::math::ext2", r#"# Given a stack with initial configuration given by [a1,a0,b1,b0,...] where a = (a0,a1) and
-# b = (b0,b1) represent elements in the extension field of degree 2, the procedure outputs the 
-# product c = (c1,c0) where c0 = a0b0 - 2(a1b1) and c1 = (a0 + a1)(b0 + b1) - a0b0
+("std::math::ext2", r#"#! Given a stack with initial configuration given by [a1,a0,b1,b0,...] where a = (a0,a1) and
+#! b = (b0,b1) represent elements in the extension field of degree 2, the procedure outputs the 
+#! product c = (c1,c0) where c0 = a0b0 - 2(a1b1) and c1 = (a0 + a1)(b0 + b1) - a0b0
 export.mul
     dupw            #[a1,a0,b1,b0,a1,a0,b1,b0,...]
     swap.3          #[b0,a0,b1,a1,a1,a0,b1,b0,...]
@@ -6867,9 +6867,9 @@ export.mul
     sub             #[(b0+b1)(a1+a0)-b0a0,b0a0-2b1a1,...]
 end
 
-# Given a stack with initial configuration given by [x,a1,a0,...] where a = (a0,a1) is an element
-# in the field extension and x is an element of the base field, this procedure computes the multiplication
-# of x, when looked at as (x,0), with a in the extension field. The output is [xa1,xa0,...]
+#! Given a stack with initial configuration given by [x,a1,a0,...] where a = (a0,a1) is an element
+#! in the field extension and x is an element of the base field, this procedure computes the multiplication
+#! of x, when looked at as (x,0), with a in the extension field. The output is [xa1,xa0,...]
 export.mul_base
     dup         #[x,x,a1,a0,...]
     movdn.3     #[x,a1,a0,x,...]
@@ -6879,8 +6879,8 @@ export.mul_base
     swap        #[xa1,xa0,...]
 end
 
-# Given a stack in the following initial configuration [a1,a0,b1,b0,...] the following
-# procedure computes [a1+b1,a0+b0,...]
+#! Given a stack in the following initial configuration [a1,a0,b1,b0,...] the following
+#! procedure computes [a1+b1,a0+b0,...]
 export.add
     swap        #[a0,a1,b1,b0,...]
     movup.3     #[b0,a0,a1,b1,...]
@@ -6889,8 +6889,8 @@ export.add
     add         #[a1+b1,b0+a0,...]
 end
 
-# Given a stack in the following initial configuration [a1,a0,b1,b0,...] the following
-# procedure computes [a1-b1,a0-b0,...]
+#! Given a stack in the following initial configuration [a1,a0,b1,b0,...] the following
+#! procedure computes [a1-b1,a0-b0,...]
 export.sub
     swap        #[a0,a1,b1,b0,...]
     movup.3     #[b0,a0,a1,b1,...]
@@ -6900,21 +6900,21 @@ export.sub
     sub         #[a1-b1,a0-b0,...]
 end"#),
 // ----- std::math::ext5 --------------------------------------------------------------------------
-("std::math::ext5", r#"# Given two GF(p^5) elements on stack, this routine computes modular
-# addition over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
-#
-# After application of routine stack :
-#
-# [c0, c1, c2, c3, c4, ...] s.t. c = a + b
-#
-# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
-#
-# For reference implementation in high level language, see 
-# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L607-L616
+("std::math::ext5", r#"#! Given two GF(p^5) elements on stack, this routine computes modular
+#! addition over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#!
+#! After application of routine stack :
+#!
+#! [c0, c1, c2, c3, c4, ...] s.t. c = a + b
+#!
+#! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#!
+#! For reference implementation in high level language, see 
+#! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L607-L616
 export.add
     repeat.5
         movup.5
@@ -6923,21 +6923,21 @@ export.add
     end
 end
 
-# Given two GF(p^5) elements on stack, this routine subtracts second
-# element from first one, over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
-#
-# After application of routine stack :
-#
-# [c0, c1, c2, c3, c4, ...] s.t. c = a - b
-#
-# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
-#
-# For reference implementation in high level language, see 
-# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L629-L638
+#! Given two GF(p^5) elements on stack, this routine subtracts second
+#! element from first one, over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#!
+#! After application of routine stack :
+#!
+#! [c0, c1, c2, c3, c4, ...] s.t. c = a - b
+#!
+#! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#!
+#! For reference implementation in high level language, see 
+#! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L629-L638
 export.sub
     repeat.5
         movup.5
@@ -6946,22 +6946,22 @@ export.sub
     end
 end
 
-# Given two GF(p^5) elements on stack, this routine computes modular
-# multiplication ( including reduction by irreducible polynomial ) 
-# over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
-#
-# After application of routine stack :
-#
-# [c0, c1, c2, c3, c4, ...] s.t. c = a * b
-#
-# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
-#
-# For reference implementation in high level language, see 
-# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L676-L689
+#! Given two GF(p^5) elements on stack, this routine computes modular
+#! multiplication ( including reduction by irreducible polynomial ) 
+#! over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#!
+#! After application of routine stack :
+#!
+#! [c0, c1, c2, c3, c4, ...] s.t. c = a * b
+#!
+#! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#!
+#! For reference implementation in high level language, see 
+#! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L676-L689
 export.mul
     # compute {c0, c1, c2, c3, c4} - five coefficients of resulting
     # degree-4 polynomial
@@ -7122,24 +7122,24 @@ export.mul
     add
 end
 
-# Given one GF(p^5) element on stack, this routine computes modular
-# squaring ( including reduction by irreducible polynomial ) 
-# over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
-#
-# This routine has same effect as calling mul(a, a) | a ∈ GF(p^5)
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, ...]
-#
-# After application of routine stack :
-#
-# [b0, b1, b2, b3, b4, ...] s.t. b = a * a
-#
-# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
-#
-# For reference implementation in high level language, see 
-# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L709-L715
+#! Given one GF(p^5) element on stack, this routine computes modular
+#! squaring ( including reduction by irreducible polynomial ) 
+#! over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#!
+#! This routine has same effect as calling mul(a, a) | a ∈ GF(p^5)
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, ...]
+#!
+#! After application of routine stack :
+#!
+#! [b0, b1, b2, b3, b4, ...] s.t. b = a * a
+#!
+#! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#!
+#! For reference implementation in high level language, see 
+#! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L709-L715
 export.square
     # compute {b0, b1, b2, b3, b4} - five coefficients of resulting
     # degree-4 polynomial
@@ -7242,19 +7242,19 @@ export.square
     add
 end
 
-# Given an element a ∈ GF(p^5), this routine applies Frobenius operator
-# once, raising the element to the power of p | p = 2^64 - 2^32 + 1.
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, ...]
-#
-# Final stack state :
-#
-# [b0, b1, b2, b3, b4, ...]
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L723-L737
-# for reference implementation in high-level language.
+#! Given an element a ∈ GF(p^5), this routine applies Frobenius operator
+#! once, raising the element to the power of p | p = 2^64 - 2^32 + 1.
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, ...]
+#!
+#! Final stack state :
+#!
+#! [b0, b1, b2, b3, b4, ...]
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L723-L737
+#! for reference implementation in high-level language.
 proc.frobenius_once
     movup.4
     mul.1373043270956696022
@@ -7271,19 +7271,19 @@ proc.frobenius_once
     movup.4
 end
 
-# Given an element a ∈ GF(p^5), this routine applies Frobenius operator
-# twice, raising the element to the power of p^2 | p = 2^64 - 2^32 + 1.
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, ...]
-#
-# Final stack state :
-#
-# [b0, b1, b2, b3, b4, ...]
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L739-L749
-# for reference implementation in high-level language.
+#! Given an element a ∈ GF(p^5), this routine applies Frobenius operator
+#! twice, raising the element to the power of p^2 | p = 2^64 - 2^32 + 1.
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, ...]
+#!
+#! Final stack state :
+#!
+#! [b0, b1, b2, b3, b4, ...]
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L739-L749
+#! for reference implementation in high-level language.
 proc.frobenius_twice
     movup.4
     mul.211587555138949697
@@ -7300,23 +7300,23 @@ proc.frobenius_twice
     movup.4
 end
 
-# Given one GF(p^5) element on stack, this routine computes multiplicative
-# inverse over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, ...]
-#
-# After application of routine stack :
-#
-# [b0, b1, b2, b3, b4, ...] s.t. b = 1 / a
-#
-# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
-#
-# For reference implementation in high level language, see 
-# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L751-L775
-#
-# Note, this routine will not panic even when operand `a` is zero.
+#! Given one GF(p^5) element on stack, this routine computes multiplicative
+#! inverse over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, ...]
+#!
+#! After application of routine stack :
+#!
+#! [b0, b1, b2, b3, b4, ...] s.t. b = 1 / a
+#!
+#! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#!
+#! For reference implementation in high level language, see 
+#! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L751-L775
+#!
+#! Note, this routine will not panic even when operand `a` is zero.
 export.inv
     repeat.5
         dup.4
@@ -7397,21 +7397,21 @@ export.inv
     mul
 end
 
-# Given two GF(p^5) elements ( say a, b ) on stack, this routine computes
-# modular division over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
-#
-# After application of routine stack :
-#
-# [c0, c1, c2, c3, c4, ...] s.t. c = a / b
-#
-# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
-#
-# For reference implementation in high level language, see 
-# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L777-L781
+#! Given two GF(p^5) elements ( say a, b ) on stack, this routine computes
+#! modular division over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#!
+#! After application of routine stack :
+#!
+#! [c0, c1, c2, c3, c4, ...] s.t. c = a / b
+#!
+#! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#!
+#! For reference implementation in high level language, see 
+#! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L777-L781
 export.div
     repeat.5
         movup.9
@@ -7421,19 +7421,19 @@ export.div
     exec.mul
 end
 
-# Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, and n on stack, this routine
-# raises it to the power 2^n, by means of n successive squarings
-#
-# Expected stack stack
-#
-# [v, n, ...] | n >= 0
-#
-# After finishing execution stack
-#
-# [v', ...] s.t. v' = v ^ (2^n)
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L461-L469
-# for reference implementation in higher level language
+#! Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, and n on stack, this routine
+#! raises it to the power 2^n, by means of n successive squarings
+#!
+#! Expected stack stack
+#!
+#! [v, n, ...] | n >= 0
+#!
+#! After finishing execution stack
+#!
+#! [v', ...] s.t. v' = v ^ (2^n)
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L461-L469
+#! for reference implementation in higher level language
 proc.base_msquare
     swap
     dup
@@ -7453,22 +7453,22 @@ proc.base_msquare
     drop
 end
 
-# Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine attempts to compute
-# square root of v, if that number is a square.
-#
-# Expected stack state :
-#
-# [v, ...]
-#
-# After finishing execution stack looks like :
-#
-# [v', flg, ...]
-#
-# If flg = 1, it denotes v' is square root of v i.e. v' * v' = v ( mod q )
-# If flg = 0, then v' = 0, denoting v doesn't have a square root
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L349-L446
-# for reference implementation in higher level language.
+#! Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine attempts to compute
+#! square root of v, if that number is a square.
+#!
+#! Expected stack state :
+#!
+#! [v, ...]
+#!
+#! After finishing execution stack looks like :
+#!
+#! [v', flg, ...]
+#!
+#! If flg = 1, it denotes v' is square root of v i.e. v' * v' = v ( mod q )
+#! If flg = 0, then v' = 0, denoting v doesn't have a square root
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L349-L446
+#! for reference implementation in higher level language.
 proc.base_sqrt
     dup # = x
 
@@ -8273,19 +8273,19 @@ proc.base_sqrt
     mul # On stack [u * cc, cc, ...]
 end
 
-# Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine computes
-# legendre symbol, by raising that element to the power (p-1) / 2
-#
-# Expected stack state :
-#
-# [v, ...]
-#
-# After finishing execution stack looks like
-#
-# [v', ...] s.t. v' = legendre symbol of v
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L448-L459
-# for reference implementation in higher level language.
+#! Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine computes
+#! legendre symbol, by raising that element to the power (p-1) / 2
+#!
+#! Expected stack state :
+#!
+#! [v, ...]
+#!
+#! After finishing execution stack looks like
+#!
+#! [v', ...] s.t. v' = legendre symbol of v
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L448-L459
+#! for reference implementation in higher level language.
 proc.base_legendre
     repeat.31
         dup
@@ -8307,19 +8307,19 @@ proc.base_legendre
     div
 end
 
-# Given an element v ∈ GF(p^5), this routine computes its legendre symbol,
-# which is an element ∈ GF(p) | p = 2^64 - 2^32 + 1
-#
-# At beginning stack looks like
-#
-# [a0, a1, a2, a3, a4, ...]
-#
-# At end stack looks like
-#
-# [b, ...] s.t. b = legendre symbol of a
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L857-L877
-# for reference implementation in higher level language.
+#! Given an element v ∈ GF(p^5), this routine computes its legendre symbol,
+#! which is an element ∈ GF(p) | p = 2^64 - 2^32 + 1
+#!
+#! At beginning stack looks like
+#!
+#! [a0, a1, a2, a3, a4, ...]
+#!
+#! At end stack looks like
+#!
+#! [b, ...] s.t. b = legendre symbol of a
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L857-L877
+#! for reference implementation in higher level language.
 export.legendre
     repeat.5
         dup.4
@@ -8375,22 +8375,22 @@ export.legendre
     exec.base_legendre
 end
 
-# Given an element v ∈ GF(p^5), this routine attempts to compute square root of v, 
-# if that number is a square.
-#
-# At beginning stack looks like
-#
-# [a0, a1, a2, a3, a4, ...]
-#
-# At end stack looks like
-#
-# [b0, b1, b2, b3, b4, flg, ...]
-#
-# If flg = 1, it denotes v' = {b0, b1, b2, b3, b4} is square root of v i.e. v' * v' = v ( mod GF(p^5) )
-# If flg = 0, then v' = {0, 0, 0, 0, 0}, denoting v doesn't have a square root
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L879-L910
-# for reference implementation in higher level language.
+#! Given an element v ∈ GF(p^5), this routine attempts to compute square root of v, 
+#! if that number is a square.
+#!
+#! At beginning stack looks like
+#!
+#! [a0, a1, a2, a3, a4, ...]
+#!
+#! At end stack looks like
+#!
+#! [b0, b1, b2, b3, b4, flg, ...]
+#!
+#! If flg = 1, it denotes v' = {b0, b1, b2, b3, b4} is square root of v i.e. v' * v' = v ( mod GF(p^5) )
+#! If flg = 0, then v' = {0, 0, 0, 0, 0}, denoting v doesn't have a square root
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L879-L910
+#! for reference implementation in higher level language.
 export.sqrt
     repeat.5
         dup.4
@@ -8483,21 +8483,21 @@ export.sqrt
     drop # On stack [e0, e1, e2, e3, e4, c, ...]
 end
 
-# Given two elements a, b ∈ GF(p^5), this routine produces single field element r,
-# denoting whether a == b.
-#
-# Expected stack state 
-#
-# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
-#
-# Final stack state 
-#
-# [r, ...]
-#
-# If a == b { r = 1 } Else { r = 0 }
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L797-L806
-# for reference implementation.
+#! Given two elements a, b ∈ GF(p^5), this routine produces single field element r,
+#! denoting whether a == b.
+#!
+#! Expected stack state 
+#!
+#! [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#!
+#! Final stack state 
+#!
+#! [r, ...]
+#!
+#! If a == b { r = 1 } Else { r = 0 }
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L797-L806
+#! for reference implementation.
 export.eq
     push.1
 
@@ -8527,21 +8527,21 @@ export.eq
     and
 end
 
-# Given two elements a, b ∈ GF(p^5), this routine produces single field element r,
-# denoting whether a != b.
-#
-# Expected stack state 
-#
-# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
-#
-# Final stack state 
-#
-# [r, ...]
-#
-# If a != b { r = 1 } Else { r = 0 }
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L813-L822
-# for reference implementation.
+#! Given two elements a, b ∈ GF(p^5), this routine produces single field element r,
+#! denoting whether a != b.
+#!
+#! Expected stack state 
+#!
+#! [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#!
+#! Final stack state 
+#!
+#! [r, ...]
+#!
+#! If a != b { r = 1 } Else { r = 0 }
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L813-L822
+#! for reference implementation.
 export.neq
     push.0
 
@@ -8572,27 +8572,27 @@ export.neq
 end
 "#),
 // ----- std::math::ntt512 ------------------------------------------------------------------------
-("std::math::ntt512", r#"# Applies four NTT butterflies on four different indices, given following stack state
-#
-# [k0, k1, k2, k3, A0, B0, C0, D0, A1, B1, C1, D1]
-# 
-# Here k`i` => i-th constant i.e. ω raised to *some* power | ω => 2N -th primitive root of unity, N = 512
-#
-# A{0, 1} -> first butterfly will be applied on these two elements
-# B{0, 1} -> second butterfly will be applied on these two elements
-# C{0, 1} -> third butterfly will be applied on these two elements
-# D{0, 1} -> fourth butterfly will be applied on these two elements
-#
-# Four independent butterflies are applied in following way
-#
-# ζ = k0 * A0  | ζ = k1 * B0  | ζ = k2 * C0  | ζ = k3 * D0
-# --- --- --- --- --- --- --- --- --- --- --- --- --- --- -
-# A0' = A1 - ζ | B0' = B1 - ζ | C0' = C1 - ζ | D0' = D1 - ζ
-# A1' = A1 + ζ | B1' = B1 + ζ | C1' = C1 + ζ | D1' = D1 + ζ
-#
-# After four independent butterflies are applied, resulting stack state should look like
-#
-# [A0', B0', C0', D0', A1', B1', C1', D1']
+("std::math::ntt512", r#"#! Applies four NTT butterflies on four different indices, given following stack state
+#!
+#! [k0, k1, k2, k3, A0, B0, C0, D0, A1, B1, C1, D1]
+#! 
+#! Here k`i` => i-th constant i.e. ω raised to *some* power | ω => 2N -th primitive root of unity, N = 512
+#!
+#! A{0, 1} -> first butterfly will be applied on these two elements
+#! B{0, 1} -> second butterfly will be applied on these two elements
+#! C{0, 1} -> third butterfly will be applied on these two elements
+#! D{0, 1} -> fourth butterfly will be applied on these two elements
+#!
+#! Four independent butterflies are applied in following way
+#!
+#! ζ = k0 * A0  | ζ = k1 * B0  | ζ = k2 * C0  | ζ = k3 * D0
+#! --- --- --- --- --- --- --- --- --- --- --- --- --- --- -
+#! A0' = A1 - ζ | B0' = B1 - ζ | C0' = C1 - ζ | D0' = D1 - ζ
+#! A1' = A1 + ζ | B1' = B1 + ζ | C1' = C1 + ζ | D1' = D1 + ζ
+#!
+#! After four independent butterflies are applied, resulting stack state should look like
+#!
+#! [A0', B0', C0', D0', A1', B1', C1', D1']
 proc.butterfly
     movup.4
     mul
@@ -8655,25 +8655,25 @@ proc.butterfly
     movdn.3
 end
 
-# Applies forward NTT on a vector of length 512, where each element ∈ Zp | p = 2^64 − 2^32 + 1,
-# producing elements in frequency domain in bit-reversed order.
-#
-# Expected stack state as input:
-#
-# [start_addr, ...] | Single absolute memory address, where polynomial starts
-#
-# Note, total 128 memory addresses are required for storing whole polynomial. Next 127
-# addresses are consecutive i.e. computable by using `add.1` instruction on previous address.
-#
-# addr{i} holds values V[(i << 2) .. ((i+1) << 2)] | i ∈ [0, 128) and addr0 = start_addr
-#
-# After applying NTT, bit-reversed order vector is returned back as single absolute memory
-# addresses on stack, where it begins storing the polynomial. Consecutive 127 addresses should be
-# computable using `add.1` instruction.
-#
-# [start_addr', ...] | Single absolute memory address, where resulting polynomial starts
-#
-# Note, input memory allocation is not mutated, instead output is stored in different memory allocation.
+#! Applies forward NTT on a vector of length 512, where each element ∈ Zp | p = 2^64 − 2^32 + 1,
+#! producing elements in frequency domain in bit-reversed order.
+#!
+#! Expected stack state as input:
+#!
+#! [start_addr, ...] | Single absolute memory address, where polynomial starts
+#!
+#! Note, total 128 memory addresses are required for storing whole polynomial. Next 127
+#! addresses are consecutive i.e. computable by using `add.1` instruction on previous address.
+#!
+#! addr{i} holds values V[(i << 2) .. ((i+1) << 2)] | i ∈ [0, 128) and addr0 = start_addr
+#!
+#! After applying NTT, bit-reversed order vector is returned back as single absolute memory
+#! addresses on stack, where it begins storing the polynomial. Consecutive 127 addresses should be
+#! computable using `add.1` instruction.
+#!
+#! [start_addr', ...] | Single absolute memory address, where resulting polynomial starts
+#!
+#! Note, input memory allocation is not mutated, instead output is stored in different memory allocation.
 export.forward.128
     # prepare input
 
@@ -9672,27 +9672,27 @@ export.forward.128
 	locaddr.0
 end
 
-# Applies four inverse NTT butterflies on four different indices, given following stack state
-#
-# [k0, k1, k2, k3, A0, B0, C0, D0, A1, B1, C1, D1]
-# 
-# Here k`i` => i-th constant i.e. negative of ω raised to *some* power | ω => 2N -th primitive root of unity, N = 512
-#
-# A{0, 1} -> first inverse butterfly will be applied on these two elements
-# B{0, 1} -> second inverse butterfly will be applied on these two elements
-# C{0, 1} -> third inverse butterfly will be applied on these two elements
-# D{0, 1} -> fourth inverse butterfly will be applied on these two elements
-#
-# Four independent inverse butterflies are applied in following way
-#
-# t0 = A1  			   | t1 = B1  			  | t2 = C1				 | t3 = D1
-# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- -
-# A1' = t0 + A0		   | B1' = t1 + B0 		  | C1' = t2 + C0 		 | D1' = t3 + D0
-# A0' = (t0 - A0) * k0 | B0' = (t1 - B0) * k1 | C0' = (t2 - C0) * k2 | D0' = (t3 - D0) * k3
-#
-# After four independent butterflies are applied, resulting stack state should look like
-#
-# [A0', B0', C0', D0', A1', B1', C1', D1']
+#! Applies four inverse NTT butterflies on four different indices, given following stack state
+#!
+#! [k0, k1, k2, k3, A0, B0, C0, D0, A1, B1, C1, D1]
+#! 
+#! Here k`i` => i-th constant i.e. negative of ω raised to *some* power | ω => 2N -th primitive root of unity, N = 512
+#!
+#! A{0, 1} -> first inverse butterfly will be applied on these two elements
+#! B{0, 1} -> second inverse butterfly will be applied on these two elements
+#! C{0, 1} -> third inverse butterfly will be applied on these two elements
+#! D{0, 1} -> fourth inverse butterfly will be applied on these two elements
+#!
+#! Four independent inverse butterflies are applied in following way
+#!
+#! t0 = A1  			   | t1 = B1  			  | t2 = C1				 | t3 = D1
+#! --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- -
+#! A1' = t0 + A0		   | B1' = t1 + B0 		  | C1' = t2 + C0 		 | D1' = t3 + D0
+#! A0' = (t0 - A0) * k0 | B0' = (t1 - B0) * k1 | C0' = (t2 - C0) * k2 | D0' = (t3 - D0) * k3
+#!
+#! After four independent butterflies are applied, resulting stack state should look like
+#!
+#! [A0', B0', C0', D0', A1', B1', C1', D1']
 proc.ibutterfly
 	dupw.2
 	dupw.2
@@ -9757,20 +9757,20 @@ proc.ibutterfly
 	movdn.3
 end
 
-# Given four elements on stack top, this routine multiplies each of them by invN = 18410715272404008961,
-# such that N = 512
-#
-# invN = (1/ 512) modulo q | q = 2^64 - 2^32 + 1
-#
-# Expected input stack state:
-#
-# [a0, a1, a2, a3]
-#
-# After applying routine, stack looks like
-#
-# [a0', a1', a2', a3']
-#
-# a{i}' = (a{i} * invN) modulo q | i ∈ [0, 4)
+#! Given four elements on stack top, this routine multiplies each of them by invN = 18410715272404008961,
+#! such that N = 512
+#!
+#! invN = (1/ 512) modulo q | q = 2^64 - 2^32 + 1
+#!
+#! Expected input stack state:
+#!
+#! [a0, a1, a2, a3]
+#!
+#! After applying routine, stack looks like
+#!
+#! [a0', a1', a2', a3']
+#!
+#! a{i}' = (a{i} * invN) modulo q | i ∈ [0, 4)
 proc.mul_by_invN
 	push.18410715272404008961
 	mul
@@ -9791,26 +9791,26 @@ proc.mul_by_invN
 	movdn.3
 end
 
-# Applies inverse NTT on a vector of length 512, where each element ∈ Zp | p = 2^64 − 2^32 + 1,
-# producing elements in time domain in standard order, while input vector is expected to be in 
-# bit-reversed order.
-#
-# Expected stack state as input:
-#
-# [start_addr, ...] | Single absolute memory address, where polynomial starts
-#
-# Note, total 128 memory addresses are required for storing whole polynomial. Next 127
-# addresses are consecutive i.e. computable by using `add.1` instruction on previous address.
-#
-# addr{i} holds values V[(i << 2) .. ((i+1) << 2)] | i ∈ [0, 128) and addr0 = start_addr
-#
-# After applying iNTT, normal order vector is returned back as single absolute memory
-# addresses on stack, where it begins storing the polynomial. Consecutive 127 addresses should 
-# similarly be computable using `add.1` instruction.
-#
-# [start_addr', ...] | Single absolute memory address, where resulting polynomial starts
-#
-# Note, input memory allocation is not mutated, instead output is stored in different memory allocation.
+#! Applies inverse NTT on a vector of length 512, where each element ∈ Zp | p = 2^64 − 2^32 + 1,
+#! producing elements in time domain in standard order, while input vector is expected to be in 
+#! bit-reversed order.
+#!
+#! Expected stack state as input:
+#!
+#! [start_addr, ...] | Single absolute memory address, where polynomial starts
+#!
+#! Note, total 128 memory addresses are required for storing whole polynomial. Next 127
+#! addresses are consecutive i.e. computable by using `add.1` instruction on previous address.
+#!
+#! addr{i} holds values V[(i << 2) .. ((i+1) << 2)] | i ∈ [0, 128) and addr0 = start_addr
+#!
+#! After applying iNTT, normal order vector is returned back as single absolute memory
+#! addresses on stack, where it begins storing the polynomial. Consecutive 127 addresses should 
+#! similarly be computable using `add.1` instruction.
+#!
+#! [start_addr', ...] | Single absolute memory address, where resulting polynomial starts
+#!
+#! Note, input memory allocation is not mutated, instead output is stored in different memory allocation.
 export.backward.128
 	# prepare input
 
@@ -10835,21 +10835,21 @@ end
 ("std::math::poly512", r#"use.std::math::ntt512
 use.std::math::u64
 
-# Given two consecutive words on stack, this routine performs 
-# element wise multiplication, while keeping resulting single
-# word on stack.
-#
-# Expected stack state looks like
-#
-# [a0, a1, a2, a3, b0, b1, b2, b3]
-#
-# What this routine does is
-#
-# c`i` = a`i` * b`i` mod P | i ∈ [0, 4), P = 2 ^ 64 - 2 ^ 32 + 1
-#
-# Output stack state looks like
-#
-# [c0, c1, c2, c3]
+#! Given two consecutive words on stack, this routine performs 
+#! element wise multiplication, while keeping resulting single
+#! word on stack.
+#!
+#! Expected stack state looks like
+#!
+#! [a0, a1, a2, a3, b0, b1, b2, b3]
+#!
+#! What this routine does is
+#!
+#! c`i` = a`i` * b`i` mod P | i ∈ [0, 4), P = 2 ^ 64 - 2 ^ 32 + 1
+#!
+#! Output stack state looks like
+#!
+#! [c0, c1, c2, c3]
 proc.mul_word
     movup.4
     mul
@@ -10867,21 +10867,21 @@ proc.mul_word
     movdn.3
 end
 
-# Given two consecutive words on stack, this routine performs 
-# element wise addition, while keeping resulting single
-# word on stack.
-#
-# Expected stack state looks like
-#
-# [a0, a1, a2, a3, b0, b1, b2, b3]
-#
-# What this routine does is
-#
-# c`i` = a`i` + b`i` mod P | i ∈ [0, 4), P = 2 ^ 64 - 2 ^ 32 + 1
-#
-# Output stack state looks like
-#
-# [c0, c1, c2, c3]
+#! Given two consecutive words on stack, this routine performs 
+#! element wise addition, while keeping resulting single
+#! word on stack.
+#!
+#! Expected stack state looks like
+#!
+#! [a0, a1, a2, a3, b0, b1, b2, b3]
+#!
+#! What this routine does is
+#!
+#! c`i` = a`i` + b`i` mod P | i ∈ [0, 4), P = 2 ^ 64 - 2 ^ 32 + 1
+#!
+#! Output stack state looks like
+#!
+#! [c0, c1, c2, c3]
 proc.add_word
     movup.4
     add
@@ -10899,15 +10899,15 @@ proc.add_word
     movdn.3
 end
 
-# Given dividend ( i.e. field element a ) on stack top, this routine computes c = a % 12289
-#
-# Expected stack state
-#
-# [a, ...]
-#
-# Output stack state looks like
-#
-# [c, ...] | c = a % 12289
+#! Given dividend ( i.e. field element a ) on stack top, this routine computes c = a % 12289
+#!
+#! Expected stack state
+#!
+#! [a, ...]
+#!
+#! Output stack state looks like
+#!
+#! [c, ...] | c = a % 12289
 export.mod_12289
     u32split
     push.12289.0
@@ -10950,20 +10950,20 @@ export.mod_12289
     drop
 end
 
-# Given four elements on stack top, this routine reduces them by applying
-# modular division by 12289 ( = Falcon Signature Algorithm's Prime Number )
-#
-# Input stack state :
-#
-# [a0, a1, a3, a3, ...]
-#
-# Operated such that
-#
-# b`i` = a`i` % 12289 | i ∈ [0..4)
-#
-# Output stack state :
-#
-# [b0, b1, b2, b3, ...]
+#! Given four elements on stack top, this routine reduces them by applying
+#! modular division by 12289 ( = Falcon Signature Algorithm's Prime Number )
+#!
+#! Input stack state :
+#!
+#! [a0, a1, a3, a3, ...]
+#!
+#! Operated such that
+#!
+#! b`i` = a`i` % 12289 | i ∈ [0..4)
+#!
+#! Output stack state :
+#!
+#! [b0, b1, b2, b3, ...]
 proc.mod_12289_word
     exec.mod_12289
 
@@ -10980,21 +10980,21 @@ proc.mod_12289_word
     movdn.3
 end
 
-# Given an operand on stack, this routine negates the element, using modular arithmetic
-# over Falcon Digital Signature Algorithm's prime field = 12289.
-#
-# All this routine does is
-#
-# b = (0 - a) % Q
-#   = Q - a % Q | Q = 12289
-#
-# Input stack state
-#
-# [a,  ...]
-#
-# Output stack state looks like
-#
-# [b, ...] | b ∈ [0..12289)
+#! Given an operand on stack, this routine negates the element, using modular arithmetic
+#! over Falcon Digital Signature Algorithm's prime field = 12289.
+#!
+#! All this routine does is
+#!
+#! b = (0 - a) % Q
+#!   = Q - a % Q | Q = 12289
+#!
+#! Input stack state
+#!
+#! [a,  ...]
+#!
+#! Output stack state looks like
+#!
+#! [b, ...] | b ∈ [0..12289)
 proc.neg
     exec.mod_12289
 
@@ -11003,21 +11003,21 @@ proc.neg
     sub
 end
 
-# Given four elements on stack, this routine negates those, using modular arithmetic
-# over Falcon Digital Signature Algorithm's prime field = 12289.
-#
-# All this routine does is
-#
-# b`i` = (0 - a`i`) % Q
-#   = Q - a`i` % Q | Q = 12289 & i ∈ [0..4)
-#
-# Input stack state
-#
-# [a0, a1, a2, a3, ...]
-#
-# Output stack state looks like
-#
-# [b0, b1, b2, b3 ...] | b`i` ∈ [0..12289)
+#! Given four elements on stack, this routine negates those, using modular arithmetic
+#! over Falcon Digital Signature Algorithm's prime field = 12289.
+#!
+#! All this routine does is
+#!
+#! b`i` = (0 - a`i`) % Q
+#!   = Q - a`i` % Q | Q = 12289 & i ∈ [0..4)
+#!
+#! Input stack state
+#!
+#! [a0, a1, a2, a3, ...]
+#!
+#! Output stack state looks like
+#!
+#! [b0, b1, b2, b3 ...] | b`i` ∈ [0..12289)
 proc.neg_word
     exec.neg
 
@@ -11034,27 +11034,27 @@ proc.neg_word
     movdn.3
 end
 
-# Given a field element, this routine does centered reduction using Miden VM
-# prime ( say Q ) and then reduces it using Falcon Post Quantum Digital 
-# Signature Algorithm prime ( say Q' )
-#
-# Q = 2 ^ 64 - 2 ^ 32 + 1
-# Q' = 12289
-#
-# Expected stack state
-#
-# [a, ...]
-#
-# All this routine does is
-#
-# if a > (Q >> 1):
-#   b = (a - Q) % Q'
-# else:
-#   b = a % Q'
-#
-# Final stack state looks like
-#
-# [b, ...]
+#! Given a field element, this routine does centered reduction using Miden VM
+#! prime ( say Q ) and then reduces it using Falcon Post Quantum Digital 
+#! Signature Algorithm prime ( say Q' )
+#!
+#! Q = 2 ^ 64 - 2 ^ 32 + 1
+#! Q' = 12289
+#!
+#! Expected stack state
+#!
+#! [a, ...]
+#!
+#! All this routine does is
+#!
+#! if a > (Q >> 1):
+#!   b = (a - Q) % Q'
+#! else:
+#!   b = a % Q'
+#!
+#! Final stack state looks like
+#!
+#! [b, ...]
 proc.reduce
     dup
     push.9223372034707292160
@@ -11083,19 +11083,19 @@ proc.reduce
     end
 end
 
-# Reduces four consecutive elements living on stack top using `reduce` routine ( defined above )
-#
-# Expected stack state
-#
-# [a0, a1, a2, a3, ...]
-#
-# What this routine does is
-#
-# b`i` = reduce(a`i`)
-#
-# Final stack state looks like
-#
-# [b0, b1, b2, b3, ...]
+#! Reduces four consecutive elements living on stack top using `reduce` routine ( defined above )
+#!
+#! Expected stack state
+#!
+#! [a0, a1, a2, a3, ...]
+#!
+#! What this routine does is
+#!
+#! b`i` = reduce(a`i`)
+#!
+#! Final stack state looks like
+#!
+#! [b0, b1, b2, b3, ...]
 proc.reduce_word
     exec.reduce
 
@@ -11112,32 +11112,32 @@ proc.reduce_word
     movdn.3
 end
 
-# Given two polynomials of degree 512 on stack as absolute memory addresses,
-# this routine computes polynomial multiplication, using NTT and iNTT.
-#
-# Imagine, two polynomials are f, g
-#
-# h = f . g, can be computed using
-#
-# iNTT(NTT(f) * NTT(g))
-#
-# Note, * -> element wise multiplication of polynomial coefficients in NTT domain
-#
-# Input stack state :
-#
-# [f_start_addr, g_start_addr, h_start_addr, ...]
-#
-# - {f, g, h}_addr`i` -> {f, g, h}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
-# - {f, g, h}_addr0 -> {f, g, h}_start_addr
-#
-# Output stack state :
-#
-# [ ... ]
-#
-# Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
-# continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
-#
-# Note, input memory addresses are considered to be read-only, they are not mutated.
+#! Given two polynomials of degree 512 on stack as absolute memory addresses,
+#! this routine computes polynomial multiplication, using NTT and iNTT.
+#!
+#! Imagine, two polynomials are f, g
+#!
+#! h = f . g, can be computed using
+#!
+#! iNTT(NTT(f) * NTT(g))
+#!
+#! Note, * -> element wise multiplication of polynomial coefficients in NTT domain
+#!
+#! Input stack state :
+#!
+#! [f_start_addr, g_start_addr, h_start_addr, ...]
+#!
+#! - {f, g, h}_addr`i` -> {f, g, h}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
+#! - {f, g, h}_addr0 -> {f, g, h}_start_addr
+#!
+#! Output stack state :
+#!
+#! [ ... ]
+#!
+#! Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
+#! continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
+#!
+#! Note, input memory addresses are considered to be read-only, they are not mutated.
 export.mul_zq.128
     exec.ntt512::forward
 
@@ -11228,30 +11228,30 @@ export.mul_zq.128
     drop
 end
 
-# Given two polynomials of degree 512 on stack as absolute memory addresses,
-# this routine computes polynomial addition.
-#
-# Imagine, two polynomials f, g
-#
-# h = f + g, can be computed as
-#
-# [(f[i] + g[i]) % Q for i in range(512)] | Q = 12289 ( = Falcon Digital Signature Algorithm's Prime Number )
-#
-# Input stack state :
-#
-# [f_start_addr, g_start_addr, h_start_addr, ...]
-#
-# - {f, g, h}_addr`i` -> {f, g, h}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
-# - {f, g, h}_addr0 -> {f, g, h}_start_addr
-#
-# Output stack state :
-#
-# [ ... ]
-#
-# Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
-# continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
-#
-# Note, input memory addresses are considered to be read-only, they are not mutated.
+#! Given two polynomials of degree 512 on stack as absolute memory addresses,
+#! this routine computes polynomial addition.
+#!
+#! Imagine, two polynomials f, g
+#!
+#! h = f + g, can be computed as
+#!
+#! [(f[i] + g[i]) % Q for i in range(512)] | Q = 12289 ( = Falcon Digital Signature Algorithm's Prime Number )
+#!
+#! Input stack state :
+#!
+#! [f_start_addr, g_start_addr, h_start_addr, ...]
+#!
+#! - {f, g, h}_addr`i` -> {f, g, h}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
+#! - {f, g, h}_addr0 -> {f, g, h}_start_addr
+#!
+#! Output stack state :
+#!
+#! [ ... ]
+#!
+#! Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
+#! continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
+#!
+#! Note, input memory addresses are considered to be read-only, they are not mutated.
 export.add_zq
     push.0.0.0.0.0.0.0.0
 
@@ -11291,30 +11291,30 @@ export.add_zq
     dropw
 end
 
-# Given one polynomial of degree 512 on stack as absolute memory addresses,
-# this routine negates each coefficient of that polynomial.
-#
-# Imagine, polynomial f
-#
-# g = -f, can be computed as
-#
-# [(-f[i]) % Q for i in range(512)] | Q = 12289 ( = Falcon Digital Signature Algorithm's Prime Number )
-#
-# Input stack state :
-#
-# [f_start_addr, g_start_addr, ...]
-#
-# - {f,g}_addr`i` -> {f,g}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
-# - {f,g}_addr0 -> {f,g}_start_addr
-#
-# Output stack state :
-#
-# [ ... ]
-#
-# Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
-# continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
-#
-# Note, input memory addresses are considered to be read-only, they are not mutated.
+#! Given one polynomial of degree 512 on stack as absolute memory addresses,
+#! this routine negates each coefficient of that polynomial.
+#!
+#! Imagine, polynomial f
+#!
+#! g = -f, can be computed as
+#!
+#! [(-f[i]) % Q for i in range(512)] | Q = 12289 ( = Falcon Digital Signature Algorithm's Prime Number )
+#!
+#! Input stack state :
+#!
+#! [f_start_addr, g_start_addr, ...]
+#!
+#! - {f,g}_addr`i` -> {f,g}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
+#! - {f,g}_addr0 -> {f,g}_start_addr
+#!
+#! Output stack state :
+#!
+#! [ ... ]
+#!
+#! Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
+#! continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
+#!
+#! Note, input memory addresses are considered to be read-only, they are not mutated.
 export.neg_zq
     push.0.0.0.0
 
@@ -11341,30 +11341,30 @@ export.neg_zq
     drop
 end
 
-# Given two polynomials of degree 512 on stack as absolute memory addresses,
-# this routine subtracts second polynomial from first one.
-#
-# Imagine, two polynomials f, g
-#
-# h = f - g, can be computed as
-#
-# [(f[i] - g[i]) % Q for i in range(512)] | Q = 12289 ( = Falcon Digital Signature Algorithm's Prime Number )
-#
-# Input stack state :
-#
-# [f_start_addr, g_start_addr, h_start_addr ...]
-#
-# - {f, g, h}_addr`i` -> {f, g, h}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
-# - {f, g, h}_addr0 -> {f, g, h}_start_addr
-#
-# Output stack state :
-#
-# [ ... ]
-#
-# Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
-# continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
-#
-# Note, input memory addresses are considered to be read-only, they are not mutated.
+#! Given two polynomials of degree 512 on stack as absolute memory addresses,
+#! this routine subtracts second polynomial from first one.
+#!
+#! Imagine, two polynomials f, g
+#!
+#! h = f - g, can be computed as
+#!
+#! [(f[i] - g[i]) % Q for i in range(512)] | Q = 12289 ( = Falcon Digital Signature Algorithm's Prime Number )
+#!
+#! Input stack state :
+#!
+#! [f_start_addr, g_start_addr, h_start_addr ...]
+#!
+#! - {f, g, h}_addr`i` -> {f, g, h}[ (i << 2) .. ((i+1) << 2) ), address holding four consecutive coefficients
+#! - {f, g, h}_addr0 -> {f, g, h}_start_addr
+#!
+#! Output stack state :
+#!
+#! [ ... ]
+#!
+#! Consecutive 127 memory addresses can be computed from starting memory address ( living on stack top ) by 
+#! continuing to apply `INCR` ( = add.1 ) instruction on previous absolute memory address.
+#!
+#! Note, input memory addresses are considered to be read-only, they are not mutated.
 export.sub_zq.128
     locaddr.0
     movup.2
@@ -11375,15 +11375,15 @@ export.sub_zq.128
 end
 "#),
 // ----- std::math::secp256k1 ---------------------------------------------------------------------
-("std::math::secp256k1", r#"# Given [b, c, a, carry] on stack top, following function computes
-#
-#  tmp = a + (b * c) + carry
-#  hi = tmp >> 32
-#  lo = tmp & 0xffff_ffff
-#  return (hi, lo)
-#
-# At end of execution of this function, stack top should look like [hi, lo]
-# See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/utils.py#L75-L80
+("std::math::secp256k1", r#"#! Given [b, c, a, carry] on stack top, following function computes
+#!
+#!  tmp = a + (b * c) + carry
+#!  hi = tmp >> 32
+#!  lo = tmp & 0xffff_ffff
+#!  return (hi, lo)
+#!
+#! At end of execution of this function, stack top should look like [hi, lo]
+#! See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/utils.py#L75-L80
 proc.mac
   u32overflowing_madd
 
@@ -11394,31 +11394,31 @@ proc.mac
   add
 end
 
-# Given [a, b, borrow] on stack top, following function computes
-#
-#  tmp = a - (b + borrow)
-#  hi = tmp >> 32
-#  lo = tmp & 0xffff_ffff
-#  return (hi, lo)
-#
-# At end of execution of this function, stack top should look like [hi, lo]
-# See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/utils.py#L83-L89
+#! Given [a, b, borrow] on stack top, following function computes
+#!
+#!  tmp = a - (b + borrow)
+#!  hi = tmp >> 32
+#!  lo = tmp & 0xffff_ffff
+#!  return (hi, lo)
+#!
+#! At end of execution of this function, stack top should look like [hi, lo]
+#! See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/utils.py#L83-L89
 proc.sbb
   movdn.2
   add
   u32overflowing_sub
 end
 
-# Given a secp256k1 field element in radix-2^32 representation and 32 -bit unsigned integer,
-# this routine computes a 288 -bit number.
-#
-# Input via stack is expected in this form
-#
-# [a0, a1, a2, a3, a4, a5, a6, a7, b] | a[0..8] -> 256 -bit number, b = 32 -bit number
-#
-# Computed output looks like below, on stack
-#
-# [carry, b7, b6, b5, b4, b3, b2, b1, b0]
+#! Given a secp256k1 field element in radix-2^32 representation and 32 -bit unsigned integer,
+#! this routine computes a 288 -bit number.
+#!
+#! Input via stack is expected in this form
+#!
+#! [a0, a1, a2, a3, a4, a5, a6, a7, b] | a[0..8] -> 256 -bit number, b = 32 -bit number
+#!
+#! Computed output looks like below, on stack
+#!
+#! [carry, b7, b6, b5, b4, b3, b2, b1, b0]
 proc.u256xu32
   movup.8
   
@@ -11456,16 +11456,16 @@ proc.u256xu32
   u32overflowing_madd
 end
 
-# Given a 288 -bit number and 256 -bit number on stack ( in order ), this routine
-# computes a 288 -bit number
-#
-# Expected stack state during routine invocation
-#
-# [carry, b7, b6, b5, b4, b3, b2, b1, b0, c0, c1, c2, c3, c4, c5, c6, c7]
-#
-# While after execution of this routine, stack should look like
-#
-# [d0, d1, d2, d3, d4, d5, d6, d7, carry]
+#! Given a 288 -bit number and 256 -bit number on stack ( in order ), this routine
+#! computes a 288 -bit number
+#!
+#! Expected stack state during routine invocation
+#!
+#! [carry, b7, b6, b5, b4, b3, b2, b1, b0, c0, c1, c2, c3, c4, c5, c6, c7]
+#!
+#! While after execution of this routine, stack should look like
+#!
+#! [d0, d1, d2, d3, d4, d5, d6, d7, carry]
 proc.u288_add_u256
   swapw
   movupw.2
@@ -11523,17 +11523,17 @@ proc.u288_add_u256
   movup.8
 end
 
-# Given [c0, c1, c2, c3, c4, c5, c6, c7, c8, pc] on stack top,
-# this function attempts to reduce 288 -bit number to 256 -bit number
-# along with carry, using montgomery reduction method
-#
-# In stack top content c[0..9] i.e. first 9 elements, holding 288 -bit
-# number. Stack element `pc` ( at stack[9] ) is previous reduction round's
-# carry ( for first reduction round, it'll be set to 0 ).
-#
-# After finishing execution of this function, stack top should look like
-#
-# [c0, c1, c2, c3, c4, c5, c6, c7, pc] | pc = next round's carry
+#! Given [c0, c1, c2, c3, c4, c5, c6, c7, c8, pc] on stack top,
+#! this function attempts to reduce 288 -bit number to 256 -bit number
+#! along with carry, using montgomery reduction method
+#!
+#! In stack top content c[0..9] i.e. first 9 elements, holding 288 -bit
+#! number. Stack element `pc` ( at stack[9] ) is previous reduction round's
+#! carry ( for first reduction round, it'll be set to 0 ).
+#!
+#! After finishing execution of this function, stack top should look like
+#!
+#! [c0, c1, c2, c3, c4, c5, c6, c7, pc] | pc = next round's carry
 proc.u288_reduce
   dup
   push.3525653809
@@ -11599,22 +11599,22 @@ proc.u288_reduce
   movup.8
 end
 
-# Given two 256 -bit numbers on stack, where each number is represented in
-# radix-2^32 form ( i.e. each number having eight 32 -bit limbs ), following function
-# computes modular multiplication of those two operands, computing 256 -bit result.
-#
-# Stack expected as below, holding input
-#
-# [a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7] | a[0..8], b[0..8] are 256 -bit numbers
-#
-# After finishing execution of this function, stack should look like
-#
-# [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a 256 -bit number
-#
-# Note, for computing modular multiplication of a[0..8] & b[0..8],
-# school book multiplication equipped with montgomery reduction technique
-# is used, which is why a[0..8], b[0..8] are expected to be in montgomery form,
-# while computed c[0..8] will also be in montgomery form.
+#! Given two 256 -bit numbers on stack, where each number is represented in
+#! radix-2^32 form ( i.e. each number having eight 32 -bit limbs ), following function
+#! computes modular multiplication of those two operands, computing 256 -bit result.
+#!
+#! Stack expected as below, holding input
+#!
+#! [a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7] | a[0..8], b[0..8] are 256 -bit numbers
+#!
+#! After finishing execution of this function, stack should look like
+#!
+#! [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a 256 -bit number
+#!
+#! Note, for computing modular multiplication of a[0..8] & b[0..8],
+#! school book multiplication equipped with montgomery reduction technique
+#! is used, which is why a[0..8], b[0..8] are expected to be in montgomery form,
+#! while computed c[0..8] will also be in montgomery form.
 export.u256_mod_mul.2
   loc_storew.0
   swapw
@@ -11720,19 +11720,19 @@ export.u256_mod_mul.2
   drop
 end
 
-# Given two 256 -bit numbers on stack, where each number is represented in
-# radix-2^32 form ( i.e. each number having eight 32 -bit limbs ), following function
-# computes modular addition of those two operands, in secp256k1 prime field.
-#
-# Stack expected as below, holding input
-#
-# [a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7] | a[0..8], b[0..8] are 256 -bit numbers
-#
-# After finishing execution of this function, stack should look like
-#
-# [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a 256 -bit number
-#
-# This implementation takes inspiration from https://gist.github.com/itzmeanjan/d4853347dfdfa853993f5ea059824de6#file-test_montgomery_arithmetic-py-L236-L256
+#! Given two 256 -bit numbers on stack, where each number is represented in
+#! radix-2^32 form ( i.e. each number having eight 32 -bit limbs ), following function
+#! computes modular addition of those two operands, in secp256k1 prime field.
+#!
+#! Stack expected as below, holding input
+#!
+#! [a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7] | a[0..8], b[0..8] are 256 -bit numbers
+#!
+#! After finishing execution of this function, stack should look like
+#!
+#! [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a 256 -bit number
+#!
+#! This implementation takes inspiration from https://gist.github.com/itzmeanjan/d4853347dfdfa853993f5ea059824de6#file-test_montgomery_arithmetic-py-L236-L256
 export.u256_mod_add
   movupw.2
 
@@ -11788,19 +11788,19 @@ export.u256_mod_add
   movup.7
 end
 
-# Given a secp256k1 field element ( say `a` ) on stack, represented in Montgomery form 
-# ( i.e. number having eight 32 -bit limbs ), following function negates it to
-# field element `a'` | a' + a = 0
-#
-# Stack expected as below, holding input
-#
-# [a0, a1, a2, a3, a4, a5, a6, a7] | a[0..8] is a secp256k1 field element
-#
-# After finishing execution of this function, stack should look like
-#
-# [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a secp256k1 field element
-#
-# See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/field.py#L77-L95
+#! Given a secp256k1 field element ( say `a` ) on stack, represented in Montgomery form 
+#! ( i.e. number having eight 32 -bit limbs ), following function negates it to
+#! field element `a'` | a' + a = 0
+#!
+#! Stack expected as below, holding input
+#!
+#! [a0, a1, a2, a3, a4, a5, a6, a7] | a[0..8] is a secp256k1 field element
+#!
+#! After finishing execution of this function, stack should look like
+#!
+#! [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a secp256k1 field element
+#!
+#! See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/field.py#L77-L95
 export.u256_mod_neg
   push.0
   swap
@@ -11846,19 +11846,19 @@ export.u256_mod_neg
   movup.7
 end
 
-# Given two secp256k1 field elements, say a, b, ( represented in Montgomery form, each number having 
-# eight 32 -bit limbs ) on stack, following function computes modular subtraction of those 
-# two operands c = a + (-b) = a - b
-#
-# Stack expected as below, holding input
-#
-# [a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7] | a[0..8], b[0..8] are secp256k1 field elements
-#
-# After finishing execution of this function, stack should look like
-#
-# [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a secp256k1 field element
-#
-# See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/field.py#L97-L101
+#! Given two secp256k1 field elements, say a, b, ( represented in Montgomery form, each number having 
+#! eight 32 -bit limbs ) on stack, following function computes modular subtraction of those 
+#! two operands c = a + (-b) = a - b
+#!
+#! Stack expected as below, holding input
+#!
+#! [a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7] | a[0..8], b[0..8] are secp256k1 field elements
+#!
+#! After finishing execution of this function, stack should look like
+#!
+#! [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a secp256k1 field element
+#!
+#! See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/field.py#L97-L101
 export.u256_mod_sub
   movupw.3
   movupw.3
@@ -11867,19 +11867,19 @@ export.u256_mod_sub
   exec.u256_mod_add
 end
 
-# Given a 256 -bit number on stack, represented in radix-2^32 
-# form i.e. eight 32 -bit limbs, this routine computes Montgomery
-# representation of provided radix-2^32 number.
-#
-# - u256 radix-2^32 form input expected on stack as
-#
-#  [a0, a1, a2, a3, a4, a5, a6, a7]
-#
-# - u256 montgomery form output on stack
-#
-# [a0`, a1`, a2`, a3`, a4`, a5`, a6`, a7`]
-#
-# See section 2.2 of https://eprint.iacr.org/2017/1057.pdf
+#! Given a 256 -bit number on stack, represented in radix-2^32 
+#! form i.e. eight 32 -bit limbs, this routine computes Montgomery
+#! representation of provided radix-2^32 number.
+#!
+#! - u256 radix-2^32 form input expected on stack as
+#!
+#!  [a0, a1, a2, a3, a4, a5, a6, a7]
+#!
+#! - u256 montgomery form output on stack
+#!
+#! [a0`, a1`, a2`, a3`, a4`, a5`, a6`, a7`]
+#!
+#! See section 2.2 of https://eprint.iacr.org/2017/1057.pdf
 export.to_mont
   push.0.0.0.0
   push.0.1.1954.954529 # pushed R2's radix-2^32 form;
@@ -11888,19 +11888,19 @@ export.to_mont
   exec.u256_mod_mul
 end
 
-# Given a 256 -bit number on stack, represented in Montgomery 
-# form i.e. eight 32 -bit limbs, this routine computes radix-2^32
-# representation of provided u256 number.
-#
-# - u256 montgomery form input on stack expected
-#
-#  [a0, a1, a2, a3, a4, a5, a6, a7]
-#
-# - u256 radix-2^32 form output on stack as
-#
-# [a0`, a1`, a2`, a3`, a4`, a5`, a6`, a7`]
-#
-# See section 2.2 of https://eprint.iacr.org/2017/1057.pdf
+#! Given a 256 -bit number on stack, represented in Montgomery 
+#! form i.e. eight 32 -bit limbs, this routine computes radix-2^32
+#! representation of provided u256 number.
+#!
+#! - u256 montgomery form input on stack expected
+#!
+#!  [a0, a1, a2, a3, a4, a5, a6, a7]
+#!
+#! - u256 radix-2^32 form output on stack as
+#!
+#! [a0`, a1`, a2`, a3`, a4`, a5`, a6`, a7`]
+#!
+#! See section 2.2 of https://eprint.iacr.org/2017/1057.pdf
 export.from_mont
   push.0.0.0.0
   push.0.0.0.1 # pushed 1's radix-2^32 form;
@@ -11909,41 +11909,41 @@ export.from_mont
   exec.u256_mod_mul
 end
 
-# Given a secp256k1 point in projective coordinate system ( i.e. with x, y, z -coordinates
-# as secp256k1 prime field elements, represented in Montgomery form ), this routine adds 
-# that point with self i.e. does point doubling on elliptic curve, using exception-free 
-# doubling formula from algorithm 9 of https://eprint.iacr.org/2015/1060.pdf, while 
-# following prototype implementation https://github.com/itzmeanjan/secp256k1/blob/ec3652a/point.py#L131-L165
-# 
-# Input:
-#
-# 12 memory addresses on stack such that first 6 memory addresses are for input point &
-# last 6 are for storing resulting point.
-#
-# First 6 addresses hold input elliptic curve point's x, y, z -coordinates, where each coordinate
-# is represented in Montgomery form, as eight 32 -bit limbs.
-#
-# Similarly, last 6 addresses hold resulting (doubled) point's x, y, z -coordinates, where each
-# coordinate is represented in Montgomery form, as eight 32 -bit limbs. Note, this is where
-# output will be written, so called is expected to read doubled point from last 6 memory addresses.
-#
-# Expected stack during invocation of this routine:
-#
-#   [x_addr[0..4], x_addr[4..8], y_addr[0..4], y_addr[4..8], z_addr[0..4], z_addr[4..8], 
-#     x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
-#
-# Note, (X, Y, Z)    => input point
-#       (X3, Y3, Z3) => output point
-#
-# Output:
-#
-# Last 6 memory addresses of 12 memory addresses which were provided during invocation, where resulting doubled
-# point is kept in similar form. For seeing X3, Y3, Z3 -coordinates of doubled point, one needs to read from
-# those 6 memory addresses.
-#
-# Stack at end of execution of routine looks like
-#
-#   [x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
+#! Given a secp256k1 point in projective coordinate system ( i.e. with x, y, z -coordinates
+#! as secp256k1 prime field elements, represented in Montgomery form ), this routine adds 
+#! that point with self i.e. does point doubling on elliptic curve, using exception-free 
+#! doubling formula from algorithm 9 of https://eprint.iacr.org/2015/1060.pdf, while 
+#! following prototype implementation https://github.com/itzmeanjan/secp256k1/blob/ec3652a/point.py#L131-L165
+#! 
+#! Input:
+#!
+#! 12 memory addresses on stack such that first 6 memory addresses are for input point &
+#! last 6 are for storing resulting point.
+#!
+#! First 6 addresses hold input elliptic curve point's x, y, z -coordinates, where each coordinate
+#! is represented in Montgomery form, as eight 32 -bit limbs.
+#!
+#! Similarly, last 6 addresses hold resulting (doubled) point's x, y, z -coordinates, where each
+#! coordinate is represented in Montgomery form, as eight 32 -bit limbs. Note, this is where
+#! output will be written, so called is expected to read doubled point from last 6 memory addresses.
+#!
+#! Expected stack during invocation of this routine:
+#!
+#!   [x_addr[0..4], x_addr[4..8], y_addr[0..4], y_addr[4..8], z_addr[0..4], z_addr[4..8], 
+#!     x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
+#!
+#! Note, (X, Y, Z)    => input point
+#!       (X3, Y3, Z3) => output point
+#!
+#! Output:
+#!
+#! Last 6 memory addresses of 12 memory addresses which were provided during invocation, where resulting doubled
+#! point is kept in similar form. For seeing X3, Y3, Z3 -coordinates of doubled point, one needs to read from
+#! those 6 memory addresses.
+#!
+#! Stack at end of execution of routine looks like
+#!
+#!   [x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
 export.point_doubling.12
   dup.3
   push.0.0.0.0
@@ -12211,37 +12211,37 @@ export.point_doubling.12
   dropw              # write z3[4..8] to memory
 end
 
-# Given two secp256k1 points in projective coordinate system ( i.e. with x, y, z -coordinates
-# as secp256k1 prime field elements, represented in Montgomery form, each coordinate using eight 32 -bit limbs ),
-# this routine adds those two points on elliptic curve, using exception-free addition formula from
-# algorithm 7 of https://eprint.iacr.org/2015/1060.pdf, while following prototype
-# implementation https://github.com/itzmeanjan/secp256k1/blob/ec3652a/point.py#L60-L115
-# 
-# Input:
-#
-# 18 memory addresses on stack such that first 6 memory addresses are for first input point, next 6
-# memory addresses holding x, y, z -coordinates of second input point & last 6 addresses are for storing 
-# resulting point ( addition of two input points ).
-#
-# Expected stack during invocation of this routine:
-#
-#   [x1_addr[0..4], x1_addr[4..8], y1_addr[0..4], y1_addr[4..8], z1_addr[0..4], z1_addr[4..8], 
-#     x2_addr[0..4], x2_addr[4..8], y2_addr[0..4], y2_addr[4..8], z2_addr[0..4], z2_addr[4..8],
-#       x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
-#
-# Note, (X1, Y1, Z1)    => input point 1
-#       (X2, Y2, Z2)    => input point 2
-#       (X3, Y3, Z3)    => output point
-#
-# Output:
-#
-# Last 6 memory addresses of 18 input memory addresses which were provided during invocation, where resulting elliptic curve
-# point is kept in similar form. For seeing X3, Y3, Z3 -coordinates of doubled point, one needs to read from
-# those 6 memory addresses.
-#
-# Stack at end of execution of routine looks like
-#
-#   [x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
+#! Given two secp256k1 points in projective coordinate system ( i.e. with x, y, z -coordinates
+#! as secp256k1 prime field elements, represented in Montgomery form, each coordinate using eight 32 -bit limbs ),
+#! this routine adds those two points on elliptic curve, using exception-free addition formula from
+#! algorithm 7 of https://eprint.iacr.org/2015/1060.pdf, while following prototype
+#! implementation https://github.com/itzmeanjan/secp256k1/blob/ec3652a/point.py#L60-L115
+#! 
+#! Input:
+#!
+#! 18 memory addresses on stack such that first 6 memory addresses are for first input point, next 6
+#! memory addresses holding x, y, z -coordinates of second input point & last 6 addresses are for storing 
+#! resulting point ( addition of two input points ).
+#!
+#! Expected stack during invocation of this routine:
+#!
+#!   [x1_addr[0..4], x1_addr[4..8], y1_addr[0..4], y1_addr[4..8], z1_addr[0..4], z1_addr[4..8], 
+#!     x2_addr[0..4], x2_addr[4..8], y2_addr[0..4], y2_addr[4..8], z2_addr[0..4], z2_addr[4..8],
+#!       x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
+#!
+#! Note, (X1, Y1, Z1)    => input point 1
+#!       (X2, Y2, Z2)    => input point 2
+#!       (X3, Y3, Z3)    => output point
+#!
+#! Output:
+#!
+#! Last 6 memory addresses of 18 input memory addresses which were provided during invocation, where resulting elliptic curve
+#! point is kept in similar form. For seeing X3, Y3, Z3 -coordinates of doubled point, one needs to read from
+#! those 6 memory addresses.
+#!
+#! Stack at end of execution of routine looks like
+#!
+#!   [x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
 export.point_addition.16
   dup.6
   dup.8
@@ -12848,44 +12848,44 @@ export.point_addition.16
   dropw              # write z3[4..8] to memory
 end
 
-# Given an elliptic curve point in projective coordinate system ( total 24 field elements 
-# required for representing x, y, z coordinate values s.t. they are provided by 6 distinct 
-# memory addresses ) and a 256 -bit scalar, in radix-2^32 representation ( such that it 
-# takes 8 stack elements to represent whole scalar, where each limb is of 32 -bit width ), 
-# this routine multiplies elliptic curve point by given scalar, producing another point 
-# on secp256k1 curve, which will also be presented in projective coordinate system.
-#
-# Input:
-#
-# During invocation, this routine expects stack in following form
-#
-# [X_addr_0, X_addr_1, Y_addr_0, Y_addr_1, Z_addr_0, Z_addr_1, Sc0, Sc1, Sc2, Sc3, Sc4, Sc5, Sc6, Sc7, X'_addr_0, X'_addr_1, Y'_addr_0, Y'_addr_1, Z'_addr_0, Z'_addr_1, ...]
-#
-# X_addr_0, X_addr_1 -> Input secp256k1 point's X -coordinate to be placed, in Montgomery form, in given addresses
-# Y_addr_0, Y_addr_1 -> Input secp256k1 point's Y -coordinate to be placed, in Montgomery form, in given addresses
-# Z_addr_1, Z_addr_1 -> Input secp256k1 point's Z -coordinate to be placed, in Montgomery form, in given addresses
-# Sc{0..8}           -> 256 -bit scalar in radix-2^32 form | Sc0 is least significant limb & Sc7 is most significant limb
-# X'_addr_0, X'_addr_1 -> Resulting secp256k1 point's X -coordinate to be placed, in Montgomery form, in given addresses
-# Y'_addr_0, Y'_addr_1 -> Resulting secp256k1 point's Y -coordinate to be placed, in Montgomery form, in given addresses
-# Z'_addr_1, Z'_addr_1 -> Resulting secp256k1 point's Z -coordinate to be placed, in Montgomery form, in given addresses
-#
-# Output:
-#
-# At end of execution of this routine, stack should look like below
-#
-# [X_addr_0, X_addr_1, Y_addr_0, Y_addr_1, Z_addr_0, Z_addr_1, ...]
-#
-# X_addr_0, X_addr_1 -> Resulting secp256k1 point's X -coordinate written, in Montgomery form, in given addresses
-# Y_addr_0, Y_addr_1 -> Resulting secp256k1 point's Y -coordinate written, in Montgomery form, in given addresses
-# Z_addr_0, Z_addr_1 -> Resulting secp256k1 point's Z -coordinate written, in Montgomery form, in given addresses
-#
-# One interested in resulting point, should read from provided addresses on stack.
-# 
-# This routine implements double-and-add algorithm, while following 
-# https://github.com/itzmeanjan/secp256k1/blob/d23ea7d/point.py#L174-L186
-#
-# If base point being multiplied is secp256k1 curve generator point, one should use `gen_point` routine,
-# which is almost 2x faster !
+#! Given an elliptic curve point in projective coordinate system ( total 24 field elements 
+#! required for representing x, y, z coordinate values s.t. they are provided by 6 distinct 
+#! memory addresses ) and a 256 -bit scalar, in radix-2^32 representation ( such that it 
+#! takes 8 stack elements to represent whole scalar, where each limb is of 32 -bit width ), 
+#! this routine multiplies elliptic curve point by given scalar, producing another point 
+#! on secp256k1 curve, which will also be presented in projective coordinate system.
+#!
+#! Input:
+#!
+#! During invocation, this routine expects stack in following form
+#!
+#! [X_addr_0, X_addr_1, Y_addr_0, Y_addr_1, Z_addr_0, Z_addr_1, Sc0, Sc1, Sc2, Sc3, Sc4, Sc5, Sc6, Sc7, X'_addr_0, X'_addr_1, Y'_addr_0, Y'_addr_1, Z'_addr_0, Z'_addr_1, ...]
+#!
+#! X_addr_0, X_addr_1 -> Input secp256k1 point's X -coordinate to be placed, in Montgomery form, in given addresses
+#! Y_addr_0, Y_addr_1 -> Input secp256k1 point's Y -coordinate to be placed, in Montgomery form, in given addresses
+#! Z_addr_1, Z_addr_1 -> Input secp256k1 point's Z -coordinate to be placed, in Montgomery form, in given addresses
+#! Sc{0..8}           -> 256 -bit scalar in radix-2^32 form | Sc0 is least significant limb & Sc7 is most significant limb
+#! X'_addr_0, X'_addr_1 -> Resulting secp256k1 point's X -coordinate to be placed, in Montgomery form, in given addresses
+#! Y'_addr_0, Y'_addr_1 -> Resulting secp256k1 point's Y -coordinate to be placed, in Montgomery form, in given addresses
+#! Z'_addr_1, Z'_addr_1 -> Resulting secp256k1 point's Z -coordinate to be placed, in Montgomery form, in given addresses
+#!
+#! Output:
+#!
+#! At end of execution of this routine, stack should look like below
+#!
+#! [X_addr_0, X_addr_1, Y_addr_0, Y_addr_1, Z_addr_0, Z_addr_1, ...]
+#!
+#! X_addr_0, X_addr_1 -> Resulting secp256k1 point's X -coordinate written, in Montgomery form, in given addresses
+#! Y_addr_0, Y_addr_1 -> Resulting secp256k1 point's Y -coordinate written, in Montgomery form, in given addresses
+#! Z_addr_0, Z_addr_1 -> Resulting secp256k1 point's Z -coordinate written, in Montgomery form, in given addresses
+#!
+#! One interested in resulting point, should read from provided addresses on stack.
+#! 
+#! This routine implements double-and-add algorithm, while following 
+#! https://github.com/itzmeanjan/secp256k1/blob/d23ea7d/point.py#L174-L186
+#!
+#! If base point being multiplied is secp256k1 curve generator point, one should use `gen_point` routine,
+#! which is almost 2x faster !
 export.point_mul.18
   # initialize `base`
   push.0.0.0.0
@@ -13080,40 +13080,40 @@ export.point_mul.18
   dropw
 end
 
-# Given a 256 -bit scalar, in radix-2^32 representation ( such that it takes 8 stack elements
-# to represent whole scalar, where each limb is of 32 -bit width ), this routine multiplies
-# secp256k1 generator point ( in projective coordinate system ) with given scalar, producing
-# another point on secp256k1 curve, which will also be presented in projective coordinate
-# system.
-#
-# Input:
-#
-# During invocation, this routine expects stack in following form
-#
-# [Sc0, Sc1, Sc2, Sc3, Sc4, Sc5, Sc6, Sc7, X_addr_0, X_addr_1, Y_addr_0, Y_addr_1, Z_addr_0, Z_addr_1, ...]
-#
-# Sc{0..8}           -> 256 -bit scalar in radix-2^32 form | Sc0 is least significant limb & Sc7 is most significant limb
-# X_addr_0, X_addr_1 -> Resulting secp256k1 point's X -coordinate to be placed, in Montgomery form, in given addresses
-# Y_addr_0, Y_addr_1 -> Resulting secp256k1 point's Y -coordinate to be placed, in Montgomery form, in given addresses
-# Z_addr_1, Z_addr_1 -> Resulting secp256k1 point's Z -coordinate to be placed, in Montgomery form, in given addresses
-#
-# Output:
-#
-# At end of execution of this routine, stack should look like below
-#
-# [X_addr_0, X_addr_1, Y_addr_0, Y_addr_1, Z_addr_0, Z_addr_1, ...]
-#
-# X_addr_0, X_addr_1 -> Resulting secp256k1 point's X -coordinate written, in Montgomery form, in given addresses
-# Y_addr_0, Y_addr_1 -> Resulting secp256k1 point's Y -coordinate written, in Montgomery form, in given addresses
-# Z_addr_0, Z_addr_1 -> Resulting secp256k1 point's Z -coordinate written, in Montgomery form, in given addresses
-#
-# One interested in resulting point, should read from provided address on stack.
-# 
-# This routine implements double-and-add algorithm, while following 
-# https://github.com/itzmeanjan/secp256k1/blob/d23ea7d/point.py#L174-L186 
-#
-# Note, this routine is a specialised instantiation of secp256k1 point multiplication, where we know what the base
-# point is, so we enjoy faster computation ( because all point doublings can be precomputed, saving us 256 point doublings ! ).
+#! Given a 256 -bit scalar, in radix-2^32 representation ( such that it takes 8 stack elements
+#! to represent whole scalar, where each limb is of 32 -bit width ), this routine multiplies
+#! secp256k1 generator point ( in projective coordinate system ) with given scalar, producing
+#! another point on secp256k1 curve, which will also be presented in projective coordinate
+#! system.
+#!
+#! Input:
+#!
+#! During invocation, this routine expects stack in following form
+#!
+#! [Sc0, Sc1, Sc2, Sc3, Sc4, Sc5, Sc6, Sc7, X_addr_0, X_addr_1, Y_addr_0, Y_addr_1, Z_addr_0, Z_addr_1, ...]
+#!
+#! Sc{0..8}           -> 256 -bit scalar in radix-2^32 form | Sc0 is least significant limb & Sc7 is most significant limb
+#! X_addr_0, X_addr_1 -> Resulting secp256k1 point's X -coordinate to be placed, in Montgomery form, in given addresses
+#! Y_addr_0, Y_addr_1 -> Resulting secp256k1 point's Y -coordinate to be placed, in Montgomery form, in given addresses
+#! Z_addr_1, Z_addr_1 -> Resulting secp256k1 point's Z -coordinate to be placed, in Montgomery form, in given addresses
+#!
+#! Output:
+#!
+#! At end of execution of this routine, stack should look like below
+#!
+#! [X_addr_0, X_addr_1, Y_addr_0, Y_addr_1, Z_addr_0, Z_addr_1, ...]
+#!
+#! X_addr_0, X_addr_1 -> Resulting secp256k1 point's X -coordinate written, in Montgomery form, in given addresses
+#! Y_addr_0, Y_addr_1 -> Resulting secp256k1 point's Y -coordinate written, in Montgomery form, in given addresses
+#! Z_addr_0, Z_addr_1 -> Resulting secp256k1 point's Z -coordinate written, in Montgomery form, in given addresses
+#!
+#! One interested in resulting point, should read from provided address on stack.
+#! 
+#! This routine implements double-and-add algorithm, while following 
+#! https://github.com/itzmeanjan/secp256k1/blob/d23ea7d/point.py#L174-L186 
+#!
+#! Note, this routine is a specialised instantiation of secp256k1 point multiplication, where we know what the base
+#! point is, so we enjoy faster computation ( because all point doublings can be precomputed, saving us 256 point doublings ! ).
 export.gen_mul.20
   # identity point of group (0, 1, 0) in projective coordinate
   # see https://github.com/itzmeanjan/secp256k1/blob/d23ea7d/point.py#L40-L45
@@ -15567,11 +15567,11 @@ proc.mulstep4
     movdn.6
 end
 
-# Performs addition of two unsigned 256 bit integers discarding the overflow.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b7, b6, b5, b4, b3, b2, b1, b0, a7, a6, a5, a4, a3, a2, a1, a0, ...] -> [c7, c6, c5, c4, c3, c2, c1, c0, ...]
-# where c = (a * b) % 2^256, and a0, b0, and c0 are least significant 32-bit limbs of a, b, and c respectively.
+#! Performs addition of two unsigned 256 bit integers discarding the overflow.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b7, b6, b5, b4, b3, b2, b1, b0, a7, a6, a5, a4, a3, a2, a1, a0, ...] -> [c7, c6, c5, c4, c3, c2, c1, c0, ...]
+#! where c = (a * b) % 2^256, and a0, b0, and c0 are least significant 32-bit limbs of a, b, and c respectively.
 export.mul_unsafe.6
     # Memory storing setup
     loc_storew.0
@@ -15908,8 +15908,8 @@ end"#),
 // ----- std::math::u64 ---------------------------------------------------------------------------
 ("std::math::u64", r#"# ===== HELPER FUNCTIONS ==========================================================================
 
-# Asserts that both values at the top of the stack are u64 values.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Asserts that both values at the top of the stack are u64 values.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
 proc.u32assert4
     u32assert.2
     movup.3
@@ -15921,10 +15921,10 @@ end
 
 # ===== ADDITION ==================================================================================
 
-# Performs addition of two unsigned 64 bit integers preserving the overflow.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [overflowing_flag, c_hi, c_lo, ...], where c = (a + b) % 2^64
+#! Performs addition of two unsigned 64 bit integers preserving the overflow.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [overflowing_flag, c_hi, c_lo, ...], where c = (a + b) % 2^64
 export.overflowing_add
     swap
     movup.3
@@ -15934,19 +15934,19 @@ export.overflowing_add
     u32overflowing_add3
 end
 
-# Performs addition of two unsigned 64 bit integers discarding the overflow.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a + b) % 2^64
+#! Performs addition of two unsigned 64 bit integers discarding the overflow.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a + b) % 2^64
 export.wrapping_add
     exec.overflowing_add
     drop
 end
 
-# Performs addition of two unsigned 64 bit integers, fails when overflowing.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a + b) % 2^64
+#! Performs addition of two unsigned 64 bit integers, fails when overflowing.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a + b) % 2^64
 export.checked_add
     swap
     movup.3
@@ -15962,10 +15962,10 @@ end
 
 # ===== SUBTRACTION ===============================================================================
 
-# Performs subtraction of two unsigned 64 bit integers discarding the overflow.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a - b) % 2^64
+#! Performs subtraction of two unsigned 64 bit integers discarding the overflow.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a - b) % 2^64
 export.wrapping_sub
     movup.3
     movup.2
@@ -15979,10 +15979,10 @@ export.wrapping_sub
     drop
 end
 
-# Performs subtraction of two unsigned 64 bit integers, fails when underflowing.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a - b) % 2^64
+#! Performs subtraction of two unsigned 64 bit integers, fails when underflowing.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a - b) % 2^64
 export.checked_sub
     movup.3
     movup.2
@@ -16000,10 +16000,10 @@ export.checked_sub
     assert
 end
 
-# Performs subtraction of two unsigned 64 bit integers preserving the overflow.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [underflowing_flag, c_hi, c_lo, ...], where c = (a - b) % 2^64
+#! Performs subtraction of two unsigned 64 bit integers preserving the overflow.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [underflowing_flag, c_hi, c_lo, ...], where c = (a - b) % 2^64
 export.overflowing_sub
     movup.3
     movup.2
@@ -16020,10 +16020,10 @@ end
 
 # ===== MULTIPLICATION ============================================================================
 
-# Performs multiplication of two unsigned 64 bit integers discarding the overflow.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a * b) % 2^64
+#! Performs multiplication of two unsigned 64 bit integers discarding the overflow.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a * b) % 2^64
 export.wrapping_mul
     dup.3
     dup.2
@@ -16038,11 +16038,11 @@ export.wrapping_mul
     drop
 end
 
-# Performs multiplication of two unsigned 64 bit integers preserving the overflow.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_mid_hi, c_mid_lo, c_lo, ...], where c = (a * b) % 2^64
-# This takes 18 cycles.
+#! Performs multiplication of two unsigned 64 bit integers preserving the overflow.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_mid_hi, c_mid_lo, c_lo, ...], where c = (a * b) % 2^64
+#! This takes 18 cycles.
 export.overflowing_mul
     dup.3
     dup.2
@@ -16064,10 +16064,10 @@ export.overflowing_mul
     add
 end
 
-# Performs multiplication of two unsigned 64 bit integers, fails when overflowing.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a * b) % 2^64
+#! Performs multiplication of two unsigned 64 bit integers, fails when overflowing.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = (a * b) % 2^64
 export.checked_mul
     dup.3
     dup.2
@@ -16095,10 +16095,10 @@ end
 
 # ===== COMPARISONS ===============================================================================
 
-# Performs less-than comparison of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a < b, and 0 otherwise.
+#! Performs less-than comparison of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a < b, and 0 otherwise.
 export.unchecked_lt
     movup.3
     movup.2
@@ -16113,10 +16113,10 @@ export.unchecked_lt
     or
 end
 
-# Performs less-than comparison of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a < b, and 0 otherwise.
+#! Performs less-than comparison of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a < b, and 0 otherwise.
 export.checked_lt
     movup.3
     movup.2
@@ -16133,11 +16133,11 @@ export.checked_lt
     or
 end
 
-# Performs greater-than comparison of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a > b, and 0 otherwise.
-# This takes 11 cycles.
+#! Performs greater-than comparison of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a > b, and 0 otherwise.
+#! This takes 11 cycles.
 export.unchecked_gt
     movup.2
     u32overflowing_sub
@@ -16152,10 +16152,10 @@ export.unchecked_gt
     or
 end
 
-# Performs greater-than comparison of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a > b, and 0 otherwise.
+#! Performs greater-than comparison of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a > b, and 0 otherwise.
 export.checked_gt
     movup.2
     u32assert.2
@@ -16172,46 +16172,46 @@ export.checked_gt
     or
 end
 
-# Performs less-than-or-equal comparison of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a <= b, and 0 otherwise.
+#! Performs less-than-or-equal comparison of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a <= b, and 0 otherwise.
 export.unchecked_lte
     exec.unchecked_gt
     not
 end
 
-# Performs less-than-or-equal comparison of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a <= b, and 0 otherwise.
+#! Performs less-than-or-equal comparison of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a <= b, and 0 otherwise.
 export.checked_lte
     exec.checked_gt
     not
 end
 
-# Performs greater-than-or-equal comparison of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a >= b, and 0 otherwise.
+#! Performs greater-than-or-equal comparison of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a >= b, and 0 otherwise.
 export.unchecked_gte
     exec.unchecked_lt
     not
 end
 
-# Performs greater-than-or-equal comparison of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a >= b, and 0 otherwise.
+#! Performs greater-than-or-equal comparison of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a >= b, and 0 otherwise.
 export.checked_gte
     exec.checked_lt
     not
 end
 
-# Performs equality comparison of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
+#! Performs equality comparison of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
 export.unchecked_eq
     movup.2
     u32checked_eq
@@ -16221,10 +16221,10 @@ export.unchecked_eq
     and
 end
 
-# Performs equality comparison of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
+#! Performs equality comparison of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
 export.checked_eq
     movup.2
     u32checked_eq
@@ -16234,10 +16234,10 @@ export.checked_eq
     and
 end
 
-# Performs inequality comparison of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a != b, and 0 otherwise.
+#! Performs inequality comparison of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a != b, and 0 otherwise.
 export.unchecked_neq
     movup.2
     u32checked_neq
@@ -16247,19 +16247,19 @@ export.unchecked_neq
     or
 end
 
-# Performs inequality comparison of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
+#! Performs inequality comparison of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == b, and 0 otherwise.
 export.checked_neq
     exec.checked_eq
     not
 end
 
-# Performs comparison to zero of an unsigned 64 bit integer.
-# The input value is assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == 0, and 0 otherwise.
+#! Performs comparison to zero of an unsigned 64 bit integer.
+#! The input value is assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == 0, and 0 otherwise.
 export.unchecked_eqz
     eq.0
     swap
@@ -16267,10 +16267,10 @@ export.unchecked_eqz
     and
 end
 
-# Performs comparison to zero of an unsigned 64 bit integer.
-# The input value is assumed to be represented using 32 bit limbs, fails if it is not.
-# Stack transition looks as follows:
-# [a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == 0, and 0 otherwise.
+#! Performs comparison to zero of an unsigned 64 bit integer.
+#! The input value is assumed to be represented using 32 bit limbs, fails if it is not.
+#! Stack transition looks as follows:
+#! [a_hi, a_lo, ...] -> [c, ...], where c = 1 when a == 0, and 0 otherwise.
 export.checked_eqz
     u32assert.2
     eq.0
@@ -16279,10 +16279,10 @@ export.checked_eqz
     and
 end
 
-# Compares two unsigned 64 bit integers and drop the larger one from the stack.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a when a < b, and b otherwise.
+#! Compares two unsigned 64 bit integers and drop the larger one from the stack.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a when a < b, and b otherwise.
 export.unchecked_min
     dupw
     exec.unchecked_gt
@@ -16294,19 +16294,19 @@ export.unchecked_min
     cdrop
 end
 
-# Compares two unsigned 64 bit integers and drop the larger one from the stack.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a when a < b, and b otherwise.
+#! Compares two unsigned 64 bit integers and drop the larger one from the stack.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a when a < b, and b otherwise.
 export.checked_min
     exec.u32assert4
     exec.unchecked_min
 end
 
-# Compares two unsigned 64 bit integers and drop the smaller one from the stack.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a when a > b, and b otherwise.
+#! Compares two unsigned 64 bit integers and drop the smaller one from the stack.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a when a > b, and b otherwise.
 export.unchecked_max
     dupw
     exec.unchecked_lt
@@ -16318,10 +16318,10 @@ export.unchecked_max
     cdrop
 end
 
-# Compares two unsigned 64 bit integers and drop the smaller one from the stack.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a when a > b, and b otherwise.
+#! Compares two unsigned 64 bit integers and drop the smaller one from the stack.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a when a > b, and b otherwise.
 export.checked_max
     exec.u32assert4
     exec.unchecked_max
@@ -16330,10 +16330,10 @@ end
 
 # ===== DIVISION ==================================================================================
 
-# Performs division of two unsigned 64 bit integers discarding the remainder.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a // b
+#! Performs division of two unsigned 64 bit integers discarding the remainder.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a // b
 export.unchecked_div
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
@@ -16384,10 +16384,10 @@ export.unchecked_div
     assert_eq           # quotient remains on the stack
 end
 
-# Performs division of two unsigned 64 bit integers discarding the remainder.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a // b
+#! Performs division of two unsigned 64 bit integers discarding the remainder.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a // b
 export.checked_div
     exec.u32assert4
     exec.unchecked_div
@@ -16395,10 +16395,10 @@ end
 
 # ===== MODULO OPERATION ==========================================================================
 
-# Performs modulo operation of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a % b
+#! Performs modulo operation of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a % b
 export.unchecked_mod
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
@@ -16449,10 +16449,10 @@ export.unchecked_mod
     assert_eq           # remainder remains on the stack
 end
 
-# Performs modulo operation of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a % b
+#! Performs modulo operation of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a % b
 export.checked_mod
     exec.u32assert4
     exec.unchecked_mod
@@ -16460,10 +16460,10 @@ end
 
 # ===== DIVMOD OPERATION ==========================================================================
 
-# Performs divmod operation of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [r_hi, r_lo, q_hi, q_lo ...], where r = a % b, q = a / b
+#! Performs divmod operation of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [r_hi, r_lo, q_hi, q_lo ...], where r = a % b, q = a / b
 export.unchecked_divmod
     adv.u64div          # inject the quotient and the remainder into the advice tape
 
@@ -16514,10 +16514,10 @@ export.unchecked_divmod
     assert_eq           # remainder remains on the stack
 end
 
-# Performs divmod operation of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [r_hi, r_lo, q_hi, q_lo ...], where r = a % b, q = a / b
+#! Performs divmod operation of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [r_hi, r_lo, q_hi, q_lo ...], where r = a % b, q = a / b
 export.checked_divmod
     exec.u32assert4
     exec.unchecked_divmod
@@ -16525,10 +16525,10 @@ end
 
 # ===== BITWISE OPERATIONS ========================================================================
 
-# Performs bitwise AND of two unsigned 64-bit integers.
-# The input values are assumed to be represented using 32 bit limbs, but this is not checked.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a AND b.
+#! Performs bitwise AND of two unsigned 64-bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, but this is not checked.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a AND b.
 export.checked_and
     swap
     movup.3
@@ -16538,10 +16538,10 @@ export.checked_and
     u32checked_and
 end
 
-# Performs bitwise OR of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a OR b.
+#! Performs bitwise OR of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a OR b.
 export.checked_or
     swap
     movup.3
@@ -16551,10 +16551,10 @@ export.checked_or
     u32checked_or
 end
 
-# Performs bitwise XOR of two unsigned 64 bit integers.
-# The input values are assumed to be represented using 32 bit limbs, fails if they are not.
-# Stack transition looks as follows:
-# [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a XOR b.
+#! Performs bitwise XOR of two unsigned 64 bit integers.
+#! The input values are assumed to be represented using 32 bit limbs, fails if they are not.
+#! Stack transition looks as follows:
+#! [b_hi, b_lo, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a XOR b.
 export.checked_xor
     swap
     movup.3
@@ -16564,13 +16564,13 @@ export.checked_xor
     u32checked_xor
 end
 
-# Performs left shift of one unsigned 64-bit integer using the pow2 operation.
-# The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value should be in the range [0, 64), otherwise it will result in an
-# error.
-# Stack transition looks as follows:
-# [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 28 cycles.
+#! Performs left shift of one unsigned 64-bit integer using the pow2 operation.
+#! The input value to be shifted is assumed to be represented using 32 bit limbs.
+#! The shift value should be in the range [0, 64), otherwise it will result in an
+#! error.
+#! Stack transition looks as follows:
+#! [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
+#! This takes 28 cycles.
 export.unchecked_shl
     pow2
     u32split
@@ -16578,13 +16578,13 @@ export.unchecked_shl
 end
 
 
-# Performs right shift of one unsigned 64-bit integer using the pow2 operation.
-# The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value should be in the range [0, 64), otherwise it will result in an
-# error.
-# Stack transition looks as follows:
-# [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a >> b.
-# This takes 44 cycles.
+#! Performs right shift of one unsigned 64-bit integer using the pow2 operation.
+#! The input value to be shifted is assumed to be represented using 32 bit limbs.
+#! The shift value should be in the range [0, 64), otherwise it will result in an
+#! error.
+#! Stack transition looks as follows:
+#! [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a >> b.
+#! This takes 44 cycles.
 export.unchecked_shr
     pow2
     u32split
@@ -16617,29 +16617,29 @@ export.unchecked_shr
     cswap
 end
 
-# Performs left shift of one unsigned 64-bit integer preserving the overflow and
-# using the pow2 operation.
-# The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value should be in the range [0, 64), otherwise it will result in an
-# error.
-# Stack transition looks as follows:
-# [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where (d,c) = a << b,
-# which d contains the bits shifted out.
-# This takes 35 cycles.
+#! Performs left shift of one unsigned 64-bit integer preserving the overflow and
+#! using the pow2 operation.
+#! The input value to be shifted is assumed to be represented using 32 bit limbs.
+#! The shift value should be in the range [0, 64), otherwise it will result in an
+#! error.
+#! Stack transition looks as follows:
+#! [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where (d,c) = a << b,
+#! which d contains the bits shifted out.
+#! This takes 35 cycles.
 export.overflowing_shl
     pow2
     u32split
     exec.overflowing_mul
 end
 
-# Performs right shift of one unsigned 64-bit integer preserving the overflow and
-# using the pow2 operation.
-# The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value should be in the range [0, 64), otherwise it will result in an
-# error.
-# Stack transition looks as follows:
-# [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where c = a >> b, d = a << (64 - b).
-# This takes 94 cycles.
+#! Performs right shift of one unsigned 64-bit integer preserving the overflow and
+#! using the pow2 operation.
+#! The input value to be shifted is assumed to be represented using 32 bit limbs.
+#! The shift value should be in the range [0, 64), otherwise it will result in an
+#! error.
+#! Stack transition looks as follows:
+#! [b, a_hi, a_lo, ...] -> [d_hi, d_lo, c_hi, c_lo, ...], where c = a >> b, d = a << (64 - b).
+#! This takes 94 cycles.
 export.overflowing_shr
     push.64             # (64 - b)
     dup.1
@@ -16665,13 +16665,13 @@ export.overflowing_shr
     exec.unchecked_shl  # d = a << (64 - b)
 end
 
-# Performs left rotation of one unsigned 64-bit integer using the pow2 operation.
-# The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value should be in the range [0, 64), otherwise it will result in an
-# error.
-# Stack transition looks as follows:
-# [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 35 cycles.
+#! Performs left rotation of one unsigned 64-bit integer using the pow2 operation.
+#! The input value to be shifted is assumed to be represented using 32 bit limbs.
+#! The shift value should be in the range [0, 64), otherwise it will result in an
+#! error.
+#! Stack transition looks as follows:
+#! [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
+#! This takes 35 cycles.
 export.unchecked_rotl
     push.31
     dup.1
@@ -16703,13 +16703,13 @@ export.unchecked_rotl
     cswap
 end
 
-# Performs right rotation of one unsigned 64-bit integer using the pow2 operation.
-# The input value to be shifted is assumed to be represented using 32 bit limbs.
-# The shift value should be in the range [0, 64), otherwise it will result in an
-# error.
-# Stack transition looks as follows:
-# [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
-# This takes 40 cycles.
+#! Performs right rotation of one unsigned 64-bit integer using the pow2 operation.
+#! The input value to be shifted is assumed to be represented using 32 bit limbs.
+#! The shift value should be in the range [0, 64), otherwise it will result in an
+#! error.
+#! Stack transition looks as follows:
+#! [b, a_hi, a_lo, ...] -> [c_hi, c_lo, ...], where c = a << b mod 2^64.
+#! This takes 40 cycles.
 export.unchecked_rotr
     push.31
     dup.1
@@ -16747,12 +16747,12 @@ export.unchecked_rotr
 end
 "#),
 // ----- std::sys ---------------------------------------------------------------------------------
-("std::sys", r#"# Removes elements deep in the stack until the depth of the stack is exactly 16. The elements
-# are removed in such a way that the top 16 elements of the stack remain unchanged. If the stack
-# would otherwise contain more than 16 elements at the end of execution, then adding a call to this 
-# function at the end will reduce the size of the public inputs that are shared with the verifier.
-# Input: Stack with 16 or more elements.
-# Output: Stack with only the original top 16 elements.
+("std::sys", r#"#! Removes elements deep in the stack until the depth of the stack is exactly 16. The elements
+#! are removed in such a way that the top 16 elements of the stack remain unchanged. If the stack
+#! would otherwise contain more than 16 elements at the end of execution, then adding a call to this 
+#! function at the end will reduce the size of the public inputs that are shared with the verifier.
+#! Input: Stack with 16 or more elements.
+#! Output: Stack with only the original top 16 elements.
 export.truncate_stack.4
     loc_storew.0
     dropw
