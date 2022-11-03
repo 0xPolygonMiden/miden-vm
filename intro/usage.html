@@ -166,6 +166,7 @@
 <li><code>verify</code> - this will verify a previously generated proof of execution for a given program.</li>
 <li><code>compile</code> - this will compile a Miden assembly program (i.e., build a program <a href="../design/programs.html">MAST</a>) and outputs stats about the compilation process.</li>
 <li><code>analyze</code> - this will run a Miden assembly program against specific inputs and will output stats about its execution.</li>
+<li><code>repl</code> - this will initiate the <a href="usage.html#repl">Miden REPL</a> tool.</li>
 </ul>
 <p>All of the above subcommands require various parameters to be provided. To get more detailed help on what is needed for a given subcommand, you can run the following:</p>
 <pre><code>./target/release/miden [subcommand] --help
@@ -178,6 +179,92 @@
 <pre><code>./target/release/miden run -a miden/examples/fib/fib.masm -n 1
 </code></pre>
 <p>This will run the example code to completion and will output the top element remaining on the stack.</p>
+<h2 id="repl"><a class="header" href="#repl">REPL</a></h2>
+<p>The Miden Read–eval–print loop (REPL) is a Miden shell that allows for quick and easy debugging of Miden assembly. After the REPL gets initialized, you can execute any Miden instruction, undo executed instructions, check the state of the stack and memory at a given point, and do many other useful things! When the REPL is exited, a <code>history.txt</code> file is saved. One thing to note is that all the REPL native commands start with an <code>!</code> to differentiate them from regular assembly instructions. The REPL currently supports the following commands:</p>
+<h3 id="miden-assembly-instruction"><a class="header" href="#miden-assembly-instruction">Miden assembly instruction</a></h3>
+<p>All Miden instructions mentioned in the <a href="../user_docs/assembly/main.html">Miden Assembly sections</a> are valid. One can either input instructions one by one or multiple instructions in one input.</p>
+<p>For example, the below two commands will result in the same output.</p>
+<pre><code>&gt;&gt; push.1
+&gt;&gt; push.2
+&gt;&gt; push.3
+</code></pre>
+<pre><code>push.1 push.2 push.3
+</code></pre>
+<p>To execute a control flow operation, one must write the entire statement in a single line with spaces between individual operations.</p>
+<pre><code>repeat.20
+    pow2
+end
+</code></pre>
+<p>The above example should be written as follows in the REPL tool:</p>
+<pre><code>repeat.20 pow2 end
+</code></pre>
+<h3 id="help"><a class="header" href="#help">!help</a></h3>
+<p>The <code>!help</code> command prints out all the available commands in the REPL tool. </p>
+<h3 id="program"><a class="header" href="#program">!program</a></h3>
+<p>The <code>!program</code> command prints out the entire Miden program being executed. E.g., in the below scenario:</p>
+<pre><code>&gt;&gt; push.1.2.3.4
+&gt;&gt; repeat.16 pow2 end
+&gt;&gt; u32checked_add
+
+&gt;&gt; !program
+begin
+    push.1.2.3.4
+    repeat.16 pow2 end
+    u32checked_add
+end
+</code></pre>
+<h3 id="stack"><a class="header" href="#stack">!stack</a></h3>
+<p>The <code>!stack</code> command prints out the state of the stack at the last executed instruction. Since the stack always contains at least 16 elements, 16 or more elements will be printed out (even if all of them are zeros).</p>
+<pre><code>&gt;&gt; push.1 push.2 push.3 push.4 push.5
+&gt;&gt; exp
+&gt;&gt; u32checked_mul
+&gt;&gt; swap
+&gt;&gt; eq.2
+&gt;&gt; assert
+</code></pre>
+<p>The <code>!stack</code> command will print out the following state of the stack:</p>
+<pre><code>&gt;&gt; !stack
+3072 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+</code></pre>
+<h3 id="mem"><a class="header" href="#mem">!mem</a></h3>
+<p>The <code>!mem</code> command prints out the contents of all initialized memory locations. For each such location, the address, along with its memory values, is printed. Recall that four elements are stored at each memory address.</p>
+<p>If the memory has at least one value that has been initialized:</p>
+<pre><code>&gt;&gt; !mem
+7: [1, 2, 0, 3]
+8: [5, 7, 3, 32]
+9: [9, 10, 2, 0]
+</code></pre>
+<p>If the memory is not yet been initialized:</p>
+<pre><code>&gt;&gt; !mem
+The memory has not been initialized yet
+</code></pre>
+<h3 id="memaddr"><a class="header" href="#memaddr">!mem[addr]</a></h3>
+<p>The <code>!mem[addr]</code> command prints out memory contents at the address specified by <code>addr</code>.</p>
+<p>If the <code>addr</code> has been initialized:</p>
+<pre><code>&gt;&gt; !mem[9]
+9: [9, 10, 2, 0]
+</code></pre>
+<p>If the <code>addr</code> has not been initialized:</p>
+<pre><code>&gt;&gt; !mem[87]
+Memory at address 87 is empty
+</code></pre>
+<h3 id="undo"><a class="header" href="#undo">!undo</a></h3>
+<p>The <code>!undo</code> command reverts to the previous state of the stack and memory by dropping off the last executed assembly instruction from the program. One could use <code>!undo</code> as often as they want to restore the state of a stack and memory <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathnormal">n</span></span></span></span> instructions ago (provided there are <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathnormal">n</span></span></span></span> instructions in the program). The <code>!undo</code> command will result in an error if no remaining instructions are left in the Miden program.</p>
+<pre><code>&gt;&gt; push.1 push.2 push.3
+&gt;&gt; push.4
+&gt;&gt; !stack
+4 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0
+
+&gt;&gt; push.5
+&gt;&gt; !stack
+5 4 3 2 1 0 0 0 0 0 0 0 0 0 0 0
+
+&gt;&gt; !undo
+4 3 2 1 0 0 0 0 0 0 0 0 0 0 0 0
+
+&gt;&gt; !undo
+3 2 1 0 0 0 0 0 0 0 0 0 0 0 0 0
+</code></pre>
 
                     </main>
 
