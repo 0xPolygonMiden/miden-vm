@@ -4,6 +4,7 @@
 #[macro_use]
 extern crate alloc;
 
+use core::ops;
 use vm_core::{
     code_blocks::CodeBlock,
     utils::{
@@ -22,6 +23,7 @@ use procedures::Procedure;
 
 mod parsers;
 use parsers::{combine_blocks, parse_code_blocks};
+pub use parsers::{parse_module, ModuleAst};
 
 mod tokens;
 use tokens::{Token, TokenStream};
@@ -46,21 +48,62 @@ type ModuleMap = BTreeMap<String, ProcMap>;
 // MODULE PROVIDER
 // ================================================================================================
 
+/// A procedure identifier computed as a digest truncated to [`Self::LEN`] bytes, product of the
+/// label of a procedure
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ProcedureId(pub [u8; Self::SIZE]);
+
+impl ops::Deref for ProcedureId {
+    type Target = [u8; Self::SIZE];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl ProcedureId {
+    /// Truncated length of the id
+    pub const SIZE: usize = 24;
+
+    /// Createa a new procedure id from its label, composed by module path + name identifier.
+    ///
+    /// No validation is performed regarding the consistency of the label structure
+    pub fn new<L>(label: L) -> Self
+    where
+        L: AsRef<str>,
+    {
+        let mut digest = [0u8; Self::SIZE];
+
+        // TODO define the desired digest strategy for the proc id
+        // this XOR will hold the injective property for this function, but it isn't optimal and
+        // most likely we should use a time-hardened efficient hash such as blake3 or sha256
+        label
+            .as_ref()
+            .bytes()
+            .enumerate()
+            .for_each(|(i, b)| digest[i % Self::SIZE] ^= b);
+
+        Self(digest)
+    }
+}
+
 /// The module provider is now a simplified version of a module cache. It is expected to evolve to
 /// a general solution for the module lookup
-///
-/// TODO compute a procedure index deterministically from a module path & procedure label. The
-/// initial expected layout for the index is `[u8; 20]`. The module provider should map procedures
-/// from these indexes, and this is expected to result in code simplification + optimization for
-/// the compiler.
 pub trait ModuleProvider {
     /// Fetch source contents provided a module path
     fn get_source(&self, path: &str) -> Option<&str>;
+
+    /// Fetch a module AST from its ID
+    fn get_module(&self, id: &ProcedureId) -> Option<&ModuleAst>;
 }
 
 // A default provider that won't resolve modules
 impl ModuleProvider for () {
     fn get_source(&self, _path: &str) -> Option<&str> {
+        None
+    }
+
+    fn get_module(&self, _id: &ProcedureId) -> Option<&ModuleAst> {
         None
     }
 }

@@ -99,7 +99,7 @@ impl ModuleAst {
     }
 
     /// Returns a `ModuleAst` struct by its byte representation.
-    pub fn from_bytes(bytes: &mut &[u8]) -> Result<Self, SerializationError> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SerializationError> {
         let mut byte_reader = ByteReader::new(bytes.to_vec());
 
         let mut procedures = ProcMap::new();
