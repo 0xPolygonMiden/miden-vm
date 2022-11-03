@@ -236,8 +236,8 @@ pub enum Instruction {
     MTreeCWM,
 
     // ----- exec / call ----------------------------------------------------------------------
-    ExecLocal(u32),
+    ExecLocal(u16),
     ExecImported([u8; 24]),
-    CallLocal(u32),
+    CallLocal(u16),
     CallImported([u8; 24]),
 }
