@@ -1,10 +1,10 @@
-use std::collections::BTreeMap;
-use std::io::Result;
 use std::{
-    fs::{self, File},
-    io::Write,
-    path::Path,
+    collections::BTreeMap,
+    fs,
+    io::{self, Write},
+    path::PathBuf,
 };
+use vm_assembly::{parse_module, ProcedureId};
 
 mod stdlib_docs;
 
@@ -12,13 +12,106 @@ mod stdlib_docs;
 // ================================================================================================
 
 const ASM_DIR_PATH: &str = "./asm";
-const DOC_DIR_PATH: &str = "./docs";
 const ASM_FILE_PATH: &str = "./src/asm.rs";
+const DOC_DIR_PATH: &str = "./docs";
+const MODULE_SEPARATOR: &str = "::";
 
 // TYPE ALIASES
 // ================================================================================================
 
 type ModuleMap = BTreeMap<String, String>;
+
+// HELPER STRUCTURES
+// ================================================================================================
+
+struct ModuleDirectory {
+    pub label: String,
+    pub path: PathBuf,
+}
+
+impl ModuleDirectory {
+    fn fill(state: &mut Vec<Self>, path: PathBuf, label: String) -> io::Result<()> {
+        state.push(ModuleDirectory {
+            label: label.clone(),
+            path: path.clone(),
+        });
+
+        for entry in fs::read_dir(path)? {
+            let entry = entry?.path();
+
+            if entry.is_dir() {
+                entry
+                    .file_name()
+                    .and_then(|x| x.to_str())
+                    .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "failed to read dir name"))
+                    .map(|name| format!("{label}{MODULE_SEPARATOR}{name}"))
+                    .and_then(|label| Self::fill(state, entry, label))?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+struct Module {
+    pub label: String,
+    pub id: ProcedureId,
+    pub source: String,
+    pub serialized: Vec<u8>,
+}
+
+impl Module {
+    fn load() -> io::Result<Vec<Self>> {
+        let mut dirs = Vec::new();
+
+        ModuleDirectory::fill(&mut dirs, ASM_DIR_PATH.into(), "std".into())?;
+
+        let mut parsed = Vec::new();
+
+        for ModuleDirectory { label, path } in dirs {
+            for entry in path.read_dir()? {
+                let entry = entry?.path();
+
+                if entry.is_file() {
+                    entry
+                        .extension()
+                        .and_then(|x| x.to_str())
+                        .filter(|x| x == &"masm")
+                        .ok_or_else(|| {
+                            io::Error::new(
+                                io::ErrorKind::Other,
+                                format!("invalid file extension at {}", entry.display()),
+                            )
+                        })?;
+
+                    let name = entry.file_stem().and_then(|x| x.to_str()).ok_or_else(|| {
+                        io::Error::new(
+                            io::ErrorKind::Other,
+                            format!("invalid file name at {}", entry.display()),
+                        )
+                    })?;
+
+                    let label = format!("{label}{MODULE_SEPARATOR}{name}");
+                    let id = ProcedureId::new(&label);
+
+                    let source = fs::read_to_string(entry)?;
+                    let module = parse_module(&source)
+                        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.message().as_str()))?;
+                    let serialized = module.to_bytes();
+
+                    parsed.push(Module {
+                        label,
+                        id,
+                        source,
+                        serialized,
+                    });
+                }
+            }
+        }
+
+        Ok(parsed)
+    }
+}
 
 // PRE-PROCESSING
 // ================================================================================================
@@ -29,93 +122,53 @@ type ModuleMap = BTreeMap<String, String>;
 /// The `asm.rs` file exports a single static array of string tuples. Each tuple consist of module
 /// namespace label and the module source code for this label.
 #[cfg(not(feature = "docs-rs"))]
-fn main() {
+fn main() -> io::Result<()> {
     // re-build the `./src/asm.rs` file only if something in the `./asm` directory has changed
     println!("cargo:rerun-if-changed=asm");
 
-    let mut modules = BTreeMap::new();
+    let modules = Module::load()?;
+    let mut output = fs::File::create(ASM_FILE_PATH)?;
 
-    // read the modules from the asm directory
-    let path = Path::new(ASM_DIR_PATH);
-    read_modules(path, "std".to_string(), &mut modules)
-        .expect("failed to read modules from the asm directory");
+    writeln!(output, "//! This module is automatically generated during build time and should not be modified manually.\n")?;
+    writeln!(
+        output,
+        "/// An array of modules defined in Miden standard library."
+    )?;
+    writeln!(output, "///")?;
+    writeln!(output, "/// Entries in the array are tuples containing module namespace and module parsed+serialized.")?;
+    writeln!(output, "#[rustfmt::skip]")?;
+    writeln!(
+        output,
+        "pub const MODULES: [(&str, vm_assembly::ProcedureId, &str, &[u8]); {}] = [",
+        modules.len()
+    )?;
 
-    // write the modules into the asm file
-    write_asm_rs(&modules).expect("failed to write modules into the module file");
+    // Docs label-> source mapping
+    // TODO it might be preferrable to defer the docs parsing to a step before AST generation
+    // instead of using different pipelines
+    let mut docs = BTreeMap::new();
+
+    modules.into_iter().try_for_each(
+        |Module {
+             label,
+             id,
+             source,
+             serialized,
+         }| {
+            docs.insert(label.clone(), source.clone());
+
+            writeln!(
+                output,
+                "(\"{label}\",vm_assembly::ProcedureId({:?}),\"{source}\",&{serialized:?}),",
+                id.0
+            )
+        },
+    )?;
+
+    writeln!(output, "];")?;
 
     // updates the documentation of these modules
-    stdlib_docs::build_stdlib_docs(&modules, DOC_DIR_PATH);
-}
-
-// HELPER FUNCTIONS
-// ================================================================================================
-
-/// Recursively reads Miden assembly modules from the specified path, and inserts the modules
-/// to the provided module map.
-fn read_modules(fs_path: &Path, ns_path: String, modules: &mut ModuleMap) -> Result<()> {
-    // iterate over all entries in the directory
-    for dir in fs_path.read_dir()? {
-        let path = dir?.path();
-
-        if path.is_dir() {
-            // if the current path is a directory, continue reading it recursively
-            let dir_name = path
-                .file_name()
-                .expect("failed to get directory name from path")
-                .to_str()
-                .expect("failed to convert directory name to string");
-            let ns_path = format!("{ns_path}::{dir_name}");
-            read_modules(path.as_path(), ns_path, modules)?;
-        } else if path.is_file() {
-            // if the current path is a file, make sure it is a `.masm` file and read its contents
-            let extension = path
-                .extension()
-                .expect("failed to get file extension from path")
-                .to_str()
-                .expect("failed to convert file extension to string");
-            assert_eq!("masm", extension, "invalid file extension at: {path:?}");
-            let source = fs::read_to_string(path.as_path())?;
-
-            // get the name of the file without extension
-            let file_name = path
-                .with_extension("") // strip te extension
-                .as_path()
-                .file_name()
-                .expect("failed to get file name from path")
-                .to_str()
-                .expect("failed to convert file name to string")
-                .to_string();
-            // insert the module source into the module map
-            modules.insert(format!("{ns_path}::{file_name}"), source);
-        } else {
-            panic!("entry not a file or directory");
-        }
-    }
+    stdlib_docs::build_stdlib_docs(&docs, DOC_DIR_PATH);
 
     Ok(())
-}
-
-/// Writes Miden assembly modules into a single `asm.rs` file.
-#[rustfmt::skip]
-fn write_asm_rs(modules: &ModuleMap) -> Result<()> {
-    // create the module file
-    let mut asm_file = File::create(ASM_FILE_PATH)?;
-
-    // write module header which also opens the array
-    writeln!(asm_file, "//! This module is automatically generated during build time and should not be modified manually.\n")?;
-    writeln!(asm_file, "/// An array of modules defined in Miden standard library.")?;
-    writeln!(asm_file, "///")?;
-    writeln!(asm_file, "/// Entries in the array are tuples containing module namespace and module source code.")?;
-    writeln!(asm_file, "#[rustfmt::skip]")?;
-    writeln!(asm_file, "pub const MODULES: [(&str, &str); {}] = [", modules.len())?;
-
-    // write each module into the module file
-    for (ns, source) in modules {
-        let separator_suffix = (0..(89 - ns.len())).map(|_| "-").collect::<String>();
-        writeln!(asm_file, "// ----- {ns} {separator_suffix}")?;
-        writeln!(asm_file, "(\"{ns}\", r#\"{source}\"#),")?;
-    }
-
-    // close the array
-    writeln!(asm_file, "];")
 }

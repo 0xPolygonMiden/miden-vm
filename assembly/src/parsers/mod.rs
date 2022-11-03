@@ -17,6 +17,7 @@ mod stack_ops;
 mod u32_ops;
 
 mod ast;
+pub use ast::{parse_module, ModuleAst};
 
 // OP PARSER
 // ================================================================================================

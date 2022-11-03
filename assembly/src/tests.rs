@@ -1,4 +1,4 @@
-use crate::ModuleProvider;
+use crate::{ModuleAst, ModuleProvider, ProcedureId};
 
 // SIMPLE PROGRAMS
 // ================================================================================================
@@ -197,6 +197,11 @@ fn program_with_one_import() {
                     end
                 end"#,
             )
+        }
+
+        fn get_module(&self, id: &ProcedureId) -> Option<&ModuleAst> {
+            // this test is checking the source as string
+            None
         }
     }
 

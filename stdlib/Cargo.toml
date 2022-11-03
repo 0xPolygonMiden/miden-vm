@@ -18,3 +18,6 @@ doctest = false
 [dependencies]
 vm-core = { package = "miden-core", default-features = false, path = "../core", version = "0.3" }
 vm-assembly = { package = "miden-assembly", default-features = false, path = "../assembly", version = "0.3" }
+
+[build-dependencies]
+vm-assembly = { package = "miden-assembly", default-features = false, path = "../assembly", version = "0.3" }
