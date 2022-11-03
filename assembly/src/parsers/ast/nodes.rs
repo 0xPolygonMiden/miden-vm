@@ -1,6 +1,8 @@
 use vm_core::utils::collections::Vec;
 use vm_core::Felt;
 
+use crate::ProcedureId;
+
 // Nodes
 // ================================================================================================
 
@@ -237,7 +239,7 @@ pub enum Instruction {
 
     // ----- exec / call ----------------------------------------------------------------------
     ExecLocal(u32),
-    ExecImported([u8; 24]),
+    ExecImported(ProcedureId),
     CallLocal(u32),
-    CallImported([u8; 24]),
+    CallImported(ProcedureId),
 }
