@@ -5,6 +5,7 @@
 extern crate alloc;
 
 use core::ops;
+use crypto::{hashers::Blake3_256, Digest, Hasher};
 use vm_core::{
     code_blocks::CodeBlock,
     utils::{
@@ -12,7 +13,7 @@ use vm_core::{
         string::{String, ToString},
         Box,
     },
-    CodeBlockTable, Kernel, Program,
+    CodeBlockTable, Felt, Kernel, Program,
 };
 
 mod context;
@@ -53,6 +54,12 @@ type ModuleMap = BTreeMap<String, ProcMap>;
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ProcedureId(pub [u8; Self::SIZE]);
 
+impl From<[u8; ProcedureId::SIZE]> for ProcedureId {
+    fn from(value: [u8; ProcedureId::SIZE]) -> Self {
+        Self(value)
+    }
+}
+
 impl ops::Deref for ProcedureId {
     type Target = [u8; Self::SIZE];
 
@@ -73,16 +80,8 @@ impl ProcedureId {
         L: AsRef<str>,
     {
         let mut digest = [0u8; Self::SIZE];
-
-        // TODO define the desired digest strategy for the proc id
-        // this XOR will hold the injective property for this function, but it isn't optimal and
-        // most likely we should use a time-hardened efficient hash such as blake3 or sha256
-        label
-            .as_ref()
-            .bytes()
-            .enumerate()
-            .for_each(|(i, b)| digest[i % Self::SIZE] ^= b);
-
+        let hash = Blake3_256::<Felt>::hash(label.as_ref().as_bytes());
+        digest.copy_from_slice(&hash.as_bytes()[..Self::SIZE]);
         Self(digest)
     }
 }

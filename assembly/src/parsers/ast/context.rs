@@ -1,14 +1,12 @@
+use crate::ProcedureId;
+
 use super::{
     io_ops, stack_ops, u32_ops, AssemblyError, Instruction, LocalProcMap, Node, ProcedureAst,
-    Token, TokenStream, MODULE_PATH_DELIM, PROC_DIGEST_SIZE,
+    Token, TokenStream, MODULE_PATH_DELIM,
 };
-use crypto::{hashers::Blake3_192, Digest, Hasher};
-use vm_core::{
-    utils::{
-        collections::{BTreeMap, Vec},
-        string::{String, ToString},
-    },
-    Felt,
+use vm_core::utils::{
+    collections::{BTreeMap, Vec},
+    string::{String, ToString},
 };
 
 // Context
@@ -155,8 +153,8 @@ impl ParserContext {
 
         if label.contains(MODULE_PATH_DELIM) {
             let full_proc_name = self.get_full_imported_proc_name(label);
-            let proc_name_hash = self.get_proc_name_hash(full_proc_name);
-            Ok(Node::Instruction(Instruction::ExecImported(proc_name_hash)))
+            let proc_id = ProcedureId::new(full_proc_name);
+            Ok(Node::Instruction(Instruction::ExecImported(proc_id)))
         } else {
             let index = self
                 .local_procs
@@ -173,8 +171,8 @@ impl ParserContext {
         tokens.advance();
         if label.contains(MODULE_PATH_DELIM) {
             let full_proc_name = self.get_full_imported_proc_name(label);
-            let proc_name_hash = self.get_proc_name_hash(full_proc_name);
-            Ok(Node::Instruction(Instruction::CallImported(proc_name_hash)))
+            let proc_id = ProcedureId::new(full_proc_name);
+            Ok(Node::Instruction(Instruction::CallImported(proc_id)))
         } else {
             let index = self
                 .local_procs
@@ -319,13 +317,6 @@ impl ParserContext {
         let (module_name, proc_name) = short_name.split_once(MODULE_PATH_DELIM).unwrap();
         let full_module_name = self.imports.get(module_name).unwrap();
         format!("{full_module_name}{MODULE_PATH_DELIM}{proc_name}")
-    }
-
-    fn get_proc_name_hash(&self, proc_name: String) -> [u8; PROC_DIGEST_SIZE] {
-        let proc_name_digest = Blake3_192::<Felt>::hash(proc_name.as_bytes());
-        let mut proc_name_hash = [0; PROC_DIGEST_SIZE];
-        proc_name_hash.copy_from_slice(&proc_name_digest.as_bytes()[..PROC_DIGEST_SIZE]);
-        proc_name_hash
     }
 }
 

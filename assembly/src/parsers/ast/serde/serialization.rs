@@ -2,7 +2,7 @@ use super::{
     super::nodes::{Instruction, Node},
     OpCode, IF_ELSE_OPCODE, REPEAT_OPCODE, WHILE_OPCODE,
 };
-use crate::errors::SerializationError;
+use crate::{errors::SerializationError, ProcedureId};
 use vm_core::{utils::collections::Vec, utils::string::String, Felt, StarkField};
 
 const MAX_STRING_LENGHT: u8 = 100;
@@ -51,7 +51,7 @@ impl ByteWriter {
         Ok(())
     }
 
-    pub fn write_proc_hash(&mut self, val: &[u8; 24]) {
+    pub fn write_procedure_id(&mut self, val: &ProcedureId) {
         self.0.append(&mut val.to_vec());
     }
 
@@ -478,7 +478,7 @@ impl Serializable for Instruction {
             }
             Self::ExecImported(imported) => {
                 target.write_opcode(OpCode::ExecImported);
-                target.write_proc_hash(imported);
+                target.write_procedure_id(imported);
             }
             Self::CallLocal(v) => {
                 target.write_opcode(OpCode::CallLocal);
@@ -486,7 +486,7 @@ impl Serializable for Instruction {
             }
             Self::CallImported(imported) => {
                 target.write_opcode(OpCode::CallImported);
-                target.write_proc_hash(imported);
+                target.write_procedure_id(imported);
             }
         }
     }
