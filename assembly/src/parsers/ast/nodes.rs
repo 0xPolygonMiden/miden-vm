@@ -238,8 +238,8 @@ pub enum Instruction {
     MTreeCWM,
 
     // ----- exec / call ----------------------------------------------------------------------
-    ExecLocal(u32),
+    ExecLocal(u16),
     ExecImported(ProcedureId),
-    CallLocal(u32),
+    CallLocal(u16),
     CallImported(ProcedureId),
 }

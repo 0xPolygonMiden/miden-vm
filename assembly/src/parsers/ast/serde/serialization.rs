@@ -474,7 +474,7 @@ impl Serializable for Instruction {
             // ----- exec / call ----------------------------------------------------------------------
             Self::ExecLocal(v) => {
                 target.write_opcode(OpCode::ExecLocal);
-                target.write_u32(*v);
+                target.write_u16(*v);
             }
             Self::ExecImported(imported) => {
                 target.write_opcode(OpCode::ExecImported);
@@ -482,7 +482,7 @@ impl Serializable for Instruction {
             }
             Self::CallLocal(v) => {
                 target.write_opcode(OpCode::CallLocal);
-                target.write_u32(*v);
+                target.write_u16(*v);
             }
             Self::CallImported(imported) => {
                 target.write_opcode(OpCode::CallImported);

@@ -395,9 +395,9 @@ impl Deserializable for Instruction {
             OpCode::MTreeCWM => Ok(Instruction::MTreeCWM),
 
             // ----- exec / call ----------------------------------------------------------------------
-            OpCode::ExecLocal => Ok(Instruction::ExecLocal(bytes.read_u32()?)),
+            OpCode::ExecLocal => Ok(Instruction::ExecLocal(bytes.read_u16()?)),
             OpCode::ExecImported => Ok(Instruction::ExecImported(bytes.read_procedure_id()?)),
-            OpCode::CallLocal => Ok(Instruction::CallLocal(bytes.read_u32()?)),
+            OpCode::CallLocal => Ok(Instruction::CallLocal(bytes.read_u16()?)),
             OpCode::CallImported => Ok(Instruction::CallImported(bytes.read_procedure_id()?)),
         }
     }

@@ -1,8 +1,8 @@
 use crate::ProcedureId;
 
 use super::{
-    io_ops, stack_ops, u32_ops, AssemblyError, Instruction, Node, ProcMap, ProcedureAst, Token,
-    TokenStream, MODULE_PATH_DELIM,
+    io_ops, stack_ops, u32_ops, AssemblyError, Instruction, LocalProcMap, Node, ProcedureAst,
+    Token, TokenStream, MODULE_PATH_DELIM,
 };
 use vm_core::utils::{
     collections::{BTreeMap, Vec},
@@ -16,7 +16,7 @@ use vm_core::utils::{
 #[derive(Default)]
 pub struct ParserContext {
     pub imports: BTreeMap<String, String>,
-    pub procedures: ProcMap,
+    pub local_procs: LocalProcMap,
 }
 
 impl ParserContext {
@@ -156,7 +156,12 @@ impl ParserContext {
             let proc_id = ProcedureId::new(full_proc_name);
             Ok(Node::Instruction(Instruction::ExecImported(proc_id)))
         } else {
-            let index = self.procedures.get(&label).unwrap().index;
+            let index = self
+                .local_procs
+                .get(&label)
+                .ok_or_else(|| AssemblyError::undefined_proc(tokens.read().unwrap(), &label))?
+                .0;
+
             Ok(Node::Instruction(Instruction::ExecLocal(index)))
         }
     }
@@ -169,7 +174,12 @@ impl ParserContext {
             let proc_id = ProcedureId::new(full_proc_name);
             Ok(Node::Instruction(Instruction::CallImported(proc_id)))
         } else {
-            let index = self.procedures.get(&label).unwrap().index;
+            let index = self
+                .local_procs
+                .get(&label)
+                .ok_or_else(|| AssemblyError::undefined_proc(tokens.read().unwrap(), &label))?
+                .0;
+
             Ok(Node::Instruction(Instruction::CallLocal(index)))
         }
     }
@@ -191,12 +201,13 @@ impl ParserContext {
                         return Err(AssemblyError::proc_export_not_allowed(token, &label));
                     }
 
-                    if self.procedures.contains_key("test") {
+                    if self.local_procs.contains_key("test") {
                         return Err(AssemblyError::duplicate_proc_label(token, &label));
                     }
 
                     let proc = self.parse_procedure(tokens)?;
-                    self.procedures.insert(label.to_string(), proc);
+                    self.local_procs
+                        .insert(label.to_string(), (self.local_procs.len() as u16, proc));
                 }
                 _ => break,
             }
@@ -239,7 +250,6 @@ impl ParserContext {
             num_locals,
             is_export,
             body,
-            index: self.procedures.len() as u32,
         };
 
         Ok(proc)
