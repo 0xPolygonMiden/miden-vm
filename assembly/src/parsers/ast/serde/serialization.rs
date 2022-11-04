@@ -5,7 +5,7 @@ use super::{
 use crate::errors::SerializationError;
 use vm_core::{utils::collections::Vec, utils::string::String, Felt, StarkField};
 
-const MAX_STRING_LENGHT: u8 = 100;
+const MAX_STRING_LENGTH: u8 = 100;
 
 // BYTE WRITER IMPLEMENTATION
 // ================================================================================================
@@ -42,7 +42,7 @@ impl ByteWriter {
     pub fn write_string(&mut self, val: &String) -> Result<(), SerializationError> {
         let val_bytes = val.as_bytes();
         let val_bytes_len = val_bytes.len() as u8;
-        if val_bytes_len > MAX_STRING_LENGHT {
+        if val_bytes_len > MAX_STRING_LENGTH {
             return Err(SerializationError::StringTooLong);
         } else {
             self.write_u8(val_bytes_len);

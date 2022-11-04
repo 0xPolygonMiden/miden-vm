@@ -54,7 +54,7 @@ impl ProgramAst {
 
     /// Returns a `ProgramAst` struct by its byte representation.
     pub fn from_bytes(bytes: &mut &[u8]) -> Result<Self, SerializationError> {
-        let mut byte_reader = ByteReader::new(bytes.to_vec());
+        let mut byte_reader = ByteReader::new(bytes);
 
         let mut procedures = LocalProcMap::new();
 
@@ -95,7 +95,7 @@ impl ModuleAst {
 
     /// Returns a `ModuleAst` struct by its byte representation.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, SerializationError> {
-        let mut byte_reader = ByteReader::new(bytes.to_vec());
+        let mut byte_reader = ByteReader::new(bytes);
 
         let mut procedures = LocalProcMap::new();
 

@@ -12,13 +12,13 @@ use vm_core::{utils::collections::Vec, utils::string::String, Felt};
 // ================================================================================================
 
 /// Contains bytes for deserialization and current reading position
-pub struct ByteReader {
-    bytes: Vec<u8>,
+pub struct ByteReader<'a> {
+    bytes: &'a [u8],
     pos: usize,
 }
 
-impl ByteReader {
-    pub fn new(bytes: Vec<u8>) -> Self {
+impl<'a> ByteReader<'a> {
+    pub fn new(bytes: &'a [u8]) -> Self {
         ByteReader { bytes, pos: 0 }
     }
 
