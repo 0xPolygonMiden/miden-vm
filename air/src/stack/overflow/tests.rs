@@ -4,7 +4,10 @@ use crate::stack::{
     B0_COL_IDX, B1_COL_IDX, H0_COL_IDX,
 };
 use rand_utils::rand_value;
-use vm_core::{Felt, FieldElement, Operation, CLK_COL_IDX, ONE, STACK_TRACE_OFFSET, ZERO};
+use vm_core::{
+    decoder::IS_CALL_FLAG_COL_IDX, Felt, FieldElement, Operation, CLK_COL_IDX,
+    DECODER_TRACE_OFFSET, ONE, STACK_TRACE_OFFSET, ZERO,
+};
 
 // UNIT TESTS
 // ================================================================================================
@@ -19,13 +22,18 @@ fn test_stack_overflow_constraints() {
     let mut frame = generate_evaluation_frame(Operation::Pad.op_code().into());
 
     // Set the output. The top element in the next frame should be 0.
-    frame.current_mut()[CLK_COL_IDX] = ZERO;
+    frame.current_mut()[CLK_COL_IDX] = Felt::new(8);
     frame.current_mut()[B0_COL_IDX] = Felt::new(depth);
+    frame.current_mut()[B1_COL_IDX] = Felt::new(7);
+    frame.current_mut()[H0_COL_IDX] = Felt::new(depth - 16).inv();
 
     frame.next_mut()[B0_COL_IDX] = Felt::new(depth + 1);
     frame.next_mut()[B1_COL_IDX] = frame.current()[CLK_COL_IDX];
-    frame.next_mut()[H0_COL_IDX] = Felt::new(depth - 16).inv();
-    frame.next_mut()[CLK_COL_IDX] = ONE;
+    frame.next_mut()[H0_COL_IDX] = Felt::new(depth + 1 - 16).inv();
+    frame.next_mut()[CLK_COL_IDX] = Felt::new(9);
+
+    let result = get_constraint_evaluation(frame);
+    assert_eq!(expected, result);
 
     // ------------------ left shift operation- depth 16 ----------------------------------------------------
 
@@ -82,6 +90,38 @@ fn test_stack_overflow_constraints() {
     frame.next_mut()[B0_COL_IDX] = Felt::new(depth);
     frame.next_mut()[B1_COL_IDX] = Felt::new(b1);
     frame.next_mut()[H0_COL_IDX] = h1;
+
+    let result = get_constraint_evaluation(frame);
+    assert_eq!(expected, result);
+}
+
+#[test]
+fn test_stack_depth_air_fail() {
+    let depth = 16 + rand_value::<u32>() as u64;
+    // block with a control block opcode.
+    let mut frame = generate_evaluation_frame(Operation::Split.op_code().into());
+
+    // At the start of a control block, the second part of the hasher state gets populated with h2. Therefore, the 7th
+    // hasher element alone can't be used as a flag if it's the end of a call block, and the stack depth air constraint
+    // will fail in all control flow operations, which shifts the stack either to the right or left.
+    frame.current_mut()[CLK_COL_IDX] = ZERO;
+    frame.current_mut()[B0_COL_IDX] = Felt::new(depth);
+    frame.current_mut()[STACK_TRACE_OFFSET] = ONE;
+    // setting it to any u64 random value other than 0.
+    frame.current_mut()[DECODER_TRACE_OFFSET + IS_CALL_FLAG_COL_IDX] =
+        Felt::new(rand_value::<u32>() as u64);
+    frame.current_mut()[B1_COL_IDX] = Felt::new(12);
+    frame.current_mut()[H0_COL_IDX] = ONE;
+
+    frame.next_mut()[CLK_COL_IDX] = ONE;
+    frame.next_mut()[B0_COL_IDX] = Felt::new(depth - 1);
+    frame.current_mut()[B1_COL_IDX] = Felt::new(12);
+    frame.current_mut()[H0_COL_IDX] = ONE;
+
+    let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+    let result = get_constraint_evaluation(frame);
+
+    assert_ne!(expected, result);
 }
 
 // TEST HELPERS
