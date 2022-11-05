@@ -37,7 +37,7 @@ impl Process {
     /// Pops an element off the stack and adds it to the current value of `fmp` register.
     ///
     /// # Errors
-    /// Returns an error if the new value of `fmp` register is greater than or equal to 2^32.
+    /// Returns an error if the new value of `fmp` register is greater than or equal to 3 * 2^30.
     pub(super) fn op_fmpupdate(&mut self) -> Result<(), ExecutionError> {
         let offset = self.stack.get(0);
         let fmp = self.system.fmp();

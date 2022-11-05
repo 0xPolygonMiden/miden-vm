@@ -22,7 +22,7 @@ pub const USER_OP_HELPERS: Range<usize> = Range {
 
 /// Execution trace of the decoder.
 ///
-/// The trace currently consists of 23 columns grouped logically as follows:
+/// The trace currently consists of 24 columns grouped logically as follows:
 /// - 1 column for code block ID / related hasher table row address.
 /// - 7 columns for the binary representation of an opcode.
 /// - 8 columns used for providing inputs to, and reading results from the hasher, but also used
@@ -34,7 +34,13 @@ pub const USER_OP_HELPERS: Range<usize> = Range {
 ///   group.
 /// - 3 columns for keeping track of operation batch flags.
 /// - 1 column used for op flag degree reduction (to support degree 5 operations).
+/// - 1 column for the flag indicating whether we are in a SYSCALL or not.
 pub struct DecoderTrace {
+    /// A flag indicating whether the next trace row is a part of a SYSCALL
+    in_syscall: Felt,
+
+    // --- trace columns --------------------------------------------------------------------------
+    // descriptions of these columns are in the struct doc comments above.
     addr_trace: Vec<Felt>,
     op_bits_trace: [Vec<Felt>; NUM_OP_BITS],
     hasher_trace: [Vec<Felt>; NUM_HASHER_COLUMNS],
@@ -42,7 +48,8 @@ pub struct DecoderTrace {
     group_count_trace: Vec<Felt>,
     op_idx_trace: Vec<Felt>,
     op_batch_flag_trace: [Vec<Felt>; NUM_OP_BATCH_FLAGS],
-    op_bit_extra: Vec<Felt>,
+    op_bit_extra_trace: Vec<Felt>,
+    in_syscall_trace: Vec<Felt>,
 }
 
 impl DecoderTrace {
@@ -51,6 +58,7 @@ impl DecoderTrace {
     /// Initializes a blank [DecoderTrace].
     pub fn new() -> Self {
         Self {
+            in_syscall: ZERO,
             addr_trace: Vec::with_capacity(MIN_TRACE_LEN),
             op_bits_trace: new_array_vec(MIN_TRACE_LEN),
             hasher_trace: new_array_vec(MIN_TRACE_LEN),
@@ -58,7 +66,8 @@ impl DecoderTrace {
             in_span_trace: Vec::with_capacity(MIN_TRACE_LEN),
             op_idx_trace: Vec::with_capacity(MIN_TRACE_LEN),
             op_batch_flag_trace: new_array_vec(MIN_TRACE_LEN),
-            op_bit_extra: Vec::with_capacity(MIN_TRACE_LEN),
+            op_bit_extra_trace: Vec::with_capacity(MIN_TRACE_LEN),
+            in_syscall_trace: Vec::with_capacity(MIN_TRACE_LEN),
         }
     }
 
@@ -82,22 +91,26 @@ impl DecoderTrace {
     // TRACE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Appends a trace row marking the start of a flow control block (JOIN, SPLIT, LOOP, CALL).
+    /// Appends a trace row marking the start of a flow control block (JOIN, SPLIT, LOOP, CALL,
+    /// SYSCALL).
     ///
     /// When a control block is starting, we do the following:
     /// - Set the address to the address of the parent block. This is not necessarily equal to the
     ///   address from the previous row because in a SPLIT block, the second child follows the
     ///   first child, rather than the parent.
-    /// - Set op_bits to opcode of the specified block (e.g., JOIN, SPLIT, LOOP, CALL).
+    /// - Set op_bits to opcode of the specified block (e.g., JOIN, SPLIT, LOOP, CALL, SYSCALL).
     /// - Set the first half of the hasher state to the h1 parameter. For JOIN and SPLIT blocks
     ///   this will contain the hash of the left child; for LOOP block this will contain hash of
-    ///   the loop's body, for CALL block this will contain hash of the called function.
+    ///   the loop's body, for CALL and SYSCALL block this will contain hash of the called
+    ///   function.
     /// - Set the second half of the hasher state to the h2 parameter. For JOIN and SPLIT blocks
     ///   this will contain hash of the right child.
     /// - Set is_span to ZERO.
     /// - Set op group count register to the ZERO.
     /// - Set operation index register to ZERO.
     /// - Set op_batch_flags to ZEROs.
+    /// - Set the value of in_syscall column, and if the starting block is a SYSCALL, set the
+    ///   in_syscall value for the next row to ONE.
     pub fn append_block_start(&mut self, parent_addr: Felt, op: Operation, h1: Word, h2: Word) {
         self.addr_trace.push(parent_addr);
         self.append_opcode(op);
@@ -119,19 +132,30 @@ impl DecoderTrace {
         self.op_batch_flag_trace[0].push(ZERO);
         self.op_batch_flag_trace[1].push(ZERO);
         self.op_batch_flag_trace[2].push(ZERO);
+
+        self.in_syscall_trace.push(self.in_syscall);
+
+        if op == Operation::SysCall {
+            debug_assert_eq!(self.in_syscall, ZERO, "already in syscall");
+            self.in_syscall = ONE;
+        }
     }
 
-    /// Appends a trace row marking the end of a flow control block (JOIN, SPLIT, LOOP, CALL).
+    /// Appends a trace row marking the end of a flow control block (JOIN, SPLIT, LOOP, CALL,
+    /// SYSCALL).
     ///
     /// When a control block is ending, we do the following:
     /// - Set the block address to the specified address.
     /// - Set op_bits to END opcode.
     /// - Put the provided block hash into the first 4 elements of the hasher state.
-    /// - Set the remaining 4 elements of the hasher state to [is_loop_body, is_loop, is_call, 0].
+    /// - Set the remaining 4 elements of the hasher state to [is_loop_body, is_loop, is_call,
+    ///   is_syscall].
     /// - Set in_span to ZERO.
     /// - Copy over op group count from the previous row. This group count must be ZERO.
     /// - Set operation index register to ZERO.
     /// - Set op_batch_flags to ZEROs.
+    /// - Set the value of the in_syscall column, and if we are ending a SYSCALL block (i.e.,
+    ///   is_syscall == ONE), set the next value of in_syscall to ZERO.
     pub fn append_block_end(
         &mut self,
         block_addr: Felt,
@@ -141,8 +165,10 @@ impl DecoderTrace {
         is_call: Felt,
         is_syscall: Felt,
     ) {
-        debug_assert!(is_loop_body.as_int() <= 1, "invalid loop body");
-        debug_assert!(is_loop.as_int() <= 1, "invalid is loop");
+        debug_assert!(is_loop_body.as_int() <= 1, "invalid is_loop_body");
+        debug_assert!(is_loop.as_int() <= 1, "invalid is_loop");
+        debug_assert!(is_call.as_int() <= 1, "invalid is_call");
+        debug_assert!(is_syscall.as_int() <= 1, "invalid is_syscall");
 
         self.addr_trace.push(block_addr);
         self.append_opcode(Operation::End);
@@ -168,6 +194,13 @@ impl DecoderTrace {
         self.op_batch_flag_trace[0].push(ZERO);
         self.op_batch_flag_trace[1].push(ZERO);
         self.op_batch_flag_trace[2].push(ZERO);
+
+        self.in_syscall_trace.push(self.in_syscall);
+
+        if is_syscall == ONE {
+            debug_assert_eq!(self.in_syscall, ONE, "not in syscall");
+            self.in_syscall = ZERO;
+        }
     }
 
     /// Appends a trace row marking the beginning of a new loop iteration.
@@ -182,6 +215,7 @@ impl DecoderTrace {
     /// - Set op group count register to the ZERO.
     /// - Set operation index register to ZERO.
     /// - Set op_batch_flags to ZEROs.
+    /// - Set the value of the in_syscall column.
     pub fn append_loop_repeat(&mut self, loop_addr: Felt) {
         self.addr_trace.push(loop_addr);
         self.append_opcode(Operation::Repeat);
@@ -198,6 +232,8 @@ impl DecoderTrace {
         self.op_batch_flag_trace[0].push(ZERO);
         self.op_batch_flag_trace[1].push(ZERO);
         self.op_batch_flag_trace[2].push(ZERO);
+
+        self.in_syscall_trace.push(self.in_syscall);
     }
 
     /// Appends a trace row marking the start of a SPAN block.
@@ -212,6 +248,7 @@ impl DecoderTrace {
     /// - Set op group count to the total number of op groups in the SPAN.
     /// - Set operation index register to ZERO.
     /// - Set the op_batch_flags based on the specified number of operation groups.
+    /// - Set the value of the in_syscall column.
     pub fn append_span_start(
         &mut self,
         parent_addr: Felt,
@@ -232,6 +269,8 @@ impl DecoderTrace {
         self.op_batch_flag_trace[0].push(op_batch_flags[0]);
         self.op_batch_flag_trace[1].push(op_batch_flags[1]);
         self.op_batch_flag_trace[2].push(op_batch_flags[2]);
+
+        self.in_syscall_trace.push(self.in_syscall);
     }
 
     /// Appends a trace row marking a RESPAN operation.
@@ -245,6 +284,7 @@ impl DecoderTrace {
     /// - Copy over op group count from the previous row.
     /// - Set operation index register to ZERO.
     /// - Set the op_batch_flags based on the current operation group count.
+    /// - Set the value of the in_syscall column.
     pub fn append_respan(&mut self, op_batch: &[Felt; OP_BATCH_SIZE]) {
         self.addr_trace.push(self.last_addr());
         self.append_opcode(Operation::Respan);
@@ -261,6 +301,8 @@ impl DecoderTrace {
         self.op_batch_flag_trace[0].push(op_batch_flags[0]);
         self.op_batch_flag_trace[1].push(op_batch_flags[1]);
         self.op_batch_flag_trace[2].push(op_batch_flags[2]);
+
+        self.in_syscall_trace.push(self.in_syscall);
     }
 
     /// Appends a trace row for a user operation.
@@ -278,6 +320,7 @@ impl DecoderTrace {
     ///   operation is a start of a new operation group.
     /// - Set the operation's index within the current operation group.
     /// - Set op_batch_flags to ZEROs.
+    /// - Set the value of the in_syscall column.
     pub fn append_user_op(
         &mut self,
         op: Operation,
@@ -304,6 +347,8 @@ impl DecoderTrace {
         self.op_batch_flag_trace[0].push(ZERO);
         self.op_batch_flag_trace[1].push(ZERO);
         self.op_batch_flag_trace[2].push(ZERO);
+
+        self.in_syscall_trace.push(self.in_syscall);
     }
 
     /// Appends a trace row marking the end of a SPAN block.
@@ -318,6 +363,7 @@ impl DecoderTrace {
     /// - Copy over op group count from the previous row. This group count must be ZERO.
     /// - Set operation index register to ZERO.
     /// - Set op_batch_flags to ZEROs.
+    /// - Set the value of the in_syscall column.
     pub fn append_span_end(&mut self, span_hash: Word, is_loop_body: Felt) {
         debug_assert!(is_loop_body.as_int() <= 1, "invalid loop body");
 
@@ -329,7 +375,8 @@ impl DecoderTrace {
         self.hasher_trace[2].push(span_hash[2]);
         self.hasher_trace[3].push(span_hash[3]);
 
-        // we don't need to set is_loop here because we know we are not in a loop block
+        // we don't need to set is_loop, is_call, and is_syscall here because we know that this
+        // is a SPAN block
         self.hasher_trace[4].push(is_loop_body);
         self.hasher_trace[5].push(ZERO);
         self.hasher_trace[6].push(ZERO);
@@ -346,6 +393,8 @@ impl DecoderTrace {
         self.op_batch_flag_trace[0].push(ZERO);
         self.op_batch_flag_trace[1].push(ZERO);
         self.op_batch_flag_trace[2].push(ZERO);
+
+        self.in_syscall_trace.push(self.in_syscall);
     }
 
     // TRACE GENERATION
@@ -423,9 +472,16 @@ impl DecoderTrace {
         // product of the two most significant op bits.
         debug_assert_eq!(1, (halt_opcode >> 6) & 1);
         debug_assert_eq!(1, (halt_opcode >> 5) & 1);
-        debug_assert_eq!(own_len, self.op_bit_extra.len());
-        self.op_bit_extra.resize(trace_len, ONE);
-        trace.push(self.op_bit_extra);
+        debug_assert_eq!(own_len, self.op_bit_extra_trace.len());
+        self.op_bit_extra_trace.resize(trace_len, ONE);
+        trace.push(self.op_bit_extra_trace);
+
+        // put ZEROs into the unfilled rows of in_syscall column as at the end of the execution
+        // we cannot be inside a SYSCALL
+        debug_assert_eq!(self.in_syscall, ZERO);
+        debug_assert_eq!(own_len, self.in_syscall_trace.len());
+        self.in_syscall_trace.resize(trace_len, ZERO);
+        trace.push(self.in_syscall_trace);
 
         trace
     }
@@ -467,10 +523,10 @@ impl DecoderTrace {
         }
 
         // populate extra op bit column with the product of the two most significant bits
-        let clk = self.op_bit_extra.len();
+        let clk = self.op_bit_extra_trace.len();
         let bit6 = self.op_bits_trace[NUM_OP_BITS - 1][clk];
         let bit5 = self.op_bits_trace[NUM_OP_BITS - 2][clk];
-        self.op_bit_extra.push(bit6 * bit5);
+        self.op_bit_extra_trace.push(bit6 * bit5);
     }
 
     /// Add all provided values to the helper registers in the order provided, starting from the

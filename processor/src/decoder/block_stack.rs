@@ -121,7 +121,7 @@ impl BlockInfo {
     }
 
     /// Returns ONE if this block is a body of a LOOP block; otherwise returns ZERO.
-    pub fn is_loop_body(&self) -> Felt {
+    pub const fn is_loop_body(&self) -> Felt {
         if self.is_loop_body {
             ONE
         } else {
@@ -130,7 +130,7 @@ impl BlockInfo {
     }
 
     /// Returns ONE if this block is a CALL block; otherwise returns ZERO.
-    pub fn is_call(&self) -> Felt {
+    pub const fn is_call(&self) -> Felt {
         match self.block_type {
             BlockType::Call => ONE,
             _ => ZERO,
@@ -138,7 +138,7 @@ impl BlockInfo {
     }
 
     /// Returns ONE if this block is a SYSCALL block; otherwise returns ZERO.
-    pub fn is_syscall(&self) -> Felt {
+    pub const fn is_syscall(&self) -> Felt {
         match self.block_type {
             BlockType::SysCall => ONE,
             _ => ZERO,

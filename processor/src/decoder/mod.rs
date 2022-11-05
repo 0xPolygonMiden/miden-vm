@@ -1,6 +1,6 @@
 use super::{
     Call, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation, Process, Span, Split,
-    StarkField, Vec, Word, FMP_MIN, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, SYSCALL_FMP_MIN, ZERO,
+    StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
 use vm_core::{
     chiplets::hasher::DIGEST_LEN,
@@ -179,9 +179,10 @@ impl Process {
         let (stack_depth, next_overflow_addr) = self.stack.start_context();
         debug_assert!(stack_depth <= u32::MAX as usize, "stack depth too big");
 
-        // start decoding the block; this appends a row with CALL/SYSCALL operation to the decoder
-        // trace and records information about the current execution context in the block stack
-        // table. this info will be used to restore the context after the function returns.
+        // update the system registers and start decoding the block; this appends a row with
+        // CALL/SYSCALL operation to the decoder trace and records information about the current
+        // execution context in the block stack table. this info will be used to restore the
+        // context after the function returns.
         let ctx_info = ExecutionContextInfo::new(
             self.system.ctx(),
             self.system.fmp(),
@@ -190,19 +191,11 @@ impl Process {
         );
 
         if block.is_syscall() {
+            self.system.start_syscall();
             self.decoder.start_syscall(fn_hash, addr, ctx_info);
-            // set execution context to 0 as SYSCALL takes us back to memory context of the kernel;
-            // set the free memory pointer to 2^31 so that we don't overlap with procedure locals
-            // from the original kernel context
-            self.system.set_ctx(0);
-            self.system.set_fmp(Felt::from(SYSCALL_FMP_MIN));
         } else {
+            self.system.start_call();
             self.decoder.start_call(fn_hash, addr, ctx_info);
-            // set the execution context to the current clock cycle + 1. This ensures that the
-            // context is globally unique as is never set to 0. also, reset the free memory
-            // pointer to min value
-            self.system.set_ctx(self.system.clk() + 1);
-            self.system.set_fmp(Felt::from(FMP_MIN));
         }
 
         // the rest of the VM state does not change
@@ -227,10 +220,10 @@ impl Process {
         // send the end of control block to the chiplets bus to handle the final hash request.
         self.chiplets.read_hash_result();
 
-        // when returning from a function call, reset the context and the free memory pointer to
-        // what they were before the call, and restore the context of the operand stack.
-        self.system.set_ctx(ctx_info.parent_ctx);
-        self.system.set_fmp(ctx_info.parent_fmp);
+        // when returning from a function call or a syscall, restore the context of the system
+        // registers and the operand stack to what it was prior to the call.
+        self.system
+            .restore_context(ctx_info.parent_ctx, ctx_info.parent_fmp);
         self.stack.restore_context(
             ctx_info.parent_stack_depth as usize,
             ctx_info.parent_next_overflow_addr,
@@ -498,7 +491,7 @@ impl Decoder {
         // get the current clock cycle here (before the trace table is updated)
         let clk = self.trace_len() as u32;
 
-        // push block info onto the block stack and append a row to the execution trace
+        // push CALL block info onto the block stack and append a CALL row to the execution trace
         let parent_addr = self.block_stack.push(addr, BlockType::Call, Some(ctx_info));
         self.trace
             .append_block_start(parent_addr, Operation::Call, fn_hash, [ZERO; 4]);
@@ -519,7 +512,8 @@ impl Decoder {
         // get the current clock cycle here (before the trace table is updated)
         let clk = self.trace_len() as u32;
 
-        // push block info onto the block stack and append a row to the execution trace
+        // push SYSCALL block info onto the block stack and append a SYSCALL row to the execution
+        // trace
         let parent_addr = self
             .block_stack
             .push(addr, BlockType::SysCall, Some(ctx_info));
