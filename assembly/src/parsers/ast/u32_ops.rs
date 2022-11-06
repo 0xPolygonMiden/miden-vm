@@ -143,7 +143,7 @@ pub fn parse_u32overflowing_mul(op: &Token) -> Result<Node, AssemblyError> {
 }
 
 pub fn parse_u32_div(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "u32checked|unchecked_div", 0..1);
+    validate_operation!(op, "u32checked_div|u32unchecked_div", 0..1);
 
     let node = match op.num_parts() {
         2 => {
@@ -167,7 +167,7 @@ pub fn parse_u32_div(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
 }
 
 pub fn parse_u32_mod(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "u32checked|unchecked_mod", 0..1);
+    validate_operation!(op, "u32checked_mod|u32unchecked_mod", 0..1);
 
     let node = match op.num_parts() {
         2 => {
@@ -191,7 +191,7 @@ pub fn parse_u32_mod(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
 }
 
 pub fn parse_u32_divmod(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "u32checked|unchecked_divmod", 0..1);
+    validate_operation!(op, "u32checked_divmod|u32unchecked_divmod", 0..1);
 
     let node = match op.num_parts() {
         2 => {
@@ -215,7 +215,7 @@ pub fn parse_u32_divmod(op: &Token, checked: bool) -> Result<Node, AssemblyError
 }
 
 pub fn parse_u32_shr(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "u32checked|unchecked_shr", 0..1);
+    validate_operation!(op, "u32checked_shr|u32unchecked_shr", 0..1);
 
     let node = match op.num_parts() {
         2 => {
@@ -239,7 +239,7 @@ pub fn parse_u32_shr(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
 }
 
 pub fn parse_u32_shl(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "u32checked|unchecked_shl", 0..1);
+    validate_operation!(op, "u32checked_shl|u32unchecked_shl", 0..1);
 
     let node = match op.num_parts() {
         2 => {
@@ -263,7 +263,7 @@ pub fn parse_u32_shl(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
 }
 
 pub fn parse_u32_rotr(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "u32checked|unchecked_rotr", 0..1);
+    validate_operation!(op, "u32checked_rotr|u32unchecked_rotr", 0..1);
 
     let node = match op.num_parts() {
         2 => {
@@ -287,7 +287,7 @@ pub fn parse_u32_rotr(op: &Token, checked: bool) -> Result<Node, AssemblyError> 
 }
 
 pub fn parse_u32_rotl(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "u32checked|unchecked_rotl", 0..1);
+    validate_operation!(op, "u32checked_rotl|u32unchecked_rotl", 0..1);
 
     let node = match op.num_parts() {
         2 => {

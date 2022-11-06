@@ -2,8 +2,10 @@ use super::{AssemblyContext, AssemblyError, CodeBlock, Token, TokenStream};
 pub use blocks::{combine_blocks, parse_body};
 use u32_ops::U32OpMode;
 use vm_core::{
-    utils::collections::Vec, AssemblyOp, Decorator, DecoratorList, Felt, FieldElement, Operation,
-    StarkField,
+    utils::{
+        collections::Vec,
+    },
+    AssemblyOp, Decorator, DecoratorList, Felt, FieldElement, Operation, StarkField,
 };
 
 mod blocks;
@@ -13,8 +15,8 @@ mod io_ops;
 mod stack_ops;
 mod u32_ops;
 
-pub mod ast;
-use ast::nodes::Instruction;
+mod ast;
+pub use ast::{parse_module, parse_program, ProgramAst, ModuleAst, nodes::Instruction, ProcedureAst, LocalProcMap};
 
 // OP PARSER
 // ================================================================================================
@@ -33,7 +35,7 @@ fn parse_op_instruction(
     if in_debug_mode {
         decorators.push((
             span_ops.len(),
-            Decorator::AsmOp(AssemblyOp::new(String::from("mem_storew.1"), 1)),
+            Decorator::AsmOp(AssemblyOp::new(op.to_string(), 1)),
         ));
     }
 

@@ -1,3 +1,5 @@
+use crate::{ModuleAst, ModuleProvider, ProcedureId};
+
 // SIMPLE PROGRAMS
 // ================================================================================================
 #[test]
@@ -177,14 +179,43 @@ fn program_with_exported_procedure() {
 
 #[test]
 fn program_with_one_import() {
-    let assembler = super::Assembler::default();
-    let source = "\
-        use.std::math::u256
-        begin \
-            push.4 push.3 \
-            exec.u256::iszero_unsafe \
-        end";
-    let program = assembler.compile(source).unwrap();
+    const MODULE: &str = "dummy::math::u256";
+
+    #[derive(Default)]
+    struct DummyProvider;
+
+    impl ModuleProvider for DummyProvider {
+        fn get_source(&self, path: &str) -> Option<&str> {
+            (path == MODULE).then_some(
+                r#"
+                export.iszero_unsafe
+                    eq.0
+                    repeat.7
+                        swap
+                        eq.0
+                        and
+                    end
+                end"#,
+            )
+        }
+
+        fn get_module(&self, _id: &ProcedureId) -> Option<&ModuleAst> {
+            // this test is checking the source as string
+            None
+        }
+    }
+
+    let assembler = super::Assembler::new().with_module_provider(DummyProvider::default());
+    let source = format!(
+        r#"
+        use.{}
+        begin
+            push.4 push.3
+            exec.u256::iszero_unsafe
+        end"#,
+        MODULE
+    );
+    let program = assembler.compile(&source).unwrap();
     let expected = "\
         begin \
             span \

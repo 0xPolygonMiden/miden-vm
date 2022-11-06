@@ -1,4 +1,7 @@
-use super::{AssemblyError, Felt, FieldElement, Operation};
+use super::{
+    super::validate_operation, parse_bit_len_param, parse_element_param, AssemblyError, Felt,
+    FieldElement, Operation, Token, Vec,
+};
 use vm_core::{utils::PushMany, StarkField};
 
 // ASSERTIONS AND TESTS

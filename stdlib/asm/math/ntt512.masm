@@ -1,24 +1,24 @@
-# Applies four NTT butterflies on four different indices, given following stack state
-#
-# [k0, k1, k2, k3, A0, B0, C0, D0, A1, B1, C1, D1]
-# 
-# Here k`i` => i-th constant i.e. ω raised to *some* power | ω => 2N -th primitive root of unity, N = 512
-#
-# A{0, 1} -> first butterfly will be applied on these two elements
-# B{0, 1} -> second butterfly will be applied on these two elements
-# C{0, 1} -> third butterfly will be applied on these two elements
-# D{0, 1} -> fourth butterfly will be applied on these two elements
-#
-# Four independent butterflies are applied in following way
-#
-# ζ = k0 * A0  | ζ = k1 * B0  | ζ = k2 * C0  | ζ = k3 * D0
-# --- --- --- --- --- --- --- --- --- --- --- --- --- --- -
-# A0' = A1 - ζ | B0' = B1 - ζ | C0' = C1 - ζ | D0' = D1 - ζ
-# A1' = A1 + ζ | B1' = B1 + ζ | C1' = C1 + ζ | D1' = D1 + ζ
-#
-# After four independent butterflies are applied, resulting stack state should look like
-#
-# [A0', B0', C0', D0', A1', B1', C1', D1']
+#! Applies four NTT butterflies on four different indices, given following stack state
+#!
+#! [k0, k1, k2, k3, A0, B0, C0, D0, A1, B1, C1, D1]
+#! 
+#! Here k`i` => i-th constant i.e. ω raised to *some* power | ω => 2N -th primitive root of unity, N = 512
+#!
+#! A{0, 1} -> first butterfly will be applied on these two elements
+#! B{0, 1} -> second butterfly will be applied on these two elements
+#! C{0, 1} -> third butterfly will be applied on these two elements
+#! D{0, 1} -> fourth butterfly will be applied on these two elements
+#!
+#! Four independent butterflies are applied in following way
+#!
+#! ζ = k0 * A0  | ζ = k1 * B0  | ζ = k2 * C0  | ζ = k3 * D0
+#! --- --- --- --- --- --- --- --- --- --- --- --- --- --- -
+#! A0' = A1 - ζ | B0' = B1 - ζ | C0' = C1 - ζ | D0' = D1 - ζ
+#! A1' = A1 + ζ | B1' = B1 + ζ | C1' = C1 + ζ | D1' = D1 + ζ
+#!
+#! After four independent butterflies are applied, resulting stack state should look like
+#!
+#! [A0', B0', C0', D0', A1', B1', C1', D1']
 proc.butterfly
     movup.4
     mul
@@ -81,25 +81,25 @@ proc.butterfly
     movdn.3
 end
 
-# Applies forward NTT on a vector of length 512, where each element ∈ Zp | p = 2^64 − 2^32 + 1,
-# producing elements in frequency domain in bit-reversed order.
-#
-# Expected stack state as input:
-#
-# [start_addr, ...] | Single absolute memory address, where polynomial starts
-#
-# Note, total 128 memory addresses are required for storing whole polynomial. Next 127
-# addresses are consecutive i.e. computable by using `add.1` instruction on previous address.
-#
-# addr{i} holds values V[(i << 2) .. ((i+1) << 2)] | i ∈ [0, 128) and addr0 = start_addr
-#
-# After applying NTT, bit-reversed order vector is returned back as single absolute memory
-# addresses on stack, where it begins storing the polynomial. Consecutive 127 addresses should be
-# computable using `add.1` instruction.
-#
-# [start_addr', ...] | Single absolute memory address, where resulting polynomial starts
-#
-# Note, input memory allocation is not mutated, instead output is stored in different memory allocation.
+#! Applies forward NTT on a vector of length 512, where each element ∈ Zp | p = 2^64 − 2^32 + 1,
+#! producing elements in frequency domain in bit-reversed order.
+#!
+#! Expected stack state as input:
+#!
+#! [start_addr, ...] | Single absolute memory address, where polynomial starts
+#!
+#! Note, total 128 memory addresses are required for storing whole polynomial. Next 127
+#! addresses are consecutive i.e. computable by using `add.1` instruction on previous address.
+#!
+#! addr{i} holds values V[(i << 2) .. ((i+1) << 2)] | i ∈ [0, 128) and addr0 = start_addr
+#!
+#! After applying NTT, bit-reversed order vector is returned back as single absolute memory
+#! addresses on stack, where it begins storing the polynomial. Consecutive 127 addresses should be
+#! computable using `add.1` instruction.
+#!
+#! [start_addr', ...] | Single absolute memory address, where resulting polynomial starts
+#!
+#! Note, input memory allocation is not mutated, instead output is stored in different memory allocation.
 export.forward.128
     # prepare input
 
@@ -1098,27 +1098,27 @@ export.forward.128
 	locaddr.0
 end
 
-# Applies four inverse NTT butterflies on four different indices, given following stack state
-#
-# [k0, k1, k2, k3, A0, B0, C0, D0, A1, B1, C1, D1]
-# 
-# Here k`i` => i-th constant i.e. negative of ω raised to *some* power | ω => 2N -th primitive root of unity, N = 512
-#
-# A{0, 1} -> first inverse butterfly will be applied on these two elements
-# B{0, 1} -> second inverse butterfly will be applied on these two elements
-# C{0, 1} -> third inverse butterfly will be applied on these two elements
-# D{0, 1} -> fourth inverse butterfly will be applied on these two elements
-#
-# Four independent inverse butterflies are applied in following way
-#
-# t0 = A1  			   | t1 = B1  			  | t2 = C1				 | t3 = D1
-# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- -
-# A1' = t0 + A0		   | B1' = t1 + B0 		  | C1' = t2 + C0 		 | D1' = t3 + D0
-# A0' = (t0 - A0) * k0 | B0' = (t1 - B0) * k1 | C0' = (t2 - C0) * k2 | D0' = (t3 - D0) * k3
-#
-# After four independent butterflies are applied, resulting stack state should look like
-#
-# [A0', B0', C0', D0', A1', B1', C1', D1']
+#! Applies four inverse NTT butterflies on four different indices, given following stack state
+#!
+#! [k0, k1, k2, k3, A0, B0, C0, D0, A1, B1, C1, D1]
+#! 
+#! Here k`i` => i-th constant i.e. negative of ω raised to *some* power | ω => 2N -th primitive root of unity, N = 512
+#!
+#! A{0, 1} -> first inverse butterfly will be applied on these two elements
+#! B{0, 1} -> second inverse butterfly will be applied on these two elements
+#! C{0, 1} -> third inverse butterfly will be applied on these two elements
+#! D{0, 1} -> fourth inverse butterfly will be applied on these two elements
+#!
+#! Four independent inverse butterflies are applied in following way
+#!
+#! t0 = A1  			   | t1 = B1  			  | t2 = C1				 | t3 = D1
+#! --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- -
+#! A1' = t0 + A0		   | B1' = t1 + B0 		  | C1' = t2 + C0 		 | D1' = t3 + D0
+#! A0' = (t0 - A0) * k0 | B0' = (t1 - B0) * k1 | C0' = (t2 - C0) * k2 | D0' = (t3 - D0) * k3
+#!
+#! After four independent butterflies are applied, resulting stack state should look like
+#!
+#! [A0', B0', C0', D0', A1', B1', C1', D1']
 proc.ibutterfly
 	dupw.2
 	dupw.2
@@ -1183,20 +1183,20 @@ proc.ibutterfly
 	movdn.3
 end
 
-# Given four elements on stack top, this routine multiplies each of them by invN = 18410715272404008961,
-# such that N = 512
-#
-# invN = (1/ 512) modulo q | q = 2^64 - 2^32 + 1
-#
-# Expected input stack state:
-#
-# [a0, a1, a2, a3]
-#
-# After applying routine, stack looks like
-#
-# [a0', a1', a2', a3']
-#
-# a{i}' = (a{i} * invN) modulo q | i ∈ [0, 4)
+#! Given four elements on stack top, this routine multiplies each of them by invN = 18410715272404008961,
+#! such that N = 512
+#!
+#! invN = (1/ 512) modulo q | q = 2^64 - 2^32 + 1
+#!
+#! Expected input stack state:
+#!
+#! [a0, a1, a2, a3]
+#!
+#! After applying routine, stack looks like
+#!
+#! [a0', a1', a2', a3']
+#!
+#! a{i}' = (a{i} * invN) modulo q | i ∈ [0, 4)
 proc.mul_by_invN
 	push.18410715272404008961
 	mul
@@ -1217,26 +1217,26 @@ proc.mul_by_invN
 	movdn.3
 end
 
-# Applies inverse NTT on a vector of length 512, where each element ∈ Zp | p = 2^64 − 2^32 + 1,
-# producing elements in time domain in standard order, while input vector is expected to be in 
-# bit-reversed order.
-#
-# Expected stack state as input:
-#
-# [start_addr, ...] | Single absolute memory address, where polynomial starts
-#
-# Note, total 128 memory addresses are required for storing whole polynomial. Next 127
-# addresses are consecutive i.e. computable by using `add.1` instruction on previous address.
-#
-# addr{i} holds values V[(i << 2) .. ((i+1) << 2)] | i ∈ [0, 128) and addr0 = start_addr
-#
-# After applying iNTT, normal order vector is returned back as single absolute memory
-# addresses on stack, where it begins storing the polynomial. Consecutive 127 addresses should 
-# similarly be computable using `add.1` instruction.
-#
-# [start_addr', ...] | Single absolute memory address, where resulting polynomial starts
-#
-# Note, input memory allocation is not mutated, instead output is stored in different memory allocation.
+#! Applies inverse NTT on a vector of length 512, where each element ∈ Zp | p = 2^64 − 2^32 + 1,
+#! producing elements in time domain in standard order, while input vector is expected to be in 
+#! bit-reversed order.
+#!
+#! Expected stack state as input:
+#!
+#! [start_addr, ...] | Single absolute memory address, where polynomial starts
+#!
+#! Note, total 128 memory addresses are required for storing whole polynomial. Next 127
+#! addresses are consecutive i.e. computable by using `add.1` instruction on previous address.
+#!
+#! addr{i} holds values V[(i << 2) .. ((i+1) << 2)] | i ∈ [0, 128) and addr0 = start_addr
+#!
+#! After applying iNTT, normal order vector is returned back as single absolute memory
+#! addresses on stack, where it begins storing the polynomial. Consecutive 127 addresses should 
+#! similarly be computable using `add.1` instruction.
+#!
+#! [start_addr', ...] | Single absolute memory address, where resulting polynomial starts
+#!
+#! Note, input memory allocation is not mutated, instead output is stored in different memory allocation.
 export.backward.128
 	# prepare input
 

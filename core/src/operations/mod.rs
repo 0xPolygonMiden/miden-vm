@@ -598,7 +598,7 @@ impl fmt::Display for Operation {
             Self::CSwapW => write!(f, "cswapw"),
 
             // ----- input / output ---------------------------------------------------------------
-            Self::Push(value) => write!(f, "push({})", value),
+            Self::Push(value) => write!(f, "push({value})"),
 
             Self::Read => write!(f, "read"),
             Self::ReadW => write!(f, "readw"),

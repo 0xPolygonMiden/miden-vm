@@ -146,7 +146,7 @@ impl Kernel {
     }
 
     /// Returns a list of procedure hashes contained in this kernel.
-    pub fn get_proc_hashes(&self) -> &[Digest] {
+    pub fn proc_hashes(&self) -> &[Digest] {
         &self.0
     }
 }

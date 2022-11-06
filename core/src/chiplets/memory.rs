@@ -3,6 +3,9 @@ use super::{create_range, Felt, Range, ONE, ZERO};
 // CONSTANTS
 // ================================================================================================
 
+/// Number of columns needed to record an execution trace of the memory chiplet.
+pub const TRACE_WIDTH: usize = 12;
+
 /// Number of selector columns in the trace.
 pub const NUM_SELECTORS: usize = 2;
 

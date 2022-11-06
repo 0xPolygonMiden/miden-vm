@@ -1,8 +1,8 @@
-use std::io::Write;
 use structopt::StructOpt;
 
 mod cli;
 mod examples;
+mod repl;
 mod tools;
 
 /// Root CLI struct
@@ -22,6 +22,8 @@ pub enum Actions {
     Prove(cli::ProveCmd),
     Run(cli::RunCmd),
     Verify(cli::VerifyCmd),
+    #[cfg(feature = "std")]
+    Repl(cli::ReplCmd),
 }
 
 /// CLI entry point
@@ -34,18 +36,14 @@ impl Cli {
             Actions::Prove(prove) => prove.execute(),
             Actions::Run(run) => run.execute(),
             Actions::Verify(verify) => verify.execute(),
+            #[cfg(feature = "std")]
+            Actions::Repl(repl) => repl.execute(),
         }
     }
 }
 
 /// Executable entry point
 pub fn main() {
-    // configure logging
-    env_logger::Builder::new()
-        .format(|buf, record| writeln!(buf, "{}", record.args()))
-        .filter_level(log::LevelFilter::Debug)
-        .init();
-
     // read command-line args
     let cli = Cli::from_args();
 

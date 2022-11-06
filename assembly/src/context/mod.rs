@@ -1,6 +1,7 @@
 use super::{
-    BTreeMap, CodeBlock, ProcMap, Procedure, StdLibrary, String, ToString, MODULE_PATH_DELIM,
+    BTreeMap, CodeBlock, ProcMap, Procedure, ToString, MODULE_PATH_DELIM,
 };
+use crate::ProcedureId;
 
 // ASSEMBLY CONTEXT
 // ================================================================================================
@@ -16,10 +17,9 @@ use super::{
 /// Local procedures are owned by the context, while imported and kernel procedures are stored by
 /// reference.
 pub struct AssemblyContext<'a> {
-    local_procs: BTreeMap<[u8; 24], Procedure>,
-    imported_procs: BTreeMap<[u8; 24], &'a Procedure>,
-    kernel_procs: Option<&'a ProcMap>,
-    stdlib: StdLibrary,
+    local_procs: BTreeMap<ProcedureId, Procedure>,
+    imported_procs: BTreeMap<ProcedureId, &'a Procedure>,
+    kernel_procs: Option<&'a BTreeMap<ProcedureId, Procedure>>,
     in_debug_mode: bool,
 }
 
@@ -38,7 +38,6 @@ impl<'a> AssemblyContext<'a> {
             kernel_procs,
             local_procs: BTreeMap::new(),
             imported_procs: BTreeMap::new(),
-            stdlib: StdLibrary::default(),
             in_debug_mode,
         }
     }
@@ -52,23 +51,23 @@ impl<'a> AssemblyContext<'a> {
     }
 
     /// Returns true if a procedure with the specified label exists in this context.
-    pub fn contains_proc(&self, label: &str) -> bool {
-        self.local_procs.contains_key(label) || self.imported_procs.contains_key(label)
+    pub fn contains_proc(&self, procedure_id: &ProcedureId) -> bool {
+        self.local_procs.contains_key(procedure_id) || self.imported_procs.contains_key(procedure_id)
     }
 
     /// Returns a code root of a procedure for the specified label from this context.
-    pub fn get_proc_code(&self, hash: &[u8; 24]) -> Option<&CodeBlock> {
+    pub fn get_proc_code(&self, procedure_id: &ProcedureId) -> Option<&CodeBlock> {
         // `expect()`'s are OK here because we first check if a given map contains the key
-        if self.imported_procs.contains_key(label) {
+        if self.imported_procs.contains_key(procedure_id) {
             let proc = *self
                 .imported_procs
-                .get(label)
+                .get(procedure_id)
                 .expect("no procedure after contains");
             Some(proc.code_root())
-        } else if self.local_procs.contains_key(label) {
+        } else if self.local_procs.contains_key(procedure_id) {
             let proc = self
                 .local_procs
-                .get(label)
+                .get(procedure_id)
                 .expect("no procedure after contains");
             Some(proc.code_root())
         } else {
@@ -93,11 +92,11 @@ impl<'a> AssemblyContext<'a> {
     }
 
     /// Returns a code root of a kernel procedure for the specified label in this context.
-    pub fn get_kernel_proc_code(&self, hash: &[u8; 24]) -> Option<&CodeBlock> {
+    pub fn get_kernel_proc_code(&self, procedure_id: &ProcedureId) -> Option<&CodeBlock> {
         // `expect()` is OK here because we first check if the kernel is set
         self.kernel_procs
             .expect("no kernel")
-            .get(label)
+            .get(procedure_id)
             .map(|c| c.code_root())
     }
 
@@ -112,7 +111,8 @@ impl<'a> AssemblyContext<'a> {
     /// Panics if a procedure with the specified label already exists in this context.
     pub fn add_local_proc(&mut self, proc: Procedure) {
         let label = proc.label();
-        assert!(!self.contains_proc(label), "duplicate procedure: {}", label);
+        proc.
+        assert!(!self.contains_proc(label), "duplicate procedure: {label}");
         self.local_procs.insert(label.to_string(), proc);
     }
 
@@ -123,12 +123,8 @@ impl<'a> AssemblyContext<'a> {
     /// # Panics
     /// Panics if a procedure with the specified label already exists in this context.
     pub fn add_imported_proc(&mut self, prefix: &str, proc: &'a Procedure) {
-        let label = format!("{}{}{}", prefix, MODULE_PATH_DELIM, proc.label());
-        assert!(
-            !self.contains_proc(&label),
-            "duplicate procedure: {}",
-            label
-        );
+        let label = format!("{prefix}{MODULE_PATH_DELIM}{}", proc.label());
+        assert!(!self.contains_proc(&label), "duplicate procedure: {label}");
         self.imported_procs.insert(label, proc);
     }
 

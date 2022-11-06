@@ -9,6 +9,9 @@ mod sys_ops;
 mod u32_ops;
 mod utils;
 
+#[cfg(test)]
+use super::Kernel;
+
 // OPERATION DISPATCHER
 // ================================================================================================
 
@@ -158,7 +161,7 @@ impl Process {
     #[cfg(test)]
     fn new_dummy(stack_inputs: &[u64]) -> Self {
         let inputs = super::ProgramInputs::new(stack_inputs, &[], vec![]);
-        let mut process = Self::new(inputs.unwrap());
+        let mut process = Self::new(&Kernel::default(), inputs.unwrap());
         process.execute_op(Operation::Noop).unwrap();
         process
     }
@@ -167,7 +170,7 @@ impl Process {
     #[cfg(test)]
     fn new_dummy_with_advice_tape(advice_tape: &[u64]) -> Self {
         let inputs = super::ProgramInputs::new(&[], advice_tape, vec![]).unwrap();
-        let mut process = Self::new(inputs);
+        let mut process = Self::new(&Kernel::default(), inputs);
         process.execute_op(Operation::Noop).unwrap();
         process
     }
@@ -186,7 +189,7 @@ impl Process {
     /// for testing purposes.
     #[cfg(test)]
     fn new_dummy_with_inputs_and_decoder_helpers(input: super::ProgramInputs) -> Self {
-        let mut process = Self::new(input);
+        let mut process = Self::new(&Kernel::default(), input);
         process.decoder.add_dummy_trace_row();
         process.execute_op(Operation::Noop).unwrap();
         process

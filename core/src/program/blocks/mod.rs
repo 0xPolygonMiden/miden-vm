@@ -100,12 +100,12 @@ impl CodeBlock {
 impl fmt::Display for CodeBlock {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            CodeBlock::Span(block) => write!(f, "{}", block),
-            CodeBlock::Join(block) => write!(f, "{}", block),
-            CodeBlock::Split(block) => write!(f, "{}", block),
-            CodeBlock::Loop(block) => write!(f, "{}", block),
-            CodeBlock::Call(block) => write!(f, "{}", block),
-            CodeBlock::Proxy(block) => write!(f, "{}", block),
+            CodeBlock::Span(block) => write!(f, "{block}"),
+            CodeBlock::Join(block) => write!(f, "{block}"),
+            CodeBlock::Split(block) => write!(f, "{block}"),
+            CodeBlock::Loop(block) => write!(f, "{block}"),
+            CodeBlock::Call(block) => write!(f, "{block}"),
+            CodeBlock::Proxy(block) => write!(f, "{block}"),
         }
     }
 }

@@ -2,6 +2,8 @@ use strum::Display;
 use vm_core::utils::collections::Vec;
 use vm_core::Felt;
 
+use crate::ProcedureId;
+
 // Nodes
 // ================================================================================================
 
@@ -241,9 +243,9 @@ pub enum Instruction {
     MTreeCWM,
 
     // ----- exec / call ----------------------------------------------------------------------
-    ExecLocal(u32),
-    ExecImported([u8; 24]),
-    CallLocal(u32),
-    CallImported([u8; 24]),
-    SysCall([u8; 24]),
+    ExecLocal(u16),
+    ExecImported(ProcedureId),
+    CallLocal(u16),
+    CallImported(ProcedureId),
+    SysCall(ProcedureId),
 }

@@ -1,24 +1,21 @@
 use super::{
-    super::{
-        nodes::{Instruction, Node},
-        PROC_DIGEST_SIZE,
-    },
+    super::nodes::{Instruction, Node},
     OpCode, IF_ELSE_OPCODE, REPEAT_OPCODE, WHILE_OPCODE,
 };
-use crate::errors::SerializationError;
+use crate::{errors::SerializationError, ProcedureId};
 use vm_core::{utils::collections::Vec, utils::string::String, Felt};
 
 // BYTE READER IMPLEMENTATION
 // ================================================================================================
 
 /// Contains bytes for deserialization and current reading position
-pub struct ByteReader {
-    bytes: Vec<u8>,
+pub struct ByteReader<'a> {
+    bytes: &'a [u8],
     pos: usize,
 }
 
-impl ByteReader {
-    pub fn new(bytes: Vec<u8>) -> Self {
+impl<'a> ByteReader<'a> {
+    pub fn new(bytes: &'a [u8]) -> Self {
         ByteReader { bytes, pos: 0 }
     }
 
@@ -79,12 +76,12 @@ impl ByteReader {
         Ok(String::from_utf8(string_bytes.to_vec()).expect("String conversion failure"))
     }
 
-    pub fn read_proc_hash(&mut self) -> Result<[u8; PROC_DIGEST_SIZE], SerializationError> {
-        self.check_eor(PROC_DIGEST_SIZE)?;
-        let mut hash = [0; PROC_DIGEST_SIZE];
-        hash.copy_from_slice(&self.bytes[self.pos..self.pos + PROC_DIGEST_SIZE]);
-        self.pos += PROC_DIGEST_SIZE;
-        Ok(hash)
+    pub fn read_procedure_id(&mut self) -> Result<ProcedureId, SerializationError> {
+        self.check_eor(ProcedureId::SIZE)?;
+        let mut hash = [0; ProcedureId::SIZE];
+        hash.copy_from_slice(&self.bytes[self.pos..self.pos + ProcedureId::SIZE]);
+        self.pos += ProcedureId::SIZE;
+        Ok(hash.into())
     }
 
     pub fn read_opcode(&mut self) -> Result<OpCode, SerializationError> {
@@ -402,11 +399,11 @@ impl Deserializable for Instruction {
             OpCode::MTreeCWM => Ok(Instruction::MTreeCWM),
 
             // ----- exec / call ----------------------------------------------------------------------
-            OpCode::ExecLocal => Ok(Instruction::ExecLocal(bytes.read_u32()?)),
-            OpCode::ExecImported => Ok(Instruction::ExecImported(bytes.read_proc_hash()?)),
-            OpCode::CallLocal => Ok(Instruction::CallLocal(bytes.read_u32()?)),
-            OpCode::CallImported => Ok(Instruction::CallImported(bytes.read_proc_hash()?)),
-            OpCode::SysCall => Ok(Instruction::SysCall(bytes.read_proc_hash()?)),
+            OpCode::ExecLocal => Ok(Instruction::ExecLocal(bytes.read_u16()?)),
+            OpCode::ExecImported => Ok(Instruction::ExecImported(bytes.read_procedure_id()?)),
+            OpCode::CallLocal => Ok(Instruction::CallLocal(bytes.read_u16()?)),
+            OpCode::CallImported => Ok(Instruction::CallImported(bytes.read_procedure_id()?)),
+            OpCode::SysCall => Ok(Instruction::SysCall(bytes.read_procedure_id()?)),
         }
     }
 }

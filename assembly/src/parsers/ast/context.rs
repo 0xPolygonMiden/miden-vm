@@ -1,16 +1,14 @@
+use crate::ProcedureId;
+
 use super::{
-    field_ops, io_ops, stack_ops, u32_ops, AssemblyError, Instruction, Node, ProcMap, ProcedureAst,
+    io_ops, stack_ops, u32_ops, AssemblyError, Instruction, LocalProcMap, Node, ProcedureAst,
     Token, TokenStream, MODULE_PATH_DELIM,
 };
-use crate::parsers::ast::PROC_DIGEST_SIZE;
-use crypto::{hashers::Blake3_192, Digest, Hasher};
-use vm_core::{
-    utils::{
-        collections::{BTreeMap, Vec},
-        string::{String, ToString},
-    },
-    Felt,
+use vm_core::utils::{
+    collections::{BTreeMap, Vec},
+    string::{String, ToString}, Felt
 };
+use crypto::hashers::Blake3_192;
 
 // Context
 // ================================================================================================
@@ -19,7 +17,7 @@ use vm_core::{
 #[derive(Default)]
 pub struct ParserContext {
     pub imports: BTreeMap<String, String>,
-    pub procedures: ProcMap,
+    pub local_procs: LocalProcMap,
 }
 
 impl ParserContext {
@@ -34,7 +32,7 @@ impl ParserContext {
 
         let mut t_branch = Vec::<Node>::new();
         // read the `if` clause
-        self.parse_body(tokens, &mut t_branch)?;
+        self.parse_body(tokens, &mut t_branch, true)?;
 
         // build the `else` clause; if the else clause is specified, then read it;
         // otherwise, set to a Span with a single noop
@@ -49,7 +47,7 @@ impl ParserContext {
 
                     let mut f_branch = Vec::<Node>::new();
                     // parse the `false` branch
-                    self.parse_body(tokens, &mut f_branch)?;
+                    self.parse_body(tokens, &mut f_branch, false)?;
 
                     // consume the `end` token
                     match tokens.read() {
@@ -99,7 +97,7 @@ impl ParserContext {
 
         let mut loop_body = Vec::<Node>::new();
         // read the loop body
-        self.parse_body(tokens, &mut loop_body)?;
+        self.parse_body(tokens, &mut loop_body, false)?;
 
         // consume the `end` token
         match tokens.read() {
@@ -127,7 +125,7 @@ impl ParserContext {
 
         let mut loop_body = Vec::<Node>::new();
         // read the loop body
-        self.parse_body(tokens, &mut loop_body)?;
+        self.parse_body(tokens, &mut loop_body, false)?;
 
         // consume the `end` token
         match tokens.read() {
@@ -156,10 +154,15 @@ impl ParserContext {
 
         if label.contains(MODULE_PATH_DELIM) {
             let full_proc_name = self.get_full_imported_proc_name(label);
-            let proc_name_hash = self.get_proc_name_hash(full_proc_name);
-            Ok(Node::Instruction(Instruction::ExecImported(proc_name_hash)))
+            let proc_id = ProcedureId::new(full_proc_name);
+            Ok(Node::Instruction(Instruction::ExecImported(proc_id)))
         } else {
-            let index = self.procedures.get(&label).unwrap().index;
+            let index = self
+                .local_procs
+                .get(&label)
+                .ok_or_else(|| AssemblyError::undefined_proc(tokens.read().unwrap(), &label))?
+                .0;
+
             Ok(Node::Instruction(Instruction::ExecLocal(index)))
         }
     }
@@ -169,10 +172,15 @@ impl ParserContext {
         tokens.advance();
         if label.contains(MODULE_PATH_DELIM) {
             let full_proc_name = self.get_full_imported_proc_name(label);
-            let proc_name_hash = self.get_proc_name_hash(full_proc_name);
-            Ok(Node::Instruction(Instruction::CallImported(proc_name_hash)))
+            let proc_id = ProcedureId::new(full_proc_name);
+            Ok(Node::Instruction(Instruction::CallImported(proc_id)))
         } else {
-            let index = self.procedures.get(&label).unwrap().index;
+            let index = self
+                .local_procs
+                .get(&label)
+                .ok_or_else(|| AssemblyError::undefined_proc(tokens.read().unwrap(), &label))?
+                .0;
+
             Ok(Node::Instruction(Instruction::CallLocal(index)))
         }
     }
@@ -205,12 +213,13 @@ impl ParserContext {
                         return Err(AssemblyError::proc_export_not_allowed(token, &label));
                     }
 
-                    if self.procedures.contains_key("test") {
+                    if self.local_procs.contains_key("test") {
                         return Err(AssemblyError::duplicate_proc_label(token, &label));
                     }
 
                     let proc = self.parse_procedure(tokens)?;
-                    self.procedures.insert(label.to_string(), proc);
+                    self.local_procs
+                        .insert(label.to_string(), (self.local_procs.len() as u16, proc));
                 }
                 _ => break,
             }
@@ -231,7 +240,7 @@ impl ParserContext {
 
         let mut body = Vec::<Node>::new();
         // parse procedure body
-        self.parse_body(tokens, &mut body)?;
+        self.parse_body(tokens, &mut body, false)?;
 
         // consume the 'end' token
         match tokens.read() {
@@ -253,7 +262,6 @@ impl ParserContext {
             num_locals,
             is_export,
             body,
-            index: self.procedures.len() as u32,
         };
 
         Ok(proc)
@@ -267,10 +275,16 @@ impl ParserContext {
         &self,
         tokens: &mut TokenStream,
         nodes: &mut Vec<Node>,
+        break_on_else: bool,
     ) -> Result<(), AssemblyError> {
-        if let Some(token) = tokens.read() {
+        while let Some(token) = tokens.read() {
             match token.parts()[0] {
-                Token::ELSE => return Err(AssemblyError::dangling_else(token)),
+                Token::ELSE => {
+                    if break_on_else {
+                        break;
+                    }
+                    return Err(AssemblyError::dangling_else(token));
+                }
                 Token::IF => {
                     token.validate_if()?;
                     nodes.push(self.parse_if(tokens)?);
@@ -289,7 +303,10 @@ impl ParserContext {
                     let label = token.parse_syscall()?;
                     nodes.push(self.parse_syscall(label, tokens)?);
                 }
-                Token::END => token.validate_end()?,
+                Token::END => {
+                    token.validate_end()?;
+                    break;
+                }
                 Token::USE | Token::EXPORT | Token::PROC | Token::BEGIN => {
                     unreachable!("invalid control token (use|export|proc|begin) found in body");
                 }
@@ -304,7 +321,7 @@ impl ParserContext {
                     }
                 }
             }
-        };
+        }
 
         Ok(())
     }
@@ -315,7 +332,7 @@ impl ParserContext {
     fn get_full_imported_proc_name(&self, short_name: String) -> String {
         let (module_name, proc_name) = short_name.split_once(MODULE_PATH_DELIM).unwrap();
         let full_module_name = self.imports.get(module_name).unwrap();
-        format!("{}{}{}", full_module_name, MODULE_PATH_DELIM, proc_name)
+        format!("{full_module_name}{MODULE_PATH_DELIM}{proc_name}")
     }
 
     fn get_proc_name_hash(&self, proc_name: String) -> [u8; PROC_DIGEST_SIZE] {

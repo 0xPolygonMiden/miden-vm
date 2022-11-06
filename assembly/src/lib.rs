@@ -11,10 +11,10 @@ use vm_core::{
     utils::{
         collections::{BTreeMap, Vec},
         string::{String, ToString},
+        Box,
     },
-    CodeBlockTable, Kernel, Program,
+    CodeBlockTable, Felt, Kernel, Program,
 };
-use vm_stdlib::StdLibrary;
 
 mod context;
 use context::AssemblyContext;
@@ -24,8 +24,8 @@ use procedures::{parse_proc_blocks, Procedure};
 
 mod parsers;
 use parsers::{
-    ast::{parse_module, parse_program, ModuleAst, ProcMap as ProcAstMap, ProgramAst},
-    combine_blocks, parse_body,
+    parse_module, parse_program, ModuleAst, ProgramAst,
+    combine_blocks, parse_body, LocalProcMap
 };
 
 mod tokens;
@@ -45,7 +45,7 @@ const MODULE_PATH_DELIM: &str = "::";
 // TYPE ALIASES
 // ================================================================================================
 
-type ProcMap = BTreeMap<String, Procedure>;
+type ProcMap = BTreeMap<ProcedureId, Procedure>;
 type ModuleMap = BTreeMap<String, ProcMap>;
 
 // MODULE PROVIDER
@@ -131,15 +131,13 @@ impl Assembler {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// Returns a new instance of [Assembler] instantiated with empty module map.
-    ///
-    /// Debug related decorators are added to span blocks when debug mode is enabled.
-    pub fn new(in_debug_mode: bool) -> Self {
+    pub fn new() -> Self {
         Self {
             module_provider: Box::new(()),
             parsed_modules: BTreeMap::default(),
             kernel_procs: BTreeMap::default(),
             kernel: Kernel::default(),
-            in_debug_mode,
+            in_debug_mode: false,
         }
     }
 
@@ -160,16 +158,10 @@ impl Assembler {
 
     /// Returns a new instance of [Assembler] instantiated with the specified kernel.
     ///
-    /// Debug related decorators are added to span blocks when debug mode is enabled.
-    ///
     /// # Errors
     /// Returns an error if compiling kernel source results in an error.
-    pub fn with_kernel(kernel_source: &str, in_debug_mode: bool) -> Result<Self, AssemblyError> {
-        let mut assembler = Self::new(in_debug_mode);
-        let module_ast = parse_module(kernel_source)?;
-
-        assembler.set_kernel(module_ast)?;
-        Ok(assembler)
+    pub fn with_kernel(mut self, kernel_source: &str) -> Result<Self, AssemblyError> {
+        self.set_kernel(kernel_source).map(|_| self)
     }
 
     // PUBLIC ACCESSORS
@@ -190,7 +182,8 @@ impl Assembler {
     // PROGRAM COMPILER
     // --------------------------------------------------------------------------------------------
 
-    /// Compile the a program source to a mast program.
+    /// Compiles the provided source code into a [Program]. The resulting program can be executed
+    /// on Miden VM.
     pub fn compile(&self, source: &str) -> Result<Program, AssemblyError> {
         let program_ast = parse_program(source)?;
         for node in &program_ast.body {
@@ -204,6 +197,11 @@ impl Assembler {
         let mut context = AssemblyContext::new(Some(&self.kernel_procs), self.in_debug_mode);
         let mut cb_table = CodeBlockTable::default();
         let mut parsed_modules = ModuleMap::new();
+
+        // parse imported modules (if any), and add exported procedures from these modules to the
+        // current context; since we are in the root context here, we initialize dependency chain
+        // with an empty vector.
+        self.parse_imports(&mut tokens, &mut context, &mut Vec::new(), &mut cb_table)?;
 
         parse_local_procs(
             &program_ast.procedures,
@@ -242,62 +240,52 @@ impl Assembler {
     /// - Parsing the specified module results in an error.
     fn parse_imports<'a>(
         &'a self,
-        tokens: &mut TokenStream,
+        imports: &Vec<String>,
         context: &mut AssemblyContext<'a>,
         dep_chain: &mut Vec<String>,
         cb_table: &mut CodeBlockTable,
     ) -> Result<(), AssemblyError> {
-        // read tokens from the token stream until all `use` tokens are consumed
-        while let Some(token) = tokens.read() {
-            match token.parts()[0] {
-                Token::USE => {
-                    // parse the `use` instruction to extract module path from it
-                    let module_path = &token.parse_use()?;
-
-                    // check if a module with the same path is currently being parsed somewhere up
-                    // the chain; if it is, then we have a circular dependency.
-                    if dep_chain.iter().any(|v| v == module_path) {
-                        dep_chain.push(module_path.clone());
-                        return Err(AssemblyError::circular_module_dependency(token, dep_chain));
-                    }
-
-                    // add the current module to the dependency chain
-                    dep_chain.push(module_path.clone());
-
-                    // if the module hasn't been parsed yet, retrieve its source from the library
-                    // and attempt to parse it; if the parsing is successful, this will also add
-                    // the parsed module to `self.parsed_modules`
-                    if !self.parsed_modules.contains_key(module_path) {
-                        self.module_provider
-                            .get_source(module_path)
-                            .ok_or_else(|| AssemblyError::missing_import_source(token, module_path))
-                            .and_then(|module_source| {
-                                self.parse_module(module_source, module_path, dep_chain, cb_table)
-                            })?;
-                    }
-
-                    // get procedures from the module at the specified path; we are guaranteed to
-                    // not fail here because the above code block ensures that either there is a
-                    // parsed module for the specified path, or the function returns with an error
-                    let module_procs = self
-                        .parsed_modules
-                        .get(module_path)
-                        .expect("no module procs");
-
-                    // add all procedures to the current context; procedure labels are set to be
-                    // `last_part_of_module_path::procedure_name`. For example, `u256::add`.
-                    for proc in module_procs.values() {
-                        let path_parts = module_path.split(MODULE_PATH_DELIM).collect::<Vec<_>>();
-                        let num_parts = path_parts.len();
-                        context.add_imported_proc(path_parts[num_parts - 1], proc);
-                    }
-
-                    // consume the `use` token and pop the current module of the dependency chain
-                    tokens.advance();
-                    dep_chain.pop();
-                }
-                _ => break,
+        for module_path in imports {
+            // check if a module with the same path is currently being parsed somewhere up
+            // the chain; if it is, then we have a circular dependency.
+            if dep_chain.iter().any(|v| v == module_path) {
+                dep_chain.push(module_path.clone());
+                return Err(AssemblyError::circular_module_dependency(dep_chain));
             }
+
+            // add the current module to the dependency chain
+            dep_chain.push(module_path.clone());
+
+            // if the module hasn't been parsed yet, retrieve its source from the library
+            // and attempt to parse it; if the parsing is successful, this will also add
+            // the parsed module to `self.parsed_modules`
+            if !self.parsed_modules.contains_key(module_path) {
+                self.module_provider
+                    .get_source(module_path)
+                    .ok_or_else(|| AssemblyError::missing_import_source(module_path))
+                    .and_then(|module_source| {
+                        let module_ast = parse_module(module_source)?;
+                        self.parse_module(module_ast, dep_chain, cb_table)
+                    })?;
+            }
+
+            // get procedures from the module at the specified path; we are guaranteed to
+            // not fail here because the above code block ensures that either there is a
+            // parsed module for the specified path, or the function returns with an error
+            let module_procs = self
+                .parsed_modules
+                .get(module_path)
+                .expect("no module procs");
+
+            // add all procedures to the current context; procedure labels are set to be
+            // `last_part_of_module_path::procedure_name`. For example, `u256::add`.
+            for proc in module_procs.values() {
+                let path_parts = module_path.split(MODULE_PATH_DELIM).collect::<Vec<_>>();
+                let num_parts = path_parts.len();
+                context.add_imported_proc(path_parts[num_parts - 1], proc);
+            }
+
+            dep_chain.pop();
         }
 
         Ok(())
@@ -308,35 +296,15 @@ impl Assembler {
     #[allow(clippy::cast_ref_to_mut)]
     fn parse_module(
         &self,
-        source: &str,
-        path: &str,
+        module_ast: ModuleAst,
         dep_chain: &mut Vec<String>,
         cb_table: &mut CodeBlockTable,
     ) -> Result<(), AssemblyError> {
-        let mut tokens = TokenStream::new(source)?;
         let mut context = AssemblyContext::new(Some(&self.kernel_procs), self.in_debug_mode);
 
         // parse imported modules (if any), and add exported procedures from these modules to
         // the current context
-        self.parse_imports(&mut tokens, &mut context, dep_chain, cb_table)?;
-
-        // parse procedures defined in the module, and add these procedures to the current
-        // context
-        while let Some(token) = tokens.read() {
-            let proc = match token.parts()[0] {
-                Token::PROC | Token::EXPORT => {
-                    Procedure::parse(&mut tokens, &context, cb_table, true)?
-                }
-                _ => break,
-            };
-            context.add_local_proc(proc);
-        }
-
-        // make sure there are no dangling instructions after all procedures have been read
-        if !tokens.eof() {
-            let token = tokens.read().expect("no token before eof");
-            return Err(AssemblyError::dangling_ops_after_module(token, path));
-        }
+        self.parse_imports(&module_ast.imports, &mut context, dep_chain, cb_table)?;
 
         // extract the exported local procedures from the context
         let mut module_procs = context.into_local_procs();
@@ -361,6 +329,10 @@ impl Assembler {
         let mut context = AssemblyContext::new(None, self.in_debug_mode);
         let mut cb_table = CodeBlockTable::default();
         let mut parsed_modules = ModuleMap::new();
+
+        // parse imported modules (if any), and add exported procedures from these modules to
+        // the current context
+        self.parse_imports(&module_ast.imports, &mut context, &mut Vec::new(), &mut cb_table)?;
 
         parse_local_procs(
             &module_ast.procedures,
@@ -394,23 +366,22 @@ impl Assembler {
 }
 
 impl Default for Assembler {
-    /// Returns a new instance of [Assembler] instantiated with empty module map in non-debug mode.
     fn default() -> Self {
-        Self::new(false)
+        Self::new()
     }
 }
 
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------
 fn parse_local_procs(
-    procedures: &ProcAstMap,
+    procedures: &LocalProcMap,
     context: &mut AssemblyContext,
     cb_table: &mut CodeBlockTable,
     parsed_modules: &mut ModuleMap,
 ) -> Result<(), AssemblyError> {
     // parse locally defined procedures (if any), and add these procedures to the current
     // context
-    for proc in procedures.values() {
+    for (index, proc) in procedures.values() {
         let code_root = parse_proc_blocks(
             &proc.body,
             context,
@@ -423,7 +394,7 @@ fn parse_local_procs(
             proc.is_export,
             proc.num_locals,
             code_root,
-            proc.index,
+            index,
         ))
     }
 

@@ -1,18 +1,18 @@
-# Given two GF(p^5) elements on stack, this routine computes modular
-# addition over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
-#
-# After application of routine stack :
-#
-# [c0, c1, c2, c3, c4, ...] s.t. c = a + b
-#
-# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
-#
-# For reference implementation in high level language, see 
-# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L607-L616
+#! Given two GF(p^5) elements on stack, this routine computes modular
+#! addition over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#!
+#! After application of routine stack :
+#!
+#! [c0, c1, c2, c3, c4, ...] s.t. c = a + b
+#!
+#! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#!
+#! For reference implementation in high level language, see 
+#! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L607-L616
 export.add
     repeat.5
         movup.5
@@ -21,21 +21,21 @@ export.add
     end
 end
 
-# Given two GF(p^5) elements on stack, this routine subtracts second
-# element from first one, over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
-#
-# After application of routine stack :
-#
-# [c0, c1, c2, c3, c4, ...] s.t. c = a - b
-#
-# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
-#
-# For reference implementation in high level language, see 
-# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L629-L638
+#! Given two GF(p^5) elements on stack, this routine subtracts second
+#! element from first one, over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#!
+#! After application of routine stack :
+#!
+#! [c0, c1, c2, c3, c4, ...] s.t. c = a - b
+#!
+#! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#!
+#! For reference implementation in high level language, see 
+#! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L629-L638
 export.sub
     repeat.5
         movup.5
@@ -44,22 +44,22 @@ export.sub
     end
 end
 
-# Given two GF(p^5) elements on stack, this routine computes modular
-# multiplication ( including reduction by irreducible polynomial ) 
-# over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
-#
-# After application of routine stack :
-#
-# [c0, c1, c2, c3, c4, ...] s.t. c = a * b
-#
-# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
-#
-# For reference implementation in high level language, see 
-# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L676-L689
+#! Given two GF(p^5) elements on stack, this routine computes modular
+#! multiplication ( including reduction by irreducible polynomial ) 
+#! over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#!
+#! After application of routine stack :
+#!
+#! [c0, c1, c2, c3, c4, ...] s.t. c = a * b
+#!
+#! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#!
+#! For reference implementation in high level language, see 
+#! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L676-L689
 export.mul
     # compute {c0, c1, c2, c3, c4} - five coefficients of resulting
     # degree-4 polynomial
@@ -220,24 +220,24 @@ export.mul
     add
 end
 
-# Given one GF(p^5) element on stack, this routine computes modular
-# squaring ( including reduction by irreducible polynomial ) 
-# over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
-#
-# This routine has same effect as calling mul(a, a) | a ∈ GF(p^5)
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, ...]
-#
-# After application of routine stack :
-#
-# [b0, b1, b2, b3, b4, ...] s.t. b = a * a
-#
-# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
-#
-# For reference implementation in high level language, see 
-# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L709-L715
+#! Given one GF(p^5) element on stack, this routine computes modular
+#! squaring ( including reduction by irreducible polynomial ) 
+#! over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#!
+#! This routine has same effect as calling mul(a, a) | a ∈ GF(p^5)
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, ...]
+#!
+#! After application of routine stack :
+#!
+#! [b0, b1, b2, b3, b4, ...] s.t. b = a * a
+#!
+#! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#!
+#! For reference implementation in high level language, see 
+#! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L709-L715
 export.square
     # compute {b0, b1, b2, b3, b4} - five coefficients of resulting
     # degree-4 polynomial
@@ -340,19 +340,19 @@ export.square
     add
 end
 
-# Given an element a ∈ GF(p^5), this routine applies Frobenius operator
-# once, raising the element to the power of p | p = 2^64 - 2^32 + 1.
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, ...]
-#
-# Final stack state :
-#
-# [b0, b1, b2, b3, b4, ...]
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L723-L737
-# for reference implementation in high-level language.
+#! Given an element a ∈ GF(p^5), this routine applies Frobenius operator
+#! once, raising the element to the power of p | p = 2^64 - 2^32 + 1.
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, ...]
+#!
+#! Final stack state :
+#!
+#! [b0, b1, b2, b3, b4, ...]
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L723-L737
+#! for reference implementation in high-level language.
 proc.frobenius_once
     movup.4
     mul.1373043270956696022
@@ -369,19 +369,19 @@ proc.frobenius_once
     movup.4
 end
 
-# Given an element a ∈ GF(p^5), this routine applies Frobenius operator
-# twice, raising the element to the power of p^2 | p = 2^64 - 2^32 + 1.
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, ...]
-#
-# Final stack state :
-#
-# [b0, b1, b2, b3, b4, ...]
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L739-L749
-# for reference implementation in high-level language.
+#! Given an element a ∈ GF(p^5), this routine applies Frobenius operator
+#! twice, raising the element to the power of p^2 | p = 2^64 - 2^32 + 1.
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, ...]
+#!
+#! Final stack state :
+#!
+#! [b0, b1, b2, b3, b4, ...]
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L739-L749
+#! for reference implementation in high-level language.
 proc.frobenius_twice
     movup.4
     mul.211587555138949697
@@ -398,23 +398,23 @@ proc.frobenius_twice
     movup.4
 end
 
-# Given one GF(p^5) element on stack, this routine computes multiplicative
-# inverse over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, ...]
-#
-# After application of routine stack :
-#
-# [b0, b1, b2, b3, b4, ...] s.t. b = 1 / a
-#
-# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
-#
-# For reference implementation in high level language, see 
-# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L751-L775
-#
-# Note, this routine will not panic even when operand `a` is zero.
+#! Given one GF(p^5) element on stack, this routine computes multiplicative
+#! inverse over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, ...]
+#!
+#! After application of routine stack :
+#!
+#! [b0, b1, b2, b3, b4, ...] s.t. b = 1 / a
+#!
+#! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#!
+#! For reference implementation in high level language, see 
+#! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L751-L775
+#!
+#! Note, this routine will not panic even when operand `a` is zero.
 export.inv
     repeat.5
         dup.4
@@ -495,21 +495,21 @@ export.inv
     mul
 end
 
-# Given two GF(p^5) elements ( say a, b ) on stack, this routine computes
-# modular division over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
-#
-# Expected stack state :
-#
-# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
-#
-# After application of routine stack :
-#
-# [c0, c1, c2, c3, c4, ...] s.t. c = a / b
-#
-# See section 3.2 of https://eprint.iacr.org/2022/274.pdf
-#
-# For reference implementation in high level language, see 
-# https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L777-L781
+#! Given two GF(p^5) elements ( say a, b ) on stack, this routine computes
+#! modular division over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1
+#!
+#! Expected stack state :
+#!
+#! [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#!
+#! After application of routine stack :
+#!
+#! [c0, c1, c2, c3, c4, ...] s.t. c = a / b
+#!
+#! See section 3.2 of https://eprint.iacr.org/2022/274.pdf
+#!
+#! For reference implementation in high level language, see 
+#! https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L777-L781
 export.div
     repeat.5
         movup.9
@@ -519,19 +519,19 @@ export.div
     exec.mul
 end
 
-# Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, and n on stack, this routine
-# raises it to the power 2^n, by means of n successive squarings
-#
-# Expected stack stack
-#
-# [v, n, ...] | n >= 0
-#
-# After finishing execution stack
-#
-# [v', ...] s.t. v' = v ^ (2^n)
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L461-L469
-# for reference implementation in higher level language
+#! Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, and n on stack, this routine
+#! raises it to the power 2^n, by means of n successive squarings
+#!
+#! Expected stack stack
+#!
+#! [v, n, ...] | n >= 0
+#!
+#! After finishing execution stack
+#!
+#! [v', ...] s.t. v' = v ^ (2^n)
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L461-L469
+#! for reference implementation in higher level language
 proc.base_msquare
     swap
     dup
@@ -551,22 +551,22 @@ proc.base_msquare
     drop
 end
 
-# Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine attempts to compute
-# square root of v, if that number is a square.
-#
-# Expected stack state :
-#
-# [v, ...]
-#
-# After finishing execution stack looks like :
-#
-# [v', flg, ...]
-#
-# If flg = 1, it denotes v' is square root of v i.e. v' * v' = v ( mod q )
-# If flg = 0, then v' = 0, denoting v doesn't have a square root
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L349-L446
-# for reference implementation in higher level language.
+#! Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine attempts to compute
+#! square root of v, if that number is a square.
+#!
+#! Expected stack state :
+#!
+#! [v, ...]
+#!
+#! After finishing execution stack looks like :
+#!
+#! [v', flg, ...]
+#!
+#! If flg = 1, it denotes v' is square root of v i.e. v' * v' = v ( mod q )
+#! If flg = 0, then v' = 0, denoting v doesn't have a square root
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L349-L446
+#! for reference implementation in higher level language.
 proc.base_sqrt
     dup # = x
 
@@ -1371,19 +1371,19 @@ proc.base_sqrt
     mul # On stack [u * cc, cc, ...]
 end
 
-# Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine computes
-# legendre symbol, by raising that element to the power (p-1) / 2
-#
-# Expected stack state :
-#
-# [v, ...]
-#
-# After finishing execution stack looks like
-#
-# [v', ...] s.t. v' = legendre symbol of v
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L448-L459
-# for reference implementation in higher level language.
+#! Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine computes
+#! legendre symbol, by raising that element to the power (p-1) / 2
+#!
+#! Expected stack state :
+#!
+#! [v, ...]
+#!
+#! After finishing execution stack looks like
+#!
+#! [v', ...] s.t. v' = legendre symbol of v
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L448-L459
+#! for reference implementation in higher level language.
 proc.base_legendre
     repeat.31
         dup
@@ -1405,19 +1405,19 @@ proc.base_legendre
     div
 end
 
-# Given an element v ∈ GF(p^5), this routine computes its legendre symbol,
-# which is an element ∈ GF(p) | p = 2^64 - 2^32 + 1
-#
-# At beginning stack looks like
-#
-# [a0, a1, a2, a3, a4, ...]
-#
-# At end stack looks like
-#
-# [b, ...] s.t. b = legendre symbol of a
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L857-L877
-# for reference implementation in higher level language.
+#! Given an element v ∈ GF(p^5), this routine computes its legendre symbol,
+#! which is an element ∈ GF(p) | p = 2^64 - 2^32 + 1
+#!
+#! At beginning stack looks like
+#!
+#! [a0, a1, a2, a3, a4, ...]
+#!
+#! At end stack looks like
+#!
+#! [b, ...] s.t. b = legendre symbol of a
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L857-L877
+#! for reference implementation in higher level language.
 export.legendre
     repeat.5
         dup.4
@@ -1473,22 +1473,22 @@ export.legendre
     exec.base_legendre
 end
 
-# Given an element v ∈ GF(p^5), this routine attempts to compute square root of v, 
-# if that number is a square.
-#
-# At beginning stack looks like
-#
-# [a0, a1, a2, a3, a4, ...]
-#
-# At end stack looks like
-#
-# [b0, b1, b2, b3, b4, flg, ...]
-#
-# If flg = 1, it denotes v' = {b0, b1, b2, b3, b4} is square root of v i.e. v' * v' = v ( mod GF(p^5) )
-# If flg = 0, then v' = {0, 0, 0, 0, 0}, denoting v doesn't have a square root
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L879-L910
-# for reference implementation in higher level language.
+#! Given an element v ∈ GF(p^5), this routine attempts to compute square root of v, 
+#! if that number is a square.
+#!
+#! At beginning stack looks like
+#!
+#! [a0, a1, a2, a3, a4, ...]
+#!
+#! At end stack looks like
+#!
+#! [b0, b1, b2, b3, b4, flg, ...]
+#!
+#! If flg = 1, it denotes v' = {b0, b1, b2, b3, b4} is square root of v i.e. v' * v' = v ( mod GF(p^5) )
+#! If flg = 0, then v' = {0, 0, 0, 0, 0}, denoting v doesn't have a square root
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L879-L910
+#! for reference implementation in higher level language.
 export.sqrt
     repeat.5
         dup.4
@@ -1581,21 +1581,21 @@ export.sqrt
     drop # On stack [e0, e1, e2, e3, e4, c, ...]
 end
 
-# Given two elements a, b ∈ GF(p^5), this routine produces single field element r,
-# denoting whether a == b.
-#
-# Expected stack state 
-#
-# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
-#
-# Final stack state 
-#
-# [r, ...]
-#
-# If a == b { r = 1 } Else { r = 0 }
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L797-L806
-# for reference implementation.
+#! Given two elements a, b ∈ GF(p^5), this routine produces single field element r,
+#! denoting whether a == b.
+#!
+#! Expected stack state 
+#!
+#! [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#!
+#! Final stack state 
+#!
+#! [r, ...]
+#!
+#! If a == b { r = 1 } Else { r = 0 }
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L797-L806
+#! for reference implementation.
 export.eq
     push.1
 
@@ -1625,21 +1625,21 @@ export.eq
     and
 end
 
-# Given two elements a, b ∈ GF(p^5), this routine produces single field element r,
-# denoting whether a != b.
-#
-# Expected stack state 
-#
-# [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
-#
-# Final stack state 
-#
-# [r, ...]
-#
-# If a != b { r = 1 } Else { r = 0 }
-#
-# See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L813-L822
-# for reference implementation.
+#! Given two elements a, b ∈ GF(p^5), this routine produces single field element r,
+#! denoting whether a != b.
+#!
+#! Expected stack state 
+#!
+#! [a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]
+#!
+#! Final stack state 
+#!
+#! [r, ...]
+#!
+#! If a != b { r = 1 } Else { r = 0 }
+#!
+#! See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L813-L822
+#! for reference implementation.
 export.neq
     push.0
 

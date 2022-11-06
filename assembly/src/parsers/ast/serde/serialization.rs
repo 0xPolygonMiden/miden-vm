@@ -2,10 +2,10 @@ use super::{
     super::nodes::{Instruction, Node},
     OpCode, IF_ELSE_OPCODE, REPEAT_OPCODE, WHILE_OPCODE,
 };
-use crate::errors::SerializationError;
+use crate::{errors::SerializationError, ProcedureId};
 use vm_core::{utils::collections::Vec, utils::string::String, Felt, StarkField};
 
-const MAX_STRING_LENGHT: u8 = 100;
+const MAX_STRING_LENGTH: u8 = 100;
 
 // BYTE WRITER IMPLEMENTATION
 // ================================================================================================
@@ -42,7 +42,7 @@ impl ByteWriter {
     pub fn write_string(&mut self, val: &String) -> Result<(), SerializationError> {
         let val_bytes = val.as_bytes();
         let val_bytes_len = val_bytes.len() as u8;
-        if val_bytes_len > MAX_STRING_LENGHT {
+        if val_bytes_len > MAX_STRING_LENGTH {
             return Err(SerializationError::StringTooLong);
         } else {
             self.write_u8(val_bytes_len);
@@ -51,7 +51,7 @@ impl ByteWriter {
         Ok(())
     }
 
-    pub fn write_proc_hash(&mut self, val: &[u8; 24]) {
+    pub fn write_procedure_id(&mut self, val: &ProcedureId) {
         self.0.append(&mut val.to_vec());
     }
 
@@ -480,19 +480,19 @@ impl Serializable for Instruction {
             // ----- exec / call ----------------------------------------------------------------------
             Self::ExecLocal(v) => {
                 target.write_opcode(OpCode::ExecLocal);
-                target.write_u32(*v);
+                target.write_u16(*v);
             }
             Self::ExecImported(imported) => {
                 target.write_opcode(OpCode::ExecImported);
-                target.write_proc_hash(imported);
+                target.write_procedure_id(imported);
             }
             Self::CallLocal(v) => {
                 target.write_opcode(OpCode::CallLocal);
-                target.write_u32(*v);
+                target.write_u16(*v);
             }
             Self::CallImported(imported) => {
                 target.write_opcode(OpCode::CallImported);
-                target.write_proc_hash(imported);
+                target.write_procedure_id(imported);
             }
             Self::SysCall(imported) => {
                 target.write_opcode(OpCode::SysCall);

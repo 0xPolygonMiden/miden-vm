@@ -1,6 +1,8 @@
-use super::{parse_module, parse_program, BTreeMap, Instruction, Node, ProcMap, ProcedureAst};
-use crate::parsers::ast::{ModuleAst, ProgramAst};
-use crypto::{hashers::Blake3_192, Digest, Hasher};
+use super::{parse_module, parse_program, BTreeMap, Instruction, LocalProcMap, Node, ProcedureAst};
+use crate::{
+    parsers::ast::{ModuleAst, ProgramAst},
+    ProcedureId,
+};
 use vm_core::{Felt, FieldElement};
 
 // UNIT TESTS
@@ -20,40 +22,79 @@ fn test_ast_parsing_program_simple() {
 }
 
 #[test]
+fn test_ast_parsing_program_u32() {
+    let source = "\
+    begin
+        push.3
+
+        u32checked_add.5
+        u32wrapping_add.5
+        u32overflowing_add.5
+
+        u32checked_sub.1
+        u32wrapping_sub.1
+        u32overflowing_sub.1
+
+        u32checked_mul.2
+        u32wrapping_mul.2
+        u32overflowing_mul.2
+
+    end";
+    let nodes: Vec<Node> = vec![
+        Node::Instruction(Instruction::PushConstants([Felt::new(3)].to_vec())),
+        Node::Instruction(Instruction::U32CheckedAddImm(5)),
+        Node::Instruction(Instruction::U32WrappingAddImm(5)),
+        Node::Instruction(Instruction::U32OverflowingAddImm(5)),
+        Node::Instruction(Instruction::U32CheckedSubImm(1)),
+        Node::Instruction(Instruction::U32WrappingSubImm(1)),
+        Node::Instruction(Instruction::U32OverflowingSubImm(1)),
+        Node::Instruction(Instruction::U32CheckedMulImm(2)),
+        Node::Instruction(Instruction::U32WrappingMulImm(2)),
+        Node::Instruction(Instruction::U32OverflowingMulImm(2)),
+    ];
+
+    assert_program_output(source, BTreeMap::new(), nodes);
+}
+
+#[test]
 fn test_ast_parsing_program_proc() {
     let source = "\
-    proc.foo.1 
+    proc.foo.1
         loc_load.0
     end
-    proc.bar.2 
+    proc.bar.2
         padw
-    end  
+    end
     begin
         exec.foo
         exec.bar
     end";
-    let proc_body1: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
-    let mut procedures: ProcMap = BTreeMap::new();
+    let proc_body1: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(Felt::ZERO))];
+    let mut procedures: LocalProcMap = BTreeMap::new();
     procedures.insert(
         String::from("foo"),
-        ProcedureAst {
-            name: String::from("foo"),
-            is_export: false,
-            num_locals: 1,
-            index: 0,
-            body: proc_body1,
-        },
+        (
+            0,
+            ProcedureAst {
+                name: String::from("foo"),
+                is_export: false,
+                num_locals: 1,
+                body: proc_body1,
+            },
+        ),
     );
     let proc_body2: Vec<Node> = vec![Node::Instruction(Instruction::PadW)];
     procedures.insert(
         String::from("bar"),
-        ProcedureAst {
-            name: String::from("bar"),
-            is_export: false,
-            num_locals: 2,
-            index: 1,
-            body: proc_body2,
-        },
+        (
+            1,
+            ProcedureAst {
+                name: String::from("bar"),
+                is_export: false,
+                num_locals: 2,
+                body: proc_body2,
+            },
+        ),
     );
     let nodes: Vec<Node> = vec![
         Node::Instruction(Instruction::ExecLocal(0)),
@@ -65,20 +106,22 @@ fn test_ast_parsing_program_proc() {
 #[test]
 fn test_ast_parsing_module() {
     let source = "\
-    export.foo.1 
+    export.foo.1
         loc_load.0
     end";
-    let mut procedures: ProcMap = BTreeMap::new();
-    let proc_body: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
+    let mut procedures: LocalProcMap = BTreeMap::new();
+    let proc_body: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(Felt::ZERO))];
     procedures.insert(
         String::from("foo"),
-        ProcedureAst {
-            name: String::from("foo"),
-            is_export: true,
-            num_locals: 1,
-            index: 0,
-            body: proc_body,
-        },
+        (
+            0,
+            ProcedureAst {
+                name: String::from("foo"),
+                is_export: true,
+                num_locals: 1,
+                body: proc_body,
+            },
+        ),
     );
     parse_program(source).expect_err("Program should contain body and no export");
     let module = parse_module(source).unwrap();
@@ -96,12 +139,137 @@ fn test_ast_parsing_use() {
     begin
         exec.foo::bar
     end";
-    let procedures: ProcMap = BTreeMap::new();
-    let proc_name_digest = Blake3_192::<Felt>::hash(String::from("std::abc::foo::bar").as_bytes());
-    let mut proc_name_hash = [0; 24];
-    proc_name_hash.copy_from_slice(&proc_name_digest.as_bytes()[..24]);
-    let nodes: Vec<Node> = vec![Node::Instruction(Instruction::ExecImported(proc_name_hash))];
+    let procedures: LocalProcMap = BTreeMap::new();
+    let proc_name = "std::abc::foo::bar";
+    let proc_id = ProcedureId::new(proc_name);
+    let nodes: Vec<Node> = vec![Node::Instruction(Instruction::ExecImported(proc_id))];
     assert_program_output(source, procedures, nodes);
+}
+
+#[test]
+fn test_ast_parsing_module_nested_if() {
+    let source = "\
+    proc.foo
+        push.1
+        if.true
+            push.0
+            push.1
+            if.true
+                push.0
+                sub
+            else
+                push.1
+                sub
+            end
+        end
+    end";
+
+    let mut procedures: LocalProcMap = BTreeMap::new();
+    let proc_body: Vec<Node> = vec![
+        Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+        Node::IfElse(
+            [
+                Node::Instruction(Instruction::PushConstants([Felt::ZERO].to_vec())),
+                Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+                Node::IfElse(
+                    [
+                        Node::Instruction(Instruction::PushConstants([Felt::ZERO].to_vec())),
+                        Node::Instruction(Instruction::Sub),
+                    ]
+                    .to_vec(),
+                    [
+                        Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+                        Node::Instruction(Instruction::Sub),
+                    ]
+                    .to_vec(),
+                ),
+            ]
+            .to_vec(),
+            vec![],
+        ),
+    ];
+    procedures.insert(
+        String::from("foo"),
+        (
+            0,
+            ProcedureAst {
+                name: String::from("foo"),
+                is_export: false,
+                num_locals: 0,
+                body: proc_body,
+            },
+        ),
+    );
+    parse_program(source).expect_err("Program should contain body and no export");
+    let module = parse_module(source).unwrap();
+    assert_eq!(module.procedures.len(), procedures.len());
+    for (name, proc) in module.procedures {
+        assert!(procedures.contains_key(&name));
+        assert_eq!(procedures.get(&name).unwrap(), &proc);
+    }
+}
+
+#[test]
+fn test_ast_parsing_module_sequential_if() {
+    let source = "\
+    proc.foo
+        push.1
+        if.true
+            push.5
+            push.1
+        end
+        if.true
+            push.0
+            sub
+        else
+            push.1
+            sub
+        end
+    end";
+
+    let mut procedures: LocalProcMap = BTreeMap::new();
+    let proc_body: Vec<Node> = vec![
+        Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+        Node::IfElse(
+            [
+                Node::Instruction(Instruction::PushConstants([Felt::new(5)].to_vec())),
+                Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+            ]
+            .to_vec(),
+            vec![],
+        ),
+        Node::IfElse(
+            [
+                Node::Instruction(Instruction::PushConstants([Felt::ZERO].to_vec())),
+                Node::Instruction(Instruction::Sub),
+            ]
+            .to_vec(),
+            [
+                Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+                Node::Instruction(Instruction::Sub),
+            ]
+            .to_vec(),
+        ),
+    ];
+    procedures.insert(
+        String::from("foo"),
+        (
+            0,
+            ProcedureAst {
+                name: String::from("foo"),
+                is_export: false,
+                num_locals: 0,
+                body: proc_body,
+            },
+        ),
+    );
+    parse_program(source).expect_err("Program should contain body and no export");
+    let module = parse_module(source).unwrap();
+    assert_eq!(module.procedures.len(), procedures.len());
+    for (name, proc) in module.procedures {
+        assert!(procedures.contains_key(&name));
+        assert_eq!(procedures.get(&name).unwrap(), &proc);
+    }
 }
 
 // SERIALIZATION AND DESERIALIZATION TESTS
@@ -120,12 +288,12 @@ fn test_ast_program_serde_simple() {
 #[test]
 fn test_ast_program_serde_local_procs() {
     let source = "\
-    proc.foo.1 
+    proc.foo.1
         loc_load.0
     end
-    proc.bar.2 
+    proc.bar.2
         padw
-    end  
+    end
     begin
         exec.foo
         exec.bar
@@ -140,10 +308,10 @@ fn test_ast_program_serde_local_procs() {
 #[test]
 fn test_ast_program_serde_exported_procs() {
     let source = "\
-    export.foo.1 
+    export.foo.1
         loc_load.0
     end
-    export.bar.2 
+    export.bar.2
         padw
     end";
     let module = parse_module(source).unwrap();
@@ -160,7 +328,7 @@ fn test_ast_program_serde_control_flow() {
         repeat.3
             push.1
             push.0.1
-        end 
+        end
 
         if.true
             and
@@ -168,7 +336,7 @@ fn test_ast_program_serde_control_flow() {
         else
             padw
         end
-        
+
         while.true
             push.5.7
             u32checked_add
@@ -190,7 +358,7 @@ fn test_ast_program_serde_control_flow() {
     assert_eq!(program, program_deserialized);
 }
 
-fn assert_program_output(source: &str, procedures: ProcMap, body: Vec<Node>) {
+fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>) {
     let program = parse_program(source).unwrap();
     assert_eq!(program.body, body);
     assert_eq!(program.procedures.len(), procedures.len());
