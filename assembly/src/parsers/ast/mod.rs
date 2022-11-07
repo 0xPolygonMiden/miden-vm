@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use super::{AssemblyError, Token, TokenStream, Vec};
 use crate::{errors::SerializationError, MODULE_PATH_DELIM};
 use serde::{ByteReader, ByteWriter, Deserializable, Serializable};
@@ -28,21 +26,22 @@ type LocalProcMap = BTreeMap<String, (u16, ProcedureAst)>;
 /// A program has to have a body and no exported procedures.
 #[derive(Debug, Eq, PartialEq)]
 pub struct ProgramAst {
-    pub procedures: LocalProcMap,
+    pub local_procs: Vec<ProcedureAst>,
     pub body: Vec<Node>,
 }
 
+#[cfg(test)]
 impl ProgramAst {
     /// Returns byte representation of the `ProgramAst`.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut byte_writer = ByteWriter::new();
 
-        // procedures
-        byte_writer.write_u16(self.procedures.len() as u16);
+        // local procedures
+        byte_writer.write_u16(self.local_procs.len() as u16);
 
-        for (_, proc) in sort_procs_by_index(&self.procedures) {
-            proc.write_into(&mut byte_writer);
-        }
+        self.local_procs
+            .iter()
+            .for_each(|proc| proc.write_into(&mut byte_writer));
 
         // body
         self.body.write_into(&mut byte_writer);
@@ -54,18 +53,15 @@ impl ProgramAst {
     pub fn from_bytes(bytes: &mut &[u8]) -> Result<Self, SerializationError> {
         let mut byte_reader = ByteReader::new(bytes);
 
-        let mut procedures = LocalProcMap::new();
+        let num_local_procs = byte_reader.read_u16()?;
 
-        let num_procedures = byte_reader.read_u16()?;
-        for i in 0..num_procedures {
-            let proc_ast = ProcedureAst::read_from(&mut byte_reader)?;
-
-            procedures.insert(proc_ast.name.clone(), (i, proc_ast));
-        }
+        let local_procs = (0..num_local_procs)
+            .map(|_| ProcedureAst::read_from(&mut byte_reader))
+            .collect::<Result<_, _>>()?;
 
         let body = Deserializable::read_from(&mut byte_reader)?;
 
-        Ok(ProgramAst { procedures, body })
+        Ok(ProgramAst { local_procs, body })
     }
 }
 
@@ -73,7 +69,7 @@ impl ProgramAst {
 /// A module can only have exported and local procedures, but no body.
 #[derive(Debug, Eq, PartialEq)]
 pub struct ModuleAst {
-    pub procedures: LocalProcMap,
+    pub local_procs: Vec<ProcedureAst>,
 }
 
 impl ModuleAst {
@@ -81,12 +77,12 @@ impl ModuleAst {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut byte_writer = ByteWriter::new();
 
-        // procedures
-        byte_writer.write_u16(self.procedures.len() as u16);
+        // local procedures
+        byte_writer.write_u16(self.local_procs.len() as u16);
 
-        for (_, proc) in sort_procs_by_index(&self.procedures) {
-            proc.write_into(&mut byte_writer);
-        }
+        self.local_procs
+            .iter()
+            .for_each(|proc| proc.write_into(&mut byte_writer));
 
         byte_writer.into_bytes()
     }
@@ -95,17 +91,13 @@ impl ModuleAst {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, SerializationError> {
         let mut byte_reader = ByteReader::new(bytes);
 
-        let mut procedures = LocalProcMap::new();
+        let local_procs_len = byte_reader.read_u16()?;
 
-        let procedures_len = byte_reader.read_u16()?;
+        let local_procs = (0..local_procs_len)
+            .map(|_| ProcedureAst::read_from(&mut byte_reader))
+            .collect::<Result<_, _>>()?;
 
-        for i in 0..procedures_len {
-            let proc_ast = ProcedureAst::read_from(&mut byte_reader)?;
-
-            procedures.insert(proc_ast.name.clone(), (i, proc_ast));
-        }
-
-        Ok(ModuleAst { procedures })
+        Ok(ModuleAst { local_procs })
     }
 }
 
@@ -151,6 +143,7 @@ impl Deserializable for ProcedureAst {
 
 /// Parses the provided source into a AST Program. This Program holds information
 /// that can be directly translated into MAST. A Program cannot have any exported procedures.
+#[cfg(test)]
 pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
     let mut tokens = TokenStream::new(source)?;
     let imports = parse_imports(&mut tokens)?;
@@ -219,10 +212,9 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
         return Err(AssemblyError::dangling_ops_after_program(token));
     }
 
-    let program = ProgramAst {
-        body,
-        procedures: context.local_procs,
-    };
+    let local_procs = sort_procs_into_vec(context.local_procs);
+
+    let program = ProgramAst { body, local_procs };
 
     Ok(program)
 }
@@ -245,7 +237,7 @@ pub fn parse_module(source: &str) -> Result<ModuleAst, AssemblyError> {
     }
 
     let module = ModuleAst {
-        procedures: context.local_procs,
+        local_procs: sort_procs_into_vec(context.local_procs),
     };
 
     Ok(module)
@@ -276,8 +268,8 @@ fn parse_imports(tokens: &mut TokenStream) -> Result<BTreeMap<String, String>, A
     Ok(imports)
 }
 
-// UTILITY FUNCTIONS
-// ==================================================================================
+// HELPER FUNCTIONS
+// ================================================================================================
 
 /// Parses a param from the op token with the specified type.
 fn parse_param<I: core::str::FromStr>(op: &Token, param_idx: usize) -> Result<I, AssemblyError> {
@@ -291,17 +283,10 @@ fn parse_param<I: core::str::FromStr>(op: &Token, param_idx: usize) -> Result<I,
     Ok(result)
 }
 
-// HELPER FUNCTIONS
-// ================================================================================================
+/// Sort a map of procedures into a vec, respecting the order set in the map
+fn sort_procs_into_vec(proc_map: LocalProcMap) -> Vec<ProcedureAst> {
+    let mut procedures: Vec<_> = proc_map.into_values().collect();
+    procedures.sort_by_key(|(idx, _proc)| *idx);
 
-/// Sorts `ProcMap` by procedure index (`0`th value element) and returns sorted map as
-/// `BTreeMap<index, procedure>`
-fn sort_procs_by_index(proc_map: &LocalProcMap) -> BTreeMap<u16, ProcedureAst> {
-    let mut result = BTreeMap::new();
-
-    for (_, value) in proc_map.iter() {
-        result.insert(value.0, value.1.clone());
-    }
-
-    result
+    procedures.into_iter().map(|(_idx, proc)| proc).collect()
 }
