@@ -276,15 +276,14 @@ pub enum OpGroupTableUpdate {
 // BLOCK STACK TABLE ROW
 // ================================================================================================
 
-/// Describes a single entry in the block stack table. An entry in the block stack table is a tuple
-/// (block_id, parent_id, is_loop, parent_ctx, parent_fmp, parent_stack_depth,
-/// parent_next_overflow_addr).
+/// Describes a single entry in the block stack table. An entry in the block stack table.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BlockStackTableRow {
     block_id: Felt,
     parent_id: Felt,
     is_loop: bool,
     parent_ctx: u32,
+    parent_fn_hash: Word,
     parent_fmp: Felt,
     parent_stack_depth: u32,
     parent_next_overflow_addr: Felt,
@@ -299,6 +298,7 @@ impl BlockStackTableRow {
             parent_id: block_info.parent_addr,
             is_loop: block_info.is_entered_loop() == ONE,
             parent_ctx: ctx_info.parent_ctx,
+            parent_fn_hash: ctx_info.parent_fn_hash,
             parent_fmp: ctx_info.parent_fmp,
             parent_stack_depth: ctx_info.parent_stack_depth,
             parent_next_overflow_addr: ctx_info.parent_next_overflow_addr,
@@ -314,6 +314,7 @@ impl BlockStackTableRow {
             parent_id,
             is_loop,
             parent_ctx: 0,
+            parent_fn_hash: [ZERO; 4],
             parent_fmp: ZERO,
             parent_stack_depth: 0,
             parent_next_overflow_addr: ZERO,
@@ -334,6 +335,7 @@ impl BlockStackTableRow {
             parent_id,
             is_loop,
             parent_ctx: ctx_info.parent_ctx,
+            parent_fn_hash: ctx_info.parent_fn_hash,
             parent_fmp: ctx_info.parent_fmp,
             parent_stack_depth: ctx_info.parent_stack_depth,
             parent_next_overflow_addr: ctx_info.parent_next_overflow_addr,
@@ -343,7 +345,7 @@ impl BlockStackTableRow {
 
 impl LookupTableRow for BlockStackTableRow {
     /// Reduces this row to a single field element in the field specified by E. This requires
-    /// at least 8 alpha values.
+    /// at least 12 alpha values.
     fn to_value<E: FieldElement<BaseField = Felt>>(
         &self,
         _main_trace: &Matrix<Felt>,
@@ -358,6 +360,10 @@ impl LookupTableRow for BlockStackTableRow {
             + alphas[5].mul_base(self.parent_fmp)
             + alphas[6].mul_base(Felt::from(self.parent_stack_depth))
             + alphas[7].mul_base(self.parent_next_overflow_addr)
+            + alphas[8].mul_base(self.parent_fn_hash[0])
+            + alphas[9].mul_base(self.parent_fn_hash[1])
+            + alphas[10].mul_base(self.parent_fn_hash[2])
+            + alphas[11].mul_base(self.parent_fn_hash[3])
     }
 }
 

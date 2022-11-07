@@ -1,4 +1,4 @@
-use super::{Felt, Vec, ONE, ZERO};
+use super::{Felt, Vec, Word, ONE, ZERO};
 
 // BLOCK STACK
 // ================================================================================================
@@ -159,15 +159,18 @@ impl BlockInfo {
     }
 }
 
-// BLOCK CONTEXT INFO
+// EXECUTION CONTEXT INFO
 // ================================================================================================
 
 /// Contains information about an execution context. Execution contexts are relevant only for CALL
-/// blocks.
+/// and SYSCALL blocks.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ExecutionContextInfo {
     /// Context ID of the block's parent.
     pub parent_ctx: u32,
+    /// Hash of the function which initiated execution of the block's parent. If the parent is a
+    /// root context, this will be set to [ZERO; 4].
+    pub parent_fn_hash: Word,
     /// Value of free memory pointer right before a CALL instruction is executed.
     pub parent_fmp: Felt,
     /// Depth of the operand stack right before a CALL operation is executed.
@@ -180,11 +183,13 @@ impl ExecutionContextInfo {
     /// Returns an new [ExecutionContextInfo] instantiated with the specified parameters.
     pub fn new(
         parent_ctx: u32,
+        parent_fn_hash: Word,
         parent_fmp: Felt,
         parent_stack_depth: u32,
         parent_next_overflow_addr: Felt,
     ) -> Self {
         Self {
+            parent_fn_hash,
             parent_ctx,
             parent_fmp,
             parent_stack_depth,
