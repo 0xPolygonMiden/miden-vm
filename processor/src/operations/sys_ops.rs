@@ -37,7 +37,7 @@ impl Process {
     /// Pops an element off the stack and adds it to the current value of `fmp` register.
     ///
     /// # Errors
-    /// Returns an error if the new value of `fmp` register is greater than or equal to 2^32.
+    /// Returns an error if the new value of `fmp` register is greater than or equal to 3 * 2^30.
     pub(super) fn op_fmpupdate(&mut self) -> Result<(), ExecutionError> {
         let offset = self.stack.get(0);
         let fmp = self.system.fmp();
@@ -60,6 +60,8 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use super::{super::Operation, Felt, FieldElement, Process, FMP_MAX, FMP_MIN};
+
+    const MAX_PROC_LOCALS: u64 = 2_u64.pow(31) - 1;
 
     #[test]
     fn op_assert() {
@@ -99,12 +101,12 @@ mod tests {
         assert!(process.execute_op(Operation::FmpUpdate).is_err());
 
         // going up to the max fmp value should be OK
-        let mut process = Process::new_dummy(&[u32::MAX as u64]);
+        let mut process = Process::new_dummy(&[MAX_PROC_LOCALS]);
         process.execute_op(Operation::FmpUpdate).unwrap();
         assert_eq!(Felt::new(FMP_MAX), process.system.fmp());
 
         // but going beyond that should be an error
-        let mut process = Process::new_dummy(&[u32::MAX as u64 + 1]);
+        let mut process = Process::new_dummy(&[MAX_PROC_LOCALS + 1]);
         assert!(process.execute_op(Operation::FmpUpdate).is_err());
 
         // should not affect the rest of the stack state

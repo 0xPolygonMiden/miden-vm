@@ -1,21 +1,34 @@
-use vm_core::StarkField;
-
-use super::{Felt, FieldElement, SysTrace, Vec, ZERO};
+use super::{Felt, FieldElement, StarkField, SysTrace, Vec, ZERO};
 
 // CONSTANTS
 // ================================================================================================
 
-// Memory addresses for procedure locals should start at 2^30 and not go below.
+// We assign the following special meanings to memory segments in each context:
+// - First 2^30 addresses (0 to 2^30 - 1) are reserved for global memory.
+// - The next 2^30 addresses (2^30 to 2^31 - 1) are reserved for procedure locals.
+// - The next 2^30 addresses (2^31 to 3 * 2^30 - 1) are reserved for procedure locals of SYSCALLs.
+// - All remaining addresses do not have any special meaning.
+//
+// Note that the above assignment is purely conventional: a program can read from and write to any
+// address in a given context, regardless of which memory segment it belongs to.
+
+/// Memory addresses for procedure locals start at 2^30.
 pub const FMP_MIN: u64 = 2_u64.pow(30);
-// The total number of locals available to all procedures at runtime must be smaller than 2^32.
-pub const FMP_MAX: u64 = FMP_MIN + u32::MAX as u64;
+/// Memory address for procedure locals within a SYSCALL starts at 2^31.
+pub const SYSCALL_FMP_MIN: u64 = 2_u64.pow(31);
+/// Value of FMP register should not exceed 3 * 2^30 - 1.
+pub const FMP_MAX: u64 = 3 * 2_u64.pow(30) - 1;
 
 // SYSTEM INFO
 // ================================================================================================
 
 /// System info container for the VM.
 ///
-/// This keeps track of the clock cycle, execution context, and free memory pointer registers.
+/// This keeps track of the following system variables:
+/// - clock cycle (clk), which starts at 0 and is incremented with every step.
+/// - execution context (ctx), which starts at 0 (root context), and changes when CALL or SYSCALL
+///   operations are executed by the VM (or when we return from a CALL or SYSCALL).
+/// - free memory pointer (fmp), which is initially set to 2^30.
 pub struct System {
     clk: u32,
     ctx: u32,
@@ -100,17 +113,40 @@ impl System {
         self.ctx_trace[self.clk as usize] = Felt::from(self.ctx);
     }
 
-    /// Sets the execution context ID for the next clock cycle.
-    pub fn set_ctx(&mut self, ctx: u32) {
-        // we set only the current value of ctx here, the trace will be updated with this value
-        // when the clock cycle advances.
-        self.ctx = ctx;
-    }
-
     /// Sets the value of free memory pointer for the next clock cycle.
     pub fn set_fmp(&mut self, fmp: Felt) {
         // we set only the current value of fmp here, the trace will be updated with this value
         // when the clock cycle advances.
+        self.fmp = fmp;
+    }
+
+    /// Updates system registers to mark a new function call.
+    ///
+    /// Internally, this performs the following updates:
+    /// - Set the execution context to the current clock cycle + 1. This ensures that the context
+    ///   is globally unique as is never set to 0.
+    /// - Sets the free memory pointer to its initial value (FMP_MIN).
+    pub fn start_call(&mut self) {
+        self.ctx = self.clk + 1;
+        self.fmp = Felt::from(FMP_MIN);
+    }
+
+    /// Updates system registers to mark a new syscall.
+    ///
+    /// Internally, this performs the following updates:
+    /// - Set the execution context to 0 (the root context).
+    /// - Sets the free memory pointer to the initial value of syscalls (SYSCALL_FMP_MIN). This
+    ///   ensures that procedure locals within a syscall do not conflict with procedure locals
+    ///   of the original root context.
+    pub fn start_syscall(&mut self) {
+        self.ctx = 0;
+        self.fmp = Felt::from(SYSCALL_FMP_MIN);
+    }
+
+    /// Updates system registers to the provided values. These updates are made at the end of a
+    /// CALL or a SYSCALL blocks.
+    pub fn restore_context(&mut self, ctx: u32, fmp: Felt) {
+        self.ctx = ctx;
         self.fmp = fmp;
     }
 

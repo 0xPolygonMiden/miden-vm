@@ -25,8 +25,8 @@ impl BlockStack {
         block_type: BlockType,
         ctx_info: Option<ExecutionContextInfo>,
     ) -> Felt {
-        // make sure execution context was provided when expected
-        if block_type == BlockType::Call {
+        // make sure execution context was provided for CALL and SYSCALL blocks
+        if block_type == BlockType::Call || block_type == BlockType::SysCall {
             debug_assert!(
                 ctx_info.is_some(),
                 "no execution context provided for a CALL block"
@@ -121,7 +121,7 @@ impl BlockInfo {
     }
 
     /// Returns ONE if this block is a body of a LOOP block; otherwise returns ZERO.
-    pub fn is_loop_body(&self) -> Felt {
+    pub const fn is_loop_body(&self) -> Felt {
         if self.is_loop_body {
             ONE
         } else {
@@ -130,9 +130,17 @@ impl BlockInfo {
     }
 
     /// Returns ONE if this block is a CALL block; otherwise returns ZERO.
-    pub fn is_call(&self) -> Felt {
+    pub const fn is_call(&self) -> Felt {
         match self.block_type {
             BlockType::Call => ONE,
+            _ => ZERO,
+        }
+    }
+
+    /// Returns ONE if this block is a SYSCALL block; otherwise returns ZERO.
+    pub const fn is_syscall(&self) -> Felt {
+        match self.block_type {
+            BlockType::SysCall => ONE,
             _ => ZERO,
         }
     }
@@ -145,6 +153,7 @@ impl BlockInfo {
             BlockType::Split => 1,
             BlockType::Loop(is_entered) => u32::from(is_entered),
             BlockType::Call => 1,
+            BlockType::SysCall => 1,
             BlockType::Span => 0,
         }
     }
@@ -194,5 +203,6 @@ pub enum BlockType {
     Split,
     Loop(bool), // internal value set to false if the loop is never entered
     Call,
+    SysCall,
     Span,
 }
