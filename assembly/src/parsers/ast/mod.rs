@@ -21,9 +21,12 @@ pub mod tests;
 // ================================================================================================
 type LocalProcMap = BTreeMap<String, (u16, ProcedureAst)>;
 
-/// Represents a parsed program AST.
-/// This AST can then be furthur processed to generate MAST.
-/// A program has to have a body and no exported procedures.
+// ABSTRACT SYNTAX TREE STRUCTS
+// ================================================================================================
+
+/// An abstract syntax tree (AST) of a Miden program.
+///
+/// A program AST consists of a list of internal procedure ASTs and a list of body nodes.
 #[derive(Debug, Eq, PartialEq)]
 pub struct ProgramAst {
     pub local_procs: Vec<ProcedureAst>,
@@ -65,8 +68,9 @@ impl ProgramAst {
     }
 }
 
-/// Represents a parsed module AST.
-/// A module can only have exported and local procedures, but no body.
+/// An abstract syntax tree (AST) of a Miden code module.
+///
+/// A module AST consists of a list of procedure ASTs. These procedures could be local or exported.
 #[derive(Debug, Eq, PartialEq)]
 pub struct ModuleAst {
     pub local_procs: Vec<ProcedureAst>,
@@ -101,7 +105,11 @@ impl ModuleAst {
     }
 }
 
-/// Procedure holds information about a defnied procedure in a Miden program.
+/// An abstract syntax tree of a Miden procedure.
+///
+/// A procedure AST consists of a list of body nodes and additional metadata about the procedure
+/// (e.g., procedure name, number of memory locals used by the procedure, and whether a procedure
+/// is exported or internal).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ProcedureAst {
     pub name: String,
@@ -141,8 +149,8 @@ impl Deserializable for ProcedureAst {
 // PARSERS
 // ================================================================================================
 
-/// Parses the provided source into a AST Program. This Program holds information
-/// that can be directly translated into MAST. A Program cannot have any exported procedures.
+/// Parses the provided source into a program AST. A program consist of a body and a set of
+/// internal (i.e., not exported) procedures.
 #[cfg(test)]
 pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
     let mut tokens = TokenStream::new(source)?;
@@ -219,8 +227,8 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
     Ok(program)
 }
 
-/// Parses the provided source into a AST Module. This AST Module holds information
-/// that can be directly translated into MAST. A Module cannot contain any body.
+/// Parses the provided source into a module ST. A module consists of internal and exported
+/// procedures but does not contain a body.
 pub fn parse_module(source: &str) -> Result<ModuleAst, AssemblyError> {
     let mut tokens = TokenStream::new(source)?;
 
@@ -243,7 +251,8 @@ pub fn parse_module(source: &str) -> Result<ModuleAst, AssemblyError> {
     Ok(module)
 }
 
-/// Parses the token streams into AST nodes
+/// Parses all `use` statements into a map of imports which maps a module name (e.g., "u64") to
+/// its fully-qualified path (e.g., "std::math::u64").
 fn parse_imports(tokens: &mut TokenStream) -> Result<BTreeMap<String, String>, AssemblyError> {
     let mut imports = BTreeMap::<String, String>::new();
     // read tokens from the token stream until all `use` tokens are consumed
