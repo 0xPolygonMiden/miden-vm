@@ -96,7 +96,7 @@ fn test_stack_overflow_constraints() {
 }
 
 #[test]
-fn test_stack_depth_air_fail() {
+fn test_stack_depth_air() {
     let depth = 16 + rand_value::<u32>() as u64;
     // block with a control block opcode.
     let mut frame = generate_evaluation_frame(Operation::Split.op_code().into());
@@ -111,17 +111,17 @@ fn test_stack_depth_air_fail() {
     frame.current_mut()[DECODER_TRACE_OFFSET + IS_CALL_FLAG_COL_IDX] =
         Felt::new(rand_value::<u32>() as u64);
     frame.current_mut()[B1_COL_IDX] = Felt::new(12);
-    frame.current_mut()[H0_COL_IDX] = ONE;
+    frame.current_mut()[H0_COL_IDX] = Felt::new(depth - 16).inv();
 
     frame.next_mut()[CLK_COL_IDX] = ONE;
     frame.next_mut()[B0_COL_IDX] = Felt::new(depth - 1);
-    frame.current_mut()[B1_COL_IDX] = Felt::new(12);
-    frame.current_mut()[H0_COL_IDX] = ONE;
+    frame.next_mut()[B1_COL_IDX] = Felt::new(12);
+    frame.next_mut()[H0_COL_IDX] = Felt::new(depth - 1 - 16).inv();
 
     let expected = [Felt::ZERO; NUM_CONSTRAINTS];
     let result = get_constraint_evaluation(frame);
 
-    assert_ne!(expected, result);
+    assert_eq!(expected, result);
 }
 
 // TEST HELPERS
