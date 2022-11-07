@@ -39,7 +39,7 @@ impl ByteWriter {
         self.0.append(&mut val.to_le_bytes().to_vec());
     }
 
-    pub fn write_string(&mut self, val: &String) -> Result<(), SerializationError> {
+    pub fn write_proc_name(&mut self, val: &String) -> Result<(), SerializationError> {
         let val_bytes = val.as_bytes();
         let val_bytes_len = val_bytes.len() as u8;
         if val_bytes_len > MAX_STRING_LENGTH {
@@ -53,6 +53,23 @@ impl ByteWriter {
 
     pub fn write_procedure_id(&mut self, val: &ProcedureId) {
         self.0.append(&mut val.to_vec());
+    }
+
+    pub fn write_docs(&mut self, val: &Option<String>) -> Result<(), SerializationError> {
+        match val {
+            Some(docs) => {
+                let doc_bytes = docs.as_bytes();
+                if doc_bytes.len() > u16::MAX as usize {
+                    return Err(SerializationError::StringTooLong);
+                }
+                self.write_u16(doc_bytes.len() as u16);
+                self.0.append(&mut doc_bytes.to_vec());
+            }
+            None => {
+                self.write_u16(0);
+            }
+        }
+        Ok(())
     }
 
     pub fn write_felt(&mut self, val: Felt) {
