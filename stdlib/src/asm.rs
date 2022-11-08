@@ -4,7 +4,7 @@
 ///
 /// Entries in the array are tuples containing module namespace and module parsed+serialized.
 #[rustfmt::skip]
-pub const MODULES: [(&str, vm_assembly::ProcedureId, &str, &[u8]); 14] = [
+pub const MODULES: [(&str, vm_assembly::ProcedureId, &str, &[u8]); 15] = [
 ("std::sys",vm_assembly::ProcedureId([108, 156, 72, 120, 241, 17, 15, 48, 166, 221, 38, 219, 215, 149, 220, 31, 0, 39, 175, 30, 100, 43, 252, 186]),"#! Removes elements deep in the stack until the depth of the stack is exactly 16. The elements
 #! are removed in such a way that the top 16 elements of the stack remain unchanged. If the stack
 #! would otherwise contain more than 16 elements at the end of execution, then adding a call to this 
@@ -6680,6 +6680,377 @@ export.from_mont
   exec.mul
 end
 ",&[11, 0, 3, 109, 97, 99, 0, 0, 0, 5, 0, 54, 162, 38, 146, 3, 3, 115, 98, 98, 0, 0, 0, 3, 0, 162, 3, 46, 8, 117, 50, 53, 54, 120, 117, 51, 50, 0, 0, 0, 26, 0, 152, 198, 1, 0, 0, 0, 0, 0, 0, 0, 0, 108, 147, 54, 109, 148, 54, 110, 149, 54, 111, 150, 54, 112, 151, 54, 113, 152, 54, 114, 153, 54, 152, 153, 54, 13, 117, 50, 56, 56, 95, 97, 100, 100, 95, 117, 50, 53, 54, 0, 0, 0, 42, 0, 142, 160, 38, 146, 151, 40, 147, 150, 40, 148, 149, 160, 146, 148, 150, 40, 149, 149, 40, 147, 148, 160, 146, 148, 150, 40, 149, 149, 40, 154, 149, 40, 148, 3, 127, 146, 147, 148, 149, 150, 151, 152, 11, 117, 50, 56, 56, 95, 114, 101, 100, 117, 99, 101, 0, 0, 0, 50, 0, 107, 198, 1, 49, 53, 37, 210, 0, 0, 0, 0, 50, 198, 1, 0, 0, 0, 0, 0, 0, 0, 0, 146, 198, 1, 47, 252, 255, 255, 0, 0, 0, 0, 110, 207, 0, 0, 127, 104, 146, 198, 1, 254, 255, 255, 255, 0, 0, 0, 0, 110, 207, 0, 0, 147, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 111, 207, 0, 0, 148, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 112, 207, 0, 0, 149, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 113, 207, 0, 0, 150, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 114, 207, 0, 0, 151, 114, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 207, 0, 0, 151, 152, 127, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 207, 0, 0, 153, 153, 40, 127, 146, 147, 148, 149, 150, 151, 152, 3, 109, 117, 108, 1, 2, 0, 81, 0, 196, 0, 0, 0, 0, 0, 0, 0, 0, 142, 196, 1, 0, 0, 0, 0, 0, 0, 0, 142, 207, 2, 0, 127, 146, 147, 148, 149, 150, 151, 152, 198, 1, 0, 0, 0, 0, 0, 0, 0, 0, 169, 207, 4, 0, 153, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 1, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 207, 2, 0, 207, 3, 0, 207, 4, 0, 153, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 1, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 207, 2, 0, 207, 3, 0, 207, 4, 0, 153, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 1, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 207, 2, 0, 207, 3, 0, 207, 4, 0, 153, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 1, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 207, 2, 0, 207, 3, 0, 207, 4, 0, 153, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 1, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 207, 2, 0, 207, 3, 0, 207, 4, 0, 153, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 1, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 207, 2, 0, 207, 3, 0, 207, 4, 0, 153, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 1, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 207, 2, 0, 207, 3, 0, 207, 4, 0, 152, 146, 108, 3, 146, 146, 198, 1, 209, 3, 0, 0, 0, 0, 0, 0, 54, 104, 3, 97, 100, 100, 1, 0, 0, 41, 0, 160, 198, 1, 0, 0, 0, 0, 0, 0, 0, 0, 149, 40, 146, 149, 40, 147, 149, 40, 148, 149, 40, 149, 153, 40, 150, 153, 40, 151, 153, 40, 152, 153, 40, 152, 108, 198, 1, 209, 3, 0, 0, 0, 0, 0, 0, 54, 104, 127, 152, 3, 146, 147, 148, 149, 150, 151, 150, 151, 3, 110, 101, 103, 1, 0, 0, 33, 0, 198, 1, 0, 0, 0, 0, 0, 0, 0, 0, 127, 198, 1, 47, 252, 255, 255, 0, 0, 0, 0, 207, 1, 0, 146, 198, 1, 254, 255, 255, 255, 0, 0, 0, 0, 207, 1, 0, 147, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 207, 1, 0, 148, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 207, 1, 0, 149, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 207, 1, 0, 150, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 207, 1, 0, 151, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 207, 1, 0, 152, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 207, 1, 0, 104, 127, 146, 147, 148, 149, 150, 151, 3, 115, 117, 98, 1, 0, 0, 4, 0, 161, 161, 207, 7, 0, 207, 6, 0, 7, 116, 111, 95, 109, 111, 110, 116, 1, 0, 0, 3, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 162, 7, 0, 0, 0, 0, 0, 0, 161, 144, 14, 0, 0, 0, 0, 0, 207, 5, 0, 9, 102, 114, 111, 109, 95, 109, 111, 110, 116, 1, 0, 0, 3, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 207, 5, 0]),
+("std::math::secp256k1_scalar_field",vm_assembly::ProcedureId([230, 197, 40, 31, 111, 199, 137, 186, 91, 16, 63, 50, 176, 68, 2, 164, 115, 223, 127, 51, 221, 179, 175, 42]),"#! Given [b, c, a, carry] on stack top, following function computes
+#!
+#!  tmp = a + (b * c) + carry
+#!  hi = tmp >> 32
+#!  lo = tmp & 0xffff_ffff
+#!  return (hi, lo)
+#!
+#! At end of execution of this function, stack top should look like [hi, lo]
+#! See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field_utils.py#L41-L46
+proc.mac
+  u32overflowing_madd
+
+  movdn.2
+  u32overflowing_add
+
+  movup.2
+  add
+end
+
+#! Given [a, b, borrow] on stack top, following function computes
+#!
+#!  tmp = a - (b + borrow)
+#!  hi = tmp >> 32
+#!  lo = tmp & 0xffff_ffff
+#!  return (hi, lo)
+#!
+#! At end of execution of this function, stack top should look like [hi, lo]
+#! See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field_utils.py#L49-L55
+proc.sbb
+  movdn.2
+  add
+  u32overflowing_sub
+end
+
+#! Given a secp256k1 scalar field element in radix-2^32 representation ( Montgomery form ) 
+#! and 32 -bit unsigned integer, this routine computes a 288 -bit number.
+#!
+#! Input via stack is expected in this form
+#!
+#! [a0, a1, a2, a3, a4, a5, a6, a7, b, ...] | a[0..8] -> 256 -bit number, b = 32 -bit number
+#!
+#! Computed output looks like below, on stack
+#!
+#! [carry, b7, b6, b5, b4, b3, b2, b1, b0, ...]
+#!
+#! See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field_utils.py#L65-L83
+proc.u256xu32
+  movup.8
+  
+  push.0
+  dup.1
+  movup.3
+  u32overflowing_madd
+  
+  dup.2
+  movup.4
+  u32overflowing_madd
+
+  dup.3
+  movup.5
+  u32overflowing_madd
+
+  dup.4
+  movup.6
+  u32overflowing_madd
+
+  dup.5
+  movup.7
+  u32overflowing_madd
+
+  dup.6
+  movup.8
+  u32overflowing_madd
+
+  dup.7
+  movup.9
+  u32overflowing_madd
+
+  movup.8
+  movup.9
+  u32overflowing_madd
+end
+
+#! Given a 288 -bit number and 256 -bit number on stack ( in order ), this routine
+#! computes a 288 -bit number, by adding the 256 -bit number to other operand
+#!
+#! Expected stack state during routine invocation
+#!
+#! [carry, b7, b6, b5, b4, b3, b2, b1, b0, c0, c1, c2, c3, c4, c5, c6, c7, ...]
+#!
+#! While after execution of this routine, stack should look like
+#!
+#! [d0, d1, d2, d3, d4, d5, d6, d7, carry, ...]
+#!
+#! See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field_utils.py#L85-L98
+proc.u288_add_u256
+  swapw
+  movupw.2
+
+  u32overflowing_add
+
+  movup.2
+  movup.7
+  u32overflowing_add3
+
+  movup.3
+  movup.6
+  u32overflowing_add3
+
+  movup.4
+  movup.5
+  movupw.2
+
+  movup.2
+  movup.4
+  movup.6
+  u32overflowing_add3
+
+  movup.5
+  movup.5
+  u32overflowing_add3
+
+  movup.3
+  movup.4
+  movupw.2
+
+  movup.2
+  movup.4
+  movup.6
+  u32overflowing_add3
+
+  movup.5
+  movup.5
+  u32overflowing_add3
+
+  movup.10
+  movup.5
+  u32overflowing_add3
+
+  movup.4
+  add
+
+  swap
+  movup.2
+  movup.3
+  movup.4
+  movup.5
+  movup.6
+  movup.7
+  movup.8
+end
+
+#! Given [c0, c1, c2, c3, c4, c5, c6, c7, c8, pc, ...] on stack top,
+#! this function attempts to reduce 288 -bit number to a 256 -bit number
+#! along with carry, using montgomery reduction method. The modulo to which this
+#! reduction is performed is secp256k1 scalar field prime.
+#!
+#! Find secp256k1 scalar field prime https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field_consts.py#L19-L21
+#!
+#! In stack top content c[0..9] i.e. first 9 elements, holding 288 -bit
+#! number. Stack element `pc` ( at stack[9] ) is previous reduction round's
+#! carry ( for first reduction round, it'll be set to 0 ).
+#!
+#! After finishing execution of this function, stack top should look like
+#!
+#! [c0, c1, c2, c3, c4, c5, c6, c7, pc, ...] | pc = next round's carry
+#!
+#! See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field_utils.py#L118-L126
+proc.u288_reduce
+  dup
+  push.1435021631
+  u32wrapping_mul 
+  # q at stack top #
+
+  push.0
+  movup.2
+  push.3493216577
+  dup.3
+  exec.mac
+
+  swap
+  drop
+
+  movup.2
+  push.3218235020
+  dup.3
+  exec.mac
+
+  movup.3
+  push.2940772411
+  dup.4
+  exec.mac
+
+  movup.4
+  push.3132021990
+  dup.5
+  exec.mac
+
+  movup.5
+  push.4294967294
+  dup.6
+  exec.mac
+
+  movup.6
+  push.4294967295
+  dup.7
+  exec.mac
+
+  movup.7
+  dup.7
+  push.4294967295
+  exec.mac
+
+  movup.7
+  movup.8
+  swap
+  push.4294967295
+  exec.mac
+
+  movup.9
+  movup.9
+  u32overflowing_add3
+
+  swap
+  movup.2
+  movup.3
+  movup.4
+  movup.5
+  movup.6
+  movup.7
+  movup.8
+end
+
+#! Given two 256 -bit numbers ( elements belonging to secp256k1 scalar field ) on stack, 
+#! where each number is represented in radix-2^32 form ( i.e. each number having eight
+#! 32 -bit limbs ), following function computes modular multiplication of those two 
+#! operands, computing 256 -bit result, which belongs to secp256k1 scalar field.
+#!
+#! Stack expected as below, holding input
+#!
+#! [a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7, ...] | a[0..8], b[0..8] are 256 -bit numbers
+#!
+#! After finishing execution of this function, stack should look like
+#!
+#! [c0, c1, c2, c3, c4, c5, c6, c7, ...] | c[0..8] is a 256 -bit number
+#!
+#! Note, for computing modular multiplication of a[0..8] & b[0..8],
+#! school book multiplication equipped with Montgomery reduction technique
+#! is used, which is why a[0..8], b[0..8] are expected to be in Montgomery form,
+#! while computed c[0..8] will also be in Montgomery form.
+#!
+#! See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field_utils.py#L101-L225
+export.mul.2
+  loc_storew.0
+  swapw
+  loc_storew.1
+  swapw
+
+  exec.u256xu32
+
+  swap
+  movup.2
+  movup.3
+  movup.4
+  movup.5
+  movup.6
+  movup.7
+  movup.8
+
+  push.0
+  movdn.9
+
+  exec.u288_reduce
+
+  movup.9
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0
+
+  exec.u256xu32
+  exec.u288_add_u256
+  exec.u288_reduce
+
+  movup.9
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0
+
+  exec.u256xu32
+  exec.u288_add_u256
+  exec.u288_reduce
+
+  movup.9
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0
+
+  exec.u256xu32
+  exec.u288_add_u256
+  exec.u288_reduce
+
+  movup.9
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0
+
+  exec.u256xu32
+  exec.u288_add_u256
+  exec.u288_reduce
+
+  movup.9
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0
+
+  exec.u256xu32
+  exec.u288_add_u256
+  exec.u288_reduce
+
+  movup.9
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0
+
+  exec.u256xu32
+  exec.u288_add_u256
+  exec.u288_reduce
+
+  movup.9
+  push.0.0.0.0
+  loc_loadw.1
+  push.0.0.0.0
+  loc_loadw.0
+
+  exec.u256xu32
+  exec.u288_add_u256
+  exec.u288_reduce
+
+  movup.8
+
+  dup
+  movup.6
+  u32wrapping_add
+
+  movup.5
+  dup.2
+  push.1162945305
+  u32wrapping_madd
+
+  movup.5
+  dup.3
+  push.1354194884
+  u32wrapping_madd
+
+  movup.5
+  dup.4
+  push.1076732275
+  u32wrapping_madd
+
+  movup.5
+  movup.5
+  push.801750719
+  u32wrapping_madd
+end
+",&[6, 0, 3, 109, 97, 99, 0, 0, 0, 5, 0, 54, 162, 38, 146, 3, 3, 115, 98, 98, 0, 0, 0, 3, 0, 162, 3, 46, 8, 117, 50, 53, 54, 120, 117, 51, 50, 0, 0, 0, 26, 0, 152, 198, 1, 0, 0, 0, 0, 0, 0, 0, 0, 108, 147, 54, 109, 148, 54, 110, 149, 54, 111, 150, 54, 112, 151, 54, 113, 152, 54, 114, 153, 54, 152, 153, 54, 13, 117, 50, 56, 56, 95, 97, 100, 100, 95, 117, 50, 53, 54, 0, 0, 0, 42, 0, 142, 160, 38, 146, 151, 40, 147, 150, 40, 148, 149, 160, 146, 148, 150, 40, 149, 149, 40, 147, 148, 160, 146, 148, 150, 40, 149, 149, 40, 154, 149, 40, 148, 3, 127, 146, 147, 148, 149, 150, 151, 152, 11, 117, 50, 56, 56, 95, 114, 101, 100, 117, 99, 101, 0, 0, 0, 50, 0, 107, 198, 1, 63, 177, 136, 85, 0, 0, 0, 0, 50, 198, 1, 0, 0, 0, 0, 0, 0, 0, 0, 146, 198, 1, 65, 65, 54, 208, 0, 0, 0, 0, 110, 207, 0, 0, 127, 104, 146, 198, 1, 140, 94, 210, 191, 0, 0, 0, 0, 110, 207, 0, 0, 147, 198, 1, 59, 160, 72, 175, 0, 0, 0, 0, 111, 207, 0, 0, 148, 198, 1, 230, 220, 174, 186, 0, 0, 0, 0, 112, 207, 0, 0, 149, 198, 1, 254, 255, 255, 255, 0, 0, 0, 0, 113, 207, 0, 0, 150, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 114, 207, 0, 0, 151, 114, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 207, 0, 0, 151, 152, 127, 198, 1, 255, 255, 255, 255, 0, 0, 0, 0, 207, 0, 0, 153, 153, 40, 127, 146, 147, 148, 149, 150, 151, 152, 3, 109, 117, 108, 1, 2, 0, 92, 0, 196, 0, 0, 0, 0, 0, 0, 0, 0, 142, 196, 1, 0, 0, 0, 0, 0, 0, 0, 142, 207, 2, 0, 127, 146, 147, 148, 149, 150, 151, 152, 198, 1, 0, 0, 0, 0, 0, 0, 0, 0, 169, 207, 4, 0, 153, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 1, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 207, 2, 0, 207, 3, 0, 207, 4, 0, 153, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 1, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 207, 2, 0, 207, 3, 0, 207, 4, 0, 153, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 1, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 207, 2, 0, 207, 3, 0, 207, 4, 0, 153, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 1, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 207, 2, 0, 207, 3, 0, 207, 4, 0, 153, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 1, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 207, 2, 0, 207, 3, 0, 207, 4, 0, 153, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 1, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 207, 2, 0, 207, 3, 0, 207, 4, 0, 153, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 1, 0, 0, 0, 0, 0, 0, 0, 198, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 0, 0, 0, 0, 0, 0, 0, 0, 207, 2, 0, 207, 3, 0, 207, 4, 0, 152, 107, 150, 36, 149, 109, 198, 1, 25, 35, 81, 69, 0, 0, 0, 0, 55, 149, 110, 198, 1, 196, 95, 183, 80, 0, 0, 0, 0, 55, 149, 111, 198, 1, 115, 161, 45, 64, 0, 0, 0, 0, 55, 149, 149, 198, 1, 191, 190, 201, 47, 0, 0, 0, 0, 55]),
 ("std::math::ntt512",vm_assembly::ProcedureId([22, 123, 245, 116, 227, 10, 59, 231, 204, 174, 119, 65, 130, 90, 169, 173, 41, 172, 125, 73, 87, 127, 16, 74]),"#! Applies four NTT butterflies on four different indices, given following stack state
 #!
 #! [k0, k1, k2, k3, A0, B0, C0, D0, A1, B1, C1, D1]
