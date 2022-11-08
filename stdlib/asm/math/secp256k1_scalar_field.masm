@@ -342,29 +342,52 @@ export.mul.2
   exec.u288_add_u256
   exec.u288_reduce
 
-  movup.8
+  movup.8 # carry bit
 
-  dup
-  movup.6
-  u32wrapping_add
+  if.true
+    push.801750719
+    push.0
+    u32overflowing_add3
 
-  movup.5
-  dup.2
-  push.1162945305
-  u32wrapping_madd
+    movup.2
+    push.1076732275
+    u32overflowing_add3
 
-  movup.5
-  dup.3
-  push.1354194884
-  u32wrapping_madd
+    movup.3
+    push.1354194884
+    u32overflowing_add3
 
-  movup.5
-  dup.4
-  push.1076732275
-  u32wrapping_madd
+    movup.4
+    push.1162945305
+    u32overflowing_add3
 
-  movup.5
-  movup.5
-  push.801750719
-  u32wrapping_madd
+    movup.5
+    push.1
+    u32overflowing_add3
+
+    movup.6
+    push.0
+    u32overflowing_add3
+
+    movup.7
+    push.0
+    u32overflowing_add3
+
+    movup.8
+    push.0
+    u32wrapping_add3
+
+    swap
+    movup.2
+    movup.3
+    movup.4
+    movup.5
+    movup.6
+    movup.7
+  end
+end
+
+export.inv
+    push.1
+    drop
 end
