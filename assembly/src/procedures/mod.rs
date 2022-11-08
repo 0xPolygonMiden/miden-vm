@@ -1,6 +1,6 @@
 use super::{
-    combine_blocks, parse_body, parsers::ast::nodes::Node, AssemblyContext, AssemblyError,
-    CodeBlock, CodeBlockTable, ModuleMap, String, Vec,
+    combine_blocks, parse_body, parsers::Node, AssemblyContext, AssemblyError, CodeBlock,
+    CodeBlockTable, ModuleMap, String, Vec,
 };
 use vm_core::{Felt, Operation};
 
@@ -8,24 +8,28 @@ use vm_core::{Felt, Operation};
 // ================================================================================================
 
 /// Contains metadata and code of a procedure.
+#[derive(Clone)]
 pub struct Procedure {
+    prefix: String,
     label: String,
     is_export: bool,
     #[allow(dead_code)]
     num_locals: u32,
     code_root: CodeBlock,
-    index: u32,
+    index: u16,
 }
 
 impl Procedure {
     pub fn new(
+        prefix: String,
         label: String,
         is_export: bool,
         num_locals: u32,
         code_root: CodeBlock,
-        index: u32,
+        index: u16,
     ) -> Self {
         Self {
+            prefix,
             label,
             is_export,
             num_locals,
@@ -52,8 +56,13 @@ impl Procedure {
     }
 
     /// Returns the index of this procedure.
-    pub fn index(&self) -> u32 {
+    pub fn index(&self) -> u16 {
         self.index
+    }
+
+    /// Returns the prefix of this procedure.
+    pub fn prefix(&self) -> &str {
+        &self.prefix
     }
 }
 

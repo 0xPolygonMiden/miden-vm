@@ -4,6 +4,7 @@
 #[macro_use]
 extern crate alloc;
 
+use core::fmt;
 use core::ops;
 use crypto::{hashers::Blake3_256, Digest, Hasher};
 use vm_core::{
@@ -23,9 +24,8 @@ mod procedures;
 use procedures::{parse_proc_blocks, Procedure};
 
 mod parsers;
-use parsers::{
-    parse_module, parse_program, ModuleAst, ProgramAst,
-    combine_blocks, parse_body, LocalProcMap
+pub use parsers::{
+    combine_blocks, parse_body, parse_module, parse_program, ModuleAst, ProcedureAst, ProgramAst,
 };
 
 mod tokens;
@@ -67,6 +67,12 @@ impl ops::Deref for ProcedureId {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl fmt::Display for ProcedureId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.0)
     }
 }
 
@@ -161,7 +167,8 @@ impl Assembler {
     /// # Errors
     /// Returns an error if compiling kernel source results in an error.
     pub fn with_kernel(mut self, kernel_source: &str) -> Result<Self, AssemblyError> {
-        self.set_kernel(kernel_source).map(|_| self)
+        let module_ast = parse_module(kernel_source)?;
+        self.set_kernel(module_ast).map(|_| self)
     }
 
     // PUBLIC ACCESSORS
@@ -187,7 +194,7 @@ impl Assembler {
     pub fn compile(&self, source: &str) -> Result<Program, AssemblyError> {
         let program_ast = parse_program(source)?;
         for node in &program_ast.body {
-            print!("{:?}", node);
+            print!("{:?}\n", node);
         }
         self.compile_ast(&program_ast)
     }
@@ -201,10 +208,16 @@ impl Assembler {
         // parse imported modules (if any), and add exported procedures from these modules to the
         // current context; since we are in the root context here, we initialize dependency chain
         // with an empty vector.
-        self.parse_imports(&mut tokens, &mut context, &mut Vec::new(), &mut cb_table)?;
+        self.parse_imports(
+            &program_ast.imports,
+            &mut context,
+            &mut Vec::new(),
+            &mut cb_table,
+        )?;
 
         parse_local_procs(
-            &program_ast.procedures,
+            "",
+            &program_ast.local_procs,
             &mut context,
             &mut cb_table,
             &mut parsed_modules,
@@ -265,7 +278,7 @@ impl Assembler {
                     .ok_or_else(|| AssemblyError::missing_import_source(module_path))
                     .and_then(|module_source| {
                         let module_ast = parse_module(module_source)?;
-                        self.parse_module(module_ast, dep_chain, cb_table)
+                        self.parse_module(module_path, module_ast, dep_chain, cb_table)
                     })?;
             }
 
@@ -296,6 +309,7 @@ impl Assembler {
     #[allow(clippy::cast_ref_to_mut)]
     fn parse_module(
         &self,
+        path: &str,
         module_ast: ModuleAst,
         dep_chain: &mut Vec<String>,
         cb_table: &mut CodeBlockTable,
@@ -307,8 +321,7 @@ impl Assembler {
         self.parse_imports(&module_ast.imports, &mut context, dep_chain, cb_table)?;
 
         // extract the exported local procedures from the context
-        let mut module_procs = context.into_local_procs();
-        module_procs.retain(|_, p| p.is_export());
+        let module_procs = context.into_exported_procs();
 
         // insert exported procedures into `self.parsed_procedures`
         // TODO: figure out how to do this using interior mutability
@@ -332,10 +345,16 @@ impl Assembler {
 
         // parse imported modules (if any), and add exported procedures from these modules to
         // the current context
-        self.parse_imports(&module_ast.imports, &mut context, &mut Vec::new(), &mut cb_table)?;
+        self.parse_imports(
+            &module_ast.imports,
+            &mut context,
+            &mut Vec::new(),
+            &mut cb_table,
+        )?;
 
         parse_local_procs(
-            &module_ast.procedures,
+            "",
+            &module_ast.local_procs,
             &mut context,
             &mut cb_table,
             &mut parsed_modules,
@@ -349,8 +368,7 @@ impl Assembler {
 
         // extract the exported local procedures from the context set the kernel of this assembler
         // to these procedures
-        let mut module_procs = context.into_local_procs();
-        module_procs.retain(|_, p| p.is_export());
+        let module_procs = context.into_exported_procs();
         self.kernel_procs = module_procs;
 
         // build a list of procedure hashes and instantiate a kernel with them
@@ -374,14 +392,15 @@ impl Default for Assembler {
 // HELPER FUNCTIONS
 // --------------------------------------------------------------------------------------------
 fn parse_local_procs(
-    procedures: &LocalProcMap,
+    prefix: &str,
+    procedures: &Vec<ProcedureAst>,
     context: &mut AssemblyContext,
     cb_table: &mut CodeBlockTable,
     parsed_modules: &mut ModuleMap,
 ) -> Result<(), AssemblyError> {
     // parse locally defined procedures (if any), and add these procedures to the current
     // context
-    for (index, proc) in procedures.values() {
+    for (index, proc) in procedures.iter().enumerate() {
         let code_root = parse_proc_blocks(
             &proc.body,
             context,
@@ -390,11 +409,12 @@ fn parse_local_procs(
             proc.num_locals,
         )?;
         context.add_local_proc(Procedure::new(
+            String::from(prefix),
             proc.name.clone(),
             proc.is_export,
             proc.num_locals,
             code_root,
-            index,
+            index as u16,
         ))
     }
 

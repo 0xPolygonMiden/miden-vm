@@ -138,7 +138,10 @@ impl ModuleAst {
             .map(|_| ProcedureAst::read_from(&mut byte_reader))
             .collect::<Result<_, _>>()?;
 
-        Ok(ModuleAst { imports, local_procs })
+        Ok(ModuleAst {
+            imports,
+            local_procs,
+        })
     }
 }
 
@@ -188,13 +191,12 @@ impl Deserializable for ProcedureAst {
 
 /// Parses the provided source into a program AST. A program consist of a body and a set of
 /// internal (i.e., not exported) procedures.
-#[cfg(test)]
 pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
     let mut tokens = TokenStream::new(source)?;
     let imports = parse_imports(&mut tokens)?;
 
     let mut context = ParserContext {
-        imports,
+        imports: imports.clone(),
         ..Default::default()
     };
 
@@ -261,7 +263,11 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
 
     let local_procs = sort_procs_into_vec(context.local_procs);
 
-    let program = ProgramAst { imports, body, local_procs };
+    let program = ProgramAst {
+        imports,
+        body,
+        local_procs,
+    };
 
     Ok(program)
 }
@@ -273,7 +279,7 @@ pub fn parse_module(source: &str) -> Result<ModuleAst, AssemblyError> {
 
     let imports = parse_imports(&mut tokens)?;
     let mut context = ParserContext {
-        imports,
+        imports: imports.clone(),
         ..Default::default()
     };
     context.parse_procedures(&mut tokens, true)?;

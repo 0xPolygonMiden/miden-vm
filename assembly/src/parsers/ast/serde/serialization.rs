@@ -496,7 +496,7 @@ impl Serializable for Instruction {
             }
             Self::SysCall(imported) => {
                 target.write_opcode(OpCode::SysCall);
-                target.write_proc_hash(imported);
+                target.write_procedure_id(imported);
             }
         }
     }

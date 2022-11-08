@@ -1,14 +1,13 @@
 use crate::ProcedureId;
 
 use super::{
-    io_ops, stack_ops, u32_ops, AssemblyError, Instruction, LocalProcMap, Node, ProcedureAst,
-    Token, TokenStream, MODULE_PATH_DELIM,
+    field_ops, io_ops, stack_ops, u32_ops, AssemblyError, Instruction, LocalProcMap, Node,
+    ProcedureAst, Token, TokenStream, MODULE_PATH_DELIM,
 };
 use vm_core::utils::{
     collections::{BTreeMap, Vec},
-    string::{String, ToString}, Felt
+    string::{String, ToString},
 };
-use crypto::hashers::Blake3_192;
 
 // Context
 // ================================================================================================
@@ -192,8 +191,8 @@ impl ParserContext {
         tokens: &mut TokenStream,
     ) -> Result<Node, AssemblyError> {
         tokens.advance();
-        let proc_name_hash = self.get_proc_name_hash(label);
-        Ok(Node::Instruction(Instruction::SysCall(proc_name_hash)))
+        let proc_id = ProcedureId::new(label);
+        Ok(Node::Instruction(Instruction::SysCall(proc_id)))
     }
 
     // PROCEDURE PARSERS
@@ -334,13 +333,6 @@ impl ParserContext {
         let full_module_name = self.imports.get(module_name).unwrap();
         format!("{full_module_name}{MODULE_PATH_DELIM}{proc_name}")
     }
-
-    fn get_proc_name_hash(&self, proc_name: String) -> [u8; PROC_DIGEST_SIZE] {
-        let proc_name_digest = Blake3_192::<Felt>::hash(proc_name.as_bytes());
-        let mut proc_name_hash = [0; PROC_DIGEST_SIZE];
-        proc_name_hash.copy_from_slice(&proc_name_digest.as_bytes()[..PROC_DIGEST_SIZE]);
-        proc_name_hash
-    }
 }
 
 /// Parses a Token into a node instruction.
@@ -367,8 +359,8 @@ fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
         "or" => Node::Instruction(Instruction::Or),
         "xor" => Node::Instruction(Instruction::Xor),
 
-        "eq" => Node::Instruction(Instruction::Eq),
-        "neq" => Node::Instruction(Instruction::Neq),
+        "eq" => field_ops::parse_eq(op)?,
+        "neq" => field_ops::parse_neq(op)?,
         "lt" => Node::Instruction(Instruction::Lt),
         "lte" => Node::Instruction(Instruction::Lte),
         "gt" => Node::Instruction(Instruction::Gt),

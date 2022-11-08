@@ -68,17 +68,10 @@ fn parse_node<'a>(
         Node::Instruction(instruction) => {
             match instruction {
                 Instruction::ExecImported(label) => {
-                    context.parse_imports(
-                        &String::from(module_name),
-                        &mut Vec::new(),
-                        parsed_modules,
-                        cb_table,
-                    )?;
-
                     // retrieve the procedure block from the proc map and consume the 'exec' token
                     let proc_block = context
-                        .get_proc_code(label)
-                        .ok_or_else(|| AssemblyError::undefined_proc(label))?;
+                        .get_imported_proc_code(label)
+                        .ok_or_else(|| AssemblyError::undefined_imported_proc(label.to_string()))?;
                     Ok(Some(proc_block.clone()))
                 }
                 Instruction::ExecLocal(index) => {
@@ -112,17 +105,10 @@ fn parse_node<'a>(
                         return Err(AssemblyError::call_in_kernel());
                     }
 
-                    context.parse_imports(
-                        &String::from(module_name),
-                        &mut Vec::new(),
-                        parsed_modules,
-                        cb_table,
-                    )?;
-
                     // retrieve the procedure block from the proc map and consume the 'call' token
                     let proc_block = context
-                        .get_proc_code(label)
-                        .ok_or_else(|| AssemblyError::undefined_proc(label))?;
+                        .get_imported_proc_code(label)
+                        .ok_or_else(|| AssemblyError::undefined_imported_proc(label.to_string()))?;
 
                     // if the procedure hasn't been inserted into code block table yet, insert it
                     if !cb_table.has(proc_block.hash()) {

@@ -1,3 +1,5 @@
+use crate::validate_operation;
+
 use super::{
     super::parse_bit_len_param, super::parse_element_param, AssemblyError, Instruction, Node, Token,
 };
@@ -32,4 +34,32 @@ pub fn parse_exp(op: &Token) -> Result<Node, AssemblyError> {
     };
 
     Ok(Node::Instruction(instruction))
+}
+
+pub fn parse_eq(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "eq", 0..1);
+
+    let node = match op.num_parts() {
+        2 => {
+            let value = parse_element_param(op, 1)?;
+            Node::Instruction(Instruction::EqImm(value))
+        }
+        _ => Node::Instruction(Instruction::Eq),
+    };
+
+    Ok(node)
+}
+
+pub fn parse_neq(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "neq", 0..1);
+
+    let node = match op.num_parts() {
+        2 => {
+            let value = parse_element_param(op, 1)?;
+            Node::Instruction(Instruction::NeqImm(value))
+        }
+        _ => Node::Instruction(Instruction::Neq),
+    };
+
+    Ok(node)
 }

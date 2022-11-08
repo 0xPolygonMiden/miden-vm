@@ -241,9 +241,17 @@ impl AssemblyError {
         }
     }
 
-    pub fn undefined_local_proc(index: u32) -> Self {
+    pub fn undefined_imported_proc(procedure_id: String) -> Self {
         AssemblyError {
-            message: format!("undefined local procedure: {}", index),
+            message: format!("undefined imported procedure: {:?}", procedure_id),
+            step: 0,
+            op: "".to_string(),
+        }
+    }
+
+    pub fn undefined_local_proc(index: u16) -> Self {
+        AssemblyError {
+            message: format!("undefined local procedure: {index}"),
             step: 0,
             op: "".to_string(),
         }

@@ -1,6 +1,4 @@
-use super::{
-    BTreeMap, CodeBlock, ProcMap, Procedure, ToString, MODULE_PATH_DELIM,
-};
+use super::{BTreeMap, CodeBlock, ProcMap, Procedure, MODULE_PATH_DELIM};
 use crate::ProcedureId;
 
 // ASSEMBLY CONTEXT
@@ -17,7 +15,7 @@ use crate::ProcedureId;
 /// Local procedures are owned by the context, while imported and kernel procedures are stored by
 /// reference.
 pub struct AssemblyContext<'a> {
-    local_procs: BTreeMap<ProcedureId, Procedure>,
+    local_procs: BTreeMap<u16, Procedure>,
     imported_procs: BTreeMap<ProcedureId, &'a Procedure>,
     kernel_procs: Option<&'a BTreeMap<ProcedureId, Procedure>>,
     in_debug_mode: bool,
@@ -52,21 +50,15 @@ impl<'a> AssemblyContext<'a> {
 
     /// Returns true if a procedure with the specified label exists in this context.
     pub fn contains_proc(&self, procedure_id: &ProcedureId) -> bool {
-        self.local_procs.contains_key(procedure_id) || self.imported_procs.contains_key(procedure_id)
+        self.imported_procs.contains_key(procedure_id)
     }
 
-    /// Returns a code root of a procedure for the specified label from this context.
-    pub fn get_proc_code(&self, procedure_id: &ProcedureId) -> Option<&CodeBlock> {
+    /// Returns a code root of a imported procedure for the specified label from this context.
+    pub fn get_imported_proc_code(&self, procedure_id: &ProcedureId) -> Option<&CodeBlock> {
         // `expect()`'s are OK here because we first check if a given map contains the key
         if self.imported_procs.contains_key(procedure_id) {
-            let proc = *self
-                .imported_procs
-                .get(procedure_id)
-                .expect("no procedure after contains");
-            Some(proc.code_root())
-        } else if self.local_procs.contains_key(procedure_id) {
             let proc = self
-                .local_procs
+                .imported_procs
                 .get(procedure_id)
                 .expect("no procedure after contains");
             Some(proc.code_root())
@@ -75,15 +67,17 @@ impl<'a> AssemblyContext<'a> {
         }
     }
 
-    pub fn get_local_proc_code(&self, index: u32) -> Option<&CodeBlock> {
+    pub fn get_local_proc_code(&self, index: u16) -> Option<&CodeBlock> {
         // `expect()`'s are OK here because we first check if a given map contains the key
-        for proc in self.local_procs.values() {
-            if proc.index() == index {
-                return Some(proc.code_root());
-            }
+        if self.local_procs.contains_key(&index) {
+            let proc = &*self
+                .local_procs
+                .get(&index)
+                .expect("no procedure after contains");
+            Some(proc.code_root())
+        } else {
+            None
         }
-
-        None
     }
 
     /// Returns true if this context is used for compiling kernel module.
@@ -110,10 +104,12 @@ impl<'a> AssemblyContext<'a> {
     /// # Panics
     /// Panics if a procedure with the specified label already exists in this context.
     pub fn add_local_proc(&mut self, proc: Procedure) {
-        let label = proc.label();
-        proc.
-        assert!(!self.contains_proc(label), "duplicate procedure: {label}");
-        self.local_procs.insert(label.to_string(), proc);
+        assert!(
+            !self.local_procs.contains_key(&proc.index()),
+            "duplicate procedure: {}",
+            proc.label()
+        );
+        self.local_procs.insert(proc.index(), proc);
     }
 
     /// Adds an imported procedure to this context.
@@ -124,12 +120,24 @@ impl<'a> AssemblyContext<'a> {
     /// Panics if a procedure with the specified label already exists in this context.
     pub fn add_imported_proc(&mut self, prefix: &str, proc: &'a Procedure) {
         let label = format!("{prefix}{MODULE_PATH_DELIM}{}", proc.label());
-        assert!(!self.contains_proc(&label), "duplicate procedure: {label}");
-        self.imported_procs.insert(label, proc);
+        let procedure_id = ProcedureId::new(label.clone());
+        assert!(
+            !self.contains_proc(&procedure_id),
+            "duplicate procedure: {label}"
+        );
+        self.imported_procs.insert(procedure_id, proc);
     }
 
-    /// Extracts local procedures from this context.
-    pub fn into_local_procs(self) -> ProcMap {
+    /// Extracts exported procedures from this context.
+    pub fn into_exported_procs(self) -> ProcMap {
         self.local_procs
+            .values()
+            .filter(|x| x.is_export())
+            .map(|x| {
+                let procedure_id =
+                    ProcedureId::new(format!("{}{MODULE_PATH_DELIM}{}", x.prefix(), x.label()));
+                (procedure_id, x.clone())
+            })
+            .collect::<ProcMap>()
     }
 }
