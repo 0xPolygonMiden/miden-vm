@@ -276,7 +276,7 @@ pub enum OpGroupTableUpdate {
 // BLOCK STACK TABLE ROW
 // ================================================================================================
 
-/// Describes a single entry in the block stack table. An entry in the block stack table.
+/// Describes a single entry in the block stack table.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BlockStackTableRow {
     block_id: Felt,

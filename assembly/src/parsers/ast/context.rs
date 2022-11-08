@@ -449,6 +449,7 @@ fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
 
         "sdepth" => Node::Instruction(Instruction::Sdepth),
         "locaddr" => io_ops::parse_locaddr(op)?,
+        "caller" => Node::Instruction(Instruction::Caller), // TODO: error if not in SYSCALL
 
         "mem_load" => io_ops::parse_mem_load(op)?,
         "loc_load" => io_ops::parse_loc_load(op)?,

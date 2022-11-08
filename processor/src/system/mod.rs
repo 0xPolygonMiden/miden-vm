@@ -178,7 +178,7 @@ impl System {
     /// - Sets the free memory pointer to the initial value of syscalls (SYSCALL_FMP_MIN). This
     ///   ensures that procedure locals within a syscall do not conflict with procedure locals
     ///   of the original root context.
-    /// - Sets the is_syscall flag to true.
+    /// - Sets the in_syscall flag to true.
     ///
     /// A SYSCALL cannot be started when the VM is executing a SYSCALL.
     ///
@@ -194,7 +194,7 @@ impl System {
     /// Updates system registers to the provided values. These updates are made at the end of a
     /// CALL or a SYSCALL blocks.
     ///
-    /// Note that we set is_syscall flag to true regardless of whether we return from a CALL or a
+    /// Note that we set in_syscall flag to true regardless of whether we return from a CALL or a
     /// SYSCALL.
     pub fn restore_context(&mut self, ctx: u32, fmp: Felt, fn_hash: Word) {
         self.ctx = ctx;
@@ -214,7 +214,7 @@ impl System {
     /// - the remainder of the `ctx` column is filled in with ZERO, which should be the last value
     ///   in the column.
     /// - the remainder of the `fmp` column is filled in with the last value in the column.
-    /// - the remainder of the `is_syscall` column is filled with ZERO, which should be the last
+    /// - the remainder of the `in_syscall` column is filled with ZERO, which should be the last
     ///   value in this colum.
     /// - the remainder of the `fn_hash` columns are filled with ZERO, which should be the last
     ///   values in these columns.
@@ -249,7 +249,7 @@ impl System {
         self.fmp_trace[clk..].fill(last_value);
         self.fmp_trace.resize(trace_len, last_value);
 
-        // complete the is_syscall column by filling all values after the last clock cycle with
+        // complete the in_syscall column by filling all values after the last clock cycle with
         // ZEROs as we must end the program in the root context which is not a SYSCALL
         debug_assert!(!self.in_syscall);
         self.in_syscall_trace.resize(trace_len, ZERO);

@@ -8,7 +8,7 @@ pub use decorators::{AdviceInjector, AssemblyOp, Decorator, DecoratorIterator, D
 
 /// A set of native VM operations.
 ///
-/// These operations take exactly one cycle to execution.
+/// These operations take exactly one cycle to execute.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Operation {
     // ----- system operations --------------------------------------------------------------------

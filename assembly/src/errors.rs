@@ -251,6 +251,14 @@ impl AssemblyError {
         }
     }
 
+    pub fn caller_out_of_kernel(token: &Token) -> Self {
+        AssemblyError {
+            message: "caller instruction executed outside of kernel context".to_string(),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
     // IMPORTS AND MODULES
     // --------------------------------------------------------------------------------------------
 
