@@ -3,7 +3,7 @@ use std::cmp::PartialEq;
 use std::ops::{Add, Mul, Neg, Sub};
 
 /// Secp256k1 base field element, kept in Montgomery form
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 struct BaseField {
     limbs: [u32; 8],
 }
@@ -301,7 +301,7 @@ impl Sub for BaseField {
 }
 
 impl PartialEq for BaseField {
-    /// Checks whether two secp256k1 field elements are equal or not, in Montogomery form
+    /// Checks whether two secp256k1 base field elements are equal or not, in Montogomery form
     fn eq(&self, other: &Self) -> bool {
         let mut flg = false;
 
@@ -312,7 +312,7 @@ impl PartialEq for BaseField {
         !flg
     }
 
-    /// Checks whether two secp256k1 field elements are not equal to each other, in Montogomery form
+    /// Checks whether two secp256k1 base field elements are not equal to each other, in Montogomery form
     fn ne(&self, other: &Self) -> bool {
         !(self == other)
     }
@@ -557,6 +557,5 @@ fn test_add_then_sub() {
         elm3
     };
 
-    let res = elm1 == elm3;
-    assert_eq!(res, true);
+    assert_eq!(elm1, elm3);
 }
