@@ -10,14 +10,14 @@ use rand_utils::rand_value;
 use vm_core::{
     code_blocks::{CodeBlock, Span, OP_BATCH_SIZE},
     decoder::{
-        ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, IN_SYSCALL_COL_IDX,
-        NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS,
-        OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS, OP_BATCH_FLAGS_RANGE, OP_BITS_OFFSET, OP_BITS_RANGE,
+        ADDR_COL_IDX, GROUP_COUNT_COL_IDX, HASHER_STATE_RANGE, IN_SPAN_COL_IDX, NUM_HASHER_COLUMNS,
+        NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS, OP_BATCH_4_GROUPS,
+        OP_BATCH_8_GROUPS, OP_BATCH_FLAGS_RANGE, OP_BITS_OFFSET, OP_BITS_RANGE,
         OP_BIT_EXTRA_COL_IDX, OP_INDEX_COL_IDX,
     },
     utils::collections::Vec,
     CodeBlockTable, StarkField, CTX_COL_IDX, DECODER_TRACE_RANGE, DECODER_TRACE_WIDTH, FMP_COL_IDX,
-    FN_HASH_RANGE, ONE, SYS_TRACE_RANGE, SYS_TRACE_WIDTH, ZERO,
+    FN_HASH_RANGE, IN_SYSCALL_COL_IDX, ONE, SYS_TRACE_RANGE, SYS_TRACE_WIDTH, ZERO,
 };
 
 // CONSTANTS
@@ -1004,14 +1004,6 @@ fn call_block() {
         assert_eq!(program_hash, get_hasher_state1(&dec_trace, i));
     }
 
-    // --- check the scf column -------------------------------------------------------------------
-
-    // since no syscalls were made, values in the syscall flag column should be all ZEROs
-    assert_eq!(
-        &dec_trace[IN_SYSCALL_COL_IDX][..trace_len],
-        vec![ZERO; trace_len]
-    );
-
     // --- check the ctx column -------------------------------------------------------------------
 
     // for the first 7 cycles, we are in the root context
@@ -1056,6 +1048,14 @@ fn call_block() {
     for i in 13..trace_len {
         assert_eq!(sys_trace[FMP_COL_IDX][i], FMP_MIN + TWO);
     }
+
+    // --- check the in_syscall column ------------------------------------------------------------
+
+    // since no syscalls were made, values in the syscall flag column should be all ZEROs
+    assert_eq!(
+        &sys_trace[IN_SYSCALL_COL_IDX][..trace_len],
+        vec![ZERO; trace_len]
+    );
 
     // --- check fn hash columns ------------------------------------------------------------------
 
@@ -1298,23 +1298,6 @@ fn syscall_block() {
         assert_eq!(program_hash, get_hasher_state1(&dec_trace, i));
     }
 
-    // --- check the scf column -------------------------------------------------------------------
-
-    // before the SYSCALL block, syscall flag values should be set to 0
-    for i in 0..14 {
-        assert_eq!(dec_trace[IN_SYSCALL_COL_IDX][i], ZERO);
-    }
-
-    // within the SYSCALL block, syscall flag values should be set to 1
-    for i in 14..19 {
-        assert_eq!(dec_trace[IN_SYSCALL_COL_IDX][i], ONE);
-    }
-
-    // after the SYSCALL block, syscall flag values should be set to 0 again
-    for i in 19..trace_len {
-        assert_eq!(dec_trace[IN_SYSCALL_COL_IDX][i], ZERO);
-    }
-
     // --- check the ctx column -------------------------------------------------------------------
 
     // for the first 7 cycles, we are in the root context
@@ -1384,6 +1367,23 @@ fn syscall_block() {
     // until the end of the trace
     for i in 21..trace_len {
         assert_eq!(sys_trace[FMP_COL_IDX][i], FMP_MIN + ONE);
+    }
+
+    // --- check the is_syscall column ------------------------------------------------------------
+
+    // before the SYSCALL block, syscall flag values should be set to 0
+    for i in 0..14 {
+        assert_eq!(sys_trace[IN_SYSCALL_COL_IDX][i], ZERO);
+    }
+
+    // within the SYSCALL block, syscall flag values should be set to 1
+    for i in 14..19 {
+        assert_eq!(sys_trace[IN_SYSCALL_COL_IDX][i], ONE);
+    }
+
+    // after the SYSCALL block, syscall flag values should be set to 0 again
+    for i in 19..trace_len {
+        assert_eq!(sys_trace[IN_SYSCALL_COL_IDX][i], ZERO);
     }
 
     // --- check fn hash columns ------------------------------------------------------------------
