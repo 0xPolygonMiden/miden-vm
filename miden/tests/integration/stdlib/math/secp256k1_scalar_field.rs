@@ -1,13 +1,24 @@
 use super::{build_test, Felt};
+use std::cmp::PartialEq;
 use std::ops::Mul;
 
 /// Secp256k1 scalar field element, kept in Montgomery form
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 struct ScalarField {
     limbs: [u32; 8],
 }
 
 impl ScalarField {
+    fn zero() -> Self {
+        Self { limbs: [0u32; 8] }
+    }
+
+    fn one() -> Self {
+        Self {
+            limbs: [801750719, 1076732275, 1354194884, 1162945305, 1, 0, 0, 0],
+        }
+    }
+
     /// See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field_utils.py#L41-L46
     fn mac(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
         let tmp = a as u64 + (b as u64 * c as u64) + carry as u64;
@@ -118,6 +129,38 @@ impl ScalarField {
 
         d
     }
+
+    /// Raises scalar field element to N -th power | N  = exp i.e. represented in radix-2^32 form
+    fn pow(self, exp: Self) -> Self {
+        let mut res = ScalarField::one();
+
+        for i in exp.limbs.iter().rev() {
+            for j in (0u32..32).rev() {
+                res = res * res;
+
+                if ((*i >> j) & 1u32) == 1u32 {
+                    res = res * self;
+                }
+            }
+        }
+
+        res
+    }
+
+    /// Computes multiplicative inverse ( say a' ) of scalar field element a | a * a' = 1 ( mod P )
+    ///
+    /// Note, if a = 0, then a' = 0.
+    ///
+    /// See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field.py#L111-L129
+    fn inv(self) -> Self {
+        let exp = ScalarField {
+            limbs: [
+                3493216575, 3218235020, 2940772411, 3132021990, 4294967294, 4294967295, 4294967295,
+                4294967295,
+            ],
+        };
+        self.pow(exp)
+    }
 }
 
 impl Mul for ScalarField {
@@ -178,15 +221,43 @@ impl Mul for ScalarField {
         pc = d[8];
         c[8..16].copy_from_slice(&d[0..8]);
 
-        c[8] += pc * 801750719;
-        c[9] += pc * 1076732275;
-        c[10] += pc * 1354194884;
-        c[11] += pc * 1162945305;
-        c[12] += pc;
+        let mut one = Self::one().limbs;
+        for i in 0..8 {
+            one[i] = one[i] * pc;
+        }
+
+        pc = 0;
+
+        (pc, c[8]) = Self::adc(c[8], one[0], pc);
+        (pc, c[9]) = Self::adc(c[9], one[1], pc);
+        (pc, c[10]) = Self::adc(c[10], one[2], pc);
+        (pc, c[11]) = Self::adc(c[11], one[3], pc);
+        (pc, c[12]) = Self::adc(c[12], one[4], pc);
+        (pc, c[13]) = Self::adc(c[13], one[5], pc);
+        (pc, c[14]) = Self::adc(c[14], one[6], pc);
+        (_, c[15]) = Self::adc(c[15], one[7], pc);
 
         Self::Output {
             limbs: c[8..16].try_into().expect("incorrect length"),
         }
+    }
+}
+
+impl PartialEq for ScalarField {
+    /// Checks whether two secp256k1 scalarfield elements are equal or not, in Montogomery form
+    fn eq(&self, other: &Self) -> bool {
+        let mut flg = false;
+
+        for i in 0..8 {
+            flg |= (self.limbs[i] ^ other.limbs[i]) != 0;
+        }
+
+        !flg
+    }
+
+    /// Checks whether two secp256k1 scalar field elements are not equal to each other, in Montogomery form
+    fn ne(&self, other: &Self) -> bool {
+        !(self == other)
     }
 }
 
@@ -201,8 +272,8 @@ fn test_mul() {
 
     let mut stack = [0u64; 16];
 
-    let mut elm0 = ScalarField { limbs: [0u32; 8] };
-    let mut elm1 = ScalarField { limbs: [0u32; 8] };
+    let mut elm0 = ScalarField::zero();
+    let mut elm1 = ScalarField::zero();
 
     for i in 0..8 {
         let a = rand_utils::rand_value::<u32>();
