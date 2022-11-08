@@ -1,536 +1,4 @@
-#! Given [b, c, a, carry] on stack top, following function computes
-#!
-#!  tmp = a + (b * c) + carry
-#!  hi = tmp >> 32
-#!  lo = tmp & 0xffff_ffff
-#!  return (hi, lo)
-#!
-#! At end of execution of this function, stack top should look like [hi, lo]
-#! See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/utils.py#L75-L80
-proc.mac
-  u32overflowing_madd
-
-  movdn.2
-  u32overflowing_add
-
-  movup.2
-  add
-end
-
-#! Given [a, b, borrow] on stack top, following function computes
-#!
-#!  tmp = a - (b + borrow)
-#!  hi = tmp >> 32
-#!  lo = tmp & 0xffff_ffff
-#!  return (hi, lo)
-#!
-#! At end of execution of this function, stack top should look like [hi, lo]
-#! See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/utils.py#L83-L89
-proc.sbb
-  movdn.2
-  add
-  u32overflowing_sub
-end
-
-#! Given a secp256k1 field element in radix-2^32 representation and 32 -bit unsigned integer,
-#! this routine computes a 288 -bit number.
-#!
-#! Input via stack is expected in this form
-#!
-#! [a0, a1, a2, a3, a4, a5, a6, a7, b] | a[0..8] -> 256 -bit number, b = 32 -bit number
-#!
-#! Computed output looks like below, on stack
-#!
-#! [carry, b7, b6, b5, b4, b3, b2, b1, b0]
-proc.u256xu32
-  movup.8
-  
-  push.0
-  dup.1
-  movup.3
-  u32overflowing_madd
-  
-  dup.2
-  movup.4
-  u32overflowing_madd
-
-  dup.3
-  movup.5
-  u32overflowing_madd
-
-  dup.4
-  movup.6
-  u32overflowing_madd
-
-  dup.5
-  movup.7
-  u32overflowing_madd
-
-  dup.6
-  movup.8
-  u32overflowing_madd
-
-  dup.7
-  movup.9
-  u32overflowing_madd
-
-  movup.8
-  movup.9
-  u32overflowing_madd
-end
-
-#! Given a 288 -bit number and 256 -bit number on stack ( in order ), this routine
-#! computes a 288 -bit number
-#!
-#! Expected stack state during routine invocation
-#!
-#! [carry, b7, b6, b5, b4, b3, b2, b1, b0, c0, c1, c2, c3, c4, c5, c6, c7]
-#!
-#! While after execution of this routine, stack should look like
-#!
-#! [d0, d1, d2, d3, d4, d5, d6, d7, carry]
-proc.u288_add_u256
-  swapw
-  movupw.2
-
-  u32overflowing_add
-
-  movup.2
-  movup.7
-  u32overflowing_add3
-
-  movup.3
-  movup.6
-  u32overflowing_add3
-
-  movup.4
-  movup.5
-  movupw.2
-
-  movup.2
-  movup.4
-  movup.6
-  u32overflowing_add3
-
-  movup.5
-  movup.5
-  u32overflowing_add3
-
-  movup.3
-  movup.4
-  movupw.2
-
-  movup.2
-  movup.4
-  movup.6
-  u32overflowing_add3
-
-  movup.5
-  movup.5
-  u32overflowing_add3
-
-  movup.10
-  movup.5
-  u32overflowing_add3
-
-  movup.4
-  add
-
-  swap
-  movup.2
-  movup.3
-  movup.4
-  movup.5
-  movup.6
-  movup.7
-  movup.8
-end
-
-#! Given [c0, c1, c2, c3, c4, c5, c6, c7, c8, pc] on stack top,
-#! this function attempts to reduce 288 -bit number to 256 -bit number
-#! along with carry, using montgomery reduction method
-#!
-#! In stack top content c[0..9] i.e. first 9 elements, holding 288 -bit
-#! number. Stack element `pc` ( at stack[9] ) is previous reduction round's
-#! carry ( for first reduction round, it'll be set to 0 ).
-#!
-#! After finishing execution of this function, stack top should look like
-#!
-#! [c0, c1, c2, c3, c4, c5, c6, c7, pc] | pc = next round's carry
-proc.u288_reduce
-  dup
-  push.3525653809
-  u32wrapping_mul 
-  # q at stack top #
-
-  push.0
-  movup.2
-  push.4294966319
-  dup.3
-  exec.mac
-
-  swap
-  drop
-
-  movup.2
-  push.4294967294
-  dup.3
-  exec.mac
-
-  movup.3
-  push.4294967295
-  dup.4
-  exec.mac
-
-  movup.4
-  push.4294967295
-  dup.5
-  exec.mac
-
-  movup.5
-  push.4294967295
-  dup.6
-  exec.mac
-
-  movup.6
-  push.4294967295
-  dup.7
-  exec.mac
-
-  movup.7
-  dup.7
-  push.4294967295
-  exec.mac
-
-  movup.7
-  movup.8
-  swap
-  push.4294967295
-  exec.mac
-
-  movup.9
-  movup.9
-  u32overflowing_add3
-
-  swap
-  movup.2
-  movup.3
-  movup.4
-  movup.5
-  movup.6
-  movup.7
-  movup.8
-end
-
-#! Given two 256 -bit numbers on stack, where each number is represented in
-#! radix-2^32 form ( i.e. each number having eight 32 -bit limbs ), following function
-#! computes modular multiplication of those two operands, computing 256 -bit result.
-#!
-#! Stack expected as below, holding input
-#!
-#! [a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7] | a[0..8], b[0..8] are 256 -bit numbers
-#!
-#! After finishing execution of this function, stack should look like
-#!
-#! [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a 256 -bit number
-#!
-#! Note, for computing modular multiplication of a[0..8] & b[0..8],
-#! school book multiplication equipped with montgomery reduction technique
-#! is used, which is why a[0..8], b[0..8] are expected to be in montgomery form,
-#! while computed c[0..8] will also be in montgomery form.
-export.u256_mod_mul.2
-  loc_storew.0
-  swapw
-  loc_storew.1
-  swapw
-
-  exec.u256xu32
-
-  swap
-  movup.2
-  movup.3
-  movup.4
-  movup.5
-  movup.6
-  movup.7
-  movup.8
-
-  push.0
-  movdn.9
-
-  exec.u288_reduce
-
-  movup.9
-  push.0.0.0.0
-  loc_loadw.1
-  push.0.0.0.0
-  loc_loadw.0
-
-  exec.u256xu32
-  exec.u288_add_u256
-  exec.u288_reduce
-
-  movup.9
-  push.0.0.0.0
-  loc_loadw.1
-  push.0.0.0.0
-  loc_loadw.0
-
-  exec.u256xu32
-  exec.u288_add_u256
-  exec.u288_reduce
-
-  movup.9
-  push.0.0.0.0
-  loc_loadw.1
-  push.0.0.0.0
-  loc_loadw.0
-
-  exec.u256xu32
-  exec.u288_add_u256
-  exec.u288_reduce
-
-  movup.9
-  push.0.0.0.0
-  loc_loadw.1
-  push.0.0.0.0
-  loc_loadw.0
-
-  exec.u256xu32
-  exec.u288_add_u256
-  exec.u288_reduce
-
-  movup.9
-  push.0.0.0.0
-  loc_loadw.1
-  push.0.0.0.0
-  loc_loadw.0
-
-  exec.u256xu32
-  exec.u288_add_u256
-  exec.u288_reduce
-
-  movup.9
-  push.0.0.0.0
-  loc_loadw.1
-  push.0.0.0.0
-  loc_loadw.0
-
-  exec.u256xu32
-  exec.u288_add_u256
-  exec.u288_reduce
-
-  movup.9
-  push.0.0.0.0
-  loc_loadw.1
-  push.0.0.0.0
-  loc_loadw.0
-
-  exec.u256xu32
-  exec.u288_add_u256
-  exec.u288_reduce
-
-  movup.8
-  movup.2
-  dup.1
-  add
-
-  movup.2
-  movup.2
-  push.977
-
-  u32overflowing_madd
-  drop
-end
-
-#! Given two 256 -bit numbers on stack, where each number is represented in
-#! radix-2^32 form ( i.e. each number having eight 32 -bit limbs ), following function
-#! computes modular addition of those two operands, in secp256k1 prime field.
-#!
-#! Stack expected as below, holding input
-#!
-#! [a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7] | a[0..8], b[0..8] are 256 -bit numbers
-#!
-#! After finishing execution of this function, stack should look like
-#!
-#! [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a 256 -bit number
-#!
-#! This implementation takes inspiration from https://gist.github.com/itzmeanjan/d4853347dfdfa853993f5ea059824de6#file-test_montgomery_arithmetic-py-L236-L256
-export.u256_mod_add
-  movupw.2
-
-  push.0
-  movup.5
-  u32overflowing_add3
-
-  movup.2
-  movup.5
-  u32overflowing_add3
-
-  movup.3
-  movup.5
-  u32overflowing_add3
-
-  movup.4
-  movup.5
-  u32overflowing_add3
-
-  movup.5
-  movup.9
-  u32overflowing_add3
-
-  movup.6
-  movup.9
-  u32overflowing_add3
-
-  movup.7
-  movup.9
-  u32overflowing_add3
-
-  movup.8
-  movup.9
-  u32overflowing_add3
-
-  movup.8
-  dup.1
-  push.977
-  u32overflowing_madd
-  drop
-
-  swap
-  movup.8
-  add
-
-  movup.2
-  movup.3
-  movup.4
-  movup.5
-  movup.6
-  movup.7
-  movup.6
-  movup.7
-end
-
-#! Given a secp256k1 field element ( say `a` ) on stack, represented in Montgomery form 
-#! ( i.e. number having eight 32 -bit limbs ), following function negates it to
-#! field element `a'` | a' + a = 0
-#!
-#! Stack expected as below, holding input
-#!
-#! [a0, a1, a2, a3, a4, a5, a6, a7] | a[0..8] is a secp256k1 field element
-#!
-#! After finishing execution of this function, stack should look like
-#!
-#! [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a secp256k1 field element
-#!
-#! See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/field.py#L77-L95
-export.u256_mod_neg
-  push.0
-  swap
-  push.4294966319
-  exec.sbb
-
-  movup.2
-  push.4294967294
-  exec.sbb
-
-  movup.3
-  push.4294967295
-  exec.sbb
-
-  movup.4
-  push.4294967295
-  exec.sbb
-
-  movup.5
-  push.4294967295
-  exec.sbb
-
-  movup.6
-  push.4294967295
-  exec.sbb
-
-  movup.7
-  push.4294967295
-  exec.sbb
-
-  movup.8
-  push.4294967295
-  exec.sbb
-
-  drop
-  
-  swap
-  movup.2
-  movup.3
-  movup.4
-  movup.5
-  movup.6
-  movup.7
-end
-
-#! Given two secp256k1 field elements, say a, b, ( represented in Montgomery form, each number having 
-#! eight 32 -bit limbs ) on stack, following function computes modular subtraction of those 
-#! two operands c = a + (-b) = a - b
-#!
-#! Stack expected as below, holding input
-#!
-#! [a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3, b4, b5, b6, b7] | a[0..8], b[0..8] are secp256k1 field elements
-#!
-#! After finishing execution of this function, stack should look like
-#!
-#! [c0, c1, c2, c3, c4, c5, c6, c7] | c[0..8] is a secp256k1 field element
-#!
-#! See https://github.com/itzmeanjan/secp256k1/blob/ec3652afe8ed72b29b0e39273a876a898316fb9a/field.py#L97-L101
-export.u256_mod_sub
-  movupw.3
-  movupw.3
-
-  exec.u256_mod_neg
-  exec.u256_mod_add
-end
-
-#! Given a 256 -bit number on stack, represented in radix-2^32 
-#! form i.e. eight 32 -bit limbs, this routine computes Montgomery
-#! representation of provided radix-2^32 number.
-#!
-#! - u256 radix-2^32 form input expected on stack as
-#!
-#!  [a0, a1, a2, a3, a4, a5, a6, a7]
-#!
-#! - u256 montgomery form output on stack
-#!
-#! [a0`, a1`, a2`, a3`, a4`, a5`, a6`, a7`]
-#!
-#! See section 2.2 of https://eprint.iacr.org/2017/1057.pdf
-export.to_mont
-  push.0.0.0.0
-  push.0.1.1954.954529 # pushed R2's radix-2^32 form;
-                       # see https://gist.github.com/itzmeanjan/d4853347dfdfa853993f5ea059824de6
-
-  exec.u256_mod_mul
-end
-
-#! Given a 256 -bit number on stack, represented in Montgomery 
-#! form i.e. eight 32 -bit limbs, this routine computes radix-2^32
-#! representation of provided u256 number.
-#!
-#! - u256 montgomery form input on stack expected
-#!
-#!  [a0, a1, a2, a3, a4, a5, a6, a7]
-#!
-#! - u256 radix-2^32 form output on stack as
-#!
-#! [a0`, a1`, a2`, a3`, a4`, a5`, a6`, a7`]
-#!
-#! See section 2.2 of https://eprint.iacr.org/2017/1057.pdf
-export.from_mont
-  push.0.0.0.0
-  push.0.0.0.1 # pushed 1's radix-2^32 form;
-               # see https://gist.github.com/itzmeanjan/d4853347dfdfa853993f5ea059824de6
-
-  exec.u256_mod_mul
-end
+use.std::math::secp256k1_base_field
 
 #! Given a secp256k1 point in projective coordinate system ( i.e. with x, y, z -coordinates
 #! as secp256k1 prime field elements, represented in Montgomery form ), this routine adds 
@@ -567,7 +35,7 @@ end
 #! Stack at end of execution of routine looks like
 #!
 #!   [x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
-export.point_doubling.12
+export.double.12
   dup.3
   push.0.0.0.0
   movup.4
@@ -580,7 +48,7 @@ export.point_doubling.12
   dupw.1
   dupw.1            # repeated y -coordinate
 
-  exec.u256_mod_mul # = t0
+  exec.secp256k1_base_field::mul # = t0
 
   loc_storew.0
   swapw
@@ -590,17 +58,17 @@ export.point_doubling.12
   dupw.1
   dupw.1            # repeated t0
 
-  exec.u256_mod_add # = z3
+  exec.secp256k1_base_field::add # = z3
 
   dupw.1
   dupw.1            # repeated z3
 
-  exec.u256_mod_add # = z3
+  exec.secp256k1_base_field::add # = z3
 
   dupw.1
   dupw.1            # repeated z3
 
-  exec.u256_mod_add # = z3
+  exec.secp256k1_base_field::add # = z3
 
   loc_storew.2
   dropw       
@@ -625,7 +93,7 @@ export.point_doubling.12
   movup.4
   mem_loadw         # y -coordinate on stack top
 
-  exec.u256_mod_mul # = t1
+  exec.secp256k1_base_field::mul # = t1
 
   loc_storew.4
   dropw       
@@ -644,12 +112,12 @@ export.point_doubling.12
   dupw.1
   dupw.1            # repeated z
 
-  exec.u256_mod_mul # = t2
+  exec.secp256k1_base_field::mul # = t2
 
   push.0.0.0.0
   push.0.0.21.20517 # = b3
 
-  exec.u256_mod_mul # = t2
+  exec.secp256k1_base_field::mul # = t2
 
   loc_storew.6
   swapw
@@ -661,7 +129,7 @@ export.point_doubling.12
   push.0.0.0.0
   loc_loadw.2     # = z3
 
-  exec.u256_mod_mul # = x3
+  exec.secp256k1_base_field::mul # = x3
 
   loc_storew.8
   dropw       
@@ -678,7 +146,7 @@ export.point_doubling.12
   push.0.0.0.0
   loc_loadw.0     # = t0
 
-  exec.u256_mod_add # = y3
+  exec.secp256k1_base_field::add # = y3
 
   loc_storew.10
   dropw       
@@ -695,7 +163,7 @@ export.point_doubling.12
   push.0.0.0.0
   loc_loadw.2     # = z3
 
-  exec.u256_mod_mul # = z3
+  exec.secp256k1_base_field::mul # = z3
 
   loc_storew.2
   dropw       
@@ -710,21 +178,21 @@ export.point_doubling.12
   dupw.1
   dupw.1            # repeated t2
 
-  exec.u256_mod_add # = t1
+  exec.secp256k1_base_field::add # = t1
 
   push.0.0.0.0
   loc_loadw.7
   push.0.0.0.0
   loc_loadw.6     # = t2
 
-  exec.u256_mod_add # = t2
+  exec.secp256k1_base_field::add # = t2
 
   push.0.0.0.0
   loc_loadw.1
   push.0.0.0.0
   loc_loadw.0     # = t0
 
-  exec.u256_mod_sub # = t0
+  exec.secp256k1_base_field::sub # = t0
 
   loc_storew.0
   swapw
@@ -736,14 +204,14 @@ export.point_doubling.12
   push.0.0.0.0
   loc_loadw.10    # = y3
 
-  exec.u256_mod_mul # = y3
+  exec.secp256k1_base_field::mul # = y3
 
   push.0.0.0.0
   loc_loadw.9
   push.0.0.0.0
   loc_loadw.8     # = x3
 
-  exec.u256_mod_add # = y3
+  exec.secp256k1_base_field::add # = y3
 
   loc_storew.10
   dropw       
@@ -768,19 +236,19 @@ export.point_doubling.12
   movup.4
   mem_loadw         # x -coordinate on stack top
 
-  exec.u256_mod_mul # = t1
+  exec.secp256k1_base_field::mul # = t1
 
   push.0.0.0.0
   loc_loadw.1
   push.0.0.0.0
   loc_loadw.0     # = t0
 
-  exec.u256_mod_mul # = x3
+  exec.secp256k1_base_field::mul # = x3
 
   dupw.1
   dupw.1            # repeated x3
 
-  exec.u256_mod_add # = x3
+  exec.secp256k1_base_field::add # = x3
 
   loc_storew.8
   dropw       
@@ -865,7 +333,7 @@ end
 #! Stack at end of execution of routine looks like
 #!
 #!   [x3_addr[0..4], x3_addr[4..8], y3_addr[0..4], y3_addr[4..8], z3_addr[0..4], z3_addr[4..8]]
-export.point_addition.16
+export.add.16
   dup.6
   dup.8
 
@@ -888,7 +356,7 @@ export.point_addition.16
   movup.4
   mem_loadw # x1 on stack top
 
-  exec.u256_mod_mul # = t0
+  exec.secp256k1_base_field::mul # = t0
 
   loc_storew.0
   dropw       
@@ -917,7 +385,7 @@ export.point_addition.16
   movup.4
   mem_loadw # y1 on stack top
 
-  exec.u256_mod_mul # = t1
+  exec.secp256k1_base_field::mul # = t1
 
   loc_storew.2
   dropw       
@@ -946,7 +414,7 @@ export.point_addition.16
   movup.4
   mem_loadw # z1 on stack top
 
-  exec.u256_mod_mul # = t2
+  exec.secp256k1_base_field::mul # = t2
 
   loc_storew.4
   dropw       
@@ -975,7 +443,7 @@ export.point_addition.16
   movup.4
   mem_loadw # x1 on stack top
 
-  exec.u256_mod_add # = t3
+  exec.secp256k1_base_field::add # = t3
 
   loc_storew.6
   dropw       
@@ -1005,14 +473,14 @@ export.point_addition.16
   movup.4
   mem_loadw # x2 on stack top
   
-  exec.u256_mod_add # = t4
+  exec.secp256k1_base_field::add # = t4
 
   push.0.0.0.0
   loc_loadw.7
   push.0.0.0.0
   loc_loadw.6 # t3 loaded back
 
-  exec.u256_mod_mul # = t3
+  exec.secp256k1_base_field::mul # = t3
 
   loc_storew.6
   dropw       
@@ -1029,14 +497,14 @@ export.point_addition.16
   push.0.0.0.0
   loc_loadw.0 # t0 loaded back
 
-  exec.u256_mod_add # = t4
+  exec.secp256k1_base_field::add # = t4
 
   push.0.0.0.0
   loc_loadw.7
   push.0.0.0.0
   loc_loadw.6 # t3 loaded back
 
-  exec.u256_mod_sub # = t3
+  exec.secp256k1_base_field::sub # = t3
 
   loc_storew.6
   dropw       
@@ -1065,7 +533,7 @@ export.point_addition.16
   movup.4
   mem_loadw # z1 on stack top
 
-  exec.u256_mod_add # = t4
+  exec.secp256k1_base_field::add # = t4
 
   loc_storew.8
   dropw       
@@ -1097,14 +565,14 @@ export.point_addition.16
   movup.4
   mem_loadw # z2 on stack top
 
-  exec.u256_mod_add # = x3
+  exec.secp256k1_base_field::add # = x3
 
   push.0.0.0.0
   loc_loadw.9
   push.0.0.0.0
   loc_loadw.8 # t4 loaded back
 
-  exec.u256_mod_mul # = t4
+  exec.secp256k1_base_field::mul # = t4
 
   loc_storew.8
   dropw       
@@ -1121,14 +589,14 @@ export.point_addition.16
   push.0.0.0.0
   loc_loadw.2 # t1 loaded back
 
-  exec.u256_mod_add # = x3
+  exec.secp256k1_base_field::add # = x3
 
   push.0.0.0.0
   loc_loadw.9
   push.0.0.0.0
   loc_loadw.8 # t4 loaded back
 
-  exec.u256_mod_sub # = t4
+  exec.secp256k1_base_field::sub # = t4
 
   loc_storew.8
   dropw       
@@ -1157,7 +625,7 @@ export.point_addition.16
   movup.4
   mem_loadw # x1 on stack top
 
-  exec.u256_mod_add # = x3
+  exec.secp256k1_base_field::add # = x3
 
   loc_storew.10
   dropw       
@@ -1187,14 +655,14 @@ export.point_addition.16
   movup.4
   mem_loadw # x2 on stack top
 
-  exec.u256_mod_add # = y3
+  exec.secp256k1_base_field::add # = y3
 
   push.0.0.0.0
   loc_loadw.11
   push.0.0.0.0
   loc_loadw.10 # x3 loaded back
 
-  exec.u256_mod_mul # = x3
+  exec.secp256k1_base_field::mul # = x3
 
   loc_storew.10
   dropw       
@@ -1211,14 +679,14 @@ export.point_addition.16
   push.0.0.0.0
   loc_loadw.0 # t0 loaded back
 
-  exec.u256_mod_add # = y3
+  exec.secp256k1_base_field::add # = y3
 
   push.0.0.0.0
   loc_loadw.11
   push.0.0.0.0
   loc_loadw.10 # x3 loaded back
 
-  exec.u256_mod_sub # = y3
+  exec.secp256k1_base_field::sub # = y3
 
   loc_storew.12
   dropw       
@@ -1233,7 +701,7 @@ export.point_addition.16
   dupw.1
   dupw.1
 
-  exec.u256_mod_add # = x3
+  exec.secp256k1_base_field::add # = x3
 
   loc_storew.10
   swapw
@@ -1245,7 +713,7 @@ export.point_addition.16
   push.0.0.0.0
   loc_loadw.0 # t0 loaded back
 
-  exec.u256_mod_add # = t0
+  exec.secp256k1_base_field::add # = t0
 
   loc_storew.0
   dropw       
@@ -1260,7 +728,7 @@ export.point_addition.16
   push.0.0.0.0
   loc_loadw.4 # t2 loaded back
 
-  exec.u256_mod_mul # = t2
+  exec.secp256k1_base_field::mul # = t2
 
   loc_storew.4
   swapw
@@ -1272,7 +740,7 @@ export.point_addition.16
   push.0.0.0.0
   loc_loadw.2 # t1 loaded back
 
-  exec.u256_mod_add # = z3
+  exec.secp256k1_base_field::add # = z3
 
   loc_storew.14
   dropw       
@@ -1289,7 +757,7 @@ export.point_addition.16
   push.0.0.0.0
   loc_loadw.2 # t1 loaded back
 
-  exec.u256_mod_sub # = t1
+  exec.secp256k1_base_field::sub # = t1
 
   loc_storew.2
   dropw       
@@ -1304,7 +772,7 @@ export.point_addition.16
   push.0.0.0.0
   loc_loadw.12 # y3 loaded back
 
-  exec.u256_mod_mul # = y3
+  exec.secp256k1_base_field::mul # = y3
 
   loc_storew.12
   swapw
@@ -1316,7 +784,7 @@ export.point_addition.16
   push.0.0.0.0
   loc_loadw.8 # t4 loaded back
 
-  exec.u256_mod_mul # = x3
+  exec.secp256k1_base_field::mul # = x3
 
   loc_storew.10
   dropw       
@@ -1333,15 +801,15 @@ export.point_addition.16
   push.0.0.0.0
   loc_loadw.6 # t3 loaded back
 
-  exec.u256_mod_mul # = t2
+  exec.secp256k1_base_field::mul # = t2
 
   push.0.0.0.0
   loc_loadw.11
   push.0.0.0.0
   loc_loadw.10 # x3 loaded back
 
-  exec.u256_mod_neg
-  exec.u256_mod_add # = x3
+  exec.secp256k1_base_field::neg
+  exec.secp256k1_base_field::add # = x3
 
   loc_storew.10
   dropw       
@@ -1358,7 +826,7 @@ export.point_addition.16
   push.0.0.0.0
   loc_loadw.12 # y3 loaded back
 
-  exec.u256_mod_mul # = y3
+  exec.secp256k1_base_field::mul # = y3
 
   loc_storew.12
   dropw       
@@ -1375,14 +843,14 @@ export.point_addition.16
   push.0.0.0.0
   loc_loadw.2 # t1 loaded back
 
-  exec.u256_mod_mul # = t1
+  exec.secp256k1_base_field::mul # = t1
 
   push.0.0.0.0
   loc_loadw.13
   push.0.0.0.0
   loc_loadw.12 # y3 loaded back
 
-  exec.u256_mod_add # = y3
+  exec.secp256k1_base_field::add # = y3
 
   loc_storew.12
   dropw       
@@ -1399,7 +867,7 @@ export.point_addition.16
   push.0.0.0.0
   loc_loadw.0 # t0 loaded back
 
-  exec.u256_mod_mul # = t0
+  exec.secp256k1_base_field::mul # = t0
 
   loc_storew.0
   dropw       
@@ -1416,14 +884,14 @@ export.point_addition.16
   push.0.0.0.0
   loc_loadw.14 # z3 loaded back
 
-  exec.u256_mod_mul # = z3
+  exec.secp256k1_base_field::mul # = z3
 
   push.0.0.0.0
   loc_loadw.1
   push.0.0.0.0
   loc_loadw.0 # t0 loaded back
 
-  exec.u256_mod_add # = z3
+  exec.secp256k1_base_field::add # = z3
 
   loc_storew.14
   dropw       
@@ -1509,7 +977,7 @@ end
 #!
 #! If base point being multiplied is secp256k1 curve generator point, one should use `gen_point` routine,
 #! which is almost 2x faster !
-export.point_mul.18
+export.mul.18
   # initialize `base`
   push.0.0.0.0
 
@@ -1588,7 +1056,7 @@ export.point_mul.18
         locaddr.1
         locaddr.0
 
-        exec.point_addition
+        exec.add
 
         # write res back
         push.0.0.0.0
@@ -1636,7 +1104,7 @@ export.point_mul.18
       locaddr.1
       locaddr.0
 
-      exec.point_doubling
+      exec.double
 
       # write base back
       push.0.0.0.0
@@ -3862,7 +3330,7 @@ export.gen_mul.20
           locaddr.1
           locaddr.0
 
-          exec.point_addition
+          exec.add
 
           drop
           drop
