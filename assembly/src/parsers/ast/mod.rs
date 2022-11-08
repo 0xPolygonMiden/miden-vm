@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use super::{AssemblyError, Token, TokenStream, Vec};
 use crate::{errors::SerializationError, MODULE_PATH_DELIM};
 use serde::{ByteReader, ByteWriter, Deserializable, Serializable};
@@ -23,16 +22,20 @@ pub mod tests;
 // ================================================================================================
 type LocalProcMap = BTreeMap<String, (u16, ProcedureAst)>;
 
-/// Represents a parsed program AST.
-/// This AST can then be furthur processed to generate MAST.
-/// A program has to have a body and no exported procedures.
+// ABSTRACT SYNTAX TREE STRUCTS
+// ================================================================================================
+
+/// An abstract syntax tree (AST) of a Miden program.
+///
+/// A program AST consists of a list of internal procedure ASTs and a list of body nodes.
 #[derive(Debug, Eq, PartialEq)]
 pub struct ProgramAst {
     pub imports: Vec<String>,
-    pub procedures: LocalProcMap,
+    pub local_procs: Vec<ProcedureAst>,
     pub body: Vec<Node>,
 }
 
+#[cfg(test)]
 impl ProgramAst {
     /// Returns byte representation of the `ProgramAst`.
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -46,12 +49,12 @@ impl ProgramAst {
                 .expect("String serialization failure");
         }
 
-        // procedures
-        byte_writer.write_u16(self.procedures.len() as u16);
+        // local procedures
+        byte_writer.write_u16(self.local_procs.len() as u16);
 
-        for (_, proc) in sort_procs_by_index(&self.procedures) {
-            proc.write_into(&mut byte_writer);
-        }
+        self.local_procs
+            .iter()
+            .for_each(|proc| proc.write_into(&mut byte_writer));
 
         // body
         self.body.write_into(&mut byte_writer);
@@ -70,31 +73,29 @@ impl ProgramAst {
             imports.push(import);
         }
 
-        let mut procedures = LocalProcMap::new();
+        let num_local_procs = byte_reader.read_u16()?;
 
-        let num_procedures = byte_reader.read_u16()?;
-        for i in 0..num_procedures {
-            let proc_ast = ProcedureAst::read_from(&mut byte_reader)?;
-
-            procedures.insert(proc_ast.name.clone(), (i, proc_ast));
-        }
+        let local_procs = (0..num_local_procs)
+            .map(|_| ProcedureAst::read_from(&mut byte_reader))
+            .collect::<Result<_, _>>()?;
 
         let body = Deserializable::read_from(&mut byte_reader)?;
 
         Ok(ProgramAst {
             imports,
-            procedures,
+            local_procs,
             body,
         })
     }
 }
 
-/// Represents a parsed module AST.
-/// A module can only have exported and local procedures, but no body.
+/// An abstract syntax tree (AST) of a Miden code module.
+///
+/// A module AST consists of a list of procedure ASTs. These procedures could be local or exported.
 #[derive(Debug, Eq, PartialEq)]
 pub struct ModuleAst {
     pub imports: Vec<String>,
-    pub procedures: LocalProcMap
+    pub local_procs: Vec<ProcedureAst>,
 }
 
 impl ModuleAst {
@@ -110,18 +111,20 @@ impl ModuleAst {
                 .expect("String serialization failure");
         }
 
-        // procedures
-        byte_writer.write_u16(self.procedures.len() as u16);
+        // local procedures
+        byte_writer.write_u16(self.local_procs.len() as u16);
 
-        for (_, proc) in sort_procs_by_index(&self.procedures) {
-            proc.write_into(&mut byte_writer);
-        }
+        self.local_procs
+            .iter()
+            .for_each(|proc| proc.write_into(&mut byte_writer));
 
         byte_writer.into_bytes()
     }
 
     /// Returns a `ModuleAst` struct by its byte representation.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, SerializationError> {
+        let mut byte_reader = ByteReader::new(bytes);
+
         let mut imports = Vec::<String>::new();
         let num_imports = byte_reader.read_u16()?;
         for _ in 0..num_imports {
@@ -129,26 +132,21 @@ impl ModuleAst {
             imports.push(import);
         }
 
-        let mut byte_reader = ByteReader::new(bytes);
+        let local_procs_len = byte_reader.read_u16()?;
 
-        let mut procedures = LocalProcMap::new();
+        let local_procs = (0..local_procs_len)
+            .map(|_| ProcedureAst::read_from(&mut byte_reader))
+            .collect::<Result<_, _>>()?;
 
-        let procedures_len = byte_reader.read_u16()?;
-
-        for i in 0..procedures_len {
-            let proc_ast = ProcedureAst::read_from(&mut byte_reader)?;
-
-            procedures.insert(proc_ast.name.clone(), (i, proc_ast));
-        }
-
-        Ok(ModuleAst {
-            imports,
-            procedures,
-        })
+        Ok(ModuleAst { imports, local_procs })
     }
 }
 
-/// Procedure holds information about a defnied procedure in a Miden program.
+/// An abstract syntax tree of a Miden procedure.
+///
+/// A procedure AST consists of a list of body nodes and additional metadata about the procedure
+/// (e.g., procedure name, number of memory locals used by the procedure, and whether a procedure
+/// is exported or internal).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ProcedureAst {
     pub name: String,
@@ -188,8 +186,9 @@ impl Deserializable for ProcedureAst {
 // PARSERS
 // ================================================================================================
 
-/// Parses the provided source into a AST Program. This Program holds information
-/// that can be directly translated into MAST. A Program cannot have any exported procedures.
+/// Parses the provided source into a program AST. A program consist of a body and a set of
+/// internal (i.e., not exported) procedures.
+#[cfg(test)]
 pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
     let mut tokens = TokenStream::new(source)?;
     let imports = parse_imports(&mut tokens)?;
@@ -260,17 +259,15 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
 
     let imports = imports.into_iter().map(|(_, name)| name).collect();
 
-    let program = ProgramAst {
-        imports,
-        body,
-        procedures: context.local_procs,
-    };
+    let local_procs = sort_procs_into_vec(context.local_procs);
+
+    let program = ProgramAst { imports, body, local_procs };
 
     Ok(program)
 }
 
-/// Parses the provided source into a AST Module. This AST Module holds information
-/// that can be directly translated into MAST. A Module cannot contain any body.
+/// Parses the provided source into a module ST. A module consists of internal and exported
+/// procedures but does not contain a body.
 pub fn parse_module(source: &str) -> Result<ModuleAst, AssemblyError> {
     let mut tokens = TokenStream::new(source)?;
 
@@ -290,13 +287,14 @@ pub fn parse_module(source: &str) -> Result<ModuleAst, AssemblyError> {
 
     let module = ModuleAst {
         imports,
-        procedures: context.local_procs,
+        local_procs: sort_procs_into_vec(context.local_procs),
     };
 
     Ok(module)
 }
 
-/// Parses the token streams into AST nodes
+/// Parses all `use` statements into a map of imports which maps a module name (e.g., "u64") to
+/// its fully-qualified path (e.g., "std::math::u64").
 fn parse_imports(tokens: &mut TokenStream) -> Result<BTreeMap<String, String>, AssemblyError> {
     let mut imports = BTreeMap::<String, String>::new();
     // read tokens from the token stream until all `use` tokens are consumed
@@ -321,8 +319,8 @@ fn parse_imports(tokens: &mut TokenStream) -> Result<BTreeMap<String, String>, A
     Ok(imports)
 }
 
-// UTILITY FUNCTIONS
-// ==================================================================================
+// HELPER FUNCTIONS
+// ================================================================================================
 
 /// Parses a param from the op token with the specified type.
 fn parse_param<I: core::str::FromStr>(op: &Token, param_idx: usize) -> Result<I, AssemblyError> {
@@ -336,17 +334,10 @@ fn parse_param<I: core::str::FromStr>(op: &Token, param_idx: usize) -> Result<I,
     Ok(result)
 }
 
-// HELPER FUNCTIONS
-// ================================================================================================
+/// Sort a map of procedures into a vec, respecting the order set in the map
+fn sort_procs_into_vec(proc_map: LocalProcMap) -> Vec<ProcedureAst> {
+    let mut procedures: Vec<_> = proc_map.into_values().collect();
+    procedures.sort_by_key(|(idx, _proc)| *idx);
 
-/// Sorts `ProcMap` by procedure index (`0`th value element) and returns sorted map as
-/// `BTreeMap<index, procedure>`
-fn sort_procs_by_index(proc_map: &LocalProcMap) -> BTreeMap<u16, ProcedureAst> {
-    let mut result = BTreeMap::new();
-
-    for (_, value) in proc_map.iter() {
-        result.insert(value.0, value.1.clone());
-    }
-
-    result
+    procedures.into_iter().map(|(_idx, proc)| proc).collect()
 }

@@ -125,10 +125,15 @@ fn test_ast_parsing_module() {
     );
     parse_program(source).expect_err("Program should contain body and no export");
     let module = parse_module(source).unwrap();
-    assert_eq!(module.procedures.len(), procedures.len());
-    for (name, proc) in module.procedures {
-        assert!(procedures.contains_key(&name));
-        assert_eq!(procedures.get(&name).unwrap(), &proc);
+    assert_eq!(module.local_procs.len(), procedures.len());
+    for (i, proc) in module.local_procs.iter().enumerate() {
+        assert_eq!(
+            procedures
+                .values()
+                .find_map(|(idx, proc)| (*idx == i as u16).then_some(proc))
+                .unwrap(),
+            proc
+        );
     }
 }
 
@@ -202,10 +207,15 @@ fn test_ast_parsing_module_nested_if() {
     );
     parse_program(source).expect_err("Program should contain body and no export");
     let module = parse_module(source).unwrap();
-    assert_eq!(module.procedures.len(), procedures.len());
-    for (name, proc) in module.procedures {
-        assert!(procedures.contains_key(&name));
-        assert_eq!(procedures.get(&name).unwrap(), &proc);
+    assert_eq!(module.local_procs.len(), procedures.len());
+    for (i, proc) in module.local_procs.iter().enumerate() {
+        assert_eq!(
+            procedures
+                .values()
+                .find_map(|(idx, proc)| (*idx == i as u16).then_some(proc))
+                .unwrap(),
+            proc
+        );
     }
 }
 
@@ -265,10 +275,15 @@ fn test_ast_parsing_module_sequential_if() {
     );
     parse_program(source).expect_err("Program should contain body and no export");
     let module = parse_module(source).unwrap();
-    assert_eq!(module.procedures.len(), procedures.len());
-    for (name, proc) in module.procedures {
-        assert!(procedures.contains_key(&name));
-        assert_eq!(procedures.get(&name).unwrap(), &proc);
+    assert_eq!(module.local_procs.len(), procedures.len());
+    for (i, proc) in module.local_procs.iter().enumerate() {
+        assert_eq!(
+            procedures
+                .values()
+                .find_map(|(idx, proc)| (*idx == i as u16).then_some(proc))
+                .unwrap(),
+            proc
+        );
     }
 }
 
@@ -361,9 +376,14 @@ fn test_ast_program_serde_control_flow() {
 fn assert_program_output(source: &str, procedures: LocalProcMap, body: Vec<Node>) {
     let program = parse_program(source).unwrap();
     assert_eq!(program.body, body);
-    assert_eq!(program.procedures.len(), procedures.len());
-    for (name, proc) in program.procedures {
-        assert!(procedures.contains_key(&name));
-        assert_eq!(procedures.get(&name).unwrap(), &proc);
+    assert_eq!(program.local_procs.len(), procedures.len());
+    for (i, proc) in program.local_procs.iter().enumerate() {
+        assert_eq!(
+            procedures
+                .values()
+                .find_map(|(idx, proc)| (*idx == i as u16).then_some(proc))
+                .unwrap(),
+            proc
+        );
     }
 }

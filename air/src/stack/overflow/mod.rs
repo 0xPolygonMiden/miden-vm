@@ -75,7 +75,8 @@ pub fn enforce_stack_depth_constraints<E: FieldElement>(
 ) -> usize {
     let depth = frame.stack_depth();
     let depth_next = frame.stack_depth_next();
-    let no_shift_part = (depth_next - depth) * (E::ONE - op_flag.call() - frame.is_call_end());
+    let no_shift_part =
+        (depth_next - depth) * (E::ONE - op_flag.call() - (op_flag.end() * frame.is_call_end()));
     let left_shift_part = op_flag.left_shift() * op_flag.overflow();
     let right_shift_part = op_flag.right_shift();
     let call_part = op_flag.call() * (depth_next - E::from(16u32));
