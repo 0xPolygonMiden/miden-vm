@@ -251,7 +251,7 @@ impl System {
 
         // complete the is_syscall column by filling all values after the last clock cycle with
         // ZEROs as we must end the program in the root context which is not a SYSCALL
-        debug_assert_eq!(false, self.in_syscall);
+        debug_assert!(!self.in_syscall);
         self.in_syscall_trace.resize(trace_len, ZERO);
 
         let mut trace = vec![
