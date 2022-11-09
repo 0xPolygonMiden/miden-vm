@@ -124,7 +124,7 @@ fn b_aux_trace_mem() {
     expected *= build_expected_memory_from_trace(&trace, &rand_elements, 12);
     assert_eq!(expected, b_aux[13]);
 
-    // At cycle 13, `MStream1 is requested by the stack, and the second read of `MStream` is
+    // At cycle 13, `MStream` is requested by the stack, and the second read of `MStream` is
     // provided by the memory.
     let value1 = build_expected_memory(
         &rand_elements,

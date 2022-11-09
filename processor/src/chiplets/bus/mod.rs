@@ -158,7 +158,7 @@ impl ChipletsBus {
     // --------------------------------------------------------------------------------------------
 
     /// Sends the specified memory access requests. There must be exactly one or two requests. The
-    /// requests are made the specified `cycle` and are expected to originate from operation
+    /// requests are made at the specified `cycle` and are expected to originate from operation
     /// executors.
     pub fn request_memory_operation(&mut self, lookups: &[MemoryLookup], cycle: u32) {
         self.request_lookup(cycle);
