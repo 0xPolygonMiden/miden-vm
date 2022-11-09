@@ -25,6 +25,9 @@ pub enum Operation {
     /// Pops an element off the stack and adds it to the current value of `fmp` register.
     FmpUpdate,
 
+    /// Pushes the current depth of the stack onto the stack.
+    SDepth,
+
     /// Overwrites the top four stack items with the hash of a function which initiated the current
     /// SYSCALL. Thus, this operation can be executed only inside a SYSCALL code block.
     Caller,
@@ -302,7 +305,7 @@ pub enum Operation {
     /// Removes the next element from the advice tape and pushes it onto the stack.
     Read,
 
-    /// Removes a a word (4 elements) from the advice tape and overwrites the top four stack
+    /// Removes a word (4 elements) from the advice tape and overwrites the top four stack
     /// elements with it.
     ReadW,
 
@@ -323,8 +326,16 @@ pub enum Operation {
     /// memory address. The remaining 3 elements of the word are not affected.
     MStore,
 
-    /// Pushes the current depth of the stack onto the stack.
-    SDepth,
+    /// Loads two words from memory and adds their contents to the top 8 elements of the stack.
+    ///
+    /// The operation works as follows:
+    /// - The memory address of the first word is retrieved from 13th stack element (position 12).
+    /// - Two consecutive words, starting at this address, are loaded from memory.
+    /// - Elements of these words are added to the top 8 elements of the stack (element-wise, in
+    ///   stack order).
+    /// - Memory address (in position 12) is incremented by 2.
+    /// - All other stack elements remain the same.
+    MStream,
 
     // ----- cryptographic operations -------------------------------------------------------------
     /// Applies Rescue Prime permutation to the top 12 elements of the stack. The rate part of the
@@ -467,7 +478,7 @@ impl Operation {
             Self::RpPerm    => 0b0101_0000,
             Self::MpVerify  => 0b0101_0010,
             // <empty>      => 0b0101_0100
-            // <empty>      => 0b0101_0110
+            Self::MStream   => 0b0101_0110,
             Self::Span      => 0b0101_1000,
             Self::Join      => 0b0101_1010,
             Self::Split     => 0b0101_1100,
@@ -520,6 +531,7 @@ impl fmt::Display for Operation {
             Self::FmpAdd => write!(f, "fmpadd"),
             Self::FmpUpdate => write!(f, "fmpupdate"),
 
+            Self::SDepth => write!(f, "sdepth"),
             Self::Caller => write!(f, "caller"),
 
             // ----- flow control operations ------------------------------------------------------
@@ -617,7 +629,7 @@ impl fmt::Display for Operation {
             Self::MLoad => write!(f, "mload"),
             Self::MStore => write!(f, "mstore"),
 
-            Self::SDepth => write!(f, "sdepth"),
+            Self::MStream => write!(f, "mstream"),
 
             // ----- cryptographic operations -----------------------------------------------------
             Self::RpPerm => write!(f, "rpperm"),

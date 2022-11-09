@@ -36,6 +36,7 @@ fn b_aux_trace_mem() {
         Operation::Push(ONE), // push a new address on to the stack
         Operation::MStore,    // store 1 at address 1
         Operation::Drop,      // ensure the stack overflow table is empty
+        Operation::MStream,   // read 2 words starting at address 0
     ];
     let mut trace = build_trace_from_ops(operations, &stack);
 
@@ -52,14 +53,7 @@ fn b_aux_trace_mem() {
 
     // The first memory request from the stack is sent when the `MStoreW` operation is executed, at
     // cycle 1, so the request is included in the next row. (The trace begins by executing `span`).
-    let value = build_expected_memory(
-        &rand_elements,
-        MEMORY_WRITE_LABEL,
-        ZERO,
-        ZERO,
-        Felt::ONE,
-        word,
-    );
+    let value = build_expected_memory(&rand_elements, MEMORY_WRITE_LABEL, ZERO, ZERO, ONE, word);
     let mut expected = value.inv();
     assert_eq!(expected, b_aux[2]);
 
@@ -88,8 +82,8 @@ fn b_aux_trace_mem() {
     expected = b_aux[8];
 
     // Memory responses will be provided during the memory segment of the Chiplets trace,
-    // which starts after the hash for the span block at row 8. There will be 4 rows, corresponding
-    // to the four Memory operations.
+    // which starts after the hash for the span block at row 8. There will be 6 rows, corresponding
+    // to the 5 memory operations (MStream requires 2 rows).
 
     // At cycle 8 `MLoadW` is requested by the stack and `MStoreW` is provided by memory
     let value = build_expected_memory(
@@ -112,7 +106,8 @@ fn b_aux_trace_mem() {
     expected *= build_expected_memory_from_trace(&trace, &rand_elements, 10);
     assert_eq!(expected, b_aux[11]);
 
-    // At cycle 11, `MStore` is requested by the stack and provided by memory.
+    // At cycle 11, `MStore` is requested by the stack and the first read of `MStream` is provided
+    // by the memory.
     let value = build_expected_memory(
         &rand_elements,
         MEMORY_WRITE_LABEL,
@@ -125,17 +120,40 @@ fn b_aux_trace_mem() {
     expected *= build_expected_memory_from_trace(&trace, &rand_elements, 11);
     assert_eq!(expected, b_aux[12]);
 
-    // Nothing changes during user operations that don't make requests to the Chiplets.
+    // At cycle 12, `MStore` is provided by the memory
+    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 12);
     assert_eq!(expected, b_aux[13]);
 
-    // At cycle 13 the decoder requests the span hash. We set this as the inverse of the previously
-    // identified `span_result`, since this test is for consistency of the memory lookups.
-    assert_ne!(expected, b_aux[14]);
-    expected *= span_result.inv();
+    // At cycle 13, `MStream1 is requested by the stack, and the second read of `MStream` is
+    // provided by the memory.
+    let value1 = build_expected_memory(
+        &rand_elements,
+        MEMORY_READ_LABEL,
+        ZERO,
+        ZERO,
+        Felt::new(13),
+        word,
+    );
+    let value2 = build_expected_memory(
+        &rand_elements,
+        MEMORY_READ_LABEL,
+        ZERO,
+        ONE,
+        Felt::new(13),
+        [ONE, ZERO, ZERO, ZERO],
+    );
+    expected *= (value1 * value2).inv();
+    expected *= build_expected_memory_from_trace(&trace, &rand_elements, 13);
     assert_eq!(expected, b_aux[14]);
 
+    // At cycle 14 the decoder requests the span hash. We set this as the inverse of the previously
+    // identified `span_result`, since this test is for consistency of the memory lookups.
+    assert_ne!(expected, b_aux[15]);
+    expected *= span_result.inv();
+    assert_eq!(expected, b_aux[15]);
+
     // The value in b_aux should be ONE now and for the rest of the trace.
-    for row in 14..trace.length() - NUM_RAND_ROWS {
+    for row in 15..trace.length() - NUM_RAND_ROWS {
         assert_eq!(ONE, b_aux[row]);
     }
 }

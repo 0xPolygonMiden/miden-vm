@@ -30,6 +30,7 @@ impl Process {
             Operation::FmpAdd => self.op_fmpadd()?,
             Operation::FmpUpdate => self.op_fmpupdate()?,
 
+            Operation::SDepth => self.op_sdepth()?,
             Operation::Caller => self.op_caller()?,
 
             // ----- flow control operations ------------------------------------------------------
@@ -128,7 +129,7 @@ impl Process {
             Operation::MLoad => self.op_mload()?,
             Operation::MStore => self.op_mstore()?,
 
-            Operation::SDepth => self.op_sdepth()?,
+            Operation::MStream => self.op_mstream()?,
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::RpPerm => self.op_rpperm()?,

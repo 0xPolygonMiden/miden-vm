@@ -328,10 +328,34 @@ impl Chiplets {
         let value = self.memory.read(ctx, addr, self.clk);
 
         // send the memory read request to the bus
-        let memory_lookup = MemoryLookup::from_ints(MEMORY_READ_LABEL, ctx, addr, self.clk, value);
-        self.bus.request_memory_operation(memory_lookup, self.clk);
+        let lookup = MemoryLookup::from_ints(MEMORY_READ_LABEL, ctx, addr, self.clk, value);
+        self.bus.request_memory_operation(&[lookup], self.clk);
 
         value
+    }
+
+    /// Returns two words read from consecutive addresses started with `addr` in the specified
+    /// context while recording memory accesses in the memory trace.
+    ///
+    /// If either of the accessed addresses hasn't been previously written to, ZERO elements are
+    /// returned. This effectively implies that memory is initialized to ZERO.
+    pub fn read_mem_double(&mut self, ctx: u32, addr: Felt) -> [Word; 2] {
+        // read two words from memory: from addr and from addr + 1
+        let addr2 = addr + ONE;
+        let words = [
+            self.memory.read(ctx, addr, self.clk),
+            self.memory.read(ctx, addr2, self.clk),
+        ];
+
+        // create lookups for both memory reads
+        let lookups = [
+            MemoryLookup::from_ints(MEMORY_READ_LABEL, ctx, addr, self.clk, words[0]),
+            MemoryLookup::from_ints(MEMORY_READ_LABEL, ctx, addr2, self.clk, words[1]),
+        ];
+
+        // send lookups to the bus and return the result
+        self.bus.request_memory_operation(&lookups, self.clk);
+        words
     }
 
     /// Writes the provided word at the specified context/address.
@@ -341,8 +365,8 @@ impl Chiplets {
         self.memory.write(ctx, addr, self.clk, word);
 
         // send the memory write request to the bus
-        let memory_lookup = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ctx, addr, self.clk, word);
-        self.bus.request_memory_operation(memory_lookup, self.clk);
+        let lookup = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ctx, addr, self.clk, word);
+        self.bus.request_memory_operation(&[lookup], self.clk);
     }
 
     /// Writes the provided element into the specified context/address leaving the remaining 3
@@ -356,9 +380,8 @@ impl Chiplets {
         self.memory.write(ctx, addr, self.clk, new_word);
 
         // send the memory write request to the bus
-        let memory_lookup =
-            MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ctx, addr, self.clk, new_word);
-        self.bus.request_memory_operation(memory_lookup, self.clk);
+        let lookup = MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ctx, addr, self.clk, new_word);
+        self.bus.request_memory_operation(&[lookup], self.clk);
 
         old_word
     }
