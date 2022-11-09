@@ -131,6 +131,7 @@ impl ScalarField {
     }
 
     /// Raises scalar field element to N -th power | N  = exp i.e. represented in radix-2^32 form
+    #[allow(dead_code)]
     fn pow(self, exp: Self) -> Self {
         let mut res = ScalarField::one();
 
@@ -152,6 +153,7 @@ impl ScalarField {
     /// Note, if a = 0, then a' = 0.
     ///
     /// See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field.py#L111-L129
+    #[allow(dead_code)]
     fn inv(self) -> Self {
         let exp = ScalarField {
             limbs: [
@@ -295,4 +297,46 @@ fn test_mul() {
     for i in 0..8 {
         assert_eq!(Felt::new(elm2.limbs[i] as u64), strace[i]);
     }
+}
+
+#[test]
+fn test_inv() {
+    let source = "
+    use.std::math::secp256k1_scalar_field
+
+    begin
+        dupw.1
+        dupw.1
+
+        exec.secp256k1_scalar_field::inv
+        exec.secp256k1_scalar_field::mul
+
+        push.801750719
+        assert_eq
+        push.1076732275
+        assert_eq
+        push.1354194884
+        assert_eq
+        push.1162945305
+        assert_eq
+        push.1
+        assert_eq
+        push.0
+        assert_eq
+        push.0
+        assert_eq
+        push.0
+        assert_eq
+    end";
+
+    let mut stack = [0u64; 16];
+
+    for i in 0..8 {
+        let a = 1u32 + rand_utils::rand_value::<u32>();
+        stack[i] = a as u64;
+    }
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    test.execute().unwrap();
 }
