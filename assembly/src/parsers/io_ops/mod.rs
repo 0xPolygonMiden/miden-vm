@@ -5,7 +5,7 @@ use super::{
 pub use adv_ops::{parse_adv_loadw, parse_adv_push};
 pub use constant_ops::parse_push;
 pub use env_ops::{parse_caller, parse_locaddr, parse_sdepth};
-pub use mem_ops::{parse_mem_read, parse_mem_write};
+pub use mem_ops::{parse_mem_read, parse_mem_stream, parse_mem_write};
 use vm_core::{AdviceInjector, Decorator, DecoratorList};
 
 mod adv_ops;

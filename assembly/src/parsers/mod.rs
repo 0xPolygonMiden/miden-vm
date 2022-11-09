@@ -182,6 +182,8 @@ fn parse_op_token(
         "mem_storew" => io_ops::parse_mem_write(span_ops, op, num_proc_locals, false, false),
         "loc_storew" => io_ops::parse_mem_write(span_ops, op, num_proc_locals, true, false),
 
+        "mem_stream" => io_ops::parse_mem_stream(span_ops, op),
+
         "adv_push" => io_ops::parse_adv_push(span_ops, op),
         "adv_loadw" => io_ops::parse_adv_loadw(span_ops, op),
 
