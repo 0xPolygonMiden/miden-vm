@@ -399,12 +399,18 @@ impl Serializable for Instruction {
             Self::CDropW => target.write_opcode(OpCode::CDropW),
 
             // ----- input / output operations --------------------------------------------------------
+            Self::PushConstants(values) => {
+                target.write_opcode(OpCode::PushConstants);
+                target.write_u8(values.len() as u8);
+                values.iter().for_each(|&v| target.write_felt(v));
+            }
             Self::Locaddr(v) => {
                 target.write_opcode(OpCode::Locaddr);
                 target.write_felt(*v);
             }
             Self::Sdepth => target.write_opcode(OpCode::Sdepth),
             Self::Caller => target.write_opcode(OpCode::Caller),
+
             Self::MemLoad => target.write_opcode(OpCode::MemLoad),
             Self::MemLoadImm(v) => {
                 target.write_opcode(OpCode::MemLoadImm);
@@ -442,14 +448,8 @@ impl Serializable for Instruction {
                 target.write_felt(*v);
             }
 
-            Self::PushConstants(constants) => {
-                target.write_opcode(OpCode::PushConstants);
-                let length = constants.len();
-                target.write_u8(length as u8);
-                for v in constants {
-                    target.write_felt(*v);
-                }
-            }
+            Self::MemStream => target.write_opcode(OpCode::MemStream),
+
             Self::AdvU64Div => target.write_opcode(OpCode::AdvU64Div),
             Self::AdvPush(v) => {
                 target.write_opcode(OpCode::AdvPush);

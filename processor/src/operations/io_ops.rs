@@ -1,5 +1,10 @@
 use super::{ExecutionError, Felt, Operation, Process};
 
+// CONSTANTS
+// ================================================================================================
+
+const TWO: Felt = Felt::new(2);
+
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
 
@@ -71,6 +76,44 @@ impl Process {
         // write the 3 unused elements to the helpers so they're available for constraint evaluation
         self.decoder
             .set_user_op_helpers(Operation::MLoad, &word[..3]);
+
+        Ok(())
+    }
+
+    /// Loads two words from memory and adds their contents to the top 8 elements of the stack.
+    ///
+    /// The operation works as follows:
+    /// - The memory address of the first word is retrieved from 13th stack element (position 12).
+    /// - Two consecutive words, starting at this address, are loaded from memory.
+    /// - Elements of these words are added to the top 8 elements of the stack (element-wise, in
+    ///   stack order).
+    /// - Memory address (in position 12) is incremented by 2.
+    /// - All other stack elements remain the same.
+    pub(super) fn op_mstream(&mut self) -> Result<(), ExecutionError> {
+        // get the address from position 12 on the stack
+        let ctx = self.system.ctx();
+        let addr = self.stack.get(12);
+
+        // load two words from memory
+        let words = self.chiplets.read_mem_double(ctx, addr);
+
+        // add word elements to the elements already on the stack (in stack order)
+        for (i, &mem_value) in words.iter().flat_map(|word| word.iter()).rev().enumerate() {
+            let stack_value = self.stack.get(i);
+            self.stack.set(i, stack_value + mem_value);
+        }
+
+        // copy over the next 4 elements
+        for i in 8..12 {
+            let stack_value = self.stack.get(i);
+            self.stack.set(i, stack_value);
+        }
+
+        // increment the address by 2
+        self.stack.set(12, addr + TWO);
+
+        // copy over the rest of the stack
+        self.stack.copy_state(13);
 
         Ok(())
     }
@@ -173,18 +216,6 @@ impl Process {
         self.stack.set(3, a);
         self.stack.copy_state(4);
 
-        Ok(())
-    }
-
-    // ENVIRONMENT INPUTS
-    // --------------------------------------------------------------------------------------------
-
-    /// Pushes the current depth of the stack (the depth before this operation is executed) onto
-    /// the stack.
-    pub(super) fn op_sdepth(&mut self) -> Result<(), ExecutionError> {
-        let stack_depth = self.stack.depth();
-        self.stack.set(0, Felt::new(stack_depth as u64));
-        self.stack.shift_right(0);
         Ok(())
     }
 }
@@ -323,6 +354,48 @@ mod tests {
     }
 
     #[test]
+    fn op_mstream() {
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
+
+        // save two words into memory addresses 1 and 2
+        let word1 = [30, 29, 28, 27].to_elements().try_into().unwrap();
+        let word2 = [26, 25, 24, 23].to_elements().try_into().unwrap();
+        store_value(&mut process, 1, word1);
+        store_value(&mut process, 2, word2);
+
+        // check memory state
+        assert_eq!(2, process.chiplets.get_mem_size());
+        assert_eq!(word1, process.chiplets.get_mem_value(0, 1).unwrap());
+        assert_eq!(word2, process.chiplets.get_mem_value(0, 2).unwrap());
+
+        // clear the stack
+        for _ in 0..8 {
+            process.execute_op(Operation::Drop).unwrap();
+        }
+
+        // arrange the stack such that:
+        // - 101 is at position 13 (to make sure it is not overwritten)
+        // - 1 (the address) is at position 12
+        // - values 1 - 12 are at positions 0 - 11. Adding the first 8 of these values to the
+        //   values stored in memory should result in 35.
+        process.execute_op(Operation::Push(Felt::new(101))).unwrap();
+        process.execute_op(Operation::Push(ONE)).unwrap();
+        for i in 1..13 {
+            process.execute_op(Operation::Push(Felt::new(i))).unwrap();
+        }
+
+        // execute the MSTREAM operation
+        process.execute_op(Operation::MStream).unwrap();
+
+        // the result the first 8 values should be the result of adding the values on the stack
+        // to the values in memory (each should result in 35), the next 4 values should remain
+        // unchanged, and the address should be incremented by 2 (i.e., 1 -> 3).
+        let stack_values = [35, 35, 35, 35, 35, 35, 35, 35, 4, 3, 2, 1, 3, 101];
+        let expected_stack = build_expected_stack(&stack_values);
+        assert_eq!(expected_stack, process.stack.trace_state());
+    }
+
+    #[test]
     fn op_mstore() {
         let mut process = Process::new_dummy_with_decoder_helpers(&[]);
         assert_eq!(0, process.chiplets.get_mem_size());
@@ -403,37 +476,6 @@ mod tests {
         assert!(process.execute_op(Operation::ReadW).is_ok());
         let expected = build_expected_stack(&[6, 5, 4, 3]);
         assert_eq!(expected, process.stack.trace_state());
-    }
-
-    // ENVIRONMENT INPUT TESTS
-    // --------------------------------------------------------------------------------------------
-
-    #[test]
-    fn op_sdepth() {
-        // stack is empty
-        let mut process = Process::new_dummy(&[]);
-        process.execute_op(Operation::SDepth).unwrap();
-        let expected = build_expected_stack(&[STACK_TOP_SIZE as u64]);
-        assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(STACK_TOP_SIZE + 1, process.stack.depth());
-
-        // stack has one item
-        process.execute_op(Operation::SDepth).unwrap();
-        let expected = build_expected_stack(&[STACK_TOP_SIZE as u64 + 1, STACK_TOP_SIZE as u64]);
-        assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
-
-        // stack has 3 items
-        process.execute_op(Operation::Pad).unwrap();
-        process.execute_op(Operation::SDepth).unwrap();
-        let expected = build_expected_stack(&[
-            STACK_TOP_SIZE as u64 + 3,
-            0,
-            STACK_TOP_SIZE as u64 + 1,
-            STACK_TOP_SIZE as u64,
-        ]);
-        assert_eq!(expected, process.stack.trace_state());
-        assert_eq!(STACK_TOP_SIZE + 4, process.stack.depth());
     }
 
     // HELPER METHODS

@@ -157,19 +157,23 @@ impl ChipletsBus {
     // MEMORY LOOKUPS
     // --------------------------------------------------------------------------------------------
 
-    /// Sends a request for the specified memory access. When `old_word` and `new_word` are the
-    /// same in the MemoryLookup, this is a read request. When they are different, it's a write
-    /// request. The memory value is requested at `cycle`. This request is expected to originate
-    /// from operation executors.
-    pub fn request_memory_operation(&mut self, lookup: MemoryLookup, cycle: u32) {
+    /// Sends the specified memory access requests. There must be exactly one or two requests. The
+    /// requests are made at the specified `cycle` and are expected to originate from operation
+    /// executors.
+    pub fn request_memory_operation(&mut self, lookups: &[MemoryLookup], cycle: u32) {
         self.request_lookup(cycle);
-        self.request_rows.push(ChipletsLookupRow::Memory(lookup));
+        let request = match lookups.len() {
+            1 => ChipletsLookupRow::Memory(lookups[0]),
+            2 => ChipletsLookupRow::MemoryMulti([lookups[0], lookups[1]]),
+            _ => panic!("invalid number of requested memory operations"),
+        };
+
+        self.request_rows.push(request);
     }
 
-    /// Provides the data of the specified memory access.  When `old_word` and `new_word` are the
-    /// same in the MemoryLookup, this is a read request. When they are different, it's a write  
-    /// request. The memory access data is provided at cycle `response_cycle`, which is the row of
-    /// the execution trace that contains this Memory row.
+    /// Provides the data of the specified memory access. The memory access data is provided at
+    /// cycle `response_cycle`, which is the row of the execution trace that contains this Memory
+    /// row.
     pub fn provide_memory_operation(&mut self, lookup: MemoryLookup, response_cycle: u32) {
         self.provide_lookup(response_cycle);
         self.response_rows.push(ChipletsLookupRow::Memory(lookup));
@@ -223,6 +227,7 @@ pub(super) enum ChipletsLookupRow {
     HasherMulti(Vec<HasherLookup>),
     Bitwise(BitwiseLookup),
     Memory(MemoryLookup),
+    MemoryMulti([MemoryLookup; 2]),
 }
 
 impl LookupTableRow for ChipletsLookupRow {
@@ -238,6 +243,9 @@ impl LookupTableRow for ChipletsLookupRow {
             ChipletsLookupRow::Hasher(row) => row.to_value(main_trace, alphas),
             ChipletsLookupRow::Bitwise(row) => row.to_value(main_trace, alphas),
             ChipletsLookupRow::Memory(row) => row.to_value(main_trace, alphas),
+            ChipletsLookupRow::MemoryMulti(lookups) => lookups
+                .iter()
+                .fold(E::ONE, |acc, row| acc * row.to_value(main_trace, alphas)),
         }
     }
 }

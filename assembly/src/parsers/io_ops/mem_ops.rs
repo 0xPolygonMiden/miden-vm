@@ -82,6 +82,25 @@ pub fn parse_mem_write(
     Ok(())
 }
 
+/// Appends operations to the span block to execute `mem_stream` instruction. The sequence of
+/// operations is: MSTREAM RPPERM.
+///
+/// This instruction requires 2 VM cycles to execute.
+///
+/// # Errors
+/// This function will return an `AssemblyError` if the `mem_stream` instruction is malformed.
+pub fn parse_mem_stream(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "mem_stream");
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+
+    span_ops.push(Operation::MStream);
+    span_ops.push(Operation::RpPerm);
+
+    Ok(())
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
@@ -90,7 +109,6 @@ pub fn parse_mem_write(
 /// This operation takes 1 VM cycle.
 ///
 /// # Errors
-///
 /// This function will return an `AssemblyError` if the address parameter does not exist.
 fn push_mem_addr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     let address = parse_element_param(op, 1)?;
@@ -107,7 +125,6 @@ fn push_mem_addr(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Assemb
 /// - 2 VM cycles if index != 1
 ///
 /// # Errors
-///
 /// This function will return an `AssemblyError` if the index parameter is greater than the number
 /// of locals declared by the procedure.
 fn push_local_addr(

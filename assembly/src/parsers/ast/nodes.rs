@@ -208,6 +208,7 @@ pub enum Instruction {
     CDropW,
 
     // ----- input / output operations --------------------------------------------------------
+    PushConstants(Vec<Felt>),
     Locaddr(Felt),
     Sdepth,
     Caller,
@@ -226,7 +227,8 @@ pub enum Instruction {
     MemStoreWImm(Felt),
     LocStoreW(Felt),
 
-    PushConstants(Vec<Felt>),
+    MemStream,
+
     AdvU64Div,
     AdvPush(Felt),
     AdvLoadW(Felt),

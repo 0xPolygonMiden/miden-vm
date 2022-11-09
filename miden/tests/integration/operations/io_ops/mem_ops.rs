@@ -1,6 +1,7 @@
 use super::{build_op_test, build_test};
+use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt, StarkField};
 
-// PUSHING VALUES ONTO THE STACK (PUSH)
+// LOADING SINGLE ELEMENT ONTO THE STACK (MLOAD)
 // ================================================================================================
 
 #[test]
@@ -22,7 +23,7 @@ fn mem_load() {
     test.expect_stack(&[0, 4, 3, 2, 1]);
 }
 
-// REMOVING VALUES FROM THE STACK (POP)
+// SAVING A SINGLE ELEMENT INTO MEMORY (MSTORE)
 // ================================================================================================
 
 #[test]
@@ -40,7 +41,7 @@ fn mem_store() {
     test.expect_stack_and_memory(&[4, 3, 2, 1], addr, &[4, 0, 0, 0]);
 }
 
-// OVERWRITING VALUES ON THE STACK (LOAD)
+// LOADING A WORD FROM MEMORY (MLOADW)
 // ================================================================================================
 
 #[test]
@@ -64,7 +65,7 @@ fn mem_loadw() {
     test.expect_stack(&[0, 0, 0, 0, 4, 3, 2, 1]);
 }
 
-// SAVING STACK VALUES WITHOUT REMOVING THEM (STORE)
+// SAVING A WORD INTO MEMORY (MSTOREW)
 // ================================================================================================
 
 #[test]
@@ -86,7 +87,48 @@ fn mem_storew() {
     test.expect_stack_and_memory(&[4, 3, 2, 1, 0], addr, &[1, 2, 3, 4]);
 }
 
-// PAIRED OPERATIONS - ABSOLUTE MEMORY (push/pop, pushw/popw, loadw/storew)
+// STREAMING ELEMENTS FROM MEMORY (MSTREAM)
+// ================================================================================================
+
+#[test]
+fn mem_stream() {
+    let source = "
+        begin
+            push.1
+            mem_storew
+            drop drop drop drop
+            push.0
+            mem_storew
+            drop drop drop drop
+            push.12 push.11 push.10 push.9 push.8 push.7 push.6 push.5 push.4 push.3 push.2 push.1
+            mem_stream
+        end";
+
+    let inputs = [1, 2, 3, 4, 5, 6, 7, 8];
+
+    // the state of the hasher is the first 12 elements of the stack (in reverse order). the state
+    // is built by adding values in memory addresses 0 and 1 (i.e., 1 through 8) to the values on
+    // the top of the stack (i.e., 8 through 1). Thus, the first 8 elements on the stack will be
+    // equal to 9, and the remaining 4 are untouched (i.e., 9, 10, 11, 12).
+    let mut state: [Felt; 12] = [12_u64, 11, 10, 9, 9, 9, 9, 9, 9, 9, 9, 9]
+        .to_elements()
+        .try_into()
+        .unwrap();
+
+    // apply a hash permutation to the state
+    apply_permutation(&mut state);
+
+    // to get the final state of the stack, reverse the hasher state and push the expected address
+    // to the end (the address will be 2 since 0 + 2 = 2).
+    let mut final_stack = state.iter().map(|&v| v.as_int()).collect::<Vec<u64>>();
+    final_stack.reverse();
+    final_stack.push(2);
+
+    let test = build_test!(source, &inputs);
+    test.expect_stack(&final_stack);
+}
+
+// PAIRED OPERATIONS
 // ================================================================================================
 
 #[test]
