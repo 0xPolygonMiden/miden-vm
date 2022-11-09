@@ -559,3 +559,45 @@ fn test_add_then_sub() {
 
     assert_eq!(elm1, elm3);
 }
+
+#[test]
+fn test_inv() {
+    let source = "
+    use.std::math::secp256k1_base_field
+
+    begin
+        dupw.1
+        dupw.1
+
+        exec.secp256k1_base_field::inv
+        exec.secp256k1_base_field::mul
+
+        push.977
+        assert_eq
+        push.1
+        assert_eq
+        push.0
+        assert_eq
+        push.0
+        assert_eq
+        push.0
+        assert_eq
+        push.0
+        assert_eq
+        push.0
+        assert_eq
+        push.0
+        assert_eq
+    end";
+
+    let mut stack = [0u64; 16];
+
+    for i in 0..8 {
+        let a = 1u32 + rand_utils::rand_value::<u32>();
+        stack[i] = a as u64;
+    }
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    test.execute().unwrap();
+}
