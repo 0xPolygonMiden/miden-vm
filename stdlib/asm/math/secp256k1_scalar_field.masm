@@ -403,6 +403,25 @@ proc.sqr
   exec.mul
 end
 
+#! Given an element of secp256k1 scalar field, represented in Montgomery form i.e. eight 32 -bit limbs, 
+#! this routine computes radix-2^32 representation of provided u256 number.
+#!
+#! Stack expected as
+#!
+#!  [a0, a1, a2, a3, a4, a5, a6, a7, ...]
+#!
+#! Final stack should look like
+#!
+#! [a0`, a1`, a2`, a3`, a4`, a5`, a6`, a7`, ...]
+#!
+#! See section 2.2 of https://eprint.iacr.org/2017/1057.pdf
+#! See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field_utils.py#L238-L244
+#! for implementation
+export.from_mont
+  push.0.0.0.0.0.0.0.1 # pushed 1's radix-2^32 form
+  exec.mul
+end
+
 #! Given an element ( say a ) of secp256k1 scalar field, this routine computes multiplicative
 #! inverse ( say a' ) of that element s.t. a * a' = 1 ( mod p ) | p = secp256k1 scalar field prime
 #!
