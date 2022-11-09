@@ -355,6 +355,22 @@ export.mul.2
   drop
 end
 
+#! Just a wrapper function for ease of squaring an element of secp256k1 base field.
+#!
+#! Expected stack state
+#!
+#! [a0, a1, a2, a3, a4, a5, a6, a7, ...] | a[0..8] is a 256 -bit number
+#!
+#! Final stack state
+#!
+#! [b0, b1, b2, b3, b4, b5, b6, b7, ...] | b[0..8] is a 256 -bit number s.t. b = a * a
+proc.sqr
+  dupw.1
+  dupw.1
+
+  exec.mul
+end
+
 #! Given two 256 -bit numbers ( elements belonging to secp256k1 base field ) on stack, 
 #! where each number is represented in radix-2^32 form ( i.e. each number having eight 
 #! 32 -bit limbs ), following function computes modular addition of those two operands, 
@@ -544,4 +560,84 @@ export.from_mont
   push.0.0.0.1 # pushed 1's radix-2^32 form;
 
   exec.mul
+end
+
+#! Given an element ( say a ) of secp256k1 base field, this routine computes multiplicative
+#! inverse ( say a' ) of that element s.t. a * a' = 1 ( mod p ) | p = secp256k1 base field prime
+#!
+#! Expected stack state
+#!
+#! [a0, a1, a2, a3, a4, a5, a6, a7, ...] | a[0..8] is a 256 -bit number
+#!
+#! Final stack state
+#!
+#! [b0, b1, b2, b3, b4, b5, b6, b7, ...] | b[0..8] is a 256 -bit number s.t. b = a^-1 ( mod p )
+#!
+#! Note, both input and output stays in Montgomery form. If 0 is input operand, then multiplicative
+#! inverse can't be computed, which is why output result is also 0.
+#!
+#! See https://github.com/itzmeanjan/secp256k1/blob/37b339db3e03d24c2977399eb8896ef515ebb09b/field/base_field.py#L114-L132
+export.inv.4
+  # cache result initial value ( = 1, in Montgomery form )
+  push.0.0.0.0.0.0.1.977
+  loc_storew.0
+  dropw
+  loc_storew.1
+  dropw
+
+  # cache base
+  loc_storew.2
+  dropw
+  loc_storew.3
+  dropw
+
+  push.4294966317.4294967294.4294967295.4294967295.4294967295.4294967295.4294967295.4294967295
+
+  repeat.8
+    repeat.32
+      push.0.0.0.0.0.0.0.0
+      loc_loadw.1
+      swapw
+      loc_loadw.0
+
+      exec.sqr
+
+      loc_storew.0
+      dropw
+      loc_storew.1
+      dropw
+
+      dup
+      u32unchecked_shr.31
+      if.true
+        push.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0
+
+        loc_loadw.3
+        swapw
+        loc_loadw.2
+
+        swapdw
+
+        loc_loadw.1
+        swapw
+        loc_loadw.0
+
+        exec.mul
+
+        loc_storew.0
+        dropw
+        loc_storew.1
+        dropw
+      end
+
+      u32unchecked_shl.1
+    end
+
+    drop
+  end
+
+  push.0.0.0.0.0.0.0.0
+  loc_loadw.1
+  swapw
+  loc_loadw.0
 end
