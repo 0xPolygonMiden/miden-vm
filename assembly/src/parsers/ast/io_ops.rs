@@ -9,22 +9,143 @@ use vm_core::Felt;
 /// The maximum number of constant inputs allowed by `push` operation.
 const MAX_CONST_INPUTS: usize = 16;
 
-// Push constant
-
 /// The required length of the hexadecimal representation for an input value when more than one hex
 /// input is provided to `push` without period separators.
 const HEX_CHUNK_SIZE: usize = 16;
 
-pub fn parse_push_constants(op: &Token, constants: &mut Vec<Felt>) -> Result<(), AssemblyError> {
+// INSTRUCTION PARSERS
+// ================================================================================================
+
+pub(super) fn parse_push(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "push", 1..MAX_CONST_INPUTS);
+
+    let constants = parse_constants(op)?;
+    Ok(Node::Instruction(Instruction::PushConstants(constants)))
+}
+
+pub(super) fn parse_locaddr(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "locaddr", 1);
+
+    let param = parse_param::<u32>(op, 1)?;
+    Ok(Node::Instruction(Instruction::Locaddr(Felt::from(param))))
+}
+
+pub(super) fn parse_adv_push(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "adv_push", 1);
+
+    let param = parse_param::<u32>(op, 1)?;
+    Ok(Node::Instruction(Instruction::Locaddr(Felt::from(param))))
+}
+
+pub(super) fn parse_adv_loadw(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "adv_loadw", 1);
+
+    let param = parse_param::<u32>(op, 1)?;
+    Ok(Node::Instruction(Instruction::Locaddr(Felt::from(param))))
+}
+
+pub(super) fn parse_adv_inject(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "adv.u64div");
+
+    let node = match op.parts()[1] {
+        "u64div" => Node::Instruction(Instruction::AdvU64Div),
+        _ => return Err(AssemblyError::invalid_op(op)),
+    };
+
+    Ok(node)
+}
+
+pub(super) fn parse_mem_load(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "mem_load", 0..1);
+    let node = match op.num_parts() {
+        2 => {
+            let address = parse_element_param(op, 1)?;
+            Node::Instruction(Instruction::MemLoadImm(address))
+        }
+        _ => Node::Instruction(Instruction::MemLoad),
+    };
+
+    Ok(node)
+}
+
+pub(super) fn parse_loc_load(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "loc_load", 1);
+    let index = parse_param::<u32>(op, 1)?;
+    Ok(Node::Instruction(Instruction::LocLoad(Felt::from(index))))
+}
+
+pub(super) fn parse_mem_loadw(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "mem_loadw", 0..1);
+    let node = match op.num_parts() {
+        2 => {
+            let address = parse_element_param(op, 1)?;
+            Node::Instruction(Instruction::MemLoadWImm(address))
+        }
+        _ => Node::Instruction(Instruction::MemLoadW),
+    };
+
+    Ok(node)
+}
+
+pub(super) fn parse_loc_loadw(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "loc_loadw", 1);
+    let index = parse_param::<u32>(op, 1)?;
+    Ok(Node::Instruction(Instruction::LocLoadW(Felt::from(index))))
+}
+
+pub(super) fn parse_mem_store(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "mem_store", 0..1);
+    let node = match op.num_parts() {
+        2 => {
+            let address = parse_element_param(op, 1)?;
+            Node::Instruction(Instruction::MemStoreImm(address))
+        }
+        _ => Node::Instruction(Instruction::MemStore),
+    };
+
+    Ok(node)
+}
+
+pub(super) fn parse_loc_store(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "loc_store", 1);
+    let index = parse_param::<u32>(op, 1)?;
+    Ok(Node::Instruction(Instruction::LocStore(Felt::from(index))))
+}
+
+pub(super) fn parse_mem_storew(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "mem_storew", 0..1);
+    let node = match op.num_parts() {
+        2 => {
+            let address = parse_element_param(op, 1)?;
+            Node::Instruction(Instruction::MemStoreWImm(address))
+        }
+        _ => Node::Instruction(Instruction::MemStoreW),
+    };
+
+    Ok(node)
+}
+
+pub(super) fn parse_loc_storew(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "loc_storew", 1);
+    let index = parse_param::<u32>(op, 1)?;
+    Ok(Node::Instruction(Instruction::LocStoreW(Felt::from(index))))
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+fn parse_constants(op: &Token) -> Result<Vec<Felt>, AssemblyError> {
+    let mut constants = Vec::new();
     let param_idx = 1;
     let param_count = op.num_parts() - param_idx;
+
     // for multiple input parameters, parse & push each one onto the stack in order, then return
     if param_count > 1 {
         for param_idx in param_idx..=param_count {
             let value = parse_element_param(op, param_idx)?;
             constants.push(value);
         }
-        return Ok(());
+        return Ok(constants);
     }
 
     // for a single input, there could be one value or there could be a series of many hexadecimal
@@ -43,127 +164,8 @@ pub fn parse_push_constants(op: &Token, constants: &mut Vec<Felt>) -> Result<(),
         constants.push(value);
     }
 
-    Ok(())
+    Ok(constants)
 }
-
-pub fn parse_push(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "push", 1..MAX_CONST_INPUTS);
-
-    let mut constants = Vec::<Felt>::new();
-    parse_push_constants(op, &mut constants)?;
-    Ok(Node::Instruction(Instruction::PushConstants(constants)))
-}
-
-pub fn parse_locaddr(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "locaddr", 1);
-
-    let param = parse_param::<u32>(op, 1)?;
-    Ok(Node::Instruction(Instruction::Locaddr(Felt::from(param))))
-}
-
-pub fn parse_adv_push(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "adv_push", 1);
-
-    let param = parse_param::<u32>(op, 1)?;
-    Ok(Node::Instruction(Instruction::Locaddr(Felt::from(param))))
-}
-
-pub fn parse_adv_loadw(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "locaddr", 1);
-
-    let param = parse_param::<u32>(op, 1)?;
-    Ok(Node::Instruction(Instruction::Locaddr(Felt::from(param))))
-}
-
-pub fn parse_adv_inject(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "adv.u64div");
-
-    let node = match op.parts()[1] {
-        "u64div" => Node::Instruction(Instruction::AdvU64Div),
-        _ => return Err(AssemblyError::invalid_op(op)),
-    };
-
-    Ok(node)
-}
-
-pub fn parse_mem_load(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "mem_load", 0..1);
-    let node = match op.num_parts() {
-        2 => {
-            let address = parse_element_param(op, 1)?;
-            Node::Instruction(Instruction::MemLoadImm(address))
-        }
-        _ => Node::Instruction(Instruction::MemLoad),
-    };
-
-    Ok(node)
-}
-
-pub fn parse_loc_load(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "loc_load", 1);
-    let index = parse_param::<u32>(op, 1)?;
-    Ok(Node::Instruction(Instruction::LocLoad(Felt::from(index))))
-}
-
-pub fn parse_mem_loadw(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "mem_loadw", 0..1);
-    let node = match op.num_parts() {
-        2 => {
-            let address = parse_element_param(op, 1)?;
-            Node::Instruction(Instruction::MemLoadWImm(address))
-        }
-        _ => Node::Instruction(Instruction::MemLoadW),
-    };
-
-    Ok(node)
-}
-
-pub fn parse_loc_loadw(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "loc_loadw", 1);
-    let index = parse_param::<u32>(op, 1)?;
-    Ok(Node::Instruction(Instruction::LocLoadW(Felt::from(index))))
-}
-
-pub fn parse_mem_store(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "mem_store", 0..1);
-    let node = match op.num_parts() {
-        2 => {
-            let address = parse_element_param(op, 1)?;
-            Node::Instruction(Instruction::MemStoreImm(address))
-        }
-        _ => Node::Instruction(Instruction::MemStore),
-    };
-
-    Ok(node)
-}
-
-pub fn parse_loc_store(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "loc_store", 1);
-    let index = parse_param::<u32>(op, 1)?;
-    Ok(Node::Instruction(Instruction::LocStore(Felt::from(index))))
-}
-
-pub fn parse_mem_storew(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "mem_storew", 0..1);
-    let node = match op.num_parts() {
-        2 => {
-            let address = parse_element_param(op, 1)?;
-            Node::Instruction(Instruction::MemStoreWImm(address))
-        }
-        _ => Node::Instruction(Instruction::MemStoreW),
-    };
-
-    Ok(node)
-}
-
-pub fn parse_loc_storew(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "loc_storew", 1);
-    let index = parse_param::<u32>(op, 1)?;
-    Ok(Node::Instruction(Instruction::LocStoreW(Felt::from(index))))
-}
-
-// UTILITY FUNCTIONS
-// ================================================================================================
 
 fn parse_hex_params(
     op: &Token,

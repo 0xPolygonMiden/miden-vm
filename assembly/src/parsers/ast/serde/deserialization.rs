@@ -358,9 +358,10 @@ impl Deserializable for Instruction {
             OpCode::CDropW => Ok(Instruction::CDropW),
 
             // ----- input / output operations --------------------------------------------------------
-            OpCode::Adv => Ok(Instruction::Adv(bytes.read_felt()?)),
             OpCode::Locaddr => Ok(Instruction::Locaddr(bytes.read_felt()?)),
             OpCode::Sdepth => Ok(Instruction::Sdepth),
+            OpCode::Caller => Ok(Instruction::Caller),
+
             OpCode::MemLoad => Ok(Instruction::MemLoad),
             OpCode::MemLoadImm => Ok(Instruction::MemLoadImm(bytes.read_felt()?)),
             OpCode::MemLoadW => Ok(Instruction::MemLoadW),
@@ -373,7 +374,6 @@ impl Deserializable for Instruction {
             OpCode::MemStoreW => Ok(Instruction::MemStoreW),
             OpCode::MemStoreWImm => Ok(Instruction::MemStoreWImm(bytes.read_felt()?)),
             OpCode::LocStoreW => Ok(Instruction::LocStoreW(bytes.read_felt()?)),
-            OpCode::LoadWAdv => Ok(Instruction::LoadWAdv),
 
             OpCode::PushConstants => {
                 let mut constants = Vec::new();

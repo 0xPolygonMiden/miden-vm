@@ -27,6 +27,11 @@ impl Process {
             Operation::Noop => self.stack.copy_state(0),
             Operation::Assert => self.op_assert()?,
 
+            Operation::FmpAdd => self.op_fmpadd()?,
+            Operation::FmpUpdate => self.op_fmpupdate()?,
+
+            Operation::Caller => self.op_caller()?,
+
             // ----- flow control operations ------------------------------------------------------
             // control flow operations are never executed directly
             Operation::Join => unreachable!("control flow operation"),
@@ -122,9 +127,6 @@ impl Process {
 
             Operation::MLoad => self.op_mload()?,
             Operation::MStore => self.op_mstore()?,
-
-            Operation::FmpAdd => self.op_fmpadd()?,
-            Operation::FmpUpdate => self.op_fmpupdate()?,
 
             Operation::SDepth => self.op_sdepth()?,
 

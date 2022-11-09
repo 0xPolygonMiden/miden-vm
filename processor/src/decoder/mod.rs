@@ -185,6 +185,7 @@ impl Process {
         // context after the function returns.
         let ctx_info = ExecutionContextInfo::new(
             self.system.ctx(),
+            self.system.fn_hash(),
             self.system.fmp(),
             stack_depth as u32,
             next_overflow_addr,
@@ -194,7 +195,7 @@ impl Process {
             self.system.start_syscall();
             self.decoder.start_syscall(fn_hash, addr, ctx_info);
         } else {
-            self.system.start_call();
+            self.system.start_call(fn_hash);
             self.decoder.start_call(fn_hash, addr, ctx_info);
         }
 
@@ -222,8 +223,11 @@ impl Process {
 
         // when returning from a function call or a syscall, restore the context of the system
         // registers and the operand stack to what it was prior to the call.
-        self.system
-            .restore_context(ctx_info.parent_ctx, ctx_info.parent_fmp);
+        self.system.restore_context(
+            ctx_info.parent_ctx,
+            ctx_info.parent_fmp,
+            ctx_info.parent_fn_hash,
+        );
         self.stack.restore_context(
             ctx_info.parent_stack_depth as usize,
             ctx_info.parent_next_overflow_addr,

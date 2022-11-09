@@ -11,6 +11,7 @@ pub enum ExecutionError {
     AdviceSetNotFound([u8; 32]),
     AdviceSetUpdateFailed(AdviceSetError),
     CodeBlockNotFound(Digest),
+    CallerNotInSyscall,
     DivideByZero(u32),
     EmptyAdviceTape(u32),
     FailedAssertion(u32),

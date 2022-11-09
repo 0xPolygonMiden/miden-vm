@@ -52,6 +52,31 @@ impl Process {
 
         Ok(())
     }
+
+    // CALLER
+    // --------------------------------------------------------------------------------------------
+
+    /// Overwrites the top four stack items with the hash of a function which initiated the current
+    /// SYSCALL.
+    ///
+    /// # Errors
+    /// Returns an error if the VM is not currently executing a SYSCALL block.
+    pub(super) fn op_caller(&mut self) -> Result<(), ExecutionError> {
+        if !self.system.in_syscall() {
+            return Err(ExecutionError::CallerNotInSyscall);
+        }
+
+        let fn_hash = self.system.fn_hash();
+
+        self.stack.set(0, fn_hash[3]);
+        self.stack.set(1, fn_hash[2]);
+        self.stack.set(2, fn_hash[1]);
+        self.stack.set(3, fn_hash[0]);
+
+        self.stack.copy_state(4);
+
+        Ok(())
+    }
 }
 
 // TESTS

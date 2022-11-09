@@ -28,6 +28,7 @@ fn parse_op_token(
     span_ops: &mut Vec<Operation>,
     num_proc_locals: u32,
     decorators: &mut DecoratorList,
+    in_kernel: bool,
     in_debug_mode: bool,
 ) -> Result<(), AssemblyError> {
     let dec_len = decorators.len();
@@ -167,6 +168,7 @@ fn parse_op_token(
 
         "sdepth" => io_ops::parse_sdepth(span_ops, op),
         "locaddr" => io_ops::parse_locaddr(span_ops, op, num_proc_locals),
+        "caller" => io_ops::parse_caller(span_ops, op, in_kernel),
 
         "mem_load" => io_ops::parse_mem_read(span_ops, op, num_proc_locals, false, true),
         "loc_load" => io_ops::parse_mem_read(span_ops, op, num_proc_locals, true, true),

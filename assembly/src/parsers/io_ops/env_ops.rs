@@ -3,13 +3,12 @@ use super::{parse_u32_param, push_value, AssemblyError, Felt, Operation, Token, 
 // ENVIRONMENT INPUTS
 // ================================================================================================
 
-/// Appends `locaddr.i` operation to the span block to push the absolute address of the local
+/// Appends `locaddr.i` instruction to the span block to push the absolute address of the local
 /// variable at index `i` onto the stack.
 ///
 /// # Errors
-///
-/// It will return an error if the assembly instruction is malformed or it has inappropriate
-/// parameter value according to the number of local variables of the procedurethe
+/// Returns an error if the assembly instruction is malformed or has a parameter value greater than
+/// the number of procedure locals.
 pub fn parse_locaddr(
     span_ops: &mut Vec<Operation>,
     op: &Token,
@@ -35,12 +34,11 @@ pub fn parse_locaddr(
     Ok(())
 }
 
-/// Appends `sdepth` operation to the current span block to push the current depth of the stack
-/// onto the top of the stack. `sdepth` is handled directly by the `SDEPTH` operation.
+/// Appends `sdepth` instruction to the current span block to push the current depth of the stack
+/// onto the top of the stack. `sdepth` is handled directly by the SDEPTH VM operation.
 ///
 /// # Errors
-///
-/// It will return an error if the assembly instruction is malformed.
+/// Returns an error if the assembly instruction is malformed.
 pub fn parse_sdepth(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
     debug_assert_eq!(op.parts()[0], "sdepth");
 
@@ -49,6 +47,34 @@ pub fn parse_sdepth(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), Ass
     }
 
     span_ops.push(Operation::SDepth);
+
+    Ok(())
+}
+
+/// Appends `caller` instruction to the current span block to put the hash of the function which
+/// initiated the current SYSCALL onto the stack. `caller` instruction translates directly into
+/// CALLER VM operation.
+///
+/// # Errors
+/// Returns an error if:
+/// - The assembly instruction is malformed.
+/// - The instruction is being executed outside of kernel context.
+pub fn parse_caller(
+    span_ops: &mut Vec<Operation>,
+    op: &Token,
+    in_kernel: bool,
+) -> Result<(), AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "caller");
+
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+
+    if !in_kernel {
+        return Err(AssemblyError::caller_out_of_kernel(op));
+    }
+
+    span_ops.push(Operation::Caller);
 
     Ok(())
 }
@@ -64,7 +90,7 @@ mod tests {
         Operation, Token,
     };
 
-    // TESTS FOR PUSHING VALUES ONTO THE STACK (PUSH)
+    // SDEPTH TESTS
     // ============================================================================================
 
     #[test]
@@ -77,17 +103,6 @@ mod tests {
 
         parse_sdepth(&mut span_ops, &op).expect("Failed to parse sdepth with empty stack");
         assert_eq!(span_ops, expected);
-    }
-
-    #[test]
-    fn locaddr() {
-        let asm_op = "locaddr";
-        let num_proc_locals = 2;
-        let mut span_ops: Vec<Operation> = Vec::new();
-
-        let op_str = format!("{}.{}", asm_op, 1);
-        let op = Token::new(&op_str, 0);
-        assert!(parse_locaddr(&mut span_ops, &op, num_proc_locals).is_ok());
     }
 
     #[test]
@@ -114,6 +129,20 @@ mod tests {
             parse_sdepth(&mut span_ops, &op_extra_val).unwrap_err(),
             expected
         );
+    }
+
+    // LOCADDR TESTS
+    // ============================================================================================
+
+    #[test]
+    fn locaddr() {
+        let asm_op = "locaddr";
+        let num_proc_locals = 2;
+        let mut span_ops: Vec<Operation> = Vec::new();
+
+        let op_str = format!("{}.{}", asm_op, 1);
+        let op = Token::new(&op_str, 0);
+        assert!(parse_locaddr(&mut span_ops, &op, num_proc_locals).is_ok());
     }
 
     #[test]

@@ -6,7 +6,9 @@ pub use decorators::{AdviceInjector, AssemblyOp, Decorator, DecoratorIterator, D
 // OPERATIONS
 // ================================================================================================
 
-/// TODO: add docs
+/// A set of native VM operations.
+///
+/// These operations take exactly one cycle to execute.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Operation {
     // ----- system operations --------------------------------------------------------------------
@@ -22,6 +24,10 @@ pub enum Operation {
 
     /// Pops an element off the stack and adds it to the current value of `fmp` register.
     FmpUpdate,
+
+    /// Overwrites the top four stack items with the hash of a function which initiated the current
+    /// SYSCALL. Thus, this operation can be executed only inside a SYSCALL code block.
+    Caller,
 
     // ----- flow control operations --------------------------------------------------------------
     /// Marks the beginning of a join block.
@@ -390,7 +396,7 @@ impl Operation {
             Self::FmpAdd    => 0b0000_0110,
             Self::MLoad     => 0b0000_0111,
             Self::Swap      => 0b0000_1000,
-            // <empty>      => 0b0000_1001,
+            Self::Caller    => 0b0000_1001,
             Self::MovUp2    => 0b0000_1010,
             Self::MovDn2    => 0b0000_1011,
             Self::MovUp3    => 0b0000_1100,
@@ -513,6 +519,8 @@ impl fmt::Display for Operation {
 
             Self::FmpAdd => write!(f, "fmpadd"),
             Self::FmpUpdate => write!(f, "fmpupdate"),
+
+            Self::Caller => write!(f, "caller"),
 
             // ----- flow control operations ------------------------------------------------------
             Self::Join => write!(f, "join"),

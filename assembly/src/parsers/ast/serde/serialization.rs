@@ -399,15 +399,12 @@ impl Serializable for Instruction {
             Self::CDropW => target.write_opcode(OpCode::CDropW),
 
             // ----- input / output operations --------------------------------------------------------
-            Self::Adv(v) => {
-                target.write_opcode(OpCode::Adv);
-                target.write_felt(*v);
-            }
             Self::Locaddr(v) => {
                 target.write_opcode(OpCode::Locaddr);
                 target.write_felt(*v);
             }
             Self::Sdepth => target.write_opcode(OpCode::Sdepth),
+            Self::Caller => target.write_opcode(OpCode::Caller),
             Self::MemLoad => target.write_opcode(OpCode::MemLoad),
             Self::MemLoadImm(v) => {
                 target.write_opcode(OpCode::MemLoadImm);
@@ -444,7 +441,6 @@ impl Serializable for Instruction {
                 target.write_opcode(OpCode::LocStoreW);
                 target.write_felt(*v);
             }
-            Self::LoadWAdv => target.write_opcode(OpCode::LoadWAdv),
 
             Self::PushConstants(constants) => {
                 target.write_opcode(OpCode::PushConstants);

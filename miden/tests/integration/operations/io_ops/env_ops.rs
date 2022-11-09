@@ -1,8 +1,10 @@
-use super::{build_op_test, build_test};
+use crate::{build_op_test, build_test, helpers::Test};
 use processor::FMP_MIN;
-use vm_core::stack::STACK_TOP_SIZE;
+use vm_core::{
+    code_blocks::CodeBlock, stack::STACK_TOP_SIZE, Operation, ProgramInputs, StarkField, Word,
+};
 
-// PUSHING VALUES ONTO THE STACK (PUSH)
+// SDEPTH INSTRUCTION
 // ================================================================================================
 
 #[test]
@@ -23,6 +25,9 @@ fn sdepth() {
     let test = build_test!(&source, &[0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7]);
     test.expect_stack(&[18, 1, 1, 7, 6, 5, 4, 3, 2, 1, 0, 7, 6, 5, 4, 3]);
 }
+
+// LOCADDR INSTRUCTION
+// ================================================================================================
 
 #[test]
 fn locaddr() {
@@ -119,4 +124,51 @@ fn locaddr() {
 
     let test = build_test!(source, &[10, 1, 2, 3, 4, 5, 6, 7]);
     test.expect_stack(&[7, 6, 5, 4, 3, 2, 1, 10]);
+}
+
+// CALLER INSTRUCTION
+// ================================================================================================
+
+#[test]
+fn caller() {
+    let kernel_source = "
+        export.foo
+            caller
+        end
+    ";
+
+    let program_source = "
+        proc.bar
+            syscall.foo
+        end
+
+        begin
+            call.bar
+        end";
+
+    // TODO: update and use macro?
+    let test = Test {
+        source: program_source.to_string(),
+        kernel: Some(kernel_source.to_string()),
+        inputs: ProgramInputs::from_stack_inputs(&[1, 2, 3, 4, 5]).unwrap(),
+        in_debug_mode: false,
+    };
+    // top 4 elements should be overwritten with the hash of `bar` procedure, but the 5th
+    // element should remain untouched
+    let bar_hash = build_bar_hash();
+    test.expect_stack(&[bar_hash[3], bar_hash[2], bar_hash[1], bar_hash[0], 1]);
+
+    test.prove_and_verify(vec![1, 2, 3, 4, 5], false);
+}
+
+fn build_bar_hash() -> [u64; 4] {
+    let foo_root = CodeBlock::new_span(vec![Operation::Caller]);
+    let bar_root = CodeBlock::new_syscall(foo_root.hash());
+    let bar_hash: Word = bar_root.hash().into();
+    [
+        bar_hash[0].as_int(),
+        bar_hash[1].as_int(),
+        bar_hash[2].as_int(),
+        bar_hash[3].as_int(),
+    ]
 }
