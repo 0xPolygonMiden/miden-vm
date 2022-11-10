@@ -262,42 +262,6 @@ mod tests {
 
     // MEMORY OPERATION TESTS
     // --------------------------------------------------------------------------------------------
-
-    #[test]
-    fn op_mstorew() {
-        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
-        assert_eq!(0, process.chiplets.get_mem_size());
-
-        // push the first word onto the stack and save it at address 0
-        let word1 = [1, 3, 5, 7].to_elements().try_into().unwrap();
-        store_value(&mut process, 0, word1);
-
-        // check stack state
-        let expected_stack = build_expected_stack(&[7, 5, 3, 1]);
-        assert_eq!(expected_stack, process.stack.trace_state());
-
-        // check memory state
-        assert_eq!(1, process.chiplets.get_mem_size());
-        assert_eq!(word1, process.chiplets.get_mem_value(0, 0).unwrap());
-
-        // push the second word onto the stack and save it at address 3
-        let word2 = [2, 4, 6, 8].to_elements().try_into().unwrap();
-        store_value(&mut process, 3, word2);
-
-        // check stack state
-        let expected_stack = build_expected_stack(&[8, 6, 4, 2, 7, 5, 3, 1]);
-        assert_eq!(expected_stack, process.stack.trace_state());
-
-        // check memory state
-        assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(word1, process.chiplets.get_mem_value(0, 0).unwrap());
-        assert_eq!(word2, process.chiplets.get_mem_value(0, 3).unwrap());
-
-        // --- calling STOREW with a stack of minimum depth is ok ----------------
-        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
-        assert!(process.execute_op(Operation::MStoreW).is_ok());
-    }
-
     #[test]
     fn op_mloadw() {
         let mut process = Process::new_dummy_with_decoder_helpers(&[]);
@@ -393,6 +357,41 @@ mod tests {
         let stack_values = [35, 35, 35, 35, 35, 35, 35, 35, 4, 3, 2, 1, 3, 101];
         let expected_stack = build_expected_stack(&stack_values);
         assert_eq!(expected_stack, process.stack.trace_state());
+    }
+
+    #[test]
+    fn op_mstorew() {
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
+        assert_eq!(0, process.chiplets.get_mem_size());
+
+        // push the first word onto the stack and save it at address 0
+        let word1 = [1, 3, 5, 7].to_elements().try_into().unwrap();
+        store_value(&mut process, 0, word1);
+
+        // check stack state
+        let expected_stack = build_expected_stack(&[7, 5, 3, 1]);
+        assert_eq!(expected_stack, process.stack.trace_state());
+
+        // check memory state
+        assert_eq!(1, process.chiplets.get_mem_size());
+        assert_eq!(word1, process.chiplets.get_mem_value(0, 0).unwrap());
+
+        // push the second word onto the stack and save it at address 3
+        let word2 = [2, 4, 6, 8].to_elements().try_into().unwrap();
+        store_value(&mut process, 3, word2);
+
+        // check stack state
+        let expected_stack = build_expected_stack(&[8, 6, 4, 2, 7, 5, 3, 1]);
+        assert_eq!(expected_stack, process.stack.trace_state());
+
+        // check memory state
+        assert_eq!(2, process.chiplets.get_mem_size());
+        assert_eq!(word1, process.chiplets.get_mem_value(0, 0).unwrap());
+        assert_eq!(word2, process.chiplets.get_mem_value(0, 3).unwrap());
+
+        // --- calling STOREW with a stack of minimum depth is ok ----------------
+        let mut process = Process::new_dummy_with_decoder_helpers(&[]);
+        assert!(process.execute_op(Operation::MStoreW).is_ok());
     }
 
     #[test]
