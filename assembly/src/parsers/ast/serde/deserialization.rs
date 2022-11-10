@@ -66,14 +66,25 @@ impl<'a> ByteReader<'a> {
         ))
     }
 
-    pub fn read_string(&mut self) -> Result<String, SerializationError> {
-        self.check_eor(1)?;
-        let length = self.bytes[self.pos];
-        self.pos += 1;
+    pub fn read_proc_name(&mut self) -> Result<String, SerializationError> {
+        let length = self.read_u8()?;
         self.check_eor(length as usize)?;
         let string_bytes = &self.bytes[self.pos..self.pos + length as usize];
         self.pos += length as usize;
         Ok(String::from_utf8(string_bytes.to_vec()).expect("String conversion failure"))
+    }
+
+    pub fn read_docs(&mut self) -> Result<Option<String>, SerializationError> {
+        let length = self.read_u16()?;
+        if length != 0 {
+            self.check_eor(length as usize)?;
+            let string_bytes = &self.bytes[self.pos..self.pos + length as usize];
+            self.pos += length as usize;
+            let docs = String::from_utf8(string_bytes.to_vec()).expect("String conversion failure");
+            Ok(Some(docs))
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn read_procedure_id(&mut self) -> Result<ProcedureId, SerializationError> {

@@ -77,6 +77,7 @@ fn test_ast_parsing_program_proc() {
             0,
             ProcedureAst {
                 name: String::from("foo"),
+                docs: None,
                 is_export: false,
                 num_locals: 1,
                 body: proc_body1,
@@ -90,6 +91,7 @@ fn test_ast_parsing_program_proc() {
             1,
             ProcedureAst {
                 name: String::from("bar"),
+                docs: None,
                 is_export: false,
                 num_locals: 2,
                 body: proc_body2,
@@ -117,6 +119,7 @@ fn test_ast_parsing_module() {
             0,
             ProcedureAst {
                 name: String::from("foo"),
+                docs: None,
                 is_export: true,
                 num_locals: 1,
                 body: proc_body,
@@ -199,6 +202,7 @@ fn test_ast_parsing_module_nested_if() {
             0,
             ProcedureAst {
                 name: String::from("foo"),
+                docs: None,
                 is_export: false,
                 num_locals: 0,
                 body: proc_body,
@@ -267,6 +271,7 @@ fn test_ast_parsing_module_sequential_if() {
             0,
             ProcedureAst {
                 name: String::from("foo"),
+                docs: None,
                 is_export: false,
                 num_locals: 0,
                 body: proc_body,
@@ -287,6 +292,121 @@ fn test_ast_parsing_module_sequential_if() {
     }
 }
 
+#[test]
+fn test_ast_parsing_module_docs() {
+    let source = "\
+#! Test documenation for export procedure foo in parsing test. Lorem ipsum dolor sit amet, 
+#! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+#! This comment is intentionally longer than 256 characters, since we need to be sure that the size
+#! of the comments is correctly parsed. There was a bug here earlier.
+export.foo.1 
+    loc_load.0
+end
+
+#! Test documenation for internal procedure bar in parsing test. Lorem ipsum dolor sit amet, 
+#! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna
+#! aliqua. 
+proc.bar.2 
+    padw
+end
+
+#! Test documenation for export procedure baz in parsing test. Lorem ipsum dolor sit amet, 
+#! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna
+#! aliqua. 
+export.baz.3
+    padw
+    push.0
+end";
+    let mut procedures: LocalProcMap = BTreeMap::new();
+    let proc_body_foo: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(Felt::ZERO))];
+    let docs_foo =
+        "Test documenation for export procedure foo in parsing test. Lorem ipsum dolor sit amet,
+consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+This comment is intentionally longer than 256 characters, since we need to be sure that the size
+of the comments is correctly parsed. There was a bug here earlier."
+            .to_string();
+    procedures.insert(
+        String::from("foo"),
+        (
+            0,
+            ProcedureAst {
+                name: String::from("foo"),
+                docs: Some(docs_foo),
+                is_export: true,
+                num_locals: 1,
+                body: proc_body_foo,
+            },
+        ),
+    );
+
+    let proc_body_bar: Vec<Node> = vec![Node::Instruction(Instruction::PadW)];
+    procedures.insert(
+        String::from("bar"),
+        (
+            1,
+            ProcedureAst {
+                name: String::from("bar"),
+                docs: None,
+                is_export: false,
+                num_locals: 2,
+                body: proc_body_bar,
+            },
+        ),
+    );
+
+    let proc_body_baz: Vec<Node> = vec![
+        Node::Instruction(Instruction::PadW),
+        Node::Instruction(Instruction::PushConstants(vec![Felt::ZERO])),
+    ];
+    let docs_baz =
+        "Test documenation for export procedure baz in parsing test. Lorem ipsum dolor sit amet,
+consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna
+aliqua."
+            .to_string();
+    procedures.insert(
+        String::from("baz"),
+        (
+            2,
+            ProcedureAst {
+                name: String::from("baz"),
+                docs: Some(docs_baz),
+                is_export: true,
+                num_locals: 3,
+                body: proc_body_baz,
+            },
+        ),
+    );
+
+    parse_program(source).expect_err("Program should contain body and no export");
+    let module = parse_module(source).unwrap();
+    assert_eq!(module.local_procs.len(), procedures.len());
+    for (i, proc) in module.local_procs.iter().enumerate() {
+        assert_eq!(
+            procedures
+                .values()
+                .find_map(|(idx, proc)| (*idx == i as u16).then_some(proc))
+                .unwrap(),
+            proc
+        );
+    }
+    let module_serialized = module.to_bytes();
+    let module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
+
+    assert_eq!(module, module_deserialized);
+}
+
+#[test]
+fn test_ast_parsing_module_docs_fail() {
+    let source = "\
+    #! test message 1
+    
+    #! test message 2
+    export.foo.1 
+        loc_load.0
+    end";
+    parse_module(source).expect_err("comment message should not have empty lines");
+}
+
 // SERIALIZATION AND DESERIALIZATION TESTS
 // ================================================================================================
 
@@ -295,7 +415,7 @@ fn test_ast_program_serde_simple() {
     let source = "begin push.0xabc234 push.0 assertz end";
     let program = parse_program(source).unwrap();
     let program_serialized = program.to_bytes();
-    let program_deserialized = ProgramAst::from_bytes(&mut program_serialized.as_slice()).unwrap();
+    let program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
 
     assert_eq!(program, program_deserialized);
 }
@@ -315,7 +435,7 @@ fn test_ast_program_serde_local_procs() {
     end";
     let program = parse_program(source).unwrap();
     let program_serialized = program.to_bytes();
-    let program_deserialized = ProgramAst::from_bytes(&mut program_serialized.as_slice()).unwrap();
+    let program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
 
     assert_eq!(program, program_deserialized);
 }
@@ -331,7 +451,7 @@ fn test_ast_program_serde_exported_procs() {
     end";
     let module = parse_module(source).unwrap();
     let module_serialized = module.to_bytes();
-    let module_deserialized = ModuleAst::from_bytes(&mut module_serialized.as_slice()).unwrap();
+    let module_deserialized = ModuleAst::from_bytes(module_serialized.as_slice()).unwrap();
 
     assert_eq!(module, module_deserialized);
 }
@@ -368,7 +488,7 @@ fn test_ast_program_serde_control_flow() {
 
     let program = parse_program(source).unwrap();
     let program_serialized = program.to_bytes();
-    let program_deserialized = ProgramAst::from_bytes(&mut program_serialized.as_slice()).unwrap();
+    let program_deserialized = ProgramAst::from_bytes(program_serialized.as_slice()).unwrap();
 
     assert_eq!(program, program_deserialized);
 }

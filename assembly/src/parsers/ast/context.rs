@@ -223,6 +223,11 @@ impl ParserContext {
         // read procedure name and consume the procedure header token
         let header = tokens.read().expect("missing procedure header");
         let (label, num_locals, is_export) = header.parse_proc()?;
+        let docs = if is_export {
+            tokens.take_doc_comment_at(proc_start)
+        } else {
+            None
+        };
 
         tokens.advance();
 
@@ -247,6 +252,7 @@ impl ParserContext {
         // build and return the procedure
         let proc = ProcedureAst {
             name: label,
+            docs,
             num_locals,
             is_export,
             body,

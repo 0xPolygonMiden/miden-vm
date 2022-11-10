@@ -149,6 +149,14 @@ impl AssemblyError {
         }
     }
 
+    pub fn malformed_doc_comment(step: usize) -> Self {
+        AssemblyError {
+            message: "doc comments separated by line break".to_string(),
+            step,
+            op: "".to_string(),
+        }
+    }
+
     // PROGRAM
     // --------------------------------------------------------------------------------------------
 
