@@ -231,6 +231,7 @@ pub enum Instruction {
     LocStoreW(Felt),
 
     MemStream,
+    AdvPipe,
 
     AdvU64Div,
     AdvPush(Felt),

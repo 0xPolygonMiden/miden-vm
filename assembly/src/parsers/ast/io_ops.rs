@@ -136,6 +136,11 @@ pub(super) fn parse_mem_stream(op: &Token) -> Result<Node, AssemblyError> {
     Ok(Node::Instruction(Instruction::MemStream))
 }
 
+pub(super) fn parse_adv_pipe(op: &Token) -> Result<Node, AssemblyError> {
+    validate_operation!(op, "adv_pipe", 0);
+    Ok(Node::Instruction(Instruction::AdvPipe))
+}
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
