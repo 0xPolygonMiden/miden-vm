@@ -1,9 +1,8 @@
-use crate::ProcedureId;
-
 use super::{
-    io_ops, stack_ops, u32_ops, AssemblyError, Instruction, LocalProcMap, Node, ProcedureAst,
-    Token, TokenStream, MODULE_PATH_DELIM,
+    field_ops, io_ops, stack_ops, u32_ops, AssemblyError, Instruction, LocalProcMap, Node,
+    ProcedureAst, Token, TokenStream, MODULE_PATH_DELIM,
 };
+use crate::ProcedureId;
 use vm_core::utils::{
     collections::{BTreeMap, Vec},
     string::{String, ToString},
@@ -343,15 +342,15 @@ fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
         "inv" => Node::Instruction(Instruction::Inv),
 
         "pow2" => Node::Instruction(Instruction::Pow2),
-        "exp" => Node::Instruction(Instruction::Exp),
+        "exp" => field_ops::parse_exp(op)?,
 
         "not" => Node::Instruction(Instruction::Not),
         "and" => Node::Instruction(Instruction::And),
         "or" => Node::Instruction(Instruction::Or),
         "xor" => Node::Instruction(Instruction::Xor),
 
-        "eq" => Node::Instruction(Instruction::Eq),
-        "neq" => Node::Instruction(Instruction::Neq),
+        "eq" => field_ops::parse_eq(op)?,
+        "neq" => field_ops::parse_neq(op)?,
         "lt" => Node::Instruction(Instruction::Lt),
         "lte" => Node::Instruction(Instruction::Lte),
         "gt" => Node::Instruction(Instruction::Gt),
@@ -361,7 +360,7 @@ fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
         // ----- u32 operations -------------------------------------------------------------------
         "u32test" => Node::Instruction(Instruction::U32Test),
         "u32testw" => Node::Instruction(Instruction::U32TestW),
-        "u32assert" => Node::Instruction(Instruction::U32Assert),
+        "u32assert" => u32_ops::parse_u32assert(op)?,
         "u32assertw" => Node::Instruction(Instruction::U32AssertW),
         "u32cast" => Node::Instruction(Instruction::U32Cast),
         "u32split" => Node::Instruction(Instruction::U32Split),

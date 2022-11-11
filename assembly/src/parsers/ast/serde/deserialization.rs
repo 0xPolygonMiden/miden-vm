@@ -188,6 +188,8 @@ impl Deserializable for Instruction {
             OpCode::Inv => Ok(Instruction::Inv),
             OpCode::Pow2 => Ok(Instruction::Pow2),
             OpCode::Exp => Ok(Instruction::Exp),
+            OpCode::ExpImm => Ok(Instruction::ExpImm(bytes.read_felt()?)),
+            OpCode::ExpBitLength => Ok(Instruction::ExpBitLength(bytes.read_u8()?)),
             OpCode::Not => Ok(Instruction::Not),
             OpCode::And => Ok(Instruction::And),
             OpCode::Or => Ok(Instruction::Or),
@@ -206,6 +208,7 @@ impl Deserializable for Instruction {
             OpCode::U32Test => Ok(Instruction::U32Test),
             OpCode::U32TestW => Ok(Instruction::U32TestW),
             OpCode::U32Assert => Ok(Instruction::U32Assert),
+            OpCode::U32Assert2 => Ok(Instruction::U32Assert2),
             OpCode::U32AssertW => Ok(Instruction::U32AssertW),
             OpCode::U32Split => Ok(Instruction::U32Split),
             OpCode::U32Cast => Ok(Instruction::U32Cast),
@@ -411,6 +414,7 @@ impl Deserializable for Instruction {
             OpCode::ExecImported => Ok(Instruction::ExecImported(bytes.read_procedure_id()?)),
             OpCode::CallLocal => Ok(Instruction::CallLocal(bytes.read_u16()?)),
             OpCode::CallImported => Ok(Instruction::CallImported(bytes.read_procedure_id()?)),
+            OpCode::SysCall => Ok(Instruction::SysCall(bytes.read_procedure_id()?)),
         }
     }
 }

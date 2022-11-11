@@ -9,6 +9,7 @@ use nodes::{Instruction, Node};
 mod context;
 use context::ParserContext;
 
+mod field_ops;
 mod io_ops;
 mod serde;
 mod stack_ops;
