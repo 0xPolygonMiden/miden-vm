@@ -80,6 +80,18 @@ impl AdviceProvider {
         Ok(())
     }
 
+    /// Inserts a list of elements to the advice map with the top four elements of the stack as
+    /// the key.
+    ///
+    /// # Errors
+    /// Returns an error if the key is already present in the advice map.
+    pub fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
+        match self.values.insert(key.into_bytes(), values) {
+            None => Ok(()),
+            Some(_) => Err(ExecutionError::DuplicateAdviceKey(key)),
+        }
+    }
+
     // ADVISE SETS
     // --------------------------------------------------------------------------------------------
 

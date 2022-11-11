@@ -13,6 +13,7 @@ pub enum ExecutionError {
     CodeBlockNotFound(Digest),
     CallerNotInSyscall,
     DivideByZero(u32),
+    DuplicateAdviceKey(Word),
     EmptyAdviceTape(u32),
     FailedAssertion(u32),
     InvalidFmpValue(Felt, Felt),
