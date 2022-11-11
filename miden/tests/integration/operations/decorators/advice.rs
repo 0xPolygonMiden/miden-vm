@@ -117,3 +117,59 @@ fn advice_inject_u64div_conditional_execution() {
     let test = build_test!(source, &[8, 0, 4, 0, 1, 0]);
     test.expect_stack(&[0, 0, 0, 0, 0, 4, 0, 8]);
 }
+
+#[test]
+fn advice_inject_mem() {
+    let source = "begin
+    # stack: [1, 2, 3, 4, 5, 6, 7, 8]
+    
+    # write to memory and drop first word from stack to use second word as the key for advice map.
+    # mem_storew reverses the order of field elements in the word when it's stored in memory.
+    mem_storew.2 dropw mem_storew.3
+    # State Transition:
+    # stack: [5, 6, 7, 8]
+    # mem[2]: [4, 3, 2, 1]
+    # mem[3]: [8, 7, 6, 5]
+    
+    # copy from memory to advice map
+    # the key used is in the reverse order of the field elements in the word at the top of the
+    # stack.
+    adv.mem.2.2
+    # State Transition:
+    # advice_map: k: [8, 7, 6, 5], v: [4, 3, 2, 1, 8, 7, 6, 5]
+
+    # copy from advice map to advice tape
+    adv.keyval dropw
+    # State Transition:
+    # stack: [0, 0, 0, 0]
+    # advice_tape: [4, 3, 2, 1, 8, 7, 6, 5]
+
+    # copy first word from advice tape to stack
+    # adv_loadw copies the word to the stack with elements in the reverse order.
+    adv_loadw
+    # State Transition:
+    # stack: [1, 2, 3, 4, 0, 0, 0, 0]
+    # advice_tape: [8, 7, 6, 5]
+
+    # swap first 2 words on stack
+    swapw
+    # State Transition:
+    # stack: [0, 0, 0, 0, 1, 2, 3, 4]
+
+    # copy next word from advice tape to stack
+    # adv_loadw copies the word to the stack with elements in the reverse order.
+    adv_loadw
+    # State Transition:
+    # stack: [5, 6, 7, 8, 1, 2, 3, 4]
+    # advice_tape: []
+
+    # swap first 2 words on stack
+    swapw
+    # State Transition:
+    # stack: [1, 2, 3, 4, 5, 6, 7, 8]
+
+    end";
+    let stack_inputs = [8, 7, 6, 5, 4, 3, 2, 1];
+    let test = build_test!(source, &stack_inputs);
+    test.expect_stack(&[1, 2, 3, 4, 5, 6, 7, 8]);
+}
