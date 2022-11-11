@@ -37,7 +37,8 @@ use utils::range;
 // TYPE ALIASES
 // ================================================================================================
 
-pub type Word = [Felt; 4];
+pub type Word = [Felt; WORD_LEN];
+
 pub type StackTopState = [Felt; stack::STACK_TOP_SIZE];
 
 // CONSTANTS
@@ -51,6 +52,9 @@ pub const ONE: Felt = Felt::ONE;
 
 /// The minimum length of the execution trace. This is the minimum required to support range checks.
 pub const MIN_TRACE_LEN: usize = 1024;
+
+/// Number of field elements in a Word.
+pub const WORD_LEN: usize = 4;
 
 // MAIN TRACE LAYOUT
 // ------------------------------------------------------------------------------------------------

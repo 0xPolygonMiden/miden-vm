@@ -26,6 +26,8 @@ mod mem_ops;
 ///   and the remainder into the advice tape.
 /// - adv.keyval: this operation reads four elements at the top of the stack, uses it as a key to
 ///   take vector from key-value map and injects elements of this vector into the advice tape.
+/// - adv.mem.a.b: this operation copies b number of words from the memory starting at memory
+///   address a.
 pub fn parse_adv_inject(
     span_ops: &mut [Operation],
     op: &Token,
@@ -37,6 +39,15 @@ pub fn parse_adv_inject(
             Decorator::Advice(AdviceInjector::DivResultU64),
         )),
         "keyval" => decorators.push((span_ops.len(), Decorator::Advice(AdviceInjector::MapValue))),
+        "mem" => {
+            validate_operation!(op, "adv.mem", 2);
+            let start_addr = parse_u32_param(op, 2, 0, u32::MAX)?;
+            let num_words = parse_u32_param(op, 3, 1, u32::MAX - start_addr)?;
+            decorators.push((
+                span_ops.len(),
+                Decorator::Advice(AdviceInjector::Memory(start_addr, num_words)),
+            ))
+        }
         _ => return Err(AssemblyError::invalid_op(op)),
     };
 
