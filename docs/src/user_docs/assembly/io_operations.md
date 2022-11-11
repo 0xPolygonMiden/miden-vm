@@ -35,7 +35,8 @@ In both case the values must still encode valid field elements.
 | Instruction     | Stack_input | Stack_output | Notes                                      |
 | --------------- | ----------- | ------------ | ------------------------------------------ |
 | adv_push.*n* <br> - *(n cycles)*   | [ ... ]         | [a, ... ]    | $a \leftarrow tape.next()$ <br> Removes the next $n$ values from advice tape and pushes them onto the stack. Valid for $n \in \{1, ..., 16\}$. <br> Fails if the advice tape has fewer than $n$ values. |
-| adv_loadw <br> - *(1 cycle)*     | [0, 0, 0, 0, ... ] | [A, ... ] | $A \leftarrow tape.next\_word()$ <br> Removes the next word (4 elements) from the advice tape and overwrites the top four stack elements with it. <br> Fails if the advice tape has fewer than $4$ values. |
+| adv_loadw <br> - *(1 cycle)*     | [0, 0, 0, 0, ... ] | [A, ... ] | $A \leftarrow tape.next(4)$ <br> Removes the next word (4 elements) from the advice tape and overwrites the top four stack elements with it. <br> Fails if the advice tape has fewer than $4$ values. |
+| adv_pipe <br> - *(2 cycles)*     | [S2, S1, S0, a, ... ] | [T2, T1, T0, b, ... ] | $[T_0, T_1, T_2] \leftarrow permute(S_0, S_1 + tape.next(4), S_2 + tape.next(4))$ <br> $b \leftarrow a + 2$ <br> Removes the next two words (8 elements) from the advice tape, inserts them into memory sequentially starting from address $a$, then adds them to the top 8 elements of the stack and applies a Rescue Prime permutation to the top 12 elements of the stack. At the end of the operation, the address is incremented by $2$. <br> Fails if the advice tape has fewer than $8$ values. |
 
 ### Random access memory
 
