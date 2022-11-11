@@ -27,7 +27,7 @@ In both case the values must still encode valid field elements.
 | Instruction     | Stack_input | Stack_output | Notes                                      |
 | --------------- | ----------- | ------------ | ------------------------------------------ |
 | sdepth <br> - *(1 cycle)*        | [ ... ] | [d, ... ] | $d \leftarrow stack.depth()$ <br> Pushes the current depth of the stack onto the stack. |
-| caller <br> - *(1 cycle)*        | [ A, b, ... ] | [H, b, ... ] | $H \leftarrow context.fn_hash()$ <br> Overwrites the top four stack items with the hash of a function which initiated the current SYSCALL. <br> Executing this instruction outside of SYSCALL context will fail. |
+| caller <br> - *(1 cycle)*        | [ A, b, ... ] | [H, b, ... ] | $H \leftarrow context.fn\_hash()$ <br> Overwrites the top four stack items with the hash of a function which initiated the current SYSCALL. <br> Executing this instruction outside of SYSCALL context will fail. |
 | locaddr.*i* <br> - *(2 cycles)*  | [ ... ] | [a, ... ] | $a \leftarrow address\_of(i)$ <br> Pushes the absolute memory address of local memory at index $i$ onto the stack. |
 
 ### Non-deterministic inputs
