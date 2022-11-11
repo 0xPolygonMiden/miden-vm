@@ -162,6 +162,14 @@ impl Serializable for Instruction {
             Self::Inv => target.write_opcode(OpCode::Inv),
             Self::Pow2 => target.write_opcode(OpCode::Pow2),
             Self::Exp => target.write_opcode(OpCode::Exp),
+            Self::ExpImm(v) => {
+                target.write_opcode(OpCode::Exp);
+                target.write_felt(*v);
+            }
+            Self::ExpBitLength(v) => {
+                target.write_opcode(OpCode::Exp);
+                target.write_u8(*v);
+            }
             Self::Not => target.write_opcode(OpCode::Not),
             Self::And => target.write_opcode(OpCode::And),
             Self::Or => target.write_opcode(OpCode::Or),
@@ -186,6 +194,7 @@ impl Serializable for Instruction {
             Self::U32Test => target.write_opcode(OpCode::U32Test),
             Self::U32TestW => target.write_opcode(OpCode::U32TestW),
             Self::U32Assert => target.write_opcode(OpCode::U32Assert),
+            Self::U32Assert2 => target.write_opcode(OpCode::U32Assert2),
             Self::U32AssertW => target.write_opcode(OpCode::U32AssertW),
             Self::U32Split => target.write_opcode(OpCode::U32Split),
             Self::U32Cast => target.write_opcode(OpCode::U32Cast),
@@ -499,6 +508,10 @@ impl Serializable for Instruction {
             }
             Self::CallImported(imported) => {
                 target.write_opcode(OpCode::CallImported);
+                target.write_procedure_id(imported);
+            }
+            Self::SysCall(imported) => {
+                target.write_opcode(OpCode::SysCall);
                 target.write_procedure_id(imported);
             }
         }

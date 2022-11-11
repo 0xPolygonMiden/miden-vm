@@ -35,6 +35,8 @@ pub enum Instruction {
     Inv,
     Pow2,
     Exp,
+    ExpImm(Felt),
+    ExpBitLength(u8),
     Not,
     And,
     Or,
@@ -53,6 +55,7 @@ pub enum Instruction {
     U32Test,
     U32TestW,
     U32Assert,
+    U32Assert2,
     U32AssertW,
     U32Split,
     U32Cast,
@@ -245,4 +248,5 @@ pub enum Instruction {
     ExecImported(ProcedureId),
     CallLocal(u16),
     CallImported(ProcedureId),
+    SysCall(ProcedureId),
 }
