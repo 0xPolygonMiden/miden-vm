@@ -53,6 +53,25 @@ pub fn parse_adv_loadw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), 
     Ok(())
 }
 
+/// Appends operations to the span block to execute `adv_pipe` instruction. The sequence of
+/// operations is: PIPE RPPERM.
+///
+/// This instruction requires 2 VM cycles to execute.
+///
+/// # Errors
+/// This function will return an `AssemblyError` if the `adv_pipe` instruction is malformed.
+pub fn parse_adv_pipe(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "adv_pipe");
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+
+    span_ops.push(Operation::Pipe);
+    span_ops.push(Operation::RpPerm);
+
+    Ok(())
+}
+
 // TESTS
 // ================================================================================================
 

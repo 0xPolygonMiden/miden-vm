@@ -475,6 +475,7 @@ impl Serializable for Instruction {
             }
 
             Self::MemStream => target.write_opcode(OpCode::MemStream),
+            Self::AdvPipe => target.write_opcode(OpCode::AdvPipe),
 
             Self::AdvU64Div => target.write_opcode(OpCode::AdvU64Div),
             Self::AdvPush(v) => {
