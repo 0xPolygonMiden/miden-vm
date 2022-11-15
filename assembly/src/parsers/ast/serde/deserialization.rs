@@ -396,7 +396,9 @@ impl Deserializable for Instruction {
             OpCode::MemStoreW => Ok(Instruction::MemStoreW),
             OpCode::MemStoreWImm => Ok(Instruction::MemStoreWImm(bytes.read_felt()?)),
             OpCode::LocStoreW => Ok(Instruction::LocStoreW(bytes.read_felt()?)),
+
             OpCode::MemStream => Ok(Instruction::MemStream),
+            OpCode::AdvPipe => Ok(Instruction::AdvPipe),
 
             OpCode::AdvU64Div => Ok(Instruction::AdvU64Div),
             OpCode::AdvPush => Ok(Instruction::AdvPush(bytes.read_felt()?)),

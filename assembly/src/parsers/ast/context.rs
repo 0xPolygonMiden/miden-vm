@@ -468,6 +468,9 @@ fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
         "mem_storew" => io_ops::parse_mem_storew(op)?,
         "loc_storew" => io_ops::parse_loc_storew(op)?,
 
+        "mem_stream" => io_ops::parse_mem_stream(op)?,
+        "adv_pipe" => io_ops::parse_adv_pipe(op)?,
+
         "adv_push" => io_ops::parse_adv_push(op)?,
         "adv_loadw" => io_ops::parse_adv_loadw(op)?,
 
