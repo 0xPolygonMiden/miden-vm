@@ -586,3 +586,85 @@ fn test_ec_ext5_point_multiplication() {
     assert_eq!(strace[9], p1.y.a4);
     assert_eq!(strace[10], p1.point_at_infinity);
 }
+
+// Tests implementation correctness of multiplication of generator point by 319 -bit scalar.
+#[test]
+fn test_ec_ext5_gen_multiplication() {
+    let source = "
+    use.std::math::ec_ext5
+
+    begin
+        exec.ec_ext5::gen_mul
+    end";
+
+    // Conventional generator point of this group
+    // Taken from https://github.com/pornin/ecgfp5/blob/ce059c6/rust/src/curve.rs#L67-L83
+    // Note, (x, u) = (x, x/ y)
+    let gen = ECExt5 {
+        x: Ext5::new(
+            0xB2CA178ECF4453A1,
+            0x3C757788836D3EA4,
+            0x48D7F28A26DAFD0B,
+            0x1E0F15C7FD44C28E,
+            0x21FA7FFCC8252211,
+        ),
+        y: Ext5::new(
+            0xB2CA178ECF4453A1,
+            0x3C757788836D3EA4,
+            0x48D7F28A26DAFD0B,
+            0x1E0F15C7FD44C28E,
+            0x21FA7FFCC8252211,
+        ) * Ext5::from_int(4),
+        point_at_infinity: Felt::ZERO,
+    };
+    // = 1067993516717146951041484916571792702745057740581727230159139685185762082554198619328292418486241
+    // = N ( See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L922 )
+    //
+    // Converted using https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1054-L1069
+    //
+    // Or below Python code snippet
+    //
+    // [(N >> (32 * i)) & 0xffff_ffff for i in range(10)]
+    let scalar = [
+        2492202977u32,
+        3893352854,
+        3609501852,
+        3901250617,
+        3484943929,
+        2147483622,
+        22,
+        2147483633,
+        2147483655,
+        2147483645,
+    ];
+    let res = gen.scalar_mul(&scalar);
+
+    let mut stack = [
+        scalar[0] as u64,
+        scalar[1] as u64,
+        scalar[2] as u64,
+        scalar[3] as u64,
+        scalar[4] as u64,
+        scalar[5] as u64,
+        scalar[6] as u64,
+        scalar[7] as u64,
+        scalar[8] as u64,
+        scalar[9] as u64,
+    ];
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    assert_eq!(strace[0], res.x.a0);
+    assert_eq!(strace[1], res.x.a1);
+    assert_eq!(strace[2], res.x.a2);
+    assert_eq!(strace[3], res.x.a3);
+    assert_eq!(strace[4], res.x.a4);
+    assert_eq!(strace[5], res.y.a0);
+    assert_eq!(strace[6], res.y.a1);
+    assert_eq!(strace[7], res.y.a2);
+    assert_eq!(strace[8], res.y.a3);
+    assert_eq!(strace[9], res.y.a4);
+    assert_eq!(strace[10], res.point_at_infinity);
+}
