@@ -24,13 +24,15 @@ use procedures::Procedure;
 
 mod parsers;
 use parsers::{combine_blocks, parse_code_blocks};
-pub use parsers::{parse_module, ModuleAst, ProcedureAst};
+pub use parsers::{parse_module, ModuleAst, NamedModuleAst, ProcedureAst};
 
 mod tokens;
 use tokens::{Token, TokenStream};
 
 mod errors;
-pub use errors::AssemblyError;
+pub use errors::{AssemblerError, AssemblyError};
+
+pub mod todo;
 
 #[cfg(test)]
 mod tests;
@@ -93,7 +95,7 @@ pub trait ModuleProvider {
     fn get_source(&self, path: &str) -> Option<&str>;
 
     /// Fetch a module AST from its ID
-    fn get_module(&self, id: &ProcedureId) -> Option<&ModuleAst>;
+    fn get_module(&self, id: &ProcedureId) -> Option<NamedModuleAst<'_>>;
 }
 
 // A default provider that won't resolve modules
@@ -102,7 +104,7 @@ impl ModuleProvider for () {
         None
     }
 
-    fn get_module(&self, _id: &ProcedureId) -> Option<&ModuleAst> {
+    fn get_module(&self, _id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
         None
     }
 }

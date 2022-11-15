@@ -1,3 +1,5 @@
+use crate::ProcedureId;
+
 use super::{String, ToString, Token};
 use core::fmt;
 
@@ -334,6 +336,33 @@ pub enum SerializationError {
     InvalidFieldElement,
 }
 
+#[derive(Clone, Eq, PartialEq)]
+pub struct AssemblerError {
+    message: String,
+}
+
+impl AssemblerError {
+    pub fn undefined_proc(idx: u16) -> Self {
+        Self {
+            message: format!("undefined procedure: {idx}"),
+        }
+    }
+
+    pub fn undefined_imported_proc(id: &ProcedureId) -> Self {
+        Self {
+            message: format!("undefined imported procedure: {id:x?}"),
+        }
+    }
+}
+
+impl From<AssemblyError> for AssemblerError {
+    fn from(err: AssemblyError) -> Self {
+        Self {
+            message: err.to_string(),
+        }
+    }
+}
+
 // COMMON TRAIT IMPLEMENTATIONS
 // ================================================================================================
 
@@ -348,3 +377,21 @@ impl fmt::Display for AssemblyError {
         write!(f, "assembly error at {}: {}", self.step, self.message)
     }
 }
+
+impl fmt::Debug for AssemblerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "assembler error: {}", self.message)
+    }
+}
+
+impl fmt::Display for AssemblerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "assembler error: {}", self.message)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for AssemblyError {}
+
+#[cfg(feature = "std")]
+impl std::error::Error for AssemblerError {}

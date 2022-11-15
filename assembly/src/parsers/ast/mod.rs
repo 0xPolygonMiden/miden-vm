@@ -1,11 +1,11 @@
 use super::{AssemblyError, Token, TokenStream, Vec};
-use crate::{errors::SerializationError, MODULE_PATH_DELIM};
-use core::fmt::Display;
+use crate::{errors::SerializationError, ProcedureId, MODULE_PATH_DELIM};
+use core::{fmt::Display, ops::Deref};
 use serde::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_core::utils::{collections::BTreeMap, string::String, string::ToString};
 
 mod nodes;
-use nodes::{Instruction, Node};
+pub(crate) use nodes::{Instruction, Node};
 
 mod context;
 use context::ParserContext;
@@ -35,7 +35,7 @@ pub struct ProgramAst {
     pub body: Vec<Node>,
 }
 
-#[cfg(test)]
+#[allow(dead_code)]
 impl ProgramAst {
     /// Returns byte representation of the `ProgramAst`.
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -105,6 +105,76 @@ impl ModuleAst {
 
         Ok(ModuleAst { local_procs })
     }
+
+    /// Return a named reference of the module, binding it to an arbitrary path
+    pub fn named_ref<N>(&self, path: N) -> NamedModuleAst<'_>
+    where
+        N: Into<String>,
+    {
+        NamedModuleAst {
+            path: path.into(),
+            module: self,
+        }
+    }
+}
+
+/// A reference to a module AST with its name under the provider context (i.e. stdlib).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NamedModuleAst<'a> {
+    // Note: the path is taken as owned string to not leak unnecessary coupling between the path
+    // provider and the module owner.
+    path: String,
+    module: &'a ModuleAst,
+}
+
+impl<'a> Deref for NamedModuleAst<'a> {
+    type Target = ModuleAst;
+
+    fn deref(&self) -> &Self::Target {
+        self.module
+    }
+}
+
+impl<'a> NamedModuleAst<'a> {
+    /// Create a new named module
+    pub fn new<P>(path: P, module: &'a ModuleAst) -> Self
+    where
+        P: Into<String>,
+    {
+        Self {
+            path: path.into(),
+            module,
+        }
+    }
+
+    /// Full path of the module used to compute the proc id
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    /// Full path of a procedure with the given name.
+    pub fn label<N>(&self, name: N) -> String
+    where
+        N: AsRef<str>,
+    {
+        format!("{}{MODULE_PATH_DELIM}{}", self.path, name.as_ref())
+    }
+
+    /// Computed procedure id using as base the full path of the module
+    pub fn procedure_id<N>(&self, name: N) -> ProcedureId
+    where
+        N: AsRef<str>,
+    {
+        ProcedureId::new(self.label(name))
+    }
+
+    pub fn get_procedure(&self, id: &ProcedureId) -> Option<&ProcedureAst> {
+        // TODO this should be cached so we don't have to scan every request
+        self.module
+            .local_procs
+            .iter()
+            .find(|proc| &self.procedure_id(&proc.name) == id)
+    }
 }
 
 /// An abstract syntax tree of a Miden procedure.
@@ -159,7 +229,6 @@ impl Deserializable for ProcedureAst {
 
 /// Parses the provided source into a program AST. A program consist of a body and a set of
 /// internal (i.e., not exported) procedures.
-#[cfg(test)]
 pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
     let mut tokens = TokenStream::new(source)?;
     let imports = parse_imports(&mut tokens)?;
