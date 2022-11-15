@@ -7,13 +7,14 @@ use vm_core::{Felt, Operation};
 // PROCEDURE
 // ================================================================================================
 
+#[derive(Clone, Debug)]
 /// Contains metadata and code of a procedure.
 pub struct Procedure {
-    label: String,
-    is_export: bool,
+    pub(crate) label: String,
+    pub(crate) is_export: bool,
     #[allow(dead_code)]
-    num_locals: u32,
-    code_root: CodeBlock,
+    pub(crate) num_locals: u32,
+    pub(crate) code_root: CodeBlock,
 }
 
 impl Procedure {
