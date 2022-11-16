@@ -103,7 +103,7 @@ impl Assembler {
         // called procedures can be either in the global procedure cache (for procedures imported
         // from other modules) or in the context (for procedures defined locally).
         let mut cb_table = CodeBlockTable::default();
-        for proc_id in callset.inner().iter() {
+        for proc_id in callset.iter() {
             let proc = self
                 .proc_cache
                 .get(proc_id)
