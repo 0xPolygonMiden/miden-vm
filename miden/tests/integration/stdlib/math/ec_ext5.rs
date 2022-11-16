@@ -215,6 +215,7 @@ struct Scalar {
     pub limbs: [u32; 10],
 }
 
+#[allow(dead_code)]
 impl Scalar {
     const fn zero() -> Self {
         Self { limbs: [0u32; 10] }
