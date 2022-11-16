@@ -4,23 +4,22 @@
 #[macro_use]
 extern crate alloc;
 
-use core::ops;
-use crypto::{hashers::Blake3_256, Digest, Hasher};
 use vm_core::{
     code_blocks::CodeBlock,
     utils::{
-        collections::{BTreeMap, Vec},
+        collections::{BTreeMap, BTreeSet, Vec},
         string::{String, ToString},
         Box,
     },
-    CodeBlockTable, Felt, Kernel, Program,
+    CodeBlockTable, Kernel, Program,
 };
 
 mod context;
 use context::AssemblyContext;
 
 mod procedures;
-use procedures::Procedure;
+pub use procedures::ProcedureId;
+use procedures::{CallSet, Procedure};
 
 mod parsers;
 use parsers::{combine_blocks, parse_code_blocks};
@@ -47,46 +46,6 @@ const MODULE_PATH_DELIM: &str = "::";
 
 type ProcMap = BTreeMap<String, Procedure>;
 type ModuleMap = BTreeMap<String, ProcMap>;
-
-// PROCEDURE ID
-// ================================================================================================
-
-/// A procedure identifier computed as a digest truncated to [`Self::LEN`] bytes, product of the
-/// label of a procedure
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ProcedureId(pub [u8; Self::SIZE]);
-
-impl From<[u8; ProcedureId::SIZE]> for ProcedureId {
-    fn from(value: [u8; ProcedureId::SIZE]) -> Self {
-        Self(value)
-    }
-}
-
-impl ops::Deref for ProcedureId {
-    type Target = [u8; Self::SIZE];
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl ProcedureId {
-    /// Truncated length of the id
-    pub const SIZE: usize = 24;
-
-    /// Creates a new procedure id from its label, composed by module path + name identifier.
-    ///
-    /// No validation is performed regarding the consistency of the label structure
-    pub fn new<L>(label: L) -> Self
-    where
-        L: AsRef<str>,
-    {
-        let mut digest = [0u8; Self::SIZE];
-        let hash = Blake3_256::<Felt>::hash(label.as_ref().as_bytes());
-        digest.copy_from_slice(&hash.as_bytes()[..Self::SIZE]);
-        Self(digest)
-    }
-}
 
 // MODULE PROVIDER
 // ================================================================================================
