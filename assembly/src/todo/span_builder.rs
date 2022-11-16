@@ -1,3 +1,5 @@
+use vm_core::Decorator;
+
 use super::{AssemblerError, Borrow, CodeBlock, DecoratorList, Operation, Vec};
 
 // SPAN BUILDER
@@ -6,7 +8,6 @@ use super::{AssemblerError, Borrow, CodeBlock, DecoratorList, Operation, Vec};
 #[derive(Default)]
 pub struct SpanBuilder {
     ops: Vec<Operation>,
-    #[allow(dead_code)]
     decorators: DecoratorList,
 }
 
@@ -35,10 +36,19 @@ impl SpanBuilder {
         self.ops.is_empty()
     }
 
+    pub fn push_decorator(&mut self, decorator: Decorator) {
+        self.decorators.push((self.ops.len(), decorator));
+    }
+
     pub fn extract_span_into(&mut self, target: &mut Vec<CodeBlock>) {
         if !self.ops.is_empty() {
-            let ops: Vec<_> = self.ops.drain(..).collect();
-            target.push(CodeBlock::new_span(ops));
+            let ops = self.ops.drain(..).collect();
+            let decorators = self.decorators.drain(..).collect();
+            target.push(CodeBlock::new_span_with_decorators(ops, decorators));
+        } else if !self.decorators.is_empty() {
+            // this is a bug in the assembler. we shouldn't have decorators added without their
+            // associated operations
+            unreachable!()
         }
     }
 }

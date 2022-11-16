@@ -189,9 +189,12 @@ impl CallSet {
             self.0.insert(item);
         }
     }
+}
 
-    /// TODO: ideally should be converted into iter() method which would return an iterator.
-    pub fn inner(&self) -> &BTreeSet<ProcedureId> {
+impl ops::Deref for CallSet {
+    type Target = BTreeSet<ProcedureId>;
+
+    fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
