@@ -130,6 +130,7 @@ impl Process {
             Operation::MStore => self.op_mstore()?,
 
             Operation::MStream => self.op_mstream()?,
+            Operation::Pipe => self.op_pipe()?,
 
             // ----- cryptographic operations -----------------------------------------------------
             Operation::RpPerm => self.op_rpperm()?,

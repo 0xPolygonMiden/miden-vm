@@ -337,6 +337,20 @@ pub enum Operation {
     /// - All other stack elements remain the same.
     MStream,
 
+    /// Loads two words from the advice tape, writes them to memory, and adds their contents to the
+    /// top 8 elements of the stack.
+    ///
+    /// The operation works as follows:
+    /// - Two words are read from the head of the advice tape.
+    /// - The destination memory address for the first word is retrieved from the 13th stack element
+    ///   (position 12).
+    /// - The two words are written to memory consecutively, starting at this address.
+    /// - Elements of these words are added to the top 8 elements of the stack (element-wise, in
+    ///   stack order).
+    /// - Memory address (in position 12) is incremented by 2.
+    /// - All other stack elements remain the same.
+    Pipe,
+
     // ----- cryptographic operations -------------------------------------------------------------
     /// Applies Rescue Prime permutation to the top 12 elements of the stack. The rate part of the
     /// sponge is assumed to be on top of the stack, and the capacity is expected to be deepest in
@@ -477,7 +491,7 @@ impl Operation {
 
             Self::RpPerm    => 0b0101_0000,
             Self::MpVerify  => 0b0101_0010,
-            // <empty>      => 0b0101_0100
+            Self::Pipe      => 0b0101_0100,
             Self::MStream   => 0b0101_0110,
             Self::Span      => 0b0101_1000,
             Self::Join      => 0b0101_1010,
@@ -630,6 +644,7 @@ impl fmt::Display for Operation {
             Self::MStore => write!(f, "mstore"),
 
             Self::MStream => write!(f, "mstream"),
+            Self::Pipe => write!(f, "pipe"),
 
             // ----- cryptographic operations -----------------------------------------------------
             Self::RpPerm => write!(f, "rpperm"),

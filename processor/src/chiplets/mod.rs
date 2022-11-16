@@ -360,7 +360,7 @@ impl Chiplets {
 
     /// Writes the provided word at the specified context/address.
     ///
-    /// This also modifies the memory access trace.
+    /// This also modifies the memory access trace and sends a memory lookup request to the bus.
     pub fn write_mem(&mut self, ctx: u32, addr: Felt, word: Word) {
         self.memory.write(ctx, addr, self.clk, word);
 
@@ -372,8 +372,8 @@ impl Chiplets {
     /// Writes the provided element into the specified context/address leaving the remaining 3
     /// elements of the word previously stored at that address unchanged.
     ///
-    /// This also modifies the memory access trace.
-    pub fn write_mem_single(&mut self, ctx: u32, addr: Felt, value: Felt) -> Word {
+    /// This also modifies the memory access trace and sends a memory lookup request to the bus.
+    pub fn write_mem_element(&mut self, ctx: u32, addr: Felt, value: Felt) -> Word {
         let old_word = self.memory.get_old_value(ctx, addr.as_int());
         let new_word = [value, old_word[1], old_word[2], old_word[3]];
 
@@ -384,6 +384,26 @@ impl Chiplets {
         self.bus.request_memory_operation(&[lookup], self.clk);
 
         old_word
+    }
+
+    /// Writes the two provided words to two consecutive addresses in memory in the specified
+    /// context, starting at the specified address.
+    ///
+    /// This also modifies the memory access trace and sends two memory lookup requests to the bus.
+    pub fn write_mem_double(&mut self, ctx: u32, addr: Felt, words: [Word; 2]) {
+        let addr2 = addr + ONE;
+        // write two words to memory at addr and addr + 1
+        self.memory.write(ctx, addr, self.clk, words[0]);
+        self.memory.write(ctx, addr2, self.clk, words[1]);
+
+        // create lookups for both memory writes
+        let lookups = [
+            MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ctx, addr, self.clk, words[0]),
+            MemoryLookup::from_ints(MEMORY_WRITE_LABEL, ctx, addr2, self.clk, words[1]),
+        ];
+
+        // send lookups to the bus
+        self.bus.request_memory_operation(&lookups, self.clk);
     }
 
     /// Returns a word located at the specified context/address, or None if the address hasn't

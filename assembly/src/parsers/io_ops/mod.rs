@@ -2,7 +2,7 @@ use super::{
     super::validate_operation, parse_decimal_param, parse_element_param, parse_hex_param,
     parse_u32_param, push_value, AssemblyError, Felt, Operation, Token, Vec,
 };
-pub use adv_ops::{parse_adv_loadw, parse_adv_push};
+pub use adv_ops::{parse_adv_loadw, parse_adv_pipe, parse_adv_push};
 pub use constant_ops::parse_push;
 pub use env_ops::{parse_caller, parse_locaddr, parse_sdepth};
 pub use mem_ops::{parse_mem_read, parse_mem_stream, parse_mem_write};

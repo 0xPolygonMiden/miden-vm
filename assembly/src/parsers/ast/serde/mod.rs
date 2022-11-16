@@ -227,23 +227,24 @@ pub enum OpCode {
     LocStoreW = 200,
 
     MemStream = 201,
+    AdvPipe = 202,
 
-    AdvPush = 202,
-    AdvLoadW = 203,
+    AdvPush = 203,
+    AdvLoadW = 204,
 
-    AdvU64Div = 204,
+    AdvU64Div = 205,
 
     // ----- cryptographic operations ---------------------------------------------------------
-    RPHash = 205,
-    RPPerm = 206,
-    MTreeGet = 207,
-    MTreeSet = 208,
-    MTreeCWM = 209,
+    RPHash = 206,
+    RPPerm = 207,
+    MTreeGet = 208,
+    MTreeSet = 209,
+    MTreeCWM = 210,
 
     // ----- exec / call ----------------------------------------------------------------------
-    ExecLocal = 210,
-    ExecImported = 211,
-    CallLocal = 212,
-    CallImported = 213,
-    SysCall = 214,
+    ExecLocal = 211,
+    ExecImported = 212,
+    CallLocal = 213,
+    CallImported = 214,
+    SysCall = 215,
 }
