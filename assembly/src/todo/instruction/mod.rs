@@ -57,6 +57,7 @@ impl Assembler {
             Instruction::ExecImported(id) => self.exec_imported(id, callset),
             Instruction::CallLocal(idx) => self.call_local(*idx, context, callset),
             Instruction::CallImported(id) => self.call_imported(id, callset),
+            Instruction::SysCall(id) => self.syscall(id),
 
             _ => todo!(),
         }

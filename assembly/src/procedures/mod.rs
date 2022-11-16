@@ -163,6 +163,10 @@ impl ProcedureId {
     /// Truncated length of the id
     pub const SIZE: usize = 24;
 
+    /// Base kernel path
+    /// TODO better use `MODULE_PATH_DELIM`. maybe require `const_format` crate?
+    pub const KERNEL_PATH: &str = "::sys";
+
     /// Creates a new procedure id from its label, composed by module path + name identifier.
     ///
     /// No validation is performed regarding the consistency of the label format.
@@ -174,6 +178,12 @@ impl ProcedureId {
         let hash = Blake3_256::<Felt>::hash(label.as_ref().as_bytes());
         digest.copy_from_slice(&hash.as_bytes()[..Self::SIZE]);
         Self(digest)
+    }
+
+    /// Creates a new procedure ID from a name to be resolved in the kernel.
+    pub fn from_kernel_name(name: &str) -> Self {
+        let label = format!("{}{MODULE_PATH_DELIM}{name}", Self::KERNEL_PATH);
+        Self::new(label)
     }
 
     /// Creates a new procedure ID from its name and module path.

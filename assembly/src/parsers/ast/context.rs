@@ -183,6 +183,17 @@ impl ParserContext {
         }
     }
 
+    /// Parse syscall token into AST nodes.
+    fn parse_syscall(
+        &self,
+        label: String,
+        tokens: &mut TokenStream,
+    ) -> Result<Node, AssemblyError> {
+        tokens.advance();
+        let proc_id = ProcedureId::from_kernel_name(label.as_str());
+        Ok(Node::Instruction(Instruction::SysCall(proc_id)))
+    }
+
     // PROCEDURE PARSERS
     // ================================================================================================
 
@@ -291,6 +302,10 @@ impl ParserContext {
                 Token::CALL => {
                     let label = token.parse_call()?;
                     nodes.push(self.parse_call(label, tokens)?);
+                }
+                Token::SYSCALL => {
+                    let label = token.parse_syscall()?;
+                    nodes.push(self.parse_syscall(label, tokens)?);
                 }
                 Token::END => {
                     token.validate_end()?;
