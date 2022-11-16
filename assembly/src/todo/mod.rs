@@ -1,10 +1,10 @@
 use crate::{
     parsers::{self, Node, ProcedureAst, ProgramAst},
-    AssemblerError, BTreeMap, Box, CallSet, Kernel, ModuleProvider, NamedModuleAst, Procedure,
-    ProcedureId, String, ToString, Vec,
+    AssemblerError, BTreeMap, Box, CallSet, CodeBlock, CodeBlockTable, Kernel, ModuleProvider,
+    NamedModuleAst, Procedure, ProcedureId, Program, String, ToString, Vec,
 };
 use core::borrow::Borrow;
-use vm_core::{code_blocks::CodeBlock, CodeBlockTable, DecoratorList, Operation, Program};
+use vm_core::{Decorator, DecoratorList, Felt, Operation};
 
 mod instruction;
 
@@ -97,7 +97,7 @@ impl Assembler {
         }
 
         // compile the program body
-        let program_root = self.compile_body(body.iter(), &context, &mut callset)?;
+        let program_root = self.compile_body(body.iter(), &context, &mut callset, None)?;
 
         // build the code block table based on the callset constructed during program compilation;
         // called procedures can be either in the global procedure cache (for procedures imported
@@ -164,7 +164,7 @@ impl Assembler {
     /// - Computes and assigns an ID to the procedure. This is done for both exported and internal
     ///   procedures.
     /// - Determines the procedure's callset - i.e., a set of procedures which may be invoked
-    ///   during execution of this procedure.
+    ///   during execution of this procedure via `call` or `syscall` instructions.
     fn compile_procedure(
         &self,
         proc: &ProcedureAst,
@@ -173,7 +173,21 @@ impl Assembler {
     ) -> Result<Procedure, AssemblerError> {
         // compile the procedure body
         let mut callset = CallSet::default();
-        let code_root = self.compile_body(proc.body.iter(), context, &mut callset)?;
+
+        let code_root = if proc.num_locals > 0 {
+            // for procedures with locals, we need to update fmp register before and after the
+            // procedure body is executed. specifically:
+            // - to allocate procedure locals we need to increment fmp by the number of locals
+            // - to deallocate procedure locals we need to decrement it by the same amount
+            let num_locals = Felt::from(proc.num_locals);
+            let wrapper = BodyWrapper {
+                prologue: vec![Operation::Push(num_locals), Operation::FmpUpdate],
+                epilogue: vec![Operation::Push(-num_locals), Operation::FmpUpdate],
+            };
+            self.compile_body(proc.body.iter(), context, &mut callset, Some(wrapper))?
+        } else {
+            self.compile_body(proc.body.iter(), context, &mut callset, None)?
+        };
 
         // build an ID for the procedure as follows:
         // - for exported procedures: hash("module_path::proc_name")
@@ -186,14 +200,7 @@ impl Assembler {
             ProcedureId::from_index(proc_idx, context.module_path())
         };
 
-        Ok(Procedure {
-            id: proc_id,
-            label: proc.name.to_string(),
-            is_export: proc.is_export,
-            num_locals: proc.num_locals,
-            code_root,
-            callset,
-        })
+        Ok(Procedure::from_ast(proc, proc_id, code_root, callset))
     }
 
     // CODE BODY COMPILER
@@ -205,16 +212,14 @@ impl Assembler {
         body: A,
         context: &AssemblerContext,
         callset: &mut CallSet,
+        wrapper: Option<BodyWrapper>,
     ) -> Result<CodeBlock, AssemblerError>
     where
         A: Iterator<Item = N>,
         N: Borrow<Node>,
     {
-        let (size, hint) = body.size_hint();
-        let size = hint.unwrap_or(size);
-
-        let mut blocks: Vec<CodeBlock> = Vec::with_capacity(size);
-        let mut span = SpanBuilder::default();
+        let mut blocks: Vec<CodeBlock> = Vec::new();
+        let mut span = SpanBuilder::new(wrapper);
 
         for node in body {
             match node.borrow() {
@@ -230,8 +235,8 @@ impl Assembler {
                 Node::IfElse(t, f) => {
                     span.extract_span_into(&mut blocks);
 
-                    let t = self.compile_body(t.iter(), context, callset)?;
-                    let f = self.compile_body(f.iter(), context, callset)?;
+                    let t = self.compile_body(t.iter(), context, callset, None)?;
+                    let f = self.compile_body(f.iter(), context, callset, None)?;
                     let block = CodeBlock::new_split(t, f);
 
                     blocks.push(block);
@@ -240,7 +245,7 @@ impl Assembler {
                 Node::Repeat(n, nodes) => {
                     span.extract_span_into(&mut blocks);
 
-                    let block = self.compile_body(nodes.iter(), context, callset)?;
+                    let block = self.compile_body(nodes.iter(), context, callset, None)?;
 
                     for _ in 0..*n {
                         blocks.push(block.clone());
@@ -250,7 +255,7 @@ impl Assembler {
                 Node::While(nodes) => {
                     span.extract_span_into(&mut blocks);
 
-                    let block = self.compile_body(nodes.iter(), context, callset)?;
+                    let block = self.compile_body(nodes.iter(), context, callset, None)?;
                     let block = CodeBlock::new_loop(block);
 
                     blocks.push(block);
@@ -258,7 +263,7 @@ impl Assembler {
             }
         }
 
-        span.extract_span_into(&mut blocks);
+        span.extract_final_span_into(&mut blocks);
 
         Ok(parsers::combine_blocks(blocks))
     }
@@ -297,6 +302,16 @@ impl Default for Assembler {
     fn default() -> Self {
         Self::new()
     }
+}
+
+// BODY WRAPPER
+// ================================================================================================
+
+/// Contains a set of operations which need to be executed before and after a sequence of AST
+/// nodes (i.e., code body).
+struct BodyWrapper {
+    prologue: Vec<Operation>,
+    epilogue: Vec<Operation>,
 }
 
 // TESTS
