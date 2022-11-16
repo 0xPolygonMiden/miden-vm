@@ -20,12 +20,12 @@ While writing programs in assembly is far from ideal, Miden assembly does make t
 ## Inputs and outputs
 External inputs can be provided to Miden VM in two way:
 
-1. Public inputs can be supplied to the VM by initializing the stack with desired values before a program starts executing. Up to 16 stack items can be initialized in this way.
+1. Public inputs can be supplied to the VM by initializing the stack with desired values before a program starts executing. Any number of stack items can be initialized in this way, but providing a large number of public inputs will increase the cost for the verifier.
 2. Secret (or nondeterministic) inputs can be supplied to the VM via the *advice provider* (described below). There is no limit on how much data the advice provider can hold.
 
-After a program finishes executing up to 16 elements can remain on the stack. These elements then become the outputs of the program.
+After a program finishes executing, the elements remaining on the stack become the outputs of the program. Since these outputs will be public inputs for the verifier, having a large stack at the end of execution will increase cost to the verifier. Therefore, it's best to drop unneeded output values. We've provided the [`truncate_stack`](../user_docs/stdlib/sys.md) utility function in the standard library for this purpose.
 
-Having only 16 elements to describe public inputs and outputs of a program may seem limiting, however, just 4 elements are sufficient to represent a root of a Merkle tree which can be expanded into an arbitrary number of values.
+The number of public inputs and outputs of a program can be reduced by making use of the advice tape and Merkle trees. Just 4 elements are sufficient to represent a root of a Merkle tree, which can be expanded into an arbitrary number of values.
 
 For example, if we wanted to provide a thousand public input values to the VM, we could put these values into a Merkle tree, initialize the stack with the root of this tree, initialize the advice provider with the tree itself, and then retrieve values from the tree during program execution using `mtree_get` instruction (described [here](../user_docs/assembly/cryptographic_operations.md#hashing-and-merkle-trees)).
 
