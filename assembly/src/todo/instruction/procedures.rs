@@ -80,4 +80,22 @@ impl Assembler {
         let digest = proc.code_root().hash();
         Ok(Some(CodeBlock::new_call(digest)))
     }
+
+    pub(super) fn syscall(
+        &self,
+        proc_id: &ProcedureId,
+    ) -> Result<Option<CodeBlock>, AssemblerError> {
+        // fetch from proc cache and check if its a kernel procedure
+        // note: the assembler is expected to have all kernel procedures properly inserted in the
+        // proc cache upon initialization, with their correct procedure ids
+        let digest = self
+            .proc_cache
+            .get(proc_id)
+            .map(|p| p.code_root().hash())
+            .filter(|digest| self.kernel.contains_proc(*digest))
+            .ok_or_else(|| AssemblerError::undefined_syscall(proc_id))?;
+
+        // return the code block of the procedure
+        Ok(Some(CodeBlock::new_syscall(digest)))
+    }
 }
