@@ -1,6 +1,6 @@
 use super::{
     combine_blocks, parse_code_blocks, AssemblyContext, AssemblyError, BTreeSet, CodeBlock,
-    CodeBlockTable, String, Token, TokenStream, Vec,
+    CodeBlockTable, String, Token, TokenStream, Vec, MODULE_PATH_DELIM,
 };
 use core::ops;
 use crypto::{hashers::Blake3_256, Digest, Hasher};
@@ -12,6 +12,7 @@ use vm_core::{Felt, Operation};
 #[derive(Clone, Debug)]
 /// Contains metadata and code of a procedure.
 pub struct Procedure {
+    pub(crate) id: ProcedureId,
     pub(crate) label: String,
     pub(crate) is_export: bool,
     #[allow(dead_code)]
@@ -24,9 +25,9 @@ impl Procedure {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a root of this procedure's MAST.
-    pub fn code_root(&self) -> &CodeBlock {
-        &self.code_root
+    /// Returns ID of this procedure.
+    pub fn id(&self) -> &ProcedureId {
+        &self.id
     }
 
     /// Returns a label of this procedure.
@@ -37,6 +38,11 @@ impl Procedure {
     /// Returns `true` if this is an exported procedure.
     pub fn is_export(&self) -> bool {
         self.is_export
+    }
+
+    /// Returns a root of this procedure's MAST.
+    pub fn code_root(&self) -> &CodeBlock {
+        &self.code_root
     }
 
     /// Returns a reference to a set of all procedures (identified by their IDs) which may be
@@ -96,6 +102,7 @@ impl Procedure {
 
         // build and return the procedure
         Ok(Self {
+            id: ProcedureId::default(),
             label,
             is_export,
             num_locals,
@@ -133,7 +140,7 @@ impl ProcedureId {
 
     /// Creates a new procedure id from its label, composed by module path + name identifier.
     ///
-    /// No validation is performed regarding the consistency of the label structure
+    /// No validation is performed regarding the consistency of the label format.
     pub fn new<L>(label: L) -> Self
     where
         L: AsRef<str>,
@@ -142,6 +149,23 @@ impl ProcedureId {
         let hash = Blake3_256::<Felt>::hash(label.as_ref().as_bytes());
         digest.copy_from_slice(&hash.as_bytes()[..Self::SIZE]);
         Self(digest)
+    }
+
+    /// Creates a new procedure ID from its name and module path.
+    ///
+    /// No validation is performed regarding the consistency of the module path or procedure name
+    /// format.
+    pub fn from_name(name: &str, module_path: &str) -> Self {
+        let label = format!("{module_path}{MODULE_PATH_DELIM}{name}");
+        Self::new(label)
+    }
+
+    /// Creates a new procedure ID from its local index and module path.
+    ///
+    /// No validation is performed regarding the consistency of the module path format.
+    pub fn from_index(index: u16, module_path: &str) -> Self {
+        let label = format!("{module_path}{MODULE_PATH_DELIM}{index}");
+        Self::new(label)
     }
 }
 
@@ -152,6 +176,10 @@ impl ProcedureId {
 pub struct CallSet(BTreeSet<ProcedureId>);
 
 impl CallSet {
+    pub fn contains(&self, proc_id: &ProcedureId) -> bool {
+        self.0.contains(proc_id)
+    }
+
     pub fn insert(&mut self, proc_id: ProcedureId) {
         self.0.insert(proc_id);
     }
