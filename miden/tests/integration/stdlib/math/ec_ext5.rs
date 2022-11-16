@@ -347,6 +347,35 @@ impl Scalar {
     fn from_mont(&self) -> Self {
         self.mont_mul(&Self::one())
     }
+
+    /// Raises scalar field element to n -th power | n = exp i.e. represented in radix-2^32 form
+    fn pow(self, exp: Self) -> Self {
+        let mut res = Self::one();
+
+        for i in exp.limbs.iter().rev() {
+            for j in (0u32..32).rev() {
+                res = res * res;
+                if ((*i >> j) & 1u32) == 1u32 {
+                    res = res * self;
+                }
+            }
+        }
+        res
+    }
+    /// Computes multiplicative inverse ( say a' ) of scalar field element a | a * a' = 1 ( mod N )
+    ///
+    /// Note, if a = 0, then a' = 0.
+    ///
+    /// See https://github.com/itzmeanjan/secp256k1/blob/6e5e654/field/scalar_field.py#L111-L129
+    fn inv(self) -> Self {
+        let exp = Self {
+            limbs: [
+                2492202975, 3893352854, 3609501852, 3901250617, 3484943929, 2147483622, 22,
+                2147483633, 2147483655, 2147483645,
+            ],
+        };
+        self.pow(exp)
+    }
 }
 
 impl Mul for Scalar {
@@ -837,22 +866,10 @@ fn test_ec_ext5_gen_multiplication() {
 #[test]
 fn test_ec_ext5_scalar_arithmetic() {
     let a = Scalar {
-        limbs: [
-            1246101489, 1946676427, 3952234574, 4098108956, 1742471964, 1073741811, 2147483659,
-            3221225464, 3221225475, 1073741822,
-        ],
-    };
-    let b = Scalar {
         limbs: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     };
-
+    let b = a.inv();
     let c = a * b;
-    let d = a
-        .to_mont() // convert `a` to Montogomery form
-        .mont_mul(
-            &b.to_mont(), // convert `b` to Montgomery form
-        ) // perform multiplication in Montgomery form
-        .from_mont(); // finally get result in radix-2^32 form
+
     assert_eq!(c, Scalar::one());
-    assert_eq!(d, Scalar::one());
 }
