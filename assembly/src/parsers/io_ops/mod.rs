@@ -2,10 +2,10 @@ use super::{
     super::validate_operation, parse_decimal_param, parse_element_param, parse_hex_param,
     parse_u32_param, push_value, AssemblyError, Felt, Operation, Token, Vec,
 };
-pub use adv_ops::{parse_adv_loadw, parse_adv_push};
+pub use adv_ops::{parse_adv_loadw, parse_adv_pipe, parse_adv_push};
 pub use constant_ops::parse_push;
-pub use env_ops::{parse_locaddr, parse_sdepth};
-pub use mem_ops::{parse_mem_read, parse_mem_write};
+pub use env_ops::{parse_caller, parse_locaddr, parse_sdepth};
+pub use mem_ops::{parse_mem_read, parse_mem_stream, parse_mem_write};
 use vm_core::{AdviceInjector, Decorator, DecoratorList};
 
 mod adv_ops;
@@ -26,6 +26,8 @@ mod mem_ops;
 ///   and the remainder into the advice tape.
 /// - adv.keyval: this operation reads four elements at the top of the stack, uses it as a key to
 ///   take vector from key-value map and injects elements of this vector into the advice tape.
+/// - adv.mem.a.b: this operation copies b number of words from the memory starting at memory
+///   address a.
 pub fn parse_adv_inject(
     span_ops: &mut [Operation],
     op: &Token,
@@ -37,6 +39,15 @@ pub fn parse_adv_inject(
             Decorator::Advice(AdviceInjector::DivResultU64),
         )),
         "keyval" => decorators.push((span_ops.len(), Decorator::Advice(AdviceInjector::MapValue))),
+        "mem" => {
+            validate_operation!(op, "adv.mem", 2);
+            let start_addr = parse_u32_param(op, 2, 0, u32::MAX)?;
+            let num_words = parse_u32_param(op, 3, 1, u32::MAX - start_addr)?;
+            decorators.push((
+                span_ops.len(),
+                Decorator::Advice(AdviceInjector::Memory(start_addr, num_words)),
+            ))
+        }
         _ => return Err(AssemblyError::invalid_op(op)),
     };
 

@@ -1,5 +1,8 @@
-use crate::build_op_test;
-use crate::helpers::{prop_randw, TestError, U32_BOUND, WORD_LEN};
+use crate::{
+    build_op_test,
+    helpers::{prop_randw, TestError, U32_BOUND},
+};
+use vm_core::WORD_LEN;
 
 mod arithmetic_ops;
 mod bitwise_ops;

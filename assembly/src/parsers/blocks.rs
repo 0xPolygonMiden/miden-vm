@@ -75,6 +75,7 @@ impl BlockParser {
                         &mut span_ops,
                         num_proc_locals,
                         &mut decorators,
+                        context.in_kernel(),
                         context.in_debug_mode(),
                     )?;
                     tokens.advance();

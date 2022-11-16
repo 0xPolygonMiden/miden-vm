@@ -24,7 +24,7 @@ use procedures::Procedure;
 
 mod parsers;
 use parsers::{combine_blocks, parse_code_blocks};
-pub use parsers::{parse_module, ModuleAst};
+pub use parsers::{parse_module, ModuleAst, ProcedureAst};
 
 mod tokens;
 use tokens::{Token, TokenStream};
