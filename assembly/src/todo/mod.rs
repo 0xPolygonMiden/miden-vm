@@ -1,90 +1,50 @@
-mod instruction;
-
-use core::borrow::Borrow;
-
-use crate::BTreeMap;
-use vm_core::{code_blocks::CodeBlock, CodeBlockTable, DecoratorList, Operation, Program};
-
 use crate::{
     parsers::{self, Node, ProcedureAst, ProgramAst},
     procedures::Procedure,
-    AssemblerError, ModuleProvider, ProcedureId,
+    AssemblerError, BTreeMap, Box, Kernel, ModuleProvider, NamedModuleAst, ProcedureId, ToString,
+    Vec,
 };
+use core::borrow::Borrow;
+use vm_core::{code_blocks::CodeBlock, CodeBlockTable, DecoratorList, Operation, Program};
 
-#[derive(Default)]
-struct SpanBuilder {
-    ops: Vec<Operation>,
-    #[allow(dead_code)]
-    decorators: DecoratorList,
-}
+mod instruction;
 
-impl SpanBuilder {
-    pub fn add_op(&mut self, op: Operation) -> Result<Option<CodeBlock>, AssemblerError> {
-        self.ops.push(op);
-        Ok(None)
-    }
+mod span_builder;
+use span_builder::SpanBuilder;
 
-    pub fn add_ops<I, O>(&mut self, ops: I) -> Result<Option<CodeBlock>, AssemblerError>
-    where
-        I: IntoIterator<Item = O>,
-        O: Borrow<Operation>,
-    {
-        self.ops.extend(ops.into_iter().map(|o| *o.borrow()));
-        Ok(None)
-    }
+mod context;
+use context::AssemblerContext;
 
-    #[allow(dead_code)]
-    pub fn push_op(&mut self, op: Operation) {
-        self.ops.push(op);
-    }
-
-    #[allow(dead_code)]
-    pub fn has_ops(&self) -> bool {
-        self.ops.is_empty()
-    }
-
-    pub fn extract_span_into(&mut self, target: &mut Vec<CodeBlock>) {
-        if !self.ops.is_empty() {
-            let ops: Vec<_> = self.ops.drain(..).collect();
-            target.push(CodeBlock::new_span(ops));
-        }
-    }
-}
-
-pub struct AssemblerContext {
-    cb_table: CodeBlockTable,
-    locals: Vec<Procedure>,
-    procedures: BTreeMap<ProcedureId, CodeBlock>,
-}
-
-impl AssemblerContext {
-    pub fn get_code(&self, id: &ProcedureId) -> Option<&CodeBlock> {
-        self.procedures.get(id)
-    }
-
-    pub fn add_local_procedure(&mut self, procedure: Procedure) {
-        if procedure.is_export() {
-            /*
-            // what is the local path for exported procedures?
-            let id = todo!();
-            self.procedures.insert(id, procedure.code_root().clone());
-            */
-        }
-        self.locals.push(procedure);
-    }
-}
+// ASSEMBLER
+// ================================================================================================
 
 pub struct Assembler {
+    kernel: Kernel,
     module_provider: Box<dyn ModuleProvider>,
+    proc_cache: BTreeMap<ProcedureId, Procedure>,
+    in_debug_mode: bool,
 }
 
 impl Assembler {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+    /// Returns a new instance of [Assembler] instantiated with empty module map.
     pub fn new() -> Self {
         Self {
+            kernel: Kernel::default(),
             module_provider: Box::new(()),
+            proc_cache: BTreeMap::default(),
+            in_debug_mode: false,
         }
     }
 
+    /// Puts the assembler into debug mode.
+    pub fn with_debug_mode(mut self) -> Self {
+        self.in_debug_mode = true;
+        self
+    }
+
+    /// Adds the specified [ModuleProvider] to the assembler.
     pub fn with_module_provider<P>(mut self, provider: P) -> Self
     where
         P: ModuleProvider + 'static,
@@ -93,45 +53,92 @@ impl Assembler {
         self
     }
 
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns true if this assembler was instantiated in debug mode.
+    pub fn in_debug_mode(&self) -> bool {
+        self.in_debug_mode
+    }
+
+    /// Returns a reference to the kernel for this assembler.
+    ///
+    /// If the assembler was instantiated without a kernel, the internal kernel will be empty.
+    pub fn kernel(&self) -> &Kernel {
+        &self.kernel
+    }
+
+    // PROGRAM COMPILER
+    // --------------------------------------------------------------------------------------------
+    /// Compiles the provided source code into a [Program]. The resulting program can be executed
+    /// on Miden VM.
+    ///
+    /// # Errors
+    /// Returns an error if parsing or compilation of the specified program fails.
     pub fn compile<S>(&self, source: S) -> Result<Program, AssemblerError>
     where
         S: AsRef<str>,
     {
+        // parse the program into an AST
         let source = source.as_ref();
         let ProgramAst { local_procs, body } = parsers::parse_program(source)?;
-        let mut context = self.context(local_procs.iter())?;
 
-        let root = self.compile_body(body.iter(), &mut context)?;
-
-        Ok(Program::new(root))
-    }
-
-    fn context<I, P>(&self, procs: I) -> Result<AssemblerContext, AssemblerError>
-    where
-        I: Iterator<Item = P>,
-        P: Borrow<ProcedureAst>,
-    {
-        let (size, hint) = procs.size_hint();
-        let size = hint.unwrap_or(size);
-
-        let mut context = AssemblerContext {
-            cb_table: CodeBlockTable::default(),
-            locals: Vec::with_capacity(size),
-            procedures: BTreeMap::new(),
-        };
-
-        for proc in procs {
-            self.compile_procedure(proc, &mut context)
-                .map(|proc| context.add_local_procedure(proc))?;
+        // compile all local procedures in the program
+        let mut ctx = AssemblerContext::new();
+        let mut cb_table = CodeBlockTable::default();
+        for proc_ast in local_procs.iter() {
+            let proc = self.compile_procedure(proc_ast, &ctx, &mut cb_table)?;
+            if proc.is_export() {
+                // TODO: return an error
+            }
+            ctx.add_local_procedure(proc);
         }
 
-        Ok(context)
+        // compile the program body and return the resulting program
+        let program_root = self.compile_body(body.iter(), &ctx, &mut cb_table)?;
+        Ok(Program::with_kernel(
+            program_root,
+            self.kernel.clone(),
+            cb_table,
+        ))
     }
+
+    // MODULE COMPILER
+    // --------------------------------------------------------------------------------------------
+
+    #[allow(clippy::cast_ref_to_mut)]
+    fn compile_module(
+        &self,
+        module: &NamedModuleAst,
+        cb_table: &mut CodeBlockTable,
+    ) -> Result<(), AssemblerError> {
+        let mut ctx = AssemblerContext::new();
+        for proc_ast in module.local_procs.iter() {
+            let proc = self.compile_procedure(proc_ast, &ctx, cb_table)?;
+            ctx.add_local_procedure(proc);
+        }
+
+        for proc in ctx.into_local_procs() {
+            if proc.is_export() {
+                unsafe {
+                    let mutable_self = &mut *(self as *const _ as *mut Assembler);
+                    let proc_id = module.procedure_id(&proc.label);
+                    mutable_self.proc_cache.insert(proc_id, proc);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    // PROCEDURE COMPILER
+    // --------------------------------------------------------------------------------------------
 
     fn compile_procedure<P>(
         &self,
         procedure: P,
-        context: &mut AssemblerContext,
+        context: &AssemblerContext,
+        cb_table: &mut CodeBlockTable,
     ) -> Result<Procedure, AssemblerError>
     where
         P: Borrow<ProcedureAst>,
@@ -144,7 +151,7 @@ impl Assembler {
             ..
         } = procedure.borrow();
 
-        let code_root = self.compile_body(body.iter(), context)?;
+        let code_root = self.compile_body(body.iter(), context, cb_table)?;
 
         Ok(Procedure {
             label: name.to_string(),
@@ -154,10 +161,14 @@ impl Assembler {
         })
     }
 
+    // CODE BODY COMPILER
+    // --------------------------------------------------------------------------------------------
+
     fn compile_body<A, N>(
         &self,
         ast: A,
-        context: &mut AssemblerContext,
+        context: &AssemblerContext,
+        cb_table: &mut CodeBlockTable,
     ) -> Result<CodeBlock, AssemblerError>
     where
         A: Iterator<Item = N>,
@@ -173,7 +184,7 @@ impl Assembler {
             match node.borrow() {
                 Node::Instruction(instruction) => {
                     if let Some(block) =
-                        self.compile_instruction(context, &mut span, instruction)?
+                        self.compile_instruction(instruction, &mut span, context, cb_table)?
                     {
                         span.extract_span_into(&mut blocks);
                         blocks.push(block);
@@ -183,8 +194,8 @@ impl Assembler {
                 Node::IfElse(t, f) => {
                     span.extract_span_into(&mut blocks);
 
-                    let t = self.compile_body(t.iter(), context)?;
-                    let f = self.compile_body(f.iter(), context)?;
+                    let t = self.compile_body(t.iter(), context, cb_table)?;
+                    let f = self.compile_body(f.iter(), context, cb_table)?;
                     let block = CodeBlock::new_split(t, f);
 
                     blocks.push(block);
@@ -193,7 +204,7 @@ impl Assembler {
                 Node::Repeat(n, nodes) => {
                     span.extract_span_into(&mut blocks);
 
-                    let block = self.compile_body(nodes.iter(), context)?;
+                    let block = self.compile_body(nodes.iter(), context, cb_table)?;
 
                     for _ in 0..*n {
                         blocks.push(block.clone());
@@ -203,7 +214,7 @@ impl Assembler {
                 Node::While(nodes) => {
                     span.extract_span_into(&mut blocks);
 
-                    let block = self.compile_body(nodes.iter(), context)?;
+                    let block = self.compile_body(nodes.iter(), context, cb_table)?;
                     let block = CodeBlock::new_loop(block);
 
                     blocks.push(block);
@@ -215,7 +226,47 @@ impl Assembler {
 
         Ok(parsers::combine_blocks(blocks))
     }
+
+    // PROCEDURE GETTER
+    // --------------------------------------------------------------------------------------------
+    /// Returns procedure MAST for a procedure with the specified ID.
+    ///
+    /// This will first check if procedure is in the assembler's cache, and if not, will attempt
+    /// to find the module in which the procedure is located, compile the module and return the
+    /// compiled procedure MAST.
+    fn fetch_procedure(
+        &self,
+        proc_id: &ProcedureId,
+        cb_table: &mut CodeBlockTable,
+    ) -> Result<&Procedure, AssemblerError> {
+        // if the procedure is already in the procedure cache, return it
+        if let Some(p) = self.proc_cache.get(proc_id) {
+            return Ok(p);
+        }
+
+        // otherwise, get the module to which the procedure belongs and compile the entire module;
+        // this will add all procedures exported from the module to the procedure cache
+        let module = self
+            .module_provider
+            .get_module(proc_id)
+            .ok_or_else(|| AssemblerError::undefined_imported_proc(proc_id))?;
+        self.compile_module(&module, cb_table)?;
+
+        // then, get the procedure out of the procedure cache and return
+        self.proc_cache
+            .get(proc_id)
+            .ok_or_else(|| AssemblerError::undefined_imported_proc(proc_id))
+    }
 }
+
+impl Default for Assembler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// TESTS
+// ================================================================================================
 
 #[test]
 fn nested_block_works() {
@@ -238,7 +289,7 @@ fn nested_block_works() {
     let module_provider = DummyModuleProvider {
         module: parsers::parse_module(
             r#"
-            proc.baz
+            export.baz
                 push.29
             end"#,
         )

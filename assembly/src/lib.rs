@@ -48,7 +48,7 @@ const MODULE_PATH_DELIM: &str = "::";
 type ProcMap = BTreeMap<String, Procedure>;
 type ModuleMap = BTreeMap<String, ProcMap>;
 
-// MODULE PROVIDER
+// PROCEDURE ID
 // ================================================================================================
 
 /// A procedure identifier computed as a digest truncated to [`Self::LEN`] bytes, product of the
@@ -74,7 +74,7 @@ impl ProcedureId {
     /// Truncated length of the id
     pub const SIZE: usize = 24;
 
-    /// Createa a new procedure id from its label, composed by module path + name identifier.
+    /// Creates a new procedure id from its label, composed by module path + name identifier.
     ///
     /// No validation is performed regarding the consistency of the label structure
     pub fn new<L>(label: L) -> Self
@@ -87,6 +87,9 @@ impl ProcedureId {
         Self(digest)
     }
 }
+
+// MODULE PROVIDER
+// ================================================================================================
 
 /// The module provider is now a simplified version of a module cache. It is expected to evolve to
 /// a general solution for the module lookup
