@@ -1,6 +1,6 @@
 use super::{
     combine_blocks, parse_code_blocks, AssemblyContext, AssemblyError, BTreeSet, CodeBlock,
-    CodeBlockTable, String, Token, TokenStream, Vec, MODULE_PATH_DELIM,
+    CodeBlockTable, ProcedureAst, String, ToString, Token, TokenStream, Vec, MODULE_PATH_DELIM,
 };
 use core::ops;
 use crypto::{hashers::Blake3_256, Digest, Hasher};
@@ -12,16 +12,35 @@ use vm_core::{Felt, Operation};
 #[derive(Clone, Debug)]
 /// Contains metadata and code of a procedure.
 pub struct Procedure {
-    pub(crate) id: ProcedureId,
-    pub(crate) label: String,
-    pub(crate) is_export: bool,
-    #[allow(dead_code)]
-    pub(crate) num_locals: u32,
-    pub(crate) code_root: CodeBlock,
-    pub(crate) callset: CallSet,
+    id: ProcedureId,
+    label: String,
+    is_export: bool,
+    num_locals: u32,
+    code_root: CodeBlock,
+    callset: CallSet,
 }
 
 impl Procedure {
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+    /// Returns a new [Procedure] instantiated from the provided procedure AST and other specified
+    /// parameters.
+    pub fn from_ast(
+        ast: &ProcedureAst,
+        id: ProcedureId,
+        code_root: CodeBlock,
+        callset: CallSet,
+    ) -> Self {
+        Self {
+            id,
+            label: ast.name.to_string(),
+            is_export: ast.is_export,
+            num_locals: ast.num_locals,
+            code_root,
+            callset,
+        }
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
@@ -38,6 +57,12 @@ impl Procedure {
     /// Returns `true` if this is an exported procedure.
     pub fn is_export(&self) -> bool {
         self.is_export
+    }
+
+    /// Returns the number of memory locals reserved by the procedure.
+    #[allow(dead_code)]
+    pub fn num_locals(&self) -> u32 {
+        self.num_locals
     }
 
     /// Returns a root of this procedure's MAST.
