@@ -311,13 +311,15 @@ impl Scalar {
             let mut cc2 = 0u32;
 
             for j in 0..10 {
-                let (t0, flg0) = self.limbs[j].widening_mul(m);
+                let v0 = (self.limbs[j] as u64) * (m as u64);
+                let (t0, flg0) = (v0 as u32, (v0 >> 32) as u32);
                 let (t1, flg1) = t0.overflowing_add(r.limbs[j]);
                 let (t2, flg2) = t1.overflowing_add(cc1);
 
                 cc1 = flg0 + flg1 as u32 + flg2 as u32;
 
-                let (t3, flg3) = f.widening_mul(Self::get_n().limbs[j]);
+                let v1 = (f as u64) * (Self::get_n().limbs[j] as u64);
+                let (t3, flg3) = (v1 as u32, (v1 >> 32) as u32);
                 let (t4, flg4) = t3.overflowing_add(t2);
                 let (t5, flg5) = t4.overflowing_add(cc2);
 
