@@ -1,0 +1,4 @@
+proc.routine
+    push.1
+    drop
+end
