@@ -12,6 +12,6 @@ pub(super) fn add_imm(
     if imm == &Felt::ONE {
         span.add_op(Incr)
     } else {
-        span.add_ops(&[Push(*imm), Add])
+        span.add_ops([Push(*imm), Add])
     }
 }
