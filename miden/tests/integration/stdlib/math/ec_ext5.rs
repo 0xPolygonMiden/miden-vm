@@ -865,8 +865,9 @@ fn test_ec_ext5_gen_multiplication() {
 
 #[test]
 fn test_ec_ext5_scalar_arithmetic() {
+    // random scalar, sampled from a fairly small space
     let a = Scalar {
-        limbs: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        limbs: [rand_utils::rand_value::<u32>(), 0, 0, 0, 0, 0, 0, 0, 0, 0],
     };
     let b = a.inv();
     let c = a * b;
