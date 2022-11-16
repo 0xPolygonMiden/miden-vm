@@ -1,4 +1,4 @@
-use super::{Procedure, Vec};
+use super::{AssemblerError, Procedure, Vec};
 
 // ASSEMBLER CONTEXT
 // ================================================================================================
@@ -14,15 +14,17 @@ impl AssemblerContext {
         }
     }
 
-    pub fn local_procs(&self) -> &[Procedure] {
-        &self.local_procs
-    }
-
     pub fn add_local_procedure(&mut self, procedure: Procedure) {
         self.local_procs.push(procedure);
     }
 
     pub fn into_local_procs(self) -> Vec<Procedure> {
         self.local_procs
+    }
+
+    pub fn get_local_proc(&self, index: u16) -> Result<&Procedure, AssemblerError> {
+        self.local_procs
+            .get(index as usize)
+            .ok_or_else(|| AssemblerError::undefined_proc(index))
     }
 }
