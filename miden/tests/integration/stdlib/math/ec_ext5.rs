@@ -229,7 +229,7 @@ impl Scalar {
     /// ECExt5 Scalar N = 1067993516717146951041484916571792702745057740581727230159139685185762082554198619328292418486241
     /// in radix-2^32 form
     ///
-    /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b965f0c4043815e513954a426ba50de903b/rust/src/scalar.rs#L23-L32
+    /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b9/rust/src/scalar.rs#L23-L32
     const fn get_n() -> Self {
         Self {
             limbs: [
@@ -241,7 +241,7 @@ impl Scalar {
 
     /// = ((2 ^ 320) ^ 2) % N | N = get_n()
     ///
-    /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b965f0c4043815e513954a426ba50de903b/rust/src/scalar.rs#L48-L55
+    /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b9/rust/src/scalar.rs#L48-L55
     const fn get_r2() -> Self {
         Self {
             limbs: [
@@ -256,7 +256,7 @@ impl Scalar {
     ///
     /// = -1/ n0 (mod 2^32)
     ///
-    /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b965f0c4043815e513954a426ba50de903b/rust/src/scalar.rs#L34-L35
+    /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b9/rust/src/scalar.rs#L34-L35
     const fn get_neg_n0_inv() -> u32 {
         91978719
     }
@@ -266,7 +266,7 @@ impl Scalar {
     /// Second return value, = 0xffff_ffff, if oveflow has occurred
     ///                else  = 0, if no overflow during subtraction
     ///
-    /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b965f0c4043815e513954a426ba50de903b/rust/src/scalar.rs#L80-L92
+    /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b9/rust/src/scalar.rs#L80-L92
     fn sub_inner(&self, rhs: &Self) -> (Self, u32) {
         let mut r = Self::zero();
         let mut c = 0u32;
@@ -283,7 +283,7 @@ impl Scalar {
 
     /// Returns scalar based on value of c i.e. c == 0 ? a0 : a1
     ///
-    /// Taken from https://github.com/pornin/ecgfp5/blob/82325b965f0c4043815e513954a426ba50de903b/rust/src/scalar.rs#L94-L103
+    /// Taken from https://github.com/pornin/ecgfp5/blob/82325b9/rust/src/scalar.rs#L94-L103
     fn select(c: u32, a0: Self, a1: Self) -> Self {
         let mut r = Self::zero();
 
@@ -296,7 +296,7 @@ impl Scalar {
 
     /// Montgomery multiplication, returning (self * rhs) / 2^320 (mod N)
     ///
-    /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b965f0c4043815e513954a426ba50de903b/rust/src/scalar.rs#L124-L171
+    /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b9/rust/src/scalar.rs#L124-L171
     fn mont_mul(&self, rhs: &Self) -> Self {
         let mut r = Self::zero();
 
@@ -332,6 +332,20 @@ impl Scalar {
 
         let (r2, c) = r.sub_inner(&Self::get_n());
         Self::select(c, r2, r)
+    }
+
+    /// Given a scalar in radix-2^32 form, this routine converts it to Montgomery form
+    ///
+    /// Inspired by https://github.com/itzmeanjan/secp256k1/blob/37b339d/field/scalar_field_utils.py#L235-L242
+    fn to_mont(&self) -> Self {
+        self.mont_mul(&Self::get_r2())
+    }
+
+    /// Given a scalar in Montgomery form, this routine converts it to radix-2^32 form
+    ///
+    /// Inspired by https://github.com/itzmeanjan/secp256k1/blob/37b339d/field/scalar_field_utils.py#L245-L251
+    fn from_mont(&self) -> Self {
+        self.mont_mul(&Self::one())
     }
 }
 
@@ -833,5 +847,12 @@ fn test_ec_ext5_scalar_arithmetic() {
     };
 
     let c = a * b;
+    let d = a
+        .to_mont() // convert `a` to Montogomery form
+        .mont_mul(
+            &b.to_mont(), // convert `b` to Montgomery form
+        ) // perform multiplication in Montgomery form
+        .from_mont(); // finally get result in radix-2^32 form
     assert_eq!(c, Scalar::one());
+    assert_eq!(d, Scalar::one());
 }
