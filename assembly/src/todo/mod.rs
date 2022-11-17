@@ -12,7 +12,7 @@ mod span_builder;
 use span_builder::SpanBuilder;
 
 mod context;
-use context::ModuleContext;
+use context::AssemblyContext;
 
 // ASSEMBLER
 // ================================================================================================
@@ -69,28 +69,14 @@ impl Assembler {
     ///
     /// # Errors
     /// Returns an error if compiling kernel source results in an error.
-    ///
-    /// # Panics
-    /// Panics if the assembler has already been used to compile programs.
     pub fn with_kernel_module(mut self, module: &ModuleAst) -> Result<Self, AssemblerError> {
-        // this check is needed to make sure previously compiled procedures are not included
-        // in procedure hashes used to initialize the kernel
-        assert!(
-            self.proc_cache.is_empty(),
-            "cannot set kernel for a dirty assembler"
-        );
+        // compile the kernel; this adds all exported kernel procedures to the procedure cache
+        let mut context = AssemblyContext::new(true);
+        self.compile_module(module, ProcedureId::KERNEL_PATH, &mut context)?;
 
-        // compile the kernel; this will add all exported kernel procedures to the procedure cache;
-        self.compile_module(module, ProcedureId::KERNEL_PATH, true)?;
-
-        // use the current state of the procedure cache to build a list of kernel procedure hashes,
-        // and instantiate the kernel with them
-        let hashes: Vec<_> = self
-            .proc_cache
-            .values()
-            .map(|proc| proc.code_root().hash())
-            .collect();
-        self.kernel = Kernel::new(&hashes);
+        // convert the context into Kernel; this builds the kernel from hashes of procedures
+        // exported form the kernel module
+        self.kernel = context.into_kernel();
 
         Ok(self)
     }
@@ -126,20 +112,20 @@ impl Assembler {
         let ProgramAst { local_procs, body } = parsers::parse_program(source)?;
 
         // compile all local procedures
-        let mut context = ModuleContext::for_program();
+        let mut context = AssemblyContext::new(false);
         let mut callset = CallSet::default();
         for (proc_idx, proc_ast) in local_procs.iter().enumerate() {
             if proc_ast.is_export {
                 // TODO: return an error
                 panic!("exported procedure in program");
             }
-            let proc = self.compile_procedure(proc_ast, proc_idx as u16, &context)?;
+            let proc = self.compile_procedure(proc_ast, proc_idx as u16, &mut context)?;
             callset.append(proc.callset());
             context.add_local_proc(proc);
         }
 
         // compile the program body
-        let program_root = self.compile_body(body.iter(), &context, &mut callset, None)?;
+        let program_root = self.compile_body(body.iter(), &mut context, &mut callset, None)?;
 
         // build the code block table based on the callset constructed during program compilation;
         // called procedures can be either in the global procedure cache (for procedures imported
@@ -172,24 +158,25 @@ impl Assembler {
         &self,
         module: &ModuleAst,
         module_path: &str,
-        is_kernel: bool,
+        context: &mut AssemblyContext,
     ) -> Result<(), AssemblerError> {
         // compile all procedures in the module and also build a combined callset for all
         // procedures
-        let mut context = ModuleContext::for_module(module_path.to_string(), is_kernel);
+        context.begin_module(module_path);
         let mut callset = CallSet::default();
         for (proc_idx, proc_ast) in module.local_procs.iter().enumerate() {
-            let proc = self.compile_procedure(proc_ast, proc_idx as u16, &context)?;
+            let proc = self.compile_procedure(proc_ast, proc_idx as u16, context)?;
             callset.append(proc.callset());
             context.add_local_proc(proc);
         }
+        let module_procs = context.complete_module();
 
         // add the compiled procedures to the assembler's cache. the procedures are added to the
         // cache only if:
         // - a procedure is exported from the module, or
         // - a procedure is present in the combined callset - i.e., it is an internal procedure
         //   which has been invoked via a local call instruction.
-        for proc in context.into_local_procs() {
+        for proc in module_procs {
             if proc.is_export() || callset.contains(proc.id()) {
                 // TODO: figure out how to do this using interior mutability
                 unsafe {
@@ -216,7 +203,7 @@ impl Assembler {
         &self,
         proc: &ProcedureAst,
         proc_idx: u16,
-        context: &ModuleContext,
+        context: &mut AssemblyContext,
     ) -> Result<Procedure, AssemblerError> {
         // compile the procedure body
         let mut callset = CallSet::default();
@@ -257,7 +244,7 @@ impl Assembler {
     fn compile_body<A, N>(
         &self,
         body: A,
-        context: &ModuleContext,
+        context: &mut AssemblyContext,
         callset: &mut CallSet,
         wrapper: Option<BodyWrapper>,
     ) -> Result<CodeBlock, AssemblerError>
@@ -322,7 +309,11 @@ impl Assembler {
     /// This will first check if procedure is in the assembler's cache, and if not, will attempt
     /// to find the module in which the procedure is located, compile the module, and return the
     /// compiled procedure MAST.
-    fn get_imported_proc(&self, proc_id: &ProcedureId) -> Result<&Procedure, AssemblerError> {
+    fn get_imported_proc(
+        &self,
+        proc_id: &ProcedureId,
+        context: &mut AssemblyContext,
+    ) -> Result<&Procedure, AssemblerError> {
         // if the procedure is already in the procedure cache, return it
         if let Some(p) = self.proc_cache.get(proc_id) {
             return Ok(p);
@@ -334,7 +325,7 @@ impl Assembler {
             .module_provider
             .get_module(proc_id)
             .ok_or_else(|| AssemblerError::undefined_imported_proc(proc_id))?;
-        self.compile_module(&module, module.path(), false)?;
+        self.compile_module(&module, module.path(), context)?;
 
         // then, get the procedure out of the procedure cache and return
         let proc = self
