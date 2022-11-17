@@ -72,9 +72,11 @@ impl ProgramAst {
 
 /// An abstract syntax tree (AST) of a Miden code module.
 ///
-/// A module AST consists of a list of procedure ASTs. These procedures could be local or exported.
+/// A module AST consists of a list of procedure ASTs and module documentation. Procedures in the
+/// list could be local or exported.
 #[derive(Debug, Eq, PartialEq)]
 pub struct ModuleAst {
+    pub docs: Option<String>,
     pub local_procs: Vec<ProcedureAst>,
 }
 
@@ -82,6 +84,11 @@ impl ModuleAst {
     /// Returns byte representation of the `ModuleAst.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut byte_writer = ByteWriter::new();
+
+        // docs
+        byte_writer
+            .write_docs(&self.docs)
+            .expect("Docs serialization failure");
 
         // local procedures
         byte_writer.write_u16(self.local_procs.len() as u16);
@@ -97,13 +104,17 @@ impl ModuleAst {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, SerializationError> {
         let mut byte_reader = ByteReader::new(bytes);
 
+        // docs
+        let docs = byte_reader.read_docs()?;
+
+        // local procedures
         let local_procs_len = byte_reader.read_u16()?;
 
         let local_procs = (0..local_procs_len)
             .map(|_| ProcedureAst::read_from(&mut byte_reader))
             .collect::<Result<_, _>>()?;
 
-        Ok(ModuleAst { local_procs })
+        Ok(ModuleAst { docs, local_procs })
     }
 
     /// Return a named reference of the module, binding it to an arbitrary path
@@ -322,6 +333,7 @@ pub fn parse_module(source: &str) -> Result<ModuleAst, ParsingError> {
     }
 
     let module = ModuleAst {
+        docs: tokens.take_module_comments(),
         local_procs: sort_procs_into_vec(context.local_procs),
     };
 

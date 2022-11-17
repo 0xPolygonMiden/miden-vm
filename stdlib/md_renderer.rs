@@ -3,7 +3,7 @@ use crate::Renderer;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
-use vm_assembly::ProcedureAst;
+use vm_assembly::{ModuleAst, ProcedureAst};
 
 // MARKDOWN RENDERER
 // ================================================================================================
@@ -36,6 +36,22 @@ impl MarkdownRenderer {
             .write_all(func_output.as_bytes())
             .expect("unable to write func to writer");
     }
+
+    fn write_docs_module(mut writer: &File, module: &ModuleAst) {
+        if module.docs.is_none() {
+            return;
+        }
+        writer
+            .write_all(
+                module
+                    .docs
+                    .clone()
+                    .unwrap()
+                    .replace('\n', "<br />")
+                    .as_bytes(),
+            )
+            .expect("unable to write module comments");
+    }
 }
 
 impl Renderer for MarkdownRenderer {
@@ -50,6 +66,7 @@ impl Renderer for MarkdownRenderer {
                 .create(true)
                 .open(file_path)
                 .expect("unable to open stdlib markdown file");
+            Self::write_docs_module(&f, module);
             Self::write_docs_header(&f, ns);
             for proc in module.local_procs.iter() {
                 Self::write_docs_procedure(&f, proc);

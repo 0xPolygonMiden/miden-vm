@@ -261,7 +261,7 @@ impl ParsingError {
 
     pub fn malformed_doc_comment(step: usize) -> Self {
         ParsingError {
-            message: "doc comments separated by line break".to_string(),
+            message: "comment should always be followed by a procedure token".to_string(),
             step,
             op: "".to_string(),
         }

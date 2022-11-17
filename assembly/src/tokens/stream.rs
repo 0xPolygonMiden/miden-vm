@@ -13,7 +13,8 @@ pub struct TokenStream<'a> {
     current: Token<'a>,
     pos: usize,
     temp: Token<'a>,
-    doc_comments: BTreeMap<usize, Option<String>>,
+    proc_comments: BTreeMap<usize, Option<String>>,
+    module_comment: Option<String>,
 }
 
 impl<'a> TokenStream<'a> {
@@ -25,24 +26,40 @@ impl<'a> TokenStream<'a> {
             return Err(ParsingError::empty_source());
         }
         let mut tokens = Vec::new();
-        let mut doc_comments = BTreeMap::new();
+        let mut proc_comments = BTreeMap::new();
+        let mut module_comment = None;
 
-        let mut comment = Comment(None);
+        let mut comment_builder = CommentBuilder(None);
 
         for line in source.lines() {
             let line = line.trim();
             if line.starts_with(DOC_COMMENT_PREFIX) {
-                comment.append_line(line);
-            } else if line.is_empty() && !comment.is_empty() {
-                return Err(ParsingError::malformed_doc_comment(tokens.len()));
+                comment_builder.append_line(line);
+            } else if line.is_empty()
+                && !comment_builder.is_empty()
+                && tokens.is_empty()
+                && module_comment.is_none()
+            {
+                // If we haven't read any tokens yet, but already have built a comment, a new line
+                // must indicate the end of a module comment.
+                module_comment = comment_builder.take_comment();
             } else {
-                if !comment.is_empty() {
-                    doc_comments.insert(tokens.len(), comment.take_content());
-                }
                 let mut line_tokens = line
                     .split_whitespace()
                     .take_while(|&token| !token.starts_with(LINE_COMMENT_PREFIX))
                     .collect::<Vec<_>>();
+
+                if !comment_builder.is_empty() {
+                    // procedure comment should always be followed by a procedure token
+                    if !line_tokens.is_empty()
+                        && (line_tokens[0].split('.').collect::<Vec<&str>>()[0] == "export"
+                            || line_tokens[0].split('.').collect::<Vec<&str>>()[0] == "proc")
+                    {
+                        proc_comments.insert(tokens.len(), comment_builder.take_comment());
+                    } else {
+                        return Err(ParsingError::malformed_doc_comment(tokens.len()));
+                    }
+                }
                 tokens.append(&mut line_tokens);
             }
         }
@@ -56,7 +73,8 @@ impl<'a> TokenStream<'a> {
             current,
             pos: 0,
             temp: Token::default(),
-            doc_comments,
+            proc_comments,
+            module_comment,
         })
     }
 
@@ -112,7 +130,11 @@ impl<'a> TokenStream<'a> {
     }
 
     pub fn take_doc_comment_at(&mut self, pos: usize) -> Option<String> {
-        self.doc_comments.remove(&pos)?
+        self.proc_comments.remove(&pos)?
+    }
+
+    pub fn take_module_comments(self) -> Option<String> {
+        self.module_comment
     }
 }
 
@@ -123,9 +145,9 @@ impl<'a> fmt::Display for TokenStream<'a> {
 }
 
 #[derive(Debug)]
-pub struct Comment(Option<String>);
+pub struct CommentBuilder(Option<String>);
 
-impl Comment {
+impl CommentBuilder {
     pub fn append_line(&mut self, line: &str) {
         let prepared_line = prepare_line(line);
         if !prepared_line.is_empty() {
@@ -145,7 +167,7 @@ impl Comment {
         self.0.is_none()
     }
 
-    pub fn take_content(&mut self) -> Option<String> {
+    pub fn take_comment(&mut self) -> Option<String> {
         self.0.take()
     }
 }
@@ -156,6 +178,6 @@ pub fn prepare_line(line: &str) -> &str {
     // We should panic if strip_prefix returns None since it is our internal parsing error
     line.trim()
         .strip_prefix(DOC_COMMENT_PREFIX)
-        .expect("Current line is not a doc comment")
+        .expect("Current line is not a comment")
         .trim()
 }
