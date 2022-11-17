@@ -67,9 +67,6 @@ pub const OP_BATCH_1_GROUPS: [Felt; NUM_OP_BATCH_FLAGS] = [ZERO, ONE, ONE];
 /// Index of the op bits extra column in the decoder trace.
 pub const OP_BIT_EXTRA_COL_IDX: usize = OP_BATCH_FLAGS_RANGE.end;
 
-/// Index of the in_syscall column in the decoder trace.
-pub const IN_SYSCALL_COL_IDX: usize = OP_BIT_EXTRA_COL_IDX + 1;
-
 /// Index of a flag column which indicates whether an ending block is a body of a loop.
 pub const IS_LOOP_BODY_FLAG_COL_IDX: usize = HASHER_STATE_RANGE.start + 4;
 

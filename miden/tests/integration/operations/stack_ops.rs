@@ -1,8 +1,8 @@
 use proptest::prelude::*;
-use vm_core::stack::STACK_TOP_SIZE;
+use vm_core::{stack::STACK_TOP_SIZE, WORD_LEN};
 
 use crate::build_op_test;
-use crate::helpers::{TestError, WORD_LEN};
+use crate::helpers::TestError;
 
 // STACK OPERATIONS TESTS
 // ================================================================================================

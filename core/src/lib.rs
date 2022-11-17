@@ -37,7 +37,7 @@ use utils::range;
 // TYPE ALIASES
 // ================================================================================================
 
-pub type Word = [Felt; 4];
+pub type Word = [Felt; WORD_LEN];
 
 pub type StackTopState = [Felt; stack::STACK_TOP_SIZE];
 
@@ -53,24 +53,30 @@ pub const ONE: Felt = Felt::ONE;
 /// The minimum length of the execution trace. This is the minimum required to support range checks.
 pub const MIN_TRACE_LEN: usize = 1024;
 
+/// Number of field elements in a Word.
+pub const WORD_LEN: usize = 4;
+
 // MAIN TRACE LAYOUT
 // ------------------------------------------------------------------------------------------------
 
 //      system          decoder           stack      range checks       chiplets
-//    (3 columns)     (24 columns)    (19 columns)    (4 columns)     (18 columns)
+//    (8 columns)     (23 columns)    (19 columns)    (4 columns)     (18 columns)
 // ├───────────────┴───────────────┴───────────────┴───────────────┴─────────────────┤
 
 pub const SYS_TRACE_OFFSET: usize = 0;
-pub const SYS_TRACE_WIDTH: usize = 3;
+pub const SYS_TRACE_WIDTH: usize = 8;
 pub const SYS_TRACE_RANGE: Range<usize> = range(SYS_TRACE_OFFSET, SYS_TRACE_WIDTH);
 
 pub const CLK_COL_IDX: usize = SYS_TRACE_OFFSET;
 pub const FMP_COL_IDX: usize = SYS_TRACE_OFFSET + 1;
 pub const CTX_COL_IDX: usize = SYS_TRACE_OFFSET + 2;
+pub const IN_SYSCALL_COL_IDX: usize = SYS_TRACE_OFFSET + 3;
+pub const FN_HASH_OFFSET: usize = SYS_TRACE_OFFSET + 4;
+pub const FN_HASH_RANGE: Range<usize> = range(FN_HASH_OFFSET, 4);
 
 // decoder trace
 pub const DECODER_TRACE_OFFSET: usize = SYS_TRACE_RANGE.end;
-pub const DECODER_TRACE_WIDTH: usize = 24;
+pub const DECODER_TRACE_WIDTH: usize = 23;
 pub const DECODER_TRACE_RANGE: Range<usize> = range(DECODER_TRACE_OFFSET, DECODER_TRACE_WIDTH);
 
 // Stack trace

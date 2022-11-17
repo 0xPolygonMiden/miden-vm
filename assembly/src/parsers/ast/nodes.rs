@@ -35,6 +35,8 @@ pub enum Instruction {
     Inv,
     Pow2,
     Exp,
+    ExpImm(Felt),
+    ExpBitLength(u8),
     Not,
     And,
     Or,
@@ -53,6 +55,7 @@ pub enum Instruction {
     U32Test,
     U32TestW,
     U32Assert,
+    U32Assert2,
     U32AssertW,
     U32Split,
     U32Cast,
@@ -208,24 +211,28 @@ pub enum Instruction {
     CDropW,
 
     // ----- input / output operations --------------------------------------------------------
-    Adv(Felt),
+    PushConstants(Vec<Felt>),
     Locaddr(Felt),
     Sdepth,
+    Caller,
+
     MemLoad,
     MemLoadImm(Felt),
     MemLoadW,
     MemLoadWImm(Felt),
     LocLoad(Felt),
     LocLoadW(Felt),
+
     MemStore,
     MemStoreImm(Felt),
     LocStore(Felt),
     MemStoreW,
     MemStoreWImm(Felt),
     LocStoreW(Felt),
-    LoadWAdv,
 
-    PushConstants(Vec<Felt>),
+    MemStream,
+    AdvPipe,
+
     AdvU64Div,
     AdvPush(Felt),
     AdvLoadW(Felt),
@@ -242,4 +249,5 @@ pub enum Instruction {
     ExecImported(ProcedureId),
     CallLocal(u16),
     CallImported(ProcedureId),
+    SysCall(ProcedureId),
 }

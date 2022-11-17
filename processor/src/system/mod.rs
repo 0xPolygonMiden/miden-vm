@@ -1,4 +1,4 @@
-use super::{Felt, FieldElement, StarkField, SysTrace, Vec, ZERO};
+use super::{Felt, FieldElement, StarkField, SysTrace, Vec, Word, ONE, ZERO};
 
 // CONSTANTS
 // ================================================================================================
@@ -29,13 +29,20 @@ pub const FMP_MAX: u64 = 3 * 2_u64.pow(30) - 1;
 /// - execution context (ctx), which starts at 0 (root context), and changes when CALL or SYSCALL
 ///   operations are executed by the VM (or when we return from a CALL or SYSCALL).
 /// - free memory pointer (fmp), which is initially set to 2^30.
+/// - in_syscall flag which indicates whether the execution is currently in a SYSCALL block.
+/// - hash of the function which initiated the current execution context. if the context was
+///   initiated from the root context, this will be set to ZEROs.
 pub struct System {
     clk: u32,
     ctx: u32,
     fmp: Felt,
+    in_syscall: bool,
+    fn_hash: Word,
     ctx_trace: Vec<Felt>,
     clk_trace: Vec<Felt>,
     fmp_trace: Vec<Felt>,
+    in_syscall_trace: Vec<Felt>,
+    fn_hash_trace: [Vec<Felt>; 4],
 }
 
 impl System {
@@ -54,9 +61,18 @@ impl System {
             clk: 0,
             ctx: 0,
             fmp,
+            in_syscall: false,
+            fn_hash: [ZERO; 4],
             clk_trace: Felt::zeroed_vector(init_trace_capacity),
             ctx_trace: Felt::zeroed_vector(init_trace_capacity),
             fmp_trace,
+            in_syscall_trace: Felt::zeroed_vector(init_trace_capacity),
+            fn_hash_trace: [
+                Felt::zeroed_vector(init_trace_capacity),
+                Felt::zeroed_vector(init_trace_capacity),
+                Felt::zeroed_vector(init_trace_capacity),
+                Felt::zeroed_vector(init_trace_capacity),
+            ],
         }
     }
 
@@ -79,6 +95,17 @@ impl System {
     #[inline(always)]
     pub fn fmp(&self) -> Felt {
         self.fmp
+    }
+
+    /// Returns true if the VM is currently executing a SYSCALL block.
+    pub fn in_syscall(&self) -> bool {
+        self.in_syscall
+    }
+
+    /// Returns hash of the function which initiated the current execution context.
+    #[inline(always)]
+    pub fn fn_hash(&self) -> Word {
+        self.fn_hash
     }
 
     /// Returns execution trace length for the systems columns of the process.
@@ -108,9 +135,17 @@ impl System {
     pub fn advance_clock(&mut self) {
         self.clk += 1;
 
-        self.clk_trace[self.clk as usize] = Felt::from(self.clk);
-        self.fmp_trace[self.clk as usize] = self.fmp;
-        self.ctx_trace[self.clk as usize] = Felt::from(self.ctx);
+        let clk = self.clk as usize;
+
+        self.clk_trace[clk] = Felt::from(self.clk);
+        self.fmp_trace[clk] = self.fmp;
+        self.ctx_trace[clk] = Felt::from(self.ctx);
+        self.in_syscall_trace[clk] = if self.in_syscall { ONE } else { ZERO };
+
+        self.fn_hash_trace[0][clk] = self.fn_hash[0];
+        self.fn_hash_trace[1][clk] = self.fn_hash[1];
+        self.fn_hash_trace[2][clk] = self.fn_hash[2];
+        self.fn_hash_trace[3][clk] = self.fn_hash[3];
     }
 
     /// Sets the value of free memory pointer for the next clock cycle.
@@ -126,9 +161,14 @@ impl System {
     /// - Set the execution context to the current clock cycle + 1. This ensures that the context
     ///   is globally unique as is never set to 0.
     /// - Sets the free memory pointer to its initial value (FMP_MIN).
-    pub fn start_call(&mut self) {
+    /// - Sets the hash of the function which initiated the current context to the provided value.
+    ///
+    /// A CALL cannot be started when the VM is executing a SYSCALL.
+    pub fn start_call(&mut self, fn_hash: Word) {
+        debug_assert!(!self.in_syscall, "call in syscall");
         self.ctx = self.clk + 1;
         self.fmp = Felt::from(FMP_MIN);
+        self.fn_hash = fn_hash;
     }
 
     /// Updates system registers to mark a new syscall.
@@ -138,16 +178,29 @@ impl System {
     /// - Sets the free memory pointer to the initial value of syscalls (SYSCALL_FMP_MIN). This
     ///   ensures that procedure locals within a syscall do not conflict with procedure locals
     ///   of the original root context.
+    /// - Sets the in_syscall flag to true.
+    ///
+    /// A SYSCALL cannot be started when the VM is executing a SYSCALL.
+    ///
+    /// Note that this does not change the hash of the function which initiated the context:
+    /// for SYSCALLs this remains set to the hash of the last invoked function.
     pub fn start_syscall(&mut self) {
+        debug_assert!(!self.in_syscall, "already in syscall");
         self.ctx = 0;
         self.fmp = Felt::from(SYSCALL_FMP_MIN);
+        self.in_syscall = true;
     }
 
     /// Updates system registers to the provided values. These updates are made at the end of a
     /// CALL or a SYSCALL blocks.
-    pub fn restore_context(&mut self, ctx: u32, fmp: Felt) {
+    ///
+    /// Note that we set in_syscall flag to true regardless of whether we return from a CALL or a
+    /// SYSCALL.
+    pub fn restore_context(&mut self, ctx: u32, fmp: Felt, fn_hash: Word) {
         self.ctx = ctx;
         self.fmp = fmp;
+        self.in_syscall = false;
+        self.fn_hash = fn_hash;
     }
 
     // TRACE GENERATIONS
@@ -161,6 +214,10 @@ impl System {
     /// - the remainder of the `ctx` column is filled in with ZERO, which should be the last value
     ///   in the column.
     /// - the remainder of the `fmp` column is filled in with the last value in the column.
+    /// - the remainder of the `in_syscall` column is filled with ZERO, which should be the last
+    ///   value in this colum.
+    /// - the remainder of the `fn_hash` columns are filled with ZERO, which should be the last
+    ///   values in these columns.
     ///
     /// `num_rand_rows` indicates the number of rows at the end of the trace which will be
     /// overwritten with random values. This parameter is unused because last rows are just
@@ -184,7 +241,6 @@ impl System {
         // complete the ctx column by filling all values after the last clock cycle with ZEROs as
         // the last context must be zero context.
         debug_assert_eq!(0, self.ctx);
-        self.ctx_trace[clk..].fill(ZERO);
         self.ctx_trace.resize(trace_len, ZERO);
 
         // complete the fmp column by filling in all values after the last clock cycle with the
@@ -193,7 +249,27 @@ impl System {
         self.fmp_trace[clk..].fill(last_value);
         self.fmp_trace.resize(trace_len, last_value);
 
-        [self.clk_trace, self.fmp_trace, self.ctx_trace]
+        // complete the in_syscall column by filling all values after the last clock cycle with
+        // ZEROs as we must end the program in the root context which is not a SYSCALL
+        debug_assert!(!self.in_syscall);
+        self.in_syscall_trace.resize(trace_len, ZERO);
+
+        let mut trace = vec![
+            self.clk_trace,
+            self.fmp_trace,
+            self.ctx_trace,
+            self.in_syscall_trace,
+        ];
+
+        // complete the fn hash columns by filling them with ZEROs as program execution must always
+        // end in the root context.
+        debug_assert_eq!(self.fn_hash, [ZERO; 4]);
+        for mut column in self.fn_hash_trace.into_iter() {
+            column.resize(trace_len, ZERO);
+            trace.push(column);
+        }
+
+        trace.try_into().expect("failed to convert vector to array")
     }
 
     // UTILITY METHODS
@@ -209,6 +285,10 @@ impl System {
             self.clk_trace.resize(new_length, ZERO);
             self.ctx_trace.resize(new_length, ZERO);
             self.fmp_trace.resize(new_length, ZERO);
+            self.in_syscall_trace.resize(new_length, ZERO);
+            for column in self.fn_hash_trace.iter_mut() {
+                column.resize(new_length, ZERO);
+            }
         }
     }
 }

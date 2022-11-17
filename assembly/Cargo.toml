@@ -29,4 +29,4 @@ num_enum = "0.5.7"
 vm-core = { package = "miden-core", path = "../core", version = "0.3", default-features = false }
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.4"
