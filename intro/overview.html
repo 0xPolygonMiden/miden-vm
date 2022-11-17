@@ -152,11 +152,11 @@
 <h2 id="inputs-and-outputs"><a class="header" href="#inputs-and-outputs">Inputs and outputs</a></h2>
 <p>External inputs can be provided to Miden VM in two way:</p>
 <ol>
-<li>Public inputs can be supplied to the VM by initializing the stack with desired values before a program starts executing. Up to 16 stack items can be initialized in this way.</li>
+<li>Public inputs can be supplied to the VM by initializing the stack with desired values before a program starts executing. Any number of stack items can be initialized in this way, but providing a large number of public inputs will increase the cost for the verifier.</li>
 <li>Secret (or nondeterministic) inputs can be supplied to the VM via the <em>advice provider</em> (described below). There is no limit on how much data the advice provider can hold.</li>
 </ol>
-<p>After a program finishes executing up to 16 elements can remain on the stack. These elements then become the outputs of the program.</p>
-<p>Having only 16 elements to describe public inputs and outputs of a program may seem limiting, however, just 4 elements are sufficient to represent a root of a Merkle tree which can be expanded into an arbitrary number of values.</p>
+<p>After a program finishes executing, the elements remaining on the stack become the outputs of the program. Since these outputs will be public inputs for the verifier, having a large stack at the end of execution will increase cost to the verifier. Therefore, it's best to drop unneeded output values. We've provided the <a href="../user_docs/stdlib/sys.html"><code>truncate_stack</code></a> utility function in the standard library for this purpose.</p>
+<p>The number of public inputs and outputs of a program can be reduced by making use of the advice tape and Merkle trees. Just 4 elements are sufficient to represent a root of a Merkle tree, which can be expanded into an arbitrary number of values.</p>
 <p>For example, if we wanted to provide a thousand public input values to the VM, we could put these values into a Merkle tree, initialize the stack with the root of this tree, initialize the advice provider with the tree itself, and then retrieve values from the tree during program execution using <code>mtree_get</code> instruction (described <a href="../user_docs/assembly/cryptographic_operations.html#hashing-and-merkle-trees">here</a>).</p>
 <p>In the future, other ways of providing public inputs and reading public outputs (e.g., storage commitments) may be added to the VM.</p>
 <h3 id="stack-depth-restrictions"><a class="header" href="#stack-depth-restrictions">Stack depth restrictions</a></h3>
