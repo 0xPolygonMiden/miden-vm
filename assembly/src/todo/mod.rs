@@ -1,7 +1,7 @@
 use crate::{
     parsers::{self, Node, ProcedureAst, ProgramAst},
-    AssemblerError, BTreeMap, Box, CallSet, CodeBlock, CodeBlockTable, Kernel, ModuleProvider,
-    NamedModuleAst, Procedure, ProcedureId, Program, String, ToString, Vec,
+    AssemblerError, BTreeMap, Box, CallSet, CodeBlock, CodeBlockTable, Kernel, ModuleAst,
+    ModuleProvider, NamedModuleAst, Procedure, ProcedureId, Program, String, ToString, Vec,
 };
 use core::borrow::Borrow;
 use vm_core::{Decorator, DecoratorList, Felt, Operation};
@@ -50,6 +50,40 @@ impl Assembler {
         P: ModuleProvider + 'static,
     {
         self.module_provider = Box::new(provider);
+        self
+    }
+
+    /// Set the internal kernel with the provided procedures.
+    ///
+    /// This method will allow an assembler to be created from a source/module.
+    pub fn with_kernel_module(self, module: &ModuleAst) -> Result<Self, AssemblerError> {
+        let path = ProcedureId::KERNEL_PATH.to_string();
+        let module = NamedModuleAst::new(path, module);
+
+        // create a new instance of the assembler so the compilation of the kernel can be isolated
+        let assembler = Self::new();
+        assembler.compile_module(&module)?;
+        let procedures = assembler.proc_cache.into_values();
+
+        Ok(self.with_kernel_procedures(procedures))
+    }
+
+    /// Set the internal kernel with the provided procedures.
+    ///
+    /// This method will allow an assembler to be consutructed from pre-compiled modules.
+    pub fn with_kernel_procedures<I>(mut self, procedures: I) -> Self
+    where
+        I: Iterator<Item = Procedure>,
+    {
+        let hashes: Vec<_> = procedures
+            .map(|proc| {
+                let digest = proc.code_root().hash();
+                self.proc_cache.insert(*proc.id(), proc);
+                digest
+            })
+            .collect();
+
+        self.kernel = Kernel::new(&hashes);
         self
     }
 
@@ -321,6 +355,27 @@ struct BodyWrapper {
 fn nested_block_works() {
     use crate::{ModuleAst, NamedModuleAst};
 
+    let kernel = parsers::parse_module(
+        r#"
+        export.foo
+            add
+        end"#,
+    )
+    .unwrap();
+
+    let assembler = Assembler::new().with_kernel_module(&kernel).unwrap();
+
+    // the assembler should have a single kernel proc in its cache
+    assert_eq!(assembler.proc_cache.len(), 1);
+
+    // fetch the kernel digest and store into a syscall block
+    let syscall = assembler
+        .proc_cache
+        .values()
+        .next()
+        .map(|p| CodeBlock::new_syscall(p.code_root().hash()))
+        .unwrap();
+
     struct DummyModuleProvider {
         module: ModuleAst,
     }
@@ -378,6 +433,7 @@ fn nested_block_works() {
             end
         end
         exec.bar::baz
+        syscall.foo
     end"#;
 
     let before = CodeBlock::new_span(vec![Operation::Push(2u64.into())]);
@@ -401,8 +457,8 @@ fn nested_block_works() {
 
     let exec = CodeBlock::new_span(vec![Operation::Push(29u64.into())]);
 
-    let combined = parsers::combine_blocks(vec![before, r#if, nested, exec]);
-    let program = Assembler::new()
+    let combined = parsers::combine_blocks(vec![before, r#if, nested, exec, syscall]);
+    let program = assembler
         .with_module_provider(module_provider)
         .compile(program)
         .unwrap();

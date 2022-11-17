@@ -353,6 +353,12 @@ impl AssemblerError {
             message: format!("undefined imported procedure: {id:x?}"),
         }
     }
+
+    pub fn undefined_syscall(id: &ProcedureId) -> Self {
+        Self {
+            message: format!("undefined kernel procedure: {id:x?}"),
+        }
+    }
 }
 
 impl From<AssemblyError> for AssemblerError {
