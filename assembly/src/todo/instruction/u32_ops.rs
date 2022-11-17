@@ -1,3 +1,5 @@
+use vm_core::FieldElement;
+
 use super::{
     field_ops::append_pow2_op,
     AssemblerError, CodeBlock, Felt,
@@ -540,4 +542,275 @@ fn push_u32_value(span: &mut SpanBuilder, value: u32) {
     } else {
         span.push_op(Push(Felt::from(value)));
     }
+}
+
+// COMPARISON OPERATIONS
+// ================================================================================================
+
+/// Translates u32checked_eq assembly instruction to VM operations.
+///
+/// Specifically we test the first two numbers to be u32, then perform a EQ to check the equality.
+///
+/// VM cycles per mode:
+/// - u32checked_eq: 2 cycles
+/// - u32checked_eq.b: 3 cycles
+pub fn u32eq(
+    span: &mut SpanBuilder,
+    imm: Option<u32>,
+) -> Result<Option<CodeBlock>, AssemblerError> {
+    match imm {
+        Some(imm) => assert_and_push_u32_param(span, imm, 0)?,
+        None => span.push_op(U32assert2),
+    }
+
+    span.push_op(Eq);
+
+    Ok(None)
+}
+
+/// Translates u32checked_neq assembly instruction to VM operations.
+///
+/// Specifically we test the first two numbers to be u32, then perform a `EQ NOT` to check the
+/// equality.
+///
+/// VM cycles per mode:
+/// - u32checked_neq: 3 cycles
+/// - u32checked_neq.b: 4 cycles
+pub fn u32neq(
+    span: &mut SpanBuilder,
+    imm: Option<u32>,
+) -> Result<Option<CodeBlock>, AssemblerError> {
+    match imm {
+        Some(imm) => assert_and_push_u32_param(span, imm, 0)?,
+        None => span.push_op(U32assert2),
+    }
+
+    span.push_op(Eq);
+    span.push_op(Not);
+
+    Ok(None)
+}
+
+/// Translates u32lt assembly instructions to VM operations.
+///
+/// Specifically we test the first two numbers to be u32, then perform a `U32SUB EQZ NOT` to check
+/// the underflow flag.
+///
+/// VM cycles per mode:
+/// - u32checked_lt: 6 cycles
+/// - u32unchecked_lt 5 cycles
+pub fn u32lt(
+    span: &mut SpanBuilder,
+    op_mode: U32OpMode,
+) -> Result<Option<CodeBlock>, AssemblerError> {
+    handle_u32_and_unchecked_mode(span, op_mode);
+    compute_lt(span);
+
+    Ok(None)
+}
+
+/// Translates u32lte assembly instructions to VM operations.
+///
+/// Specifically we test the first two numbers to be u32, then perform a gt check and flip the
+/// results.
+///
+/// VM cycles per mode:
+/// - u32checked_lte: 8 cycles
+/// - u32unchecked_lte: 7 cycles
+pub fn u32lte(
+    span: &mut SpanBuilder,
+    op_mode: U32OpMode,
+) -> Result<Option<CodeBlock>, AssemblerError> {
+    handle_u32_and_unchecked_mode(span, op_mode);
+
+    // Compute the lt with reversed number to get a gt check
+    span.push_op(Swap);
+    compute_lt(span);
+
+    // Flip the final results to get the lte results.
+    span.push_op(Not);
+
+    Ok(None)
+}
+
+/// Translates u32gt assembly instructions to VM operations.
+///
+/// Specifically we test the first two numbers to be u32, then perform a lt check with the
+/// numbers swapped.
+///
+/// VM cycles per mode:
+/// - u32checked_gt: 7 cycles
+/// - u32unchecked_gt: 6 cycles
+pub fn u32gt(
+    span: &mut SpanBuilder,
+    op_mode: U32OpMode,
+) -> Result<Option<CodeBlock>, AssemblerError> {
+    handle_u32_and_unchecked_mode(span, op_mode);
+
+    // Reverse the numbers so we can get a gt check.
+    span.push_op(Swap);
+
+    compute_lt(span);
+
+    Ok(None)
+}
+
+/// Translates u32gte assembly instructions to VM operations.
+///
+/// Specifically we test the first two numbers to be u32, then compute a lt check and flip the
+/// results.
+///
+/// VM cycles per mode:
+/// - u32checked_gte: 7 cycles
+/// - u32unchecked_gte: 6 cycles
+pub fn u32gte(
+    span: &mut SpanBuilder,
+    op_mode: U32OpMode,
+) -> Result<Option<CodeBlock>, AssemblerError> {
+    handle_u32_and_unchecked_mode(span, op_mode);
+
+    compute_lt(span);
+
+    // Flip the final results to get the gte results.
+    span.push_op(Not);
+
+    Ok(None)
+}
+
+/// Translates u32min assembly instructions to VM operations.
+///
+/// Specifically, we test the first two numbers to be u32 (U32SPLIT NOT ASSERT), subtract the top
+/// value from the second to the top value (U32SUB), check the underflow flag (EQZ), and perform a
+/// conditional swap (CSWAP) to have the max number in front. Then we finally drop the top element
+/// to keep the min.
+///
+/// VM cycles per mode:
+/// - u32checked_min: 9 cycles
+/// - u32unchecked_min: 8 cycles
+pub fn u32min(
+    span: &mut SpanBuilder,
+    op_mode: U32OpMode,
+) -> Result<Option<CodeBlock>, AssemblerError> {
+    compute_max_and_min(span, op_mode);
+
+    // Drop the max and keep the min
+    span.push_op(Drop);
+
+    Ok(None)
+}
+
+/// Translates u32max assembly instructions to VM operations.
+///
+/// Specifically, we test the first two values to be u32 (U32SPLIT NOT ASSERT), subtract the top
+/// value from the second to the top value (U32SUB), check the underflow flag (EQZ), and perform
+/// a conditional swap (CSWAP) to have the max number in front. then we finally drop the 2nd
+/// element to keep the max.
+///
+/// VM cycles per mode:
+/// - u32checked_max: 10 cycles
+/// - u32unchecked_max: 9 cycles
+pub fn u32max(
+    span: &mut SpanBuilder,
+    op_mode: U32OpMode,
+) -> Result<Option<CodeBlock>, AssemblerError> {
+    compute_max_and_min(span, op_mode);
+
+    // Drop the min and keep the max
+    span.push_op(Swap);
+    span.push_op(Drop);
+
+    Ok(None)
+}
+
+// COMPARISON OPERATIONS - HELPERS
+// ================================================================================================
+
+/// This is a helper function that appends a PUSH operation to the span block which puts the
+/// provided value parameter onto the stack.
+///
+/// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
+/// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
+fn push_value(span: &mut SpanBuilder, value: Felt) {
+    if value == Felt::ZERO {
+        span.push_op(Pad);
+    } else if value == Felt::ONE {
+        span.push_op(Pad);
+        span.push_op(Incr);
+    } else {
+        span.push_op(Push(value));
+    }
+}
+
+/// Asserts that the value on the top of the stack is a u32 and pushes the first param of the `op`
+/// as a u32 value onto the stack.
+///
+/// This takes:
+/// - 3 VM cycles when the param == 1.
+/// - 2 VM cycle when the param != 1.
+///
+/// # Errors
+/// Returns an error if the first parameter of the `op` is not a u32 value or is greater than
+/// `lower_bound`.
+fn assert_and_push_u32_param(
+    span: &mut SpanBuilder,
+    lower_bound: u32,
+    value: u32,
+) -> Result<(), AssemblerError> {
+    // TODO: We should investigate special case handling adding 0 or 1.
+    // check that the parameter is within the specified bounds
+    if value < lower_bound {
+        return Err(AssemblerError::imm_out_of_bounds(
+            value as u64,
+            lower_bound as u64,
+            u32::MAX as u64,
+        ));
+    }
+
+    push_value(span, Felt::new(value as u64));
+
+    // Assert both numbers are u32.
+    span.push_op(U32assert2);
+
+    Ok(())
+}
+
+/// Handles u32 assertion and unchecked mode for any u32 operation.
+fn handle_u32_and_unchecked_mode(span: &mut SpanBuilder, op_mode: U32OpMode) {
+    if op_mode == U32OpMode::Checked {
+        span.push_op(U32assert2);
+    }
+}
+
+/// Inserts the VM operations to check if the second element is less than
+/// the top element. This takes 5 cycles.
+fn compute_lt(span: &mut SpanBuilder) {
+    span.push_op(U32sub);
+    span.push_op(Swap);
+    span.push_op(Drop);
+
+    // Check the underflow flag
+    span.push_op(Eqz);
+    span.push_op(Not);
+}
+
+/// Duplicate the top two elements in the stack and check both are u32, and determine the min
+/// and max between them.
+///
+/// The maximum number will be at the top of the stack and minimum will be at the 2nd index.
+fn compute_max_and_min(span: &mut SpanBuilder, op_mode: U32OpMode) {
+    // Copy top two elements of the stack.
+    span.push_op(Dup1);
+    span.push_op(Dup1);
+    if op_mode == U32OpMode::Checked {
+        span.push_op(U32assert2);
+    }
+
+    span.push_op(U32sub);
+    span.push_op(Swap);
+    span.push_op(Drop);
+
+    // Check the underflow flag, if it's zero
+    // then the second number is equal or larger than the first.
+    span.push_op(Eqz);
+    span.push_op(CSwap);
 }
