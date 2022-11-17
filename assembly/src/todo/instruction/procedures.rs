@@ -1,4 +1,4 @@
-use super::{Assembler, AssemblerError, CallSet, CodeBlock, ModuleContext, ProcedureId};
+use super::{Assembler, AssemblerError, AssemblyContext, CallSet, CodeBlock, ProcedureId};
 
 // PROCEDURE INVOCATIONS
 // ================================================================================================
@@ -7,7 +7,7 @@ impl Assembler {
     pub(super) fn exec_local(
         &self,
         index: u16,
-        context: &ModuleContext,
+        context: &AssemblyContext,
         callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
         // get the procedure from the context of the module currently being compiled
@@ -24,10 +24,11 @@ impl Assembler {
     pub(super) fn exec_imported(
         &self,
         proc_id: &ProcedureId,
+        context: &mut AssemblyContext,
         callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
         // get the procedure from the assembler
-        let proc = self.get_imported_proc(proc_id)?;
+        let proc = self.get_imported_proc(proc_id, context)?;
         debug_assert!(proc.is_export(), "not imported procedure");
 
         // append the callset of the procedure to the current callset as executing this procedure
@@ -41,7 +42,7 @@ impl Assembler {
     pub(super) fn call_local(
         &self,
         index: u16,
-        context: &ModuleContext,
+        context: &AssemblyContext,
         callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
         // call instructions cannot be executed inside a kernel
@@ -68,7 +69,7 @@ impl Assembler {
     pub(super) fn call_imported(
         &self,
         proc_id: &ProcedureId,
-        context: &ModuleContext,
+        context: &mut AssemblyContext,
         callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
         // call instructions cannot be executed inside a kernel
@@ -76,7 +77,7 @@ impl Assembler {
             return Err(AssemblerError::call_in_kernel());
         }
 
-        let proc = self.get_imported_proc(proc_id)?;
+        let proc = self.get_imported_proc(proc_id, context)?;
         debug_assert!(proc.is_export(), "not imported procedure");
 
         // append the callset of the procedure to the current callset as executing this procedure
@@ -95,7 +96,7 @@ impl Assembler {
     pub(super) fn syscall(
         &self,
         proc_id: &ProcedureId,
-        context: &ModuleContext,
+        context: &AssemblyContext,
         callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
         // syscall instructions cannot be executed inside a kernel
