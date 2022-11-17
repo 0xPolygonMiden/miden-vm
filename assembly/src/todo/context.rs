@@ -8,6 +8,7 @@ use crate::MODULE_PATH_DELIM;
 pub struct ModuleContext {
     local_procs: Vec<Procedure>,
     module_path: String,
+    is_kernel: bool,
 }
 
 impl ModuleContext {
@@ -22,14 +23,16 @@ impl ModuleContext {
         Self {
             local_procs: Vec::new(),
             module_path: MODULE_PATH_DELIM.to_string(),
+            is_kernel: false,
         }
     }
 
     /// Returns an [ModuleContext] used for compiling library modules.
-    pub fn for_module(module_path: String) -> Self {
+    pub fn for_module(module_path: String, is_kernel: bool) -> Self {
         Self {
             local_procs: Vec::new(),
             module_path,
+            is_kernel,
         }
     }
 
@@ -39,6 +42,11 @@ impl ModuleContext {
     /// Returns module path for the module which is currently being compiled.
     pub fn module_path(&self) -> &str {
         &self.module_path
+    }
+
+    /// Returns true if this context is used for compiling a kernel module.
+    pub fn is_kernel(&self) -> bool {
+        self.is_kernel
     }
 
     /// Returns a [Procedure] located at the specified index in the module.

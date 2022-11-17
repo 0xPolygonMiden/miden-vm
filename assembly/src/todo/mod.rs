@@ -1,7 +1,7 @@
 use crate::{
     parsers::{self, Node, ProcedureAst, ProgramAst},
     AssemblerError, BTreeMap, Box, CallSet, CodeBlock, CodeBlockTable, Kernel, ModuleAst,
-    ModuleProvider, NamedModuleAst, Procedure, ProcedureId, Program, String, ToString, Vec,
+    ModuleProvider, Procedure, ProcedureId, Program, String, ToString, Vec,
 };
 use core::borrow::Borrow;
 use vm_core::{Decorator, DecoratorList, Felt, Operation};
@@ -53,38 +53,46 @@ impl Assembler {
         self
     }
 
-    /// Set the internal kernel with the provided procedures.
+    /// Sets the kernel for the assembler to the kernel defined by the provided source.
     ///
-    /// This method will allow an assembler to be created from a source/module.
-    pub fn with_kernel_module(self, module: &ModuleAst) -> Result<Self, AssemblerError> {
-        let path = ProcedureId::KERNEL_PATH.to_string();
-        let module = NamedModuleAst::new(path, module);
-
-        // create a new instance of the assembler so the compilation of the kernel can be isolated
-        let assembler = Self::new();
-        assembler.compile_module(&module)?;
-        let procedures = assembler.proc_cache.into_values();
-
-        Ok(self.with_kernel_procedures(procedures))
+    /// # Errors
+    /// Returns an error if compiling kernel source results in an error.
+    ///
+    /// # Panics
+    /// Panics if the assembler has already been used to compile programs.
+    pub fn with_kernel(self, kernel_source: &str) -> Result<Self, AssemblerError> {
+        let kernel_ast = parsers::parse_module(kernel_source)?;
+        self.with_kernel_module(&kernel_ast)
     }
 
-    /// Set the internal kernel with the provided procedures.
+    /// Sets the kernel for the assembler to the kernel defined by the provided module.
     ///
-    /// This method will allow an assembler to be constructed from pre-compiled modules.
-    pub fn with_kernel_procedures<I>(mut self, procedures: I) -> Self
-    where
-        I: Iterator<Item = Procedure>,
-    {
-        let hashes: Vec<_> = procedures
-            .map(|proc| {
-                let digest = proc.code_root().hash();
-                self.proc_cache.insert(*proc.id(), proc);
-                digest
-            })
-            .collect();
+    /// # Errors
+    /// Returns an error if compiling kernel source results in an error.
+    ///
+    /// # Panics
+    /// Panics if the assembler has already been used to compile programs.
+    pub fn with_kernel_module(mut self, module: &ModuleAst) -> Result<Self, AssemblerError> {
+        // this check is needed to make sure previously compiled procedures are not included
+        // in procedure hashes used to initialize the kernel
+        assert!(
+            self.proc_cache.is_empty(),
+            "cannot set kernel for a dirty assembler"
+        );
 
+        // compile the kernel; this will add all exported kernel procedures to the procedure cache;
+        self.compile_module(module, ProcedureId::KERNEL_PATH, true)?;
+
+        // use the current state of the procedure cache to build a list of kernel procedure hashes,
+        // and instantiate the kernel with them
+        let hashes: Vec<_> = self
+            .proc_cache
+            .values()
+            .map(|proc| proc.code_root().hash())
+            .collect();
         self.kernel = Kernel::new(&hashes);
-        self
+
+        Ok(self)
     }
 
     // PUBLIC ACCESSORS
@@ -160,15 +168,20 @@ impl Assembler {
 
     /// Compiles all procedures in the specified module and adds them to the procedure cache.
     #[allow(clippy::cast_ref_to_mut)]
-    fn compile_module(&self, module: &NamedModuleAst) -> Result<(), AssemblerError> {
+    fn compile_module(
+        &self,
+        module: &ModuleAst,
+        module_path: &str,
+        is_kernel: bool,
+    ) -> Result<(), AssemblerError> {
         // compile all procedures in the module and also build a combined callset for all
         // procedures
-        let mut ctx = ModuleContext::for_module(module.path().to_string());
+        let mut context = ModuleContext::for_module(module_path.to_string(), is_kernel);
         let mut callset = CallSet::default();
         for (proc_idx, proc_ast) in module.local_procs.iter().enumerate() {
-            let proc = self.compile_procedure(proc_ast, proc_idx as u16, &ctx)?;
+            let proc = self.compile_procedure(proc_ast, proc_idx as u16, &context)?;
             callset.append(proc.callset());
-            ctx.add_local_proc(proc);
+            context.add_local_proc(proc);
         }
 
         // add the compiled procedures to the assembler's cache. the procedures are added to the
@@ -176,7 +189,7 @@ impl Assembler {
         // - a procedure is exported from the module, or
         // - a procedure is present in the combined callset - i.e., it is an internal procedure
         //   which has been invoked via a local call instruction.
-        for proc in ctx.into_local_procs() {
+        for proc in context.into_local_procs() {
             if proc.is_export() || callset.contains(proc.id()) {
                 // TODO: figure out how to do this using interior mutability
                 unsafe {
@@ -321,7 +334,7 @@ impl Assembler {
             .module_provider
             .get_module(proc_id)
             .ok_or_else(|| AssemblerError::undefined_imported_proc(proc_id))?;
-        self.compile_module(&module)?;
+        self.compile_module(&module, module.path(), false)?;
 
         // then, get the procedure out of the procedure cache and return
         let proc = self
@@ -355,15 +368,12 @@ struct BodyWrapper {
 fn nested_block_works() {
     use crate::{ModuleAst, NamedModuleAst};
 
-    let kernel = parsers::parse_module(
-        r#"
+    let kernel = r#"
         export.foo
             add
-        end"#,
-    )
-    .unwrap();
+        end"#;
 
-    let assembler = Assembler::new().with_kernel_module(&kernel).unwrap();
+    let assembler = Assembler::new().with_kernel(&kernel).unwrap();
 
     // the assembler should have a single kernel proc in its cache
     assert_eq!(assembler.proc_cache.len(), 1);

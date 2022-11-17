@@ -359,6 +359,18 @@ impl AssemblerError {
             message: format!("undefined kernel procedure: {id:x?}"),
         }
     }
+
+    pub fn call_in_kernel() -> Self {
+        Self {
+            message: "call instruction inside kernel".to_string(),
+        }
+    }
+
+    pub fn syscall_in_kernel() -> Self {
+        Self {
+            message: "syscall instruction inside kernel".to_string(),
+        }
+    }
 }
 
 impl From<AssemblyError> for AssemblerError {

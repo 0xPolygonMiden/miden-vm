@@ -44,6 +44,11 @@ impl Assembler {
         context: &ModuleContext,
         callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
+        // call instructions cannot be executed inside a kernel
+        if context.is_kernel() {
+            return Err(AssemblerError::call_in_kernel());
+        }
+
         // get the procedure from the context of the module currently being compiled
         let proc = context.get_local_proc(index)?;
 
@@ -63,8 +68,14 @@ impl Assembler {
     pub(super) fn call_imported(
         &self,
         proc_id: &ProcedureId,
+        context: &ModuleContext,
         callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
+        // call instructions cannot be executed inside a kernel
+        if context.is_kernel() {
+            return Err(AssemblerError::call_in_kernel());
+        }
+
         let proc = self.get_imported_proc(proc_id)?;
         debug_assert!(proc.is_export(), "not imported procedure");
 
@@ -84,18 +95,35 @@ impl Assembler {
     pub(super) fn syscall(
         &self,
         proc_id: &ProcedureId,
+        context: &ModuleContext,
+        callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
+        // syscall instructions cannot be executed inside a kernel
+        if context.is_kernel() {
+            return Err(AssemblerError::syscall_in_kernel());
+        }
+
         // fetch from proc cache and check if its a kernel procedure
         // note: the assembler is expected to have all kernel procedures properly inserted in the
         // proc cache upon initialization, with their correct procedure ids
-        let digest = self
+        let proc = self
             .proc_cache
             .get(proc_id)
-            .map(|p| p.code_root().hash())
-            .filter(|digest| self.kernel.contains_proc(*digest))
             .ok_or_else(|| AssemblerError::undefined_syscall(proc_id))?;
 
+        // since call and syscall instructions cannot be executed inside a kernel, a callset for
+        // a kernel procedure must be empty.
+        debug_assert!(
+            proc.callset().is_empty(),
+            "non-empty callset for a kernel procedure"
+        );
+
+        // add ID of the called procedure to the callset. this is needed to make sure the
+        // procedure is added to the program's cb_table.
+        callset.insert(*proc_id);
+
         // return the code block of the procedure
+        let digest = proc.code_root().hash();
         Ok(Some(CodeBlock::new_syscall(digest)))
     }
 }
