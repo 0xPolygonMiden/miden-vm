@@ -39,7 +39,7 @@ impl ByteWriter {
         self.0.append(&mut val.to_le_bytes().to_vec());
     }
 
-    pub fn write_string(&mut self, val: &String) -> Result<(), SerializationError> {
+    pub fn write_proc_name(&mut self, val: &String) -> Result<(), SerializationError> {
         let val_bytes = val.as_bytes();
         let val_bytes_len = val_bytes.len() as u8;
         if val_bytes_len > MAX_STRING_LENGTH {
@@ -53,6 +53,23 @@ impl ByteWriter {
 
     pub fn write_procedure_id(&mut self, val: &ProcedureId) {
         self.0.append(&mut val.to_vec());
+    }
+
+    pub fn write_docs(&mut self, val: &Option<String>) -> Result<(), SerializationError> {
+        match val {
+            Some(docs) => {
+                let doc_bytes = docs.as_bytes();
+                if doc_bytes.len() > u16::MAX as usize {
+                    return Err(SerializationError::StringTooLong);
+                }
+                self.write_u16(doc_bytes.len() as u16);
+                self.0.append(&mut doc_bytes.to_vec());
+            }
+            None => {
+                self.write_u16(0);
+            }
+        }
+        Ok(())
     }
 
     pub fn write_felt(&mut self, val: Felt) {
@@ -145,6 +162,14 @@ impl Serializable for Instruction {
             Self::Inv => target.write_opcode(OpCode::Inv),
             Self::Pow2 => target.write_opcode(OpCode::Pow2),
             Self::Exp => target.write_opcode(OpCode::Exp),
+            Self::ExpImm(v) => {
+                target.write_opcode(OpCode::Exp);
+                target.write_felt(*v);
+            }
+            Self::ExpBitLength(v) => {
+                target.write_opcode(OpCode::Exp);
+                target.write_u8(*v);
+            }
             Self::Not => target.write_opcode(OpCode::Not),
             Self::And => target.write_opcode(OpCode::And),
             Self::Or => target.write_opcode(OpCode::Or),
@@ -169,6 +194,7 @@ impl Serializable for Instruction {
             Self::U32Test => target.write_opcode(OpCode::U32Test),
             Self::U32TestW => target.write_opcode(OpCode::U32TestW),
             Self::U32Assert => target.write_opcode(OpCode::U32Assert),
+            Self::U32Assert2 => target.write_opcode(OpCode::U32Assert2),
             Self::U32AssertW => target.write_opcode(OpCode::U32AssertW),
             Self::U32Split => target.write_opcode(OpCode::U32Split),
             Self::U32Cast => target.write_opcode(OpCode::U32Cast),
@@ -399,15 +425,18 @@ impl Serializable for Instruction {
             Self::CDropW => target.write_opcode(OpCode::CDropW),
 
             // ----- input / output operations --------------------------------------------------------
-            Self::Adv(v) => {
-                target.write_opcode(OpCode::Adv);
-                target.write_felt(*v);
+            Self::PushConstants(values) => {
+                target.write_opcode(OpCode::PushConstants);
+                target.write_u8(values.len() as u8);
+                values.iter().for_each(|&v| target.write_felt(v));
             }
             Self::Locaddr(v) => {
                 target.write_opcode(OpCode::Locaddr);
                 target.write_felt(*v);
             }
             Self::Sdepth => target.write_opcode(OpCode::Sdepth),
+            Self::Caller => target.write_opcode(OpCode::Caller),
+
             Self::MemLoad => target.write_opcode(OpCode::MemLoad),
             Self::MemLoadImm(v) => {
                 target.write_opcode(OpCode::MemLoadImm);
@@ -444,16 +473,10 @@ impl Serializable for Instruction {
                 target.write_opcode(OpCode::LocStoreW);
                 target.write_felt(*v);
             }
-            Self::LoadWAdv => target.write_opcode(OpCode::LoadWAdv),
 
-            Self::PushConstants(constants) => {
-                target.write_opcode(OpCode::PushConstants);
-                let length = constants.len();
-                target.write_u8(length as u8);
-                for v in constants {
-                    target.write_felt(*v);
-                }
-            }
+            Self::MemStream => target.write_opcode(OpCode::MemStream),
+            Self::AdvPipe => target.write_opcode(OpCode::AdvPipe),
+
             Self::AdvU64Div => target.write_opcode(OpCode::AdvU64Div),
             Self::AdvPush(v) => {
                 target.write_opcode(OpCode::AdvPush);
@@ -486,6 +509,10 @@ impl Serializable for Instruction {
             }
             Self::CallImported(imported) => {
                 target.write_opcode(OpCode::CallImported);
+                target.write_procedure_id(imported);
+            }
+            Self::SysCall(imported) => {
+                target.write_opcode(OpCode::SysCall);
                 target.write_procedure_id(imported);
             }
         }

@@ -149,6 +149,14 @@ impl AssemblyError {
         }
     }
 
+    pub fn malformed_doc_comment(step: usize) -> Self {
+        AssemblyError {
+            message: "doc comments separated by line break".to_string(),
+            step,
+            op: "".to_string(),
+        }
+    }
+
     // PROGRAM
     // --------------------------------------------------------------------------------------------
 
@@ -246,6 +254,14 @@ impl AssemblyError {
     pub fn call_in_kernel(token: &Token) -> Self {
         AssemblyError {
             message: "call inside kernel".to_string(),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn caller_out_of_kernel(token: &Token) -> Self {
+        AssemblyError {
+            message: "caller instruction executed outside of kernel context".to_string(),
             step: token.pos(),
             op: token.to_string(),
         }

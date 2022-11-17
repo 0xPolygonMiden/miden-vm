@@ -9,6 +9,7 @@ use nodes::{Instruction, Node};
 mod context;
 use context::ParserContext;
 
+mod field_ops;
 mod io_ops;
 mod serde;
 mod stack_ops;
@@ -53,7 +54,7 @@ impl ProgramAst {
     }
 
     /// Returns a `ProgramAst` struct by its byte representation.
-    pub fn from_bytes(bytes: &mut &[u8]) -> Result<Self, SerializationError> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SerializationError> {
         let mut byte_reader = ByteReader::new(bytes);
 
         let num_local_procs = byte_reader.read_u16()?;
@@ -113,6 +114,7 @@ impl ModuleAst {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ProcedureAst {
     pub name: String,
+    pub docs: Option<String>,
     pub num_locals: u32,
     pub body: Vec<Node>,
     pub is_export: bool,
@@ -122,8 +124,11 @@ impl Serializable for ProcedureAst {
     /// Writes byte representation of the `ProcedureAst` into the provided `ByteWriter` struct.
     fn write_into(&self, target: &mut ByteWriter) {
         target
-            .write_string(&self.name)
+            .write_proc_name(&self.name)
             .expect("String serialization failure");
+        target
+            .write_docs(&self.docs)
+            .expect("Docs serialization failure");
         target.write_bool(self.is_export);
         target.write_u16(self.num_locals as u16);
         self.body.write_into(target);
@@ -133,12 +138,14 @@ impl Serializable for ProcedureAst {
 impl Deserializable for ProcedureAst {
     /// Returns a `ProcedureAst` from its byte representation stored in provided `ByteReader` struct.
     fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let name = bytes.read_string()?;
+        let name = bytes.read_proc_name()?;
+        let docs = bytes.read_docs()?;
         let is_export = bytes.read_bool()?;
         let num_locals = bytes.read_u16()?.into();
         let body = Deserializable::read_from(bytes)?;
         Ok(ProcedureAst {
             name,
+            docs,
             num_locals,
             body,
             is_export,
