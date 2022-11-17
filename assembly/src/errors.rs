@@ -371,6 +371,21 @@ impl AssemblerError {
             message: "syscall instruction inside kernel".to_string(),
         }
     }
+
+    pub fn division_by_zero() -> Self {
+        Self {
+            message: "division by zero".to_string(),
+        }
+    }
+
+    pub fn imm_out_of_bounds(value: u64, min: u64, max: u64) -> Self {
+        Self {
+            message: format!(
+                "immediate value must be greater than or equal to {} and less than or equal to {}, but was {}",
+                min, max, value
+            )
+        }
+    }
 }
 
 impl From<AssemblyError> for AssemblerError {
