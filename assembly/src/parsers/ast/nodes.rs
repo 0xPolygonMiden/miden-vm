@@ -1,4 +1,8 @@
-use vm_core::utils::collections::Vec;
+use core::fmt;
+use vm_core::utils::{
+    collections::Vec,
+    string::{String, ToString},
+};
 use vm_core::Felt;
 
 use crate::ProcedureId;
@@ -253,4 +257,278 @@ pub enum Instruction {
     CallLocal(u16),
     CallImported(ProcedureId),
     SysCall(ProcedureId),
+}
+
+impl fmt::Display for Instruction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Assert => write!(f, "assert"),
+            Self::AssertEq => write!(f, "assert_eq"),
+            Self::Assertz => write!(f, "assertz"),
+            Self::Add => write!(f, "add"),
+            Self::AddImm(value) => write!(f, "add.{value}"),
+            Self::Sub => write!(f, "sub"),
+            Self::SubImm(value) => write!(f, "sub.{value}"),
+            Self::Mul => write!(f, "mul"),
+            Self::MulImm(value) => write!(f, "mul.{value}"),
+            Self::Div => write!(f, "div"),
+            Self::DivImm(value) => write!(f, "div.{value}"),
+            Self::Neg => write!(f, "neg"),
+            Self::Inv => write!(f, "inv"),
+            Self::Pow2 => write!(f, "pow2"),
+            Self::Exp => write!(f, "exp"),
+            Self::ExpImm(value) => write!(f, "exp.{value}"),
+            Self::ExpBitLength(value) => write!(f, "exp.u{value}"),
+            Self::Not => write!(f, "not"),
+            Self::And => write!(f, "and"),
+            Self::Or => write!(f, "or"),
+            Self::Xor => write!(f, "xor"),
+            Self::Eq => write!(f, "eq"),
+            Self::EqImm(value) => write!(f, "eq.{value}"),
+            Self::Neq => write!(f, "neq"),
+            Self::NeqImm(value) => write!(f, "neq.{value}"),
+            Self::Eqw => write!(f, "eqw"),
+            Self::Lt => write!(f, "lt"),
+            Self::Lte => write!(f, "lte"),
+            Self::Gt => write!(f, "gt"),
+            Self::Gte => write!(f, "gte"),
+
+            // ----- u32 manipulation ---------------------------------------------------------------
+            Self::U32Test => write!(f, "u32test"),
+            Self::U32TestW => write!(f, "u32testw"),
+            Self::U32Assert => write!(f, "u32assert.1"),
+            Self::U32Assert2 => write!(f, "u32assert.2"),
+            Self::U32AssertW => write!(f, "u32assertw"),
+            Self::U32Split => write!(f, "u32split"),
+            Self::U32Cast => write!(f, "u32cast"),
+            Self::U32CheckedAdd => write!(f, "u32checked_add"),
+            Self::U32CheckedAddImm(value) => write!(f, "u32checked_add.{value}"),
+            Self::U32WrappingAdd => write!(f, "u32wrapping_add"),
+            Self::U32WrappingAddImm(value) => write!(f, "u32wrapping_add.{value}"),
+            Self::U32OverflowingAdd => write!(f, "u32overflowing_add"),
+            Self::U32OverflowingAddImm(value) => write!(f, "u32overflowing_add.{value}"),
+            Self::U32OverflowingAdd3 => write!(f, "u32overflowing_add3"),
+            Self::U32WrappingAdd3 => write!(f, "u32wrapping_add3"),
+            Self::U32CheckedSub => write!(f, "u32checked_sub"),
+            Self::U32CheckedSubImm(value) => write!(f, "u32checked_sub.{value}"),
+            Self::U32WrappingSub => write!(f, "u32wrapping_sub"),
+            Self::U32WrappingSubImm(value) => write!(f, "u32wrapping_sub.{value}"),
+            Self::U32OverflowingSub => write!(f, "u32overflowing_sub"),
+            Self::U32OverflowingSubImm(value) => write!(f, "u32overflowing_sub.{value}"),
+            Self::U32CheckedMul => write!(f, "u32checked_mul"),
+            Self::U32CheckedMulImm(value) => write!(f, "u32checked_mul.{value}"),
+            Self::U32WrappingMul => write!(f, "u32wrapping_mul"),
+            Self::U32WrappingMulImm(value) => write!(f, "u32wrapping_mul.{value}"),
+            Self::U32OverflowingMul => write!(f, "u32overflowing_mul"),
+            Self::U32OverflowingMulImm(value) => write!(f, "u32overflowing_mul.{value}"),
+            Self::U32OverflowingMadd => write!(f, "u32overflowing_madd"),
+            Self::U32WrappingMadd => write!(f, "u32wrapping_madd"),
+            Self::U32CheckedDiv => write!(f, "u32checked_div"),
+            Self::U32CheckedDivImm(value) => write!(f, "u32checked_div.{value}"),
+            Self::U32UncheckedDiv => write!(f, "u32unchecked_div"),
+            Self::U32UncheckedDivImm(value) => write!(f, "u32unchecked_div.{value}"),
+            Self::U32CheckedMod => write!(f, "u32checked_mod"),
+            Self::U32CheckedModImm(value) => write!(f, "u32checked_mod.{value}"),
+            Self::U32UncheckedMod => write!(f, "u32unchecked_mod"),
+            Self::U32UncheckedModImm(value) => write!(f, "u32unchecked_mod.{value}"),
+            Self::U32CheckedDivMod => write!(f, "u32checked_divmod"),
+            Self::U32CheckedDivModImm(value) => write!(f, "u32checked_divmod.{value}"),
+            Self::U32UncheckedDivMod => write!(f, "u32unchecked_divmod"),
+            Self::U32UncheckedDivModImm(value) => write!(f, "u32unchecked_divmod.{value}"),
+            Self::U32CheckedAnd => write!(f, "u32checked_and"),
+            Self::U32CheckedOr => write!(f, "u32checked_or"),
+            Self::U32CheckedXor => write!(f, "u32checked_xor"),
+            Self::U32CheckedNot => write!(f, "u32checked_not"),
+            Self::U32CheckedShr => write!(f, "u32checked_shr"),
+            Self::U32CheckedShrImm(value) => write!(f, "u32checked_shr.{value}"),
+            Self::U32UncheckedShr => write!(f, "u32unchecked_shr"),
+            Self::U32UncheckedShrImm(value) => write!(f, "u32unchecked_shr.{value}"),
+            Self::U32CheckedShl => write!(f, "u32checked_shl"),
+            Self::U32CheckedShlImm(value) => write!(f, "u32checked_shl.{value}"),
+            Self::U32UncheckedShl => write!(f, "u32unchecked_shl"),
+            Self::U32UncheckedShlImm(value) => write!(f, "u32unchecked_shl.{value}"),
+            Self::U32CheckedRotr => write!(f, "u32checked_rotr"),
+            Self::U32CheckedRotrImm(value) => write!(f, "u32checked_rotr.{value}"),
+            Self::U32UncheckedRotr => write!(f, "u32unchecked_rotr"),
+            Self::U32UncheckedRotrImm(value) => write!(f, "u32unchecked_rotr.{value}"),
+            Self::U32CheckedRotl => write!(f, "u32checked_rotl"),
+            Self::U32CheckedRotlImm(value) => write!(f, "u32checked_rotl.{value}"),
+            Self::U32UncheckedRotl => write!(f, "u32unchecked_rotl"),
+            Self::U32UncheckedRotlImm(value) => write!(f, "u32unchecked_rotl.{value}"),
+            Self::U32CheckedEq => write!(f, "u32checked_eq"),
+            Self::U32CheckedEqImm(value) => write!(f, "u32checked_eq.{value}"),
+            Self::U32CheckedNeq => write!(f, "u32checked_neq"),
+            Self::U32CheckedNeqImm(value) => write!(f, "u32checked_neq.{value}"),
+            Self::U32CheckedLt => write!(f, "u32checked_lt"),
+            Self::U32UncheckedLt => write!(f, "u32unchecked_lt"),
+            Self::U32CheckedLte => write!(f, "u32checked_lte"),
+            Self::U32UncheckedLte => write!(f, "u32unchecked_lte"),
+            Self::U32CheckedGt => write!(f, "u32checked_gt"),
+            Self::U32UncheckedGt => write!(f, "u32unchecked_gt"),
+            Self::U32CheckedGte => write!(f, "u32checked_gte"),
+            Self::U32UncheckedGte => write!(f, "u32unchecked_gte"),
+            Self::U32CheckedMin => write!(f, "u32checked_min"),
+            Self::U32UncheckedMin => write!(f, "u32unchecked_min"),
+            Self::U32CheckedMax => write!(f, "u32checked_max"),
+            Self::U32UncheckedMax => write!(f, "u32unchecked_max"),
+
+            // ----- stack manipulation ---------------------------------------------------------------
+            Self::Drop => write!(f, "drop"),
+            Self::DropW => write!(f, "dropw"),
+            Self::PadW => write!(f, "padw"),
+            Self::Dup0 => write!(f, "dup0"),
+            Self::Dup1 => write!(f, "dup1"),
+            Self::Dup2 => write!(f, "dup2"),
+            Self::Dup3 => write!(f, "dup3"),
+            Self::Dup4 => write!(f, "dup4"),
+            Self::Dup5 => write!(f, "dup5"),
+            Self::Dup6 => write!(f, "dup6"),
+            Self::Dup7 => write!(f, "dup7"),
+            Self::Dup8 => write!(f, "dup8"),
+            Self::Dup9 => write!(f, "dup9"),
+            Self::Dup10 => write!(f, "dup10"),
+            Self::Dup11 => write!(f, "dup11"),
+            Self::Dup12 => write!(f, "dup12"),
+            Self::Dup13 => write!(f, "dup13"),
+            Self::Dup14 => write!(f, "dup14"),
+            Self::Dup15 => write!(f, "dup15"),
+            Self::DupW0 => write!(f, "dupw0"),
+            Self::DupW1 => write!(f, "dupw1"),
+            Self::DupW2 => write!(f, "dupw2"),
+            Self::DupW3 => write!(f, "dupw3"),
+            Self::Swap => write!(f, "swap"),
+            Self::Swap2 => write!(f, "swap2"),
+            Self::Swap3 => write!(f, "swap3"),
+            Self::Swap4 => write!(f, "swap4"),
+            Self::Swap5 => write!(f, "swap5"),
+            Self::Swap6 => write!(f, "swap6"),
+            Self::Swap7 => write!(f, "swap7"),
+            Self::Swap8 => write!(f, "swap8"),
+            Self::Swap9 => write!(f, "swap9"),
+            Self::Swap10 => write!(f, "swap10"),
+            Self::Swap11 => write!(f, "swap11"),
+            Self::Swap12 => write!(f, "swap12"),
+            Self::Swap13 => write!(f, "swap13"),
+            Self::Swap14 => write!(f, "swap14"),
+            Self::Swap15 => write!(f, "swap15"),
+            Self::SwapW => write!(f, "swapw"),
+            Self::SwapW2 => write!(f, "swapw2"),
+            Self::SwapW3 => write!(f, "swapw3"),
+            Self::SwapDW => write!(f, "swapdw"),
+            Self::MovUp2 => write!(f, "movup2"),
+            Self::MovUp3 => write!(f, "movup3"),
+            Self::MovUp4 => write!(f, "movup4"),
+            Self::MovUp5 => write!(f, "movup5"),
+            Self::MovUp6 => write!(f, "movup6"),
+            Self::MovUp7 => write!(f, "movup7"),
+            Self::MovUp8 => write!(f, "movup8"),
+            Self::MovUp9 => write!(f, "movup9"),
+            Self::MovUp10 => write!(f, "movup10"),
+            Self::MovUp11 => write!(f, "movup11"),
+            Self::MovUp12 => write!(f, "movup12"),
+            Self::MovUp13 => write!(f, "movup13"),
+            Self::MovUp14 => write!(f, "movup14"),
+            Self::MovUp15 => write!(f, "movup15"),
+            Self::MovUpW2 => write!(f, "movupw2"),
+            Self::MovUpW3 => write!(f, "movupw3"),
+            Self::MovDn2 => write!(f, "movdn2"),
+            Self::MovDn3 => write!(f, "movdn3"),
+            Self::MovDn4 => write!(f, "movdn4"),
+            Self::MovDn5 => write!(f, "movdn5"),
+            Self::MovDn6 => write!(f, "movdn6"),
+            Self::MovDn7 => write!(f, "movdn7"),
+            Self::MovDn8 => write!(f, "movdn8"),
+            Self::MovDn9 => write!(f, "movdn9"),
+            Self::MovDn10 => write!(f, "movdn10"),
+            Self::MovDn11 => write!(f, "movdn11"),
+            Self::MovDn12 => write!(f, "movdn12"),
+            Self::MovDn13 => write!(f, "movdn13"),
+            Self::MovDn14 => write!(f, "movdn14"),
+            Self::MovDn15 => write!(f, "movdn15"),
+            Self::MovDnW2 => write!(f, "movdnw2"),
+            Self::MovDnW3 => write!(f, "movdnw3"),
+            Self::CSwap => write!(f, "cswap"),
+            Self::CSwapW => write!(f, "cswapw"),
+            Self::CDrop => write!(f, "cdrop"),
+            Self::CDropW => write!(f, "cdropw"),
+
+            // ----- input / output operations --------------------------------------------------------
+            Self::PushConstants(values) => {
+                let mut values_string = String::from("push");
+                for elem in values {
+                    values_string.push('.');
+                    values_string.push_str(&elem.to_string());
+                }
+                write!(f, "{values_string}")
+            }
+            Self::Locaddr(value) => write!(f, "locaddr.{value}"),
+            Self::Sdepth => write!(f, "sdepth"),
+            Self::Caller => write!(f, "caller"),
+
+            Self::MemLoad => write!(f, "mem_load"),
+            Self::MemLoadImm(value) => write!(f, "mem_load.{value}"),
+            Self::MemLoadW => write!(f, "mem_loadw"),
+            Self::MemLoadWImm(value) => write!(f, "mem_loadw.{value}"),
+            Self::LocLoad(value) => write!(f, "loc_load.{value}"),
+            Self::LocLoadW(value) => write!(f, "loc_loadw.{value}"),
+
+            Self::MemStore => write!(f, "mem_store"),
+            Self::MemStoreImm(value) => write!(f, "mem_store.{value}"),
+            Self::LocStore(value) => write!(f, "loc_store.{value}"),
+            Self::MemStoreW => write!(f, "mem_storew"),
+            Self::MemStoreWImm(value) => write!(f, "mem_storew.{value}"),
+            Self::LocStoreW(value) => write!(f, "loc_storew.{value}"),
+
+            Self::MemStream => write!(f, "mem_stream"),
+            Self::AdvPipe => write!(f, "adv_pipe"),
+
+            Self::AdvU64Div => write!(f, "adv.u64div"),
+            Self::AdvPush(value) => write!(f, "adv_push.{value}"),
+            Self::AdvLoadW => write!(f, "adv_loadw"),
+
+            // ----- cryptographic operations ---------------------------------------------------------
+            Self::RPHash => write!(f, "rphash"),
+            Self::RPPerm => write!(f, "rpperm"),
+            Self::MTreeGet => write!(f, "mtree_get"),
+            Self::MTreeSet => write!(f, "mtree_set"),
+            Self::MTreeCwm => write!(f, "mtree_cwm"),
+
+            // ----- exec / call ----------------------------------------------------------------------
+            // TODO: print exec/call instructions with procedures names, not indexes or id's
+            Self::ExecLocal(index) => write!(f, "exec.{index}"),
+            Self::ExecImported(proc_id) => write!(f, "exec.{proc_id}"),
+            Self::CallLocal(index) => write!(f, "call.{index}"),
+            Self::CallImported(proc_id) => write!(f, "call.{proc_id}"),
+            Self::SysCall(proc_id) => write!(f, "syscall.{proc_id}"),
+        }
+    }
+}
+
+#[test]
+fn test_instruction_display() {
+    let instruction = format!("{}", Instruction::Assert);
+    assert_eq!("assert", instruction);
+
+    let instruction = format!("{}", Instruction::Add);
+    assert_eq!("add", instruction);
+
+    let instruction = format!("{}", Instruction::AddImm(Felt::new(5)));
+    assert_eq!("add.5", instruction);
+
+    let instruction = format!("{}", Instruction::ExpBitLength(32));
+    assert_eq!("exp.u32", instruction);
+
+    let instruction = format!(
+        "{}",
+        Instruction::PushConstants(vec![Felt::new(3), Felt::new(4), Felt::new(8), Felt::new(9)])
+    );
+    assert_eq!("push.3.4.8.9", instruction);
+
+    let hash = [7; 24];
+    let proc_id = ProcedureId::from(hash);
+    let instruction = format!("{}", Instruction::ExecImported(proc_id));
+    assert_eq!(
+        "exec.0x070707070707070707070707070707070707070707070707",
+        instruction
+    );
 }

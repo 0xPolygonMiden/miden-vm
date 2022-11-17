@@ -2,7 +2,7 @@ use super::{
     combine_blocks, parse_code_blocks, AssemblyContext, AssemblyError, BTreeSet, CodeBlock,
     CodeBlockTable, String, Token, TokenStream, Vec, MODULE_PATH_DELIM,
 };
-use core::ops;
+use core::{fmt, ops};
 use crypto::{hashers::Blake3_256, Digest, Hasher};
 use vm_core::{Felt, Operation};
 
@@ -157,6 +157,16 @@ impl ops::Deref for ProcedureId {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl fmt::Display for ProcedureId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "0x")?;
+        for byte in self.0.iter() {
+            write!(f, "{byte:02x}")?;
+        }
+        Ok(())
     }
 }
 
