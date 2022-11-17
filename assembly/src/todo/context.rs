@@ -123,12 +123,13 @@ impl AssemblyContext {
     }
 
     /// Adds a compiled procedure to the context of the module currently being compiled.
-    pub fn add_local_proc(&mut self, procedure: Procedure) {
-        self.modules
-            .last_mut()
-            .expect("no modules")
-            .local_procs
-            .push(procedure);
+    pub fn add_local_proc(&mut self, procedure: Procedure) -> Result<(), AssemblerError> {
+        let module = self.modules.last_mut().expect("no modules");
+        if module.has_local_proc(procedure.id()) {
+            return Err(AssemblerError::duplicated_proc(procedure.label()));
+        }
+        module.local_procs.push(procedure);
+        Ok(())
     }
 
     /// Transforms this context into a Kernel.
@@ -173,6 +174,11 @@ impl ModuleContext {
         self.local_procs
             .get(index as usize)
             .ok_or_else(|| AssemblerError::undefined_proc(index))
+    }
+
+    /// Returns true if a procedure with the provided ID is in the context.
+    pub fn has_local_proc(&self, proc_id: &ProcedureId) -> bool {
+        self.local_procs.iter().any(|proc| proc.id() == proc_id)
     }
 
     /// Returns a [Procedure] with the specified ID, or None if a procedure with such ID could not

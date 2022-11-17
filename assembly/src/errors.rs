@@ -41,6 +41,14 @@ impl AssemblyError {
         }
     }
 
+    pub fn unexpected_body_end(token: &Token) -> Self {
+        AssemblyError {
+            message: format!("unexpected body termination: invalid token '{token}'"),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
     pub fn empty_block(token: &Token) -> Self {
         AssemblyError {
             message: "a code block must contain at least one instruction".to_string(),
@@ -342,6 +350,15 @@ pub struct AssemblerError {
 }
 
 impl AssemblerError {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
+    pub fn duplicated_proc(label: &str) -> Self {
+        Self {
+            message: format!("duplicated procedure label: {label}"),
+        }
+    }
+
     pub fn undefined_proc(idx: u16) -> Self {
         Self {
             message: format!("undefined procedure: {idx}"),
@@ -404,12 +421,28 @@ impl AssemblerError {
             message: format!("exported procedures not allowed in executable module: {proc_name}"),
         }
     }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+    pub fn message(&self) -> &String {
+        &self.message
+    }
 }
 
 impl From<AssemblyError> for AssemblerError {
     fn from(err: AssemblyError) -> Self {
         Self {
-            message: err.to_string(),
+            message: err.message,
+        }
+    }
+}
+
+impl From<AssemblerError> for AssemblyError {
+    fn from(err: AssemblerError) -> Self {
+        Self {
+            message: err.message,
+            step: 0,
+            op: "".to_string(),
         }
     }
 }
