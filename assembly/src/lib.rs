@@ -4,33 +4,34 @@
 #[macro_use]
 extern crate alloc;
 
-use core::ops;
-use crypto::{hashers::Blake3_256, Digest, Hasher};
 use vm_core::{
     code_blocks::CodeBlock,
     utils::{
-        collections::{BTreeMap, Vec},
+        collections::{BTreeMap, BTreeSet, Vec},
         string::{String, ToString},
         Box,
     },
-    CodeBlockTable, Felt, Kernel, Program,
+    CodeBlockTable, Kernel, Program,
 };
 
 mod context;
 use context::AssemblyContext;
 
 mod procedures;
-use procedures::Procedure;
+pub use procedures::ProcedureId;
+use procedures::{CallSet, Procedure};
 
 mod parsers;
 use parsers::{combine_blocks, parse_code_blocks};
-pub use parsers::{parse_module, ModuleAst, ProcedureAst};
+pub use parsers::{parse_module, ModuleAst, NamedModuleAst, ProcedureAst};
 
 mod tokens;
 use tokens::{Token, TokenStream};
 
 mod errors;
-pub use errors::AssemblyError;
+pub use errors::{AssemblerError, AssemblyError};
+
+pub mod todo;
 
 #[cfg(test)]
 mod tests;
@@ -49,43 +50,6 @@ type ModuleMap = BTreeMap<String, ProcMap>;
 // MODULE PROVIDER
 // ================================================================================================
 
-/// A procedure identifier computed as a digest truncated to [`Self::LEN`] bytes, product of the
-/// label of a procedure
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ProcedureId(pub [u8; Self::SIZE]);
-
-impl From<[u8; ProcedureId::SIZE]> for ProcedureId {
-    fn from(value: [u8; ProcedureId::SIZE]) -> Self {
-        Self(value)
-    }
-}
-
-impl ops::Deref for ProcedureId {
-    type Target = [u8; Self::SIZE];
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl ProcedureId {
-    /// Truncated length of the id
-    pub const SIZE: usize = 24;
-
-    /// Createa a new procedure id from its label, composed by module path + name identifier.
-    ///
-    /// No validation is performed regarding the consistency of the label structure
-    pub fn new<L>(label: L) -> Self
-    where
-        L: AsRef<str>,
-    {
-        let mut digest = [0u8; Self::SIZE];
-        let hash = Blake3_256::<Felt>::hash(label.as_ref().as_bytes());
-        digest.copy_from_slice(&hash.as_bytes()[..Self::SIZE]);
-        Self(digest)
-    }
-}
-
 /// The module provider is now a simplified version of a module cache. It is expected to evolve to
 /// a general solution for the module lookup
 pub trait ModuleProvider {
@@ -93,7 +57,7 @@ pub trait ModuleProvider {
     fn get_source(&self, path: &str) -> Option<&str>;
 
     /// Fetch a module AST from its ID
-    fn get_module(&self, id: &ProcedureId) -> Option<&ModuleAst>;
+    fn get_module(&self, id: &ProcedureId) -> Option<NamedModuleAst<'_>>;
 }
 
 // A default provider that won't resolve modules
@@ -102,7 +66,7 @@ impl ModuleProvider for () {
         None
     }
 
-    fn get_module(&self, _id: &ProcedureId) -> Option<&ModuleAst> {
+    fn get_module(&self, _id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
         None
     }
 }

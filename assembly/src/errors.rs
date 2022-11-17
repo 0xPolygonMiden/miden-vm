@@ -1,3 +1,5 @@
+use crate::ProcedureId;
+
 use super::{String, ToString, Token};
 use core::fmt;
 
@@ -334,6 +336,66 @@ pub enum SerializationError {
     InvalidFieldElement,
 }
 
+#[derive(Clone, Eq, PartialEq)]
+pub struct AssemblerError {
+    message: String,
+}
+
+impl AssemblerError {
+    pub fn undefined_proc(idx: u16) -> Self {
+        Self {
+            message: format!("undefined procedure: {idx}"),
+        }
+    }
+
+    pub fn undefined_imported_proc(id: &ProcedureId) -> Self {
+        Self {
+            message: format!("undefined imported procedure: {id:x?}"),
+        }
+    }
+
+    pub fn undefined_syscall(id: &ProcedureId) -> Self {
+        Self {
+            message: format!("undefined kernel procedure: {id:x?}"),
+        }
+    }
+
+    pub fn call_in_kernel() -> Self {
+        Self {
+            message: "call instruction inside kernel".to_string(),
+        }
+    }
+
+    pub fn syscall_in_kernel() -> Self {
+        Self {
+            message: "syscall instruction inside kernel".to_string(),
+        }
+    }
+
+    pub fn division_by_zero() -> Self {
+        Self {
+            message: "division by zero".to_string(),
+        }
+    }
+
+    pub fn imm_out_of_bounds(value: u64, min: u64, max: u64) -> Self {
+        Self {
+            message: format!(
+                "immediate value must be greater than or equal to {} and less than or equal to {}, but was {}",
+                min, max, value
+            )
+        }
+    }
+}
+
+impl From<AssemblyError> for AssemblerError {
+    fn from(err: AssemblyError) -> Self {
+        Self {
+            message: err.to_string(),
+        }
+    }
+}
+
 // COMMON TRAIT IMPLEMENTATIONS
 // ================================================================================================
 
@@ -348,3 +410,21 @@ impl fmt::Display for AssemblyError {
         write!(f, "assembly error at {}: {}", self.step, self.message)
     }
 }
+
+impl fmt::Debug for AssemblerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "assembler error: {}", self.message)
+    }
+}
+
+impl fmt::Display for AssemblerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "assembler error: {}", self.message)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for AssemblyError {}
+
+#[cfg(feature = "std")]
+impl std::error::Error for AssemblerError {}

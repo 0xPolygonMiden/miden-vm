@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use vm_assembly::{ModuleAst, ModuleProvider, ProcedureId};
+use vm_assembly::{ModuleAst, ModuleProvider, NamedModuleAst, ProcedureId};
 use vm_core::{
     errors::LibraryError,
     utils::{collections::BTreeMap, string::ToString},
@@ -18,7 +18,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 // TYPE ALIASES
 // ================================================================================================
 
-type ModuleMap = BTreeMap<ProcedureId, ModuleAst>;
+type ModuleMap = BTreeMap<ProcedureId, (&'static str, ModuleAst)>;
 type ModuleNamedMap = BTreeMap<&'static str, ModuleAst>;
 type ModuleSource = BTreeMap<&'static str, &'static str>;
 
@@ -37,8 +37,10 @@ impl ModuleProvider for StdLibrary {
         self.sources.get(path).copied()
     }
 
-    fn get_module(&self, id: &ProcedureId) -> Option<&ModuleAst> {
-        self.modules.get(id)
+    fn get_module(&self, id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
+        self.modules
+            .get(id)
+            .map(|(path, module)| module.named_ref(*path))
     }
 }
 
@@ -74,11 +76,11 @@ impl Default for StdLibrary {
 
         let modules = MODULES
             .into_iter()
-            .map(|(_, id, _, bytes)| {
+            .map(|(label, id, _, bytes)| {
                 let ast = ModuleAst::from_bytes(bytes)
                     .expect("static module deserialization should be infallible");
 
-                (id, ast)
+                (id, (label, ast))
             })
             .collect();
 

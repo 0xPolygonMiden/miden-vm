@@ -492,7 +492,7 @@ impl Serializable for Instruction {
             Self::RPPerm => target.write_opcode(OpCode::RPPerm),
             Self::MTreeGet => target.write_opcode(OpCode::MTreeGet),
             Self::MTreeSet => target.write_opcode(OpCode::MTreeSet),
-            Self::MTreeCWM => target.write_opcode(OpCode::MTreeCWM),
+            Self::MTreeCwm => target.write_opcode(OpCode::MTreeCwm),
 
             // ----- exec / call ----------------------------------------------------------------------
             Self::ExecLocal(v) => {

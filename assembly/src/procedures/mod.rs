@@ -1,28 +1,52 @@
 use super::{
-    combine_blocks, parse_code_blocks, AssemblyContext, AssemblyError, CodeBlock, CodeBlockTable,
-    String, Token, TokenStream, Vec,
+    combine_blocks, parse_code_blocks, AssemblyContext, AssemblyError, BTreeSet, CodeBlock,
+    CodeBlockTable, ProcedureAst, String, ToString, Token, TokenStream, Vec, MODULE_PATH_DELIM,
 };
+use core::ops;
+use crypto::{hashers::Blake3_256, Digest, Hasher};
 use vm_core::{Felt, Operation};
 
 // PROCEDURE
 // ================================================================================================
 
+#[derive(Clone, Debug)]
 /// Contains metadata and code of a procedure.
 pub struct Procedure {
+    id: ProcedureId,
     label: String,
     is_export: bool,
-    #[allow(dead_code)]
     num_locals: u32,
     code_root: CodeBlock,
+    callset: CallSet,
 }
 
 impl Procedure {
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+    /// Returns a new [Procedure] instantiated from the provided procedure AST and other specified
+    /// parameters.
+    pub fn from_ast(
+        ast: &ProcedureAst,
+        id: ProcedureId,
+        code_root: CodeBlock,
+        callset: CallSet,
+    ) -> Self {
+        Self {
+            id,
+            label: ast.name.to_string(),
+            is_export: ast.is_export,
+            num_locals: ast.num_locals,
+            code_root,
+            callset,
+        }
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a root of this procedure's MAST.
-    pub fn code_root(&self) -> &CodeBlock {
-        &self.code_root
+    /// Returns ID of this procedure.
+    pub fn id(&self) -> &ProcedureId {
+        &self.id
     }
 
     /// Returns a label of this procedure.
@@ -33,6 +57,23 @@ impl Procedure {
     /// Returns `true` if this is an exported procedure.
     pub fn is_export(&self) -> bool {
         self.is_export
+    }
+
+    /// Returns the number of memory locals reserved by the procedure.
+    #[allow(dead_code)]
+    pub fn num_locals(&self) -> u32 {
+        self.num_locals
+    }
+
+    /// Returns a root of this procedure's MAST.
+    pub fn code_root(&self) -> &CodeBlock {
+        &self.code_root
+    }
+
+    /// Returns a reference to a set of all procedures (identified by their IDs) which may be
+    /// called during the execution of this procedure.
+    pub fn callset(&self) -> &CallSet {
+        &self.callset
     }
 
     // PARSER
@@ -86,11 +127,110 @@ impl Procedure {
 
         // build and return the procedure
         Ok(Self {
+            id: ProcedureId::default(),
             label,
             is_export,
             num_locals,
             code_root,
+            callset: CallSet::default(),
         })
+    }
+}
+
+// PROCEDURE ID
+// ================================================================================================
+
+/// A procedure identifier computed as a digest truncated to [`Self::LEN`] bytes, product of the
+/// label of a procedure
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ProcedureId(pub [u8; Self::SIZE]);
+
+impl From<[u8; ProcedureId::SIZE]> for ProcedureId {
+    fn from(value: [u8; ProcedureId::SIZE]) -> Self {
+        Self(value)
+    }
+}
+
+impl ops::Deref for ProcedureId {
+    type Target = [u8; Self::SIZE];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl ProcedureId {
+    /// Truncated length of the id
+    pub const SIZE: usize = 24;
+
+    /// Base kernel path
+    /// TODO better use `MODULE_PATH_DELIM`. maybe require `const_format` crate?
+    pub const KERNEL_PATH: &str = "::sys";
+
+    /// Creates a new procedure id from its label, composed by module path + name identifier.
+    ///
+    /// No validation is performed regarding the consistency of the label format.
+    pub fn new<L>(label: L) -> Self
+    where
+        L: AsRef<str>,
+    {
+        let mut digest = [0u8; Self::SIZE];
+        let hash = Blake3_256::<Felt>::hash(label.as_ref().as_bytes());
+        digest.copy_from_slice(&hash.as_bytes()[..Self::SIZE]);
+        Self(digest)
+    }
+
+    /// Creates a new procedure ID from a name to be resolved in the kernel.
+    pub fn from_kernel_name(name: &str) -> Self {
+        let label = format!("{}{MODULE_PATH_DELIM}{name}", Self::KERNEL_PATH);
+        Self::new(label)
+    }
+
+    /// Creates a new procedure ID from its name and module path.
+    ///
+    /// No validation is performed regarding the consistency of the module path or procedure name
+    /// format.
+    pub fn from_name(name: &str, module_path: &str) -> Self {
+        let label = format!("{module_path}{MODULE_PATH_DELIM}{name}");
+        Self::new(label)
+    }
+
+    /// Creates a new procedure ID from its local index and module path.
+    ///
+    /// No validation is performed regarding the consistency of the module path format.
+    pub fn from_index(index: u16, module_path: &str) -> Self {
+        let label = format!("{module_path}{MODULE_PATH_DELIM}{index}");
+        Self::new(label)
+    }
+}
+
+// CALLSET
+// ================================================================================================
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct CallSet(BTreeSet<ProcedureId>);
+
+impl CallSet {
+    pub fn contains(&self, proc_id: &ProcedureId) -> bool {
+        self.0.contains(proc_id)
+    }
+
+    pub fn insert(&mut self, proc_id: ProcedureId) {
+        self.0.insert(proc_id);
+    }
+
+    pub fn append(&mut self, other: &CallSet) {
+        for &item in other.0.iter() {
+            self.0.insert(item);
+        }
+    }
+}
+
+impl ops::Deref for CallSet {
+    type Target = BTreeSet<ProcedureId>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
