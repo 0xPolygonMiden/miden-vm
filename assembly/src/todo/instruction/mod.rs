@@ -1,5 +1,5 @@
 use super::{
-    Assembler, AssemblerError, CallSet, CodeBlock, Felt, ModuleContext, Operation, ProcedureId,
+    Assembler, AssemblerError, AssemblyContext, CallSet, CodeBlock, Felt, Operation, ProcedureId,
     SpanBuilder,
 };
 use crate::parsers::Instruction;
@@ -21,7 +21,7 @@ impl Assembler {
         &self,
         instruction: &Instruction,
         span: &mut SpanBuilder,
-        context: &ModuleContext,
+        context: &mut AssemblyContext,
         callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
         use Operation::*;
@@ -146,7 +146,7 @@ impl Assembler {
             Instruction::U32UncheckedMax => u32_ops::u32max(span, Unchecked),
 
             Instruction::ExecLocal(idx) => self.exec_local(*idx, context, callset),
-            Instruction::ExecImported(id) => self.exec_imported(id, callset),
+            Instruction::ExecImported(id) => self.exec_imported(id, context, callset),
             Instruction::CallLocal(idx) => self.call_local(*idx, context, callset),
             Instruction::CallImported(id) => self.call_imported(id, context, callset),
             Instruction::SysCall(id) => self.syscall(id, context, callset),
