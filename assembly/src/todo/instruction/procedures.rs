@@ -1,4 +1,4 @@
-use super::{Assembler, AssemblerContext, AssemblerError, CallSet, CodeBlock, ProcedureId};
+use super::{Assembler, AssemblerError, CallSet, CodeBlock, ModuleContext, ProcedureId};
 
 // PROCEDURE INVOCATIONS
 // ================================================================================================
@@ -7,10 +7,10 @@ impl Assembler {
     pub(super) fn exec_local(
         &self,
         index: u16,
-        context: &AssemblerContext,
+        context: &ModuleContext,
         callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
-        // get the procedure from the context
+        // get the procedure from the context of the module currently being compiled
         let proc = context.get_local_proc(index)?;
 
         // append the callset of the procedure to the current callset as executing this procedure
@@ -41,10 +41,10 @@ impl Assembler {
     pub(super) fn call_local(
         &self,
         index: u16,
-        context: &AssemblerContext,
+        context: &ModuleContext,
         callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
-        // get the procedure from the context
+        // get the procedure from the context of the module currently being compiled
         let proc = context.get_local_proc(index)?;
 
         // append the callset of the procedure to the current callset as executing this procedure

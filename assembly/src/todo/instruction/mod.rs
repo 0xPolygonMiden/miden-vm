@@ -1,5 +1,5 @@
 use super::{
-    Assembler, AssemblerContext, AssemblerError, CallSet, CodeBlock, Operation, ProcedureId,
+    Assembler, AssemblerError, CallSet, CodeBlock, ModuleContext, Operation, ProcedureId,
     SpanBuilder,
 };
 use crate::parsers::Instruction;
@@ -13,7 +13,7 @@ impl Assembler {
         &self,
         instruction: &Instruction,
         span: &mut SpanBuilder,
-        context: &AssemblerContext,
+        context: &ModuleContext,
         callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
         use Operation::*;
