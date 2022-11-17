@@ -54,7 +54,40 @@ impl AdviceProvider {
     pub fn read_tape(&mut self) -> Result<Felt, ExecutionError> {
         self.tape
             .pop()
-            .ok_or(ExecutionError::EmptyAdviceTape(self.step))
+            .ok_or(ExecutionError::AdviceTapeReadFailed(self.step))
+    }
+
+    /// Removes a word (4 elements) from the advice tape and returns it.
+    ///
+    /// # Errors
+    /// Returns an error if the advice tape does not contain a full word.
+    pub fn read_tapew(&mut self) -> Result<Word, ExecutionError> {
+        if self.tape.len() < 4 {
+            return Err(ExecutionError::AdviceTapeReadFailed(self.step));
+        }
+
+        let idx = self.tape.len() - 4;
+        let result = [
+            self.tape[idx + 3],
+            self.tape[idx + 2],
+            self.tape[idx + 1],
+            self.tape[idx],
+        ];
+
+        self.tape.truncate(idx);
+
+        Ok(result)
+    }
+
+    /// Removes the next two words from the advice tape and returns them.
+    ///
+    /// # Errors
+    /// Returns an error if the advice tape does not contain two words.
+    pub fn read_tape_double(&mut self) -> Result<[Word; 2], ExecutionError> {
+        let word0 = self.read_tapew()?;
+        let word1 = self.read_tapew()?;
+
+        Ok([word0, word1])
     }
 
     /// Writes the provided value at the head of the advice tape.
@@ -78,6 +111,18 @@ impl AdviceProvider {
         }
 
         Ok(())
+    }
+
+    /// Inserts a list of elements to the advice map with the top four elements of the stack as
+    /// the key.
+    ///
+    /// # Errors
+    /// Returns an error if the key is already present in the advice map.
+    pub fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
+        match self.values.insert(key.into_bytes(), values) {
+            None => Ok(()),
+            Some(_) => Err(ExecutionError::DuplicateAdviceKey(key)),
+        }
     }
 
     // ADVISE SETS

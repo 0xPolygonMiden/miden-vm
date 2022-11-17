@@ -23,6 +23,9 @@ pub enum AdviceInjector {
     /// the key-value map maintained by the advice provider using the top 4 elements on the stack
     /// as the key.
     MapValue,
+
+    /// Injects a list of words from the memory starting from the specified start address.
+    Memory(u32, u32),
 }
 
 impl fmt::Display for AdviceInjector {
@@ -31,6 +34,7 @@ impl fmt::Display for AdviceInjector {
             Self::MerkleNode => write!(f, "merkle_node"),
             Self::DivResultU64 => write!(f, "div_result_u64"),
             Self::MapValue => write!(f, "map_value"),
+            Self::Memory(start_addr, num_words) => write!(f, "mem({}, {})", start_addr, num_words),
         }
     }
 }

@@ -66,14 +66,25 @@ impl<'a> ByteReader<'a> {
         ))
     }
 
-    pub fn read_string(&mut self) -> Result<String, SerializationError> {
-        self.check_eor(1)?;
-        let length = self.bytes[self.pos];
-        self.pos += 1;
+    pub fn read_proc_name(&mut self) -> Result<String, SerializationError> {
+        let length = self.read_u8()?;
         self.check_eor(length as usize)?;
         let string_bytes = &self.bytes[self.pos..self.pos + length as usize];
         self.pos += length as usize;
         Ok(String::from_utf8(string_bytes.to_vec()).expect("String conversion failure"))
+    }
+
+    pub fn read_docs(&mut self) -> Result<Option<String>, SerializationError> {
+        let length = self.read_u16()?;
+        if length != 0 {
+            self.check_eor(length as usize)?;
+            let string_bytes = &self.bytes[self.pos..self.pos + length as usize];
+            self.pos += length as usize;
+            let docs = String::from_utf8(string_bytes.to_vec()).expect("String conversion failure");
+            Ok(Some(docs))
+        } else {
+            Ok(None)
+        }
     }
 
     pub fn read_procedure_id(&mut self) -> Result<ProcedureId, SerializationError> {
@@ -177,6 +188,8 @@ impl Deserializable for Instruction {
             OpCode::Inv => Ok(Instruction::Inv),
             OpCode::Pow2 => Ok(Instruction::Pow2),
             OpCode::Exp => Ok(Instruction::Exp),
+            OpCode::ExpImm => Ok(Instruction::ExpImm(bytes.read_felt()?)),
+            OpCode::ExpBitLength => Ok(Instruction::ExpBitLength(bytes.read_u8()?)),
             OpCode::Not => Ok(Instruction::Not),
             OpCode::And => Ok(Instruction::And),
             OpCode::Or => Ok(Instruction::Or),
@@ -195,6 +208,7 @@ impl Deserializable for Instruction {
             OpCode::U32Test => Ok(Instruction::U32Test),
             OpCode::U32TestW => Ok(Instruction::U32TestW),
             OpCode::U32Assert => Ok(Instruction::U32Assert),
+            OpCode::U32Assert2 => Ok(Instruction::U32Assert2),
             OpCode::U32AssertW => Ok(Instruction::U32AssertW),
             OpCode::U32Split => Ok(Instruction::U32Split),
             OpCode::U32Cast => Ok(Instruction::U32Cast),
@@ -358,9 +372,18 @@ impl Deserializable for Instruction {
             OpCode::CDropW => Ok(Instruction::CDropW),
 
             // ----- input / output operations --------------------------------------------------------
-            OpCode::Adv => Ok(Instruction::Adv(bytes.read_felt()?)),
+            OpCode::PushConstants => {
+                let mut constants = Vec::new();
+                let length = bytes.read_u8()?;
+                for _ in 0..length {
+                    constants.push(bytes.read_felt()?);
+                }
+                Ok(Instruction::PushConstants(constants))
+            }
             OpCode::Locaddr => Ok(Instruction::Locaddr(bytes.read_felt()?)),
             OpCode::Sdepth => Ok(Instruction::Sdepth),
+            OpCode::Caller => Ok(Instruction::Caller),
+
             OpCode::MemLoad => Ok(Instruction::MemLoad),
             OpCode::MemLoadImm => Ok(Instruction::MemLoadImm(bytes.read_felt()?)),
             OpCode::MemLoadW => Ok(Instruction::MemLoadW),
@@ -373,16 +396,10 @@ impl Deserializable for Instruction {
             OpCode::MemStoreW => Ok(Instruction::MemStoreW),
             OpCode::MemStoreWImm => Ok(Instruction::MemStoreWImm(bytes.read_felt()?)),
             OpCode::LocStoreW => Ok(Instruction::LocStoreW(bytes.read_felt()?)),
-            OpCode::LoadWAdv => Ok(Instruction::LoadWAdv),
 
-            OpCode::PushConstants => {
-                let mut constants = Vec::new();
-                let length = bytes.read_u8()?;
-                for _ in 0..length {
-                    constants.push(bytes.read_felt()?);
-                }
-                Ok(Instruction::PushConstants(constants))
-            }
+            OpCode::MemStream => Ok(Instruction::MemStream),
+            OpCode::AdvPipe => Ok(Instruction::AdvPipe),
+
             OpCode::AdvU64Div => Ok(Instruction::AdvU64Div),
             OpCode::AdvPush => Ok(Instruction::AdvPush(bytes.read_felt()?)),
             OpCode::AdvLoadW => Ok(Instruction::AdvLoadW(bytes.read_felt()?)),
@@ -399,6 +416,7 @@ impl Deserializable for Instruction {
             OpCode::ExecImported => Ok(Instruction::ExecImported(bytes.read_procedure_id()?)),
             OpCode::CallLocal => Ok(Instruction::CallLocal(bytes.read_u16()?)),
             OpCode::CallImported => Ok(Instruction::CallImported(bytes.read_procedure_id()?)),
+            OpCode::SysCall => Ok(Instruction::SysCall(bytes.read_procedure_id()?)),
         }
     }
 }

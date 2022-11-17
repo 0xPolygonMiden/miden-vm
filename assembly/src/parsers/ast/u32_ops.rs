@@ -1,6 +1,21 @@
 use super::{parse_param, Instruction, Node};
 use crate::{validate_operation, AssemblyError, Token, Vec};
 
+pub fn parse_u32assert(op: &Token) -> Result<Node, AssemblyError> {
+    let instruction = match op.num_parts() {
+        0 => return Err(AssemblyError::missing_param(op)),
+        1 => Instruction::U32Assert,
+        2 => match op.parts()[1] {
+            "1" => Instruction::U32Assert,
+            "2" => Instruction::U32Assert2,
+            _ => return Err(AssemblyError::invalid_param(op, 1)),
+        },
+        _ => return Err(AssemblyError::extra_param(op)),
+    };
+
+    Ok(Node::Instruction(instruction))
+}
+
 pub fn parse_u32checked_add(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32checked_add", 0..1);
 
