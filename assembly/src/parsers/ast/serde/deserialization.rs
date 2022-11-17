@@ -409,7 +409,7 @@ impl Deserializable for Instruction {
             OpCode::RPPerm => Ok(Instruction::RPPerm),
             OpCode::MTreeGet => Ok(Instruction::MTreeGet),
             OpCode::MTreeSet => Ok(Instruction::MTreeSet),
-            OpCode::MTreeCWM => Ok(Instruction::MTreeCWM),
+            OpCode::MTreeCwm => Ok(Instruction::MTreeCwm),
 
             // ----- exec / call ----------------------------------------------------------------------
             OpCode::ExecLocal => Ok(Instruction::ExecLocal(bytes.read_u16()?)),

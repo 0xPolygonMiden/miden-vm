@@ -50,7 +50,11 @@ impl Assembler {
             Instruction::Neq => span.add_ops([Eq, Not]),
             Instruction::NeqImm(imm) => field_ops::neq_imm(imm, span),
 
+            Instruction::RPPerm => span.add_op(RpPerm),
+            Instruction::RPHash => crypto_ops::rphash(span),
             Instruction::MTreeGet => crypto_ops::mtree_get(span),
+            Instruction::MTreeSet => crypto_ops::mtree_set(span),
+            Instruction::MTreeCwm => crypto_ops::mtree_cwm(span),
 
             Instruction::PushConstants(imms) => span.add_ops(imms.iter().copied().map(Push)),
             Instruction::ExecLocal(idx) => self.exec_local(*idx, context, callset),
