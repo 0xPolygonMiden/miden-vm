@@ -245,7 +245,7 @@ pub enum Instruction {
     RPPerm,
     MTreeGet,
     MTreeSet,
-    MTreeCWM,
+    MTreeCwm,
 
     // ----- exec / call ----------------------------------------------------------------------
     ExecLocal(u16),

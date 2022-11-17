@@ -237,11 +237,11 @@ pub enum OpCode {
     AdvMem = 207,
 
     // ----- cryptographic operations ---------------------------------------------------------
-    RPHash = 208,
-    RPPerm = 209,
-    MTreeGet = 210,
-    MTreeSet = 211,
-    MTreeCWM = 212,
+    RPHash = 206,
+    RPPerm = 207,
+    MTreeGet = 208,
+    MTreeSet = 209,
+    MTreeCwm = 210,
 
     // ----- exec / call ----------------------------------------------------------------------
     ExecLocal = 213,
