@@ -51,9 +51,14 @@ impl SpanBuilder {
     }
 
     /// TODO: add docs
-    #[allow(dead_code)]
     pub fn push_op(&mut self, op: Operation) {
         self.ops.push(op);
+    }
+
+    /// TODO: add docs
+    pub fn push_op_many(&mut self, op: Operation, n: usize) {
+        let new_len = self.ops.len() + n;
+        self.ops.resize(new_len, op);
     }
 
     /// TODO: add docs

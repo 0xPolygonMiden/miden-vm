@@ -497,7 +497,7 @@ fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
 
         "mtree_get" => Node::Instruction(Instruction::MTreeGet),
         "mtree_set" => Node::Instruction(Instruction::MTreeSet),
-        "mtree_cwm" => Node::Instruction(Instruction::MTreeCWM),
+        "mtree_cwm" => Node::Instruction(Instruction::MTreeCwm),
 
         // ----- catch all ------------------------------------------------------------------------
         _ => return Err(AssemblyError::invalid_op(op)),

@@ -239,7 +239,7 @@ pub enum OpCode {
     RPPerm = 207,
     MTreeGet = 208,
     MTreeSet = 209,
-    MTreeCWM = 210,
+    MTreeCwm = 210,
 
     // ----- exec / call ----------------------------------------------------------------------
     ExecLocal = 211,
