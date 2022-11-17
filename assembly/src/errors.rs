@@ -366,6 +366,12 @@ impl AssemblerError {
         }
     }
 
+    pub fn caller_out_of_kernel() -> Self {
+        Self {
+            message: "caller instruction outside kernel".to_string(),
+        }
+    }
+
     pub fn syscall_in_kernel() -> Self {
         Self {
             message: "syscall instruction inside kernel".to_string(),

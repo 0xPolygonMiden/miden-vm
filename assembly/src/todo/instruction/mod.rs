@@ -8,6 +8,7 @@ mod adv_ops;
 mod crypto_ops;
 mod env_ops;
 mod field_ops;
+mod mem_ops;
 mod procedures;
 mod u32_ops;
 
@@ -232,26 +233,31 @@ impl Assembler {
             Instruction::CDropW => span.add_ops([CSwapW, Drop, Drop, Drop, Drop]),
 
             Instruction::PushConstants(imms) => span.add_ops(imms.iter().copied().map(Push)),
-            Instruction::Locaddr(_) => todo!(),
             Instruction::Sdepth => span.add_op(SDepth),
-            Instruction::Caller => todo!(),
-            Instruction::MemLoad => todo!(),
-            Instruction::MemLoadImm(_) => todo!(),
-            Instruction::MemLoadW => todo!(),
-            Instruction::MemLoadWImm(_) => todo!(),
-            Instruction::LocLoad(_) => todo!(),
-            Instruction::LocLoadW(_) => todo!(),
-            Instruction::MemStore => todo!(),
-            Instruction::MemStoreImm(_) => todo!(),
-            Instruction::LocStore(_) => todo!(),
-            Instruction::MemStoreW => todo!(),
-            Instruction::MemStoreWImm(_) => todo!(),
-            Instruction::LocStoreW(_) => todo!(),
-            Instruction::MemStream => span.add_ops([MStream, RpPerm]),
+            Instruction::Caller => env_ops::caller(span, context),
             Instruction::AdvPipe => span.add_ops([Pipe, RpPerm]),
-            Instruction::AdvU64Div => todo!(),
             Instruction::AdvPush(n) => adv_ops::adv_push(span, n),
-            Instruction::AdvLoadW(_) => todo!(),
+            Instruction::AdvLoadW => span.add_op(ReadW),
+
+            Instruction::MemStream => span.add_ops([MStream, RpPerm]),
+
+            // TODO define num_proc_locals
+            Instruction::Locaddr(imm) => env_ops::locaddr(imm, span, 0),
+            Instruction::MemLoad => mem_ops::mem_read(span, None, 0, false, true),
+            Instruction::MemLoadImm(imm) => mem_ops::mem_read(span, Some(imm), 0, false, true),
+            Instruction::MemLoadW => mem_ops::mem_read(span, None, 0, false, false),
+            Instruction::MemLoadWImm(imm) => mem_ops::mem_read(span, Some(imm), 0, false, false),
+            Instruction::LocLoad(imm) => mem_ops::mem_read(span, Some(imm), 0, true, true),
+            Instruction::LocLoadW(imm) => mem_ops::mem_read(span, Some(imm), 0, true, false),
+            Instruction::MemStore => mem_ops::mem_write(span, None, 0, false, true),
+            Instruction::MemStoreImm(imm) => mem_ops::mem_write(span, Some(imm), 0, false, true),
+            Instruction::MemStoreW => mem_ops::mem_write(span, None, 0, false, false),
+            Instruction::MemStoreWImm(imm) => mem_ops::mem_write(span, Some(imm), 0, false, false),
+            Instruction::LocStore(imm) => mem_ops::mem_write(span, Some(imm), 0, true, true),
+            Instruction::LocStoreW(imm) => mem_ops::mem_write(span, Some(imm), 0, true, false),
+
+            // TODO this isntruction is not implemented as operation
+            Instruction::AdvU64Div => todo!(),
 
             Instruction::RPPerm => span.add_op(RpPerm),
             Instruction::RPHash => crypto_ops::rphash(span),

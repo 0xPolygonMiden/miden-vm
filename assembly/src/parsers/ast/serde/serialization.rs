@@ -482,10 +482,7 @@ impl Serializable for Instruction {
                 target.write_opcode(OpCode::AdvPush);
                 target.write_felt(*v);
             }
-            Self::AdvLoadW(v) => {
-                target.write_opcode(OpCode::AdvLoadW);
-                target.write_felt(*v);
-            }
+            Self::AdvLoadW => target.write_opcode(OpCode::AdvLoadW),
 
             // ----- cryptographic operations ---------------------------------------------------------
             Self::RPHash => target.write_opcode(OpCode::RPHash),

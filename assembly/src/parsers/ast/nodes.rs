@@ -235,7 +235,7 @@ pub enum Instruction {
 
     AdvU64Div,
     AdvPush(Felt),
-    AdvLoadW(Felt),
+    AdvLoadW,
 
     // ----- cryptographic operations ---------------------------------------------------------
     RPHash,
