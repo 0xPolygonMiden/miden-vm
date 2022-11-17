@@ -116,8 +116,7 @@ impl Assembler {
         let mut callset = CallSet::default();
         for (proc_idx, proc_ast) in local_procs.iter().enumerate() {
             if proc_ast.is_export {
-                // TODO: return an error
-                panic!("exported procedure in program");
+                return Err(AssemblerError::proc_export_in_program(&proc_ast.name));
             }
             let proc = self.compile_procedure(proc_ast, proc_idx as u16, &mut context)?;
             callset.append(proc.callset());
@@ -162,7 +161,7 @@ impl Assembler {
     ) -> Result<(), AssemblerError> {
         // compile all procedures in the module and also build a combined callset for all
         // procedures
-        context.begin_module(module_path);
+        context.begin_module(module_path)?;
         let mut callset = CallSet::default();
         for (proc_idx, proc_ast) in module.local_procs.iter().enumerate() {
             let proc = self.compile_procedure(proc_ast, proc_idx as u16, context)?;

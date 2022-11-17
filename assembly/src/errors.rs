@@ -386,6 +386,18 @@ impl AssemblerError {
             )
         }
     }
+
+    pub fn circular_module_dependency(dep_chain: &[String]) -> Self {
+        Self {
+            message: format!("circular module dependency in the following chain: {dep_chain:?}"),
+        }
+    }
+
+    pub fn proc_export_in_program(proc_name: &str) -> Self {
+        Self {
+            message: format!("exported procedures not allowed in executable module: {proc_name}"),
+        }
+    }
 }
 
 impl From<AssemblyError> for AssemblerError {
