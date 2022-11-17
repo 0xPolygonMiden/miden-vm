@@ -122,3 +122,31 @@ pub(super) fn neq_imm(
         span.add_ops([Push(*imm), Eq, Not])
     }
 }
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Appends relevant operations to the span block for the computation of power of 2.
+pub fn append_pow2_op(span: &mut SpanBuilder) {
+    // push base 2 onto the stack: [exp, .....] -> [2, exp, ......]
+    span.push_op(Push(Felt::new(2)));
+
+    // introduce initial value of acc onto the stack: [2, exp, ....] -> [1, 2, exp, ....]
+    span.push_op(Pad);
+    span.push_op(Incr);
+
+    // arrange the top of the stack for `EXPACC` instruction: [1, 2, exp, ....] -> [0, 2, 1, exp, ...]
+    span.push_op(Swap);
+    span.push_op(Pad);
+
+    // calling expacc instruction 7 times.
+    span.push_op_many(Expacc, 6);
+
+    // drop the top two elements bit and exp value of the latest bit.
+    span.push_op_many(Drop, 2);
+
+    // taking `b` to the top and asserting if it's equal to ZERO after all the right shifts.
+    span.push_op(Swap);
+    span.push_op(Eqz);
+    span.push_op(Assert);
+}
