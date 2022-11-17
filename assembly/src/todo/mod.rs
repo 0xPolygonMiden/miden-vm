@@ -12,7 +12,7 @@ mod span_builder;
 use span_builder::SpanBuilder;
 
 mod context;
-use context::AssemblerContext;
+use context::ModuleContext;
 
 // ASSEMBLER
 // ================================================================================================
@@ -70,7 +70,7 @@ impl Assembler {
 
     /// Set the internal kernel with the provided procedures.
     ///
-    /// This method will allow an assembler to be consutructed from pre-compiled modules.
+    /// This method will allow an assembler to be constructed from pre-compiled modules.
     pub fn with_kernel_procedures<I>(mut self, procedures: I) -> Self
     where
         I: Iterator<Item = Procedure>,
@@ -118,7 +118,7 @@ impl Assembler {
         let ProgramAst { local_procs, body } = parsers::parse_program(source)?;
 
         // compile all local procedures
-        let mut context = AssemblerContext::for_program();
+        let mut context = ModuleContext::for_program();
         let mut callset = CallSet::default();
         for (proc_idx, proc_ast) in local_procs.iter().enumerate() {
             if proc_ast.is_export {
@@ -163,7 +163,7 @@ impl Assembler {
     fn compile_module(&self, module: &NamedModuleAst) -> Result<(), AssemblerError> {
         // compile all procedures in the module and also build a combined callset for all
         // procedures
-        let mut ctx = AssemblerContext::for_module(module.path().to_string());
+        let mut ctx = ModuleContext::for_module(module.path().to_string());
         let mut callset = CallSet::default();
         for (proc_idx, proc_ast) in module.local_procs.iter().enumerate() {
             let proc = self.compile_procedure(proc_ast, proc_idx as u16, &ctx)?;
@@ -203,7 +203,7 @@ impl Assembler {
         &self,
         proc: &ProcedureAst,
         proc_idx: u16,
-        context: &AssemblerContext,
+        context: &ModuleContext,
     ) -> Result<Procedure, AssemblerError> {
         // compile the procedure body
         let mut callset = CallSet::default();
@@ -244,7 +244,7 @@ impl Assembler {
     fn compile_body<A, N>(
         &self,
         body: A,
-        context: &AssemblerContext,
+        context: &ModuleContext,
         callset: &mut CallSet,
         wrapper: Option<BodyWrapper>,
     ) -> Result<CodeBlock, AssemblerError>

@@ -5,19 +5,19 @@ use crate::MODULE_PATH_DELIM;
 // ================================================================================================
 
 /// TODO: add comments
-pub struct AssemblerContext {
+pub struct ModuleContext {
     local_procs: Vec<Procedure>,
     module_path: String,
 }
 
-impl AssemblerContext {
+impl ModuleContext {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns an [AssemblerContext] used for compiling executable programs.
+    /// Returns an [ModuleContext] used for compiling executable modules.
     ///
-    /// When compiling a program, module path is set to "::". This, the path of a local procedure
-    /// in a program will be "::proc_index".
+    /// When compiling a an executable, module path is set to "::". Thus, the path of a local
+    /// procedure in a program will be "::proc_index".
     pub fn for_program() -> Self {
         Self {
             local_procs: Vec::new(),
@@ -25,7 +25,7 @@ impl AssemblerContext {
         }
     }
 
-    /// Returns an [AssemblerContext] used for compiling modules.
+    /// Returns an [ModuleContext] used for compiling library modules.
     pub fn for_module(module_path: String) -> Self {
         Self {
             local_procs: Vec::new(),
@@ -36,16 +36,23 @@ impl AssemblerContext {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns module path for the module which is currently being compiled.
     pub fn module_path(&self) -> &str {
         &self.module_path
     }
 
+    /// Returns a [Procedure] located at the specified index in the module.
+    ///
+    /// # Error
+    /// Returns an error if there is no compiled procedure at the specified index.
     pub fn get_local_proc(&self, index: u16) -> Result<&Procedure, AssemblerError> {
         self.local_procs
             .get(index as usize)
             .ok_or_else(|| AssemblerError::undefined_proc(index))
     }
 
+    /// Returns a [Procedure] with the specified ID, or None if a procedure with such ID could not
+    /// be found in this context.
     pub fn find_local_proc(&self, proc_id: &ProcedureId) -> Option<&Procedure> {
         self.local_procs.iter().find(|proc| proc.id() == proc_id)
     }
@@ -53,10 +60,12 @@ impl AssemblerContext {
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
+    /// Adds a compiled procedure to this context.
     pub fn add_local_proc(&mut self, procedure: Procedure) {
         self.local_procs.push(procedure);
     }
 
+    /// Converts this context into a list of compiled procedures.
     pub fn into_local_procs(self) -> Vec<Procedure> {
         self.local_procs
     }
