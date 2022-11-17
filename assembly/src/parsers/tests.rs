@@ -317,8 +317,52 @@ fn test_ast_parsing_module_sequential_if() {
 }
 
 #[test]
+fn test_ast_parsing_simple_docs() {
+    let source = "\
+    #! proc doc
+    export.foo.1 
+        loc_load.0
+    end";
+
+    let mut procedures: LocalProcMap = BTreeMap::new();
+    let proc_body_foo: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
+    let docs_foo = "proc doc".to_string();
+    procedures.insert(
+        String::from("foo"),
+        (
+            0,
+            ProcedureAst {
+                name: String::from("foo"),
+                docs: Some(docs_foo),
+                is_export: true,
+                num_locals: 1,
+                body: proc_body_foo,
+            },
+        ),
+    );
+
+    let module = parse_module(source).unwrap();
+
+    assert_eq!(module.local_procs.len(), procedures.len());
+    for (i, proc) in module.local_procs.iter().enumerate() {
+        assert_eq!(
+            procedures
+                .values()
+                .find_map(|(idx, proc)| (*idx == i as u16).then_some(proc))
+                .unwrap(),
+            proc
+        );
+    }
+}
+
+#[test]
 fn test_ast_parsing_module_docs() {
     let source = "\
+#! Test documenation for the whole module in parsing test. Lorem ipsum dolor sit amet, 
+#! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+#! This comment is intentionally longer than 256 characters, since we need to be sure that the size
+#! of the comments is correctly parsed. There was a bug here earlier.
+
 #! Test documenation for export procedure foo in parsing test. Lorem ipsum dolor sit amet, 
 #! consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
 #! This comment is intentionally longer than 256 characters, since we need to be sure that the size
@@ -403,6 +447,14 @@ aliqua."
 
     parse_program(source).expect_err("Program should contain body and no export");
     let module = parse_module(source).unwrap();
+
+    let module_docs =
+        "Test documenation for the whole module in parsing test. Lorem ipsum dolor sit amet,
+consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+This comment is intentionally longer than 256 characters, since we need to be sure that the size
+of the comments is correctly parsed. There was a bug here earlier."
+            .to_string();
+    assert_eq!(module.docs, Some(module_docs));
     assert_eq!(module.local_procs.len(), procedures.len());
     for (i, proc) in module.local_procs.iter().enumerate() {
         assert_eq!(
@@ -422,13 +474,62 @@ aliqua."
 #[test]
 fn test_ast_parsing_module_docs_fail() {
     let source = "\
-    #! test message 1
-    
-    #! test message 2
+    #! module doc
+
+    #! proc doc
     export.foo.1 
         loc_load.0
-    end";
+    end
+    
+    #! malformed doc
+    ";
     parse_module(source).expect_err("comment message should not have empty lines");
+
+    let source = "\
+    #! proc doc
+    export.foo.1 
+        loc_load.0
+    end
+    
+    #! malformed doc
+    ";
+    parse_module(source).expect_err("comment message should not have empty lines");
+
+    let source = "\
+    #! module doc
+    
+    #! malformed doc
+    ";
+    parse_module(source).expect_err("comment message should not have empty lines");
+
+    let source = "\
+    export.foo.1 
+        loc_load.0
+    end
+    
+    #! malformed doc
+    ";
+    parse_module(source).expect_err("comment message should not have empty lines");
+
+    let source = "\
+    #! module doc
+
+    export.foo.1 
+        loc_load.0
+    end
+    
+    #! malformed doc
+    ";
+    parse_module(source).expect_err("comment message should not have empty lines");
+
+    let source = "\
+    #! proc doc
+    export.foo.1 
+        #! malformed doc
+        loc_load.0
+    end
+    ";
+    parse_module(source).expect_err("comment message can not be inside procedure");
 }
 
 // SERIALIZATION AND DESERIALIZATION TESTS
