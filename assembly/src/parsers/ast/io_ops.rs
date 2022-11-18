@@ -1,5 +1,5 @@
 use super::super::{parse_decimal_param, parse_element_param, parse_hex_param};
-use super::{parse_param, Instruction, Node, Vec};
+use super::{parse_checked_param, parse_param, Instruction, Node, Vec};
 use crate::{validate_operation, AssemblyError, Token};
 use vm_core::Felt;
 
@@ -12,6 +12,10 @@ const MAX_CONST_INPUTS: usize = 16;
 /// The required length of the hexadecimal representation for an input value when more than one hex
 /// input is provided to `push` without period separators.
 const HEX_CHUNK_SIZE: usize = 16;
+
+/// The maximum number of elements that can be read from the advice tape in a single `push`
+/// operation.
+const ADVICE_READ_LIMIT: u8 = 16;
 
 // INSTRUCTION PARSERS
 // ================================================================================================
@@ -33,15 +37,14 @@ pub(super) fn parse_locaddr(op: &Token) -> Result<Node, AssemblyError> {
 pub(super) fn parse_adv_push(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "adv_push", 1);
 
-    let param = parse_param::<u32>(op, 1)?;
-    Ok(Node::Instruction(Instruction::Locaddr(Felt::from(param))))
+    let param = parse_checked_param(op, 1, 1, ADVICE_READ_LIMIT)?;
+    Ok(Node::Instruction(Instruction::AdvPush(param)))
 }
 
 pub(super) fn parse_adv_loadw(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "adv_loadw", 1);
+    validate_operation!(op, "adv_loadw", 0);
 
-    let param = parse_param::<u32>(op, 1)?;
-    Ok(Node::Instruction(Instruction::Locaddr(Felt::from(param))))
+    Ok(Node::Instruction(Instruction::AdvLoadW))
 }
 
 pub(super) fn parse_adv_inject(op: &Token) -> Result<Node, AssemblyError> {

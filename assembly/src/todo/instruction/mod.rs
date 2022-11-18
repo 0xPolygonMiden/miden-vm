@@ -231,7 +231,7 @@ impl Assembler {
             Instruction::Sdepth => span.add_op(SDepth),
             Instruction::Caller => env_ops::caller(span, ctx),
             Instruction::AdvPipe => span.add_ops([Pipe, RpPerm]),
-            Instruction::AdvPush(n) => adv_ops::adv_push(span, n),
+            Instruction::AdvPush(n) => adv_ops::adv_push(span, *n),
             Instruction::AdvLoadW => span.add_op(ReadW),
 
             Instruction::MemStream => span.add_ops([MStream, RpPerm]),
