@@ -137,6 +137,8 @@ fn program_with_nested_procedure() {
 }
 
 #[test]
+// TODO depends on num_proc_locals
+#[ignore]
 fn program_with_proc_locals() {
     let assembler = super::Assembler::default();
     let source = "\
@@ -178,6 +180,8 @@ fn program_with_exported_procedure() {
 // ================================================================================================
 
 #[test]
+// TODO depends on num_proc_locals
+#[ignore]
 fn program_with_one_import() {
     const MODULE: &str = "dummy::math::u256";
 
@@ -241,7 +245,7 @@ fn program_with_import_errors() {
         use.std::math::u512
         begin \
             push.4 push.3 \
-            exec.u256::iszero_unsafe \
+            exec.u512::iszero_unsafe \
         end";
     assert!(assembler.compile(source).is_err());
 
@@ -383,20 +387,26 @@ fn invalid_program() {
 
 #[test]
 fn invalid_proc() {
-    let assembler = super::Assembler::default();
+    let assembler = crate::todo::Assembler::default();
 
     let source = "proc.foo add mul begin push.1 end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "proc without matching end");
+        assert_eq!(
+            error.message(),
+            "unexpected body termination: invalid token 'begin'"
+        );
     }
 
     let source = "proc.foo add mul proc.bar push.3 end begin push.1 end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "proc without matching end");
+        assert_eq!(
+            error.message(),
+            "unexpected body termination: invalid token 'proc.bar'"
+        );
     }
 
     let source = "proc.foo add mul end begin push.1 exec.bar end";

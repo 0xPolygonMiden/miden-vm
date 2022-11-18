@@ -232,7 +232,7 @@ impl Assembler {
             Instruction::CDrop => span.add_ops([CSwap, Drop]),
             Instruction::CDropW => span.add_ops([CSwapW, Drop, Drop, Drop, Drop]),
 
-            Instruction::PushConstants(imms) => span.add_ops(imms.iter().copied().map(Push)),
+            Instruction::PushConstants(imms) => env_ops::push(imms, span),
             Instruction::Sdepth => span.add_op(SDepth),
             Instruction::Caller => env_ops::caller(span, context),
             Instruction::AdvPipe => span.add_ops([Pipe, RpPerm]),
