@@ -119,6 +119,14 @@ impl ParserContext {
     fn parse_repeat(&self, tokens: &mut TokenStream) -> Result<Node, AssemblyError> {
         // record start of the repeat block and consume the 'repeat' token
         let repeat_start = tokens.pos();
+        let count = match tokens.read() {
+            Some(token) => token.parse_repeat()? as usize,
+            None => {
+                return Err(AssemblyError::missing_param(
+                    tokens.read_at(repeat_start).expect("no repeat token"),
+                ))
+            }
+        };
         tokens.advance();
 
         let mut loop_body = Vec::<Node>::new();
@@ -140,7 +148,7 @@ impl ParserContext {
         }?;
         tokens.advance();
 
-        Ok(Node::Repeat(repeat_start, loop_body))
+        Ok(Node::Repeat(count, loop_body))
     }
 
     // CALL PARSERS
@@ -211,7 +219,7 @@ impl ParserContext {
                         return Err(AssemblyError::proc_export_not_allowed(token, &label));
                     }
 
-                    if self.local_procs.contains_key("test") {
+                    if self.local_procs.contains_key(&label) {
                         return Err(AssemblyError::duplicate_proc_label(token, &label));
                     }
 
@@ -284,6 +292,7 @@ impl ParserContext {
         while let Some(token) = tokens.read() {
             match token.parts()[0] {
                 Token::ELSE => {
+                    token.validate_else()?;
                     if break_on_else {
                         break;
                     }
@@ -293,7 +302,10 @@ impl ParserContext {
                     token.validate_if()?;
                     nodes.push(self.parse_if(tokens)?);
                 }
-                Token::WHILE => nodes.push(self.parse_while(tokens)?),
+                Token::WHILE => {
+                    token.validate_while()?;
+                    nodes.push(self.parse_while(tokens)?);
+                }
                 Token::REPEAT => nodes.push(self.parse_repeat(tokens)?),
                 Token::EXEC => {
                     let label = token.parse_exec()?;
@@ -312,7 +324,9 @@ impl ParserContext {
                     break;
                 }
                 Token::USE | Token::EXPORT | Token::PROC | Token::BEGIN => {
-                    unreachable!("invalid control token (use|export|proc|begin) found in body");
+                    // TODO improve the error with the originating block
+                    // https://github.com/maticnetwork/miden/issues/514
+                    return Err(AssemblyError::unexpected_body_end(token));
                 }
                 _ => {
                     // Process non control tokens.

@@ -120,7 +120,7 @@ impl Assembler {
             }
             let proc = self.compile_procedure(proc_ast, proc_idx as u16, &mut context)?;
             callset.append(proc.callset());
-            context.add_local_proc(proc);
+            context.add_local_proc(proc)?;
         }
 
         // compile the program body
@@ -166,7 +166,7 @@ impl Assembler {
         for (proc_idx, proc_ast) in module.local_procs.iter().enumerate() {
             let proc = self.compile_procedure(proc_ast, proc_idx as u16, context)?;
             callset.append(proc.callset());
-            context.add_local_proc(proc);
+            context.add_local_proc(proc)?;
         }
         let module_procs = context.complete_module();
 
@@ -269,7 +269,15 @@ impl Assembler {
                     span.extract_span_into(&mut blocks);
 
                     let t = self.compile_body(t.iter(), context, callset, None)?;
-                    let f = self.compile_body(f.iter(), context, callset, None)?;
+
+                    // else is an exception because it is optional; hence, will have to be replaced
+                    // by noop span
+                    let f = if !f.is_empty() {
+                        self.compile_body(f.iter(), context, callset, None)?
+                    } else {
+                        CodeBlock::new_span(vec![Operation::Noop])
+                    };
+
                     let block = CodeBlock::new_split(t, f);
 
                     blocks.push(block);
