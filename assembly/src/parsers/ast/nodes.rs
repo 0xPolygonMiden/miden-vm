@@ -482,9 +482,12 @@ impl fmt::Display for Instruction {
             Self::MemStream => write!(f, "mem_stream"),
             Self::AdvPipe => write!(f, "adv_pipe"),
 
-            Self::AdvU64Div => write!(f, "adv.u64div"),
             Self::AdvPush(value) => write!(f, "adv_push.{value}"),
             Self::AdvLoadW => write!(f, "adv_loadw"),
+
+            Self::AdvU64Div => write!(f, "adv.u64div"),
+            Self::AdvKeyval => write!(f, "adv.keyval"),
+            Self::AdvMem(start_addr, num_words) => write!(f, "adv.mem.{start_addr}.{num_words}"),
 
             // ----- cryptographic operations ---------------------------------------------------------
             Self::RPHash => write!(f, "rphash"),

@@ -25,7 +25,7 @@ pub fn adv_push(span: &mut SpanBuilder, n: u8) -> Result<Option<CodeBlock>, Asse
     // it must be between 1 and ADVICE_READ_LIMIT, inclusive, since adv.push.0 is a no-op
     if !(1..=ADVICE_READ_LIMIT).contains(&n) {
         return Err(AssemblerError::imm_out_of_bounds(
-            n,
+            n as u64,
             1,
             ADVICE_READ_LIMIT as u64,
         ));
