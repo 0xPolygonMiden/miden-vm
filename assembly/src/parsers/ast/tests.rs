@@ -141,12 +141,24 @@ fn test_ast_parsing_module() {
 }
 
 #[test]
-fn test_ast_parsing_adv() {
+fn test_ast_parsing_adv_ops() {
     let source = "begin adv_push.1 adv_loadw end";
     let value = 1_u8;
     let nodes: Vec<Node> = vec![
         Node::Instruction(Instruction::AdvPush(value)),
         Node::Instruction(Instruction::AdvLoadW),
+    ];
+
+    assert_program_output(source, BTreeMap::new(), nodes);
+}
+
+#[test]
+fn test_ast_parsing_adv_injection() {
+    let source = "begin adv.u64div adv.keyval adv.mem.1.1 end";
+    let nodes: Vec<Node> = vec![
+        Node::Instruction(Instruction::AdvU64Div),
+        Node::Instruction(Instruction::AdvKeyval),
+        Node::Instruction(Instruction::AdvMem(1, 1)),
     ];
 
     assert_program_output(source, BTreeMap::new(), nodes);
