@@ -1,4 +1,4 @@
-use crate::{parse_module, ModuleAst, ModuleProvider, NamedModuleAst, ProcedureId};
+use crate::{parse_module, Assembler, ModuleAst, ModuleProvider, NamedModuleAst, ProcedureId};
 
 // SIMPLE PROGRAMS
 // ================================================================================================
@@ -397,7 +397,7 @@ fn invalid_program() {
 
 #[test]
 fn invalid_proc() {
-    let assembler = crate::todo::Assembler::default();
+    let assembler = Assembler::default();
 
     let source = "proc.foo add mul begin push.1 end";
     let program = assembler.compile(source);

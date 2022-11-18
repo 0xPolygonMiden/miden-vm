@@ -2,7 +2,7 @@ use core::iter;
 
 use vm_core::{code_blocks::CodeBlock, Felt, FieldElement, Operation::*};
 
-use crate::{todo::SpanBuilder, AssemblerError};
+use crate::{assembler::SpanBuilder, AssemblerError};
 
 // ARITHMETIC OPERATIONS
 // ================================================================================================

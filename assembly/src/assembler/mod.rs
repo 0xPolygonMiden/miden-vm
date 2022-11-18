@@ -39,8 +39,8 @@ impl Assembler {
     }
 
     /// Puts the assembler into the debug mode.
-    pub fn with_debug_mode(mut self) -> Self {
-        self.in_debug_mode = true;
+    pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
+        self.in_debug_mode = in_debug_mode;
         self
     }
 
