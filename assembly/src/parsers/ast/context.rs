@@ -348,9 +348,9 @@ impl ParserContext {
     // ================================================================================================
 
     fn get_full_imported_proc_name(&self, short_name: String) -> String {
-        let (module_name, proc_name) = short_name.split_once(MODULE_PATH_DELIM).unwrap();
+        let (module_name, proc_name) = short_name.rsplit_once(MODULE_PATH_DELIM).unwrap();
         let full_module_name = self.imports.get(module_name).unwrap();
-        format!("{full_module_name}{MODULE_PATH_DELIM}{proc_name}")
+        ProcedureId::path(proc_name, full_module_name)
     }
 }
 

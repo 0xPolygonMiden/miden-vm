@@ -2,6 +2,7 @@ use core::ops::Deref;
 
 use super::{AssemblyError, Token, TokenStream, Vec};
 use crate::{errors::SerializationError, ProcedureId, MODULE_PATH_DELIM};
+use core::fmt::Display;
 use serde::{ByteReader, ByteWriter, Deserializable, Serializable};
 use vm_core::utils::{collections::BTreeMap, string::String, string::ToString};
 
@@ -366,6 +367,37 @@ fn parse_param<I: core::str::FromStr>(op: &Token, param_idx: usize) -> Result<I,
         Ok(i) => i,
         Err(_) => return Err(AssemblyError::invalid_param(op, param_idx)),
     };
+
+    Ok(result)
+}
+
+/// Parses a param from the op token with the specified type and ensures that it falls within the
+/// bounds specified by the caller.
+fn parse_checked_param<I: core::str::FromStr + Ord + Display>(
+    op: &Token,
+    param_idx: usize,
+    lower_bound: I,
+    upper_bound: I,
+) -> Result<I, AssemblyError> {
+    let param_value = op.parts()[param_idx];
+
+    let result = match param_value.parse::<I>() {
+        Ok(i) => i,
+        Err(_) => return Err(AssemblyError::invalid_param(op, param_idx)),
+    };
+
+    // check that the parameter is within the specified bounds
+    if result < lower_bound || result > upper_bound {
+        return Err(AssemblyError::invalid_param_with_reason(
+            op,
+            param_idx,
+            format!(
+                "parameter value must be greater than or equal to {} and less than or equal to {}",
+                lower_bound, upper_bound
+            )
+            .as_str(),
+        ));
+    }
 
     Ok(result)
 }

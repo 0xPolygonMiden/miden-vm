@@ -1,4 +1,4 @@
-use crate::{ModuleProvider, NamedModuleAst, ProcedureId};
+use crate::{parse_module, ModuleAst, ModuleProvider, NamedModuleAst, ProcedureId};
 
 // SIMPLE PROGRAMS
 // ================================================================================================
@@ -137,8 +137,6 @@ fn program_with_nested_procedure() {
 }
 
 #[test]
-// TODO depends on num_proc_locals
-#[ignore]
 fn program_with_proc_locals() {
     let assembler = super::Assembler::default();
     let source = "\
@@ -180,32 +178,44 @@ fn program_with_exported_procedure() {
 // ================================================================================================
 
 #[test]
-// TODO depends on num_proc_locals
-#[ignore]
 fn program_with_one_import() {
     const MODULE: &str = "dummy::math::u256";
+    const PROCEDURE: &str = r#"
+        export.iszero_unsafe
+            eq.0
+            repeat.7
+                swap
+                eq.0
+                and
+            end
+        end"#;
 
-    #[derive(Default)]
-    struct DummyProvider;
+    struct DummyProvider {
+        module: ModuleAst,
+    }
+
+    impl Default for DummyProvider {
+        fn default() -> Self {
+            Self {
+                module: parse_module(PROCEDURE).unwrap(),
+            }
+        }
+    }
 
     impl ModuleProvider for DummyProvider {
         fn get_source(&self, path: &str) -> Option<&str> {
-            (path == MODULE).then_some(
-                r#"
-                export.iszero_unsafe
-                    eq.0
-                    repeat.7
-                        swap
-                        eq.0
-                        and
-                    end
-                end"#,
-            )
+            (path == MODULE).then_some(PROCEDURE)
         }
 
-        fn get_module(&self, _id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
-            // this test is checking the source as string
-            None
+        fn get_module(&self, id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
+            self.module
+                .local_procs
+                .iter()
+                .any(|proc| {
+                    let proc_id = ProcedureId::from_name(&proc.name, MODULE);
+                    &proc_id == id
+                })
+                .then_some(NamedModuleAst::new(MODULE, &self.module))
         }
     }
 
