@@ -359,6 +359,12 @@ impl AssemblerError {
         }
     }
 
+    pub fn duplicate_proc_name(proc_name: &str, module_path: &str) -> Self {
+        Self {
+            message: format!("duplicate proc name ('{proc_name}') in module {module_path}"),
+        }
+    }
+
     pub fn undefined_proc(idx: u16) -> Self {
         Self {
             message: format!("undefined procedure: {idx}"),
