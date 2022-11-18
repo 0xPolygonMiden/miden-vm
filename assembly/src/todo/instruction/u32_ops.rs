@@ -1,8 +1,6 @@
-use vm_core::FieldElement;
-
 use super::{
     field_ops::append_pow2_op,
-    AssemblerError, CodeBlock, Felt,
+    push_u32_value, AssemblerError, CodeBlock, Felt,
     Operation::{self, *},
     SpanBuilder,
 };
@@ -533,17 +531,6 @@ fn handle_division(
     Ok(())
 }
 
-fn push_u32_value(span: &mut SpanBuilder, value: u32) {
-    if value == 0 {
-        span.push_op(Pad);
-    } else if value == 1 {
-        span.push_op(Pad);
-        span.push_op(Incr);
-    } else {
-        span.push_op(Push(Felt::from(value)));
-    }
-}
-
 // COMPARISON OPERATIONS
 // ================================================================================================
 
@@ -725,22 +712,6 @@ pub fn u32max(
 // COMPARISON OPERATIONS - HELPERS
 // ================================================================================================
 
-/// This is a helper function that appends a PUSH operation to the span block which puts the
-/// provided value parameter onto the stack.
-///
-/// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
-/// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
-fn push_value(span: &mut SpanBuilder, value: Felt) {
-    if value == Felt::ZERO {
-        span.push_op(Pad);
-    } else if value == Felt::ONE {
-        span.push_op(Pad);
-        span.push_op(Incr);
-    } else {
-        span.push_op(Push(value));
-    }
-}
-
 /// Asserts that the value on the top of the stack is a u32 and pushes the first param of the `op`
 /// as a u32 value onto the stack.
 ///
@@ -766,7 +737,7 @@ fn assert_and_push_u32_param(
         ));
     }
 
-    push_value(span, Felt::new(value as u64));
+    push_u32_value(span, value);
 
     // Assert both numbers are u32.
     span.push_op(U32assert2);
