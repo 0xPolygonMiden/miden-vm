@@ -1,8 +1,7 @@
 use super::{
-    Assembler, AssemblerError, AssemblyContext, CodeBlock, Felt, Operation, ProcedureId,
-    SpanBuilder,
+    Assembler, AssemblerError, AssemblyContext, CodeBlock, Felt, Instruction, Operation,
+    ProcedureId, SpanBuilder,
 };
-use crate::parsers::Instruction;
 use vm_core::{StarkField, ONE, ZERO};
 
 mod adv_ops;
@@ -27,7 +26,14 @@ impl Assembler {
     ) -> Result<Option<CodeBlock>, AssemblerError> {
         use Operation::*;
 
-        match instruction {
+        // if the assembler is in debug mode, start tracking the instruction about to be executed;
+        // this will allow us to map the instruction to the sequence of operations which were
+        // executed as a part of this instruction.
+        if self.in_debug_mode() {
+            span.track_instruction(instruction);
+        }
+
+        let result = match instruction {
             Instruction::Assert => span.add_op(Assert),
             Instruction::AssertEq => span.add_ops([Eq, Assert]),
             Instruction::Assertz => span.add_ops([Eqz, Assert]),
@@ -264,7 +270,14 @@ impl Assembler {
             Instruction::CallLocal(idx) => self.call_local(*idx, ctx),
             Instruction::CallImported(id) => self.call_imported(id, ctx),
             Instruction::SysCall(id) => self.syscall(id, ctx),
+        };
+
+        // compute and update the cycle count of the instruction which just finished executing
+        if self.in_debug_mode() {
+            span.set_instruction_cycle_count();
         }
+
+        result
     }
 }
 
