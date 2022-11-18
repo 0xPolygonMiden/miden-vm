@@ -15,7 +15,6 @@ use md_renderer::MarkdownRenderer;
 const ASM_DIR_PATH: &str = "./asm";
 const ASM_FILE_PATH: &str = "./src/asm.rs";
 const DOC_DIR_PATH: &str = "./docs";
-const MODULE_SEPARATOR: &str = "::";
 
 // TYPE ALIASES
 // ================================================================================================
@@ -26,14 +25,14 @@ type ModuleMap = BTreeMap<String, ModuleAst>;
 // ================================================================================================
 
 struct ModuleDirectory {
-    pub label: String,
+    pub module_path: String,
     pub path: PathBuf,
 }
 
 impl ModuleDirectory {
-    fn fill(state: &mut Vec<Self>, path: PathBuf, label: String) -> io::Result<()> {
+    fn fill(state: &mut Vec<Self>, path: PathBuf, module_path: String) -> io::Result<()> {
         state.push(ModuleDirectory {
-            label: label.clone(),
+            module_path: module_path.clone(),
             path: path.clone(),
         });
 
@@ -45,8 +44,8 @@ impl ModuleDirectory {
                     .file_name()
                     .and_then(|x| x.to_str())
                     .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "failed to read dir name"))
-                    .map(|name| format!("{label}{MODULE_SEPARATOR}{name}"))
-                    .and_then(|label| Self::fill(state, entry, label))?;
+                    .map(|name| ProcedureId::path(name, &module_path))
+                    .and_then(|module_path| Self::fill(state, entry, module_path))?;
             }
         }
 
@@ -55,7 +54,7 @@ impl ModuleDirectory {
 }
 
 struct Module {
-    pub label: String,
+    pub path: String,
     pub id: ProcedureId,
     pub source: String,
 }
@@ -68,7 +67,7 @@ impl Module {
 
         let mut parsed = Vec::new();
 
-        for ModuleDirectory { label, path } in dirs {
+        for ModuleDirectory { module_path, path } in dirs {
             for entry in path.read_dir()? {
                 let entry = entry?.path();
 
@@ -91,12 +90,11 @@ impl Module {
                         )
                     })?;
 
-                    let label = format!("{label}{MODULE_SEPARATOR}{name}");
-                    let id = ProcedureId::new(&label);
-
+                    let path = ProcedureId::path(name, &module_path);
+                    let id = ProcedureId::new(&path);
                     let source = fs::read_to_string(entry)?;
 
-                    parsed.push(Module { label, id, source });
+                    parsed.push(Module { path, id, source });
                 }
             }
         }
@@ -136,7 +134,7 @@ pub fn build_stdlib_docs(module_map: &ModuleMap, output_dir: &str) {
 #[cfg(not(feature = "docs-rs"))]
 fn main() -> io::Result<()> {
     // re-build the `./src/asm.rs` file only if something in the `./asm` directory has changed
-    println!("cargo:rerun-if-changed=asm");
+    println!("cargo:rerun-if-changed=./asm");
 
     let modules = Module::load()?;
     let mut output = fs::File::create(ASM_FILE_PATH)?;
@@ -159,16 +157,16 @@ fn main() -> io::Result<()> {
 
     modules
         .into_iter()
-        .try_for_each(|Module { label, id, source }| {
+        .try_for_each(|Module { path, id, source }| {
             let module = parse_module(&source)
                 .map_err(|e| io::Error::new(io::ErrorKind::Other, e.message().as_str()))?;
             let serialized = module.to_bytes();
 
-            docs.insert(label.clone(), module);
+            docs.insert(path.clone(), module);
 
             writeln!(
                 output,
-                "(\"{label}\",vm_assembly::ProcedureId({:?}),\"{source}\",&{serialized:?}),",
+                "(\"{path}\",vm_assembly::ProcedureId({:?}),\"{source}\",&{serialized:?}),",
                 id.0
             )
         })?;
