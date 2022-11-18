@@ -141,6 +141,18 @@ fn test_ast_parsing_module() {
 }
 
 #[test]
+fn test_ast_parsing_adv() {
+    let source = "begin adv_push.1 adv_loadw end";
+    let value = 1_u8;
+    let nodes: Vec<Node> = vec![
+        Node::Instruction(Instruction::AdvPush(value)),
+        Node::Instruction(Instruction::AdvLoadW),
+    ];
+
+    assert_program_output(source, BTreeMap::new(), nodes);
+}
+
+#[test]
 fn test_ast_parsing_use() {
     let source = "\
     use.std::abc::foo

@@ -234,8 +234,8 @@ pub enum Instruction {
     AdvPipe,
 
     AdvU64Div,
-    AdvPush(Felt),
-    AdvLoadW(Felt),
+    AdvPush(u8),
+    AdvLoadW,
 
     // ----- cryptographic operations ---------------------------------------------------------
     RPHash,
