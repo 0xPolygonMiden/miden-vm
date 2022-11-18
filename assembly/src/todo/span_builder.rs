@@ -1,6 +1,8 @@
 use super::{
-    AssemblerError, BodyWrapper, Borrow, CodeBlock, Decorator, DecoratorList, Operation, Vec,
+    AssemblerError, BodyWrapper, Borrow, CodeBlock, Decorator, DecoratorList, Instruction,
+    Operation, ToString, Vec,
 };
+use vm_core::AssemblyOp;
 
 // SPAN BUILDER
 // ================================================================================================
@@ -10,6 +12,7 @@ pub struct SpanBuilder {
     ops: Vec<Operation>,
     decorators: DecoratorList,
     epilogue: Vec<Operation>,
+    last_asmop_pos: usize,
 }
 
 impl SpanBuilder {
@@ -26,6 +29,7 @@ impl SpanBuilder {
                 ops: wrapper.prologue,
                 decorators: Vec::new(),
                 epilogue: wrapper.epilogue,
+                last_asmop_pos: 0,
             },
             None => Self::default(),
         }
@@ -64,6 +68,34 @@ impl SpanBuilder {
     /// TODO: add docs
     pub fn push_decorator(&mut self, decorator: Decorator) {
         self.decorators.push((self.ops.len(), decorator));
+    }
+
+    /// Adds an AsmOp decorator to the decorator list.
+    ///
+    /// This indicates that the provided instruction should be tracked and the cycle count for
+    /// this instruction will be computed when the call to set_instruction_cycle_count() is made.
+    pub fn track_instruction(&mut self, instruction: &Instruction) {
+        let op = AssemblyOp::new(instruction.to_string(), 0);
+        self.push_decorator(Decorator::AsmOp(op));
+        self.last_asmop_pos = self.decorators.len() - 1;
+    }
+
+    /// Computes the number of cycles elapsed since the last invocation of track_instruction()
+    /// and updates the related AsmOp decorator to include the this cycle count.
+    pub fn set_instruction_cycle_count(&mut self) {
+        // get the last asmop decorator and the cycle at which it was added
+        let (op_start, assembly_op) = self
+            .decorators
+            .get_mut(self.last_asmop_pos)
+            .expect("no asmop decorator");
+
+        // compute the cycle count and update the decorator with it
+        let cycle_count = self.ops.len() - *op_start;
+        if let Decorator::AsmOp(assembly_op) = assembly_op {
+            assembly_op.set_num_cycles(cycle_count as u8)
+        } else {
+            unreachable!()
+        }
     }
 
     // SPAN CONSTRUCTORS

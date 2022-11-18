@@ -1,5 +1,5 @@
 use crate::{
-    parsers::{self, Node, ProcedureAst, ProgramAst},
+    parsers::{self, Instruction, Node, ProcedureAst, ProgramAst},
     AssemblerError, BTreeMap, Box, CallSet, CodeBlock, CodeBlockTable, Kernel, ModuleAst,
     ModuleProvider, Procedure, ProcedureId, Program, String, ToString, Vec,
 };
