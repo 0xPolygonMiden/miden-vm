@@ -1,6 +1,7 @@
-use vm_core::{code_blocks::CodeBlock, Felt, FieldElement, Operation::*};
-
-use crate::{todo::span_builder::SpanBuilder, AssemblerError};
+use super::{
+    push_felt, push_u16_value, AssemblerError, AssemblyContext, CodeBlock, Felt, Operation::*,
+    SpanBuilder, StarkField,
+};
 
 // INSTRUCTION PARSERS
 // ================================================================================================
@@ -17,15 +18,16 @@ use crate::{todo::span_builder::SpanBuilder, AssemblerError};
 ///    - 3 cycles if b != 1
 pub fn mem_read(
     span: &mut SpanBuilder,
+    context: &AssemblyContext,
     imm: Option<&Felt>,
-    num_proc_locals: u32,
     is_local: bool,
     is_single: bool,
 ) -> Result<Option<CodeBlock>, AssemblerError> {
+    let num_proc_locals = context.num_proc_locals();
     match imm {
         Some(imm) if is_local => push_local_addr(span, imm, num_proc_locals)?,
         None if is_local => unreachable!("local always contains imm value"),
-        Some(imm) => push_mem_addr(span, *imm),
+        Some(imm) => push_felt(span, *imm),
         None => (),
     }
 
@@ -51,15 +53,16 @@ pub fn mem_read(
 ///    - 3 cycles if b != 1
 pub fn mem_write(
     span: &mut SpanBuilder,
+    context: &AssemblyContext,
     imm: Option<&Felt>,
-    num_proc_locals: u32,
     is_local: bool,
     is_single: bool,
 ) -> Result<Option<CodeBlock>, AssemblerError> {
+    let num_proc_locals = context.num_proc_locals();
     match imm {
         Some(imm) if is_local => push_local_addr(span, imm, num_proc_locals)?,
         None if is_local => unreachable!("local always contains imm value"),
-        Some(imm) => push_mem_addr(span, *imm),
+        Some(imm) => push_felt(span, *imm),
         None => (),
     }
 
@@ -75,23 +78,6 @@ pub fn mem_write(
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Parses a provided memory address and pushes it onto the stack.
-///
-/// This operation takes 1 VM cycle.
-///
-/// # Errors
-/// This function will return an `AssemblyError` if the address parameter does not exist.
-fn push_mem_addr(span: &mut SpanBuilder, addr: Felt) {
-    if addr == Felt::ZERO {
-        span.push_op(Pad);
-    } else if addr == Felt::ONE {
-        span.push_op(Pad);
-        span.push_op(Incr);
-    } else {
-        span.push_op(Push(addr));
-    }
-}
-
 /// Parses a provided local memory index and pushes the corresponding absolute memory location onto
 /// the stack.
 ///
@@ -105,9 +91,9 @@ fn push_mem_addr(span: &mut SpanBuilder, addr: Felt) {
 fn push_local_addr(
     span: &mut SpanBuilder,
     index: &Felt,
-    num_proc_locals: u32,
+    num_proc_locals: u16,
 ) -> Result<(), AssemblerError> {
-    let index = index.inner();
+    let index = index.as_int();
     let max = num_proc_locals as u64 - 1;
 
     // check that the parameter is within the specified bounds
@@ -115,16 +101,8 @@ fn push_local_addr(
         return Err(AssemblerError::imm_out_of_bounds(index, 0, max));
     }
 
-    let value = max - index;
-    if value == 0 {
-        span.push_op(Pad);
-    } else if value == 1 {
-        span.push_op(Pad);
-        span.push_op(Incr);
-    } else {
-        span.push_op(Push(value.into()));
-    }
-
+    // conversion to u16 is OK here because max < 2^16
+    push_u16_value(span, (max - index) as u16);
     span.push_op(FmpAdd);
 
     Ok(())

@@ -1,8 +1,9 @@
 use super::{
-    Assembler, AssemblerError, AssemblyContext, CallSet, CodeBlock, Felt, Operation, ProcedureId,
+    Assembler, AssemblerError, AssemblyContext, CodeBlock, Felt, Operation, ProcedureId,
     SpanBuilder,
 };
 use crate::parsers::Instruction;
+use vm_core::{StarkField, ONE, ZERO};
 
 mod adv_ops;
 mod crypto_ops;
@@ -22,8 +23,7 @@ impl Assembler {
         &self,
         instruction: &Instruction,
         span: &mut SpanBuilder,
-        context: &mut AssemblyContext,
-        callset: &mut CallSet,
+        ctx: &mut AssemblyContext,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
         use Operation::*;
 
@@ -129,6 +129,7 @@ impl Assembler {
             Instruction::U32CheckedRotrImm(v) => u32_ops::u32rotr(span, Checked, Some(*v)),
             Instruction::U32UncheckedRotr => u32_ops::u32rotr(span, Unchecked, None),
             Instruction::U32UncheckedRotrImm(v) => u32_ops::u32rotr(span, Unchecked, Some(*v)),
+
             Instruction::U32CheckedEq => u32_ops::u32eq(span, None),
             Instruction::U32CheckedEqImm(v) => u32_ops::u32eq(span, Some(*v)),
             Instruction::U32CheckedNeq => u32_ops::u32neq(span, None),
@@ -145,12 +146,6 @@ impl Assembler {
             Instruction::U32UncheckedMin => u32_ops::u32min(span, Unchecked),
             Instruction::U32CheckedMax => u32_ops::u32max(span, Checked),
             Instruction::U32UncheckedMax => u32_ops::u32max(span, Unchecked),
-
-            Instruction::ExecLocal(idx) => self.exec_local(*idx, context, callset),
-            Instruction::ExecImported(id) => self.exec_imported(id, context, callset),
-            Instruction::CallLocal(idx) => self.call_local(*idx, context, callset),
-            Instruction::CallImported(id) => self.call_imported(id, context, callset),
-            Instruction::SysCall(id) => self.syscall(id, context, callset),
 
             Instruction::Drop => span.add_op(Drop),
             Instruction::DropW => span.add_ops([Drop; 4]),
@@ -234,27 +229,26 @@ impl Assembler {
 
             Instruction::PushConstants(imms) => env_ops::push(imms, span),
             Instruction::Sdepth => span.add_op(SDepth),
-            Instruction::Caller => env_ops::caller(span, context),
+            Instruction::Caller => env_ops::caller(span, ctx),
             Instruction::AdvPipe => span.add_ops([Pipe, RpPerm]),
             Instruction::AdvPush(n) => adv_ops::adv_push(span, n),
             Instruction::AdvLoadW => span.add_op(ReadW),
 
             Instruction::MemStream => span.add_ops([MStream, RpPerm]),
 
-            // TODO define num_proc_locals
-            Instruction::Locaddr(imm) => env_ops::locaddr(imm, span, 0),
-            Instruction::MemLoad => mem_ops::mem_read(span, None, 0, false, true),
-            Instruction::MemLoadImm(imm) => mem_ops::mem_read(span, Some(imm), 0, false, true),
-            Instruction::MemLoadW => mem_ops::mem_read(span, None, 0, false, false),
-            Instruction::MemLoadWImm(imm) => mem_ops::mem_read(span, Some(imm), 0, false, false),
-            Instruction::LocLoad(imm) => mem_ops::mem_read(span, Some(imm), 0, true, true),
-            Instruction::LocLoadW(imm) => mem_ops::mem_read(span, Some(imm), 0, true, false),
-            Instruction::MemStore => mem_ops::mem_write(span, None, 0, false, true),
-            Instruction::MemStoreImm(imm) => mem_ops::mem_write(span, Some(imm), 0, false, true),
-            Instruction::MemStoreW => mem_ops::mem_write(span, None, 0, false, false),
-            Instruction::MemStoreWImm(imm) => mem_ops::mem_write(span, Some(imm), 0, false, false),
-            Instruction::LocStore(imm) => mem_ops::mem_write(span, Some(imm), 0, true, true),
-            Instruction::LocStoreW(imm) => mem_ops::mem_write(span, Some(imm), 0, true, false),
+            Instruction::Locaddr(v) => env_ops::locaddr(v, span, ctx),
+            Instruction::MemLoad => mem_ops::mem_read(span, ctx, None, false, true),
+            Instruction::MemLoadImm(v) => mem_ops::mem_read(span, ctx, Some(v), false, true),
+            Instruction::MemLoadW => mem_ops::mem_read(span, ctx, None, false, false),
+            Instruction::MemLoadWImm(v) => mem_ops::mem_read(span, ctx, Some(v), false, false),
+            Instruction::LocLoad(v) => mem_ops::mem_read(span, ctx, Some(v), true, true),
+            Instruction::LocLoadW(v) => mem_ops::mem_read(span, ctx, Some(v), true, false),
+            Instruction::MemStore => mem_ops::mem_write(span, ctx, None, false, true),
+            Instruction::MemStoreImm(v) => mem_ops::mem_write(span, ctx, Some(v), false, true),
+            Instruction::MemStoreW => mem_ops::mem_write(span, ctx, None, false, false),
+            Instruction::MemStoreWImm(v) => mem_ops::mem_write(span, ctx, Some(v), false, false),
+            Instruction::LocStore(v) => mem_ops::mem_write(span, ctx, Some(v), true, true),
+            Instruction::LocStoreW(v) => mem_ops::mem_write(span, ctx, Some(v), true, false),
 
             // TODO this isntruction is not implemented as operation
             Instruction::AdvU64Div => todo!(),
@@ -264,6 +258,59 @@ impl Assembler {
             Instruction::MTreeGet => crypto_ops::mtree_get(span),
             Instruction::MTreeSet => crypto_ops::mtree_set(span),
             Instruction::MTreeCwm => crypto_ops::mtree_cwm(span),
+
+            Instruction::ExecLocal(idx) => self.exec_local(*idx, ctx),
+            Instruction::ExecImported(id) => self.exec_imported(id, ctx),
+            Instruction::CallLocal(idx) => self.call_local(*idx, ctx),
+            Instruction::CallImported(id) => self.call_imported(id, ctx),
+            Instruction::SysCall(id) => self.syscall(id, ctx),
         }
+    }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+
+fn push_u16_value(span: &mut SpanBuilder, value: u16) {
+    use Operation::*;
+
+    if value == 0 {
+        span.push_op(Pad);
+    } else if value == 1 {
+        span.push_op(Pad);
+        span.push_op(Incr);
+    } else {
+        span.push_op(Push(Felt::from(value)));
+    }
+}
+
+fn push_u32_value(span: &mut SpanBuilder, value: u32) {
+    use Operation::*;
+
+    if value == 0 {
+        span.push_op(Pad);
+    } else if value == 1 {
+        span.push_op(Pad);
+        span.push_op(Incr);
+    } else {
+        span.push_op(Push(Felt::from(value)));
+    }
+}
+
+/// This is a helper function that appends a PUSH operation to the span block which puts the
+/// provided value parameter onto the stack.
+///
+/// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
+/// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
+fn push_felt(span: &mut SpanBuilder, value: Felt) {
+    use Operation::*;
+
+    if value == ZERO {
+        span.push_op(Pad);
+    } else if value == ONE {
+        span.push_op(Pad);
+        span.push_op(Incr);
+    } else {
+        span.push_op(Push(value));
     }
 }
