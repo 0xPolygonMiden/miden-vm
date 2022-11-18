@@ -1,8 +1,6 @@
-use vm_core::{code_blocks::CodeBlock, Felt, FieldElement, Operation::*};
-
-use crate::{
-    todo::{context::AssemblyContext, span_builder::SpanBuilder},
-    AssemblerError,
+use super::{
+    push_felt, push_u16_value, AssemblerError, AssemblyContext, CodeBlock, Felt, Operation::*,
+    SpanBuilder, StarkField,
 };
 
 // CONSTANT INPUTS
@@ -28,17 +26,7 @@ use crate::{
 /// invalid. It will also return an error if the op token is malformed or doesn't match the expected
 /// instruction.
 pub fn push(imms: &[Felt], span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
-    imms.iter().copied().for_each(|imm| {
-        if imm == Felt::ZERO {
-            span.push_op(Pad);
-        } else if imm == Felt::ONE {
-            span.push_op(Pad);
-            span.push_op(Incr);
-        } else {
-            span.push_op(Push(imm));
-        }
-    });
-
+    imms.iter().copied().for_each(|imm| push_felt(span, imm));
     Ok(None)
 }
 
@@ -54,26 +42,22 @@ pub fn push(imms: &[Felt], span: &mut SpanBuilder) -> Result<Option<CodeBlock>, 
 pub fn locaddr(
     index: &Felt,
     span: &mut SpanBuilder,
-    num_proc_locals: u32,
+    context: &AssemblyContext,
 ) -> Result<Option<CodeBlock>, AssemblerError> {
-    let index = index.inner();
-    let max = num_proc_locals as u64 - 1;
+    // TODO: index here should be u16
+    let index = index.as_int() as u16;
+    let max = context.num_proc_locals() - 1;
 
     // check that the parameter is within the specified bounds
     if index > max {
-        return Err(AssemblerError::imm_out_of_bounds(index, 0, max));
+        return Err(AssemblerError::imm_out_of_bounds(
+            index as u64,
+            0,
+            max as u64,
+        ));
     }
 
-    let value = max - index;
-    if value == 0 {
-        span.push_op(Pad);
-    } else if value == 1 {
-        span.push_op(Pad);
-        span.push_op(Incr);
-    } else {
-        span.push_op(Push(value.into()));
-    }
-
+    push_u16_value(span, max - index);
     span.add_op(FmpAdd)
 }
 
