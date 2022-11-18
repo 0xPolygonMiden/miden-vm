@@ -111,34 +111,20 @@ impl Assembler {
         let source = source.as_ref();
         let ProgramAst { local_procs, body } = parsers::parse_program(source)?;
 
-        // compile all local procedures
+        // compile all local procedures; this will add the procedures to the specified context
         let mut context = AssemblyContext::new(false);
-        let mut callset = CallSet::default();
-        for (proc_idx, proc_ast) in local_procs.iter().enumerate() {
+        for proc_ast in local_procs.iter() {
             if proc_ast.is_export {
                 return Err(AssemblerError::proc_export_in_program(&proc_ast.name));
             }
-            let proc = self.compile_procedure(proc_ast, proc_idx as u16, &mut context)?;
-            callset.append(proc.callset());
-            context.add_local_proc(proc)?;
+            self.compile_procedure(proc_ast, &mut context)?;
         }
 
         // compile the program body
-        let program_root = self.compile_body(body.iter(), &mut context, &mut callset, None)?;
+        let program_root = self.compile_body(body.iter(), &mut context, None)?;
 
-        // build the code block table based on the callset constructed during program compilation;
-        // called procedures can be either in the global procedure cache (for procedures imported
-        // from other modules) or in the context (for procedures defined locally).
-        let mut cb_table = CodeBlockTable::default();
-        for proc_id in callset.iter() {
-            let proc = self
-                .proc_cache
-                .get(proc_id)
-                .or_else(|| context.find_local_proc(proc_id))
-                .expect("callset procedure not found");
-
-            cb_table.insert(proc.code_root().clone());
-        }
+        // convert the context into a call block table for the program
+        let cb_table = context.into_cb_table(&self.proc_cache);
 
         // build and return the program
         Ok(Program::with_kernel(
@@ -159,16 +145,13 @@ impl Assembler {
         module_path: &str,
         context: &mut AssemblyContext,
     ) -> Result<(), AssemblerError> {
-        // compile all procedures in the module and also build a combined callset for all
-        // procedures
+        // compile all procedures in the module; once the compilation is complete, we get all
+        // compiled procedures (and their combined callset) from the context
         context.begin_module(module_path)?;
-        let mut callset = CallSet::default();
-        for (proc_idx, proc_ast) in module.local_procs.iter().enumerate() {
-            let proc = self.compile_procedure(proc_ast, proc_idx as u16, context)?;
-            callset.append(proc.callset());
-            context.add_local_proc(proc)?;
+        for proc_ast in module.local_procs.iter() {
+            self.compile_procedure(proc_ast, context)?;
         }
-        let module_procs = context.complete_module();
+        let (module_procs, module_callset) = context.complete_module();
 
         // add the compiled procedures to the assembler's cache. the procedures are added to the
         // cache only if:
@@ -176,7 +159,7 @@ impl Assembler {
         // - a procedure is present in the combined callset - i.e., it is an internal procedure
         //   which has been invoked via a local call instruction.
         for proc in module_procs {
-            if proc.is_export() || callset.contains(proc.id()) {
+            if proc.is_export() || module_callset.contains(proc.id()) {
                 // TODO: figure out how to do this using interior mutability
                 unsafe {
                     let mutable_self = &mut *(self as *const _ as *mut Assembler);
@@ -191,21 +174,13 @@ impl Assembler {
     // PROCEDURE COMPILER
     // --------------------------------------------------------------------------------------------
 
-    /// Compiles procedure AST into MAST and returns the compiled procedure.
-    ///
-    /// In addition to building the MAST, this also does the following:
-    /// - Computes and assigns an ID to the procedure. This is done for both exported and internal
-    ///   procedures.
-    /// - Determines the procedure's callset - i.e., a set of procedures which may be invoked
-    ///   during execution of this procedure via `call` or `syscall` instructions.
+    /// Compiles procedure AST into MAST and adds the complied procedure to the provided context.
     fn compile_procedure(
         &self,
         proc: &ProcedureAst,
-        proc_idx: u16,
         context: &mut AssemblyContext,
-    ) -> Result<Procedure, AssemblerError> {
-        // compile the procedure body
-        let mut callset = CallSet::default();
+    ) -> Result<(), AssemblerError> {
+        context.begin_proc(&proc.name, proc.is_export, proc.num_locals as u16)?;
 
         let code_root = if proc.num_locals > 0 {
             // for procedures with locals, we need to update fmp register before and after the
@@ -217,23 +192,14 @@ impl Assembler {
                 prologue: vec![Operation::Push(num_locals), Operation::FmpUpdate],
                 epilogue: vec![Operation::Push(-num_locals), Operation::FmpUpdate],
             };
-            self.compile_body(proc.body.iter(), context, &mut callset, Some(wrapper))?
+            self.compile_body(proc.body.iter(), context, Some(wrapper))?
         } else {
-            self.compile_body(proc.body.iter(), context, &mut callset, None)?
+            self.compile_body(proc.body.iter(), context, None)?
         };
 
-        // build an ID for the procedure as follows:
-        // - for exported procedures: hash("module_path::proc_name")
-        // - for internal procedures: hash("module_path::proc_index")
-        //
-        // this ID can then be used to retrieve procedures from the assembler's procedure cache.
-        let proc_id = if proc.is_export {
-            ProcedureId::from_name(&proc.name, context.module_path())
-        } else {
-            ProcedureId::from_index(proc_idx, context.module_path())
-        };
+        context.complete_proc(code_root);
 
-        Ok(Procedure::from_ast(proc, proc_id, code_root, callset))
+        Ok(())
     }
 
     // CODE BODY COMPILER
@@ -244,7 +210,6 @@ impl Assembler {
         &self,
         body: A,
         context: &mut AssemblyContext,
-        callset: &mut CallSet,
         wrapper: Option<BodyWrapper>,
     ) -> Result<CodeBlock, AssemblerError>
     where
@@ -258,7 +223,7 @@ impl Assembler {
             match node.borrow() {
                 Node::Instruction(instruction) => {
                     if let Some(block) =
-                        self.compile_instruction(instruction, &mut span, context, callset)?
+                        self.compile_instruction(instruction, &mut span, context)?
                     {
                         span.extract_span_into(&mut blocks);
                         blocks.push(block);
@@ -268,12 +233,12 @@ impl Assembler {
                 Node::IfElse(t, f) => {
                     span.extract_span_into(&mut blocks);
 
-                    let t = self.compile_body(t.iter(), context, callset, None)?;
+                    let t = self.compile_body(t.iter(), context, None)?;
 
                     // else is an exception because it is optional; hence, will have to be replaced
                     // by noop span
                     let f = if !f.is_empty() {
-                        self.compile_body(f.iter(), context, callset, None)?
+                        self.compile_body(f.iter(), context, None)?
                     } else {
                         CodeBlock::new_span(vec![Operation::Noop])
                     };
@@ -286,7 +251,7 @@ impl Assembler {
                 Node::Repeat(n, nodes) => {
                     span.extract_span_into(&mut blocks);
 
-                    let block = self.compile_body(nodes.iter(), context, callset, None)?;
+                    let block = self.compile_body(nodes.iter(), context, None)?;
 
                     for _ in 0..*n {
                         blocks.push(block.clone());
@@ -296,7 +261,7 @@ impl Assembler {
                 Node::While(nodes) => {
                     span.extract_span_into(&mut blocks);
 
-                    let block = self.compile_body(nodes.iter(), context, callset, None)?;
+                    let block = self.compile_body(nodes.iter(), context, None)?;
                     let block = CodeBlock::new_loop(block);
 
                     blocks.push(block);

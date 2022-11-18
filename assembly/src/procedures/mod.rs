@@ -1,6 +1,6 @@
 use super::{
     combine_blocks, parse_code_blocks, AssemblyContext, AssemblyError, BTreeSet, CodeBlock,
-    CodeBlockTable, ProcedureAst, String, ToString, Token, TokenStream, Vec, MODULE_PATH_DELIM,
+    CodeBlockTable, String, Token, TokenStream, Vec, MODULE_PATH_DELIM,
 };
 use core::ops;
 use crypto::{hashers::Blake3_256, Digest, Hasher};
@@ -23,19 +23,20 @@ pub struct Procedure {
 impl Procedure {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Returns a new [Procedure] instantiated from the provided procedure AST and other specified
-    /// parameters.
-    pub fn from_ast(
-        ast: &ProcedureAst,
+    /// Returns a new [Procedure] instantiated with the specified properties.
+    pub fn new(
         id: ProcedureId,
+        label: String,
+        is_export: bool,
+        num_locals: u32,
         code_root: CodeBlock,
         callset: CallSet,
     ) -> Self {
-        Self {
+        Procedure {
             id,
-            label: ast.name.to_string(),
-            is_export: ast.is_export,
-            num_locals: ast.num_locals,
+            label,
+            is_export,
+            num_locals,
             code_root,
             callset,
         }

@@ -1,5 +1,5 @@
 use super::{
-    Assembler, AssemblerError, AssemblyContext, CallSet, CodeBlock, Felt, Operation, ProcedureId,
+    Assembler, AssemblerError, AssemblyContext, CodeBlock, Felt, Operation, ProcedureId,
     SpanBuilder,
 };
 use crate::parsers::Instruction;
@@ -23,7 +23,6 @@ impl Assembler {
         instruction: &Instruction,
         span: &mut SpanBuilder,
         context: &mut AssemblyContext,
-        callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
         use Operation::*;
 
@@ -146,11 +145,11 @@ impl Assembler {
             Instruction::U32CheckedMax => u32_ops::u32max(span, Checked),
             Instruction::U32UncheckedMax => u32_ops::u32max(span, Unchecked),
 
-            Instruction::ExecLocal(idx) => self.exec_local(*idx, context, callset),
-            Instruction::ExecImported(id) => self.exec_imported(id, context, callset),
-            Instruction::CallLocal(idx) => self.call_local(*idx, context, callset),
-            Instruction::CallImported(id) => self.call_imported(id, context, callset),
-            Instruction::SysCall(id) => self.syscall(id, context, callset),
+            Instruction::ExecLocal(idx) => self.exec_local(*idx, context),
+            Instruction::ExecImported(id) => self.exec_imported(id, context),
+            Instruction::CallLocal(idx) => self.call_local(*idx, context),
+            Instruction::CallImported(id) => self.call_imported(id, context),
+            Instruction::SysCall(id) => self.syscall(id, context),
 
             Instruction::Drop => span.add_op(Drop),
             Instruction::DropW => span.add_ops([Drop; 4]),

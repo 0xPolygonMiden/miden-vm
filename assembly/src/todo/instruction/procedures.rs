@@ -1,4 +1,4 @@
-use super::{Assembler, AssemblerError, AssemblyContext, CallSet, CodeBlock, ProcedureId};
+use super::{Assembler, AssemblerError, AssemblyContext, CodeBlock, ProcedureId};
 
 // PROCEDURE INVOCATIONS
 // ================================================================================================
@@ -6,16 +6,16 @@ use super::{Assembler, AssemblerError, AssemblyContext, CallSet, CodeBlock, Proc
 impl Assembler {
     pub(super) fn exec_local(
         &self,
-        index: u16,
-        context: &AssemblyContext,
-        callset: &mut CallSet,
+        proc_idx: u16,
+        context: &mut AssemblyContext,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
-        // get the procedure from the context of the module currently being compiled
-        let proc = context.get_local_proc(index)?;
+        // register an "inlined" call to the procedure at the specified index in the module
+        // currently being complied; this updates the callset of the procedure currently being
+        // compiled
+        let proc = context.register_local_call(proc_idx, true)?;
 
-        // append the callset of the procedure to the current callset as executing this procedure
-        // may result in calling all procedures called by it
-        callset.append(proc.callset());
+        // TODO: if the procedure consists of a single SPAN block, we could just append all
+        // operations from that SPAN block to the span builder instead of returning a code block
 
         // return the code block of the procedure
         Ok(Some(proc.code_root().clone()))
@@ -25,15 +25,17 @@ impl Assembler {
         &self,
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
-        callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
         // get the procedure from the assembler
         let proc = self.get_imported_proc(proc_id, context)?;
         debug_assert!(proc.is_export(), "not imported procedure");
 
-        // append the callset of the procedure to the current callset as executing this procedure
-        // may result in calling all procedures called by it
-        callset.append(proc.callset());
+        // register and "inlined" call to the procedure; this updates the callset of the
+        // procedure currently being compiled
+        context.register_external_call(proc, true)?;
+
+        // TODO: if the procedure consists of a single SPAN block, we could just append all
+        // operations from that SPAN block to the span builder instead of returning a code block
 
         // return the code block of the procedure
         Ok(Some(proc.code_root().clone()))
@@ -42,26 +44,14 @@ impl Assembler {
     pub(super) fn call_local(
         &self,
         index: u16,
-        context: &AssemblyContext,
-        callset: &mut CallSet,
+        context: &mut AssemblyContext,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
-        // call instructions cannot be executed inside a kernel
-        if context.is_kernel() {
-            return Err(AssemblerError::call_in_kernel());
-        }
+        // register an "non-inlined" call to the procedure at the specified index in the module
+        // currently being complied; this updates the callset of the procedure currently being
+        // compiled
+        let proc = context.register_local_call(index, false)?;
 
-        // get the procedure from the context of the module currently being compiled
-        let proc = context.get_local_proc(index)?;
-
-        // append the callset of the procedure to the current callset as executing this procedure
-        // may result in calling all procedures called by it
-        callset.append(proc.callset());
-
-        // add ID of the called procedure to the callset. if the call is to an local procedure
-        // which is not exported, the ID format will be "module_path::proc_index".
-        callset.insert(*proc.id());
-
-        // return the code block of the procedure
+        // create a new CALL block for the procedure call and return
         let digest = proc.code_root().hash();
         Ok(Some(CodeBlock::new_call(digest)))
     }
@@ -70,25 +60,16 @@ impl Assembler {
         &self,
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
-        callset: &mut CallSet,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
-        // call instructions cannot be executed inside a kernel
-        if context.is_kernel() {
-            return Err(AssemblerError::call_in_kernel());
-        }
-
+        // get the procedure from the assembler
         let proc = self.get_imported_proc(proc_id, context)?;
         debug_assert!(proc.is_export(), "not imported procedure");
 
-        // append the callset of the procedure to the current callset as executing this procedure
-        // may result in calling all procedures called by it
-        callset.append(proc.callset());
+        // register and "non-inlined" call to the procedure; this updates the callset of the
+        // procedure currently being compiled
+        context.register_external_call(proc, false)?;
 
-        // add ID of the called procedure to the callset. this must be a procedure which has been
-        // exported from another module. the ID format will be "module_path::proc_name".
-        callset.insert(*proc_id);
-
-        // return the code block of the procedure
+        // create a new CALL block for the procedure call and return
         let digest = proc.code_root().hash();
         Ok(Some(CodeBlock::new_call(digest)))
     }
@@ -96,14 +77,8 @@ impl Assembler {
     pub(super) fn syscall(
         &self,
         proc_id: &ProcedureId,
-        context: &AssemblyContext,
-        callset: &mut CallSet,
+        context: &mut AssemblyContext,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
-        // syscall instructions cannot be executed inside a kernel
-        if context.is_kernel() {
-            return Err(AssemblerError::syscall_in_kernel());
-        }
-
         // fetch from proc cache and check if its a kernel procedure
         // note: the assembler is expected to have all kernel procedures properly inserted in the
         // proc cache upon initialization, with their correct procedure ids
@@ -119,11 +94,11 @@ impl Assembler {
             "non-empty callset for a kernel procedure"
         );
 
-        // add ID of the called procedure to the callset. this is needed to make sure the
-        // procedure is added to the program's cb_table.
-        callset.insert(*proc_id);
+        // register and "non-inlined" call to the procedure; this updates the callset of the
+        // procedure currently being compiled
+        context.register_external_call(proc, false)?;
 
-        // return the code block of the procedure
+        // create a new SYSCALL block for the procedure call and return
         let digest = proc.code_root().hash();
         Ok(Some(CodeBlock::new_syscall(digest)))
     }
