@@ -90,7 +90,7 @@ impl Module {
                         )
                     })?;
 
-                    let path = ProcedureId::path(name, &module_path);
+                    let path = ProcedureId::path(name, module_path.as_str());
                     let id = ProcedureId::new(&path);
                     let source = fs::read_to_string(entry)?;
 
