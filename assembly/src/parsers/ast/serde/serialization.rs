@@ -480,7 +480,7 @@ impl Serializable for Instruction {
             Self::AdvU64Div => target.write_opcode(OpCode::AdvU64Div),
             Self::AdvPush(v) => {
                 target.write_opcode(OpCode::AdvPush);
-                target.write_felt(*v);
+                target.write_u8(*v);
             }
             Self::AdvLoadW => target.write_opcode(OpCode::AdvLoadW),
 
