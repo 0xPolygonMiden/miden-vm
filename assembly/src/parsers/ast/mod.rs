@@ -10,6 +10,7 @@ pub(crate) use nodes::{Instruction, Node};
 mod context;
 use context::ParserContext;
 
+mod crypto_ops;
 mod field_ops;
 mod io_ops;
 mod serde;

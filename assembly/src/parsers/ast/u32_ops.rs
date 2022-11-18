@@ -1,6 +1,33 @@
 use super::{parse_param, Instruction, Node};
 use crate::{validate_operation, AssemblyError, Token, Vec};
 
+/// Returns `U32Test` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32test(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32Test))
+}
+
+/// Returns `U32TestW` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32testw(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32TestW))
+}
+
+/// Returns `U32Assert` node instruction if no immediate vaule is provided or it is equal 1. Returns instruction
+/// `U32Assert2` if immediate value is equal 2.
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32assert(op: &Token) -> Result<Node, AssemblyError> {
     let instruction = match op.num_parts() {
         0 => return Err(AssemblyError::missing_param(op)),
@@ -16,6 +43,44 @@ pub fn parse_u32assert(op: &Token) -> Result<Node, AssemblyError> {
     Ok(Node::Instruction(instruction))
 }
 
+/// Returns `U32AssertW` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32assertw(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32AssertW))
+}
+
+/// Returns `U32Cast` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32cast(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32Cast))
+}
+
+/// Returns `U32Split` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32split(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32Split))
+}
+
+/// Returns `U32CheckedAdd` node instruction if no immediate vaule is provided or
+/// `U32CheckedAddImm` otherwise
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32checked_add(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32checked_add", 0..1);
 
@@ -30,6 +95,11 @@ pub fn parse_u32checked_add(op: &Token) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns `U32WrappingAdd` node instruction if no immediate vaule is provided or
+/// `U32WrappingAddImm` otherwise
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32wrapping_add(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32wrapping_add", 0..1);
 
@@ -44,6 +114,11 @@ pub fn parse_u32wrapping_add(op: &Token) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns `U32OverflowingAdd` node instruction if no immediate vaule is provided or
+/// `U32OverflowingAddImm` otherwise
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32overflowing_add(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32overflowing_add", 0..1);
 
@@ -58,6 +133,33 @@ pub fn parse_u32overflowing_add(op: &Token) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns `U32OverflowingAdd3` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32overflowing_add3(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32OverflowingAdd3))
+}
+
+/// Returns `U32WrappingAdd3` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32wrapping_add3(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32WrappingAdd3))
+}
+
+/// Returns `U32CheckedSub` node instruction if no immediate vaule is provided or
+/// `U32CheckedSubImm` otherwise
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32checked_sub(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32checked_sub", 0..1);
 
@@ -72,6 +174,11 @@ pub fn parse_u32checked_sub(op: &Token) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns `U32WrappingSub` node instruction if no immediate vaule is provided or
+/// `U32WrappingSubImm` otherwise
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32wrapping_sub(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32wrapping_sub", 0..1);
 
@@ -86,6 +193,11 @@ pub fn parse_u32wrapping_sub(op: &Token) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns `U32OverflowingSub` node instruction if no immediate vaule is provided or
+/// `U32OverflowingSubImm` otherwise
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32overflowing_sub(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32overflowing_sub", 0..1);
 
@@ -100,6 +212,11 @@ pub fn parse_u32overflowing_sub(op: &Token) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns `U32CheckedMul` node instruction if no immediate vaule is provided or
+/// `U32CheckedMulImm` otherwise
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32checked_mul(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32checked_mul", 0..1);
 
@@ -114,6 +231,11 @@ pub fn parse_u32checked_mul(op: &Token) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns `U32WrappingMul` node instruction if no immediate vaule is provided or
+/// `U32WrappingMulImm` otherwise
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32wrapping_mul(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32wrapping_mul", 0..1);
 
@@ -128,6 +250,11 @@ pub fn parse_u32wrapping_mul(op: &Token) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns `U32OverflowingMul` node instruction if no immediate vaule is provided or
+/// `U32OverflowingMulImm` otherwise
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32overflowing_mul(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32overflowing_mul", 0..1);
 
@@ -142,6 +269,36 @@ pub fn parse_u32overflowing_mul(op: &Token) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns `U32OverflowingMadd` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32overflowing_madd(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32OverflowingMadd))
+}
+
+/// Returns `U32WrappingMadd` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32wrapping_madd(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32WrappingMadd))
+}
+
+/// Returns one of four possible instructions:
+/// - checked without parameter: `U32CheckedDiv`
+/// - unchecked without parameter: `U32UncheckedDiv`
+/// - checeked with parameter: `U32CheckedDivImm`
+/// - unchecked with parameter: `U32UncheckedDivImm`
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32_div(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32checked_div|u32unchecked_div", 0..1);
 
@@ -166,6 +323,14 @@ pub fn parse_u32_div(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns one of four possible instructions:
+/// - checked without parameter: `U32CheckedMod`
+/// - unchecked without parameter: `U32UncheckedMod`
+/// - checeked with parameter: `U32CheckedModImm`
+/// - unchecked with parameter: `U32UncheckedModImm`
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32_mod(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32checked_mod|u32unchecked_mod", 0..1);
 
@@ -190,6 +355,14 @@ pub fn parse_u32_mod(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns one of four possible instructions:
+/// - checked without parameter: `U32CheckedDivMod`
+/// - unchecked without parameter: `U32UncheckedDivMod`
+/// - checeked with parameter: `U32CheckedDivModImm`
+/// - unchecked with parameter: `U32UncheckedDivModImm`
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32_divmod(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32checked_divmod|u32unchecked_divmod", 0..1);
 
@@ -214,6 +387,58 @@ pub fn parse_u32_divmod(op: &Token, checked: bool) -> Result<Node, AssemblyError
     Ok(node)
 }
 
+/// Returns `U32CheckedAnd` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32checked_and(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32CheckedAnd))
+}
+
+/// Returns `U32CheckedOr` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32checked_or(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32CheckedOr))
+}
+
+/// Returns `U32CheckedXor` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32checked_xor(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32CheckedXor))
+}
+
+/// Returns `U32CheckedNot` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32checked_not(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32CheckedNot))
+}
+
+/// Returns one of four possible instructions:
+/// - checked without parameter: `U32CheckedShr`
+/// - unchecked without parameter: `U32UncheckedShr`
+/// - checeked with parameter: `U32CheckedShrImm`
+/// - unchecked with parameter: `U32UncheckedShrImm`
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32_shr(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32checked_shr|u32unchecked_shr", 0..1);
 
@@ -238,6 +463,14 @@ pub fn parse_u32_shr(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns one of four possible instructions:
+/// - checked without parameter: `U32CheckedShl`
+/// - unchecked without parameter: `U32UncheckedShl`
+/// - checeked with parameter: `U32CheckedShlImm`
+/// - unchecked with parameter: `U32UncheckedShlImm`
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32_shl(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32checked_shl|u32unchecked_shl", 0..1);
 
@@ -262,6 +495,14 @@ pub fn parse_u32_shl(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns one of four possible instructions:
+/// - checked without parameter: `U32CheckedRotr`
+/// - unchecked without parameter: `U32UncheckedRotr`
+/// - checeked with parameter: `U32CheckedRotrImm`
+/// - unchecked with parameter: `U32UncheckedRotrImm`
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32_rotr(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32checked_rotr|u32unchecked_rotr", 0..1);
 
@@ -286,6 +527,14 @@ pub fn parse_u32_rotr(op: &Token, checked: bool) -> Result<Node, AssemblyError> 
     Ok(node)
 }
 
+/// Returns one of four possible instructions:
+/// - checked without parameter: `U32CheckedRotl`
+/// - unchecked without parameter: `U32UncheckedRotl`
+/// - checeked with parameter: `U32CheckedRotlImm`
+/// - unchecked with parameter: `U32UncheckedRotlImm`
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub fn parse_u32_rotl(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     validate_operation!(op, "u32checked_rotl|u32unchecked_rotl", 0..1);
 
@@ -308,4 +557,158 @@ pub fn parse_u32_rotl(op: &Token, checked: bool) -> Result<Node, AssemblyError> 
     };
 
     Ok(node)
+}
+
+/// Returns `U32CheckedEq` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32checked_eq(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32CheckedEq))
+}
+
+/// Returns `U32CheckedNeq` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32checked_neq(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32CheckedNeq))
+}
+
+/// Returns `U32CheckedLt` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32checked_lt(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32CheckedLt))
+}
+
+/// Returns `U32UncheckedLt` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32unchecked_lt(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32UncheckedLt))
+}
+
+/// Returns `U32CheckedLte` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32checked_lte(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32CheckedLte))
+}
+
+/// Returns `U32UncheckedLte` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32unchecked_lte(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32UncheckedLte))
+}
+
+/// Returns `U32CheckedGt` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32checked_gt(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32CheckedGt))
+}
+
+/// Returns `U32UncheckedGt` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32unchecked_gt(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32UncheckedGt))
+}
+
+/// Returns `U32CheckedGte` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32checked_gte(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32CheckedGte))
+}
+
+/// Returns `U32UncheckedGte` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32unchecked_gte(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32UncheckedGte))
+}
+
+/// Returns `U32CheckedMin` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32checked_min(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32CheckedMin))
+}
+
+/// Returns `U32UncheckedMin` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32unchecked_min(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32UncheckedMin))
+}
+
+/// Returns `U32CheckedMax` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32checked_max(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32CheckedMax))
+}
+
+/// Returns `U32UncheckedMax` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_u32unchecked_max(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::U32UncheckedMax))
 }

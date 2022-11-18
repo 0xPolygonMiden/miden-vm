@@ -20,6 +20,11 @@ const ADVICE_READ_LIMIT: u8 = 16;
 // INSTRUCTION PARSERS
 // ================================================================================================
 
+/// Returns `PushConstants` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid values or inappropriate number of
+/// values
 pub(super) fn parse_push(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "push", 1..MAX_CONST_INPUTS);
 
@@ -27,6 +32,22 @@ pub(super) fn parse_push(op: &Token) -> Result<Node, AssemblyError> {
     Ok(Node::Instruction(Instruction::PushConstants(constants)))
 }
 
+/// Returns `Sdepth` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_sdepth(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::Sdepth))
+}
+
+/// Returns `Locaddr` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param, no params or more than one
+/// param
 pub(super) fn parse_locaddr(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "locaddr", 1);
 
@@ -34,6 +55,22 @@ pub(super) fn parse_locaddr(op: &Token) -> Result<Node, AssemblyError> {
     Ok(Node::Instruction(Instruction::Locaddr(Felt::from(param))))
 }
 
+/// Returns `Caller` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
+pub fn parse_caller(op: &Token) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(Instruction::Caller))
+}
+
+/// Returns `AdvPush` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param, no params or more than one
+/// param
 pub(super) fn parse_adv_push(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "adv_push", 1);
 
@@ -41,12 +78,20 @@ pub(super) fn parse_adv_push(op: &Token) -> Result<Node, AssemblyError> {
     Ok(Node::Instruction(Instruction::AdvPush(param)))
 }
 
+/// Returns `AdvLoadW` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
 pub(super) fn parse_adv_loadw(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "adv_loadw", 0);
 
     Ok(Node::Instruction(Instruction::AdvLoadW))
 }
 
+/// Returns `AdvU64Div` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has immediate value different from `u64div`
 pub(super) fn parse_adv_inject(op: &Token) -> Result<Node, AssemblyError> {
     match op.parts()[1] {
         "u64div" => {
@@ -69,6 +114,10 @@ pub(super) fn parse_adv_inject(op: &Token) -> Result<Node, AssemblyError> {
     }
 }
 
+/// Returns `MemLoad` node instruction if no immediate vaule is provided or `MemLoadImm` otherwise
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub(super) fn parse_mem_load(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "mem_load", 0..1);
     let node = match op.num_parts() {
@@ -82,12 +131,22 @@ pub(super) fn parse_mem_load(op: &Token) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns `LocLoad` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param, no params or more than one
+/// param
 pub(super) fn parse_loc_load(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "loc_load", 1);
     let index = parse_param::<u32>(op, 1)?;
     Ok(Node::Instruction(Instruction::LocLoad(Felt::from(index))))
 }
 
+/// Returns `MemLoadW` node instruction if no immediate vaule is provided or `MemLoadWImm`
+/// otherwise
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub(super) fn parse_mem_loadw(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "mem_loadw", 0..1);
     let node = match op.num_parts() {
@@ -101,12 +160,22 @@ pub(super) fn parse_mem_loadw(op: &Token) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns `LocLoadW` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param, no params or more than one
+/// param
 pub(super) fn parse_loc_loadw(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "loc_loadw", 1);
     let index = parse_param::<u32>(op, 1)?;
     Ok(Node::Instruction(Instruction::LocLoadW(Felt::from(index))))
 }
 
+/// Returns `MemStore` node instruction if no immediate vaule is provided or `MemStoreImm`
+/// otherwise
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub(super) fn parse_mem_store(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "mem_store", 0..1);
     let node = match op.num_parts() {
@@ -120,12 +189,22 @@ pub(super) fn parse_mem_store(op: &Token) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns `LocStore` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param, no params or more than one
+/// param
 pub(super) fn parse_loc_store(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "loc_store", 1);
     let index = parse_param::<u32>(op, 1)?;
     Ok(Node::Instruction(Instruction::LocStore(Felt::from(index))))
 }
 
+/// Returns `MemStoreW` node instruction if no immediate vaule is provided or `MemStoreWImm`
+/// otherwise
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param or more than one param
 pub(super) fn parse_mem_storew(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "mem_storew", 0..1);
     let node = match op.num_parts() {
@@ -139,17 +218,30 @@ pub(super) fn parse_mem_storew(op: &Token) -> Result<Node, AssemblyError> {
     Ok(node)
 }
 
+/// Returns `LocStoreW` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has invalid param, no params or more than one
+/// param
 pub(super) fn parse_loc_storew(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "loc_storew", 1);
     let index = parse_param::<u32>(op, 1)?;
     Ok(Node::Instruction(Instruction::LocStoreW(Felt::from(index))))
 }
 
+/// Returns `MemStream` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
 pub(super) fn parse_mem_stream(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "mem_stream", 0);
     Ok(Node::Instruction(Instruction::MemStream))
 }
 
+/// Returns `AdvPipe` node instruction
+///
+/// # Errors
+/// Returns an error if the assembly operation token has any immediate value
 pub(super) fn parse_adv_pipe(op: &Token) -> Result<Node, AssemblyError> {
     validate_operation!(op, "adv_pipe", 0);
     Ok(Node::Instruction(Instruction::AdvPipe))
