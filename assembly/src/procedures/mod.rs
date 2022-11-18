@@ -168,23 +168,36 @@ impl ProcedureId {
     /// TODO better use `MODULE_PATH_DELIM`. maybe require `const_format` crate?
     pub const KERNEL_PATH: &str = "::sys";
 
-    /// Creates a new procedure id from its label, composed by module path + name identifier.
+    /// Creates a new procedure id from its path, composed by module path + name identifier.
     ///
-    /// No validation is performed regarding the consistency of the label format.
-    pub fn new<L>(label: L) -> Self
+    /// No validation is performed regarding the consistency of the path format.
+    pub fn new<L>(path: L) -> Self
     where
         L: AsRef<str>,
     {
         let mut digest = [0u8; Self::SIZE];
-        let hash = Blake3_256::<Felt>::hash(label.as_ref().as_bytes());
+        let hash = Blake3_256::<Felt>::hash(path.as_ref().as_bytes());
         digest.copy_from_slice(&hash.as_bytes()[..Self::SIZE]);
         Self(digest)
     }
 
+    /// Computes the full path, given a module path and the procedure name
+    pub fn path<N, M>(name: N, module_path: M) -> String
+    where
+        N: AsRef<str>,
+        M: AsRef<str>,
+    {
+        format!(
+            "{}{MODULE_PATH_DELIM}{}",
+            module_path.as_ref(),
+            name.as_ref()
+        )
+    }
+
     /// Creates a new procedure ID from a name to be resolved in the kernel.
     pub fn from_kernel_name(name: &str) -> Self {
-        let label = format!("{}{MODULE_PATH_DELIM}{name}", Self::KERNEL_PATH);
-        Self::new(label)
+        let path = format!("{}{MODULE_PATH_DELIM}{name}", Self::KERNEL_PATH);
+        Self::new(path)
     }
 
     /// Creates a new procedure ID from its name and module path.
@@ -192,16 +205,16 @@ impl ProcedureId {
     /// No validation is performed regarding the consistency of the module path or procedure name
     /// format.
     pub fn from_name(name: &str, module_path: &str) -> Self {
-        let label = format!("{module_path}{MODULE_PATH_DELIM}{name}");
-        Self::new(label)
+        let path = Self::path(name, module_path);
+        Self::new(path)
     }
 
     /// Creates a new procedure ID from its local index and module path.
     ///
     /// No validation is performed regarding the consistency of the module path format.
     pub fn from_index(index: u16, module_path: &str) -> Self {
-        let label = format!("{module_path}{MODULE_PATH_DELIM}{index}");
-        Self::new(label)
+        let path = format!("{module_path}{MODULE_PATH_DELIM}{index}");
+        Self::new(path)
     }
 }
 
