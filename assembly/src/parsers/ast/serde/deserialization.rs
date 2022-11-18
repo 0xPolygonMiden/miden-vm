@@ -401,8 +401,8 @@ impl Deserializable for Instruction {
             OpCode::AdvPipe => Ok(Instruction::AdvPipe),
 
             OpCode::AdvU64Div => Ok(Instruction::AdvU64Div),
-            OpCode::AdvPush => Ok(Instruction::AdvPush(bytes.read_felt()?)),
-            OpCode::AdvLoadW => Ok(Instruction::AdvLoadW(bytes.read_felt()?)),
+            OpCode::AdvPush => Ok(Instruction::AdvPush(bytes.read_u8()?)),
+            OpCode::AdvLoadW => Ok(Instruction::AdvLoadW),
 
             // ----- cryptographic operations ---------------------------------------------------------
             OpCode::RPHash => Ok(Instruction::RPHash),
