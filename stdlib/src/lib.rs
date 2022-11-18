@@ -3,7 +3,10 @@
 use vm_assembly::{ModuleAst, ModuleProvider, NamedModuleAst, ProcedureId};
 use vm_core::{
     errors::LibraryError,
-    utils::{collections::BTreeMap, string::ToString},
+    utils::{
+        collections::{BTreeMap, Vec},
+        string::{String, ToString},
+    },
     Library,
 };
 
@@ -18,8 +21,6 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 // TYPE ALIASES
 // ================================================================================================
 
-type ModuleMap = BTreeMap<ProcedureId, (&'static str, ModuleAst)>;
-type ModuleNamedMap = BTreeMap<&'static str, ModuleAst>;
 type ModuleSource = BTreeMap<&'static str, &'static str>;
 
 // STANDARD LIBRARY
@@ -27,8 +28,8 @@ type ModuleSource = BTreeMap<&'static str, &'static str>;
 
 /// TODO: add docs
 pub struct StdLibrary {
-    modules: ModuleMap,
-    named: ModuleNamedMap,
+    modules: Vec<(String, ModuleAst)>,
+    proc_to_module: BTreeMap<ProcedureId, usize>,
     sources: ModuleSource,
 }
 
@@ -37,10 +38,11 @@ impl ModuleProvider for StdLibrary {
         self.sources.get(path).copied()
     }
 
-    fn get_module(&self, id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
-        self.modules
-            .get(id)
-            .map(|(path, module)| module.named_ref(*path))
+    fn get_module(&self, proc_id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
+        self.proc_to_module
+            .get(proc_id)
+            .map(|&module_idx| &self.modules[module_idx])
+            .map(|(path, ast)| ast.named_ref(path))
     }
 }
 
@@ -63,8 +65,10 @@ impl Library for StdLibrary {
     /// Returns an error if the modules for the specified path does not exist in the standard
     /// library.
     fn get_module(&self, module_path: &str) -> Result<&ModuleAst, LibraryError> {
-        self.named
-            .get(module_path)
+        self.modules
+            .iter()
+            .find(|(path, _)| path == module_path)
+            .map(|(_, ast)| ast)
             .ok_or_else(|| LibraryError::ModuleNotFound(module_path.to_string()))
     }
 }
@@ -74,34 +78,33 @@ impl Default for StdLibrary {
     fn default() -> Self {
         // TODO this will be trimmed in the future to `ids` as the only provider for std library
 
-        let modules = MODULES
-            .into_iter()
-            .map(|(label, id, _, bytes)| {
-                let ast = ModuleAst::from_bytes(bytes)
-                    .expect("static module deserialization should be infallible");
+        let mut modules = Vec::with_capacity(MODULES.len());
+        let mut proc_to_module = BTreeMap::new();
 
-                (id, (label, ast))
-            })
-            .collect();
+        for (i, (module_path, _, module_bytes)) in MODULES.iter().enumerate() {
+            // deserialize module AST
+            let module_ast = ModuleAst::from_bytes(module_bytes)
+                .expect("static module deserialization should be infallible");
 
-        let named = MODULES
-            .into_iter()
-            .map(|(label, _, _, bytes)| {
-                let ast = ModuleAst::from_bytes(bytes)
-                    .expect("static module deserialization should be infallible");
+            // for each procedure in the module, compute its ID and create a map between procedure
+            // ID and its module
+            for proc_ast in module_ast.local_procs.iter() {
+                let proc_id = ProcedureId::from_name(&proc_ast.name, module_path);
+                proc_to_module.insert(proc_id, i);
+            }
 
-                (label, ast)
-            })
-            .collect();
+            // add the module together with its path to the module list
+            modules.push((module_path.to_string(), module_ast));
+        }
 
         let sources = MODULES
             .into_iter()
-            .map(|(label, _, source, _)| (label, source))
+            .map(|(label, source, _)| (label, source))
             .collect();
 
         Self {
             modules,
-            named,
+            proc_to_module,
             sources,
         }
     }
