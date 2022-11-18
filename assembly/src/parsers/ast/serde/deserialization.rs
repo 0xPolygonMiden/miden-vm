@@ -401,6 +401,12 @@ impl Deserializable for Instruction {
             OpCode::AdvPipe => Ok(Instruction::AdvPipe),
 
             OpCode::AdvU64Div => Ok(Instruction::AdvU64Div),
+            OpCode::AdvKeyval => Ok(Instruction::AdvKeyval),
+            OpCode::AdvMem => {
+                let start_addr = bytes.read_u32()?;
+                let num_words = bytes.read_u32()?;
+                Ok(Instruction::AdvMem(start_addr, num_words))
+            }
             OpCode::AdvPush => Ok(Instruction::AdvPush(bytes.read_u8()?)),
             OpCode::AdvLoadW => Ok(Instruction::AdvLoadW),
 

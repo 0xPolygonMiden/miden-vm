@@ -478,6 +478,12 @@ impl Serializable for Instruction {
             Self::AdvPipe => target.write_opcode(OpCode::AdvPipe),
 
             Self::AdvU64Div => target.write_opcode(OpCode::AdvU64Div),
+            Self::AdvKeyval => target.write_opcode(OpCode::AdvKeyval),
+            Self::AdvMem(start_addr, num_words) => {
+                target.write_opcode(OpCode::AdvMem);
+                target.write_u32(*start_addr);
+                target.write_u32(*num_words);
+            }
             Self::AdvPush(v) => {
                 target.write_opcode(OpCode::AdvPush);
                 target.write_u8(*v);

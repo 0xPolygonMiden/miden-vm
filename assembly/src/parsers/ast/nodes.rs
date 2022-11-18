@@ -233,9 +233,12 @@ pub enum Instruction {
     MemStream,
     AdvPipe,
 
-    AdvU64Div,
     AdvPush(u8),
     AdvLoadW,
+
+    AdvU64Div,
+    AdvKeyval,
+    AdvMem(u32, u32),
 
     // ----- cryptographic operations ---------------------------------------------------------
     RPHash,

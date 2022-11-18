@@ -48,14 +48,25 @@ pub(super) fn parse_adv_loadw(op: &Token) -> Result<Node, AssemblyError> {
 }
 
 pub(super) fn parse_adv_inject(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "adv.u64div");
-
-    let node = match op.parts()[1] {
-        "u64div" => Node::Instruction(Instruction::AdvU64Div),
-        _ => return Err(AssemblyError::invalid_op(op)),
-    };
-
-    Ok(node)
+    match op.parts()[1] {
+        "u64div" => {
+            validate_operation!(op, "adv.u64div", 0);
+            Ok(Node::Instruction(Instruction::AdvU64Div))
+        }
+        "keyval" => {
+            validate_operation!(op, "adv.keyval", 0);
+            Ok(Node::Instruction(Instruction::AdvKeyval))
+        }
+        "mem" => {
+            validate_operation!(op, "adv.mem", 2);
+            let start_addr = parse_param(op, 2)?;
+            let num_words = parse_checked_param(op, 3, 1, u32::MAX - start_addr)?;
+            Ok(Node::Instruction(Instruction::AdvMem(
+                start_addr, num_words,
+            )))
+        }
+        _ => Err(AssemblyError::invalid_op(op)),
+    }
 }
 
 pub(super) fn parse_mem_load(op: &Token) -> Result<Node, AssemblyError> {
