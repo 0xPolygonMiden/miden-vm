@@ -353,12 +353,6 @@ impl AssemblerError {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    pub fn duplicated_proc(label: &str) -> Self {
-        Self {
-            message: format!("duplicated procedure label: {label}"),
-        }
-    }
-
     pub fn duplicate_proc_name(proc_name: &str, module_path: &str) -> Self {
         Self {
             message: format!("duplicate proc name ('{proc_name}') in module {module_path}"),

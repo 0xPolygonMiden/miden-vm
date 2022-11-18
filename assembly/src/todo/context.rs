@@ -55,7 +55,6 @@ impl AssemblyContext {
     }
 
     /// Returns the number of memory locals allocated for the procedure currently being compiled.
-    #[allow(dead_code)]
     pub fn num_proc_locals(&self) -> u16 {
         self.module_stack
             .last()
