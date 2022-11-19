@@ -2,7 +2,7 @@ use super::{
     Assembler, AssemblerError, AssemblyContext, CodeBlock, Decorator, Felt, Instruction, Operation,
     ProcedureId, SpanBuilder,
 };
-use vm_core::{AdviceInjector, ONE, ZERO};
+use vm_core::{AdviceInjector, FieldElement, StarkField, ONE, ZERO};
 
 mod adv_ops;
 mod crypto_ops;
@@ -40,20 +40,20 @@ impl Assembler {
             Instruction::Assertz => span.add_ops([Eqz, Assert]),
 
             Instruction::Add => span.add_op(Add),
-            Instruction::AddImm(imm) => field_ops::add_imm(imm, span),
+            Instruction::AddImm(imm) => field_ops::add_imm(span, *imm),
             Instruction::Sub => span.add_ops([Neg, Add]),
             Instruction::SubImm(imm) => span.add_ops([Push(-*imm), Add]),
             Instruction::Mul => span.add_op(Mul),
-            Instruction::MulImm(imm) => field_ops::mul_imm(imm, span),
+            Instruction::MulImm(imm) => field_ops::mul_imm(span, *imm),
             Instruction::Div => span.add_ops([Inv, Mul]),
-            Instruction::DivImm(imm) => field_ops::div_imm(imm, span),
+            Instruction::DivImm(imm) => field_ops::div_imm(span, *imm),
             Instruction::Neg => span.add_op(Neg),
             Instruction::Inv => span.add_op(Inv),
 
             Instruction::Pow2 => field_ops::pow2(span),
-            Instruction::Exp => field_ops::exp_imm(&64u64.into(), span),
-            Instruction::ExpImm(imm) => field_ops::exp_imm(imm, span),
-            Instruction::ExpBitLength(bits) => field_ops::exp_bits(bits, span),
+            Instruction::Exp => field_ops::exp(span, 64),
+            Instruction::ExpImm(pow) => field_ops::exp_imm(span, *pow),
+            Instruction::ExpBitLength(num_pow_bits) => field_ops::exp(span, *num_pow_bits),
 
             Instruction::Not => span.add_op(Not),
             Instruction::And => span.add_op(And),
@@ -61,10 +61,10 @@ impl Assembler {
             Instruction::Xor => span.add_ops([Dup0, Dup2, Or, MovDn2, And, Not, And]),
 
             Instruction::Eq => span.add_op(Eq),
-            Instruction::EqImm(imm) => field_ops::eq_imm(imm, span),
+            Instruction::EqImm(imm) => field_ops::eq_imm(span, *imm),
             Instruction::Eqw => field_ops::eqw(span),
             Instruction::Neq => span.add_ops([Eq, Not]),
-            Instruction::NeqImm(imm) => field_ops::neq_imm(imm, span),
+            Instruction::NeqImm(imm) => field_ops::neq_imm(span, *imm),
             Instruction::Lt => field_ops::lt(span),
             Instruction::Lte => field_ops::lte(span),
             Instruction::Gt => field_ops::gt(span),

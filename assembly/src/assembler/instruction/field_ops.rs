@@ -1,108 +1,231 @@
-use core::iter;
+use super::{
+    validate_param, AssemblerError, CodeBlock, Felt, FieldElement, Operation::*, SpanBuilder,
+    StarkField, ONE, ZERO,
+};
+use crate::MAX_EXP_BITS;
 
-use vm_core::{code_blocks::CodeBlock, Felt, FieldElement, Operation::*};
-
-use crate::{assembler::SpanBuilder, AssemblerError};
-
-// ARITHMETIC OPERATIONS
+// BASIC ARITHMETIC OPERATIONS
 // ================================================================================================
 
-pub(super) fn add_imm(
-    imm: &Felt,
-    span: &mut SpanBuilder,
-) -> Result<Option<CodeBlock>, AssemblerError> {
-    if imm == &Felt::ONE {
+/// Appends a sequence of operations to add an immediate value to the value at the top of the
+/// stack. Specifically, the sequences are:
+/// - if imm = 1: INCR
+/// - otherwise: PUSH(imm) ADD
+///
+/// We do not optimize away adding 0 because it may result in a empty SPAN block and cause failures
+/// later on.
+pub fn add_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblerError> {
+    if imm == ONE {
         span.add_op(Incr)
     } else {
-        span.add_ops([Push(*imm), Add])
+        // TODO: warning if imm is ZERO?
+        span.add_ops([Push(imm), Add])
     }
 }
 
-pub(super) fn mul_imm(
-    imm: &Felt,
-    span: &mut SpanBuilder,
-) -> Result<Option<CodeBlock>, AssemblerError> {
-    if imm == &Felt::ONE {
-        Ok(None)
+/// Appends a sequence of operations to multiply the value at the top of the stack by an immediate
+/// value. Specifically, the sequences are:
+/// - if imm = 0: DROP PAD
+/// - otherwise: PUSH(imm) MUL
+///
+/// We do not optimize away multiplication by 1 because it may result in a empty SPAN block and
+/// cause failures later on.
+pub fn mul_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblerError> {
+    if imm == ZERO {
+        span.add_ops([Drop, Pad])
     } else {
-        span.add_ops([Push(*imm), Mul])
+        // TODO: warning if imm is ONE?
+        span.add_ops([Push(imm), Mul])
     }
 }
 
-pub(super) fn div_imm(
-    imm: &Felt,
-    span: &mut SpanBuilder,
-) -> Result<Option<CodeBlock>, AssemblerError> {
-    if imm == &Felt::ONE {
-        Ok(None)
-    } else {
-        // TODO test if zero imm will panic this inversion
-        span.add_ops([Push(imm.inv()), Mul])
+/// Appends a sequence of operations to divide the value at the top of the stack by an immediate
+/// value. Specifically, the sequence is: PUSH(1/imm) MUL
+///
+/// We do not optimize away division by 1 because it may result in a empty SPAN block and cause
+/// failures later on.
+///
+/// # Errors
+/// Returns an error if the immediate value is ZERO.
+pub fn div_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblerError> {
+    // TODO: warning if imm is ONE?
+    if imm == ZERO {
+        return Err(AssemblerError::division_by_zero());
     }
+    span.add_ops([Push(imm.inv()), Mul])
 }
 
-pub(super) fn pow2(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
-    let pre = [
-        // push base 2 onto the stack: [exp, .....] -> [2, exp, ......]
-        Push(2u64.into()),
-        // introduce initial value of acc onto the stack: [2, exp, ....] -> [1, 2, exp, ....]
-        Pad,
-        Incr,
-        // arrange the top of the stack for `EXPACC` instruction: [1, 2, exp, ....] -> [0, 2, 1, exp, ...]
-        Swap,
-        Pad,
-    ];
+// POWER OF TWO OPERATION
+// ================================================================================================
 
-    // calling expacc instruction 7 times.
-    // TODO we are in fact calling it 6 times
-    let expacc = iter::repeat(Expacc).take(6);
+/// Appends a sequence of operations to raise value 2 to the power specified by the element at the
+/// top of the stack.
+///
+/// VM cycles: 16 cycles
+pub fn pow2(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+    append_pow2_op(span);
+    Ok(None)
+}
+
+/// Appends relevant operations to the span block for the computation of power of 2.
+///
+/// VM cycles: 16 cycles
+pub fn append_pow2_op(span: &mut SpanBuilder) {
+    // push base 2 onto the stack: [exp, ...] -> [2, exp, ...]
+    span.push_op(Push(2_u8.into()));
+    // introduce initial value of acc onto the stack: [2, exp, ...] -> [1, 2, exp, ...]
+    span.push_ops([Pad, Incr]);
+    // arrange the top of the stack for EXPACC operation: [1, 2, exp, ...] -> [0, 2, 1, exp, ...]
+    span.push_ops([Swap, Pad]);
+    // calling expacc instruction 6 times
+    span.push_ops([Expacc, Expacc, Expacc, Expacc, Expacc, Expacc]);
+    // drop the top two elements bit and exp value of the latest bit.
+    span.push_ops([Drop, Drop]);
+    // taking `b` to the top and asserting if it's equal to ZERO after all the right shifts.
+    span.push_ops([Swap, Eqz, Assert]);
+}
+
+// EXPONENTIATION OPERATION
+// ================================================================================================
+
+/// Appends a sequence of operations to compute b^e where e is the value at the top of the stack
+/// and b is the value second from the top of the stack.
+///
+/// num_pow_bits parameter is expected to contain the number of bits needed to encode value e. If
+/// this assumption is not satisfied, the operation will fail at runtime.
+///
+/// VM cycles: 9 + num_pow_bits
+///
+/// # Errors
+/// Returns an error if num_pow_bits is greater than 64.
+pub fn exp(span: &mut SpanBuilder, num_pow_bits: u8) -> Result<Option<CodeBlock>, AssemblerError> {
+    validate_param(num_pow_bits, 0, MAX_EXP_BITS)?;
+
+    // arranging the stack to prepare it for expacc instruction.
+    span.push_ops([Pad, Incr, MovUp2, Pad]);
+
+    // calling expacc instruction n times.
+    span.push_op_many(Expacc, num_pow_bits as usize);
 
     // drop the top two elements bit and exp value of the latest bit.
-    let drop = iter::repeat(Drop).take(2);
+    span.push_ops([Drop, Drop]);
 
     // taking `b` to the top and asserting if it's equal to ZERO after all the right shifts.
-    // TODO should we assert and not just perform the operation so the user can assert himself if
-    // he wants to?
-    let post = [Swap, Eqz, Assert];
-
-    let chain = pre
-        .into_iter()
-        .chain(expacc)
-        .chain(drop)
-        .chain(post.into_iter());
-
-    span.add_ops(chain)
+    span.push_ops([Swap, Eqz, Assert]);
+    Ok(None)
 }
 
-pub(super) fn exp_imm(
-    _imm: &Felt,
-    _span: &mut SpanBuilder,
-) -> Result<Option<CodeBlock>, AssemblerError> {
-    todo!()
+/// Appends a sequence of operations to compute b^pow where b is the value at the top of the stack.
+///
+/// VM cycles per mode:
+/// - pow = 0: 3 cycles
+/// - pow = 1: 1 cycles
+/// - pow = 2: 2 cycles
+/// - pow = 3: 4 cycles
+/// - pow = 4: 6 cycles
+/// - pow = 5: 8 cycles
+/// - pow = 6: 10 cycles
+/// - pow = 7: 12 cycles
+/// - pow > 7: 9 + Ceil(log2(pow))
+pub fn exp_imm(span: &mut SpanBuilder, pow: Felt) -> Result<Option<CodeBlock>, AssemblerError> {
+    if pow.as_int() <= 7 {
+        perform_exp_for_small_power(span, pow.as_int());
+        Ok(None)
+    } else {
+        // compute the bits length of the exponent
+        let num_pow_bits = (64 - pow.as_int().leading_zeros()) as u8;
+
+        // pushing the exponent onto the stack.
+        span.push_op(Push(pow));
+
+        exp(span, num_pow_bits)
+    }
 }
 
-pub(super) fn exp_bits(
-    _bit: &u8,
-    _span: &mut SpanBuilder,
-) -> Result<Option<CodeBlock>, AssemblerError> {
-    todo!()
+/// If the immediate value of the `exp` instruction is less than 8, then, it is be cheaper to
+/// compute the exponentiation of the base to the power imm using `dup` and `mul` instructions.
+///
+/// The expected starting state of the stack (from the top) is: [b, ...].
+///
+/// After these operations, the stack state will be: [b^pow, ...], where b is the immediate value and b
+/// is less than 8.
+///
+/// VM cycles per mode:
+/// - pow = 0: 3 cycles
+/// - pow = 1: 1 cycles
+/// - pow = 2: 2 cycles
+/// - pow = 3: 4 cycles
+/// - pow = 4: 6 cycles
+/// - pow = 5: 8 cycles
+/// - pow = 6: 10 cycles
+/// - pow = 7: 12 cycles
+fn perform_exp_for_small_power(span: &mut SpanBuilder, pow: u64) {
+    match pow {
+        0 => {
+            span.push_op(Drop);
+            span.push_op(Pad);
+            span.push_op(Incr);
+        }
+        1 => span.push_op(Noop), // TODO: show warning?
+        2 => {
+            span.push_op(Dup0);
+            span.push_op(Mul);
+        }
+        3 => {
+            span.push_op_many(Dup0, 2);
+            span.push_op_many(Mul, 2);
+        }
+        4 => {
+            span.push_op_many(Dup0, 3);
+            span.push_op_many(Mul, 3);
+        }
+        5 => {
+            span.push_op_many(Dup0, 4);
+            span.push_op_many(Mul, 4);
+        }
+        6 => {
+            span.push_op_many(Dup0, 5);
+            span.push_op_many(Mul, 5);
+        }
+        7 => {
+            span.push_op_many(Dup0, 6);
+            span.push_op_many(Mul, 6);
+        }
+        _ => unreachable!("pow must be less than 8"),
+    }
 }
 
 // COMPARISON OPERATIONS
 // ================================================================================================
 
-pub(super) fn eq_imm(
-    imm: &Felt,
-    span: &mut SpanBuilder,
-) -> Result<Option<CodeBlock>, AssemblerError> {
-    if imm == &Felt::ZERO {
+/// Appends a sequence of operations to check equality between the value at the top of the stack
+/// and the provided immediate value. Specifically, the sequences are:
+/// - if imm = 0: EQZ
+/// - otherwise: PUSH(imm) EQ
+pub fn eq_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblerError> {
+    if imm == ZERO {
         span.add_op(Eqz)
     } else {
-        span.add_ops([Push(*imm), Eq])
+        span.add_ops([Push(imm), Eq])
     }
 }
 
-pub(super) fn eqw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+/// Appends a sequence of operations to check inequality between the value at the top of the stack
+/// and the provided immediate value. Specifically, the sequences are:
+/// - if imm = 0: EQZ NOT
+/// - otherwise: PUSH(imm) EQ NOT
+pub fn neq_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblerError> {
+    if imm == ZERO {
+        span.add_ops([Eqz, Not])
+    } else {
+        span.add_ops([Push(imm), Eq, Not])
+    }
+}
+
+/// Appends a sequence of operations to check equality between two words at the top of the stack.
+///
+/// This operation takes 15 VM cycles.
+pub fn eqw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
     span.add_ops([
         // duplicate first pair of for comparison(4th elements of each word) in reverse order
         // to avoid using dup.8 after stack shifting(dup.X where X > 7, takes more VM cycles )
@@ -112,26 +235,12 @@ pub(super) fn eqw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assembler
     ])
 }
 
-pub(super) fn neq_imm(
-    imm: &Felt,
-    span: &mut SpanBuilder,
-) -> Result<Option<CodeBlock>, AssemblerError> {
-    if imm == &Felt::ZERO {
-        span.add_ops([Eqz, Not])
-    } else {
-        span.add_ops([Push(*imm), Eq, Not])
-    }
-}
-
-/// Appends operations to the span block to pop the top 2 elements off the stack and do a "less
+/// Appends a sequence of operations to to pop the top 2 elements off the stack and do a "less
 /// than" comparison. The stack is expected to be arranged as [b, a, ...] (from the top). A value
 /// of 1 is pushed onto the stack if a < b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 17 VM cycles.
-///
-/// # Errors
-/// Returns an error if the assembly operation token is malformed or incorrect.
-pub(super) fn lt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn lt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span);
@@ -152,43 +261,12 @@ pub(super) fn lt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerE
     Ok(None)
 }
 
-// HELPER FUNCTIONS
-// ================================================================================================
-
-/// Appends relevant operations to the span block for the computation of power of 2.
-pub fn append_pow2_op(span: &mut SpanBuilder) {
-    // push base 2 onto the stack: [exp, .....] -> [2, exp, ......]
-    span.push_op(Push(Felt::new(2)));
-
-    // introduce initial value of acc onto the stack: [2, exp, ....] -> [1, 2, exp, ....]
-    span.push_op(Pad);
-    span.push_op(Incr);
-
-    // arrange the top of the stack for `EXPACC` instruction: [1, 2, exp, ....] -> [0, 2, 1, exp, ...]
-    span.push_op(Swap);
-    span.push_op(Pad);
-
-    // calling expacc instruction 7 times.
-    span.push_op_many(Expacc, 6);
-
-    // drop the top two elements bit and exp value of the latest bit.
-    span.push_op_many(Drop, 2);
-
-    // taking `b` to the top and asserting if it's equal to ZERO after all the right shifts.
-    span.push_op(Swap);
-    span.push_op(Eqz);
-    span.push_op(Assert);
-}
-
-/// Appends operations to the span block to pop the top 2 elements off the stack and do a "less
+/// Appends a sequence of operations to pop the top 2 elements off the stack and do a "less
 /// than or equal" comparison. The stack is expected to be arranged as [b, a, ...] (from the top).
 /// A value of 1 is pushed onto the stack if a <= b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 18 VM cycles.
-///
-/// # Errors
-/// Returns an error if the assembly operation token is malformed or incorrect.
-pub(super) fn lte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn lte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span);
@@ -209,15 +287,12 @@ pub(super) fn lte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assembler
     Ok(None)
 }
 
-/// Appends operations to the span block to pop the top 2 elements off the stack and do a "greater
+/// Appends a sequence of operations to pop the top 2 elements off the stack and do a "greater
 /// than" comparison. The stack is expected to be arranged as [b, a, ...] (from the top). A value
 /// of 1 is pushed onto the stack if a > b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 18 VM cycles.
-///
-/// # Errors
-/// Returns an error if the assembly operation token is malformed or incorrect.
-pub(super) fn gt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn gt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span);
@@ -238,15 +313,12 @@ pub(super) fn gt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerE
     Ok(None)
 }
 
-/// Appends operations to the span block to pop the top 2 elements off the stack and do a "greater
+/// Appends a sequence of operations to pop the top 2 elements off the stack and do a "greater
 /// than or equal" comparison. The stack is expected to be arranged as [b, a, ...] (from the top).
 /// A value of 1 is pushed onto the stack if a >= b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 19 VM cycles.
-///
-/// # Errors
-/// Returns an error if the assembly operation token is malformed or incorrect.
-pub(super) fn gte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn gte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span);
@@ -275,7 +347,7 @@ pub(super) fn gte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assembler
 ///
 /// After these operations, the stack state will be: [a_hi, a_lo, b_hi, b_lo, ...].
 ///
-/// This function takes 3 cycles.
+/// This operation takes 3 cycles.
 fn split_elements(span: &mut SpanBuilder) {
     // stack: [b, a, ...] => [b_hi, b_lo, a, ...]
     span.push_op(U32split);
@@ -294,20 +366,15 @@ fn split_elements(span: &mut SpanBuilder) {
 ///
 /// The resulting stack after this operation is: [eq_flag, lt_flag, ...].
 ///
-/// This function takes 6 cycles.
+/// This operation takes 6 cycles.
 fn check_lt_and_eq(span: &mut SpanBuilder) {
     // calculate a - b
     // stack: [b, a, ...] => [underflow_flag, result, ...]
     span.push_op(U32sub);
-
     // Put 1 on the stack if the underflow flag was not set (there was no underflow)
-    span.push_op(Dup0);
-    span.push_op(Not);
-
+    span.push_ops([Dup0, Not]);
     // move the result to the top of the stack and check if it was zero
-    span.push_op(MovUp2);
-    span.push_op(Eqz);
-
+    span.push_ops([MovUp2, Eqz]);
     // set the equality flag to 1 if there was no underflow and the result was zero
     span.push_op(And);
 }
@@ -328,7 +395,7 @@ fn check_lt_and_eq(span: &mut SpanBuilder) {
 /// - hi_flag_eq: 1 if the high bit values were equal; 0 otherwise
 /// - hi_flag_lt: 1 if a's high-bit values were less than b's (a_hi < b_hi); 0 otherwise
 ///
-/// This function takes 9 cycles.
+/// This operation takes 9 cycles.
 fn check_lt_high_bits(span: &mut SpanBuilder) {
     // reorder the stack to check a_hi < b_hi
     span.push_op(MovUp2);
@@ -339,27 +406,25 @@ fn check_lt_high_bits(span: &mut SpanBuilder) {
     check_lt_and_eq(span);
 
     // reorder the stack to prepare for low-bit comparison (a_lo < b_lo)
-    span.push_op(MovUp2);
-    span.push_op(MovUp3);
+    span.push_ops([MovUp2, MovUp3]);
 }
 
 /// Appends operations to the span block to emulate a "less than" conditional and check that a < b
 /// for a starting stack of [b, a, ...]. Pops both elements and leaves 1 on the stack if a < b and
 /// 0 otherwise.
 ///
-/// This is implemented with the VM's ```U32sub``` op, which performs a subtraction and leaves the
+/// This is implemented with the VM's U32SUB op, which performs a subtraction and leaves the
 /// result and an underflow flag on the stack. When a < b, a - b will underflow, so the less-than
 /// condition will be true if the underflow flag is set.
 ///
-/// This function takes 3 cycles.
+/// This operation takes 3 cycles.
 fn check_lt(span: &mut SpanBuilder) {
     // calculate a - b
     // stack: [b, a, ...] => [underflow_flag, result, ...]
     span.push_op(U32sub);
 
     // drop the result, since it's not needed
-    span.push_op(Swap);
-    span.push_op(Drop);
+    span.push_ops([Swap, Drop]);
 }
 
 /// This is a helper function to combine the high-bit and low-bit comparison checks into a single
@@ -387,7 +452,7 @@ fn set_result(span: &mut SpanBuilder) {
 /// that a <= b for a starting stack of [b, a, ...]. Pops both elements and leaves 1 on the stack
 /// if a <= b and 0 otherwise.
 ///
-/// This is implemented with the VM's ```U32sub``` op, which performs a subtraction and leaves the
+/// This is implemented with the VM's U32SUB op, which performs a subtraction and leaves the
 /// result and an underflow flag on the stack. When a < b, a - b will underflow, so the less-than
 /// condition will be true if the underflow flag is set. The equal condition will be true if
 /// there was no underflow and the result is 0.
@@ -399,8 +464,7 @@ fn check_lte(span: &mut SpanBuilder) {
     span.push_op(U32sub);
 
     // check the result
-    span.push_op(Swap);
-    span.push_op(Eqz);
+    span.push_ops([Swap, Eqz]);
 
     // set the lte flag if the underflow flag was set or the result was 0
     span.push_op(Or);
@@ -411,10 +475,10 @@ fn check_lte(span: &mut SpanBuilder) {
 /// lower 32-bit values and arranged on the stack (from the top) as:
 /// [a_hi, a_lo, bi_hi, b_lo, ...].
 ///
-/// It pops the high bit values of both elements, compares them, and pushes 2 flags: one for
-/// greater-than and one for equality. Then it moves the flags down the stack, leaving the low bits at
-/// the top of the stack in the orientation required for a greater-than check of the low bit values
-/// (a_lo > b_lo).
+/// We pop the high bit values of both elements, compare them, and push 2 flags: one for
+/// greater-than and one for equality. Then we move the flags down the stack, leaving the low bits
+/// at the top of the stack in the orientation required for a greater-than check of the low bit
+/// values (a_lo > b_lo).
 ///
 /// After this operation, the stack will look as follows (from the top):
 /// - a_lo
@@ -425,8 +489,7 @@ fn check_lte(span: &mut SpanBuilder) {
 /// This function takes 10 cycles.
 fn check_gt_high_bits(span: &mut SpanBuilder) {
     // reorder the stack to check b_hi < a_hi
-    span.push_op(Swap);
-    span.push_op(MovDn2);
+    span.push_ops([Swap, MovDn2]);
 
     // simultaneously check b_hi < a_hi and b_hi = a_hi, resulting in:
     // - an equality flag of 1 if a_hi = b_hi and 0 otherwise (at stack[0])
@@ -434,6 +497,5 @@ fn check_gt_high_bits(span: &mut SpanBuilder) {
     check_lt_and_eq(span);
 
     // reorder the stack to prepare for low-bit comparison (b_lo < a_lo)
-    span.push_op(MovUp3);
-    span.push_op(MovUp3);
+    span.push_ops([MovUp3, MovUp3]);
 }

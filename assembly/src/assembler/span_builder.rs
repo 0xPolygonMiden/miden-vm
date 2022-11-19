@@ -7,6 +7,13 @@ use vm_core::AssemblyOp;
 // SPAN BUILDER
 // ================================================================================================
 
+/// A helper struct for constructing SPAN blocks while compiling procedure bodies.
+///
+/// Operations and decorators can be added to a span builder via various `add_*()` and `push_*()`
+/// methods, and then SPAN blocks can be extracted from the builder via `extract_*()` methods.
+///
+/// The same span builder can be used to construct many blocks. It is expected that when the last
+/// SPAN block in a procedure's body is constructed `extract_final_span_into()` will be used.
 #[derive(Default)]
 pub struct SpanBuilder {
     ops: Vec<Operation>,
@@ -38,13 +45,13 @@ impl SpanBuilder {
     // OPERATIONS
     // --------------------------------------------------------------------------------------------
 
-    /// TODO: add docs
+    /// Adds the specified operation to the list of span operations and returns Ok(None).
     pub fn add_op(&mut self, op: Operation) -> Result<Option<CodeBlock>, AssemblerError> {
         self.ops.push(op);
         Ok(None)
     }
 
-    /// TODO: add docs
+    /// Adds the specified sequence operations to the list of span operations and returns Ok(None).
     pub fn add_ops<I, O>(&mut self, ops: I) -> Result<Option<CodeBlock>, AssemblerError>
     where
         I: IntoIterator<Item = O>,
@@ -54,12 +61,21 @@ impl SpanBuilder {
         Ok(None)
     }
 
-    /// TODO: add docs
+    /// Adds the specified operation to the list of span operations.
     pub fn push_op(&mut self, op: Operation) {
         self.ops.push(op);
     }
 
-    /// TODO: add docs
+    /// Adds the specified sequence of operations to the list of span operations.
+    pub fn push_ops<I, O>(&mut self, ops: I)
+    where
+        I: IntoIterator<Item = O>,
+        O: Borrow<Operation>,
+    {
+        self.ops.extend(ops.into_iter().map(|o| *o.borrow()));
+    }
+
+    /// Adds the specified operation n times to the list of span operations.
     pub fn push_op_many(&mut self, op: Operation, n: usize) {
         let new_len = self.ops.len() + n;
         self.ops.resize(new_len, op);
@@ -68,12 +84,12 @@ impl SpanBuilder {
     // DECORATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Add ths specified decorator to the list of decorators.
+    /// Add ths specified decorator to the list of span decorators.
     pub fn push_decorator(&mut self, decorator: Decorator) {
         self.decorators.push((self.ops.len(), decorator));
     }
 
-    /// Adds the specified decorator to the list of decorators and returns Ok(None).
+    /// Adds the specified decorator to the list of span decorators and returns Ok(None).
     pub fn add_decorator(
         &mut self,
         decorator: Decorator,
@@ -82,7 +98,7 @@ impl SpanBuilder {
         Ok(None)
     }
 
-    /// Adds an AsmOp decorator to the decorator list.
+    /// Adds an AsmOp decorator to the list of span decorators.
     ///
     /// This indicates that the provided instruction should be tracked and the cycle count for
     /// this instruction will be computed when the call to set_instruction_cycle_count() is made.
