@@ -1,6 +1,6 @@
 use super::{
     mem_ops::local_to_absolute_addr, push_felt, AssemblerError, AssemblyContext, CodeBlock, Felt,
-    Operation::*, SpanBuilder, StarkField,
+    Operation::*, SpanBuilder,
 };
 
 // CONSTANT INPUTS
@@ -39,12 +39,10 @@ pub fn push(imms: &[Felt], span: &mut SpanBuilder) -> Result<Option<CodeBlock>, 
 /// # Errors
 /// Returns an error if index is greater than the number of procedure locals.
 pub fn locaddr(
-    index: &Felt,
     span: &mut SpanBuilder,
+    index: u16,
     context: &AssemblyContext,
 ) -> Result<Option<CodeBlock>, AssemblerError> {
-    // TODO: index here should be u16
-    let index = index.as_int() as u16;
     local_to_absolute_addr(span, index, context.num_proc_locals())?;
     Ok(None)
 }

@@ -386,7 +386,7 @@ impl Serializable for Instruction {
             Self::SwapW => target.write_opcode(OpCode::SwapW),
             Self::SwapW2 => target.write_opcode(OpCode::SwapW2),
             Self::SwapW3 => target.write_opcode(OpCode::SwapW3),
-            Self::SwapDW => target.write_opcode(OpCode::SwapDW),
+            Self::SwapDw => target.write_opcode(OpCode::SwapDW),
             Self::MovUp2 => target.write_opcode(OpCode::MovUp2),
             Self::MovUp3 => target.write_opcode(OpCode::MovUp3),
             Self::MovUp4 => target.write_opcode(OpCode::MovUp4),
@@ -432,7 +432,7 @@ impl Serializable for Instruction {
             }
             Self::Locaddr(v) => {
                 target.write_opcode(OpCode::Locaddr);
-                target.write_felt(*v);
+                target.write_u16(*v);
             }
             Self::Sdepth => target.write_opcode(OpCode::Sdepth),
             Self::Caller => target.write_opcode(OpCode::Caller),
@@ -440,38 +440,38 @@ impl Serializable for Instruction {
             Self::MemLoad => target.write_opcode(OpCode::MemLoad),
             Self::MemLoadImm(v) => {
                 target.write_opcode(OpCode::MemLoadImm);
-                target.write_felt(*v);
+                target.write_u32(*v);
             }
             Self::MemLoadW => target.write_opcode(OpCode::MemLoadW),
             Self::MemLoadWImm(v) => {
                 target.write_opcode(OpCode::MemLoadWImm);
-                target.write_felt(*v);
+                target.write_u32(*v);
             }
             Self::LocLoad(v) => {
                 target.write_opcode(OpCode::LocLoad);
-                target.write_felt(*v);
+                target.write_u16(*v);
             }
             Self::LocLoadW(v) => {
                 target.write_opcode(OpCode::LocLoadW);
-                target.write_felt(*v);
+                target.write_u16(*v);
             }
             Self::MemStore => target.write_opcode(OpCode::MemStore),
             Self::MemStoreImm(v) => {
                 target.write_opcode(OpCode::MemStoreImm);
-                target.write_felt(*v);
+                target.write_u32(*v);
             }
             Self::LocStore(v) => {
                 target.write_opcode(OpCode::LocStore);
-                target.write_felt(*v);
+                target.write_u16(*v);
             }
             Self::MemStoreW => target.write_opcode(OpCode::MemStoreW),
             Self::MemStoreWImm(v) => {
                 target.write_opcode(OpCode::MemStoreWImm);
-                target.write_felt(*v);
+                target.write_u32(*v);
             }
             Self::LocStoreW(v) => {
                 target.write_opcode(OpCode::LocStoreW);
-                target.write_felt(*v);
+                target.write_u16(*v);
             }
 
             Self::MemStream => target.write_opcode(OpCode::MemStream),
@@ -491,8 +491,8 @@ impl Serializable for Instruction {
             Self::AdvLoadW => target.write_opcode(OpCode::AdvLoadW),
 
             // ----- cryptographic operations ---------------------------------------------------------
-            Self::RPHash => target.write_opcode(OpCode::RPHash),
-            Self::RPPerm => target.write_opcode(OpCode::RPPerm),
+            Self::RpHash => target.write_opcode(OpCode::RPHash),
+            Self::RpPerm => target.write_opcode(OpCode::RPPerm),
             Self::MTreeGet => target.write_opcode(OpCode::MTreeGet),
             Self::MTreeSet => target.write_opcode(OpCode::MTreeSet),
             Self::MTreeCwm => target.write_opcode(OpCode::MTreeCwm),

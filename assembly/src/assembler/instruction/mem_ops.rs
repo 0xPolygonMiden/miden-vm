@@ -1,6 +1,6 @@
 use super::{
     push_u16_value, push_u32_value, validate_param, AssemblerError, AssemblyContext, CodeBlock,
-    Felt, Operation::*, SpanBuilder, StarkField,
+    Operation::*, SpanBuilder,
 };
 
 // INSTRUCTION PARSERS
@@ -23,14 +23,12 @@ use super::{
 pub fn mem_read(
     span: &mut SpanBuilder,
     context: &AssemblyContext,
-    addr: Option<&Felt>,
+    addr: Option<u32>,
     is_local: bool,
     is_single: bool,
 ) -> Result<Option<CodeBlock>, AssemblerError> {
     // if the address was provided as an immediate value, put it onto the stack
     if let Some(addr) = addr {
-        // TODO: addr should be a u32
-        let addr = addr.as_int() as u32;
         if is_local {
             local_to_absolute_addr(span, addr as u16, context.num_proc_locals())?;
         } else {
@@ -67,14 +65,12 @@ pub fn mem_read(
 pub fn mem_write(
     span: &mut SpanBuilder,
     context: &AssemblyContext,
-    addr: Option<&Felt>,
+    addr: Option<u32>,
     is_local: bool,
     is_single: bool,
 ) -> Result<Option<CodeBlock>, AssemblerError> {
     // if the address was provided as an immediate value, put it onto the stack
     if let Some(addr) = addr {
-        // TODO: addr should be a u32
-        let addr = addr.as_int() as u32;
         if is_local {
             local_to_absolute_addr(span, addr as u16, context.num_proc_locals())?;
         } else {

@@ -1,12 +1,86 @@
 use super::{
-    super::parse_bit_len_param, super::parse_element_param, AssemblyError, Instruction, Node,
-    Token, Vec,
+    super::parse_element_param,
+    AssemblyError,
+    Instruction::*,
+    Node::{self, Instruction},
+    Token,
 };
-use crate::validate_operation;
 
+// INSTRUCTION PARSERS
+// ================================================================================================
+
+/// Returns `Add` instruction node if no immediate value is provided or `AddImm` instruction
+/// node otherwise.
+///
+/// # Errors
+/// Returns an error if the instruction token has invalid param or more than one param.
+pub fn parse_add(op: &Token) -> Result<Node, AssemblyError> {
+    match op.num_parts() {
+        1 => Ok(Instruction(Add)),
+        2 => {
+            let imm = parse_element_param(op, 1)?;
+            Ok(Instruction(AddImm(imm)))
+        }
+        _ => Err(AssemblyError::extra_param(op)),
+    }
+}
+
+/// Returns `Sub` instruction node if no immediate value is provided or `SubImm` instruction
+/// node otherwise.
+///
+/// # Errors
+/// Returns an error if the instruction token has invalid param or more than one param.
+pub fn parse_sub(op: &Token) -> Result<Node, AssemblyError> {
+    match op.num_parts() {
+        1 => Ok(Instruction(Sub)),
+        2 => {
+            let imm = parse_element_param(op, 1)?;
+            Ok(Instruction(SubImm(imm)))
+        }
+        _ => Err(AssemblyError::extra_param(op)),
+    }
+}
+
+/// Returns `Mul` instruction node if no immediate value is provided or `MulImm` instruction
+/// node otherwise.
+///
+/// # Errors
+/// Returns an error if the instruction token has invalid param or more than one param.
+pub fn parse_mul(op: &Token) -> Result<Node, AssemblyError> {
+    match op.num_parts() {
+        1 => Ok(Instruction(Mul)),
+        2 => {
+            let imm = parse_element_param(op, 1)?;
+            Ok(Instruction(MulImm(imm)))
+        }
+        _ => Err(AssemblyError::extra_param(op)),
+    }
+}
+
+/// Returns `Div` instruction node if no immediate value is provided or `DivImm` instruction
+/// node otherwise.
+///
+/// # Errors
+/// Returns an error if the instruction token has invalid param or more than one param
+pub fn parse_div(op: &Token) -> Result<Node, AssemblyError> {
+    match op.num_parts() {
+        1 => Ok(Instruction(Div)),
+        2 => {
+            let imm = parse_element_param(op, 1)?;
+            Ok(Instruction(DivImm(imm)))
+        }
+        _ => Err(AssemblyError::extra_param(op)),
+    }
+}
+
+/// Returns `Exp` instruction node if no immediate value is provided, otherwise returns `ExpImm`
+/// or `ExpBitLength` instruction node depending on the immediate value provided.
+///
+/// # Errors
+/// Returns an error if the instruction token has invalid param or more than one param
 pub fn parse_exp(op: &Token) -> Result<Node, AssemblyError> {
-    let instruction = match op.num_parts() {
-        1 => Instruction::Exp,
+    match op.num_parts() {
+        1 => Ok(Instruction(Exp)),
         2 => {
             let param_value = op.parts()[1];
 
@@ -23,43 +97,63 @@ pub fn parse_exp(op: &Token) -> Result<Node, AssemblyError> {
                     ));
                 }
 
-                Instruction::ExpBitLength(bits_len as u8)
+                Ok(Instruction(ExpBitLength(bits_len)))
             } else {
                 // parse immediate value.
                 let imm = parse_element_param(op, 1)?;
-                Instruction::ExpImm(imm)
+                Ok(Instruction(ExpImm(imm)))
             }
         }
-        _ => return Err(AssemblyError::extra_param(op)),
-    };
-
-    Ok(Node::Instruction(instruction))
+        _ => Err(AssemblyError::extra_param(op)),
+    }
 }
 
+/// Returns `Eq` instruction node, if no immediate value is provided or `EqImm` instruction
+/// node otherwise.
+///
+/// # Errors
+/// Returns an error if the instruction token has invalid param or more than one param.
 pub fn parse_eq(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "eq", 0..1);
-
-    let node = match op.num_parts() {
+    match op.num_parts() {
+        1 => Ok(Instruction(Eq)),
         2 => {
-            let value = parse_element_param(op, 1)?;
-            Node::Instruction(Instruction::EqImm(value))
+            let imm = parse_element_param(op, 1)?;
+            Ok(Instruction(EqImm(imm)))
         }
-        _ => Node::Instruction(Instruction::Eq),
-    };
-
-    Ok(node)
+        _ => Err(AssemblyError::extra_param(op)),
+    }
 }
 
+/// Returns `Neq` instruction node if no immediate value is provided or `NeqImm` instruction
+/// node otherwise.
+///
+/// # Errors
+/// Returns an error if the instruction token has invalid param or more than one param.
 pub fn parse_neq(op: &Token) -> Result<Node, AssemblyError> {
-    validate_operation!(op, "neq", 0..1);
-
-    let node = match op.num_parts() {
+    match op.num_parts() {
+        1 => Ok(Instruction(Neq)),
         2 => {
-            let value = parse_element_param(op, 1)?;
-            Node::Instruction(Instruction::NeqImm(value))
+            let imm = parse_element_param(op, 1)?;
+            Ok(Instruction(NeqImm(imm)))
         }
-        _ => Node::Instruction(Instruction::Neq),
-    };
+        _ => Err(AssemblyError::extra_param(op)),
+    }
+}
 
-    Ok(node)
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Parses the bits length in `exp` assembly operation into usize.
+fn parse_bit_len_param(op: &Token, param_idx: usize) -> Result<u8, AssemblyError> {
+    let param_value = op.parts()[param_idx];
+
+    if let Some(param) = param_value.strip_prefix('u') {
+        // parse bits len param
+        match param.parse::<u8>() {
+            Ok(value) => Ok(value),
+            Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
+        }
+    } else {
+        Err(AssemblyError::invalid_param(op, param_idx))
+    }
 }

@@ -1,14 +1,13 @@
 use super::{
     field_ops, io_ops, stack_ops, u32_ops, AssemblyError, Instruction, LocalProcMap, Node,
-    ProcedureAst, Token, TokenStream, MODULE_PATH_DELIM,
+    ProcedureAst, ProcedureId, Token, TokenStream, MODULE_PATH_DELIM,
 };
-use crate::ProcedureId;
 use vm_core::utils::{
     collections::{BTreeMap, Vec},
     string::{String, ToString},
 };
 
-// Context
+// PARSER CONTEXT
 // ================================================================================================
 
 /// AST Parser context that holds internal state to generate correct ASTs.
@@ -20,7 +19,7 @@ pub struct ParserContext {
 
 impl ParserContext {
     // STATEMENT PARSERS
-    // ================================================================================================
+    // --------------------------------------------------------------------------------------------
 
     // Parses an if-else statement from the provided token stream.
     fn parse_if(&self, tokens: &mut TokenStream) -> Result<Node, AssemblyError> {
@@ -152,7 +151,7 @@ impl ParserContext {
     }
 
     // CALL PARSERS
-    // ================================================================================================
+    // --------------------------------------------------------------------------------------------
 
     /// Parse exec token into AST nodes.
     fn parse_exec(&self, label: String, tokens: &mut TokenStream) -> Result<Node, AssemblyError> {
@@ -203,7 +202,7 @@ impl ParserContext {
     }
 
     // PROCEDURE PARSERS
-    // ================================================================================================
+    // --------------------------------------------------------------------------------------------
 
     /// Parse procedures in the source and store them in the program
     pub fn parse_procedures(
@@ -279,9 +278,8 @@ impl ParserContext {
         Ok(proc)
     }
 
-    // BODY PARSERS
-    // ================================================================================================
-
+    // BODY PARSER
+    // --------------------------------------------------------------------------------------------
     /// Parses a token from the token stream in a body, which generates a series of AST nodes.
     pub fn parse_body(
         &self,
@@ -356,166 +354,178 @@ impl ParserContext {
 
 /// Parses a Token into a node instruction.
 fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
+    use Instruction::*;
+
     // based on the instruction, invoke the correct parser for the operation
-    let node = match op.parts()[0] {
+    match op.parts()[0] {
         // ----- field operations -----------------------------------------------------------------
-        "assert" => Node::Instruction(Instruction::Assert),
-        "assert_eq" => Node::Instruction(Instruction::AssertEq),
-        "assertz" => Node::Instruction(Instruction::Assertz),
+        "assert" => simple_instruction(op, Assert),
+        "assertz" => simple_instruction(op, Assertz),
+        "assert_eq" => simple_instruction(op, AssertEq),
 
-        "add" => Node::Instruction(Instruction::Add),
-        "sub" => Node::Instruction(Instruction::Sub),
-        "mul" => Node::Instruction(Instruction::Mul),
-        "div" => Node::Instruction(Instruction::Div),
-        "neg" => Node::Instruction(Instruction::Neg),
-        "inv" => Node::Instruction(Instruction::Inv),
+        "add" => field_ops::parse_add(op),
+        "sub" => field_ops::parse_sub(op),
+        "mul" => field_ops::parse_mul(op),
+        "div" => field_ops::parse_div(op),
+        "neg" => simple_instruction(op, Neg),
+        "inv" => simple_instruction(op, Inv),
 
-        "pow2" => Node::Instruction(Instruction::Pow2),
-        "exp" => field_ops::parse_exp(op)?,
+        "pow2" => simple_instruction(op, Pow2),
+        "exp" => field_ops::parse_exp(op),
 
-        "not" => Node::Instruction(Instruction::Not),
-        "and" => Node::Instruction(Instruction::And),
-        "or" => Node::Instruction(Instruction::Or),
-        "xor" => Node::Instruction(Instruction::Xor),
+        "not" => simple_instruction(op, Not),
+        "and" => simple_instruction(op, And),
+        "or" => simple_instruction(op, Or),
+        "xor" => simple_instruction(op, Xor),
 
-        "eq" => field_ops::parse_eq(op)?,
-        "neq" => field_ops::parse_neq(op)?,
-        "lt" => Node::Instruction(Instruction::Lt),
-        "lte" => Node::Instruction(Instruction::Lte),
-        "gt" => Node::Instruction(Instruction::Gt),
-        "gte" => Node::Instruction(Instruction::Gte),
-        "eqw" => Node::Instruction(Instruction::Eqw),
+        "eq" => field_ops::parse_eq(op),
+        "neq" => field_ops::parse_neq(op),
+        "lt" => simple_instruction(op, Lt),
+        "lte" => simple_instruction(op, Lte),
+        "gt" => simple_instruction(op, Gt),
+        "gte" => simple_instruction(op, Gte),
+        "eqw" => simple_instruction(op, Eqw),
 
         // ----- u32 operations -------------------------------------------------------------------
-        "u32test" => Node::Instruction(Instruction::U32Test),
-        "u32testw" => Node::Instruction(Instruction::U32TestW),
-        "u32assert" => u32_ops::parse_u32assert(op)?,
-        "u32assertw" => Node::Instruction(Instruction::U32AssertW),
-        "u32cast" => Node::Instruction(Instruction::U32Cast),
-        "u32split" => Node::Instruction(Instruction::U32Split),
+        "u32test" => simple_instruction(op, U32Test),
+        "u32testw" => simple_instruction(op, U32TestW),
+        "u32assert" => u32_ops::parse_u32assert(op),
+        "u32assertw" => simple_instruction(op, U32AssertW),
+        "u32cast" => simple_instruction(op, U32Cast),
+        "u32split" => simple_instruction(op, U32Split),
 
-        "u32checked_add" => u32_ops::parse_u32checked_add(op)?,
-        "u32wrapping_add" => u32_ops::parse_u32wrapping_add(op)?,
-        "u32overflowing_add" => u32_ops::parse_u32overflowing_add(op)?,
+        "u32checked_add" => u32_ops::parse_u32checked_add(op),
+        "u32wrapping_add" => u32_ops::parse_u32wrapping_add(op),
+        "u32overflowing_add" => u32_ops::parse_u32overflowing_add(op),
 
-        "u32overflowing_add3" => Node::Instruction(Instruction::U32OverflowingAdd3),
-        "u32wrapping_add3" => Node::Instruction(Instruction::U32WrappingAdd3),
+        "u32overflowing_add3" => simple_instruction(op, U32OverflowingAdd3),
+        "u32wrapping_add3" => simple_instruction(op, U32WrappingAdd3),
 
-        "u32checked_sub" => u32_ops::parse_u32checked_sub(op)?,
-        "u32wrapping_sub" => u32_ops::parse_u32wrapping_sub(op)?,
-        "u32overflowing_sub" => u32_ops::parse_u32overflowing_sub(op)?,
+        "u32checked_sub" => u32_ops::parse_u32checked_sub(op),
+        "u32wrapping_sub" => u32_ops::parse_u32wrapping_sub(op),
+        "u32overflowing_sub" => u32_ops::parse_u32overflowing_sub(op),
 
-        "u32checked_mul" => u32_ops::parse_u32checked_mul(op)?,
-        "u32wrapping_mul" => u32_ops::parse_u32wrapping_mul(op)?,
-        "u32overflowing_mul" => u32_ops::parse_u32overflowing_mul(op)?,
+        "u32checked_mul" => u32_ops::parse_u32checked_mul(op),
+        "u32wrapping_mul" => u32_ops::parse_u32wrapping_mul(op),
+        "u32overflowing_mul" => u32_ops::parse_u32overflowing_mul(op),
 
-        "u32overflowing_madd" => Node::Instruction(Instruction::U32OverflowingMadd),
-        "u32wrapping_madd" => Node::Instruction(Instruction::U32WrappingMadd),
+        "u32overflowing_madd" => simple_instruction(op, U32OverflowingMadd),
+        "u32wrapping_madd" => simple_instruction(op, U32WrappingMadd),
 
-        "u32checked_div" => u32_ops::parse_u32_div(op, true)?,
-        "u32unchecked_div" => u32_ops::parse_u32_div(op, false)?,
+        "u32checked_div" => u32_ops::parse_u32_div(op, true),
+        "u32unchecked_div" => u32_ops::parse_u32_div(op, false),
 
-        "u32checked_mod" => u32_ops::parse_u32_mod(op, true)?,
-        "u32unchecked_mod" => u32_ops::parse_u32_mod(op, false)?,
+        "u32checked_mod" => u32_ops::parse_u32_mod(op, true),
+        "u32unchecked_mod" => u32_ops::parse_u32_mod(op, false),
 
-        "u32checked_divmod" => u32_ops::parse_u32_divmod(op, true)?,
-        "u32unchecked_divmod" => u32_ops::parse_u32_divmod(op, false)?,
+        "u32checked_divmod" => u32_ops::parse_u32_divmod(op, true),
+        "u32unchecked_divmod" => u32_ops::parse_u32_divmod(op, false),
 
-        "u32checked_and" => Node::Instruction(Instruction::U32CheckedAnd),
-        "u32checked_or" => Node::Instruction(Instruction::U32CheckedOr),
-        "u32checked_xor" => Node::Instruction(Instruction::U32CheckedXor),
-        "u32checked_not" => Node::Instruction(Instruction::U32CheckedNot),
+        "u32checked_and" => simple_instruction(op, U32CheckedAnd),
+        "u32checked_or" => simple_instruction(op, U32CheckedOr),
+        "u32checked_xor" => simple_instruction(op, U32CheckedXor),
+        "u32checked_not" => simple_instruction(op, U32CheckedNot),
 
-        "u32checked_shr" => u32_ops::parse_u32_shr(op, true)?,
-        "u32unchecked_shr" => u32_ops::parse_u32_shr(op, false)?,
+        "u32checked_shr" => u32_ops::parse_u32_shr(op, true),
+        "u32unchecked_shr" => u32_ops::parse_u32_shr(op, false),
 
-        "u32checked_shl" => u32_ops::parse_u32_shl(op, true)?,
-        "u32unchecked_shl" => u32_ops::parse_u32_shl(op, false)?,
+        "u32checked_shl" => u32_ops::parse_u32_shl(op, true),
+        "u32unchecked_shl" => u32_ops::parse_u32_shl(op, false),
 
-        "u32checked_rotr" => u32_ops::parse_u32_rotr(op, true)?,
-        "u32unchecked_rotr" => u32_ops::parse_u32_rotr(op, false)?,
+        "u32checked_rotr" => u32_ops::parse_u32_rotr(op, true),
+        "u32unchecked_rotr" => u32_ops::parse_u32_rotr(op, false),
 
-        "u32checked_rotl" => u32_ops::parse_u32_rotl(op, true)?,
-        "u32unchecked_rotl" => u32_ops::parse_u32_rotl(op, false)?,
+        "u32checked_rotl" => u32_ops::parse_u32_rotl(op, true),
+        "u32unchecked_rotl" => u32_ops::parse_u32_rotl(op, false),
 
-        "u32checked_eq" => Node::Instruction(Instruction::U32CheckedEq),
-        "u32checked_neq" => Node::Instruction(Instruction::U32CheckedNeq),
+        "u32checked_eq" => simple_instruction(op, U32CheckedEq),
+        "u32checked_neq" => simple_instruction(op, U32CheckedNeq),
 
-        "u32checked_lt" => Node::Instruction(Instruction::U32CheckedLt),
-        "u32unchecked_lt" => Node::Instruction(Instruction::U32UncheckedLt),
+        "u32checked_lt" => simple_instruction(op, U32CheckedLt),
+        "u32unchecked_lt" => simple_instruction(op, U32UncheckedLt),
 
-        "u32checked_lte" => Node::Instruction(Instruction::U32CheckedLte),
-        "u32unchecked_lte" => Node::Instruction(Instruction::U32UncheckedLte),
+        "u32checked_lte" => simple_instruction(op, U32CheckedLte),
+        "u32unchecked_lte" => simple_instruction(op, U32UncheckedLte),
 
-        "u32checked_gt" => Node::Instruction(Instruction::U32CheckedGt),
-        "u32unchecked_gt" => Node::Instruction(Instruction::U32UncheckedGt),
+        "u32checked_gt" => simple_instruction(op, U32CheckedGt),
+        "u32unchecked_gt" => simple_instruction(op, U32UncheckedGt),
 
-        "u32checked_gte" => Node::Instruction(Instruction::U32CheckedGte),
-        "u32unchecked_gte" => Node::Instruction(Instruction::U32UncheckedGte),
+        "u32checked_gte" => simple_instruction(op, U32CheckedGte),
+        "u32unchecked_gte" => simple_instruction(op, U32UncheckedGte),
 
-        "u32checked_min" => Node::Instruction(Instruction::U32CheckedMin),
-        "u32unchecked_min" => Node::Instruction(Instruction::U32UncheckedMin),
+        "u32checked_min" => simple_instruction(op, U32CheckedMin),
+        "u32unchecked_min" => simple_instruction(op, U32UncheckedMin),
 
-        "u32checked_max" => Node::Instruction(Instruction::U32CheckedMax),
-        "u32unchecked_max" => Node::Instruction(Instruction::U32UncheckedMax),
+        "u32checked_max" => simple_instruction(op, U32CheckedMax),
+        "u32unchecked_max" => simple_instruction(op, U32UncheckedMax),
 
         // ----- stack manipulation ---------------------------------------------------------------
-        "drop" => Node::Instruction(Instruction::Drop),
-        "dropw" => Node::Instruction(Instruction::DropW),
-        "padw" => Node::Instruction(Instruction::PadW),
-        "dup" => stack_ops::parse_dup(op)?,
-        "dupw" => stack_ops::parse_dupw(op)?,
-        "swap" => stack_ops::parse_swap(op)?,
-        "swapw" => stack_ops::parse_swapw(op)?,
-        "swapdw" => Node::Instruction(Instruction::SwapDW),
-        "movup" => stack_ops::parse_movup(op)?,
-        "movupw" => stack_ops::parse_movupw(op)?,
-        "movdn" => stack_ops::parse_movdn(op)?,
-        "movdnw" => stack_ops::parse_movdnw(op)?,
+        "drop" => simple_instruction(op, Drop),
+        "dropw" => simple_instruction(op, DropW),
+        "padw" => simple_instruction(op, PadW),
+        "dup" => stack_ops::parse_dup(op),
+        "dupw" => stack_ops::parse_dupw(op),
+        "swap" => stack_ops::parse_swap(op),
+        "swapw" => stack_ops::parse_swapw(op),
+        "swapdw" => simple_instruction(op, SwapDw),
+        "movup" => stack_ops::parse_movup(op),
+        "movupw" => stack_ops::parse_movupw(op),
+        "movdn" => stack_ops::parse_movdn(op),
+        "movdnw" => stack_ops::parse_movdnw(op),
 
-        "cswap" => Node::Instruction(Instruction::CSwap),
-        "cswapw" => Node::Instruction(Instruction::CSwapW),
-        "cdrop" => Node::Instruction(Instruction::CDrop),
-        "cdropw" => Node::Instruction(Instruction::CDropW),
+        "cswap" => simple_instruction(op, CSwap),
+        "cswapw" => simple_instruction(op, CSwapW),
+        "cdrop" => simple_instruction(op, CDrop),
+        "cdropw" => simple_instruction(op, CDropW),
 
         // ----- input / output operations --------------------------------------------------------
-        "push" => io_ops::parse_push(op)?,
+        "push" => io_ops::parse_push(op),
 
-        "sdepth" => Node::Instruction(Instruction::Sdepth),
-        "locaddr" => io_ops::parse_locaddr(op)?,
-        "caller" => Node::Instruction(Instruction::Caller), // TODO: error if not in SYSCALL
+        "sdepth" => simple_instruction(op, Sdepth),
+        "locaddr" => io_ops::parse_locaddr(op),
+        "caller" => io_ops::parse_caller(op), // TODO: error if not in SYSCALL
 
-        "mem_load" => io_ops::parse_mem_load(op)?,
-        "loc_load" => io_ops::parse_loc_load(op)?,
+        "mem_load" => io_ops::parse_mem_load(op),
+        "loc_load" => io_ops::parse_loc_load(op),
 
-        "mem_loadw" => io_ops::parse_mem_loadw(op)?,
-        "loc_loadw" => io_ops::parse_loc_loadw(op)?,
+        "mem_loadw" => io_ops::parse_mem_loadw(op),
+        "loc_loadw" => io_ops::parse_loc_loadw(op),
 
-        "mem_store" => io_ops::parse_mem_store(op)?,
-        "loc_store" => io_ops::parse_loc_store(op)?,
+        "mem_store" => io_ops::parse_mem_store(op),
+        "loc_store" => io_ops::parse_loc_store(op),
 
-        "mem_storew" => io_ops::parse_mem_storew(op)?,
-        "loc_storew" => io_ops::parse_loc_storew(op)?,
+        "mem_storew" => io_ops::parse_mem_storew(op),
+        "loc_storew" => io_ops::parse_loc_storew(op),
 
-        "mem_stream" => io_ops::parse_mem_stream(op)?,
-        "adv_pipe" => io_ops::parse_adv_pipe(op)?,
+        "mem_stream" => simple_instruction(op, MemStream),
+        "adv_pipe" => simple_instruction(op, AdvPipe),
 
-        "adv_push" => io_ops::parse_adv_push(op)?,
-        "adv_loadw" => io_ops::parse_adv_loadw(op)?,
+        "adv_push" => io_ops::parse_adv_push(op),
+        "adv_loadw" => simple_instruction(op, AdvLoadW),
 
-        "adv" => io_ops::parse_adv_inject(op)?,
+        "adv" => io_ops::parse_adv_inject(op),
 
         // ----- cryptographic operations ---------------------------------------------------------
-        "rphash" => Node::Instruction(Instruction::RPHash),
-        "rpperm" => Node::Instruction(Instruction::RPPerm),
+        "rphash" => simple_instruction(op, RpHash),
+        "rpperm" => simple_instruction(op, RpPerm),
 
-        "mtree_get" => Node::Instruction(Instruction::MTreeGet),
-        "mtree_set" => Node::Instruction(Instruction::MTreeSet),
-        "mtree_cwm" => Node::Instruction(Instruction::MTreeCwm),
+        "mtree_get" => simple_instruction(op, MTreeGet),
+        "mtree_set" => simple_instruction(op, MTreeSet),
+        "mtree_cwm" => simple_instruction(op, MTreeCwm),
 
         // ----- catch all ------------------------------------------------------------------------
-        _ => return Err(AssemblyError::invalid_op(op)),
-    };
+        _ => Err(AssemblyError::invalid_op(op)),
+    }
+}
 
-    Ok(node)
+/// Validates that the provided token does not contain any immediate parameters and returns a node
+/// for the specified instruction.
+///
+/// # Errors
+/// Returns an error if the token is not a simple operation (i.e., contains immediate values).
+fn simple_instruction(op: &Token, instruction: Instruction) -> Result<Node, AssemblyError> {
+    if op.num_parts() > 1 {
+        return Err(AssemblyError::extra_param(op));
+    }
+    Ok(Node::Instruction(instruction))
 }

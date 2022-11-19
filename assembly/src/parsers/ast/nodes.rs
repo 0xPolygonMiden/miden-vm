@@ -176,7 +176,7 @@ pub enum Instruction {
     SwapW,
     SwapW2,
     SwapW3,
-    SwapDW,
+    SwapDw,
     MovUp2,
     MovUp3,
     MovUp4,
@@ -216,23 +216,23 @@ pub enum Instruction {
 
     // ----- input / output operations --------------------------------------------------------
     PushConstants(Vec<Felt>),
-    Locaddr(Felt),
+    Locaddr(u16),
     Sdepth,
     Caller,
 
     MemLoad,
-    MemLoadImm(Felt),
+    MemLoadImm(u32),
     MemLoadW,
-    MemLoadWImm(Felt),
-    LocLoad(Felt),
-    LocLoadW(Felt),
+    MemLoadWImm(u32),
+    LocLoad(u16),
+    LocLoadW(u16),
 
     MemStore,
-    MemStoreImm(Felt),
-    LocStore(Felt),
+    MemStoreImm(u32),
+    LocStore(u16),
     MemStoreW,
-    MemStoreWImm(Felt),
-    LocStoreW(Felt),
+    MemStoreWImm(u32),
+    LocStoreW(u16),
 
     MemStream,
     AdvPipe,
@@ -245,8 +245,8 @@ pub enum Instruction {
     AdvMem(u32, u32),
 
     // ----- cryptographic operations ---------------------------------------------------------
-    RPHash,
-    RPPerm,
+    RpHash,
+    RpPerm,
     MTreeGet,
     MTreeSet,
     MTreeCwm,
@@ -414,7 +414,7 @@ impl fmt::Display for Instruction {
             Self::SwapW => write!(f, "swapw"),
             Self::SwapW2 => write!(f, "swapw2"),
             Self::SwapW3 => write!(f, "swapw3"),
-            Self::SwapDW => write!(f, "swapdw"),
+            Self::SwapDw => write!(f, "swapdw"),
             Self::MovUp2 => write!(f, "movup2"),
             Self::MovUp3 => write!(f, "movup3"),
             Self::MovUp4 => write!(f, "movup4"),
@@ -490,8 +490,8 @@ impl fmt::Display for Instruction {
             Self::AdvMem(start_addr, num_words) => write!(f, "adv.mem.{start_addr}.{num_words}"),
 
             // ----- cryptographic operations ---------------------------------------------------------
-            Self::RPHash => write!(f, "rphash"),
-            Self::RPPerm => write!(f, "rpperm"),
+            Self::RpHash => write!(f, "rphash"),
+            Self::RpPerm => write!(f, "rpperm"),
             Self::MTreeGet => write!(f, "mtree_get"),
             Self::MTreeSet => write!(f, "mtree_set"),
             Self::MTreeCwm => write!(f, "mtree_cwm"),

@@ -69,7 +69,7 @@ fn test_ast_parsing_program_proc() {
         exec.foo
         exec.bar
     end";
-    let proc_body1: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(Felt::ZERO))];
+    let proc_body1: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
     let mut procedures: LocalProcMap = BTreeMap::new();
     procedures.insert(
         String::from("foo"),
@@ -112,7 +112,7 @@ fn test_ast_parsing_module() {
         loc_load.0
     end";
     let mut procedures: LocalProcMap = BTreeMap::new();
-    let proc_body: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(Felt::ZERO))];
+    let proc_body: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
     procedures.insert(
         String::from("foo"),
         (
@@ -342,7 +342,7 @@ export.baz.3
     push.0
 end";
     let mut procedures: LocalProcMap = BTreeMap::new();
-    let proc_body_foo: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(Felt::ZERO))];
+    let proc_body_foo: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
     let docs_foo =
         "Test documenation for export procedure foo in parsing test. Lorem ipsum dolor sit amet,
 consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
