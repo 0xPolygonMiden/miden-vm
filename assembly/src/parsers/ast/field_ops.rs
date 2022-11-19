@@ -15,7 +15,9 @@ use super::{
 /// # Errors
 /// Returns an error if the instruction token has invalid param or more than one param.
 pub fn parse_add(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "add");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(Add)),
         2 => {
             let imm = parse_element_param(op, 1)?;
@@ -31,7 +33,9 @@ pub fn parse_add(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token has invalid param or more than one param.
 pub fn parse_sub(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "sub");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(Sub)),
         2 => {
             let imm = parse_element_param(op, 1)?;
@@ -47,7 +51,9 @@ pub fn parse_sub(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token has invalid param or more than one param.
 pub fn parse_mul(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "mul");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(Mul)),
         2 => {
             let imm = parse_element_param(op, 1)?;
@@ -63,7 +69,9 @@ pub fn parse_mul(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token has invalid param or more than one param
 pub fn parse_div(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "div");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(Div)),
         2 => {
             let imm = parse_element_param(op, 1)?;
@@ -79,7 +87,9 @@ pub fn parse_div(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token has invalid param or more than one param
 pub fn parse_exp(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "exp");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(Exp)),
         2 => {
             let param_value = op.parts()[1];
@@ -114,7 +124,9 @@ pub fn parse_exp(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token has invalid param or more than one param.
 pub fn parse_eq(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "eq");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(Eq)),
         2 => {
             let imm = parse_element_param(op, 1)?;
@@ -130,7 +142,9 @@ pub fn parse_eq(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token has invalid param or more than one param.
 pub fn parse_neq(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "neq");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(Neq)),
         2 => {
             let imm = parse_element_param(op, 1)?;

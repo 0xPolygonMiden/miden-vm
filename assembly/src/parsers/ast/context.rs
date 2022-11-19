@@ -524,8 +524,10 @@ fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the token is not a simple operation (i.e., contains immediate values).
 fn simple_instruction(op: &Token, instruction: Instruction) -> Result<Node, AssemblyError> {
-    if op.num_parts() > 1 {
-        return Err(AssemblyError::extra_param(op));
+    debug_assert_eq!(op.parts()[0], instruction.to_string());
+    match op.num_parts() {
+        0 => unreachable!(),
+        1 => Ok(Node::Instruction(instruction)),
+        _ => Err(AssemblyError::extra_param(op)),
     }
-    Ok(Node::Instruction(instruction))
 }

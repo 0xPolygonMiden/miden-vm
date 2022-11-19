@@ -15,7 +15,9 @@ use super::{
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is greater than 15.
 pub fn parse_dup(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "dup");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(Dup0)),
         2 => match op.parts()[1] {
             "0" => Ok(Instruction(Dup0)),
@@ -47,7 +49,9 @@ pub fn parse_dup(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is greater than 3.
 pub fn parse_dupw(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "dupw");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(DupW0)),
         2 => match op.parts()[1] {
             "0" => Ok(Instruction(DupW0)),
@@ -67,7 +71,9 @@ pub fn parse_dupw(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is smaller than 1 or greater than 15.
 pub fn parse_swap(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "swap");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(Swap)),
         2 => match op.parts()[1] {
             "1" => Ok(Instruction(Swap)),
@@ -98,7 +104,9 @@ pub fn parse_swap(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is smaller than 1 or greater than 3.
 pub fn parse_swapw(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "swapw");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(SwapW)),
         2 => match op.parts()[1] {
             "1" => Ok(Instruction(SwapW)),
@@ -116,7 +124,9 @@ pub fn parse_swapw(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is smaller than 2 or greater than 15.
 pub fn parse_movup(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "movup");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Err(AssemblyError::missing_param(op)),
         2 => match op.parts()[1] {
             "2" => Ok(Instruction(MovUp2)),
@@ -145,7 +155,9 @@ pub fn parse_movup(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is smaller than 2 or greater than 15.
 pub fn parse_movdn(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "movdn");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Err(AssemblyError::missing_param(op)),
         2 => match op.parts()[1] {
             "2" => Ok(Instruction(MovDn2)),
@@ -174,7 +186,9 @@ pub fn parse_movdn(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not either 2 or 3.
 pub fn parse_movupw(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "movupw");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Err(AssemblyError::missing_param(op)),
         2 => match op.parts()[1] {
             "2" => Ok(Instruction(MovUpW2)),
@@ -191,8 +205,10 @@ pub fn parse_movupw(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not either 2 or 3.
 pub fn parse_movdnw(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "movdnw");
     match op.num_parts() {
-        0..=1 => Err(AssemblyError::missing_param(op)),
+        0 => unreachable!(),
+        1 => Err(AssemblyError::missing_param(op)),
         2 => match op.parts()[1] {
             "2" => Ok(Instruction(MovDnW2)),
             "3" => Ok(Instruction(MovDnW3)),

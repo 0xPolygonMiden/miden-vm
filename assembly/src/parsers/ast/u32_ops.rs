@@ -16,7 +16,9 @@ use crate::{MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE};
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not 1 or 2.
 pub fn parse_u32assert(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "u32assert");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(U32Assert)),
         2 => match op.parts()[1] {
             "1" => Ok(Instruction(U32Assert)),
@@ -34,7 +36,9 @@ pub fn parse_u32assert(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
 pub fn parse_u32checked_add(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "u32checked_add");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(U32CheckedAdd)),
         2 => {
             let value = parse_param::<u32>(op, 1)?;
@@ -51,7 +55,9 @@ pub fn parse_u32checked_add(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
 pub fn parse_u32wrapping_add(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "u32wrapping_add");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(U32WrappingAdd)),
         2 => {
             let value = parse_param::<u32>(op, 1)?;
@@ -68,7 +74,9 @@ pub fn parse_u32wrapping_add(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
 pub fn parse_u32overflowing_add(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "u32overflowing_add");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(U32OverflowingAdd)),
         2 => {
             let value = parse_param::<u32>(op, 1)?;
@@ -85,6 +93,7 @@ pub fn parse_u32overflowing_add(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
 pub fn parse_u32checked_sub(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "u32checked_sub");
     match op.num_parts() {
         1 => Ok(Instruction(U32CheckedSub)),
         2 => {
@@ -102,7 +111,9 @@ pub fn parse_u32checked_sub(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
 pub fn parse_u32wrapping_sub(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "u32wrapping_sub");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(U32WrappingSub)),
         2 => {
             let value = parse_param::<u32>(op, 1)?;
@@ -119,7 +130,9 @@ pub fn parse_u32wrapping_sub(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
 pub fn parse_u32overflowing_sub(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "u32overflowing_sub");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(U32OverflowingSub)),
         2 => {
             let value = parse_param::<u32>(op, 1)?;
@@ -136,7 +149,9 @@ pub fn parse_u32overflowing_sub(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
 pub fn parse_u32checked_mul(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "u32checked_mul");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(U32CheckedMul)),
         2 => {
             let value = parse_param::<u32>(op, 1)?;
@@ -153,7 +168,9 @@ pub fn parse_u32checked_mul(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
 pub fn parse_u32wrapping_mul(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "u32wrapping_mul");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(U32WrappingMul)),
         2 => {
             let value = parse_param::<u32>(op, 1)?;
@@ -170,7 +187,9 @@ pub fn parse_u32wrapping_mul(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
 pub fn parse_u32overflowing_mul(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "u32overflowing_mul",);
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(U32OverflowingMul)),
         2 => {
             let value = parse_param::<u32>(op, 1)?;
@@ -190,7 +209,9 @@ pub fn parse_u32overflowing_mul(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
 pub fn parse_u32_div(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
+    //debug_assert_eq!("u32checked_div", op.parts()[0], "not a u32checked_div");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => {
             if checked {
                 Ok(Instruction(U32CheckedDiv))
@@ -221,6 +242,7 @@ pub fn parse_u32_div(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
 /// provided parameter is not a u32 value.
 pub fn parse_u32_mod(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     match op.num_parts() {
+        0 => unreachable!(),
         1 => {
             if checked {
                 Ok(Instruction(U32CheckedMod))
@@ -251,6 +273,7 @@ pub fn parse_u32_mod(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
 /// provided parameter is not a u32 value.
 pub fn parse_u32_divmod(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     match op.num_parts() {
+        0 => unreachable!(),
         1 => {
             if checked {
                 Ok(Instruction(U32CheckedDivMod))
@@ -281,6 +304,7 @@ pub fn parse_u32_divmod(op: &Token, checked: bool) -> Result<Node, AssemblyError
 /// provided parameter is greater than 31.
 pub fn parse_u32_shr(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     match op.num_parts() {
+        0 => unreachable!(),
         1 => {
             if checked {
                 Ok(Instruction(U32CheckedShr))
@@ -311,6 +335,7 @@ pub fn parse_u32_shr(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
 /// provided parameter is greater than 31.
 pub fn parse_u32_shl(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     match op.num_parts() {
+        0 => unreachable!(),
         1 => {
             if checked {
                 Ok(Instruction(U32CheckedShl))
@@ -341,6 +366,7 @@ pub fn parse_u32_shl(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
 /// provided parameter is greater than 31.
 pub fn parse_u32_rotr(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     match op.num_parts() {
+        0 => unreachable!(),
         1 => {
             if checked {
                 Ok(Instruction(U32CheckedRotr))
@@ -371,6 +397,7 @@ pub fn parse_u32_rotr(op: &Token, checked: bool) -> Result<Node, AssemblyError> 
 /// provided parameter is greater than 31.
 pub fn parse_u32_rotl(op: &Token, checked: bool) -> Result<Node, AssemblyError> {
     match op.num_parts() {
+        0 => unreachable!(),
         1 => {
             if checked {
                 Ok(Instruction(U32CheckedRotl))
@@ -397,7 +424,9 @@ pub fn parse_u32_rotl(op: &Token, checked: bool) -> Result<Node, AssemblyError> 
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
 pub fn parse_u32checked_eq(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "u32checked_eq");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(U32CheckedEq)),
         2 => {
             let value = parse_param::<u32>(op, 1)?;
@@ -414,7 +443,9 @@ pub fn parse_u32checked_eq(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if the instruction token contains wrong number of parameters, or if the
 /// provided parameter is not a u32 value.
 pub fn parse_u32checked_neq(op: &Token) -> Result<Node, AssemblyError> {
+    debug_assert_eq!(op.parts()[0], "u32checked_neq");
     match op.num_parts() {
+        0 => unreachable!(),
         1 => Ok(Instruction(U32CheckedNeq)),
         2 => {
             let value = parse_param::<u32>(op, 1)?;
