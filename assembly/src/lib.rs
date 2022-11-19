@@ -38,6 +38,10 @@ mod tests;
 
 const MODULE_PATH_DELIM: &str = "::";
 
+/// The maximum number of elements that can be read from the advice tape in a single `adv_push`
+/// instruction.
+const ADVICE_READ_LIMIT: u8 = 16;
+
 // MODULE PROVIDER
 // ================================================================================================
 

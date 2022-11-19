@@ -1,6 +1,6 @@
 use super::{
-    push_felt, push_u16_value, AssemblerError, AssemblyContext, CodeBlock, Felt, Operation::*,
-    SpanBuilder, StarkField,
+    mem_ops::local_to_absolute_addr, push_felt, AssemblerError, AssemblyContext, CodeBlock, Felt,
+    Operation::*, SpanBuilder, StarkField,
 };
 
 // CONSTANT INPUTS
@@ -33,12 +33,11 @@ pub fn push(imms: &[Felt], span: &mut SpanBuilder) -> Result<Option<CodeBlock>, 
 // ENVIRONMENT INPUTS
 // ================================================================================================
 
-/// Appends `locaddr.i` instruction to the span block to push the absolute address of the local
-/// variable at index `i` onto the stack.
+/// Appends a sequence of operations to the span needed for executing locaddr.i instruction. This
+/// consists of putting i onto the stack and then executing LOCADDR operation.
 ///
 /// # Errors
-/// Returns an error if the assembly instruction is malformed or has a parameter value greater than
-/// the number of procedure locals.
+/// Returns an error if index is greater than the number of procedure locals.
 pub fn locaddr(
     index: &Felt,
     span: &mut SpanBuilder,
@@ -46,29 +45,15 @@ pub fn locaddr(
 ) -> Result<Option<CodeBlock>, AssemblerError> {
     // TODO: index here should be u16
     let index = index.as_int() as u16;
-    let max = context.num_proc_locals() - 1;
-
-    // check that the parameter is within the specified bounds
-    if index > max {
-        return Err(AssemblerError::imm_out_of_bounds(
-            index as u64,
-            0,
-            max as u64,
-        ));
-    }
-
-    push_u16_value(span, max - index);
-    span.add_op(FmpAdd)
+    local_to_absolute_addr(span, index, context.num_proc_locals())?;
+    Ok(None)
 }
 
-/// Appends `caller` instruction to the current span block to put the hash of the function which
-/// initiated the current SYSCALL onto the stack. `caller` instruction translates directly into
-/// CALLER VM operation.
+/// Appends CALLER operation to the span which puts the hash of the function which initiated the
+/// current SYSCALL onto the stack.
 ///
 /// # Errors
-/// Returns an error if:
-/// - The assembly instruction is malformed.
-/// - The instruction is being executed outside of kernel context.
+/// Returns an error if the instruction is being executed outside of kernel context.
 pub fn caller(
     span: &mut SpanBuilder,
     context: &AssemblyContext,

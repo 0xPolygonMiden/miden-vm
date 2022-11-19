@@ -35,7 +35,7 @@ impl SpanBuilder {
         }
     }
 
-    // STATE MUTATORS
+    // OPERATIONS
     // --------------------------------------------------------------------------------------------
 
     /// TODO: add docs
@@ -65,9 +65,21 @@ impl SpanBuilder {
         self.ops.resize(new_len, op);
     }
 
-    /// TODO: add docs
+    // DECORATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Add ths specified decorator to the list of decorators.
     pub fn push_decorator(&mut self, decorator: Decorator) {
         self.decorators.push((self.ops.len(), decorator));
+    }
+
+    /// Adds the specified decorator to the list of decorators and returns Ok(None).
+    pub fn add_decorator(
+        &mut self,
+        decorator: Decorator,
+    ) -> Result<Option<CodeBlock>, AssemblerError> {
+        self.push_decorator(decorator);
+        Ok(None)
     }
 
     /// Adds an AsmOp decorator to the decorator list.
