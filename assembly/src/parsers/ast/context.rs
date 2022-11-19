@@ -438,8 +438,8 @@ fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
         "u32checked_rotl" => u32_ops::parse_u32_rotl(op, true),
         "u32unchecked_rotl" => u32_ops::parse_u32_rotl(op, false),
 
-        "u32checked_eq" => simple_instruction(op, U32CheckedEq),
-        "u32checked_neq" => simple_instruction(op, U32CheckedNeq),
+        "u32checked_eq" => u32_ops::parse_u32checked_eq(op),
+        "u32checked_neq" => u32_ops::parse_u32checked_neq(op),
 
         "u32checked_lt" => simple_instruction(op, U32CheckedLt),
         "u32unchecked_lt" => simple_instruction(op, U32UncheckedLt),

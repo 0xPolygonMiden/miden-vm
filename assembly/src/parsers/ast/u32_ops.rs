@@ -389,3 +389,37 @@ pub fn parse_u32_rotl(op: &Token, checked: bool) -> Result<Node, AssemblyError> 
         _ => Err(AssemblyError::extra_param(op)),
     }
 }
+
+/// Returns `U32CheckedEq` instruction node if no immediate value is provided or
+/// `U32CheckedEqImm` instruction node otherwise.
+///
+/// # Errors
+/// Returns an error if the instruction token contains wrong number of parameters, or if the
+/// provided parameter is not a u32 value.
+pub fn parse_u32checked_eq(op: &Token) -> Result<Node, AssemblyError> {
+    match op.num_parts() {
+        1 => Ok(Instruction(U32CheckedEq)),
+        2 => {
+            let value = parse_param::<u32>(op, 1)?;
+            Ok(Instruction(U32CheckedEqImm(value)))
+        }
+        _ => Err(AssemblyError::extra_param(op)),
+    }
+}
+
+/// Returns `U32CheckedNeq` instruction node if no immediate value is provided or
+/// `U32CheckedNeqImm` instruction node otherwise.
+///
+/// # Errors
+/// Returns an error if the instruction token contains wrong number of parameters, or if the
+/// provided parameter is not a u32 value.
+pub fn parse_u32checked_neq(op: &Token) -> Result<Node, AssemblyError> {
+    match op.num_parts() {
+        1 => Ok(Instruction(U32CheckedNeq)),
+        2 => {
+            let value = parse_param::<u32>(op, 1)?;
+            Ok(Instruction(U32CheckedNeqImm(value)))
+        }
+        _ => Err(AssemblyError::extra_param(op)),
+    }
+}
