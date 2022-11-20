@@ -11,7 +11,7 @@ use vm_core::{
         string::{String, ToString},
         Box,
     },
-    CodeBlockTable, Kernel, Program,
+    CodeBlockTable, Felt, Kernel, Operation, Program, StarkField, ONE, ZERO,
 };
 
 mod procedures;
@@ -53,6 +53,9 @@ const MAX_U32_ROTATE_VALUE: u8 = 31;
 
 /// The maximum number of bits allowed for the exponent parameter for exponentiation instructions.
 const MAX_EXP_BITS: u8 = 64;
+
+/// The maximum length of a procedure's name.
+const MAX_PROC_NAME_LEN: u8 = 100;
 
 // MODULE PROVIDER
 // ================================================================================================

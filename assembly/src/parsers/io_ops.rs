@@ -1,12 +1,11 @@
-use super::super::{parse_decimal_param, parse_element_param, parse_hex_param};
 use super::{
-    parse_checked_param, parse_param,
+    parse_checked_param, parse_decimal_param, parse_element_param, parse_hex_param, parse_param,
+    AssemblyError, Felt,
     Instruction::*,
     Node::{self, Instruction},
-    Vec,
+    Token, Vec,
 };
-use crate::{validate_operation, AssemblyError, Token, ADVICE_READ_LIMIT, MAX_PUSH_INPUTS};
-use vm_core::Felt;
+use crate::{validate_operation, ADVICE_READ_LIMIT, MAX_PUSH_INPUTS};
 
 // CONSTANTS
 // ================================================================================================

@@ -1,6 +1,5 @@
 use super::{
-    super::parse_element_param,
-    AssemblyError,
+    parse_element_param, AssemblyError,
     Instruction::*,
     Node::{self, Instruction},
     Token,

@@ -1,10 +1,10 @@
-use crate::{
+use super::{
     parsers::{self, Instruction, Node, ProcedureAst, ProgramAst},
-    AssemblerError, BTreeMap, Box, CallSet, CodeBlock, CodeBlockTable, Kernel, ModuleAst,
-    ModuleProvider, Procedure, ProcedureId, Program, String, ToString, Vec,
+    AssemblerError, BTreeMap, Box, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, ModuleAst,
+    ModuleProvider, Operation, Procedure, ProcedureId, Program, String, ToString, Vec, ONE, ZERO,
 };
 use core::{borrow::Borrow, pin::Pin};
-use vm_core::{Decorator, DecoratorList, Felt, Operation};
+use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
 
 mod instruction;
 
@@ -13,6 +13,9 @@ use span_builder::SpanBuilder;
 
 mod context;
 use context::AssemblyContext;
+
+#[cfg(test)]
+mod tests;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -276,7 +279,7 @@ impl Assembler {
 
         span.extract_final_span_into(&mut blocks);
 
-        Ok(parsers::combine_blocks(blocks))
+        Ok(combine_blocks(blocks))
     }
 
     // PROCEDURE GETTER
@@ -329,113 +332,76 @@ struct BodyWrapper {
     epilogue: Vec<Operation>,
 }
 
-// TESTS
+// UTILITY FUNCTIONS
 // ================================================================================================
 
-#[test]
-fn nested_block_works() {
-    use crate::{ModuleAst, NamedModuleAst};
+pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
+    // merge consecutive Span blocks.
+    let mut merged_blocks: Vec<CodeBlock> = Vec::with_capacity(blocks.len());
+    // Keep track of all the consecutive Span blocks and are merged together when
+    // there is a discontinuity.
+    let mut contiguous_spans: Vec<CodeBlock> = Vec::new();
 
-    let kernel = r#"
-        export.foo
-            add
-        end"#;
-
-    let assembler = Assembler::new().with_kernel(&kernel).unwrap();
-
-    // the assembler should have a single kernel proc in its cache
-    assert_eq!(assembler.proc_cache.len(), 1);
-
-    // fetch the kernel digest and store into a syscall block
-    let syscall = assembler
-        .proc_cache
-        .values()
-        .next()
-        .map(|p| CodeBlock::new_syscall(p.code_root().hash()))
-        .unwrap();
-
-    struct DummyModuleProvider {
-        module: ModuleAst,
+    blocks.drain(0..).for_each(|block| {
+        if block.is_span() {
+            contiguous_spans.push(block);
+        } else {
+            if !contiguous_spans.is_empty() {
+                merged_blocks.push(combine_spans(&mut contiguous_spans));
+            }
+            merged_blocks.push(block);
+        }
+    });
+    if !contiguous_spans.is_empty() {
+        merged_blocks.push(combine_spans(&mut contiguous_spans));
     }
 
-    impl ModuleProvider for DummyModuleProvider {
-        fn get_module(&self, _id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
-            Some(NamedModuleAst::new("foo::bar", &self.module))
+    // build a binary tree of blocks joining them using Join blocks
+    let mut blocks = merged_blocks;
+    while blocks.len() > 1 {
+        let last_block = if blocks.len() % 2 == 0 {
+            None
+        } else {
+            blocks.pop()
+        };
+
+        let mut grouped_blocks = Vec::new();
+        core::mem::swap(&mut blocks, &mut grouped_blocks);
+        let mut grouped_blocks = group_vector_elements::<CodeBlock, 2>(grouped_blocks);
+        grouped_blocks.drain(0..).for_each(|pair| {
+            blocks.push(CodeBlock::new_join(pair));
+        });
+
+        if let Some(block) = last_block {
+            blocks.push(block);
         }
     }
 
-    let module_provider = DummyModuleProvider {
-        module: parsers::parse_module(
-            r#"
-            export.baz
-                push.29
-            end"#,
-        )
-        .unwrap(),
-    };
+    blocks.remove(0)
+}
 
-    let program = r#"
-    use.foo::bar
+/// Returns a CodeBlock [Span] from sequence of Span blocks provided as input.
+pub fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
+    if spans.len() == 1 {
+        return spans.remove(0);
+    }
 
-    proc.foo
-        push.19
-    end
-
-    proc.bar
-        push.17
-        exec.foo
-    end
-
-    begin
-        push.2
-        if.true
-            push.3
-        else
-            push.5
-        end
-        if.true
-            if.true
-                push.7
-            else
-                push.11
-            end
-        else
-            push.13
-            while.true
-                exec.bar
-                push.23
-            end
-        end
-        exec.bar::baz
-        syscall.foo
-    end"#;
-
-    let before = CodeBlock::new_span(vec![Operation::Push(2u64.into())]);
-
-    let r#true = CodeBlock::new_span(vec![Operation::Push(3u64.into())]);
-    let r#false = CodeBlock::new_span(vec![Operation::Push(5u64.into())]);
-    let r#if = CodeBlock::new_split(r#true, r#false);
-
-    let r#true = CodeBlock::new_span(vec![Operation::Push(7u64.into())]);
-    let r#false = CodeBlock::new_span(vec![Operation::Push(11u64.into())]);
-    let r#true = CodeBlock::new_split(r#true, r#false);
-    let r#while = CodeBlock::new_span(vec![
-        Operation::Push(17u64.into()),
-        Operation::Push(19u64.into()),
-        Operation::Push(23u64.into()),
-    ]);
-    let r#while = CodeBlock::new_loop(r#while);
-    let span = CodeBlock::new_span(vec![Operation::Push(13u64.into())]);
-    let r#false = CodeBlock::new_join([span, r#while]);
-    let nested = CodeBlock::new_split(r#true, r#false);
-
-    let exec = CodeBlock::new_span(vec![Operation::Push(29u64.into())]);
-
-    let combined = parsers::combine_blocks(vec![before, r#if, nested, exec, syscall]);
-    let program = assembler
-        .with_module_provider(module_provider)
-        .compile(program)
-        .unwrap();
-
-    assert_eq!(combined.hash(), program.hash());
+    let mut ops = Vec::<Operation>::new();
+    let mut decorators = DecoratorList::new();
+    spans.drain(0..).for_each(|block| {
+        if let CodeBlock::Span(span) = block {
+            for decorator in span.decorators() {
+                decorators.push((decorator.0 + ops.len(), decorator.1.clone()));
+            }
+            for batch in span.op_batches() {
+                ops.extend_from_slice(batch.ops());
+            }
+        } else {
+            panic!(
+                "Codeblock was expected to be a Span Block, got {:?}.",
+                block
+            );
+        }
+    });
+    CodeBlock::new_span_with_decorators(ops, decorators)
 }
