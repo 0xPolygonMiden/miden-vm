@@ -24,8 +24,15 @@ type ProcedureCache = BTreeMap<ProcedureId, Procedure>;
 
 // ASSEMBLER
 // ================================================================================================
-
-/// TODO: add comments
+/// Miden Assembler which can be used to convert Miden assembly source code into program MAST (
+/// represented by the [Program] struct). The assembler can be instantiated in several ways using
+/// a "builder" patter. Specifically:
+/// - If `with_kernel()` or `with_kernel_module()` methods are not used, the assembler will be
+///   instantiated with a default empty kernel. Programs compiled using such assembler
+///   cannot make calls to kernel procedures via `syscall` instruction.
+/// - If `with_module_provider()` method is not used, the assembler will be instantiated without
+///   access to external libraries. Programs compiled with such assembler must be self-contained
+///   (i.e., they cannot invoke procedures from external libraries).
 pub struct Assembler {
     kernel: Kernel,
     module_provider: Box<dyn ModuleProvider>,

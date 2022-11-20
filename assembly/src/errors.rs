@@ -1,4 +1,4 @@
-use super::{ProcedureId, String, ToString, Token};
+use super::{ProcedureId, String, ToString, Token, Vec};
 use core::fmt;
 
 // ASSEMBLY ERROR
