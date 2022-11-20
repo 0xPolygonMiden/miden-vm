@@ -25,7 +25,7 @@ mod tokens;
 use tokens::{Token, TokenStream};
 
 mod errors;
-pub use errors::{AssemblerError, LibraryError, ParsingError};
+pub use errors::{AssemblyError, LibraryError, ParsingError};
 
 mod assembler;
 pub use assembler::Assembler;

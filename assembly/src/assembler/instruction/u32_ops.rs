@@ -1,6 +1,6 @@
 use super::{
     field_ops::append_pow2_op,
-    push_u32_value, validate_param, AssemblerError, CodeBlock, Felt,
+    push_u32_value, validate_param, AssemblyError, CodeBlock, Felt,
     Operation::{self, *},
     SpanBuilder,
 };
@@ -24,7 +24,7 @@ pub enum U32OpMode {
 ///
 /// Implemented by executing DUP U32SPLIT SWAP DROP EQZ on each element in the word
 /// and combining the results using AND operation (total of 23 VM cycles)
-pub fn u32testw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn u32testw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Test the fourth element
     span.push_op(Dup3);
     span.push_op(U32split);
@@ -62,7 +62,7 @@ pub fn u32testw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerEr
 ///
 /// Implemented by executing `U32ASSERT2` on each pair of elements in the word.
 /// Total of 6 VM cycles.
-pub fn u32assertw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn u32assertw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Test the first and the second elements
     span.push_op(U32assert2);
 
@@ -101,7 +101,7 @@ pub fn u32add(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
     imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     handle_arithmetic_operation(span, U32add, op_mode, imm)
 }
 
@@ -123,7 +123,7 @@ pub fn u32sub(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
     imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     handle_arithmetic_operation(span, U32sub, op_mode, imm)
 }
 
@@ -145,7 +145,7 @@ pub fn u32mul(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
     imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     handle_arithmetic_operation(span, U32mul, op_mode, imm)
 }
 
@@ -164,7 +164,7 @@ pub fn u32div(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
     imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     handle_division(span, op_mode, imm)?;
 
     span.push_op(Drop);
@@ -187,7 +187,7 @@ pub fn u32mod(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
     imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     handle_division(span, op_mode, imm)?;
 
     span.push_op(Swap);
@@ -211,7 +211,7 @@ pub fn u32divmod(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
     imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     handle_division(span, op_mode, imm)?;
     Ok(None)
 }
@@ -225,7 +225,7 @@ pub fn u32divmod(
 /// subtracting the element, flips the bits of the original value to perform a bitwise NOT.
 ///
 /// This takes 5 VM cycles.
-pub fn u32not(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn u32not(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // perform the operation
     span.push_op(Push(Felt::new(2u64.pow(32) - 1)));
     span.push_op(U32assert2);
@@ -253,7 +253,7 @@ pub fn u32shl(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
     imm: Option<u8>,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     match imm {
         Some(imm) => match op_mode {
             U32OpMode::Checked => {
@@ -297,7 +297,7 @@ pub fn u32shr(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
     imm: Option<u8>,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     match imm {
         Some(imm) => match op_mode {
             U32OpMode::Checked => {
@@ -344,7 +344,7 @@ pub fn u32rotl(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
     imm: Option<u8>,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     match imm {
         None => match op_mode {
             U32OpMode::Checked => {
@@ -392,7 +392,7 @@ pub fn u32rotr(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
     imm: Option<u8>,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     match imm {
         None => match op_mode {
             U32OpMode::Checked => {
@@ -464,7 +464,7 @@ fn handle_arithmetic_operation(
     op: Operation,
     op_mode: U32OpMode,
     imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     let mut drop_high_bits = false;
     let mut assert_u32_res = false;
 
@@ -502,10 +502,10 @@ fn handle_division(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
     imm: Option<u32>,
-) -> Result<(), AssemblerError> {
+) -> Result<(), AssemblyError> {
     if let Some(imm) = imm {
         if imm == 0 {
-            return Err(AssemblerError::division_by_zero());
+            return Err(AssemblyError::division_by_zero());
         }
         push_u32_value(span, imm);
     }
@@ -533,10 +533,7 @@ fn handle_division(
 /// VM cycles per mode:
 /// - u32checked_eq: 2 cycles
 /// - u32checked_eq.b: 3 cycles
-pub fn u32eq(
-    span: &mut SpanBuilder,
-    imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn u32eq(span: &mut SpanBuilder, imm: Option<u32>) -> Result<Option<CodeBlock>, AssemblyError> {
     if let Some(imm) = imm {
         push_u32_value(span, imm);
     }
@@ -558,7 +555,7 @@ pub fn u32eq(
 pub fn u32neq(
     span: &mut SpanBuilder,
     imm: Option<u32>,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     if let Some(imm) = imm {
         push_u32_value(span, imm);
     }
@@ -581,7 +578,7 @@ pub fn u32neq(
 pub fn u32lt(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     handle_u32_and_unchecked_mode(span, op_mode);
     compute_lt(span);
 
@@ -599,7 +596,7 @@ pub fn u32lt(
 pub fn u32lte(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     handle_u32_and_unchecked_mode(span, op_mode);
 
     // Compute the lt with reversed number to get a gt check
@@ -623,7 +620,7 @@ pub fn u32lte(
 pub fn u32gt(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     handle_u32_and_unchecked_mode(span, op_mode);
 
     // Reverse the numbers so we can get a gt check.
@@ -645,7 +642,7 @@ pub fn u32gt(
 pub fn u32gte(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     handle_u32_and_unchecked_mode(span, op_mode);
 
     compute_lt(span);
@@ -669,7 +666,7 @@ pub fn u32gte(
 pub fn u32min(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     compute_max_and_min(span, op_mode);
 
     // Drop the max and keep the min
@@ -691,7 +688,7 @@ pub fn u32min(
 pub fn u32max(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     compute_max_and_min(span, op_mode);
 
     // Drop the min and keep the max

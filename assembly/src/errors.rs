@@ -1,110 +1,108 @@
 use super::{ProcedureId, String, ToString, Token};
 use core::fmt;
 
-// ASSEMBLER ERROR
+// ASSEMBLY ERROR
 // ================================================================================================
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct AssemblerError {
-    message: String,
+pub enum AssemblyError {
+    CallInKernel(String),
+    CallerOutOKernel,
+    CircularModuleDependency(Vec<String>),
+    DivisionByZero,
+    DuplicateProcName(String, String),
+    ExportedProcInProgram(String),
+    ImportedProcModuleNotFound(ProcedureId),
+    ImportedProcNotFoundInModule(ProcedureId, String),
+    KernelProcNotFound(ProcedureId),
+    LocalProcNotFound(u16, String),
+    ParsingError(String),
+    ParamOutOfBounds(u64, u64, u64),
+    SysCallInKernel(String),
 }
 
-impl AssemblerError {
+impl AssemblyError {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    pub fn duplicate_proc_name(proc_name: &str, module_path: &str) -> Self {
-        Self {
-            message: format!("duplicate proc name ('{proc_name}') in module {module_path}"),
-        }
-    }
-
-    pub fn undefined_proc(idx: u16) -> Self {
-        Self {
-            message: format!("undefined procedure: {idx}"),
-        }
-    }
-
-    pub fn undefined_imported_proc(id: &ProcedureId) -> Self {
-        Self {
-            message: format!("undefined imported procedure: {id:x?}"),
-        }
-    }
-
-    pub fn undefined_syscall(id: &ProcedureId) -> Self {
-        Self {
-            message: format!("undefined kernel procedure: {id:x?}"),
-        }
-    }
-
-    pub fn call_in_kernel() -> Self {
-        Self {
-            message: "call instruction inside kernel".to_string(),
-        }
+    pub fn call_in_kernel(kernel_proc_name: &str) -> Self {
+        Self::CallInKernel(kernel_proc_name.to_string())
     }
 
     pub fn caller_out_of_kernel() -> Self {
-        Self {
-            message: "caller instruction outside kernel".to_string(),
-        }
-    }
-
-    pub fn syscall_in_kernel() -> Self {
-        Self {
-            message: "syscall instruction inside kernel".to_string(),
-        }
-    }
-
-    pub fn division_by_zero() -> Self {
-        Self {
-            message: "division by zero".to_string(),
-        }
-    }
-
-    pub fn param_out_of_bounds(value: u64, min: u64, max: u64) -> Self {
-        Self {
-            message: format!(
-                "parameter value must be greater than or equal to {} and less than or equal to {}, but was {}",
-                min, max, value
-            )
-        }
+        Self::CallerOutOKernel
     }
 
     pub fn circular_module_dependency(dep_chain: &[String]) -> Self {
-        Self {
-            message: format!("circular module dependency in the following chain: {dep_chain:?}"),
-        }
+        Self::CircularModuleDependency(dep_chain.to_vec())
     }
 
-    pub fn proc_export_in_program(proc_name: &str) -> Self {
-        Self {
-            message: format!("exported procedures not allowed in executable module: {proc_name}"),
-        }
+    pub fn division_by_zero() -> Self {
+        Self::DivisionByZero
     }
 
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-    pub fn message(&self) -> &String {
-        &self.message
+    pub fn duplicate_proc_name(proc_name: &str, module_path: &str) -> Self {
+        Self::DuplicateProcName(proc_name.to_string(), module_path.to_string())
+    }
+
+    pub fn exported_proc_in_program(proc_name: &str) -> Self {
+        Self::ExportedProcInProgram(proc_name.to_string())
+    }
+
+    pub fn imported_proc_module_not_found(proc_id: &ProcedureId) -> Self {
+        Self::ImportedProcModuleNotFound(*proc_id)
+    }
+
+    pub fn imported_proc_not_found_in_module(proc_id: &ProcedureId, module_path: &str) -> Self {
+        Self::ImportedProcNotFoundInModule(*proc_id, module_path.to_string())
+    }
+
+    pub fn kernel_proc_not_found(kernel_proc_id: &ProcedureId) -> Self {
+        Self::KernelProcNotFound(*kernel_proc_id)
+    }
+
+    pub fn local_proc_not_found(proc_idx: u16, module_path: &str) -> Self {
+        Self::LocalProcNotFound(proc_idx, module_path.to_string())
+    }
+
+    pub fn param_out_of_bounds(value: u64, min: u64, max: u64) -> Self {
+        Self::ParamOutOfBounds(value, min, max)
+    }
+
+    pub fn syscall_in_kernel(kernel_proc_name: &str) -> Self {
+        Self::SysCallInKernel(kernel_proc_name.to_string())
     }
 }
 
-impl From<ParsingError> for AssemblerError {
+impl From<ParsingError> for AssemblyError {
     fn from(err: ParsingError) -> Self {
-        Self {
-            message: err.message,
-        }
+        Self::ParsingError(err.message)
     }
 }
 
-impl fmt::Display for AssemblerError {
+impl fmt::Display for AssemblyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "assembler error: {}", self.message)
+        use AssemblyError::*;
+        match self {
+            CallInKernel(proc_name) => write!(f, "call instruction used kernel procedure '{proc_name}'"),
+            CallerOutOKernel => write!(f, "caller instruction used outside of kernel"),
+            CircularModuleDependency(dep_chain) => write!(f, "circular module dependency in the following chain: {dep_chain:?}"),
+            DivisionByZero => write!(f, "division by zero"),
+            DuplicateProcName(proc_name, module_path) => write!(f, "duplicate proc name '{proc_name}' in module {module_path}"),
+            ExportedProcInProgram(proc_name) => write!(f, "exported procedure '{proc_name}' in executable program"),
+            ImportedProcModuleNotFound(proc_id) => write!(f, "module for imported procedure {proc_id} not found"),
+            ImportedProcNotFoundInModule(proc_id, module_path) => write!(f, "imported procedure {proc_id} not found in module {module_path}"),
+            KernelProcNotFound(proc_id) => write!(f, "procedure {proc_id} not found in kernel"),
+            LocalProcNotFound(proc_idx, module_path) => write!(f, "procedure at index {proc_idx} not found in module {module_path}"),
+            ParsingError(err) => write!(f, "{err}"),
+            ParamOutOfBounds(value, min, max) => write!(f, "parameter value must be greater than or equal to {min} and less than or equal to {max}, but was {value}"),
+            SysCallInKernel(proc_name) => write!(f, "syscall instruction used in kernel procedure '{proc_name}'"),
+        }
     }
 }
 
 #[cfg(feature = "std")]
-impl std::error::Error for AssemblerError {}
+impl std::error::Error for AssemblyError {}
 
 // PARSING ERROR
 // ================================================================================================
@@ -447,16 +445,6 @@ impl fmt::Debug for ParsingError {
 impl fmt::Display for ParsingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "parsing error at {}: {}", self.step, self.message)
-    }
-}
-
-impl From<AssemblerError> for ParsingError {
-    fn from(err: AssemblerError) -> Self {
-        Self {
-            message: err.message,
-            step: 0,
-            op: "".to_string(),
-        }
     }
 }
 

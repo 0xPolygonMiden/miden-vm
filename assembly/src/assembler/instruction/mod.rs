@@ -1,5 +1,5 @@
 use super::{
-    Assembler, AssemblerError, AssemblyContext, CodeBlock, Decorator, Felt, Instruction, Operation,
+    Assembler, AssemblyContext, AssemblyError, CodeBlock, Decorator, Felt, Instruction, Operation,
     ProcedureId, SpanBuilder, ONE, ZERO,
 };
 use vm_core::{AdviceInjector, FieldElement, StarkField};
@@ -23,7 +23,7 @@ impl Assembler {
         instruction: &Instruction,
         span: &mut SpanBuilder,
         ctx: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblerError> {
+    ) -> Result<Option<CodeBlock>, AssemblyError> {
         use AdviceInjector::*;
         use Operation::*;
 
@@ -326,9 +326,9 @@ fn push_felt(span: &mut SpanBuilder, value: Felt) {
 
 /// Returns an error if the specified value is smaller than or equal to min or greater than or
 /// equal to max. Otherwise, returns Ok(()).
-fn validate_param<I: Ord + Into<u64>>(value: I, min: I, max: I) -> Result<(), AssemblerError> {
+fn validate_param<I: Ord + Into<u64>>(value: I, min: I, max: I) -> Result<(), AssemblyError> {
     if value < min || value > max {
-        Err(AssemblerError::param_out_of_bounds(
+        Err(AssemblyError::param_out_of_bounds(
             value.into(),
             min.into(),
             max.into(),

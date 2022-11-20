@@ -1,5 +1,5 @@
 use super::{
-    validate_param, AssemblerError, CodeBlock, Felt, FieldElement, Operation::*, SpanBuilder,
+    validate_param, AssemblyError, CodeBlock, Felt, FieldElement, Operation::*, SpanBuilder,
     StarkField, ONE, ZERO,
 };
 use crate::MAX_EXP_BITS;
@@ -14,7 +14,7 @@ use crate::MAX_EXP_BITS;
 ///
 /// We do not optimize away adding 0 because it may result in a empty SPAN block and cause failures
 /// later on.
-pub fn add_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn add_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
     if imm == ONE {
         span.add_op(Incr)
     } else {
@@ -30,7 +30,7 @@ pub fn add_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, A
 ///
 /// We do not optimize away multiplication by 1 because it may result in a empty SPAN block and
 /// cause failures later on.
-pub fn mul_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn mul_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
     if imm == ZERO {
         span.add_ops([Drop, Pad])
     } else {
@@ -47,10 +47,10 @@ pub fn mul_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, A
 ///
 /// # Errors
 /// Returns an error if the immediate value is ZERO.
-pub fn div_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn div_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
     // TODO: warning if imm is ONE?
     if imm == ZERO {
-        return Err(AssemblerError::division_by_zero());
+        return Err(AssemblyError::division_by_zero());
     }
     span.add_ops([Push(imm.inv()), Mul])
 }
@@ -62,7 +62,7 @@ pub fn div_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, A
 /// top of the stack.
 ///
 /// VM cycles: 16 cycles
-pub fn pow2(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn pow2(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     append_pow2_op(span);
     Ok(None)
 }
@@ -98,7 +98,7 @@ pub fn append_pow2_op(span: &mut SpanBuilder) {
 ///
 /// # Errors
 /// Returns an error if num_pow_bits is greater than 64.
-pub fn exp(span: &mut SpanBuilder, num_pow_bits: u8) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn exp(span: &mut SpanBuilder, num_pow_bits: u8) -> Result<Option<CodeBlock>, AssemblyError> {
     validate_param(num_pow_bits, 0, MAX_EXP_BITS)?;
 
     // arranging the stack to prepare it for expacc instruction.
@@ -127,7 +127,7 @@ pub fn exp(span: &mut SpanBuilder, num_pow_bits: u8) -> Result<Option<CodeBlock>
 /// - pow = 6: 10 cycles
 /// - pow = 7: 12 cycles
 /// - pow > 7: 9 + Ceil(log2(pow))
-pub fn exp_imm(span: &mut SpanBuilder, pow: Felt) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn exp_imm(span: &mut SpanBuilder, pow: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
     if pow.as_int() <= 7 {
         perform_exp_for_small_power(span, pow.as_int());
         Ok(None)
@@ -202,7 +202,7 @@ fn perform_exp_for_small_power(span: &mut SpanBuilder, pow: u64) {
 /// and the provided immediate value. Specifically, the sequences are:
 /// - if imm = 0: EQZ
 /// - otherwise: PUSH(imm) EQ
-pub fn eq_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn eq_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
     if imm == ZERO {
         span.add_op(Eqz)
     } else {
@@ -214,7 +214,7 @@ pub fn eq_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, As
 /// and the provided immediate value. Specifically, the sequences are:
 /// - if imm = 0: EQZ NOT
 /// - otherwise: PUSH(imm) EQ NOT
-pub fn neq_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn neq_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
     if imm == ZERO {
         span.add_ops([Eqz, Not])
     } else {
@@ -225,7 +225,7 @@ pub fn neq_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, A
 /// Appends a sequence of operations to check equality between two words at the top of the stack.
 ///
 /// This operation takes 15 VM cycles.
-pub fn eqw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn eqw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     span.add_ops([
         // duplicate first pair of for comparison(4th elements of each word) in reverse order
         // to avoid using dup.8 after stack shifting(dup.X where X > 7, takes more VM cycles )
@@ -240,7 +240,7 @@ pub fn eqw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> 
 /// of 1 is pushed onto the stack if a < b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 17 VM cycles.
-pub fn lt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn lt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span);
@@ -266,7 +266,7 @@ pub fn lt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
 /// A value of 1 is pushed onto the stack if a <= b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 18 VM cycles.
-pub fn lte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn lte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span);
@@ -292,7 +292,7 @@ pub fn lte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> 
 /// of 1 is pushed onto the stack if a > b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 18 VM cycles.
-pub fn gt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn gt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span);
@@ -318,7 +318,7 @@ pub fn gt(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
 /// A value of 1 is pushed onto the stack if a >= b. Otherwise, 0 is pushed.
 ///
 /// This operation takes 19 VM cycles.
-pub fn gte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn gte(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Split both elements into high and low bits
     // 3 cycles
     split_elements(span);

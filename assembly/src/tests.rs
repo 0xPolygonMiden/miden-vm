@@ -346,14 +346,14 @@ fn invalid_program() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "source code cannot be an empty string");
+        assert_eq!(error.to_string(), "source code cannot be an empty string");
     }
 
     let source = " ";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "source code cannot be an empty string");
+        assert_eq!(error.to_string(), "source code cannot be an empty string");
     }
 
     let source = "none";
@@ -361,7 +361,7 @@ fn invalid_program() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(
-            error.message(),
+            error.to_string(),
             "unexpected token: expected 'begin' but was 'none'"
         );
     }
@@ -370,7 +370,7 @@ fn invalid_program() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "begin without matching end");
+        assert_eq!(error.to_string(), "begin without matching end");
     }
 
     let source = "begin end";
@@ -378,7 +378,7 @@ fn invalid_program() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(
-            error.message(),
+            error.to_string(),
             "a code block must contain at least one instruction"
         );
     }
@@ -387,7 +387,7 @@ fn invalid_program() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "dangling instructions after program end");
+        assert_eq!(error.to_string(), "dangling instructions after program end");
     }
 }
 
@@ -400,7 +400,7 @@ fn invalid_proc() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(
-            error.message(),
+            error.to_string(),
             "unexpected body termination: invalid token 'begin'"
         );
     }
@@ -410,7 +410,7 @@ fn invalid_proc() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(
-            error.message(),
+            error.to_string(),
             "unexpected body termination: invalid token 'proc.bar'"
         );
     }
@@ -419,21 +419,21 @@ fn invalid_proc() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "undefined procedure: bar");
+        assert_eq!(error.to_string(), "undefined procedure: bar");
     }
 
     let source = "proc.123 add mul end begin push.1 exec.123 end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "invalid procedure label: 123");
+        assert_eq!(error.to_string(), "invalid procedure label: 123");
     }
 
     let source = "proc.foo add mul end proc.foo push.3 end begin push.1 end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "duplicate procedure label: foo");
+        assert_eq!(error.to_string(), "duplicate procedure label: foo");
     }
 }
 
@@ -446,7 +446,7 @@ fn invalid_if_else() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "if without matching else/end");
+        assert_eq!(error.to_string(), "if without matching else/end");
     }
 
     // --- unmatched else -------------------------------------------------------------------------
@@ -454,28 +454,28 @@ fn invalid_if_else() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "else without matching if");
+        assert_eq!(error.to_string(), "else without matching if");
     }
 
     let source = "begin push.1 while.true add else mul end end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "else without matching if");
+        assert_eq!(error.to_string(), "else without matching if");
     }
 
     let source = "begin push.1 if.true add else mul else push.1 end end end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "else without matching if");
+        assert_eq!(error.to_string(), "else without matching if");
     }
 
     let source = "begin push.1 add if.true mul else add";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "else without matching end");
+        assert_eq!(error.to_string(), "else without matching end");
     }
 }
 
@@ -488,7 +488,7 @@ fn invalid_repeat() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "repeat without matching end");
+        assert_eq!(error.to_string(), "repeat without matching end");
     }
 
     // invalid iter count
@@ -497,7 +497,7 @@ fn invalid_repeat() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(
-            error.message(),
+            error.to_string(),
             "malformed instruction `repeat.23x3`: parameter '23x3' is invalid"
         );
     }
@@ -512,7 +512,7 @@ fn invalid_while() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(
-            error.message(),
+            error.to_string(),
             "malformed instruction 'while': missing required parameter"
         );
     }
@@ -522,7 +522,7 @@ fn invalid_while() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(
-            error.message(),
+            error.to_string(),
             "malformed instruction `while.abc`: parameter 'abc' is invalid"
         );
     }
@@ -531,6 +531,6 @@ fn invalid_while() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "while without matching end");
+        assert_eq!(error.to_string(), "while without matching end");
     }
 }
