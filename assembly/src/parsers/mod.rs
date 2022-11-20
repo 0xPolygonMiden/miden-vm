@@ -1,5 +1,5 @@
 use super::{
-    errors::SerializationError, AssemblyError, BTreeMap, Felt, ProcedureId, StarkField, String,
+    errors::SerializationError, BTreeMap, Felt, ParsingError, ProcedureId, StarkField, String,
     ToString, Token, TokenStream, Vec, MODULE_PATH_DELIM,
 };
 use core::{fmt::Display, ops::Deref};
@@ -230,7 +230,7 @@ impl Deserializable for ProcedureAst {
 
 /// Parses the provided source into a program AST. A program consist of a body and a set of
 /// internal (i.e., not exported) procedures.
-pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
+pub fn parse_program(source: &str) -> Result<ProgramAst, ParsingError> {
     let mut tokens = TokenStream::new(source)?;
     let imports = parse_imports(&mut tokens)?;
 
@@ -244,9 +244,9 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
     // make sure program body is present
     let next_token = tokens
         .read()
-        .ok_or_else(|| AssemblyError::unexpected_eof(tokens.pos()))?;
+        .ok_or_else(|| ParsingError::unexpected_eof(tokens.pos()))?;
     if next_token.parts()[0] != Token::BEGIN {
-        return Err(AssemblyError::unexpected_token(next_token, Token::BEGIN));
+        return Err(ParsingError::unexpected_token(next_token, Token::BEGIN));
     }
 
     let program_start = tokens.pos();
@@ -258,7 +258,7 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
     // make sure there is something to be read
     let start_pos = tokens.pos();
     if tokens.eof() {
-        return Err(AssemblyError::unexpected_eof(start_pos));
+        return Err(ParsingError::unexpected_eof(start_pos));
     }
 
     let mut body = Vec::<Node>::new();
@@ -275,18 +275,18 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
     // make sure at least one block has been read
     if body.len() == beginning_node_count {
         let start_op = tokens.read_at(start_pos).expect("no start token");
-        return Err(AssemblyError::empty_block(start_op));
+        return Err(ParsingError::empty_block(start_op));
     }
 
     // consume the 'end' token
     match tokens.read() {
-        None => Err(AssemblyError::unmatched_begin(
+        None => Err(ParsingError::unmatched_begin(
             tokens.read_at(program_start).expect("no begin token"),
         )),
         Some(token) => match token.parts()[0] {
             Token::END => token.validate_end(),
-            Token::ELSE => Err(AssemblyError::dangling_else(token)),
-            _ => Err(AssemblyError::unmatched_begin(
+            Token::ELSE => Err(ParsingError::dangling_else(token)),
+            _ => Err(ParsingError::unmatched_begin(
                 tokens.read_at(program_start).expect("no begin token"),
             )),
         },
@@ -295,7 +295,7 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
 
     // make sure there are no instructions after the end
     if let Some(token) = tokens.read() {
-        return Err(AssemblyError::dangling_ops_after_program(token));
+        return Err(ParsingError::dangling_ops_after_program(token));
     }
 
     let local_procs = sort_procs_into_vec(context.local_procs);
@@ -307,7 +307,7 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, AssemblyError> {
 
 /// Parses the provided source into a module ST. A module consists of internal and exported
 /// procedures but does not contain a body.
-pub fn parse_module(source: &str) -> Result<ModuleAst, AssemblyError> {
+pub fn parse_module(source: &str) -> Result<ModuleAst, ParsingError> {
     let mut tokens = TokenStream::new(source)?;
 
     let imports = parse_imports(&mut tokens)?;
@@ -319,7 +319,7 @@ pub fn parse_module(source: &str) -> Result<ModuleAst, AssemblyError> {
 
     // make sure program body is absent and no more instructions.
     if tokens.read().is_some() {
-        return Err(AssemblyError::unexpected_eof(tokens.pos()));
+        return Err(ParsingError::unexpected_eof(tokens.pos()));
     }
 
     let module = ModuleAst {
@@ -331,7 +331,7 @@ pub fn parse_module(source: &str) -> Result<ModuleAst, AssemblyError> {
 
 /// Parses all `use` statements into a map of imports which maps a module name (e.g., "u64") to
 /// its fully-qualified path (e.g., "std::math::u64").
-fn parse_imports(tokens: &mut TokenStream) -> Result<BTreeMap<String, String>, AssemblyError> {
+fn parse_imports(tokens: &mut TokenStream) -> Result<BTreeMap<String, String>, ParsingError> {
     let mut imports = BTreeMap::<String, String>::new();
     // read tokens from the token stream until all `use` tokens are consumed
     while let Some(token) = tokens.read() {
@@ -340,7 +340,7 @@ fn parse_imports(tokens: &mut TokenStream) -> Result<BTreeMap<String, String>, A
                 let module_path = &token.parse_use()?;
                 let (_, short_name) = module_path.rsplit_once(MODULE_PATH_DELIM).unwrap();
                 if imports.contains_key(short_name) {
-                    return Err(AssemblyError::duplicate_module_import(token, module_path));
+                    return Err(ParsingError::duplicate_module_import(token, module_path));
                 }
 
                 imports.insert(short_name.to_string(), module_path.to_string());
@@ -367,12 +367,12 @@ fn sort_procs_into_vec(proc_map: LocalProcMap) -> Vec<ProcedureAst> {
 }
 
 /// Parses a param from the op token with the specified type.
-fn parse_param<I: core::str::FromStr>(op: &Token, param_idx: usize) -> Result<I, AssemblyError> {
+fn parse_param<I: core::str::FromStr>(op: &Token, param_idx: usize) -> Result<I, ParsingError> {
     let param_value = op.parts()[param_idx];
 
     let result = match param_value.parse::<I>() {
         Ok(i) => i,
-        Err(_) => return Err(AssemblyError::invalid_param(op, param_idx)),
+        Err(_) => return Err(ParsingError::invalid_param(op, param_idx)),
     };
 
     Ok(result)
@@ -385,17 +385,17 @@ fn parse_checked_param<I: core::str::FromStr + Ord + Display>(
     param_idx: usize,
     lower_bound: I,
     upper_bound: I,
-) -> Result<I, AssemblyError> {
+) -> Result<I, ParsingError> {
     let param_value = op.parts()[param_idx];
 
     let result = match param_value.parse::<I>() {
         Ok(i) => i,
-        Err(_) => return Err(AssemblyError::invalid_param(op, param_idx)),
+        Err(_) => return Err(ParsingError::invalid_param(op, param_idx)),
     };
 
     // check that the parameter is within the specified bounds
     if result < lower_bound || result > upper_bound {
-        return Err(AssemblyError::invalid_param_with_reason(
+        return Err(ParsingError::invalid_param_with_reason(
             op,
             param_idx,
             format!(
@@ -410,10 +410,10 @@ fn parse_checked_param<I: core::str::FromStr + Ord + Display>(
 }
 
 /// Parses a single parameter into a valid field element.
-fn parse_element_param(op: &Token, param_idx: usize) -> Result<Felt, AssemblyError> {
+fn parse_element_param(op: &Token, param_idx: usize) -> Result<Felt, ParsingError> {
     // make sure that the parameter value is available
     if op.num_parts() <= param_idx {
-        return Err(AssemblyError::missing_param(op));
+        return Err(ParsingError::missing_param(op));
     }
     let param_value = op.parts()[param_idx];
 
@@ -431,26 +431,26 @@ fn parse_decimal_param(
     op: &Token,
     param_idx: usize,
     param_str: &str,
-) -> Result<Felt, AssemblyError> {
+) -> Result<Felt, ParsingError> {
     match param_str.parse::<u64>() {
         Ok(value) => get_valid_felt(op, param_idx, value),
-        Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
+        Err(_) => Err(ParsingError::invalid_param(op, param_idx)),
     }
 }
 
 /// Parses a hexadecimal parameter value into a valid field element.
-fn parse_hex_param(op: &Token, param_idx: usize, param_str: &str) -> Result<Felt, AssemblyError> {
+fn parse_hex_param(op: &Token, param_idx: usize, param_str: &str) -> Result<Felt, ParsingError> {
     match u64::from_str_radix(param_str, 16) {
         Ok(value) => get_valid_felt(op, param_idx, value),
-        Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
+        Err(_) => Err(ParsingError::invalid_param(op, param_idx)),
     }
 }
 
 /// Checks that the u64 parameter value is a valid field element value and returns it as a field
 /// element.
-fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<Felt, AssemblyError> {
+fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<Felt, ParsingError> {
     if param >= Felt::MODULUS {
-        return Err(AssemblyError::invalid_param_with_reason(
+        return Err(ParsingError::invalid_param_with_reason(
             op,
             param_idx,
             format!("parameter value must be smaller than {}", Felt::MODULUS).as_str(),
@@ -461,7 +461,7 @@ fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<Felt, Asse
 }
 
 /// Validates an op Token against a provided instruction string and/or an expected number of
-/// parameter inputs and returns an appropriate AssemblyError if the operation Token is invalid.
+/// parameter inputs and returns an appropriate ParsingError if the operation Token is invalid.
 ///
 /// * To fully validate an operation, pass all of the following:
 /// - the parsed operation Token
@@ -493,11 +493,11 @@ macro_rules! validate_operation {
 
         // token has too few parts to contain the required parameters
         if num_parts < num_instr_parts + $min_params {
-            return Err(AssemblyError::missing_param($token));
+            return Err(ParsingError::missing_param($token));
         }
         // token has more than the maximum number of parts
         if num_parts > num_instr_parts + $max_params {
-            return Err(AssemblyError::extra_param($token));
+            return Err(ParsingError::extra_param($token));
         }
     };
     // validate the exact number of parameters
@@ -518,13 +518,13 @@ macro_rules! validate_operation {
 
         // token has too few parts to contain the full instruction
         if num_parts < num_instr_parts {
-            return Err(AssemblyError::invalid_op($token));
+            return Err(ParsingError::invalid_op($token));
         }
 
         // compare the parts to make sure they match
         for (part_variants, token_part) in instr_parts.iter().zip($token.parts()) {
             if !part_variants.contains(token_part) {
-                return Err(AssemblyError::unexpected_token($token, $instr));
+                return Err(ParsingError::unexpected_token($token, $instr));
             }
         }
 

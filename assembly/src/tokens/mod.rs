@@ -1,4 +1,4 @@
-use super::{AssemblyError, String, ToString, Vec};
+use super::{BTreeMap, ParsingError, String, ToString, Vec};
 use core::fmt;
 
 mod stream;
@@ -98,32 +98,32 @@ impl<'a> Token<'a> {
     // CONTROL TOKEN PARSERS / VALIDATORS
     // --------------------------------------------------------------------------------------------
 
-    pub fn parse_use(&self) -> Result<String, AssemblyError> {
+    pub fn parse_use(&self) -> Result<String, ParsingError> {
         assert_eq!(Self::USE, self.parts[0], "not a use");
         match self.num_parts() {
-            1 => Err(AssemblyError::missing_param(self)),
+            1 => Err(ParsingError::missing_param(self)),
             2 => validate_import_path(self.parts[1], self),
-            _ => Err(AssemblyError::extra_param(self)),
+            _ => Err(ParsingError::extra_param(self)),
         }
     }
 
-    pub fn validate_begin(&self) -> Result<(), AssemblyError> {
+    pub fn validate_begin(&self) -> Result<(), ParsingError> {
         assert_eq!(Self::BEGIN, self.parts[0], "not a begin");
         if self.num_parts() > 1 {
-            Err(AssemblyError::extra_param(self))
+            Err(ParsingError::extra_param(self))
         } else {
             Ok(())
         }
     }
 
-    pub fn parse_proc(&self) -> Result<(String, u32, bool), AssemblyError> {
+    pub fn parse_proc(&self) -> Result<(String, u32, bool), ParsingError> {
         assert!(
             self.parts[0] == Self::PROC || self.parts[0] == Self::EXPORT,
             "invalid procedure declaration"
         );
         let is_export = self.parts[0] == Self::EXPORT;
         match self.num_parts() {
-            1 => Err(AssemblyError::missing_param(self)),
+            1 => Err(ParsingError::missing_param(self)),
             2 => {
                 let label = validate_proc_declaration_label(self.parts[1], self)?;
                 Ok((label, 0, is_export))
@@ -133,91 +133,91 @@ impl<'a> Token<'a> {
                 let num_locals = validate_proc_locals(self.parts[2], self)?;
                 Ok((label, num_locals, is_export))
             }
-            _ => Err(AssemblyError::extra_param(self)),
+            _ => Err(ParsingError::extra_param(self)),
         }
     }
 
-    pub fn validate_if(&self) -> Result<(), AssemblyError> {
+    pub fn validate_if(&self) -> Result<(), ParsingError> {
         assert_eq!(Self::IF, self.parts[0], "not an if");
         match self.num_parts() {
-            1 => Err(AssemblyError::missing_param(self)),
+            1 => Err(ParsingError::missing_param(self)),
             2 => {
                 if self.parts[1] != "true" {
-                    Err(AssemblyError::invalid_param(self, 1))
+                    Err(ParsingError::invalid_param(self, 1))
                 } else {
                     Ok(())
                 }
             }
-            _ => Err(AssemblyError::extra_param(self)),
+            _ => Err(ParsingError::extra_param(self)),
         }
     }
 
-    pub fn validate_else(&self) -> Result<(), AssemblyError> {
+    pub fn validate_else(&self) -> Result<(), ParsingError> {
         assert_eq!(Self::ELSE, self.parts[0], "not an else");
         if self.num_parts() > 1 {
-            Err(AssemblyError::extra_param(self))
+            Err(ParsingError::extra_param(self))
         } else {
             Ok(())
         }
     }
 
-    pub fn validate_while(&self) -> Result<(), AssemblyError> {
+    pub fn validate_while(&self) -> Result<(), ParsingError> {
         assert_eq!(Self::WHILE, self.parts[0], "not a while");
         match self.num_parts() {
-            1 => Err(AssemblyError::missing_param(self)),
+            1 => Err(ParsingError::missing_param(self)),
             2 => {
                 if self.parts[1] != "true" {
-                    Err(AssemblyError::invalid_param(self, 1))
+                    Err(ParsingError::invalid_param(self, 1))
                 } else {
                     Ok(())
                 }
             }
-            _ => Err(AssemblyError::extra_param(self)),
+            _ => Err(ParsingError::extra_param(self)),
         }
     }
 
-    pub fn parse_repeat(&self) -> Result<u32, AssemblyError> {
+    pub fn parse_repeat(&self) -> Result<u32, ParsingError> {
         assert_eq!(Self::REPEAT, self.parts[0], "not a repeat");
         match self.num_parts() {
-            1 => Err(AssemblyError::missing_param(self)),
+            1 => Err(ParsingError::missing_param(self)),
             2 => self.parts[1]
                 .parse::<u32>()
-                .map_err(|_| AssemblyError::invalid_param(self, 1)),
-            _ => Err(AssemblyError::extra_param(self)),
+                .map_err(|_| ParsingError::invalid_param(self, 1)),
+            _ => Err(ParsingError::extra_param(self)),
         }
     }
 
-    pub fn parse_exec(&self) -> Result<String, AssemblyError> {
+    pub fn parse_exec(&self) -> Result<String, ParsingError> {
         assert_eq!(Self::EXEC, self.parts[0], "not an exec");
         match self.num_parts() {
-            1 => Err(AssemblyError::missing_param(self)),
+            1 => Err(ParsingError::missing_param(self)),
             2 => validate_proc_invocation_label(self.parts[1], self),
-            _ => Err(AssemblyError::extra_param(self)),
+            _ => Err(ParsingError::extra_param(self)),
         }
     }
 
-    pub fn parse_call(&self) -> Result<String, AssemblyError> {
+    pub fn parse_call(&self) -> Result<String, ParsingError> {
         assert_eq!(Self::CALL, self.parts[0], "not a call");
         match self.num_parts() {
-            1 => Err(AssemblyError::missing_param(self)),
+            1 => Err(ParsingError::missing_param(self)),
             2 => validate_proc_invocation_label(self.parts[1], self),
-            _ => Err(AssemblyError::extra_param(self)),
+            _ => Err(ParsingError::extra_param(self)),
         }
     }
 
-    pub fn parse_syscall(&self) -> Result<String, AssemblyError> {
+    pub fn parse_syscall(&self) -> Result<String, ParsingError> {
         assert_eq!(Self::SYSCALL, self.parts[0], "not a syscall");
         match self.num_parts() {
-            1 => Err(AssemblyError::missing_param(self)),
+            1 => Err(ParsingError::missing_param(self)),
             2 => validate_proc_invocation_label(self.parts[1], self),
-            _ => Err(AssemblyError::extra_param(self)),
+            _ => Err(ParsingError::extra_param(self)),
         }
     }
 
-    pub fn validate_end(&self) -> Result<(), AssemblyError> {
+    pub fn validate_end(&self) -> Result<(), ParsingError> {
         assert_eq!(Self::END, self.parts[0], "not an end");
         if self.num_parts() > 1 {
-            Err(AssemblyError::extra_param(self))
+            Err(ParsingError::extra_param(self))
         } else {
             Ok(())
         }
@@ -236,15 +236,15 @@ impl<'a> fmt::Display for Token<'a> {
 /// Label of a declared procedure must comply with the following rules:
 /// - It must start with an ascii letter.
 /// - It can contain only ascii letters, numbers, or underscores.
-fn validate_proc_declaration_label(label: &str, token: &Token) -> Result<String, AssemblyError> {
+fn validate_proc_declaration_label(label: &str, token: &Token) -> Result<String, ParsingError> {
     // a label must start with a letter
     if label.is_empty() || !label.chars().next().unwrap().is_ascii_alphabetic() {
-        return Err(AssemblyError::invalid_proc_label(token, label));
+        return Err(ParsingError::invalid_proc_label(token, label));
     }
 
     // a declaration label can contain only letters, numbers, or underscores
     if !label.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-        return Err(AssemblyError::invalid_proc_label(token, label));
+        return Err(ParsingError::invalid_proc_label(token, label));
     }
 
     Ok(label.to_string())
@@ -256,10 +256,10 @@ fn validate_proc_declaration_label(label: &str, token: &Token) -> Result<String,
 ///
 /// As compared to procedure declaration label, colons are allowed here to support invocation
 /// of imported procedures.
-fn validate_proc_invocation_label(label: &str, token: &Token) -> Result<String, AssemblyError> {
+fn validate_proc_invocation_label(label: &str, token: &Token) -> Result<String, ParsingError> {
     // a label must start with a letter
     if label.is_empty() || !label.chars().next().unwrap().is_ascii_alphabetic() {
-        return Err(AssemblyError::invalid_proc_label(token, label));
+        return Err(ParsingError::invalid_proc_label(token, label));
     }
 
     // a label can contain only letters, numbers, underscores, or colons
@@ -267,31 +267,31 @@ fn validate_proc_invocation_label(label: &str, token: &Token) -> Result<String, 
         .chars()
         .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == ':')
     {
-        return Err(AssemblyError::invalid_proc_label(token, label));
+        return Err(ParsingError::invalid_proc_label(token, label));
     }
 
     Ok(label.to_string())
 }
 
-fn validate_proc_locals(locals: &str, token: &Token) -> Result<u32, AssemblyError> {
+fn validate_proc_locals(locals: &str, token: &Token) -> Result<u32, ParsingError> {
     match locals.parse::<u64>() {
         Ok(num_locals) => {
             if num_locals > u32::MAX as u64 {
-                return Err(AssemblyError::invalid_proc_locals(token, locals));
+                return Err(ParsingError::invalid_proc_locals(token, locals));
             }
             Ok(num_locals as u32)
         }
-        Err(_) => Err(AssemblyError::invalid_proc_locals(token, locals)),
+        Err(_) => Err(ParsingError::invalid_proc_locals(token, locals)),
     }
 }
 
 /// A module import path must comply with the following rules:
 /// - It must start with an ascii letter.
 /// - It can contain only ascii letters, numbers, underscores, or colons.
-fn validate_import_path(path: &str, token: &Token) -> Result<String, AssemblyError> {
+fn validate_import_path(path: &str, token: &Token) -> Result<String, ParsingError> {
     // a path must start with a letter
     if path.is_empty() || !path.chars().next().unwrap().is_ascii_alphabetic() {
-        return Err(AssemblyError::invalid_module_path(token, path));
+        return Err(ParsingError::invalid_module_path(token, path));
     }
 
     // a path can contain only letters, numbers, underscores, or colons
@@ -299,7 +299,7 @@ fn validate_import_path(path: &str, token: &Token) -> Result<String, AssemblyErr
         .chars()
         .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == ':')
     {
-        return Err(AssemblyError::invalid_module_path(token, path));
+        return Err(ParsingError::invalid_module_path(token, path));
     }
 
     Ok(path.to_string())

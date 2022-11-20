@@ -1,13 +1,12 @@
-use super::{BTreeSet, CodeBlock, String, MODULE_PATH_DELIM};
+use super::{BTreeSet, CodeBlock, Felt, String, MODULE_PATH_DELIM};
 use core::{fmt, ops};
 use crypto::{hashers::Blake3_256, Digest, Hasher};
-use vm_core::Felt;
 
 // PROCEDURE
 // ================================================================================================
 
+/// Contains metadata and MAST of a procedure.
 #[derive(Clone, Debug)]
-/// Contains metadata and code of a procedure.
 pub struct Procedure {
     id: ProcedureId,
     label: String,
@@ -168,6 +167,8 @@ impl ProcedureId {
 // CALLSET
 // ================================================================================================
 
+/// Contains a list of all procedures which may be invoked from a procedure via call or syscall
+/// instructions.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct CallSet(BTreeSet<ProcedureId>);
 
