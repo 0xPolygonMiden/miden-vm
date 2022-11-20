@@ -1,6 +1,4 @@
-use crate::ProcedureId;
-
-use super::{String, ToString, Token};
+use super::{ProcedureId, String, ToString, Token};
 use core::fmt;
 
 // ASSEMBLY ERROR
@@ -335,6 +333,9 @@ impl AssemblyError {
     }
 }
 
+// SERIALIZATION ERROR
+// ================================================================================================
+
 #[derive(Debug)]
 pub enum SerializationError {
     InvalidBoolValue,
@@ -343,6 +344,9 @@ pub enum SerializationError {
     InvalidOpCode,
     InvalidFieldElement,
 }
+
+// ASSEMBLER ERROR
+// ================================================================================================
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct AssemblerError {
@@ -446,6 +450,26 @@ impl From<AssemblerError> for AssemblyError {
         }
     }
 }
+
+// LIBRARY ERROR
+// ================================================================================================
+
+#[derive(Clone, Debug)]
+pub enum LibraryError {
+    ModuleNotFound(String),
+}
+
+impl fmt::Display for LibraryError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use LibraryError::*;
+        match self {
+            ModuleNotFound(path) => write!(f, "module '{path}' not found"),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for LibraryError {}
 
 // COMMON TRAIT IMPLEMENTATIONS
 // ================================================================================================

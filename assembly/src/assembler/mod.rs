@@ -359,10 +359,6 @@ fn nested_block_works() {
     }
 
     impl ModuleProvider for DummyModuleProvider {
-        fn get_source(&self, _path: &str) -> Option<&str> {
-            None
-        }
-
         fn get_module(&self, _id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
             Some(NamedModuleAst::new("foo::bar", &self.module))
         }

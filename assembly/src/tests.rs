@@ -203,10 +203,6 @@ fn program_with_one_import() {
     }
 
     impl ModuleProvider for DummyProvider {
-        fn get_source(&self, path: &str) -> Option<&str> {
-            (path == MODULE).then_some(PROCEDURE)
-        }
-
         fn get_module(&self, id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
             self.module
                 .local_procs

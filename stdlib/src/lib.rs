@@ -1,13 +1,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use vm_assembly::{ModuleAst, ModuleProvider, NamedModuleAst, ProcedureId};
-use vm_core::{
-    errors::LibraryError,
-    utils::{
-        collections::{BTreeMap, Vec},
-        string::{String, ToString},
-    },
-    Library,
+use vm_assembly::{Library, LibraryError, ModuleAst, ModuleProvider, NamedModuleAst, ProcedureId};
+use vm_core::utils::{
+    collections::{BTreeMap, Vec},
+    string::{String, ToString},
 };
 
 pub mod asm;
@@ -18,11 +14,6 @@ use asm::MODULES;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-// TYPE ALIASES
-// ================================================================================================
-
-type ModuleSource = BTreeMap<&'static str, &'static str>;
-
 // STANDARD LIBRARY
 // ================================================================================================
 
@@ -30,14 +21,9 @@ type ModuleSource = BTreeMap<&'static str, &'static str>;
 pub struct StdLibrary {
     modules: Vec<(String, ModuleAst)>,
     proc_to_module: BTreeMap<ProcedureId, usize>,
-    sources: ModuleSource,
 }
 
 impl ModuleProvider for StdLibrary {
-    fn get_source(&self, path: &str) -> Option<&str> {
-        self.sources.get(path).copied()
-    }
-
     fn get_module(&self, proc_id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
         self.proc_to_module
             .get(proc_id)
@@ -76,12 +62,10 @@ impl Library for StdLibrary {
 impl Default for StdLibrary {
     /// Returns a new [StdLibrary] instance instantiated with default parameters.
     fn default() -> Self {
-        // TODO this will be trimmed in the future to `ids` as the only provider for std library
-
         let mut modules = Vec::with_capacity(MODULES.len());
         let mut proc_to_module = BTreeMap::new();
 
-        for (i, (module_path, _, module_bytes)) in MODULES.iter().enumerate() {
+        for (i, (module_path, module_bytes)) in MODULES.iter().enumerate() {
             // deserialize module AST
             let module_ast = ModuleAst::from_bytes(module_bytes)
                 .expect("static module deserialization should be infallible");
@@ -97,15 +81,9 @@ impl Default for StdLibrary {
             modules.push((module_path.to_string(), module_ast));
         }
 
-        let sources = MODULES
-            .into_iter()
-            .map(|(label, source, _)| (label, source))
-            .collect();
-
         Self {
             modules,
             proc_to_module,
-            sources,
         }
     }
 }
