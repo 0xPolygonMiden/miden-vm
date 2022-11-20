@@ -28,6 +28,10 @@ doctest = false
 name = "program_compilation"
 harness = false
 
+[[bench]]
+name = "program_execution"
+harness = false
+
 [features]
 concurrent = ["prover/concurrent", "std"]
 default = ["std"]
