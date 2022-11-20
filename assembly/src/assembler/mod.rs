@@ -3,7 +3,7 @@ use crate::{
     AssemblerError, BTreeMap, Box, CallSet, CodeBlock, CodeBlockTable, Kernel, ModuleAst,
     ModuleProvider, Procedure, ProcedureId, Program, String, ToString, Vec,
 };
-use core::borrow::Borrow;
+use core::{borrow::Borrow, pin::Pin};
 use vm_core::{Decorator, DecoratorList, Felt, Operation};
 
 mod instruction;
@@ -14,6 +14,11 @@ use span_builder::SpanBuilder;
 mod context;
 use context::AssemblyContext;
 
+// TYPE ALIASES
+// ================================================================================================
+
+type ProcedureCache = BTreeMap<ProcedureId, Procedure>;
+
 // ASSEMBLER
 // ================================================================================================
 
@@ -21,7 +26,7 @@ use context::AssemblyContext;
 pub struct Assembler {
     kernel: Kernel,
     module_provider: Box<dyn ModuleProvider>,
-    proc_cache: BTreeMap<ProcedureId, Procedure>,
+    proc_cache: Pin<Box<ProcedureCache>>,
     in_debug_mode: bool,
 }
 
@@ -33,7 +38,7 @@ impl Assembler {
         Self {
             kernel: Kernel::default(),
             module_provider: Box::new(()),
-            proc_cache: BTreeMap::default(),
+            proc_cache: Box::pin(BTreeMap::default()),
             in_debug_mode: false,
         }
     }

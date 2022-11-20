@@ -1,6 +1,6 @@
 use super::{
-    AssemblerError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Kernel, Procedure, ProcedureId,
-    String, ToString, Vec,
+    AssemblerError, CallSet, CodeBlock, CodeBlockTable, Kernel, Procedure, ProcedureCache,
+    ProcedureId, String, ToString, Vec,
 };
 use crate::MODULE_PATH_DELIM;
 
@@ -239,10 +239,7 @@ impl AssemblyContext {
     /// - If this module is not an executable module.
     /// - If any of the procedures in the module's callset cannot be found in the specified
     ///   procedure cache or the local procedure set of the module.
-    pub fn into_cb_table(
-        mut self,
-        proc_cache: &BTreeMap<ProcedureId, Procedure>,
-    ) -> CodeBlockTable {
+    pub fn into_cb_table(mut self, proc_cache: &ProcedureCache) -> CodeBlockTable {
         // get the last module off the module stack
         let mut main_module_context = self.module_stack.pop().expect("no modules");
         assert!(self.module_stack.is_empty(), "executable not last module");
