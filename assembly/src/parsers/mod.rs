@@ -34,7 +34,7 @@ fn parse_op_token(
     let dec_len = decorators.len();
     // if assembler is in debug mode, populate decorators list with debug related
     // decorators like AsmOp.
-    if in_debug_mode {
+    if in_debug_mode && !is_decorator(op) {
         decorators.push((
             span_ops.len(),
             Decorator::AsmOp(AssemblyOp::new(op.to_string(), 1)),
@@ -202,7 +202,7 @@ fn parse_op_token(
         _ => return Err(AssemblyError::invalid_op(op)),
     }?;
 
-    if in_debug_mode {
+    if in_debug_mode && !is_decorator(op)  {
         let op_start = decorators[dec_len].0;
         // edit the number of cycles corresponding to the asmop decorator at an index
         if let Decorator::AsmOp(assembly_op) = &mut decorators[dec_len].1 {
@@ -211,6 +211,11 @@ fn parse_op_token(
     }
 
     Ok(())
+}
+
+/// Checks if an assembly instruction is a decorator.
+fn is_decorator(op: &Token) -> bool {
+    matches!(op.parts()[0], "adv")
 }
 
 // HELPER FUNCTIONS
