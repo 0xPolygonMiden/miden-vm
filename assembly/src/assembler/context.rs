@@ -7,7 +7,7 @@ use crate::MODULE_PATH_DELIM;
 // CONSTANTS
 // ================================================================================================
 
-const MAIN_PROC_NAME: &str = "_main";
+const MAIN_PROC_NAME: &str = "#main";
 
 // ASSEMBLY CONTEXT
 // ================================================================================================
@@ -120,7 +120,7 @@ impl AssemblyContext {
             self.kernel = Some(Kernel::new(&hashes));
         }
 
-        // return compiled procs and callset from the module
+        // return compiled procedures and callset from the module
         (module_ctx.compiled_procs, module_ctx.callset)
     }
 
@@ -239,12 +239,17 @@ impl AssemblyContext {
     /// - If this module is not an executable module.
     /// - If any of the procedures in the module's callset cannot be found in the specified
     ///   procedure cache or the local procedure set of the module.
-    pub fn into_cb_table(self, proc_cache: &BTreeMap<ProcedureId, Procedure>) -> CodeBlockTable {
-        assert!(!self.module_stack.is_empty(), "no modules");
-        assert_eq!(self.module_stack.len(), 1, "more than one final module");
+    pub fn into_cb_table(
+        mut self,
+        proc_cache: &BTreeMap<ProcedureId, Procedure>,
+    ) -> CodeBlockTable {
+        // get the last module off the module stack
+        let mut main_module_context = self.module_stack.pop().expect("no modules");
+        assert!(self.module_stack.is_empty(), "executable not last module");
 
-        let main_module_context = &self.module_stack[0];
-        assert!(main_module_context.is_executable(), "module not executable");
+        // complete compilation of the executable module; this appends the callset of the main
+        // procedure to the callset of the executable module
+        main_module_context.complete_executable();
 
         // build the code block table based on the callset of the executable module; called
         // procedures can be either in the specified procedure cache (for procedures imported from
@@ -434,6 +439,25 @@ impl ModuleContext {
             context.callset.insert(*called_proc.id());
         }
     }
+
+    // EXECUTABLE FINALIZER
+    // --------------------------------------------------------------------------------------------
+    /// Completes compilation of the executable module.
+    ///
+    /// Executable modules are not completed the same way library modules are. Thus, at the end of
+    /// compiling a program, the executable module will have the main procedure left on the
+    /// procedure stack. To complete the module we need to pop the main procedure off the stack and
+    /// append its callset to the callset of the module context.
+    pub fn complete_executable(&mut self) {
+        assert!(self.is_executable(), "module not executable");
+
+        let main_proc_context = self.proc_stack.pop().expect("no procedures");
+
+        assert!(main_proc_context.is_main(), "not main procedure");
+        assert!(self.proc_stack.is_empty(), "more procedures after main");
+
+        self.callset.append(&main_proc_context.callset);
+    }
 }
 
 // PROCEDURE CONTEXT
@@ -456,6 +480,10 @@ impl ProcedureContext {
             num_locals,
             callset: CallSet::default(),
         }
+    }
+
+    pub fn is_main(&self) -> bool {
+        self.name == MAIN_PROC_NAME
     }
 
     pub fn into_procedure(self, id: ProcedureId, code_root: CodeBlock) -> Procedure {
