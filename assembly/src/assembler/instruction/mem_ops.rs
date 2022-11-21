@@ -1,5 +1,5 @@
 use super::{
-    push_u16_value, push_u32_value, validate_param, AssemblerError, AssemblyContext, CodeBlock,
+    push_felt, push_u32_value, validate_param, AssemblerError, AssemblyContext, CodeBlock, Felt,
     Operation::*, SpanBuilder,
 };
 
@@ -110,7 +110,7 @@ pub fn local_to_absolute_addr(
     let max = num_proc_locals - 1;
     validate_param(index, 0, max)?;
 
-    push_u16_value(span, max - index);
+    push_felt(span, -Felt::from(max - index));
     span.push_op(FmpAdd);
 
     Ok(())

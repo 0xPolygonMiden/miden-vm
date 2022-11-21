@@ -1,6 +1,7 @@
+use assembly::{self, Assembler};
 use criterion::{criterion_group, criterion_main, Criterion};
-use miden_assembly::{self, Assembler};
 use std::time::Duration;
+use stdlib::StdLibrary;
 
 fn program_compilation(c: &mut Criterion) {
     let mut group = c.benchmark_group("program_compilation");
@@ -14,7 +15,7 @@ fn program_compilation(c: &mut Criterion) {
                 exec.sha256::hash
             end";
         bench.iter(|| {
-            let assembler = Assembler::default();
+            let assembler = Assembler::new().with_module_provider(StdLibrary::default());
             assembler
                 .compile(source)
                 .expect("Failed to compile test source.")

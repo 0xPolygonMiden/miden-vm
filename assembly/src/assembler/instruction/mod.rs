@@ -288,19 +288,11 @@ impl Assembler {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn push_u16_value(span: &mut SpanBuilder, value: u16) {
-    use Operation::*;
-
-    if value == 0 {
-        span.push_op(Pad);
-    } else if value == 1 {
-        span.push_op(Pad);
-        span.push_op(Incr);
-    } else {
-        span.push_op(Push(Felt::from(value)));
-    }
-}
-
+/// This is a helper function that appends a PUSH operation to the span block which puts the
+/// provided u32 value onto the stack.
+///
+/// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
+/// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
 fn push_u32_value(span: &mut SpanBuilder, value: u32) {
     use Operation::*;
 
@@ -315,7 +307,7 @@ fn push_u32_value(span: &mut SpanBuilder, value: u32) {
 }
 
 /// This is a helper function that appends a PUSH operation to the span block which puts the
-/// provided value parameter onto the stack.
+/// provided field element onto the stack.
 ///
 /// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
 /// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
