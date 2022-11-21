@@ -1,5 +1,5 @@
 use super::{
-    mem_ops::local_to_absolute_addr, push_felt, AssemblerError, AssemblyContext, CodeBlock, Felt,
+    mem_ops::local_to_absolute_addr, push_felt, AssemblyContext, AssemblyError, CodeBlock, Felt,
     Operation::*, SpanBuilder,
 };
 
@@ -25,7 +25,7 @@ use super::{
 /// It will return an error if no immediate value is provided or if any of parameter formats are
 /// invalid. It will also return an error if the op token is malformed or doesn't match the expected
 /// instruction.
-pub fn push(imms: &[Felt], span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub fn push(imms: &[Felt], span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     imms.iter().copied().for_each(|imm| push_felt(span, imm));
     Ok(None)
 }
@@ -42,7 +42,7 @@ pub fn locaddr(
     span: &mut SpanBuilder,
     index: u16,
     context: &AssemblyContext,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     local_to_absolute_addr(span, index, context.num_proc_locals())?;
     Ok(None)
 }
@@ -55,9 +55,9 @@ pub fn locaddr(
 pub fn caller(
     span: &mut SpanBuilder,
     context: &AssemblyContext,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     if !context.is_kernel() {
-        return Err(AssemblerError::caller_out_of_kernel());
+        return Err(AssemblyError::caller_out_of_kernel());
     }
 
     span.add_op(Caller)

@@ -1,5 +1,5 @@
 use super::{
-    push_felt, push_u32_value, validate_param, AssemblerError, AssemblyContext, CodeBlock, Felt,
+    push_felt, push_u32_value, validate_param, AssemblyContext, AssemblyError, CodeBlock, Felt,
     Operation::*, SpanBuilder,
 };
 
@@ -26,7 +26,7 @@ pub fn mem_read(
     addr: Option<u32>,
     is_local: bool,
     is_single: bool,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     // if the address was provided as an immediate value, put it onto the stack
     if let Some(addr) = addr {
         if is_local {
@@ -68,7 +68,7 @@ pub fn mem_write(
     addr: Option<u32>,
     is_local: bool,
     is_single: bool,
-) -> Result<Option<CodeBlock>, AssemblerError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     // if the address was provided as an immediate value, put it onto the stack
     if let Some(addr) = addr {
         if is_local {
@@ -106,7 +106,7 @@ pub fn local_to_absolute_addr(
     span: &mut SpanBuilder,
     index: u16,
     num_proc_locals: u16,
-) -> Result<(), AssemblerError> {
+) -> Result<(), AssemblyError> {
     let max = num_proc_locals - 1;
     validate_param(index, 0, max)?;
 

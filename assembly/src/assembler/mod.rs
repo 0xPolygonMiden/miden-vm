@@ -1,6 +1,6 @@
 use super::{
     parsers::{self, Instruction, Node, ProcedureAst, ProgramAst},
-    AssemblerError, BTreeMap, Box, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, ModuleAst,
+    AssemblyError, BTreeMap, Box, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, ModuleAst,
     ModuleProvider, Operation, Procedure, ProcedureId, Program, String, ToString, Vec, ONE, ZERO,
 };
 use core::{borrow::Borrow, pin::Pin};
@@ -24,8 +24,15 @@ type ProcedureCache = BTreeMap<ProcedureId, Procedure>;
 
 // ASSEMBLER
 // ================================================================================================
-
-/// TODO: add comments
+/// Miden Assembler which can be used to convert Miden assembly source code into program MAST (
+/// represented by the [Program] struct). The assembler can be instantiated in several ways using
+/// a "builder" patter. Specifically:
+/// - If `with_kernel()` or `with_kernel_module()` methods are not used, the assembler will be
+///   instantiated with a default empty kernel. Programs compiled using such assembler
+///   cannot make calls to kernel procedures via `syscall` instruction.
+/// - If `with_module_provider()` method is not used, the assembler will be instantiated without
+///   access to external libraries. Programs compiled with such assembler must be self-contained
+///   (i.e., they cannot invoke procedures from external libraries).
 pub struct Assembler {
     kernel: Kernel,
     module_provider: Box<dyn ModuleProvider>,
@@ -68,7 +75,7 @@ impl Assembler {
     ///
     /// # Panics
     /// Panics if the assembler has already been used to compile programs.
-    pub fn with_kernel(self, kernel_source: &str) -> Result<Self, AssemblerError> {
+    pub fn with_kernel(self, kernel_source: &str) -> Result<Self, AssemblyError> {
         let kernel_ast = parsers::parse_module(kernel_source)?;
         self.with_kernel_module(&kernel_ast)
     }
@@ -77,7 +84,7 @@ impl Assembler {
     ///
     /// # Errors
     /// Returns an error if compiling kernel source results in an error.
-    pub fn with_kernel_module(mut self, module: &ModuleAst) -> Result<Self, AssemblerError> {
+    pub fn with_kernel_module(mut self, module: &ModuleAst) -> Result<Self, AssemblyError> {
         // compile the kernel; this adds all exported kernel procedures to the procedure cache
         let mut context = AssemblyContext::new(true);
         self.compile_module(module, ProcedureId::KERNEL_PATH, &mut context)?;
@@ -111,7 +118,7 @@ impl Assembler {
     ///
     /// # Errors
     /// Returns an error if parsing or compilation of the specified program fails.
-    pub fn compile<S>(&self, source: S) -> Result<Program, AssemblerError>
+    pub fn compile<S>(&self, source: S) -> Result<Program, AssemblyError>
     where
         S: AsRef<str>,
     {
@@ -123,7 +130,7 @@ impl Assembler {
         let mut context = AssemblyContext::new(false);
         for proc_ast in local_procs.iter() {
             if proc_ast.is_export {
-                return Err(AssemblerError::proc_export_in_program(&proc_ast.name));
+                return Err(AssemblyError::exported_proc_in_program(&proc_ast.name));
             }
             self.compile_procedure(proc_ast, &mut context)?;
         }
@@ -152,7 +159,7 @@ impl Assembler {
         module: &ModuleAst,
         module_path: &str,
         context: &mut AssemblyContext,
-    ) -> Result<(), AssemblerError> {
+    ) -> Result<(), AssemblyError> {
         // compile all procedures in the module; once the compilation is complete, we get all
         // compiled procedures (and their combined callset) from the context
         context.begin_module(module_path)?;
@@ -187,7 +194,7 @@ impl Assembler {
         &self,
         proc: &ProcedureAst,
         context: &mut AssemblyContext,
-    ) -> Result<(), AssemblerError> {
+    ) -> Result<(), AssemblyError> {
         context.begin_proc(&proc.name, proc.is_export, proc.num_locals as u16)?;
 
         let code_root = if proc.num_locals > 0 {
@@ -219,7 +226,7 @@ impl Assembler {
         body: A,
         context: &mut AssemblyContext,
         wrapper: Option<BodyWrapper>,
-    ) -> Result<CodeBlock, AssemblerError>
+    ) -> Result<CodeBlock, AssemblyError>
     where
         A: Iterator<Item = N>,
         N: Borrow<Node>,
@@ -293,7 +300,7 @@ impl Assembler {
         &self,
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
-    ) -> Result<&Procedure, AssemblerError> {
+    ) -> Result<&Procedure, AssemblyError> {
         // if the procedure is already in the procedure cache, return it
         if let Some(p) = self.proc_cache.get(proc_id) {
             return Ok(p);
@@ -304,14 +311,15 @@ impl Assembler {
         let module = self
             .module_provider
             .get_module(proc_id)
-            .ok_or_else(|| AssemblerError::undefined_imported_proc(proc_id))?;
+            .ok_or_else(|| AssemblyError::imported_proc_module_not_found(proc_id))?;
         self.compile_module(&module, module.path(), context)?;
 
-        // then, get the procedure out of the procedure cache and return
-        let proc = self
-            .proc_cache
-            .get(proc_id)
-            .expect("compiled imported procedure not in procedure cache");
+        // then, get the procedure out of the procedure cache and return; if the procedure
+        // cannot be found in the cache, it is possible that the procedure was not in the
+        // module returned from the module provider
+        let proc = self.proc_cache.get(proc_id).ok_or_else(|| {
+            AssemblyError::imported_proc_not_found_in_module(proc_id, module.path())
+        })?;
         Ok(proc)
     }
 }

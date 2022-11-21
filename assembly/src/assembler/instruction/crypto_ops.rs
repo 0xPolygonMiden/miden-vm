@@ -1,4 +1,4 @@
-use super::{AssemblerError, CodeBlock, Operation::*, SpanBuilder};
+use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder};
 use vm_core::{AdviceInjector, Decorator, Felt};
 
 // HASHING
@@ -24,7 +24,7 @@ const RPHASH_NUM_ELEMENTS: u64 = 8;
 /// 4. Drop F and D to return our result [E, ...].
 ///
 /// This operation takes 16 VM cycles.
-pub(super) fn rphash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub(super) fn rphash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Add 4 elements to the stack to prepare the capacity portion for the Rescue Prime permutation
     // The capacity should start at stack[8], and the number of elements to be hashed should
     // be deepest in the stack at stack[11]
@@ -64,7 +64,7 @@ pub(super) fn rphash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assemb
 /// - root of the tree, 4 elements.
 ///
 /// This operation takes 9 VM cycles.
-pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // stack: [d, i, R, ...]
     // inject the node value we're looking for at the head of the advice tape
     read_mtree_node(span);
@@ -96,7 +96,7 @@ pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
 /// - new value of the node, 4 elements
 ///
 /// This operation takes 14 VM cycles.
-pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Inject the old node value onto the stack for the call to MRUPDATE.
     // [d, i, R, V_new, ...] => [V_old, d, i, R, V_new, ...]
     read_mtree_node(span);
@@ -136,7 +136,7 @@ pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
 /// - root of the old tree which was copied, 4 elements
 ///
 /// This operation takes 12 VM cycles.
-pub(super) fn mtree_cwm(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblerError> {
+pub(super) fn mtree_cwm(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // Inject the old node value onto the stack for the call to MRUPDATE.
     // [d, i, R, V_new, ...] => [V_old, d, i, R, V_new, ...]
     read_mtree_node(span);

@@ -1,5 +1,5 @@
 use super::{
-    AssemblerError, CallSet, CodeBlock, CodeBlockTable, Kernel, Procedure, ProcedureCache,
+    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, Procedure, ProcedureCache,
     ProcedureId, String, ToString, Vec,
 };
 use crate::MODULE_PATH_DELIM;
@@ -56,11 +56,7 @@ impl AssemblyContext {
 
     /// Returns the number of memory locals allocated for the procedure currently being compiled.
     pub fn num_proc_locals(&self) -> u16 {
-        self.module_stack
-            .last()
-            .expect("no modules")
-            .proc_stack
-            .last()
+        self.current_proc_context()
             .expect("no procedures")
             .num_locals
     }
@@ -75,7 +71,7 @@ impl AssemblyContext {
     ///
     /// # Errors
     /// Returns an error if a module with the same path already exists in the module stack.
-    pub fn begin_module(&mut self, module_path: &str) -> Result<(), AssemblerError> {
+    pub fn begin_module(&mut self, module_path: &str) -> Result<(), AssemblyError> {
         if self.is_kernel && self.module_stack.is_empty() {
             // a kernel context must be initialized with a kernel module path
             debug_assert_eq!(
@@ -92,7 +88,7 @@ impl AssemblyContext {
                 .iter()
                 .map(|m| m.path.to_string())
                 .collect::<Vec<_>>();
-            return Err(AssemblerError::circular_module_dependency(&dep_chain));
+            return Err(AssemblyError::circular_module_dependency(&dep_chain));
         }
 
         // push a new module context onto the module stack and return
@@ -140,7 +136,7 @@ impl AssemblyContext {
         name: &str,
         is_export: bool,
         num_locals: u16,
-    ) -> Result<(), AssemblerError> {
+    ) -> Result<(), AssemblyError> {
         self.module_stack
             .last_mut()
             .expect("no modules")
@@ -174,10 +170,11 @@ impl AssemblyContext {
         &mut self,
         proc_idx: u16,
         inlined: bool,
-    ) -> Result<&Procedure, AssemblerError> {
+    ) -> Result<&Procedure, AssemblyError> {
         // non-inlined calls (i.e., `call` instructions) cannot be executed in a kernel
         if self.is_kernel && !inlined {
-            return Err(AssemblerError::call_in_kernel());
+            let proc_name = &self.current_proc_context().expect("no procedure").name;
+            return Err(AssemblyError::call_in_kernel(proc_name));
         }
 
         self.module_stack
@@ -201,10 +198,11 @@ impl AssemblyContext {
         &mut self,
         proc: &Procedure,
         inlined: bool,
-    ) -> Result<(), AssemblerError> {
+    ) -> Result<(), AssemblyError> {
         // non-inlined calls (i.e., `call` instructions) cannot be executed in a kernel
         if self.is_kernel && !inlined {
-            return Err(AssemblerError::call_in_kernel());
+            let proc_name = &self.current_proc_context().expect("no procedure").name;
+            return Err(AssemblyError::call_in_kernel(proc_name));
         }
 
         self.module_stack
@@ -262,6 +260,15 @@ impl AssemblyContext {
         }
 
         cb_table
+    }
+
+    // HELPER METHODS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns the context of the procedure currently being complied, or None if module or
+    /// procedure stacks are empty.
+    fn current_proc_context(&self) -> Option<&ProcedureContext> {
+        self.module_stack.last().and_then(|m| m.proc_stack.last())
     }
 }
 
@@ -342,13 +349,13 @@ impl ModuleContext {
         name: &str,
         is_export: bool,
         num_locals: u16,
-    ) -> Result<(), AssemblerError> {
+    ) -> Result<(), AssemblyError> {
         // make sure a procedure with this name as not been compiled yet and is also not currently
         // on the stack of procedures being compiled
         if self.compiled_procs.iter().any(|p| p.label() == name)
             || self.proc_stack.iter().any(|p| p.name == name)
         {
-            return Err(AssemblerError::duplicate_proc_name(name, &self.path));
+            return Err(AssemblyError::duplicate_proc_name(name, &self.path));
         }
 
         self.proc_stack
@@ -396,12 +403,12 @@ impl ModuleContext {
         &mut self,
         proc_idx: u16,
         inlined: bool,
-    ) -> Result<&Procedure, AssemblerError> {
+    ) -> Result<&Procedure, AssemblyError> {
         // get the called procedure from the listed of already compiled local procedures
         let called_proc = self
             .compiled_procs
             .get(proc_idx as usize)
-            .ok_or_else(|| AssemblerError::undefined_proc(proc_idx))?;
+            .ok_or_else(|| AssemblyError::local_proc_not_found(proc_idx, &self.path))?;
 
         // get the context of the procedure currently being compiled
         let context = self.proc_stack.last_mut().expect("no proc context");

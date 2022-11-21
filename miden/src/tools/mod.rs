@@ -1,8 +1,7 @@
-use super::cli::InputFile;
-use assembly::ParsingError;
+use super::{cli::InputFile, ProgramError};
 use core::fmt;
 use miden::Assembler;
-use processor::{AsmOpInfo, ExecutionError};
+use processor::AsmOpInfo;
 use std::path::PathBuf;
 use stdlib::StdLibrary;
 use structopt::StructOpt;
@@ -161,25 +160,6 @@ pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, Prog
     }
 
     Ok(program_info)
-}
-
-// PROGRAM ERROR
-// ================================================================================================
-
-/// This is used to specify the error type returned from analyze.
-#[derive(Debug)]
-pub enum ProgramError {
-    AssemblyError(ParsingError),
-    ExecutionError(ExecutionError),
-}
-
-impl fmt::Display for ProgramError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ProgramError::AssemblyError(e) => write!(f, "Assembly Error: {:?}", e),
-            ProgramError::ExecutionError(e) => write!(f, "Execution Error: {:?}", e),
-        }
-    }
 }
 
 // ASMOP STATS

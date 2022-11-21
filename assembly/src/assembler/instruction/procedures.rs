@@ -1,4 +1,4 @@
-use super::{Assembler, AssemblerError, AssemblyContext, CodeBlock, ProcedureId};
+use super::{Assembler, AssemblyContext, AssemblyError, CodeBlock, ProcedureId};
 
 // PROCEDURE INVOCATIONS
 // ================================================================================================
@@ -8,7 +8,7 @@ impl Assembler {
         &self,
         proc_idx: u16,
         context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblerError> {
+    ) -> Result<Option<CodeBlock>, AssemblyError> {
         // register an "inlined" call to the procedure at the specified index in the module
         // currently being complied; this updates the callset of the procedure currently being
         // compiled
@@ -25,7 +25,7 @@ impl Assembler {
         &self,
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblerError> {
+    ) -> Result<Option<CodeBlock>, AssemblyError> {
         // get the procedure from the assembler
         let proc = self.get_imported_proc(proc_id, context)?;
         debug_assert!(proc.is_export(), "not imported procedure");
@@ -45,7 +45,7 @@ impl Assembler {
         &self,
         index: u16,
         context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblerError> {
+    ) -> Result<Option<CodeBlock>, AssemblyError> {
         // register an "non-inlined" call to the procedure at the specified index in the module
         // currently being complied; this updates the callset of the procedure currently being
         // compiled
@@ -60,7 +60,7 @@ impl Assembler {
         &self,
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblerError> {
+    ) -> Result<Option<CodeBlock>, AssemblyError> {
         // get the procedure from the assembler
         let proc = self.get_imported_proc(proc_id, context)?;
         debug_assert!(proc.is_export(), "not imported procedure");
@@ -78,14 +78,14 @@ impl Assembler {
         &self,
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
-    ) -> Result<Option<CodeBlock>, AssemblerError> {
+    ) -> Result<Option<CodeBlock>, AssemblyError> {
         // fetch from proc cache and check if its a kernel procedure
         // note: the assembler is expected to have all kernel procedures properly inserted in the
         // proc cache upon initialization, with their correct procedure ids
         let proc = self
             .proc_cache
             .get(proc_id)
-            .ok_or_else(|| AssemblerError::undefined_syscall(proc_id))?;
+            .ok_or_else(|| AssemblyError::kernel_proc_not_found(proc_id))?;
 
         // since call and syscall instructions cannot be executed inside a kernel, a callset for
         // a kernel procedure must be empty.

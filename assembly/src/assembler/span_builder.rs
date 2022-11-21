@@ -1,5 +1,5 @@
 use super::{
-    AssemblerError, BodyWrapper, Borrow, CodeBlock, Decorator, DecoratorList, Instruction,
+    AssemblyError, BodyWrapper, Borrow, CodeBlock, Decorator, DecoratorList, Instruction,
     Operation, ToString, Vec,
 };
 use vm_core::AssemblyOp;
@@ -46,13 +46,13 @@ impl SpanBuilder {
     // --------------------------------------------------------------------------------------------
 
     /// Adds the specified operation to the list of span operations and returns Ok(None).
-    pub fn add_op(&mut self, op: Operation) -> Result<Option<CodeBlock>, AssemblerError> {
+    pub fn add_op(&mut self, op: Operation) -> Result<Option<CodeBlock>, AssemblyError> {
         self.ops.push(op);
         Ok(None)
     }
 
     /// Adds the specified sequence operations to the list of span operations and returns Ok(None).
-    pub fn add_ops<I, O>(&mut self, ops: I) -> Result<Option<CodeBlock>, AssemblerError>
+    pub fn add_ops<I, O>(&mut self, ops: I) -> Result<Option<CodeBlock>, AssemblyError>
     where
         I: IntoIterator<Item = O>,
         O: Borrow<Operation>,
@@ -93,7 +93,7 @@ impl SpanBuilder {
     pub fn add_decorator(
         &mut self,
         decorator: Decorator,
-    ) -> Result<Option<CodeBlock>, AssemblerError> {
+    ) -> Result<Option<CodeBlock>, AssemblyError> {
         self.push_decorator(decorator);
         Ok(None)
     }
