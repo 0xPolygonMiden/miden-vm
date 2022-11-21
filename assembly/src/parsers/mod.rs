@@ -36,7 +36,6 @@ pub struct ProgramAst {
     pub body: Vec<Node>,
 }
 
-#[allow(dead_code)]
 impl ProgramAst {
     /// Returns byte representation of the `ProgramAst`.
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -187,7 +186,7 @@ impl<'a> NamedModuleAst<'a> {
 pub struct ProcedureAst {
     pub name: String,
     pub docs: Option<String>,
-    pub num_locals: u32,
+    pub num_locals: u16,
     pub body: Vec<Node>,
     pub is_export: bool,
 }
@@ -202,7 +201,7 @@ impl Serializable for ProcedureAst {
             .write_docs(&self.docs)
             .expect("Docs serialization failure");
         target.write_bool(self.is_export);
-        target.write_u16(self.num_locals as u16);
+        target.write_u16(self.num_locals);
         self.body.write_into(target);
     }
 }
@@ -213,7 +212,7 @@ impl Deserializable for ProcedureAst {
         let name = bytes.read_proc_name()?;
         let docs = bytes.read_docs()?;
         let is_export = bytes.read_bool()?;
-        let num_locals = bytes.read_u16()?.into();
+        let num_locals = bytes.read_u16()?;
         let body = Deserializable::read_from(bytes)?;
         Ok(ProcedureAst {
             name,
@@ -458,6 +457,22 @@ fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<Felt, Pars
     }
 
     Ok(Felt::new(param))
+}
+
+/// Returns an error if the passed in value is 0.
+///
+/// This is intended to be used when parsing instructions which need to perform division by
+/// immediate value.
+fn check_div_by_zero(value: u64, op: &Token, param_idx: usize) -> Result<(), ParsingError> {
+    if value == 0 {
+        Err(ParsingError::invalid_param_with_reason(
+            op,
+            param_idx,
+            "division by zero",
+        ))
+    } else {
+        Ok(())
+    }
 }
 
 /// Validates an op Token against a provided instruction string and/or an expected number of
