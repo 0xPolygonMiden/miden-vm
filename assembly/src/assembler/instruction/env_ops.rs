@@ -59,6 +59,5 @@ pub fn caller(
     if !context.is_kernel() {
         return Err(AssemblyError::caller_out_of_kernel());
     }
-
     span.add_op(Caller)
 }
