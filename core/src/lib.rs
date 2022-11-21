@@ -18,7 +18,7 @@ pub use math::{
 };
 
 mod program;
-pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Library, Program};
+pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Program};
 
 mod operations;
 pub use operations::{

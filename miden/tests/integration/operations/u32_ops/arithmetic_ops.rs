@@ -792,7 +792,7 @@ fn u32checked_div_b_fail() {
 
     // should fail during compilation if b = 0.
     let test = build_op_test!(build_asm_op(0).as_str());
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("DivisionByZero"));
 }
 
 #[test]
@@ -885,7 +885,7 @@ fn u32checked_mod_b_fail() {
 
     // should fail during compilation if b = 0.
     let test = build_op_test!(build_asm_op(0).as_str());
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("DivisionByZero"));
 }
 
 #[test]
@@ -980,7 +980,7 @@ fn u32checked_divmod_b_fail() {
 
     // should fail during compilation if b = 0.
     let test = build_op_test!(build_asm_op(0).as_str());
-    test.expect_error(TestError::AssemblyError("parameter"));
+    test.expect_error(TestError::AssemblyError("DivisionByZero"));
 }
 
 #[test]

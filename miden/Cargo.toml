@@ -24,6 +24,14 @@ path = "src/lib.rs"
 bench = false
 doctest = false
 
+[[bench]]
+name = "program_compilation"
+harness = false
+
+[[bench]]
+name = "program_execution"
+harness = false
+
 [features]
 concurrent = ["prover/concurrent", "std"]
 default = ["std"]
@@ -51,6 +59,7 @@ winter-utils = { package = "winter-utils", version = "0.4.2", optional = true }
 
 [dev-dependencies]
 blake3 = "1.3"
+criterion = "0.4"
 math = { package = "winter-math", version = "0.4.2", default-features = false }
 num-bigint = "0.4"
 proptest = "1.0.0"

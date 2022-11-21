@@ -1,10 +1,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use vm_assembly::{ModuleAst, ModuleProvider, ProcedureId};
-use vm_core::{
-    errors::LibraryError,
-    utils::{collections::BTreeMap, string::ToString},
-    Library,
+use vm_assembly::{Library, LibraryError, ModuleAst, ModuleProvider, NamedModuleAst, ProcedureId};
+use vm_core::utils::{
+    collections::{BTreeMap, Vec},
+    string::{String, ToString},
 };
 
 pub mod asm;
@@ -15,30 +14,21 @@ use asm::MODULES;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-// TYPE ALIASES
-// ================================================================================================
-
-type ModuleMap = BTreeMap<ProcedureId, ModuleAst>;
-type ModuleNamedMap = BTreeMap<&'static str, ModuleAst>;
-type ModuleSource = BTreeMap<&'static str, &'static str>;
-
 // STANDARD LIBRARY
 // ================================================================================================
 
 /// TODO: add docs
 pub struct StdLibrary {
-    modules: ModuleMap,
-    named: ModuleNamedMap,
-    sources: ModuleSource,
+    modules: Vec<(String, ModuleAst)>,
+    proc_to_module: BTreeMap<ProcedureId, usize>,
 }
 
 impl ModuleProvider for StdLibrary {
-    fn get_source(&self, path: &str) -> Option<&str> {
-        self.sources.get(path).copied()
-    }
-
-    fn get_module(&self, id: &ProcedureId) -> Option<&ModuleAst> {
-        self.modules.get(id)
+    fn get_module(&self, proc_id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
+        self.proc_to_module
+            .get(proc_id)
+            .map(|&module_idx| &self.modules[module_idx])
+            .map(|(path, ast)| ast.named_ref(path))
     }
 }
 
@@ -61,8 +51,10 @@ impl Library for StdLibrary {
     /// Returns an error if the modules for the specified path does not exist in the standard
     /// library.
     fn get_module(&self, module_path: &str) -> Result<&ModuleAst, LibraryError> {
-        self.named
-            .get(module_path)
+        self.modules
+            .iter()
+            .find(|(path, _)| path == module_path)
+            .map(|(_, ast)| ast)
             .ok_or_else(|| LibraryError::ModuleNotFound(module_path.to_string()))
     }
 }
@@ -70,37 +62,28 @@ impl Library for StdLibrary {
 impl Default for StdLibrary {
     /// Returns a new [StdLibrary] instance instantiated with default parameters.
     fn default() -> Self {
-        // TODO this will be trimmed in the future to `ids` as the only provider for std library
+        let mut modules = Vec::with_capacity(MODULES.len());
+        let mut proc_to_module = BTreeMap::new();
 
-        let modules = MODULES
-            .into_iter()
-            .map(|(_, id, _, bytes)| {
-                let ast = ModuleAst::from_bytes(bytes)
-                    .expect("static module deserialization should be infallible");
+        for (i, (module_path, module_bytes)) in MODULES.iter().enumerate() {
+            // deserialize module AST
+            let module_ast = ModuleAst::from_bytes(module_bytes)
+                .expect("static module deserialization should be infallible");
 
-                (id, ast)
-            })
-            .collect();
+            // for each procedure in the module, compute its ID and create a map between procedure
+            // ID and its module
+            for proc_ast in module_ast.local_procs.iter() {
+                let proc_id = ProcedureId::from_name(&proc_ast.name, module_path);
+                proc_to_module.insert(proc_id, i);
+            }
 
-        let named = MODULES
-            .into_iter()
-            .map(|(label, _, _, bytes)| {
-                let ast = ModuleAst::from_bytes(bytes)
-                    .expect("static module deserialization should be infallible");
-
-                (label, ast)
-            })
-            .collect();
-
-        let sources = MODULES
-            .into_iter()
-            .map(|(label, _, source, _)| (label, source))
-            .collect();
+            // add the module together with its path to the module list
+            modules.push((module_path.to_string(), module_ast));
+        }
 
         Self {
             modules,
-            named,
-            sources,
+            proc_to_module,
         }
     }
 }

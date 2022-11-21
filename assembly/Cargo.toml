@@ -15,10 +15,6 @@ rust-version = "1.62"
 bench = false
 doctest = false
 
-[[bench]]
-name = "program_compilation"
-harness = false
-
 [features]
 default = ["std"]
 std = ["vm-core/std"]
@@ -27,6 +23,3 @@ std = ["vm-core/std"]
 crypto = { package = "winter-crypto", version = "0.4", default-features = false }
 num_enum = "0.5.7"
 vm-core = { package = "miden-core", path = "../core", version = "0.3", default-features = false }
-
-[dev-dependencies]
-criterion = "0.4"
