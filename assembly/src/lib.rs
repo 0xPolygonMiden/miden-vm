@@ -11,7 +11,7 @@ use vm_core::{
         string::{String, ToString},
         Box,
     },
-    CodeBlockTable, Kernel, Program,
+    CodeBlockTable, Felt, Kernel, Operation, Program, StarkField, ONE, ZERO,
 };
 
 mod procedures;
@@ -25,7 +25,7 @@ mod tokens;
 use tokens::{Token, TokenStream};
 
 mod errors;
-pub use errors::{AssemblerError, AssemblyError};
+pub use errors::{AssemblerError, LibraryError, ParsingError};
 
 mod assembler;
 pub use assembler::Assembler;
@@ -54,26 +54,42 @@ const MAX_U32_ROTATE_VALUE: u8 = 31;
 /// The maximum number of bits allowed for the exponent parameter for exponentiation instructions.
 const MAX_EXP_BITS: u8 = 64;
 
+/// The maximum length of a procedure's name.
+const MAX_PROC_NAME_LEN: u8 = 100;
+
 // MODULE PROVIDER
 // ================================================================================================
 
 /// The module provider is now a simplified version of a module cache. It is expected to evolve to
-/// a general solution for the module lookup
+/// a general solution for the module lookup.
 pub trait ModuleProvider {
-    /// Fetch source contents provided a module path
-    fn get_source(&self, path: &str) -> Option<&str>;
-
     /// Fetch a module AST from its ID
     fn get_module(&self, id: &ProcedureId) -> Option<NamedModuleAst<'_>>;
 }
 
 // A default provider that won't resolve modules
 impl ModuleProvider for () {
-    fn get_source(&self, _path: &str) -> Option<&str> {
-        None
-    }
-
     fn get_module(&self, _id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
         None
     }
+}
+
+// LIBRARY
+// ================================================================================================
+
+/// TODO: add docs
+pub trait Library {
+    type Module;
+
+    /// Returns the root namespace of this library.
+    fn root_ns(&self) -> &str;
+
+    /// Returns the version number of this library.
+    fn version(&self) -> &str;
+
+    /// Returns the module located at the specified path.
+    ///
+    /// # Errors
+    /// Returns an error if the modules for the specified path does not exist in this library.
+    fn get_module(&self, module_path: &str) -> Result<&Self::Module, LibraryError>;
 }

@@ -2,10 +2,9 @@ use super::{
     super::nodes::{Instruction, Node},
     OpCode, IF_ELSE_OPCODE, REPEAT_OPCODE, WHILE_OPCODE,
 };
-use crate::{errors::SerializationError, ProcedureId};
-use vm_core::{utils::collections::Vec, utils::string::String, Felt, StarkField};
-
-const MAX_STRING_LENGTH: u8 = 100;
+use crate::{
+    errors::SerializationError, Felt, ProcedureId, StarkField, String, Vec, MAX_PROC_NAME_LEN,
+};
 
 // BYTE WRITER IMPLEMENTATION
 // ================================================================================================
@@ -42,7 +41,7 @@ impl ByteWriter {
     pub fn write_proc_name(&mut self, val: &String) -> Result<(), SerializationError> {
         let val_bytes = val.as_bytes();
         let val_bytes_len = val_bytes.len() as u8;
-        if val_bytes_len > MAX_STRING_LENGTH {
+        if val_bytes_len > MAX_PROC_NAME_LEN {
             return Err(SerializationError::StringTooLong);
         } else {
             self.write_u8(val_bytes_len);

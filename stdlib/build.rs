@@ -42,7 +42,7 @@ struct Module {
 #[cfg(not(feature = "docs-rs"))]
 fn main() -> io::Result<()> {
     // re-build the `./src/asm.rs` file only if something in the `./asm` directory has changed
-    println!("cargo:rerun-if-changed=./asm");
+    println!("cargo:rerun-if-changed=asm");
 
     let modules = load_modules()?;
     let mut output = fs::File::create(ASM_FILE_PATH)?;
@@ -57,7 +57,7 @@ fn main() -> io::Result<()> {
     writeln!(output, "#[rustfmt::skip]")?;
     writeln!(
         output,
-        "pub const MODULES: [(&str, &str, &[u8]); {}] = [",
+        "pub const MODULES: [(&str, &[u8]); {}] = [",
         modules.len()
     )?;
 
@@ -72,7 +72,7 @@ fn main() -> io::Result<()> {
 
             docs.insert(path.clone(), module);
 
-            writeln!(output, "(\"{path}\",\"{source}\",&{serialized:?}),")
+            writeln!(output, "(\"{path}\",&{serialized:?}),")
         })?;
 
     writeln!(output, "];")?;

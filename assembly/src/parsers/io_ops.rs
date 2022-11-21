@@ -1,12 +1,11 @@
-use super::super::{parse_decimal_param, parse_element_param, parse_hex_param};
 use super::{
-    parse_checked_param, parse_param,
+    parse_checked_param, parse_decimal_param, parse_element_param, parse_hex_param, parse_param,
+    Felt,
     Instruction::*,
     Node::{self, Instruction},
-    Vec,
+    ParsingError, Token, Vec,
 };
-use crate::{validate_operation, AssemblyError, Token, ADVICE_READ_LIMIT, MAX_PUSH_INPUTS};
-use vm_core::Felt;
+use crate::{validate_operation, ADVICE_READ_LIMIT, MAX_PUSH_INPUTS};
 
 // CONSTANTS
 // ================================================================================================
@@ -23,7 +22,7 @@ const HEX_CHUNK_SIZE: usize = 16;
 /// # Errors
 /// Returns an error if the instruction token has invalid values or inappropriate number of
 /// values.
-pub fn parse_push(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_push(op: &Token) -> Result<Node, ParsingError> {
     validate_operation!(op, "push", 1..MAX_PUSH_INPUTS);
 
     let constants = parse_constants(op)?;
@@ -35,16 +34,16 @@ pub fn parse_push(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u16 value.
-pub fn parse_locaddr(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_locaddr(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "locaddr");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(AssemblyError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op)),
         2 => {
             let index = parse_param::<u16>(op, 1)?;
             Ok(Instruction(Locaddr(index)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -52,12 +51,12 @@ pub fn parse_locaddr(op: &Token) -> Result<Node, AssemblyError> {
 ///
 /// # Errors
 /// Returns an error if the instruction token is malformed.
-pub fn parse_caller(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_caller(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "caller");
     match op.num_parts() {
         0 => unreachable!(),
         1 => Ok(Instruction(Caller)),
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -66,16 +65,16 @@ pub fn parse_caller(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token does not have exactly one parameter, or if the
 /// parameter is smaller than 1 or greater than 16.
-pub fn parse_adv_push(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_adv_push(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "adv_push");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(AssemblyError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op)),
         2 => {
             let num_vals = parse_checked_param(op, 1, 1, ADVICE_READ_LIMIT)?;
             Ok(Instruction(AdvPush(num_vals)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -85,7 +84,7 @@ pub fn parse_adv_push(op: &Token) -> Result<Node, AssemblyError> {
 /// Returns an error if:
 /// - Any of the instructions have a wrong number of parameters.
 /// - adv.mem.a.n has a + n > u32::MAX.
-pub fn parse_adv_inject(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "adv");
     match op.parts()[1] {
         "u64div" => {
@@ -102,7 +101,7 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, AssemblyError> {
             let num_words = parse_checked_param(op, 3, 1, u32::MAX - start_addr)?;
             Ok(Instruction(AdvMem(start_addr, num_words)))
         }
-        _ => Err(AssemblyError::invalid_op(op)),
+        _ => Err(ParsingError::invalid_op(op)),
     }
 }
 
@@ -112,7 +111,7 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u32 value.
-pub fn parse_mem_load(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_mem_load(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "mem_load");
     match op.num_parts() {
         0 => unreachable!(),
@@ -121,7 +120,7 @@ pub fn parse_mem_load(op: &Token) -> Result<Node, AssemblyError> {
             let address = parse_param::<u32>(op, 1)?;
             Ok(Instruction(MemLoadImm(address)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -130,16 +129,16 @@ pub fn parse_mem_load(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u16 value.
-pub fn parse_loc_load(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_loc_load(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "loc_load");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(AssemblyError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op)),
         2 => {
             let index = parse_param::<u16>(op, 1)?;
             Ok(Instruction(LocLoad(index)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -149,7 +148,7 @@ pub fn parse_loc_load(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u32 value.
-pub fn parse_mem_loadw(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_mem_loadw(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "mem_loadw");
     match op.num_parts() {
         0 => unreachable!(),
@@ -158,7 +157,7 @@ pub fn parse_mem_loadw(op: &Token) -> Result<Node, AssemblyError> {
             let address = parse_param::<u32>(op, 1)?;
             Ok(Instruction(MemLoadWImm(address)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -167,16 +166,16 @@ pub fn parse_mem_loadw(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u16 value.
-pub fn parse_loc_loadw(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_loc_loadw(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "loc_loadw");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(AssemblyError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op)),
         2 => {
             let index = parse_param::<u16>(op, 1)?;
             Ok(Instruction(LocLoadW(index)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -186,7 +185,7 @@ pub fn parse_loc_loadw(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u32 value.
-pub fn parse_mem_store(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_mem_store(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "mem_store");
     match op.num_parts() {
         0 => unreachable!(),
@@ -195,7 +194,7 @@ pub fn parse_mem_store(op: &Token) -> Result<Node, AssemblyError> {
             let address = parse_param::<u32>(op, 1)?;
             Ok(Instruction(MemStoreImm(address)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -204,16 +203,16 @@ pub fn parse_mem_store(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u16 value.
-pub fn parse_loc_store(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_loc_store(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "loc_store");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(AssemblyError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op)),
         2 => {
             let index = parse_param::<u16>(op, 1)?;
             Ok(Instruction(LocStore(index)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -223,7 +222,7 @@ pub fn parse_loc_store(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u32 value.
-pub fn parse_mem_storew(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_mem_storew(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "mem_storew");
     match op.num_parts() {
         0 => unreachable!(),
@@ -232,7 +231,7 @@ pub fn parse_mem_storew(op: &Token) -> Result<Node, AssemblyError> {
             let address = parse_param::<u32>(op, 1)?;
             Ok(Instruction(MemStoreWImm(address)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -241,23 +240,23 @@ pub fn parse_mem_storew(op: &Token) -> Result<Node, AssemblyError> {
 /// # Errors
 /// Returns an error if the instruction token contains a wrong number of parameters, or if
 /// the provided parameter is not a u16 value.
-pub fn parse_loc_storew(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_loc_storew(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "loc_storew");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Err(AssemblyError::missing_param(op)),
+        1 => Err(ParsingError::missing_param(op)),
         2 => {
             let index = parse_param::<u16>(op, 1)?;
             Ok(Instruction(LocStoreW(index)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn parse_constants(op: &Token) -> Result<Vec<Felt>, AssemblyError> {
+fn parse_constants(op: &Token) -> Result<Vec<Felt>, ParsingError> {
     let mut constants = Vec::new();
     let param_idx = 1;
     let param_count = op.num_parts() - param_idx;
@@ -294,18 +293,18 @@ fn parse_hex_params(
     op: &Token,
     param_idx: usize,
     param_str: &str,
-) -> Result<Vec<Felt>, AssemblyError> {
+) -> Result<Vec<Felt>, ParsingError> {
     // handle error cases where the hex string is poorly formed
     let is_single_element = if param_str.len() <= HEX_CHUNK_SIZE {
         if param_str.len() % 2 != 0 {
             // parameter string is not a valid hex representation
-            return Err(AssemblyError::invalid_param(op, param_idx));
+            return Err(ParsingError::invalid_param(op, param_idx));
         }
         true
     } else {
         if param_str.len() % HEX_CHUNK_SIZE != 0 {
             // hex string doesn't contain a valid number of bytes
-            return Err(AssemblyError::invalid_param(op, param_idx));
+            return Err(ParsingError::invalid_param(op, param_idx));
         }
         false
     };

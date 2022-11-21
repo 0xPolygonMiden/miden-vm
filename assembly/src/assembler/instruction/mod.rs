@@ -1,8 +1,8 @@
 use super::{
     Assembler, AssemblerError, AssemblyContext, CodeBlock, Decorator, Felt, Instruction, Operation,
-    ProcedureId, SpanBuilder,
+    ProcedureId, SpanBuilder, ONE, ZERO,
 };
-use vm_core::{AdviceInjector, FieldElement, StarkField, ONE, ZERO};
+use vm_core::{AdviceInjector, FieldElement, StarkField};
 
 mod adv_ops;
 mod crypto_ops;

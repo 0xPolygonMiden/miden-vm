@@ -1,5 +1,5 @@
 use super::{
-    field_ops, io_ops, stack_ops, u32_ops, AssemblyError, Instruction, LocalProcMap, Node,
+    field_ops, io_ops, stack_ops, u32_ops, Instruction, LocalProcMap, Node, ParsingError,
     ProcedureAst, ProcedureId, Token, TokenStream, MODULE_PATH_DELIM,
 };
 use vm_core::utils::{
@@ -22,7 +22,7 @@ impl ParserContext {
     // --------------------------------------------------------------------------------------------
 
     // Parses an if-else statement from the provided token stream.
-    fn parse_if(&self, tokens: &mut TokenStream) -> Result<Node, AssemblyError> {
+    fn parse_if(&self, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
         // record start of the if-else block and consume the 'if' token
         let if_start = tokens.pos();
         tokens.advance();
@@ -48,13 +48,13 @@ impl ParserContext {
 
                     // consume the `end` token
                     match tokens.read() {
-                        None => Err(AssemblyError::unmatched_else(
+                        None => Err(ParsingError::unmatched_else(
                             tokens.read_at(else_start).expect("no else token"),
                         )),
                         Some(token) => match token.parts()[0] {
                             Token::END => token.validate_end(),
-                            Token::ELSE => Err(AssemblyError::dangling_else(token)),
-                            _ => Err(AssemblyError::unmatched_else(
+                            Token::ELSE => Err(ParsingError::dangling_else(token)),
+                            _ => Err(ParsingError::unmatched_else(
                                 tokens.read_at(else_start).expect("no else token"),
                             )),
                         },
@@ -71,13 +71,13 @@ impl ParserContext {
                     Vec::new()
                 }
                 _ => {
-                    return Err(AssemblyError::unmatched_if(
+                    return Err(ParsingError::unmatched_if(
                         tokens.read_at(if_start).expect("no if token"),
                     ))
                 }
             },
             None => {
-                return Err(AssemblyError::unmatched_if(
+                return Err(ParsingError::unmatched_if(
                     tokens.read_at(if_start).expect("no if token"),
                 ))
             }
@@ -87,7 +87,7 @@ impl ParserContext {
     }
 
     /// Parse while token into AST nodes.
-    fn parse_while(&self, tokens: &mut TokenStream) -> Result<Node, AssemblyError> {
+    fn parse_while(&self, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
         // record start of the while block and consume the 'while' token
         let while_start = tokens.pos();
         tokens.advance();
@@ -98,13 +98,13 @@ impl ParserContext {
 
         // consume the `end` token
         match tokens.read() {
-            None => Err(AssemblyError::unmatched_while(
+            None => Err(ParsingError::unmatched_while(
                 tokens.read_at(while_start).expect("no if token"),
             )),
             Some(token) => match token.parts()[0] {
                 Token::END => token.validate_end(),
-                Token::ELSE => Err(AssemblyError::dangling_else(token)),
-                _ => Err(AssemblyError::unmatched_while(
+                Token::ELSE => Err(ParsingError::dangling_else(token)),
+                _ => Err(ParsingError::unmatched_while(
                     tokens.read_at(while_start).expect("no if token"),
                 )),
             },
@@ -115,13 +115,13 @@ impl ParserContext {
     }
 
     /// Parse repeat token into AST nodes.
-    fn parse_repeat(&self, tokens: &mut TokenStream) -> Result<Node, AssemblyError> {
+    fn parse_repeat(&self, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
         // record start of the repeat block and consume the 'repeat' token
         let repeat_start = tokens.pos();
         let count = match tokens.read() {
             Some(token) => token.parse_repeat()? as usize,
             None => {
-                return Err(AssemblyError::missing_param(
+                return Err(ParsingError::missing_param(
                     tokens.read_at(repeat_start).expect("no repeat token"),
                 ))
             }
@@ -134,13 +134,13 @@ impl ParserContext {
 
         // consume the `end` token
         match tokens.read() {
-            None => Err(AssemblyError::unmatched_repeat(
+            None => Err(ParsingError::unmatched_repeat(
                 tokens.read_at(repeat_start).expect("no repeat token"),
             )),
             Some(token) => match token.parts()[0] {
                 Token::END => token.validate_end(),
-                Token::ELSE => Err(AssemblyError::dangling_else(token)),
-                _ => Err(AssemblyError::unmatched_repeat(
+                Token::ELSE => Err(ParsingError::dangling_else(token)),
+                _ => Err(ParsingError::unmatched_repeat(
                     tokens.read_at(repeat_start).expect("no repeat token"),
                 )),
             },
@@ -154,7 +154,7 @@ impl ParserContext {
     // --------------------------------------------------------------------------------------------
 
     /// Parse exec token into AST nodes.
-    fn parse_exec(&self, label: String, tokens: &mut TokenStream) -> Result<Node, AssemblyError> {
+    fn parse_exec(&self, label: String, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
         tokens.advance();
 
         if label.contains(MODULE_PATH_DELIM) {
@@ -165,7 +165,7 @@ impl ParserContext {
             let index = self
                 .local_procs
                 .get(&label)
-                .ok_or_else(|| AssemblyError::undefined_proc(tokens.read().unwrap(), &label))?
+                .ok_or_else(|| ParsingError::undefined_proc(tokens.read().unwrap(), &label))?
                 .0;
 
             Ok(Node::Instruction(Instruction::ExecLocal(index)))
@@ -173,7 +173,7 @@ impl ParserContext {
     }
 
     /// Parse call token into AST nodes.
-    fn parse_call(&self, label: String, tokens: &mut TokenStream) -> Result<Node, AssemblyError> {
+    fn parse_call(&self, label: String, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
         tokens.advance();
         if label.contains(MODULE_PATH_DELIM) {
             let full_proc_name = self.get_full_imported_proc_name(label);
@@ -183,7 +183,7 @@ impl ParserContext {
             let index = self
                 .local_procs
                 .get(&label)
-                .ok_or_else(|| AssemblyError::undefined_proc(tokens.read().unwrap(), &label))?
+                .ok_or_else(|| ParsingError::undefined_proc(tokens.read().unwrap(), &label))?
                 .0;
 
             Ok(Node::Instruction(Instruction::CallLocal(index)))
@@ -191,11 +191,7 @@ impl ParserContext {
     }
 
     /// Parse syscall token into AST nodes.
-    fn parse_syscall(
-        &self,
-        label: String,
-        tokens: &mut TokenStream,
-    ) -> Result<Node, AssemblyError> {
+    fn parse_syscall(&self, label: String, tokens: &mut TokenStream) -> Result<Node, ParsingError> {
         tokens.advance();
         let proc_id = ProcedureId::from_kernel_name(label.as_str());
         Ok(Node::Instruction(Instruction::SysCall(proc_id)))
@@ -209,17 +205,17 @@ impl ParserContext {
         &mut self,
         tokens: &mut TokenStream,
         allow_export: bool,
-    ) -> Result<(), AssemblyError> {
+    ) -> Result<(), ParsingError> {
         while let Some(token) = tokens.read() {
             match token.parts()[0] {
                 Token::EXPORT | Token::PROC => {
                     let (label, _, is_export) = token.parse_proc()?;
                     if !allow_export && is_export {
-                        return Err(AssemblyError::proc_export_not_allowed(token, &label));
+                        return Err(ParsingError::proc_export_not_allowed(token, &label));
                     }
 
                     if self.local_procs.contains_key(&label) {
-                        return Err(AssemblyError::duplicate_proc_label(token, &label));
+                        return Err(ParsingError::duplicate_proc_label(token, &label));
                     }
 
                     let proc = self.parse_procedure(tokens)?;
@@ -234,7 +230,7 @@ impl ParserContext {
     }
 
     /// Parse procedure from token stream and add it to the procedure map in context.
-    fn parse_procedure(&self, tokens: &mut TokenStream) -> Result<ProcedureAst, AssemblyError> {
+    fn parse_procedure(&self, tokens: &mut TokenStream) -> Result<ProcedureAst, ParsingError> {
         let proc_start = tokens.pos();
 
         // read procedure name and consume the procedure header token
@@ -254,12 +250,12 @@ impl ParserContext {
 
         // consume the 'end' token
         match tokens.read() {
-            None => Err(AssemblyError::unmatched_proc(
+            None => Err(ParsingError::unmatched_proc(
                 tokens.read_at(proc_start).expect("no proc token"),
             )),
             Some(token) => match token.parts()[0] {
                 Token::END => token.validate_end(),
-                _ => Err(AssemblyError::unmatched_proc(
+                _ => Err(ParsingError::unmatched_proc(
                     tokens.read_at(proc_start).expect("no proc token"),
                 )),
             },
@@ -286,7 +282,7 @@ impl ParserContext {
         tokens: &mut TokenStream,
         nodes: &mut Vec<Node>,
         break_on_else: bool,
-    ) -> Result<(), AssemblyError> {
+    ) -> Result<(), ParsingError> {
         while let Some(token) = tokens.read() {
             match token.parts()[0] {
                 Token::ELSE => {
@@ -294,7 +290,7 @@ impl ParserContext {
                     if break_on_else {
                         break;
                     }
-                    return Err(AssemblyError::dangling_else(token));
+                    return Err(ParsingError::dangling_else(token));
                 }
                 Token::IF => {
                     token.validate_if()?;
@@ -324,7 +320,7 @@ impl ParserContext {
                 Token::USE | Token::EXPORT | Token::PROC | Token::BEGIN => {
                     // TODO improve the error with the originating block
                     // https://github.com/maticnetwork/miden/issues/514
-                    return Err(AssemblyError::unexpected_body_end(token));
+                    return Err(ParsingError::unexpected_body_end(token));
                 }
                 _ => {
                     // Process non control tokens.
@@ -353,7 +349,7 @@ impl ParserContext {
 }
 
 /// Parses a Token into a node instruction.
-fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
+fn parse_op_token(op: &Token) -> Result<Node, ParsingError> {
     use Instruction::*;
 
     // based on the instruction, invoke the correct parser for the operation
@@ -514,7 +510,7 @@ fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
         "mtree_cwm" => simple_instruction(op, MTreeCwm),
 
         // ----- catch all ------------------------------------------------------------------------
-        _ => Err(AssemblyError::invalid_op(op)),
+        _ => Err(ParsingError::invalid_op(op)),
     }
 }
 
@@ -523,11 +519,11 @@ fn parse_op_token(op: &Token) -> Result<Node, AssemblyError> {
 ///
 /// # Errors
 /// Returns an error if the token is not a simple operation (i.e., contains immediate values).
-fn simple_instruction(op: &Token, instruction: Instruction) -> Result<Node, AssemblyError> {
+fn simple_instruction(op: &Token, instruction: Instruction) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], instruction.to_string());
     match op.num_parts() {
         0 => unreachable!(),
         1 => Ok(Node::Instruction(instruction)),
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }

@@ -1,5 +1,5 @@
 use super::cli::InputFile;
-use assembly::AssemblyError;
+use assembly::ParsingError;
 use core::fmt;
 use miden::Assembler;
 use processor::{AsmOpInfo, ExecutionError};
@@ -169,7 +169,7 @@ pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, Prog
 /// This is used to specify the error type returned from analyze.
 #[derive(Debug)]
 pub enum ProgramError {
-    AssemblyError(AssemblyError),
+    AssemblyError(ParsingError),
     ExecutionError(ExecutionError),
 }
 

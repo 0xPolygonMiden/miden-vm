@@ -285,7 +285,7 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), MidenError>
 /// Errors that are returned from the Miden processor during execution.
 #[derive(Debug)]
 pub enum MidenError {
-    AssemblyError(assembly::AssemblyError),
+    AssemblyError(assembly::ParsingError),
     ExecutionError(ExecutionError),
 }
 

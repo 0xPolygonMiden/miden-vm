@@ -1,13 +1,7 @@
+use super::{Felt, ProcedureId, String, ToString, Vec};
 use core::fmt;
-use vm_core::utils::{
-    collections::Vec,
-    string::{String, ToString},
-};
-use vm_core::Felt;
 
-use crate::ProcedureId;
-
-// Nodes
+// NODES
 // ================================================================================================
 
 /// A node in a AST that can represent a block, instruction or a control flow.
@@ -506,6 +500,9 @@ impl fmt::Display for Instruction {
         }
     }
 }
+
+// TESTS
+// ================================================================================================
 
 #[test]
 fn test_instruction_display() {

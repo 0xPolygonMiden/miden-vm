@@ -1,9 +1,8 @@
 use super::{
-    super::parse_element_param,
-    AssemblyError,
+    parse_element_param,
     Instruction::*,
     Node::{self, Instruction},
-    Token,
+    ParsingError, Token,
 };
 
 // INSTRUCTION PARSERS
@@ -14,7 +13,7 @@ use super::{
 ///
 /// # Errors
 /// Returns an error if the instruction token has invalid param or more than one param.
-pub fn parse_add(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_add(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "add");
     match op.num_parts() {
         0 => unreachable!(),
@@ -23,7 +22,7 @@ pub fn parse_add(op: &Token) -> Result<Node, AssemblyError> {
             let imm = parse_element_param(op, 1)?;
             Ok(Instruction(AddImm(imm)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -32,7 +31,7 @@ pub fn parse_add(op: &Token) -> Result<Node, AssemblyError> {
 ///
 /// # Errors
 /// Returns an error if the instruction token has invalid param or more than one param.
-pub fn parse_sub(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_sub(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "sub");
     match op.num_parts() {
         0 => unreachable!(),
@@ -41,7 +40,7 @@ pub fn parse_sub(op: &Token) -> Result<Node, AssemblyError> {
             let imm = parse_element_param(op, 1)?;
             Ok(Instruction(SubImm(imm)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -50,7 +49,7 @@ pub fn parse_sub(op: &Token) -> Result<Node, AssemblyError> {
 ///
 /// # Errors
 /// Returns an error if the instruction token has invalid param or more than one param.
-pub fn parse_mul(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_mul(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "mul");
     match op.num_parts() {
         0 => unreachable!(),
@@ -59,7 +58,7 @@ pub fn parse_mul(op: &Token) -> Result<Node, AssemblyError> {
             let imm = parse_element_param(op, 1)?;
             Ok(Instruction(MulImm(imm)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -68,7 +67,7 @@ pub fn parse_mul(op: &Token) -> Result<Node, AssemblyError> {
 ///
 /// # Errors
 /// Returns an error if the instruction token has invalid param or more than one param
-pub fn parse_div(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_div(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "div");
     match op.num_parts() {
         0 => unreachable!(),
@@ -77,7 +76,7 @@ pub fn parse_div(op: &Token) -> Result<Node, AssemblyError> {
             let imm = parse_element_param(op, 1)?;
             Ok(Instruction(DivImm(imm)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -86,7 +85,7 @@ pub fn parse_div(op: &Token) -> Result<Node, AssemblyError> {
 ///
 /// # Errors
 /// Returns an error if the instruction token has invalid param or more than one param
-pub fn parse_exp(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_exp(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "exp");
     match op.num_parts() {
         0 => unreachable!(),
@@ -100,7 +99,7 @@ pub fn parse_exp(op: &Token) -> Result<Node, AssemblyError> {
 
                 // the specified bits length can not be more than 64 bits.
                 if bits_len > 64 {
-                    return Err(AssemblyError::invalid_param_with_reason(
+                    return Err(ParsingError::invalid_param_with_reason(
                         op,
                         1,
                         format!("parameter can at max be a u64 but found u{}", bits_len).as_str(),
@@ -114,7 +113,7 @@ pub fn parse_exp(op: &Token) -> Result<Node, AssemblyError> {
                 Ok(Instruction(ExpImm(imm)))
             }
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -123,7 +122,7 @@ pub fn parse_exp(op: &Token) -> Result<Node, AssemblyError> {
 ///
 /// # Errors
 /// Returns an error if the instruction token has invalid param or more than one param.
-pub fn parse_eq(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_eq(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "eq");
     match op.num_parts() {
         0 => unreachable!(),
@@ -132,7 +131,7 @@ pub fn parse_eq(op: &Token) -> Result<Node, AssemblyError> {
             let imm = parse_element_param(op, 1)?;
             Ok(Instruction(EqImm(imm)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -141,7 +140,7 @@ pub fn parse_eq(op: &Token) -> Result<Node, AssemblyError> {
 ///
 /// # Errors
 /// Returns an error if the instruction token has invalid param or more than one param.
-pub fn parse_neq(op: &Token) -> Result<Node, AssemblyError> {
+pub fn parse_neq(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "neq");
     match op.num_parts() {
         0 => unreachable!(),
@@ -150,7 +149,7 @@ pub fn parse_neq(op: &Token) -> Result<Node, AssemblyError> {
             let imm = parse_element_param(op, 1)?;
             Ok(Instruction(NeqImm(imm)))
         }
-        _ => Err(AssemblyError::extra_param(op)),
+        _ => Err(ParsingError::extra_param(op)),
     }
 }
 
@@ -158,16 +157,16 @@ pub fn parse_neq(op: &Token) -> Result<Node, AssemblyError> {
 // ================================================================================================
 
 /// Parses the bits length in `exp` assembly operation into usize.
-fn parse_bit_len_param(op: &Token, param_idx: usize) -> Result<u8, AssemblyError> {
+fn parse_bit_len_param(op: &Token, param_idx: usize) -> Result<u8, ParsingError> {
     let param_value = op.parts()[param_idx];
 
     if let Some(param) = param_value.strip_prefix('u') {
         // parse bits len param
         match param.parse::<u8>() {
             Ok(value) => Ok(value),
-            Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
+            Err(_) => Err(ParsingError::invalid_param(op, param_idx)),
         }
     } else {
-        Err(AssemblyError::invalid_param(op, param_idx))
+        Err(ParsingError::invalid_param(op, param_idx))
     }
 }
