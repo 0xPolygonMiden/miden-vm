@@ -38,9 +38,18 @@ mod tests;
 
 const MODULE_PATH_DELIM: &str = "::";
 
+/// The maximum number of constant inputs allowed for the `push` instruction.
+const MAX_PUSH_INPUTS: usize = 16;
+
 /// The maximum number of elements that can be read from the advice tape in a single `adv_push`
 /// instruction.
 const ADVICE_READ_LIMIT: u8 = 16;
+
+/// THe maximum number of bits by which a u32 value can be shifted in a bitwise operation.
+const MAX_U32_SHIFT_VALUE: u8 = 31;
+
+/// THe maximum number of bits by which a u32 value can be rotated in a bitwise operation.
+const MAX_U32_ROTATE_VALUE: u8 = 31;
 
 // MODULE PROVIDER
 // ================================================================================================

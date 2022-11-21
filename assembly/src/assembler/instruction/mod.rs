@@ -2,7 +2,7 @@ use super::{
     Assembler, AssemblerError, AssemblyContext, CodeBlock, Decorator, Felt, Instruction, Operation,
     ProcedureId, SpanBuilder,
 };
-use vm_core::{AdviceInjector, StarkField, ONE, ZERO};
+use vm_core::{AdviceInjector, ONE, ZERO};
 
 mod adv_ops;
 mod crypto_ops;
@@ -195,7 +195,7 @@ impl Assembler {
             Instruction::SwapW => span.add_op(SwapW),
             Instruction::SwapW2 => span.add_op(SwapW2),
             Instruction::SwapW3 => span.add_op(SwapW3),
-            Instruction::SwapDW => span.add_op(SwapDW),
+            Instruction::SwapDw => span.add_op(SwapDW),
             Instruction::MovUp2 => span.add_op(MovUp2),
             Instruction::MovUp3 => span.add_op(MovUp3),
             Instruction::MovUp4 => span.add_op(MovUp4),
@@ -243,26 +243,28 @@ impl Assembler {
 
             Instruction::MemStream => span.add_ops([MStream, RpPerm]),
 
-            Instruction::Locaddr(v) => env_ops::locaddr(v, span, ctx),
+            Instruction::Locaddr(v) => env_ops::locaddr(span, *v, ctx),
             Instruction::MemLoad => mem_ops::mem_read(span, ctx, None, false, true),
-            Instruction::MemLoadImm(v) => mem_ops::mem_read(span, ctx, Some(v), false, true),
+            Instruction::MemLoadImm(v) => mem_ops::mem_read(span, ctx, Some(*v), false, true),
             Instruction::MemLoadW => mem_ops::mem_read(span, ctx, None, false, false),
-            Instruction::MemLoadWImm(v) => mem_ops::mem_read(span, ctx, Some(v), false, false),
-            Instruction::LocLoad(v) => mem_ops::mem_read(span, ctx, Some(v), true, true),
-            Instruction::LocLoadW(v) => mem_ops::mem_read(span, ctx, Some(v), true, false),
+            Instruction::MemLoadWImm(v) => mem_ops::mem_read(span, ctx, Some(*v), false, false),
+            Instruction::LocLoad(v) => mem_ops::mem_read(span, ctx, Some(*v as u32), true, true),
+            Instruction::LocLoadW(v) => mem_ops::mem_read(span, ctx, Some(*v as u32), true, false),
             Instruction::MemStore => mem_ops::mem_write(span, ctx, None, false, true),
-            Instruction::MemStoreImm(v) => mem_ops::mem_write(span, ctx, Some(v), false, true),
+            Instruction::MemStoreImm(v) => mem_ops::mem_write(span, ctx, Some(*v), false, true),
             Instruction::MemStoreW => mem_ops::mem_write(span, ctx, None, false, false),
-            Instruction::MemStoreWImm(v) => mem_ops::mem_write(span, ctx, Some(v), false, false),
-            Instruction::LocStore(v) => mem_ops::mem_write(span, ctx, Some(v), true, true),
-            Instruction::LocStoreW(v) => mem_ops::mem_write(span, ctx, Some(v), true, false),
+            Instruction::MemStoreWImm(v) => mem_ops::mem_write(span, ctx, Some(*v), false, false),
+            Instruction::LocStore(v) => mem_ops::mem_write(span, ctx, Some(*v as u32), true, true),
+            Instruction::LocStoreW(v) => {
+                mem_ops::mem_write(span, ctx, Some(*v as u32), true, false)
+            }
 
             Instruction::AdvU64Div => span.add_decorator(Decorator::Advice(DivResultU64)),
             Instruction::AdvKeyval => span.add_decorator(Decorator::Advice(MapValue)),
             Instruction::AdvMem(a, n) => adv_ops::adv_mem(span, *a, *n),
 
-            Instruction::RPPerm => span.add_op(RpPerm),
-            Instruction::RPHash => crypto_ops::rphash(span),
+            Instruction::RpPerm => span.add_op(RpPerm),
+            Instruction::RpHash => crypto_ops::rphash(span),
             Instruction::MTreeGet => crypto_ops::mtree_get(span),
             Instruction::MTreeSet => crypto_ops::mtree_set(span),
             Instruction::MTreeCwm => crypto_ops::mtree_cwm(span),

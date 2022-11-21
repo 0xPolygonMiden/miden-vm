@@ -48,21 +48,6 @@ fn parse_hex_param(op: &Token, param_idx: usize, param_str: &str) -> Result<Felt
     }
 }
 
-/// Parses the bits length in `exp` assembly operation into usize.
-fn parse_bit_len_param(op: &Token, param_idx: usize) -> Result<usize, AssemblyError> {
-    let param_value = op.parts()[param_idx];
-
-    if let Some(param) = param_value.strip_prefix('u') {
-        // parse bits len param
-        match param.parse::<usize>() {
-            Ok(value) => Ok(value),
-            Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
-        }
-    } else {
-        Err(AssemblyError::invalid_param(op, param_idx))
-    }
-}
-
 /// Checks that the u64 parameter value is a valid field element value and returns it as a field
 /// element.
 fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<Felt, AssemblyError> {
