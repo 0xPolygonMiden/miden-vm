@@ -116,7 +116,7 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn parse_proc(&self) -> Result<(String, u32, bool), ParsingError> {
+    pub fn parse_proc(&self) -> Result<(String, u16, bool), ParsingError> {
         assert!(
             self.parts[0] == Self::PROC || self.parts[0] == Self::EXPORT,
             "invalid procedure declaration"
@@ -273,13 +273,14 @@ fn validate_proc_invocation_label(label: &str, token: &Token) -> Result<String, 
     Ok(label.to_string())
 }
 
-fn validate_proc_locals(locals: &str, token: &Token) -> Result<u32, ParsingError> {
+/// Procedure locals must be a 16-bit integer.
+fn validate_proc_locals(locals: &str, token: &Token) -> Result<u16, ParsingError> {
     match locals.parse::<u64>() {
         Ok(num_locals) => {
-            if num_locals > u32::MAX as u64 {
+            if num_locals > u16::MAX as u64 {
                 return Err(ParsingError::invalid_proc_locals(token, locals));
             }
-            Ok(num_locals as u32)
+            Ok(num_locals as u16)
         }
         Err(_) => Err(ParsingError::invalid_proc_locals(token, locals)),
     }

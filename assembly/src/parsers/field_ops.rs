@@ -1,8 +1,8 @@
 use super::{
-    parse_element_param,
+    check_div_by_zero, parse_element_param,
     Instruction::*,
     Node::{self, Instruction},
-    ParsingError, Token,
+    ParsingError, StarkField, Token,
 };
 
 // INSTRUCTION PARSERS
@@ -74,6 +74,7 @@ pub fn parse_div(op: &Token) -> Result<Node, ParsingError> {
         1 => Ok(Instruction(Div)),
         2 => {
             let imm = parse_element_param(op, 1)?;
+            check_div_by_zero(imm.as_int(), op, 1)?;
             Ok(Instruction(DivImm(imm)))
         }
         _ => Err(ParsingError::extra_param(op)),

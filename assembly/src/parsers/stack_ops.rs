@@ -73,9 +73,9 @@ pub fn parse_swap(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "swap");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Ok(Instruction(Swap)),
+        1 => Ok(Instruction(Swap1)),
         2 => match op.parts()[1] {
-            "1" => Ok(Instruction(Swap)),
+            "1" => Ok(Instruction(Swap1)),
             "2" => Ok(Instruction(Swap2)),
             "3" => Ok(Instruction(Swap3)),
             "4" => Ok(Instruction(Swap4)),
@@ -106,9 +106,9 @@ pub fn parse_swapw(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "swapw");
     match op.num_parts() {
         0 => unreachable!(),
-        1 => Ok(Instruction(SwapW)),
+        1 => Ok(Instruction(SwapW1)),
         2 => match op.parts()[1] {
-            "1" => Ok(Instruction(SwapW)),
+            "1" => Ok(Instruction(SwapW1)),
             "2" => Ok(Instruction(SwapW2)),
             "3" => Ok(Instruction(SwapW3)),
             _ => Err(ParsingError::invalid_param(op, 1)),

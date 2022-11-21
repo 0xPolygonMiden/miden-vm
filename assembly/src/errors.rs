@@ -166,6 +166,7 @@ impl ParsingError {
         }
     }
 
+    /// TODO: currently unused
     pub fn invalid_op_with_reason(token: &Token, reason: &str) -> Self {
         ParsingError {
             message: format!("instruction '{token}' is invalid: {reason}"),
@@ -252,14 +253,6 @@ impl ParsingError {
         }
     }
 
-    pub fn unmatched_comment(step: usize) -> Self {
-        ParsingError {
-            message: "# comment delimiter without matching #".to_string(),
-            step,
-            op: "".to_string(),
-        }
-    }
-
     pub fn malformed_doc_comment(step: usize) -> Self {
         ParsingError {
             message: "doc comments separated by line break".to_string(),
@@ -330,14 +323,6 @@ impl ParsingError {
         }
     }
 
-    pub fn undefined_kernel_proc(token: &Token, label: &str) -> Self {
-        ParsingError {
-            message: format!("undefined kernel procedure: {label}"),
-            step: token.pos(),
-            op: token.to_string(),
-        }
-    }
-
     pub fn proc_export_not_allowed(token: &Token, label: &str) -> Self {
         ParsingError {
             message: format!("exported procedures not allowed in this context: {label}"),
@@ -346,14 +331,7 @@ impl ParsingError {
         }
     }
 
-    pub fn proc_not_in_kernel(token: &Token, label: &str) -> Self {
-        ParsingError {
-            message: format!("procedure '{label}' is not a part of the kernel"),
-            step: token.pos(),
-            op: token.to_string(),
-        }
-    }
-
+    /// TODO: currently unused
     pub fn syscall_in_kernel(token: &Token) -> Self {
         ParsingError {
             message: "syscall inside kernel".to_string(),
@@ -362,6 +340,7 @@ impl ParsingError {
         }
     }
 
+    /// TODO: currently unused
     pub fn call_in_kernel(token: &Token) -> Self {
         ParsingError {
             message: "call inside kernel".to_string(),
@@ -370,6 +349,7 @@ impl ParsingError {
         }
     }
 
+    /// TODO: currently unused
     pub fn caller_out_of_kernel(token: &Token) -> Self {
         ParsingError {
             message: "caller instruction executed outside of kernel context".to_string(),
@@ -381,25 +361,10 @@ impl ParsingError {
     // IMPORTS AND MODULES
     // --------------------------------------------------------------------------------------------
 
-    pub fn missing_import_source(token: &Token, module_path: &str) -> Self {
-        ParsingError {
-            message: format!("module source not found: {module_path}"),
-            step: token.pos(),
-            op: token.to_string(),
-        }
-    }
-
+    /// TODO: currently unused
     pub fn dangling_ops_after_module(token: &Token, module_path: &str) -> Self {
         ParsingError {
             message: format!("dangling instructions after module end at {module_path}"),
-            step: token.pos(),
-            op: token.to_string(),
-        }
-    }
-
-    pub fn circular_module_dependency(token: &Token, module_chain: &[String]) -> Self {
-        ParsingError {
-            message: format!("circular module dependency in the following chain: {module_chain:?}"),
             step: token.pos(),
             op: token.to_string(),
         }

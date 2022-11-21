@@ -1,5 +1,5 @@
 use super::{
-    parse_checked_param, parse_param,
+    check_div_by_zero, parse_checked_param, parse_param,
     Instruction::*,
     Node::{self, Instruction},
     ParsingError, Token,
@@ -221,6 +221,7 @@ pub fn parse_u32_div(op: &Token, checked: bool) -> Result<Node, ParsingError> {
         }
         2 => {
             let value = parse_param::<u32>(op, 1)?;
+            check_div_by_zero(value as u64, op, 1)?;
             if checked {
                 Ok(Instruction(U32CheckedDivImm(value)))
             } else {
@@ -252,6 +253,7 @@ pub fn parse_u32_mod(op: &Token, checked: bool) -> Result<Node, ParsingError> {
         }
         2 => {
             let value = parse_param::<u32>(op, 1)?;
+            check_div_by_zero(value as u64, op, 1)?;
             if checked {
                 Ok(Instruction(U32CheckedModImm(value)))
             } else {
@@ -283,6 +285,7 @@ pub fn parse_u32_divmod(op: &Token, checked: bool) -> Result<Node, ParsingError>
         }
         2 => {
             let value = parse_param::<u32>(op, 1)?;
+            check_div_by_zero(value as u64, op, 1)?;
             if checked {
                 Ok(Instruction(U32CheckedDivModImm(value)))
             } else {

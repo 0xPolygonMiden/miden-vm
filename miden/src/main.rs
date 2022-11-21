@@ -73,3 +73,5 @@ impl fmt::Display for ProgramError {
         }
     }
 }
+
+impl std::error::Error for ProgramError {}

@@ -19,7 +19,9 @@ pub use procedures::ProcedureId;
 use procedures::{CallSet, Procedure};
 
 mod parsers;
-pub use parsers::{parse_module, ModuleAst, NamedModuleAst, ProcedureAst};
+pub use parsers::{
+    parse_module, parse_program, ModuleAst, NamedModuleAst, ProcedureAst, ProgramAst,
+};
 
 mod tokens;
 use tokens::{Token, TokenStream};

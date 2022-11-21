@@ -195,7 +195,7 @@ impl Assembler {
         proc: &ProcedureAst,
         context: &mut AssemblyContext,
     ) -> Result<(), AssemblyError> {
-        context.begin_proc(&proc.name, proc.is_export, proc.num_locals as u16)?;
+        context.begin_proc(&proc.name, proc.is_export, proc.num_locals)?;
 
         let code_root = if proc.num_locals > 0 {
             // for procedures with locals, we need to update fmp register before and after the
@@ -344,6 +344,7 @@ struct BodyWrapper {
 // ================================================================================================
 
 pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
+    debug_assert!(!blocks.is_empty(), "cannot combine empty block list");
     // merge consecutive Span blocks.
     let mut merged_blocks: Vec<CodeBlock> = Vec::with_capacity(blocks.len());
     // Keep track of all the consecutive Span blocks and are merged together when
@@ -385,6 +386,7 @@ pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
         }
     }
 
+    debug_assert!(!blocks.is_empty(), "no blocks");
     blocks.remove(0)
 }
 
