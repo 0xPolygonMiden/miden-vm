@@ -1,6 +1,6 @@
 use super::{
     field_ops::append_pow2_op,
-    push_u32_value, AssemblerError, CodeBlock, Felt,
+    push_u32_value, validate_param, AssemblerError, CodeBlock, Felt,
     Operation::{self, *},
     SpanBuilder,
 };
@@ -257,9 +257,7 @@ pub fn u32shl(
     match imm {
         Some(imm) => match op_mode {
             U32OpMode::Checked => {
-                if imm > 31 {
-                    return Err(AssemblerError::imm_out_of_bounds(imm as u64, 0, 31));
-                }
+                validate_param(imm, 0, 31)?;
                 span.push_op(Push(Felt::new(2u64.pow(imm as u32))));
                 span.push_op(U32assert2);
             }
@@ -303,9 +301,7 @@ pub fn u32shr(
     match imm {
         Some(imm) => match op_mode {
             U32OpMode::Checked => {
-                if imm > 31 {
-                    return Err(AssemblerError::imm_out_of_bounds(imm as u64, 0, 31));
-                }
+                validate_param(imm, 0, 31)?;
                 span.push_op(Push(Felt::new(2u64.pow(imm as u32))));
                 span.push_op(U32assert2);
             }
@@ -363,9 +359,7 @@ pub fn u32rotl(
         },
         Some(imm) => match op_mode {
             U32OpMode::Checked => {
-                if imm > 31 {
-                    return Err(AssemblerError::imm_out_of_bounds(imm as u64, 0, 31));
-                }
+                validate_param(imm, 0, 31)?;
                 span.push_op(Push(Felt::new(2u64.pow(imm as u32))));
                 span.push_op(U32assert2);
             }
@@ -440,9 +434,7 @@ pub fn u32rotr(
                 span.push_op(U32assert2);
                 span.push_op(Drop);
 
-                if imm > 31 {
-                    return Err(AssemblerError::imm_out_of_bounds(imm as u64, 0, 31));
-                }
+                validate_param(imm, 0, 31)?;
                 span.push_op(Push(Felt::new(2u64.pow(32 - imm as u32))));
             }
             U32OpMode::Unchecked => {
@@ -545,11 +537,11 @@ pub fn u32eq(
     span: &mut SpanBuilder,
     imm: Option<u32>,
 ) -> Result<Option<CodeBlock>, AssemblerError> {
-    match imm {
-        Some(imm) => assert_and_push_u32_param(span, imm, 0)?,
-        None => span.push_op(U32assert2),
+    if let Some(imm) = imm {
+        push_u32_value(span, imm);
     }
 
+    span.push_op(U32assert2);
     span.push_op(Eq);
 
     Ok(None)
@@ -567,11 +559,11 @@ pub fn u32neq(
     span: &mut SpanBuilder,
     imm: Option<u32>,
 ) -> Result<Option<CodeBlock>, AssemblerError> {
-    match imm {
-        Some(imm) => assert_and_push_u32_param(span, imm, 0)?,
-        None => span.push_op(U32assert2),
+    if let Some(imm) = imm {
+        push_u32_value(span, imm);
     }
 
+    span.push_op(U32assert2);
     span.push_op(Eq);
     span.push_op(Not);
 
@@ -711,39 +703,6 @@ pub fn u32max(
 
 // COMPARISON OPERATIONS - HELPERS
 // ================================================================================================
-
-/// Asserts that the value on the top of the stack is a u32 and pushes the first param of the `op`
-/// as a u32 value onto the stack.
-///
-/// This takes:
-/// - 3 VM cycles when the param == 1.
-/// - 2 VM cycle when the param != 1.
-///
-/// # Errors
-/// Returns an error if the first parameter of the `op` is not a u32 value or is greater than
-/// `lower_bound`.
-fn assert_and_push_u32_param(
-    span: &mut SpanBuilder,
-    lower_bound: u32,
-    value: u32,
-) -> Result<(), AssemblerError> {
-    // TODO: We should investigate special case handling adding 0 or 1.
-    // check that the parameter is within the specified bounds
-    if value < lower_bound {
-        return Err(AssemblerError::imm_out_of_bounds(
-            value as u64,
-            lower_bound as u64,
-            u32::MAX as u64,
-        ));
-    }
-
-    push_u32_value(span, value);
-
-    // Assert both numbers are u32.
-    span.push_op(U32assert2);
-
-    Ok(())
-}
 
 /// Handles u32 assertion and unchecked mode for any u32 operation.
 fn handle_u32_and_unchecked_mode(span: &mut SpanBuilder, op_mode: U32OpMode) {

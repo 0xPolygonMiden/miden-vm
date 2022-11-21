@@ -1,8 +1,8 @@
 use super::{
-    Assembler, AssemblerError, AssemblyContext, CodeBlock, Felt, Instruction, Operation,
+    Assembler, AssemblerError, AssemblyContext, CodeBlock, Decorator, Felt, Instruction, Operation,
     ProcedureId, SpanBuilder,
 };
-use vm_core::{StarkField, ONE, ZERO};
+use vm_core::{AdviceInjector, StarkField, ONE, ZERO};
 
 mod adv_ops;
 mod crypto_ops;
@@ -24,6 +24,7 @@ impl Assembler {
         span: &mut SpanBuilder,
         ctx: &mut AssemblyContext,
     ) -> Result<Option<CodeBlock>, AssemblerError> {
+        use AdviceInjector::*;
         use Operation::*;
 
         // if the assembler is in debug mode, start tracking the instruction about to be executed;
@@ -256,10 +257,9 @@ impl Assembler {
             Instruction::LocStore(v) => mem_ops::mem_write(span, ctx, Some(v), true, true),
             Instruction::LocStoreW(v) => mem_ops::mem_write(span, ctx, Some(v), true, false),
 
-            // TODO this isntruction is not implemented as operation
-            Instruction::AdvU64Div => todo!(),
-            Instruction::AdvKeyval => todo!(),
-            Instruction::AdvMem(_, _) => todo!(),
+            Instruction::AdvU64Div => span.add_decorator(Decorator::Advice(DivResultU64)),
+            Instruction::AdvKeyval => span.add_decorator(Decorator::Advice(MapValue)),
+            Instruction::AdvMem(a, n) => adv_ops::adv_mem(span, *a, *n),
 
             Instruction::RPPerm => span.add_op(RpPerm),
             Instruction::RPHash => crypto_ops::rphash(span),
@@ -327,5 +327,19 @@ fn push_felt(span: &mut SpanBuilder, value: Felt) {
         span.push_op(Incr);
     } else {
         span.push_op(Push(value));
+    }
+}
+
+/// Returns an error if the specified value is smaller than or equal to min or greater than or
+/// equal to max. Otherwise, returns Ok(()).
+fn validate_param<I: Ord + Into<u64>>(value: I, min: I, max: I) -> Result<(), AssemblerError> {
+    if value < min || value > max {
+        Err(AssemblerError::param_out_of_bounds(
+            value.into(),
+            min.into(),
+            max.into(),
+        ))
+    } else {
+        Ok(())
     }
 }
