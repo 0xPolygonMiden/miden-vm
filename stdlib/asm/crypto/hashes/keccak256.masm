@@ -19,7 +19,6 @@ proc.theta.3
     dup
     locaddr.0
     mem_store
-    drop
 
     # compute (S[0] ^ S[10] ^ S[20] ^ S[30] ^ S[40], S[1] ^ S[11] ^ S[21] ^ S[31] ^ S[41])
 
@@ -1060,7 +1059,6 @@ proc.rho.1
     dup
     locaddr.0
     mem_store
-    drop
 
     # rotate state[0..4)
     push.0.0.0.0
@@ -1346,7 +1344,6 @@ proc.pi.14
     dup
     locaddr.0
     mem_store
-    drop
 
     locaddr.1
     swap
@@ -1766,7 +1763,6 @@ proc.chi.4
     dup
     locaddr.0
     mem_store
-    drop
 
     # process state[0..10)
     dup

@@ -53,9 +53,14 @@ pub fn mem_read(
 /// this handles mem_store, mem_storew, loc_store, and loc_storew instructions.
 ///
 /// VM cycles per operation:
-/// - mem_store(w): 1 cycle
-/// - mem_store(w).b: 2 cycles
-/// - loc_store(w).b:
+/// - mem_store: 2 cycles
+/// - mem_storew: 1 cyle
+/// - mem_store.b: 3 cycles
+/// - mem_storew.b: 2 cycles
+/// - loc_store.b:
+///   - 5 cycles if b = 1
+///   - 4 cycles if b != 1
+/// - loc_storew.b:
 ///    - 4 cycles if b = 1
 ///    - 3 cycles if b != 1
 ///
@@ -82,6 +87,7 @@ pub fn mem_write(
 
     if is_single {
         span.push_op(MStore);
+        span.push_op(Drop);
     } else {
         span.push_op(MStoreW);
     }
