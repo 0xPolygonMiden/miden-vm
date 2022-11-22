@@ -2,3 +2,4 @@
 ## std::math::ext5_scalar
 | Procedure | Description |
 | ----------- | ------------- |
+| sub_inner | Performs raw subtraction of scalar element ( say b ) from another one ( say a ),<br /><br />without any reduction i.e. r = a - b<br /><br />Expected stack state<br /><br />[a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, ...]<br /><br />Final stack state<br /><br />[c, r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, ...]<br /><br />Note, if c == 0xffff_ffff, overflow has occurred during subtraction<br /><br />else c == 0, no overflow occurred during subtraction.<br /><br />Adapted from equivalent Rust implementation https://github.com/itzmeanjan/miden/blob/e7038e45865a7032a0629346921a77010e82862d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L56-L74 |
