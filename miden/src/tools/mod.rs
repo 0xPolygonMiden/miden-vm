@@ -223,7 +223,7 @@ mod tests {
     #[test]
     fn analyze_test() {
         let source =
-            "proc.foo.1 loc_store.0 drop end begin mem_storew.1 dropw push.17 push.1 movdn.2 exec.foo end";
+            "proc.foo.1 loc_store.0 end begin mem_storew.1 dropw push.17 push.1 movdn.2 exec.foo end";
         let program_inputs = super::ProgramInputs::none();
         let program_info =
             super::analyze(source, program_inputs).expect("analyze_test: Unexpected Error");
@@ -231,11 +231,10 @@ mod tests {
             total_vm_cycles: 23,
             total_noops: 2,
             asm_op_stats: vec![
-                AsmOpStats::new("drop".to_string(), 1, 1),
                 AsmOpStats::new("dropw".to_string(), 1, 4),
-                AsmOpStats::new("loc_store".to_string(), 1, 3),
+                AsmOpStats::new("loc_store".to_string(), 1, 4),
                 AsmOpStats::new("mem_storew".to_string(), 1, 3),
-                AsmOpStats::new("movdn.2".to_string(), 1, 1),
+                AsmOpStats::new("movdn2".to_string(), 1, 1),
                 AsmOpStats::new("push".to_string(), 2, 3),
             ],
         };
@@ -254,10 +253,10 @@ mod tests {
 
     #[test]
     fn analyze_test_assembly_error() {
-        let source = "proc.foo.1 loc_store.0 drop end mem_storew.1 dropw push.17 exec.foo end";
+        let source = "proc.foo.1 loc_store.0 end mem_storew.1 dropw push.17 exec.foo end";
         let program_inputs = super::ProgramInputs::none();
         let program_info = super::analyze(source, program_inputs);
-        let expected_error = "Assembly Error: assembly error at 4: unexpected token: expected 'begin' but was 'mem_storew.1'";
+        let expected_error = "Assembly Error: ParsingError(\"unexpected token: expected 'begin' but was 'mem_storew.1'\")";
         assert_eq!(program_info.err().unwrap().to_string(), expected_error);
     }
 }

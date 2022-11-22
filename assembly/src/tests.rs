@@ -142,7 +142,6 @@ fn program_with_proc_locals() {
     let source = "\
         proc.foo.1 \
             loc_store.0 \
-            drop \
             add \
             loc_load.0 \
             mul \
