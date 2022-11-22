@@ -133,3 +133,106 @@ export.sub_inner
 
     movup.10 # = c 
 end
+
+#! Selects scalar based on value of c i.e. r = c == 0 ? a : b | c ∈ {0, 0xffff_ffff}
+#!
+#! Expected stack state
+#!
+#! [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, ...]
+#!
+#! Final stack state
+#!
+#! [r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, ...]
+#!
+#! Adapted from equivalent Rust implementation https://github.com/itzmeanjan/miden/blob/e7038e45865a7032a0629346921a77010e82862d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L76-L87
+export.select
+    dup
+    movup.12
+    dup.3
+    u32checked_xor
+    u32checked_and
+    movup.2
+    u32checked_xor
+
+    dup.1
+    movup.12
+    dup.4
+    u32checked_xor
+    u32checked_and
+    movup.3
+    u32checked_xor
+
+    dup.2
+    movup.12
+    dup.5
+    u32checked_xor
+    u32checked_and
+    movup.4
+    u32checked_xor
+
+    dup.3
+    movup.12
+    dup.6
+    u32checked_xor
+    u32checked_and
+    movup.5
+    u32checked_xor
+
+    dup.4
+    movup.12
+    dup.7
+    u32checked_xor
+    u32checked_and
+    movup.6
+    u32checked_xor
+
+    dup.5
+    movup.12
+    dup.8
+    u32checked_xor
+    u32checked_and
+    movup.7
+    u32checked_xor
+
+    dup.6
+    movup.12
+    dup.9
+    u32checked_xor
+    u32checked_and
+    movup.8
+    u32checked_xor
+
+    dup.7
+    movup.12
+    dup.10
+    u32checked_xor
+    u32checked_and
+    movup.9
+    u32checked_xor
+
+    dup.8
+    movup.12
+    dup.11
+    u32checked_xor
+    u32checked_and
+    movup.10
+    u32checked_xor
+
+    movup.9
+    movup.11
+    dup.11
+    u32checked_xor
+    u32checked_and
+    movup.10
+    u32checked_xor
+
+    swap
+    movup.2
+    movup.3
+    movup.4
+    movup.5
+    movup.6
+    movup.7
+    movup.8
+    movup.9 # = (r0, r1, r2, r3, r4, r5, r6, r7, r8, r9)
+end
