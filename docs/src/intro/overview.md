@@ -21,7 +21,7 @@ While writing programs in assembly is far from ideal, Miden assembly does make t
 External inputs can be provided to Miden VM in two way:
 
 1. Public inputs can be supplied to the VM by initializing the stack with desired values before a program starts executing. Any number of stack items can be initialized in this way, but providing a large number of public inputs will increase the cost for the verifier.
-2. Secret (or nondeterministic) inputs can be supplied to the VM via the *advice provider* (described below). There is no limit on how much data the advice provider can hold.
+2. Secret (or nondeterministic) inputs can be supplied to the VM via the [*advice provider*](#nondeterministic-inputs). There is no limit on how much data the advice provider can hold.
 
 After a program finishes executing, the elements remaining on the stack become the outputs of the program. Since these outputs will be public inputs for the verifier, having a large stack at the end of execution will increase cost to the verifier. Therefore, it's best to drop unneeded output values. We've provided the [`truncate_stack`](../user_docs/stdlib/sys.md) utility function in the standard library for this purpose.
 
@@ -40,8 +40,9 @@ For reasons explained [here](../design/stack/main.md), the VM imposes the restri
 ### Nondeterministic inputs
 The *advice provider* component is responsible for supplying nondeterministic inputs to the VM. These inputs only need to be known to the prover (i.e., they do not need to be shared with the verifier).
 
-The advice provider consists of two components:
+The advice provider consists of three components:
 * **Advice tape** which is a one-dimensional array of values. The VM can access only the head of the tape. That is the VM can either remove values from the head of the tape or inject new values at the head of the tape. Formally, this means that the advice tape is actually a stack.
+* **Advice map** which is a key-value map where keys are words and values are vectors of field elements. The VM can copy values from the advice map onto the advice tape as well as insert new values into the advice map (e.g., from a region of memory).
 * **Advice sets** which contain structured data reducible to Merkle paths. Some examples of advice sets are: Merkle tree, Sparse Merkle tree, a collection of Merkle paths. Every advice set can be uniquely identified by its root. The VM can request Merkle paths from an advice set, as well as update an advice set by modifying one of its nodes (this will also change the root of the modified advice set).
 
 The prover initializes the advice provider prior to executing a program, and from that point on the advice provider is manipulated solely by executing operations on the VM.

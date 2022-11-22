@@ -92,7 +92,7 @@ end
 ```
 In the above example we import `std::math::u64` module from the [standard library](../stdlib/main.md). We then execute a program which pushes two 64-bit integers on the the stack, and then invokes a 64-bit addition procedure from the imported module.
 
-The set of modules which can be imported by a program can be specified via Module Provider when instantiating [Miden Assembler](https://crates.io/crates/miden-assembly) used to compile the program.
+The set of modules which can be imported by a program can be specified via Module Provider when instantiating the [Miden Assembler](https://crates.io/crates/miden-assembly) used to compile the program.
 
 ### Comments
 Miden assembly allows annotating code with simple comments. There are two types of comments: single-line comment which starts with a `#` (pound) character, and documentation comments which start with `#!` characters. For example:
