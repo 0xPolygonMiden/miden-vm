@@ -4,6 +4,7 @@ use super::{
     Operation::{self, *},
     SpanBuilder,
 };
+use crate::{MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE};
 
 // ENUMS
 // ================================================================================================
@@ -25,37 +26,21 @@ pub enum U32OpMode {
 /// Implemented by executing DUP U32SPLIT SWAP DROP EQZ on each element in the word
 /// and combining the results using AND operation (total of 23 VM cycles)
 pub fn u32testw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    // Test the fourth element
-    span.push_op(Dup3);
-    span.push_op(U32split);
-    span.push_op(Swap);
-    span.push_op(Drop);
-    span.push_op(Eqz);
+    #[rustfmt::skip]
+    let ops = [
+         // Test the fourth element
+        Dup3, U32split, Swap, Drop, Eqz,
 
-    // Test the third element
-    span.push_op(Dup3);
-    span.push_op(U32split);
-    span.push_op(Swap);
-    span.push_op(Drop);
-    span.push_op(Eqz);
-    span.push_op(And);
+        // Test the third element
+        Dup3, U32split, Swap, Drop, Eqz, And,
 
-    // Test the second element
-    span.push_op(Dup2);
-    span.push_op(U32split);
-    span.push_op(Swap);
-    span.push_op(Drop);
-    span.push_op(Eqz);
-    span.push_op(And);
+         // Test the second element
+        Dup2, U32split, Swap, Drop, Eqz, And,
 
-    // Test the first element
-    span.push_op(Dup1);
-    span.push_op(U32split);
-    span.push_op(Swap);
-    span.push_op(Drop);
-    span.push_op(Eqz);
-    span.push_op(And);
-    Ok(None)
+        // Test the first element
+        Dup1, U32split, Swap, Drop, Eqz, And,
+    ];
+    span.add_ops(ops)
 }
 
 /// Translates u32assertw assembly instruction to VM operations.
@@ -63,21 +48,21 @@ pub fn u32testw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 /// Implemented by executing `U32ASSERT2` on each pair of elements in the word.
 /// Total of 6 VM cycles.
 pub fn u32assertw(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    // Test the first and the second elements
-    span.push_op(U32assert2);
+    #[rustfmt::skip]
+    let ops = [
+        // Test the first and the second elements
+        U32assert2,
 
-    // Move 3 and 4 to the top of the stack
-    span.push_op(MovUp3);
-    span.push_op(MovUp3);
+        // Move 3 and 4 to the top of the stack
+        MovUp3, MovUp3,
 
-    // Test them
-    span.push_op(U32assert2);
+        // Test them
+        U32assert2,
 
-    // Move the elements back into place
-    span.push_op(MovUp3);
-    span.push_op(MovUp3);
-
-    Ok(None)
+        // Move the elements back into place
+        MovUp3, MovUp3,
+    ];
+    span.add_ops(ops)
 }
 
 // ARITHMETIC OPERATIONS
@@ -166,10 +151,7 @@ pub fn u32div(
     imm: Option<u32>,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
     handle_division(span, op_mode, imm)?;
-
-    span.push_op(Drop);
-
-    Ok(None)
+    span.add_op(Drop)
 }
 
 /// Translates u32mod assembly instructions to VM operations.
@@ -189,11 +171,7 @@ pub fn u32mod(
     imm: Option<u32>,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
     handle_division(span, op_mode, imm)?;
-
-    span.push_op(Swap);
-    span.push_op(Drop);
-
-    Ok(None)
+    span.add_ops([Swap, Drop])
 }
 
 /// Translates u32divmod assembly instructions to VM operations.
@@ -212,8 +190,7 @@ pub fn u32divmod(
     op_mode: U32OpMode,
     imm: Option<u32>,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
-    handle_division(span, op_mode, imm)?;
-    Ok(None)
+    handle_division(span, op_mode, imm)
 }
 
 // BITWISE OPERATIONS
@@ -226,16 +203,18 @@ pub fn u32divmod(
 ///
 /// This takes 5 VM cycles.
 pub fn u32not(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    // perform the operation
-    span.push_op(Push(Felt::new(2u64.pow(32) - 1)));
-    span.push_op(U32assert2);
-    span.push_op(Swap);
-    span.push_op(U32sub);
+    #[rustfmt::skip]
+    let ops = [
+        // Perform the operation
+        Push(Felt::from(u32::MAX)),
+        U32assert2,
+        Swap,
+        U32sub,
 
-    // Drop the underflow flag
-    span.push_op(Drop);
-
-    Ok(None)
+        // Drop the underflow flag
+        Drop,
+    ];
+    span.add_ops(ops)
 }
 
 /// Translates u32shl assembly instructions to VM operations.
@@ -254,32 +233,8 @@ pub fn u32shl(
     op_mode: U32OpMode,
     imm: Option<u8>,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
-    match imm {
-        Some(imm) => match op_mode {
-            U32OpMode::Checked => {
-                validate_param(imm, 0, 31)?;
-                span.push_op(Push(Felt::new(2u64.pow(imm as u32))));
-                span.push_op(U32assert2);
-            }
-            U32OpMode::Unchecked => {
-                span.push_op(Push(Felt::new(2u64.pow(imm as u32))));
-            }
-            _ => unreachable!("unsupported operation mode"),
-        },
-        None => match op_mode {
-            U32OpMode::Checked => {
-                append_pow2_op(span);
-                span.push_op(U32assert2);
-            }
-            U32OpMode::Unchecked => append_pow2_op(span),
-            _ => unreachable!("unsupported operation mode"),
-        },
-    }
-
-    span.push_op(U32mul);
-    span.push_op(Drop);
-
-    Ok(None)
+    prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span, imm, op_mode)?;
+    span.add_ops([U32mul, Drop])
 }
 
 /// Translates u32shr assembly instructions to VM operations.
@@ -298,34 +253,8 @@ pub fn u32shr(
     op_mode: U32OpMode,
     imm: Option<u8>,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
-    match imm {
-        Some(imm) => match op_mode {
-            U32OpMode::Checked => {
-                validate_param(imm, 0, 31)?;
-                span.push_op(Push(Felt::new(2u64.pow(imm as u32))));
-                span.push_op(U32assert2);
-            }
-            U32OpMode::Unchecked => {
-                span.push_op(Push(Felt::new(2u64.pow(imm as u32))));
-            }
-            _ => unreachable!(),
-        },
-        None => match op_mode {
-            U32OpMode::Checked => {
-                // Assume the dynamic shift value b is on top of the stack.
-                append_pow2_op(span);
-                span.push_op(U32assert2);
-            }
-            U32OpMode::Unchecked => append_pow2_op(span),
-            _ => unreachable!(),
-        },
-    };
-
-    // Use division to shift right and then drop the remainder
-    span.push_op(U32div);
-    span.push_op(Drop);
-
-    Ok(None)
+    prepare_bitwise::<MAX_U32_SHIFT_VALUE>(span, imm, op_mode)?;
+    span.add_ops([U32div, Drop])
 }
 
 /// Translates u32rotl assembly instructions to VM operations.
@@ -345,35 +274,8 @@ pub fn u32rotl(
     op_mode: U32OpMode,
     imm: Option<u8>,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
-    match imm {
-        None => match op_mode {
-            U32OpMode::Checked => {
-                // Assume the dynamic shift value b is on top of the stack.
-                append_pow2_op(span);
-                span.push_op(U32assert2);
-            }
-            U32OpMode::Unchecked => {
-                append_pow2_op(span);
-            }
-            _ => unreachable!("unsupported operation mode"),
-        },
-        Some(imm) => match op_mode {
-            U32OpMode::Checked => {
-                validate_param(imm, 0, 31)?;
-                span.push_op(Push(Felt::new(2u64.pow(imm as u32))));
-                span.push_op(U32assert2);
-            }
-            U32OpMode::Unchecked => {
-                span.push_op(Push(Felt::new(2u64.pow(imm as u32))));
-            }
-            _ => unreachable!("unsupported operation mode"),
-        },
-    }
-
-    span.push_op(U32mul);
-    span.push_op(Add);
-
-    Ok(None)
+    prepare_bitwise::<MAX_U32_ROTATE_VALUE>(span, imm, op_mode)?;
+    span.add_ops([U32mul, Add])
 }
 
 /// Translates u32rotr assembly instructions to VM operations.
@@ -393,61 +295,42 @@ pub fn u32rotr(
     op_mode: U32OpMode,
     imm: Option<u8>,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
-    match imm {
-        None => match op_mode {
-            U32OpMode::Checked => {
+    match (imm, op_mode) {
+        (Some(imm), U32OpMode::Checked) => {
+            // Assert the top of the stack is a u32 value.
+            // NOTE: We cannot use U32Assert2 since we are potentially pushing a number larger
+            // than u32 for b.
+            // TODO: double check this logic: we shouldn't use U32MUL if both inputs are not
+            // guaranteed to be u32 values
+            validate_param(imm, 0, MAX_U32_ROTATE_VALUE)?;
+            span.push_ops([Pad, U32assert2, Drop, Push(Felt::new(1 << (32 - imm)))]);
+        }
+        (Some(imm), U32OpMode::Unchecked) => {
+            validate_param(imm, 0, MAX_U32_ROTATE_VALUE)?;
+            span.push_op(Push(Felt::new(1 << (32 - imm))));
+        }
+        (None, U32OpMode::Checked) => {
+            #[rustfmt::skip]
+            span.push_ops([
                 // Verify both b and a are u32.
-                span.push_op(U32assert2);
+                U32assert2,
+
                 // Calculate 32 - b and assert that the shift value b <= 31.
-                span.push_op(Push(Felt::new(31)));
-                span.push_op(Dup1);
-                span.push_op(U32sub);
-                span.push_op(Not);
-                span.push_op(Assert);
-                span.push_op(Incr);
-                span.push_op(Dup1);
+                Push(Felt::from(MAX_U32_ROTATE_VALUE)), Dup1, U32sub, Not, Assert, Incr, Dup1,
+
                 // If 32-b = 32, replace it with 0.
-                span.push_op(Eqz);
-                span.push_op(Not);
-                span.push_op(CSwap);
-                span.push_op(Drop);
-                append_pow2_op(span);
-                span.push_op(Swap);
-            }
-            U32OpMode::Unchecked => {
-                span.push_op(Push(Felt::new(32)));
-                span.push_op(Swap);
-                span.push_op(U32sub);
-                span.push_op(Drop);
-                append_pow2_op(span);
-            }
-            _ => unreachable!("unsupported operation mode"),
-        },
-        Some(imm) => match op_mode {
-            U32OpMode::Checked => {
-                // Assert the top of the stack is a u32 value.
-                // NOTE: We cannot use U32Assert2 since we are potentially pushing a number larger
-                // than u32 for b.
-                // TODO: double check this logic: we shouldn't use U32MUL if both inputs are not
-                // guaranteed to be u32 values
-                span.push_op(Pad);
-                span.push_op(U32assert2);
-                span.push_op(Drop);
-
-                validate_param(imm, 0, 31)?;
-                span.push_op(Push(Felt::new(2u64.pow(32 - imm as u32))));
-            }
-            U32OpMode::Unchecked => {
-                span.push_op(Push(Felt::new(2u64.pow(32 - imm as u32))));
-            }
-            _ => unreachable!("unsupported operation mode"),
-        },
+                Eqz, Not, CSwap, Drop,
+            ]);
+            append_pow2_op(span);
+            span.push_op(Swap);
+        }
+        (None, U32OpMode::Unchecked) => {
+            span.push_ops([Push(Felt::new(32)), Swap, U32sub, Drop]);
+            append_pow2_op(span);
+        }
+        _ => unreachable!("unsupported operation mode"),
     }
-
-    span.push_op(U32mul);
-    span.push_op(Add);
-
-    Ok(None)
+    span.add_ops([U32mul, Add])
 }
 
 /// Handles U32ADD, U32SUB, and U32MUL operations in checked, wrapping, and overflowing modes,
@@ -487,13 +370,12 @@ fn handle_arithmetic_operation(
     span.push_op(op);
 
     if assert_u32_res {
-        span.push_op(Eqz);
-        span.push_op(Assert);
+        span.add_ops([Eqz, Assert])
     } else if drop_high_bits {
-        span.push_op(Drop);
+        span.add_op(Drop)
+    } else {
+        Ok(None)
     }
-
-    Ok(None)
 }
 
 /// Handles common parts of u32div, u32mod, and u32divmod operations in checked and unchecked modes,
@@ -502,7 +384,7 @@ fn handle_division(
     span: &mut SpanBuilder,
     op_mode: U32OpMode,
     imm: Option<u32>,
-) -> Result<(), AssemblyError> {
+) -> Result<Option<CodeBlock>, AssemblyError> {
     if let Some(imm) = imm {
         if imm == 0 {
             return Err(AssemblyError::division_by_zero());
@@ -518,8 +400,44 @@ fn handle_division(
         _ => unreachable!("unsupported operation mode"),
     }
 
-    span.push_op(U32div);
+    span.add_op(U32div)
+}
 
+// BITWISE OPERATIONS - HELPERS
+// ================================================================================================
+
+/// Mutate the first two elements of the stack from `[b, a, ..]` into `[2^b, a, ..]`, with `b`
+/// either as a provided immediate value, or as an element that already exists in the stack.
+///
+/// If the used mode is `checked`, the function will assert that both `[b, a]` are valid `u32`.
+/// This function is equivalent to a bit shift operation, so the exponent shouldn't cause a number
+/// to be greater than `u32::MAX`; therefore, the maximum valid value must be `31`, as defined in
+/// the helper constants.
+///
+/// This function supports only checked and unchecked modes; if some other mode is provided, it
+/// will panic.
+fn prepare_bitwise<const MAX_VALUE: u8>(
+    span: &mut SpanBuilder,
+    imm: Option<u8>,
+    op_mode: U32OpMode,
+) -> Result<(), AssemblyError> {
+    match (imm, op_mode) {
+        (Some(imm), U32OpMode::Checked) => {
+            validate_param(imm, 0, MAX_VALUE)?;
+            span.push_op(Push(Felt::new(1 << imm)));
+            span.push_op(U32assert2);
+        }
+        (Some(imm), U32OpMode::Unchecked) => {
+            span.push_op(Push(Felt::new(1 << imm)));
+        }
+        (None, U32OpMode::Checked) => {
+            // Assume the dynamic shift value b is on top of the stack.
+            append_pow2_op(span);
+            span.push_op(U32assert2);
+        }
+        (None, U32OpMode::Unchecked) => append_pow2_op(span),
+        _ => unreachable!("unsupported operation mode"),
+    }
     Ok(())
 }
 
@@ -538,10 +456,7 @@ pub fn u32eq(span: &mut SpanBuilder, imm: Option<u32>) -> Result<Option<CodeBloc
         push_u32_value(span, imm);
     }
 
-    span.push_op(U32assert2);
-    span.push_op(Eq);
-
-    Ok(None)
+    span.add_ops([U32assert2, Eq])
 }
 
 /// Translates u32checked_neq assembly instruction to VM operations.
@@ -560,11 +475,7 @@ pub fn u32neq(
         push_u32_value(span, imm);
     }
 
-    span.push_op(U32assert2);
-    span.push_op(Eq);
-    span.push_op(Not);
-
-    Ok(None)
+    span.add_ops([U32assert2, Eq, Not])
 }
 
 /// Translates u32lt assembly instructions to VM operations.
@@ -604,9 +515,7 @@ pub fn u32lte(
     compute_lt(span);
 
     // Flip the final results to get the lte results.
-    span.push_op(Not);
-
-    Ok(None)
+    span.add_op(Not)
 }
 
 /// Translates u32gt assembly instructions to VM operations.
@@ -648,9 +557,7 @@ pub fn u32gte(
     compute_lt(span);
 
     // Flip the final results to get the gte results.
-    span.push_op(Not);
-
-    Ok(None)
+    span.add_op(Not)
 }
 
 /// Translates u32min assembly instructions to VM operations.
@@ -670,9 +577,7 @@ pub fn u32min(
     compute_max_and_min(span, op_mode);
 
     // Drop the max and keep the min
-    span.push_op(Drop);
-
-    Ok(None)
+    span.add_op(Drop)
 }
 
 /// Translates u32max assembly instructions to VM operations.
@@ -692,10 +597,7 @@ pub fn u32max(
     compute_max_and_min(span, op_mode);
 
     // Drop the min and keep the max
-    span.push_op(Swap);
-    span.push_op(Drop);
-
-    Ok(None)
+    span.add_ops([Swap, Drop])
 }
 
 // COMPARISON OPERATIONS - HELPERS
@@ -711,13 +613,10 @@ fn handle_u32_and_unchecked_mode(span: &mut SpanBuilder, op_mode: U32OpMode) {
 /// Inserts the VM operations to check if the second element is less than
 /// the top element. This takes 5 cycles.
 fn compute_lt(span: &mut SpanBuilder) {
-    span.push_op(U32sub);
-    span.push_op(Swap);
-    span.push_op(Drop);
-
-    // Check the underflow flag
-    span.push_op(Eqz);
-    span.push_op(Not);
+    span.push_ops([
+        U32sub, Swap, Drop, // Perform the operations
+        Eqz, Not, // Check the underflow flag
+    ])
 }
 
 /// Duplicate the top two elements in the stack and check both are u32, and determine the min
@@ -726,18 +625,17 @@ fn compute_lt(span: &mut SpanBuilder) {
 /// The maximum number will be at the top of the stack and minimum will be at the 2nd index.
 fn compute_max_and_min(span: &mut SpanBuilder, op_mode: U32OpMode) {
     // Copy top two elements of the stack.
-    span.push_op(Dup1);
-    span.push_op(Dup1);
+    span.push_ops([Dup1, Dup1]);
     if op_mode == U32OpMode::Checked {
         span.push_op(U32assert2);
     }
 
-    span.push_op(U32sub);
-    span.push_op(Swap);
-    span.push_op(Drop);
+    #[rustfmt::skip]
+    span.push_ops([
+        U32sub, Swap, Drop,
 
-    // Check the underflow flag, if it's zero
-    // then the second number is equal or larger than the first.
-    span.push_op(Eqz);
-    span.push_op(CSwap);
+        // Check the underflow flag, if it's zero
+        // then the second number is equal or larger than the first.
+        Eqz, CSwap,
+    ]);
 }

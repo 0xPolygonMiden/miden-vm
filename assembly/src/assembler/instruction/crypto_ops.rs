@@ -25,28 +25,29 @@ const RPHASH_NUM_ELEMENTS: u64 = 8;
 ///
 /// This operation takes 16 VM cycles.
 pub(super) fn rphash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    // Add 4 elements to the stack to prepare the capacity portion for the Rescue Prime permutation
-    // The capacity should start at stack[8], and the number of elements to be hashed should
-    // be deepest in the stack at stack[11]
-    span.push_op(Push(Felt::new(RPHASH_NUM_ELEMENTS)));
-    span.push_op_many(Pad, 3);
-    span.push_op(SwapW2);
-    // restore the order of the top 2 words to be hashed
-    span.push_op(SwapW);
+    #[rustfmt::skip]
+    let ops = [
+        // Add 4 elements to the stack to prepare the capacity portion for the Rescue Prime permutation
+        // The capacity should start at stack[8], and the number of elements to be hashed should
+        // be deepest in the stack at stack[11]
+        Push(Felt::new(RPHASH_NUM_ELEMENTS)), Pad, Pad, Pad, SwapW2,
 
-    // Do the Rescue Prime permutation on the top 12 elements in the stack
-    span.push_op(RpPerm);
+        // restore the order of the top 2 words to be hashed
+        SwapW,
 
-    // Drop 4 elements (the part of the rate that doesn't have our result)
-    span.push_op_many(Drop, 4);
+        // Do the Rescue Prime permutation on the top 12 elements in the stack
+        RpPerm,
 
-    // Move the top word (our result) down the stack
-    span.push_op(SwapW);
+        // Drop 4 elements (the part of the rate that doesn't have our result)
+        Drop, Drop, Drop, Drop,
 
-    // Drop 4 elements (the capacity portion)
-    span.push_op_many(Drop, 4);
+        // Move the top word (our result) down the stack
+        SwapW,
 
-    Ok(None)
+        // Drop 4 elements (the capacity portion)
+        Drop, Drop, Drop, Drop,
+    ];
+    span.add_ops(ops)
 }
 
 // MERKLE TREES
@@ -68,19 +69,17 @@ pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
     // stack: [d, i, R, ...]
     // inject the node value we're looking for at the head of the advice tape
     read_mtree_node(span);
+    #[rustfmt::skip]
+    let ops = [
+        // verify the node V for root R with depth d and index i
+        // => [V, d, i, R, ...]
+        MpVerify,
 
-    // verify the node V for root R with depth d and index i
-    // => [V, d, i, R, ...]
-    span.push_op(MpVerify);
-
-    // move d, i back to the top of the stack and are dropped since they are
-    // no longer needed => [V, R, ...]
-    span.push_op(MovUp4);
-    span.push_op(Drop);
-    span.push_op(MovUp4);
-    span.push_op(Drop);
-
-    Ok(None)
+        // move d, i back to the top of the stack and are dropped since they are
+        // no longer needed => [V, R, ...]
+        MovUp4, Drop, MovUp4, Drop,
+    ];
+    span.add_ops(ops)
 }
 
 /// Appends the MRUPDATE op with a parameter of "false" and stack manipulations to the span block
@@ -100,26 +99,16 @@ pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
     // Inject the old node value onto the stack for the call to MRUPDATE.
     // [d, i, R, V_new, ...] => [V_old, d, i, R, V_new, ...]
     read_mtree_node(span);
+    update_mtree(span, false);
+    #[rustfmt::skip]
+    let ops = [
+        // Move the old root to the top of the stack => [R, R_new, V_new, ...]
+        SwapW,
 
-    // Update the Merkle tree with the new value without copying the old tree. This replaces the
-    // old node value with the computed new Merkle root.
-    // => [R_new, d, i, R, V_new, ...]
-    span.push_op(MrUpdate(false));
-
-    // move d, i back to the top of the stack and are dropped since they are
-    // no longer needed => [R_new, R, V_new, ...]
-    span.push_op(MovUp4);
-    span.push_op(Drop);
-    span.push_op(MovUp4);
-    span.push_op(Drop);
-
-    // Move the old root to the top of the stack => [R, R_new, V_new, ...]
-    span.push_op(SwapW);
-
-    // Drop old root from the stack => [R_new, V_new ...]
-    span.push_op_many(Drop, 4);
-
-    Ok(None)
+        // Drop old root from the stack => [R_new, V_new ...]
+        Drop, Drop, Drop, Drop,
+    ];
+    span.add_ops(ops)
 }
 
 /// Appends the MRUPDATE op with a parameter of "true" and stack manipulations to the span block as
@@ -140,26 +129,14 @@ pub(super) fn mtree_cwm(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
     // Inject the old node value onto the stack for the call to MRUPDATE.
     // [d, i, R, V_new, ...] => [V_old, d, i, R, V_new, ...]
     read_mtree_node(span);
-
-    // update the Merkle tree with the new value and copy the old tree. This replaces the
-    // old node value with the computed new Merkle root.
-    // => [R_new, d, i, R, V_new, ...]
-    span.push_op(MrUpdate(true));
-
-    // move d, i back to the top of the stack and are dropped since they are
-    // no longer needed => [R_new, R, V_new, ...]
-    span.push_op(MovUp4);
-    span.push_op(Drop);
-    span.push_op(MovUp4);
-    span.push_op(Drop);
+    update_mtree(span, true);
 
     // Move the new value to the top => [R_new, V_new, R ...]
-    span.push_op(SwapW);
-    span.push_op(SwapW2);
-    span.push_op(SwapW);
-
-    Ok(None)
+    span.add_ops([SwapW, SwapW2, SwapW])
 }
+
+// MERKLE TREES - HELPERS
+// ================================================================================================
 
 /// This is a helper function for assembly operations that fetches the node value from the
 /// Merkle tree using decorators and pushes it onto the stack. It prepares the stack with the
@@ -190,4 +167,20 @@ fn read_mtree_node(span: &mut SpanBuilder) {
     // read old node value from advice tape => MPVERIFY: [V_old, d, i, R, ...]
     // MRUPDATE: [V_old, d, i, R, V_new, ...]
     span.push_op_many(Read, 4);
+}
+
+/// Update a node in the merkle tree. The `copy` flag will be passed as argument of the `MrUpdate`
+/// operation.
+fn update_mtree(span: &mut SpanBuilder, copy: bool) {
+    #[rustfmt::skip]
+    span.push_ops([
+        // Update the Merkle tree with the new value without copying the old tree. This replaces the
+        // old node value with the computed new Merkle root.
+        // => [R_new, d, i, R, V_new, ...]
+        MrUpdate(copy),
+
+        // move d, i back to the top of the stack and are dropped since they are
+        // no longer needed => [R_new, R, V_new, ...]
+        MovUp4, Drop, MovUp4, Drop,
+    ]);
 }
