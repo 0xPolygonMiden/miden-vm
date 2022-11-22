@@ -55,14 +55,18 @@ pub fn mem_read(
 /// VM cycles per operation:
 /// - mem_store: 2 cycles
 /// - mem_storew: 1 cyle
-/// - mem_store.b: 3 cycles
-/// - mem_storew.b: 2 cycles
+/// - mem_store.b:
+///   - 4 cycles if b = 1
+///   - 3 cycles if b != 1
+/// - mem_storew.b:
+///   - 3 cycles if b = 1
+///   - 2 cycles if b != 1
 /// - loc_store.b:
 ///   - 5 cycles if b = 1
 ///   - 4 cycles if b != 1
 /// - loc_storew.b:
-///    - 4 cycles if b = 1
-///    - 3 cycles if b != 1
+///   - 4 cycles if b = 1
+///   - 3 cycles if b != 1
 ///
 /// # Errors
 /// Returns an error if we are writing to local memory and local memory index is greater than
