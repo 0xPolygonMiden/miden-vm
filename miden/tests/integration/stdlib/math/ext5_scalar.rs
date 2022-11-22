@@ -1,5 +1,7 @@
+use super::build_test;
 use std::cmp::PartialEq;
 use std::ops::Mul;
+use vm_core::StarkField;
 
 #[derive(Copy, Clone, Debug)]
 struct Scalar {
@@ -207,4 +209,47 @@ fn test_ec_ext5_scalar_arithmetic() {
     let c = a * b;
 
     assert_eq!(c, Scalar::one());
+}
+
+#[test]
+fn test_ec_ext5_scalar_sub_inner() {
+    let source = "
+    use.std::math::ext5_scalar
+
+    begin
+        exec.ext5_scalar::sub_inner
+    end";
+
+    let a = Scalar {
+        limbs: [
+            rand_utils::rand_value::<u32>(),
+            rand_utils::rand_value::<u32>(),
+            rand_utils::rand_value::<u32>(),
+            rand_utils::rand_value::<u32>(),
+            rand_utils::rand_value::<u32>(),
+            0,
+            0,
+            0,
+            0,
+            0,
+        ],
+    };
+    let n = Scalar::get_n();
+    let (r, c) = a.sub_inner(&n);
+
+    let mut stack = [0u64; 20];
+    for i in 0..10 {
+        stack[i] = a.limbs[i] as u64;
+        stack[i + 10] = n.limbs[i] as u64;
+    }
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    assert_eq!(strace[0].as_int(), c as u64);
+
+    for i in 0..10 {
+        assert_eq!(strace[1 + i].as_int(), r.limbs[i] as u64);
+    }
 }
