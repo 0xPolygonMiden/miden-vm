@@ -16,6 +16,9 @@ use vm_core::{
 mod trace;
 use trace::DecoderTrace;
 
+#[cfg(test)]
+use vm_core::decoder::NUM_USER_OP_HELPERS;
+
 mod block_stack;
 use block_stack::{BlockInfo, BlockStack, BlockType, ExecutionContextInfo};
 
@@ -753,6 +756,12 @@ impl Decoder {
     #[cfg(test)]
     pub fn add_dummy_trace_row(&mut self) {
         self.trace.add_dummy_row();
+    }
+
+    /// Returns a list of all the helper registers set during an operation.
+    #[cfg(test)]
+    pub fn get_user_op_helpers(&self) -> [Felt; NUM_USER_OP_HELPERS] {
+        self.trace.get_user_op_helpers()
     }
 }
 
