@@ -146,17 +146,18 @@ impl Scalar {
 
     /// Raises scalar field element to n -th power | n = exp i.e. represented in radix-2^32 form
     fn pow(self, exp: Self) -> Self {
-        let mut res = Self::one();
+        let s_mont = self.to_mont();
+        let mut r_mont = Self::one().to_mont();
 
         for i in exp.limbs.iter().rev() {
             for j in (0u32..32).rev() {
-                res = res * res;
+                r_mont = r_mont.mont_mul(&r_mont);
                 if ((*i >> j) & 1u32) == 1u32 {
-                    res = res * self;
+                    r_mont = r_mont.mont_mul(&s_mont);
                 }
             }
         }
-        res
+        r_mont.from_mont()
     }
     /// Computes multiplicative inverse ( say a' ) of scalar field element a | a * a' = 1 ( mod N )
     ///
@@ -201,9 +202,19 @@ impl PartialEq for Scalar {
 
 #[test]
 fn test_ec_ext5_scalar_arithmetic() {
-    // random scalar, sampled from a fairly small space
     let a = Scalar {
-        limbs: [rand_utils::rand_value::<u32>(), 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        limbs: [
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+        ],
     };
     let b = a.inv();
     let c = a * b;
@@ -305,5 +316,44 @@ fn test_ec_ext5_scalar_to_and_from_mont_repr() {
 
     for i in 0..10 {
         assert_eq!(strace[i].as_int(), c.limbs[i] as u64);
+    }
+}
+
+#[test]
+fn test_ec_ext5_scalar_inv() {
+    let source = "
+    use.std::math::ext5_scalar
+
+    begin
+        exec.ext5_scalar::inv
+    end";
+
+    let a = Scalar {
+        limbs: [
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+        ],
+    };
+    let b = a.inv();
+
+    let mut stack = [0u64; 10];
+    for i in 0..10 {
+        stack[i] = a.limbs[i] as u64;
+    }
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    for i in 0..10 {
+        assert_eq!(strace[i].as_int(), b.limbs[i] as u64);
     }
 }
