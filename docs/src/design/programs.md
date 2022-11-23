@@ -26,6 +26,33 @@ After the body of the loop is executed, the VM checks the top of the stack again
 
 A *loop* block must always have one child, and thus, cannot be a leaf node in the tree.
 
+### Call block
+
+A **call** block is used to describe a function call which is executed in a [user context](../user_docs/assembly/execution_contexts.md). When the VM encounters a *call* block, it creates a new user context, then executes a program which hashes to the target specified by the *call* block in the new context. Thus, in order to execute a *call* block, the VM must be aware of a program with the specified hash. Otherwise, the execution fails. At the end of the *call* block, execution returns to the previous context. 
+
+
+When executing a *call* block, the VM does the following:
+1. Checks if a *syscall* is already being executed and fails if so.
+2. Sets the depth of the stack to 16.
+3. Upon return, checks that the depth of the stack is 16. If so, the original stack depth is restored. Otherwise, an error occurs.
+
+![call_block](../assets/design/programs/call_block.png)
+
+A *call* block does not have any children. Thus, it must be leaf node in the tree.
+
+### Syscall block
+
+A **syscall** block is used to describe a function call which is executed in the [root context](../user_docs/assembly/execution_contexts.md). When the VM encounters a *syscall* block, it returns to the root context, then executes a program which hashes to the target specified by the *syscall* block. Thus, in order to execute a *syscall* block, the VM must be aware of a program with the specified hash, and that program must belong to the kernel against which the code is compiled. Otherwise, the execution fails. At the end of the *syscall* block, execution returns to the previous context. 
+
+When executing a *syscall* block, the VM does the following:
+1. Checks if a *syscall* is already being executed and fails if so.
+2. Sets the depth of the stack to 16.
+3. Upon return, checks that the depth of the stack is 16. If so, the original stack depth is restored. Otherwise, an error occurs.
+
+![syscall_block](../assets/design/programs/syscall_block.png)
+
+A *syscall* block does not have any children. Thus, it must be leaf node in the tree.
+
 ### Span block
 A **span** block is used to describe a linear sequence of operations. When the VM encounters a *span* block, it breaks the sequence of operations into batches and groups according to the following rules:
 * A group is represented by a single field element. Thus, assuming a single operation can be encoded using 7 bits, and assuming we are using a 64-bit field, a single group may encode up to 9 operations or a single immediate value.
@@ -84,8 +111,10 @@ Every Miden VM program can be reduced to a unique hash value. Specifically, it i
 
 Below we denote $hash$ to be an arithmetization-friendly hash function with $4$-element output and capable of absorbing $8$ elements in a single permutation.
 
-* Hash of a **join** block is computed as $hash(a, b)$, where $a$ and $b$ are hashes of the code block being joined.
-* Hash of a **split** block is computed as $hash(a, b)$, where $a$ is a hash of a code block corresponding to the *true* branch of execution, and $b$ is a hash of a code block corresponding to the *false branch* of execution.
-* Hash of a **loop** block is computed as $hash(a, 0)$, where $a$ is a hash of a code block corresponding to the loop body.
-* Hash of a **span** block is computed as $hash(a_1, ..., a_k)$, where $a_i$ is the $i$th batch of operations in the *span* block. Each batch of operations is defined as containing $8$ field elements, and thus, hashing a $k$-batch *span* block requires $k$ absorption steps.
+* The hash of a **join** block is computed as $hash(a, b)$, where $a$ and $b$ are hashes of the code block being joined.
+* The hash of a **split** block is computed as $hash(a, b)$, where $a$ is a hash of a code block corresponding to the *true* branch of execution, and $b$ is a hash of a code block corresponding to the *false branch* of execution.
+* The hash of a **loop** block is computed as $hash(a, 0)$, where $a$ is a hash of a code block corresponding to the loop body.
+* The hash of a **call** block is computed as $hash(a)$, where $a$ is a hash of a program of which the VM is aware.
+* The hash of a **syscall** block is computed as $hash(a)$, where $a$ is a hash of a program belonging to the kernel against which the code was compiled.
+* The hash of a **span** block is computed as $hash(a_1, ..., a_k)$, where $a_i$ is the $i$th batch of operations in the *span* block. Each batch of operations is defined as containing $8$ field elements, and thus, hashing a $k$-batch *span* block requires $k$ absorption steps.
     * In cases when the number of operations is insufficient to fill the last batch entirely, `NOOPs` are appended to the end of the last batch to ensure that the number of operations in the batch is always equal to $8$.
