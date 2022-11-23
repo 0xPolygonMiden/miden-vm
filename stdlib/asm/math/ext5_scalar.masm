@@ -13,7 +13,7 @@
 #!       else c == 0, no overflow occurred during subtraction.
 #!
 #! Adapted from equivalent Rust implementation https://github.com/itzmeanjan/miden/blob/e7038e45865a7032a0629346921a77010e82862d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L56-L74
-export.sub_inner
+proc.sub_inner
     push.0
 
     movup.11
@@ -145,7 +145,7 @@ end
 #! [r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, ...]
 #!
 #! Adapted from equivalent Rust implementation https://github.com/itzmeanjan/miden/blob/e7038e45865a7032a0629346921a77010e82862d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L76-L87
-export.select
+proc.select
     dup
     movup.12
     dup.3
