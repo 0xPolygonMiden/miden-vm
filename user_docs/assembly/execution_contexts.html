@@ -1,0 +1,274 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Execution contexts - Polygon Miden VM</title>
+        <!-- Custom HTML head -->
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../../intro/main.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../intro/overview.html"><strong aria-hidden="true">1.1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../../intro/usage.html"><strong aria-hidden="true">1.2.</strong> Usage</a></li><li class="chapter-item expanded "><a href="../../intro/performance.html"><strong aria-hidden="true">1.3.</strong> Performance</a></li></ol></li><li class="chapter-item expanded "><a href="../../user_docs/main.html"><strong aria-hidden="true">2.</strong> User Documentation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../user_docs/assembly/main.html"><strong aria-hidden="true">2.1.</strong> Miden Assembly</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../user_docs/assembly/code_organization.html"><strong aria-hidden="true">2.1.1.</strong> Code Organization</a></li><li class="chapter-item expanded "><a href="../../user_docs/assembly/execution_contexts.html" class="active"><strong aria-hidden="true">2.1.2.</strong> Execution contexts</a></li><li class="chapter-item expanded "><a href="../../user_docs/assembly/flow_control.html"><strong aria-hidden="true">2.1.3.</strong> Flow Control</a></li><li class="chapter-item expanded "><a href="../../user_docs/assembly/field_operations.html"><strong aria-hidden="true">2.1.4.</strong> Field Operations</a></li><li class="chapter-item expanded "><a href="../../user_docs/assembly/u32_operations.html"><strong aria-hidden="true">2.1.5.</strong> u32 Operations</a></li><li class="chapter-item expanded "><a href="../../user_docs/assembly/stack_manipulation.html"><strong aria-hidden="true">2.1.6.</strong> Stack manipulation</a></li><li class="chapter-item expanded "><a href="../../user_docs/assembly/io_operations.html"><strong aria-hidden="true">2.1.7.</strong> Input / Output Operations</a></li><li class="chapter-item expanded "><a href="../../user_docs/assembly/cryptographic_operations.html"><strong aria-hidden="true">2.1.8.</strong> Cryptographic Operations</a></li></ol></li><li class="chapter-item expanded "><a href="../../user_docs/stdlib/main.html"><strong aria-hidden="true">2.2.</strong> Miden Standard Library</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../user_docs/stdlib/crypto/hashes.html"><strong aria-hidden="true">2.2.1.</strong> std::crypto::hashes</a></li><li class="chapter-item expanded "><a href="../../user_docs/stdlib/math/u64.html"><strong aria-hidden="true">2.2.2.</strong> std::math::u64</a></li><li class="chapter-item expanded "><a href="../../user_docs/stdlib/sys.html"><strong aria-hidden="true">2.2.3.</strong> std:sys</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../../design/main.html"><strong aria-hidden="true">3.</strong> Design</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../design/programs.html"><strong aria-hidden="true">3.1.</strong> Programs</a></li><li class="chapter-item expanded "><a href="../../design/decoder/main.html"><strong aria-hidden="true">3.2.</strong> Program decoder</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../design/decoder/constraints.html"><strong aria-hidden="true">3.2.1.</strong> Decoder constraints</a></li></ol></li><li class="chapter-item expanded "><a href="../../design/stack/main.html"><strong aria-hidden="true">3.3.</strong> Operand stack</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../design/stack/op_constraints.html"><strong aria-hidden="true">3.3.1.</strong> Operation constraints</a></li><li class="chapter-item expanded "><a href="../../design/stack/system_ops.html"><strong aria-hidden="true">3.3.2.</strong> System operations</a></li><li class="chapter-item expanded "><a href="../../design/stack/field_ops.html"><strong aria-hidden="true">3.3.3.</strong> Field operations</a></li><li class="chapter-item expanded "><a href="../../design/stack/u32_ops.html"><strong aria-hidden="true">3.3.4.</strong> u32 operations</a></li><li class="chapter-item expanded "><a href="../../design/stack/stack_ops.html"><strong aria-hidden="true">3.3.5.</strong> Stack manipulation</a></li><li class="chapter-item expanded "><a href="../../design/stack/io_ops.html"><strong aria-hidden="true">3.3.6.</strong> Input / output operations</a></li><li class="chapter-item expanded "><a href="../../design/stack/crypto_ops.html"><strong aria-hidden="true">3.3.7.</strong> Cryptographic operations</a></li></ol></li><li class="chapter-item expanded "><a href="../../design/range.html"><strong aria-hidden="true">3.4.</strong> Range Checker</a></li><li class="chapter-item expanded "><a href="../../design/chiplets/main.html"><strong aria-hidden="true">3.5.</strong> Chiplets</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../design/chiplets/hasher.html"><strong aria-hidden="true">3.5.1.</strong> Hash Chiplet</a></li><li class="chapter-item expanded "><a href="../../design/chiplets/bitwise.html"><strong aria-hidden="true">3.5.2.</strong> Bitwise Chiplet</a></li><li class="chapter-item expanded "><a href="../../design/chiplets/memory.html"><strong aria-hidden="true">3.5.3.</strong> Memory Chiplet</a></li></ol></li><li class="chapter-item expanded "><a href="../../design/multiset.html"><strong aria-hidden="true">3.6.</strong> Multiset checks</a></li></ol></li><li class="chapter-item expanded "><a href="../../background.html"><strong aria-hidden="true">4.</strong> Background Material</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Polygon Miden VM</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
+<h2 id="execution-contexts"><a class="header" href="#execution-contexts">Execution contexts</a></h2>
+<p>Miden assembly program execution can span multiple isolated contexts. An execution context defines its own memory space which is not accessible from other execution contexts.</p>
+<p>All programs start executing in a <em>root</em> context. Thus, the main procedure of a program is always executed in the root context. To move execution into a different context, we can invoke a procedure using the <code>call</code> instruction. In fact, any time we invoke a procedure using the <code>call</code> instruction, the procedure is executed in a new context. We refer to all non-root contexts as <em>user contexts</em>.</p>
+<p>While executing in a user context, we can request to execute some procedures in the root context. This can be done via the <code>syscall</code> instruction. The set of procedures which can be invoked via the <code>syscall</code> instruction is limited by the <a href="#kernels">kernel</a> against which a program is compiled. Once the procedure called via <code>syscall</code> returns, the execution moves back to the user context from which it was invoked. The diagram below illustrates this graphically:</p>
+<p><img src="../../assets/user_docs/assembly/execution_contexts/context_transitions.png" alt="context transitions" /></p>
+<h3 id="procedure-invocation-semantics"><a class="header" href="#procedure-invocation-semantics">Procedure invocation semantics</a></h3>
+<p>As mentioned in the <a href="./code_organization.html">previous section</a>, procedures in Miden assembly can be invoked via three different instructions: <code>exec</code>, <code>call</code>, and <code>syscall</code>. Invocation semantics of <code>call</code> and <code>syscall</code> instructions are basically the same, the only difference being that the <code>syscall</code> instruction can be used only with procedures which are defined in the program's kernel. The <code>exec</code> instruction is different, and we explain these differences below.</p>
+<h4 id="invoking-via-call-and-syscall-instructions"><a class="header" href="#invoking-via-call-and-syscall-instructions">Invoking via <code>call</code> and <code>syscall</code> instructions</a></h4>
+<p>When a procedure is invoked via a <code>call</code> or a <code>syscall</code> instruction, the following happens:</p>
+<ul>
+<li>Execution moves into a different context. In case of a <code>call</code> instruction, a new user context is created. In case of a <code>syscall</code> instruction, the execution moves back into the root context.</li>
+<li>All stack items beyond the 16th item get &quot;hidden&quot; from the invoked procedure. That is, from the standpoint of the invoked procedure, the initial stack depth is set to 16.</li>
+</ul>
+<p>When a procedure returns from a <code>call</code> or a <code>syscall</code>, the following happens:</p>
+<ul>
+<li>Execution moves back to the context from which the procedure was invoked.</li>
+<li>Stack depth is set to its original depth. Before the stack depth is reset, the VM checks if the current stack depth is exactly 16, and fails otherwise.</li>
+</ul>
+<p>The manipulations of the stack depth described above have the following implications:</p>
+<ul>
+<li>The top 16 elements of the stack can be used to pass parameters and return values between the caller and the callee.</li>
+<li>Caller's stack beyond the top 16 elements is inaccessible to the callee, and thus, is guaranteed not to change as the result of the call.</li>
+<li>At the end of its execution, the callee must ensure that stack depth is exactly 16. If this is difficult to ensure manually, the <a href="../stdlib/sys.html"><code>truncate_stack</code></a> procedure can be used to drop all elements from the stack except for the top 16.</li>
+</ul>
+<h4 id="invoking-via-exec-instruction"><a class="header" href="#invoking-via-exec-instruction">Invoking via <code>exec</code> instruction</a></h4>
+<p>Procedures invoked via the <code>exec</code> instruction, are inlined at their call sites during compilation. Thus, from the standpoint of the final program, executing procedures this way is indistinguishable from manually including procedure code in place of the <code>exec</code> instruction. This also means that procedures invoked via the <code>exec</code> instruction are executed in the same context as the caller.</p>
+<h3 id="kernels"><a class="header" href="#kernels">Kernels</a></h3>
+<p>A <em>kernel</em> defines a set of procedures which can be invoked from user contexts to be executed in the root context. Miden assembly programs are always compiled against some kernel. The default kernel is empty - i.e., it does not contain any procedures. To compile a program against a non-empty kernel, the kernel needs to be specified when instantiating the <a href="https://crates.io/crates/miden-assembly">Miden Assembler</a>.</p>
+<p>A kernel can be defined similarly to a regular <a href="./code_organization.html#library-modules">library module</a> - i.e., it can have internal and exported procedures. However, there are some small differences between what procedures can do in a kernel module vs. what they can do in a regular library module. Specifically:</p>
+<ul>
+<li>Procedures in a kernel module cannot use <code>call</code> or <code>syscall</code> instructions. This means that creating a new context from within a <code>syscall</code> is not possible.</li>
+<li>Unlike procedures in regular library modules, procedures in a kernel module can use the <code>caller</code> instruction. This instruction puts the hash of the procedure which initiated the parent context onto the stack.</li>
+</ul>
+<h3 id="memory-layout"><a class="header" href="#memory-layout">Memory layout</a></h3>
+<p>As mentioned earlier, procedures executed within a given context can access memory only of that context. This is true for both memory reads and memory writes.</p>
+<p>Address space of every context is the same: the smallest accessible address is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span> and the largest accessible address is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">32</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span>. Any code executed in a given context has access to its entire address space. However, by convention, we assign different meanings to different regions of the address space.</p>
+<p>For user contexts we have the following:</p>
+<ul>
+<li>The first <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">30</span></span></span></span></span></span></span></span></span></span></span></span> words (each word is 4 field elements) are assumed to be global memory.</li>
+<li>The next <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">30</span></span></span></span></span></span></span></span></span></span></span></span> words are reserved for memory locals of procedures executed in the same context (i.e., via the <code>exec</code> instruction).</li>
+<li>The remaining address space has no special meaning.</li>
+</ul>
+<p><img src="../../assets/user_docs//assembly/execution_contexts/user_mem_layout.png" alt="user memory layout" /></p>
+<p>For the root context we have the following:</p>
+<ul>
+<li>The first <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">30</span></span></span></span></span></span></span></span></span></span></span></span> words are assumed to be global memory.</li>
+<li>The next <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">30</span></span></span></span></span></span></span></span></span></span></span></span> words are reserved for memory locals of procedures executed in the root context.</li>
+<li>The next <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">30</span></span></span></span></span></span></span></span></span></span></span></span> words are reserved for memory locals of procedures executed from within a <code>syscall</code>.</li>
+<li>The remaining address space has no special meaning.</li>
+</ul>
+<p><img src="../../assets/user_docs//assembly/execution_contexts/root_mem_layout.png" alt="root memory layout" /></p>
+<p>For both types of contexts, writing directly into regions of memory reserved for procedure locals is not advisable. Instead, <code>loc_load</code>, <code>loc_store</code> and other similar dedicated instructions should be used to access procedure locals.</p>
+<h3 id="example"><a class="header" href="#example">Example</a></h3>
+<p>To better illustrate what happens as we execute procedures in different contexts, let's go over the following example.</p>
+<pre><code>kernel
+--------------------
+export.baz.2
+    &lt;instructions&gt;
+    caller
+    &lt;instructions&gt;
+end
+
+program
+--------------------
+proc.bar.1
+    &lt;instructions&gt;
+    syscall.baz
+    &lt;instructions&gt;
+end
+
+proc.foo.3
+    &lt;instructions&gt;
+    call.bar
+    &lt;instructions&gt;
+    exec.bar
+    &lt;instructions&gt;
+end
+
+begin
+    &lt;instructions&gt;
+    call.foo
+    &lt;instructions&gt;
+end
+</code></pre>
+<p>Execution of the above program proceeds as follows:</p>
+<ol>
+<li>The VM starts executing instructions immediately following the <code>begin</code> statement. These instructions are executed in the <em>root</em> context (let's call this context <code>ctx0</code>).</li>
+<li>When <code>call.foo</code> is executed, a new context is created (<code>ctx1</code>). Memory in this context is isolated from <code>ctx0</code>. Additionally, any elements on the stack beyond the top 16 are hidden from <code>foo</code>.</li>
+<li>Instructions executed inside <code>foo</code> can access memory of <code>ctx1</code> only. The address of the first procedure local in <code>foo</code> (e.g., accessed via <code>loc_load.0</code>) is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">30</span></span></span></span></span></span></span></span></span></span></span></span>.</li>
+<li>When <code>call.bar</code> is executed, a new context is created (<code>ctx2</code>). The stack depth is set to 16 again, and any instruction executed in this context can access memory of <code>ctx2</code> only. The first procedure local of <code>bar</code> is also located at address <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">30</span></span></span></span></span></span></span></span></span></span></span></span>.</li>
+<li>When <code>syscall.baz</code> is executed, the execution moves back into the root context. That is, instructions executed inside <code>baz</code> have access to the memory of <code>ctx0</code>. The first procedure local of <code>baz</code> is located at address <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">31</span></span></span></span></span></span></span></span></span></span></span></span>. When <code>baz</code> starts executing, the stack depth is again set to 16.</li>
+<li>When <code>caller</code> is executed inside <code>baz</code>, the first 4 elements of the stack are populated with the hash of <code>bar</code> since <code>baz</code> was invoked from <code>bar</code>'s context.</li>
+<li>Once <code>baz</code> returns, execution moves back to <code>ctx2</code>, and then, when <code>bar</code> returns, execution moves back to <code>ctx1</code>. We assume that instructions executed right before each procedure returns ensure that the stack depth is exactly 16 right before procedure's end.</li>
+<li>Next, when <code>exec.bar</code> is executed, <code>bar</code> is executed again, but this time it is executed in the same context as <code>foo</code>. Thus, it can access memory of <code>ctx1</code>. Moreover, the stack depth is not changed, and thus, <code>bar</code> can access the entire stack of <code>foo</code>. Lastly, this first procedure local of <code>bar</code> now will be at address <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.897438em;vertical-align:-0.08333em;"></span><span class="mord"><span class="mord">2</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">30</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">3</span></span></span></span> (since the first 3 locals in this context are reserved for <code>foo</code>).</li>
+<li>When <code>syscall.baz</code> is executed the second time, execution moves into the root context again. However, now, when <code>caller</code> is executed inside <code>baz</code>, the first 4 elements of the stack are populated with the hash of <code>foo</code> (not <code>bar</code>). This happens because this time around <code>bar</code> does not have its own context and <code>baz</code> is invoked from <code>foo</code>'s context.</li>
+<li>Finally, when <code>baz</code> returns, execution moves back to <code>ctx1</code>, and then as <code>bar</code> and <code>foo</code> return, back to <code>ctx0</code>, and the program terminates.</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../user_docs/assembly/code_organization.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                            <a rel="next" href="../../user_docs/assembly/flow_control.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../user_docs/assembly/code_organization.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                    <a rel="next" href="../../user_docs/assembly/flow_control.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+    </body>
+</html>
