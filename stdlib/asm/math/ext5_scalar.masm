@@ -3744,3 +3744,37 @@ export.mont_mul.8
     exec.sub_inner
     exec.select
 end
+
+#! Given a scalar field element in radix-2^32 form, this routine converts it to
+#! Montgomery representation, by multiplying input scalar by R2 = ((2 ^ 320) ^ 2) % N | N = scalar field prime
+#!
+#! Expected stack state
+#!
+#! [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, ...]
+#!
+#! Final stack state 
+#!
+#! [r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, ...]
+#!
+#! Adapted from equivalent Rust implementation https://github.com/itzmeanjan/miden/blob/6a611e693601577864da3e43e745525b83c0030d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L134-L139
+export.to_mont
+    push.1254757298.2359448053.2866806621.359973336.3520566988.2446296357.1815226579.1063431375.2685403612.3812476729
+    exec.mont_mul
+end
+
+#! Given a scalar field element in Montgomery representation, this routine converts it to
+#! standard radix-2^32 form, by multiplying input by 1 ( in radix-2^32 form )
+#!
+#! Expected stack state
+#!
+#! [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, ...]
+#!
+#! Final stack state 
+#!
+#! [r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, ...]
+#!
+#! Adapted from equivalent Rust implementation https://github.com/itzmeanjan/miden/blob/6a611e693601577864da3e43e745525b83c0030d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L141-L146
+export.from_mont
+    push.0.0.0.0.0.0.0.0.0.1
+    exec.mont_mul
+end
