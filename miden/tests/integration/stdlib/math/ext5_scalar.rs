@@ -313,3 +313,57 @@ fn test_ec_ext5_scalar_select(c: u32) {
         assert_eq!(strace[i].as_int(), r.limbs[i] as u64);
     }
 }
+
+#[test]
+fn test_ec_ext5_scalar_mont_mul() {
+    let source = "
+    use.std::math::ext5_scalar
+
+    begin
+        exec.ext5_scalar::mont_mul
+    end";
+
+    let a = Scalar {
+        limbs: [
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+        ],
+    };
+    let b = Scalar {
+        limbs: [
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+        ],
+    };
+    let c = a.mont_mul(&b);
+
+    let mut stack = [0u64; 20];
+    for i in 0..10 {
+        stack[i] = a.limbs[i] as u64;
+        stack[i + 10] = b.limbs[i] as u64;
+    }
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    for i in 0..10 {
+        assert_eq!(strace[i].as_int(), c.limbs[i] as u64);
+    }
+}
