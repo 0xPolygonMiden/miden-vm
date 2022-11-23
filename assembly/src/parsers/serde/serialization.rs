@@ -162,11 +162,11 @@ impl Serializable for Instruction {
             Self::Pow2 => target.write_opcode(OpCode::Pow2),
             Self::Exp => target.write_opcode(OpCode::Exp),
             Self::ExpImm(v) => {
-                target.write_opcode(OpCode::Exp);
+                target.write_opcode(OpCode::ExpImm);
                 target.write_felt(*v);
             }
             Self::ExpBitLength(v) => {
-                target.write_opcode(OpCode::Exp);
+                target.write_opcode(OpCode::ExpBitLength);
                 target.write_u8(*v);
             }
             Self::Not => target.write_opcode(OpCode::Not),
