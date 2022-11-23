@@ -16,7 +16,7 @@ Miden VM is a zero-knowledge virtual machine written in Rust. For any program ex
 * If you'd like to learn more about STARKs, check out the [references](#references) section.
 
 ### Status and features
-Miden VM is currently on v0.2 release. In this release, most of the core features of the VM have been stabilized, and most of the STARK proof generation has been implemented. While we expect to keep making changes to the VM internals, the external interfaces should remain relatively stable, and we will do our best to minimize the amount of breaking changes going forward.
+Miden VM is currently on release v0.3. In this release, most of the core features of the VM have been stabilized, and most of the STARK proof generation has been implemented. While we expect to keep making changes to the VM internals, the external interfaces should remain relatively stable, and we will do our best to minimize the amount of breaking changes going forward.
 
 The next version of the VM is being developed in the [next](https://github.com/maticnetwork/miden/tree/next) branch.
 
@@ -25,6 +25,7 @@ Miden VM is a fully-featured virtual machine. Despite being optimized for zero-k
 
 * **Flow control.** Miden VM is Turing-complete and supports familiar flow control structures such as conditional statements and counter/condition-controlled loops. There are no restrictions on the maximum number of loop iterations or the depth of control flow logic.
 * **Procedures.** Miden assembly programs can be broken into subroutines called *procedures*. This improves code modularity and helps reduce the size of Miden VM programs.
+* **Execution contexts.** Miden VM program execution can span multiple isolated contexts, each with its own dedicated memory space. The contexts are separated into the *root context* and *user contexts*. The root context can be accessed from user contexts via customizable kernel calls.
 * **Memory.** Miden VM supports read-write random-access memory. Procedures can reserve portions of global memory for easier management of local variables.
 * **u32 operations.** Miden VM supports native operations with 32-bit unsigned integers. This includes basic arithmetic, comparison, and bitwise operations.
 * **Cryptographic operations.** Miden assembly provides built-in instructions for computing hashes and verifying Merkle paths. These instructions use Rescue Prime hash function (which is the native hash function of the VM).
@@ -34,8 +35,8 @@ Miden VM is a fully-featured virtual machine. Despite being optimized for zero-k
 #### Planned features
 In the coming months we plan to finalize the design of the VM and implement support for the following features:
 
-* **Custom kernels.** It will be possible to instantiate Miden VM with a custom kernel. There will also be full separation between kernel space and user space, and we will introduce a number of opcodes to facilitate safe communication between the two.
-* **Persistent storage.** Support for read-write persistent storage will be provided at the kernel level. With support for custom kernels, we will be able to support multiple modes of persistent storage, such as key-value maps, index-based arrays etc.
+* **Custom advice providers.** It will be possible to instantiate the VM with custom advice providers. These providers can be used to supply external data to the VM (e.g., from a database or RPC calls).
+* **User-provided libraries.** It will be possible to compile Miden VM programs against arbitrary 3rd-party libraries (not just Miden `stdlib`). Together with execution context isolation and custom advice providers, this will enable flexible ways to extend the VM with core features such as persistent storage.
 * **Faulty execution.** Miden VM will support generating proofs for programs with faulty execution (a notoriously complex task in ZK context). That is, it will be possible to prove that execution of some program resulted in an error.
 
 #### Compilation to WebAssembly.
@@ -79,12 +80,12 @@ When executed on a single CPU core, the current version of Miden VM operates at 
 
 | VM cycles       | Execution time | Proving time | RAM consumed  | Proof size |
 | :-------------: | :------------: | :----------: | :-----------: | :--------: |
-| 2<sup>10</sup>  |  2 ms          | 80 ms        | 13 MB         | 49 KB      |
-| 2<sup>12</sup>  |  4 ms          | 280 ms       | 41 MB         | 59 KB      |
-| 2<sup>14</sup>  |  10 ms         | 1.05 sec     | 155 MB        | 70 KB      |
-| 2<sup>16</sup>  |  30 ms         | 4.2 sec      | 624 MB        | 79 KB      |
-| 2<sup>18</sup>  |  90 ms         | 18 sec       | 2.5 GB        | 91 KB      |
-| 2<sup>20</sup>  |  330 ms        | 79 sec       | 9.5 GB        | 104 KB     |
+| 2<sup>10</sup>  |  1 ms          | 80 ms        | 14 MB         | 52 KB      |
+| 2<sup>12</sup>  |  2 ms          | 280 ms       | 43 MB         | 61 KB      |
+| 2<sup>14</sup>  |  8 ms          | 1.1 sec      | 163 MB        | 71 KB      |
+| 2<sup>16</sup>  |  28 ms         | 4.4 sec      | 640 MB        | 81 KB      |
+| 2<sup>18</sup>  |  85 ms         | 19.2 sec     | 2.6 GB        | 92 KB      |
+| 2<sup>20</sup>  |  320 ms        | 86 sec       | 10 GB         | 104 KB     |
 
 As can be seen from the above, proving time roughly doubles with every doubling in the number of cycles, but proof size grows much slower.
 
@@ -92,12 +93,12 @@ We can also generate proofs at a higher security level. The cost of doing so is 
 
 | VM cycles       | Execution time | Proving time | RAM consumed  | Proof size |
 | :-------------: | :------------: | :----------: | :-----------: | :--------: |
-| 2<sup>10</sup>  | 2 ms           | 340 ms       | 24 MB         | 72 KB      |
-| 2<sup>12</sup>  | 4 ms           | 560 ms       | 86 MB         | 84 KB      |
-| 2<sup>14</sup>  | 10 ms          | 2.2 sec      | 335 MB        | 97 KB      |
-| 2<sup>16</sup>  | 30 ms          | 7.7 sec      | 1.4 GB        | 113 KB     |
-| 2<sup>18</sup>  | 90 ms          | 34 sec       | 5.4 GB        | 130 KB     |
-| 2<sup>20</sup>  | 330 ms         | 143 sec      | 19.7 GB       | 147 KB     |
+| 2<sup>10</sup>  | 1 ms           | 140 ms       | 26 MB         | 73 KB      |
+| 2<sup>12</sup>  | 2 ms           | 510 ms       | 90 MB         | 87 KB      |
+| 2<sup>14</sup>  | 8 ms           | 2.1 sec      | 350 MB        | 98 KB      |
+| 2<sup>16</sup>  | 28 ms          | 7.9 sec      | 1.4 GB        | 115 KB     |
+| 2<sup>18</sup>  | 85 ms          | 35 sec       | 5.6 GB        | 132 KB     |
+| 2<sup>20</sup>  | 320 ms         | 151 sec      | 20.3 GB       | 149 KB     |
 
 ### Multi-core prover performance
 STARK proof generation is massively parallelizable. Thus, by taking advantage of multiple CPU cores we can dramatically reduce proof generation time. For example, when executed on a high-end 8-core CPU (Apple M1 Pro), the current version of Miden VM operates at around 80 KHz. And when executed on a high-end 64-core CPU (Amazon Graviton 3), the VM operates at around 320 KHz.
@@ -106,8 +107,8 @@ In the benchmarks below, the VM executes the same Fibonacci calculator program f
 
 | Machine                        | Execution time | Proving time |
 | ------------------------------ | :------------: | :----------: |
-| Apple M1 Pro (8 threads)       | 330 ms         | 12.8 sec     |
-| Amazon Graviton 3 (64 threads) | 390 ms         | 3.2 sec      |
+| Apple M1 Pro (8 threads)       | 320 ms         | 13 sec       |
+| Amazon Graviton 3 (64 threads) | 390 ms         | 3.3 sec      |
 
 ## References
 Proofs of execution generated by Miden VM are based on STARKs. A STARK is a novel proof-of-computation scheme that allows you to create an efficiently verifiable proof that a computation was executed correctly. The scheme was developed by Eli Ben-Sasson, Michael Riabzev et al. at Technion - Israel Institute of Technology. STARKs do not require an initial trusted setup, and rely on very few cryptographic assumptions.
