@@ -5,10 +5,8 @@ In turn, Miden assembly instructions are just keywords which can be parameterize
 
 Miden assembly programs are organized into procedures. Procedures, in turn, can be grouped into modules.
 
-Currently, Miden assembly provides two types of code organization blocks: *programs* and *procedures*. In the future, additional blocks such as modules and functions will be added.
-
 ### Procedures
-A *procedure* can be used to define a frequently-used sequence of instructions. A procedure must start with a `proc.<label>.<number of locals>` instruction and terminate with an `end` instruction. For example:
+A *procedure* can be used to encapsulate a frequently-used sequence of instructions which can later be invoked via a label. A procedure must start with a `proc.<label>.<number of locals>` instruction and terminate with an `end` instruction. For example:
 ```
 proc.foo.2
     <instructions>
@@ -18,11 +16,11 @@ A procedure label must start with a letter and can contain any combination of nu
 
 The number of locals specifies the number of memory-based local words a procedure can access (via `loc_load`, `loc_store`, and [other instructions](./io_operations.md#random-access-memory)). If a procedure doesn't need any memory-based locals, this parameter can be omitted or set to `0`. A procedure can have at most $2^{16}$ locals, and the total number of locals available to all procedures at runtime is limited to $2^{30}$.
 
-To execute a procedure, `exec.<label>`, `call.<label>`, and `syscall.<label>` instructions can be used. For example:
+To execute a procedure, the `exec.<label>`, `call.<label>`, and `syscall.<label>` instructions can be used. For example:
 ```
 exec.foo
 ```
-The difference between using these instructions is explained in the [next section](./execution_contexts.md).
+The difference between using each of these instructions is explained in the [next section](./execution_contexts.md#procedure-invocation-semantics).
 
 A procedure may execute any other previously defined procedure, but it cannot execute itself or any of the subsequent procedures. Thus, recursive procedure calls are not possible. For example, the following code block defines a program with two procedures:
 ```
@@ -48,7 +46,7 @@ end
 A *module* consists of one or more procedures. There are two types of modules: *library modules* and *executable modules* (also called *programs*).
 
 #### Library modules
-Library modules can contain zero or more internal procedures and one or more exported procedures. For example, the following module defines one internal procedure (defined with `proc` instruction) and one exported procedure (defined with `export` instruction):
+Library modules contain zero or more internal procedures and one or more exported procedures. For example, the following module defines one internal procedure (defined with `proc` instruction) and one exported procedure (defined with `export` instruction):
 ```
 proc.foo
     <instructions>
@@ -62,7 +60,7 @@ end
 ```
 
 #### Programs
-Executable modules are used to defined programs. A program can contain zero or more internal procedures (defined with `proc` instruction) and exactly one main procedure (defined with `begin` instruction). For example, the following module defines one internal procedure and a main procedure:
+Executable modules are used to define programs. A program contains zero or more internal procedures (defined with `proc` instruction) and exactly one main procedure (defined with `begin` instruction). For example, the following module defines one internal procedure and a main procedure:
 ```
 proc.foo
     <instructions>
@@ -90,12 +88,12 @@ begin
     exec.u64::checked_add
 end
 ```
-In the above example we import `std::math::u64` module from the [standard library](../stdlib/main.md). We then execute a program which pushes two 64-bit integers on the the stack, and then invokes a 64-bit addition procedure from the imported module.
+In the above example we import `std::math::u64` module from the [standard library](../stdlib/main.md). We then execute a program which pushes two 64-bit integers onto the stack, and then invokes a 64-bit addition procedure from the imported module.
 
-The set of modules which can be imported by a program can be specified via Module Provider when instantiating the [Miden Assembler](https://crates.io/crates/miden-assembly) used to compile the program.
+The set of modules which can be imported by a program can be specified via a Module Provider when instantiating the [Miden Assembler](https://crates.io/crates/miden-assembly) used to compile the program.
 
 ### Comments
-Miden assembly allows annotating code with simple comments. There are two types of comments: single-line comment which starts with a `#` (pound) character, and documentation comments which start with `#!` characters. For example:
+Miden assembly allows annotating code with simple comments. There are two types of comments: single-line comments which start with a `#` (pound) character, and documentation comments which start with `#!` characters. For example:
 ```
 #! This is a documentation comment
 export.foo

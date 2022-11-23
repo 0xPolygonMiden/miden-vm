@@ -18,7 +18,7 @@ Our goal is to make Miden VM an easy compilation target for high-level blockchai
 While writing programs in assembly is far from ideal, Miden assembly does make this task a little bit easier by supporting high-level flow control structures and named procedures.
 
 ## Inputs and outputs
-External inputs can be provided to Miden VM in two way:
+External inputs can be provided to Miden VM in two ways:
 
 1. Public inputs can be supplied to the VM by initializing the stack with desired values before a program starts executing. Any number of stack items can be initialized in this way, but providing a large number of public inputs will increase the cost for the verifier.
 2. Secret (or nondeterministic) inputs can be supplied to the VM via the [*advice provider*](#nondeterministic-inputs). There is no limit on how much data the advice provider can hold.

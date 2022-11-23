@@ -17,12 +17,12 @@ When executed on a single CPU core, the current version of Miden VM operates at 
 
 | VM cycles       | Execution time | Proving time | RAM consumed  | Proof size |
 | :-------------: | :------------: | :----------: | :-----------: | :--------: |
-| 2<sup>10</sup>  |  2 ms          | 80 ms        | 13 MB         | 49 KB      |
-| 2<sup>12</sup>  |  4 ms          | 280 ms       | 41 MB         | 59 KB      |
-| 2<sup>14</sup>  |  10 ms         | 1.05 sec     | 155 MB        | 70 KB      |
-| 2<sup>16</sup>  |  30 ms         | 4.2 sec      | 624 MB        | 79 KB      |
-| 2<sup>18</sup>  |  90 ms         | 18 sec       | 2.5 GB        | 91 KB      |
-| 2<sup>20</sup>  |  330 ms        | 79 sec       | 9.5 GB        | 104 KB     |
+| 2<sup>10</sup>  |  1 ms          | 80 ms        | 14 MB         | 52 KB      |
+| 2<sup>12</sup>  |  2 ms          | 280 ms       | 43 MB         | 61 KB      |
+| 2<sup>14</sup>  |  8 ms          | 1.1 sec      | 163 MB        | 71 KB      |
+| 2<sup>16</sup>  |  28 ms         | 4.4 sec      | 640 MB        | 81 KB      |
+| 2<sup>18</sup>  |  85 ms         | 19.2 sec     | 2.6 GB        | 92 KB      |
+| 2<sup>20</sup>  |  320 ms        | 86 sec       | 10 GB         | 104 KB     |
 
 As can be seen from the above, proving time roughly doubles with every doubling in the number of cycles, but proof size grows much slower.
 
@@ -30,12 +30,12 @@ We can also generate proofs at a higher security level. The cost of doing so is 
 
 | VM cycles       | Execution time | Proving time | RAM consumed  | Proof size |
 | :-------------: | :------------: | :----------: | :-----------: | :--------: |
-| 2<sup>10</sup>  | 2 ms           | 340 ms       | 24 MB         | 72 KB      |
-| 2<sup>12</sup>  | 4 ms           | 560 ms       | 86 MB         | 84 KB      |
-| 2<sup>14</sup>  | 10 ms          | 2.2 sec      | 335 MB        | 97 KB      |
-| 2<sup>16</sup>  | 30 ms          | 7.7 sec      | 1.4 GB        | 113 KB     |
-| 2<sup>18</sup>  | 90 ms          | 34 sec       | 5.4 GB        | 130 KB     |
-| 2<sup>20</sup>  | 330 ms         | 143 sec      | 19.7 GB       | 147 KB     |
+| 2<sup>10</sup>  | 1 ms           | 140 ms       | 26 MB         | 73 KB      |
+| 2<sup>12</sup>  | 2 ms           | 510 ms       | 90 MB         | 87 KB      |
+| 2<sup>14</sup>  | 8 ms           | 2.1 sec      | 350 MB        | 98 KB      |
+| 2<sup>16</sup>  | 28 ms          | 7.9 sec      | 1.4 GB        | 115 KB     |
+| 2<sup>18</sup>  | 85 ms          | 35 sec       | 5.6 GB        | 132 KB     |
+| 2<sup>20</sup>  | 320 ms         | 151 sec      | 20.3 GB       | 149 KB     |
 
 ## Multi-core prover performance
 STARK proof generation is massively parallelizable. Thus, by taking advantage of multiple CPU cores we can dramatically reduce proof generation time. For example, when executed on a high-end 8-core CPU (Apple M1 Pro), the current version of Miden VM operates at around 80 KHz. And when executed on a high-end 64-core CPU (Amazon Graviton 3), the VM operates at around 320 KHz.
@@ -44,5 +44,5 @@ In the benchmarks below, the VM executes the same Fibonacci calculator program f
 
 | Machine                        | Execution time | Proving time |
 | ------------------------------ | :------------: | :----------: |
-| Apple M1 Pro (8 threads)       | 330 ms         | 12.8 sec     |
-| Amazon Graviton 3 (64 threads) | 390 ms         | 3.2 sec      |
+| Apple M1 Pro (8 threads)       | 320 ms         | 13 sec       |
+| Amazon Graviton 3 (64 threads) | 390 ms         | 3.3 sec      |
