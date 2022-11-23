@@ -87,51 +87,6 @@ proptest! {
     }
 }
 
-#[test]
-fn test_u32add_fail() {
-    let a = 3445447666_u32;
-    let b = 1013904242_u32;
-    let mut frame = generate_evaluation_frame(Operation::U32add.op_code() as usize);
-
-    // the sum of a and b is splitted into two 32-bit limbs.
-    let (hi, lo) = split_element(Felt::new(a.into()) + Felt::new(b.into()));
-
-    // Set the output. First and second element in the next frame should be the
-    // upper and lower 32-bit limb of the sum of the first two elements in the current trace.
-    frame.current_mut()[STACK_TRACE_OFFSET] = Felt::new(a.into());
-    frame.current_mut()[STACK_TRACE_OFFSET + 1] = Felt::new(b.into());
-    frame.next_mut()[STACK_TRACE_OFFSET] = hi;
-    frame.next_mut()[STACK_TRACE_OFFSET + 1] = lo;
-
-    let (t1, t0) = split_u32_into_u16(lo.as_int());
-
-    // set the helper registers in the decoder.
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] = Felt::new(t0 as u64);
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] = Felt::new(t1 as u64);
-    // ZERO is being passed as `hi` while doing range check and setting the value of upper 32-bit helper registers.
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2] = ZERO;
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 3] = ZERO;
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 4] = ZERO;
-
-    let expected = [Felt::ZERO; NUM_CONSTRAINTS];
-
-    let result = get_constraint_evaluation(frame);
-
-    // The aggregation of the upper 16-bits should not match when the sum overflows a 32-bit number.
-    assert_ne!(expected[2], result[2]);
-
-    // The aggregation of the least three significant limbs from the helper registers should should satisfy
-    // u32add air constraint as the 3rd least significant limb coefficient is set to 0.
-    assert_ne!(expected[4], result[4]);
-
-    // Rest all constraints should be good.
-    for i in 0..NUM_CONSTRAINTS {
-        if i != 2 && i != 4 {
-            assert_eq!(expected[i], result[i]);
-        }
-    }
-}
-
 // TEST HELPERS
 // ================================================================================================
 
