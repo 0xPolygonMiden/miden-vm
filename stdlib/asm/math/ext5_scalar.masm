@@ -3778,3 +3778,151 @@ export.from_mont
     push.0.0.0.0.0.0.0.0.0.1
     exec.mont_mul
 end
+
+#! Just a wrapper function for ease of squaring an element of scalar field, which
+#! is represented in Montgomery form
+#!
+#! Expected stack state
+#!
+#! [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, ...]
+#!
+#! Final stack state
+#!
+#! [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, ...] | b = a * a ( mod N ) when N = scalar field prime
+proc.sqr
+    repeat.10
+        dup.9
+    end
+    
+    exec.mont_mul
+end
+
+#! Given an element ( say a ) of scalar field, this routine computes multiplicative inverse ( say a' ) 
+#! of that element s.t. a * a' = 1 ( mod N ) | N = Scalar field prime
+#!
+#! Expected stack state
+#!
+#! [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, ...] | a[0..10] is a 319 -bit number, represented in radix-2^32 form
+#!
+#! Final stack state
+#!
+#! [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, ...] | b[0..10] is a 319 -bit number s.t. b = a^-1 ( mod N ), represented in radix-2^32 form
+#!
+#! Note, if input operand is 0, then multiplicative inverse can't be computed, which is why output result is also 0.
+#!
+#! Adapted from equivalent Rust implementation https://github.com/itzmeanjan/miden/blob/6a611e693601577864da3e43e745525b83c0030d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L162-L176
+export.inv.6
+    # cache result initial value 1 ( in Montgomery form )
+    push.0.0.4.4294967281.29.4294967251.50.1620046732.787433356.1370930886.803228882.3605528638
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
+    loc_storew.2
+    dropw
+
+    # compute Montgomery form of base and cache it
+    #
+    # note, base ( i.e. input operand ) is expected in radix-2^32 form
+    exec.to_mont
+    loc_storew.3
+    dropw
+    loc_storew.4
+    dropw
+    push.0.0
+    movup.3
+    movup.3
+    loc_storew.5
+    dropw
+
+    push.2492202975.3893352854.3609501852.3901250617.3484943929.2147483622.22.2147483633.2147483655.2147483645
+
+    repeat.10
+        repeat.32
+            # bring res back to stack
+            push.0.0.0.0.0.0.0.0.0.0.0.0
+            loc_loadw.2
+            swapw
+            loc_loadw.1
+            movupw.2
+            loc_loadw.0
+            movup.11
+            movup.11
+            drop
+            drop
+
+            exec.sqr
+
+            # write res back to memory
+            loc_storew.0
+            dropw
+            loc_storew.1
+            dropw
+            push.0.0
+            movup.3
+            movup.3
+            loc_storew.2
+            dropw
+
+            dup
+            u32unchecked_shr.31
+            if.true
+                # bring base back to stack
+                push.0.0.0.0.0.0.0.0.0.0.0.0
+                loc_loadw.5
+                swapw
+                loc_loadw.4
+                movupw.2
+                loc_loadw.3
+                movup.11
+                movup.11
+                drop
+                drop
+
+                # bring res back to stack
+                push.0.0.0.0.0.0.0.0.0.0.0.0
+                loc_loadw.2
+                swapw
+                loc_loadw.1
+                movupw.2
+                loc_loadw.0
+                movup.11
+                movup.11
+                drop
+                drop
+
+                exec.mont_mul
+
+                # write res back to memory
+                loc_storew.0
+                dropw
+                loc_storew.1
+                dropw
+                push.0.0
+                movup.3
+                movup.3
+                loc_storew.2
+                dropw
+            end
+
+            u32unchecked_shl.1
+        end
+
+        drop
+    end
+
+    # bring res back to stack
+    push.0.0.0.0.0.0.0.0.0.0.0.0
+    loc_loadw.2
+    swapw
+    loc_loadw.1
+    movupw.2
+    loc_loadw.0
+    movup.11
+    movup.11
+    drop
+    drop
+
+    # result, on stack, in radix-2^32 form
+    exec.from_mont
+end
