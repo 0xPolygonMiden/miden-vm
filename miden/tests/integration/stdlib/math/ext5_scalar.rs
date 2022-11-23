@@ -264,3 +264,46 @@ fn test_ec_ext5_scalar_mont_mul() {
         assert_eq!(strace[i].as_int(), c.limbs[i] as u64);
     }
 }
+
+#[test]
+fn test_ec_ext5_scalar_to_and_from_mont_repr() {
+    let source = "
+    use.std::math::ext5_scalar
+
+    begin
+        exec.ext5_scalar::to_mont
+        exec.ext5_scalar::from_mont
+    end";
+
+    let a = Scalar {
+        limbs: [
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+            rand_utils::rand_value::<u32>() >> 1,
+        ],
+    };
+    let b = a.to_mont();
+    let c = b.from_mont();
+
+    assert_eq!(a, c);
+
+    let mut stack = [0u64; 10];
+    for i in 0..10 {
+        stack[i] = a.limbs[i] as u64;
+    }
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    let strace = test.get_last_stack_state();
+
+    for i in 0..10 {
+        assert_eq!(strace[i].as_int(), c.limbs[i] as u64);
+    }
+}
