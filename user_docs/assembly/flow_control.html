@@ -153,8 +153,8 @@ end
 <p>where <code>instructions</code> can be a sequence of any instructions, including nested control structures; the <code>else</code> clause is optional. The above does the following:</p>
 <ol>
 <li>Pops the top item from the stack.</li>
-<li>If the value of the item is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span>, instructions in the <code>if.true</code> branch are executed.</li>
-<li>If the value of the item is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span>, instructions in the <code>else</code> branch are executed.</li>
+<li>If the value of the item is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span>, instructions in the <code>if.true</code> branch are executed.</li>
+<li>If the value of the item is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>, instructions in the <code>else</code> branch are executed.</li>
 <li>If the value is not binary, the execution fails.</li>
 </ol>
 <p>A note on performance: using <em>if-else</em> statements incurs a small, but non-negligible overhead. Thus, for simple conditional statements, it may be more efficient to compute the result of both branches, and then select the result using <a href="./stack_manipulation.html#conditional-manipulation">conditional drop</a> instructions.</p>
@@ -167,7 +167,7 @@ end
 <p>where:</p>
 <ul>
 <li><code>instructions</code> can be a sequence of any instructions, including nested control structures.</li>
-<li><code>count</code> is the number of times the <code>instructions</code> sequence should be repeated (e.g. <code>repeat.10</code>). <code>count</code> must be an integer greater than <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span>.</li>
+<li><code>count</code> is the number of times the <code>instructions</code> sequence should be repeated (e.g. <code>repeat.10</code>). <code>count</code> must be an integer greater than <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>.</li>
 </ul>
 <h3 id="condition-controlled-loops"><a class="header" href="#condition-controlled-loops">Condition-controlled loops</a></h3>
 <p>Executing a sequence of instructions zero or more times based on some condition can be accomplished with <em>while loop</em> expressions. These expressions look like so:</p>
@@ -178,11 +178,11 @@ end
 <p>where <code>instructions</code> can be a sequence of any instructions, including nested control structures. The above does the following:</p>
 <ol>
 <li>Pops the top item from the stack.</li>
-<li>If the value of the item is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span>, <code>instructions</code> in the loop body are executed.
-a. After the body is executed, the stack is popped again, and if the popped value is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span></span></span></span>, the body is executed again.
-b. If the popped value is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span>, the loop is exited.
+<li>If the value of the item is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span>, <code>instructions</code> in the loop body are executed.
+a. After the body is executed, the stack is popped again, and if the popped value is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span>, the body is executed again.
+b. If the popped value is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>, the loop is exited.
 c. If the popped value is not binary, the execution fails.</li>
-<li>If the value of the item is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span>, execution of loop body is skipped.</li>
+<li>If the value of the item is <span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>, execution of loop body is skipped.</li>
 <li>If the value is not binary, the execution fails.</li>
 </ol>
 <p>Example:</p>
