@@ -4,6 +4,7 @@ use super::{
     Node::{self, Instruction},
     ParsingError, StarkField, Token,
 };
+use vm_core::ONE;
 
 // INSTRUCTION PARSERS
 // ================================================================================================
@@ -20,7 +21,11 @@ pub fn parse_add(op: &Token) -> Result<Node, ParsingError> {
         1 => Ok(Instruction(Add)),
         2 => {
             let imm = parse_element_param(op, 1)?;
-            Ok(Instruction(AddImm(imm)))
+            if imm == ONE {
+                Ok(Instruction(Incr))
+            } else {
+                Ok(Instruction(AddImm(imm)))
+            }
         }
         _ => Err(ParsingError::extra_param(op)),
     }

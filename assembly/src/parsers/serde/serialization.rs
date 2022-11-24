@@ -159,6 +159,7 @@ impl Serializable for Instruction {
             }
             Self::Neg => target.write_opcode(OpCode::Neg),
             Self::Inv => target.write_opcode(OpCode::Inv),
+            Self::Incr => target.write_opcode(OpCode::Incr),
             Self::Pow2 => target.write_opcode(OpCode::Pow2),
             Self::Exp => target.write_opcode(OpCode::Exp),
             Self::ExpImm(v) => {
