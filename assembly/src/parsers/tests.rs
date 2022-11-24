@@ -10,11 +10,12 @@ use crate::{ONE, ZERO};
 /// Tests the AST parsing
 #[test]
 fn test_ast_parsing_program_simple() {
-    let source = "begin push.0 assertz end";
+    let source = "begin push.0 assertz add.1 end";
     let values: Vec<Felt> = vec![ZERO];
     let nodes: Vec<Node> = vec![
         Node::Instruction(Instruction::PushConstants(values)),
         Node::Instruction(Instruction::Assertz),
+        Node::Instruction(Instruction::Incr),
     ];
 
     assert_program_output(source, BTreeMap::new(), nodes);
