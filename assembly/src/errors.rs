@@ -19,6 +19,7 @@ pub enum AssemblyError {
     ParsingError(String),
     ParamOutOfBounds(u64, u64, u64),
     SysCallInKernel(String),
+    InvalidCacheLock,
 }
 
 impl AssemblyError {
@@ -72,6 +73,10 @@ impl AssemblyError {
     pub fn syscall_in_kernel(kernel_proc_name: &str) -> Self {
         Self::SysCallInKernel(kernel_proc_name.to_string())
     }
+
+    pub fn invalid_cache_lock() -> Self {
+        Self::InvalidCacheLock
+    }
 }
 
 impl From<ParsingError> for AssemblyError {
@@ -97,6 +102,7 @@ impl fmt::Display for AssemblyError {
             ParsingError(err) => write!(f, "{err}"),
             ParamOutOfBounds(value, min, max) => write!(f, "parameter value must be greater than or equal to {min} and less than or equal to {max}, but was {value}"),
             SysCallInKernel(proc_name) => write!(f, "syscall instruction used in kernel procedure '{proc_name}'"),
+            InvalidCacheLock => write!(f, "an attempt was made to lock a borrowed procedures cache"),
         }
     }
 }

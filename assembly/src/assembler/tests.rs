@@ -17,11 +17,12 @@ fn nested_blocks() {
     let assembler = Assembler::new().with_kernel(&kernel).unwrap();
 
     // the assembler should have a single kernel proc in its cache
-    assert_eq!(assembler.proc_cache.len(), 1);
+    assert_eq!(assembler.proc_cache.borrow().len(), 1);
 
     // fetch the kernel digest and store into a syscall block
     let syscall = assembler
         .proc_cache
+        .borrow()
         .values()
         .next()
         .map(|p| CodeBlock::new_syscall(p.code_root().hash()))
