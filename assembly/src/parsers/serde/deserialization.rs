@@ -186,6 +186,7 @@ impl Deserializable for Instruction {
             OpCode::DivImm => Ok(Instruction::DivImm(bytes.read_felt()?)),
             OpCode::Neg => Ok(Instruction::Neg),
             OpCode::Inv => Ok(Instruction::Inv),
+            OpCode::Incr => Ok(Instruction::Incr),
             OpCode::Pow2 => Ok(Instruction::Pow2),
             OpCode::Exp => Ok(Instruction::Exp),
             OpCode::ExpImm => Ok(Instruction::ExpImm(bytes.read_felt()?)),

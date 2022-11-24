@@ -49,6 +49,7 @@ impl Assembler {
             Instruction::DivImm(imm) => field_ops::div_imm(span, *imm),
             Instruction::Neg => span.add_op(Neg),
             Instruction::Inv => span.add_op(Inv),
+            Instruction::Incr => span.add_op(Incr),
 
             Instruction::Pow2 => field_ops::pow2(span),
             Instruction::Exp => field_ops::exp(span, 64),
