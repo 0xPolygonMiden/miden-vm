@@ -3,7 +3,7 @@ use super::{
     AssemblyError, BTreeMap, Box, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, ModuleAst,
     ModuleProvider, Operation, Procedure, ProcedureId, Program, String, ToString, Vec, ONE, ZERO,
 };
-use core::{borrow::Borrow, pin::Pin};
+use core::{borrow::Borrow, cell::RefCell};
 use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
 
 mod instruction;
@@ -36,7 +36,7 @@ type ProcedureCache = BTreeMap<ProcedureId, Procedure>;
 pub struct Assembler {
     kernel: Kernel,
     module_provider: Box<dyn ModuleProvider>,
-    proc_cache: Pin<Box<ProcedureCache>>,
+    proc_cache: RefCell<ProcedureCache>,
     in_debug_mode: bool,
 }
 
@@ -48,7 +48,7 @@ impl Assembler {
         Self {
             kernel: Kernel::default(),
             module_provider: Box::new(()),
-            proc_cache: Box::pin(BTreeMap::default()),
+            proc_cache: Default::default(),
             in_debug_mode: false,
         }
     }
@@ -139,7 +139,7 @@ impl Assembler {
         let program_root = self.compile_body(body.iter(), &mut context, None)?;
 
         // convert the context into a call block table for the program
-        let cb_table = context.into_cb_table(&self.proc_cache);
+        let cb_table = context.into_cb_table(&self.proc_cache.borrow());
 
         // build and return the program
         Ok(Program::with_kernel(
@@ -153,7 +153,6 @@ impl Assembler {
     // --------------------------------------------------------------------------------------------
 
     /// Compiles all procedures in the specified module and adds them to the procedure cache.
-    #[allow(clippy::cast_ref_to_mut)]
     fn compile_module(
         &self,
         module: &ModuleAst,
@@ -175,11 +174,11 @@ impl Assembler {
         //   which has been invoked via a local call instruction.
         for proc in module_procs {
             if proc.is_export() || module_callset.contains(proc.id()) {
-                // TODO: figure out how to do this using interior mutability
-                unsafe {
-                    let mutable_self = &mut *(self as *const _ as *mut Assembler);
-                    mutable_self.proc_cache.insert(*proc.id(), proc);
-                }
+                // this is safe because we fail if the cache is borrowed.
+                self.proc_cache
+                    .try_borrow_mut()
+                    .map(|mut cache| cache.insert(*proc.id(), proc))
+                    .map_err(|_| AssemblyError::InvalidCacheLock)?;
             }
         }
 
@@ -289,38 +288,40 @@ impl Assembler {
         Ok(combine_blocks(blocks))
     }
 
-    // PROCEDURE GETTER
+    // PROCEDURE CACHE
     // --------------------------------------------------------------------------------------------
-    /// Returns procedure MAST for a procedure with the specified ID.
+
+    /// Ensure a procedure exists in the cache. Otherwise, attempt to fetch it from the module
+    /// provider, compile, and check again.
     ///
-    /// This will first check if procedure is in the assembler's cache, and if not, will attempt
-    /// to find the module in which the procedure is located, compile the module, and return the
-    /// compiled procedure MAST.
-    fn get_imported_proc(
+    /// If `Ok` is returned, the procedure can be safely unwrapped from the cache.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the internal procedure cache is mutably borrowed somewhere.
+    fn ensure_procedure_is_in_cache(
         &self,
         proc_id: &ProcedureId,
         context: &mut AssemblyContext,
-    ) -> Result<&Procedure, AssemblyError> {
-        // if the procedure is already in the procedure cache, return it
-        if let Some(p) = self.proc_cache.get(proc_id) {
-            return Ok(p);
+    ) -> Result<(), AssemblyError> {
+        if !self.proc_cache.borrow().contains_key(proc_id) {
+            // if procedure is not in cache, try to get its module and compile it
+            let module = self
+                .module_provider
+                .get_module(proc_id)
+                .ok_or_else(|| AssemblyError::imported_proc_module_not_found(proc_id))?;
+            self.compile_module(&module, module.path(), context)?;
+
+            // if the procedure is still not in cache, then there was some error
+            if !self.proc_cache.borrow().contains_key(proc_id) {
+                return Err(AssemblyError::imported_proc_not_found_in_module(
+                    proc_id,
+                    module.path(),
+                ));
+            }
         }
 
-        // otherwise, get the module to which the procedure belongs and compile the entire module;
-        // this will add all procedures exported from the module to the procedure cache
-        let module = self
-            .module_provider
-            .get_module(proc_id)
-            .ok_or_else(|| AssemblyError::imported_proc_module_not_found(proc_id))?;
-        self.compile_module(&module, module.path(), context)?;
-
-        // then, get the procedure out of the procedure cache and return; if the procedure
-        // cannot be found in the cache, it is possible that the procedure was not in the
-        // module returned from the module provider
-        let proc = self.proc_cache.get(proc_id).ok_or_else(|| {
-            AssemblyError::imported_proc_not_found_in_module(proc_id, module.path())
-        })?;
-        Ok(proc)
+        Ok(())
     }
 }
 
