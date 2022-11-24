@@ -99,9 +99,9 @@ The main task of the decoder is to output exactly the same program hash, regardl
 
 The decoder is one of the more complex parts of the VM. It consists of the following components:
 
-* Main [execution trace](#Decoder-trace) consisting of $24$ trace columns which contain the state of the decoder at a given cycle of a computation.
-* Connection to the hash chiplet, which is used to offload [hash computations](#Program-block-hashing) from the decoder.
-* $3$ [virtual tables](#Control-flow-tables) (implemented via multi-set checks), which keep track of code blocks and operations executing on the VM.
+* Main [execution trace](#decoder-trace) consisting of $24$ trace columns which contain the state of the decoder at a given cycle of a computation.
+* Connection to the hash chiplet, which is used to offload [hash computations](#program-block-hashing) from the decoder.
+* $3$ [virtual tables](#control-flow-tables) (implemented via multi-set checks), which keep track of code blocks and operations executing on the VM.
 
 ### Decoder trace
 
@@ -122,7 +122,7 @@ These registers have the following meanings:
 
 ### Program block hashing
 
-To compute hashes of program blocks, the decoder relies on the [hash chiplet](../programs.md). Specifically, the decoder needs to perform two types of hashing operations:
+To compute hashes of program blocks, the decoder relies on the [hash chiplet](../chiplets/hasher.md). Specifically, the decoder needs to perform two types of hashing operations:
 
 1. A simple 2-to-1 hash, where we provide a sequence of $8$ field elements, and get back $4$ field elements representing the result. Computing such a hash requires $8$ rows in the hash chiplet.
 2. A sequential hash of $n$ elements. Computing such a hash requires multiple absorption steps, and at each step $8$ field elements are absorbed into the hasher. Thus, computing a sequential hash of $n$ elements requires $\lceil {n/8} \rceil$ rows in the hash chiplet. At the end, we also get $4$ field elements representing the result.
@@ -138,10 +138,10 @@ $$
 $$
 
 where:
-* $m_{bp}$ is a label indicating beginning of a new permutation. Value of this label is computed based on hash chiplet selector flags according to the methodology described [here](../programs.md#multiset-check-constraints).
+* $m_{bp}$ is a label indicating beginning of a new permutation. Value of this label is computed based on hash chiplet selector flags according to the methodology described [here](../chiplets/hasher.md#multiset-check-constraints).
 * $r$ is the address of the row at which the hashing begins.
 * $\alpha_4 \cdot 8$ indicates that we are hashing a total of $8$ elements.
-* Some $\alpha$ values are skipped in the above (e.g., $\alpha_3$) because of the specifics of how auxiliary hasher table rows are reduces to field elements (described [here](../programs.md#multiset-check-constraints)). For example, $a_3$ is used a coefficient for node index values during Merkle path computations in the hasher, and thus, is not relevant in this case.
+* Some $\alpha$ values are skipped in the above (e.g., $\alpha_3$) because of the specifics of how auxiliary hasher table rows are reduced to field elements (described [here](../chiplets/hasher.md#multiset-check-constraints)). For example, $a_3$ is used a coefficient for node index values during Merkle path computations in the hasher, and thus, is not relevant in this case.
 
 To read the $4$-element result ($u_0, ..., u_3$), we need to divide $p_0$ by the following value:
 
@@ -150,7 +150,7 @@ $$
 $$
 
 where:
-* $m_{hout}$ is a label indicating return of the hash value. Value of this label is computed based on hash chiplet selector flags according to the methodology described [here](../programs.md#multiset-check-constraints).
+* $m_{hout}$ is a label indicating return of the hash value. Value of this label is computed based on hash chiplet selector flags according to the methodology described [here](../chiplets/hasher.md#multiset-check-constraints).
 * $r$ is the address of the row at which the hashing began.
 
 #### Sequential hash
@@ -167,7 +167,7 @@ $$
 \alpha_0 + \alpha_1 \cdot m_{abp} + \alpha_2 \cdot (r + 7) + \sum_{i=0}^7 (\alpha_{i+8} \cdot v_{i + 8})
 $$
 
-Where $m_{abp}$ is a label indicating absorption of more elements into the hasher state. Value of this label is computed based on hash chiplet selector flags according to the methodology described [here](../programs.md#multiset-check-constraints).
+Where $m_{abp}$ is a label indicating absorption of more elements into the hasher state. Value of this label is computed based on hash chiplet selector flags according to the methodology described [here](../chiplets/hasher.md#multiset-check-constraints).
 
 We can keep absorbing elements into the hasher in the similar manner until all elements have been absorbed. Then, to read the result (e.g., $u_0, ..., u_3$), we need to divide $p_0$ by the following value:
 
@@ -233,7 +233,7 @@ Unlike other virtual tables, block hash table does not start out in an empty sta
 Initialization of the block hash table is done by setting the initial value of $p_2$ to the value of the row containing the hash of a program's root block.
 
 #### Op group table
-*Op group* table is used in decoding of *span* blocks, which are leaves in a program's MAST. As described [here](../programs.md#Span-block), a *span* block can contain one or more operation batches, each batch containing up to $8$ operation groups.
+*Op group* table is used in decoding of *span* blocks, which are leaves in a program's MAST. As described [here](../programs.md#span-block), a *span* block can contain one or more operation batches, each batch containing up to $8$ operation groups.
 
 When the VM starts executing a new batch of operations, it adds all operation groups within a batch, except for the first one, to the *op group* table. Then, as the VM starts executing an operation group, it removes the group from the table. Thus, by the time all operation groups in a batch have been executed, the *op group* table must be empty.
 
@@ -244,7 +244,7 @@ The table can be thought of as consisting of $3$ columns as shown below:
 The meaning of the columns is as follows:
 
 * The first column ($t_0$) contains operation batch ID. During the execution of the program, each operation batch is assigned a unique ID.
-* The second column ($t_1$) contains the position of the group in the *span* block (not just in the current batch). The position is $1$-based and is counted from the end. Thus, for example, if a *span* block consists of a single batch with $4$ groups, the position of the first group would be $4$, the position of the second group would be $3$ etc. (the reason for this is explained in [this](#Single-batch-span) section). Note that the group with position $4$ is not added to the table, because it is the first group in the batch, so the first row of the table will be for the group with position $3$.
+* The second column ($t_1$) contains the position of the group in the *span* block (not just in the current batch). The position is $1$-based and is counted from the end. Thus, for example, if a *span* block consists of a single batch with $4$ groups, the position of the first group would be $4$, the position of the second group would be $3$ etc. (the reason for this is explained in [this](#single-batch-span) section). Note that the group with position $4$ is not added to the table, because it is the first group in the batch, so the first row of the table will be for the group with position $3$.
 * The third column ($t_2$) contains the actual values of operation groups (this could include up to $9$ opcodes or a single immediate value).
 
 Permutation column $p_3$ is used to keep track of the state of the table. At any step of the computation, the current value of $p_3$ defines which rows are present in the table.
@@ -273,7 +273,7 @@ When the VM executes a `JOIN` operation, it does the following:
 
 1. Adds a tuple `(blk, prnt, 0)` to the block stack table.
 2. Adds tuples `(blk, left_child_hash, 1, 0)` and `(blk, right_child_hash, 0, 0)` to the block hash table.
-3. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#Simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_7$ as input values.
+3. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_7$ as input values.
 
 #### SPLIT operation
 
@@ -290,7 +290,7 @@ When the VM executes a `SPLIT` operation, it does the following:
    a. If the popped value is $1$, adds a tuple `(blk, true_branch_hash, 0, 0)` to the block hash table.
    b. If the popped value is $0$, adds a tuple `(blk, false_branch_hash, 0, 0)` to the block hash table.
    c. If the popped value is neither $1$ nor $0$, the execution fails.
-3. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#Simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_7$ as input values.
+3. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_7$ as input values.
 
 #### LOOP operation
 
@@ -306,7 +306,7 @@ When the VM executes a `LOOP` operation, it does the following:
    a. If the popped value is $1$ adds a tuple `(blk, prnt, 1)` to the block stack table (the `1` indicates that the loop's body is expected to be executed). Then, adds a tuple `(blk, loop_body_hash, 0, 1)` to the block hash table.
    b. If the popped value is $0$, adds `(blk, prnt, 0)` to the block stack table. In this case, nothing is added to the block hash table.
    c. If the popped value is neither $1$ nor $0$, the execution fails.
-2. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#Simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_3$ as input values.
+2. Initiates a 2-to-1 hash computation in the hash chiplet (as described [here](#simple-2-to-1-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_3$ as input values.
 
 #### SPAN operation
 
@@ -319,8 +319,8 @@ In the above diagram, `blk` is the ID of the *span* block which is about to be e
 When the VM executes a `SPAN` operation, it does the following:
 
 1. Adds a tuple `(blk, prnt, 0)` to the block stack table.
-2. Adds groups of the operation batch, as specified by op batch flags (see [here](#Operation-batch-flags)) to the op group table.
-3. Initiates a sequential hash computation in the hash chiplet (as described [here](#Sequential-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_7$ as input values.
+2. Adds groups of the operation batch, as specified by op batch flags (see [here](#operation-batch-flags)) to the op group table.
+3. Initiates a sequential hash computation in the hash chiplet (as described [here](#sequential-hash)) using `blk` as row address in the auxiliary hashing table and $h_0, ..., h_7$ as input values.
 4. Sets the `in_span` register to $1$.
 5. Decrements `group_count` register by $1$.
 6. Sets the `op_index` register to $0$.
@@ -339,7 +339,7 @@ When the VM executes an `END` operation, it does the following:
 
 1. Removes a tuple `(blk, prnt, f1)` from the block stack table.
 2. Removes a tuple `(prnt, current_block_hash, nxt, f0)` from the block hash table, where $nxt=0$ if the next operation is either `END` or `REPEAT`, and $1$ otherwise.
-3. Reads the hash result from the hash chiplet (as described [here](#Program-block-hashing)) using `blk + 7` as row address in the auxiliary hashing table.
+3. Reads the hash result from the hash chiplet (as described [here](#program-block-hashing)) using `blk + 7` as row address in the auxiliary hashing table.
 4. If $h_5 = 1$ (i.e., we are exiting a *loop* block), pops the value off the top of the stack and verifies that the value is $0$.
 5. Verifies that `group_count` register is set to $0$.
 
@@ -386,9 +386,9 @@ When the VM executes a `RESPAN` operation, it does the following:
 1. Increments block address by $8$.
 2. Removes the tuple `(blk, prnt, 0)` from the block stack table.
 3. Adds the tuple `(blk+8, prnt, 0)` to the block stack table.
-4. Absorbs values in registers $h_0, ..., h_7$ into the hasher state of the hash chiplet (as described [here](#Sequential-hash)).
+4. Absorbs values in registers $h_0, ..., h_7$ into the hasher state of the hash chiplet (as described [here](#sequential-hash)).
 5. Sets the `in_span` register to $1$.
-6. Adds groups of the operation batch, as specified by op batch flags (see [here](#Operation-batch-flags)) to the op group table using `blk+8` as batch ID.
+6. Adds groups of the operation batch, as specified by op batch flags (see [here](#operation-batch-flags)) to the op group table using `blk+8` as batch ID.
 
 The net result of the above is that we incremented the ID of the current block by $8$ and added the next set of operation groups to the op group table.
 
@@ -447,11 +447,11 @@ Moreover, since we've set the `is_loop` flag to $0$, executing the `END` operati
 
 ### SPAN block decoding
 
-As described [here](../programs.md#Span-block), a *span* block can contain one or more operation batches, each batch containing up to $8$ operation groups. At the high level, decoding of a span block is done as follows:
+As described [here](../programs.md#span-block), a *span* block can contain one or more operation batches, each batch containing up to $8$ operation groups. At the high level, decoding of a span block is done as follows:
 
-1. At the beginning of the block, we make a request to the hash chiplet which initiates the hasher, absorbs the first operation batch ($8$ field elements) into the hasher, and returns the row address of the hasher, which we use as the unique ID for the *span* block (see [here](#Sequential-hash)).
+1. At the beginning of the block, we make a request to the hash chiplet which initiates the hasher, absorbs the first operation batch ($8$ field elements) into the hasher, and returns the row address of the hasher, which we use as the unique ID for the *span* block (see [here](#sequential-hash)).
 2. We then add groups of the operation batch, as specified by op batch flags (but always skipping the first one) to the op group table.
-3. We then remove operation groups from the op group table in the FIFO order one by one, and decode them in the manner similar to the one described [here](#Operation-group-decoding).
+3. We then remove operation groups from the op group table in the FIFO order one by one, and decode them in the manner similar to the one described [here](#operation-group-decoding).
 4. Once all operation groups in a batch have been decoded, we absorb the next batch into the hasher and repeat the process described above.
 5. Once all batches have been decoded, we return the hash of the span block from the hasher.
 
@@ -463,7 +463,7 @@ Overall, three control flow operations are used when decoding a *span* block:
 
 #### Operation group decoding
 
-As described [here](../programs.md#Span-block), an operation group is a sequence of operations which can be encoded into a single field element. For a field element of $64$ bits, we can fit up to $9$ operations into a group. We do this by concatenating binary representations of opcodes together with the first operation located in the least significant position.
+As described [here](../programs.md#span-block), an operation group is a sequence of operations which can be encoded into a single field element. For a field element of $64$ bits, we can fit up to $9$ operations into a group. We do this by concatenating binary representations of opcodes together with the first operation located in the least significant position.
 
 We can read opcodes from the group by simply subtracting them from the op group value and then dividing the result by $2^7$. Once the value of the op group reaches $0$, we know that all opcodes have been read. Graphically, this can be illustrated like so:
 
@@ -522,7 +522,7 @@ Note that we rely on the `group_count` column to construct the row to be removed
 
 Decoding of $g_1$ is performed in the same manner as decoding of $g_0$: with every subsequent step the next operation is removed from $g_1$ until its value reaches $0$, at which point, decoding of group $g_2$ begins.
 
-The above steps are executed until value of `group_count` reaches $0$. Once `group_count` reaches $0$ and the last operation group $g_7$ is executed, the VM executed the `END` operation. Semantics of the `END` operation are described [here](#END-operation).
+The above steps are executed until value of `group_count` reaches $0$. Once `group_count` reaches $0$ and the last operation group $g_7$ is executed, the VM executed the `END` operation. Semantics of the `END` operation are described [here](#end-operation).
 
 Notice that by the time we get to the `END` operation, all rows are removed from the op group table.
 

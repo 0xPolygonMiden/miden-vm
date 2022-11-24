@@ -1,21 +1,23 @@
-use super::{build_op_test, build_test};
+use crate::{build_op_test, build_test, helpers::Test};
 use processor::FMP_MIN;
-use vm_core::MIN_STACK_DEPTH;
+use vm_core::{
+    code_blocks::CodeBlock, stack::STACK_TOP_SIZE, Operation, ProgramInputs, StarkField, Word,
+};
 
-// PUSHING VALUES ONTO THE STACK (PUSH)
+// SDEPTH INSTRUCTION
 // ================================================================================================
 
 #[test]
-fn push_env_sdepth() {
-    let test_op = "push.env.sdepth";
+fn sdepth() {
+    let test_op = "sdepth";
 
     // --- empty stack ----------------------------------------------------------------------------
     let test = build_op_test!(test_op);
-    test.expect_stack(&[MIN_STACK_DEPTH as u64]);
+    test.expect_stack(&[STACK_TOP_SIZE as u64]);
 
     // --- multi-element stack --------------------------------------------------------------------
     let test = build_op_test!(test_op, &[2, 4, 6, 8, 10]);
-    test.expect_stack(&[MIN_STACK_DEPTH as u64, 10, 8, 6, 4, 2]);
+    test.expect_stack(&[STACK_TOP_SIZE as u64, 10, 8, 6, 4, 2]);
 
     // --- overflowed stack -----------------------------------------------------------------------
     // push 2 values to increase the lenth of the stack beyond 16
@@ -24,30 +26,35 @@ fn push_env_sdepth() {
     test.expect_stack(&[18, 1, 1, 7, 6, 5, 4, 3, 2, 1, 0, 7, 6, 5, 4, 3]);
 }
 
+// LOCADDR INSTRUCTION
+// ================================================================================================
+
 #[test]
-fn push_env_locaddr() {
+fn locaddr() {
     // --- locaddr returns expected address -------------------------------------------------------
     let source = "
         proc.foo.2
-            push.env.locaddr.0
-            push.env.locaddr.1
+            locaddr.0
+            locaddr.1
         end
         begin
             exec.foo
         end";
 
     let test = build_test!(source, &[10]);
-    test.expect_stack(&[FMP_MIN + 1, FMP_MIN + 2, 10]);
+    test.expect_stack(&[FMP_MIN + 2, FMP_MIN + 1, 10]);
 
     // --- accessing mem via locaddr updates the correct variables --------------------------------
     let source = "
         proc.foo.2
-            push.env.locaddr.0
-            pop.mem
-            push.env.locaddr.1
-            popw.mem
-            push.local.0
-            pushw.local.1
+            locaddr.0
+            mem_store
+            locaddr.1
+            mem_storew
+            dropw
+            loc_load.0
+            push.0.0.0.0
+            loc_loadw.1
         end
         begin
             exec.foo
@@ -59,14 +66,14 @@ fn push_env_locaddr() {
     // --- locaddr returns expected addresses in nested procedures --------------------------------
     let source = "
         proc.foo.3
-            push.env.locaddr.0
-            push.env.locaddr.1
-            push.env.locaddr.2
+            locaddr.0
+            locaddr.1
+            locaddr.2
         end
         proc.bar.2
-            push.env.locaddr.0
+            locaddr.0
             exec.foo
-            push.env.locaddr.1
+            locaddr.1
         end
         begin
             exec.bar
@@ -75,35 +82,37 @@ fn push_env_locaddr() {
 
     let test = build_test!(source, &[10]);
     test.expect_stack(&[
+        FMP_MIN + 3,
+        FMP_MIN + 2,
         FMP_MIN + 1,
         FMP_MIN + 2,
-        FMP_MIN + 3,
-        FMP_MIN + 1,
-        FMP_MIN + 3,
-        FMP_MIN + 4,
         FMP_MIN + 5,
-        FMP_MIN + 2,
+        FMP_MIN + 4,
+        FMP_MIN + 3,
+        FMP_MIN + 1,
         10,
     ]);
 
     // --- accessing mem via locaddr in nested procedures updates the correct variables -----------
     let source = "
         proc.foo.2
-            push.env.locaddr.0
-            pop.mem
-            push.env.locaddr.1
-            popw.mem
-            pushw.local.1
-            push.local.0
+            locaddr.0
+            mem_store
+            locaddr.1
+            mem_storew
+            dropw
+            push.0.0.0.0
+            loc_loadw.1
+            loc_load.0
         end
         proc.bar.2
-            push.env.locaddr.0
-            pop.mem
-            pop.local.1
+            locaddr.0
+            mem_store
+            loc_store.1
             exec.foo
-            push.env.locaddr.1
-            push.mem
-            push.local.0
+            locaddr.1
+            mem_load
+            loc_load.0
         end
         begin
             exec.bar
@@ -111,4 +120,51 @@ fn push_env_locaddr() {
 
     let test = build_test!(source, &[10, 1, 2, 3, 4, 5, 6, 7]);
     test.expect_stack(&[7, 6, 5, 4, 3, 2, 1, 10]);
+}
+
+// CALLER INSTRUCTION
+// ================================================================================================
+
+#[test]
+fn caller() {
+    let kernel_source = "
+        export.foo
+            caller
+        end
+    ";
+
+    let program_source = "
+        proc.bar
+            syscall.foo
+        end
+
+        begin
+            call.bar
+        end";
+
+    // TODO: update and use macro?
+    let test = Test {
+        source: program_source.to_string(),
+        kernel: Some(kernel_source.to_string()),
+        inputs: ProgramInputs::from_stack_inputs(&[1, 2, 3, 4, 5]).unwrap(),
+        in_debug_mode: false,
+    };
+    // top 4 elements should be overwritten with the hash of `bar` procedure, but the 5th
+    // element should remain untouched
+    let bar_hash = build_bar_hash();
+    test.expect_stack(&[bar_hash[3], bar_hash[2], bar_hash[1], bar_hash[0], 1]);
+
+    test.prove_and_verify(vec![1, 2, 3, 4, 5], false);
+}
+
+fn build_bar_hash() -> [u64; 4] {
+    let foo_root = CodeBlock::new_span(vec![Operation::Caller]);
+    let bar_root = CodeBlock::new_syscall(foo_root.hash());
+    let bar_hash: Word = bar_root.hash().into();
+    [
+        bar_hash[0].as_int(),
+        bar_hash[1].as_int(),
+        bar_hash[2].as_int(),
+        bar_hash[3].as_int(),
+    ]
 }

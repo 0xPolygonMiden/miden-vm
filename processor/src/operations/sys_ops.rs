@@ -37,7 +37,7 @@ impl Process {
     /// Pops an element off the stack and adds it to the current value of `fmp` register.
     ///
     /// # Errors
-    /// Returns an error if the new value of `fmp` register is greater than or equal to 2^32.
+    /// Returns an error if the new value of `fmp` register is greater than or equal to 3 * 2^30.
     pub(super) fn op_fmpupdate(&mut self) -> Result<(), ExecutionError> {
         let offset = self.stack.get(0);
         let fmp = self.system.fmp();
@@ -52,6 +52,43 @@ impl Process {
 
         Ok(())
     }
+
+    // STACK DEPTH
+    // --------------------------------------------------------------------------------------------
+
+    /// Pushes the current depth of the stack (the depth before this operation is executed) onto
+    /// the stack.
+    pub(super) fn op_sdepth(&mut self) -> Result<(), ExecutionError> {
+        let stack_depth = self.stack.depth();
+        self.stack.set(0, Felt::new(stack_depth as u64));
+        self.stack.shift_right(0);
+        Ok(())
+    }
+
+    // CALLER
+    // --------------------------------------------------------------------------------------------
+
+    /// Overwrites the top four stack items with the hash of a function which initiated the current
+    /// SYSCALL.
+    ///
+    /// # Errors
+    /// Returns an error if the VM is not currently executing a SYSCALL block.
+    pub(super) fn op_caller(&mut self) -> Result<(), ExecutionError> {
+        if !self.system.in_syscall() {
+            return Err(ExecutionError::CallerNotInSyscall);
+        }
+
+        let fn_hash = self.system.fn_hash();
+
+        self.stack.set(0, fn_hash[3]);
+        self.stack.set(1, fn_hash[2]);
+        self.stack.set(2, fn_hash[1]);
+        self.stack.set(3, fn_hash[0]);
+
+        self.stack.copy_state(4);
+
+        Ok(())
+    }
 }
 
 // TESTS
@@ -60,14 +97,15 @@ impl Process {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{init_stack_with, Operation},
-        Felt, FieldElement, Process, FMP_MAX, FMP_MIN,
+        super::Operation, super::STACK_TOP_SIZE, Felt, FieldElement, Process, FMP_MAX, FMP_MIN,
     };
+
+    const MAX_PROC_LOCALS: u64 = 2_u64.pow(31) - 1;
 
     #[test]
     fn op_assert() {
         // calling assert with a minimum stack should be an ok, as long as the top value is ONE
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy(&[]);
         process.execute_op(Operation::Push(Felt::ONE)).unwrap();
         process.execute_op(Operation::Swap).unwrap();
         process.execute_op(Operation::Drop).unwrap();
@@ -77,7 +115,7 @@ mod tests {
 
     #[test]
     fn op_fmpupdate() {
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy(&[]);
 
         // initial value of fmp register should be 2^30
         assert_eq!(Felt::new(2_u64.pow(30)), process.system.fmp());
@@ -102,36 +140,29 @@ mod tests {
         assert!(process.execute_op(Operation::FmpUpdate).is_err());
 
         // going up to the max fmp value should be OK
-        let mut process = Process::new_dummy();
-        process
-            .execute_op(Operation::Push(Felt::new(u32::MAX as u64)))
-            .unwrap();
+        let mut process = Process::new_dummy(&[MAX_PROC_LOCALS]);
         process.execute_op(Operation::FmpUpdate).unwrap();
         assert_eq!(Felt::new(FMP_MAX), process.system.fmp());
 
         // but going beyond that should be an error
-        let mut process = Process::new_dummy();
-        process
-            .execute_op(Operation::Push(Felt::new(u32::MAX as u64 + 1)))
-            .unwrap();
+        let mut process = Process::new_dummy(&[MAX_PROC_LOCALS + 1]);
         assert!(process.execute_op(Operation::FmpUpdate).is_err());
 
         // should not affect the rest of the stack state
-        let mut process = Process::new_dummy();
-        init_stack_with(&mut process, &[2, 3]);
+        let mut process = Process::new_dummy(&[2, 3]);
         process.execute_op(Operation::FmpUpdate).unwrap();
 
-        let expected = build_expected(&[2]);
+        let expected = build_expected_stack(&[2]);
         assert_eq!(expected, process.stack.trace_state());
 
         // calling fmpupdate with a minimum stack should be ok
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy(&[]);
         assert!(process.execute_op(Operation::FmpUpdate).is_ok());
     }
 
     #[test]
     fn op_fmpadd() {
-        let mut process = Process::new_dummy();
+        let mut process = Process::new_dummy(&[]);
 
         // set value of fmp register
         process.execute_op(Operation::Push(Felt::new(2))).unwrap();
@@ -141,21 +172,49 @@ mod tests {
         process.execute_op(Operation::Push(-Felt::new(1))).unwrap();
         process.execute_op(Operation::FmpAdd).unwrap();
 
-        let expected = build_expected(&[FMP_MIN + 1]);
+        let expected = build_expected_stack(&[FMP_MIN + 1]);
         assert_eq!(expected, process.stack.trace_state());
 
         // compute address of second local (also make sure that rest of stack is not affected)
         process.execute_op(Operation::Push(-Felt::new(2))).unwrap();
         process.execute_op(Operation::FmpAdd).unwrap();
 
-        let expected = build_expected(&[FMP_MIN, FMP_MIN + 1]);
+        let expected = build_expected_stack(&[FMP_MIN, FMP_MIN + 1]);
         assert_eq!(expected, process.stack.trace_state());
+    }
+
+    #[test]
+    fn op_sdepth() {
+        // stack is empty
+        let mut process = Process::new_dummy(&[]);
+        process.execute_op(Operation::SDepth).unwrap();
+        let expected = build_expected_stack(&[STACK_TOP_SIZE as u64]);
+        assert_eq!(expected, process.stack.trace_state());
+        assert_eq!(STACK_TOP_SIZE + 1, process.stack.depth());
+
+        // stack has one item
+        process.execute_op(Operation::SDepth).unwrap();
+        let expected = build_expected_stack(&[STACK_TOP_SIZE as u64 + 1, STACK_TOP_SIZE as u64]);
+        assert_eq!(expected, process.stack.trace_state());
+        assert_eq!(STACK_TOP_SIZE + 2, process.stack.depth());
+
+        // stack has 3 items
+        process.execute_op(Operation::Pad).unwrap();
+        process.execute_op(Operation::SDepth).unwrap();
+        let expected = build_expected_stack(&[
+            STACK_TOP_SIZE as u64 + 3,
+            0,
+            STACK_TOP_SIZE as u64 + 1,
+            STACK_TOP_SIZE as u64,
+        ]);
+        assert_eq!(expected, process.stack.trace_state());
+        assert_eq!(STACK_TOP_SIZE + 4, process.stack.depth());
     }
 
     // HELPER FUNCTIONS
     // --------------------------------------------------------------------------------------------
 
-    fn build_expected(values: &[u64]) -> [Felt; 16] {
+    fn build_expected_stack(values: &[u64]) -> [Felt; 16] {
         let mut expected = [Felt::ZERO; 16];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = Felt::new(value);

@@ -24,8 +24,11 @@ jobs:
           override: true
       - name: Test
         uses: actions-rs/cargo@v1
+        env:
+          RUSTFLAGS: -C debug-assertions
         with:
           command: test
+          args: --release
 
   clippy:
     name: Clippy
@@ -36,7 +39,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly
           components: clippy
           override: true
 

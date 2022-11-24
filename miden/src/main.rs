@@ -1,8 +1,10 @@
-use std::io::Write;
+use core::fmt;
+use miden::{AssemblyError, ExecutionError};
 use structopt::StructOpt;
 
 mod cli;
 mod examples;
+mod repl;
 mod tools;
 
 /// Root CLI struct
@@ -22,6 +24,8 @@ pub enum Actions {
     Prove(cli::ProveCmd),
     Run(cli::RunCmd),
     Verify(cli::VerifyCmd),
+    #[cfg(feature = "std")]
+    Repl(cli::ReplCmd),
 }
 
 /// CLI entry point
@@ -34,18 +38,14 @@ impl Cli {
             Actions::Prove(prove) => prove.execute(),
             Actions::Run(run) => run.execute(),
             Actions::Verify(verify) => verify.execute(),
+            #[cfg(feature = "std")]
+            Actions::Repl(repl) => repl.execute(),
         }
     }
 }
 
 /// Executable entry point
 pub fn main() {
-    // configure logging
-    env_logger::Builder::new()
-        .format(|buf, record| writeln!(buf, "{}", record.args()))
-        .filter_level(log::LevelFilter::Debug)
-        .init();
-
     // read command-line args
     let cli = Cli::from_args();
 
@@ -54,3 +54,24 @@ pub fn main() {
         println!("{}", error);
     }
 }
+
+// PROGRAM ERROR
+// ================================================================================================
+
+/// This is used to specify the error type returned from analyze.
+#[derive(Debug)]
+pub enum ProgramError {
+    AssemblyError(AssemblyError),
+    ExecutionError(ExecutionError),
+}
+
+impl fmt::Display for ProgramError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ProgramError::AssemblyError(e) => write!(f, "Assembly Error: {:?}", e),
+            ProgramError::ExecutionError(e) => write!(f, "Execution Error: {:?}", e),
+        }
+    }
+}
+
+impl std::error::Error for ProgramError {}

@@ -2,6 +2,7 @@ use super::{
     super::trace::LookupTableRow, get_num_groups_in_next_batch, BlockInfo, Felt, FieldElement,
     StarkField, Vec, Word, ONE, ZERO,
 };
+use crate::Matrix;
 
 // AUXILIARY TRACE HINTS
 // ================================================================================================
@@ -11,7 +12,7 @@ use super::{
 pub struct AuxTraceHints {
     /// A list of updates made to the block stack and block hash tables. Each entry contains a
     /// clock cycle at which the update was made, as well as the description of the update.
-    block_exec_hints: Vec<(usize, BlockTableUpdate)>,
+    block_exec_hints: Vec<(u32, BlockTableUpdate)>,
     /// A list of rows which were added and then removed from the block stack table. The rows are
     /// sorted by `block_id` in ascending order.
     block_stack_rows: Vec<BlockStackTableRow>,
@@ -21,7 +22,7 @@ pub struct AuxTraceHints {
     block_hash_rows: Vec<BlockHashTableRow>,
     /// A list of updates made to the op group table where each entry is a tuple containing the
     /// cycle at which the update was made and the update description.
-    op_group_hints: Vec<(usize, OpGroupTableUpdate)>,
+    op_group_hints: Vec<(u32, OpGroupTableUpdate)>,
     /// A list of rows which were added to and then removed from the op group table.
     op_group_rows: Vec<OpGroupTableRow>,
 }
@@ -50,7 +51,7 @@ impl AuxTraceHints {
     /// Returns hints which describe how the block stack and block hash tables were updated during
     /// program execution. Each hint consists of a clock cycle and the update description for that
     /// cycle. The hints are sorted by clock cycle in ascending order.
-    pub fn block_exec_hints(&self) -> &[(usize, BlockTableUpdate)] {
+    pub fn block_exec_hints(&self) -> &[(u32, BlockTableUpdate)] {
         &self.block_exec_hints
     }
 
@@ -75,7 +76,7 @@ impl AuxTraceHints {
 
     /// Returns hints which describe how the op group was updated during program execution. Each
     /// hint consists of a clock cycle and the update description for that cycle.
-    pub fn op_group_table_hints(&self) -> &[(usize, OpGroupTableUpdate)] {
+    pub fn op_group_table_hints(&self) -> &[(u32, OpGroupTableUpdate)] {
         &self.op_group_hints
     }
 
@@ -143,13 +144,13 @@ impl AuxTraceHints {
     /// records the relevant rows for both, block stack and block hash tables.
     pub fn block_started(
         &mut self,
-        clk: usize,
+        clk: u32,
         block_info: &BlockInfo,
         child1_hash: Option<Word>,
         child2_hash: Option<Word>,
     ) {
         // insert the hint with the relevant update
-        let hint = BlockTableUpdate::BlockStarted(block_info.block_type.num_children());
+        let hint = BlockTableUpdate::BlockStarted(block_info.num_children());
         self.block_exec_hints.push((clk, hint));
 
         // create a row which would be inserted into the block stack table
@@ -176,14 +177,14 @@ impl AuxTraceHints {
     /// Specifies that a code block execution was completed at the specified clock cycle. We also
     /// need to specify whether the block was the first child of a JOIN block so that we can find
     /// correct block hash table row.
-    pub fn block_ended(&mut self, clk: usize, is_first_child: bool) {
+    pub fn block_ended(&mut self, clk: u32, is_first_child: bool) {
         self.block_exec_hints
             .push((clk, BlockTableUpdate::BlockEnded(is_first_child)));
     }
 
     /// Specifies that another execution of a loop's body started at the specified clock cycle.
     /// This is triggered by the REPEAT operation.
-    pub fn loop_repeat_started(&mut self, clk: usize) {
+    pub fn loop_repeat_started(&mut self, clk: u32) {
         self.block_exec_hints
             .push((clk, BlockTableUpdate::LoopRepeated));
     }
@@ -191,7 +192,7 @@ impl AuxTraceHints {
     /// Specifies that execution of a SPAN block was extended at the specified clock cycle. This
     /// is triggered by the RESPAN operation. This also adds a row for the new span batch to the
     /// block stack table.
-    pub fn span_extended(&mut self, clk: usize, block_info: &BlockInfo) {
+    pub fn span_extended(&mut self, clk: u32, block_info: &BlockInfo) {
         let row = BlockStackTableRow::new(block_info);
         self.block_stack_rows.push(row);
         self.block_exec_hints
@@ -201,7 +202,7 @@ impl AuxTraceHints {
     /// Specifies that an operation batch may have been inserted into the op group table at the
     /// specified cycle. Operation groups are inserted into the table only if the number of groups
     /// left is greater than 1.
-    pub fn insert_op_batch(&mut self, clk: usize, num_groups_left: Felt) {
+    pub fn insert_op_batch(&mut self, clk: u32, num_groups_left: Felt) {
         // compute number of op groups in this batch
         let num_batch_groups = get_num_groups_in_next_batch(num_groups_left);
         debug_assert!(num_batch_groups > 0, "op batch is empty");
@@ -221,7 +222,7 @@ impl AuxTraceHints {
     /// specified clock cycle.
     pub fn remove_op_group(
         &mut self,
-        clk: usize,
+        clk: u32,
         batch_id: Felt,
         group_pos: Felt,
         group_value: Felt,
@@ -275,22 +276,32 @@ pub enum OpGroupTableUpdate {
 // BLOCK STACK TABLE ROW
 // ================================================================================================
 
-/// Describes a single entry in the block stack table. An entry in the block stack table is a tuple
-/// (block_id, parent_id, is_loop).
+/// Describes a single entry in the block stack table.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct BlockStackTableRow {
     block_id: Felt,
     parent_id: Felt,
     is_loop: bool,
+    parent_ctx: u32,
+    parent_fn_hash: Word,
+    parent_fmp: Felt,
+    parent_stack_depth: u32,
+    parent_next_overflow_addr: Felt,
 }
 
 impl BlockStackTableRow {
     /// Returns a new [BlockStackTableRow] instantiated from the specified block info.
     pub fn new(block_info: &BlockInfo) -> Self {
+        let ctx_info = block_info.ctx_info.unwrap_or_default();
         Self {
             block_id: block_info.addr,
             parent_id: block_info.parent_addr,
             is_loop: block_info.is_entered_loop() == ONE,
+            parent_ctx: ctx_info.parent_ctx,
+            parent_fn_hash: ctx_info.parent_fn_hash,
+            parent_fmp: ctx_info.parent_fmp,
+            parent_stack_depth: ctx_info.parent_stack_depth,
+            parent_next_overflow_addr: ctx_info.parent_next_overflow_addr,
         }
     }
 
@@ -302,19 +313,57 @@ impl BlockStackTableRow {
             block_id,
             parent_id,
             is_loop,
+            parent_ctx: 0,
+            parent_fn_hash: [ZERO; 4],
+            parent_fmp: ZERO,
+            parent_stack_depth: 0,
+            parent_next_overflow_addr: ZERO,
+        }
+    }
+
+    #[cfg(test)]
+    /// Returns a new [BlockStackTableRow] corresponding to a CALL code block. This is used for
+    /// test purpose only.
+    pub fn new_test_with_ctx(
+        block_id: Felt,
+        parent_id: Felt,
+        is_loop: bool,
+        ctx_info: super::ExecutionContextInfo,
+    ) -> Self {
+        Self {
+            block_id,
+            parent_id,
+            is_loop,
+            parent_ctx: ctx_info.parent_ctx,
+            parent_fn_hash: ctx_info.parent_fn_hash,
+            parent_fmp: ctx_info.parent_fmp,
+            parent_stack_depth: ctx_info.parent_stack_depth,
+            parent_next_overflow_addr: ctx_info.parent_next_overflow_addr,
         }
     }
 }
 
 impl LookupTableRow for BlockStackTableRow {
     /// Reduces this row to a single field element in the field specified by E. This requires
-    /// at least 4 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+    /// at least 12 alpha values.
+    fn to_value<E: FieldElement<BaseField = Felt>>(
+        &self,
+        _main_trace: &Matrix<Felt>,
+        alphas: &[E],
+    ) -> E {
         let is_loop = if self.is_loop { ONE } else { ZERO };
         alphas[0]
             + alphas[1].mul_base(self.block_id)
             + alphas[2].mul_base(self.parent_id)
             + alphas[3].mul_base(is_loop)
+            + alphas[4].mul_base(Felt::from(self.parent_ctx))
+            + alphas[5].mul_base(self.parent_fmp)
+            + alphas[6].mul_base(Felt::from(self.parent_stack_depth))
+            + alphas[7].mul_base(self.parent_next_overflow_addr)
+            + alphas[8].mul_base(self.parent_fn_hash[0])
+            + alphas[9].mul_base(self.parent_fn_hash[1])
+            + alphas[10].mul_base(self.parent_fn_hash[2])
+            + alphas[11].mul_base(self.parent_fn_hash[3])
     }
 }
 
@@ -383,7 +432,11 @@ impl BlockHashTableRow {
 impl LookupTableRow for BlockHashTableRow {
     /// Reduces this row to a single field element in the field specified by E. This requires
     /// at least 8 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+    fn to_value<E: FieldElement<BaseField = Felt>>(
+        &self,
+        _main_trace: &Matrix<Felt>,
+        alphas: &[E],
+    ) -> E {
         let is_first_child = if self.is_first_child { ONE } else { ZERO };
         let is_loop_body = if self.is_loop_body { ONE } else { ZERO };
         alphas[0]
@@ -423,7 +476,11 @@ impl OpGroupTableRow {
 impl LookupTableRow for OpGroupTableRow {
     /// Reduces this row to a single field element in the field specified by E. This requires
     /// at least 4 alpha values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+    fn to_value<E: FieldElement<BaseField = Felt>>(
+        &self,
+        _main_trace: &Matrix<Felt>,
+        alphas: &[E],
+    ) -> E {
         alphas[0]
             + alphas[1].mul_base(self.batch_id)
             + alphas[2].mul_base(self.group_pos)

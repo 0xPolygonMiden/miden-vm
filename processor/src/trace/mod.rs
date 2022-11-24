@@ -7,7 +7,8 @@ use super::{
 };
 use vm_core::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
-    AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_STACK_DEPTH, MIN_TRACE_LEN,
+    stack::STACK_TOP_SIZE,
+    ProgramOutputs, AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
     STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO,
 };
 use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
@@ -58,6 +59,7 @@ pub struct ExecutionTrace {
     main_trace: Matrix<Felt>,
     aux_trace_hints: AuxTraceHints,
     program_hash: Digest,
+    program_outputs: ProgramOutputs,
 }
 
 impl ExecutionTrace {
@@ -70,7 +72,7 @@ impl ExecutionTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
-    pub(super) fn new(process: Process) -> Self {
+    pub(super) fn new(process: Process, program_outputs: ProgramOutputs) -> Self {
         // use program hash to initialize random element generator; this generator will be used
         // to inject random values at the end of the trace; using program hash here is OK because
         // we are using random values only to stabilize constraint degrees, and not to achieve
@@ -85,6 +87,7 @@ impl ExecutionTrace {
             main_trace: Matrix::new(main_trace),
             aux_trace_hints,
             program_hash,
+            program_outputs,
         }
     }
 
@@ -96,9 +99,14 @@ impl ExecutionTrace {
         self.program_hash
     }
 
+    /// Returns outputs of the program execution which resulted in this execution trace.
+    pub fn program_outputs(&self) -> ProgramOutputs {
+        self.program_outputs.clone()
+    }
+
     /// Returns the initial state of the top 16 stack registers.
     pub fn init_stack_state(&self) -> StackTopState {
-        let mut result = [ZERO; MIN_STACK_DEPTH];
+        let mut result = [ZERO; STACK_TOP_SIZE];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[0];
         }
@@ -108,7 +116,7 @@ impl ExecutionTrace {
     /// Returns the final state of the top 16 stack registers.
     pub fn last_stack_state(&self) -> StackTopState {
         let last_step = self.last_step();
-        let mut result = [ZERO; MIN_STACK_DEPTH];
+        let mut result = [ZERO; STACK_TOP_SIZE];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self.main_trace.get_column(i + STACK_TRACE_OFFSET)[last_step];
         }
@@ -116,12 +124,12 @@ impl ExecutionTrace {
     }
 
     /// Returns helper registers state at the specified `clk` of the VM
-    pub fn get_user_op_helpers_at(&self, clk: usize) -> [Felt; NUM_USER_OP_HELPERS] {
+    pub fn get_user_op_helpers_at(&self, clk: u32) -> [Felt; NUM_USER_OP_HELPERS] {
         let mut result = [ZERO; NUM_USER_OP_HELPERS];
         for (i, result) in result.iter_mut().enumerate() {
             *result = self
                 .main_trace
-                .get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)[clk];
+                .get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)[clk as usize];
         }
         result
     }
@@ -263,22 +271,30 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     let clk = system.clk();
 
     // trace lengths of system and stack components must be equal to the number of executed cycles
-    assert_eq!(clk, system.trace_len(), "inconsistent system trace lengths");
     assert_eq!(
-        clk,
+        clk as usize,
+        system.trace_len(),
+        "inconsistent system trace lengths"
+    );
+    assert_eq!(
+        clk as usize,
         decoder.trace_len(),
         "inconsistent decoder trace length"
     );
-    assert_eq!(clk, stack.trace_len(), "inconsistent stack trace lengths");
+    assert_eq!(
+        clk as usize,
+        stack.trace_len(),
+        "inconsistent stack trace lengths"
+    );
 
     // Add the range checks required by the chiplets to the range checker.
     chiplets.append_range_checks(&mut range);
 
+    // Generate the 8bit tables for the range trace.
+    let range_table = range.build_8bit_lookup();
+
     // Get the trace length required to hold all execution trace steps.
-    let max_len = [clk, range.trace_len(), chiplets.trace_len()]
-        .into_iter()
-        .max()
-        .expect("failed to get max of component trace lengths");
+    let max_len = range_table.len.max(clk as usize).max(chiplets.trace_len());
 
     // pad the trace length to the next power of two and ensure that there is space for the
     // rows to hold random values
@@ -294,8 +310,10 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     let system_trace = system.into_trace(trace_len, NUM_RAND_ROWS);
     let decoder_trace = decoder.into_trace(trace_len, NUM_RAND_ROWS);
     let stack_trace = stack.into_trace(trace_len, NUM_RAND_ROWS);
-    let range_check_trace = range.into_trace(trace_len, NUM_RAND_ROWS);
     let chiplets_trace = chiplets.into_trace(trace_len, NUM_RAND_ROWS);
+
+    // combine the range trace segument using the support lookup table
+    let range_check_trace = range.into_trace_with_table(range_table, trace_len, NUM_RAND_ROWS);
 
     let mut trace = system_trace
         .into_iter()

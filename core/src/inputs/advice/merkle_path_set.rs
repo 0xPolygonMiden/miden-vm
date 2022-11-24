@@ -57,7 +57,7 @@ impl MerklePathSet {
         let pos = 2u64.pow(self.total_depth) + index;
 
         // Index of the leaf path in map. Paths of neighboring leaves are stored in one key-value pair
-        let half_pos = (pos / 2) as u64;
+        let half_pos = pos / 2;
 
         let mut extended_path = path;
         if is_even(pos) {
@@ -104,7 +104,7 @@ impl MerklePathSet {
         }
 
         let pos = 2u64.pow(depth) + index;
-        let index = (pos / 2) as u64;
+        let index = pos / 2;
 
         match self.paths.get(&index) {
             None => Err(AdviceSetError::NodeNotInSet(index)),

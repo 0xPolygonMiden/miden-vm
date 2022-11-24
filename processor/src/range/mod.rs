@@ -1,4 +1,4 @@
-use super::{BTreeMap, Felt, FieldElement, Vec};
+use super::{BTreeMap, Felt, FieldElement, Vec, ONE, ZERO};
 use crate::RangeCheckTrace;
 use vm_core::utils::uninit_vector;
 
@@ -10,6 +10,24 @@ use request::CycleRangeChecks;
 
 #[cfg(test)]
 mod tests;
+
+// Range check trace table
+pub const RANGE_CHECK_TRACE_TABLE_WIDTH: usize = 256;
+
+// RANGE CHECKER TRACE TABLE
+// ================================================================================================
+
+/// Range checker trace table.
+///
+/// This component will store 8-bit lookup tables so it won't have to be reconstructed multiple
+/// times. It will also contain the combined length of the 8-bit and 16-bit tables.
+///
+/// This is intended as internal helper structure and is not intended to be exported as part of the
+/// public API.
+pub struct RangeCheckTraceTable {
+    pub lookups_8bit: [usize; RANGE_CHECK_TRACE_TABLE_WIDTH],
+    pub len: usize,
+}
 
 // RANGE CHECKER
 // ================================================================================================
@@ -55,17 +73,15 @@ mod tests;
 /// If, on the other hand, the value was range-checked 5 times, we'll need two rows in the table:
 /// (1, 1, 1, v) and (1, 1, 0, v). The first row specifies that there was 4 lookups and the second
 /// row add the fifth lookup.
-#[allow(dead_code)]
 pub struct RangeChecker {
     /// Tracks lookup count for each checked value.
     lookups: BTreeMap<u16, usize>,
     // Range check lookups performed by all user operations, grouped and sorted by clock cycle. Each
     // cycle is mapped to a single CycleRangeChecks instance which includes lookups from the stack,
     // memory, or both.
-    cycle_range_checks: BTreeMap<usize, CycleRangeChecks>,
+    cycle_range_checks: BTreeMap<u32, CycleRangeChecks>,
 }
 
-#[allow(dead_code)]
 impl RangeChecker {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -82,23 +98,12 @@ impl RangeChecker {
         }
     }
 
-    // PUBLIC ACCESSORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns length of execution trace required to describe all 16-bit range checks performed
-    /// by the VM.
-    pub fn trace_len(&self) -> usize {
-        let (lookups_8bit, num_16bit_rows) = self.build_8bit_lookup();
-        let num_8bit_rows = get_num_8bit_rows(&lookups_8bit);
-        num_8bit_rows + num_16bit_rows
-    }
-
     // TRACE MUTATORS
     // --------------------------------------------------------------------------------------------
     /// Adds the specified value to the trace of this range checker's lookups.
     pub fn add_value(&mut self, value: u16) {
         self.lookups
-            .entry(value as u16)
+            .entry(value)
             .and_modify(|v| *v += 1)
             .or_insert(1);
     }
@@ -106,7 +111,7 @@ impl RangeChecker {
     /// Adds range check lookups from the [Stack] to this [RangeChecker] instance. Stack lookups are
     /// guaranteed to be added at unique clock cycles, since operations are sequential and no range
     /// check lookups are added before or during the stack operation processing.
-    pub fn add_stack_checks(&mut self, clk: usize, values: &[u16; 4]) {
+    pub fn add_stack_checks(&mut self, clk: u32, values: &[u16; 4]) {
         self.add_value(values[0]);
         self.add_value(values[1]);
         self.add_value(values[2]);
@@ -120,7 +125,7 @@ impl RangeChecker {
     /// Adds range check lookups from [Memory] to this [RangeChecker] instance. Memory lookups are
     /// always added after all stack lookups have completed, since they are processed during trace
     /// finalization.
-    pub fn add_mem_checks(&mut self, clk: usize, values: &[u16; 2]) {
+    pub fn add_mem_checks(&mut self, clk: u32, values: &[u16; 2]) {
         self.add_value(values[0]);
         self.add_value(values[1]);
 
@@ -130,7 +135,7 @@ impl RangeChecker {
             .or_insert_with(|| CycleRangeChecks::new_from_memory(values));
     }
 
-    // EXECUTION TRACE GENERATION
+    // EXECUTION TRACE GENERATION (INTERNAL)
     // --------------------------------------------------------------------------------------------
 
     /// Converts this [RangeChecker] into an execution trace with 4 columns and the number of rows
@@ -145,7 +150,12 @@ impl RangeChecker {
     /// # Panics
     /// Panics if `target_len` is not a power of two or is smaller than the trace length needed
     /// to represent all lookups in this range checker.
-    pub fn into_trace(self, target_len: usize, num_rand_rows: usize) -> RangeCheckTrace {
+    pub fn into_trace_with_table(
+        self,
+        table: RangeCheckTraceTable,
+        target_len: usize,
+        num_rand_rows: usize,
+    ) -> RangeCheckTrace {
         assert!(
             target_len.is_power_of_two(),
             "target trace length is not a power of two"
@@ -158,9 +168,7 @@ impl RangeChecker {
         // we do the trace length computation here instead of using Self::trace_len() because we
         // need to use lookups_8bit table later in this function, and we don't want to create it
         // twice.
-        let (lookups_8bit, num_16_bit_rows) = self.build_8bit_lookup();
-        let num_8bit_rows = get_num_8bit_rows(&lookups_8bit);
-        let trace_len = num_8bit_rows + num_16_bit_rows;
+        let trace_len = table.len;
         assert!(
             trace_len + num_rand_rows <= target_len,
             "target trace length too small"
@@ -182,9 +190,9 @@ impl RangeChecker {
         // determine the number of padding rows needed to get to target trace length and pad the
         // table with the required number of rows.
         let num_padding_rows = target_len - trace_len - num_rand_rows;
-        trace[1][..num_padding_rows].fill(Felt::ZERO);
-        trace[2][..num_padding_rows].fill(Felt::ZERO);
-        trace[3][..num_padding_rows].fill(Felt::ZERO);
+        trace[1][..num_padding_rows].fill(ZERO);
+        trace[2][..num_padding_rows].fill(ZERO);
+        trace[3][..num_padding_rows].fill(ZERO);
 
         // Initialize the padded rows of the auxiliary column hints with the default flag, F0,
         // indicating s0 = s1 = ZERO.
@@ -192,7 +200,7 @@ impl RangeChecker {
 
         // build the 8-bit segment of the trace table
         let mut i = num_padding_rows;
-        for (value, num_lookups) in lookups_8bit.into_iter().enumerate() {
+        for (value, num_lookups) in table.lookups_8bit.into_iter().enumerate() {
             write_value(
                 &mut trace,
                 &mut i,
@@ -204,8 +212,8 @@ impl RangeChecker {
 
         // fill in the first column to indicate where the 8-bit segment ends and where the
         // 16-bit segment begins
-        trace[0][..i].fill(Felt::ZERO);
-        trace[0][i..].fill(Felt::ONE);
+        trace[0][..i].fill(ZERO);
+        trace[0][i..].fill(ONE);
 
         // build the 16-bit segment of the trace table
         let start_16bit = i;
@@ -238,21 +246,21 @@ impl RangeChecker {
         }
     }
 
-    // HELPER METHODS
+    // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
     /// Builds an 8-bit lookup table required to support all 16-bit lookups currently in
     /// self.lookups, and returns this table together with the number of 16-bit table rows needed
     /// to support all 16-bit lookups.
-    fn build_8bit_lookup(&self) -> ([usize; 256], usize) {
-        let mut result = [0; 256];
+    pub fn build_8bit_lookup(&self) -> RangeCheckTraceTable {
+        let mut lookups_8bit = [0; 256];
 
         // pad the trace length by one, to account for an extra row of the u16::MAX value at the end
         // of the 16-bit segment of the trace, required for building the `b_range` column.
         let mut num_16bit_rows = 1;
 
         // add a lookup for ZERO to account for the extra row of the u16::MAX value
-        result[0] = 1;
+        lookups_8bit[0] = 1;
 
         let mut prev_value = 0u16;
         for (&value, &num_lookups) in self.lookups.iter() {
@@ -260,7 +268,7 @@ impl RangeChecker {
             // is greater than 1, we also need 8-bit lookups for ZERO value since the delta between
             // rows of the same value is zero.
             let num_rows = lookups_to_rows(num_lookups);
-            result[0] += num_rows - 1;
+            lookups_8bit[0] += num_rows - 1;
             num_16bit_rows += num_rows;
 
             // determine the delta between this and the previous value. we need to know this delta
@@ -271,18 +279,42 @@ impl RangeChecker {
             let (delta_q, delta_r) = div_rem(delta as usize, 255);
 
             if delta_q != 0 {
-                result[255] += delta_q;
+                lookups_8bit[255] += delta_q;
                 let num_bridge_rows = if delta_r == 0 { delta_q - 1 } else { delta_q };
                 num_16bit_rows += num_bridge_rows;
             }
             if delta_r != 0 {
-                result[delta_r] += 1;
+                lookups_8bit[delta_r] += 1;
             }
 
             prev_value = value;
         }
 
-        (result, num_16bit_rows)
+        let num_8bit_rows = get_num_8bit_rows(&lookups_8bit);
+        let len = num_8bit_rows + num_16bit_rows;
+
+        RangeCheckTraceTable { lookups_8bit, len }
+    }
+
+    // TEST HELPERS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns length of execution trace required to describe all 16-bit range checks performed
+    /// by the VM.
+    #[cfg(test)]
+    pub fn trace_len(&self) -> usize {
+        self.build_8bit_lookup().len
+    }
+
+    /// Converts this [RangeChecker] into an execution trace with 4 columns and the number of rows
+    /// specified by the `target_len` parameter.
+    ///
+    /// Wrapper for [`RangeChecker::into_trace_with_table`].
+    #[cfg(test)]
+    pub fn into_trace(self, target_len: usize, num_rand_rows: usize) -> RangeCheckTrace {
+        let table = self.build_8bit_lookup();
+
+        self.into_trace_with_table(table, target_len, num_rand_rows)
     }
 }
 
@@ -365,7 +397,7 @@ fn write_value(
     // if the number of lookups is 0, only one trace row is required
     if num_lookups == 0 {
         row_flags[*step] = RangeCheckFlag::F0;
-        write_trace_row(trace, step, Felt::ZERO, Felt::ZERO, value as u64);
+        write_trace_row(trace, step, ZERO, ZERO, value);
         return;
     }
 
@@ -373,20 +405,20 @@ fn write_value(
     let (num_rows, num_lookups) = div_rem(num_lookups, 4);
     for _ in 0..num_rows {
         row_flags[*step] = RangeCheckFlag::F3;
-        write_trace_row(trace, step, Felt::ONE, Felt::ONE, value as u64);
+        write_trace_row(trace, step, ONE, ONE, value);
     }
 
     // write rows which can support 2 lookups per row
     let (num_rows, num_lookups) = div_rem(num_lookups, 2);
     for _ in 0..num_rows {
         row_flags[*step] = RangeCheckFlag::F2;
-        write_trace_row(trace, step, Felt::ZERO, Felt::ONE, value as u64);
+        write_trace_row(trace, step, ZERO, ONE, value);
     }
 
     // write rows which can support only one lookup per row
     for _ in 0..num_lookups {
         row_flags[*step] = RangeCheckFlag::F1;
-        write_trace_row(trace, step, Felt::ONE, Felt::ZERO, value as u64);
+        write_trace_row(trace, step, ONE, ZERO, value);
     }
 }
 

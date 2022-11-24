@@ -17,7 +17,7 @@ fn simple_program() {
 #[test]
 fn multi_output_program() {
     let test = build_test!("begin mul movup.2 drop end", &[1, 2, 3]);
-    test.prove_and_verify(vec![1, 2, 3], 2, false);
+    test.prove_and_verify(vec![1, 2, 3], false);
 }
 
 // MACROS TO BUILD TESTS
@@ -107,6 +107,7 @@ macro_rules! build_test_by_mode {
 
         $crate::helpers::Test {
             source: String::from($source),
+            kernel: None,
             inputs,
             in_debug_mode: $in_debug_mode,
         }
@@ -117,6 +118,7 @@ macro_rules! build_test_by_mode {
 
         $crate::helpers::Test {
             source: String::from($source),
+            kernel: None,
             inputs,
             in_debug_mode: $in_debug_mode,
         }

@@ -1,8 +1,9 @@
-use super::cli::InputFile;
-use assembly::{Assembler, AssemblyError};
+use super::{cli::InputFile, ProgramError};
 use core::fmt;
-use processor::{AsmOpInfo, ExecutionError};
+use miden::Assembler;
+use processor::AsmOpInfo;
 use std::path::PathBuf;
+use stdlib::StdLibrary;
 use structopt::StructOpt;
 use vm_core::{utils::collections::Vec, Operation, ProgramInputs};
 
@@ -46,14 +47,14 @@ impl Analyze {
 ///   instruction is run as part of the given program.
 #[derive(Debug, Default, Eq, PartialEq)]
 pub struct ProgramInfo {
-    total_vm_cycles: usize,
+    total_vm_cycles: u32,
     total_noops: usize,
     asm_op_stats: Vec<AsmOpStats>,
 }
 
 impl ProgramInfo {
     /// Returns total vm cycles to execute a program
-    pub fn total_vm_cycles(&self) -> usize {
+    pub fn total_vm_cycles(&self) -> u32 {
         self.total_vm_cycles
     }
 
@@ -77,7 +78,7 @@ impl ProgramInfo {
     }
 
     /// Sets the total vm cycles to the provided value
-    pub fn set_total_vm_cycles(&mut self, total_vm_cycles: usize) {
+    pub fn set_total_vm_cycles(&mut self, total_vm_cycles: u32) {
         self.total_vm_cycles = total_vm_cycles;
     }
 
@@ -139,8 +140,9 @@ impl fmt::Display for ProgramInfo {
 
 /// Returns program analysis of a given program.
 pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, ProgramError> {
-    let assembler = Assembler::new(true);
-    let program = assembler
+    let program = Assembler::new()
+        .with_debug_mode(true)
+        .with_module_provider(StdLibrary::default())
         .compile(program)
         .map_err(ProgramError::AssemblyError)?;
     let vm_state_iterator = processor::execute_iter(&program, &inputs);
@@ -158,25 +160,6 @@ pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, Prog
     }
 
     Ok(program_info)
-}
-
-// PROGRAM ERROR
-// ================================================================================================
-
-/// This is used to specify the error type returned from analyze.
-#[derive(Debug)]
-pub enum ProgramError {
-    AssemblyError(AssemblyError),
-    ExecutionError(ExecutionError),
-}
-
-impl fmt::Display for ProgramError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ProgramError::AssemblyError(e) => write!(f, "Assembly Error: {:?}", e),
-            ProgramError::ExecutionError(e) => write!(f, "Execution Error: {:?}", e),
-        }
-    }
 }
 
 // ASMOP STATS
@@ -240,17 +223,18 @@ mod tests {
     #[test]
     fn analyze_test() {
         let source =
-            "proc.foo.1 pop.local.0 end begin popw.mem.1 push.17 push.1 movdn.2 exec.foo end";
+            "proc.foo.1 loc_store.0 end begin mem_storew.1 dropw push.17 push.1 movdn.2 exec.foo end";
         let program_inputs = super::ProgramInputs::none();
         let program_info =
             super::analyze(source, program_inputs).expect("analyze_test: Unexpected Error");
         let expected_program_info = ProgramInfo {
-            total_vm_cycles: 27,
-            total_noops: 1,
+            total_vm_cycles: 23,
+            total_noops: 2,
             asm_op_stats: vec![
-                AsmOpStats::new("movdn.2".to_string(), 1, 1),
-                AsmOpStats::new("pop.local".to_string(), 1, 10),
-                AsmOpStats::new("popw.mem".to_string(), 1, 6),
+                AsmOpStats::new("dropw".to_string(), 1, 4),
+                AsmOpStats::new("loc_store".to_string(), 1, 4),
+                AsmOpStats::new("mem_storew".to_string(), 1, 3),
+                AsmOpStats::new("movdn2".to_string(), 1, 1),
                 AsmOpStats::new("push".to_string(), 2, 3),
             ],
         };
@@ -269,10 +253,10 @@ mod tests {
 
     #[test]
     fn analyze_test_assembly_error() {
-        let source = "proc.foo.1 pop.local.0 end popw.mem.1 push.17 exec.foo end";
+        let source = "proc.foo.1 loc_store.0 end mem_storew.1 dropw push.17 exec.foo end";
         let program_inputs = super::ProgramInputs::none();
         let program_info = super::analyze(source, program_inputs);
-        let expected_error = "Assembly Error: assembly error at 3: unexpected token: expected 'begin' but was 'popw.mem.1'";
+        let expected_error = "Assembly Error: ParsingError(\"unexpected token: expected 'begin' but was 'mem_storew.1'\")";
         assert_eq!(program_info.err().unwrap().to_string(), expected_error);
     }
 }

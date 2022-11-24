@@ -59,30 +59,20 @@ Assume that the word with elements $v_0, v_1, v_2, v_3$ is located in memory at 
 
 ![mloadw](../../assets/design/stack/io_ops/MLOADW.png)
 
-To simplify description of memory access request value, we first define the following variables:
-
-The value representing state of memory before the operation:
+To simplify description of the memory access request value, we first define a variable for the value that represents the state of memory after the operation:
 
 $$
-v_{old} = \sum_{i=0}^3\alpha_{i+5} \cdot s_{3-i}'
+v = \sum_{i=0}^3\alpha_{i+5} \cdot s_{3-i}'
 $$
 
-The value representing state of memory after the operation:
+Using the above variable, we define the value representing the memory access request as follows:
 
 $$
-v_{new} = \sum_{i=0}^3\alpha_{i+9} \cdot s_{3-i}'
-$$
-
-Note that since this is a _read_ operation, the values come from the same registers, but the $\alpha$ values are different from the values used to compute the old state of memory.
-
-Using the above variables, we define the value representing the memory access request as follows:
-
-$$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v_{old} + v_{new}
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
 $$
 
 In the above:
-- $op_{mem}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory access operation.
+- $op_{mem\_read}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory read operation.
 - $s_0$ is the memory address from which the values are to be loaded onto the stack.
 - $clk$ is the current clock cycle of the VM.
 
@@ -96,28 +86,22 @@ Assume that the word with elements $v_0, v_1, v_2, v_3$ is located in memory at 
 
 ![mload](../../assets/design/stack/io_ops/MLOAD.png)
 
-To simplify description of memory access request value, we first define the following variables:
-
-The value representing state of memory before the operation (values in registers $h_0, h_1, h_2$ are set by the prover non-deterministically):
+To simplify description of the memory access request value, we first define a variable for the value that represents the state of memory after the operation:
 
 $$
-v_{old} = \alpha_5 \cdot s_0' + \sum_{i=1}^3\alpha_{i+5} \cdot h_{i-1}'
+v = \alpha_5 \cdot s_0' + \sum_{i=1}^3\alpha_{i+5} \cdot h_{3-i}'
 $$
 
-The value representing state of memory after the operation:
+*Note: the values in registers $h_0, h_1, h_2$ are set by the prover non-deterministically.*
+
+Using the above variable, we define the value representing the memory access request as follows:
 
 $$
-v_{new} = \alpha_9 \cdot s_0' + \sum_{i=1}^3\alpha_{i+9} \cdot h_{i-1}'
-$$
-
-Using the above variables, we define the value representing the memory access request as follows:
-
-$$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v_{old} + v_{new}
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_read} + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
 $$
 
 In the above:
-- $op_{mem}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory access operation.
+- $op_{mem\_read}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory read operation.
 - $s_0$ is the memory address from which the value is to be loaded onto the stack.
 - $clk$ is the current clock cycle of the VM.
 
@@ -127,34 +111,26 @@ The effect of this operation on the rest of the stack is:
 * **No change** starting from position $1$.
 
 ### MSTOREW
-Assume that the word with elements $u_0, u_1, u_2, u_3$ is located in memory at address $a$. The `MSTOREW` operation pops an element off the stack, interprets it as a memory address, and writes the remaining $4$ elements at the top of the stack into memory at the specified address. The stored elements are not removed from the stack. The diagram below illustrates this graphically.
+The `MSTOREW` operation pops an element off the stack, interprets it as a memory address, and writes the remaining $4$ elements at the top of the stack into memory at the specified address. The stored elements are not removed from the stack. The diagram below illustrates this graphically.
 
 ![mstorew](../../assets/design/stack/io_ops/MSTOREW.png)
 
 After the operation the contents of memory at address $a$ would be set to $v_0, v_1, v_2, v_3$.
 
-To simplify description of memory access request value, we first define the following variables:
-
-The value representing state of memory before the operation (set by the prover non-deterministically in registers $h_0, ..., h_3$):
+To simplify description of the memory access request value, we first define a variable for the value that represents the state of memory after the operation:
 
 $$
-v_{old} = \sum_{i=0}^3\alpha_{i+5} \cdot h_i
+v = \sum_{i=0}^3\alpha_{i+5} \cdot s_{3-i}'
 $$
 
-The value representing state of memory after the operation:
+Using the above variable, we define the value representing the memory access request as follows:
 
 $$
-v_{new} = \sum_{i=0}^3\alpha_{i+9} \cdot s_{3-i}'
-$$
-
-Using the above variables, we define the value representing the memory access request as follows:
-
-$$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v_{old} + v_{new}
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_write} + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
 $$
 
 In the above:
-- $op_{mem}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory access operation.
+- $op_{mem\_write}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory write operation.
 - $s_0$ is the memory address into which the values from the stack are to be saved.
 - $clk$ is the current clock cycle of the VM.
 
@@ -164,34 +140,28 @@ The effect of this operation on the rest of the stack is:
 * **Left shift** starting from position $1$.
 
 ### MSTORE
-Assume that the word with elements $v_0, v_1, v_2, v_3$ is located in memory at address $a$. The `MSTORE` operation pops an element off the stack, interprets it as a memory address, and writes the remaining element at the top of the stack into the first element of the word located at the specified memory address. The remaining $3$ elements of the word are not affected. The diagram below illustrates this graphically.
+The `MSTORE` operation pops an element off the stack, interprets it as a memory address, and writes the remaining element at the top of the stack into the first element of the word located at the specified memory address. The remaining $3$ elements of the word are not affected. The diagram below illustrates this graphically.
 
 ![mstore](../../assets/design/stack/io_ops/MSTORE.png)
 
 After the operation the contents of memory at address $a$ would be set to $b, v_1, v_2, v_3$.
 
-To simplify description of memory access request value, we first define the following variables:
-
-The value representing state of memory before the operation (set by the prover non-deterministically in registers $h_0, ..., h_3$):
+To simplify description of the memory access request value, we first define a variable for the value that represents the state of memory after the operation:
 
 $$
-v_{old} = \sum_{i=0}^3\alpha_{i+5} \cdot h_i
+v = \alpha_5 \cdot s_0' + \sum_{i=1}^3\alpha_{i+5} \cdot h_{3-i}'
 $$
 
-The value representing state of memory after the operation:
+*Note: the values in registers $h_0, h_1, h_2$ are set by the prover non-deterministically.*
+
+Using the above variable, we define the value representing the memory access request as follows:
 
 $$
-v_{new} = \alpha_9 \cdot s_0' + \sum_{i=1}^3\alpha_{i+9} \cdot h_i'
-$$
-
-Using the above variables, we define the value representing the memory access request as follows:
-
-$$
-u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem} + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v_{old} + v_{new}
+u_{mem} = \alpha_0 + \alpha_1 \cdot op_{mem\_write}  + \alpha_3 \cdot s_0 + \alpha_4 \cdot clk + v
 $$
 
 In the above:
-- $op_{mem}$ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory access operation.
+- $op_{mem\_write} $ is the unique [operation label](../chiplets/main.md#operation-labels) of the memory write operation.
 - $s_0$ is the memory address into which the value from the stack is to be saved.
 - $clk$ is the current clock cycle of the VM.
 

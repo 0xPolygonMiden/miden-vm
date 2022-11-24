@@ -6,7 +6,9 @@ pub use decorators::{AdviceInjector, AssemblyOp, Decorator, DecoratorIterator, D
 // OPERATIONS
 // ================================================================================================
 
-/// TODO: add docs
+/// A set of native VM operations.
+///
+/// These operations take exactly one cycle to execute.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Operation {
     // ----- system operations --------------------------------------------------------------------
@@ -23,6 +25,13 @@ pub enum Operation {
     /// Pops an element off the stack and adds it to the current value of `fmp` register.
     FmpUpdate,
 
+    /// Pushes the current depth of the stack onto the stack.
+    SDepth,
+
+    /// Overwrites the top four stack items with the hash of a function which initiated the current
+    /// SYSCALL. Thus, this operation can be executed only inside a SYSCALL code block.
+    Caller,
+
     // ----- flow control operations --------------------------------------------------------------
     /// Marks the beginning of a join block.
     Join,
@@ -32,6 +41,12 @@ pub enum Operation {
 
     /// Marks the beginning of a loop block.
     Loop,
+
+    /// Marks the beginning of a function call.
+    Call,
+
+    /// Marks the beginning of a kernel call.
+    SysCall,
 
     /// Marks the beginning of a span code block.
     Span,
@@ -93,6 +108,21 @@ pub enum Operation {
     /// the stack, otherwise pushes 0 onto the stack.
     Eqz,
 
+    /// Computes a single turn of exponent accumulation for the given inputs. This operation can be
+    /// be used to compute a single turn of power of a field element.
+    ///
+    /// The top 4 elements of the stack are expected to be arranged as follows (form the top):
+    /// - least significant bit of the exponent in the previous trace if there's an expacc call,
+    /// otherwise ZERO
+    /// - exponent of base number `a` for this turn
+    /// - accumulated power of base number `a` so far
+    /// - number which needs to be shifted to the right
+    ///
+    /// At the end of the operation, exponent is replaced with its square, current value of power of base
+    /// number `a` on exponent is incorported into the accumulator and the number is shifted to the right
+    /// by one bit.
+    Expacc,
+
     // ----- u32 operations -----------------------------------------------------------------------
     /// Pops an element off the stack, splits it into upper and lower 32-bit values, and pushes
     /// these values back onto the stack.
@@ -148,12 +178,6 @@ pub enum Operation {
     ///
     /// If either of the elements is greater than or equal to 2^32, execution fails.
     U32and,
-
-    /// Pops two elements off the stack, computes their binary OR, and pushes the result back onto
-    /// the stack.
-    ///
-    /// If either fo the elements is greater than or equal to 2^32, execution fails.
-    U32or,
 
     /// Pops two elements off the stack, computes their binary XOR, and pushes the result back
     /// onto the stack.
@@ -281,7 +305,7 @@ pub enum Operation {
     /// Removes the next element from the advice tape and pushes it onto the stack.
     Read,
 
-    /// Removes a a word (4 elements) from the advice tape and overwrites the top four stack
+    /// Removes a word (4 elements) from the advice tape and overwrites the top four stack
     /// elements with it.
     ReadW,
 
@@ -302,8 +326,30 @@ pub enum Operation {
     /// memory address. The remaining 3 elements of the word are not affected.
     MStore,
 
-    /// Pushes the current depth of the stack onto the stack.
-    SDepth,
+    /// Loads two words from memory and adds their contents to the top 8 elements of the stack.
+    ///
+    /// The operation works as follows:
+    /// - The memory address of the first word is retrieved from 13th stack element (position 12).
+    /// - Two consecutive words, starting at this address, are loaded from memory.
+    /// - Elements of these words are added to the top 8 elements of the stack (element-wise, in
+    ///   stack order).
+    /// - Memory address (in position 12) is incremented by 2.
+    /// - All other stack elements remain the same.
+    MStream,
+
+    /// Loads two words from the advice tape, writes them to memory, and adds their contents to the
+    /// top 8 elements of the stack.
+    ///
+    /// The operation works as follows:
+    /// - Two words are read from the head of the advice tape.
+    /// - The destination memory address for the first word is retrieved from the 13th stack element
+    ///   (position 12).
+    /// - The two words are written to memory consecutively, starting at this address.
+    /// - Elements of these words are added to the top 8 elements of the stack (element-wise, in
+    ///   stack order).
+    /// - Memory address (in position 12) is incremented by 2.
+    /// - All other stack elements remain the same.
+    Pipe,
 
     // ----- cryptographic operations -------------------------------------------------------------
     /// Applies Rescue Prime permutation to the top 12 elements of the stack. The rate part of the
@@ -317,30 +363,29 @@ pub enum Operation {
     /// which starts with the specified node.
     ///
     /// The stack is expected to be arranged as follows (from the top):
+    /// - value of the node, 4 elements.
     /// - depth of the path, 1 element.
     /// - index of the node, 1 element.
-    /// - value of the node, 4 elements.
     /// - root of the tree, 4 elements.
     ///
     /// The Merkle path itself is expected to be provided by the prover non-deterministically (via
     /// advice sets). If the prover is not able to provide the required path, the operation fails.
-    /// Otherwise, the state of the stack does not change.
+    /// The state of the stack does not change.
     MpVerify,
 
     /// Computes a new root of a Merkle tree where a node at the specified position is updated to
     /// the specified value.
     ///
     /// The stack is expected to be arranged as follows (from the top):
+    /// - old value of the node, 4 element
     /// - depth of the node, 1 element
     /// - index of the node, 1 element
-    /// - old value of the node, 4 element
-    /// - new value of the node, 4 element
     /// - current root of the tree, 4 elements
+    /// - new value of the node, 4 element
     ///
     /// The Merkle path for the node is expected to be provided by the prover non-deterministically
     /// (via advice sets). At the end of the operation, the old node value is replaced with the
-    /// old root value computed based on the provided path, the new node value is replaced by the
-    /// new root value computed based on the same path. Everything else on the stack remains the
+    /// new root value computed based on the provided path. Everything else on the stack remains the
     /// same.
     ///
     /// If the boolean parameter is set to false, at the end of the operation the advice set with
@@ -365,7 +410,7 @@ impl Operation {
     /// - 11xxx--: operations where constraint degree can be up to 5. These include control flow
     ///   operations and some other operations requiring very high degree constraints.
     #[rustfmt::skip]
-    pub fn op_code(&self) -> u8 {
+    pub const fn op_code(&self) -> u8 {
         match self {
             Self::Noop      => 0b0000_0000,
             Self::Eqz       => 0b0000_0001,
@@ -376,13 +421,13 @@ impl Operation {
             Self::FmpAdd    => 0b0000_0110,
             Self::MLoad     => 0b0000_0111,
             Self::Swap      => 0b0000_1000,
-            // <empty>      => 0b0000_1001,
+            Self::Caller    => 0b0000_1001,
             Self::MovUp2    => 0b0000_1010,
             Self::MovDn2    => 0b0000_1011,
             Self::MovUp3    => 0b0000_1100,
             Self::MovDn3    => 0b0000_1101,
             Self::ReadW     => 0b0000_1110,
-            // <empty>      => 0b0000_1111
+            Self::Expacc    => 0b0000_1111,
 
             Self::MovUp4    => 0b0001_0000,
             Self::MovDn4    => 0b0001_0001,
@@ -408,8 +453,8 @@ impl Operation {
             Self::And       => 0b0010_0100,
             Self::Or        => 0b0010_0101,
             Self::U32and    => 0b0010_0110,
-            Self::U32or     => 0b0010_0111,
-            Self::U32xor    => 0b0010_1000,
+            Self::U32xor    => 0b0010_0111,
+            // <empty>      => 0b0010_1000
             Self::Drop      => 0b0010_1001,
             Self::CSwap     => 0b0010_1010,
             Self::CSwapW    => 0b0010_1011,
@@ -446,8 +491,8 @@ impl Operation {
 
             Self::RpPerm    => 0b0101_0000,
             Self::MpVerify  => 0b0101_0010,
-            // <empty>      => 0b0101_0100
-            // <empty>      => 0b0101_0110
+            Self::Pipe      => 0b0101_0100,
+            Self::MStream   => 0b0101_0110,
             Self::Span      => 0b0101_1000,
             Self::Join      => 0b0101_1010,
             Self::Split     => 0b0101_1100,
@@ -455,8 +500,8 @@ impl Operation {
 
             Self::MrUpdate(_) => 0b0110_0000,
             Self::Push(_)   => 0b0110_0100,
-            // <empty>      => 0b0110_1000
-            // <empty>      => 0b0110_1100
+            Self::SysCall   => 0b0110_1000,
+            Self::Call      => 0b0110_1100,
             Self::End       => 0b0111_0000,
             Self::Repeat    => 0b0111_0100,
             Self::Respan    => 0b0111_1000,
@@ -484,6 +529,8 @@ impl Operation {
                 | Self::Respan
                 | Self::Span
                 | Self::Halt
+                | Self::Call
+                | Self::SysCall
         )
     }
 }
@@ -498,14 +545,19 @@ impl fmt::Display for Operation {
             Self::FmpAdd => write!(f, "fmpadd"),
             Self::FmpUpdate => write!(f, "fmpupdate"),
 
+            Self::SDepth => write!(f, "sdepth"),
+            Self::Caller => write!(f, "caller"),
+
             // ----- flow control operations ------------------------------------------------------
             Self::Join => write!(f, "join"),
             Self::Split => write!(f, "split"),
             Self::Loop => write!(f, "loop"),
-            Self::Repeat => write!(f, "repeat"),
+            Self::Call => writeln!(f, "call"),
+            Self::SysCall => writeln!(f, "syscall"),
             Self::Span => write!(f, "span"),
-            Self::Respan => write!(f, "respan"),
             Self::End => write!(f, "end"),
+            Self::Repeat => write!(f, "repeat"),
+            Self::Respan => write!(f, "respan"),
             Self::Halt => write!(f, "halt"),
 
             // ----- field operations -------------------------------------------------------------
@@ -522,6 +574,8 @@ impl fmt::Display for Operation {
             Self::Eq => write!(f, "eq"),
             Self::Eqz => write!(f, "eqz"),
 
+            Self::Expacc => write!(f, "expacc"),
+
             // ----- u32 operations ---------------------------------------------------------------
             Self::U32assert2 => write!(f, "u32assert2"),
             Self::U32split => write!(f, "u32split"),
@@ -533,7 +587,6 @@ impl fmt::Display for Operation {
             Self::U32div => write!(f, "u32div"),
 
             Self::U32and => write!(f, "u32and"),
-            Self::U32or => write!(f, "u32or"),
             Self::U32xor => write!(f, "u32xor"),
 
             // ----- stack manipulation -----------------------------------------------------------
@@ -579,7 +632,7 @@ impl fmt::Display for Operation {
             Self::CSwapW => write!(f, "cswapw"),
 
             // ----- input / output ---------------------------------------------------------------
-            Self::Push(value) => write!(f, "push({})", value),
+            Self::Push(value) => write!(f, "push({value})"),
 
             Self::Read => write!(f, "read"),
             Self::ReadW => write!(f, "readw"),
@@ -590,7 +643,8 @@ impl fmt::Display for Operation {
             Self::MLoad => write!(f, "mload"),
             Self::MStore => write!(f, "mstore"),
 
-            Self::SDepth => write!(f, "sdepth"),
+            Self::MStream => write!(f, "mstream"),
+            Self::Pipe => write!(f, "pipe"),
 
             // ----- cryptographic operations -----------------------------------------------------
             Self::RpPerm => write!(f, "rpperm"),

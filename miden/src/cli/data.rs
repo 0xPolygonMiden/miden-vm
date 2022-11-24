@@ -1,8 +1,10 @@
-use assembly::Assembler;
+use miden::Assembler;
 use prover::StarkProof;
 use serde_derive::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::{fs, io::Write, time::Instant};
+use stdlib::StdLibrary;
+use vm_core::ProgramOutputs;
 use vm_core::{chiplets::hasher::Digest, Program, ProgramInputs};
 use winter_utils::{Deserializable, SliceReader};
 
@@ -13,6 +15,7 @@ use winter_utils::{Deserializable, SliceReader};
 #[derive(Deserialize, Debug)]
 pub struct InputFile {
     pub stack_init: Vec<String>,
+    pub advice_tape: Option<Vec<String>>,
 }
 
 /// Helper methods to interact with the input file
@@ -23,6 +26,7 @@ impl InputFile {
         if !inputs_path.is_some() && !program_path.with_extension("inputs").exists() {
             return Ok(Self {
                 stack_init: Vec::new(),
+                advice_tape: Some(Vec::new()),
             });
         }
 
@@ -46,14 +50,24 @@ impl InputFile {
         Ok(inputs)
     }
 
-    // TODO add handling of advice provider inputs
+    /// Returns program inputs.
     pub fn get_program_inputs(&self) -> ProgramInputs {
-        ProgramInputs::from_stack_inputs(&self.stack_init()).unwrap()
+        ProgramInputs::new(&self.stack_init(), &self.advice_tape(), Vec::new()).unwrap()
     }
 
     /// Parse stack_init vector of strings to a vector of u64
     pub fn stack_init(&self) -> Vec<u64> {
         self.stack_init
+            .iter()
+            .map(|v| v.parse::<u64>().unwrap())
+            .collect::<Vec<u64>>()
+    }
+
+    /// Parse advice_tape vector of strings to a vector of u64
+    pub fn advice_tape(&self) -> Vec<u64> {
+        self.advice_tape
+            .as_ref()
+            .unwrap_or(&vec![])
             .iter()
             .map(|v| v.parse::<u64>().unwrap())
             .collect::<Vec<u64>>()
@@ -66,17 +80,24 @@ impl InputFile {
 /// Output file struct
 #[derive(Deserialize, Serialize, Debug)]
 pub struct OutputFile {
-    pub outputs: Vec<String>,
+    pub stack: Vec<String>,
+    pub overflow_addrs: Vec<String>,
 }
 
 /// Helper methods to interact with the output file
 impl OutputFile {
-    /// Returns a new [OutputFile] from the specified outputs vector
-    pub fn new(outputs: Vec<u64>) -> Self {
+    /// Returns a new [OutputFile] from the specified outputs vectors
+    pub fn new(outputs: ProgramOutputs) -> Self {
         Self {
-            outputs: outputs
+            stack: outputs
+                .stack()
                 .iter()
-                .map(|v| v.to_string())
+                .map(|&v| v.to_string())
+                .collect::<Vec<String>>(),
+            overflow_addrs: outputs
+                .overflow_addrs()
+                .iter()
+                .map(|&v| v.to_string())
                 .collect::<Vec<String>>(),
         }
     }
@@ -97,46 +118,47 @@ impl OutputFile {
             .map_err(|err| format!("Failed to open outputs file `{}` - {}", path.display(), err))?;
 
         // deserialize outputs data
-        let mut outputs: OutputFile = serde_json::from_str(&outputs_file)
+        let outputs: OutputFile = serde_json::from_str(&outputs_file)
             .map_err(|err| format!("Failed to deserialize outputs data - {}", err))?;
-
-        // The verify interface expects the stack outputs in reverse order so we reverse them here
-        outputs.outputs.reverse();
 
         Ok(outputs)
     }
 
     /// Write the output file
-    pub fn write(outputs: Vec<u64>, path: &Option<PathBuf>) -> Result<(), String> {
-        if let Some(path) = path {
-            // if path provided, create output file
-            println!("Creating output file `{}`", path.display());
+    pub fn write(outputs: ProgramOutputs, path: &PathBuf) -> Result<(), String> {
+        // if path provided, create output file
+        println!("Creating output file `{}`", path.display());
 
-            let file = fs::File::create(&path).map_err(|err| {
-                format!(
-                    "Failed to create output file `{}` - {}",
-                    path.display(),
-                    err
-                )
-            })?;
+        let file = fs::File::create(&path).map_err(|err| {
+            format!(
+                "Failed to create output file `{}` - {}",
+                path.display(),
+                err
+            )
+        })?;
 
-            println!("Writing data to output file");
+        println!("Writing data to output file");
 
-            // write outputs to output file
-            serde_json::to_writer_pretty(file, &Self::new(outputs))
-        } else {
-            println!("Output: {:?}", outputs);
-            Ok(())
-        }
-        .map_err(|err| format!("Failed to write output data - {}", err))
+        // write outputs to output file
+        serde_json::to_writer_pretty(file, &Self::new(outputs))
+            .map_err(|err| format!("Failed to write output data - {}", err))
     }
 
-    /// Converts outputs vector of String to vector of u64
-    pub fn outputs(&self) -> Vec<u64> {
-        self.outputs
+    /// Converts outputs vectors for stack and overflow addresses to [ProgramOutputs].
+    pub fn outputs(&self) -> ProgramOutputs {
+        let stack = self
+            .stack
             .iter()
             .map(|v| v.parse::<u64>().unwrap())
-            .collect::<Vec<u64>>()
+            .collect::<Vec<u64>>();
+
+        let overflow_addrs = self
+            .overflow_addrs
+            .iter()
+            .map(|v| v.parse::<u64>().unwrap())
+            .collect::<Vec<u64>>();
+
+        ProgramOutputs::new(stack, overflow_addrs)
     }
 }
 
@@ -158,7 +180,8 @@ impl ProgramFile {
         let now = Instant::now();
 
         // compile program
-        let program = Assembler::default()
+        let program = Assembler::new()
+            .with_module_provider(StdLibrary::default())
             .compile(&program_file)
             .map_err(|err| format!("Failed to compile program - {}", err))?;
 

@@ -7,6 +7,9 @@ use crate::utils::get_trace_len;
 use core::ops::Range;
 use vm_core::utils::new_array_vec;
 
+#[cfg(test)]
+use vm_core::decoder::NUM_USER_OP_HELPERS;
+
 // CONSTANTS
 // ================================================================================================
 
@@ -22,7 +25,7 @@ pub const USER_OP_HELPERS: Range<usize> = Range {
 
 /// Execution trace of the decoder.
 ///
-/// The trace currently consists of 23 columns grouped logically as follows:
+/// The trace currently consists of 24 columns grouped logically as follows:
 /// - 1 column for code block ID / related hasher table row address.
 /// - 7 columns for the binary representation of an opcode.
 /// - 8 columns used for providing inputs to, and reading results from the hasher, but also used
@@ -42,7 +45,7 @@ pub struct DecoderTrace {
     group_count_trace: Vec<Felt>,
     op_idx_trace: Vec<Felt>,
     op_batch_flag_trace: [Vec<Felt>; NUM_OP_BATCH_FLAGS],
-    op_bit_extra: Vec<Felt>,
+    op_bit_extra_trace: Vec<Felt>,
 }
 
 impl DecoderTrace {
@@ -58,7 +61,7 @@ impl DecoderTrace {
             in_span_trace: Vec::with_capacity(MIN_TRACE_LEN),
             op_idx_trace: Vec::with_capacity(MIN_TRACE_LEN),
             op_batch_flag_trace: new_array_vec(MIN_TRACE_LEN),
-            op_bit_extra: Vec::with_capacity(MIN_TRACE_LEN),
+            op_bit_extra_trace: Vec::with_capacity(MIN_TRACE_LEN),
         }
     }
 
@@ -82,16 +85,18 @@ impl DecoderTrace {
     // TRACE MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Appends a trace row marking the start of a flow control block (JOIN, SPLIT, LOOP).
+    /// Appends a trace row marking the start of a flow control block (JOIN, SPLIT, LOOP, CALL,
+    /// SYSCALL).
     ///
     /// When a control block is starting, we do the following:
     /// - Set the address to the address of the parent block. This is not necessarily equal to the
     ///   address from the previous row because in a SPLIT block, the second child follows the
     ///   first child, rather than the parent.
-    /// - Set op_bits to opcode of the specified block (e.g., JOIN, SPLIT, LOOP).
+    /// - Set op_bits to opcode of the specified block (e.g., JOIN, SPLIT, LOOP, CALL, SYSCALL).
     /// - Set the first half of the hasher state to the h1 parameter. For JOIN and SPLIT blocks
     ///   this will contain the hash of the left child; for LOOP block this will contain hash of
-    ///   the loop's body.
+    ///   the loop's body, for CALL and SYSCALL block this will contain hash of the called
+    ///   function.
     /// - Set the second half of the hasher state to the h2 parameter. For JOIN and SPLIT blocks
     ///   this will contain hash of the right child.
     /// - Set is_span to ZERO.
@@ -121,13 +126,15 @@ impl DecoderTrace {
         self.op_batch_flag_trace[2].push(ZERO);
     }
 
-    /// Appends a trace row marking the end of a flow control block (JOIN, SPLIT, LOOP).
+    /// Appends a trace row marking the end of a flow control block (JOIN, SPLIT, LOOP, CALL,
+    /// SYSCALL).
     ///
     /// When a control block is ending, we do the following:
     /// - Set the block address to the specified address.
     /// - Set op_bits to END opcode.
     /// - Put the provided block hash into the first 4 elements of the hasher state.
-    /// - Set the remaining 4 elements of the hasher state to [is_loop_body, is_loop, 0, 0].
+    /// - Set the remaining 4 elements of the hasher state to [is_loop_body, is_loop, is_call,
+    ///   is_syscall].
     /// - Set in_span to ZERO.
     /// - Copy over op group count from the previous row. This group count must be ZERO.
     /// - Set operation index register to ZERO.
@@ -138,9 +145,13 @@ impl DecoderTrace {
         block_hash: Word,
         is_loop_body: Felt,
         is_loop: Felt,
+        is_call: Felt,
+        is_syscall: Felt,
     ) {
-        debug_assert!(is_loop_body.as_int() <= 1, "invalid loop body");
-        debug_assert!(is_loop.as_int() <= 1, "invalid is loop");
+        debug_assert!(is_loop_body.as_int() <= 1, "invalid is_loop_body");
+        debug_assert!(is_loop.as_int() <= 1, "invalid is_loop");
+        debug_assert!(is_call.as_int() <= 1, "invalid is_call");
+        debug_assert!(is_syscall.as_int() <= 1, "invalid is_syscall");
 
         self.addr_trace.push(block_addr);
         self.append_opcode(Operation::End);
@@ -152,8 +163,8 @@ impl DecoderTrace {
 
         self.hasher_trace[4].push(is_loop_body);
         self.hasher_trace[5].push(is_loop);
-        self.hasher_trace[6].push(ZERO);
-        self.hasher_trace[7].push(ZERO);
+        self.hasher_trace[6].push(is_call);
+        self.hasher_trace[7].push(is_syscall);
 
         self.in_span_trace.push(ZERO);
 
@@ -327,7 +338,8 @@ impl DecoderTrace {
         self.hasher_trace[2].push(span_hash[2]);
         self.hasher_trace[3].push(span_hash[3]);
 
-        // we don't need to set is_loop here because we know we are not in a loop block
+        // we don't need to set is_loop, is_call, and is_syscall here because we know that this
+        // is a SPAN block
         self.hasher_trace[4].push(is_loop_body);
         self.hasher_trace[5].push(ZERO);
         self.hasher_trace[6].push(ZERO);
@@ -421,9 +433,9 @@ impl DecoderTrace {
         // product of the two most significant op bits.
         debug_assert_eq!(1, (halt_opcode >> 6) & 1);
         debug_assert_eq!(1, (halt_opcode >> 5) & 1);
-        debug_assert_eq!(own_len, self.op_bit_extra.len());
-        self.op_bit_extra.resize(trace_len, ONE);
-        trace.push(self.op_bit_extra);
+        debug_assert_eq!(own_len, self.op_bit_extra_trace.len());
+        self.op_bit_extra_trace.resize(trace_len, ONE);
+        trace.push(self.op_bit_extra_trace);
 
         trace
     }
@@ -465,10 +477,10 @@ impl DecoderTrace {
         }
 
         // populate extra op bit column with the product of the two most significant bits
-        let clk = self.op_bit_extra.len();
+        let clk = self.op_bit_extra_trace.len();
         let bit6 = self.op_bits_trace[NUM_OP_BITS - 1][clk];
         let bit5 = self.op_bits_trace[NUM_OP_BITS - 2][clk];
-        self.op_bit_extra.push(bit6 * bit5);
+        self.op_bit_extra_trace.push(bit6 * bit5);
     }
 
     /// Add all provided values to the helper registers in the order provided, starting from the
@@ -503,6 +515,18 @@ impl DecoderTrace {
         }
         self.group_count_trace.push(ZERO);
         self.op_idx_trace.push(ZERO);
+    }
+
+    /// Fetches all the helper registers from the trace.
+    #[cfg(test)]
+    pub fn get_user_op_helpers(&self) -> [Felt; NUM_USER_OP_HELPERS] {
+        let mut result = [ZERO; NUM_USER_OP_HELPERS];
+        for (idx, helper) in result.iter_mut().enumerate() {
+            *helper = *self.hasher_trace[USER_OP_HELPERS.start + idx]
+                .last()
+                .expect("no last helper value");
+        }
+        result
     }
 }
 

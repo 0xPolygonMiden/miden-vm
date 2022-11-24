@@ -10,11 +10,13 @@ use super::{fmt, hasher, Digest};
 ///
 /// Hash of a Call block is computed by hashing a concatenation of the function's body hash with
 /// zero.
+///
 /// TODO: update hashing methodology to make it different from Loop block.
 #[derive(Clone, Debug)]
 pub struct Call {
     hash: Digest,
     fn_hash: Digest,
+    is_syscall: bool,
 }
 
 impl Call {
@@ -23,7 +25,23 @@ impl Call {
     /// Returns a new [Call] block instantiated with the specified function body hash.
     pub fn new(fn_hash: Digest) -> Self {
         let hash = hasher::merge(&[fn_hash, Digest::default()]);
-        Self { hash, fn_hash }
+        Self {
+            hash,
+            fn_hash,
+            is_syscall: false,
+        }
+    }
+
+    /// Returns a new [Call] block instantiated with the specified function body hash and marked
+    /// as a kernel call.
+    pub fn new_syscall(fn_hash: Digest) -> Self {
+        // TODO: make hash computation different from regular call
+        let hash = hasher::merge(&[fn_hash, Digest::default()]);
+        Self {
+            hash,
+            fn_hash,
+            is_syscall: true,
+        }
     }
 
     // PUBLIC ACCESSORS
@@ -38,10 +56,26 @@ impl Call {
     pub fn fn_hash(&self) -> Digest {
         self.fn_hash
     }
+
+    /// Returns true if this call block corresponds to a kernel call.
+    pub fn is_syscall(&self) -> bool {
+        self.is_syscall
+    }
 }
 
 impl fmt::Display for Call {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "call.{:?}", self.fn_hash) // TODO
+        if self.is_syscall {
+            write!(f, "syscall.0x")?;
+        } else {
+            write!(f, "call.0x")?;
+        }
+
+        let fn_hash_bytes: [u8; 32] = self.fn_hash.into();
+        for byte in fn_hash_bytes {
+            write!(f, "{byte:02x}")?;
+        }
+
+        Ok(())
     }
 }

@@ -2,6 +2,7 @@ use super::{
     hasher::HasherLookup, BTreeMap, BitwiseLookup, Felt, FieldElement, LookupTableRow,
     MemoryLookup, Vec,
 };
+use crate::Matrix;
 
 mod aux_trace;
 pub use aux_trace::AuxTraceBuilder;
@@ -21,7 +22,7 @@ pub use aux_trace::AuxTraceBuilder;
 
 #[derive(Default)]
 pub struct ChipletsBus {
-    lookup_hints: BTreeMap<usize, ChipletsLookup>,
+    lookup_hints: BTreeMap<u32, ChipletsLookup>,
     request_rows: Vec<ChipletsLookupRow>,
     response_rows: Vec<ChipletsLookupRow>,
     // TODO: remove queued requests by refactoring the hasher/decoder interactions so that the
@@ -38,18 +39,24 @@ impl ChipletsBus {
     /// Requests lookups for a single operation at the specified cycle. A Hasher operation request
     /// can contain one or more lookups, while Bitwise and Memory requests will only contain a
     /// single lookup.
-    fn request_lookup(&mut self, cycle: usize) {
-        // all requests are sent from the stack before responses are provided (during Chiplets trace
-        // finalization). requests are guaranteed not to share cycles with other requests, since
-        // only one operation will be executed at a time.
+    fn request_lookup(&mut self, request_cycle: u32) {
+        // All requests are sent from the stack. Requests are guaranteed not to share cycles with
+        // other requests, but they might share a cycle with a response which has already been
+        // sent.
         let request_idx = self.request_rows.len();
         self.lookup_hints
-            .insert(cycle, ChipletsLookup::Request(request_idx));
+            .entry(request_cycle)
+            .and_modify(|lookup| {
+                if let ChipletsLookup::Response(response_idx) = *lookup {
+                    *lookup = ChipletsLookup::RequestAndResponse((request_idx, response_idx));
+                }
+            })
+            .or_insert_with(|| ChipletsLookup::Request(request_idx));
     }
 
     /// Provides lookup data at the specified cycle, which is the row of the Chiplets execution
     /// trace that contains this lookup row.
-    fn provide_lookup(&mut self, response_cycle: usize) {
+    fn provide_lookup(&mut self, response_cycle: u32) {
         // results are guaranteed not to share cycles with other results, but they might share
         // a cycle with a request which has already been sent.
         let response_idx = self.response_rows.len();
@@ -71,7 +78,7 @@ impl ChipletsBus {
     /// executors requesting one or more hash operations for the Stack where all operation lookups
     /// must be included at the same cycle. For simple permutations this will require 2 lookups,
     /// while for a Merkle root update it will require 4, since two Hash operations are required.
-    pub fn request_hasher_operation(&mut self, lookups: &[HasherLookup], cycle: usize) {
+    pub fn request_hasher_operation(&mut self, lookups: &[HasherLookup], cycle: u32) {
         debug_assert!(
             lookups.len() == 2 || lookups.len() == 4,
             "incorrect number of lookup rows for hasher operation request"
@@ -84,7 +91,7 @@ impl ChipletsBus {
     /// Requests the specified lookup from the Hash Chiplet at the specified `cycle`. Single lookup
     /// requests are expected to originate from the decoder during control block decoding. This
     /// lookup can be for either the initial or the final row of the hash operation.
-    pub fn request_hasher_lookup(&mut self, lookup: HasherLookup, cycle: usize) {
+    pub fn request_hasher_lookup(&mut self, lookup: HasherLookup, cycle: u32) {
         self.request_lookup(cycle);
         self.request_rows.push(ChipletsLookupRow::Hasher(lookup));
     }
@@ -102,7 +109,7 @@ impl ChipletsBus {
     /// Pops the top HasherLookup request off the queue and sends it to the bus. This request is
     /// expected to originate from the decoder as it continues or finalizes control blocks with
     /// `RESPAN` or `END`.
-    pub fn send_queued_hasher_request(&mut self, cycle: usize) {
+    pub fn send_queued_hasher_request(&mut self, cycle: u32) {
         let lookup = self.queued_requests.pop();
         debug_assert!(lookup.is_some(), "no queued requests");
 
@@ -115,9 +122,18 @@ impl ChipletsBus {
     /// lookup value is provided at cycle `response_cycle`, which is the row of the execution trace
     /// that contains this Hasher row. It will always be either the first or last row of a Hasher
     /// operation cycle.
-    pub fn provide_hasher_lookup(&mut self, lookup: HasherLookup, response_cycle: usize) {
+    pub fn provide_hasher_lookup(&mut self, lookup: HasherLookup, response_cycle: u32) {
         self.provide_lookup(response_cycle);
         self.response_rows.push(ChipletsLookupRow::Hasher(lookup));
+    }
+
+    /// Provides multiple hash lookup values and their response cycles, which are the rows of the
+    /// execution trace which contains the corresponding hasher row for either the start or end of
+    /// a hasher operation cycle.
+    pub fn provide_hasher_lookups(&mut self, lookups: &[HasherLookup]) {
+        for lookup in lookups.iter() {
+            self.provide_hasher_lookup(*lookup, lookup.cycle());
+        }
     }
 
     // BITWISE LOOKUPS
@@ -125,7 +141,7 @@ impl ChipletsBus {
 
     /// Requests the specified bitwise lookup at the specified `cycle`. This request is expected to
     /// originate from operation executors.
-    pub fn request_bitwise_operation(&mut self, lookup: BitwiseLookup, cycle: usize) {
+    pub fn request_bitwise_operation(&mut self, lookup: BitwiseLookup, cycle: u32) {
         self.request_lookup(cycle);
         self.request_rows.push(ChipletsLookupRow::Bitwise(lookup));
     }
@@ -133,7 +149,7 @@ impl ChipletsBus {
     /// Provides the data of a bitwise operation contained in the [Bitwise] table. The bitwise value
     /// is provided at cycle `response_cycle`, which is the row of the execution trace that contains
     /// this Bitwise row. It will always be the final row of a Bitwise operation cycle.
-    pub fn provide_bitwise_operation(&mut self, lookup: BitwiseLookup, response_cycle: usize) {
+    pub fn provide_bitwise_operation(&mut self, lookup: BitwiseLookup, response_cycle: u32) {
         self.provide_lookup(response_cycle);
         self.response_rows.push(ChipletsLookupRow::Bitwise(lookup));
     }
@@ -141,20 +157,24 @@ impl ChipletsBus {
     // MEMORY LOOKUPS
     // --------------------------------------------------------------------------------------------
 
-    /// Sends a request for the specified memory access. When `old_word` and `new_word` are the
-    /// same in the MemoryLookup, this is a read request. When they are different, it's a write
-    /// request. The memory value is requested at `cycle`. This request is expected to originate
-    /// from operation executors.
-    pub fn request_memory_operation(&mut self, lookup: MemoryLookup, cycle: usize) {
+    /// Sends the specified memory access requests. There must be exactly one or two requests. The
+    /// requests are made at the specified `cycle` and are expected to originate from operation
+    /// executors.
+    pub fn request_memory_operation(&mut self, lookups: &[MemoryLookup], cycle: u32) {
         self.request_lookup(cycle);
-        self.request_rows.push(ChipletsLookupRow::Memory(lookup));
+        let request = match lookups.len() {
+            1 => ChipletsLookupRow::Memory(lookups[0]),
+            2 => ChipletsLookupRow::MemoryMulti([lookups[0], lookups[1]]),
+            _ => panic!("invalid number of requested memory operations"),
+        };
+
+        self.request_rows.push(request);
     }
 
-    /// Provides the data of the specified memory access.  When `old_word` and `new_word` are the
-    /// same in the MemoryLookup, this is a read request. When they are different, it's a write  
-    /// request. The memory access data is provided at cycle `response_cycle`, which is the row of
-    /// the execution trace that contains this Memory row.
-    pub fn provide_memory_operation(&mut self, lookup: MemoryLookup, response_cycle: usize) {
+    /// Provides the data of the specified memory access. The memory access data is provided at
+    /// cycle `response_cycle`, which is the row of the execution trace that contains this Memory
+    /// row.
+    pub fn provide_memory_operation(&mut self, lookup: MemoryLookup, response_cycle: u32) {
         self.provide_lookup(response_cycle);
         self.response_rows.push(ChipletsLookupRow::Memory(lookup));
     }
@@ -179,7 +199,7 @@ impl ChipletsBus {
 
     /// Returns an option with the lookup hint for the specified cycle.
     #[cfg(test)]
-    pub(super) fn get_lookup_hint(&self, cycle: usize) -> Option<&ChipletsLookup> {
+    pub(super) fn get_lookup_hint(&self, cycle: u32) -> Option<&ChipletsLookup> {
         self.lookup_hints.get(&cycle)
     }
 
@@ -207,17 +227,25 @@ pub(super) enum ChipletsLookupRow {
     HasherMulti(Vec<HasherLookup>),
     Bitwise(BitwiseLookup),
     Memory(MemoryLookup),
+    MemoryMulti([MemoryLookup; 2]),
 }
 
 impl LookupTableRow for ChipletsLookupRow {
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, alphas: &[E]) -> E {
+    fn to_value<E: FieldElement<BaseField = Felt>>(
+        &self,
+        main_trace: &Matrix<Felt>,
+        alphas: &[E],
+    ) -> E {
         match self {
             ChipletsLookupRow::HasherMulti(lookups) => lookups
                 .iter()
-                .fold(E::ONE, |acc, row| acc * row.to_value(alphas)),
-            ChipletsLookupRow::Hasher(row) => row.to_value(alphas),
-            ChipletsLookupRow::Bitwise(row) => row.to_value(alphas),
-            ChipletsLookupRow::Memory(row) => row.to_value(alphas),
+                .fold(E::ONE, |acc, row| acc * row.to_value(main_trace, alphas)),
+            ChipletsLookupRow::Hasher(row) => row.to_value(main_trace, alphas),
+            ChipletsLookupRow::Bitwise(row) => row.to_value(main_trace, alphas),
+            ChipletsLookupRow::Memory(row) => row.to_value(main_trace, alphas),
+            ChipletsLookupRow::MemoryMulti(lookups) => lookups
+                .iter()
+                .fold(E::ONE, |acc, row| acc * row.to_value(main_trace, alphas)),
         }
     }
 }

@@ -1,7 +1,7 @@
-# Given [x, ...] on stack top, this routine computes [y, ...]
-# such that y = σ_0(x), as defined in SHA specification
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L73-L79
+#! Given [x, ...] on stack top, this routine computes [y, ...]
+#! such that y = σ_0(x), as defined in SHA specification
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L73-L79
 proc.small_sigma_0
     dup
     u32unchecked_rotr.7
@@ -19,10 +19,10 @@ proc.small_sigma_0
     u32checked_xor
 end
 
-# Given [x, ...] on stack top, this routine computes [y, ...]
-# such that y = σ_1(x), as defined in SHA specification
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L81-L87
+#! Given [x, ...] on stack top, this routine computes [y, ...]
+#! such that y = σ_1(x), as defined in SHA specification
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L81-L87
 proc.small_sigma_1
     dup
     u32unchecked_rotr.17
@@ -40,10 +40,10 @@ proc.small_sigma_1
     u32checked_xor
 end
 
-# Given [x, ...] on stack top, this routine computes [y, ...]
-# such that y = Σ_0(x), as defined in SHA specification
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L57-L63
+#! Given [x, ...] on stack top, this routine computes [y, ...]
+#! such that y = Σ_0(x), as defined in SHA specification
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L57-L63
 proc.cap_sigma_0
     dup
     u32unchecked_rotr.2
@@ -61,10 +61,10 @@ proc.cap_sigma_0
     u32checked_xor
 end
 
-# Given [x, ...] on stack top, this routine computes [y, ...]
-# such that y = Σ_1(x), as defined in SHA specification
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L65-L71
+#! Given [x, ...] on stack top, this routine computes [y, ...]
+#! such that y = Σ_1(x), as defined in SHA specification
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L65-L71
 proc.cap_sigma_1
     dup
     u32unchecked_rotr.6
@@ -82,10 +82,10 @@ proc.cap_sigma_1
     u32checked_xor
 end
 
-# Given [x, y, z, ...] on stack top, this routine computes [o, ...]
-# such that o = ch(x, y, z), as defined in SHA specification
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L37-L45
+#! Given [x, y, z, ...] on stack top, this routine computes [o, ...]
+#! such that o = ch(x, y, z), as defined in SHA specification
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L37-L45
 proc.ch
     swap
     dup.1
@@ -100,10 +100,10 @@ proc.ch
     u32checked_xor
 end
 
-# Given [x, y, z, ...] on stack top, this routine computes [o, ...]
-# such that o = maj(x, y, z), as defined in SHA specification
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L47-L55
+#! Given [x, y, z, ...] on stack top, this routine computes [o, ...]
+#! such that o = maj(x, y, z), as defined in SHA specification
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L47-L55
 proc.maj
     dup.1
     dup.1
@@ -121,28 +121,28 @@ proc.maj
     u32checked_xor
 end
 
-# Given [a, b, c, d, ...] on stack top, this routine reverses order of first 
-# four elements on stack top such that final stack state looks like [d, c, b, a, ...]
+#! Given [a, b, c, d, ...] on stack top, this routine reverses order of first 
+#! four elements on stack top such that final stack state looks like [d, c, b, a, ...]
 proc.rev_element_order
     swap
     movup.2
     movup.3
 end
 
-# Given [a, b, c, d, ...] on stack top, this routine computes next message schedule word
-# using following formula
-#
-# t0 = small_sigma_1(a) + b
-# t1 = small_sigma_0(c) + d
-# return t0 + t1
-#
-# If to be computed message schedule word has index i ∈ [16, 64), then 
-# a, b, c, d will have following indices in message schedule
-#
-# a = msg[i - 2]
-# b = msg[i - 7]
-# c = msg[i - 15]
-# d = msg[i - 16]
+#! Given [a, b, c, d, ...] on stack top, this routine computes next message schedule word
+#! using following formula
+#!
+#! t0 = small_sigma_1(a) + b
+#! t1 = small_sigma_0(c) + d
+#! return t0 + t1
+#!
+#! If to be computed message schedule word has index i ∈ [16, 64), then 
+#! a, b, c, d will have following indices in message schedule
+#!
+#! a = msg[i - 2]
+#! b = msg[i - 7]
+#! c = msg[i - 15]
+#! d = msg[i - 16]
 proc.compute_message_schedule_word
     exec.small_sigma_1
     movup.2
@@ -153,19 +153,19 @@ proc.compute_message_schedule_word
     u32wrapping_add
 end
 
-# Given eight working variables of SHA256 ( i.e. hash state ), a 32 -bit round constant & 
-# 32 -bit message word on stack top, this routine consumes constant & message word into 
-# hash state.
-#
-# Expected stack state looks like
-#
-# [a, b, c, d, e, f, g, h, CONST_i, WORD_i] | i ∈ [0, 64)
-#
-# After finishing execution, stack looks like
-#
-# [a', b', c', d', e', f', g', h']
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L165-L175
+#! Given eight working variables of SHA256 ( i.e. hash state ), a 32 -bit round constant & 
+#! 32 -bit message word on stack top, this routine consumes constant & message word into 
+#! hash state.
+#!
+#! Expected stack state looks like
+#!
+#! [a, b, c, d, e, f, g, h, CONST_i, WORD_i] | i ∈ [0, 64)
+#!
+#! After finishing execution, stack looks like
+#!
+#! [a', b', c', d', e', f', g', h']
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L165-L175
 proc.consume_message_word
     dup.6
     dup.6
@@ -203,25 +203,27 @@ proc.consume_message_word
     u32wrapping_add
 end
 
-# Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and 64 -bytes input 
-# message ( in terms of 16 SHA256 words ) on stack top, this routine computes
-# whole message schedule of 64 message words and consumes them into hash state.
-#
-# Expected stack state:
-#
-# [state0, state1, state2, state3, state4, state5, state6, state7, msg0, msg1, msg2, msg3, msg4, msg5, msg6, msg7, msg8, msg9, msg10, msg11, msg12, msg13, msg14, msg15]
-#
-# Final stack state after completion of execution
-#
-# [state0', state1', state2', state3', state4', state5', state6', state7']
-#
-# Note, each SHA256 word is 32 -bit wide
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L89-L113
-# & https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop body execution when i = 0 )
+#! Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and 64 -bytes input 
+#! message ( in terms of 16 SHA256 words ) on stack top, this routine computes
+#! whole message schedule of 64 message words and consumes them into hash state.
+#!
+#! Expected stack state:
+#!
+#! [state0, state1, state2, state3, state4, state5, state6, state7, msg0, msg1, msg2, msg3, msg4, msg5, msg6, msg7, msg8, msg9, msg10, msg11, msg12, msg13, msg14, msg15]
+#!
+#! Final stack state after completion of execution
+#!
+#! [state0', state1', state2', state3', state4', state5', state6', state7']
+#!
+#! Note, each SHA256 word is 32 -bit wide
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2.hpp#L89-L113
+#! & https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop body execution when i = 0 )
 proc.prepare_message_schedule_and_consume.2
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     dup.15
     dup.15
@@ -263,8 +265,10 @@ proc.prepare_message_schedule_and_consume.2
     swapw
 
     push.0x428a2f98
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[0]
 
     push.0x71374491
@@ -279,8 +283,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[3]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     dup.15
     dup.15
@@ -320,8 +326,10 @@ proc.prepare_message_schedule_and_consume.2
     movupw.2
 
     push.0x3956c25b
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[4]
 
     push.0x59f111f1
@@ -336,8 +344,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[7]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     dup.6
     dup.2
@@ -373,8 +383,10 @@ proc.prepare_message_schedule_and_consume.2
     movupw.3
 
     push.0xd807aa98
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[8]
 
     push.0x12835b01
@@ -389,8 +401,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[11]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
     movupw.3
@@ -430,8 +444,10 @@ proc.prepare_message_schedule_and_consume.2
     movupw.2
 
     push.0x72be5d74
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[12]
 
     push.0x80deb1fe
@@ -446,8 +462,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[15]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -487,8 +505,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0xe49b69c1
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[16]
 
     push.0xefbe4786
@@ -503,8 +523,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[19]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -544,8 +566,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0x2de92c6f
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[20]
 
     push.0x4a7484aa
@@ -560,8 +584,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[23]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -601,8 +627,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0x983e5152
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[24]
 
     push.0xa831c66d
@@ -617,8 +645,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[27]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -658,8 +688,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0xc6e00bf3
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[28]
 
     push.0xd5a79147
@@ -674,8 +706,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[31]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -715,8 +749,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0x27b70a85
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[32]
 
     push.0x2e1b2138
@@ -731,8 +767,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[35]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -772,8 +810,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0x650a7354
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[36]
 
     push.0x766a0abb
@@ -788,8 +828,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[39]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -829,8 +871,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0xa2bfe8a1
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[40]
 
     push.0xa81a664b
@@ -845,8 +889,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[43]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.3
 
@@ -886,8 +932,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0xd192e819
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[44]
 
     push.0xd6990624
@@ -902,8 +950,10 @@ proc.prepare_message_schedule_and_consume.2
     movdn.8
     exec.consume_message_word # consume msg[47]
 
-    popw.local.0
-    popw.local.1
+    loc_storew.0
+    dropw
+    loc_storew.1
+    dropw
 
     movupw.2
     movupw.3
@@ -912,8 +962,10 @@ proc.prepare_message_schedule_and_consume.2
     exec.rev_element_order
 
     push.0x19a4c116
-    pushw.local.1
-    pushw.local.0
+    push.0.0.0.0
+    loc_loadw.1
+    push.0.0.0.0
+    loc_loadw.0
     exec.consume_message_word # consume msg[48]
 
     push.0x1e376c08
@@ -1027,27 +1079,27 @@ proc.prepare_message_schedule_and_consume.2
     movdn.7
 end
 
-# Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and precomputed message 
-# schedule of padding bytes ( in terms of 64 message words ), this routine consumes
-# that into hash state, leaving final hash state, which is 32 -bytes SHA256 digest.
-#
-# Note, in SHA256 2-to-1 hashing, 64 -bytes are padded, which is processed as second message
-# block ( each SHA256 message block is 64 -bytes wide ). That message block is used for generating 
-# message schedule of 64 SHA256 words. That's exactly what can be precomputed & is consumed here 
-# ( in this routine ) into provided hash state.
-#
-# Expected stack state:
-#
-# [state0, state1, state2, state3, state4, state5, state6, state7, ...]
-#
-# Final stack state after completion of execution
-#
-# [state0', state1', state2', state3', state4', state5', state6', state7']
-#
-# Note, each SHA256 word is 32 -bit wide
-#
-# See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop 
-# body execution when i = 1 i.e. consuming padding bytes )
+#! Given 32 -bytes hash state ( in terms of 8 SHA256 words ) and precomputed message 
+#! schedule of padding bytes ( in terms of 64 message words ), this routine consumes
+#! that into hash state, leaving final hash state, which is 32 -bytes SHA256 digest.
+#!
+#! Note, in SHA256 2-to-1 hashing, 64 -bytes are padded, which is processed as second message
+#! block ( each SHA256 message block is 64 -bytes wide ). That message block is used for generating 
+#! message schedule of 64 SHA256 words. That's exactly what can be precomputed & is consumed here 
+#! ( in this routine ) into provided hash state.
+#!
+#! Expected stack state:
+#!
+#! [state0, state1, state2, state3, state4, state5, state6, state7, ...]
+#!
+#! Final stack state after completion of execution
+#!
+#! [state0', state1', state2', state3', state4', state5', state6', state7']
+#!
+#! Note, each SHA256 word is 32 -bit wide
+#!
+#! See https://github.com/itzmeanjan/merklize-sha/blob/8a2c006/include/sha2_256.hpp#L148-L187 ( loop 
+#! body execution when i = 1 i.e. consuming padding bytes )
 proc.consume_padding_message_schedule
     dupw.1
     dupw.1
@@ -1475,21 +1527,21 @@ proc.consume_padding_message_schedule
     movdn.7
 end
 
-# Given 64 -bytes input, this routine computes 32 -bytes SAH256 digest
-#
-# Expected stack state:
-#
-# [m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15] | m[0,16) = 32 -bit word
-#
-# Note, each SHA256 word is 32 -bit wide, so that's how input is expected.
-# If you've 64 -bytes, consider packing 4 consecutive bytes into single word, 
-# maintaining big endian byte order.
-#
-# Final stack state:
-#
-# [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7]
-#
-# SHA256 digest is represented in terms of eight 32 -bit words ( big endian byte order ).
+#! Given 64 -bytes input, this routine computes 32 -bytes SAH256 digest
+#!
+#! Expected stack state:
+#!
+#! [m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15] | m[0,16) = 32 -bit word
+#!
+#! Note, each SHA256 word is 32 -bit wide, so that's how input is expected.
+#! If you've 64 -bytes, consider packing 4 consecutive bytes into single word, 
+#! maintaining big endian byte order.
+#!
+#! Final stack state:
+#!
+#! [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7]
+#!
+#! SHA256 digest is represented in terms of eight 32 -bit words ( big endian byte order ).
 export.hash
     push.0x5be0cd19.0x1f83d9ab.0x9b05688c.0x510e527f
     push.0xa54ff53a.0x3c6ef372.0xbb67ae85.0x6a09e667

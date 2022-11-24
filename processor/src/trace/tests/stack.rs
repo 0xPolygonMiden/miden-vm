@@ -9,6 +9,7 @@ use vm_core::{AUX_TRACE_RAND_ELEMENTS, STACK_AUX_TRACE_OFFSET};
 // ================================================================================================
 
 const P1_COL_IDX: usize = STACK_AUX_TRACE_OFFSET;
+const TWO: Felt = Felt::new(2);
 
 // OVERFLOW TABLE TESTS
 // ================================================================================================
@@ -36,10 +37,10 @@ fn p1_trace() {
     let p1 = aux_columns.get_column(P1_COL_IDX);
 
     let row_values = [
-        OverflowTableRow::new(2, Felt::new(1), ZERO).to_value(&alphas),
-        OverflowTableRow::new(3, Felt::new(2), Felt::new(2)).to_value(&alphas),
-        OverflowTableRow::new(6, Felt::new(2), Felt::new(2)).to_value(&alphas),
-        OverflowTableRow::new(10, ZERO, ZERO).to_value(&alphas),
+        OverflowTableRow::new(2, ONE, ZERO).to_value(&trace.main_trace, &alphas),
+        OverflowTableRow::new(3, TWO, TWO).to_value(&trace.main_trace, &alphas),
+        OverflowTableRow::new(6, TWO, TWO).to_value(&trace.main_trace, &alphas),
+        OverflowTableRow::new(10, ZERO, ZERO).to_value(&trace.main_trace, &alphas),
     ];
 
     // make sure the first entry is ONE

@@ -21,6 +21,10 @@ pub use winter_utils::{
 
 pub use crypto::{RandomCoin, RandomCoinError};
 
+pub mod math {
+    pub use math::{batch_inversion, log2};
+}
+
 // TO ELEMENTS
 // ================================================================================================
 
@@ -95,4 +99,17 @@ pub fn new_array_vec<T: Debug, const N: usize>(capacity: usize) -> [Vec<T>; N] {
         .collect::<Vec<_>>()
         .try_into()
         .expect("failed to convert vector to array")
+}
+
+#[test]
+#[should_panic]
+fn debug_assert_is_checked() {
+    // enforce the release checks to always have `RUSTFLAGS="-C debug-assertions".
+    //
+    // some upstream tests are performed with `debug_assert`, and we want to assert its correctness
+    // downstream.
+    //
+    // for reference, check
+    // https://github.com/maticnetwork/miden/issues/433
+    debug_assert!(false);
 }

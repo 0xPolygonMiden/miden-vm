@@ -1,9 +1,8 @@
 use super::{ChipletsLookup, ChipletsLookupRow, Felt, FieldElement};
 use crate::{
     trace::{build_lookup_table_row_values, AuxColumnBuilder, LookupTableRow},
-    Vec,
+    Matrix, Vec,
 };
-use winterfell::Matrix;
 
 // AUXILIARY TRACE BUILDER
 // ================================================================================================
@@ -11,7 +10,7 @@ use winterfell::Matrix;
 /// Describes how to construct execution traces of auxiliary trace columns that depend on multiple
 /// chiplets in the Chiplets module (used in multiset checks).
 pub struct AuxTraceBuilder {
-    pub(super) lookup_hints: Vec<(usize, ChipletsLookup)>,
+    pub(super) lookup_hints: Vec<(u32, ChipletsLookup)>,
     pub(super) request_rows: Vec<ChipletsLookupRow>,
     pub(super) response_rows: Vec<ChipletsLookupRow>,
 }
@@ -36,7 +35,7 @@ impl AuxTraceBuilder {
 // CHIPLETS LOOKUPS
 // ================================================================================================
 
-impl AuxColumnBuilder<ChipletsLookup, ChipletsLookupRow> for AuxTraceBuilder {
+impl AuxColumnBuilder<ChipletsLookup, ChipletsLookupRow, u32> for AuxTraceBuilder {
     /// This method is required, but because it is only called inside `build_row_values` which is
     /// overridden below, it is not used here and should not be called.
     fn get_table_rows(&self) -> &[ChipletsLookupRow] {
@@ -49,7 +48,7 @@ impl AuxColumnBuilder<ChipletsLookup, ChipletsLookupRow> for AuxTraceBuilder {
     /// Internally, each update hint also contains an index of the row into the full list of request
     /// rows or response rows, depending on whether it is a request, a response, or both (in which
     /// case it contains 2 indices).
-    fn get_table_hints(&self) -> &[(usize, ChipletsLookup)] {
+    fn get_table_hints(&self) -> &[(u32, ChipletsLookup)] {
         &self.lookup_hints
     }
 
@@ -76,7 +75,7 @@ impl AuxColumnBuilder<ChipletsLookup, ChipletsLookupRow> for AuxTraceBuilder {
     /// requests. Since responses are grouped by chiplet, the operation order for the requests and
     /// responses will be permutations of each other rather than sharing the same order. Therefore,
     /// the `row_values` and `inv_row_values` must be built separately.
-    fn build_row_values<E>(&self, _main_trace: &Matrix<Felt>, alphas: &[E]) -> (Vec<E>, Vec<E>)
+    fn build_row_values<E>(&self, main_trace: &Matrix<Felt>, alphas: &[E]) -> (Vec<E>, Vec<E>)
     where
         E: FieldElement<BaseField = Felt>,
     {
@@ -84,10 +83,11 @@ impl AuxColumnBuilder<ChipletsLookup, ChipletsLookupRow> for AuxTraceBuilder {
         let row_values = self
             .response_rows
             .iter()
-            .map(|response| response.to_value(alphas))
+            .map(|response| response.to_value(main_trace, alphas))
             .collect();
         // get the inverse values from the request rows
-        let (_, inv_row_values) = build_lookup_table_row_values(&self.request_rows, alphas);
+        let (_, inv_row_values) =
+            build_lookup_table_row_values(&self.request_rows, main_trace, alphas);
 
         (row_values, inv_row_values)
     }

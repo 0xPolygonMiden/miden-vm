@@ -1,11 +1,12 @@
 use crate::{ExecutionError, Felt, Process, StarkField, Vec};
 use core::fmt;
-use vm_core::{utils::string::String, Operation, Word};
+use vm_core::{utils::string::String, Operation, ProgramOutputs, Word};
 
 /// VmState holds a current process state information at a specific clock cycle.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VmState {
-    pub clk: usize,
+    pub clk: u32,
+    pub ctx: u32,
     pub op: Option<Operation>,
     pub asmop: Option<AsmOpInfo>,
     pub fmp: Felt,
@@ -23,8 +24,8 @@ impl fmt::Display for VmState {
             .collect();
         write!(
             f,
-            "clk={}, fmp={}, stack={:?}, memory={:?}",
-            self.clk, self.fmp, stack, memory
+            "clk={}, fmp={}, stack={stack:?}, memory={memory:?}",
+            self.clk, self.fmp
         )
     }
 }
@@ -37,12 +38,12 @@ impl fmt::Display for VmState {
 pub struct VmStateIterator {
     process: Process,
     error: Option<ExecutionError>,
-    clk: usize,
+    clk: u32,
     asmop_idx: usize,
 }
 
 impl VmStateIterator {
-    pub(super) fn new(process: Process, result: Result<(), ExecutionError>) -> Self {
+    pub(super) fn new(process: Process, result: Result<ProgramOutputs, ExecutionError>) -> Self {
         Self {
             process,
             error: result.err(),
@@ -74,7 +75,7 @@ impl VmStateIterator {
             (
                 &assembly_ops[self.asmop_idx - 1],
                 // difference between current clock cycle and start clock cycle of the current asmop
-                (self.clk - assembly_ops[self.asmop_idx - 1].0) as u8,
+                (self.clk - assembly_ops[self.asmop_idx - 1].0 as u32) as u8,
             )
         } else {
             (next_asmop, 0) //dummy value, never used.
@@ -82,7 +83,7 @@ impl VmStateIterator {
 
         // if this is the first op in the sequence corresponding to the next asmop, returns a new
         // instance of [AsmOp] instantiated with next asmop, num_cycles and cycle_idx of 1.
-        if next_asmop.0 == self.clk - 1 {
+        if next_asmop.0 as u32 == self.clk - 1 {
             let asmop = Some(AsmOpInfo::new(
                 next_asmop.1.op().clone(),
                 next_asmop.1.num_cycles(),
@@ -123,11 +124,14 @@ impl Iterator for VmStateIterator {
             }
         }
 
+        let ctx = self.process.system.get_ctx_at(self.clk);
+
         let op = if self.clk == 0 {
             None
         } else {
-            Some(self.process.decoder.debug_info().operations()[self.clk - 1])
+            Some(self.process.decoder.debug_info().operations()[self.clk as usize - 1])
         };
+
         let (asmop, is_start) = self.get_asmop();
         if is_start {
             self.asmop_idx += 1;
@@ -135,14 +139,12 @@ impl Iterator for VmStateIterator {
 
         let result = Some(Ok(VmState {
             clk: self.clk,
+            ctx,
             op,
             asmop,
             fmp: self.process.system.get_fmp_at(self.clk),
             stack: self.process.stack.get_state_at(self.clk),
-            memory: self
-                .process
-                .chiplets
-                .get_mem_values_at(0..=u64::MAX, self.clk as u64),
+            memory: self.process.chiplets.get_mem_state_at(ctx, self.clk),
         }));
 
         self.clk += 1;
@@ -152,7 +154,7 @@ impl Iterator for VmStateIterator {
 }
 
 // HELPER FUNCTIONS
-// =================================================================
+// ================================================================================================
 fn word_to_ints(word: &Word) -> [u64; 4] {
     [
         word[0].as_int(),

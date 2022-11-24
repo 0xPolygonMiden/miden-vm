@@ -64,8 +64,20 @@ pub const OP_BATCH_2_GROUPS: [Felt; NUM_OP_BATCH_FLAGS] = [ZERO, ZERO, ONE];
 /// Operation batch consists of 1 operation group.
 pub const OP_BATCH_1_GROUPS: [Felt; NUM_OP_BATCH_FLAGS] = [ZERO, ONE, ONE];
 
-// Index of the op bits extra column in the decoder trace.
+/// Index of the op bits extra column in the decoder trace.
 pub const OP_BIT_EXTRA_COL_IDX: usize = OP_BATCH_FLAGS_RANGE.end;
+
+/// Index of a flag column which indicates whether an ending block is a body of a loop.
+pub const IS_LOOP_BODY_FLAG_COL_IDX: usize = HASHER_STATE_RANGE.start + 4;
+
+/// Index of a flag column which indicates whether an ending block is a LOOP block.
+pub const IS_LOOP_FLAG_COL_IDX: usize = HASHER_STATE_RANGE.start + 5;
+
+/// Index of a flag column which indicates whether an ending block is a CALL block.
+pub const IS_CALL_FLAG_COL_IDX: usize = HASHER_STATE_RANGE.start + 6;
+
+/// Index of a flag column which indicates whether an ending block is a SYSCALL block.
+pub const IS_SYSCALL_FLAG_COL_IDX: usize = HASHER_STATE_RANGE.start + 7;
 
 // --- Column accessors in the auxiliary columns --------------------------------------------------
 

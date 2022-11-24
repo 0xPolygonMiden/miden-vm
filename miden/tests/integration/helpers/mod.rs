@@ -1,14 +1,16 @@
 pub use miden::{ProofOptions, StarkProof};
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
-pub use vm_core::{Felt, FieldElement, Program, ProgramInputs, MIN_STACK_DEPTH};
+use stdlib::StdLibrary;
+pub use vm_core::{
+    stack::STACK_TOP_SIZE, Felt, FieldElement, Program, ProgramInputs, ProgramOutputs,
+};
 
 pub mod crypto;
 
 // CONSTANTS
 // ================================================================================================
 pub const U32_BOUND: u64 = u32::MAX as u64 + 1;
-pub const WORD_LEN: usize = 4;
 
 // TEST HANDLER
 // ================================================================================================
@@ -37,6 +39,7 @@ pub enum TestError<'a> {
 ///   an ExecutionError which contains the specified substring.
 pub struct Test {
     pub source: String,
+    pub kernel: Option<String>,
     pub inputs: ProgramInputs,
     pub in_debug_mode: bool,
 }
@@ -49,6 +52,7 @@ impl Test {
     pub fn new(source: &str, in_debug_mode: bool) -> Self {
         Test {
             source: String::from(source),
+            kernel: None,
             inputs: ProgramInputs::none(),
             in_debug_mode,
         }
@@ -98,14 +102,15 @@ impl Test {
         mem_addr: u64,
         expected_mem: &[u64],
     ) {
-        let mut process = Process::new(self.inputs.clone());
+        // compile the program
+        let program = self.compile();
 
         // execute the test
-        let program = self.compile();
+        let mut process = Process::new(program.kernel(), self.inputs.clone());
         process.execute(&program).unwrap();
 
         // validate the memory state
-        let mem_state = process.get_memory_value(mem_addr).unwrap();
+        let mem_state = process.get_memory_value(0, mem_addr).unwrap();
         let expected_mem: Vec<Felt> = expected_mem.iter().map(|&v| Felt::new(v)).collect();
         assert_eq!(expected_mem, mem_state);
 
@@ -133,10 +138,18 @@ impl Test {
 
     /// Compiles a test's source and returns the resulting Program.
     pub fn compile(&self) -> Program {
-        let assembler = assembly::Assembler::new(self.in_debug_mode);
-        assembler
-            .compile(&self.source)
-            .expect("Failed to compile test source.")
+        let assembler = assembly::Assembler::new()
+            .with_debug_mode(self.in_debug_mode)
+            .with_module_provider(StdLibrary::default());
+
+        match self.kernel.as_ref() {
+            Some(kernel) => assembler
+                .with_kernel(kernel)
+                .expect("kernel compilation failed"),
+            None => assembler,
+        }
+        .compile(&self.source)
+        .expect("Failed to compile test source.")
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
@@ -149,31 +162,22 @@ impl Test {
     /// Compiles the test's code into a program, then generates and verifies a proof of execution
     /// using the given public inputs and the specified number of stack outputs. When `test_fail`
     /// is true, this function will force a failure by modifying the first output.
-    pub fn prove_and_verify(
-        &self,
-        pub_inputs: Vec<u64>,
-        num_stack_outputs: usize,
-        test_fail: bool,
-    ) {
+    pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let program = self.compile();
-        let (mut outputs, proof) = prover::prove(
-            &program,
-            &self.inputs,
-            num_stack_outputs,
-            &ProofOptions::default(),
-        )
-        .unwrap();
+        let (mut outputs, proof) =
+            prover::prove(&program, &self.inputs, &ProofOptions::default()).unwrap();
 
         if test_fail {
-            outputs[0] += 1;
+            outputs.stack_mut()[0] += 1;
             assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_err());
         } else {
-            assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_ok());
+            let result = miden::verify(program.hash(), &pub_inputs, &outputs, proof);
+            assert!(result.is_ok(), "error: {:?}", result);
         }
     }
 
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
-    /// VmStateIterator that allows us to iterate through each clock cycle and inpsect the process
+    /// VmStateIterator that allows us to iterate through each clock cycle and inspect the process
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
         let program = self.compile();
@@ -181,7 +185,7 @@ impl Test {
     }
 
     /// Returns the last state of the stack after executing a test.
-    pub fn get_last_stack_state(&self) -> [Felt; MIN_STACK_DEPTH] {
+    pub fn get_last_stack_state(&self) -> [Felt; STACK_TOP_SIZE] {
         let trace = self.execute().unwrap();
 
         trace.last_stack_state()
@@ -191,10 +195,10 @@ impl Test {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Takes an array of u64 values and builds a stack, perserving their order and converting them to
+/// Takes an array of u64 values and builds a stack, preserving their order and converting them to
 /// field elements.
-pub fn convert_to_stack(values: &[u64]) -> [Felt; MIN_STACK_DEPTH] {
-    let mut result = [Felt::ZERO; MIN_STACK_DEPTH];
+pub fn convert_to_stack(values: &[u64]) -> [Felt; STACK_TOP_SIZE] {
+    let mut result = [Felt::ZERO; STACK_TOP_SIZE];
     for (&value, result) in values.iter().zip(result.iter_mut()) {
         *result = Felt::new(value);
     }

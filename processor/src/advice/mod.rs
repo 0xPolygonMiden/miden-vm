@@ -20,8 +20,9 @@ use vm_core::{
 ///
 /// An advice provider can be instantiated from [ProgramInputs].
 pub struct AdviceProvider {
-    step: usize,
+    step: u32,
     tape: Vec<Felt>,
+    values: BTreeMap<[u8; 32], Vec<Felt>>,
     sets: BTreeMap<[u8; 32], AdviceSet>,
 }
 
@@ -30,7 +31,7 @@ impl AdviceProvider {
     // --------------------------------------------------------------------------------------------
     /// Returns a new advice provider instantiated from the specified program inputs.
     pub fn new(inputs: ProgramInputs) -> Self {
-        let (_, mut advice_tape, advice_sets) = inputs.into_parts();
+        let (_, mut advice_tape, advice_map, advice_sets) = inputs.into_parts();
 
         // reverse the advice tape so that we can pop elements off the end
         advice_tape.reverse();
@@ -38,6 +39,7 @@ impl AdviceProvider {
         Self {
             step: 0,
             tape: advice_tape,
+            values: advice_map,
             sets: advice_sets,
         }
     }
@@ -52,12 +54,75 @@ impl AdviceProvider {
     pub fn read_tape(&mut self) -> Result<Felt, ExecutionError> {
         self.tape
             .pop()
-            .ok_or(ExecutionError::EmptyAdviceTape(self.step))
+            .ok_or(ExecutionError::AdviceTapeReadFailed(self.step))
+    }
+
+    /// Removes a word (4 elements) from the advice tape and returns it.
+    ///
+    /// # Errors
+    /// Returns an error if the advice tape does not contain a full word.
+    pub fn read_tapew(&mut self) -> Result<Word, ExecutionError> {
+        if self.tape.len() < 4 {
+            return Err(ExecutionError::AdviceTapeReadFailed(self.step));
+        }
+
+        let idx = self.tape.len() - 4;
+        let result = [
+            self.tape[idx + 3],
+            self.tape[idx + 2],
+            self.tape[idx + 1],
+            self.tape[idx],
+        ];
+
+        self.tape.truncate(idx);
+
+        Ok(result)
+    }
+
+    /// Removes the next two words from the advice tape and returns them.
+    ///
+    /// # Errors
+    /// Returns an error if the advice tape does not contain two words.
+    pub fn read_tape_double(&mut self) -> Result<[Word; 2], ExecutionError> {
+        let word0 = self.read_tapew()?;
+        let word1 = self.read_tapew()?;
+
+        Ok([word0, word1])
     }
 
     /// Writes the provided value at the head of the advice tape.
     pub fn write_tape(&mut self, value: Felt) {
         self.tape.push(value);
+    }
+
+    /// Retrieves a list of elements from a key-value map for the specified key, reverses it, and
+    /// writes the reversed list at the head of the advice tape. This way, the first element in the
+    /// list is located at the head of the advice tape.
+    ///
+    /// # Errors
+    /// Returns an error if the key was not found in a key-value map.
+    pub fn write_tape_from_map(&mut self, key: Word) -> Result<(), ExecutionError> {
+        let values = self
+            .values
+            .get(&key.into_bytes())
+            .ok_or(ExecutionError::AdviceKeyNotFound(key))?;
+        for &elem in values.iter().rev() {
+            self.tape.push(elem);
+        }
+
+        Ok(())
+    }
+
+    /// Inserts a list of elements to the advice map with the top four elements of the stack as
+    /// the key.
+    ///
+    /// # Errors
+    /// Returns an error if the key is already present in the advice map.
+    pub fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
+        match self.values.insert(key.into_bytes(), values) {
+            None => Ok(()),
+            Some(_) => Err(ExecutionError::DuplicateAdviceKey(key)),
+        }
     }
 
     // ADVISE SETS
@@ -77,7 +142,6 @@ impl AdviceProvider {
     /// - The specified depth is either zero or greater than the depth of the Merkle tree
     ///   identified by the specified root.
     /// - Value of the node at the specified depth and index is not known to this advice provider.
-    #[allow(dead_code)]
     pub fn get_tree_node(
         &mut self,
         root: Word,

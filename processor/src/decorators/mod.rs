@@ -1,4 +1,5 @@
 use super::{AdviceInjector, Decorator, ExecutionError, Felt, Process, StarkField};
+use vm_core::{utils::collections::Vec, WORD_LEN, ZERO};
 
 // DECORATORS
 // ================================================================================================
@@ -28,6 +29,10 @@ impl Process {
         match injector {
             AdviceInjector::MerkleNode => self.inject_merkle_node(),
             AdviceInjector::DivResultU64 => self.inject_div_result_u64(),
+            AdviceInjector::MapValue => self.inject_map_value(),
+            AdviceInjector::Memory(start_addr, num_words) => {
+                self.inject_mem_values(*start_addr, *num_words)
+            }
         }
     }
 
@@ -107,6 +112,42 @@ impl Process {
 
         Ok(())
     }
+
+    /// Injects a list of field elements at the front of the advice tape. The list is looked up in
+    /// the key-value map maintained by the advice provider using the top 4 elements on the stack
+    /// as the key.
+    ///
+    /// # Errors
+    /// Returns an error if the required key was not found in the key-value map.
+    fn inject_map_value(&mut self) -> Result<(), ExecutionError> {
+        let top_word = self.stack.get_top_word();
+        self.advice.write_tape_from_map(top_word)?;
+
+        Ok(())
+    }
+
+    /// Reads the specfied number of words from the memory starting at the given start address and
+    /// writes the vector of field elements to the advice map with the top 4 elements on the stack
+    /// as the key. This operation does not affect the state of the Memory chiplet and the VM in
+    /// general.
+    ///
+    /// # Errors
+    /// Returns an error if the key is already present in the advice map.
+    fn inject_mem_values(&mut self, start_addr: u32, num_words: u32) -> Result<(), ExecutionError> {
+        let ctx = self.system.ctx();
+        let mut values = Vec::with_capacity(num_words as usize * WORD_LEN);
+        for i in 0..num_words {
+            let mem_value = self
+                .chiplets
+                .get_mem_value(ctx, (start_addr + i) as u64)
+                .unwrap_or([ZERO; WORD_LEN]);
+            values.extend_from_slice(&mem_value);
+        }
+        let top_word = self.stack.get_top_word();
+        self.advice.insert_into_map(top_word, values)?;
+
+        Ok(())
+    }
 }
 
 // HELPER FUNCTIONS
@@ -124,7 +165,7 @@ fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Felt, FieldElement, Operation, StarkField},
+        super::{Felt, FieldElement, Kernel, Operation, StarkField},
         Process,
     };
     use crate::Word;
@@ -146,7 +187,8 @@ mod tests {
         ];
 
         let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new(inputs);
+        let mut process = Process::new(&Kernel::default(), inputs);
+        process.execute_op(Operation::Noop).unwrap();
 
         // inject the node into the advice tape
         process

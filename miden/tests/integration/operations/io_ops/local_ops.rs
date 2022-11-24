@@ -7,7 +7,7 @@ use super::build_test;
 fn push_local() {
     let source = "
         proc.foo.1 
-            push.local.0
+            loc_load.0
         end 
         begin
             exec.foo
@@ -22,25 +22,6 @@ fn push_local() {
     build_test!(source, &inputs).expect_stack(&final_stack);
 }
 
-#[test]
-fn pushw_local() {
-    let source = "
-        proc.foo.1 
-            pushw.local.0
-        end 
-        begin
-            exec.foo
-        end";
-
-    // --- 4 values are pushed & the rest of the stack is unchanged -------------------------------
-    let inputs = [1, 2, 3, 4];
-    // In general, there is no guarantee that reading from uninitialized memory will result in ZEROs
-    // but in this case since no other operations are executed, we do know it will push ZEROs.
-    let final_stack = [0, 0, 0, 0, 4, 3, 2, 1];
-
-    build_test!(source, &inputs).expect_stack(&final_stack);
-}
-
 // REMOVING VALUES FROM THE STACK (POP)
 // ================================================================================================
 
@@ -49,10 +30,10 @@ fn pop_local() {
     // --- test write to local memory -------------------------------------------------------------
     let source = "
         proc.foo.2
-            pop.local.0
-            pop.local.1
-            push.local.0
-            push.local.1
+            loc_store.0
+            loc_store.1
+            loc_load.0
+            loc_load.1
         end
         begin
             exec.foo
@@ -64,50 +45,17 @@ fn pop_local() {
     // --- test existing memory is not affected ---------------------------------------------------
     let source = "
         proc.foo.1
-            pop.local.0
+            loc_store.0
         end
         begin
-            pop.mem.0
-            pop.mem.1
+            mem_store.0
+            mem_store.1
             exec.foo
         end";
     let mem_addr = 1;
 
     let test = build_test!(source, &[1, 2, 3, 4]);
     test.expect_stack_and_memory(&[1], mem_addr, &[3, 0, 0, 0]);
-}
-
-#[test]
-fn popw_local() {
-    // --- test write to local memory -------------------------------------------------------------
-    let source = "
-        proc.foo.2 
-            popw.local.0
-            popw.local.1
-            pushw.local.0
-            pushw.local.1
-        end 
-        begin
-            exec.foo
-        end";
-
-    let test = build_test!(source, &[1, 2, 3, 4, 5, 6, 7, 8]);
-    test.expect_stack(&[4, 3, 2, 1, 8, 7, 6, 5]);
-
-    // --- test existing memory is not affected ---------------------------------------------------
-    let source = "
-        proc.foo.1 
-            popw.local.0
-        end 
-        begin
-            popw.mem.0
-            popw.mem.1
-            exec.foo
-        end";
-    let mem_addr = 1;
-
-    let test = build_test!(source, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    test.expect_stack_and_memory(&[], mem_addr, &[5, 6, 7, 8]);
 }
 
 // OVERWRITING VALUES ON THE STACK (LOAD)
@@ -117,7 +65,7 @@ fn popw_local() {
 fn loadw_local() {
     let source = "
         proc.foo.1 
-            loadw.local.0
+            loc_loadw.0
         end 
         begin
             exec.foo
@@ -140,12 +88,14 @@ fn storew_local() {
     // --- test write to local memory -------------------------------------------------------------
     let source = "
         proc.foo.2 
-            storew.local.0
+            loc_storew.0
             swapw
-            storew.local.1
+            loc_storew.1
             swapw
-            pushw.local.0
-            pushw.local.1
+            push.0.0.0.0
+            loc_loadw.0
+            push.0.0.0.0
+            loc_loadw.1
         end 
         begin
             exec.foo
@@ -157,11 +107,13 @@ fn storew_local() {
     // --- test existing memory is not affected ---------------------------------------------------
     let source = "
         proc.foo.1 
-            storew.local.0
+            loc_storew.0
         end 
         begin
-            popw.mem.0
-            popw.mem.1
+            mem_storew.0
+            dropw
+            mem_storew.1
+            dropw
             exec.foo
         end";
     let mem_addr = 1;
@@ -178,8 +130,8 @@ fn inverse_operations() {
     // --- pop and push are inverse operations, so the stack should be left unchanged -------------
     let source = "
         proc.foo.1
-            pop.local.0
-            push.local.0
+            loc_store.0
+            loc_load.0
         end
         begin
             exec.foo
@@ -194,8 +146,10 @@ fn inverse_operations() {
     // --- popw and pushw are inverse operations, so the stack should be left unchanged -----------
     let source = "
         proc.foo.1
-            popw.local.0
-            pushw.local.0
+            loc_storew.0
+            dropw
+            push.0.0.0.0
+            loc_loadw.0
         end
         begin
             exec.foo
@@ -210,8 +164,8 @@ fn inverse_operations() {
     // --- storew and loadw are inverse operations, so the stack should be left unchanged ---------
     let source = "
         proc.foo.1
-            storew.local.0
-            loadw.local.0
+            loc_storew.0
+            loc_loadw.0
         end
         begin
             exec.foo
@@ -229,8 +183,8 @@ fn read_after_write() {
     // --- write to memory first, then test read with push --------------------------------------
     let source = "
         proc.foo.1 
-            storew.local.0
-            push.local.0
+            loc_storew.0
+            loc_load.0
         end 
         begin
             exec.foo
@@ -242,8 +196,9 @@ fn read_after_write() {
     // --- write to memory first, then test read with pushw --------------------------------------
     let source = "
         proc.foo.1 
-            storew.local.0
-            pushw.local.0
+            loc_storew.0
+            push.0.0.0.0
+            loc_loadw.0
         end 
         begin
             exec.foo
@@ -255,8 +210,9 @@ fn read_after_write() {
     // --- write to memory first, then test read with loadw --------------------------------------
     let source = "
         proc.foo.1 
-            popw.local.0
-            loadw.local.0
+            loc_storew.0
+            dropw
+            loc_loadw.0
         end 
         begin
             exec.foo
@@ -271,12 +227,12 @@ fn nested_procedures() {
     // --- test nested procedures - pop/push ------------------------------------------------------
     let source = "
         proc.foo.1
-            pop.local.0
+            loc_store.0
         end
         proc.bar.1
-            pop.local.0
+            loc_store.0
             exec.foo
-            push.local.0
+            loc_load.0
         end
         begin
             exec.bar
@@ -289,12 +245,15 @@ fn nested_procedures() {
     // --- test nested procedures - popw/pushw ----------------------------------------------------
     let source = "
         proc.foo.1
-            popw.local.0
+            loc_storew.0
+            dropw
         end
         proc.bar.1
-            popw.local.0
+            loc_storew.0
+            dropw
             exec.foo
-            pushw.local.0
+            push.0.0.0.0
+            loc_loadw.0
         end
         begin
             exec.bar
@@ -308,12 +267,12 @@ fn nested_procedures() {
     let source = "
         proc.foo.1
             push.0 push.0
-            storew.local.0
+            loc_storew.0
         end
         proc.bar.1
-            storew.local.0
+            loc_storew.0
             exec.foo
-            loadw.local.0
+            loc_loadw.0
         end
         begin
             exec.bar
@@ -329,19 +288,19 @@ fn free_memory_pointer() {
     // ensure local procedure memory doesn't overwrite memory from outer scope
     let source = "
         proc.bar.2
-            pop.local.0
-            pop.local.1
+            loc_store.0
+            loc_store.1
         end
         begin
-            pop.mem.0
-            pop.mem.1
-            pop.mem.2
-            pop.mem.3
+            mem_store.0
+            mem_store.1
+            mem_store.2
+            mem_store.3
             exec.bar
-            push.mem.3
-            push.mem.2
-            push.mem.1
-            push.mem.0
+            mem_load.3
+            mem_load.2
+            mem_load.1
+            mem_load.0
         end";
     let inputs = [1, 2, 3, 4, 5, 6, 7];
 

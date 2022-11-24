@@ -82,7 +82,7 @@ impl MerkleTree {
             return Err(AdviceSetError::InvalidIndex(depth, index));
         }
 
-        let pos = 2usize.pow(depth as u32) + (index as usize);
+        let pos = 2usize.pow(depth) + index as usize;
         Ok(self.nodes[pos])
     }
 
@@ -104,7 +104,7 @@ impl MerkleTree {
         }
 
         let mut path = Vec::with_capacity(depth as usize);
-        let mut pos = 2usize.pow(depth as u32) + (index as usize);
+        let mut pos = 2usize.pow(depth) + index as usize;
 
         while pos > 1 {
             path.push(self.nodes[pos ^ 1]);

@@ -3,10 +3,7 @@ use super::{
     Trace, AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, HASH_CYCLE_LEN, NUM_RAND_ROWS, ONE,
 };
 use vm_core::chiplets::{
-    bitwise::{
-        Selectors, BITWISE_AND, BITWISE_AND_LABEL, BITWISE_OR, BITWISE_OR_LABEL, BITWISE_XOR,
-        BITWISE_XOR_LABEL, OP_CYCLE_LEN,
-    },
+    bitwise::{BITWISE_AND, BITWISE_AND_LABEL, BITWISE_XOR, BITWISE_XOR_LABEL, OP_CYCLE_LEN},
     BITWISE_A_COL_IDX, BITWISE_B_COL_IDX, BITWISE_OUTPUT_COL_IDX, BITWISE_TRACE_OFFSET,
 };
 
@@ -29,7 +26,7 @@ fn b_aux_trace_bitwise() {
         Operation::U32and,
         Operation::Push(Felt::from(a)),
         Operation::Push(Felt::from(b)),
-        Operation::U32or,
+        Operation::U32and,
         // Add 8 padding operations so that U32xor is requested by the stack in the same cycle when
         // U32and is provided by the Bitwise chiplet.
         Operation::Pad,
@@ -79,14 +76,14 @@ fn b_aux_trace_bitwise() {
         assert_eq!(expected, b_aux[row]);
     }
 
-    // The second bitwise request from the stack is sent when the `U32or` operation is executed at
+    // The second bitwise request from the stack is sent when the `U32and` operation is executed at
     // cycle 4, so the request is included in the next row.
     let value = build_expected_bitwise(
         &rand_elements,
-        BITWISE_OR_LABEL,
+        BITWISE_AND_LABEL,
         Felt::from(a),
         Felt::from(b),
-        Felt::from(a | b),
+        Felt::from(a & b),
     );
     expected *= value.inv();
     assert_eq!(expected, b_aux[5]);
@@ -143,7 +140,7 @@ fn b_aux_trace_bitwise() {
         assert_eq!(expected, b_aux[row]);
     }
 
-    // At the end of the next bitwise cycle, the response for `U32or` is provided by the Bitwise
+    // At the end of the next bitwise cycle, the response for `U32and` is provided by the Bitwise
     // chiplet.
     expected *= build_expected_bitwise_from_trace(&trace, &rand_elements, response_2_row - 1);
     assert_eq!(expected, b_aux[response_2_row]);
@@ -153,7 +150,7 @@ fn b_aux_trace_bitwise() {
         assert_eq!(expected, b_aux[row]);
     }
 
-    // At the end of the next bitwise cycle, the response for `U32or` is provided by the Bitwise
+    // At the end of the next bitwise cycle, the response for `U32and` is provided by the Bitwise
     // chiplet.
     expected *= build_expected_bitwise_from_trace(&trace, &rand_elements, response_3_row - 1);
     assert_eq!(expected, b_aux[response_3_row]);
@@ -172,15 +169,11 @@ fn build_expected_bitwise(alphas: &[Felt], label: Felt, a: Felt, b: Felt, result
 }
 
 fn build_expected_bitwise_from_trace(trace: &ExecutionTrace, alphas: &[Felt], row: usize) -> Felt {
-    let s0 = trace.main_trace.get_column(BITWISE_TRACE_OFFSET)[row];
-    let s1 = trace.main_trace.get_column(BITWISE_TRACE_OFFSET + 1)[row];
-    let selectors: Selectors = [s0, s1];
+    let selector = trace.main_trace.get_column(BITWISE_TRACE_OFFSET)[row];
 
-    let op_id = if selectors == BITWISE_AND {
+    let op_id = if selector == BITWISE_AND {
         BITWISE_AND_LABEL
-    } else if selectors == BITWISE_OR {
-        BITWISE_OR_LABEL
-    } else if selectors == BITWISE_XOR {
+    } else if selector == BITWISE_XOR {
         BITWISE_XOR_LABEL
     } else {
         panic!("Execution trace contains an invalid bitwise operation.")

@@ -2,7 +2,7 @@ use super::{
     chiplets::hasher,
     errors::{AdviceSetError, InputError},
     utils::IntoBytes,
-    Felt, FieldElement, Word, MIN_STACK_DEPTH,
+    Felt, FieldElement, Word,
 };
 use core::convert::TryInto;
 use winter_utils::collections::{BTreeMap, Vec};
@@ -18,8 +18,8 @@ pub use advice::AdviceSet;
 /// Miden VM programs can receive inputs in two ways:
 /// 1. The stack can be initialized to some set of values at the beginning of the program. These
 ///    inputs are public and must be shared with the verifier for them to verify a proof of the
-///    correct execution of a Miden program. The number of elements at the top of the stack which
-///    can receive initial value is limited to 16.
+///    correct execution of a Miden program. There is no limit to the number of elements at the top
+///    of the stack which can receive an initial value.
 /// 2. The program may request nondeterministic advice inputs from the prover. These inputs are
 ///    secret inputs. This means that the prover does not need to share them with the verifier.
 ///    There are two types of advice inputs: (1) a single advice tape which can contain any number
@@ -31,6 +31,7 @@ pub use advice::AdviceSet;
 pub struct ProgramInputs {
     stack_init: Vec<Felt>,
     advice_tape: Vec<Felt>,
+    advice_map: BTreeMap<[u8; 32], Vec<Felt>>,
     advice_sets: BTreeMap<[u8; 32], AdviceSet>,
 }
 
@@ -54,13 +55,27 @@ impl ProgramInputs {
         advice_tape: &[u64],
         advice_sets: Vec<AdviceSet>,
     ) -> Result<Self, InputError> {
-        if stack_init.len() > MIN_STACK_DEPTH {
-            return Err(InputError::TooManyStackValues(
-                MIN_STACK_DEPTH,
-                stack_init.len(),
-            ));
-        }
+        Self::with_advice_map(stack_init, advice_tape, BTreeMap::new(), advice_sets)
+    }
 
+    /// Returns [ProgramInputs] instantiated with the specified initial stack values, advice tape,
+    /// key-value advice map, and advice sets.
+    ///
+    /// The initial stack values are put onto the stack in the order as if they were pushed onto
+    /// the stack one by one. The result of this is that the last value in the `stack_init` slice
+    /// will end up at the top of the stack.
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// - The number initial stack values is greater than 16.
+    /// - Any of the initial stack values or the advice tape values are not valid field elements.
+    /// - Any of the advice sets have the same root.
+    pub fn with_advice_map(
+        stack_init: &[u64],
+        advice_tape: &[u64],
+        advice_map: BTreeMap<[u8; 32], Vec<Felt>>,
+        advice_sets: Vec<AdviceSet>,
+    ) -> Result<Self, InputError> {
         // convert initial stack values into field elements
         let mut init_stack_elements = Vec::with_capacity(stack_init.len());
         for &value in stack_init.iter().rev() {
@@ -80,10 +95,10 @@ impl ProgramInputs {
         }
 
         // put advice sets into a map
-        let mut advice_map = BTreeMap::new();
+        let mut advice_sets_elements = BTreeMap::new();
         for advice_set in advice_sets {
             let key = advice_set.root().into_bytes();
-            if advice_map.insert(key, advice_set).is_some() {
+            if advice_sets_elements.insert(key, advice_set).is_some() {
                 return Err(InputError::DuplicateAdviceRoot(key));
             };
         }
@@ -91,7 +106,8 @@ impl ProgramInputs {
         Ok(Self {
             stack_init: init_stack_elements,
             advice_tape: advice_tape_elements,
-            advice_sets: advice_map,
+            advice_map,
+            advice_sets: advice_sets_elements,
         })
     }
 
@@ -115,6 +131,7 @@ impl ProgramInputs {
         Self {
             stack_init: Vec::new(),
             advice_tape: Vec::new(),
+            advice_map: BTreeMap::new(),
             advice_sets: BTreeMap::new(),
         }
     }
@@ -136,13 +153,22 @@ impl ProgramInputs {
     // --------------------------------------------------------------------------------------------
 
     /// Decomposes these [ProgramInputs] into their raw components.
-    pub fn into_parts(self) -> (Vec<Felt>, Vec<Felt>, BTreeMap<[u8; 32], AdviceSet>) {
+    #[allow(clippy::type_complexity)]
+    pub fn into_parts(
+        self,
+    ) -> (
+        Vec<Felt>,
+        Vec<Felt>,
+        BTreeMap<[u8; 32], Vec<Felt>>,
+        BTreeMap<[u8; 32], AdviceSet>,
+    ) {
         let Self {
             stack_init,
             advice_tape,
+            advice_map,
             advice_sets,
         } = self;
 
-        (stack_init, advice_tape, advice_sets)
+        (stack_init, advice_tape, advice_map, advice_sets)
     }
 }

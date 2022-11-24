@@ -1,24 +1,54 @@
-use super::{create_range, Felt, Range, MEMORY_TRACE_OFFSET};
+use super::{create_range, Felt, Range, ONE, ZERO};
 
 // CONSTANTS
 // ================================================================================================
 
+/// Number of columns needed to record an execution trace of the memory chiplet.
+pub const TRACE_WIDTH: usize = 12;
+
+/// Number of selector columns in the trace.
+pub const NUM_SELECTORS: usize = 2;
+
+/// Type for Memory trace selectors. These selectors are used to define which operation and memory
+/// state update (init & read / copy & read / write) is to be applied at a specific row of the
+/// memory execution trace.
+pub type Selectors = [Felt; NUM_SELECTORS];
+
+// --- OPERATION SELECTORS ------------------------------------------------------------------------
+
+/// Specifies an operation that initializes new memory and then reads it.
+pub const MEMORY_INIT_READ: Selectors = [ONE, ZERO];
+
+/// Specifies an operation that copies existing memory and then reads it.
+pub const MEMORY_COPY_READ: Selectors = [ONE, ONE];
+
+/// Specifies a memory write operation.
+pub const MEMORY_WRITE: Selectors = [ZERO, ZERO];
+
+/// Unique label for memory read operations. Computed as 1 more than the binary composition of the
+/// chiplet and operation selectors [1, 1, 0, 1], where the memory operation selector is the first
+/// of the memory trace selector columns.
+pub const MEMORY_READ_LABEL: u8 = 12;
+
+/// Unique label for memory write operations. Computed as 1 more than the binary composition of the
+/// chiplet and operation selectors [1, 1, 0, 0], where the memory operation selector is the first
+/// of the memory trace selector columns.
+pub const MEMORY_WRITE_LABEL: u8 = 4;
+
+// --- COLUMN ACCESSOR INDICES WITHIN THE CHIPLET -------------------------------------------------
+
 /// The number of elements accessible in one read or write memory access.
 pub const NUM_ELEMENTS: usize = 4;
+
 /// Column to hold the context ID of the current memory context.
-pub const CTX_COL_IDX: usize = MEMORY_TRACE_OFFSET;
+pub const CTX_COL_IDX: usize = NUM_SELECTORS;
 /// Column to hold the memory address.
 pub const ADDR_COL_IDX: usize = CTX_COL_IDX + 1;
 /// Column for the clock cycle in which the memory operation occurred.
 pub const CLK_COL_IDX: usize = ADDR_COL_IDX + 1;
-/// Columns to hold the old values stored at a given memory context, address, and clock cycle prior
-/// to the memory operation. When reading from a new address, these are initialized to zero. When
-/// reading or updating previously accessed memory, these values are set to equal the "new" values
-/// of the previous row in the trace.
-pub const U_COL_RANGE: Range<usize> = create_range(CLK_COL_IDX + 1, NUM_ELEMENTS);
-/// Columns to hold the new values stored at a given memory context, address, and clock cycle after
-/// the memory operation.
-pub const V_COL_RANGE: Range<usize> = create_range(U_COL_RANGE.end, NUM_ELEMENTS);
+/// Columns to hold the values stored at a given memory context, address, and clock cycle after
+/// the memory operation. When reading from a new address, these are initialized to zero.
+pub const V_COL_RANGE: Range<usize> = create_range(CLK_COL_IDX + 1, NUM_ELEMENTS);
 /// Column for the lower 16-bits of the delta between two consecutive context IDs, addresses, or
 /// clock cycles.
 pub const D0_COL_IDX: usize = V_COL_RANGE.end;
@@ -28,9 +58,3 @@ pub const D1_COL_IDX: usize = D0_COL_IDX + 1;
 /// Column for the inverse of the delta between two consecutive context IDs, addresses, or clock
 /// cycles, used to enforce that changes are correctly constrained.
 pub const D_INV_COL_IDX: usize = D1_COL_IDX + 1;
-
-// --- OPERATION SELECTOR -----------------------------------------------------------------------
-
-/// Unique label for memory operations. Computed as 1 more than the binary composition of the
-/// chiplet selectors [1, 1, 1].
-pub const MEMORY_LABEL: Felt = Felt::new(8);

@@ -74,7 +74,11 @@ impl<'a> TraceFragment<'a> {
 pub trait LookupTableRow {
     /// Returns a single element representing the row in the field defined by E. The value is
     /// computed using the provided random values.
-    fn to_value<E: FieldElement<BaseField = Felt>>(&self, rand_values: &[E]) -> E;
+    fn to_value<E: FieldElement<BaseField = Felt>>(
+        &self,
+        main_trace: &Matrix<Felt>,
+        rand_values: &[E],
+    ) -> E;
 }
 
 /// Computes values as well as inverse value for all specified lookup table rows.
@@ -85,6 +89,7 @@ pub trait LookupTableRow {
 /// computationally infeasible.
 pub fn build_lookup_table_row_values<E: FieldElement<BaseField = Felt>, R: LookupTableRow>(
     rows: &[R],
+    main_trace: &Matrix<Felt>,
     rand_values: &[E],
 ) -> (Vec<E>, Vec<E>) {
     let mut row_values = unsafe { uninit_vector(rows.len()) };
@@ -98,7 +103,7 @@ pub fn build_lookup_table_row_values<E: FieldElement<BaseField = Felt>, R: Looku
         .zip(inv_row_values.iter_mut())
     {
         *inv_value = acc;
-        *value = row.to_value(rand_values);
+        *value = row.to_value(main_trace, rand_values);
         debug_assert_ne!(*value, E::ZERO, "row value cannot be ZERO");
 
         acc *= *value;
@@ -121,7 +126,7 @@ pub fn build_lookup_table_row_values<E: FieldElement<BaseField = Felt>, R: Looku
 
 /// Defines a builder responsible for building a single column in an auxiliary segment of the
 /// execution trace.
-pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow> {
+pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow, U: HintCycle> {
     // REQUIRED METHODS
     // --------------------------------------------------------------------------------------------
 
@@ -130,7 +135,7 @@ pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow> {
 
     /// Returns a sequence of hints which indicate how the table was updated. Each hint consists
     /// of a clock cycle at which the update happened as well as the hint describing the update.
-    fn get_table_hints(&self) -> &[(usize, H)];
+    fn get_table_hints(&self) -> &[(U, H)];
 
     /// Returns a value by which the current value of the column should be multiplied to get the
     /// next value. It is expected that this value should never be ZERO in practice.
@@ -154,14 +159,14 @@ pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow> {
 
         // allocate memory for the running product column and set its initial value
         let mut result = unsafe { uninit_vector(main_trace.num_rows()) };
-        result[0] = self.init_column_value(alphas);
+        result[0] = self.init_column_value(&row_values);
 
         // keep track of the last updated row in the running product column
-        let mut result_idx = 0;
+        let mut result_idx = 0_usize;
 
         // iterate through the list of updates and apply them one by one
         for (clk, hint) in self.get_table_hints() {
-            let clk = *clk;
+            let clk = clk.as_index();
 
             // if we skipped some cycles since the last update was processed, values in the last
             // updated row should by copied over until the current cycle.
@@ -185,7 +190,7 @@ pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow> {
         // the last value in the column is equal to the expected value, and fill in all the
         // remaining column values with the last value
         let last_value = result[result_idx];
-        assert_eq!(last_value, self.final_column_value(alphas));
+        assert_eq!(last_value, self.final_column_value(&row_values));
         if result_idx < result.len() - 1 {
             result[(result_idx + 1)..].fill(last_value);
         }
@@ -195,23 +200,42 @@ pub trait AuxColumnBuilder<H: Copy, R: LookupTableRow> {
 
     /// Builds and returns row values and their inverses for all rows which were added to the
     /// lookup table managed by this column builder.
-    fn build_row_values<E>(&self, _main_trace: &Matrix<Felt>, alphas: &[E]) -> (Vec<E>, Vec<E>)
+    fn build_row_values<E>(&self, main_trace: &Matrix<Felt>, alphas: &[E]) -> (Vec<E>, Vec<E>)
     where
         E: FieldElement<BaseField = Felt>,
     {
-        build_lookup_table_row_values(self.get_table_rows(), alphas)
+        build_lookup_table_row_values(self.get_table_rows(), main_trace, alphas)
     }
 
     /// Returns the initial value in the auxiliary column. Default implementation of this method
     /// returns ONE.
-    fn init_column_value<E: FieldElement<BaseField = Felt>>(&self, _alphas: &[E]) -> E {
+    fn init_column_value<E: FieldElement<BaseField = Felt>>(&self, _row_values: &[E]) -> E {
         E::ONE
     }
 
     /// Returns the final value in the auxiliary column. Default implementation of this method
     /// returns ONE.
-    fn final_column_value<E: FieldElement<BaseField = Felt>>(&self, _alphas: &[E]) -> E {
+    fn final_column_value<E: FieldElement<BaseField = Felt>>(&self, _row_values: &[E]) -> E {
         E::ONE
+    }
+}
+
+/// Defines a simple trait to recognize the possible types of clock cycles associated with auxiliary
+/// column update hints.
+pub trait HintCycle {
+    /// Returns the cycle as a `usize` for indexing.
+    fn as_index(&self) -> usize;
+}
+
+impl HintCycle for u32 {
+    fn as_index(&self) -> usize {
+        *self as usize
+    }
+}
+
+impl HintCycle for u64 {
+    fn as_index(&self) -> usize {
+        *self as usize
     }
 }
 
