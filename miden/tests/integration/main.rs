@@ -123,4 +123,20 @@ macro_rules! build_test_by_mode {
             in_debug_mode: $in_debug_mode,
         }
     }};
+    ($in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_tape:expr, $advice_sets:expr, $advice_map:expr) => {{
+        let inputs = $crate::helpers::ProgramInputs::with_advice_map(
+            $stack_inputs,
+            $advice_tape,
+            $advice_map,
+            $advice_sets,
+        )
+        .unwrap();
+
+        $crate::helpers::Test {
+            source: String::from($source),
+            kernel: None,
+            inputs,
+            in_debug_mode: $in_debug_mode,
+        }
+    }};
 }

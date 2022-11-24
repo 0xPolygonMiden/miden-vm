@@ -45,7 +45,7 @@ impl AdviceSet {
             keys, values, depth,
         )?))
     }
-    
+
     /// Returns a new [AdviceSet] instantiated as a Merkle path set with a given depth for the provided
     /// lists of indices, values and paths.
     ///
