@@ -1,6 +1,6 @@
 use super::{
-    errors::SerializationError, BTreeMap, Felt, ParsingError, ProcedureId, StarkField, String,
-    ToString, Token, TokenStream, Vec, MODULE_PATH_DELIM,
+    errors::SerializationError, BTreeMap, Felt, ParsingError, ProcedureId, String, ToString, Token,
+    TokenStream, Vec, MODULE_PATH_DELIM,
 };
 use core::{fmt::Display, ops::Deref};
 use serde::{ByteReader, ByteWriter, Deserializable, Serializable};
@@ -417,57 +417,6 @@ fn parse_checked_param<I: core::str::FromStr + Ord + Display>(
     }
 
     Ok(result)
-}
-
-/// Parses a single parameter into a valid field element.
-fn parse_element_param(op: &Token, param_idx: usize) -> Result<Felt, ParsingError> {
-    // make sure that the parameter value is available
-    if op.num_parts() <= param_idx {
-        return Err(ParsingError::missing_param(op));
-    }
-    let param_value = op.parts()[param_idx];
-
-    if let Some(param_value) = param_value.strip_prefix("0x") {
-        // parse hexadecimal number
-        parse_hex_param(op, param_idx, param_value)
-    } else {
-        // parse decimal number
-        parse_decimal_param(op, param_idx, param_value)
-    }
-}
-
-/// Parses a decimal parameter value into valid a field element.
-fn parse_decimal_param(
-    op: &Token,
-    param_idx: usize,
-    param_str: &str,
-) -> Result<Felt, ParsingError> {
-    match param_str.parse::<u64>() {
-        Ok(value) => get_valid_felt(op, param_idx, value),
-        Err(_) => Err(ParsingError::invalid_param(op, param_idx)),
-    }
-}
-
-/// Parses a hexadecimal parameter value into a valid field element.
-fn parse_hex_param(op: &Token, param_idx: usize, param_str: &str) -> Result<Felt, ParsingError> {
-    match u64::from_str_radix(param_str, 16) {
-        Ok(value) => get_valid_felt(op, param_idx, value),
-        Err(_) => Err(ParsingError::invalid_param(op, param_idx)),
-    }
-}
-
-/// Checks that the u64 parameter value is a valid field element value and returns it as a field
-/// element.
-fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<Felt, ParsingError> {
-    if param >= Felt::MODULUS {
-        return Err(ParsingError::invalid_param_with_reason(
-            op,
-            param_idx,
-            format!("parameter value must be smaller than {}", Felt::MODULUS).as_str(),
-        ));
-    }
-
-    Ok(Felt::new(param))
 }
 
 /// Returns an error if the passed in value is 0.
