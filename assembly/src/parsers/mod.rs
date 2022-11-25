@@ -1,226 +1,418 @@
-use super::{AssemblyContext, AssemblyError, CodeBlock, Token, TokenStream};
-pub use blocks::{combine_blocks, parse_code_blocks};
-use u32_ops::U32OpMode;
-use vm_core::{
-    utils::{
-        collections::Vec,
-        string::{String, ToString},
-    },
-    AssemblyOp, Decorator, DecoratorList, Felt, FieldElement, Operation, StarkField,
+use super::{
+    errors::SerializationError, BTreeMap, Felt, ParsingError, ProcedureId, StarkField, String,
+    ToString, Token, TokenStream, Vec, MODULE_PATH_DELIM,
 };
+use core::{fmt::Display, ops::Deref};
+use serde::{ByteReader, ByteWriter, Deserializable, Serializable};
 
-mod blocks;
-mod crypto_ops;
+mod nodes;
+pub(crate) use nodes::{Instruction, Node};
+
+mod context;
+use context::ParserContext;
+
 mod field_ops;
 mod io_ops;
+mod serde;
 mod stack_ops;
 mod u32_ops;
 
-mod ast;
-pub use ast::{parse_module, ModuleAst, ProcedureAst};
+#[cfg(test)]
+pub mod tests;
 
-// OP PARSER
+// TYPE ALIASES
+// ================================================================================================
+type LocalProcMap = BTreeMap<String, (u16, ProcedureAst)>;
+
+// ABSTRACT SYNTAX TREE STRUCTS
 // ================================================================================================
 
-/// Transforms an assembly instruction into a sequence of one or more VM instructions.
-fn parse_op_token(
-    op: &Token,
-    span_ops: &mut Vec<Operation>,
-    num_proc_locals: u32,
-    decorators: &mut DecoratorList,
-    in_kernel: bool,
-    in_debug_mode: bool,
-) -> Result<(), AssemblyError> {
-    let dec_len = decorators.len();
-    // if assembler is in debug mode, populate decorators list with debug related
-    // decorators like AsmOp.
-    if in_debug_mode {
-        decorators.push((
-            span_ops.len(),
-            Decorator::AsmOp(AssemblyOp::new(op.to_string(), 1)),
-        ));
+/// An abstract syntax tree (AST) of a Miden program.
+///
+/// A program AST consists of a list of internal procedure ASTs and a list of body nodes.
+#[derive(Debug, Eq, PartialEq)]
+pub struct ProgramAst {
+    pub local_procs: Vec<ProcedureAst>,
+    pub body: Vec<Node>,
+}
+
+impl ProgramAst {
+    /// Returns byte representation of the `ProgramAst`.
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut byte_writer = ByteWriter::new();
+
+        // local procedures
+        byte_writer.write_u16(self.local_procs.len() as u16);
+
+        self.local_procs
+            .iter()
+            .for_each(|proc| proc.write_into(&mut byte_writer));
+
+        // body
+        self.body.write_into(&mut byte_writer);
+
+        byte_writer.into_bytes()
     }
 
-    // based on the instruction, invoke the correct parser for the operation
-    match op.parts()[0] {
-        // ----- field operations -----------------------------------------------------------------
-        "assert" => field_ops::parse_assert(span_ops, op),
-        "assert_eq" => field_ops::parse_assert_eq(span_ops, op),
-        "assertz" => field_ops::parse_assertz(span_ops, op),
+    /// Returns a `ProgramAst` struct by its byte representation.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SerializationError> {
+        let mut byte_reader = ByteReader::new(bytes);
 
-        "add" => field_ops::parse_add(span_ops, op),
-        "sub" => field_ops::parse_sub(span_ops, op),
-        "mul" => field_ops::parse_mul(span_ops, op),
-        "div" => field_ops::parse_div(span_ops, op),
-        "neg" => field_ops::parse_neg(span_ops, op),
-        "inv" => field_ops::parse_inv(span_ops, op),
+        let num_local_procs = byte_reader.read_u16()?;
 
-        "pow2" => field_ops::parse_pow2(span_ops, op),
-        "exp" => field_ops::parse_exp(span_ops, op),
+        let local_procs = (0..num_local_procs)
+            .map(|_| ProcedureAst::read_from(&mut byte_reader))
+            .collect::<Result<_, _>>()?;
 
-        "not" => field_ops::parse_not(span_ops, op),
-        "and" => field_ops::parse_and(span_ops, op),
-        "or" => field_ops::parse_or(span_ops, op),
-        "xor" => field_ops::parse_xor(span_ops, op),
+        let body = Deserializable::read_from(&mut byte_reader)?;
 
-        "eq" => field_ops::parse_eq(span_ops, op),
-        "neq" => field_ops::parse_neq(span_ops, op),
-        "lt" => field_ops::parse_lt(span_ops, op),
-        "lte" => field_ops::parse_lte(span_ops, op),
-        "gt" => field_ops::parse_gt(span_ops, op),
-        "gte" => field_ops::parse_gte(span_ops, op),
-        "eqw" => field_ops::parse_eqw(span_ops, op),
+        Ok(ProgramAst { local_procs, body })
+    }
+}
 
-        // ----- u32 operations -------------------------------------------------------------------
-        "u32test" => u32_ops::parse_u32test(span_ops, op),
-        "u32testw" => u32_ops::parse_u32testw(span_ops, op),
-        "u32assert" => u32_ops::parse_u32assert(span_ops, op),
-        "u32assertw" => u32_ops::parse_u32assertw(span_ops, op),
-        "u32cast" => u32_ops::parse_u32cast(span_ops, op),
-        "u32split" => u32_ops::parse_u32split(span_ops, op),
+/// An abstract syntax tree (AST) of a Miden code module.
+///
+/// A module AST consists of a list of procedure ASTs. These procedures could be local or exported.
+#[derive(Debug, Eq, PartialEq)]
+pub struct ModuleAst {
+    pub local_procs: Vec<ProcedureAst>,
+}
 
-        "u32checked_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Checked),
-        "u32wrapping_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Wrapping),
-        "u32overflowing_add" => u32_ops::parse_u32add(span_ops, op, U32OpMode::Overflowing),
+impl ModuleAst {
+    /// Returns byte representation of the `ModuleAst.
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut byte_writer = ByteWriter::new();
 
-        "u32overflowing_add3" => u32_ops::parse_u32add3(span_ops, op, U32OpMode::Overflowing),
-        "u32wrapping_add3" => u32_ops::parse_u32wrapping_add3(span_ops, op, U32OpMode::Wrapping),
+        // local procedures
+        byte_writer.write_u16(self.local_procs.len() as u16);
 
-        "u32checked_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Checked),
-        "u32wrapping_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Wrapping),
-        "u32overflowing_sub" => u32_ops::parse_u32sub(span_ops, op, U32OpMode::Overflowing),
+        self.local_procs
+            .iter()
+            .for_each(|proc| proc.write_into(&mut byte_writer));
 
-        "u32checked_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Checked),
-        "u32wrapping_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Wrapping),
-        "u32overflowing_mul" => u32_ops::parse_u32mul(span_ops, op, U32OpMode::Overflowing),
+        byte_writer.into_bytes()
+    }
 
-        "u32overflowing_madd" => u32_ops::parse_u32madd(span_ops, op, U32OpMode::Overflowing),
-        "u32wrapping_madd" => u32_ops::parse_u32wrapping_madd(span_ops, op, U32OpMode::Wrapping),
+    /// Returns a `ModuleAst` struct by its byte representation.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SerializationError> {
+        let mut byte_reader = ByteReader::new(bytes);
 
-        "u32checked_div" => u32_ops::parse_u32div(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_div" => u32_ops::parse_u32div(span_ops, op, U32OpMode::Unchecked),
+        let local_procs_len = byte_reader.read_u16()?;
 
-        "u32checked_mod" => u32_ops::parse_u32mod(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_mod" => u32_ops::parse_u32mod(span_ops, op, U32OpMode::Unchecked),
+        let local_procs = (0..local_procs_len)
+            .map(|_| ProcedureAst::read_from(&mut byte_reader))
+            .collect::<Result<_, _>>()?;
 
-        "u32checked_divmod" => u32_ops::parse_u32divmod(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_divmod" => u32_ops::parse_u32divmod(span_ops, op, U32OpMode::Unchecked),
+        Ok(ModuleAst { local_procs })
+    }
 
-        "u32checked_and" => u32_ops::parse_u32and(span_ops, op),
-        "u32checked_or" => u32_ops::parse_u32or(span_ops, op),
-        "u32checked_xor" => u32_ops::parse_u32xor(span_ops, op),
-        "u32checked_not" => u32_ops::parse_u32not(span_ops, op),
+    /// Return a named reference of the module, binding it to an arbitrary path
+    pub fn named_ref<N>(&self, path: N) -> NamedModuleAst<'_>
+    where
+        N: Into<String>,
+    {
+        NamedModuleAst {
+            path: path.into(),
+            module: self,
+        }
+    }
+}
 
-        "u32checked_shr" => u32_ops::parse_u32shr(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_shr" => u32_ops::parse_u32shr(span_ops, op, U32OpMode::Unchecked),
+/// A reference to a module AST with its name under the provider context (i.e. stdlib).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NamedModuleAst<'a> {
+    // Note: the path is taken as owned string to not leak unnecessary coupling between the path
+    // provider and the module owner.
+    path: String,
+    module: &'a ModuleAst,
+}
 
-        "u32checked_shl" => u32_ops::parse_u32shl(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_shl" => u32_ops::parse_u32shl(span_ops, op, U32OpMode::Unchecked),
+impl<'a> Deref for NamedModuleAst<'a> {
+    type Target = ModuleAst;
 
-        "u32checked_rotr" => u32_ops::parse_u32rotr(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_rotr" => u32_ops::parse_u32rotr(span_ops, op, U32OpMode::Unchecked),
+    fn deref(&self) -> &Self::Target {
+        self.module
+    }
+}
 
-        "u32checked_rotl" => u32_ops::parse_u32rotl(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_rotl" => u32_ops::parse_u32rotl(span_ops, op, U32OpMode::Unchecked),
-
-        "u32checked_eq" => u32_ops::parse_u32eq(span_ops, op),
-        "u32checked_neq" => u32_ops::parse_u32neq(span_ops, op),
-
-        "u32checked_lt" => u32_ops::parse_u32lt(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_lt" => u32_ops::parse_u32lt(span_ops, op, U32OpMode::Unchecked),
-
-        "u32checked_lte" => u32_ops::parse_u32lte(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_lte" => u32_ops::parse_u32lte(span_ops, op, U32OpMode::Unchecked),
-
-        "u32checked_gt" => u32_ops::parse_u32gt(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_gt" => u32_ops::parse_u32gt(span_ops, op, U32OpMode::Unchecked),
-
-        "u32checked_gte" => u32_ops::parse_u32gte(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_gte" => u32_ops::parse_u32gte(span_ops, op, U32OpMode::Unchecked),
-
-        "u32checked_min" => u32_ops::parse_u32min(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_min" => u32_ops::parse_u32min(span_ops, op, U32OpMode::Unchecked),
-
-        "u32checked_max" => u32_ops::parse_u32max(span_ops, op, U32OpMode::Checked),
-        "u32unchecked_max" => u32_ops::parse_u32max(span_ops, op, U32OpMode::Unchecked),
-
-        // ----- stack manipulation ---------------------------------------------------------------
-        "drop" => stack_ops::parse_drop(span_ops, op),
-        "dropw" => stack_ops::parse_dropw(span_ops, op),
-        "padw" => stack_ops::parse_padw(span_ops, op),
-        "dup" => stack_ops::parse_dup(span_ops, op),
-        "dupw" => stack_ops::parse_dupw(span_ops, op),
-        "swap" => stack_ops::parse_swap(span_ops, op),
-        "swapw" => stack_ops::parse_swapw(span_ops, op),
-        "swapdw" => stack_ops::parse_swapdw(span_ops, op),
-        "movup" => stack_ops::parse_movup(span_ops, op),
-        "movupw" => stack_ops::parse_movupw(span_ops, op),
-        "movdn" => stack_ops::parse_movdn(span_ops, op),
-        "movdnw" => stack_ops::parse_movdnw(span_ops, op),
-
-        "cswap" => stack_ops::parse_cswap(span_ops, op),
-        "cswapw" => stack_ops::parse_cswapw(span_ops, op),
-        "cdrop" => stack_ops::parse_cdrop(span_ops, op),
-        "cdropw" => stack_ops::parse_cdropw(span_ops, op),
-
-        // ----- input / output operations --------------------------------------------------------
-        "push" => io_ops::parse_push(span_ops, op),
-
-        "sdepth" => io_ops::parse_sdepth(span_ops, op),
-        "locaddr" => io_ops::parse_locaddr(span_ops, op, num_proc_locals),
-        "caller" => io_ops::parse_caller(span_ops, op, in_kernel),
-
-        "mem_load" => io_ops::parse_mem_read(span_ops, op, num_proc_locals, false, true),
-        "loc_load" => io_ops::parse_mem_read(span_ops, op, num_proc_locals, true, true),
-
-        "mem_loadw" => io_ops::parse_mem_read(span_ops, op, num_proc_locals, false, false),
-        "loc_loadw" => io_ops::parse_mem_read(span_ops, op, num_proc_locals, true, false),
-
-        "mem_store" => io_ops::parse_mem_write(span_ops, op, num_proc_locals, false, true),
-        "loc_store" => io_ops::parse_mem_write(span_ops, op, num_proc_locals, true, true),
-
-        "mem_storew" => io_ops::parse_mem_write(span_ops, op, num_proc_locals, false, false),
-        "loc_storew" => io_ops::parse_mem_write(span_ops, op, num_proc_locals, true, false),
-
-        "mem_stream" => io_ops::parse_mem_stream(span_ops, op),
-        "adv_pipe" => io_ops::parse_adv_pipe(span_ops, op),
-
-        "adv_push" => io_ops::parse_adv_push(span_ops, op),
-        "adv_loadw" => io_ops::parse_adv_loadw(span_ops, op),
-
-        "adv" => io_ops::parse_adv_inject(span_ops, op, decorators),
-
-        // ----- cryptographic operations ---------------------------------------------------------
-        "rphash" => crypto_ops::parse_rphash(span_ops, op),
-        "rpperm" => crypto_ops::parse_rpperm(span_ops, op),
-
-        "mtree_get" => crypto_ops::parse_mtree_get(span_ops, op, decorators),
-        "mtree_set" => crypto_ops::parse_mtree_set(span_ops, op, decorators),
-        "mtree_cwm" => crypto_ops::parse_mtree_cwm(span_ops, op, decorators),
-
-        // ----- catch all ------------------------------------------------------------------------
-        _ => return Err(AssemblyError::invalid_op(op)),
-    }?;
-
-    if in_debug_mode {
-        let op_start = decorators[dec_len].0;
-        // edit the number of cycles corresponding to the asmop decorator at an index
-        if let Decorator::AsmOp(assembly_op) = &mut decorators[dec_len].1 {
-            assembly_op.set_num_cycles((span_ops.len() - op_start) as u8)
+impl<'a> NamedModuleAst<'a> {
+    /// Create a new named module
+    pub fn new<P>(path: P, module: &'a ModuleAst) -> Self
+    where
+        P: Into<String>,
+    {
+        Self {
+            path: path.into(),
+            module,
         }
     }
 
-    Ok(())
+    /// Full path of the module used to compute the proc id
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    /// Full path of a procedure with the given name.
+    pub fn label<N>(&self, name: N) -> String
+    where
+        N: AsRef<str>,
+    {
+        format!("{}{MODULE_PATH_DELIM}{}", self.path, name.as_ref())
+    }
+
+    /// Computed procedure id using as base the full path of the module
+    pub fn procedure_id<N>(&self, name: N) -> ProcedureId
+    where
+        N: AsRef<str>,
+    {
+        ProcedureId::new(self.label(name))
+    }
+
+    pub fn get_procedure(&self, id: &ProcedureId) -> Option<&ProcedureAst> {
+        // TODO this should be cached so we don't have to scan every request
+        self.module
+            .local_procs
+            .iter()
+            .find(|proc| &self.procedure_id(&proc.name) == id)
+    }
+}
+
+/// An abstract syntax tree of a Miden procedure.
+///
+/// A procedure AST consists of a list of body nodes and additional metadata about the procedure
+/// (e.g., procedure name, number of memory locals used by the procedure, and whether a procedure
+/// is exported or internal).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ProcedureAst {
+    pub name: String,
+    pub docs: Option<String>,
+    pub num_locals: u16,
+    pub body: Vec<Node>,
+    pub is_export: bool,
+}
+
+impl Serializable for ProcedureAst {
+    /// Writes byte representation of the `ProcedureAst` into the provided `ByteWriter` struct.
+    fn write_into(&self, target: &mut ByteWriter) {
+        target
+            .write_proc_name(&self.name)
+            .expect("String serialization failure");
+        target
+            .write_docs(&self.docs)
+            .expect("Docs serialization failure");
+        target.write_bool(self.is_export);
+        target.write_u16(self.num_locals);
+        self.body.write_into(target);
+    }
+}
+
+impl Deserializable for ProcedureAst {
+    /// Returns a `ProcedureAst` from its byte representation stored in provided `ByteReader` struct.
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        let name = bytes.read_proc_name()?;
+        let docs = bytes.read_docs()?;
+        let is_export = bytes.read_bool()?;
+        let num_locals = bytes.read_u16()?;
+        let body = Deserializable::read_from(bytes)?;
+        Ok(ProcedureAst {
+            name,
+            docs,
+            num_locals,
+            body,
+            is_export,
+        })
+    }
+}
+
+// PARSERS
+// ================================================================================================
+
+/// Parses the provided source into a program AST. A program consist of a body and a set of
+/// internal (i.e., not exported) procedures.
+pub fn parse_program(source: &str) -> Result<ProgramAst, ParsingError> {
+    let mut tokens = TokenStream::new(source)?;
+    let imports = parse_imports(&mut tokens)?;
+
+    let mut context = ParserContext {
+        imports,
+        ..Default::default()
+    };
+
+    context.parse_procedures(&mut tokens, false)?;
+
+    // make sure program body is present
+    let next_token = tokens
+        .read()
+        .ok_or_else(|| ParsingError::unexpected_eof(tokens.pos()))?;
+    if next_token.parts()[0] != Token::BEGIN {
+        return Err(ParsingError::unexpected_token(next_token, Token::BEGIN));
+    }
+
+    let program_start = tokens.pos();
+    // consume the 'begin' token
+    let header = tokens.read().expect("missing program header");
+    header.validate_begin()?;
+    tokens.advance();
+
+    // make sure there is something to be read
+    let start_pos = tokens.pos();
+    if tokens.eof() {
+        return Err(ParsingError::unexpected_eof(start_pos));
+    }
+
+    let mut body = Vec::<Node>::new();
+
+    // parse the sequence of nodes and add each node to the list
+    let mut end_of_nodes = false;
+    let beginning_node_count = body.len();
+    while !end_of_nodes {
+        let node_count = body.len();
+        context.parse_body(&mut tokens, &mut body, false)?;
+        end_of_nodes = body.len() == node_count;
+    }
+
+    // make sure at least one block has been read
+    if body.len() == beginning_node_count {
+        let start_op = tokens.read_at(start_pos).expect("no start token");
+        return Err(ParsingError::empty_block(start_op));
+    }
+
+    // consume the 'end' token
+    match tokens.read() {
+        None => Err(ParsingError::unmatched_begin(
+            tokens.read_at(program_start).expect("no begin token"),
+        )),
+        Some(token) => match token.parts()[0] {
+            Token::END => token.validate_end(),
+            Token::ELSE => Err(ParsingError::dangling_else(token)),
+            _ => Err(ParsingError::unmatched_begin(
+                tokens.read_at(program_start).expect("no begin token"),
+            )),
+        },
+    }?;
+    tokens.advance();
+
+    // make sure there are no instructions after the end
+    if let Some(token) = tokens.read() {
+        return Err(ParsingError::dangling_ops_after_program(token));
+    }
+
+    let local_procs = sort_procs_into_vec(context.local_procs);
+
+    let program = ProgramAst { body, local_procs };
+
+    Ok(program)
+}
+
+/// Parses the provided source into a module ST. A module consists of internal and exported
+/// procedures but does not contain a body.
+pub fn parse_module(source: &str) -> Result<ModuleAst, ParsingError> {
+    let mut tokens = TokenStream::new(source)?;
+
+    let imports = parse_imports(&mut tokens)?;
+    let mut context = ParserContext {
+        imports,
+        ..Default::default()
+    };
+    context.parse_procedures(&mut tokens, true)?;
+
+    // make sure program body is absent and no more instructions.
+    if tokens.read().is_some() {
+        return Err(ParsingError::unexpected_eof(tokens.pos()));
+    }
+
+    let module = ModuleAst {
+        local_procs: sort_procs_into_vec(context.local_procs),
+    };
+
+    Ok(module)
+}
+
+/// Parses all `use` statements into a map of imports which maps a module name (e.g., "u64") to
+/// its fully-qualified path (e.g., "std::math::u64").
+fn parse_imports(tokens: &mut TokenStream) -> Result<BTreeMap<String, String>, ParsingError> {
+    let mut imports = BTreeMap::<String, String>::new();
+    // read tokens from the token stream until all `use` tokens are consumed
+    while let Some(token) = tokens.read() {
+        match token.parts()[0] {
+            Token::USE => {
+                let module_path = &token.parse_use()?;
+                let (_, short_name) = module_path.rsplit_once(MODULE_PATH_DELIM).unwrap();
+                if imports.contains_key(short_name) {
+                    return Err(ParsingError::duplicate_module_import(token, module_path));
+                }
+
+                imports.insert(short_name.to_string(), module_path.to_string());
+
+                // consume the `use` token
+                tokens.advance();
+            }
+            _ => break,
+        }
+    }
+
+    Ok(imports)
 }
 
 // HELPER FUNCTIONS
 // ================================================================================================
 
+/// Sort a map of procedures into a vec, respecting the order set in the map
+fn sort_procs_into_vec(proc_map: LocalProcMap) -> Vec<ProcedureAst> {
+    let mut procedures: Vec<_> = proc_map.into_values().collect();
+    procedures.sort_by_key(|(idx, _proc)| *idx);
+
+    procedures.into_iter().map(|(_idx, proc)| proc).collect()
+}
+
+/// Parses a param from the op token with the specified type.
+fn parse_param<I: core::str::FromStr>(op: &Token, param_idx: usize) -> Result<I, ParsingError> {
+    let param_value = op.parts()[param_idx];
+
+    let result = match param_value.parse::<I>() {
+        Ok(i) => i,
+        Err(_) => return Err(ParsingError::invalid_param(op, param_idx)),
+    };
+
+    Ok(result)
+}
+
+/// Parses a param from the op token with the specified type and ensures that it falls within the
+/// bounds specified by the caller.
+fn parse_checked_param<I: core::str::FromStr + Ord + Display>(
+    op: &Token,
+    param_idx: usize,
+    lower_bound: I,
+    upper_bound: I,
+) -> Result<I, ParsingError> {
+    let param_value = op.parts()[param_idx];
+
+    let result = match param_value.parse::<I>() {
+        Ok(i) => i,
+        Err(_) => return Err(ParsingError::invalid_param(op, param_idx)),
+    };
+
+    // check that the parameter is within the specified bounds
+    if result < lower_bound || result > upper_bound {
+        return Err(ParsingError::invalid_param_with_reason(
+            op,
+            param_idx,
+            format!(
+                "parameter value must be greater than or equal to {} and less than or equal to {}",
+                lower_bound, upper_bound
+            )
+            .as_str(),
+        ));
+    }
+
+    Ok(result)
+}
+
 /// Parses a single parameter into a valid field element.
-fn parse_element_param(op: &Token, param_idx: usize) -> Result<Felt, AssemblyError> {
+fn parse_element_param(op: &Token, param_idx: usize) -> Result<Felt, ParsingError> {
     // make sure that the parameter value is available
     if op.num_parts() <= param_idx {
-        return Err(AssemblyError::missing_param(op));
+        return Err(ParsingError::missing_param(op));
     }
     let param_value = op.parts()[param_idx];
 
@@ -238,41 +430,26 @@ fn parse_decimal_param(
     op: &Token,
     param_idx: usize,
     param_str: &str,
-) -> Result<Felt, AssemblyError> {
+) -> Result<Felt, ParsingError> {
     match param_str.parse::<u64>() {
         Ok(value) => get_valid_felt(op, param_idx, value),
-        Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
+        Err(_) => Err(ParsingError::invalid_param(op, param_idx)),
     }
 }
 
 /// Parses a hexadecimal parameter value into a valid field element.
-fn parse_hex_param(op: &Token, param_idx: usize, param_str: &str) -> Result<Felt, AssemblyError> {
+fn parse_hex_param(op: &Token, param_idx: usize, param_str: &str) -> Result<Felt, ParsingError> {
     match u64::from_str_radix(param_str, 16) {
         Ok(value) => get_valid_felt(op, param_idx, value),
-        Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
-    }
-}
-
-/// Parses the bits length in `exp` assembly operation into usize.
-fn parse_bit_len_param(op: &Token, param_idx: usize) -> Result<usize, AssemblyError> {
-    let param_value = op.parts()[param_idx];
-
-    if let Some(param) = param_value.strip_prefix('u') {
-        // parse bits len param
-        match param.parse::<usize>() {
-            Ok(value) => Ok(value),
-            Err(_) => Err(AssemblyError::invalid_param(op, param_idx)),
-        }
-    } else {
-        Err(AssemblyError::invalid_param(op, param_idx))
+        Err(_) => Err(ParsingError::invalid_param(op, param_idx)),
     }
 }
 
 /// Checks that the u64 parameter value is a valid field element value and returns it as a field
 /// element.
-fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<Felt, AssemblyError> {
+fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<Felt, ParsingError> {
     if param >= Felt::MODULUS {
-        return Err(AssemblyError::invalid_param_with_reason(
+        return Err(ParsingError::invalid_param_with_reason(
             op,
             param_idx,
             format!("parameter value must be smaller than {}", Felt::MODULUS).as_str(),
@@ -282,61 +459,24 @@ fn get_valid_felt(op: &Token, param_idx: usize, param: u64) -> Result<Felt, Asse
     Ok(Felt::new(param))
 }
 
-/// This is a helper function that parses the parameter at the specified op index as an integer and
-/// ensures that it falls within the bounds specified by the caller.
+/// Returns an error if the passed in value is 0.
 ///
-/// # Errors
-/// Returns an invalid param AssemblyError if:
-/// - the parsing attempt fails.
-/// - the parameter is outside the specified lower and upper bounds.
-fn parse_u32_param(
-    op: &Token,
-    param_idx: usize,
-    lower_bound: u32,
-    upper_bound: u32,
-) -> Result<u32, AssemblyError> {
-    let param_value = op.parts()[param_idx];
-
-    // attempt to parse the parameter value as an integer
-    let result = match param_value.parse::<u32>() {
-        Ok(i) => i,
-        Err(_) => return Err(AssemblyError::invalid_param(op, param_idx)),
-    };
-
-    // check that the parameter is within the specified bounds
-    if result < lower_bound || result > upper_bound {
-        return Err(AssemblyError::invalid_param_with_reason(
+/// This is intended to be used when parsing instructions which need to perform division by
+/// immediate value.
+fn check_div_by_zero(value: u64, op: &Token, param_idx: usize) -> Result<(), ParsingError> {
+    if value == 0 {
+        Err(ParsingError::invalid_param_with_reason(
             op,
             param_idx,
-            format!(
-                "parameter value must be greater than or equal to {} and less than or equal to {}",
-                lower_bound, upper_bound
-            )
-            .as_str(),
-        ));
-    }
-
-    Ok(result)
-}
-
-/// This is a helper function that appends a PUSH operation to the span block which puts the
-/// provided value parameter onto the stack.
-///
-/// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
-/// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
-fn push_value(span_ops: &mut Vec<Operation>, value: Felt) {
-    if value == Felt::ZERO {
-        span_ops.push(Operation::Pad);
-    } else if value == Felt::ONE {
-        span_ops.push(Operation::Pad);
-        span_ops.push(Operation::Incr);
+            "division by zero",
+        ))
     } else {
-        span_ops.push(Operation::Push(value));
+        Ok(())
     }
 }
 
 /// Validates an op Token against a provided instruction string and/or an expected number of
-/// parameter inputs and returns an appropriate AssemblyError if the operation Token is invalid.
+/// parameter inputs and returns an appropriate ParsingError if the operation Token is invalid.
 ///
 /// * To fully validate an operation, pass all of the following:
 /// - the parsed operation Token
@@ -368,11 +508,11 @@ macro_rules! validate_operation {
 
         // token has too few parts to contain the required parameters
         if num_parts < num_instr_parts + $min_params {
-            return Err(AssemblyError::missing_param($token));
+            return Err(ParsingError::missing_param($token));
         }
         // token has more than the maximum number of parts
         if num_parts > num_instr_parts + $max_params {
-            return Err(AssemblyError::extra_param($token));
+            return Err(ParsingError::extra_param($token));
         }
     };
     // validate the exact number of parameters
@@ -393,13 +533,13 @@ macro_rules! validate_operation {
 
         // token has too few parts to contain the full instruction
         if num_parts < num_instr_parts {
-            return Err(AssemblyError::invalid_op($token));
+            return Err(ParsingError::invalid_op($token));
         }
 
         // compare the parts to make sure they match
         for (part_variants, token_part) in instr_parts.iter().zip($token.parts()) {
             if !part_variants.contains(token_part) {
-                return Err(AssemblyError::unexpected_token($token, $instr));
+                return Err(ParsingError::unexpected_token($token, $instr));
             }
         }
 

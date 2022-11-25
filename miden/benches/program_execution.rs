@@ -1,7 +1,8 @@
+use assembly::Assembler;
 use criterion::{criterion_group, criterion_main, Criterion};
-use miden_assembly::Assembler;
-use miden_processor::execute;
+use processor::execute;
 use std::time::Duration;
+use stdlib::StdLibrary;
 use vm_core::ProgramInputs;
 
 fn program_execution(c: &mut Criterion) {
@@ -15,7 +16,7 @@ fn program_execution(c: &mut Criterion) {
             begin
                 exec.sha256::hash
             end";
-        let assembler = Assembler::default();
+        let assembler = Assembler::new().with_module_provider(StdLibrary::default());
         let program = assembler
             .compile(source)
             .expect("Failed to compile test source.");

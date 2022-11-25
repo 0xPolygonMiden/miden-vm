@@ -1,4 +1,4 @@
-use crate::{ModuleAst, ModuleProvider, ProcedureId};
+use crate::{parse_module, Assembler, ModuleAst, ModuleProvider, NamedModuleAst, ProcedureId};
 
 // SIMPLE PROGRAMS
 // ================================================================================================
@@ -142,7 +142,6 @@ fn program_with_proc_locals() {
     let source = "\
         proc.foo.1 \
             loc_store.0 \
-            drop \
             add \
             loc_load.0 \
             mul \
@@ -180,28 +179,38 @@ fn program_with_exported_procedure() {
 #[test]
 fn program_with_one_import() {
     const MODULE: &str = "dummy::math::u256";
+    const PROCEDURE: &str = r#"
+        export.iszero_unsafe
+            eq.0
+            repeat.7
+                swap
+                eq.0
+                and
+            end
+        end"#;
 
-    #[derive(Default)]
-    struct DummyProvider;
+    struct DummyProvider {
+        module: ModuleAst,
+    }
+
+    impl Default for DummyProvider {
+        fn default() -> Self {
+            Self {
+                module: parse_module(PROCEDURE).unwrap(),
+            }
+        }
+    }
 
     impl ModuleProvider for DummyProvider {
-        fn get_source(&self, path: &str) -> Option<&str> {
-            (path == MODULE).then_some(
-                r#"
-                export.iszero_unsafe
-                    eq.0
-                    repeat.7
-                        swap
-                        eq.0
-                        and
-                    end
-                end"#,
-            )
-        }
-
-        fn get_module(&self, _id: &ProcedureId) -> Option<&ModuleAst> {
-            // this test is checking the source as string
-            None
+        fn get_module(&self, id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
+            self.module
+                .local_procs
+                .iter()
+                .any(|proc| {
+                    let proc_id = ProcedureId::from_name(&proc.name, MODULE);
+                    &proc_id == id
+                })
+                .then_some(NamedModuleAst::new(MODULE, &self.module))
         }
     }
 
@@ -241,7 +250,7 @@ fn program_with_import_errors() {
         use.std::math::u512
         begin \
             push.4 push.3 \
-            exec.u256::iszero_unsafe \
+            exec.u512::iszero_unsafe \
         end";
     assert!(assembler.compile(source).is_err());
 
@@ -336,14 +345,14 @@ fn invalid_program() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "source code cannot be an empty string");
+        assert_eq!(error.to_string(), "source code cannot be an empty string");
     }
 
     let source = " ";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "source code cannot be an empty string");
+        assert_eq!(error.to_string(), "source code cannot be an empty string");
     }
 
     let source = "none";
@@ -351,7 +360,7 @@ fn invalid_program() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(
-            error.message(),
+            error.to_string(),
             "unexpected token: expected 'begin' but was 'none'"
         );
     }
@@ -360,7 +369,7 @@ fn invalid_program() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "begin without matching end");
+        assert_eq!(error.to_string(), "begin without matching end");
     }
 
     let source = "begin end";
@@ -368,7 +377,7 @@ fn invalid_program() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(
-            error.message(),
+            error.to_string(),
             "a code block must contain at least one instruction"
         );
     }
@@ -377,47 +386,53 @@ fn invalid_program() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "dangling instructions after program end");
+        assert_eq!(error.to_string(), "dangling instructions after program end");
     }
 }
 
 #[test]
 fn invalid_proc() {
-    let assembler = super::Assembler::default();
+    let assembler = Assembler::default();
 
     let source = "proc.foo add mul begin push.1 end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "proc without matching end");
+        assert_eq!(
+            error.to_string(),
+            "unexpected body termination: invalid token 'begin'"
+        );
     }
 
     let source = "proc.foo add mul proc.bar push.3 end begin push.1 end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "proc without matching end");
+        assert_eq!(
+            error.to_string(),
+            "unexpected body termination: invalid token 'proc.bar'"
+        );
     }
 
     let source = "proc.foo add mul end begin push.1 exec.bar end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "undefined procedure: bar");
+        assert_eq!(error.to_string(), "undefined procedure: bar");
     }
 
     let source = "proc.123 add mul end begin push.1 exec.123 end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "invalid procedure label: 123");
+        assert_eq!(error.to_string(), "invalid procedure label: 123");
     }
 
     let source = "proc.foo add mul end proc.foo push.3 end begin push.1 end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "duplicate procedure label: foo");
+        assert_eq!(error.to_string(), "duplicate procedure label: foo");
     }
 }
 
@@ -430,7 +445,7 @@ fn invalid_if_else() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "if without matching else/end");
+        assert_eq!(error.to_string(), "if without matching else/end");
     }
 
     // --- unmatched else -------------------------------------------------------------------------
@@ -438,28 +453,28 @@ fn invalid_if_else() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "else without matching if");
+        assert_eq!(error.to_string(), "else without matching if");
     }
 
     let source = "begin push.1 while.true add else mul end end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "else without matching if");
+        assert_eq!(error.to_string(), "else without matching if");
     }
 
     let source = "begin push.1 if.true add else mul else push.1 end end end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "else without matching if");
+        assert_eq!(error.to_string(), "else without matching if");
     }
 
     let source = "begin push.1 add if.true mul else add";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "else without matching end");
+        assert_eq!(error.to_string(), "else without matching end");
     }
 }
 
@@ -472,7 +487,7 @@ fn invalid_repeat() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "repeat without matching end");
+        assert_eq!(error.to_string(), "repeat without matching end");
     }
 
     // invalid iter count
@@ -481,7 +496,7 @@ fn invalid_repeat() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(
-            error.message(),
+            error.to_string(),
             "malformed instruction `repeat.23x3`: parameter '23x3' is invalid"
         );
     }
@@ -496,7 +511,7 @@ fn invalid_while() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(
-            error.message(),
+            error.to_string(),
             "malformed instruction 'while': missing required parameter"
         );
     }
@@ -506,7 +521,7 @@ fn invalid_while() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(
-            error.message(),
+            error.to_string(),
             "malformed instruction `while.abc`: parameter 'abc' is invalid"
         );
     }
@@ -515,6 +530,6 @@ fn invalid_while() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.message(), "while without matching end");
+        assert_eq!(error.to_string(), "while without matching end");
     }
 }
