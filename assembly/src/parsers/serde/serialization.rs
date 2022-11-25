@@ -425,8 +425,43 @@ impl Serializable for Instruction {
             Self::CDropW => target.write_opcode(OpCode::CDropW),
 
             // ----- input / output operations --------------------------------------------------------
-            Self::PushConstants(values) => {
-                target.write_opcode(OpCode::PushConstants);
+            Self::PushU8(value) => {
+                target.write_opcode(OpCode::PushU8);
+                target.write_u8(*value);
+            }
+            Self::PushU16(value) => {
+                target.write_opcode(OpCode::PushU16);
+                target.write_u16(*value);
+            }
+            Self::PushU32(value) => {
+                target.write_opcode(OpCode::PushU32);
+                target.write_u32(*value);
+            }
+            Self::PushFelt(value) => {
+                target.write_opcode(OpCode::PushFelt);
+                target.write_felt(*value);
+            }
+            Self::PushWord(values) => {
+                target.write_opcode(OpCode::PushWord);
+                values.iter().for_each(|&v| target.write_felt(v));
+            }
+            Self::PushU8List(values) => {
+                target.write_opcode(OpCode::PushU8List);
+                target.write_u8(values.len() as u8);
+                values.iter().for_each(|&v| target.write_u8(v));
+            }
+            Self::PushU16List(values) => {
+                target.write_opcode(OpCode::PushU16List);
+                target.write_u8(values.len() as u8);
+                values.iter().for_each(|&v| target.write_u16(v));
+            }
+            Self::PushU32List(values) => {
+                target.write_opcode(OpCode::PushU32List);
+                target.write_u8(values.len() as u8);
+                values.iter().for_each(|&v| target.write_u32(v));
+            }
+            Self::PushFeltList(values) => {
+                target.write_opcode(OpCode::PushFeltList);
                 target.write_u8(values.len() as u8);
                 values.iter().for_each(|&v| target.write_felt(v));
             }
