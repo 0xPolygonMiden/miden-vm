@@ -1,7 +1,7 @@
-use air::StarkField;
-use processor::{ExecutionError, Process};
+use super::ProgramError;
+use processor::Process;
 use rustyline::{error::ReadlineError, Editor};
-use vm_core::{Felt, ProgramInputs, Word};
+use vm_core::{Felt, ProgramInputs, StarkField, Word};
 
 /// This work is in continuation to the amazing work done by team `Scribe`
 /// [here](https://github.com/ControlCplusControlV/Scribe/blob/main/transpiler/src/repl.rs#L8)
@@ -259,17 +259,17 @@ pub fn start_repl() {
 /// Compiles and executes a compiled Miden program, returning the stack, memory and any Miden errors.
 /// The program is passed in as a String, passed to the Miden Assembler, and then passed into the Miden
 /// Processor to be executed.
-fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), MidenError> {
+fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramError> {
     let program = assembly::Assembler::new()
         .compile(&program)
-        .map_err(MidenError::AssemblyError)?;
+        .map_err(ProgramError::AssemblyError)?;
 
     let pub_inputs = vec![];
     let inputs = ProgramInputs::new(&pub_inputs, &[], vec![]).unwrap();
     let mut process = Process::new_debug(program.kernel(), inputs);
     let _program_outputs = process
         .execute(&program)
-        .map_err(MidenError::ExecutionError);
+        .map_err(ProgramError::ExecutionError);
 
     let (sys, _, stack, _, chiplets) = process.to_components();
 
@@ -280,13 +280,6 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), MidenError>
     let stack_state = stack.get_state_at(sys.clk());
 
     Ok((mem, stack_state))
-}
-
-/// Errors that are returned from the Miden processor during execution.
-#[derive(Debug)]
-pub enum MidenError {
-    AssemblyError(assembly::AssemblyError),
-    ExecutionError(ExecutionError),
 }
 
 /// Parses the address in integer form from "!mem[addr]" command, otherwise throws an error.

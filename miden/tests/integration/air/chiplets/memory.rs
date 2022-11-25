@@ -10,7 +10,7 @@ fn mem_load() {
 
 #[test]
 fn mem_store() {
-    let asm_op = "mem_store.0 drop";
+    let asm_op = "mem_store.0";
     let pub_inputs = vec![1];
 
     build_op_test!(asm_op, &pub_inputs).prove_and_verify(pub_inputs, false);
@@ -19,7 +19,8 @@ fn mem_store() {
 #[test]
 fn helper_mem_store() {
     // Sequence of operations: [Span, Pad, MStoreW, Drop, Drop, Drop, Drop, Pad, Mstore, Drop, Pad, MStoreW, Drop, Pad, Mstore, Drop]
-    let asm_op = "begin mem_storew.0 drop drop drop drop mem_store.0 drop mem_storew.0 drop mem_store.0 drop end";
+    let asm_op =
+        "begin mem_storew.0 drop drop drop drop mem_store.0 mem_storew.0 drop mem_store.0 end";
     let pub_inputs = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
     let trace = build_test!(asm_op, &pub_inputs).execute().unwrap();

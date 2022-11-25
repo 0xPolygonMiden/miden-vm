@@ -1,9 +1,5 @@
-use super::{AssemblyError, Token};
+use super::{BTreeMap, ParsingError, String, Token, Vec};
 use core::fmt;
-use vm_core::utils::{
-    collections::{BTreeMap, Vec},
-    string::String,
-};
 
 pub const DOC_COMMENT_PREFIX: &str = "#!";
 pub const LINE_COMMENT_PREFIX: &str = "#";
@@ -24,9 +20,9 @@ impl<'a> TokenStream<'a> {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// TODO: add comments
-    pub fn new(source: &'a str) -> Result<Self, AssemblyError> {
+    pub fn new(source: &'a str) -> Result<Self, ParsingError> {
         if source.is_empty() {
-            return Err(AssemblyError::empty_source());
+            return Err(ParsingError::empty_source());
         }
         let mut tokens = Vec::new();
         let mut doc_comments = BTreeMap::new();
@@ -38,7 +34,7 @@ impl<'a> TokenStream<'a> {
             if line.starts_with(DOC_COMMENT_PREFIX) {
                 comment.append_line(line);
             } else if line.is_empty() && !comment.is_empty() {
-                return Err(AssemblyError::malformed_doc_comment(tokens.len()));
+                return Err(ParsingError::malformed_doc_comment(tokens.len()));
             } else {
                 if !comment.is_empty() {
                     doc_comments.insert(tokens.len(), comment.take_content());
@@ -52,7 +48,7 @@ impl<'a> TokenStream<'a> {
         }
 
         if tokens.is_empty() {
-            return Err(AssemblyError::empty_source());
+            return Err(ParsingError::empty_source());
         }
         let current = Token::new(tokens[0], 0);
         Ok(Self {

@@ -260,7 +260,6 @@ export.verify.257
 
     locaddr.256
     mem_store
-    drop
 
     # compute squared norm of s1 ( where s1 is provided as polynomial
     # with coefficients represented using absolute value i.e. signs are ignored )

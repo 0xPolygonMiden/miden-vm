@@ -186,7 +186,7 @@ Above, we used public inputs to initialize the stack rather than using `push` op
 If you want to execute, prove, and verify programs on Miden VM, but don't want to write Rust code, you can use Miden CLI. It also contains a number of useful tools to help analyze and debug programs.
 
 ### Compiling Miden VM
-First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.62** or greater.
+First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.62** or later.
 
 Then, to compile Miden VM into a binary, run the following command:
 ```

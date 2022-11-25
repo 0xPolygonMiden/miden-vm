@@ -7,6 +7,9 @@ use crate::utils::get_trace_len;
 use core::ops::Range;
 use vm_core::utils::new_array_vec;
 
+#[cfg(test)]
+use vm_core::decoder::NUM_USER_OP_HELPERS;
+
 // CONSTANTS
 // ================================================================================================
 
@@ -512,6 +515,18 @@ impl DecoderTrace {
         }
         self.group_count_trace.push(ZERO);
         self.op_idx_trace.push(ZERO);
+    }
+
+    /// Fetches all the helper registers from the trace.
+    #[cfg(test)]
+    pub fn get_user_op_helpers(&self) -> [Felt; NUM_USER_OP_HELPERS] {
+        let mut result = [ZERO; NUM_USER_OP_HELPERS];
+        for (idx, helper) in result.iter_mut().enumerate() {
+            *helper = *self.hasher_trace[USER_OP_HELPERS.start + idx]
+                .last()
+                .expect("no last helper value");
+        }
+        result
     }
 }
 

@@ -1,5 +1,5 @@
 use super::Word;
-use crate::utils::{collections::Vec, string::String};
+use crate::utils::collections::Vec;
 
 #[derive(Clone, Debug)]
 pub enum InputError {
@@ -17,9 +17,4 @@ pub enum AdviceSetError {
     InvalidDepth(u32, u32),
     InvalidPath(Vec<Word>),
     NodeNotInSet(u64),
-}
-
-#[derive(Clone, Debug)]
-pub enum LibraryError {
-    ModuleNotFound(String),
 }
