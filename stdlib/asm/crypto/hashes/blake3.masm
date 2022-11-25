@@ -810,16 +810,8 @@ end
 export.hash32.4
     # Pad 32 -bytes input message with zero bytes to make
     # 64 -bytes, which is processed same as 2-to-1 hashing
-    loc_storew.0
-    dropw
-    loc_storew.1
-    dropw
-
-    push.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0
-
-    loc_loadw.1
-    swapw
-    loc_loadw.0
+    push.0.0.0.0.0.0.0.0
+    swapdw
 
     locaddr.3
     locaddr.2
