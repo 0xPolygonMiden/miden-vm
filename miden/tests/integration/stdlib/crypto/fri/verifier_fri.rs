@@ -377,7 +377,7 @@ fn iterate_query_fold_2_quad_ext(
     let arr = vec![evaluation];
     let a = QuadExt::as_base_elements(&arr);
 
-    let partial_tap = vec![
+    let mut partial_tap = vec![
         a[0].as_int(),
         a[1].as_int(),
         (position as u64).into(),
@@ -404,6 +404,12 @@ fn iterate_query_fold_2_quad_ext(
             .next()
             .expect("must contain the leaf values")
             .1;
+        partial_tap.extend([
+            query_values[0].as_int(),
+            query_values[1].as_int(),
+            query_values[2].as_int(),
+            query_values[3].as_int(),
+        ]);
         let query_values = [
             QuadExt::new(query_values[0], query_values[1]),
             QuadExt::new(query_values[2], query_values[3]),

@@ -44,8 +44,8 @@ end
 #! The address of the word (num_q,d,g,t_d) will be at locaddr.0. The commitments and alphas will be
 #! at the subsequent addresses. The total number of such commitments and alphas is t_d - 3 
 #! (excluding the remainder commitment).
-export.preprocess.1
-    locaddr.0                   #[add,..]
+export.preprocess.2
+    locaddr.1                   #[add,..]
     adv_push.4                  #[num_q,d,g,t_d,add,..]
     dup.3                       #[t_d,num_q,d,g,t_d,add,..]
     movdn.4                     #[num_q,d,g,t_d,t_d,add,..]
@@ -76,9 +76,9 @@ export.preprocess.1
     movup.2
 
     push.0.0.0.0
-    locaddr.0
+    locaddr.1
     mem_loadw
-    locaddr.0
+    locaddr.1
 end
 
 #! Helper procedure used to prepare the stack for the next iteration of verify_query_layer for a 
@@ -113,7 +113,7 @@ end
 #! TODO: Check where/if some checks are needed at the beginning, like p < d (p&d are u32) and that 2^t_d == d 
 #! Input: #[d,p,C,t_d,e1,e0,poe,a1,a0,add',add_f..]
 #! Output: #[t_d-1,e1,e0,p%d/2,d/2,poe_sq,add',add_f..]
-export.verify_query_layer
+export.verify_query_layer.1
     u32unchecked_div.2          #[d/2,p,C,t_d,...]
     dup                         #[d/2,d/2,p,C,t_d,...]
     dup.2 swap                  #[d/2,p,d/2,p,C,t_d,...]
@@ -122,47 +122,56 @@ export.verify_query_layer
     dup.4                       #[p%d/2,C,p%d/2,?,d/2,p,t_d,...]
     dup.9                       #[t_d,p%d/2,C,p%d/2,?,d/2,p,t_d,...]
     mtree_get  swapw            #[C,V',p%d/2,?,d/2,p,t_d,...]  V' are the digest of values V = (v3,v2,v1,v0)
-    
     dropw
-    adv.keyval                  # load the leaf values onto the adv tape
-                                #[V',p%d/2,?,d/2,p,t_d,e1,e0,poe,a1,a0,add',add_f,...]
 
-    dup.15                      #[add_f,V',p%d/2,?,d/2,p,t_d,e1,e0,poe,a1,a0,add',add_f,...]
+    # Unhashing the leaf values
+    push.4.0.0.0.0.0.0.0
+    adv_loadw
+    loc_storew.0
+    push.0.0.0.0
+    rpperm
+    swapw.3
+    movup.4
+    assert_eq
+    movup.3
+    assert_eq
+    movup.2
+    assert_eq
+    assert_eq
+    dropw
+    loc_loadw.0
 
-    push.4.0.0.0                #[0,0,0,4,add_f,V',p%d/2,?,d/2,p,t_d,...]
-    push.0.0.0.0.0.0.0.0        #[0,0,0,0,0,0,0,0,0,0,0,4,add_f,V',p%d/2,?,d/2,p,t_d,...]
-    adv_pipe                    #[T,D,S,add_f,V',p%d/2,?,d/2,p,t_d,...]
-    dropw swapw dropw           #[D,add_f,V',p%d/2,?,d/2,p,t_d,...]
-    movup.4  movdn.8            #[D,V',add_f,p%d/2,?,d/2,p,t_d,...]
-    eqw drop dropw movup.4      #[add_f,V',p%d/2,?,d/2,p,t_d,...]
-    sub.2 mem_loadw             #[V,p%d/2,?,d/2,p,t_d,...]
-
+    # Check that evaluation (from the previous layer) is equal to the (appropriate) unhashed values.
+    # The hash values to compare against are selected using the binary value ?.
     dupw  movdnw.2              #[v3,v2,v1,v0,p%d/2,?,d/2,p,V,t_d,...]
     movup.2 swap                #[v3,v1,v2,v0,p%d/2,?,d/2,p,V,t_d,...]
     dup.5                       #[?,v3,v1,v2,v0,p%d/2,?,d/2,p,V,t_d,...]
     cdrop                       #[v1,v2,v0,p%d/2,?,d/2,p,V,t_d,...]
     movdn.2                     #[v2,v0,v1,p%d/2,?,d/2,p,V,t_d,...]
     dup.4                       #[?,v2,v0,v1,p%d/2,?,d/2,p,V,t_d,...]
-    cdrop   swap                #[v1,v0,p%d/2,?,d/2,p,V,t_d,...]
-                                #[v1,v0,p%d/2,?,d/2,p,V,t_d,e1,e0..]
+    cdrop   swap                #[v1,v0,p%d/2,?,d/2,p,V,t_d,e1,e0,...]
     dup                         #[v1,v1,v0,p%d/2,?,d/2,p,V,t_d,e1,e0..]
     movup.12                    #[e1,v1,v1,v0,p%d/2,?,d/2,p,t_d,e0..]
     assert_eq                   #[v1,v0,p%d/2,?,d/2,p,V,t_d,e0..]
     dup.1                       #[v0,v1,v0,p%d/2,?,d/2,p,V,t_d,e0..]
     movup.12                    #[e0,v0,v1,v0,p%d/2,?,d/2,p,V,t_d..]
     assert_eq                   #[v1,v0,p%d/2,?,d/2,p,V,t_d,poe,..] #poe is position in the exponent
+
+    # Prepare for fold_2 procedure by computing: offset * (domain_generator ^ position). This is done
+    # using poe from the previous layer and the binary value ? using the next_pos_exp procedure.
     drop drop swapw             #[V,p%d/2,?,d/2,p,t_d,poe,..]
     movup.9                     #[poe,V,p%d/2,?,d/2,p,t_d,..]
     dup                         #[poe,poe,V,p%d/2,?,d/2,p,t_d,..]
     movup.7                     #[?,poe,poe,V,p%d/2,d/2,p,t_d,..]
     exec.next_pos_exp           #[poe_sq,xs,V,p%d/2,d/2,p,t_d,..]
     swap.8 drop                 #[xs,V,p%d/2,d/2,poe_sq,t_d,..]
-    push.0                      #[0,xs,V,p%d/2,d/2,poe_sq,t_d,..]
-                                #[0,xs,V,p%d/2,d/2,poe_sq,t_d,a1,a0,..]
+    push.0                      #[0,xs,V,p%d/2,d/2,poe_sq,t_d,a1,a0,..]
     movup.11 movup.11           #[a1,a0,0,xs,v3,v2,v1,v0,p%d/2,d/2,poe_sq,t_d,..]   
     swapw                       #[v3,v2,v1,v0,a1,a0,0,xs,p%d/2,d/2,poe_sq,t_d,..] #Should simplify fri since d1 is always equal to zero
     movup.3 movup.3
     exec.fold_2                 #[e1,e0,p%d/2,d/2,poe_sq,t_d,..]
+
+    # Decrement the depth i.e. move one layer deeper in the folding step of FRI verification.
     movup.5 u32wrapping_sub.1   #[t_d-1,e1,e0,p%d/2,d/2,poe_sq,add',..]
     
 
@@ -239,7 +248,7 @@ export.verify_fri
         dup                         #[p,p,e1,e0,d,g,t_d,...]
         movup.5                     #[g,p,p,e1,e0,d,t_d,...]
         swap                        #[p,g,p,e1,e0,d,t_d,...]
-        exp.u32                #[poe,p,e1,e0,d,t_d,...]
+        exp.u32                     #[poe,p,e1,e0,d,t_d,...]
         dup.6                       #[add_f,poe,p,e1,e0,d,t_d,add_f,...]
         sub.2 dup                   #[add_f - 2,add_f - 2,poe,p,e1,e0,d,t_d,add_f,...]
         movdn.7                     #[add_f - 2,poe,p,e1,e0,d,t_d,add_f - 2,add_f,...]
