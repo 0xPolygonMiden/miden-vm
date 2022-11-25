@@ -186,6 +186,7 @@ impl Deserializable for Instruction {
             OpCode::DivImm => Ok(Instruction::DivImm(bytes.read_felt()?)),
             OpCode::Neg => Ok(Instruction::Neg),
             OpCode::Inv => Ok(Instruction::Inv),
+            OpCode::Incr => Ok(Instruction::Incr),
             OpCode::Pow2 => Ok(Instruction::Pow2),
             OpCode::Exp => Ok(Instruction::Exp),
             OpCode::ExpImm => Ok(Instruction::ExpImm(bytes.read_felt()?)),
@@ -315,7 +316,7 @@ impl Deserializable for Instruction {
             OpCode::DupW1 => Ok(Instruction::DupW1),
             OpCode::DupW2 => Ok(Instruction::DupW2),
             OpCode::DupW3 => Ok(Instruction::DupW3),
-            OpCode::Swap => Ok(Instruction::Swap),
+            OpCode::Swap1 => Ok(Instruction::Swap1),
             OpCode::Swap2 => Ok(Instruction::Swap2),
             OpCode::Swap3 => Ok(Instruction::Swap3),
             OpCode::Swap4 => Ok(Instruction::Swap4),
@@ -330,10 +331,10 @@ impl Deserializable for Instruction {
             OpCode::Swap13 => Ok(Instruction::Swap13),
             OpCode::Swap14 => Ok(Instruction::Swap14),
             OpCode::Swap15 => Ok(Instruction::Swap15),
-            OpCode::SwapW => Ok(Instruction::SwapW),
+            OpCode::SwapW1 => Ok(Instruction::SwapW1),
             OpCode::SwapW2 => Ok(Instruction::SwapW2),
             OpCode::SwapW3 => Ok(Instruction::SwapW3),
-            OpCode::SwapDW => Ok(Instruction::SwapDW),
+            OpCode::SwapDW => Ok(Instruction::SwapDw),
             OpCode::MovUp2 => Ok(Instruction::MovUp2),
             OpCode::MovUp3 => Ok(Instruction::MovUp3),
             OpCode::MovUp4 => Ok(Instruction::MovUp4),
@@ -380,36 +381,42 @@ impl Deserializable for Instruction {
                 }
                 Ok(Instruction::PushConstants(constants))
             }
-            OpCode::Locaddr => Ok(Instruction::Locaddr(bytes.read_felt()?)),
+            OpCode::Locaddr => Ok(Instruction::Locaddr(bytes.read_u16()?)),
             OpCode::Sdepth => Ok(Instruction::Sdepth),
             OpCode::Caller => Ok(Instruction::Caller),
 
             OpCode::MemLoad => Ok(Instruction::MemLoad),
-            OpCode::MemLoadImm => Ok(Instruction::MemLoadImm(bytes.read_felt()?)),
+            OpCode::MemLoadImm => Ok(Instruction::MemLoadImm(bytes.read_u32()?)),
             OpCode::MemLoadW => Ok(Instruction::MemLoadW),
-            OpCode::MemLoadWImm => Ok(Instruction::MemLoadWImm(bytes.read_felt()?)),
-            OpCode::LocLoad => Ok(Instruction::LocLoad(bytes.read_felt()?)),
-            OpCode::LocLoadW => Ok(Instruction::LocLoadW(bytes.read_felt()?)),
+            OpCode::MemLoadWImm => Ok(Instruction::MemLoadWImm(bytes.read_u32()?)),
+            OpCode::LocLoad => Ok(Instruction::LocLoad(bytes.read_u16()?)),
+            OpCode::LocLoadW => Ok(Instruction::LocLoadW(bytes.read_u16()?)),
             OpCode::MemStore => Ok(Instruction::MemStore),
-            OpCode::MemStoreImm => Ok(Instruction::MemStoreImm(bytes.read_felt()?)),
-            OpCode::LocStore => Ok(Instruction::LocStore(bytes.read_felt()?)),
+            OpCode::MemStoreImm => Ok(Instruction::MemStoreImm(bytes.read_u32()?)),
+            OpCode::LocStore => Ok(Instruction::LocStore(bytes.read_u16()?)),
             OpCode::MemStoreW => Ok(Instruction::MemStoreW),
-            OpCode::MemStoreWImm => Ok(Instruction::MemStoreWImm(bytes.read_felt()?)),
-            OpCode::LocStoreW => Ok(Instruction::LocStoreW(bytes.read_felt()?)),
+            OpCode::MemStoreWImm => Ok(Instruction::MemStoreWImm(bytes.read_u32()?)),
+            OpCode::LocStoreW => Ok(Instruction::LocStoreW(bytes.read_u16()?)),
 
             OpCode::MemStream => Ok(Instruction::MemStream),
             OpCode::AdvPipe => Ok(Instruction::AdvPipe),
 
             OpCode::AdvU64Div => Ok(Instruction::AdvU64Div),
-            OpCode::AdvPush => Ok(Instruction::AdvPush(bytes.read_felt()?)),
-            OpCode::AdvLoadW => Ok(Instruction::AdvLoadW(bytes.read_felt()?)),
+            OpCode::AdvKeyval => Ok(Instruction::AdvKeyval),
+            OpCode::AdvMem => {
+                let start_addr = bytes.read_u32()?;
+                let num_words = bytes.read_u32()?;
+                Ok(Instruction::AdvMem(start_addr, num_words))
+            }
+            OpCode::AdvPush => Ok(Instruction::AdvPush(bytes.read_u8()?)),
+            OpCode::AdvLoadW => Ok(Instruction::AdvLoadW),
 
             // ----- cryptographic operations ---------------------------------------------------------
-            OpCode::RPHash => Ok(Instruction::RPHash),
-            OpCode::RPPerm => Ok(Instruction::RPPerm),
+            OpCode::RPHash => Ok(Instruction::RpHash),
+            OpCode::RPPerm => Ok(Instruction::RpPerm),
             OpCode::MTreeGet => Ok(Instruction::MTreeGet),
             OpCode::MTreeSet => Ok(Instruction::MTreeSet),
-            OpCode::MTreeCWM => Ok(Instruction::MTreeCWM),
+            OpCode::MTreeCwm => Ok(Instruction::MTreeCwm),
 
             // ----- exec / call ----------------------------------------------------------------------
             OpCode::ExecLocal => Ok(Instruction::ExecLocal(bytes.read_u16()?)),

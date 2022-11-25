@@ -11,7 +11,6 @@ proc.append
 
     # [prime, i, n, primes..]
     mem_store
-    drop
 
     # [i++, n, primes..]
     swap.2

@@ -233,28 +233,22 @@ export.add.10
     loc_storew.0
     dropw
     loc_store.1 # cached x1
-    drop
 
     loc_storew.2
     dropw
     loc_store.3 # cached y1
-    drop
 
     loc_store.4 # cached inf1
-    drop
 
     loc_storew.5
     dropw
     loc_store.6 # cached x2
-    drop
 
     loc_storew.7
     dropw
     loc_store.8 # cached y2
-    drop
 
     loc_store.9 # cached inf2
-    drop
 
     loc_load.6
     push.0.0.0.0
@@ -502,15 +496,12 @@ export.double.5
     loc_storew.0
     dropw
     loc_store.1 # cached x
-    drop
 
     loc_storew.2
     dropw
     loc_store.3 # cached y
-    drop
 
     loc_store.4 # cached inf
-    drop
 
     loc_load.3
     push.0.0.0.0
@@ -617,33 +608,27 @@ export.mul.10
     loc_storew.0
     dropw
     loc_store.1 # cached base_x
-    drop
 
     loc_storew.2
     dropw
     loc_store.3 # cached base_y
-    drop
 
     loc_store.4 # cached base_inf
-    drop
 
     push.0.0.0.0
     loc_storew.5
     dropw
     push.0
     loc_store.6 # initialize and cache res_x
-    drop
 
     push.0.0.0.0
     loc_storew.7
     dropw
     push.0
     loc_store.8 # initialize and cache res_y
-    drop
 
     push.1
     loc_store.9 # initialize and cache res_inf
-    drop
 
     repeat.10
         repeat.32
@@ -680,15 +665,12 @@ export.mul.10
                 loc_storew.5
                 dropw
                 loc_store.6
-                drop
 
                 loc_storew.7
                 dropw
                 loc_store.8
-                drop
 
                 loc_store.9
-                drop
             end
 
             # bring base
@@ -708,15 +690,12 @@ export.mul.10
             loc_storew.0
             dropw
             loc_store.1
-            drop
 
             loc_storew.2
             dropw
             loc_store.3
-            drop
 
             loc_store.4
-            drop
 
             u32unchecked_shr.1
         end

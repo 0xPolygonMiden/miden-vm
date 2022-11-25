@@ -7,6 +7,7 @@
 - [User Documentation](./user_docs/main.md)
   - [Miden Assembly](./user_docs/assembly/main.md)
     - [Code Organization](./user_docs/assembly/code_organization.md)
+    - [Execution contexts](./user_docs/assembly/execution_contexts.md)
     - [Flow Control](./user_docs/assembly/flow_control.md)
     - [Field Operations](./user_docs/assembly/field_operations.md)
     - [u32 Operations](./user_docs/assembly/u32_operations.md)

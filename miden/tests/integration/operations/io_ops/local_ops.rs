@@ -31,9 +31,7 @@ fn pop_local() {
     let source = "
         proc.foo.2
             loc_store.0
-            drop
             loc_store.1
-            drop
             loc_load.0
             loc_load.1
         end
@@ -48,13 +46,10 @@ fn pop_local() {
     let source = "
         proc.foo.1
             loc_store.0
-            drop
         end
         begin
             mem_store.0
-            drop
             mem_store.1
-            drop
             exec.foo
         end";
     let mem_addr = 1;
@@ -136,7 +131,6 @@ fn inverse_operations() {
     let source = "
         proc.foo.1
             loc_store.0
-            drop
             loc_load.0
         end
         begin
@@ -234,11 +228,9 @@ fn nested_procedures() {
     let source = "
         proc.foo.1
             loc_store.0
-            drop
         end
         proc.bar.1
             loc_store.0
-            drop
             exec.foo
             loc_load.0
         end
@@ -297,19 +289,13 @@ fn free_memory_pointer() {
     let source = "
         proc.bar.2
             loc_store.0
-            drop
             loc_store.1
-            drop
         end
         begin
             mem_store.0
-            drop
             mem_store.1
-            drop
             mem_store.2
-            drop
             mem_store.3
-            drop
             exec.bar
             mem_load.3
             mem_load.2

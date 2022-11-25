@@ -11,9 +11,6 @@ use core::fmt;
 pub mod blocks;
 use blocks::CodeBlock;
 
-mod library;
-pub use library::Library;
-
 // PROGRAM
 // ================================================================================================
 /// A program which can be executed by the VM.
