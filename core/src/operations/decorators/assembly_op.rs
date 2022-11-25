@@ -3,7 +3,7 @@ use crate::utils::string::String;
 // ASSEMBLY OP
 // ================================================================================================
 
-/// Contains information corresponsing to an assembly instruction (only applicable in debug mode)
+/// Contains information corresponding to an assembly instruction (only applicable in debug mode).
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AssemblyOp {
     op: String,

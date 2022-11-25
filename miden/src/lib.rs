@@ -4,7 +4,7 @@
 // ================================================================================================
 
 pub use air::{FieldExtension, HashFunction, ProofOptions};
-pub use assembly::{Assembler, AssemblyError};
+pub use assembly::{Assembler, AssemblyError, ParsingError};
 pub use processor::{
     execute, execute_iter, AsmOpInfo, ExecutionError, ExecutionTrace, VmState, VmStateIterator,
 };

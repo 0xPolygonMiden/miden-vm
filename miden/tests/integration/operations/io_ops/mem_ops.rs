@@ -33,12 +33,12 @@ fn mem_store() {
 
     // --- address provided via the stack ---------------------------------------------------------
     let test = build_op_test!(asm_op, &[1, 2, 3, 4, addr]);
-    test.expect_stack_and_memory(&[4, 3, 2, 1], addr, &[4, 0, 0, 0]);
+    test.expect_stack_and_memory(&[3, 2, 1], addr, &[4, 0, 0, 0]);
 
     // --- address provided as a parameter --------------------------------------------------------
     let asm_op = format!("{}.{}", asm_op, addr);
     let test = build_op_test!(&asm_op, &[1, 2, 3, 4]);
-    test.expect_stack_and_memory(&[4, 3, 2, 1], addr, &[4, 0, 0, 0]);
+    test.expect_stack_and_memory(&[3, 2, 1], addr, &[4, 0, 0, 0]);
 }
 
 // LOADING A WORD FROM MEMORY (MLOADW)
@@ -138,9 +138,7 @@ fn inverse_operations() {
         begin
             push.0
             mem_store
-            drop
             mem_store.1
-            drop
             push.1
             mem_load
             mem_load.0

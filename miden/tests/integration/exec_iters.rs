@@ -6,7 +6,7 @@ use vm_core::{utils::ToElements, Felt, FieldElement, Operation};
 // =================================================================
 #[test]
 fn test_exec_iter() {
-    let source = "proc.foo.1 loc_store.0 drop end begin mem_storew.1 dropw push.17 exec.foo end";
+    let source = "proc.foo.1 loc_store.0 end begin mem_storew.1 dropw push.17 exec.foo end";
     let mut init_stack: Vec<u64> = Vec::new();
     (1..=16).for_each(|i| {
         init_stack.push(i);
@@ -138,7 +138,7 @@ fn test_exec_iter() {
             clk: 13,
             ctx: 0,
             op: Some(Operation::Pad),
-            asmop: Some(AsmOpInfo::new("loc_store.0".to_string(), 3, 1)),
+            asmop: Some(AsmOpInfo::new("loc_store.0".to_string(), 4, 1)),
             stack: [0, 17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0].to_elements(),
             fmp: next_fmp,
             memory: mem.clone(),
@@ -147,7 +147,7 @@ fn test_exec_iter() {
             clk: 14,
             ctx: 0,
             op: Some(Operation::FmpAdd),
-            asmop: Some(AsmOpInfo::new("loc_store.0".to_string(), 3, 2)),
+            asmop: Some(AsmOpInfo::new("loc_store.0".to_string(), 4, 2)),
             stack: [
                 2u64.pow(30) + 1,
                 17,
@@ -175,7 +175,7 @@ fn test_exec_iter() {
             clk: 15,
             ctx: 0,
             op: Some(Operation::MStore),
-            asmop: Some(AsmOpInfo::new("loc_store.0".to_string(), 3, 3)),
+            asmop: Some(AsmOpInfo::new("loc_store.0".to_string(), 4, 3)),
             stack: [17, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0].to_elements(),
             fmp: next_fmp,
             memory: vec![
@@ -187,7 +187,7 @@ fn test_exec_iter() {
             clk: 16,
             ctx: 0,
             op: Some(Operation::Drop),
-            asmop: Some(AsmOpInfo::new("drop".to_string(), 1, 1)),
+            asmop: Some(AsmOpInfo::new("loc_store.0".to_string(), 4, 4)),
             stack: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0, 0].to_elements(),
             fmp: next_fmp,
             memory: vec![
