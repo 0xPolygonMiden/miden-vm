@@ -252,6 +252,7 @@ end
 #!
 #! Adapted from equivalent Rust implementation https://github.com/itzmeanjan/miden/blob/6a611e693601577864da3e43e745525b83c0030d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L92-L132
 export.mont_mul.8
+    dup
     loc_store.0
     loc_storew.1
     dropw
@@ -272,7 +273,7 @@ export.mont_mul.8
     u32wrapping_mul
     u32wrapping_mul.91978719 # more about this literal constant 
     loc_store.4              # https://github.com/itzmeanjan/miden/blob/e7038e45865a7032a0629346921a77010e82862d/miden/tests/integration/stdlib/math/ext5_scalar.rs#L46-L54
-    drop                     # cached f
+                             # cached f
 
     push.0.0.0.0
     loc_loadw.1
@@ -572,7 +573,6 @@ export.mont_mul.8
     u32wrapping_add
     u32wrapping_mul.91978719
     loc_store.4
-    drop
 
     push.0.0.0.0
     loc_loadw.1
@@ -922,7 +922,6 @@ export.mont_mul.8
     u32wrapping_add
     u32wrapping_mul.91978719
     loc_store.4
-    drop
 
     push.0.0.0.0
     loc_loadw.1
@@ -1272,7 +1271,6 @@ export.mont_mul.8
     u32wrapping_add
     u32wrapping_mul.91978719
     loc_store.4
-    drop
 
     push.0.0.0.0
     loc_loadw.1
@@ -1622,7 +1620,6 @@ export.mont_mul.8
     u32wrapping_add
     u32wrapping_mul.91978719
     loc_store.4
-    drop
 
     push.0.0.0.0
     loc_loadw.1
@@ -1972,7 +1969,6 @@ export.mont_mul.8
     u32wrapping_add
     u32wrapping_mul.91978719
     loc_store.4
-    drop
 
     push.0.0.0.0
     loc_loadw.1
@@ -2322,7 +2318,6 @@ export.mont_mul.8
     u32wrapping_add
     u32wrapping_mul.91978719
     loc_store.4
-    drop
 
     push.0.0.0.0
     loc_loadw.1
@@ -2672,7 +2667,6 @@ export.mont_mul.8
     u32wrapping_add
     u32wrapping_mul.91978719
     loc_store.4
-    drop
 
     push.0.0.0.0
     loc_loadw.1
@@ -3022,7 +3016,6 @@ export.mont_mul.8
     u32wrapping_add
     u32wrapping_mul.91978719
     loc_store.4
-    drop
 
     push.0.0.0.0
     loc_loadw.1
@@ -3372,7 +3365,6 @@ export.mont_mul.8
     u32wrapping_add
     u32wrapping_mul.91978719
     loc_store.4
-    drop
 
     push.0.0.0.0
     loc_loadw.1

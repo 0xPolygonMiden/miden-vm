@@ -1,6 +1,6 @@
 [package]
 name = "miden-assembly"
-version = "0.3.0"
+version = "0.4.0"
 description = "Miden VM assembly language"
 authors = ["miden contributors"]
 readme = "README.md"
@@ -9,24 +9,17 @@ repository = "https://github.com/maticnetwork/miden"
 categories = ["compilers", "no-std"]
 keywords = ["assembler", "assembly", "language", "miden"]
 edition = "2021"
-rust-version = "1.62"
+rust-version = "1.65"
 
 [lib]
 bench = false
 doctest = false
-
-[[bench]]
-name = "program_compilation"
-harness = false
 
 [features]
 default = ["std"]
 std = ["vm-core/std"]
 
 [dependencies]
-crypto = { package = "winter-crypto", version = "0.4", default-features = false }
+crypto = { package = "winter-crypto", version = "0.4.2", default-features = false }
 num_enum = "0.5.7"
-vm-core = { package = "miden-core", path = "../core", version = "0.3", default-features = false }
-
-[dev-dependencies]
-criterion = "0.4"
+vm-core = { package = "miden-core", path = "../core", version = "0.4", default-features = false }

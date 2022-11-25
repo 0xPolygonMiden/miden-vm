@@ -1,9 +1,8 @@
-use super::{parse_module, parse_program, BTreeMap, Instruction, LocalProcMap, Node, ProcedureAst};
-use crate::{
-    parsers::ast::{ModuleAst, ProgramAst},
-    ProcedureId,
+use super::{
+    parse_module, parse_program, BTreeMap, Felt, Instruction, LocalProcMap, ModuleAst, Node,
+    ProcedureAst, ProcedureId, ProgramAst,
 };
-use vm_core::{Felt, FieldElement};
+use crate::{ONE, ZERO};
 
 // UNIT TESTS
 // ================================================================================================
@@ -11,11 +10,12 @@ use vm_core::{Felt, FieldElement};
 /// Tests the AST parsing
 #[test]
 fn test_ast_parsing_program_simple() {
-    let source = "begin push.0 assertz end";
-    let values: Vec<Felt> = vec![Felt::ZERO];
+    let source = "begin push.0 assertz add.1 end";
+    let values: Vec<Felt> = vec![ZERO];
     let nodes: Vec<Node> = vec![
         Node::Instruction(Instruction::PushConstants(values)),
         Node::Instruction(Instruction::Assertz),
+        Node::Instruction(Instruction::Incr),
     ];
 
     assert_program_output(source, BTreeMap::new(), nodes);
@@ -69,7 +69,7 @@ fn test_ast_parsing_program_proc() {
         exec.foo
         exec.bar
     end";
-    let proc_body1: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(Felt::ZERO))];
+    let proc_body1: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
     let mut procedures: LocalProcMap = BTreeMap::new();
     procedures.insert(
         String::from("foo"),
@@ -112,7 +112,7 @@ fn test_ast_parsing_module() {
         loc_load.0
     end";
     let mut procedures: LocalProcMap = BTreeMap::new();
-    let proc_body: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(Felt::ZERO))];
+    let proc_body: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
     procedures.insert(
         String::from("foo"),
         (
@@ -138,6 +138,30 @@ fn test_ast_parsing_module() {
             proc
         );
     }
+}
+
+#[test]
+fn test_ast_parsing_adv_ops() {
+    let source = "begin adv_push.1 adv_loadw end";
+    let value = 1_u8;
+    let nodes: Vec<Node> = vec![
+        Node::Instruction(Instruction::AdvPush(value)),
+        Node::Instruction(Instruction::AdvLoadW),
+    ];
+
+    assert_program_output(source, BTreeMap::new(), nodes);
+}
+
+#[test]
+fn test_ast_parsing_adv_injection() {
+    let source = "begin adv.u64div adv.keyval adv.mem.1.1 end";
+    let nodes: Vec<Node> = vec![
+        Node::Instruction(Instruction::AdvU64Div),
+        Node::Instruction(Instruction::AdvKeyval),
+        Node::Instruction(Instruction::AdvMem(1, 1)),
+    ];
+
+    assert_program_output(source, BTreeMap::new(), nodes);
 }
 
 #[test]
@@ -174,19 +198,19 @@ fn test_ast_parsing_module_nested_if() {
 
     let mut procedures: LocalProcMap = BTreeMap::new();
     let proc_body: Vec<Node> = vec![
-        Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+        Node::Instruction(Instruction::PushConstants([ONE].to_vec())),
         Node::IfElse(
             [
-                Node::Instruction(Instruction::PushConstants([Felt::ZERO].to_vec())),
-                Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+                Node::Instruction(Instruction::PushConstants([ZERO].to_vec())),
+                Node::Instruction(Instruction::PushConstants([ONE].to_vec())),
                 Node::IfElse(
                     [
-                        Node::Instruction(Instruction::PushConstants([Felt::ZERO].to_vec())),
+                        Node::Instruction(Instruction::PushConstants([ZERO].to_vec())),
                         Node::Instruction(Instruction::Sub),
                     ]
                     .to_vec(),
                     [
-                        Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+                        Node::Instruction(Instruction::PushConstants([ONE].to_vec())),
                         Node::Instruction(Instruction::Sub),
                     ]
                     .to_vec(),
@@ -243,23 +267,23 @@ fn test_ast_parsing_module_sequential_if() {
 
     let mut procedures: LocalProcMap = BTreeMap::new();
     let proc_body: Vec<Node> = vec![
-        Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+        Node::Instruction(Instruction::PushConstants([ONE].to_vec())),
         Node::IfElse(
             [
                 Node::Instruction(Instruction::PushConstants([Felt::new(5)].to_vec())),
-                Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+                Node::Instruction(Instruction::PushConstants([ONE].to_vec())),
             ]
             .to_vec(),
             vec![],
         ),
         Node::IfElse(
             [
-                Node::Instruction(Instruction::PushConstants([Felt::ZERO].to_vec())),
+                Node::Instruction(Instruction::PushConstants([ZERO].to_vec())),
                 Node::Instruction(Instruction::Sub),
             ]
             .to_vec(),
             [
-                Node::Instruction(Instruction::PushConstants([Felt::ONE].to_vec())),
+                Node::Instruction(Instruction::PushConstants([ONE].to_vec())),
                 Node::Instruction(Instruction::Sub),
             ]
             .to_vec(),
@@ -318,7 +342,7 @@ export.baz.3
     push.0
 end";
     let mut procedures: LocalProcMap = BTreeMap::new();
-    let proc_body_foo: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(Felt::ZERO))];
+    let proc_body_foo: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
     let docs_foo =
         "Test documenation for export procedure foo in parsing test. Lorem ipsum dolor sit amet,
 consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
@@ -356,7 +380,7 @@ of the comments is correctly parsed. There was a bug here earlier."
 
     let proc_body_baz: Vec<Node> = vec![
         Node::Instruction(Instruction::PadW),
-        Node::Instruction(Instruction::PushConstants(vec![Felt::ZERO])),
+        Node::Instruction(Instruction::PushConstants(vec![ZERO])),
     ];
     let docs_baz =
         "Test documenation for export procedure baz in parsing test. Lorem ipsum dolor sit amet,

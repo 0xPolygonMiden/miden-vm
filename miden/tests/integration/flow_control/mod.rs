@@ -172,12 +172,10 @@ fn local_fn_call_with_mem_access() {
     let source = "
         proc.foo
             mem_store.0
-            drop
         end
 
         begin
             mem_store.0
-            drop
             call.foo
             mem_load.0
             eq.7

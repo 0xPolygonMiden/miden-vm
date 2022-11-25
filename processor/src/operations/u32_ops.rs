@@ -49,10 +49,7 @@ impl Process {
         let result = a + b;
         let (hi, lo) = split_element(result);
 
-        // Force this operation to consume 4 range checks, even though only `lo` is needed.
-        // This is required for making the constraints more uniform and grouping the opcodes of
-        // operations requiring range checks under a common degree-4 prefix.
-        self.add_range_checks(Operation::U32add, lo, Felt::ZERO, false);
+        self.add_range_checks(Operation::U32add, lo, hi, false);
 
         self.stack.set(0, hi);
         self.stack.set(1, lo);
@@ -236,9 +233,10 @@ impl Process {
 mod tests {
     use super::{
         super::{Felt, FieldElement, Operation},
-        Process,
+        split_u32_into_u16, Process,
     };
     use rand_utils::rand_value;
+    use vm_core::{decoder::NUM_USER_OP_HELPERS, stack::STACK_TOP_SIZE};
 
     // CASTING OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -304,10 +302,18 @@ mod tests {
 
         let mut process = Process::new_dummy_with_decoder_helpers(&[a as u64, b as u64]);
         let (result, over) = a.overflowing_add(b);
+        let (b1, b0) = split_u32_into_u16(result.into());
 
         process.execute_op(Operation::U32add).unwrap();
         let expected = build_expected(&[over as u32, result]);
         assert_eq!(expected, process.stack.trace_state());
+
+        let expected_helper_registers =
+            build_expected_helper_registers(&[b0 as u32, b1 as u32, over as u32]);
+        assert_eq!(
+            expected_helper_registers,
+            process.decoder.get_user_op_helpers()
+        );
     }
 
     #[test]
@@ -446,8 +452,16 @@ mod tests {
         (d, c, b, a)
     }
 
-    fn build_expected(values: &[u32]) -> [Felt; 16] {
-        let mut expected = [Felt::ZERO; 16];
+    fn build_expected(values: &[u32]) -> [Felt; STACK_TOP_SIZE] {
+        let mut expected = [Felt::ZERO; STACK_TOP_SIZE];
+        for (&value, result) in values.iter().zip(expected.iter_mut()) {
+            *result = Felt::new(value as u64);
+        }
+        expected
+    }
+
+    fn build_expected_helper_registers(values: &[u32]) -> [Felt; NUM_USER_OP_HELPERS] {
+        let mut expected = [Felt::ZERO; NUM_USER_OP_HELPERS];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
             *result = Felt::new(value as u64);
         }
