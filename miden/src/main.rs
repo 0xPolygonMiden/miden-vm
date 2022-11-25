@@ -1,3 +1,5 @@
+use core::fmt;
+use miden::{AssemblyError, ExecutionError};
 use structopt::StructOpt;
 
 mod cli;
@@ -52,3 +54,24 @@ pub fn main() {
         println!("{}", error);
     }
 }
+
+// PROGRAM ERROR
+// ================================================================================================
+
+/// This is used to specify the error type returned from analyze.
+#[derive(Debug)]
+pub enum ProgramError {
+    AssemblyError(AssemblyError),
+    ExecutionError(ExecutionError),
+}
+
+impl fmt::Display for ProgramError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ProgramError::AssemblyError(e) => write!(f, "Assembly Error: {:?}", e),
+            ProgramError::ExecutionError(e) => write!(f, "Execution Error: {:?}", e),
+        }
+    }
+}
+
+impl std::error::Error for ProgramError {}

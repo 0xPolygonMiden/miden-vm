@@ -49,7 +49,6 @@ fn locaddr() {
         proc.foo.2
             locaddr.0
             mem_store
-            drop
             locaddr.1
             mem_storew
             dropw
@@ -99,7 +98,6 @@ fn locaddr() {
         proc.foo.2
             locaddr.0
             mem_store
-            drop
             locaddr.1
             mem_storew
             dropw
@@ -110,9 +108,7 @@ fn locaddr() {
         proc.bar.2
             locaddr.0
             mem_store
-            drop
             loc_store.1
-            drop
             exec.foo
             locaddr.1
             mem_load

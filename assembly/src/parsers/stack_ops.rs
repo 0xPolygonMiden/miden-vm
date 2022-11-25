@@ -1,492 +1,218 @@
-use super::{AssemblyError, Operation, Token, Vec};
-use vm_core::utils::PushMany;
+use super::{
+    Instruction::*,
+    Node::{self, Instruction},
+    ParsingError, Token,
+};
 
-// STACK MANIPULATION
+// INSTRUCTION PARSERS
 // ================================================================================================
 
-/// Translates drop assembly instruction to VM operation DROP.
-pub fn parse_drop(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => span_ops.push(Operation::Drop),
-        _ => return Err(AssemblyError::extra_param(op)),
-    }
-
-    Ok(())
-}
-
-/// Translates dropw assembly instruction to VM operations DROP DROP DROP DROP.
-pub fn parse_dropw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => span_ops.push_many(Operation::Drop, 4),
-        _ => return Err(AssemblyError::extra_param(op)),
-    }
-
-    Ok(())
-}
-
-/// Translates padw assembly instruction to VM operations PAD PAD PAD PAD.
-pub fn parse_padw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => span_ops.push_many(Operation::Pad, 4),
-        _ => return Err(AssemblyError::extra_param(op)),
-    }
-
-    Ok(())
-}
-
-/// Translates dup.n assembly instruction to VM operations DUPN.
-pub fn parse_dup(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => span_ops.push(Operation::Dup0),
-        2 => match op.parts()[1] {
-            "0" => span_ops.push(Operation::Dup0),
-            "1" => span_ops.push(Operation::Dup1),
-            "2" => span_ops.push(Operation::Dup2),
-            "3" => span_ops.push(Operation::Dup3),
-            "4" => span_ops.push(Operation::Dup4),
-            "5" => span_ops.push(Operation::Dup5),
-            "6" => span_ops.push(Operation::Dup6),
-            "7" => span_ops.push(Operation::Dup7),
-            "8" => {
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::Dup9);
-                span_ops.push(Operation::Add);
-            }
-            "9" => span_ops.push(Operation::Dup9),
-            "10" => {
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::Dup11);
-                span_ops.push(Operation::Add);
-            }
-            "11" => span_ops.push(Operation::Dup11),
-            "12" => {
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::Dup13);
-                span_ops.push(Operation::Add);
-            }
-            "13" => span_ops.push(Operation::Dup13),
-            "14" => {
-                span_ops.push(Operation::Pad);
-                span_ops.push(Operation::Dup15);
-                span_ops.push(Operation::Add);
-            }
-            "15" => span_ops.push(Operation::Dup15),
-            _ => return Err(AssemblyError::invalid_param(op, 1)),
-        },
-        _ => return Err(AssemblyError::extra_param(op)),
-    }
-
-    Ok(())
-}
-
-/// Translates dupw.n assembly instruction to four VM operations DUP depending on
-/// the index of the word.
-pub fn parse_dupw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => {
-            span_ops.push(Operation::Dup3);
-            span_ops.push(Operation::Dup3);
-            span_ops.push(Operation::Dup3);
-            span_ops.push(Operation::Dup3);
-        }
-        2 => match op.parts()[1] {
-            "0" => {
-                span_ops.push(Operation::Dup3);
-                span_ops.push(Operation::Dup3);
-                span_ops.push(Operation::Dup3);
-                span_ops.push(Operation::Dup3);
-            }
-            "1" => {
-                span_ops.push(Operation::Dup7);
-                span_ops.push(Operation::Dup7);
-                span_ops.push(Operation::Dup7);
-                span_ops.push(Operation::Dup7);
-            }
-            "2" => {
-                span_ops.push(Operation::Dup11);
-                span_ops.push(Operation::Dup11);
-                span_ops.push(Operation::Dup11);
-                span_ops.push(Operation::Dup11);
-            }
-            "3" => {
-                span_ops.push(Operation::Dup15);
-                span_ops.push(Operation::Dup15);
-                span_ops.push(Operation::Dup15);
-                span_ops.push(Operation::Dup15);
-            }
-            _ => return Err(AssemblyError::invalid_param(op, 1)),
-        },
-        _ => return Err(AssemblyError::extra_param(op)),
-    }
-
-    Ok(())
-}
-
-/// Translates swap.x assembly instruction to VM operations MOVUPX MOVDN(X-1)
-pub fn parse_swap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => span_ops.push(Operation::Swap),
-        2 => match op.parts()[1] {
-            "1" => span_ops.push(Operation::Swap),
-            "2" => {
-                span_ops.push(Operation::Swap);
-                span_ops.push(Operation::MovUp2);
-            }
-            "3" => {
-                span_ops.push(Operation::MovDn2);
-                span_ops.push(Operation::MovUp3);
-            }
-            "4" => {
-                span_ops.push(Operation::MovDn3);
-                span_ops.push(Operation::MovUp4);
-            }
-            "5" => {
-                span_ops.push(Operation::MovDn4);
-                span_ops.push(Operation::MovUp5);
-            }
-            "6" => {
-                span_ops.push(Operation::MovDn5);
-                span_ops.push(Operation::MovUp6);
-            }
-            "7" => {
-                span_ops.push(Operation::MovDn6);
-                span_ops.push(Operation::MovUp7);
-            }
-            "8" => {
-                span_ops.push(Operation::MovDn7);
-                span_ops.push(Operation::MovUp8);
-            }
-            "9" => {
-                span_ops.push(Operation::MovDn8);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::Swap);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp8);
-            }
-            "10" => {
-                span_ops.push(Operation::MovDn8);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::Swap);
-                span_ops.push(Operation::MovUp2);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp8);
-            }
-            "11" => {
-                span_ops.push(Operation::MovDn8);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovDn2);
-                span_ops.push(Operation::MovUp3);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp8);
-            }
-            "12" => {
-                span_ops.push(Operation::MovDn8);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovDn3);
-                span_ops.push(Operation::MovUp4);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp8);
-            }
-            "13" => {
-                span_ops.push(Operation::MovDn8);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovDn4);
-                span_ops.push(Operation::MovUp5);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp8);
-            }
-            "14" => {
-                span_ops.push(Operation::MovDn8);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovDn5);
-                span_ops.push(Operation::MovUp6);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp8);
-            }
-            "15" => {
-                span_ops.push(Operation::MovDn8);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovDn6);
-                span_ops.push(Operation::MovUp7);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp8);
-            }
-            _ => return Err(AssemblyError::invalid_param(op, 1)),
-        },
-        _ => return Err(AssemblyError::extra_param(op)),
-    }
-
-    Ok(())
-}
-
-/// Translates swapw.n assembly instruction to four VM operation SWAPWN
-pub fn parse_swapw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => span_ops.push(Operation::SwapW),
-        2 => match op.parts()[1] {
-            "1" => span_ops.push(Operation::SwapW),
-            "2" => span_ops.push(Operation::SwapW2),
-            "3" => span_ops.push(Operation::SwapW3),
-            _ => return Err(AssemblyError::invalid_param(op, 1)),
-        },
-        _ => return Err(AssemblyError::extra_param(op)),
-    }
-
-    Ok(())
-}
-
-/// Translates swapdw assembly instruction to four VM SWAPW operations
-pub fn parse_swapdw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => span_ops.push(Operation::SwapDW),
-        _ => return Err(AssemblyError::extra_param(op)),
-    }
-
-    Ok(())
-}
-
-/// Translates movup.x assembly instruction to VM operations.
-/// We specifically utilize the MovUpX VM operations for indexes that match
-/// exactly with the assembly instruction.
-/// The reamaining ones we implement them PAD MOVUPX ADD.
-pub fn parse_movup(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        0..=1 => return Err(AssemblyError::missing_param(op)),
-        2 => match op.parts()[1] {
-            "2" => span_ops.push(Operation::MovUp2),
-            "3" => span_ops.push(Operation::MovUp3),
-            "4" => span_ops.push(Operation::MovUp4),
-            "5" => span_ops.push(Operation::MovUp5),
-            "6" => span_ops.push(Operation::MovUp6),
-            "7" => span_ops.push(Operation::MovUp7),
-            "8" => span_ops.push(Operation::MovUp8),
-            "9" => {
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::Swap);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp8);
-            }
-            "10" => {
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp2);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp8);
-            }
-            "11" => {
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp3);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp8);
-            }
-            "12" => {
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp4);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp8);
-            }
-            "13" => {
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp5);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp8);
-            }
-            "14" => {
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp6);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp8);
-            }
-            "15" => {
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp7);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovUp8);
-            }
-            _ => return Err(AssemblyError::invalid_param(op, 1)),
-        },
-        _ => return Err(AssemblyError::extra_param(op)),
-    };
-
-    Ok(())
-}
-
-/// Translates movupw.x assembly instruction to VM operations.
+/// Returns `Dup0` instruction node if no immediate vaule is provided or one of the
+/// `Dup1` — `Dup15` instruction nodes according to the immediate value.
 ///
-/// Specifically:
-/// * movupw.2 is translated into SWAPW SWAPW2
-/// * movupw.3 is translated into SWAPW SWAPW2 SWAPW3
-pub fn parse_movupw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+/// # Errors
+/// Returns an error if the instruction token contains wrong number of parameters, or if the
+/// provided parameter is greater than 15.
+pub fn parse_dup(op: &Token) -> Result<Node, ParsingError> {
+    debug_assert_eq!(op.parts()[0], "dup");
     match op.num_parts() {
-        0..=1 => return Err(AssemblyError::missing_param(op)),
+        0 => unreachable!(),
+        1 => Ok(Instruction(Dup0)),
         2 => match op.parts()[1] {
-            "2" => {
-                span_ops.push(Operation::SwapW);
-                span_ops.push(Operation::SwapW2);
-            }
-            "3" => {
-                span_ops.push(Operation::SwapW);
-                span_ops.push(Operation::SwapW2);
-                span_ops.push(Operation::SwapW3);
-            }
-            _ => return Err(AssemblyError::invalid_param(op, 1)),
+            "0" => Ok(Instruction(Dup0)),
+            "1" => Ok(Instruction(Dup1)),
+            "2" => Ok(Instruction(Dup2)),
+            "3" => Ok(Instruction(Dup3)),
+            "4" => Ok(Instruction(Dup4)),
+            "5" => Ok(Instruction(Dup5)),
+            "6" => Ok(Instruction(Dup6)),
+            "7" => Ok(Instruction(Dup7)),
+            "8" => Ok(Instruction(Dup8)),
+            "9" => Ok(Instruction(Dup9)),
+            "10" => Ok(Instruction(Dup10)),
+            "11" => Ok(Instruction(Dup11)),
+            "12" => Ok(Instruction(Dup12)),
+            "13" => Ok(Instruction(Dup13)),
+            "14" => Ok(Instruction(Dup14)),
+            "15" => Ok(Instruction(Dup15)),
+            _ => Err(ParsingError::invalid_param(op, 1)),
         },
-        _ => return Err(AssemblyError::extra_param(op)),
-    };
-
-    Ok(())
+        _ => Err(ParsingError::extra_param(op)),
+    }
 }
 
-/// Translates movdn.x assembly instruction to VM operations.
-/// We specifically utilize the MovDnX VM operations for indexes that match
-/// exactly with the assembly instruction.
-/// The reamaining ones we implement them PAD SWAP MOVDNX DROP.
-pub fn parse_movdn(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
-    match op.num_parts() {
-        0..=1 => return Err(AssemblyError::missing_param(op)),
-        2 => match op.parts()[1] {
-            "2" => span_ops.push(Operation::MovDn2),
-            "3" => span_ops.push(Operation::MovDn3),
-            "4" => span_ops.push(Operation::MovDn4),
-            "5" => span_ops.push(Operation::MovDn5),
-            "6" => span_ops.push(Operation::MovDn6),
-            "7" => span_ops.push(Operation::MovDn7),
-            "8" => span_ops.push(Operation::MovDn8),
-            "9" => {
-                span_ops.push(Operation::MovDn8);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::Swap);
-                span_ops.push(Operation::SwapDW);
-            }
-            "10" => {
-                span_ops.push(Operation::MovDn8);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovDn2);
-                span_ops.push(Operation::SwapDW);
-            }
-            "11" => {
-                span_ops.push(Operation::MovDn8);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovDn3);
-                span_ops.push(Operation::SwapDW);
-            }
-            "12" => {
-                span_ops.push(Operation::MovDn8);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovDn4);
-                span_ops.push(Operation::SwapDW);
-            }
-            "13" => {
-                span_ops.push(Operation::MovDn8);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovDn5);
-                span_ops.push(Operation::SwapDW);
-            }
-            "14" => {
-                span_ops.push(Operation::MovDn8);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovDn6);
-                span_ops.push(Operation::SwapDW);
-            }
-            "15" => {
-                span_ops.push(Operation::MovDn8);
-                span_ops.push(Operation::SwapDW);
-                span_ops.push(Operation::MovDn7);
-                span_ops.push(Operation::SwapDW);
-            }
-            _ => return Err(AssemblyError::invalid_param(op, 1)),
-        },
-        _ => return Err(AssemblyError::extra_param(op)),
-    };
-
-    Ok(())
-}
-
-/// Translates movdnw.x assembly instruction to VM operations.
+/// Returns `DupW0` instruction node if no immediate vaule is provided or one of the
+/// `DupW1` — `DupW3` instruction nodes according to the immediate value.
 ///
-/// Specifically:
-/// * movdnw.2 is translated into SWAPW2 SWAPW
-/// * movdnw.3 is translated into SWAPW3 SWAPW2 SWAPW
-pub fn parse_movdnw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+/// # Errors
+/// Returns an error if the instruction token contains wrong number of parameters, or if the
+/// provided parameter is greater than 3.
+pub fn parse_dupw(op: &Token) -> Result<Node, ParsingError> {
+    debug_assert_eq!(op.parts()[0], "dupw");
     match op.num_parts() {
-        0..=1 => return Err(AssemblyError::missing_param(op)),
+        0 => unreachable!(),
+        1 => Ok(Instruction(DupW0)),
         2 => match op.parts()[1] {
-            "2" => {
-                span_ops.push(Operation::SwapW2);
-                span_ops.push(Operation::SwapW);
-            }
-            "3" => {
-                span_ops.push(Operation::SwapW3);
-                span_ops.push(Operation::SwapW2);
-                span_ops.push(Operation::SwapW);
-            }
-            _ => return Err(AssemblyError::invalid_param(op, 1)),
+            "0" => Ok(Instruction(DupW0)),
+            "1" => Ok(Instruction(DupW1)),
+            "2" => Ok(Instruction(DupW2)),
+            "3" => Ok(Instruction(DupW3)),
+            _ => Err(ParsingError::invalid_param(op, 1)),
         },
-        _ => return Err(AssemblyError::extra_param(op)),
-    };
-
-    Ok(())
+        _ => Err(ParsingError::extra_param(op)),
+    }
 }
 
-// CONDITIONAL MANIPULATION
-// ================================================================================================
-
-/// Translates cswap assembly instruction that translates to CSWAP.
-pub fn parse_cswap(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+/// Returns `Swap` node instruction if no immediate vaule is provided or one of the
+/// `Swap` — `Swap15` instructions according to the immediate value.
+///
+/// # Errors
+/// Returns an error if the instruction token contains wrong number of parameters, or if the
+/// provided parameter is smaller than 1 or greater than 15.
+pub fn parse_swap(op: &Token) -> Result<Node, ParsingError> {
+    debug_assert_eq!(op.parts()[0], "swap");
     match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => span_ops.push(Operation::CSwap),
-        _ => return Err(AssemblyError::extra_param(op)),
-    };
-
-    Ok(())
+        0 => unreachable!(),
+        1 => Ok(Instruction(Swap1)),
+        2 => match op.parts()[1] {
+            "1" => Ok(Instruction(Swap1)),
+            "2" => Ok(Instruction(Swap2)),
+            "3" => Ok(Instruction(Swap3)),
+            "4" => Ok(Instruction(Swap4)),
+            "5" => Ok(Instruction(Swap5)),
+            "6" => Ok(Instruction(Swap6)),
+            "7" => Ok(Instruction(Swap7)),
+            "8" => Ok(Instruction(Swap8)),
+            "9" => Ok(Instruction(Swap9)),
+            "10" => Ok(Instruction(Swap10)),
+            "11" => Ok(Instruction(Swap11)),
+            "12" => Ok(Instruction(Swap12)),
+            "13" => Ok(Instruction(Swap13)),
+            "14" => Ok(Instruction(Swap14)),
+            "15" => Ok(Instruction(Swap15)),
+            _ => Err(ParsingError::invalid_param(op, 1)),
+        },
+        _ => Err(ParsingError::extra_param(op)),
+    }
 }
 
-/// Translates cswapw assembly instruction that translates to CSWAPW.
-pub fn parse_cswapw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+/// Returns `SwapW` instruction node if no immediate vaule is provided, or one of the
+/// `SwapW` — `SwapW3` instruction nodes according to the immediate value.
+///
+/// # Errors
+/// Returns an error if the instruction token contains wrong number of parameters, or if the
+/// provided parameter is smaller than 1 or greater than 3.
+pub fn parse_swapw(op: &Token) -> Result<Node, ParsingError> {
+    debug_assert_eq!(op.parts()[0], "swapw");
     match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => span_ops.push(Operation::CSwapW),
-        _ => return Err(AssemblyError::extra_param(op)),
-    };
-
-    Ok(())
+        0 => unreachable!(),
+        1 => Ok(Instruction(SwapW1)),
+        2 => match op.parts()[1] {
+            "1" => Ok(Instruction(SwapW1)),
+            "2" => Ok(Instruction(SwapW2)),
+            "3" => Ok(Instruction(SwapW3)),
+            _ => Err(ParsingError::invalid_param(op, 1)),
+        },
+        _ => Err(ParsingError::extra_param(op)),
+    }
 }
 
-/// Translates cdrop assembly instruction that translates to CSWAP DROP
-pub fn parse_cdrop(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+/// Returns one of the `MovUp2` — `MovUp15` instruction nodes according to the immediate value.
+///
+/// # Errors
+/// Returns an error if the instruction token contains wrong number of parameters, or if the
+/// provided parameter is smaller than 2 or greater than 15.
+pub fn parse_movup(op: &Token) -> Result<Node, ParsingError> {
+    debug_assert_eq!(op.parts()[0], "movup");
     match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => {
-            span_ops.push(Operation::CSwap);
-            span_ops.push(Operation::Drop);
-        }
-        _ => return Err(AssemblyError::extra_param(op)),
-    };
-
-    Ok(())
+        0 => unreachable!(),
+        1 => Err(ParsingError::missing_param(op)),
+        2 => match op.parts()[1] {
+            "2" => Ok(Instruction(MovUp2)),
+            "3" => Ok(Instruction(MovUp3)),
+            "4" => Ok(Instruction(MovUp4)),
+            "5" => Ok(Instruction(MovUp5)),
+            "6" => Ok(Instruction(MovUp6)),
+            "7" => Ok(Instruction(MovUp7)),
+            "8" => Ok(Instruction(MovUp8)),
+            "9" => Ok(Instruction(MovUp9)),
+            "10" => Ok(Instruction(MovUp10)),
+            "11" => Ok(Instruction(MovUp11)),
+            "12" => Ok(Instruction(MovUp12)),
+            "13" => Ok(Instruction(MovUp13)),
+            "14" => Ok(Instruction(MovUp14)),
+            "15" => Ok(Instruction(MovUp15)),
+            _ => Err(ParsingError::invalid_param(op, 1)),
+        },
+        _ => Err(ParsingError::extra_param(op)),
+    }
 }
 
-/// Translates cdropw assembly instruction that translates to CSWAPW DROP DROP DROP DROP
-pub fn parse_cdropw(span_ops: &mut Vec<Operation>, op: &Token) -> Result<(), AssemblyError> {
+/// Returns one of the `MovDn2` — `MovDn15` instruction nodes according to the immediate value.
+///
+/// # Errors
+/// Returns an error if the instruction token contains wrong number of parameters, or if the
+/// provided parameter is smaller than 2 or greater than 15.
+pub fn parse_movdn(op: &Token) -> Result<Node, ParsingError> {
+    debug_assert_eq!(op.parts()[0], "movdn");
     match op.num_parts() {
-        0 => return Err(AssemblyError::missing_param(op)),
-        1 => {
-            span_ops.push(Operation::CSwapW);
-            span_ops.push(Operation::Drop);
-            span_ops.push(Operation::Drop);
-            span_ops.push(Operation::Drop);
-            span_ops.push(Operation::Drop);
-        }
-        _ => return Err(AssemblyError::extra_param(op)),
-    };
+        0 => unreachable!(),
+        1 => Err(ParsingError::missing_param(op)),
+        2 => match op.parts()[1] {
+            "2" => Ok(Instruction(MovDn2)),
+            "3" => Ok(Instruction(MovDn3)),
+            "4" => Ok(Instruction(MovDn4)),
+            "5" => Ok(Instruction(MovDn5)),
+            "6" => Ok(Instruction(MovDn6)),
+            "7" => Ok(Instruction(MovDn7)),
+            "8" => Ok(Instruction(MovDn8)),
+            "9" => Ok(Instruction(MovDn9)),
+            "10" => Ok(Instruction(MovDn10)),
+            "11" => Ok(Instruction(MovDn11)),
+            "12" => Ok(Instruction(MovDn12)),
+            "13" => Ok(Instruction(MovDn13)),
+            "14" => Ok(Instruction(MovDn14)),
+            "15" => Ok(Instruction(MovDn15)),
+            _ => Err(ParsingError::invalid_param(op, 1)),
+        },
+        _ => Err(ParsingError::extra_param(op)),
+    }
+}
 
-    Ok(())
+/// Returns `MovUpW2` or `MovUpW3` instruction node according to the immediate value.
+///
+/// # Errors
+/// Returns an error if the instruction token contains wrong number of parameters, or if the
+/// provided parameter is not either 2 or 3.
+pub fn parse_movupw(op: &Token) -> Result<Node, ParsingError> {
+    debug_assert_eq!(op.parts()[0], "movupw");
+    match op.num_parts() {
+        0 => unreachable!(),
+        1 => Err(ParsingError::missing_param(op)),
+        2 => match op.parts()[1] {
+            "2" => Ok(Instruction(MovUpW2)),
+            "3" => Ok(Instruction(MovUpW3)),
+            _ => Err(ParsingError::invalid_param(op, 1)),
+        },
+        _ => Err(ParsingError::extra_param(op)),
+    }
+}
+
+/// Returns `MovDnW2` or `MovDnW3` instruction node according to the immediate value.
+///
+/// # Errors
+/// Returns an error if the instruction token contains wrong number of parameters, or if the
+/// provided parameter is not either 2 or 3.
+pub fn parse_movdnw(op: &Token) -> Result<Node, ParsingError> {
+    debug_assert_eq!(op.parts()[0], "movdnw");
+    match op.num_parts() {
+        0 => unreachable!(),
+        1 => Err(ParsingError::missing_param(op)),
+        2 => match op.parts()[1] {
+            "2" => Ok(Instruction(MovDnW2)),
+            "3" => Ok(Instruction(MovDnW3)),
+            _ => Err(ParsingError::invalid_param(op, 1)),
+        },
+        _ => Err(ParsingError::extra_param(op)),
+    }
 }

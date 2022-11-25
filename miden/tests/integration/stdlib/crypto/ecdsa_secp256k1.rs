@@ -9,6 +9,14 @@ type ScalarField = FieldElement;
 
 struct Point([BaseField; 3]);
 
+/// Because this test is pretty expensive, it's by default ignored. If you're interested in
+/// running this test, issue
+///
+/// cargo test --release -p miden secp256k1 -- --include-ignored
+///
+/// from root directory of Miden repository.
+///
+/// What's being done in this routine is adapted from https://github.com/itzmeanjan/secp256k1/blob/37b339db3e03d24c2977399eb8896ef515ebb09b/test/test_ecdsa.py#L14-L16
 #[test_case(Point([FieldElement([1187647059, 1135132293, 1524607722, 3257770169, 1812770566, 4163599075, 3343690625, 2983146250]), FieldElement([694970425, 3961647168, 2962892522, 3871680339, 479244527, 2106589630, 3531004100, 487738481]), FieldElement([1718928786, 2222219308, 1537333708, 969814285, 1600645591, 2744076726, 1359599981, 1095895041])]), FieldElement([1915140291, 1682821516, 1088031394, 2866424576, 2852209138, 1159876682, 234168247, 3360002988]), FieldElement([1494159694, 3668493121, 2315165624, 353127114, 974571799, 2051320959, 3421809437, 3258836281]), FieldElement([1259054195, 60155476, 2236955964, 2106542718, 1332177784, 1407189293, 11489664, 3695133146]) ; "0")]
 #[ignore]
 fn verify(pubkey: Point, h: ScalarField, r: ScalarField, s: ScalarField) {
