@@ -259,9 +259,10 @@ impl ParsingError {
         }
     }
 
-    pub fn malformed_doc_comment(step: usize) -> Self {
+    pub fn dangling_procedure_comment(step: usize) -> Self {
         ParsingError {
-            message: "comment should always be followed by a procedure token".to_string(),
+            message: "Procedure comment is not immediately followed by a procedure declaration."
+                .to_string(),
             step,
             op: "".to_string(),
         }

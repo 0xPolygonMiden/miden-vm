@@ -35,14 +35,20 @@ impl<'a> TokenStream<'a> {
             let line = line.trim();
             if line.starts_with(DOC_COMMENT_PREFIX) {
                 comment_builder.append_line(line);
-            } else if line.is_empty()
-                && !comment_builder.is_empty()
-                && tokens.is_empty()
-                && module_comment.is_none()
-            {
-                // If we haven't read any tokens yet, but already have built a comment, a new line
-                // must indicate the end of a module comment.
-                module_comment = comment_builder.take_comment();
+            } else if line.starts_with(LINE_COMMENT_PREFIX) {
+                continue;
+            } else if line.is_empty() {
+                if !comment_builder.is_empty() {
+                    if tokens.is_empty() && module_comment.is_none() {
+                        // if we haven't read any tokens yet, but already have built a comment, a
+                        // new line must indicate the end of a module comment.
+                        module_comment = comment_builder.take_comment();
+                    } else {
+                        // since we already have a module comment, this is a procedure comment
+                        // which is followed by a blank line.
+                        return Err(ParsingError::dangling_procedure_comment(tokens.len()));
+                    }
+                }
             } else {
                 let mut line_tokens = line
                     .split_whitespace()
@@ -51,13 +57,12 @@ impl<'a> TokenStream<'a> {
 
                 if !comment_builder.is_empty() {
                     // procedure comment should always be followed by a procedure token
-                    if !line_tokens.is_empty()
-                        && (line_tokens[0].split('.').collect::<Vec<&str>>()[0] == "export"
-                            || line_tokens[0].split('.').collect::<Vec<&str>>()[0] == "proc")
-                    {
+                    debug_assert!(!line_tokens.is_empty());
+                    let token = line_tokens[0];
+                    if token.starts_with(Token::EXPORT) || token.starts_with(Token::PROC) {
                         proc_comments.insert(tokens.len(), comment_builder.take_comment());
                     } else {
-                        return Err(ParsingError::malformed_doc_comment(tokens.len()));
+                        return Err(ParsingError::dangling_procedure_comment(tokens.len()));
                     }
                 }
                 tokens.append(&mut line_tokens);
