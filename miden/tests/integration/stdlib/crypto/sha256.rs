@@ -9,10 +9,10 @@ fn sha256_2_to_1_hash() {
     use.std::crypto::hashes::sha256
 
     begin
-        exec.sha256::hash
+        exec.sha256::hash64
     end";
 
-    // prepare random input byte array
+    // prepare random input byte array of length (total) 64 -bytes
     let i_digest_0: [u8; 32] = rand_utils::rand_array::<Felt, 4>().into_bytes();
     let i_digest_1: [u8; 32] = rand_utils::rand_array::<Felt, 4>().into_bytes();
 
@@ -26,6 +26,50 @@ fn sha256_2_to_1_hash() {
 
     // convert each of four consecutive big endian bytes (of input) to sha256 words
     for (i, word) in i_words.iter_mut().enumerate().take(STACK_TOP_SIZE) {
+        let frm = i << 2;
+        let to = (i + 1) << 2;
+        *word = u32::from_be_bytes(i_digest[frm..to].try_into().unwrap()) as u64;
+    }
+    i_words.reverse();
+
+    let mut hasher = Sha256::new();
+    hasher.update(&i_digest);
+    let digest = hasher.finalize();
+
+    // prepare digest in desired sha256 word form so that assertion writing becomes easier
+    let mut digest_words = [0u64; STACK_TOP_SIZE >> 1];
+    // convert each of four consecutive big endian bytes (of digest) to sha256 words
+    for (i, word) in digest_words
+        .iter_mut()
+        .enumerate()
+        .take(STACK_TOP_SIZE >> 1)
+    {
+        let frm = i << 2;
+        let to = (i + 1) << 2;
+        *word = u32::from_be_bytes(digest[frm..to].try_into().unwrap()) as u64;
+    }
+
+    let test = build_test!(source, &i_words);
+    test.expect_stack(&digest_words);
+}
+
+#[test]
+fn sha256_1_to_1_hash() {
+    let source = "
+    use.std::crypto::hashes::sha256
+
+    begin
+        exec.sha256::hash32
+    end";
+
+    // prepare random input byte array of length 32 -bytes
+    let i_digest = rand_utils::rand_array::<Felt, 4>().into_bytes();
+
+    // allocate space on stack so that bytes can be converted to sha256 words
+    let mut i_words = [0u64; STACK_TOP_SIZE >> 1];
+
+    // convert each of four consecutive big endian bytes (of input) to sha256 words
+    for (i, word) in i_words.iter_mut().enumerate().take(STACK_TOP_SIZE >> 1) {
         let frm = i << 2;
         let to = (i + 1) << 2;
         *word = u32::from_be_bytes(i_digest[frm..to].try_into().unwrap()) as u64;
