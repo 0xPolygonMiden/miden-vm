@@ -39,36 +39,36 @@ export.next_pos_exp
     dup mul                             #[poe_sq, xs, ...]
 end
 
-#! Preprocess the layer commitments C as well as num_q (number of queries), d (initial domain size), 
-#! g (intial domain generator), t_d (initial tree depth) and (a0, a1) (the folding challenges alpha).
-#! The address of the word (num_q, d, g, t_d) will be at locaddr.0. The commitments and alphas will be
-#! at the subsequent addresses. The total number of such commitments and alphas is t_d - 3 
+#! Preprocess the layer commitments C as well as num_q (number of queries), d_size (initial domain size), 
+#! g (intial domain generator), t_depth (initial tree depth) and (a0, a1) (the folding challenges alpha).
+#! The address of the word (num_q, d_size, g, t_depth) will be at locaddr.0. The commitments and alphas will be
+#! at the subsequent addresses. The total number of such commitments and alphas is t_depth - 3 
 #! (excluding the remainder commitment).
 export.preprocess.2
-    locaddr.1                   #[add, ..]
-    adv_push.4                  #[num_q, d, g, t_d, add, ..]
-    dup.3                       #[t_d, num_q, d, g, t_d, add, ..]
-    movdn.4                     #[num_q, d, g, t_d, t_d, add, ..]
-    dup.5                       #[add, num_q, d, g, t_d, t_d, add, ..]
-    mem_storew dropw            #[t_d, add, ..]
+    locaddr.1                   #[ptr, ..]
+    adv_push.4                  #[num_q, d_size, g, t_depth, ptr, ..]
+    dup.3                       #[t_depth, num_q, d_size, g, t_depth, ptr, ..]
+    movdn.4                     #[num_q, d_size, g, t_depth, t_depth, ptr, ..]
+    dup.5                       #[ptr, num_q, d_size, g, t_depth, t_depth, ptr, ..]
+    mem_storew dropw            #[t_depth, ptr, ..]
     dup
-    u32checked_neq.3            #[?, t_d, add, ..]
+    u32checked_neq.3            #[?, t_depth, ptr, ..]
     while.true
         push.0.0.0.0
-        adv_loadw                       #[C, t_d, add, ..]
-        movup.5                         #[add, C, t_d, ..]
-        u32wrapping_add.1               #[add+1, C, t_d, ..]
-        dup movdn.6                     #[add+1, C, t_d, add+1, ..]
-        mem_storew                      #[C, t_d, add+1, ..]
-        adv_loadw                       #[0, 0, a1, a0, t_d, add+1, ..]
-        movup.5                         #[add+1, 0, 0, a1, a0, t_d, ..]
-        u32wrapping_add.1               #[add+2, 0, 0, a1, a0, t_d, ..]
-        dup movdn.6                     #[add+2, 0, 0, a1, a0, t_d, add+2, ..]
-        mem_storew dropw                #[t_d, add+2, ..]
-        u32wrapping_sub.1 dup           #[t_d-1, t_d-1, add+2, ..]
-        u32checked_neq.3                #[?, t_d-1, add+2, ..]
+        adv_loadw                       #[C, t_depth, ptr, ..]
+        movup.5                         #[ptr, C, t_depth, ..]
+        u32wrapping_add.1               #[ptr+1, C, t_depth, ..]
+        dup movdn.6                     #[ptr+1, C, t_depth, ptr+1, ..]
+        mem_storew                      #[C, t_depth, ptr+1, ..]
+        adv_loadw                       #[0, 0, a1, a0, t_depth, ptr+1, ..]
+        movup.5                         #[ptr+1, 0, 0, a1, a0, t_depth, ..]
+        u32wrapping_add.1               #[ptr+2, 0, 0, a1, a0, t_depth, ..]
+        dup movdn.6                     #[ptr+2, 0, 0, a1, a0, t_depth, ptr+2, ..]
+        mem_storew dropw                #[t_depth, ptr+2, ..]
+        u32wrapping_sub.1 dup           #[t_depth-1, t_depth-1, ptr+2, ..]
+        u32checked_neq.3                #[?, t_depth-1, ptr+2, ..]
     end
-    #[0, add, ..]
+    #[0, ptr, ..]
     drop 
     add.1               # this address will be used for the adv_pipe instruction
     # value of the remainder codeword
@@ -82,49 +82,54 @@ export.preprocess.2
 end
 
 #! Helper procedure used to prepare the stack for the next iteration of verify_query_layer for a 
-#! positon p. (add' - 2) is the address of the commitment for the next layer and (add' - 1) is 
+#! positon p. (ptr' - 2) is the address of the commitment for the next layer and (ptr' - 1) is 
 #! the address of the next alpha folding challenge.
-#! Input: [t_d, e1, e0, p, d, poe, add', ..]
-#! Output: [d, p, C, t_d, e1, e0, poe, a1, a0, add'-2, ..]
+#! Input: [t_depth, e1, e0, p, d_size, poe, ptr', ..]
+#! Output: [d, p, C, t_depth, e1, e0, poe, a1, a0, ptr'-2, ..]
 export.prepare_next
-    movup.6                                 #[add', t_d, e1, e0, p, d, poe, ..] where add' points to the address of the previous C
-    sub.2 dup                               #[add'-2, add'-2, t_d, e1, e0, p, d, poe, ..] add' - 2 now points to the new C
-    movdn.7                                 #[add'-2, t_d, e1, e0, p, d, poe, add'-2, ..]
-    push.0.0.0.0                            #[0, 0, 0, 0, add'-2, t_d, e1, e0, p, d, poe, add'-2, ..]
-    dup.4 add.1                             #[add'-1, 0, 0, 0, 0, add'-2, t_d, e1, e0, p, d, poe, add'-2, ..]
-    mem_loadw                               #[0, 0, a1, a0, add'-2, t_d, e1, e0, p, d, poe, add'-2, ..]
-    push.0.0                                #[0, 0, 0, 0, a1, a0, add'-2, t_d, e1, e0, p, d, poe, add'-2, ..]
-    movup.6                                 #[add'-2, 0, 0, 0, 0, a1, a0, t_d, e1, e0, p, d, poe, add'-2, ..]
-    mem_loadw                               #[C, a1, a0, t_d, e1, e0, p, d, poe, add'-2, ..]
-    swapw.2                                 #[e0, p, d, poe, a1, a0, t_d, e1, C, add'-2, ..]
-    swap.2                                  #[d, p, e0, poe, a1, a0, t_d, e1, C, add'-2, ..]
-    movup.7                                 #[e1, d, p, e0, poe, a1, a0, t_d, C, add'-2, ..]
-    movup.7                                 #[t_d, e1, d, p, e0, poe, a1, a0, C, add'-2, ..]
-    movupw.2                                #[C, t_d, e1, d, p, e0, poe, a1, a0, add'-2, ..]
-    movup.7                                 #[p, C, t_d, e1, d, e0, poe, a1, a0, add'-2, ..]
-    movup.7                                 #[d, p, C, t_d, e1, e0, poe, a1, a0, add'-2, ..]
+    movup.6                                 #[ptr', t_depth, e1, e0, p, d_size, poe, ..] where ptr' points to the address of the previous C
+    sub.2 dup                               #[ptr'-2, ptr'-2, t_depth, e1, e0, p, d_size, poe, ..] ptr' - 2 now points to the new C
+    movdn.7                                 #[ptr'-2, t_depth, e1, e0, p, d_size, poe, ptr'-2, ..]
+    push.0.0.0.0                            #[0, 0, 0, 0, ptr'-2, t_depth, e1, e0, p, d_size, poe, ptr'-2, ..]
+    dup.4 add.1                             #[ptr'-1, 0, 0, 0, 0, ptr'-2, t_depth, e1, e0, p, d_size, poe, ptr'-2, ..]
+    mem_loadw                               #[0, 0, a1, a0, ptr'-2, t_depth, e1, e0, p, d_size, poe, ptr'-2, ..]
+    push.0.0                                #[0, 0, 0, 0, a1, a0, ptr'-2, t_depth, e1, e0, p, d_size, poe, ptr'-2, ..]
+    movup.6                                 #[ptr'-2, 0, 0, 0, 0, a1, a0, t_depth, e1, e0, p, d_size, poe, ptr'-2, ..]
+    mem_loadw                               #[C, a1, a0, t_depth, e1, e0, p, d_size, poe, ptr'-2, ..]
+    swapw.2                                 #[e0, p, d_size, poe, a1, a0, t_depth, e1, C, ptr'-2, ..]
+    swap.2                                  #[d_size, p, e0, poe, a1, a0, t_depth, e1, C, ptr'-2, ..]
+    movup.7                                 #[e1, d_size, p, e0, poe, a1, a0, t_depth, C, ptr'-2, ..]
+    movup.7                                 #[t_depth, e1, d_size, p, e0, poe, a1, a0, C, ptr'-2, ..]
+    movupw.2                                #[C, t_depth, e1, d_size, p, e0, poe, a1, a0, ptr'-2, ..]
+    movup.7                                 #[p, C, t_depth, e1, d_size, e0, poe, a1, a0, ptr'-2, ..]
+    movup.7                                 #[d_size, p, C, t_depth, e1, e0, poe, a1, a0, ptr'-2, ..]
 end
 
 #! The following procedure computes an iteration of FRI verification for a query.
-#! The stack starts in the following initial configuration [d, p, C, t_d, e1, e0, poe, a1, a0, ..] where d is 
-#! the current domain size, p the current position, C is the commitment of current layer, t_d 
+#! The stack starts in the following initial configuration [d_size, p, C, t_depth, e1, e0, poe, a1, a0, ptr', f_ptr..] 
+#! where d_size is the current domain size, p the current position, C is the commitment of current layer, t_depth 
 #! its corresponding tree depth, (e1, e0) is the evaluation point, poe is the position in the exponent
-#! of the domain generator, (a1, a0) is the alpha to compute the next evaluation point.
-#! TODO: Check where/if some checks are needed at the beginning, like p < d (p&d are u32) and that 2^t_d == d 
-#! Input: #[d, p, C, t_d, e1, e0, poe, a1, a0, add', add_f..]
-#! Output: #[t_d-1, e1, e0, p%d/2, d/2, poe_sq, add', add_f..]
+#! of the domain generator, (a1, a0) is the alpha to compute the next evaluation point. The pointers ptr' and f_ptr point
+#! to the current layer commitment (and its corresponding challenge) while f_ptr is used to keep track of the first such
+#! commitment for subsequent queries. 
+#! TODO: Check where/if some checks are needed at the beginning, like p < d_size (p&d_size are u32) and that 2^t_depth == d_size 
+#! Input: #[d_size, p, C, t_depth, e1, e0, poe, a1, a0, ptr', f_ptr..]
+#! Output: #[t_depth-1, e1, e0, p%d_size/2, d_size/2, poe_sq, ptr', f_ptr..]
 export.verify_query_layer.1
-    u32unchecked_div.2          #[d/2, p, C, t_d, ...]
-    dup                         #[d/2, d/2, p, C, t_d, ...]
-    dup.2 swap                  #[d/2, p, d/2, p, C, t_d, ...]
-    u32checked_divmod           #[p%d/2, ?, d/2, p, C, t_d, ...]
-    swapw                       #[C, p%d/2, ?, d/2, p, t_d, ...]
-    dup.4                       #[p%d/2, C, p%d/2, ?, d/2, p, t_d, ...]
-    dup.9                       #[t_d, p%d/2, C, p%d/2, ?, d/2, p, t_d, ...]
-    mtree_get  swapw            #[C, V', p%d/2, ?, d/2, p, t_d, ...]  V' are the digest of values V = (v3, v2, v1, v0)
+    u32unchecked_div.2          #[d_size/2, p, C, t_depth, ...]
+    dup                         #[d_size/2, d_size/2, p, C, t_depth, ...]
+    dup.2 swap                  #[d_size/2, p, d_size/2, p, C, t_depth, ...]
+    u32checked_divmod           #[p%d_size/2, ?, d_size/2, p, C, t_depth, ...]
+    swapw                       #[C, p%d_size/2, ?, d_size/2, p, t_depth, ...]
+    dup.4                       #[p%d_size/2, C, p%d_size/2, ?, d_size/2, p, t_depth, ...]
+    dup.9                       #[t_depth, p%d_size/2, C, p%d_size/2, ?, d_size/2, p, t_depth, ...]
+    mtree_get  swapw            #[C, V', p%d_size/2, ?, d_size/2, p, t_depth, ...]  V' are the digest of values V = (v3, v2, v1, v0)
     dropw
 
-    # Unhashing the leaf values
+    ## Unhashing the leaf values
+    # Input: [V', p%d_size/2, ?, d_size/2, p, t_depth, ...]
+    # Output: [v3, v2, v1, v0, p%d_size/2, ?, d_size/2, p, V, t_depth, ...]
+    # where V = (v3, v2, v1, v0) is the unhashing of V'
     push.4.0.0.0.0.0.0.0
     adv_loadw
     loc_storew.0
@@ -142,51 +147,53 @@ export.verify_query_layer.1
     loc_loadw.0
 
     # Check that evaluation (from the previous layer) is equal to the (appropriate) unhashed values.
-    # The hash values to compare against are selected using the binary value ?.
-    dupw  movdnw.2              #[v3, v2, v1, v0, p%d/2, ?, d/2, p, V, t_d, ...]
-    movup.2 swap                #[v3, v1, v2, v0, p%d/2, ?, d/2, p, V, t_d, ...]
-    dup.5                       #[?, v3, v1, v2, v0, p%d/2, ?, d/2, p, V, t_d, ...]
-    cdrop                       #[v1, v2, v0, p%d/2, ?, d/2, p, V, t_d, ...]
-    movdn.2                     #[v2, v0, v1, p%d/2, ?, d/2, p, V, t_d, ...]
-    dup.4                       #[?, v2, v0, v1, p%d/2, ?, d/2, p, V, t_d, ...]
-    cdrop   swap                #[v1, v0, p%d/2, ?, d/2, p, V, t_d, e1, e0, ...]
-    dup                         #[v1, v1, v0, p%d/2, ?, d/2, p, V, t_d, e1, e0..]
-    movup.12                    #[e1, v1, v1, v0, p%d/2, ?, d/2, p, t_d, e0..]
-    assert_eq                   #[v1, v0, p%d/2, ?, d/2, p, V, t_d, e0..]
-    dup.1                       #[v0, v1, v0, p%d/2, ?, d/2, p, V, t_d, e0..]
-    movup.12                    #[e0, v0, v1, v0, p%d/2, ?, d/2, p, V, t_d..]
-    assert_eq                   #[v1, v0, p%d/2, ?, d/2, p, V, t_d, poe, ..] #poe is position in the exponent
+    # In other words, compare (e1,e0) to either (v3,v2) if ? or to (v1,v0) if not ?.
+    dupw  movdnw.2              #[v3, v2, v1, v0, p%d_size/2, ?, d_size/2, p, V, t_depth, ...]
+    movup.2 swap                #[v3, v1, v2, v0, p%d_size/2, ?, d_size/2, p, V, t_depth, ...]
+    dup.5                       #[?, v3, v1, v2, v0, p%d_size/2, ?, d_size/2, p, V, t_depth, ...]
+    cdrop                       #[v1, v2, v0, p%d_size/2, ?, d_size/2, p, V, t_depth, ...]
+    movdn.2                     #[v2, v0, v1, p%d_size/2, ?, d_size/2, p, V, t_depth, ...]
+    dup.4                       #[?, v2, v0, v1, p%d_size/2, ?, d_size/2, p, V, t_depth, ...]
+    cdrop   swap                #[v1, v0, p%d_size/2, ?, d_size/2, p, V, t_depth, e1, e0, ...]
+    dup                         #[v1, v1, v0, p%d_size/2, ?, d_size/2, p, V, t_depth, e1, e0..]
+    movup.12                    #[e1, v1, v1, v0, p%d_size/2, ?, d_size/2, p, t_depth, e0..]
+    assert_eq                   #[v1, v0, p%d_size/2, ?, d_size/2, p, V, t_depth, e0..]
+    dup.1                       #[v0, v1, v0, p%d_size/2, ?, d_size/2, p, V, t_depth, e0..]
+    movup.12                    #[e0, v0, v1, v0, p%d_size/2, ?, d_size/2, p, V, t_depth..]
+    assert_eq                   #[v1, v0, p%d_size/2, ?, d_size/2, p, V, t_depth, poe, ..] #poe is position in the exponent
+    drop drop                   #[p%d_size/2, ?, d_size/2, p, V, t_depth, poe, ..]
 
-    # Prepare for fold_2 procedure by computing: offset * (domain_generator ^ position). This is done
-    # using poe from the previous layer and the binary value ? using the next_pos_exp procedure.
-    drop drop swapw             #[V, p%d/2, ?, d/2, p, t_d, poe, ..]
-    movup.9                     #[poe, V, p%d/2, ?, d/2, p, t_d, ..]
-    dup                         #[poe, poe, V, p%d/2, ?, d/2, p, t_d, ..]
-    movup.7                     #[?, poe, poe, V, p%d/2, d/2, p, t_d, ..]
-    exec.next_pos_exp           #[poe_sq, xs, V, p%d/2, d/2, p, t_d, ..]
-    swap.8 drop                 #[xs, V, p%d/2, d/2, poe_sq, t_d, ..]
-    push.0                      #[0, xs, V, p%d/2, d/2, poe_sq, t_d, a1, a0, ..]
-    movup.11 movup.11           #[a1, a0, 0, xs, v3, v2, v1, v0, p%d/2, d/2, poe_sq, t_d, ..]   
-    swapw                       #[v3, v2, v1, v0, a1, a0, 0, xs, p%d/2, d/2, poe_sq, t_d, ..] #Should simplify fri since d1 is always equal to zero
-    movup.3 movup.3
-    exec.fold_2                 #[e1, e0, p%d/2, d/2, poe_sq, t_d, ..]
+    ## Prepare for fold_2 procedure by computing: offset * (domain_generator ^ position). This is done
+    ## using poe from the previous layer and the binary value ? using the next_pos_exp procedure.
+    # Input: [p%d_size/2, ?, d_size/2, p, V, t_depth, poe, a1, a0, ..]
+    # Output: [e1, e0, p%d_size/2, d_size/2, poe_sq, t_depth, ..]
+    swapw             #[V, p%d_size/2, ?, d_size/2, p, t_depth, poe, ..]
+    movup.9                     #[poe, V, p%d_size/2, ?, d_size/2, p, t_depth, ..]
+    dup                         #[poe, poe, V, p%d_size/2, ?, d_size/2, p, t_depth, ..]
+    movup.7                     #[?, poe, poe, V, p%d_size/2, d_size/2, p, t_depth, ..]
+    exec.next_pos_exp           #[poe_sq, xs, V, p%d_size/2, d_size/2, p, t_depth, ..]
+    swap.8 drop                 #[xs, V, p%d_size/2, d_size/2, poe_sq, t_depth, ..]
+    push.0                      #[0, xs, V, p%d_size/2, d_size/2, poe_sq, t_depth, a1, a0, ..]
+    movup.11 movup.11           #[a1, a0, 0, xs, v3, v2, v1, v0, p%d_size/2, d_size/2, poe_sq, t_depth, ..]   
+    swapw                       #[v3, v2, v1, v0, a1, a0, 0, xs, p%d_size/2, d_size/2, poe_sq, t_depth, ..] #Should simplify fri since d1 is always equal to zero
+    movup.3 movup.3             #[v1, v0, v3, v2, a1, a0, 0, xs, p%d_size/2, d_size/2, poe_sq, t_depth, ..]
+    exec.fold_2                 #[e1, e0, p%d_size/2, d_size/2, poe_sq, t_depth, ..]
 
     # Decrement the depth i.e. move one layer deeper in the folding step of FRI verification.
-    movup.5 u32wrapping_sub.1   #[t_d-1, e1, e0, p%d/2, d/2, poe_sq, add', ..]
+    movup.5 u32wrapping_sub.1   #[t_depth-1, e1, e0, p%d_size/2, d_size/2, poe_sq, ptr', ..]
     
 
 end
 
-#! Verify a single query. The expected stack configuration is [add, num_q, d, g, t_d, add', ...]
-#! where add is the address storing the current (num_q, d, g, t_d), num_q is the index of the current query, 
-#! d is the domain size of the LDE, g is its generator and add' is the address of the commitment to 
+#! Verify a single query. The expected stack configuration is [d_size, p, C, t_depth, e1, e0, poe, a1, a0, f_ptr-2, f_ptr, i_ptr, ...]
+#! where i_ptr is the address storing the current (num_q, d_size, g, t_depth), num_q is the index of the current query, 
+#! d_size is the domain size of the LDE, g is its generator and ptr' is the address of the commitment to 
 #! the first layer with the commitments to subsequent layers laid out, in alternating order with the layer
-#! alphas, in the subsequent addresses i.e. add' - 2, add' - 1 ...
-#! Input:  #[d, p, C, t_d, e1, e0, poe, a1, a0, add_f - 2, add_f, add_i, ...]
-#! Output: #[p%d/2, d/2, poe_sq, add_i + 1, add_f, add_i, rem1, rem0...]
+#! alphas, in the subsequent addresses i.e. f_ptr - 2, f_ptr - 1 ...
+#! Input:  #[d_size, p, C, t_depth, e1, e0, poe, a1, a0, f_ptr - 2, f_ptr, i_ptr, ...]
+#! Output: #[p%d_size/2, d_size/2, poe_sq, i_ptr + 1, f_ptr, i_ptr, rem1, rem0...]
 export.verify_query
-    exec.verify_query_layer
-    #[t_d-1, e1, e0, p%d/2, d/2, poe_sq, add', ..]
+    exec.verify_query_layer     #[t_depth-1, e1, e0, p%d_size/2, d_size/2, poe_sq, ptr', ..]
 
     dup u32checked_neq.3
     while.true
@@ -204,7 +211,7 @@ end
 #! Verify that the hash of the remainder codeword is equal to the commitment provided by the prover
 #! The following implementation relies on the assumption that the blowup factor is 8 and that the degree
 #! of the remainder is zero.
-#! Input: #[p%d/2, d/2, poe_sq, add_i + 1, add_f, add_i, rem1, rem0...]
+#! Input: #[p%d_size/2, d_size/2, poe_sq, i_ptr + 1, f_ptr, i_ptr, rem1, rem0...]
 #! Output: ()
 export.verify_remainder_com
     dropw                  #[r1, r0, ..]
@@ -228,60 +235,61 @@ export.verify_remainder_com
     dropw dropw
 end
 
-#! This procedure verifies a FRI proof with number of queries num_q, initial domain size d, generator
-#! for this domain g, and tree depth of the initial layer Merkle tree commitment. add_i points to
+#! This procedure verifies a FRI proof with number of queries num_q, initial domain size d_size, generator
+#! for this domain g, and tree depth of the initial layer Merkle tree commitment. i_ptr points to
 #! the address containing values common to all queries as well as to keep track of the queries
-#! that remain to be verified. add_f points to the address that will contain the result of adv_pipe.
-#! add_f - 2 * i - 2 points to the layer folding challenges alpha and add_f - 2 * i - 1 points to
+#! that remain to be verified. f_ptr points to the address that will contain the result of adv_pipe.
+#! f_ptr - 2 * i - 2 points to the layer folding challenges alpha and f_ptr - 2 * i - 1 points to
 #! the i-th layer commitment.
-#! Input: #[add_i, num_q, d, g, t_d, add_f, ...]
+#! Input: #[i_ptr, num_q, d_size, g, t_depth, f_ptr, ...]
 #! Output: ()
 export.verify_fri
     push.1
     while.true
-        dup                         #[add_i, add_i, num_q, d, g, t_d, add_f, ...]
-        movdn.6                     #[add_i, num_q, d, g, t_d, add_f, add_i, ...]
-        mem_storew                  #[num_q, d, g, t_d, ...]
+        dup                         #[i_ptr, i_ptr, num_q, d_size, g, t_depth, f_ptr, ...]
+        movdn.6                     #[i_ptr, num_q, d_size, g, t_depth, f_ptr, i_ptr, ...]
+        mem_storew                  #[num_q, d_size, g, t_depth, ...]
         push.0.0.0
-        adv_loadw                   #[0, p, e1, e0, d, g, t_d, ...]
-        drop                        #[p, e1, e0, d, g, t_d, ...]
-        dup                         #[p, p, e1, e0, d, g, t_d, ...]
-        movup.5                     #[g, p, p, e1, e0, d, t_d, ...]
-        swap                        #[p, g, p, e1, e0, d, t_d, ...]
-        exp.u32                     #[poe, p, e1, e0, d, t_d, ...]
-        dup.6                       #[add_f, poe, p, e1, e0, d, t_d, add_f, ...]
-        sub.2 dup                   #[add_f - 2, add_f - 2, poe, p, e1, e0, d, t_d, add_f, ...]
-        movdn.7                     #[add_f - 2, poe, p, e1, e0, d, t_d, add_f - 2, add_f, ...]
-        push.0.0.0.0                #[0, 0, 0, 0, add_f - 2, poe, p, e1, e0, d, t_d, add_f - 2, ...]
-        dup.4  add.1                #[add_f - 1, 0, 0, 0, 0, add_f - 2, poe, p, e1, e0, d, t_d, add_f - 2, ...]
-        mem_loadw                   #[0, 0, a1, a0, add_f - 2, poe, p, e1, e0, d, t_d, add_f - 2, ...]
-        push.0.0                    #[0, 0, 0, 0, a1, a0, add_f - 2, poe, p, e1, e0, d, t_d, add_f - 2, ...]
-        movup.6                     #[add_f - 2, 0, 0, 0, 0, a1, a0, poe, p, e1, e0, d, t_d, add_f - 2, ...]
-        mem_loadw                   #[C, a1, a0, poe, p, e1, e0, d, t_d, add_f - 2, ...]
+        adv_loadw                   #[0, p, e1, e0, d_size, g, t_depth, ...]
+        drop                        #[p, e1, e0, d_size, g, t_depth, ...]
+        dup                         #[p, p, e1, e0, d_size, g, t_depth, ...]
+        movup.5                     #[g, p, p, e1, e0, d_size, t_depth, ...]
+        swap                        #[p, g, p, e1, e0, d_size, t_depth, ...]
+        exp.u32                     #[poe, p, e1, e0, d_size, t_depth, ...]
+        dup.6                       #[f_ptr, poe, p, e1, e0, d_size, t_depth, f_ptr, ...]
+        sub.2 dup                   #[f_ptr - 2, f_ptr - 2, poe, p, e1, e0, d_size, t_depth, f_ptr, ...]
+        movdn.7                     #[f_ptr - 2, poe, p, e1, e0, d_size, t_depth, f_ptr - 2, f_ptr, ...]
+        push.0.0.0.0                #[0, 0, 0, 0, f_ptr - 2, poe, p, e1, e0, d_size, t_depth, f_ptr - 2, ...]
+        dup.4  add.1                #[f_ptr - 1, 0, 0, 0, 0, f_ptr - 2, poe, p, e1, e0, d_size, t_depth, f_ptr - 2, ...]
+        mem_loadw                   #[0, 0, a1, a0, f_ptr - 2, poe, p, e1, e0, d_size, t_depth, f_ptr - 2, ...]
+        push.0.0                    #[0, 0, 0, 0, a1, a0, f_ptr - 2, poe, p, e1, e0, d_size, t_depth, f_ptr - 2, ...]
+        movup.6                     #[f_ptr - 2, 0, 0, 0, 0, a1, a0, poe, p, e1, e0, d_size, t_depth, f_ptr - 2, ...]
+        mem_loadw                   #[C, a1, a0, poe, p, e1, e0, d_size, t_depth, f_ptr - 2, ...]
 
         
-        swapw.2 swapw           #[a1, a0, poe, p, e1, e0, d, t_d, C, add_f - 2, ...]
-        movup.2                 #[poe, a1, a0, p, e1, e0, d, t_d, C, add_f - 2, ...]
-        movup.5                 #[e0, poe, a1, a0, p, e1, d, t_d, C, add_f - 2, ...]
-        swapw                   #[p, e1, d, t_d, e0, poe, a1, a0, C, add_f - 2, ...]
-        movupw.2                #[C, p, e1, d, t_d, e0, poe, a1, a0, add_f - 2, ...]
-        movup.4                 #[p, C, e1, d, t_d, e0, poe, a1, a0, add_f - 2, ...]
-        movup.6                 #[d, p, C, e1, t_d, e0, poe, a1, a0, add_f - 2, ...]
-        movup.6                 #[e1, d, p, C, t_d, e0, poe, a1, a0, add_f - 2, ...]
-        movdn.7                 #[d, p, C, t_d, e1, e0, poe, a1, a0, add_f - 2, add_f, add_i, ...]
+        swapw.2 swapw           #[a1, a0, poe, p, e1, e0, d_size, t_depth, C, f_ptr - 2, ...]
+        movup.2                 #[poe, a1, a0, p, e1, e0, d_size, t_depth, C, f_ptr - 2, ...]
+        movup.5                 #[e0, poe, a1, a0, p, e1, d_size, t_depth, C, f_ptr - 2, ...]
+        swapw                   #[p, e1, d_size, t_depth, e0, poe, a1, a0, C, f_ptr - 2, ...]
+        movupw.2                #[C, p, e1, d_size, t_depth, e0, poe, a1, a0, f_ptr - 2, ...]
+        movup.4                 #[p, C, e1, d_size, t_depth, e0, poe, a1, a0, f_ptr - 2, ...]
+        movup.6                 #[d_size, p, C, e1, t_depth, e0, poe, a1, a0, f_ptr - 2, ...]
+        movup.6                 #[e1, d_size, p, C, t_depth, e0, poe, a1, a0, f_ptr - 2, ...]
+        movdn.7                 #[d_size, p, C, t_depth, e1, e0, poe, a1, a0, f_ptr - 2, f_ptr, i_ptr, ...]
 
         ## Prepare initial is done for query p
         # Call verify query full by iterating verify query layer 
         exec.verify_query
 
         ## Prepare for next iteration of while loop
-        #[p%d/2, d/2, poe_sq, add_i + 1, add_f, add_i, rem1, rem0...]
-        dup.5                  #[add_i, p%d/2, d/2, poe_sq, add_i + 1, add_f, add_i, rem1, rem0...]
+        # Input: [p%d_size/2, d_size/2, poe_sq, i_ptr + 1, f_ptr, i_ptr, rem1, rem0...]
+        # Ouput: [?, i_ptr, num_q-1, d_size, g, t_depth, f_ptr, rem1, rem0, ...]
+        dup.5                  #[i_ptr, p%d_size/2, d_size/2, poe_sq, i_ptr + 1, f_ptr, i_ptr, rem1, rem0...]
         mem_loadw
         sub.1 
         dup
-        neq.0                  #[?, num_q-1, d, g, t_d, add_f, add_i, rem1, rem0, ...]
-        movup.6 swap           #[?, add_i, num_q-1, d, g, t_d, add_f, rem1, rem0, ...]
+        neq.0                  #[?, num_q-1, d_size, g, t_depth, f_ptr, i_ptr, rem1, rem0, ...]
+        movup.6 swap           #[?, i_ptr, num_q-1, d_size, g, t_depth, f_ptr, rem1, rem0, ...]
     end
 
     exec.verify_remainder_com
