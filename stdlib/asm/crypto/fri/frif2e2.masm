@@ -2,6 +2,8 @@ use.std::math::ext2
 
 #! Given a stack in the following initial configuration [a1, a0, b1, b0, c1, c0, d1, d0, ...] the following
 #! procedure computes (a + b + ((a - b) * c * d^(-1)))/2 with the assumption that d1 is equal to 0
+#! Cost: 15 + 1 Esub + 2 mulBase + 1 Emul + 2 Eadd
+#! Cost: ~70 cycles in Ext2
 export.fold_2
     dupw                #[a1, a0, b1, b0, a1, a0, b1, b0, c1, c0, d1, d0, ...]
     exec.ext2::sub      #[(a-b)1, (a-b)0, a1, a0, b1, b0, c1, c0, d1, d0, ...]
@@ -26,8 +28,9 @@ end
 #! This procedure computes the folded position in the exponent of the corresponding domain generator
 #! normalized by the offset. It uses an algebraic relationship between the original and folded positions
 #! given by multiplication with the 2nd primitive root of unity in our field.
-#! input:    #[?, poe, poe, ...]
-#! output:   #[poe_sq, xs, ...]
+#! Cost: 10 cycles
+#! Input:    #[?, poe, poe, ...]
+#! Output:   #[poe_sq, xs, ...]
 export.next_pos_exp
     dup.1                               #[poe, ?, poe, poe, ...]   
     push.18446744069414584320           #[nor, poe, ?, poe, poe, ...]
@@ -84,6 +87,7 @@ end
 #! Helper procedure used to prepare the stack for the next iteration of verify_query_layer for a 
 #! positon p. (ptr' - 2) is the address of the commitment for the next layer and (ptr' - 1) is 
 #! the address of the next alpha folding challenge.
+#! Cost: ~30 cycles
 #! Input: [t_depth, e1, e0, p, d_size, poe, ptr', ..]
 #! Output: [d, p, C, t_depth, e1, e0, poe, a1, a0, ptr'-2, ..]
 export.prepare_next
@@ -113,9 +117,13 @@ end
 #! to the current layer commitment (and its corresponding challenge) while f_ptr is used to keep track of the first such
 #! commitment for subsequent queries. 
 #! TODO: Check where/if some checks are needed at the beginning, like p < d_size (p&d_size are u32) and that 2^t_depth == d_size 
-#! Input: #[d_size, p, C, t_depth, e1, e0, poe, a1, a0, ptr', f_ptr..]
-#! Output: #[t_depth-1, e1, e0, p%d_size/2, d_size/2, poe_sq, ptr', f_ptr..]
+#! Cost: ~200 cycles
+#! Input:  [d_size, p, C, t_depth, e1, e0, poe, a1, a0, ptr', f_ptr..]
+#! Output: [t_depth-1, e1, e0, p%d_size/2, d_size/2, poe_sq, ptr', f_ptr..]
 export.verify_query_layer.1
+
+    ## Merkle proof verification
+    # Cost: ~25 cycles
     u32unchecked_div.2          #[d_size/2, p, C, t_depth, ...]
     dup                         #[d_size/2, d_size/2, p, C, t_depth, ...]
     dup.2 swap                  #[d_size/2, p, d_size/2, p, C, t_depth, ...]
@@ -127,6 +135,7 @@ export.verify_query_layer.1
     dropw
 
     ## Unhashing the leaf values
+    # Cost: ~35 cycles
     # Input: [V', p%d_size/2, ?, d_size/2, p, t_depth, ...]
     # Output: [v3, v2, v1, v0, p%d_size/2, ?, d_size/2, p, V, t_depth, ...]
     # where V = (v3, v2, v1, v0) is the unhashing of V'
@@ -148,6 +157,7 @@ export.verify_query_layer.1
 
     # Check that evaluation (from the previous layer) is equal to the (appropriate) unhashed values.
     # In other words, compare (e1,e0) to either (v3,v2) if ? or to (v1,v0) if not ?.
+    # Cost: ~28 cycles
     dupw  movdnw.2              #[v3, v2, v1, v0, p%d_size/2, ?, d_size/2, p, V, t_depth, ...]
     movup.2 swap                #[v3, v1, v2, v0, p%d_size/2, ?, d_size/2, p, V, t_depth, ...]
     dup.5                       #[?, v3, v1, v2, v0, p%d_size/2, ?, d_size/2, p, V, t_depth, ...]
@@ -165,6 +175,7 @@ export.verify_query_layer.1
 
     ## Prepare for fold_2 procedure by computing: offset * (domain_generator ^ position). This is done
     ## using poe from the previous layer and the binary value ? using the next_pos_exp procedure.
+    # Cost: ~100 cycles
     # Input: [p%d_size/2, ?, d_size/2, p, V, t_depth, poe, a1, a0, ..]
     # Output: [e1, e0, p%d_size/2, d_size/2, poe_sq, t_depth, ..]
     swapw             #[V, p%d_size/2, ?, d_size/2, p, t_depth, poe, ..]
@@ -211,6 +222,7 @@ end
 #! Verify that the hash of the remainder codeword is equal to the commitment provided by the prover
 #! The following implementation relies on the assumption that the blowup factor is 8 and that the degree
 #! of the remainder is zero.
+#! Cost: ~80 cycles
 #! Input: #[p%d_size/2, d_size/2, poe_sq, i_ptr + 1, f_ptr, i_ptr, rem1, rem0...]
 #! Output: ()
 export.verify_remainder_com
@@ -230,9 +242,16 @@ export.verify_remainder_com
     dupw rphash
     push.0.0.0.0
     adv_loadw
-    eqw
-    assert
-    dropw dropw
+
+    
+    movup.4
+    assert_eq
+    movup.3
+    assert_eq
+    movup.2
+    assert_eq
+    assert_eq
+
 end
 
 #! This procedure verifies a FRI proof with number of queries num_q, initial domain size d_size, generator
@@ -246,6 +265,8 @@ end
 export.verify_fri
     push.1
     while.true
+        ## Prepare the of query for verification
+        # Cost: ~85 cycles
         dup                         #[i_ptr, i_ptr, num_q, d_size, g, t_depth, f_ptr, ...]
         movdn.6                     #[i_ptr, num_q, d_size, g, t_depth, f_ptr, i_ptr, ...]
         mem_storew                  #[num_q, d_size, g, t_depth, ...]
@@ -265,8 +286,6 @@ export.verify_fri
         push.0.0                    #[0, 0, 0, 0, a1, a0, f_ptr - 2, poe, p, e1, e0, d_size, t_depth, f_ptr - 2, ...]
         movup.6                     #[f_ptr - 2, 0, 0, 0, 0, a1, a0, poe, p, e1, e0, d_size, t_depth, f_ptr - 2, ...]
         mem_loadw                   #[C, a1, a0, poe, p, e1, e0, d_size, t_depth, f_ptr - 2, ...]
-
-        
         swapw.2 swapw           #[a1, a0, poe, p, e1, e0, d_size, t_depth, C, f_ptr - 2, ...]
         movup.2                 #[poe, a1, a0, p, e1, e0, d_size, t_depth, C, f_ptr - 2, ...]
         movup.5                 #[e0, poe, a1, a0, p, e1, d_size, t_depth, C, f_ptr - 2, ...]
@@ -282,6 +301,7 @@ export.verify_fri
         exec.verify_query
 
         ## Prepare for next iteration of while loop
+        # Cost: 10 cycles
         # Input: [p%d_size/2, d_size/2, poe_sq, i_ptr + 1, f_ptr, i_ptr, rem1, rem0...]
         # Ouput: [?, i_ptr, num_q-1, d_size, g, t_depth, f_ptr, rem1, rem0, ...]
         dup.5                  #[i_ptr, p%d_size/2, d_size/2, poe_sq, i_ptr + 1, f_ptr, i_ptr, rem1, rem0...]
