@@ -1,6 +1,5 @@
 use super::data::{InputFile, OutputFile, ProgramHash, ProofFile};
-use std::path::PathBuf;
-use std::time::Instant;
+use std::{path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
