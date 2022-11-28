@@ -1,5 +1,4 @@
 use super::data::ProgramFile;
-use crypto::Digest;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -21,7 +20,8 @@ impl CompileCmd {
         let program = ProgramFile::read(&self.assembly_file)?;
 
         // report program hash to user
-        println!("program hash is {}", hex::encode(program.hash().as_bytes()));
+        let program_hash: [u8; 32] = program.hash().into();
+        println!("program hash is {}", hex::encode(program_hash));
 
         Ok(())
     }

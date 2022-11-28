@@ -1,7 +1,10 @@
 use super::ProgramError;
+use miden::{
+    math::{Felt, StarkField},
+    ProgramInputs, Word,
+};
 use processor::Process;
 use rustyline::{error::ReadlineError, Editor};
-use vm_core::{Felt, ProgramInputs, StarkField, Word};
 
 /// This work is in continuation to the amazing work done by team `Scribe`
 /// [here](https://github.com/ControlCplusControlV/Scribe/blob/main/transpiler/src/repl.rs#L8)
@@ -261,7 +264,7 @@ pub fn start_repl() {
 /// The program is passed in as a String, passed to the Miden Assembler, and then passed into the Miden
 /// Processor to be executed.
 fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramError> {
-    let program = assembly::Assembler::new()
+    let program = assembly::Assembler::default()
         .compile(&program)
         .map_err(ProgramError::AssemblyError)?;
 
