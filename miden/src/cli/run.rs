@@ -1,7 +1,5 @@
 use super::data::{InputFile, OutputFile, ProgramFile};
-use crypto::Digest;
-use std::path::PathBuf;
-use std::time::Instant;
+use std::{path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
@@ -33,9 +31,10 @@ impl RunCmd {
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
+        let program_hash: [u8; 32] = program.hash().into();
         print!(
             "Executing program with hash {}... ",
-            hex::encode(program.hash().as_bytes())
+            hex::encode(program_hash)
         );
         let now = Instant::now();
 

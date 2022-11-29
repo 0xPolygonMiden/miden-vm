@@ -1,9 +1,6 @@
 use super::data::{InputFile, OutputFile, ProgramFile, ProofFile};
-use air::ProofOptions;
-use crypto::Digest;
-use std::io::Write;
-use std::path::PathBuf;
-use std::time::Instant;
+use miden::ProofOptions;
+use std::{io::Write, path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
@@ -55,10 +52,8 @@ impl ProveCmd {
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
-        println!(
-            "Proving program with hash {}...",
-            hex::encode(program.hash().as_bytes())
-        );
+        let program_hash: [u8; 32] = program.hash().into();
+        println!("Proving program with hash {}...", hex::encode(program_hash));
         let now = Instant::now();
 
         // execute program and generate proof
@@ -71,7 +66,7 @@ impl ProveCmd {
 
         println!(
             "Program with hash {} proved in {} ms",
-            hex::encode(program.hash().as_bytes()),
+            hex::encode(program_hash),
             now.elapsed().as_millis()
         );
 
