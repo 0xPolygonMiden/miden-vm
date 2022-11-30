@@ -1,9 +1,7 @@
-use assembly::Assembler;
 use criterion::{criterion_group, criterion_main, Criterion};
-use processor::execute;
+use miden::{execute, Assembler, ProgramInputs};
 use std::time::Duration;
 use stdlib::StdLibrary;
-use vm_core::ProgramInputs;
 
 fn program_execution(c: &mut Criterion) {
     let mut group = c.benchmark_group("program_execution");
