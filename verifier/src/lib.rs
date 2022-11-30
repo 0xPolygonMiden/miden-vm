@@ -2,15 +2,18 @@
 
 use air::{ProcessorAir, PublicInputs};
 use core::fmt;
-use vm_core::{utils::collections::Vec, ProgramOutputs};
+use vm_core::utils::collections::Vec;
 use winterfell::VerifierError;
 
 // EXPORTS
 // ================================================================================================
 
-pub use assembly;
-pub use vm_core::chiplets::hasher::Digest;
+pub use vm_core::{chiplets::hasher::Digest, ProgramOutputs, Word};
 pub use winterfell::StarkProof;
+
+mod math {
+    pub use vm_core::{Felt, FieldElement, StarkField};
+}
 
 // VERIFIER
 // ================================================================================================

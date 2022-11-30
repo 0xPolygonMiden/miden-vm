@@ -3,15 +3,13 @@
 // EXPORTS
 // ================================================================================================
 
-pub use air::{FieldExtension, HashFunction, ProofOptions};
 pub use assembly::{Assembler, AssemblyError, ParsingError};
 pub use processor::{
-    execute, execute_iter, AsmOpInfo, ExecutionError, ExecutionTrace, VmState, VmStateIterator,
+    execute, execute_iter, utils, AsmOpInfo, ExecutionError, ExecutionTrace, Operation, VmState,
+    VmStateIterator,
 };
-pub use prover::{prove, StarkProof};
+pub use prover::{
+    math, prove, AdviceSet, AdviceSetError, Digest, FieldExtension, HashFunction, InputError,
+    Program, ProgramInputs, ProgramOutputs, ProofOptions, StarkProof, Word,
+};
 pub use verifier::{verify, VerificationError};
-pub use vm_core::{
-    chiplets::hasher::Digest,
-    errors::{AdviceSetError, InputError},
-    AdviceSet, Program, ProgramInputs,
-};
