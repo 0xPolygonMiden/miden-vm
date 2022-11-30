@@ -1,4 +1,7 @@
-use miden::{Assembler, Digest, Program, ProgramInputs, ProgramOutputs, StarkProof};
+use miden::{
+    utils::{Deserializable, SliceReader},
+    Assembler, Digest, Program, ProgramInputs, ProgramOutputs, StarkProof,
+};
 use serde_derive::{Deserialize, Serialize};
 use std::{
     fs,
@@ -7,7 +10,6 @@ use std::{
     time::Instant,
 };
 use stdlib::StdLibrary;
-use winter_utils::{Deserializable, SliceReader};
 
 // INPUT FILE
 // ================================================================================================
