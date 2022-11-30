@@ -1,11 +1,12 @@
-use miden::Assembler;
-use prover::StarkProof;
+use miden::{Assembler, Digest, Program, ProgramInputs, ProgramOutputs, StarkProof};
 use serde_derive::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
-use std::{fs, io::Write, time::Instant};
+use std::{
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+    time::Instant,
+};
 use stdlib::StdLibrary;
-use vm_core::ProgramOutputs;
-use vm_core::{chiplets::hasher::Digest, Program, ProgramInputs};
 use winter_utils::{Deserializable, SliceReader};
 
 // INPUT FILE

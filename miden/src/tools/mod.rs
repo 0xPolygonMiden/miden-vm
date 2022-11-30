@@ -1,11 +1,10 @@
 use super::{cli::InputFile, ProgramError};
 use core::fmt;
-use miden::Assembler;
+use miden::{utils::collections::Vec, Assembler, Operation, ProgramInputs};
 use processor::AsmOpInfo;
 use std::path::PathBuf;
 use stdlib::StdLibrary;
 use structopt::StructOpt;
-use vm_core::{utils::collections::Vec, Operation, ProgramInputs};
 
 // CLI
 // ================================================================================================
