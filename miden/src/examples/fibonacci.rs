@@ -1,7 +1,8 @@
 use super::Example;
-use miden::{Assembler, Program, ProgramInputs};
-use stdlib::StdLibrary;
-use vm_core::{Felt, FieldElement, StarkField};
+use miden::{
+    math::{Felt, FieldElement, StarkField},
+    Assembler, Program, ProgramInputs,
+};
 
 // EXAMPLE BUILDER
 // ================================================================================================
@@ -41,10 +42,7 @@ fn generate_fibonacci_program(n: usize) -> Program {
         n - 1
     );
 
-    Assembler::new()
-        .with_module_provider(StdLibrary::default())
-        .compile(&program)
-        .unwrap()
+    Assembler::default().compile(&program).unwrap()
 }
 
 /// Computes the `n`-th term of Fibonacci sequence

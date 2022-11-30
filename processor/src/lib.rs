@@ -7,7 +7,7 @@ extern crate alloc;
 pub use vm_core::{
     chiplets::hasher::Digest,
     errors::{AdviceSetError, InputError},
-    AdviceSet, Program, ProgramInputs, ProgramOutputs,
+    AdviceSet, Operation, Program, ProgramInputs, ProgramOutputs,
 };
 use vm_core::{
     code_blocks::{
@@ -15,8 +15,8 @@ use vm_core::{
     },
     utils::collections::{BTreeMap, Vec},
     AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, Kernel,
-    Operation, StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN,
-    ONE, RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
+    StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, ONE,
+    RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
 
 use winterfell::Matrix;
@@ -84,8 +84,8 @@ pub struct ChipletsTrace {
 // EXECUTORS
 // ================================================================================================
 
-/// Returns execution output and an execution trace resulting from executing the provided program
-/// against the provided inputs.
+/// Returns an execution trace resulting from executing the provided program against the provided
+/// inputs.
 pub fn execute(
     program: &Program,
     inputs: &ProgramInputs,
@@ -101,8 +101,8 @@ pub fn execute(
     Ok(trace)
 }
 
-/// Returns an iterator that allows callers to step through each execution and inspect
-/// vm state information along side.
+/// Returns an iterator which allows callers to step through the execution and inspect VM state at
+/// each execution step.
 pub fn execute_iter(program: &Program, inputs: &ProgramInputs) -> VmStateIterator {
     let mut process = Process::new_debug(program.kernel(), inputs.clone());
     let result = process.execute(program);
