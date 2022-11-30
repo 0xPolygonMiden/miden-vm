@@ -11,7 +11,7 @@ struct Point([FieldElement; 3]);
 fn test_secp256k1_point_doubling(src: Point, dst: Point) {
     let source = format!(
         "
-    use.std::math::secp256k1_ec
+    use.std::math::secp256k1::group
 
     # Given a point of secp256k1 elliptic curve, this routine first computes
     # point doubling of that point in projective coordinate & then asserts
@@ -57,7 +57,7 @@ fn test_secp256k1_point_doubling(src: Point, dst: Point) {
         locaddr.0
 
         # elliptic curve point doubling
-        exec.secp256k1_ec::double
+        exec.group::double
 
         # --- start asserting X3 ---
         push.0.0.0.0
@@ -207,7 +207,7 @@ fn test_secp256k1_point_doubling(src: Point, dst: Point) {
 fn test_secp256k1_point_addition(src0: Point, src1: Point, dst: Point) {
     let source = format!(
         "
-    use.std::math::secp256k1_ec
+    use.std::math::secp256k1::group
 
     # Given two points of secp256k1 elliptic curve ( twice ), this routine first computes
     # point addition of them in projective coordinate & then asserts each coordinate 
@@ -284,7 +284,7 @@ fn test_secp256k1_point_addition(src0: Point, src1: Point, dst: Point) {
         locaddr.0
 
         # elliptic curve point addition
-        exec.secp256k1_ec::add
+        exec.group::add
 
         # --- start asserting X3 ---
         push.0.0.0.0
@@ -459,7 +459,7 @@ fn test_secp256k1_point_addition(src0: Point, src1: Point, dst: Point) {
 fn test_secp256k1_point_multiplication(src_point: Point, scalar: FieldElement, dst_point: Point) {
     let source = format!(
         "
-    use.std::math::secp256k1_ec
+    use.std::math::secp256k1::group
 
     # Given an elliptic curve point ( in projective coordinate system ) and a 256 -bit scalar 
     # in radix-2^32 form ( i.e. 8 limbs, each of 32 -bit width ), this routine first multiplies
@@ -510,7 +510,7 @@ fn test_secp256k1_point_multiplication(src_point: Point, scalar: FieldElement, d
         locaddr.0
 
         # elliptic curve point multiplication
-        exec.secp256k1_ec::mul
+        exec.group::mul
 
         # --- start asserting X ---
         push.0.0.0.0
@@ -667,7 +667,7 @@ fn test_secp256k1_point_multiplication(src_point: Point, scalar: FieldElement, d
 fn test_secp256k1_generator_multiplication(scalar: FieldElement, point: Point) {
     let source = format!(
         "
-    use.std::math::secp256k1_ec
+    use.std::math::secp256k1::group
 
     # Given a 256 -bit scalar in radix-2^32 form ( i.e. 8 limbs, each of 32 -bit width ), 
     # this routine first multiplies the secp256k1 generator point with provided scalar and 
@@ -686,7 +686,7 @@ fn test_secp256k1_generator_multiplication(scalar: FieldElement, point: Point) {
         push.{}.{}.{}.{}
 
         # elliptic curve generator point multiplication
-        exec.secp256k1_ec::gen_mul
+        exec.group::gen_mul
 
         # --- start asserting X ---
         push.0.0.0.0

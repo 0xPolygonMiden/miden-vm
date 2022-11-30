@@ -321,11 +321,11 @@ impl PartialEq for BaseField {
 #[test]
 fn test_montgomery_repr() {
     let source = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
-        exec.secp256k1_base_field::to_mont
-        exec.secp256k1_base_field::from_mont
+        exec.base_field::to_mont
+        exec.base_field::from_mont
     end";
 
     let mut num = [0u32; 8];
@@ -355,10 +355,10 @@ fn test_montgomery_repr() {
 #[test]
 fn test_mul() {
     let source = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
-        exec.secp256k1_base_field::mul
+        exec.base_field::mul
     end";
 
     let mut stack = [0u64; 16];
@@ -391,10 +391,10 @@ fn test_mul() {
 #[test]
 fn test_add() {
     let source = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
-        exec.secp256k1_base_field::add
+        exec.base_field::add
     end";
 
     let mut stack = [0u64; 16];
@@ -428,10 +428,10 @@ fn test_add() {
 #[allow(clippy::needless_range_loop)]
 fn test_neg() {
     let source = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
-        exec.secp256k1_base_field::neg
+        exec.base_field::neg
     end";
 
     let mut stack = [0u64; 16];
@@ -458,10 +458,10 @@ fn test_neg() {
 #[test]
 fn test_sub() {
     let source = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
-        exec.secp256k1_base_field::sub
+        exec.base_field::sub
     end";
 
     let mut stack = [0u64; 16];
@@ -494,17 +494,17 @@ fn test_sub() {
 #[test]
 fn test_add_then_sub() {
     let source_add = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
-        exec.secp256k1_base_field::add
+        exec.base_field::add
     end";
 
     let source_sub = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
-        exec.secp256k1_base_field::sub
+        exec.base_field::sub
     end";
 
     let mut stack = [0u64; 16];
@@ -563,14 +563,14 @@ fn test_add_then_sub() {
 #[test]
 fn test_inv() {
     let source = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
         dupw.1
         dupw.1
 
-        exec.secp256k1_base_field::inv
-        exec.secp256k1_base_field::mul
+        exec.base_field::inv
+        exec.base_field::mul
 
         push.977
         assert_eq
