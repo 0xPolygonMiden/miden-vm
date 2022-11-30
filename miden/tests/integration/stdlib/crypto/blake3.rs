@@ -7,7 +7,7 @@ fn blake3_hash_64_bytes() {
     use.std::crypto::hashes::blake3
 
     begin
-        exec.blake3::hash64
+        exec.blake3::hash_2to1
     end
     ";
 
@@ -41,7 +41,7 @@ fn blake3_hash_32_bytes() {
     use.std::crypto::hashes::blake3
 
     begin
-        exec.blake3::hash32
+        exec.blake3::hash_1to1
     end
     ";
 
