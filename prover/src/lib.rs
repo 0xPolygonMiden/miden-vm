@@ -1,9 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use air::{ProcessorAir, PublicInputs};
-use processor::ExecutionTrace;
+use processor::{math::Felt, utils::collections::Vec, ExecutionTrace};
 use prover::Prover;
-use vm_core::{utils::collections::Vec, Felt};
 
 #[cfg(feature = "std")]
 use log::debug;
@@ -16,21 +15,11 @@ use std::time::Instant;
 // ================================================================================================
 
 pub use air::{FieldExtension, HashFunction, ProofOptions};
-pub use processor::ExecutionError;
-pub use prover::StarkProof;
-pub use vm_core::{
-    chiplets::hasher::Digest,
-    errors::{AdviceSetError, InputError},
-    AdviceSet, Program, ProgramInputs, ProgramOutputs, Word,
+pub use processor::{
+    math, utils, AdviceSet, AdviceSetError, Digest, ExecutionError, InputError, Program,
+    ProgramInputs, ProgramOutputs, Word,
 };
-
-pub mod math {
-    pub use vm_core::{Felt, FieldElement, StarkField};
-}
-
-pub mod utils {
-    pub use vm_core::utils::collections;
-}
+pub use prover::StarkProof;
 
 // PROVER
 // ================================================================================================

@@ -7,7 +7,7 @@ extern crate alloc;
 pub use vm_core::{
     chiplets::hasher::Digest,
     errors::{AdviceSetError, InputError},
-    AdviceSet, Operation, Program, ProgramInputs, ProgramOutputs,
+    AdviceSet, Operation, Program, ProgramInputs, ProgramOutputs, Word,
 };
 use vm_core::{
     code_blocks::{
@@ -15,7 +15,7 @@ use vm_core::{
     },
     utils::collections::{BTreeMap, Vec},
     AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, Kernel,
-    StackTopState, StarkField, Word, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, ONE,
+    StackTopState, StarkField, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, ONE,
     RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
 
@@ -50,10 +50,17 @@ use trace::TraceFragment;
 mod errors;
 pub use errors::ExecutionError;
 
-mod utils;
+pub mod utils;
 
 mod debug;
 pub use debug::{AsmOpInfo, VmState, VmStateIterator};
+
+// RE-EXPORTS
+// ================================================================================================
+
+pub mod math {
+    pub use vm_core::{Felt, FieldElement, StarkField};
+}
 
 // TYPE ALIASES
 // ================================================================================================
