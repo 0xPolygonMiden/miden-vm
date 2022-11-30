@@ -1,8 +1,9 @@
 use super::{build_test, Felt};
-use ::air::FieldElement;
-use std::cmp::PartialEq;
-use std::ops::{Add, Div, Mul, Neg, Sub};
-use vm_core::StarkField;
+use std::{
+    cmp::PartialEq,
+    ops::{Add, Div, Mul, Neg, Sub},
+};
+use vm_core::{FieldElement, StarkField};
 
 // Given an element v ∈ Z_q | q = 2^64 - 2^32 + 1, this routine raises
 // it to the power 2^n, by means of n successive squarings
