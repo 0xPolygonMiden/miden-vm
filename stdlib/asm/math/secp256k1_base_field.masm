@@ -512,7 +512,7 @@ end
 #!
 #! Final stack should look like
 #!
-#! [a0`, a1`, a2`, a3`, a4`, a5`, a6`, a7`, ...]
+#! [a0', a1', a2', a3', a4', a5', a6', a7', ...]
 #!
 #! See section 2.2 of https://eprint.iacr.org/2017/1057.pdf
 #! See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/base_field_utils.py#L225-L232
@@ -534,7 +534,7 @@ end
 #!
 #! Final stack should look like
 #!
-#! [a0`, a1`, a2`, a3`, a4`, a5`, a6`, a7`, ...]
+#! [a0', a1', a2', a3', a4', a5', a6', a7', ...]
 #!
 #! See section 2.2 of https://eprint.iacr.org/2017/1057.pdf
 #! See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/base_field_utils.py#L235-L241
