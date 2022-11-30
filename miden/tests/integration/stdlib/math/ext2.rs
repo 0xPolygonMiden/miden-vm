@@ -1,8 +1,6 @@
 use super::build_test;
-use super::Felt;
-use air::{FieldElement, StarkField};
 use rand_utils::rand_value;
-use vm_core::QuadExtension;
+use vm_core::{Felt, FieldElement, QuadExtension, StarkField};
 
 type ExtElement = QuadExtension<Felt>;
 

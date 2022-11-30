@@ -3,7 +3,7 @@
 use air::{ProcessorAir, PublicInputs};
 use processor::ExecutionTrace;
 use prover::Prover;
-use vm_core::{utils::collections::Vec, Felt, ProgramOutputs};
+use vm_core::{utils::collections::Vec, Felt};
 
 #[cfg(feature = "std")]
 use log::debug;
@@ -21,8 +21,16 @@ pub use prover::StarkProof;
 pub use vm_core::{
     chiplets::hasher::Digest,
     errors::{AdviceSetError, InputError},
-    AdviceSet, Program, ProgramInputs,
+    AdviceSet, Program, ProgramInputs, ProgramOutputs, Word,
 };
+
+pub mod math {
+    pub use vm_core::{Felt, FieldElement, StarkField};
+}
+
+pub mod utils {
+    pub use vm_core::utils::collections;
+}
 
 // PROVER
 // ================================================================================================
