@@ -14,18 +14,15 @@
 #! Initialized stack state is written back to provided memory addresses.
 #!
 #! Functionally this routine is equivalent to https://github.com/itzmeanjan/blake3/blob/f07d32e/include/blake3.hpp#!L1709-L1713
-proc.initialize_64
+proc.initialize_2to1
     push.0xA54FF53A.0x3C6EF372.0xBB67AE85.0x6A09E667
     movup.4
+    mem_storew
+    movup.5
     mem_storew
     dropw
 
     push.0x5BE0CD19.0x1F83D9AB.0x9B05688C.0x510E527F
-    movup.4
-    mem_storew
-    dropw
-
-    push.0xA54FF53A.0x3C6EF372.0xBB67AE85.0x6A09E667
     movup.4
     mem_storew
     dropw
@@ -37,7 +34,7 @@ proc.initialize_64
 end
 
 #! Initializes four memory addresses, provided for storing initial 4x4 blake3
-#! state matrix ( i.e. 16 elements each of 32 -bit ), for computing blake3 hash on 32 -bytes input
+#! state matrix ( i.e. 16 elements each of 32 -bit ), for computing blake3 1-to-1 hash
 #!
 #! Expected stack state:
 #!
@@ -53,18 +50,15 @@ end
 #!
 #! Functionally this routine is equivalent to https://github.com/itzmeanjan/blake3/blob/f07d32e/include/blake3.hpp#!L1709-L1713
 #! with only difference being value of BLOCK_LEN = 32
-proc.initialize_32
+proc.initialize_1to1
     push.0xA54FF53A.0x3C6EF372.0xBB67AE85.0x6A09E667
     movup.4
+    mem_storew
+    movup.5
     mem_storew
     dropw
 
     push.0x5BE0CD19.0x1F83D9AB.0x9B05688C.0x510E527F
-    movup.4
-    mem_storew
-    dropw
-
-    push.0xA54FF53A.0x3C6EF372.0xBB67AE85.0x6A09E667
     movup.4
     mem_storew
     dropw
@@ -763,13 +757,13 @@ end
 #! [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7, ...]
 #!
 #! dig`i` -> 32 -bit digest word | i ∈ [0, 8)
-export.hash64.4
+export.hash_2to1.4
     locaddr.3
     locaddr.2
     locaddr.1
     locaddr.0
 
-    exec.initialize_64
+    exec.initialize_2to1
 
     # Note, chunk compression routine needs to compress only one chunk with one message 
     # block ( = 64 -bytes ) because what we're doing here is 2-to-1 hashing i.e. 64 -bytes 
@@ -794,7 +788,7 @@ export.hash64.4
     exec.finalize
 end
 
-#! Blake3 2-to-1 hash function, which takes 32 -bytes input and produces 32 -bytes output digest
+#! Blake3 1-to-1 hash function, which takes 32 -bytes input and produces 32 -bytes output digest
 #!
 #! Expected stack state:
 #!
@@ -807,7 +801,7 @@ end
 #! [dig0, dig1, dig2, dig3, dig4, dig5, dig6, dig7, ...]
 #!
 #! dig`i` -> 32 -bit digest word | i ∈ [0, 8)
-export.hash32.4
+export.hash_1to1.4
     # Pad 32 -bytes input message with zero bytes to make
     # 64 -bytes, which is processed same as 2-to-1 hashing
     push.0.0.0.0.0.0.0.0
@@ -818,7 +812,7 @@ export.hash32.4
     locaddr.1
     locaddr.0
 
-    exec.initialize_32
+    exec.initialize_1to1
 
     # Note, chunk compression routine needs to compress only one chunk with one message
     # block ( = 64 -bytes ), which is obtained by padding 32 -bytes input.
