@@ -62,5 +62,5 @@ fn verify(pubkey: Point, h: ScalarField, r: ScalarField, s: ScalarField) {
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.execute().unwrap();
+    assert!(test.execute().is_ok());
 }
