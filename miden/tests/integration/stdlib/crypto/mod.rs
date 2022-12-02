@@ -5,4 +5,5 @@ mod blake3;
 mod ecdsa_secp256k1;
 mod falcon;
 mod keccak256;
+mod rescue_prime;
 mod sha256;
