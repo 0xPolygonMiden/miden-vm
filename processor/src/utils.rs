@@ -1,17 +1,22 @@
 use super::{Felt, StarkField, Vec};
 
+// RE-EXPORTS
+// ================================================================================================
+
+pub use vm_core::utils::*;
+
 // HELPER FUNCTIONS
 // ================================================================================================
 
 /// Returns the number of rows in the provided execution trace assumed to be in column-major form
 /// and contain at least one column.
-pub fn get_trace_len(trace: &[Vec<Felt>]) -> usize {
+pub(crate) fn get_trace_len(trace: &[Vec<Felt>]) -> usize {
     trace[0].len()
 }
 
 /// Splits an element into two field elements containing 32-bit integer values
 #[inline(always)]
-pub fn split_element(value: Felt) -> (Felt, Felt) {
+pub(crate) fn split_element(value: Felt) -> (Felt, Felt) {
     let value = value.as_int();
     let lo = (value as u32) as u64;
     let hi = value >> 32;
@@ -20,7 +25,7 @@ pub fn split_element(value: Felt) -> (Felt, Felt) {
 
 /// Splits an element into two 16 bit integer limbs. It assumes that the field element contains a
 /// valid 32-bit integer value.
-pub fn split_element_u32_into_u16(value: Felt) -> (Felt, Felt) {
+pub(crate) fn split_element_u32_into_u16(value: Felt) -> (Felt, Felt) {
     let (hi, lo) = split_u32_into_u16(value.as_int());
     (Felt::new(hi as u64), Felt::new(lo as u64))
 }
@@ -29,7 +34,7 @@ pub fn split_element_u32_into_u16(value: Felt) -> (Felt, Felt) {
 ///
 /// # Errors
 /// Fails in debug mode if the provided value is not a 32-bit value.
-pub fn split_u32_into_u16(value: u64) -> (u16, u16) {
+pub(crate) fn split_u32_into_u16(value: u64) -> (u16, u16) {
     const U32MAX: u64 = u32::MAX as u64;
     debug_assert!(value <= U32MAX, "not a 32-bit value");
 

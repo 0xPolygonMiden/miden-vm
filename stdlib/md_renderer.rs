@@ -1,9 +1,10 @@
-use crate::ModuleMap;
-use crate::Renderer;
-use std::fs::{self, File};
-use std::io::Write;
-use std::path::Path;
-use vm_assembly::{ModuleAst, ProcedureAst};
+use crate::{ModuleMap, Renderer};
+use assembly::{ModuleAst, ProcedureAst};
+use std::{
+    fs::{self, File},
+    io::Write,
+    path::Path,
+};
 
 // MARKDOWN RENDERER
 // ================================================================================================

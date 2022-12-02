@@ -1,4 +1,4 @@
-use super::{build_test, Felt};
+use super::build_test;
 use std::cmp::PartialEq;
 use std::ops::{Add, Mul, Neg, Sub};
 
@@ -9,6 +9,12 @@ struct BaseField {
 }
 
 impl BaseField {
+    fn one() -> Self {
+        Self {
+            limbs: [977, 1, 0, 0, 0, 0, 0, 0],
+        }
+    }
+
     /// See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/base_field_utils.py#L41-L46
     fn mac(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
         let tmp = a as u64 + (b as u64 * c as u64) + carry as u64;
@@ -311,15 +317,10 @@ impl PartialEq for BaseField {
 
         !flg
     }
-
-    /// Checks whether two secp256k1 base field elements are not equal to each other, in Montogomery form
-    fn ne(&self, other: &Self) -> bool {
-        !(self == other)
-    }
 }
 
 #[test]
-fn test_montgomery_repr() {
+fn test_secp256k1_base_field_montgomery_repr() {
     let source = "
     use.std::math::secp256k1::base_field
 
@@ -328,32 +329,17 @@ fn test_montgomery_repr() {
         exec.base_field::from_mont
     end";
 
-    let mut num = [0u32; 8];
-    for i in 0..4 {
-        let a = rand_utils::rand_value::<u32>();
-        let b = rand_utils::rand_value::<u32>();
+    let num_u32 = rand_utils::rand_array::<u32, 8>();
+    let mut stack = num_u32.map(|v| v as u64);
 
-        num[i] = a;
-        num[i ^ 4] = b;
-    }
-
-    let mut stack = [0u64; 8];
-    for i in 0..4 {
-        stack[i] = num[i] as u64;
-        stack[i ^ 4] = num[i ^ 4] as u64;
-    }
     stack.reverse();
-
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
-
-    for i in 0..8 {
-        assert_eq!(Felt::new(num[i] as u64), strace[i]);
-    }
+    stack.reverse();
+    test.expect_stack(&stack);
 }
 
 #[test]
-fn test_mul() {
+fn test_secp256k1_base_field_mul() {
     let source = "
     use.std::math::secp256k1::base_field
 
@@ -361,35 +347,25 @@ fn test_mul() {
         exec.base_field::mul
     end";
 
-    let mut stack = [0u64; 16];
-
-    let mut elm0 = BaseField { limbs: [0u32; 8] };
-    let mut elm1 = BaseField { limbs: [0u32; 8] };
-
-    for i in 0..8 {
-        let a = rand_utils::rand_value::<u32>();
-        let b = rand_utils::rand_value::<u32>();
-
-        stack[i] = a as u64;
-        stack[i ^ 8] = b as u64;
-
-        elm0.limbs[i] = a;
-        elm1.limbs[i] = b;
-    }
-
+    let elm0 = BaseField {
+        limbs: rand_utils::rand_array::<u32, 8>(),
+    };
+    let elm1 = BaseField {
+        limbs: rand_utils::rand_array::<u32, 8>(),
+    };
     let elm2 = elm0 * elm1;
+
+    let mut stack = [0u64; 16];
+    stack[..8].copy_from_slice(&elm0.limbs.map(|v| v as u64));
+    stack[8..].copy_from_slice(&elm1.limbs.map(|v| v as u64));
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
-
-    for i in 0..8 {
-        assert_eq!(Felt::new(elm2.limbs[i] as u64), strace[i]);
-    }
+    test.expect_stack(&elm2.limbs.map(|v| v as u64));
 }
 
 #[test]
-fn test_add() {
+fn test_secp256k1_base_field_add() {
     let source = "
     use.std::math::secp256k1::base_field
 
@@ -397,36 +373,26 @@ fn test_add() {
         exec.base_field::add
     end";
 
-    let mut stack = [0u64; 16];
-
-    let mut elm0 = BaseField { limbs: [0u32; 8] };
-    let mut elm1 = BaseField { limbs: [0u32; 8] };
-
-    for i in 0..8 {
-        let a = rand_utils::rand_value::<u32>();
-        let b = rand_utils::rand_value::<u32>();
-
-        stack[i] = a as u64;
-        stack[i ^ 8] = b as u64;
-
-        elm0.limbs[i] = a;
-        elm1.limbs[i] = b;
-    }
-
+    let elm0 = BaseField {
+        limbs: rand_utils::rand_array::<u32, 8>(),
+    };
+    let elm1 = BaseField {
+        limbs: rand_utils::rand_array::<u32, 8>(),
+    };
     let elm2 = elm0 + elm1;
+
+    let mut stack = [0u64; 16];
+    stack[..8].copy_from_slice(&elm0.limbs.map(|v| v as u64));
+    stack[8..].copy_from_slice(&elm1.limbs.map(|v| v as u64));
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
-
-    for i in 0..8 {
-        assert_eq!(Felt::new(elm2.limbs[i] as u64), strace[i]);
-    }
+    test.expect_stack(&elm2.limbs.map(|v| v as u64));
 }
 
 #[test]
 #[allow(clippy::needless_range_loop)]
-fn test_neg() {
+fn test_secp256k1_base_field_neg() {
     let source = "
     use.std::math::secp256k1::base_field
 
@@ -434,29 +400,21 @@ fn test_neg() {
         exec.base_field::neg
     end";
 
-    let mut stack = [0u64; 16];
-    let mut elm0 = BaseField { limbs: [0u32; 8] };
-
-    for i in 0..8 {
-        let a = rand_utils::rand_value::<u32>();
-
-        stack[i] = a as u64;
-        elm0.limbs[i] = a;
-    }
-
-    stack.reverse();
+    let elm0 = BaseField {
+        limbs: rand_utils::rand_array::<u32, 8>(),
+    };
     let elm1 = -elm0;
 
-    let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let mut stack = [0u64; 8];
+    stack.copy_from_slice(&elm0.limbs.map(|v| v as u64));
+    stack.reverse();
 
-    for i in 0..8 {
-        assert_eq!(Felt::new(elm1.limbs[i] as u64), strace[i]);
-    }
+    let test = build_test!(source, &stack);
+    test.expect_stack(&elm1.limbs.map(|v| v as u64));
 }
 
 #[test]
-fn test_sub() {
+fn test_secp256k1_base_field_sub() {
     let source = "
     use.std::math::secp256k1::base_field
 
@@ -464,35 +422,25 @@ fn test_sub() {
         exec.base_field::sub
     end";
 
-    let mut stack = [0u64; 16];
-
-    let mut elm0 = BaseField { limbs: [0u32; 8] };
-    let mut elm1 = BaseField { limbs: [0u32; 8] };
-
-    for i in 0..8 {
-        let a = rand_utils::rand_value::<u32>();
-        let b = rand_utils::rand_value::<u32>();
-
-        stack[i] = a as u64;
-        stack[i ^ 8] = b as u64;
-
-        elm0.limbs[i] = a;
-        elm1.limbs[i] = b;
-    }
-
-    stack.reverse();
+    let elm0 = BaseField {
+        limbs: rand_utils::rand_array::<u32, 8>(),
+    };
+    let elm1 = BaseField {
+        limbs: rand_utils::rand_array::<u32, 8>(),
+    };
     let elm2 = elm0 - elm1;
 
-    let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
+    let mut stack = [0u64; 16];
+    stack[..8].copy_from_slice(&elm0.limbs.map(|v| v as u64));
+    stack[8..].copy_from_slice(&elm1.limbs.map(|v| v as u64));
+    stack.reverse();
 
-    for i in 0..8 {
-        assert_eq!(Felt::new(elm2.limbs[i] as u64), strace[i]);
-    }
+    let test = build_test!(source, &stack);
+    test.expect_stack(&elm2.limbs.map(|v| v as u64));
 }
 
 #[test]
-fn test_add_then_sub() {
+fn test_secp256k1_base_field_add_then_sub() {
     let source_add = "
     use.std::math::secp256k1::base_field
 
@@ -507,52 +455,36 @@ fn test_add_then_sub() {
         exec.base_field::sub
     end";
 
+    let elm0 = BaseField {
+        limbs: rand_utils::rand_array::<u32, 8>(),
+    }; // a
+    let elm1 = BaseField {
+        limbs: rand_utils::rand_array::<u32, 8>(),
+    }; // b
+
     let mut stack = [0u64; 16];
-
-    let mut elm0 = BaseField { limbs: [0u32; 8] }; // a
-    let mut elm1 = BaseField { limbs: [0u32; 8] }; // b
-
-    for i in 0..8 {
-        let a = rand_utils::rand_value::<u32>();
-        let b = rand_utils::rand_value::<u32>();
-
-        stack[i] = a as u64;
-        stack[i ^ 8] = b as u64;
-
-        elm0.limbs[i] = a;
-        elm1.limbs[i] = b;
-    }
+    stack[..8].copy_from_slice(&elm0.limbs.map(|v| v as u64));
+    stack[8..].copy_from_slice(&elm1.limbs.map(|v| v as u64));
 
     let elm2 = {
-        stack.reverse();
         let elm2 = elm0 + elm1; // c = a + b
 
+        stack.reverse();
         let test = build_test!(source_add, &stack);
-        let strace = test.get_last_stack_state();
-
-        for i in 0..8 {
-            assert_eq!(Felt::new(elm2.limbs[i] as u64), strace[i]);
-        }
+        test.expect_stack(&elm2.limbs.map(|v| v as u64));
 
         elm2
     };
 
-    for i in 0..8 {
-        stack[i] = elm2.limbs[i] as u64;
-        stack[i ^ 8] = elm0.limbs[i] as u64;
-    }
+    stack[..8].copy_from_slice(&elm2.limbs.map(|v| v as u64));
+    stack[8..].copy_from_slice(&elm0.limbs.map(|v| v as u64));
 
     let elm3 = {
-        stack.reverse();
-
         let elm3 = elm2 - elm0; // d = c - a
 
+        stack.reverse();
         let test = build_test!(source_sub, &stack);
-        let strace = test.get_last_stack_state();
-
-        for i in 0..8 {
-            assert_eq!(Felt::new(elm3.limbs[i] as u64), strace[i]);
-        }
+        test.expect_stack(&elm3.limbs.map(|v| v as u64));
 
         elm3
     };
@@ -561,7 +493,7 @@ fn test_add_then_sub() {
 }
 
 #[test]
-fn test_inv() {
+fn test_secp256k1_base_field_inv() {
     let source = "
     use.std::math::secp256k1::base_field
 
@@ -571,33 +503,17 @@ fn test_inv() {
 
         exec.base_field::inv
         exec.base_field::mul
-
-        push.977
-        assert_eq
-        push.1
-        assert_eq
-        push.0
-        assert_eq
-        push.0
-        assert_eq
-        push.0
-        assert_eq
-        push.0
-        assert_eq
-        push.0
-        assert_eq
-        push.0
-        assert_eq
     end";
 
-    let mut stack = [0u64; 16];
+    let elm0 = BaseField {
+        limbs: rand_utils::rand_array::<u32, 8>(),
+    };
+    let elm1 = BaseField::one();
 
-    for i in 0..8 {
-        let a = 1u32 + rand_utils::rand_value::<u32>();
-        stack[i] = a as u64;
-    }
+    let mut stack = [0u64; 8];
+    stack.copy_from_slice(&elm0.limbs.map(|v| v as u64));
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.execute().unwrap();
+    test.expect_stack(&elm1.limbs.map(|v| v as u64));
 }

@@ -1,9 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use vm_assembly::{Library, LibraryError, ModuleAst, ModuleProvider, NamedModuleAst, ProcedureId};
-use vm_core::utils::{
-    collections::{BTreeMap, Vec},
-    string::{String, ToString},
+use assembly::{
+    utils::{
+        collections::{BTreeMap, Vec},
+        string::{String, ToString},
+    },
+    Library, LibraryError, ModuleAst, ModuleProvider, NamedModuleAst, ProcedureId,
 };
 
 pub mod asm;

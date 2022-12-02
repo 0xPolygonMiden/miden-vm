@@ -1,4 +1,4 @@
-use super::{build_test, Felt};
+use super::build_test;
 use std::cmp::PartialEq;
 use std::ops::Mul;
 
@@ -9,10 +9,6 @@ struct ScalarField {
 }
 
 impl ScalarField {
-    fn zero() -> Self {
-        Self { limbs: [0u32; 8] }
-    }
-
     fn one() -> Self {
         Self {
             limbs: [801750719, 1076732275, 1354194884, 1162945305, 1, 0, 0, 0],
@@ -256,15 +252,10 @@ impl PartialEq for ScalarField {
 
         !flg
     }
-
-    /// Checks whether two secp256k1 scalar field elements are not equal to each other, in Montogomery form
-    fn ne(&self, other: &Self) -> bool {
-        !(self == other)
-    }
 }
 
 #[test]
-fn test_mul() {
+fn test_secp256k1_scalar_field_mul() {
     let source = "
     use.std::math::secp256k1::scalar_field
 
@@ -272,35 +263,25 @@ fn test_mul() {
         exec.scalar_field::mul
     end";
 
-    let mut stack = [0u64; 16];
-
-    let mut elm0 = ScalarField::zero();
-    let mut elm1 = ScalarField::zero();
-
-    for i in 0..8 {
-        let a = rand_utils::rand_value::<u32>();
-        let b = rand_utils::rand_value::<u32>();
-
-        stack[i] = a as u64;
-        stack[i ^ 8] = b as u64;
-
-        elm0.limbs[i] = a;
-        elm1.limbs[i] = b;
-    }
-
+    let elm0 = ScalarField {
+        limbs: rand_utils::rand_array::<u32, 8>(),
+    };
+    let elm1 = ScalarField {
+        limbs: rand_utils::rand_array::<u32, 8>(),
+    };
     let elm2 = elm0 * elm1;
+
+    let mut stack = [0u64; 16];
+    stack[..8].copy_from_slice(&elm0.limbs.map(|v| v as u64));
+    stack[8..].copy_from_slice(&elm1.limbs.map(|v| v as u64));
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    let strace = test.get_last_stack_state();
-
-    for i in 0..8 {
-        assert_eq!(Felt::new(elm2.limbs[i] as u64), strace[i]);
-    }
+    test.expect_stack(&elm2.limbs.map(|v| v as u64));
 }
 
 #[test]
-fn test_inv() {
+fn test_secp256k1_scalar_field_inv() {
     let source = "
     use.std::math::secp256k1::scalar_field
 
@@ -310,33 +291,20 @@ fn test_inv() {
 
         exec.scalar_field::inv
         exec.scalar_field::mul
-
-        push.801750719
-        assert_eq
-        push.1076732275
-        assert_eq
-        push.1354194884
-        assert_eq
-        push.1162945305
-        assert_eq
-        push.1
-        assert_eq
-        push.0
-        assert_eq
-        push.0
-        assert_eq
-        push.0
-        assert_eq
     end";
 
-    let mut stack = [0u64; 16];
+    let elm0 = ScalarField {
+        limbs: rand_utils::rand_array::<u32, 8>(),
+    };
+    let elm1 = elm0.inv();
 
-    for i in 0..8 {
-        let a = 1u32 + rand_utils::rand_value::<u32>();
-        stack[i] = a as u64;
-    }
+    let elm2 = elm0 * elm1;
+    assert_eq!(elm2, ScalarField::one());
+
+    let mut stack = [0u64; 8];
+    stack.copy_from_slice(&elm0.limbs.map(|v| v as u64));
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.execute().unwrap();
+    test.expect_stack(&elm2.limbs.map(|v| v as u64));
 }
