@@ -50,6 +50,9 @@ pub const ZERO: Felt = Felt::ZERO;
 /// Field element representing ONE in the base field of the VM.
 pub const ONE: Felt = Felt::ONE;
 
+/// Field element representing TWO in the base field of the VM.
+pub const TWO: Felt = Felt::new(2);
+
 /// The minimum length of the execution trace. This is the minimum required to support range checks.
 pub const MIN_TRACE_LEN: usize = 1024;
 
