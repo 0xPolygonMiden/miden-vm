@@ -9,6 +9,12 @@ struct BaseField {
 }
 
 impl BaseField {
+    fn one() -> Self {
+        Self {
+            limbs: [977, 1, 0, 0, 0, 0, 0, 0],
+        }
+    }
+
     /// See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/base_field_utils.py#L41-L46
     fn mac(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
         let tmp = a as u64 + (b as u64 * c as u64) + carry as u64;
@@ -316,11 +322,11 @@ impl PartialEq for BaseField {
 #[test]
 fn test_secp256k1_base_field_montgomery_repr() {
     let source = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
-        exec.secp256k1_base_field::to_mont
-        exec.secp256k1_base_field::from_mont
+        exec.base_field::to_mont
+        exec.base_field::from_mont
     end";
 
     let num_u32 = rand_utils::rand_array::<u32, 8>();
@@ -335,10 +341,10 @@ fn test_secp256k1_base_field_montgomery_repr() {
 #[test]
 fn test_secp256k1_base_field_mul() {
     let source = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
-        exec.secp256k1_base_field::mul
+        exec.base_field::mul
     end";
 
     let elm0 = BaseField {
@@ -361,10 +367,10 @@ fn test_secp256k1_base_field_mul() {
 #[test]
 fn test_secp256k1_base_field_add() {
     let source = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
-        exec.secp256k1_base_field::add
+        exec.base_field::add
     end";
 
     let elm0 = BaseField {
@@ -388,10 +394,10 @@ fn test_secp256k1_base_field_add() {
 #[allow(clippy::needless_range_loop)]
 fn test_secp256k1_base_field_neg() {
     let source = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
-        exec.secp256k1_base_field::neg
+        exec.base_field::neg
     end";
 
     let elm0 = BaseField {
@@ -410,10 +416,10 @@ fn test_secp256k1_base_field_neg() {
 #[test]
 fn test_secp256k1_base_field_sub() {
     let source = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
-        exec.secp256k1_base_field::sub
+        exec.base_field::sub
     end";
 
     let elm0 = BaseField {
@@ -436,17 +442,17 @@ fn test_secp256k1_base_field_sub() {
 #[test]
 fn test_secp256k1_base_field_add_then_sub() {
     let source_add = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
-        exec.secp256k1_base_field::add
+        exec.base_field::add
     end";
 
     let source_sub = "
-    use.std::math::secp256k1_base_field
+    use.std::math::secp256k1::base_field
 
     begin
-        exec.secp256k1_base_field::sub
+        exec.base_field::sub
     end";
 
     let elm0 = BaseField {
@@ -484,4 +490,30 @@ fn test_secp256k1_base_field_add_then_sub() {
     };
 
     assert_eq!(elm1, elm3);
+}
+
+#[test]
+fn test_secp256k1_base_field_inv() {
+    let source = "
+    use.std::math::secp256k1::base_field
+
+    begin
+        dupw.1
+        dupw.1
+
+        exec.base_field::inv
+        exec.base_field::mul
+    end";
+
+    let elm0 = BaseField {
+        limbs: rand_utils::rand_array::<u32, 8>(),
+    };
+    let elm1 = BaseField::one();
+
+    let mut stack = [0u64; 8];
+    stack.copy_from_slice(&elm0.limbs.map(|v| v as u64));
+    stack.reverse();
+
+    let test = build_test!(source, &stack);
+    test.expect_stack(&elm1.limbs.map(|v| v as u64));
 }

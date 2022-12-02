@@ -1,4 +1,4 @@
-use.std::math::secp256k1_base_field
+use.std::math::secp256k1::base_field
 
 #! Given a secp256k1 point in projective coordinate system ( i.e. with x, y, z -coordinates
 #! as secp256k1 prime field elements, represented in Montgomery form ), this routine adds 
@@ -48,7 +48,7 @@ export.double.12
   dupw.1
   dupw.1            # repeated y -coordinate
 
-  exec.secp256k1_base_field::mul # = t0
+  exec.base_field::mul # = t0
 
   loc_storew.0
   swapw
@@ -58,17 +58,17 @@ export.double.12
   dupw.1
   dupw.1            # repeated t0
 
-  exec.secp256k1_base_field::add # = z3
+  exec.base_field::add # = z3
 
   dupw.1
   dupw.1            # repeated z3
 
-  exec.secp256k1_base_field::add # = z3
+  exec.base_field::add # = z3
 
   dupw.1
   dupw.1            # repeated z3
 
-  exec.secp256k1_base_field::add # = z3
+  exec.base_field::add # = z3
 
   loc_storew.2
   dropw       
@@ -93,7 +93,7 @@ export.double.12
   movup.4
   mem_loadw         # y -coordinate on stack top
 
-  exec.secp256k1_base_field::mul # = t1
+  exec.base_field::mul # = t1
 
   loc_storew.4
   dropw       
@@ -112,12 +112,12 @@ export.double.12
   dupw.1
   dupw.1            # repeated z
 
-  exec.secp256k1_base_field::mul # = t2
+  exec.base_field::mul # = t2
 
   push.0.0.0.0
   push.0.0.21.20517 # = b3
 
-  exec.secp256k1_base_field::mul # = t2
+  exec.base_field::mul # = t2
 
   loc_storew.6
   swapw
@@ -129,7 +129,7 @@ export.double.12
   push.0.0.0.0
   loc_loadw.2     # = z3
 
-  exec.secp256k1_base_field::mul # = x3
+  exec.base_field::mul # = x3
 
   loc_storew.8
   dropw       
@@ -146,7 +146,7 @@ export.double.12
   push.0.0.0.0
   loc_loadw.0     # = t0
 
-  exec.secp256k1_base_field::add # = y3
+  exec.base_field::add # = y3
 
   loc_storew.10
   dropw       
@@ -163,7 +163,7 @@ export.double.12
   push.0.0.0.0
   loc_loadw.2     # = z3
 
-  exec.secp256k1_base_field::mul # = z3
+  exec.base_field::mul # = z3
 
   loc_storew.2
   dropw       
@@ -178,21 +178,21 @@ export.double.12
   dupw.1
   dupw.1            # repeated t2
 
-  exec.secp256k1_base_field::add # = t1
+  exec.base_field::add # = t1
 
   push.0.0.0.0
   loc_loadw.7
   push.0.0.0.0
   loc_loadw.6     # = t2
 
-  exec.secp256k1_base_field::add # = t2
+  exec.base_field::add # = t2
 
   push.0.0.0.0
   loc_loadw.1
   push.0.0.0.0
   loc_loadw.0     # = t0
 
-  exec.secp256k1_base_field::sub # = t0
+  exec.base_field::sub # = t0
 
   loc_storew.0
   swapw
@@ -204,14 +204,14 @@ export.double.12
   push.0.0.0.0
   loc_loadw.10    # = y3
 
-  exec.secp256k1_base_field::mul # = y3
+  exec.base_field::mul # = y3
 
   push.0.0.0.0
   loc_loadw.9
   push.0.0.0.0
   loc_loadw.8     # = x3
 
-  exec.secp256k1_base_field::add # = y3
+  exec.base_field::add # = y3
 
   loc_storew.10
   dropw       
@@ -236,19 +236,19 @@ export.double.12
   movup.4
   mem_loadw         # x -coordinate on stack top
 
-  exec.secp256k1_base_field::mul # = t1
+  exec.base_field::mul # = t1
 
   push.0.0.0.0
   loc_loadw.1
   push.0.0.0.0
   loc_loadw.0     # = t0
 
-  exec.secp256k1_base_field::mul # = x3
+  exec.base_field::mul # = x3
 
   dupw.1
   dupw.1            # repeated x3
 
-  exec.secp256k1_base_field::add # = x3
+  exec.base_field::add # = x3
 
   loc_storew.8
   dropw       
@@ -356,7 +356,7 @@ export.add.16
   movup.4
   mem_loadw # x1 on stack top
 
-  exec.secp256k1_base_field::mul # = t0
+  exec.base_field::mul # = t0
 
   loc_storew.0
   dropw       
@@ -385,7 +385,7 @@ export.add.16
   movup.4
   mem_loadw # y1 on stack top
 
-  exec.secp256k1_base_field::mul # = t1
+  exec.base_field::mul # = t1
 
   loc_storew.2
   dropw       
@@ -414,7 +414,7 @@ export.add.16
   movup.4
   mem_loadw # z1 on stack top
 
-  exec.secp256k1_base_field::mul # = t2
+  exec.base_field::mul # = t2
 
   loc_storew.4
   dropw       
@@ -443,7 +443,7 @@ export.add.16
   movup.4
   mem_loadw # x1 on stack top
 
-  exec.secp256k1_base_field::add # = t3
+  exec.base_field::add # = t3
 
   loc_storew.6
   dropw       
@@ -473,14 +473,14 @@ export.add.16
   movup.4
   mem_loadw # x2 on stack top
   
-  exec.secp256k1_base_field::add # = t4
+  exec.base_field::add # = t4
 
   push.0.0.0.0
   loc_loadw.7
   push.0.0.0.0
   loc_loadw.6 # t3 loaded back
 
-  exec.secp256k1_base_field::mul # = t3
+  exec.base_field::mul # = t3
 
   loc_storew.6
   dropw       
@@ -497,14 +497,14 @@ export.add.16
   push.0.0.0.0
   loc_loadw.0 # t0 loaded back
 
-  exec.secp256k1_base_field::add # = t4
+  exec.base_field::add # = t4
 
   push.0.0.0.0
   loc_loadw.7
   push.0.0.0.0
   loc_loadw.6 # t3 loaded back
 
-  exec.secp256k1_base_field::sub # = t3
+  exec.base_field::sub # = t3
 
   loc_storew.6
   dropw       
@@ -533,7 +533,7 @@ export.add.16
   movup.4
   mem_loadw # z1 on stack top
 
-  exec.secp256k1_base_field::add # = t4
+  exec.base_field::add # = t4
 
   loc_storew.8
   dropw       
@@ -565,14 +565,14 @@ export.add.16
   movup.4
   mem_loadw # z2 on stack top
 
-  exec.secp256k1_base_field::add # = x3
+  exec.base_field::add # = x3
 
   push.0.0.0.0
   loc_loadw.9
   push.0.0.0.0
   loc_loadw.8 # t4 loaded back
 
-  exec.secp256k1_base_field::mul # = t4
+  exec.base_field::mul # = t4
 
   loc_storew.8
   dropw       
@@ -589,14 +589,14 @@ export.add.16
   push.0.0.0.0
   loc_loadw.2 # t1 loaded back
 
-  exec.secp256k1_base_field::add # = x3
+  exec.base_field::add # = x3
 
   push.0.0.0.0
   loc_loadw.9
   push.0.0.0.0
   loc_loadw.8 # t4 loaded back
 
-  exec.secp256k1_base_field::sub # = t4
+  exec.base_field::sub # = t4
 
   loc_storew.8
   dropw       
@@ -625,7 +625,7 @@ export.add.16
   movup.4
   mem_loadw # x1 on stack top
 
-  exec.secp256k1_base_field::add # = x3
+  exec.base_field::add # = x3
 
   loc_storew.10
   dropw       
@@ -655,14 +655,14 @@ export.add.16
   movup.4
   mem_loadw # x2 on stack top
 
-  exec.secp256k1_base_field::add # = y3
+  exec.base_field::add # = y3
 
   push.0.0.0.0
   loc_loadw.11
   push.0.0.0.0
   loc_loadw.10 # x3 loaded back
 
-  exec.secp256k1_base_field::mul # = x3
+  exec.base_field::mul # = x3
 
   loc_storew.10
   dropw       
@@ -679,14 +679,14 @@ export.add.16
   push.0.0.0.0
   loc_loadw.0 # t0 loaded back
 
-  exec.secp256k1_base_field::add # = y3
+  exec.base_field::add # = y3
 
   push.0.0.0.0
   loc_loadw.11
   push.0.0.0.0
   loc_loadw.10 # x3 loaded back
 
-  exec.secp256k1_base_field::sub # = y3
+  exec.base_field::sub # = y3
 
   loc_storew.12
   dropw       
@@ -701,7 +701,7 @@ export.add.16
   dupw.1
   dupw.1
 
-  exec.secp256k1_base_field::add # = x3
+  exec.base_field::add # = x3
 
   loc_storew.10
   swapw
@@ -713,7 +713,7 @@ export.add.16
   push.0.0.0.0
   loc_loadw.0 # t0 loaded back
 
-  exec.secp256k1_base_field::add # = t0
+  exec.base_field::add # = t0
 
   loc_storew.0
   dropw       
@@ -728,7 +728,7 @@ export.add.16
   push.0.0.0.0
   loc_loadw.4 # t2 loaded back
 
-  exec.secp256k1_base_field::mul # = t2
+  exec.base_field::mul # = t2
 
   loc_storew.4
   swapw
@@ -740,7 +740,7 @@ export.add.16
   push.0.0.0.0
   loc_loadw.2 # t1 loaded back
 
-  exec.secp256k1_base_field::add # = z3
+  exec.base_field::add # = z3
 
   loc_storew.14
   dropw       
@@ -757,7 +757,7 @@ export.add.16
   push.0.0.0.0
   loc_loadw.2 # t1 loaded back
 
-  exec.secp256k1_base_field::sub # = t1
+  exec.base_field::sub # = t1
 
   loc_storew.2
   dropw       
@@ -772,7 +772,7 @@ export.add.16
   push.0.0.0.0
   loc_loadw.12 # y3 loaded back
 
-  exec.secp256k1_base_field::mul # = y3
+  exec.base_field::mul # = y3
 
   loc_storew.12
   swapw
@@ -784,7 +784,7 @@ export.add.16
   push.0.0.0.0
   loc_loadw.8 # t4 loaded back
 
-  exec.secp256k1_base_field::mul # = x3
+  exec.base_field::mul # = x3
 
   loc_storew.10
   dropw       
@@ -801,15 +801,15 @@ export.add.16
   push.0.0.0.0
   loc_loadw.6 # t3 loaded back
 
-  exec.secp256k1_base_field::mul # = t2
+  exec.base_field::mul # = t2
 
   push.0.0.0.0
   loc_loadw.11
   push.0.0.0.0
   loc_loadw.10 # x3 loaded back
 
-  exec.secp256k1_base_field::neg
-  exec.secp256k1_base_field::add # = x3
+  exec.base_field::neg
+  exec.base_field::add # = x3
 
   loc_storew.10
   dropw       
@@ -826,7 +826,7 @@ export.add.16
   push.0.0.0.0
   loc_loadw.12 # y3 loaded back
 
-  exec.secp256k1_base_field::mul # = y3
+  exec.base_field::mul # = y3
 
   loc_storew.12
   dropw       
@@ -843,14 +843,14 @@ export.add.16
   push.0.0.0.0
   loc_loadw.2 # t1 loaded back
 
-  exec.secp256k1_base_field::mul # = t1
+  exec.base_field::mul # = t1
 
   push.0.0.0.0
   loc_loadw.13
   push.0.0.0.0
   loc_loadw.12 # y3 loaded back
 
-  exec.secp256k1_base_field::add # = y3
+  exec.base_field::add # = y3
 
   loc_storew.12
   dropw       
@@ -867,7 +867,7 @@ export.add.16
   push.0.0.0.0
   loc_loadw.0 # t0 loaded back
 
-  exec.secp256k1_base_field::mul # = t0
+  exec.base_field::mul # = t0
 
   loc_storew.0
   dropw       
@@ -884,14 +884,14 @@ export.add.16
   push.0.0.0.0
   loc_loadw.14 # z3 loaded back
 
-  exec.secp256k1_base_field::mul # = z3
+  exec.base_field::mul # = z3
 
   push.0.0.0.0
   loc_loadw.1
   push.0.0.0.0
   loc_loadw.0 # t0 loaded back
 
-  exec.secp256k1_base_field::add # = z3
+  exec.base_field::add # = z3
 
   loc_storew.14
   dropw       
