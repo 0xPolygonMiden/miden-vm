@@ -1,10 +1,10 @@
+use assembly::{parse_module, ModuleAst, ProcedureId};
 use std::{
     collections::BTreeMap,
     fs,
     io::{self, Write},
     path::PathBuf,
 };
-use vm_assembly::{parse_module, ModuleAst, ProcedureId};
 
 mod md_renderer;
 use md_renderer::MarkdownRenderer;

@@ -15,8 +15,8 @@ pub use std::boxed::Box;
 // ================================================================================================
 
 pub use winter_utils::{
-    collections, group_vector_elements, string, uninit_vector, ByteReader, ByteWriter,
-    Deserializable, DeserializationError, Serializable, SliceReader,
+    collections, group_slice_elements, group_vector_elements, string, uninit_vector, ByteReader,
+    ByteWriter, Deserializable, DeserializationError, Serializable, SliceReader,
 };
 
 pub use crypto::{RandomCoin, RandomCoinError};
