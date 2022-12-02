@@ -301,7 +301,7 @@ impl Sub for BaseField {
 }
 
 impl PartialEq for BaseField {
-    /// Checks whether two secp256k1 field elements are equal or not, in Montogomery form
+    /// Checks whether two secp256k1 base field elements are equal or not, in Montogomery form
     fn eq(&self, other: &Self) -> bool {
         let mut flg = false;
 
