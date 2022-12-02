@@ -1,6 +1,5 @@
 use super::build_test;
-use std::cmp::PartialEq;
-use std::ops::Mul;
+use std::{cmp::PartialEq, ops::Mul};
 use vm_core::StarkField;
 
 #[derive(Copy, Clone, Debug)]
