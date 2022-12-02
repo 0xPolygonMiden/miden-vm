@@ -376,10 +376,10 @@ impl PartialEq for Ext5 {
 #[test]
 fn test_ext5_add() {
     let source = "
-    use.std::math::ext5
+    use.std::math::ec_ext5::base_field
 
     begin
-        exec.ext5::add
+        exec.base_field::add
     end";
 
     let a = Ext5::rand();
@@ -413,10 +413,10 @@ fn test_ext5_add() {
 #[test]
 fn test_ext5_sub() {
     let source = "
-    use.std::math::ext5
+    use.std::math::ec_ext5::base_field
 
     begin
-        exec.ext5::sub
+        exec.base_field::sub
     end";
 
     let a = Ext5::rand();
@@ -450,10 +450,10 @@ fn test_ext5_sub() {
 #[test]
 fn test_ext5_mul() {
     let source = "
-    use.std::math::ext5
+    use.std::math::ec_ext5::base_field
 
     begin
-        exec.ext5::mul
+        exec.base_field::mul
     end";
 
     let a = Ext5::rand();
@@ -487,10 +487,10 @@ fn test_ext5_mul() {
 #[test]
 fn test_ext5_square() {
     let source = "
-    use.std::math::ext5
+    use.std::math::ec_ext5::base_field
 
     begin
-        exec.ext5::square
+        exec.base_field::square
     end";
 
     let a = Ext5::rand();
@@ -518,10 +518,10 @@ fn test_ext5_square() {
 #[test]
 fn test_ext5_inv() {
     let source = "
-    use.std::math::ext5
+    use.std::math::ec_ext5::base_field
 
     begin
-        exec.ext5::inv
+        exec.base_field::inv
     end";
 
     let a = Ext5::rand();
@@ -549,10 +549,10 @@ fn test_ext5_inv() {
 #[test]
 fn test_ext5_div() {
     let source = "
-    use.std::math::ext5
+    use.std::math::ec_ext5::base_field
 
     begin
-        exec.ext5::div
+        exec.base_field::div
     end";
 
     let a = Ext5::rand();
@@ -586,10 +586,10 @@ fn test_ext5_div() {
 #[test]
 fn test_ext5_legendre() {
     let source = "
-    use.std::math::ext5
+    use.std::math::ec_ext5::base_field
 
     begin
-        exec.ext5::legendre
+        exec.base_field::legendre
     end";
 
     let a = Ext5::rand();
@@ -613,10 +613,10 @@ fn test_ext5_legendre() {
 #[test]
 fn test_ext5_sqrt() {
     let source = "
-    use.std::math::ext5
+    use.std::math::ec_ext5::base_field
 
     begin
-        exec.ext5::sqrt
+        exec.base_field::sqrt
     end";
 
     let a = Ext5::rand();

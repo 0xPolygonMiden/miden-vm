@@ -1,4 +1,4 @@
-use super::ext5::{bv_or, Ext5};
+use super::base_field::{bv_or, Ext5};
 use super::{build_test, Felt};
 use ::air::FieldElement;
 use std::ops::Add;
@@ -226,10 +226,10 @@ impl Add for ECExt5 {
 #[test_case(13777379982711219130, 14715168412651470168, 17942199593791635585, 6188824164976547520, 15461469634034461986, false; "[13] should not validate")]
 fn test_ec_ext5_point_validate(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, should_validate: bool) {
     let source = "
-    use.std::math::ext5_curve
+    use.std::math::ec_ext5::group
 
     begin
-        exec.ext5_curve::validate
+        exec.group::validate
     end";
 
     let w = Ext5::new(a0, a1, a2, a3, a4);
@@ -268,10 +268,10 @@ fn test_ec_ext5_point_validate(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, shou
 #[test_case(13777379982711219130, 14715168412651470168, 17942199593791635585, 6188824164976547520, 15461469634034461986, false; "[13] should not decode")]
 fn test_ec_ext5_point_decode(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, should_decode: bool) {
     let source = "
-    use.std::math::ext5_curve
+    use.std::math::ec_ext5::group
 
     begin
-        exec.ext5_curve::decode
+        exec.group::decode
     end";
 
     let w = Ext5::new(a0, a1, a2, a3, a4);
@@ -315,10 +315,10 @@ fn test_ec_ext5_point_decode(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, should
 #[test_case(9420857400785992333, 4695934009314206363, 14471922162341187302, 13395190104221781928, 16359223219913018041; "[7] should decode")]
 fn test_ec_ext5_point_encode(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64) {
     let source = "
-    use.std::math::ext5_curve
+    use.std::math::ec_ext5::group
 
     begin
-        exec.ext5_curve::encode
+        exec.group::encode
     end";
 
     let w = Ext5::new(a0, a1, a2, a3, a4);
@@ -379,10 +379,10 @@ fn test_ec_ext5_point_addition(
     c4: u64,
 ) {
     let source = "
-    use.std::math::ext5_curve
+    use.std::math::ec_ext5::group
 
     begin
-        exec.ext5_curve::add
+        exec.group::add
     end";
 
     let w0 = Ext5::new(a0, a1, a2, a3, a4);
@@ -454,10 +454,10 @@ fn test_ec_ext5_point_doubling(
     b4: u64,
 ) {
     let source = "
-    use.std::math::ext5_curve
+    use.std::math::ec_ext5::group
 
     begin
-        exec.ext5_curve::double
+        exec.group::double
     end";
 
     let w0 = Ext5::new(a0, a1, a2, a3, a4);
@@ -504,10 +504,10 @@ fn test_ec_ext5_point_doubling(
 #[test]
 fn test_ec_ext5_point_multiplication() {
     let source = "
-    use.std::math::ext5_curve
+    use.std::math::ec_ext5::group
 
     begin
-        exec.ext5_curve::mul
+        exec.group::mul
     end";
 
     let w0 = Ext5::new(
@@ -591,10 +591,10 @@ fn test_ec_ext5_point_multiplication() {
 #[test]
 fn test_ec_ext5_gen_multiplication() {
     let source = "
-    use.std::math::ext5_curve
+    use.std::math::ec_ext5::group
 
     begin
-        exec.ext5_curve::gen_mul
+        exec.group::gen_mul
     end";
 
     // Conventional generator point of this group
