@@ -64,6 +64,10 @@ const MAX_EXP_BITS: u8 = 64;
 /// The maximum length of a procedure's name.
 const MAX_PROC_NAME_LEN: u8 = 100;
 
+/// The required length of the hexadecimal representation for an input value when more than one hex
+/// input is provided to `push` masm operation without period separators.
+const HEX_CHUNK_SIZE: usize = 16;
+
 // MODULE PROVIDER
 // ================================================================================================
 
