@@ -2,9 +2,7 @@ use super::build_test;
 use crate::helpers::{Felt, TestError};
 
 mod ext2;
-mod ext5;
-mod ext5_curve;
-mod ext5_scalar;
+mod ec_ext5;
 mod ntt512;
 mod poly512;
 mod secp256k1;

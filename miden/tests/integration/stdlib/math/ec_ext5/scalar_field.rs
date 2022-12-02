@@ -225,10 +225,10 @@ fn test_ec_ext5_scalar_arithmetic() {
 #[test]
 fn test_ec_ext5_scalar_mont_mul() {
     let source = "
-    use.std::math::ext5_scalar
+    use.std::math::ec_ext5::scalar_field
 
     begin
-        exec.ext5_scalar::mont_mul
+        exec.scalar_field::mont_mul
     end";
 
     let a = Scalar {
@@ -279,11 +279,11 @@ fn test_ec_ext5_scalar_mont_mul() {
 #[test]
 fn test_ec_ext5_scalar_to_and_from_mont_repr() {
     let source = "
-    use.std::math::ext5_scalar
+    use.std::math::ec_ext5::scalar_field
 
     begin
-        exec.ext5_scalar::to_mont
-        exec.ext5_scalar::from_mont
+        exec.scalar_field::to_mont
+        exec.scalar_field::from_mont
     end";
 
     let a = Scalar {
@@ -322,10 +322,10 @@ fn test_ec_ext5_scalar_to_and_from_mont_repr() {
 #[test]
 fn test_ec_ext5_scalar_inv() {
     let source = "
-    use.std::math::ext5_scalar
+    use.std::math::ec_ext5::scalar_field
 
     begin
-        exec.ext5_scalar::inv
+        exec.scalar_field::inv
     end";
 
     let a = Scalar {
