@@ -1,11 +1,9 @@
 use super::{
     validate_param, AssemblyError, CodeBlock, Felt, FieldElement, Operation::*, SpanBuilder,
-    StarkField, ZERO, ONE
-};
-use vm_core:: {
-    TWO
+    StarkField, ONE, ZERO,
 };
 use crate::MAX_EXP_BITS;
+use vm_core::TWO;
 
 // BASIC ARITHMETIC OPERATIONS
 // ================================================================================================
@@ -32,33 +30,35 @@ pub fn add_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, A
 /// Appends a sequence of operations to multiply the value at the top of the stack by an immediate
 /// value. Specifically, the sequences are:
 /// - if imm = 0: DROP PAD
+/// - else if imm = 1: NOOP
 /// - otherwise: PUSH(imm) MUL
 ///
-/// We do not optimize away multiplication by 1 because it may result in a empty SPAN block and
-/// cause failures later on.
 pub fn mul_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
     if imm == ZERO {
         span.add_ops([Drop, Pad])
+    } else if imm == ONE {
+        span.add_op(Noop)
     } else {
-        // TODO: warning if imm is ONE?
         span.add_ops([Push(imm), Mul])
     }
 }
 
 /// Appends a sequence of operations to divide the value at the top of the stack by an immediate
-/// value. Specifically, the sequence is: PUSH(1/imm) MUL
-///
-/// We do not optimize away division by 1 because it may result in a empty SPAN block and cause
-/// failures later on.
+/// value. Specifically, the sequences are:
+/// - if imm = 0: Returns an error
+/// - else if imm = 1: NOOP
+/// - otherwise: PUSH(1/imm) MUL
 ///
 /// # Errors
 /// Returns an error if the immediate value is ZERO.
 pub fn div_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
-    // TODO: warning if imm is ONE?
     if imm == ZERO {
-        return Err(AssemblyError::division_by_zero());
+        Err(AssemblyError::division_by_zero())
+    } else if imm == ONE {
+        span.add_op(Noop)
+    } else {
+        span.add_ops([Push(imm.inv()), Mul])
     }
-    span.add_ops([Push(imm.inv()), Mul])
 }
 
 // POWER OF TWO OPERATION
