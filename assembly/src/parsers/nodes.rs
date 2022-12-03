@@ -520,7 +520,7 @@ impl fmt::Display for Instruction {
 fn display_push_vec<T: fmt::Display>(f: &mut fmt::Formatter<'_>, values: &[T]) -> fmt::Result {
     write!(f, "push")?;
     for elem in values {
-        write!(f, ".{}", elem)?;
+        write!(f, ".{elem}")?;
     }
     Ok(())
 }

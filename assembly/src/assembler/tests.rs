@@ -1,22 +1,67 @@
-use super::{
-    combine_blocks, parsers, Assembler, CodeBlock, ModuleProvider, Operation, ProcedureId,
-};
+use super::{combine_blocks, Assembler, CodeBlock, Library, Module, Operation};
+use crate::{parse_module, LibraryNamespace, ModulePath};
+use core::slice::Iter;
 
 // TESTS
 // ================================================================================================
 
 #[test]
 fn nested_blocks() {
-    use crate::{ModuleAst, NamedModuleAst};
-
-    let kernel = r#"
+    const NAMESPACE: &str = "foo";
+    const VERSION: &str = "0.1.0";
+    const MODULE: &str = "bar";
+    const KERNEL: &str = r#"
         export.foo
             add
         end"#;
+    const PROCEDURE: &str = r#"
+        export.baz
+            push.29
+        end"#;
 
-    let assembler = Assembler::new().with_kernel(&kernel).unwrap();
+    pub struct DummyLibrary {
+        namespace: LibraryNamespace,
+        modules: Vec<Module>,
+    }
 
-    // the assembler should have a single kernel proc in its cache
+    impl Default for DummyLibrary {
+        fn default() -> Self {
+            let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
+            let path = ModulePath::try_from(MODULE.to_string())
+                .unwrap()
+                .to_absolute(&namespace);
+            let ast = parse_module(PROCEDURE).unwrap();
+            Self {
+                namespace,
+                modules: vec![Module { path, ast }],
+            }
+        }
+    }
+
+    impl Library for DummyLibrary {
+        type ModuleIterator<'a> = Iter<'a, Module>;
+
+        fn root_ns(&self) -> &LibraryNamespace {
+            &self.namespace
+        }
+
+        fn version(&self) -> &str {
+            VERSION
+        }
+
+        fn modules(&self) -> Self::ModuleIterator<'_> {
+            self.modules.iter()
+        }
+    }
+
+    let assembler = Assembler::new()
+        .with_kernel(KERNEL)
+        .unwrap()
+        .with_library(&DummyLibrary::default())
+        .unwrap();
+
+    // the assembler should have a single kernel proc in its cache before the compilation of the
+    // source
     assert_eq!(assembler.proc_cache.borrow().len(), 1);
 
     // fetch the kernel digest and store into a syscall block
@@ -27,26 +72,6 @@ fn nested_blocks() {
         .next()
         .map(|p| CodeBlock::new_syscall(p.code_root().hash()))
         .unwrap();
-
-    struct DummyModuleProvider {
-        module: ModuleAst,
-    }
-
-    impl ModuleProvider for DummyModuleProvider {
-        fn get_module(&self, _id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
-            Some(NamedModuleAst::new("foo::bar", &self.module))
-        }
-    }
-
-    let module_provider = DummyModuleProvider {
-        module: parsers::parse_module(
-            r#"
-            export.baz
-                push.29
-            end"#,
-        )
-        .unwrap(),
-    };
 
     let program = r#"
     use.foo::bar
@@ -106,10 +131,7 @@ fn nested_blocks() {
     let exec = CodeBlock::new_span(vec![Operation::Push(29u64.into())]);
 
     let combined = combine_blocks(vec![before, r#if, nested, exec, syscall]);
-    let program = assembler
-        .with_module_provider(module_provider)
-        .compile(program)
-        .unwrap();
+    let program = assembler.compile(program).unwrap();
 
     assert_eq!(combined.hash(), program.hash());
 }
