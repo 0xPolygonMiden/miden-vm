@@ -2,7 +2,7 @@ use super::{
     super::nodes::{Instruction, Node},
     OpCode, IF_ELSE_OPCODE, REPEAT_OPCODE, WHILE_OPCODE,
 };
-use crate::{errors::SerializationError, ProcedureId};
+use crate::{errors::SerializationError, ProcedureId, MAX_PUSH_INPUTS};
 use vm_core::{utils::collections::Vec, utils::string::String, Felt};
 
 // BYTE READER IMPLEMENTATION
@@ -373,14 +373,45 @@ impl Deserializable for Instruction {
             OpCode::CDropW => Ok(Instruction::CDropW),
 
             // ----- input / output operations --------------------------------------------------------
-            OpCode::PushConstants => {
-                let mut constants = Vec::new();
-                let length = bytes.read_u8()?;
-                for _ in 0..length {
-                    constants.push(bytes.read_felt()?);
-                }
-                Ok(Instruction::PushConstants(constants))
+            OpCode::PushU8 => Ok(Instruction::PushU8(bytes.read_u8()?)),
+            OpCode::PushU16 => Ok(Instruction::PushU16(bytes.read_u16()?)),
+            OpCode::PushU32 => Ok(Instruction::PushU32(bytes.read_u32()?)),
+            OpCode::PushFelt => Ok(Instruction::PushFelt(bytes.read_felt()?)),
+            OpCode::PushWord => Ok(Instruction::PushWord([
+                bytes.read_felt()?,
+                bytes.read_felt()?,
+                bytes.read_felt()?,
+                bytes.read_felt()?,
+            ])),
+            OpCode::PushU8List => {
+                let length = parse_num_push_params(bytes)?;
+                (0..length)
+                    .map(|_| bytes.read_u8())
+                    .collect::<Result<_, _>>()
+                    .map(Instruction::PushU8List)
             }
+            OpCode::PushU16List => {
+                let length = parse_num_push_params(bytes)?;
+                (0..length)
+                    .map(|_| bytes.read_u16())
+                    .collect::<Result<_, _>>()
+                    .map(Instruction::PushU16List)
+            }
+            OpCode::PushU32List => {
+                let length = parse_num_push_params(bytes)?;
+                (0..length)
+                    .map(|_| bytes.read_u32())
+                    .collect::<Result<_, _>>()
+                    .map(Instruction::PushU32List)
+            }
+            OpCode::PushFeltList => {
+                let length = parse_num_push_params(bytes)?;
+                (0..length)
+                    .map(|_| bytes.read_felt())
+                    .collect::<Result<_, _>>()
+                    .map(Instruction::PushFeltList)
+            }
+
             OpCode::Locaddr => Ok(Instruction::Locaddr(bytes.read_u16()?)),
             OpCode::Sdepth => Ok(Instruction::Sdepth),
             OpCode::Caller => Ok(Instruction::Caller),
@@ -435,5 +466,16 @@ fn u8_to_bool(param: u8) -> Result<bool, SerializationError> {
         0 => Ok(false),
         1 => Ok(true),
         _ => Err(SerializationError::InvalidBoolValue),
+    }
+}
+
+/// Returns an error if parsed value is smaller than or equal to min or greater than or
+/// equal to max. Otherwise, returns parsed value.
+fn parse_num_push_params(bytes: &mut ByteReader) -> Result<u8, SerializationError> {
+    let length = bytes.read_u8()? as usize;
+    if !(1..=MAX_PUSH_INPUTS).contains(&length) {
+        Err(SerializationError::InvalidNumOfPushValues)
+    } else {
+        Ok(length as u8)
     }
 }

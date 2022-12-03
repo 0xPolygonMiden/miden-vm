@@ -46,7 +46,7 @@ fn push_many() {
     test.expect_stack(&expected);
 
     // --- push hexadecimal values with period separators between values ----------------------
-    let asm_op = format!("{}.0xA.0x64.0x3E8.0x2710.0x186A0", base_op);
+    let asm_op = format!("{}.0x0A.0x64.0x03E8.0x2710.0x0186A0", base_op);
     let mut expected = Vec::with_capacity(5);
     for i in (1..=5).rev() {
         expected.push(10_u64.pow(i));
@@ -56,7 +56,7 @@ fn push_many() {
     test.expect_stack(&expected);
 
     // --- push a mixture of decimal and single-element hexadecimal values --------------------
-    let asm_op = format!("{}.2.4.8.0x10.0x20.0x40.128.0x100", base_op);
+    let asm_op = format!("{}.2.4.8.0x10.0x20.0x40.128.0x0100", base_op);
     let mut expected = Vec::with_capacity(8);
     for i in (1_u32..=8).rev() {
         expected.push(2_u64.pow(i));

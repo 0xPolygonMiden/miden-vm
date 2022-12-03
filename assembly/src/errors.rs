@@ -433,6 +433,7 @@ pub enum SerializationError {
     EndOfReader,
     InvalidOpCode,
     InvalidFieldElement,
+    InvalidNumOfPushValues,
 }
 
 // LIBRARY ERROR
