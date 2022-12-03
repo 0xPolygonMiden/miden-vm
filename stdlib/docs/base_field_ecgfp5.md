@@ -1,5 +1,5 @@
 
-## std::math::ec_ext5::base_field
+## std::math::ecgfp5::base_field
 | Procedure | Description |
 | ----------- | ------------- |
 | add | Given two GF(p^5) elements on stack, this routine computes modular<br /><br />addition over extension field GF(p^5) s.t. p = 2^64 - 2^32 + 1<br /><br />Expected stack state :<br /><br />[a0, a1, a2, a3, a4, b0, b1, b2, b3, b4, ...]<br /><br />After application of routine stack :<br /><br />[c0, c1, c2, c3, c4, ...] s.t. c = a + b<br /><br />See section 3.2 of https://eprint.iacr.org/2022/274.pdf<br /><br />For reference implementation in high level language, see<br /><br />https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L607-L616 |
