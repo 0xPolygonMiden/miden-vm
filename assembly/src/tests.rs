@@ -1,4 +1,5 @@
-use crate::{parse_module, Assembler, ModuleAst, ModuleProvider, NamedModuleAst, ProcedureId};
+use crate::{parse_module, Assembler, Library, LibraryNamespace, Module, ModulePath};
+use core::slice::Iter;
 
 // SIMPLE PROGRAMS
 // ================================================================================================
@@ -178,7 +179,9 @@ fn program_with_exported_procedure() {
 
 #[test]
 fn program_with_one_import() {
-    const MODULE: &str = "dummy::math::u256";
+    const NAMESPACE: &str = "dummy";
+    const VERSION: &str = "0.1.0";
+    const MODULE: &str = "math::u256";
     const PROCEDURE: &str = r#"
         export.iszero_unsafe
             eq.0
@@ -189,40 +192,52 @@ fn program_with_one_import() {
             end
         end"#;
 
-    struct DummyProvider {
-        module: ModuleAst,
+    pub struct DummyLibrary {
+        namespace: LibraryNamespace,
+        modules: Vec<Module>,
     }
 
-    impl Default for DummyProvider {
+    impl Default for DummyLibrary {
         fn default() -> Self {
+            let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
+            let path = ModulePath::try_from(MODULE.to_string())
+                .unwrap()
+                .to_absolute(&namespace);
+            let ast = parse_module(PROCEDURE).unwrap();
             Self {
-                module: parse_module(PROCEDURE).unwrap(),
+                namespace,
+                modules: vec![Module { path, ast }],
             }
         }
     }
 
-    impl ModuleProvider for DummyProvider {
-        fn get_module(&self, id: &ProcedureId) -> Option<NamedModuleAst<'_>> {
-            self.module
-                .local_procs
-                .iter()
-                .any(|proc| {
-                    let proc_id = ProcedureId::from_name(&proc.name, MODULE);
-                    &proc_id == id
-                })
-                .then_some(NamedModuleAst::new(MODULE, &self.module))
+    impl Library for DummyLibrary {
+        type ModuleIterator<'a> = Iter<'a, Module>;
+
+        fn root_ns(&self) -> &LibraryNamespace {
+            &self.namespace
+        }
+
+        fn version(&self) -> &str {
+            VERSION
+        }
+
+        fn modules(&self) -> Self::ModuleIterator<'_> {
+            self.modules.iter()
         }
     }
 
-    let assembler = super::Assembler::new().with_module_provider(DummyProvider::default());
+    let assembler = super::Assembler::new()
+        .with_library(&DummyLibrary::default())
+        .unwrap();
     let source = format!(
         r#"
-        use.{}
+        use.{}::{}
         begin
             push.4 push.3
             exec.u256::iszero_unsafe
         end"#,
-        MODULE
+        NAMESPACE, MODULE
     );
     let program = assembler.compile(&source).unwrap();
     let expected = "\

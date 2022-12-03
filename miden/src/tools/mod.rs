@@ -141,7 +141,8 @@ impl fmt::Display for ProgramInfo {
 pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, ProgramError> {
     let program = Assembler::new()
         .with_debug_mode(true)
-        .with_module_provider(StdLibrary::default())
+        .with_library(StdLibrary::default())
+        .map_err(ProgramError::AssemblyError)?
         .compile(program)
         .map_err(ProgramError::AssemblyError)?;
     let vm_state_iterator = processor::execute_iter(&program, &inputs);

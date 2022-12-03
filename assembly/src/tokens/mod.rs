@@ -1,4 +1,4 @@
-use super::{BTreeMap, ParsingError, String, ToString, Vec};
+use super::{BTreeMap, ParsingError, ProcedureName, String, ToString, Vec};
 use core::fmt;
 
 mod stream;
@@ -116,7 +116,7 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn parse_proc(&self) -> Result<(String, u16, bool), ParsingError> {
+    pub fn parse_proc(&self) -> Result<(ProcedureName, u16, bool), ParsingError> {
         assert!(
             self.parts[0] == Self::PROC || self.parts[0] == Self::EXPORT,
             "invalid procedure declaration"
@@ -236,7 +236,10 @@ impl<'a> fmt::Display for Token<'a> {
 /// Label of a declared procedure must comply with the following rules:
 /// - It must start with an ascii letter.
 /// - It can contain only ascii letters, numbers, or underscores.
-fn validate_proc_declaration_label(label: &str, token: &Token) -> Result<String, ParsingError> {
+fn validate_proc_declaration_label(
+    label: &str,
+    token: &Token,
+) -> Result<ProcedureName, ParsingError> {
     // a label must start with a letter
     if label.is_empty() || !label.chars().next().unwrap().is_ascii_alphabetic() {
         return Err(ParsingError::invalid_proc_label(token, label));
@@ -247,7 +250,8 @@ fn validate_proc_declaration_label(label: &str, token: &Token) -> Result<String,
         return Err(ParsingError::invalid_proc_label(token, label));
     }
 
-    Ok(label.to_string())
+    ProcedureName::try_from(label.to_string())
+        .map_err(|e| ParsingError::invalid_library_path(token, e))
 }
 
 /// A label of an invoked procedure must comply with the following rules:

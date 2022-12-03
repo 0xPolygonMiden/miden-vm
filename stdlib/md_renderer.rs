@@ -26,7 +26,7 @@ impl MarkdownRenderer {
         }
         let func_output = format!(
             "| {} | {} |\n",
-            proc.name,
+            proc.name.as_str(),
             proc.docs
                 .clone()
                 .unwrap()
