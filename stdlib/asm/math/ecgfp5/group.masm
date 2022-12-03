@@ -1,4 +1,4 @@
-use.std::math::ec_ext5::base_field
+use.std::math::ecgfp5::base_field
 
 #! Given an encoded elliptic curve point `w` s.t. it's expressed using
 #! an element ∈ GF(p^5) | p = 2^64 - 2^32 + 1, this routine verifies whether
