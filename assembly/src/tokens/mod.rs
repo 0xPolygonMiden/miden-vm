@@ -1,4 +1,7 @@
-use super::{BTreeMap, ParsingError, ProcedureName, String, ToString, Vec};
+use super::{
+    AbsolutePath, BTreeMap, ParsingError, ProcedureName, String, ToString, Vec, MAX_PROC_NAME_LEN,
+    MODULE_PATH_DELIM,
+};
 use core::fmt;
 
 mod stream;
@@ -26,10 +29,11 @@ impl<'a> Token<'a> {
     pub const ELSE: &'static str = "else";
     pub const WHILE: &'static str = "while";
     pub const REPEAT: &'static str = "repeat";
+    pub const END: &'static str = "end";
+
     pub const EXEC: &'static str = "exec";
     pub const CALL: &'static str = "call";
     pub const SYSCALL: &'static str = "syscall";
-    pub const END: &'static str = "end";
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -63,25 +67,6 @@ impl<'a> Token<'a> {
         &self.parts
     }
 
-    /// Returns true if this token represents a flow control token.
-    pub fn is_control_token(&self) -> bool {
-        matches!(
-            self.parts()[0],
-            Self::USE
-                | Self::PROC
-                | Self::EXPORT
-                | Self::BEGIN
-                | Self::IF
-                | Self::ELSE
-                | Self::WHILE
-                | Self::REPEAT
-                | Self::EXEC
-                | Self::CALL
-                | Self::SYSCALL
-                | Self::END
-        )
-    }
-
     // STATE MUTATOR
     // --------------------------------------------------------------------------------------------
     /// Updates the contents of this token from the specified string and position.
@@ -98,9 +83,10 @@ impl<'a> Token<'a> {
     // CONTROL TOKEN PARSERS / VALIDATORS
     // --------------------------------------------------------------------------------------------
 
-    pub fn parse_use(&self) -> Result<String, ParsingError> {
+    pub fn parse_use(&self) -> Result<AbsolutePath, ParsingError> {
         assert_eq!(Self::USE, self.parts[0], "not a use");
         match self.num_parts() {
+            0 => unreachable!(),
             1 => Err(ParsingError::missing_param(self)),
             2 => validate_import_path(self.parts[1], self),
             _ => Err(ParsingError::extra_param(self)),
@@ -123,6 +109,7 @@ impl<'a> Token<'a> {
         );
         let is_export = self.parts[0] == Self::EXPORT;
         match self.num_parts() {
+            0 => unreachable!(),
             1 => Err(ParsingError::missing_param(self)),
             2 => {
                 let label = validate_proc_declaration_label(self.parts[1], self)?;
@@ -140,6 +127,7 @@ impl<'a> Token<'a> {
     pub fn validate_if(&self) -> Result<(), ParsingError> {
         assert_eq!(Self::IF, self.parts[0], "not an if");
         match self.num_parts() {
+            0 => unreachable!(),
             1 => Err(ParsingError::missing_param(self)),
             2 => {
                 if self.parts[1] != "true" {
@@ -164,6 +152,7 @@ impl<'a> Token<'a> {
     pub fn validate_while(&self) -> Result<(), ParsingError> {
         assert_eq!(Self::WHILE, self.parts[0], "not a while");
         match self.num_parts() {
+            0 => unreachable!(),
             1 => Err(ParsingError::missing_param(self)),
             2 => {
                 if self.parts[1] != "true" {
@@ -179,6 +168,7 @@ impl<'a> Token<'a> {
     pub fn parse_repeat(&self) -> Result<u32, ParsingError> {
         assert_eq!(Self::REPEAT, self.parts[0], "not a repeat");
         match self.num_parts() {
+            0 => unreachable!(),
             1 => Err(ParsingError::missing_param(self)),
             2 => self.parts[1]
                 .parse::<u32>()
@@ -187,29 +177,38 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn parse_exec(&self) -> Result<String, ParsingError> {
+    pub fn parse_exec(&self) -> Result<(&str, Option<&str>), ParsingError> {
         assert_eq!(Self::EXEC, self.parts[0], "not an exec");
         match self.num_parts() {
+            0 => unreachable!(),
             1 => Err(ParsingError::missing_param(self)),
             2 => validate_proc_invocation_label(self.parts[1], self),
             _ => Err(ParsingError::extra_param(self)),
         }
     }
 
-    pub fn parse_call(&self) -> Result<String, ParsingError> {
+    pub fn parse_call(&self) -> Result<(&str, Option<&str>), ParsingError> {
         assert_eq!(Self::CALL, self.parts[0], "not a call");
         match self.num_parts() {
+            0 => unreachable!(),
             1 => Err(ParsingError::missing_param(self)),
             2 => validate_proc_invocation_label(self.parts[1], self),
             _ => Err(ParsingError::extra_param(self)),
         }
     }
 
-    pub fn parse_syscall(&self) -> Result<String, ParsingError> {
+    pub fn parse_syscall(&self) -> Result<&str, ParsingError> {
         assert_eq!(Self::SYSCALL, self.parts[0], "not a syscall");
         match self.num_parts() {
+            0 => unreachable!(),
             1 => Err(ParsingError::missing_param(self)),
-            2 => validate_proc_invocation_label(self.parts[1], self),
+            2 => {
+                let (proc_name, module_name) = validate_proc_invocation_label(self.parts[1], self)?;
+                if module_name.is_some() {
+                    return Err(ParsingError::syscall_with_module_name(self));
+                }
+                Ok(proc_name)
+            }
             _ => Err(ParsingError::extra_param(self)),
         }
     }
@@ -233,6 +232,8 @@ impl<'a> fmt::Display for Token<'a> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
+/// Returns a procedure name instantiated from the provided procedure declaration label.
+///
 /// Label of a declared procedure must comply with the following rules:
 /// - It must start with an ascii letter.
 /// - It can contain only ascii letters, numbers, or underscores.
@@ -240,14 +241,16 @@ fn validate_proc_declaration_label(
     label: &str,
     token: &Token,
 ) -> Result<ProcedureName, ParsingError> {
-    // a label must start with a letter
-    if label.is_empty() || !label.chars().next().unwrap().is_ascii_alphabetic() {
-        return Err(ParsingError::invalid_proc_label(token, label));
+    if !is_valid_label(label) {
+        return Err(ParsingError::invalid_proc_name(token, label));
     }
 
-    // a declaration label can contain only letters, numbers, or underscores
-    if !label.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-        return Err(ParsingError::invalid_proc_label(token, label));
+    if label.len() > MAX_PROC_NAME_LEN as usize {
+        return Err(ParsingError::proc_name_too_long(
+            token,
+            label,
+            MAX_PROC_NAME_LEN,
+        ));
     }
 
     ProcedureName::try_from(label.to_string())
@@ -260,21 +263,34 @@ fn validate_proc_declaration_label(
 ///
 /// As compared to procedure declaration label, colons are allowed here to support invocation
 /// of imported procedures.
-fn validate_proc_invocation_label(label: &str, token: &Token) -> Result<String, ParsingError> {
+fn validate_proc_invocation_label<'a>(
+    label: &'a str,
+    token: &'a Token,
+) -> Result<(&'a str, Option<&'a str>), ParsingError> {
     // a label must start with a letter
     if label.is_empty() || !label.chars().next().unwrap().is_ascii_alphabetic() {
-        return Err(ParsingError::invalid_proc_label(token, label));
+        return Err(ParsingError::invalid_proc_invocation(token, label));
     }
 
-    // a label can contain only letters, numbers, underscores, or colons
-    if !label
-        .chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == ':')
-    {
-        return Err(ParsingError::invalid_proc_label(token, label));
-    }
+    let mut parts = label.split(MODULE_PATH_DELIM);
+    let (proc_name, module_name) = match (parts.next(), parts.next()) {
+        (None, _) => return Err(ParsingError::invalid_proc_invocation(token, label)),
+        (Some(proc_name), None) => {
+            if !is_valid_label(proc_name) {
+                return Err(ParsingError::invalid_proc_invocation(token, label));
+            }
+            (proc_name, None)
+        }
+        (Some(module_name), Some(proc_name)) => {
+            if !is_valid_label(proc_name) || !is_valid_label(module_name) || parts.next().is_some()
+            {
+                return Err(ParsingError::invalid_proc_invocation(token, label));
+            }
+            (proc_name, Some(module_name))
+        }
+    };
 
-    Ok(label.to_string())
+    Ok((proc_name, module_name))
 }
 
 /// Procedure locals must be a 16-bit integer.
@@ -282,7 +298,11 @@ fn validate_proc_locals(locals: &str, token: &Token) -> Result<u16, ParsingError
     match locals.parse::<u64>() {
         Ok(num_locals) => {
             if num_locals > u16::MAX as u64 {
-                return Err(ParsingError::invalid_proc_locals(token, locals));
+                return Err(ParsingError::too_many_proc_locals(
+                    token,
+                    num_locals,
+                    u16::MAX as u64,
+                ));
             }
             Ok(num_locals as u16)
         }
@@ -293,7 +313,7 @@ fn validate_proc_locals(locals: &str, token: &Token) -> Result<u16, ParsingError
 /// A module import path must comply with the following rules:
 /// - It must start with an ascii letter.
 /// - It can contain only ascii letters, numbers, underscores, or colons.
-fn validate_import_path(path: &str, token: &Token) -> Result<String, ParsingError> {
+fn validate_import_path(path: &str, token: &Token) -> Result<AbsolutePath, ParsingError> {
     // a path must start with a letter
     if path.is_empty() || !path.chars().next().unwrap().is_ascii_alphabetic() {
         return Err(ParsingError::invalid_module_path(token, path));
@@ -307,5 +327,23 @@ fn validate_import_path(path: &str, token: &Token) -> Result<String, ParsingErro
         return Err(ParsingError::invalid_module_path(token, path));
     }
 
-    Ok(path.to_string())
+    Ok(AbsolutePath::new_unchecked(path.to_string()))
+}
+
+/// Returns true if the provided label is valid and false otherwise.
+///
+/// A label is considered valid if it start with a letter and consists only of letters, numbers,
+/// and underscores.
+fn is_valid_label(label: &str) -> bool {
+    // a label must start with a letter
+    if label.is_empty() || !label.chars().next().unwrap().is_ascii_alphabetic() {
+        return false;
+    }
+
+    // a label can contain only letters, numbers, or underscores
+    if !label.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        return false;
+    }
+
+    true
 }

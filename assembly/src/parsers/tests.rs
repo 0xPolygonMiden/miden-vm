@@ -346,6 +346,60 @@ fn test_ast_parsing_module_sequential_if() {
     }
 }
 
+// PROCEDURE IMPORTS
+// ================================================================================================
+
+#[test]
+fn test_missing_import() {
+    let source = "\
+    begin
+        exec.u64::add
+    end";
+
+    let result = parse_program(source);
+    match result {
+        Ok(_) => assert!(false),
+        Err(err) => assert!(err.to_string().contains("module 'u64' was not imported")),
+    }
+}
+
+// INVALID BODY TESTS
+// ================================================================================================
+
+#[test]
+fn test_use_in_proc_body() {
+    let source = "\
+    export.foo.1
+        loc_load.0
+        use
+    end";
+
+    let result = parse_module(source);
+    match result {
+        Ok(_) => assert!(false),
+        Err(err) => assert!(err.to_string().contains("import in procedure body")),
+    }
+}
+
+/*
+#[test]
+fn test_unterminated_proc() {
+    let source = "proc.foo add mul begin push.1 end";
+
+    let result = parse_module(source);
+    match result {
+        Ok(_) => assert!(false),
+        Err(err) => {
+            println!("err: {err}");
+            assert!(err.to_string().contains("import in procedure body"))
+        }
+    }
+}
+*/
+
+// DOCUMENTATION PARSING TESTS
+// ================================================================================================
+
 #[test]
 fn test_ast_parsing_simple_docs() {
     let source = "\
