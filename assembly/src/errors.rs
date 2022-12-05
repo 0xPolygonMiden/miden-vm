@@ -155,14 +155,6 @@ impl ParsingError {
         }
     }
 
-    pub fn unexpected_body_end(token: &Token) -> Self {
-        ParsingError {
-            message: format!("unexpected body termination: invalid token '{token}'"),
-            step: token.pos(),
-            op: token.to_string(),
-        }
-    }
-
     pub fn empty_block(token: &Token) -> Self {
         ParsingError {
             message: "a code block must contain at least one instruction".to_string(),
@@ -350,9 +342,9 @@ impl ParsingError {
         }
     }
 
-    pub fn unmatched_proc(token: &Token) -> Self {
+    pub fn unmatched_proc(token: &Token, proc_name: &str) -> Self {
         ParsingError {
-            message: "proc without matching end".to_string(),
+            message: format!("procedure '{proc_name}' has no matching end"),
             step: token.pos(),
             op: token.to_string(),
         }

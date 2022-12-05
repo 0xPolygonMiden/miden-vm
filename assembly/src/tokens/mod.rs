@@ -165,13 +165,13 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn parse_repeat(&self) -> Result<u32, ParsingError> {
+    pub fn parse_repeat(&self) -> Result<u16, ParsingError> {
         assert_eq!(Self::REPEAT, self.parts[0], "not a repeat");
         match self.num_parts() {
             0 => unreachable!(),
             1 => Err(ParsingError::missing_param(self)),
             2 => self.parts[1]
-                .parse::<u32>()
+                .parse::<u16>()
                 .map_err(|_| ParsingError::invalid_param(self, 1)),
             _ => Err(ParsingError::extra_param(self)),
         }
