@@ -110,21 +110,16 @@ impl Serializable for Node {
             }
             Self::IfElse(if_clause, else_clause) => {
                 target.write_u8(IF_ELSE_OPCODE);
-
                 if_clause.write_into(target);
-
                 else_clause.write_into(target);
             }
             Self::Repeat(times, nodes) => {
                 target.write_u8(REPEAT_OPCODE);
-
-                target.write_u16(*times as u16);
-
+                target.write_u16(*times);
                 nodes.write_into(target);
             }
             Self::While(nodes) => {
                 target.write_u8(WHILE_OPCODE);
-
                 nodes.write_into(target);
             }
         };

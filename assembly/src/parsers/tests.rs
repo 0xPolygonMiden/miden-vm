@@ -381,7 +381,6 @@ fn test_use_in_proc_body() {
     }
 }
 
-/*
 #[test]
 fn test_unterminated_proc() {
     let source = "proc.foo add mul begin push.1 end";
@@ -389,13 +388,22 @@ fn test_unterminated_proc() {
     let result = parse_module(source);
     match result {
         Ok(_) => assert!(false),
-        Err(err) => {
-            println!("err: {err}");
-            assert!(err.to_string().contains("import in procedure body"))
-        }
+        Err(err) => assert!(err
+            .to_string()
+            .contains("procedure 'foo' has no matching end")),
     }
 }
-*/
+
+#[test]
+fn test_unterminated_if() {
+    let source = "proc.foo add mul if.true add.2 begin push.1 end";
+
+    let result = parse_module(source);
+    match result {
+        Ok(_) => assert!(false),
+        Err(err) => assert!(err.to_string().contains("if without matching else/end")),
+    }
+}
 
 // DOCUMENTATION PARSING TESTS
 // ================================================================================================

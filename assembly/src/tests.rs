@@ -413,20 +413,14 @@ fn invalid_proc() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(
-            error.to_string(),
-            "unexpected body termination: invalid token 'begin'"
-        );
+        assert_eq!(error.to_string(), "procedure 'foo' has no matching end");
     }
 
     let source = "proc.foo add mul proc.bar push.3 end begin push.1 end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(
-            error.to_string(),
-            "unexpected body termination: invalid token 'proc.bar'"
-        );
+        assert_eq!(error.to_string(), "procedure 'foo' has no matching end");
     }
 
     let source = "proc.foo add mul end begin push.1 exec.bar end";

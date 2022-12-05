@@ -9,7 +9,7 @@ use core::fmt;
 pub enum Node {
     Instruction(Instruction),
     IfElse(Vec<Node>, Vec<Node>),
-    Repeat(usize, Vec<Node>),
+    Repeat(u16, Vec<Node>),
     While(Vec<Node>),
 }
 
