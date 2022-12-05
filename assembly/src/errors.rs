@@ -20,6 +20,7 @@ pub enum AssemblyError {
     ParamOutOfBounds(u64, u64, u64),
     SysCallInKernel(String),
     InvalidCacheLock,
+    LibraryError(String),
 }
 
 impl AssemblyError {
@@ -85,6 +86,12 @@ impl From<ParsingError> for AssemblyError {
     }
 }
 
+impl From<LibraryError> for AssemblyError {
+    fn from(err: LibraryError) -> Self {
+        Self::LibraryError(err.to_string())
+    }
+}
+
 impl fmt::Display for AssemblyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use AssemblyError::*;
@@ -99,7 +106,7 @@ impl fmt::Display for AssemblyError {
             ImportedProcNotFoundInModule(proc_id, module_path) => write!(f, "imported procedure {proc_id} not found in module {module_path}"),
             KernelProcNotFound(proc_id) => write!(f, "procedure {proc_id} not found in kernel"),
             LocalProcNotFound(proc_idx, module_path) => write!(f, "procedure at index {proc_idx} not found in module {module_path}"),
-            ParsingError(err) => write!(f, "{err}"),
+            LibraryError(err) | ParsingError(err) => write!(f, "{err}"),
             ParamOutOfBounds(value, min, max) => write!(f, "parameter value must be greater than or equal to {min} and less than or equal to {max}, but was {value}"),
             SysCallInKernel(proc_name) => write!(f, "syscall instruction used in kernel procedure '{proc_name}'"),
             InvalidCacheLock => write!(f, "an attempt was made to lock a borrowed procedures cache"),
@@ -393,6 +400,14 @@ impl ParsingError {
         }
     }
 
+    pub fn invalid_library_path(token: &Token, error: LibraryError) -> Self {
+        ParsingError {
+            message: format!("invalid path resolution: {error}"),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
     pub fn message(&self) -> &String {
@@ -442,6 +457,49 @@ pub enum SerializationError {
 #[derive(Clone, Debug)]
 pub enum LibraryError {
     ModuleNotFound(String),
+    DuplicateModulePath(String),
+    EmptyProcedureName,
+    ProcedureNameWithDelimiter(String),
+    ModulePathStartsWithDelimiter(String),
+    ModulePathEndsWithDelimiter(String),
+    LibraryNameWithDelimiter(String),
+    NamespaceViolation { expected: String, found: String },
+}
+
+impl LibraryError {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
+    pub const fn empty_procedure_name() -> Self {
+        Self::EmptyProcedureName
+    }
+
+    pub fn duplicate_module_path(path: &str) -> Self {
+        Self::DuplicateModulePath(path.to_string())
+    }
+
+    pub fn procedure_name_with_delimiter(name: &str) -> Self {
+        Self::ProcedureNameWithDelimiter(name.to_string())
+    }
+
+    pub fn module_path_starts_with_delimiter(path: &str) -> Self {
+        Self::ModulePathStartsWithDelimiter(path.to_string())
+    }
+
+    pub fn module_path_ends_with_delimiter(path: &str) -> Self {
+        Self::ModulePathEndsWithDelimiter(path.to_string())
+    }
+
+    pub fn library_name_with_delimiter(name: &str) -> Self {
+        Self::LibraryNameWithDelimiter(name.to_string())
+    }
+
+    pub fn namespace_violation(expected: &str, found: &str) -> Self {
+        Self::NamespaceViolation {
+            expected: expected.into(),
+            found: found.into(),
+        }
+    }
 }
 
 impl fmt::Display for LibraryError {
@@ -449,6 +507,26 @@ impl fmt::Display for LibraryError {
         use LibraryError::*;
         match self {
             ModuleNotFound(path) => write!(f, "module '{path}' not found"),
+            DuplicateModulePath(path) => write!(f, "duplciate module path '{path}'"),
+            EmptyProcedureName => write!(f, "the procedure name cannot be empty"),
+            ProcedureNameWithDelimiter(name) => {
+                write!(f, "'{name}' cannot contain a module delimiter")
+            }
+            ModulePathStartsWithDelimiter(path) => {
+                write!(f, "'{path}' cannot start with a module delimiter")
+            }
+            ModulePathEndsWithDelimiter(path) => {
+                write!(f, "'{path}' cannot end with a module delimiter")
+            }
+            LibraryNameWithDelimiter(name) => {
+                write!(f, "'{name}' cannot contain a module delimiter")
+            }
+            NamespaceViolation { expected, found } => {
+                write!(
+                    f,
+                    "invalid namespace! expected '{expected}', found '{found}'"
+                )
+            }
         }
     }
 }

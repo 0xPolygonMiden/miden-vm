@@ -214,7 +214,7 @@ impl ParserContext {
                         return Err(ParsingError::proc_export_not_allowed(token, &label));
                     }
 
-                    if self.local_procs.contains_key(&label) {
+                    if self.local_procs.contains_key(label.as_ref()) {
                         return Err(ParsingError::duplicate_proc_label(token, &label));
                     }
 

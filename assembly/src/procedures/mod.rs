@@ -1,5 +1,8 @@
-use super::{BTreeSet, CodeBlock, Felt, String, MODULE_PATH_DELIM};
-use core::{fmt, ops};
+use super::{AbsolutePath, BTreeSet, CodeBlock, Felt, LibraryError, String, MODULE_PATH_DELIM};
+use core::{
+    fmt,
+    ops::{self, Deref},
+};
 use crypto::{hashers::Blake3_256, Digest, Hasher};
 
 // PROCEDURE
@@ -9,7 +12,7 @@ use crypto::{hashers::Blake3_256, Digest, Hasher};
 #[derive(Clone, Debug)]
 pub struct Procedure {
     id: ProcedureId,
-    label: String,
+    label: ProcedureName,
     is_export: bool,
     num_locals: u32,
     code_root: CodeBlock,
@@ -22,7 +25,7 @@ impl Procedure {
     /// Returns a new [Procedure] instantiated with the specified properties.
     pub fn new(
         id: ProcedureId,
-        label: String,
+        label: ProcedureName,
         is_export: bool,
         num_locals: u32,
         code_root: CodeBlock,
@@ -47,7 +50,7 @@ impl Procedure {
     }
 
     /// Returns a label of this procedure.
-    pub fn label(&self) -> &str {
+    pub fn label(&self) -> &ProcedureName {
         &self.label
     }
 
@@ -71,6 +74,85 @@ impl Procedure {
     /// called during the execution of this procedure.
     pub fn callset(&self) -> &CallSet {
         &self.callset
+    }
+}
+
+// PROCEDURE NAME
+// ================================================================================================
+
+/// Procedure name.
+///
+/// # Type-safety
+///
+/// It is achieved as any instance of this type can be created only via the checked
+/// [`Self::try_from`]. A valid procedure name cannot be empty or contain a [`MODULE_PATH_DELIM`].
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ProcedureName {
+    name: String,
+}
+
+impl ProcedureName {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+
+    /// Reserved name for a main procedure.
+    pub const MAIN_PROC_NAME: &str = "#main";
+
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Create a new procedure name with the reserved label for `main`.
+    pub fn main() -> Self {
+        Self {
+            name: Self::MAIN_PROC_NAME.into(),
+        }
+    }
+
+    // TYPE-SAFE TRANSFORMATION
+    // --------------------------------------------------------------------------------------------
+
+    /// Append the procedure name to a module path.
+    pub fn to_absolute(&self, module: &AbsolutePath) -> AbsolutePath {
+        AbsolutePath::new_unchecked(format!(
+            "{}{MODULE_PATH_DELIM}{}",
+            module.as_str(),
+            &self.name
+        ))
+    }
+
+    // HELPERS
+    // --------------------------------------------------------------------------------------------
+
+    /// Check if the procedure label is the reserved name for `main`.
+    pub fn is_main(&self) -> bool {
+        self.name == Self::MAIN_PROC_NAME
+    }
+}
+
+impl TryFrom<String> for ProcedureName {
+    type Error = LibraryError;
+
+    fn try_from(name: String) -> Result<Self, Self::Error> {
+        if name.is_empty() {
+            return Err(LibraryError::empty_procedure_name());
+        } else if name.contains(MODULE_PATH_DELIM) {
+            return Err(LibraryError::procedure_name_with_delimiter(&name));
+        }
+        Ok(Self { name })
+    }
+}
+
+impl Deref for ProcedureName {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.name
+    }
+}
+
+impl AsRef<str> for ProcedureName {
+    fn as_ref(&self) -> &str {
+        &self.name
     }
 }
 
@@ -110,10 +192,6 @@ impl ProcedureId {
     /// Truncated length of the id
     pub const SIZE: usize = 24;
 
-    /// Base kernel path
-    /// TODO better use `MODULE_PATH_DELIM`. maybe require `const_format` crate?
-    pub const KERNEL_PATH: &str = "::sys";
-
     /// Creates a new procedure id from its path, composed by module path + name identifier.
     ///
     /// No validation is performed regarding the consistency of the path format.
@@ -142,7 +220,7 @@ impl ProcedureId {
 
     /// Creates a new procedure ID from a name to be resolved in the kernel.
     pub fn from_kernel_name(name: &str) -> Self {
-        let path = format!("{}{MODULE_PATH_DELIM}{name}", Self::KERNEL_PATH);
+        let path = format!("{}{MODULE_PATH_DELIM}{name}", AbsolutePath::KERNEL_PATH);
         Self::new(path)
     }
 
