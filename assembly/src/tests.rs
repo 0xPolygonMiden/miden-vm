@@ -433,21 +433,21 @@ fn invalid_proc() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.to_string(), "undefined procedure: bar");
+        assert_eq!(error.to_string(), "undefined local procedure: bar");
     }
 
     let source = "proc.123 add mul end begin push.1 exec.123 end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.to_string(), "invalid procedure label: 123");
+        assert_eq!(error.to_string(), "invalid procedure name: 123");
     }
 
     let source = "proc.foo add mul end proc.foo push.3 end begin push.1 end";
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.to_string(), "duplicate procedure label: foo");
+        assert_eq!(error.to_string(), "duplicate procedure name: foo");
     }
 }
 
