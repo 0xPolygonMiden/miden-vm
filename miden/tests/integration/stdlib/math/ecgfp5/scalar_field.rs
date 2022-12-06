@@ -259,10 +259,21 @@ impl PartialEq for Scalar {
 #[test]
 fn test_ecgfp5_scalar_arithmetic() {
     let a = Scalar::rand();
-    let b = a.inv();
-    let c = a * b;
+    let b = Scalar::rand();
 
-    assert_eq!(c, Scalar::one());
+    let c = a * b;
+    let d = c * a.inv();
+    let e = d * b.inv();
+
+    assert_eq!(b, d);
+    assert_eq!(Scalar::one(), e);
+
+    let f = a + b;
+    let g = f - a;
+    let h = g - b;
+
+    assert_eq!(b, g);
+    assert_eq!(Scalar::zero(), h);
 }
 
 #[test]

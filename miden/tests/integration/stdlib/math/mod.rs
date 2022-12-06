@@ -1,7 +1,7 @@
 use super::build_test;
 use crate::helpers::{Felt, TestError};
 
-mod ecgfp5;
+pub mod ecgfp5;
 mod ext2;
 mod ntt512;
 mod poly512;
