@@ -159,7 +159,7 @@ impl Deserializable for Node {
             REPEAT_OPCODE => {
                 bytes.read_u8()?;
                 Ok(Node::Repeat(
-                    bytes.read_u16()?.into(),
+                    bytes.read_u16()?,
                     Deserializable::read_from(bytes)?,
                 ))
             }

@@ -141,7 +141,7 @@ impl fmt::Display for ProgramInfo {
 pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, ProgramError> {
     let program = Assembler::new()
         .with_debug_mode(true)
-        .with_library(StdLibrary::default())
+        .with_library(&StdLibrary::default())
         .map_err(ProgramError::AssemblyError)?
         .compile(program)
         .map_err(ProgramError::AssemblyError)?;

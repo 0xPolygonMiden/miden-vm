@@ -1,6 +1,6 @@
 use super::{
-    errors::SerializationError, BTreeMap, Felt, ParsingError, ProcedureId, ProcedureName, String,
-    ToString, Token, TokenStream, Vec, MODULE_PATH_DELIM,
+    errors::SerializationError, AbsolutePath, BTreeMap, Felt, ParsingError, ProcedureId,
+    ProcedureName, String, ToString, Token, TokenStream, Vec,
 };
 use core::fmt::Display;
 use serde::{ByteReader, ByteWriter, Deserializable, Serializable};
@@ -257,9 +257,13 @@ pub fn parse_module(source: &str) -> Result<ModuleAst, ParsingError> {
     };
     context.parse_procedures(&mut tokens, true)?;
 
-    // make sure program body is absent and no more instructions.
-    if tokens.read().is_some() {
-        return Err(ParsingError::unexpected_eof(tokens.pos()));
+    // make sure program body is absent and there are no more instructions.
+    if let Some(token) = tokens.read() {
+        if token.parts()[0] == Token::BEGIN {
+            return Err(ParsingError::not_a_library_module(token));
+        } else {
+            return Err(ParsingError::dangling_ops_after_module(token));
+        }
     }
 
     let module = ModuleAst {
@@ -272,19 +276,19 @@ pub fn parse_module(source: &str) -> Result<ModuleAst, ParsingError> {
 
 /// Parses all `use` statements into a map of imports which maps a module name (e.g., "u64") to
 /// its fully-qualified path (e.g., "std::math::u64").
-fn parse_imports(tokens: &mut TokenStream) -> Result<BTreeMap<String, String>, ParsingError> {
-    let mut imports = BTreeMap::<String, String>::new();
+fn parse_imports(tokens: &mut TokenStream) -> Result<BTreeMap<String, AbsolutePath>, ParsingError> {
+    let mut imports = BTreeMap::<String, AbsolutePath>::new();
     // read tokens from the token stream until all `use` tokens are consumed
     while let Some(token) = tokens.read() {
         match token.parts()[0] {
             Token::USE => {
-                let module_path = &token.parse_use()?;
-                let (_, short_name) = module_path.rsplit_once(MODULE_PATH_DELIM).unwrap();
-                if imports.contains_key(short_name) {
-                    return Err(ParsingError::duplicate_module_import(token, module_path));
+                let module_path = token.parse_use()?;
+                let module_name = module_path.label();
+                if imports.contains_key(module_name) {
+                    return Err(ParsingError::duplicate_module_import(token, &module_path));
                 }
 
-                imports.insert(short_name.to_string(), module_path.to_string());
+                imports.insert(module_name.to_string(), module_path);
 
                 // consume the `use` token
                 tokens.advance();
