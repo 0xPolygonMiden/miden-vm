@@ -1,9 +1,8 @@
 use super::{
-    super::nodes::{Instruction, Node},
-    OpCode, IF_ELSE_OPCODE, REPEAT_OPCODE, WHILE_OPCODE,
+    Felt, Instruction, Node, OpCode, ProcedureId, ProcedureName, SerializationError, String, Vec,
+    IF_ELSE_OPCODE, MAX_PUSH_INPUTS, REPEAT_OPCODE, WHILE_OPCODE,
 };
-use crate::{errors::SerializationError, ProcedureId, ProcedureName, MAX_PUSH_INPUTS};
-use vm_core::{utils::collections::Vec, utils::string::String, Felt};
+use core::str::from_utf8;
 
 // BYTE READER IMPLEMENTATION
 // ================================================================================================
@@ -66,6 +65,10 @@ impl<'a> ByteReader<'a> {
         ))
     }
 
+    pub fn read_len(&mut self) -> Result<usize, SerializationError> {
+        self.read_u16().map(|l| l as usize)
+    }
+
     pub fn read_proc_name(&mut self) -> Result<ProcedureName, SerializationError> {
         let length = self.read_u8()?;
         self.check_eor(length as usize)?;
@@ -76,19 +79,6 @@ impl<'a> ByteReader<'a> {
         let name = String::from_utf8(string_bytes.to_vec()).expect("String conversion failure");
         let name = ProcedureName::try_from(name).expect("library name validation failure");
         Ok(name)
-    }
-
-    pub fn read_docs(&mut self) -> Result<Option<String>, SerializationError> {
-        let length = self.read_u16()?;
-        if length != 0 {
-            self.check_eor(length as usize)?;
-            let string_bytes = &self.bytes[self.pos..self.pos + length as usize];
-            self.pos += length as usize;
-            let docs = String::from_utf8(string_bytes.to_vec()).expect("String conversion failure");
-            Ok(Some(docs))
-        } else {
-            Ok(None)
-        }
     }
 
     pub fn read_procedure_id(&mut self) -> Result<ProcedureId, SerializationError> {
@@ -111,6 +101,14 @@ impl<'a> ByteReader<'a> {
         ))
     }
 
+    pub fn read_str(&mut self) -> Result<&str, SerializationError> {
+        let len = self.read_u16()? as usize;
+        self.check_eor(len)?;
+        let string = &self.bytes[self.pos..self.pos + len];
+        self.pos += len;
+        from_utf8(string).map_err(|_| SerializationError::InvalidUtf8)
+    }
+
     /// Checks if it is possible to read at least `num_bytes` bytes from ByteReader
     ///
     /// # Errors
@@ -129,18 +127,41 @@ impl<'a> ByteReader<'a> {
 /// Returns `self` from its byte representation stored in provided `ByteReader` struct.
 pub trait Deserializable: Sized {
     fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError>;
+
+    fn read_from_bytes(bytes: &[u8]) -> Result<Self, SerializationError> {
+        Self::read_from(&mut ByteReader::new(bytes))
+    }
 }
 
-impl Deserializable for Vec<Node> {
+impl Deserializable for () {
+    fn read_from(_bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        Ok(())
+    }
+}
+
+impl Deserializable for String {
     fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let mut vec_node: Vec<Node> = Vec::new();
-        let vec_len = bytes.read_u16()?;
+        bytes.read_str().map(String::from)
+    }
+}
 
-        for _ in 0..vec_len {
-            vec_node.push(Deserializable::read_from(bytes)?);
-        }
+impl<T> Deserializable for Vec<T>
+where
+    T: Deserializable,
+{
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        let len = bytes.read_len()?;
+        (0..len).map(|_| T::read_from(bytes)).collect()
+    }
+}
 
-        Ok(vec_node)
+impl<T> Deserializable for Option<T>
+where
+    T: Deserializable,
+{
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        let is_some = bytes.read_bool()?;
+        is_some.then(|| T::read_from(bytes)).transpose()
     }
 }
 

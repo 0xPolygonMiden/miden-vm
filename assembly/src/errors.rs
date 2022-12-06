@@ -16,12 +16,13 @@ pub enum AssemblyError {
     ImportedProcNotFoundInModule(ProcedureId, String),
     InvalidCacheLock,
     KernelProcNotFound(ProcedureId),
-    LibraryError(String),
     LocalProcNotFound(u16, String),
     ParsingError(String),
     ParamOutOfBounds(u64, u64, u64),
     ProcedureNameError(String),
     SysCallInKernel(String),
+    LibraryError(String),
+    Io(String),
 }
 
 impl AssemblyError {
@@ -117,7 +118,15 @@ impl fmt::Display for AssemblyError {
             ParamOutOfBounds(value, min, max) => write!(f, "parameter value must be greater than or equal to {min} and less than or equal to {max}, but was {value}"),
             SysCallInKernel(proc_name) => write!(f, "syscall instruction used in kernel procedure '{proc_name}'"),
             LibraryError(err) | ParsingError(err) | ProcedureNameError(err) => write!(f, "{err}"),
+            Io(description) => write!(f, "I/O error: {description}"),
         }
+    }
+}
+
+#[cfg(feature = "std")]
+impl From<std::io::Error> for AssemblyError {
+    fn from(e: std::io::Error) -> Self {
+        Self::Io(e.to_string())
     }
 }
 
@@ -463,6 +472,13 @@ impl fmt::Display for ParsingError {
 }
 
 #[cfg(feature = "std")]
+impl From<ParsingError> for std::io::Error {
+    fn from(e: ParsingError) -> Self {
+        std::io::Error::new(std::io::ErrorKind::Other, e)
+    }
+}
+
+#[cfg(feature = "std")]
 impl std::error::Error for ParsingError {}
 
 // PROCEDURE NAME ERROR
@@ -518,12 +534,48 @@ impl fmt::Display for ProcedureNameError {
 #[derive(Debug)]
 pub enum SerializationError {
     InvalidBoolValue,
-    StringTooLong,
+    LengthTooLong,
     EndOfReader,
     InvalidOpCode,
     InvalidFieldElement,
     InvalidNumOfPushValues,
+    InvalidNumber,
+    InvalidUtf8,
+    InvalidPathNoDelimiter,
+    InvalidNamespace,
+    InvalidModulePath,
+    UnexpectedEndOfStream,
 }
+
+impl fmt::Display for SerializationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use SerializationError::*;
+        match self {
+            InvalidBoolValue => write!(f, "invalid boolean value"),
+            LengthTooLong => write!(f, "the provided length is too long and is not supported"),
+            EndOfReader => write!(f, "unexpected reader EOF"),
+            InvalidOpCode => write!(f, "could not read a valid opcode"),
+            InvalidFieldElement => write!(f, "could not read a valid field element"),
+            InvalidNumOfPushValues => write!(f, "invalid push values argument"),
+            InvalidNumber => write!(f, "could not read a valid number"),
+            InvalidUtf8 => write!(f, "could not read a well-formed utf-8 string"),
+            InvalidPathNoDelimiter => write!(f, "a path must contain a delimiter"),
+            InvalidNamespace => write!(f, "could not read a valid namespace definition"),
+            InvalidModulePath => write!(f, "could not read a valid module path definition"),
+            UnexpectedEndOfStream => write!(f, "the stream of tokens reached an unexpected end"),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl From<SerializationError> for std::io::Error {
+    fn from(e: SerializationError) -> Self {
+        std::io::Error::new(std::io::ErrorKind::Other, e)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for SerializationError {}
 
 // LIBRARY ERROR
 // ================================================================================================
@@ -532,6 +584,9 @@ pub enum SerializationError {
 pub enum LibraryError {
     ModuleNotFound(String),
     DuplicateModulePath(String),
+    DuplicateNamespace(String),
+    EmptyProcedureName,
+    ProcedureNameWithDelimiter(String),
     ModulePathStartsWithDelimiter(String),
     ModulePathEndsWithDelimiter(String),
     LibraryNameWithDelimiter(String),
@@ -544,6 +599,14 @@ impl LibraryError {
 
     pub fn duplicate_module_path(path: &str) -> Self {
         Self::DuplicateModulePath(path.to_string())
+    }
+
+    pub fn duplicate_namespace(namespace: &str) -> Self {
+        Self::DuplicateNamespace(namespace.to_string())
+    }
+
+    pub fn procedure_name_with_delimiter(name: &str) -> Self {
+        Self::ProcedureNameWithDelimiter(name.to_string())
     }
 
     pub fn module_path_starts_with_delimiter(path: &str) -> Self {
@@ -572,6 +635,11 @@ impl fmt::Display for LibraryError {
         match self {
             ModuleNotFound(path) => write!(f, "module '{path}' not found"),
             DuplicateModulePath(path) => write!(f, "duplciate module path '{path}'"),
+            DuplicateNamespace(namespace) => write!(f, "duplicate namespace '{namespace}'"),
+            EmptyProcedureName => write!(f, "the procedure name cannot be empty"),
+            ProcedureNameWithDelimiter(name) => {
+                write!(f, "'{name}' cannot contain a module delimiter")
+            }
             ModulePathStartsWithDelimiter(path) => {
                 write!(f, "'{path}' cannot start with a module delimiter")
             }

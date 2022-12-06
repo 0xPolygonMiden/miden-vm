@@ -34,6 +34,7 @@ type ProcedureCache = BTreeMap<ProcedureId, Procedure>;
 /// - If `with_kernel()` or `with_kernel_module()` methods are not used, the assembler will be
 ///   instantiated with a default empty kernel. Programs compiled using such assembler
 ///   cannot make calls to kernel procedures via `syscall` instruction.
+#[derive(Default)]
 pub struct Assembler {
     kernel: Kernel,
     module_provider: ModuleProvider,
@@ -44,15 +45,6 @@ pub struct Assembler {
 impl Assembler {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-    /// Returns a new instance of [Assembler] instantiated with empty module map.
-    pub fn new() -> Self {
-        Self {
-            kernel: Kernel::default(),
-            module_provider: Default::default(),
-            proc_cache: Default::default(),
-            in_debug_mode: false,
-        }
-    }
 
     /// Puts the assembler into the debug mode.
     pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
@@ -333,12 +325,6 @@ impl Assembler {
         }
 
         Ok(())
-    }
-}
-
-impl Default for Assembler {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

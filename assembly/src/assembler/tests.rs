@@ -1,5 +1,5 @@
 use super::{combine_blocks, Assembler, CodeBlock, Library, Module, Operation};
-use crate::{parse_module, LibraryNamespace, ModulePath};
+use crate::{parse_module, LibraryNamespace, ModulePath, Version};
 use core::slice::Iter;
 
 // TESTS
@@ -8,7 +8,6 @@ use core::slice::Iter;
 #[test]
 fn nested_blocks() {
     const NAMESPACE: &str = "foo";
-    const VERSION: &str = "0.1.0";
     const MODULE: &str = "bar";
     const KERNEL: &str = r#"
         export.foo
@@ -45,8 +44,8 @@ fn nested_blocks() {
             &self.namespace
         }
 
-        fn version(&self) -> &str {
-            VERSION
+        fn version(&self) -> &Version {
+            &Version::MIN
         }
 
         fn modules(&self) -> Self::ModuleIterator<'_> {
@@ -54,7 +53,7 @@ fn nested_blocks() {
         }
     }
 
-    let assembler = Assembler::new()
+    let assembler = Assembler::default()
         .with_kernel(KERNEL)
         .unwrap()
         .with_library(&DummyLibrary::default())

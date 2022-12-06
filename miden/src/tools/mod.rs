@@ -139,7 +139,7 @@ impl fmt::Display for ProgramInfo {
 
 /// Returns program analysis of a given program.
 pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, ProgramError> {
-    let program = Assembler::new()
+    let program = Assembler::default()
         .with_debug_mode(true)
         .with_library(&StdLibrary::default())
         .map_err(ProgramError::AssemblyError)?

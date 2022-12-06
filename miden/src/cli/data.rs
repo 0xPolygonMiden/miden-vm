@@ -183,7 +183,7 @@ impl ProgramFile {
         let now = Instant::now();
 
         // compile program
-        let program = Assembler::new()
+        let program = Assembler::default()
             .with_library(&StdLibrary::default())
             .map_err(|err| format!("Failed to load stdlib - {}", err))?
             .compile(&program_file)
