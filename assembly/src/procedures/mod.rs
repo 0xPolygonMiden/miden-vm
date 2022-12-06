@@ -1,4 +1,7 @@
-use super::{AbsolutePath, BTreeSet, CodeBlock, Felt, LibraryError, String, MODULE_PATH_DELIM};
+use super::{
+    AbsolutePath, BTreeSet, CodeBlock, Felt, ProcedureNameError, String, MAX_PROC_NAME_LEN,
+    MODULE_PATH_DELIM,
+};
 use core::{
     fmt,
     ops::{self, Deref},
@@ -82,10 +85,16 @@ impl Procedure {
 
 /// Procedure name.
 ///
-/// # Type-safety
+/// Procedure name must comply with the following rules:
+/// - It cannot be longer than 100 characters.
+/// - It must start with a ASCII letter.
+/// - It must consist of only ASCII letters, numbers, and underscores.
 ///
-/// It is achieved as any instance of this type can be created only via the checked
-/// [`Self::try_from`]. A valid procedure name cannot be empty or contain a [`MODULE_PATH_DELIM`].
+/// The only exception from the above rules is the name for the main procedure of an executable
+/// module which is set to `#main`.
+///
+/// # Type-safety
+/// Any instance of this type can be created only via the checked [`Self::try_from`].
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ProcedureName {
     name: String,
@@ -130,13 +139,24 @@ impl ProcedureName {
 }
 
 impl TryFrom<String> for ProcedureName {
-    type Error = LibraryError;
+    type Error = ProcedureNameError;
 
     fn try_from(name: String) -> Result<Self, Self::Error> {
         if name.is_empty() {
-            return Err(LibraryError::empty_procedure_name());
-        } else if name.contains(MODULE_PATH_DELIM) {
-            return Err(LibraryError::procedure_name_with_delimiter(&name));
+            // procedure name cannot be empty
+            return Err(ProcedureNameError::empty_procedure_name());
+        } else if name.len() > MAX_PROC_NAME_LEN as usize {
+            // procedure name cannot be more than 100 characters long
+            return Err(ProcedureNameError::procedure_name_too_long(
+                &name,
+                MAX_PROC_NAME_LEN,
+            ));
+        } else if !name.chars().next().unwrap().is_ascii_alphabetic() {
+            // procedure name must start with a letter
+            return Err(ProcedureNameError::invalid_fist_letter(&name));
+        } else if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+            // procedure name can consists only of numbers, letters, and underscores
+            return Err(ProcedureNameError::invalid_procedure_name(&name));
         }
         Ok(Self { name })
     }

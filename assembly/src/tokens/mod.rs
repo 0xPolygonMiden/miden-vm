@@ -1,6 +1,5 @@
 use super::{
-    AbsolutePath, BTreeMap, ParsingError, ProcedureName, String, ToString, Vec, MAX_PROC_NAME_LEN,
-    MODULE_PATH_DELIM,
+    AbsolutePath, BTreeMap, ParsingError, ProcedureName, String, ToString, Vec, MODULE_PATH_DELIM,
 };
 use core::fmt;
 
@@ -108,20 +107,20 @@ impl<'a> Token<'a> {
             "invalid procedure declaration"
         );
         let is_export = self.parts[0] == Self::EXPORT;
-        match self.num_parts() {
+        let (name_str, num_locals) = match self.num_parts() {
             0 => unreachable!(),
-            1 => Err(ParsingError::missing_param(self)),
-            2 => {
-                let label = validate_proc_declaration_label(self.parts[1], self)?;
-                Ok((label, 0, is_export))
-            }
+            1 => return Err(ParsingError::missing_param(self)),
+            2 => (self.parts[1], 0),
             3 => {
-                let label = validate_proc_declaration_label(self.parts[1], self)?;
                 let num_locals = validate_proc_locals(self.parts[2], self)?;
-                Ok((label, num_locals, is_export))
+                (self.parts[1], num_locals)
             }
-            _ => Err(ParsingError::extra_param(self)),
-        }
+            _ => return Err(ParsingError::extra_param(self)),
+        };
+
+        ProcedureName::try_from(name_str.to_string())
+            .map(|proc_name| (proc_name, num_locals, is_export))
+            .map_err(|err| ParsingError::invalid_proc_name(self, err))
     }
 
     pub fn validate_if(&self) -> Result<(), ParsingError> {
@@ -232,37 +231,55 @@ impl<'a> fmt::Display for Token<'a> {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Returns a procedure name instantiated from the provided procedure declaration label.
+/// A module import path must comply with the following rules:
+/// - Path limbs must be separated by double-colons ("::").
+/// - Each limb must start with an ASCII letter.
+/// - Each limb can contain only ASCII letters, numbers, underscores, or colons.
 ///
-/// Label of a declared procedure must comply with the following rules:
-/// - It must start with an ascii letter.
-/// - It can contain only ascii letters, numbers, or underscores.
-fn validate_proc_declaration_label(
-    label: &str,
-    token: &Token,
-) -> Result<ProcedureName, ParsingError> {
-    if !is_valid_label(label) {
-        return Err(ParsingError::invalid_proc_name(token, label));
+/// TODO: this validation should happen in AbsolutePath::try_from().
+fn validate_import_path(path: &str, token: &Token) -> Result<AbsolutePath, ParsingError> {
+    // a path cannot be empty
+    if path.is_empty() {
+        return Err(ParsingError::invalid_module_path(token, path));
     }
 
-    if label.len() > MAX_PROC_NAME_LEN as usize {
-        return Err(ParsingError::proc_name_too_long(
-            token,
-            label,
-            MAX_PROC_NAME_LEN,
-        ));
+    // path limbs must be separated by "::"
+    for limb in path.split(MODULE_PATH_DELIM) {
+        // each limb must be a valid label
+        if !is_valid_label(limb) {
+            return Err(ParsingError::invalid_module_path(token, path));
+        }
     }
 
-    ProcedureName::try_from(label.to_string())
-        .map_err(|e| ParsingError::invalid_library_path(token, e))
+    Ok(AbsolutePath::new_unchecked(path.to_string()))
+}
+
+/// Procedure locals must be a 16-bit integer.
+fn validate_proc_locals(locals: &str, token: &Token) -> Result<u16, ParsingError> {
+    match locals.parse::<u64>() {
+        Ok(num_locals) => {
+            if num_locals > u16::MAX as u64 {
+                return Err(ParsingError::too_many_proc_locals(
+                    token,
+                    num_locals,
+                    u16::MAX as u64,
+                ));
+            }
+            Ok(num_locals as u16)
+        }
+        Err(_) => Err(ParsingError::invalid_proc_locals(token, locals)),
+    }
 }
 
 /// A label of an invoked procedure must comply with the following rules:
-/// - It must start with an ascii letter.
-/// - It can contain only ascii letters, numbers, underscores, or colons.
+/// - It can contain a single procedure name. In this case, the label must comply with procedure
+///   name rules.
+/// - It can contain module name followed by procedure name (e.g., "module::procedure"). In this
+///   case both module and procedure name must comply with relevant name rules.
 ///
-/// As compared to procedure declaration label, colons are allowed here to support invocation
-/// of imported procedures.
+/// All other combinations will result in an error.
+///
+/// TODO: validation should happen at the path and procedure name levels rather than here.
 fn validate_proc_invocation_label<'a>(
     label: &'a str,
     token: &'a Token,
@@ -291,43 +308,6 @@ fn validate_proc_invocation_label<'a>(
     };
 
     Ok((proc_name, module_name))
-}
-
-/// Procedure locals must be a 16-bit integer.
-fn validate_proc_locals(locals: &str, token: &Token) -> Result<u16, ParsingError> {
-    match locals.parse::<u64>() {
-        Ok(num_locals) => {
-            if num_locals > u16::MAX as u64 {
-                return Err(ParsingError::too_many_proc_locals(
-                    token,
-                    num_locals,
-                    u16::MAX as u64,
-                ));
-            }
-            Ok(num_locals as u16)
-        }
-        Err(_) => Err(ParsingError::invalid_proc_locals(token, locals)),
-    }
-}
-
-/// A module import path must comply with the following rules:
-/// - It must start with an ascii letter.
-/// - It can contain only ascii letters, numbers, underscores, or colons.
-fn validate_import_path(path: &str, token: &Token) -> Result<AbsolutePath, ParsingError> {
-    // a path must start with a letter
-    if path.is_empty() || !path.chars().next().unwrap().is_ascii_alphabetic() {
-        return Err(ParsingError::invalid_module_path(token, path));
-    }
-
-    // a path can contain only letters, numbers, underscores, or colons
-    if !path
-        .chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == ':')
-    {
-        return Err(ParsingError::invalid_module_path(token, path));
-    }
-
-    Ok(AbsolutePath::new_unchecked(path.to_string()))
 }
 
 /// Returns true if the provided label is valid and false otherwise.

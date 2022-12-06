@@ -14,13 +14,14 @@ pub enum AssemblyError {
     ExportedProcInProgram(String),
     ImportedProcModuleNotFound(ProcedureId),
     ImportedProcNotFoundInModule(ProcedureId, String),
+    InvalidCacheLock,
     KernelProcNotFound(ProcedureId),
+    LibraryError(String),
     LocalProcNotFound(u16, String),
     ParsingError(String),
     ParamOutOfBounds(u64, u64, u64),
+    ProcedureNameError(String),
     SysCallInKernel(String),
-    InvalidCacheLock,
-    LibraryError(String),
 }
 
 impl AssemblyError {
@@ -92,6 +93,12 @@ impl From<LibraryError> for AssemblyError {
     }
 }
 
+impl From<ProcedureNameError> for AssemblyError {
+    fn from(err: ProcedureNameError) -> Self {
+        Self::ProcedureNameError(format!("invalid procedure name: {err}"))
+    }
+}
+
 impl fmt::Display for AssemblyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use AssemblyError::*;
@@ -104,12 +111,12 @@ impl fmt::Display for AssemblyError {
             ExportedProcInProgram(proc_name) => write!(f, "exported procedure '{proc_name}' in executable program"),
             ImportedProcModuleNotFound(proc_id) => write!(f, "module for imported procedure {proc_id} not found"),
             ImportedProcNotFoundInModule(proc_id, module_path) => write!(f, "imported procedure {proc_id} not found in module {module_path}"),
+            InvalidCacheLock => write!(f, "an attempt was made to lock a borrowed procedures cache"),
             KernelProcNotFound(proc_id) => write!(f, "procedure {proc_id} not found in kernel"),
             LocalProcNotFound(proc_idx, module_path) => write!(f, "procedure at index {proc_idx} not found in module {module_path}"),
-            LibraryError(err) | ParsingError(err) => write!(f, "{err}"),
             ParamOutOfBounds(value, min, max) => write!(f, "parameter value must be greater than or equal to {min} and less than or equal to {max}, but was {value}"),
             SysCallInKernel(proc_name) => write!(f, "syscall instruction used in kernel procedure '{proc_name}'"),
-            InvalidCacheLock => write!(f, "an attempt was made to lock a borrowed procedures cache"),
+            LibraryError(err) | ParsingError(err) | ProcedureNameError(err) => write!(f, "{err}"),
         }
     }
 }
@@ -307,9 +314,9 @@ impl ParsingError {
         }
     }
 
-    pub fn invalid_proc_name(token: &Token, label: &str) -> Self {
+    pub fn invalid_proc_name(token: &Token, err: ProcedureNameError) -> Self {
         ParsingError {
-            message: format!("invalid procedure name: {label}"),
+            message: format!("invalid procedure name: {err}"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -458,6 +465,53 @@ impl fmt::Display for ParsingError {
 #[cfg(feature = "std")]
 impl std::error::Error for ParsingError {}
 
+// PROCEDURE NAME ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum ProcedureNameError {
+    EmptyProcedureName,
+    InvalidFirstLetter(String),
+    InvalidProcedureName(String),
+    ProcedureNameTooLong(String, u8),
+}
+
+impl ProcedureNameError {
+    pub const fn empty_procedure_name() -> Self {
+        Self::EmptyProcedureName
+    }
+
+    pub fn invalid_procedure_name(proc_name: &str) -> Self {
+        Self::InvalidProcedureName(proc_name.to_string())
+    }
+
+    pub fn invalid_fist_letter(proc_name: &str) -> Self {
+        Self::InvalidFirstLetter(proc_name.to_string())
+    }
+
+    pub fn procedure_name_too_long(proc_name: &str, max_len: u8) -> Self {
+        Self::ProcedureNameTooLong(proc_name.to_string(), max_len)
+    }
+}
+
+impl fmt::Display for ProcedureNameError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use ProcedureNameError::*;
+        match self {
+            EmptyProcedureName => write!(f, "procedure name cannot be empty"),
+            InvalidFirstLetter(proc_name) => {
+                write!(f, "'{proc_name}' does not start with a letter")
+            }
+            InvalidProcedureName(proc_name) => {
+                write!(f, "'{proc_name}' contains invalid characters")
+            }
+            ProcedureNameTooLong(proc_name, max_len) => {
+                write!(f, "'{proc_name}' is over {max_len} characters long")
+            }
+        }
+    }
+}
+
 // SERIALIZATION ERROR
 // ================================================================================================
 
@@ -478,8 +532,6 @@ pub enum SerializationError {
 pub enum LibraryError {
     ModuleNotFound(String),
     DuplicateModulePath(String),
-    EmptyProcedureName,
-    ProcedureNameWithDelimiter(String),
     ModulePathStartsWithDelimiter(String),
     ModulePathEndsWithDelimiter(String),
     LibraryNameWithDelimiter(String),
@@ -490,16 +542,8 @@ impl LibraryError {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    pub const fn empty_procedure_name() -> Self {
-        Self::EmptyProcedureName
-    }
-
     pub fn duplicate_module_path(path: &str) -> Self {
         Self::DuplicateModulePath(path.to_string())
-    }
-
-    pub fn procedure_name_with_delimiter(name: &str) -> Self {
-        Self::ProcedureNameWithDelimiter(name.to_string())
     }
 
     pub fn module_path_starts_with_delimiter(path: &str) -> Self {
@@ -528,10 +572,6 @@ impl fmt::Display for LibraryError {
         match self {
             ModuleNotFound(path) => write!(f, "module '{path}' not found"),
             DuplicateModulePath(path) => write!(f, "duplciate module path '{path}'"),
-            EmptyProcedureName => write!(f, "the procedure name cannot be empty"),
-            ProcedureNameWithDelimiter(name) => {
-                write!(f, "'{name}' cannot contain a module delimiter")
-            }
             ModulePathStartsWithDelimiter(path) => {
                 write!(f, "'{path}' cannot start with a module delimiter")
             }
