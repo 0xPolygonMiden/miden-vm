@@ -3,7 +3,7 @@ use std::{
     cmp::PartialEq,
     ops::{Add, Mul, Sub},
 };
-use vm_core::StarkField;
+use vm_core::{utils::group_slice_elements, StarkField};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Scalar {
@@ -193,6 +193,21 @@ impl Scalar {
             ],
         };
         self.pow(exp)
+    }
+
+    /// Sample random scalar element
+    pub fn rand() -> Self {
+        let mut tmp = rand_utils::rand_array::<u32, 40>(); // sample 320 random bits
+        tmp[39] = tmp[39] & 0b00111111u8; // drop 2 most significant bits to ensure that tmp ∈ [0, N)
+
+        let limbs: [u32; 10] = group_slice_elements::<u8, 4>(&tmp)
+            .iter()
+            .map(|v| u32::from_le_bytes(v))
+            .collect::<Vec<u32>>()
+            .try_into()
+            .unwrap();
+
+        Self { limbs }
     }
 }
 
