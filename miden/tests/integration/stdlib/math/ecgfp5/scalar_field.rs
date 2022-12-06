@@ -12,11 +12,11 @@ pub struct Scalar {
 
 #[allow(dead_code)]
 impl Scalar {
-    const fn zero() -> Self {
+    pub const fn zero() -> Self {
         Self { limbs: [0u32; 10] }
     }
 
-    const fn one() -> Self {
+    pub const fn one() -> Self {
         Self {
             limbs: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         }
@@ -153,14 +153,14 @@ impl Scalar {
     /// Given a scalar in radix-2^32 form, this routine converts it to Montgomery form
     ///
     /// Inspired by https://github.com/itzmeanjan/secp256k1/blob/37b339d/field/scalar_field_utils.py#L235-L242
-    fn to_mont(&self) -> Self {
+    pub fn to_mont(&self) -> Self {
         self.mont_mul(&Self::get_r2())
     }
 
     /// Given a scalar in Montgomery form, this routine converts it to radix-2^32 form
     ///
     /// Inspired by https://github.com/itzmeanjan/secp256k1/blob/37b339d/field/scalar_field_utils.py#L245-L251
-    fn from_mont(&self) -> Self {
+    pub fn from_mont(&self) -> Self {
         self.mont_mul(&Self::one())
     }
 
