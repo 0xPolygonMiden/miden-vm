@@ -1,5 +1,8 @@
 use super::build_test;
-use std::{cmp::PartialEq, ops::{Add, Sub, Mul}};
+use std::{
+    cmp::PartialEq,
+    ops::{Add, Mul, Sub},
+};
 use vm_core::StarkField;
 
 #[derive(Copy, Clone, Debug)]
@@ -176,6 +179,7 @@ impl Scalar {
         }
         r_mont.from_mont()
     }
+
     /// Computes multiplicative inverse ( say a' ) of scalar field element a | a * a' = 1 ( mod N )
     ///
     /// Note, if a = 0, then a' = 0.
@@ -189,6 +193,26 @@ impl Scalar {
             ],
         };
         self.pow(exp)
+    }
+}
+
+impl Add for Scalar {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let r0 = self.add_inner(&rhs);
+        let (r1, c) = r0.sub_inner(&Self::get_n());
+        Self::select(c, r1, r0)
+    }
+}
+
+impl Sub for Scalar {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let (r0, c) = self.sub_inner(&rhs);
+        let r1 = r0.add_inner(&Self::get_n());
+        Self::select(c, r0, r1)
     }
 }
 
