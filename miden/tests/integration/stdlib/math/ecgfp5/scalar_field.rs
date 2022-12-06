@@ -1,9 +1,9 @@
 use super::build_test;
-use std::{cmp::PartialEq, ops::Mul};
+use std::{cmp::PartialEq, ops::{Add, Sub, Mul}};
 use vm_core::StarkField;
 
 #[derive(Copy, Clone, Debug)]
-struct Scalar {
+pub struct Scalar {
     pub limbs: [u32; 10],
 }
 
@@ -52,6 +52,24 @@ impl Scalar {
     /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b9/rust/src/scalar.rs#L34-L35
     const fn get_neg_n0_inv() -> u32 {
         91978719
+    }
+
+    /// Raw addition of a scalar element from another one, without reduction
+    ///
+    /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b9/rust/src/scalar.rs#L66-L78
+    fn add_inner(&self, rhs: &Self) -> Self {
+        let mut r = Self::zero();
+        let mut c = 0u32;
+
+        for i in 0..10 {
+            let (t0, flg0) = self.limbs[i].overflowing_add(rhs.limbs[i]);
+            let (t1, flg1) = t0.overflowing_add(c);
+
+            r.limbs[i] = t1;
+            c = (flg0 | flg1) as u64;
+        }
+
+        r
     }
 
     /// Raw subtraction of a Scalar element from another one, without reduction
