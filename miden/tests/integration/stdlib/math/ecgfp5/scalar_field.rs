@@ -69,7 +69,7 @@ impl Scalar {
             let (t1, flg1) = t0.overflowing_add(c);
 
             r.limbs[i] = t1;
-            c = (flg0 | flg1) as u64;
+            c = (flg0 | flg1) as u32;
         }
 
         r
@@ -185,7 +185,7 @@ impl Scalar {
     /// Note, if a = 0, then a' = 0.
     ///
     /// See https://github.com/itzmeanjan/secp256k1/blob/6e5e654/field/scalar_field.py#L111-L129
-    fn inv(self) -> Self {
+    pub fn inv(self) -> Self {
         let exp = Self {
             limbs: [
                 2492202975, 3893352854, 3609501852, 3901250617, 3484943929, 2147483622, 22,
@@ -197,12 +197,12 @@ impl Scalar {
 
     /// Sample random scalar element
     pub fn rand() -> Self {
-        let mut tmp = rand_utils::rand_array::<u32, 40>(); // sample 320 random bits
+        let mut tmp = rand_utils::rand_array::<u8, 40>(); // sample 320 random bits
         tmp[39] = tmp[39] & 0b00111111u8; // drop 2 most significant bits to ensure that tmp ∈ [0, N)
 
         let limbs: [u32; 10] = group_slice_elements::<u8, 4>(&tmp)
             .iter()
-            .map(|v| u32::from_le_bytes(v))
+            .map(|v| u32::from_le_bytes(*v))
             .collect::<Vec<u32>>()
             .try_into()
             .unwrap();
@@ -257,7 +257,7 @@ impl PartialEq for Scalar {
 }
 
 #[test]
-fn test_ec_ext5_scalar_arithmetic() {
+fn test_ecgfp5_scalar_arithmetic() {
     let a = Scalar {
         limbs: [
             rand_utils::rand_value::<u32>() >> 1,
@@ -279,7 +279,7 @@ fn test_ec_ext5_scalar_arithmetic() {
 }
 
 #[test]
-fn test_ec_ext5_scalar_mont_mul() {
+fn test_ecgfp5_scalar_mont_mul() {
     let source = "
     use.std::math::ecgfp5::scalar_field
 
@@ -333,7 +333,7 @@ fn test_ec_ext5_scalar_mont_mul() {
 }
 
 #[test]
-fn test_ec_ext5_scalar_to_and_from_mont_repr() {
+fn test_ecgfp5_scalar_to_and_from_mont_repr() {
     let source = "
     use.std::math::ecgfp5::scalar_field
 
@@ -376,7 +376,7 @@ fn test_ec_ext5_scalar_to_and_from_mont_repr() {
 }
 
 #[test]
-fn test_ec_ext5_scalar_inv() {
+fn test_ecgfp5_scalar_inv() {
     let source = "
     use.std::math::ecgfp5::scalar_field
 

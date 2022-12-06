@@ -1,5 +1,5 @@
 use super::{build_test, Felt};
 
-mod base_field;
-mod group;
-mod scalar_field;
+pub mod base_field;
+pub mod group;
+pub mod scalar_field;
