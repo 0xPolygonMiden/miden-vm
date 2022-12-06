@@ -1,4 +1,4 @@
-use.std::math::ext5
+use.std::math::ecgfp5::base_field
 
 #! Given an encoded elliptic curve point `w` s.t. it's expressed using
 #! an element ∈ GF(p^5) | p = 2^64 - 2^32 + 1, this routine verifies whether
@@ -25,15 +25,15 @@ export.validate
         dup.4
     end
 
-    exec.ext5::square
+    exec.base_field::square
     sub.2 # = e
 
-    exec.ext5::square
+    exec.base_field::square
     swap
     sub.1052
     swap # = delta
     
-    exec.ext5::legendre
+    exec.base_field::legendre
     eq.1
     movdn.5
 
@@ -73,19 +73,19 @@ export.decode
         dup.4
     end
 
-    exec.ext5::square
+    exec.base_field::square
     sub.2 # = e
 
     repeat.5
         dup.4
     end
 
-    exec.ext5::square
+    exec.base_field::square
     swap
     sub.1052
     swap # = delta
 
-    exec.ext5::sqrt # = (r, c)
+    exec.base_field::sqrt # = (r, c)
 
     repeat.5
         dup.10
@@ -95,9 +95,9 @@ export.decode
         dup.9
     end
 
-    exec.ext5::add
+    exec.base_field::add
     push.0.0.0.0.9223372034707292161
-    exec.ext5::mul # = x1
+    exec.base_field::mul # = x1
 
     repeat.5
         movup.9
@@ -107,9 +107,9 @@ export.decode
         movup.15
     end
 
-    exec.ext5::sub
+    exec.base_field::sub
     push.0.0.0.0.9223372034707292161
-    exec.ext5::mul # = x2
+    exec.base_field::mul # = x2
 
     repeat.5
         movup.9
@@ -119,7 +119,7 @@ export.decode
         dup.4
     end
 
-    exec.ext5::legendre
+    exec.base_field::legendre
     eq.1
 
     if.true
@@ -141,7 +141,7 @@ export.decode
         dup.9
     end
 
-    exec.ext5::mul
+    exec.base_field::mul
     repeat.5
         movup.4
         neg
@@ -192,13 +192,13 @@ end
 export.encode
     push.0.0.0.0.6148914689804861441 # = a/ 3
 
-    exec.ext5::sub # = (a/ 3) - x
+    exec.base_field::sub # = (a/ 3) - x
 
     repeat.5
         movup.9
     end
 
-    exec.ext5::div # = w = y/ ((a/ 3) - x)
+    exec.base_field::div # = w = y/ ((a/ 3) - x)
 
     movup.5
     if.true
@@ -258,7 +258,7 @@ export.add.10
     push.0.0.0.0
     loc_loadw.0 # bring x1
 
-    exec.ext5::eq
+    exec.base_field::eq
     dup
 
     if.true
@@ -266,7 +266,7 @@ export.add.10
         push.0.0.0.0
         loc_loadw.0 # bring x1
 
-        exec.ext5::square
+        exec.base_field::square
 
         repeat.5
             movup.4
@@ -286,7 +286,7 @@ export.add.10
         push.0.0.0.0
         loc_loadw.7 # bring y2
 
-        exec.ext5::sub
+        exec.base_field::sub
     end # = λ0
 
     dup.5
@@ -309,20 +309,20 @@ export.add.10
         push.0.0.0.0
         loc_loadw.5 # bring x2
 
-        exec.ext5::sub
+        exec.base_field::sub
     end # = λ1
 
     repeat.5
         movup.9
     end
 
-    exec.ext5::div # = λ
+    exec.base_field::div # = λ
 
     repeat.5
         dup.4
     end
 
-    exec.ext5::square # = λ^2
+    exec.base_field::square # = λ^2
 
     loc_load.6
     push.0.0.0.0
@@ -332,13 +332,13 @@ export.add.10
     push.0.0.0.0
     loc_loadw.0 # bring x1
 
-    exec.ext5::add
+    exec.base_field::add
 
     repeat.5
         movup.9
     end
 
-    exec.ext5::sub # compute x3
+    exec.base_field::sub # compute x3
 
     repeat.5
         dup.4
@@ -348,13 +348,13 @@ export.add.10
     push.0.0.0.0
     loc_loadw.0 # bring x1
 
-    exec.ext5::sub
+    exec.base_field::sub
 
     repeat.5
         movup.14
     end
 
-    exec.ext5::mul
+    exec.base_field::mul
 
     loc_load.3
     push.0.0.0.0
@@ -364,7 +364,7 @@ export.add.10
         movup.9
     end
 
-    exec.ext5::sub # compute y3
+    exec.base_field::sub # compute y3
 
     movup.10
 
@@ -376,7 +376,7 @@ export.add.10
     push.0.0.0.0
     loc_loadw.7 # bring y2
 
-    exec.ext5::neq
+    exec.base_field::neq
 
     and # compute inf3
 
@@ -516,7 +516,7 @@ export.double.5
     push.0.0.0.0
     loc_loadw.0 # bring x
 
-    exec.ext5::square
+    exec.base_field::square
 
     repeat.5
         movup.4
@@ -528,7 +528,7 @@ export.double.5
     add.263
     swap # compute λ0
 
-    exec.ext5::div # compute λ
+    exec.base_field::div # compute λ
 
     loc_load.1
     push.0.0.0.0
@@ -543,8 +543,8 @@ export.double.5
         dup.9
     end
 
-    exec.ext5::square
-    exec.ext5::sub # compute x'
+    exec.base_field::square
+    exec.base_field::sub # compute x'
 
     repeat.5
         dup.4
@@ -554,13 +554,13 @@ export.double.5
     push.0.0.0.0
     loc_loadw.0 # bring x
 
-    exec.ext5::sub
+    exec.base_field::sub
 
     repeat.5
         movup.14
     end
 
-    exec.ext5::mul
+    exec.base_field::mul
 
     loc_load.3
     push.0.0.0.0
@@ -570,7 +570,7 @@ export.double.5
         movup.9
     end
 
-    exec.ext5::sub # compute y'
+    exec.base_field::sub # compute y'
 
     repeat.5
         movup.9
