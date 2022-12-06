@@ -4,7 +4,7 @@
 #[macro_use]
 extern crate alloc;
 
-use core::{cmp::Ordering, ops::Deref};
+use core::ops::Deref;
 use vm_core::{
     code_blocks::CodeBlock,
     utils::{
@@ -14,18 +14,27 @@ use vm_core::{
     CodeBlockTable, Felt, Kernel, Operation, Program, StarkField, ONE, ZERO,
 };
 
+mod library;
+pub use library::{Library, MaslLibrary, Module, Version};
+
 mod procedures;
 use procedures::{CallSet, Procedure};
 pub use procedures::{ProcedureId, ProcedureName};
 
 mod parsers;
 pub use parsers::{parse_module, parse_program, ModuleAst, ProcedureAst, ProgramAst};
+pub(crate) use parsers::{Instruction, Node};
+
+mod serde;
+pub use serde::{ByteReader, ByteWriter, Deserializable, Serializable};
 
 mod tokens;
 use tokens::{Token, TokenStream};
 
 mod errors;
-pub use errors::{AssemblyError, LibraryError, ParsingError, ProcedureNameError};
+pub use errors::{
+    AssemblyError, LibraryError, ParsingError, ProcedureNameError, SerializationError,
+};
 
 mod assembler;
 pub use assembler::Assembler;
@@ -119,6 +128,19 @@ impl AbsolutePath {
             .expect("a valid absolute path should always have a namespace separator")
             .0
     }
+
+    // TYPE-SAFE TRANSFORMATION
+    // --------------------------------------------------------------------------------------------
+
+    /// Append the name into the absolute path.
+    pub fn concatenate<N>(&self, name: N) -> Self
+    where
+        N: AsRef<str>,
+    {
+        Self {
+            path: format!("{}{MODULE_PATH_DELIM}{}", self.path, name.as_ref()),
+        }
+    }
 }
 
 impl From<&AbsolutePath> for ProcedureId {
@@ -141,6 +163,26 @@ impl AsRef<str> for AbsolutePath {
     }
 }
 
+impl Serializable for AbsolutePath {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        target.write_str(&self.path)
+    }
+}
+
+impl Deserializable for AbsolutePath {
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        // TODO add name validation
+        // https://github.com/maticnetwork/miden/issues/583
+        let path = bytes.read_str()?;
+        if !path.contains(MODULE_PATH_DELIM) {
+            return Err(SerializationError::InvalidPathNoDelimiter);
+        }
+        Ok(Self {
+            path: path.to_string(),
+        })
+    }
+}
+
 /// Library namespace.
 ///
 /// Will be `std` in the absolute procedure name `std::foo::bar::baz`.
@@ -154,13 +196,26 @@ pub struct LibraryNamespace {
     name: String,
 }
 
+impl LibraryNamespace {
+    // VALIDATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Perform the type validations.
+    fn validate(name: &str) -> Result<(), LibraryError> {
+        // TODO add name validation
+        // https://github.com/maticnetwork/miden/issues/583
+        if name.contains(MODULE_PATH_DELIM) {
+            return Err(LibraryError::library_name_with_delimiter(name));
+        }
+        Ok(())
+    }
+}
+
 impl TryFrom<String> for LibraryNamespace {
     type Error = LibraryError;
 
     fn try_from(name: String) -> Result<Self, Self::Error> {
-        if name.contains(MODULE_PATH_DELIM) {
-            return Err(LibraryError::library_name_with_delimiter(&name));
-        }
+        Self::validate(&name)?;
         Ok(Self { name })
     }
 }
@@ -179,6 +234,22 @@ impl AsRef<str> for LibraryNamespace {
     }
 }
 
+impl Serializable for LibraryNamespace {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        target.write_str(&self.name)
+    }
+}
+
+impl Deserializable for LibraryNamespace {
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        let name = bytes.read_str()?;
+        Self::validate(name).map_err(|_| SerializationError::InvalidNamespace)?;
+        Ok(Self {
+            name: name.to_string(),
+        })
+    }
+}
+
 /// Module path relative to a namespace.
 ///
 /// Will be `foo::bar` in the absolute procedure name `std::foo::bar::baz`.
@@ -193,6 +264,29 @@ pub struct ModulePath {
 }
 
 impl ModulePath {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Create a new empty module path.
+    pub fn empty() -> Self {
+        Self {
+            path: String::new(),
+        }
+    }
+
+    // VALIDATORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Perform the type validations.
+    fn validate(path: &str) -> Result<(), LibraryError> {
+        if path.starts_with(MODULE_PATH_DELIM) {
+            return Err(LibraryError::module_path_starts_with_delimiter(path));
+        } else if path.ends_with(MODULE_PATH_DELIM) {
+            return Err(LibraryError::module_path_ends_with_delimiter(path));
+        }
+        Ok(())
+    }
+
     // TYPE-SAFE TRANSFORMATION
     // --------------------------------------------------------------------------------------------
 
@@ -205,17 +299,42 @@ impl ModulePath {
         };
         AbsolutePath::new_unchecked(format!("{}{delimiter}{}", library.as_str(), &self.path))
     }
+
+    /// Strip the namespace from an absolute path and return the relative module path.
+    pub fn strip_namespace(path: &AbsolutePath) -> Self {
+        Self {
+            path: path
+                .as_str()
+                .split_once(MODULE_PATH_DELIM)
+                .expect("type-safety violation of absolute path")
+                .1
+                .to_string(),
+        }
+    }
+
+    /// Appends the given name into the module path. Will not prefix with the delimiter if the
+    /// current module path is empty.
+    pub fn concatenate<N>(&self, name: N) -> Self
+    where
+        N: AsRef<str>,
+    {
+        if self.path.is_empty() {
+            Self {
+                path: name.as_ref().to_string(),
+            }
+        } else {
+            Self {
+                path: format!("{}{MODULE_PATH_DELIM}{}", self.path, name.as_ref()),
+            }
+        }
+    }
 }
 
 impl TryFrom<String> for ModulePath {
     type Error = LibraryError;
 
     fn try_from(path: String) -> Result<Self, Self::Error> {
-        if path.starts_with(MODULE_PATH_DELIM) {
-            return Err(LibraryError::module_path_starts_with_delimiter(&path));
-        } else if path.ends_with(MODULE_PATH_DELIM) {
-            return Err(LibraryError::module_path_ends_with_delimiter(&path));
-        }
+        Self::validate(&path)?;
         Ok(Self { path })
     }
 }
@@ -234,76 +353,18 @@ impl AsRef<str> for ModulePath {
     }
 }
 
-// LIBRARY
-// ================================================================================================
-
-/// A library definition that provides AST modules for the compilation process.
-///
-/// Its `IntoIterator` implementation will be used to provide the modules to the assembler.
-pub trait Library {
-    type ModuleIterator<'a>: Iterator<Item = &'a Module>
-    where
-        Self: 'a;
-
-    /// Returns the root namespace of this library.
-    fn root_ns(&self) -> &LibraryNamespace;
-
-    /// Returns the version number of this library.
-    // TODO should have a SEMVER well-formed struct instead of raw string.
-    fn version(&self) -> &str;
-
-    /// Iterate the modules available in the library.
-    fn modules(&self) -> Self::ModuleIterator<'_>;
-}
-
-// MODULE
-// ================================================================================================
-
-/// A module containing its absolute path and parsed AST.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Module {
-    /// Absolute path of the module.
-    pub path: AbsolutePath,
-    /// Parsed AST of the module.
-    pub ast: ModuleAst,
-}
-
-impl Module {
-    // CONSTRUCTORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Create a new module from a path and ast.
-    pub const fn new(path: AbsolutePath, ast: ModuleAst) -> Self {
-        Self { path, ast }
-    }
-
-    /// Create a new kernel module from a AST using the constant [`AbsolutePath::kernel_path`].
-    pub fn kernel(ast: ModuleAst) -> Self {
-        Self {
-            path: AbsolutePath::kernel_path(),
-            ast,
-        }
-    }
-
-    // VALIDATIONS
-    // --------------------------------------------------------------------------------------------
-
-    /// Validate if the module belongs to the provided namespace.
-    pub fn check_namespace(&self, namespace: &LibraryNamespace) -> Result<(), LibraryError> {
-        (self.path.namespace() == namespace.as_str())
-            .then_some(())
-            .ok_or_else(|| LibraryError::namespace_violation(self.path.namespace(), namespace))
+impl Serializable for ModulePath {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        target.write_str(&self.path)
     }
 }
 
-impl PartialOrd for Module {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.path.partial_cmp(&other.path)
-    }
-}
-
-impl Ord for Module {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.path.cmp(&other.path)
+impl Deserializable for ModulePath {
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        let path = bytes.read_str()?;
+        Self::validate(path).map_err(|_| SerializationError::InvalidModulePath)?;
+        Ok(Self {
+            path: path.to_string(),
+        })
     }
 }

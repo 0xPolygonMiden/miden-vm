@@ -14,7 +14,7 @@ fn program_execution(c: &mut Criterion) {
             begin
                 exec.sha256::hash
             end";
-        let assembler = Assembler::new()
+        let assembler = Assembler::default()
             .with_library(&StdLibrary::default())
             .expect("failed to load stdlib");
         let program = assembler

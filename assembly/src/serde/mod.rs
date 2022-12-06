@@ -1,3 +1,7 @@
+use super::{
+    Felt, Instruction, Node, ProcedureId, ProcedureName, SerializationError, StarkField, String,
+    Vec, MAX_PROC_NAME_LEN, MAX_PUSH_INPUTS,
+};
 use num_enum::TryFromPrimitive;
 
 mod serialization;
