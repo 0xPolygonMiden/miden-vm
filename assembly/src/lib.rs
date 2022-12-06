@@ -25,7 +25,7 @@ mod tokens;
 use tokens::{Token, TokenStream};
 
 mod errors;
-pub use errors::{AssemblyError, LibraryError, ParsingError};
+pub use errors::{AssemblyError, LibraryError, ParsingError, ProcedureNameError};
 
 mod assembler;
 pub use assembler::Assembler;
@@ -292,7 +292,7 @@ impl Module {
     pub fn check_namespace(&self, namespace: &LibraryNamespace) -> Result<(), LibraryError> {
         (self.path.namespace() == namespace.as_str())
             .then_some(())
-            .ok_or(LibraryError::EmptyProcedureName)
+            .ok_or_else(|| LibraryError::namespace_violation(self.path.namespace(), namespace))
     }
 }
 

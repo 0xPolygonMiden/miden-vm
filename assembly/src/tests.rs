@@ -434,7 +434,10 @@ fn invalid_proc() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(error.to_string(), "invalid procedure name: 123");
+        assert_eq!(
+            error.to_string(),
+            "invalid procedure name: '123' does not start with a letter"
+        );
     }
 
     let source = "proc.foo add mul end proc.foo push.3 end begin push.1 end";
