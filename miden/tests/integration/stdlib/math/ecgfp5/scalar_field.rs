@@ -258,20 +258,7 @@ impl PartialEq for Scalar {
 
 #[test]
 fn test_ecgfp5_scalar_arithmetic() {
-    let a = Scalar {
-        limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-        ],
-    };
+    let a = Scalar::rand();
     let b = a.inv();
     let c = a * b;
 
@@ -287,34 +274,8 @@ fn test_ecgfp5_scalar_mont_mul() {
         exec.scalar_field::mont_mul
     end";
 
-    let a = Scalar {
-        limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-        ],
-    };
-    let b = Scalar {
-        limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-        ],
-    };
+    let a = Scalar::rand();
+    let b = Scalar::rand();
     let c = a.mont_mul(&b);
 
     let mut stack = [0u64; 20];
@@ -342,20 +303,7 @@ fn test_ecgfp5_scalar_to_and_from_mont_repr() {
         exec.scalar_field::from_mont
     end";
 
-    let a = Scalar {
-        limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-        ],
-    };
+    let a = Scalar::rand();
     let b = a.to_mont();
     let c = b.from_mont();
 
@@ -384,20 +332,7 @@ fn test_ecgfp5_scalar_inv() {
         exec.scalar_field::inv
     end";
 
-    let a = Scalar {
-        limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-        ],
-    };
+    let a = Scalar::rand();
     let b = a.inv();
 
     let mut stack = [0u64; 10];
