@@ -26,7 +26,7 @@ impl Scalar {
     /// in radix-2^32 form
     ///
     /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b9/rust/src/scalar.rs#L23-L32
-    const fn get_n() -> Self {
+    pub const fn get_n() -> Self {
         Self {
             limbs: [
                 2492202977, 3893352854, 3609501852, 3901250617, 3484943929, 2147483622, 22,

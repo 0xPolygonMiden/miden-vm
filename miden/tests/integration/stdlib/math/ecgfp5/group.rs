@@ -60,6 +60,30 @@ impl ECExt5 {
         }
     }
 
+    /// Conventional generator point of this group
+    ///
+    /// Taken from https://github.com/pornin/ecgfp5/blob/ce059c6/rust/src/curve.rs#L67-L83
+    /// Note, (x, u) = (x, x/ y)
+    pub fn generator() -> Self {
+        Self {
+            x: Ext5::new(
+                0xB2CA178ECF4453A1,
+                0x3C757788836D3EA4,
+                0x48D7F28A26DAFD0B,
+                0x1E0F15C7FD44C28E,
+                0x21FA7FFCC8252211,
+            ),
+            y: Ext5::new(
+                0xB2CA178ECF4453A1,
+                0x3C757788836D3EA4,
+                0x48D7F28A26DAFD0B,
+                0x1E0F15C7FD44C28E,
+                0x21FA7FFCC8252211,
+            ) * Ext5::from_int(4),
+            point_at_infinity: Felt::ZERO,
+        }
+    }
+
     // Validates an encoded elliptic curve point, verifying whether it can be decoded successfully or not, denoted by boolean return value
     //
     // Taken from https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1043-L1052
@@ -596,26 +620,7 @@ fn test_ecgfp5_gen_multiplication() {
         exec.group::gen_mul
     end";
 
-    // Conventional generator point of this group
-    // Taken from https://github.com/pornin/ecgfp5/blob/ce059c6/rust/src/curve.rs#L67-L83
-    // Note, (x, u) = (x, x/ y)
-    let gen = ECExt5 {
-        x: Ext5::new(
-            0xB2CA178ECF4453A1,
-            0x3C757788836D3EA4,
-            0x48D7F28A26DAFD0B,
-            0x1E0F15C7FD44C28E,
-            0x21FA7FFCC8252211,
-        ),
-        y: Ext5::new(
-            0xB2CA178ECF4453A1,
-            0x3C757788836D3EA4,
-            0x48D7F28A26DAFD0B,
-            0x1E0F15C7FD44C28E,
-            0x21FA7FFCC8252211,
-        ) * Ext5::from_int(4),
-        point_at_infinity: Felt::ZERO,
-    };
+    let gen = ECExt5::generator();
     // = 1067993516717146951041484916571792702745057740581727230159139685185762082554198619328292418486241
     // = N ( See https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L922 )
     //
