@@ -2,7 +2,7 @@ use super::{
     super::nodes::{Instruction, Node},
     OpCode, IF_ELSE_OPCODE, REPEAT_OPCODE, WHILE_OPCODE,
 };
-use crate::{errors::SerializationError, ProcedureId, MAX_PUSH_INPUTS};
+use crate::{errors::SerializationError, ProcedureId, ProcedureName, MAX_PUSH_INPUTS};
 use vm_core::{utils::collections::Vec, utils::string::String, Felt};
 
 // BYTE READER IMPLEMENTATION
@@ -66,12 +66,16 @@ impl<'a> ByteReader<'a> {
         ))
     }
 
-    pub fn read_proc_name(&mut self) -> Result<String, SerializationError> {
+    pub fn read_proc_name(&mut self) -> Result<ProcedureName, SerializationError> {
         let length = self.read_u8()?;
         self.check_eor(length as usize)?;
         let string_bytes = &self.bytes[self.pos..self.pos + length as usize];
         self.pos += length as usize;
-        Ok(String::from_utf8(string_bytes.to_vec()).expect("String conversion failure"))
+        // TODO should not panic on input
+        // https://github.com/maticnetwork/miden/issues/578
+        let name = String::from_utf8(string_bytes.to_vec()).expect("String conversion failure");
+        let name = ProcedureName::try_from(name).expect("library name validation failure");
+        Ok(name)
     }
 
     pub fn read_docs(&mut self) -> Result<Option<String>, SerializationError> {

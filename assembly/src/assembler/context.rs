@@ -1,13 +1,8 @@
 use super::{
-    AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, Procedure, ProcedureCache,
-    ProcedureId, String, ToString, Vec,
+    AbsolutePath, AssemblyError, CallSet, CodeBlock, CodeBlockTable, Kernel, Procedure,
+    ProcedureCache, ProcedureId, String, ToString, Vec,
 };
-use crate::MODULE_PATH_DELIM;
-
-// CONSTANTS
-// ================================================================================================
-
-const MAIN_PROC_NAME: &str = "#main";
+use crate::{ProcedureName, MODULE_PATH_DELIM};
 
 // ASSEMBLY CONTEXT
 // ================================================================================================
@@ -76,7 +71,7 @@ impl AssemblyContext {
             // a kernel context must be initialized with a kernel module path
             debug_assert_eq!(
                 module_path,
-                ProcedureId::KERNEL_PATH,
+                AbsolutePath::KERNEL_PATH,
                 "kernel context not initialized with kernel module"
             );
         }
@@ -133,7 +128,7 @@ impl AssemblyContext {
     /// module.
     pub fn begin_proc(
         &mut self,
-        name: &str,
+        name: &ProcedureName,
         is_export: bool,
         num_locals: u16,
     ) -> Result<(), AssemblyError> {
@@ -299,7 +294,8 @@ impl ModuleContext {
     /// Procedure in the returned module context is initialized with procedure context for the
     /// "main" procedure.
     pub fn for_program() -> Self {
-        let main_proc_context = ProcedureContext::new(MAIN_PROC_NAME, false, 0);
+        let name = ProcedureName::main();
+        let main_proc_context = ProcedureContext::new(name, false, 0);
         Self {
             proc_stack: vec![main_proc_context],
             compiled_procs: Vec::new(),
@@ -346,18 +342,19 @@ impl ModuleContext {
     /// process of being compiled.
     pub fn begin_proc(
         &mut self,
-        name: &str,
+        name: &ProcedureName,
         is_export: bool,
         num_locals: u16,
     ) -> Result<(), AssemblyError> {
         // make sure a procedure with this name as not been compiled yet and is also not currently
         // on the stack of procedures being compiled
         if self.compiled_procs.iter().any(|p| p.label() == name)
-            || self.proc_stack.iter().any(|p| p.name == name)
+            || self.proc_stack.iter().any(|p| &p.name == name)
         {
             return Err(AssemblyError::duplicate_proc_name(name, &self.path));
         }
 
+        let name = ProcedureName::try_from(name.to_string())?;
         self.proc_stack
             .push(ProcedureContext::new(name, is_export, num_locals));
         Ok(())
@@ -470,16 +467,16 @@ impl ModuleContext {
 /// Contains information about compilation of a single procedure.
 #[derive(Debug)]
 struct ProcedureContext {
-    name: String,
+    name: ProcedureName,
     is_export: bool,
     num_locals: u16,
     callset: CallSet,
 }
 
 impl ProcedureContext {
-    pub fn new(name: &str, is_export: bool, num_locals: u16) -> Self {
+    pub fn new(name: ProcedureName, is_export: bool, num_locals: u16) -> Self {
         Self {
-            name: name.to_string(),
+            name,
             is_export,
             num_locals,
             callset: CallSet::default(),
@@ -487,7 +484,7 @@ impl ProcedureContext {
     }
 
     pub fn is_main(&self) -> bool {
-        self.name == MAIN_PROC_NAME
+        self.name.is_main()
     }
 
     pub fn into_procedure(self, id: ProcedureId, code_root: CodeBlock) -> Procedure {

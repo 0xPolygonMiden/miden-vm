@@ -106,7 +106,7 @@ fn test_ast_parsing_program_proc() {
         (
             0,
             ProcedureAst {
-                name: String::from("foo"),
+                name: String::from("foo").try_into().unwrap(),
                 docs: None,
                 is_export: false,
                 num_locals: 1,
@@ -120,7 +120,7 @@ fn test_ast_parsing_program_proc() {
         (
             1,
             ProcedureAst {
-                name: String::from("bar"),
+                name: String::from("bar").try_into().unwrap(),
                 docs: None,
                 is_export: false,
                 num_locals: 2,
@@ -148,7 +148,7 @@ fn test_ast_parsing_module() {
         (
             0,
             ProcedureAst {
-                name: String::from("foo"),
+                name: String::from("foo").try_into().unwrap(),
                 docs: None,
                 is_export: true,
                 num_locals: 1,
@@ -255,7 +255,7 @@ fn test_ast_parsing_module_nested_if() {
         (
             0,
             ProcedureAst {
-                name: String::from("foo"),
+                name: String::from("foo").try_into().unwrap(),
                 docs: None,
                 is_export: false,
                 num_locals: 0,
@@ -324,7 +324,7 @@ fn test_ast_parsing_module_sequential_if() {
         (
             0,
             ProcedureAst {
-                name: String::from("foo"),
+                name: String::from("foo").try_into().unwrap(),
                 docs: None,
                 is_export: false,
                 num_locals: 0,
@@ -357,7 +357,7 @@ fn test_ast_parsing_simple_docs() {
     let proc_body_foo: Vec<Node> = vec![Node::Instruction(Instruction::LocLoad(0))];
     let docs_foo = "proc doc".to_string();
     let procedure = ProcedureAst {
-        name: String::from("foo"),
+        name: String::from("foo").try_into().unwrap(),
         docs: Some(docs_foo),
         is_export: true,
         num_locals: 1,
@@ -413,7 +413,7 @@ of the comments is correctly parsed. There was a bug here earlier."
         (
             0,
             ProcedureAst {
-                name: String::from("foo"),
+                name: String::from("foo").try_into().unwrap(),
                 docs: Some(docs_foo),
                 is_export: true,
                 num_locals: 1,
@@ -428,7 +428,7 @@ of the comments is correctly parsed. There was a bug here earlier."
         (
             1,
             ProcedureAst {
-                name: String::from("bar"),
+                name: String::from("bar").try_into().unwrap(),
                 docs: None,
                 is_export: false,
                 num_locals: 2,
@@ -451,7 +451,7 @@ aliqua."
         (
             2,
             ProcedureAst {
-                name: String::from("baz"),
+                name: String::from("baz").try_into().unwrap(),
                 docs: Some(docs_baz),
                 is_export: true,
                 num_locals: 3,
