@@ -1,4 +1,4 @@
-use crate::{parse_module, Assembler, Library, LibraryNamespace, Module, ModulePath};
+use crate::{parse_module, Assembler, Library, LibraryNamespace, Module, ModulePath, Version};
 use core::slice::Iter;
 
 // SIMPLE PROGRAMS
@@ -180,7 +180,6 @@ fn program_with_exported_procedure() {
 #[test]
 fn program_with_one_import() {
     const NAMESPACE: &str = "dummy";
-    const VERSION: &str = "0.1.0";
     const MODULE: &str = "math::u256";
     const PROCEDURE: &str = r#"
         export.iszero_unsafe
@@ -218,8 +217,8 @@ fn program_with_one_import() {
             &self.namespace
         }
 
-        fn version(&self) -> &str {
-            VERSION
+        fn version(&self) -> &Version {
+            &Version::MIN
         }
 
         fn modules(&self) -> Self::ModuleIterator<'_> {
@@ -227,7 +226,7 @@ fn program_with_one_import() {
         }
     }
 
-    let assembler = super::Assembler::new()
+    let assembler = super::Assembler::default()
         .with_library(&DummyLibrary::default())
         .unwrap();
     let source = format!(

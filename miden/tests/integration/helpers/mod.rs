@@ -138,7 +138,7 @@ impl Test {
 
     /// Compiles a test's source and returns the resulting Program.
     pub fn compile(&self) -> Program {
-        let assembler = assembly::Assembler::new()
+        let assembler = assembly::Assembler::default()
             .with_debug_mode(self.in_debug_mode)
             .with_library(&StdLibrary::default())
             .expect("failed to load stdlib");
