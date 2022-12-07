@@ -1,10 +1,10 @@
 use super::{
-    check_div_by_zero, parse_element_param,
+    check_div_by_zero, parse_checked_param,
     Instruction::*,
     Node::{self, Instruction},
-    ParsingError, StarkField, Token,
+    ParsingError, Token,
 };
-use vm_core::ONE;
+use vm_core::{Felt, StarkField, ONE};
 
 // INSTRUCTION PARSERS
 // ================================================================================================
@@ -20,7 +20,7 @@ pub fn parse_add(op: &Token) -> Result<Node, ParsingError> {
         0 => unreachable!(),
         1 => Ok(Instruction(Add)),
         2 => {
-            let imm = parse_element_param(op, 1)?;
+            let imm = parse_imm_value(op)?;
             if imm == ONE {
                 Ok(Instruction(Incr))
             } else {
@@ -42,7 +42,7 @@ pub fn parse_sub(op: &Token) -> Result<Node, ParsingError> {
         0 => unreachable!(),
         1 => Ok(Instruction(Sub)),
         2 => {
-            let imm = parse_element_param(op, 1)?;
+            let imm = parse_imm_value(op)?;
             Ok(Instruction(SubImm(imm)))
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -60,7 +60,7 @@ pub fn parse_mul(op: &Token) -> Result<Node, ParsingError> {
         0 => unreachable!(),
         1 => Ok(Instruction(Mul)),
         2 => {
-            let imm = parse_element_param(op, 1)?;
+            let imm = parse_imm_value(op)?;
             Ok(Instruction(MulImm(imm)))
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -78,7 +78,7 @@ pub fn parse_div(op: &Token) -> Result<Node, ParsingError> {
         0 => unreachable!(),
         1 => Ok(Instruction(Div)),
         2 => {
-            let imm = parse_element_param(op, 1)?;
+            let imm = parse_imm_value(op)?;
             check_div_by_zero(imm.as_int(), op, 1)?;
             Ok(Instruction(DivImm(imm)))
         }
@@ -108,14 +108,14 @@ pub fn parse_exp(op: &Token) -> Result<Node, ParsingError> {
                     return Err(ParsingError::invalid_param_with_reason(
                         op,
                         1,
-                        format!("parameter can at max be a u64 but found u{}", bits_len).as_str(),
+                        format!("parameter can at max be a u64 but found u{bits_len}").as_str(),
                     ));
                 }
 
                 Ok(Instruction(ExpBitLength(bits_len)))
             } else {
                 // parse immediate value.
-                let imm = parse_element_param(op, 1)?;
+                let imm = parse_imm_value(op)?;
                 Ok(Instruction(ExpImm(imm)))
             }
         }
@@ -134,7 +134,7 @@ pub fn parse_eq(op: &Token) -> Result<Node, ParsingError> {
         0 => unreachable!(),
         1 => Ok(Instruction(Eq)),
         2 => {
-            let imm = parse_element_param(op, 1)?;
+            let imm = parse_imm_value(op)?;
             Ok(Instruction(EqImm(imm)))
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -152,7 +152,7 @@ pub fn parse_neq(op: &Token) -> Result<Node, ParsingError> {
         0 => unreachable!(),
         1 => Ok(Instruction(Neq)),
         2 => {
-            let imm = parse_element_param(op, 1)?;
+            let imm = parse_imm_value(op)?;
             Ok(Instruction(NeqImm(imm)))
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -175,4 +175,13 @@ fn parse_bit_len_param(op: &Token, param_idx: usize) -> Result<u8, ParsingError>
     } else {
         Err(ParsingError::invalid_param(op, param_idx))
     }
+}
+
+fn parse_imm_value(op: &Token) -> Result<Felt, ParsingError> {
+    Ok(Felt::new(parse_checked_param::<u64>(
+        op,
+        1,
+        0,
+        Felt::MODULUS - 1,
+    )?))
 }

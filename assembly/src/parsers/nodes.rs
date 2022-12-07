@@ -1,4 +1,4 @@
-use super::{Felt, ProcedureId, String, ToString, Vec};
+use super::{Felt, ProcedureId, Vec};
 use core::fmt;
 
 // NODES
@@ -9,7 +9,7 @@ use core::fmt;
 pub enum Node {
     Instruction(Instruction),
     IfElse(Vec<Node>, Vec<Node>),
-    Repeat(usize, Vec<Node>),
+    Repeat(u16, Vec<Node>),
     While(Vec<Node>),
 }
 
@@ -210,7 +210,15 @@ pub enum Instruction {
     CDropW,
 
     // ----- input / output operations --------------------------------------------------------
-    PushConstants(Vec<Felt>),
+    PushU8(u8),
+    PushU16(u16),
+    PushU32(u32),
+    PushFelt(Felt),
+    PushWord([Felt; 4]),
+    PushU8List(Vec<u8>),
+    PushU16List(Vec<u16>),
+    PushU32List(Vec<u32>),
+    PushFeltList(Vec<Felt>),
     Locaddr(u16),
     Sdepth,
     Caller,
@@ -449,14 +457,16 @@ impl fmt::Display for Instruction {
             Self::CDropW => write!(f, "cdropw"),
 
             // ----- input / output operations --------------------------------------------------------
-            Self::PushConstants(values) => {
-                let mut values_string = String::from("push");
-                for elem in values {
-                    values_string.push('.');
-                    values_string.push_str(&elem.to_string());
-                }
-                write!(f, "{values_string}")
-            }
+            Self::PushU8(value) => write!(f, "push.{value}"),
+            Self::PushU16(value) => write!(f, "push.{value}"),
+            Self::PushU32(value) => write!(f, "push.{value}"),
+            Self::PushFelt(value) => write!(f, "push.{value}"),
+            Self::PushWord(values) => display_push_vec(f, values),
+            Self::PushU8List(values) => display_push_vec(f, values),
+            Self::PushU16List(values) => display_push_vec(f, values),
+            Self::PushU32List(values) => display_push_vec(f, values),
+            Self::PushFeltList(values) => display_push_vec(f, values),
+
             Self::Locaddr(value) => write!(f, "locaddr.{value}"),
             Self::Sdepth => write!(f, "sdepth"),
             Self::Caller => write!(f, "caller"),
@@ -503,6 +513,18 @@ impl fmt::Display for Instruction {
     }
 }
 
+// HELPER FUNCTIONS
+// ================================================================================================
+
+/// Builds a string from input vector to display push operation
+fn display_push_vec<T: fmt::Display>(f: &mut fmt::Formatter<'_>, values: &[T]) -> fmt::Result {
+    write!(f, "push")?;
+    for elem in values {
+        write!(f, ".{elem}")?;
+    }
+    Ok(())
+}
+
 // TESTS
 // ================================================================================================
 
@@ -522,7 +544,7 @@ fn test_instruction_display() {
 
     let instruction = format!(
         "{}",
-        Instruction::PushConstants(vec![Felt::new(3), Felt::new(4), Felt::new(8), Felt::new(9)])
+        Instruction::PushFeltList(vec![Felt::new(3), Felt::new(4), Felt::new(8), Felt::new(9)])
     );
     assert_eq!("push.3.4.8.9", instruction);
 

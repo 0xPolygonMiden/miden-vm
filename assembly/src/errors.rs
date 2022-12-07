@@ -14,12 +14,15 @@ pub enum AssemblyError {
     ExportedProcInProgram(String),
     ImportedProcModuleNotFound(ProcedureId),
     ImportedProcNotFoundInModule(ProcedureId, String),
+    InvalidCacheLock,
     KernelProcNotFound(ProcedureId),
     LocalProcNotFound(u16, String),
     ParsingError(String),
     ParamOutOfBounds(u64, u64, u64),
+    ProcedureNameError(String),
     SysCallInKernel(String),
-    InvalidCacheLock,
+    LibraryError(String),
+    Io(String),
 }
 
 impl AssemblyError {
@@ -85,6 +88,18 @@ impl From<ParsingError> for AssemblyError {
     }
 }
 
+impl From<LibraryError> for AssemblyError {
+    fn from(err: LibraryError) -> Self {
+        Self::LibraryError(err.to_string())
+    }
+}
+
+impl From<ProcedureNameError> for AssemblyError {
+    fn from(err: ProcedureNameError) -> Self {
+        Self::ProcedureNameError(format!("invalid procedure name: {err}"))
+    }
+}
+
 impl fmt::Display for AssemblyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use AssemblyError::*;
@@ -97,13 +112,21 @@ impl fmt::Display for AssemblyError {
             ExportedProcInProgram(proc_name) => write!(f, "exported procedure '{proc_name}' in executable program"),
             ImportedProcModuleNotFound(proc_id) => write!(f, "module for imported procedure {proc_id} not found"),
             ImportedProcNotFoundInModule(proc_id, module_path) => write!(f, "imported procedure {proc_id} not found in module {module_path}"),
+            InvalidCacheLock => write!(f, "an attempt was made to lock a borrowed procedures cache"),
             KernelProcNotFound(proc_id) => write!(f, "procedure {proc_id} not found in kernel"),
             LocalProcNotFound(proc_idx, module_path) => write!(f, "procedure at index {proc_idx} not found in module {module_path}"),
-            ParsingError(err) => write!(f, "{err}"),
             ParamOutOfBounds(value, min, max) => write!(f, "parameter value must be greater than or equal to {min} and less than or equal to {max}, but was {value}"),
             SysCallInKernel(proc_name) => write!(f, "syscall instruction used in kernel procedure '{proc_name}'"),
-            InvalidCacheLock => write!(f, "an attempt was made to lock a borrowed procedures cache"),
+            LibraryError(err) | ParsingError(err) | ProcedureNameError(err) => write!(f, "{err}"),
+            Io(description) => write!(f, "I/O error: {description}"),
         }
+    }
+}
+
+#[cfg(feature = "std")]
+impl From<std::io::Error> for AssemblyError {
+    fn from(e: std::io::Error) -> Self {
+        Self::Io(e.to_string())
     }
 }
 
@@ -148,14 +171,6 @@ impl ParsingError {
         }
     }
 
-    pub fn unexpected_body_end(token: &Token) -> Self {
-        ParsingError {
-            message: format!("unexpected body termination: invalid token '{token}'"),
-            step: token.pos(),
-            op: token.to_string(),
-        }
-    }
-
     pub fn empty_block(token: &Token) -> Self {
         ParsingError {
             message: "a code block must contain at least one instruction".to_string(),
@@ -164,18 +179,12 @@ impl ParsingError {
         }
     }
 
+    // INVALID / MALFORMED INSTRUCTIONS
+    // --------------------------------------------------------------------------------------------
+
     pub fn invalid_op(token: &Token) -> Self {
         ParsingError {
             message: format!("instruction '{token}' is invalid"),
-            step: token.pos(),
-            op: token.to_string(),
-        }
-    }
-
-    /// TODO: currently unused
-    pub fn invalid_op_with_reason(token: &Token, reason: &str) -> Self {
-        ParsingError {
-            message: format!("instruction '{token}' is invalid: {reason}"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -219,6 +228,9 @@ impl ParsingError {
         }
     }
 
+    // MALFORMED CODE BLOCKS
+    // --------------------------------------------------------------------------------------------
+
     pub fn dangling_else(token: &Token) -> Self {
         ParsingError {
             message: "else without matching if".to_string(),
@@ -259,18 +271,6 @@ impl ParsingError {
         }
     }
 
-    pub fn dangling_procedure_comment(step: usize) -> Self {
-        ParsingError {
-            message: "Procedure comment is not immediately followed by a procedure declaration."
-                .to_string(),
-            step,
-            op: "".to_string(),
-        }
-    }
-
-    // PROGRAM
-    // --------------------------------------------------------------------------------------------
-
     pub fn unmatched_begin(token: &Token) -> Self {
         ParsingError {
             message: "begin without matching end".to_string(),
@@ -287,20 +287,56 @@ impl ParsingError {
         }
     }
 
-    // PROCEDURES
-    // --------------------------------------------------------------------------------------------
-
-    pub fn duplicate_proc_label(token: &Token, label: &str) -> Self {
+    pub fn dangling_ops_after_module(token: &Token) -> Self {
         ParsingError {
-            message: format!("duplicate procedure label: {label}"),
+            message: "dangling instructions after module end".to_string(),
             step: token.pos(),
             op: token.to_string(),
         }
     }
 
-    pub fn invalid_proc_label(token: &Token, label: &str) -> Self {
+    pub fn dangling_procedure_comment(step: usize) -> Self {
         ParsingError {
-            message: format!("invalid procedure label: {label}"),
+            message: "Procedure comment is not immediately followed by a procedure declaration."
+                .to_string(),
+            step,
+            op: "".to_string(),
+        }
+    }
+
+    pub fn not_a_library_module(token: &Token) -> Self {
+        ParsingError {
+            message: "not a module: `begin` instruction found".to_string(),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    // PROCEDURES DECLARATION
+    // --------------------------------------------------------------------------------------------
+
+    pub fn duplicate_proc_name(token: &Token, label: &str) -> Self {
+        ParsingError {
+            message: format!("duplicate procedure name: {label}"),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn invalid_proc_name(token: &Token, err: ProcedureNameError) -> Self {
+        ParsingError {
+            message: format!("invalid procedure name: {err}"),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn proc_name_too_long(token: &Token, label: &str, max_len: u8) -> Self {
+        ParsingError {
+            message: format!(
+                "procedure name cannot be longer than {max_len} characters, but was {}",
+                label.len()
+            ),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -314,17 +350,17 @@ impl ParsingError {
         }
     }
 
-    pub fn unmatched_proc(token: &Token) -> Self {
+    pub fn too_many_proc_locals(token: &Token, num_locals: u64, max_locals: u64) -> Self {
         ParsingError {
-            message: "proc without matching end".to_string(),
+            message: format!("number of procedure locals cannot be greater than {max_locals} characters, but was {num_locals}"),
             step: token.pos(),
             op: token.to_string(),
         }
     }
 
-    pub fn undefined_proc(token: &Token, label: &str) -> Self {
+    pub fn unmatched_proc(token: &Token, proc_name: &str) -> Self {
         ParsingError {
-            message: format!("undefined procedure: {label}"),
+            message: format!("procedure '{proc_name}' has no matching end"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -338,28 +374,36 @@ impl ParsingError {
         }
     }
 
-    /// TODO: currently unused
-    pub fn syscall_in_kernel(token: &Token) -> Self {
+    // PROCEDURE INVOCATION
+    // --------------------------------------------------------------------------------------------
+
+    pub fn invalid_proc_invocation(token: &Token, label: &str) -> Self {
         ParsingError {
-            message: "syscall inside kernel".to_string(),
+            message: format!("invalid procedure invocation: {label}"),
             step: token.pos(),
             op: token.to_string(),
         }
     }
 
-    /// TODO: currently unused
-    pub fn call_in_kernel(token: &Token) -> Self {
+    pub fn syscall_with_module_name(token: &Token) -> Self {
         ParsingError {
-            message: "call inside kernel".to_string(),
+            message: "invalid syscall: cannot invoke a syscall on a named module".to_string(),
             step: token.pos(),
             op: token.to_string(),
         }
     }
 
-    /// TODO: currently unused
-    pub fn caller_out_of_kernel(token: &Token) -> Self {
+    pub fn undefined_local_proc(token: &Token, label: &str) -> Self {
         ParsingError {
-            message: "caller instruction executed outside of kernel context".to_string(),
+            message: format!("undefined local procedure: {label}"),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn procedure_module_not_imported(token: &Token, module_name: &str) -> Self {
+        ParsingError {
+            message: format!("module '{module_name}' was not imported"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -367,15 +411,6 @@ impl ParsingError {
 
     // IMPORTS AND MODULES
     // --------------------------------------------------------------------------------------------
-
-    /// TODO: currently unused
-    pub fn dangling_ops_after_module(token: &Token, module_path: &str) -> Self {
-        ParsingError {
-            message: format!("dangling instructions after module end at {module_path}"),
-            step: token.pos(),
-            op: token.to_string(),
-        }
-    }
 
     pub fn duplicate_module_import(token: &Token, module: &str) -> Self {
         ParsingError {
@@ -388,6 +423,22 @@ impl ParsingError {
     pub fn invalid_module_path(token: &Token, module_path: &str) -> Self {
         ParsingError {
             message: format!("invalid module import path: {module_path}"),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn import_inside_body(token: &Token) -> Self {
+        ParsingError {
+            message: "import in procedure body".to_string(),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn invalid_library_path(token: &Token, error: LibraryError) -> Self {
+        ParsingError {
+            message: format!("invalid path resolution: {error}"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -421,7 +472,61 @@ impl fmt::Display for ParsingError {
 }
 
 #[cfg(feature = "std")]
+impl From<ParsingError> for std::io::Error {
+    fn from(e: ParsingError) -> Self {
+        std::io::Error::new(std::io::ErrorKind::Other, e)
+    }
+}
+
+#[cfg(feature = "std")]
 impl std::error::Error for ParsingError {}
+
+// PROCEDURE NAME ERROR
+// ================================================================================================
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum ProcedureNameError {
+    EmptyProcedureName,
+    InvalidFirstLetter(String),
+    InvalidProcedureName(String),
+    ProcedureNameTooLong(String, u8),
+}
+
+impl ProcedureNameError {
+    pub const fn empty_procedure_name() -> Self {
+        Self::EmptyProcedureName
+    }
+
+    pub fn invalid_procedure_name(proc_name: &str) -> Self {
+        Self::InvalidProcedureName(proc_name.to_string())
+    }
+
+    pub fn invalid_fist_letter(proc_name: &str) -> Self {
+        Self::InvalidFirstLetter(proc_name.to_string())
+    }
+
+    pub fn procedure_name_too_long(proc_name: &str, max_len: u8) -> Self {
+        Self::ProcedureNameTooLong(proc_name.to_string(), max_len)
+    }
+}
+
+impl fmt::Display for ProcedureNameError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use ProcedureNameError::*;
+        match self {
+            EmptyProcedureName => write!(f, "procedure name cannot be empty"),
+            InvalidFirstLetter(proc_name) => {
+                write!(f, "'{proc_name}' does not start with a letter")
+            }
+            InvalidProcedureName(proc_name) => {
+                write!(f, "'{proc_name}' contains invalid characters")
+            }
+            ProcedureNameTooLong(proc_name, max_len) => {
+                write!(f, "'{proc_name}' is over {max_len} characters long")
+            }
+        }
+    }
+}
 
 // SERIALIZATION ERROR
 // ================================================================================================
@@ -429,11 +534,48 @@ impl std::error::Error for ParsingError {}
 #[derive(Debug)]
 pub enum SerializationError {
     InvalidBoolValue,
-    StringTooLong,
+    LengthTooLong,
     EndOfReader,
     InvalidOpCode,
     InvalidFieldElement,
+    InvalidNumOfPushValues,
+    InvalidNumber,
+    InvalidUtf8,
+    InvalidPathNoDelimiter,
+    InvalidNamespace,
+    InvalidModulePath,
+    UnexpectedEndOfStream,
 }
+
+impl fmt::Display for SerializationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use SerializationError::*;
+        match self {
+            InvalidBoolValue => write!(f, "invalid boolean value"),
+            LengthTooLong => write!(f, "the provided length is too long and is not supported"),
+            EndOfReader => write!(f, "unexpected reader EOF"),
+            InvalidOpCode => write!(f, "could not read a valid opcode"),
+            InvalidFieldElement => write!(f, "could not read a valid field element"),
+            InvalidNumOfPushValues => write!(f, "invalid push values argument"),
+            InvalidNumber => write!(f, "could not read a valid number"),
+            InvalidUtf8 => write!(f, "could not read a well-formed utf-8 string"),
+            InvalidPathNoDelimiter => write!(f, "a path must contain a delimiter"),
+            InvalidNamespace => write!(f, "could not read a valid namespace definition"),
+            InvalidModulePath => write!(f, "could not read a valid module path definition"),
+            UnexpectedEndOfStream => write!(f, "the stream of tokens reached an unexpected end"),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl From<SerializationError> for std::io::Error {
+    fn from(e: SerializationError) -> Self {
+        std::io::Error::new(std::io::ErrorKind::Other, e)
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for SerializationError {}
 
 // LIBRARY ERROR
 // ================================================================================================
@@ -441,6 +583,50 @@ pub enum SerializationError {
 #[derive(Clone, Debug)]
 pub enum LibraryError {
     ModuleNotFound(String),
+    DuplicateModulePath(String),
+    DuplicateNamespace(String),
+    EmptyProcedureName,
+    ProcedureNameWithDelimiter(String),
+    ModulePathStartsWithDelimiter(String),
+    ModulePathEndsWithDelimiter(String),
+    LibraryNameWithDelimiter(String),
+    NamespaceViolation { expected: String, found: String },
+}
+
+impl LibraryError {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
+    pub fn duplicate_module_path(path: &str) -> Self {
+        Self::DuplicateModulePath(path.to_string())
+    }
+
+    pub fn duplicate_namespace(namespace: &str) -> Self {
+        Self::DuplicateNamespace(namespace.to_string())
+    }
+
+    pub fn procedure_name_with_delimiter(name: &str) -> Self {
+        Self::ProcedureNameWithDelimiter(name.to_string())
+    }
+
+    pub fn module_path_starts_with_delimiter(path: &str) -> Self {
+        Self::ModulePathStartsWithDelimiter(path.to_string())
+    }
+
+    pub fn module_path_ends_with_delimiter(path: &str) -> Self {
+        Self::ModulePathEndsWithDelimiter(path.to_string())
+    }
+
+    pub fn library_name_with_delimiter(name: &str) -> Self {
+        Self::LibraryNameWithDelimiter(name.to_string())
+    }
+
+    pub fn namespace_violation(expected: &str, found: &str) -> Self {
+        Self::NamespaceViolation {
+            expected: expected.into(),
+            found: found.into(),
+        }
+    }
 }
 
 impl fmt::Display for LibraryError {
@@ -448,6 +634,27 @@ impl fmt::Display for LibraryError {
         use LibraryError::*;
         match self {
             ModuleNotFound(path) => write!(f, "module '{path}' not found"),
+            DuplicateModulePath(path) => write!(f, "duplciate module path '{path}'"),
+            DuplicateNamespace(namespace) => write!(f, "duplicate namespace '{namespace}'"),
+            EmptyProcedureName => write!(f, "the procedure name cannot be empty"),
+            ProcedureNameWithDelimiter(name) => {
+                write!(f, "'{name}' cannot contain a module delimiter")
+            }
+            ModulePathStartsWithDelimiter(path) => {
+                write!(f, "'{path}' cannot start with a module delimiter")
+            }
+            ModulePathEndsWithDelimiter(path) => {
+                write!(f, "'{path}' cannot end with a module delimiter")
+            }
+            LibraryNameWithDelimiter(name) => {
+                write!(f, "'{name}' cannot contain a module delimiter")
+            }
+            NamespaceViolation { expected, found } => {
+                write!(
+                    f,
+                    "invalid namespace! expected '{expected}', found '{found}'"
+                )
+            }
         }
     }
 }

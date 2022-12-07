@@ -301,9 +301,7 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     let trace_len = (max_len + NUM_RAND_ROWS).next_power_of_two();
     assert!(
         trace_len >= MIN_TRACE_LEN,
-        "trace length must be at least {}, but was {}",
-        MIN_TRACE_LEN,
-        trace_len
+        "trace length must be at least {MIN_TRACE_LEN}, but was {trace_len}"
     );
 
     // combine all trace segments into the main trace

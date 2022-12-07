@@ -1,12 +1,16 @@
 use super::{
     parsers::{self, Instruction, Node, ProcedureAst, ProgramAst},
-    AssemblyError, BTreeMap, Box, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel, ModuleAst,
-    ModuleProvider, Operation, Procedure, ProcedureId, Program, String, ToString, Vec, ONE, ZERO,
+    AbsolutePath, AssemblyError, BTreeMap, CallSet, CodeBlock, CodeBlockTable, Felt, Kernel,
+    Library, LibraryError, Module, ModuleAst, Operation, Procedure, ProcedureId, Program, String,
+    ToString, Vec, ONE, ZERO,
 };
 use core::{borrow::Borrow, cell::RefCell};
 use vm_core::{utils::group_vector_elements, Decorator, DecoratorList};
 
 mod instruction;
+
+mod module_provider;
+use module_provider::ModuleProvider;
 
 mod span_builder;
 use span_builder::SpanBuilder;
@@ -30,12 +34,10 @@ type ProcedureCache = BTreeMap<ProcedureId, Procedure>;
 /// - If `with_kernel()` or `with_kernel_module()` methods are not used, the assembler will be
 ///   instantiated with a default empty kernel. Programs compiled using such assembler
 ///   cannot make calls to kernel procedures via `syscall` instruction.
-/// - If `with_module_provider()` method is not used, the assembler will be instantiated without
-///   access to external libraries. Programs compiled with such assembler must be self-contained
-///   (i.e., they cannot invoke procedures from external libraries).
+#[derive(Default)]
 pub struct Assembler {
     kernel: Kernel,
-    module_provider: Box<dyn ModuleProvider>,
+    module_provider: ModuleProvider,
     proc_cache: RefCell<ProcedureCache>,
     in_debug_mode: bool,
 }
@@ -43,15 +45,6 @@ pub struct Assembler {
 impl Assembler {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
-    /// Returns a new instance of [Assembler] instantiated with empty module map.
-    pub fn new() -> Self {
-        Self {
-            kernel: Kernel::default(),
-            module_provider: Box::new(()),
-            proc_cache: Default::default(),
-            in_debug_mode: false,
-        }
-    }
 
     /// Puts the assembler into the debug mode.
     pub fn with_debug_mode(mut self, in_debug_mode: bool) -> Self {
@@ -59,13 +52,23 @@ impl Assembler {
         self
     }
 
-    /// Adds the specified [ModuleProvider] to the assembler.
-    pub fn with_module_provider<P>(mut self, provider: P) -> Self
+    /// Adds the library to provide modules for the compilation.
+    pub fn with_library<L>(mut self, library: &L) -> Result<Self, AssemblyError>
     where
-        P: ModuleProvider + 'static,
+        L: Library,
     {
-        self.module_provider = Box::new(provider);
-        self
+        self.module_provider.add_library(library)?;
+        Ok(self)
+    }
+
+    /// Adds a library bundle to provide modules for the compilation.
+    pub fn with_libraries<I, L, LB>(self, mut libraries: I) -> Result<Self, AssemblyError>
+    where
+        L: Library,
+        LB: Borrow<L>,
+        I: Iterator<Item = L>,
+    {
+        libraries.try_fold(self, |slf, library| slf.with_library(library.borrow()))
     }
 
     /// Sets the kernel for the assembler to the kernel defined by the provided source.
@@ -77,17 +80,18 @@ impl Assembler {
     /// Panics if the assembler has already been used to compile programs.
     pub fn with_kernel(self, kernel_source: &str) -> Result<Self, AssemblyError> {
         let kernel_ast = parsers::parse_module(kernel_source)?;
-        self.with_kernel_module(&kernel_ast)
+        self.with_kernel_module(kernel_ast)
     }
 
     /// Sets the kernel for the assembler to the kernel defined by the provided module.
     ///
     /// # Errors
     /// Returns an error if compiling kernel source results in an error.
-    pub fn with_kernel_module(mut self, module: &ModuleAst) -> Result<Self, AssemblyError> {
+    pub fn with_kernel_module(mut self, module: ModuleAst) -> Result<Self, AssemblyError> {
         // compile the kernel; this adds all exported kernel procedures to the procedure cache
         let mut context = AssemblyContext::new(true);
-        self.compile_module(module, ProcedureId::KERNEL_PATH, &mut context)?;
+        let kernel = Module::kernel(module);
+        self.compile_module(&kernel, &mut context)?;
 
         // convert the context into Kernel; this builds the kernel from hashes of procedures
         // exported form the kernel module
@@ -155,14 +159,13 @@ impl Assembler {
     /// Compiles all procedures in the specified module and adds them to the procedure cache.
     fn compile_module(
         &self,
-        module: &ModuleAst,
-        module_path: &str,
+        module: &Module,
         context: &mut AssemblyContext,
     ) -> Result<(), AssemblyError> {
         // compile all procedures in the module; once the compilation is complete, we get all
         // compiled procedures (and their combined callset) from the context
-        context.begin_module(module_path)?;
-        for proc_ast in module.local_procs.iter() {
+        context.begin_module(&module.path)?;
+        for proc_ast in module.ast.local_procs.iter() {
             self.compile_procedure(proc_ast, context)?;
         }
         let (module_procs, module_callset) = context.complete_module();
@@ -310,24 +313,18 @@ impl Assembler {
                 .module_provider
                 .get_module(proc_id)
                 .ok_or_else(|| AssemblyError::imported_proc_module_not_found(proc_id))?;
-            self.compile_module(&module, module.path(), context)?;
+            self.compile_module(module, context)?;
 
             // if the procedure is still not in cache, then there was some error
             if !self.proc_cache.borrow().contains_key(proc_id) {
                 return Err(AssemblyError::imported_proc_not_found_in_module(
                     proc_id,
-                    module.path(),
+                    &module.path,
                 ));
             }
         }
 
         Ok(())
-    }
-}
-
-impl Default for Assembler {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -408,10 +405,7 @@ pub fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
                 ops.extend_from_slice(batch.ops());
             }
         } else {
-            panic!(
-                "Codeblock was expected to be a Span Block, got {:?}.",
-                block
-            );
+            panic!("Codeblock was expected to be a Span Block, got {block:?}.",);
         }
     });
     CodeBlock::new_span_with_decorators(ops, decorators)

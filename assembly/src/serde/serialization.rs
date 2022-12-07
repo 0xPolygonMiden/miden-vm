@@ -1,21 +1,18 @@
 use super::{
-    super::nodes::{Instruction, Node},
-    OpCode, IF_ELSE_OPCODE, REPEAT_OPCODE, WHILE_OPCODE,
-};
-use crate::{
-    errors::SerializationError, Felt, ProcedureId, StarkField, String, Vec, MAX_PROC_NAME_LEN,
+    Felt, Instruction, Node, OpCode, ProcedureId, SerializationError, StarkField, String, Vec,
+    IF_ELSE_OPCODE, MAX_PROC_NAME_LEN, REPEAT_OPCODE, WHILE_OPCODE,
 };
 
 // BYTE WRITER IMPLEMENTATION
 // ================================================================================================
 
 /// Contains a vector for storing serialized objects
+#[derive(Default)]
 pub struct ByteWriter(Vec<u8>);
 
 impl ByteWriter {
-    pub fn new() -> Self {
-        let vec_bytes = Vec::new();
-        Self(vec_bytes)
+    pub fn clear(&mut self) {
+        self.0.clear()
     }
 
     pub fn write_bool(&mut self, val: bool) {
@@ -27,48 +24,39 @@ impl ByteWriter {
     }
 
     pub fn write_u16(&mut self, val: u16) {
-        self.0.append(&mut val.to_le_bytes().to_vec());
+        self.0.extend(val.to_le_bytes());
     }
 
     pub fn write_u32(&mut self, val: u32) {
-        self.0.append(&mut val.to_le_bytes().to_vec());
+        self.0.extend(val.to_le_bytes());
     }
 
     pub fn write_u64(&mut self, val: u64) {
-        self.0.append(&mut val.to_le_bytes().to_vec());
+        self.0.extend(val.to_le_bytes());
+    }
+
+    pub fn write_len(&mut self, val: usize) -> Result<(), SerializationError> {
+        if val > u16::MAX as usize {
+            return Err(SerializationError::LengthTooLong);
+        }
+        self.write_u16(val as u16);
+        Ok(())
     }
 
     pub fn write_proc_name(&mut self, val: &String) -> Result<(), SerializationError> {
         let val_bytes = val.as_bytes();
         let val_bytes_len = val_bytes.len() as u8;
         if val_bytes_len > MAX_PROC_NAME_LEN {
-            return Err(SerializationError::StringTooLong);
+            return Err(SerializationError::LengthTooLong);
         } else {
             self.write_u8(val_bytes_len);
-            self.0.append(&mut val_bytes.to_vec());
+            self.0.extend(val_bytes);
         }
         Ok(())
     }
 
     pub fn write_procedure_id(&mut self, val: &ProcedureId) {
-        self.0.append(&mut val.to_vec());
-    }
-
-    pub fn write_docs(&mut self, val: &Option<String>) -> Result<(), SerializationError> {
-        match val {
-            Some(docs) => {
-                let doc_bytes = docs.as_bytes();
-                if doc_bytes.len() > u16::MAX as usize {
-                    return Err(SerializationError::StringTooLong);
-                }
-                self.write_u16(doc_bytes.len() as u16);
-                self.0.append(&mut doc_bytes.to_vec());
-            }
-            None => {
-                self.write_u16(0);
-            }
-        }
-        Ok(())
+        self.0.extend(val.as_slice());
     }
 
     pub fn write_felt(&mut self, val: Felt) {
@@ -77,6 +65,16 @@ impl ByteWriter {
 
     pub fn write_opcode(&mut self, val: OpCode) {
         self.write_u8(val as u8);
+    }
+
+    pub fn write_str(&mut self, val: &str) -> Result<(), SerializationError> {
+        self.write_len(val.len())?;
+        self.0.extend(val.as_bytes());
+        Ok(())
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
     }
 
     pub fn into_bytes(self) -> Vec<u8> {
@@ -89,50 +87,92 @@ impl ByteWriter {
 
 /// Converts `self` into bytes and writes them to the provided `ByteWriter` struct
 pub trait Serializable: Sized {
-    fn write_into(&self, target: &mut ByteWriter);
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError>;
+
+    fn to_bytes(&self) -> Result<Vec<u8>, SerializationError> {
+        let mut target = ByteWriter::default();
+        self.write_into(&mut target)?;
+        Ok(target.into_bytes())
+    }
 }
 
-impl Serializable for Vec<Node> {
-    fn write_into(&self, target: &mut ByteWriter) {
-        target.write_u16(self.len() as u16);
+impl Serializable for () {
+    fn write_into(&self, _target: &mut ByteWriter) -> Result<(), SerializationError> {
+        Ok(())
+    }
+}
 
-        for node in self {
-            node.write_into(target);
+impl Serializable for &'_ str {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        target.write_str(self)
+    }
+}
+
+impl Serializable for String {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        target.write_str(self)
+    }
+}
+
+impl<T> Serializable for Vec<T>
+where
+    T: Serializable,
+{
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        target.write_len(self.len())?;
+        self.iter().try_for_each(|t| t.write_into(target))
+    }
+}
+
+impl<T> Serializable for Option<T>
+where
+    T: Serializable,
+{
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        match self {
+            Some(t) => {
+                target.write_bool(true);
+                t.write_into(target)
+            }
+            None => {
+                target.write_bool(false);
+                Ok(())
+            }
         }
     }
 }
 
 impl Serializable for Node {
-    fn write_into(&self, target: &mut ByteWriter) {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
         match self {
-            Self::Instruction(i) => {
-                i.write_into(target);
-            }
+            Self::Instruction(i) => i.write_into(target),
             Self::IfElse(if_clause, else_clause) => {
                 target.write_u8(IF_ELSE_OPCODE);
 
-                if_clause.write_into(target);
+                if_clause.write_into(target)?;
 
-                else_clause.write_into(target);
+                else_clause.write_into(target)
             }
             Self::Repeat(times, nodes) => {
                 target.write_u8(REPEAT_OPCODE);
 
-                target.write_u16(*times as u16);
+                // TODO shouldn't this fail if the repeat is expressed with a value greater than
+                // `u16::MAX`?
+                target.write_u16(*times);
 
-                nodes.write_into(target);
+                nodes.write_into(target)
             }
             Self::While(nodes) => {
                 target.write_u8(WHILE_OPCODE);
 
-                nodes.write_into(target);
+                nodes.write_into(target)
             }
-        };
+        }
     }
 }
 
 impl Serializable for Instruction {
-    fn write_into(&self, target: &mut ByteWriter) {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
         match self {
             Self::Assert => target.write_opcode(OpCode::Assert),
             Self::AssertEq => target.write_opcode(OpCode::AssertEq),
@@ -425,8 +465,43 @@ impl Serializable for Instruction {
             Self::CDropW => target.write_opcode(OpCode::CDropW),
 
             // ----- input / output operations --------------------------------------------------------
-            Self::PushConstants(values) => {
-                target.write_opcode(OpCode::PushConstants);
+            Self::PushU8(value) => {
+                target.write_opcode(OpCode::PushU8);
+                target.write_u8(*value);
+            }
+            Self::PushU16(value) => {
+                target.write_opcode(OpCode::PushU16);
+                target.write_u16(*value);
+            }
+            Self::PushU32(value) => {
+                target.write_opcode(OpCode::PushU32);
+                target.write_u32(*value);
+            }
+            Self::PushFelt(value) => {
+                target.write_opcode(OpCode::PushFelt);
+                target.write_felt(*value);
+            }
+            Self::PushWord(values) => {
+                target.write_opcode(OpCode::PushWord);
+                values.iter().for_each(|&v| target.write_felt(v));
+            }
+            Self::PushU8List(values) => {
+                target.write_opcode(OpCode::PushU8List);
+                target.write_u8(values.len() as u8);
+                values.iter().for_each(|&v| target.write_u8(v));
+            }
+            Self::PushU16List(values) => {
+                target.write_opcode(OpCode::PushU16List);
+                target.write_u8(values.len() as u8);
+                values.iter().for_each(|&v| target.write_u16(v));
+            }
+            Self::PushU32List(values) => {
+                target.write_opcode(OpCode::PushU32List);
+                target.write_u8(values.len() as u8);
+                values.iter().for_each(|&v| target.write_u32(v));
+            }
+            Self::PushFeltList(values) => {
+                target.write_opcode(OpCode::PushFeltList);
                 target.write_u8(values.len() as u8);
                 values.iter().for_each(|&v| target.write_felt(v));
             }
@@ -519,5 +594,6 @@ impl Serializable for Instruction {
                 target.write_procedure_id(imported);
             }
         }
+        Ok(())
     }
 }
