@@ -3,7 +3,9 @@ use super::{
     StarkField, ONE, ZERO,
 };
 use crate::MAX_EXP_BITS;
-use vm_core::TWO;
+
+/// Field element representing TWO in the base field of the VM.
+const TWO: Felt = Felt::new(2);
 
 // BASIC ARITHMETIC OPERATIONS
 // ================================================================================================
