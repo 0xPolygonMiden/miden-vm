@@ -4,21 +4,27 @@ use super::{
 };
 use crate::MAX_EXP_BITS;
 
+/// Field element representing TWO in the base field of the VM.
+const TWO: Felt = Felt::new(2);
+
 // BASIC ARITHMETIC OPERATIONS
 // ================================================================================================
 
 /// Appends a sequence of operations to add an immediate value to the value at the top of the
 /// stack. Specifically, the sequences are:
-/// - if imm = 1: INCR
+/// - if imm = 0: NOOP
+/// - else if imm = 1: INCR
+/// - else if imm = 2: INCR INCR
 /// - otherwise: PUSH(imm) ADD
 ///
-/// We do not optimize away adding 0 because it may result in a empty SPAN block and cause failures
-/// later on.
 pub fn add_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
-    if imm == ONE {
+    if imm == ZERO {
+        span.add_op(Noop)
+    } else if imm == ONE {
         span.add_op(Incr)
+    } else if imm == TWO {
+        span.add_ops([Incr, Incr])
     } else {
-        // TODO: warning if imm is ZERO?
         span.add_ops([Push(imm), Add])
     }
 }
@@ -26,33 +32,35 @@ pub fn add_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, A
 /// Appends a sequence of operations to multiply the value at the top of the stack by an immediate
 /// value. Specifically, the sequences are:
 /// - if imm = 0: DROP PAD
+/// - else if imm = 1: NOOP
 /// - otherwise: PUSH(imm) MUL
 ///
-/// We do not optimize away multiplication by 1 because it may result in a empty SPAN block and
-/// cause failures later on.
 pub fn mul_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
     if imm == ZERO {
         span.add_ops([Drop, Pad])
+    } else if imm == ONE {
+        span.add_op(Noop)
     } else {
-        // TODO: warning if imm is ONE?
         span.add_ops([Push(imm), Mul])
     }
 }
 
 /// Appends a sequence of operations to divide the value at the top of the stack by an immediate
-/// value. Specifically, the sequence is: PUSH(1/imm) MUL
-///
-/// We do not optimize away division by 1 because it may result in a empty SPAN block and cause
-/// failures later on.
+/// value. Specifically, the sequences are:
+/// - if imm = 0: Returns an error
+/// - else if imm = 1: NOOP
+/// - otherwise: PUSH(1/imm) MUL
 ///
 /// # Errors
 /// Returns an error if the immediate value is ZERO.
 pub fn div_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
-    // TODO: warning if imm is ONE?
     if imm == ZERO {
-        return Err(AssemblyError::division_by_zero());
+        Err(AssemblyError::division_by_zero())
+    } else if imm == ONE {
+        span.add_op(Noop)
+    } else {
+        span.add_ops([Push(imm.inv()), Mul])
     }
-    span.add_ops([Push(imm.inv()), Mul])
 }
 
 // POWER OF TWO OPERATION

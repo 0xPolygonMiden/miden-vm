@@ -78,6 +78,12 @@ fn add_b() {
     let test = build_op_test!(build_asm_op(2), &[1]);
     test.expect_stack(&[3]);
 
+    let test = build_op_test!(build_asm_op(0), &[28]);
+    test.expect_stack(&[28]);
+
+    let test = build_op_test!(build_asm_op(1), &[32]);
+    test.expect_stack(&[33]);
+
     let test = build_op_test!(build_asm_op(8), &[5]);
     test.expect_stack(&[13]);
 
@@ -167,6 +173,9 @@ fn mul_b() {
     let test = build_op_test!(build_asm_op(1), &[5]);
     test.expect_stack(&[5]);
 
+    let test = build_op_test!(build_asm_op(2), &[5]);
+    test.expect_stack(&[10]);
+
     // --- test overflow --------------------------------------------------------------------------
     let high_number = Felt::MODULUS - 1;
     let test = build_op_test!(build_asm_op(2), &[high_number]);
@@ -208,6 +217,12 @@ fn div_b() {
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(1), &[0]);
     test.expect_stack(&[0]);
+
+    let test = build_op_test!(build_asm_op(1), &[77]);
+    test.expect_stack(&[77]);
+
+    let test = build_op_test!(build_asm_op(0), &[14]);
+    test.expect_error(TestError::AssemblyError("division by zero"));
 
     let test = build_op_test!(build_asm_op(2), &[4]);
     test.expect_stack(&[2]);
