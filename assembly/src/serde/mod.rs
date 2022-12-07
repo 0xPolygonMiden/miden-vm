@@ -1,265 +1,280 @@
-use super::{
-    Felt, Instruction, Node, ProcedureId, ProcedureName, SerializationError, StarkField, String,
-    Vec, MAX_PROC_NAME_LEN, MAX_PUSH_INPUTS,
-};
-use num_enum::TryFromPrimitive;
+use super::{Felt, SerializationError, StarkField, String, Vec};
+use core::str::from_utf8;
 
-mod serialization;
-pub use serialization::{ByteWriter, Serializable};
-
-mod deserialization;
-pub use deserialization::{ByteReader, Deserializable};
-
-const IF_ELSE_OPCODE: u8 = 253;
-const REPEAT_OPCODE: u8 = 254;
-const WHILE_OPCODE: u8 = 255;
-
-// OPERATION CODES ENUM
+// BYTE WRITER
 // ================================================================================================
 
-#[repr(u8)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, TryFromPrimitive)]
-pub enum OpCode {
-    Assert = 0,
-    AssertEq = 1,
-    Assertz = 2,
-    Add = 3,
-    AddImm = 4,
-    Sub = 5,
-    SubImm = 6,
-    Mul = 7,
-    MulImm = 8,
-    Div = 9,
-    DivImm = 10,
-    Neg = 11,
-    Inv = 12,
-    Incr = 13,
-    Pow2 = 14,
-    Exp = 15,
-    ExpImm = 16,
-    ExpBitLength = 17,
-    Not = 18,
-    And = 19,
-    Or = 20,
-    Xor = 21,
-    Eq = 22,
-    EqImm = 23,
-    Neq = 24,
-    NeqImm = 25,
-    Eqw = 26,
-    Lt = 27,
-    Lte = 28,
-    Gt = 29,
-    Gte = 30,
+/// Contains a vector for storing serialized objects
+#[derive(Default)]
+pub struct ByteWriter(Vec<u8>);
 
-    // ----- u32 manipulation ---------------------------------------------------------------
-    U32Test = 31,
-    U32TestW = 32,
-    U32Assert = 33,
-    U32Assert2 = 34,
-    U32AssertW = 35,
-    U32Split = 36,
-    U32Cast = 37,
-    U32CheckedAdd = 38,
-    U32CheckedAddImm = 39,
-    U32WrappingAdd = 40,
-    U32WrappingAddImm = 41,
-    U32OverflowingAdd = 42,
-    U32OverflowingAddImm = 43,
-    U32OverflowingAdd3 = 44,
-    U32WrappingAdd3 = 45,
-    U32CheckedSub = 46,
-    U32CheckedSubImm = 47,
-    U32WrappingSub = 48,
-    U32WrappingSubImm = 49,
-    U32OverflowingSub = 50,
-    U32OverflowingSubImm = 51,
-    U32CheckedMul = 52,
-    U32CheckedMulImm = 53,
-    U32WrappingMul = 54,
-    U32WrappingMulImm = 55,
-    U32OverflowingMul = 56,
-    U32OverflowingMulImm = 57,
-    U32OverflowingMadd = 58,
-    U32WrappingMadd = 59,
-    U32CheckedDiv = 60,
-    U32CheckedDivImm = 61,
-    U32UncheckedDiv = 62,
-    U32UncheckedDivImm = 63,
-    U32CheckedMod = 64,
-    U32CheckedModImm = 65,
-    U32UncheckedMod = 66,
-    U32UncheckedModImm = 67,
-    U32CheckedDivMod = 68,
-    U32CheckedDivModImm = 69,
-    U32UncheckedDivMod = 70,
-    U32UncheckedDivModImm = 71,
-    U32CheckedAnd = 72,
-    U32CheckedOr = 73,
-    U32CheckedXor = 74,
-    U32CheckedNot = 75,
-    U32CheckedShr = 76,
-    U32CheckedShrImm = 77,
-    U32UncheckedShr = 78,
-    U32UncheckedShrImm = 79,
-    U32CheckedShl = 80,
-    U32CheckedShlImm = 81,
-    U32UncheckedShl = 82,
-    U32UncheckedShlImm = 83,
-    U32CheckedRotr = 84,
-    U32CheckedRotrImm = 85,
-    U32UncheckedRotr = 86,
-    U32UncheckedRotrImm = 87,
-    U32CheckedRotl = 88,
-    U32CheckedRotlImm = 89,
-    U32UncheckedRotl = 90,
-    U32UncheckedRotlImm = 91,
-    U32CheckedEq = 92,
-    U32CheckedEqImm = 93,
-    U32CheckedNeq = 94,
-    U32CheckedNeqImm = 95,
-    U32CheckedLt = 96,
-    U32UncheckedLt = 97,
-    U32CheckedLte = 98,
-    U32UncheckedLte = 99,
-    U32CheckedGt = 100,
-    U32UncheckedGt = 101,
-    U32CheckedGte = 102,
-    U32UncheckedGte = 103,
-    U32CheckedMin = 104,
-    U32UncheckedMin = 105,
-    U32CheckedMax = 106,
-    U32UncheckedMax = 107,
+impl ByteWriter {
+    pub fn clear(&mut self) {
+        self.0.clear()
+    }
 
-    // ----- stack manipulation ---------------------------------------------------------------
-    Drop = 108,
-    DropW = 109,
-    PadW = 110,
-    Dup0 = 111,
-    Dup1 = 112,
-    Dup2 = 113,
-    Dup3 = 114,
-    Dup4 = 115,
-    Dup5 = 116,
-    Dup6 = 117,
-    Dup7 = 118,
-    Dup8 = 119,
-    Dup9 = 120,
-    Dup10 = 121,
-    Dup11 = 122,
-    Dup12 = 123,
-    Dup13 = 124,
-    Dup14 = 125,
-    Dup15 = 126,
-    DupW0 = 127,
-    DupW1 = 128,
-    DupW2 = 129,
-    DupW3 = 130,
-    Swap1 = 131,
-    Swap2 = 132,
-    Swap3 = 133,
-    Swap4 = 134,
-    Swap5 = 135,
-    Swap6 = 136,
-    Swap7 = 137,
-    Swap8 = 138,
-    Swap9 = 139,
-    Swap10 = 140,
-    Swap11 = 141,
-    Swap12 = 142,
-    Swap13 = 143,
-    Swap14 = 144,
-    Swap15 = 145,
-    SwapW1 = 146,
-    SwapW2 = 147,
-    SwapW3 = 148,
-    SwapDW = 149,
-    MovUp2 = 150,
-    MovUp3 = 151,
-    MovUp4 = 152,
-    MovUp5 = 153,
-    MovUp6 = 154,
-    MovUp7 = 155,
-    MovUp8 = 156,
-    MovUp9 = 157,
-    MovUp10 = 158,
-    MovUp11 = 159,
-    MovUp12 = 160,
-    MovUp13 = 161,
-    MovUp14 = 162,
-    MovUp15 = 163,
-    MovUpW2 = 164,
-    MovUpW3 = 165,
-    MovDn2 = 166,
-    MovDn3 = 167,
-    MovDn4 = 168,
-    MovDn5 = 169,
-    MovDn6 = 170,
-    MovDn7 = 171,
-    MovDn8 = 172,
-    MovDn9 = 173,
-    MovDn10 = 174,
-    MovDn11 = 175,
-    MovDn12 = 176,
-    MovDn13 = 177,
-    MovDn14 = 178,
-    MovDn15 = 179,
-    MovDnW2 = 180,
-    MovDnW3 = 181,
-    CSwap = 182,
-    CSwapW = 183,
-    CDrop = 184,
-    CDropW = 185,
+    pub fn write_bool(&mut self, val: bool) {
+        self.write_u8(val as u8);
+    }
 
-    // ----- input / output operations --------------------------------------------------------
-    PushU8 = 186,
-    PushU16 = 187,
-    PushU32 = 188,
-    PushFelt = 189,
-    PushWord = 190,
-    PushU8List = 191,
-    PushU16List = 192,
-    PushU32List = 193,
-    PushFeltList = 194,
+    pub fn write_u8(&mut self, val: u8) {
+        self.0.push(val);
+    }
 
-    Locaddr = 195,
-    Sdepth = 196,
-    Caller = 197,
+    pub fn write_u16(&mut self, val: u16) {
+        self.0.extend(val.to_le_bytes());
+    }
 
-    MemLoad = 198,
-    MemLoadImm = 199,
-    MemLoadW = 200,
-    MemLoadWImm = 201,
-    LocLoad = 202,
-    LocLoadW = 203,
-    MemStore = 204,
-    MemStoreImm = 205,
-    LocStore = 206,
-    MemStoreW = 207,
-    MemStoreWImm = 208,
-    LocStoreW = 209,
+    pub fn write_u32(&mut self, val: u32) {
+        self.0.extend(val.to_le_bytes());
+    }
 
-    MemStream = 210,
-    AdvPipe = 211,
+    pub fn write_u64(&mut self, val: u64) {
+        self.0.extend(val.to_le_bytes());
+    }
 
-    AdvPush = 212,
-    AdvLoadW = 213,
+    pub fn write_len(&mut self, val: usize) -> Result<(), SerializationError> {
+        if val > u16::MAX as usize {
+            return Err(SerializationError::LengthTooLong);
+        }
+        self.write_u16(val as u16);
+        Ok(())
+    }
 
-    AdvU64Div = 214,
-    AdvKeyval = 215,
-    AdvMem = 216,
+    pub fn write_felt(&mut self, val: Felt) {
+        self.write_u64(val.as_int());
+    }
 
-    // ----- cryptographic operations ---------------------------------------------------------
-    RPHash = 217,
-    RPPerm = 218,
-    MTreeGet = 219,
-    MTreeSet = 220,
-    MTreeCwm = 221,
+    pub fn write_str(&mut self, val: &str) -> Result<(), SerializationError> {
+        self.write_len(val.len())?;
+        self.0.extend(val.as_bytes());
+        Ok(())
+    }
 
-    // ----- exec / call ----------------------------------------------------------------------
-    ExecLocal = 222,
-    ExecImported = 223,
-    CallLocal = 224,
-    CallImported = 225,
-    SysCall = 226,
+    pub fn write_bytes(&mut self, val: &[u8]) {
+        self.0.extend(val);
+    }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
+
+    pub fn into_bytes(self) -> Vec<u8> {
+        self.0
+    }
+}
+
+// SERIALIZABLE TRAIT IMPLEMENTATIONS
+// ================================================================================================
+
+/// Converts `self` into bytes and writes them to the provided `ByteWriter` struct
+pub trait Serializable: Sized {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError>;
+
+    fn to_bytes(&self) -> Result<Vec<u8>, SerializationError> {
+        let mut target = ByteWriter::default();
+        self.write_into(&mut target)?;
+        Ok(target.into_bytes())
+    }
+}
+
+impl Serializable for () {
+    fn write_into(&self, _target: &mut ByteWriter) -> Result<(), SerializationError> {
+        Ok(())
+    }
+}
+
+impl Serializable for &'_ str {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        target.write_str(self)
+    }
+}
+
+impl Serializable for String {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        target.write_str(self)
+    }
+}
+
+impl<T> Serializable for Vec<T>
+where
+    T: Serializable,
+{
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        target.write_len(self.len())?;
+        self.iter().try_for_each(|t| t.write_into(target))
+    }
+}
+
+impl<T> Serializable for Option<T>
+where
+    T: Serializable,
+{
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        match self {
+            Some(t) => {
+                target.write_bool(true);
+                t.write_into(target)
+            }
+            None => {
+                target.write_bool(false);
+                Ok(())
+            }
+        }
+    }
+}
+
+// BYTE READER
+// ================================================================================================
+
+/// Contains bytes for deserialization and current reading position
+pub struct ByteReader<'a> {
+    bytes: &'a [u8],
+    pos: usize,
+}
+
+impl<'a> ByteReader<'a> {
+    pub fn new(bytes: &'a [u8]) -> Self {
+        ByteReader { bytes, pos: 0 }
+    }
+
+    pub fn read_bool(&mut self) -> Result<bool, SerializationError> {
+        self.check_eor(1)?;
+        let result = self.bytes[self.pos];
+        self.pos += 1;
+        u8_to_bool(result)
+    }
+
+    pub fn read_u8(&mut self) -> Result<u8, SerializationError> {
+        self.check_eor(1)?;
+        let result = self.bytes[self.pos];
+        self.pos += 1;
+        Ok(result)
+    }
+
+    pub fn peek_u8(&self) -> Result<u8, SerializationError> {
+        self.check_eor(1)?;
+        let result = self.bytes[self.pos];
+        Ok(result)
+    }
+
+    pub fn read_u16(&mut self) -> Result<u16, SerializationError> {
+        self.check_eor(2)?;
+        let result = &self.bytes[self.pos..self.pos + 2];
+        self.pos += 2;
+        Ok(u16::from_le_bytes(
+            result.try_into().expect("u16 conversion failure"),
+        ))
+    }
+
+    pub fn read_u32(&mut self) -> Result<u32, SerializationError> {
+        self.check_eor(4)?;
+        let result = &self.bytes[self.pos..self.pos + 4];
+        self.pos += 4;
+        Ok(u32::from_le_bytes(
+            result.try_into().expect("u32 conversion failure"),
+        ))
+    }
+
+    pub fn read_u64(&mut self) -> Result<u64, SerializationError> {
+        self.check_eor(8)?;
+        let result = &self.bytes[self.pos..self.pos + 8];
+        self.pos += 8;
+        Ok(u64::from_le_bytes(
+            result.try_into().expect("u64 conversion failure"),
+        ))
+    }
+
+    pub fn read_len(&mut self) -> Result<usize, SerializationError> {
+        self.read_u16().map(|l| l as usize)
+    }
+
+    pub fn read_felt(&mut self) -> Result<Felt, SerializationError> {
+        let value = self.read_u64()?;
+        if value >= Felt::MODULUS {
+            Err(SerializationError::InvalidFieldElement)
+        } else {
+            Ok(Felt::new(value))
+        }
+    }
+
+    pub fn read_str(&mut self) -> Result<&str, SerializationError> {
+        let len = self.read_u16()? as usize;
+        self.check_eor(len)?;
+        let string = &self.bytes[self.pos..self.pos + len];
+        self.pos += len;
+        from_utf8(string).map_err(|_| SerializationError::InvalidUtf8)
+    }
+
+    pub fn read_bytes(&mut self, num_bytes: usize) -> Result<&[u8], SerializationError> {
+        self.check_eor(num_bytes)?;
+        let bytes = &self.bytes[self.pos..self.pos + num_bytes];
+        self.pos += num_bytes;
+        Ok(bytes)
+    }
+
+    /// Checks if it is possible to read at least `num_bytes` bytes from ByteReader
+    ///
+    /// # Errors
+    /// Returns an error if, when reading the requested number of bytes, we go beyond the boundaries of the array
+    fn check_eor(&self, num_bytes: usize) -> Result<(), SerializationError> {
+        if self.pos + num_bytes > self.bytes.len() {
+            return Err(SerializationError::EndOfReader);
+        }
+        Ok(())
+    }
+}
+
+// DESERIALIZABLE TRAIT IMPLEMENTATIONS
+// ================================================================================================
+
+/// Returns `self` from its byte representation stored in provided `ByteReader` struct.
+pub trait Deserializable: Sized {
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError>;
+
+    fn read_from_bytes(bytes: &[u8]) -> Result<Self, SerializationError> {
+        Self::read_from(&mut ByteReader::new(bytes))
+    }
+}
+
+impl Deserializable for () {
+    fn read_from(_bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        Ok(())
+    }
+}
+
+impl Deserializable for String {
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        bytes.read_str().map(String::from)
+    }
+}
+
+impl<T> Deserializable for Vec<T>
+where
+    T: Deserializable,
+{
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        let len = bytes.read_len()?;
+        (0..len).map(|_| T::read_from(bytes)).collect()
+    }
+}
+
+impl<T> Deserializable for Option<T>
+where
+    T: Deserializable,
+{
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        let is_some = bytes.read_bool()?;
+        is_some.then(|| T::read_from(bytes)).transpose()
+    }
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+fn u8_to_bool(param: u8) -> Result<bool, SerializationError> {
+    match param {
+        0 => Ok(false),
+        1 => Ok(true),
+        _ => Err(SerializationError::InvalidBoolValue),
+    }
 }

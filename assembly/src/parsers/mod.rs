@@ -13,6 +13,7 @@ use context::ParserContext;
 
 mod field_ops;
 mod io_ops;
+mod serde;
 mod stack_ops;
 mod u32_ops;
 
@@ -140,7 +141,7 @@ pub struct ProcedureAst {
 impl Serializable for ProcedureAst {
     /// Writes byte representation of the `ProcedureAst` into the provided `ByteWriter` struct.
     fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
-        target.write_proc_name(&self.name)?;
+        self.name.write_into(target)?;
         self.docs.write_into(target)?;
         target.write_bool(self.is_export);
         target.write_u16(self.num_locals);
@@ -152,7 +153,7 @@ impl Serializable for ProcedureAst {
 impl Deserializable for ProcedureAst {
     /// Returns a `ProcedureAst` from its byte representation stored in provided `ByteReader` struct.
     fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let name = bytes.read_proc_name()?;
+        let name = ProcedureName::read_from(bytes)?;
         let docs = Deserializable::read_from(bytes)?;
         let is_export = bytes.read_bool()?;
         let num_locals = bytes.read_u16()?;

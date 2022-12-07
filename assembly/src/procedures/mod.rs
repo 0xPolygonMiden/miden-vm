@@ -1,10 +1,12 @@
 use super::{
-    AbsolutePath, BTreeSet, CodeBlock, Felt, ProcedureNameError, String, MAX_PROC_NAME_LEN,
+    AbsolutePath, BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable, Felt,
+    ProcedureNameError, Serializable, SerializationError, String, MAX_PROC_NAME_LEN,
     MODULE_PATH_DELIM,
 };
 use core::{
     fmt,
     ops::{self, Deref},
+    str::from_utf8,
 };
 use crypto::{hashers::Blake3_256, Digest, Hasher};
 
@@ -176,6 +178,32 @@ impl AsRef<str> for ProcedureName {
     }
 }
 
+impl Serializable for ProcedureName {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        let name_bytes = self.name.as_bytes();
+        let num_bytes = name_bytes.len() as u8;
+        if num_bytes > MAX_PROC_NAME_LEN {
+            return Err(SerializationError::LengthTooLong);
+        } else {
+            target.write_u8(num_bytes);
+            target.write_bytes(name_bytes);
+        }
+        Ok(())
+    }
+}
+
+impl Deserializable for ProcedureName {
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        let num_bytes = bytes.read_u8()?;
+        let name_bytes = bytes.read_bytes(num_bytes as usize)?;
+        // TODO should not panic on input
+        // https://github.com/maticnetwork/miden/issues/578
+        let name = from_utf8(name_bytes).expect("String conversion failure");
+        let name = ProcedureName::try_from(name.to_string())?;
+        Ok(name)
+    }
+}
+
 // PROCEDURE ID
 // ================================================================================================
 
@@ -183,30 +211,6 @@ impl AsRef<str> for ProcedureName {
 /// label of a procedure
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ProcedureId(pub [u8; Self::SIZE]);
-
-impl From<[u8; ProcedureId::SIZE]> for ProcedureId {
-    fn from(value: [u8; ProcedureId::SIZE]) -> Self {
-        Self(value)
-    }
-}
-
-impl ops::Deref for ProcedureId {
-    type Target = [u8; Self::SIZE];
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl fmt::Display for ProcedureId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "0x")?;
-        for byte in self.0.iter() {
-            write!(f, "{byte:02x}")?;
-        }
-        Ok(())
-    }
-}
 
 impl ProcedureId {
     /// Truncated length of the id
@@ -259,6 +263,47 @@ impl ProcedureId {
     pub fn from_index(index: u16, module_path: &str) -> Self {
         let path = format!("{module_path}{MODULE_PATH_DELIM}{index}");
         Self::new(path)
+    }
+}
+
+impl From<[u8; ProcedureId::SIZE]> for ProcedureId {
+    fn from(value: [u8; ProcedureId::SIZE]) -> Self {
+        Self(value)
+    }
+}
+
+impl ops::Deref for ProcedureId {
+    type Target = [u8; Self::SIZE];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl fmt::Display for ProcedureId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "0x")?;
+        for byte in self.0.iter() {
+            write!(f, "{byte:02x}")?;
+        }
+        Ok(())
+    }
+}
+
+impl Serializable for ProcedureId {
+    fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
+        target.write_bytes(&self.0);
+        Ok(())
+    }
+}
+
+impl Deserializable for ProcedureId {
+    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
+        let proc_id_bytes = bytes.read_bytes(Self::SIZE)?;
+        let proc_id = proc_id_bytes
+            .try_into()
+            .expect("to array conversion failed");
+        Ok(Self(proc_id))
     }
 }
 

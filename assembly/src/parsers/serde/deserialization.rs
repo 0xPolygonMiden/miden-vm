@@ -1,169 +1,10 @@
 use super::{
-    Felt, Instruction, Node, OpCode, ProcedureId, ProcedureName, SerializationError, String, Vec,
+    ByteReader, Deserializable, Instruction, Node, OpCode, ProcedureId, SerializationError,
     IF_ELSE_OPCODE, MAX_PUSH_INPUTS, REPEAT_OPCODE, WHILE_OPCODE,
 };
-use core::str::from_utf8;
 
-// BYTE READER IMPLEMENTATION
+// NODE DESERIALIZATION
 // ================================================================================================
-
-/// Contains bytes for deserialization and current reading position
-pub struct ByteReader<'a> {
-    bytes: &'a [u8],
-    pos: usize,
-}
-
-impl<'a> ByteReader<'a> {
-    pub fn new(bytes: &'a [u8]) -> Self {
-        ByteReader { bytes, pos: 0 }
-    }
-
-    pub fn read_bool(&mut self) -> Result<bool, SerializationError> {
-        self.check_eor(1)?;
-        let result = self.bytes[self.pos];
-        self.pos += 1;
-        u8_to_bool(result)
-    }
-
-    pub fn read_u8(&mut self) -> Result<u8, SerializationError> {
-        self.check_eor(1)?;
-        let result = self.bytes[self.pos];
-        self.pos += 1;
-        Ok(result)
-    }
-
-    pub fn peek_u8(&self) -> Result<u8, SerializationError> {
-        self.check_eor(1)?;
-        let result = self.bytes[self.pos];
-        Ok(result)
-    }
-
-    pub fn read_u16(&mut self) -> Result<u16, SerializationError> {
-        self.check_eor(2)?;
-        let result = &self.bytes[self.pos..self.pos + 2];
-        self.pos += 2;
-        Ok(u16::from_le_bytes(
-            result.try_into().expect("u16 conversion failure"),
-        ))
-    }
-
-    pub fn read_u32(&mut self) -> Result<u32, SerializationError> {
-        self.check_eor(4)?;
-        let result = &self.bytes[self.pos..self.pos + 4];
-        self.pos += 4;
-        Ok(u32::from_le_bytes(
-            result.try_into().expect("u32 conversion failure"),
-        ))
-    }
-
-    pub fn read_u64(&mut self) -> Result<u64, SerializationError> {
-        self.check_eor(8)?;
-        let result = &self.bytes[self.pos..self.pos + 8];
-        self.pos += 8;
-        Ok(u64::from_le_bytes(
-            result.try_into().expect("u64 conversion failure"),
-        ))
-    }
-
-    pub fn read_len(&mut self) -> Result<usize, SerializationError> {
-        self.read_u16().map(|l| l as usize)
-    }
-
-    pub fn read_proc_name(&mut self) -> Result<ProcedureName, SerializationError> {
-        let length = self.read_u8()?;
-        self.check_eor(length as usize)?;
-        let string_bytes = &self.bytes[self.pos..self.pos + length as usize];
-        self.pos += length as usize;
-        // TODO should not panic on input
-        // https://github.com/maticnetwork/miden/issues/578
-        let name = String::from_utf8(string_bytes.to_vec()).expect("String conversion failure");
-        let name = ProcedureName::try_from(name).expect("library name validation failure");
-        Ok(name)
-    }
-
-    pub fn read_procedure_id(&mut self) -> Result<ProcedureId, SerializationError> {
-        self.check_eor(ProcedureId::SIZE)?;
-        let mut hash = [0; ProcedureId::SIZE];
-        hash.copy_from_slice(&self.bytes[self.pos..self.pos + ProcedureId::SIZE]);
-        self.pos += ProcedureId::SIZE;
-        Ok(hash.into())
-    }
-
-    pub fn read_opcode(&mut self) -> Result<OpCode, SerializationError> {
-        let value = self.read_u8()?;
-        OpCode::try_from(value).map_err(|_| SerializationError::InvalidOpCode)
-    }
-
-    pub fn read_felt(&mut self) -> Result<Felt, SerializationError> {
-        Ok(Felt::new(
-            self.read_u64()
-                .map_err(|_| SerializationError::InvalidFieldElement)?,
-        ))
-    }
-
-    pub fn read_str(&mut self) -> Result<&str, SerializationError> {
-        let len = self.read_u16()? as usize;
-        self.check_eor(len)?;
-        let string = &self.bytes[self.pos..self.pos + len];
-        self.pos += len;
-        from_utf8(string).map_err(|_| SerializationError::InvalidUtf8)
-    }
-
-    /// Checks if it is possible to read at least `num_bytes` bytes from ByteReader
-    ///
-    /// # Errors
-    /// Returns an error if, when reading the requested number of bytes, we go beyond the boundaries of the array
-    fn check_eor(&self, num_bytes: usize) -> Result<(), SerializationError> {
-        if self.pos + num_bytes > self.bytes.len() {
-            return Err(SerializationError::EndOfReader);
-        }
-        Ok(())
-    }
-}
-
-// DESERIALIZABLE TRAIT IMPLEMENTATIONS
-// ================================================================================================
-
-/// Returns `self` from its byte representation stored in provided `ByteReader` struct.
-pub trait Deserializable: Sized {
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError>;
-
-    fn read_from_bytes(bytes: &[u8]) -> Result<Self, SerializationError> {
-        Self::read_from(&mut ByteReader::new(bytes))
-    }
-}
-
-impl Deserializable for () {
-    fn read_from(_bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        Ok(())
-    }
-}
-
-impl Deserializable for String {
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        bytes.read_str().map(String::from)
-    }
-}
-
-impl<T> Deserializable for Vec<T>
-where
-    T: Deserializable,
-{
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let len = bytes.read_len()?;
-        (0..len).map(|_| T::read_from(bytes)).collect()
-    }
-}
-
-impl<T> Deserializable for Option<T>
-where
-    T: Deserializable,
-{
-    fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let is_some = bytes.read_bool()?;
-        is_some.then(|| T::read_from(bytes)).transpose()
-    }
-}
 
 impl Deserializable for Node {
     fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
@@ -193,9 +34,12 @@ impl Deserializable for Node {
     }
 }
 
+// INSTRUCTION DESERIALIZATION
+// ================================================================================================
+
 impl Deserializable for Instruction {
     fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let opcode = bytes.read_opcode()?;
+        let opcode = OpCode::read_from(bytes)?;
 
         match opcode {
             OpCode::Assert => Ok(Instruction::Assert),
@@ -476,23 +320,16 @@ impl Deserializable for Instruction {
 
             // ----- exec / call ----------------------------------------------------------------------
             OpCode::ExecLocal => Ok(Instruction::ExecLocal(bytes.read_u16()?)),
-            OpCode::ExecImported => Ok(Instruction::ExecImported(bytes.read_procedure_id()?)),
+            OpCode::ExecImported => Ok(Instruction::ExecImported(ProcedureId::read_from(bytes)?)),
             OpCode::CallLocal => Ok(Instruction::CallLocal(bytes.read_u16()?)),
-            OpCode::CallImported => Ok(Instruction::CallImported(bytes.read_procedure_id()?)),
-            OpCode::SysCall => Ok(Instruction::SysCall(bytes.read_procedure_id()?)),
+            OpCode::CallImported => Ok(Instruction::CallImported(ProcedureId::read_from(bytes)?)),
+            OpCode::SysCall => Ok(Instruction::SysCall(ProcedureId::read_from(bytes)?)),
         }
     }
 }
 
 // HELPER FUNCTIONS
 // ================================================================================================
-fn u8_to_bool(param: u8) -> Result<bool, SerializationError> {
-    match param {
-        0 => Ok(false),
-        1 => Ok(true),
-        _ => Err(SerializationError::InvalidBoolValue),
-    }
-}
 
 /// Returns an error if parsed value is smaller than or equal to min or greater than or
 /// equal to max. Otherwise, returns parsed value.
