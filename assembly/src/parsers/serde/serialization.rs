@@ -1,7 +1,4 @@
-use super::{
-    ByteWriter, Instruction, Node, OpCode, Serializable, SerializationError, IF_ELSE_OPCODE,
-    REPEAT_OPCODE, WHILE_OPCODE,
-};
+use super::{ByteWriter, Instruction, Node, OpCode, Serializable, SerializationError};
 
 // NODE SERIALIZATION
 // ================================================================================================
@@ -11,24 +8,17 @@ impl Serializable for Node {
         match self {
             Self::Instruction(i) => i.write_into(target),
             Self::IfElse(if_clause, else_clause) => {
-                target.write_u8(IF_ELSE_OPCODE);
-
+                OpCode::IfElse.write_into(target)?;
                 if_clause.write_into(target)?;
-
                 else_clause.write_into(target)
             }
             Self::Repeat(times, nodes) => {
-                target.write_u8(REPEAT_OPCODE);
-
-                // TODO shouldn't this fail if the repeat is expressed with a value greater than
-                // `u16::MAX`?
+                OpCode::Repeat.write_into(target)?;
                 target.write_u16(*times);
-
                 nodes.write_into(target)
             }
             Self::While(nodes) => {
-                target.write_u8(WHILE_OPCODE);
-
+                OpCode::While.write_into(target)?;
                 nodes.write_into(target)
             }
         }

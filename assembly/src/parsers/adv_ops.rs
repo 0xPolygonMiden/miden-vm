@@ -16,6 +16,10 @@ use super::{
 /// - adv.mem.a.n has a + n > u32::MAX.
 pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
     debug_assert_eq!(op.parts()[0], "adv");
+    if op.num_parts() < 2 {
+        return Err(ParsingError::missing_param(op));
+    }
+
     match op.parts()[1] {
         "u64div" => {
             if op.num_parts() > 2 {
