@@ -184,10 +184,10 @@ impl Serializable for ProcedureName {
         let num_bytes = name_bytes.len() as u8;
         if num_bytes > MAX_PROC_NAME_LEN {
             return Err(SerializationError::LengthTooLong);
-        } else {
-            target.write_u8(num_bytes);
-            target.write_bytes(name_bytes);
         }
+
+        target.write_u8(num_bytes);
+        target.write_bytes(name_bytes);
         Ok(())
     }
 }

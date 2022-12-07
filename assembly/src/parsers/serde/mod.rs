@@ -8,10 +8,6 @@ use num_enum::TryFromPrimitive;
 mod deserialization;
 mod serialization;
 
-const IF_ELSE_OPCODE: u8 = 253;
-const REPEAT_OPCODE: u8 = 254;
-const WHILE_OPCODE: u8 = 255;
-
 // OPERATION CODES ENUM
 // ================================================================================================
 
@@ -50,7 +46,7 @@ pub enum OpCode {
     Gt = 29,
     Gte = 30,
 
-    // ----- u32 manipulation ---------------------------------------------------------------
+    // ----- u32 manipulation ---------------------------------------------------------------------
     U32Test = 31,
     U32TestW = 32,
     U32Assert = 33,
@@ -129,7 +125,7 @@ pub enum OpCode {
     U32CheckedMax = 106,
     U32UncheckedMax = 107,
 
-    // ----- stack manipulation ---------------------------------------------------------------
+    // ----- stack manipulation -------------------------------------------------------------------
     Drop = 108,
     DropW = 109,
     PadW = 110,
@@ -209,7 +205,7 @@ pub enum OpCode {
     CDrop = 184,
     CDropW = 185,
 
-    // ----- input / output operations --------------------------------------------------------
+    // ----- input / output operations ------------------------------------------------------------
     PushU8 = 186,
     PushU16 = 187,
     PushU32 = 188,
@@ -247,19 +243,24 @@ pub enum OpCode {
     AdvKeyval = 215,
     AdvMem = 216,
 
-    // ----- cryptographic operations ---------------------------------------------------------
+    // ----- cryptographic operations -------------------------------------------------------------
     RPHash = 217,
     RPPerm = 218,
     MTreeGet = 219,
     MTreeSet = 220,
     MTreeCwm = 221,
 
-    // ----- exec / call ----------------------------------------------------------------------
+    // ----- exec / call --------------------------------------------------------------------------
     ExecLocal = 222,
     ExecImported = 223,
     CallLocal = 224,
     CallImported = 225,
     SysCall = 226,
+
+    // ----- control flow -------------------------------------------------------------------------
+    IfElse = 253,
+    Repeat = 254,
+    While = 255,
 }
 
 impl Serializable for OpCode {

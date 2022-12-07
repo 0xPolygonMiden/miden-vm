@@ -1,6 +1,6 @@
 use super::{
     ByteReader, Deserializable, Instruction, Node, OpCode, ProcedureId, SerializationError,
-    IF_ELSE_OPCODE, MAX_PUSH_INPUTS, REPEAT_OPCODE, WHILE_OPCODE,
+    MAX_PUSH_INPUTS,
 };
 
 // NODE DESERIALIZATION
@@ -10,26 +10,23 @@ impl Deserializable for Node {
     fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
         let first_byte = bytes.peek_u8()?;
 
-        match first_byte {
-            IF_ELSE_OPCODE => {
-                bytes.read_u8()?;
-                Ok(Node::IfElse(
-                    Deserializable::read_from(bytes)?,
-                    Deserializable::read_from(bytes)?,
-                ))
-            }
-            REPEAT_OPCODE => {
-                bytes.read_u8()?;
-                Ok(Node::Repeat(
-                    bytes.read_u16()?,
-                    Deserializable::read_from(bytes)?,
-                ))
-            }
-            WHILE_OPCODE => {
-                bytes.read_u8()?;
-                Ok(Node::While(Deserializable::read_from(bytes)?))
-            }
-            _ => Ok(Node::Instruction(Deserializable::read_from(bytes)?)),
+        if first_byte == OpCode::IfElse as u8 {
+            bytes.read_u8()?;
+            Ok(Node::IfElse(
+                Deserializable::read_from(bytes)?,
+                Deserializable::read_from(bytes)?,
+            ))
+        } else if first_byte == OpCode::Repeat as u8 {
+            bytes.read_u8()?;
+            Ok(Node::Repeat(
+                bytes.read_u16()?,
+                Deserializable::read_from(bytes)?,
+            ))
+        } else if first_byte == OpCode::While as u8 {
+            bytes.read_u8()?;
+            Ok(Node::While(Deserializable::read_from(bytes)?))
+        } else {
+            Ok(Node::Instruction(Deserializable::read_from(bytes)?))
         }
     }
 }
@@ -74,7 +71,7 @@ impl Deserializable for Instruction {
             OpCode::Gt => Ok(Instruction::Gt),
             OpCode::Gte => Ok(Instruction::Gte),
 
-            // ----- u32 manipulation ---------------------------------------------------------------
+            // ----- u32 manipulation -------------------------------------------------------------
             OpCode::U32Test => Ok(Instruction::U32Test),
             OpCode::U32TestW => Ok(Instruction::U32TestW),
             OpCode::U32Assert => Ok(Instruction::U32Assert),
@@ -161,7 +158,7 @@ impl Deserializable for Instruction {
             OpCode::U32CheckedMax => Ok(Instruction::U32CheckedMax),
             OpCode::U32UncheckedMax => Ok(Instruction::U32UncheckedMax),
 
-            // ----- stack manipulation ---------------------------------------------------------------
+            // ----- stack manipulation -----------------------------------------------------------
             OpCode::Drop => Ok(Instruction::Drop),
             OpCode::DropW => Ok(Instruction::DropW),
             OpCode::PadW => Ok(Instruction::PadW),
@@ -241,7 +238,7 @@ impl Deserializable for Instruction {
             OpCode::CDrop => Ok(Instruction::CDrop),
             OpCode::CDropW => Ok(Instruction::CDropW),
 
-            // ----- input / output operations --------------------------------------------------------
+            // ----- input / output operations ----------------------------------------------------
             OpCode::PushU8 => Ok(Instruction::PushU8(bytes.read_u8()?)),
             OpCode::PushU16 => Ok(Instruction::PushU16(bytes.read_u16()?)),
             OpCode::PushU32 => Ok(Instruction::PushU32(bytes.read_u32()?)),
@@ -311,19 +308,26 @@ impl Deserializable for Instruction {
             OpCode::AdvPush => Ok(Instruction::AdvPush(bytes.read_u8()?)),
             OpCode::AdvLoadW => Ok(Instruction::AdvLoadW),
 
-            // ----- cryptographic operations ---------------------------------------------------------
+            // ----- cryptographic operations -----------------------------------------------------
             OpCode::RPHash => Ok(Instruction::RpHash),
             OpCode::RPPerm => Ok(Instruction::RpPerm),
             OpCode::MTreeGet => Ok(Instruction::MTreeGet),
             OpCode::MTreeSet => Ok(Instruction::MTreeSet),
             OpCode::MTreeCwm => Ok(Instruction::MTreeCwm),
 
-            // ----- exec / call ----------------------------------------------------------------------
+            // ----- exec / call ------------------------------------------------------------------
             OpCode::ExecLocal => Ok(Instruction::ExecLocal(bytes.read_u16()?)),
             OpCode::ExecImported => Ok(Instruction::ExecImported(ProcedureId::read_from(bytes)?)),
             OpCode::CallLocal => Ok(Instruction::CallLocal(bytes.read_u16()?)),
             OpCode::CallImported => Ok(Instruction::CallImported(ProcedureId::read_from(bytes)?)),
             OpCode::SysCall => Ok(Instruction::SysCall(ProcedureId::read_from(bytes)?)),
+
+            // ----- control flow -----------------------------------------------------------------
+            // control flow instructions should be parsed as a part of Node::read_from() and we
+            // should never get here
+            OpCode::IfElse => unreachable!(),
+            OpCode::Repeat => unreachable!(),
+            OpCode::While => unreachable!(),
         }
     }
 }
