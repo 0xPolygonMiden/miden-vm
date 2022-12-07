@@ -23,7 +23,6 @@ pub use procedures::{ProcedureId, ProcedureName};
 
 mod parsers;
 pub use parsers::{parse_module, parse_program, ModuleAst, ProcedureAst, ProgramAst};
-pub(crate) use parsers::{Instruction, Node};
 
 mod serde;
 pub use serde::{ByteReader, ByteWriter, Deserializable, Serializable};
