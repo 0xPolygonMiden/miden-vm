@@ -533,17 +533,18 @@ impl fmt::Display for ProcedureNameError {
 
 #[derive(Debug)]
 pub enum SerializationError {
-    InvalidBoolValue,
-    LengthTooLong,
     EndOfReader,
-    InvalidOpCode,
+    InvalidBoolValue,
     InvalidFieldElement,
-    InvalidNumOfPushValues,
-    InvalidNumber,
-    InvalidUtf8,
-    InvalidPathNoDelimiter,
-    InvalidNamespace,
     InvalidModulePath,
+    InvalidNamespace,
+    InvalidNumber,
+    InvalidNumOfPushValues,
+    InvalidOpCode,
+    InvalidPathNoDelimiter,
+    InvalidProcedureName,
+    InvalidUtf8,
+    LengthTooLong,
     UnexpectedEndOfStream,
 }
 
@@ -551,17 +552,18 @@ impl fmt::Display for SerializationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use SerializationError::*;
         match self {
-            InvalidBoolValue => write!(f, "invalid boolean value"),
-            LengthTooLong => write!(f, "the provided length is too long and is not supported"),
             EndOfReader => write!(f, "unexpected reader EOF"),
-            InvalidOpCode => write!(f, "could not read a valid opcode"),
+            InvalidBoolValue => write!(f, "invalid boolean value"),
             InvalidFieldElement => write!(f, "could not read a valid field element"),
-            InvalidNumOfPushValues => write!(f, "invalid push values argument"),
-            InvalidNumber => write!(f, "could not read a valid number"),
-            InvalidUtf8 => write!(f, "could not read a well-formed utf-8 string"),
-            InvalidPathNoDelimiter => write!(f, "a path must contain a delimiter"),
-            InvalidNamespace => write!(f, "could not read a valid namespace definition"),
             InvalidModulePath => write!(f, "could not read a valid module path definition"),
+            InvalidNamespace => write!(f, "could not read a valid namespace definition"),
+            InvalidNumber => write!(f, "could not read a valid number"),
+            InvalidNumOfPushValues => write!(f, "invalid push values argument"),
+            InvalidOpCode => write!(f, "could not read a valid opcode"),
+            InvalidPathNoDelimiter => write!(f, "a path must contain a delimiter"),
+            InvalidProcedureName => write!(f, "invalid procedure name"),
+            InvalidUtf8 => write!(f, "could not read a well-formed utf-8 string"),
+            LengthTooLong => write!(f, "the provided length is too long and is not supported"),
             UnexpectedEndOfStream => write!(f, "the stream of tokens reached an unexpected end"),
         }
     }
@@ -576,6 +578,12 @@ impl From<SerializationError> for std::io::Error {
 
 #[cfg(feature = "std")]
 impl std::error::Error for SerializationError {}
+
+impl From<ProcedureNameError> for SerializationError {
+    fn from(_err: ProcedureNameError) -> Self {
+        Self::InvalidProcedureName
+    }
+}
 
 // LIBRARY ERROR
 // ================================================================================================

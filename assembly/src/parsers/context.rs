@@ -1,5 +1,5 @@
 use super::{
-    field_ops, io_ops, stack_ops, u32_ops, AbsolutePath, Instruction, LocalProcMap, Node,
+    adv_ops, field_ops, io_ops, stack_ops, u32_ops, AbsolutePath, Instruction, LocalProcMap, Node,
     ParsingError, ProcedureAst, ProcedureId, Token, TokenStream,
 };
 use vm_core::utils::{
@@ -475,7 +475,7 @@ impl ParserContext {
             "adv_push" => io_ops::parse_adv_push(op),
             "adv_loadw" => simple_instruction(op, AdvLoadW),
 
-            "adv" => io_ops::parse_adv_inject(op),
+            "adv" => adv_ops::parse_adv_inject(op),
 
             // ----- cryptographic operations -----------------------------------------------------
             "rphash" => simple_instruction(op, RpHash),

@@ -11,8 +11,10 @@ pub(crate) use nodes::{Instruction, Node};
 mod context;
 use context::ParserContext;
 
+mod adv_ops;
 mod field_ops;
 mod io_ops;
+mod serde;
 mod stack_ops;
 mod u32_ops;
 
@@ -140,7 +142,7 @@ pub struct ProcedureAst {
 impl Serializable for ProcedureAst {
     /// Writes byte representation of the `ProcedureAst` into the provided `ByteWriter` struct.
     fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
-        target.write_proc_name(&self.name)?;
+        self.name.write_into(target)?;
         self.docs.write_into(target)?;
         target.write_bool(self.is_export);
         target.write_u16(self.num_locals);
@@ -152,7 +154,7 @@ impl Serializable for ProcedureAst {
 impl Deserializable for ProcedureAst {
     /// Returns a `ProcedureAst` from its byte representation stored in provided `ByteReader` struct.
     fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
-        let name = bytes.read_proc_name()?;
+        let name = ProcedureName::read_from(bytes)?;
         let docs = Deserializable::read_from(bytes)?;
         let is_export = bytes.read_bool()?;
         let num_locals = bytes.read_u16()?;
@@ -369,83 +371,4 @@ fn check_div_by_zero(value: u64, op: &Token, param_idx: usize) -> Result<(), Par
     } else {
         Ok(())
     }
-}
-
-/// Validates an op Token against a provided instruction string and/or an expected number of
-/// parameter inputs and returns an appropriate ParsingError if the operation Token is invalid.
-///
-/// * To fully validate an operation, pass all of the following:
-/// - the parsed operation Token
-/// - a string describing a valid instruction, with variants separated by '|' and parameters
-///   excluded.
-/// - an integer or range for the number of allowed parameters
-/// This will attempt to fully validate the operation, so a full-length instruction must be
-/// described. For example, `popw.mem` accepts 0 or 1 inputs and can be validated by:
-/// ```validate_operation!(op_token, "popw.mem", 0..1)```
-///
-/// * To validate only the operation parameters, specify @only_params before passing the same inputs
-/// used for full validation (above). This will skip validating each part of the instruction.
-/// For example, to validate only the parameters of `popw.mem` use:
-/// ```validate_operation!(@only_params op_token, "popw.mem", 0..1)```
-///
-/// * To validate only the instruction portion of the operation, exclude the specification for the
-/// number of parameters. This will only validate up to the number of parts in the provided
-/// instruction string. For example, `pop.local` and `pop.mem` are the two valid instruction
-/// variants for `pop`, so the first 2 parts of `pop` can be validated by:
-/// ```validate_operation!(op_token, "pop.local|mem")```
-/// or the first part can be validated by:
-/// ```validate_operation!(op_token, "pop")```
-#[macro_export]
-macro_rules! validate_operation {
-    // validate that the number of parameters is within the allowed range
-    (@only_params $token:expr, $instr:literal, $min_params:literal..$max_params:expr ) => {
-        let num_parts = $token.num_parts();
-        let num_instr_parts = $instr.split(".").count();
-
-        // token has too few parts to contain the required parameters
-        if num_parts < num_instr_parts + $min_params {
-            return Err(ParsingError::missing_param($token));
-        }
-        // token has more than the maximum number of parts
-        if num_parts > num_instr_parts + $max_params {
-            return Err(ParsingError::extra_param($token));
-        }
-    };
-    // validate the exact number of parameters
-    (@only_params $token:expr, $instr:literal, $num_params:literal) => {
-        validate_operation!(@only_params $token, $instr, $num_params..$num_params);
-    };
-
-    // validate the instruction string and an optional parameter range
-    ($token:expr, $instr:literal $(, $min_params:literal..$max_params:expr)?) => {
-        // split the expected instruction into a vector of parts
-        let instr_parts: Vec<Vec<&str>> = $instr
-            .split(".")
-            .map(|part| part.split("|").collect())
-            .collect();
-
-        let num_parts = $token.num_parts();
-        let num_instr_parts = instr_parts.len();
-
-        // token has too few parts to contain the full instruction
-        if num_parts < num_instr_parts {
-            return Err(ParsingError::invalid_op($token));
-        }
-
-        // compare the parts to make sure they match
-        for (part_variants, token_part) in instr_parts.iter().zip($token.parts()) {
-            if !part_variants.contains(token_part) {
-                return Err(ParsingError::unexpected_token($token, $instr));
-            }
-        }
-
-        $(
-            // validate the parameter range, if provided
-            validate_operation!(@only_params $token, $instr, $min_params..$max_params);
-        )?
-    };
-    // validate the instruction string and an exact number of parameters
-    ($token:expr, $instr:literal, $num_params:literal) => {
-        validate_operation!($token, $instr, $num_params..$num_params);
-    };
 }

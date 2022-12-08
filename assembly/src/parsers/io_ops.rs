@@ -4,7 +4,7 @@ use super::{
     Node::{self, Instruction},
     ParsingError, Token, Vec,
 };
-use crate::{validate_operation, StarkField, ADVICE_READ_LIMIT, HEX_CHUNK_SIZE, MAX_PUSH_INPUTS};
+use crate::{StarkField, ADVICE_READ_LIMIT, HEX_CHUNK_SIZE, MAX_PUSH_INPUTS};
 use vm_core::WORD_LEN;
 
 // CONSTANTS
@@ -95,33 +95,6 @@ pub fn parse_adv_push(op: &Token) -> Result<Node, ParsingError> {
             Ok(Instruction(AdvPush(num_vals)))
         }
         _ => Err(ParsingError::extra_param(op)),
-    }
-}
-
-/// Returns `AdvU64Div`, `AdvKeyval`, or `AdvMem`  instruction node.
-///
-/// # Errors
-/// Returns an error if:
-/// - Any of the instructions have a wrong number of parameters.
-/// - adv.mem.a.n has a + n > u32::MAX.
-pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "adv");
-    match op.parts()[1] {
-        "u64div" => {
-            validate_operation!(op, "adv.u64div", 0);
-            Ok(Instruction(AdvU64Div))
-        }
-        "keyval" => {
-            validate_operation!(op, "adv.keyval", 0);
-            Ok(Instruction(AdvKeyval))
-        }
-        "mem" => {
-            validate_operation!(op, "adv.mem", 2);
-            let start_addr = parse_param(op, 2)?;
-            let num_words = parse_checked_param(op, 3, 1, u32::MAX - start_addr)?;
-            Ok(Instruction(AdvMem(start_addr, num_words)))
-        }
-        _ => Err(ParsingError::invalid_op(op)),
     }
 }
 
