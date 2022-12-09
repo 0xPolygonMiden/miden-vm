@@ -7,6 +7,7 @@ title = "Polygon Miden VM"
 
 [output.katex]
 [output.html]
+git-repository-url = "https://github.com/0xPolygonMiden/miden-vm/"
 
 [output.linkcheck]
 warning-policy = "ignore"
