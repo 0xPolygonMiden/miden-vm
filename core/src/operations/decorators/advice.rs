@@ -34,7 +34,7 @@ impl fmt::Display for AdviceInjector {
             Self::MerkleNode => write!(f, "merkle_node"),
             Self::DivResultU64 => write!(f, "div_result_u64"),
             Self::MapValue => write!(f, "map_value"),
-            Self::Memory(start_addr, num_words) => write!(f, "mem({}, {})", start_addr, num_words),
+            Self::Memory(start_addr, num_words) => write!(f, "mem({start_addr}, {num_words})"),
         }
     }
 }

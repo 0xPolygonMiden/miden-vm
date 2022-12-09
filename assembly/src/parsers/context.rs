@@ -319,7 +319,7 @@ impl ParserContext {
                 }
                 Token::USE | Token::EXPORT | Token::PROC | Token::BEGIN => {
                     // TODO improve the error with the originating block
-                    // https://github.com/maticnetwork/miden/issues/514
+                    // https://github.com/0xPolygonMiden/miden-vm/issues/514
                     return Err(ParsingError::unexpected_body_end(token));
                 }
                 _ => {

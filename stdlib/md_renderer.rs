@@ -12,10 +12,8 @@ pub struct MarkdownRenderer {}
 
 impl MarkdownRenderer {
     fn write_docs_header(mut writer: &File, ns: &str) {
-        let header = format!(
-            "\n## {}\n| Procedure | Description |\n| ----------- | ------------- |\n",
-            ns
-        );
+        let header =
+            format!("\n## {ns}\n| Procedure | Description |\n| ----------- | ------------- |\n");
         writer
             .write_all(header.as_bytes())
             .expect("unable to write header to writer");

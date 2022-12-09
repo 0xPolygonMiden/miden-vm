@@ -2,15 +2,15 @@
 This crate aggregates all components of Miden VM in a single place. Specifically, it re-exports functionality from [processor](../processor/), [prover](../prover/), and [verifier](../verifier/) crates. Additionally, when compiled as an executable, this crate can be used via a [CLI interface](#cli-interface) to execute Miden VM programs and to verify correctness of their execution.
 
 ## Basic concepts
-An in-depth description of Miden VM is available in the full Miden VM [documentation](https://maticnetwork.github.io/miden/). In this section we cover only the basics to make the included examples easier to understand.
+An in-depth description of Miden VM is available in the full Miden VM [documentation](https://0xpolygonmiden.github.io/miden-vm/). In this section we cover only the basics to make the included examples easier to understand.
 
 ### Writing programs
 Our goal is to make Miden VM an easy compilation target for high-level blockchain-centric languages such as Solidity, Move, Sway, and others. We believe it is important to let people write programs in the languages of their choice. However, compilers to help with this have not been developed yet. Thus, for now, the primary way to write programs for Miden VM is to use [Miden assembly](../assembly).
 
-Miden assembler compiles assembly source code in a [program MAST](https://maticnetwork.github.io/miden/design/programs.html), which is represented by a `Program` struct. It is possible to construct a `Program` struct manually, but we don't recommend this approach because it is tedious, error-prone, and requires an in-depth understanding of VM internals. All examples throughout these docs use assembly syntax.
+Miden assembler compiles assembly source code in a [program MAST](https://0xpolygonmiden.github.io/miden-vm/design/programs.html), which is represented by a `Program` struct. It is possible to construct a `Program` struct manually, but we don't recommend this approach because it is tedious, error-prone, and requires an in-depth understanding of VM internals. All examples throughout these docs use assembly syntax.
 
 #### Program hash
-All Miden programs can be reduced to a single 32-byte value, called program hash. Once a `Program` object is constructed, you can access this hash via `Program::hash()` method. This hash value is used by a verifier when they verify program execution. This ensures that the verifier verifies execution of a specific program (e.g. a program which the prover had committed to previously). The methodology for computing program hash is described [here](https://maticnetwork.github.io/miden/design/programs.html#program-hash-computation).
+All Miden programs can be reduced to a single 32-byte value, called program hash. Once a `Program` object is constructed, you can access this hash via `Program::hash()` method. This hash value is used by a verifier when they verify program execution. This ensures that the verifier verifies execution of a specific program (e.g. a program which the prover had committed to previously). The methodology for computing program hash is described [here](https://0xpolygonmiden.github.io/miden-vm/design/programs.html#program-hash-computation).
 
 ### Inputs / outputs
 Currently, there are 3 ways to get values onto the stack:
