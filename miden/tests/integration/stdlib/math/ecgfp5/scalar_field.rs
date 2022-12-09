@@ -1,19 +1,22 @@
 use super::build_test;
-use std::{cmp::PartialEq, ops::Mul};
-use vm_core::StarkField;
+use std::{
+    cmp::PartialEq,
+    ops::{Add, Mul, Sub},
+};
+use vm_core::{utils::group_slice_elements, StarkField};
 
 #[derive(Copy, Clone, Debug)]
-struct Scalar {
+pub struct Scalar {
     pub limbs: [u32; 10],
 }
 
 #[allow(dead_code)]
 impl Scalar {
-    const fn zero() -> Self {
+    pub const fn zero() -> Self {
         Self { limbs: [0u32; 10] }
     }
 
-    const fn one() -> Self {
+    pub const fn one() -> Self {
         Self {
             limbs: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         }
@@ -23,7 +26,7 @@ impl Scalar {
     /// in radix-2^32 form
     ///
     /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b9/rust/src/scalar.rs#L23-L32
-    const fn get_n() -> Self {
+    pub const fn get_n() -> Self {
         Self {
             limbs: [
                 2492202977, 3893352854, 3609501852, 3901250617, 3484943929, 2147483622, 22,
@@ -52,6 +55,24 @@ impl Scalar {
     /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b9/rust/src/scalar.rs#L34-L35
     const fn get_neg_n0_inv() -> u32 {
         91978719
+    }
+
+    /// Raw addition of a scalar element from another one, without reduction
+    ///
+    /// Adapted from https://github.com/pornin/ecgfp5/blob/82325b9/rust/src/scalar.rs#L66-L78
+    fn add_inner(&self, rhs: &Self) -> Self {
+        let mut r = Self::zero();
+        let mut c = 0u32;
+
+        for i in 0..10 {
+            let (t0, flg0) = self.limbs[i].overflowing_add(rhs.limbs[i]);
+            let (t1, flg1) = t0.overflowing_add(c);
+
+            r.limbs[i] = t1;
+            c = (flg0 | flg1) as u32;
+        }
+
+        r
     }
 
     /// Raw subtraction of a Scalar element from another one, without reduction
@@ -132,14 +153,14 @@ impl Scalar {
     /// Given a scalar in radix-2^32 form, this routine converts it to Montgomery form
     ///
     /// Inspired by https://github.com/itzmeanjan/secp256k1/blob/37b339d/field/scalar_field_utils.py#L235-L242
-    fn to_mont(&self) -> Self {
+    pub fn to_mont(&self) -> Self {
         self.mont_mul(&Self::get_r2())
     }
 
     /// Given a scalar in Montgomery form, this routine converts it to radix-2^32 form
     ///
     /// Inspired by https://github.com/itzmeanjan/secp256k1/blob/37b339d/field/scalar_field_utils.py#L245-L251
-    fn from_mont(&self) -> Self {
+    pub fn from_mont(&self) -> Self {
         self.mont_mul(&Self::one())
     }
 
@@ -158,12 +179,13 @@ impl Scalar {
         }
         r_mont.from_mont()
     }
+
     /// Computes multiplicative inverse ( say a' ) of scalar field element a | a * a' = 1 ( mod N )
     ///
     /// Note, if a = 0, then a' = 0.
     ///
     /// See https://github.com/itzmeanjan/secp256k1/blob/6e5e654/field/scalar_field.py#L111-L129
-    fn inv(self) -> Self {
+    pub fn inv(self) -> Self {
         let exp = Self {
             limbs: [
                 2492202975, 3893352854, 3609501852, 3901250617, 3484943929, 2147483622, 22,
@@ -171,6 +193,41 @@ impl Scalar {
             ],
         };
         self.pow(exp)
+    }
+
+    /// Sample random scalar element
+    pub fn rand() -> Self {
+        let mut tmp = rand_utils::rand_array::<u8, 40>(); // sample 320 random bits
+        tmp[39] = tmp[39] & 0b00111111u8; // drop 2 most significant bits to ensure that tmp ∈ [0, N)
+
+        let limbs: [u32; 10] = group_slice_elements::<u8, 4>(&tmp)
+            .iter()
+            .map(|v| u32::from_le_bytes(*v))
+            .collect::<Vec<u32>>()
+            .try_into()
+            .unwrap();
+
+        Self { limbs }
+    }
+}
+
+impl Add for Scalar {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let r0 = self.add_inner(&rhs);
+        let (r1, c) = r0.sub_inner(&Self::get_n());
+        Self::select(c, r1, r0)
+    }
+}
+
+impl Sub for Scalar {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let (r0, c) = self.sub_inner(&rhs);
+        let r1 = r0.add_inner(&Self::get_n());
+        Self::select(c, r0, r1)
     }
 }
 
@@ -200,29 +257,27 @@ impl PartialEq for Scalar {
 }
 
 #[test]
-fn test_ec_ext5_scalar_arithmetic() {
-    let a = Scalar {
-        limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-        ],
-    };
-    let b = a.inv();
-    let c = a * b;
+fn test_ecgfp5_scalar_arithmetic() {
+    let a = Scalar::rand();
+    let b = Scalar::rand();
 
-    assert_eq!(c, Scalar::one());
+    let c = a * b;
+    let d = c * a.inv();
+    let e = d * b.inv();
+
+    assert_eq!(b, d);
+    assert_eq!(Scalar::one(), e);
+
+    let f = a + b;
+    let g = f - a;
+    let h = g - b;
+
+    assert_eq!(b, g);
+    assert_eq!(Scalar::zero(), h);
 }
 
 #[test]
-fn test_ec_ext5_scalar_mont_mul() {
+fn test_ecgfp5_scalar_mont_mul() {
     let source = "
     use.std::math::ecgfp5::scalar_field
 
@@ -230,34 +285,8 @@ fn test_ec_ext5_scalar_mont_mul() {
         exec.scalar_field::mont_mul
     end";
 
-    let a = Scalar {
-        limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-        ],
-    };
-    let b = Scalar {
-        limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-        ],
-    };
+    let a = Scalar::rand();
+    let b = Scalar::rand();
     let c = a.mont_mul(&b);
 
     let mut stack = [0u64; 20];
@@ -276,7 +305,7 @@ fn test_ec_ext5_scalar_mont_mul() {
 }
 
 #[test]
-fn test_ec_ext5_scalar_to_and_from_mont_repr() {
+fn test_ecgfp5_scalar_to_and_from_mont_repr() {
     let source = "
     use.std::math::ecgfp5::scalar_field
 
@@ -285,20 +314,7 @@ fn test_ec_ext5_scalar_to_and_from_mont_repr() {
         exec.scalar_field::from_mont
     end";
 
-    let a = Scalar {
-        limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-        ],
-    };
+    let a = Scalar::rand();
     let b = a.to_mont();
     let c = b.from_mont();
 
@@ -319,7 +335,7 @@ fn test_ec_ext5_scalar_to_and_from_mont_repr() {
 }
 
 #[test]
-fn test_ec_ext5_scalar_inv() {
+fn test_ecgfp5_scalar_inv() {
     let source = "
     use.std::math::ecgfp5::scalar_field
 
@@ -327,20 +343,7 @@ fn test_ec_ext5_scalar_inv() {
         exec.scalar_field::inv
     end";
 
-    let a = Scalar {
-        limbs: [
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-            rand_utils::rand_value::<u32>() >> 1,
-        ],
-    };
+    let a = Scalar::rand();
     let b = a.inv();
 
     let mut stack = [0u64; 10];
