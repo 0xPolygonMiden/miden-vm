@@ -1,7 +1,7 @@
 # Miden assembly
 This crate contains Miden assembler.
 
-The purpose of the assembler is to compile [Miden assembly](https://maticnetwork.github.io/miden/user_docs/assembly/main.html) source code into a Miden VM program (represented by `Program` struct). The program can then be executed on Miden VM [processor](../processor).
+The purpose of the assembler is to compile [Miden assembly](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) source code into a Miden VM program (represented by `Program` struct). The program can then be executed on Miden VM [processor](../processor).
 
 ## Compiling assembly code
 To compile Miden assembly source code into a program for Miden VM, you first need to instantiate the assembler, and then call its `compile()` method. This method takes the following arguments:

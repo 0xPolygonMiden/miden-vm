@@ -398,8 +398,7 @@ fn parse_checked_param<I: core::str::FromStr + Ord + Display>(
             op,
             param_idx,
             format!(
-                "parameter value must be greater than or equal to {} and less than or equal to {}",
-                lower_bound, upper_bound
+                "parameter value must be greater than or equal to {lower_bound} and less than or equal to {upper_bound}"
             )
             .as_str(),
         ));

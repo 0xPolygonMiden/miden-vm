@@ -407,10 +407,7 @@ pub fn combine_spans(spans: &mut Vec<CodeBlock>) -> CodeBlock {
                 ops.extend_from_slice(batch.ops());
             }
         } else {
-            panic!(
-                "Codeblock was expected to be a Span Block, got {:?}.",
-                block
-            );
+            panic!("Codeblock was expected to be a Span Block, got {block:?}.");
         }
     });
     CodeBlock::new_span_with_decorators(ops, decorators)

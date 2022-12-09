@@ -16,13 +16,14 @@ use vm_core::{Felt, ProgramInputs, StarkField, Word};
 /// regular assembly instructions.
 ///
 /// Miden Instructions
-/// All Miden instructions mentioned in the [Miden Assembly section](https://maticnetwork.github.io/
-/// miden/user_docs/assembly/main.html) are valid.
-///  One can either input instructions one by one or multiple instructions in one input.
-///  For example, the below two commands will result in the same output.
-///  >> push.1
-///  >> push.2
-///  >> push.3
+/// All Miden instructions mentioned in the
+/// [Miden Assembly section](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html)
+/// are valid.
+/// One can either input instructions one by one or multiple instructions in one input.
+/// For example, the below two commands will result in the same output.
+/// >> push.1
+/// >> push.2
+/// >> push.3
 ///  
 ///  >> push.1 push.2 push.3
 ///

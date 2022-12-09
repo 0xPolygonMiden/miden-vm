@@ -1,7 +1,7 @@
 # Polygon Miden
 
-<a href="https://github.com/maticnetwork/miden/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
-<img src="https://github.com/maticnetwork/miden/workflows/CI/badge.svg?branch=main">
+<a href="https://github.com/0xPolygonMiden/miden-vm/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg"></a>
+<img src="https://github.com/0xPolygonMiden/miden-vm/workflows/CI/badge.svg?branch=main">
 <a href="https://crates.io/crates/miden"><img src="https://img.shields.io/crates/v/miden"></a>
 
 A STARK-based virtual machine.
@@ -18,7 +18,7 @@ Miden VM is a zero-knowledge virtual machine written in Rust. For any program ex
 ### Status and features
 Miden VM is currently on release v0.3. In this release, most of the core features of the VM have been stabilized, and most of the STARK proof generation has been implemented. While we expect to keep making changes to the VM internals, the external interfaces should remain relatively stable, and we will do our best to minimize the amount of breaking changes going forward.
 
-The next version of the VM is being developed in the [next](https://github.com/maticnetwork/miden/tree/next) branch. There is also a documentation for the latest features and changes in the next branch [documentation next branch](https://maticnetwork.github.io/miden/intro/main.html).
+The next version of the VM is being developed in the [next](https://github.com/0xPolygonMiden/miden-vm/tree/next) branch. There is also a documentation for the latest features and changes in the next branch [documentation next branch](https://0xpolygonmiden.github.io/miden-vm/intro/main.html).
 
 #### Feature highlights
 Miden VM is a fully-featured virtual machine. Despite being optimized for zero-knowledge proof generation, it provides all the features one would expect from a regular VM. To highlight a few:

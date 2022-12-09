@@ -543,8 +543,7 @@ fn get_op_batch_flags(num_groups_left: Felt) -> [Felt; NUM_OP_BATCH_FLAGS] {
         2 => OP_BATCH_2_GROUPS,
         1 => OP_BATCH_1_GROUPS,
         _ => panic!(
-            "invalid number of groups in a batch: {}, group count: {}",
-            num_groups, num_groups_left
+            "invalid number of groups in a batch: {num_groups}, group count: {num_groups_left}"
         ),
     }
 }

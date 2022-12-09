@@ -103,7 +103,7 @@ pub fn parse_exp(op: &Token) -> Result<Node, ParsingError> {
                     return Err(ParsingError::invalid_param_with_reason(
                         op,
                         1,
-                        format!("parameter can at max be a u64 but found u{}", bits_len).as_str(),
+                        format!("parameter can at max be a u64 but found u{bits_len}").as_str(),
                     ));
                 }
 
