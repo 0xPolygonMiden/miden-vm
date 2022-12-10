@@ -51,9 +51,7 @@ impl AssemblyContext {
 
     /// Returns the number of memory locals allocated for the procedure currently being compiled.
     pub fn num_proc_locals(&self) -> u16 {
-        self.current_proc_context()
-            .expect("no procedures")
-            .num_locals
+        self.current_proc_context().expect("no procedures").num_locals
     }
 
     // STATE MUTATORS
@@ -78,17 +76,13 @@ impl AssemblyContext {
 
         // make sure this module is not in the chain of modules which are currently being compiled
         if self.module_stack.iter().any(|m| m.path == module_path) {
-            let dep_chain = self
-                .module_stack
-                .iter()
-                .map(|m| m.path.to_string())
-                .collect::<Vec<_>>();
+            let dep_chain =
+                self.module_stack.iter().map(|m| m.path.to_string()).collect::<Vec<_>>();
             return Err(AssemblyError::circular_module_dependency(&dep_chain));
         }
 
         // push a new module context onto the module stack and return
-        self.module_stack
-            .push(ModuleContext::for_module(module_path));
+        self.module_stack.push(ModuleContext::for_module(module_path));
         Ok(())
     }
 
@@ -141,10 +135,7 @@ impl AssemblyContext {
     /// Completes compilation of the current procedure and adds the compiled procedure to the list
     /// of the current module's compiled procedures.
     pub fn complete_proc(&mut self, code_root: CodeBlock) {
-        self.module_stack
-            .last_mut()
-            .expect("no modules")
-            .complete_proc(code_root);
+        self.module_stack.last_mut().expect("no modules").complete_proc(code_root);
     }
 
     // CALL PROCESSORS
@@ -355,8 +346,7 @@ impl ModuleContext {
         }
 
         let name = ProcedureName::try_from(name.to_string())?;
-        self.proc_stack
-            .push(ProcedureContext::new(name, is_export, num_locals));
+        self.proc_stack.push(ProcedureContext::new(name, is_export, num_locals));
         Ok(())
     }
 

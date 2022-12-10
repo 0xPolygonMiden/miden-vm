@@ -217,7 +217,5 @@ pub fn absorb_into_state(state: &mut [Felt; STATE_WIDTH], values: &[Felt; RATE_L
 
 /// Returns elements representing the digest portion of the provided hasher's state.
 pub fn get_digest(state: &[Felt; STATE_WIDTH]) -> [Felt; DIGEST_LEN] {
-    state[DIGEST_RANGE]
-        .try_into()
-        .expect("failed to get digest from hasher state")
+    state[DIGEST_RANGE].try_into().expect("failed to get digest from hasher state")
 }

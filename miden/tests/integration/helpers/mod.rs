@@ -144,9 +144,7 @@ impl Test {
             .expect("failed to load stdlib");
 
         match self.kernel.as_ref() {
-            Some(kernel) => assembler
-                .with_kernel(kernel)
-                .expect("kernel compilation failed"),
+            Some(kernel) => assembler.with_kernel(kernel).expect("kernel compilation failed"),
             None => assembler,
         }
         .compile(&self.source)

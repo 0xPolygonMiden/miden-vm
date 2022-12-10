@@ -337,11 +337,7 @@ fn push_felt(span: &mut SpanBuilder, value: Felt) {
 /// equal to max. Otherwise, returns Ok(()).
 fn validate_param<I: Ord + Into<u64>>(value: I, min: I, max: I) -> Result<(), AssemblyError> {
     if value < min || value > max {
-        Err(AssemblyError::param_out_of_bounds(
-            value.into(),
-            min.into(),
-            max.into(),
-        ))
+        Err(AssemblyError::param_out_of_bounds(value.into(), min.into(), max.into()))
     } else {
         Ok(())
     }

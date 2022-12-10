@@ -33,12 +33,8 @@ fn hasher_permute() {
     // there should be two lookups for start and end rows of hasher operation
     let expected_lookups_len = 2;
     // make sure the lookups have correct labels, addresses, indices and contexts.
-    let expected_lookup_start = HasherLookup::new(
-        LINEAR_HASH_LABEL,
-        lookup_start_addr,
-        ZERO,
-        HasherLookupContext::Start,
-    );
+    let expected_lookup_start =
+        HasherLookup::new(LINEAR_HASH_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
 
     let expected_lookup_end = HasherLookup::new(
         RETURN_STATE_LABEL,
@@ -132,12 +128,8 @@ fn hasher_build_merkle_root() {
     let expected_lookups_len = 2;
     // make sure the lookups have correct labels, addresses, indices and contexts.
     let lookup_start_addr = 1;
-    let expected_lookup_start = HasherLookup::new(
-        MP_VERIFY_LABEL,
-        lookup_start_addr,
-        ZERO,
-        HasherLookupContext::Start,
-    );
+    let expected_lookup_start =
+        HasherLookup::new(MP_VERIFY_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
     let expected_lookup_end = HasherLookup::new(
         RETURN_HASH_LABEL,
         lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
@@ -158,12 +150,8 @@ fn hasher_build_merkle_root() {
     // there should be two lookups for start and end rows of hasher operation
     let expected_lookups_len = 2;
     // make sure the lookups have correct labels, addresses, indices and contexts.
-    let expected_lookup_start = HasherLookup::new(
-        MP_VERIFY_LABEL,
-        lookup_start_addr,
-        ONE,
-        HasherLookupContext::Start,
-    );
+    let expected_lookup_start =
+        HasherLookup::new(MP_VERIFY_LABEL, lookup_start_addr, ONE, HasherLookupContext::Start);
     let expected_lookup_end = HasherLookup::new(
         RETURN_HASH_LABEL,
         lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
@@ -249,12 +237,8 @@ fn hasher_build_merkle_root() {
     // there should be two lookups for start and end rows of hasher operation
     let expected_lookups_len = 2;
     // make sure the lookups have correct labels, addresses, indices and contexts.
-    let expected_lookup_start = HasherLookup::new(
-        MP_VERIFY_LABEL,
-        lookup_start_addr,
-        ZERO,
-        HasherLookupContext::Start,
-    );
+    let expected_lookup_start =
+        HasherLookup::new(MP_VERIFY_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
     let expected_lookup_end = HasherLookup::new(
         RETURN_HASH_LABEL,
         lookup_start_addr + 3 * HASH_CYCLE_LEN as u32 - 1,
@@ -378,12 +362,7 @@ fn hasher_update_merkle_root() {
     let expected_lookups_len = 4;
     // make sure the lookups have correct labels, addresses, indices and contexts.
     let expected_lookups = vec![
-        HasherLookup::new(
-            MR_UPDATE_OLD_LABEL,
-            lookup_start_addr,
-            ZERO,
-            HasherLookupContext::Start,
-        ),
+        HasherLookup::new(MR_UPDATE_OLD_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start),
         HasherLookup::new(
             RETURN_HASH_LABEL,
             lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
@@ -416,12 +395,7 @@ fn hasher_update_merkle_root() {
     let expected_lookups_len = 4;
     // make sure the lookups have correct labels, addresses, indices and contexts.
     let expected_lookups = vec![
-        HasherLookup::new(
-            MR_UPDATE_OLD_LABEL,
-            lookup_start_addr,
-            ONE,
-            HasherLookupContext::Start,
-        ),
+        HasherLookup::new(MR_UPDATE_OLD_LABEL, lookup_start_addr, ONE, HasherLookupContext::Start),
         HasherLookup::new(
             RETURN_HASH_LABEL,
             lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
@@ -474,10 +448,8 @@ fn hasher_update_merkle_root() {
     ];
     assert_eq!(expected_sibling_hints, aux_hints.sibling_hints);
 
-    let expected_sibling_rows = vec![
-        SiblingTableRow::new(ZERO, path0[0]),
-        SiblingTableRow::new(ONE, path1[0]),
-    ];
+    let expected_sibling_rows =
+        vec![SiblingTableRow::new(ZERO, path0[0]), SiblingTableRow::new(ONE, path1[0])];
     assert_eq!(expected_sibling_rows, aux_hints.sibling_rows);
 
     // --- Merkle tree with 8 leaves ------------------------------------------
@@ -693,23 +665,15 @@ fn hash_memoization_control_blocks() {
     let lookup_start_addr = 1;
     let expected_lookups_len = 2;
     // make sure the lookups have correct labels, addresses, indices and contexts.
-    let lookup_start = HasherLookup::new(
-        LINEAR_HASH_LABEL,
-        lookup_start_addr,
-        ZERO,
-        HasherLookupContext::Start,
-    );
+    let lookup_start =
+        HasherLookup::new(LINEAR_HASH_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
     let lookup_end = HasherLookup::new(
         RETURN_HASH_LABEL,
         lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
         ZERO,
         HasherLookupContext::Return,
     );
-    check_lookups_validity(
-        lookups,
-        expected_lookups_len,
-        vec![lookup_start, lookup_end],
-    );
+    check_lookups_validity(lookups, expected_lookups_len, vec![lookup_start, lookup_end]);
 
     // make sure the hash of the final state is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
@@ -734,23 +698,15 @@ fn hash_memoization_control_blocks() {
     let lookup_start_addr = 9;
     let expected_lookups_len = 2;
     // make sure the lookups have correct labels, addresses, indices and contexts.
-    let lookup_start = HasherLookup::new(
-        LINEAR_HASH_LABEL,
-        lookup_start_addr,
-        ZERO,
-        HasherLookupContext::Start,
-    );
+    let lookup_start =
+        HasherLookup::new(LINEAR_HASH_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
     let lookup_end = HasherLookup::new(
         RETURN_HASH_LABEL,
         lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
         ZERO,
         HasherLookupContext::Return,
     );
-    check_lookups_validity(
-        lookups,
-        expected_lookups_len,
-        vec![lookup_start, lookup_end],
-    );
+    check_lookups_validity(lookups, expected_lookups_len, vec![lookup_start, lookup_end]);
 
     let first_block_final_state = final_state;
 
@@ -781,23 +737,15 @@ fn hash_memoization_control_blocks() {
     let lookup_start_addr = 17;
     let expected_lookups_len = 2;
     // make sure the lookups have correct labels, addresses, indices and contexts.
-    let lookup_start = HasherLookup::new(
-        LINEAR_HASH_LABEL,
-        lookup_start_addr,
-        ZERO,
-        HasherLookupContext::Start,
-    );
+    let lookup_start =
+        HasherLookup::new(LINEAR_HASH_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
     let lookup_end = HasherLookup::new(
         RETURN_HASH_LABEL,
         lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
         ZERO,
         HasherLookupContext::Return,
     );
-    check_lookups_validity(
-        lookups,
-        expected_lookups_len,
-        vec![lookup_start, lookup_end],
-    );
+    check_lookups_validity(lookups, expected_lookups_len, vec![lookup_start, lookup_end]);
 
     // make sure the hash of the final state of the second split block is the same as the expected
     // hash.
@@ -813,9 +761,7 @@ fn hash_memoization_control_blocks() {
     // check row addresses of trace to make sure they start from 1 and incremented by 1 each row.
     check_row_addr_trace(&trace);
     //  check the row address at which memoized block starts.
-    let hash_cycle_len: u64 = HASH_CYCLE_LEN
-        .try_into()
-        .expect("Could not convert usize to u64");
+    let hash_cycle_len: u64 = HASH_CYCLE_LEN.try_into().expect("Could not convert usize to u64");
     assert_eq!(Felt::new(hash_cycle_len * 2 + 1), addr);
     // check the trace length of the final trace.
     assert_eq!(trace.last().unwrap(), &[ZERO; HASH_CYCLE_LEN * 3]);
@@ -916,23 +862,15 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
     let lookup_start_addr = 1;
     let expected_lookups_len = 2;
     // make sure the lookups have correct labels, addresses, indices and contexts.
-    let lookup_start = HasherLookup::new(
-        LINEAR_HASH_LABEL,
-        lookup_start_addr,
-        ZERO,
-        HasherLookupContext::Start,
-    );
+    let lookup_start =
+        HasherLookup::new(LINEAR_HASH_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
     let lookup_end = HasherLookup::new(
         RETURN_HASH_LABEL,
         lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
         ZERO,
         HasherLookupContext::Return,
     );
-    check_lookups_validity(
-        lookups,
-        expected_lookups_len,
-        vec![lookup_start, lookup_end],
-    );
+    check_lookups_validity(lookups, expected_lookups_len, vec![lookup_start, lookup_end]);
     // make sure the hash of the final state of Join1 is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
 
@@ -954,23 +892,15 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
     let lookup_start_addr = 9;
     let expected_lookups_len = 2;
     // make sure the lookups have correct labels, addresses, indices and contexts.
-    let lookup_start = HasherLookup::new(
-        LINEAR_HASH_LABEL,
-        lookup_start_addr,
-        ZERO,
-        HasherLookupContext::Start,
-    );
+    let lookup_start =
+        HasherLookup::new(LINEAR_HASH_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
     let lookup_end = HasherLookup::new(
         RETURN_HASH_LABEL,
         lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
         ZERO,
         HasherLookupContext::Return,
     );
-    check_lookups_validity(
-        lookups,
-        expected_lookups_len,
-        vec![lookup_start, lookup_end],
-    );
+    check_lookups_validity(lookups, expected_lookups_len, vec![lookup_start, lookup_end]);
 
     // make sure the hash of the final state of Join2 is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
@@ -998,12 +928,8 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
     let mut expected_lookups = Vec::new();
 
     // add lookup for start of span block
-    let lookup_start = HasherLookup::new(
-        LINEAR_HASH_LABEL,
-        lookup_start_addr,
-        ZERO,
-        HasherLookupContext::Start,
-    );
+    let lookup_start =
+        HasherLookup::new(LINEAR_HASH_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
     expected_lookups.push(lookup_start);
 
     // add lookups for absorbed batches
@@ -1064,12 +990,8 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
     let mut expected_lookups = Vec::new();
 
     // add lookup for start of span block
-    let lookup_start = HasherLookup::new(
-        LINEAR_HASH_LABEL,
-        lookup_start_addr,
-        ZERO,
-        HasherLookupContext::Start,
-    );
+    let lookup_start =
+        HasherLookup::new(LINEAR_HASH_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
     expected_lookups.push(lookup_start);
 
     // add lookups for absorbed batches
@@ -1119,9 +1041,7 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
 /// Builds an execution trace for the provided hasher. The trace must have the number of rows
 /// specified by num_rows.
 fn build_trace(hasher: Hasher, num_rows: usize) -> (Vec<Vec<Felt>>, AuxTraceBuilder) {
-    let mut trace = (0..TRACE_WIDTH)
-        .map(|_| vec![Felt::new(0); num_rows])
-        .collect::<Vec<_>>();
+    let mut trace = (0..TRACE_WIDTH).map(|_| vec![Felt::new(0); num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
     let aux_trace_builder = hasher.fill_trace(&mut fragment);
     (trace, aux_trace_builder)
@@ -1233,19 +1153,13 @@ fn check_memoized_trace(
     // make sure selector trace is copied correctly
     let selector_trace = &trace[0..NUM_SELECTORS];
     for column in selector_trace.iter() {
-        assert_eq!(
-            column[start_row..end_row],
-            column[copied_start_row..copied_end_row]
-        )
+        assert_eq!(column[start_row..end_row], column[copied_start_row..copied_end_row])
     }
 
     // make sure hasher state trace is copied correctly
     let hasher_state_trace = &trace[STATE_COL_RANGE];
     for column in hasher_state_trace.iter() {
-        assert_eq!(
-            column[start_row..end_row],
-            column[copied_start_row..copied_end_row]
-        )
+        assert_eq!(column[start_row..end_row], column[copied_start_row..copied_end_row])
     }
 }
 

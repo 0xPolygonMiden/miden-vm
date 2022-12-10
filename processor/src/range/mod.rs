@@ -102,10 +102,7 @@ impl RangeChecker {
     // --------------------------------------------------------------------------------------------
     /// Adds the specified value to the trace of this range checker's lookups.
     pub fn add_value(&mut self, value: u16) {
-        self.lookups
-            .entry(value)
-            .and_modify(|v| *v += 1)
-            .or_insert(1);
+        self.lookups.entry(value).and_modify(|v| *v += 1).or_insert(1);
     }
 
     /// Adds range check lookups from the [Stack] to this [RangeChecker] instance. Stack lookups are
@@ -118,8 +115,7 @@ impl RangeChecker {
         self.add_value(values[3]);
 
         // Stack operations are added before memory operations at unique clock cycles.
-        self.cycle_range_checks
-            .insert(clk, CycleRangeChecks::new_from_stack(values));
+        self.cycle_range_checks.insert(clk, CycleRangeChecks::new_from_stack(values));
     }
 
     /// Adds range check lookups from [Memory] to this [RangeChecker] instance. Memory lookups are
@@ -156,10 +152,7 @@ impl RangeChecker {
         target_len: usize,
         num_rand_rows: usize,
     ) -> RangeCheckTrace {
-        assert!(
-            target_len.is_power_of_two(),
-            "target trace length is not a power of two"
-        );
+        assert!(target_len.is_power_of_two(), "target trace length is not a power of two");
 
         // determine the length of the trace required to support all the lookups in this range
         // checker, and make sure this length is smaller than or equal to the target trace length,
@@ -169,10 +162,7 @@ impl RangeChecker {
         // need to use lookups_8bit table later in this function, and we don't want to create it
         // twice.
         let trace_len = table.len;
-        assert!(
-            trace_len + num_rand_rows <= target_len,
-            "target trace length too small"
-        );
+        assert!(trace_len + num_rand_rows <= target_len, "target trace length too small");
 
         // allocated memory for the trace; this memory is un-initialized but this is not a problem
         // because we'll overwrite all values in it anyway.
@@ -201,13 +191,7 @@ impl RangeChecker {
         // build the 8-bit segment of the trace table
         let mut i = num_padding_rows;
         for (value, num_lookups) in table.lookups_8bit.into_iter().enumerate() {
-            write_value(
-                &mut trace,
-                &mut i,
-                num_lookups,
-                value as u64,
-                &mut row_flags,
-            );
+            write_value(&mut trace, &mut i, num_lookups, value as u64, &mut row_flags);
         }
 
         // fill in the first column to indicate where the 8-bit segment ends and where the
@@ -223,13 +207,7 @@ impl RangeChecker {
             for value in (prev_value..value).step_by(255).skip(1) {
                 write_value(&mut trace, &mut i, 0, value as u64, &mut row_flags);
             }
-            write_value(
-                &mut trace,
-                &mut i,
-                num_lookups,
-                value as u64,
-                &mut row_flags,
-            );
+            write_value(&mut trace, &mut i, num_lookups, value as u64, &mut row_flags);
             prev_value = value;
         }
 

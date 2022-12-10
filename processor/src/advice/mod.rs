@@ -52,9 +52,7 @@ impl AdviceProvider {
     /// # Errors
     /// Returns an error if the advice tape is empty.
     pub fn read_tape(&mut self) -> Result<Felt, ExecutionError> {
-        self.tape
-            .pop()
-            .ok_or(ExecutionError::AdviceTapeReadFailed(self.step))
+        self.tape.pop().ok_or(ExecutionError::AdviceTapeReadFailed(self.step))
     }
 
     /// Removes a word (4 elements) from the advice tape and returns it.
@@ -67,12 +65,7 @@ impl AdviceProvider {
         }
 
         let idx = self.tape.len() - 4;
-        let result = [
-            self.tape[idx + 3],
-            self.tape[idx + 2],
-            self.tape[idx + 1],
-            self.tape[idx],
-        ];
+        let result = [self.tape[idx + 3], self.tape[idx + 2], self.tape[idx + 1], self.tape[idx]];
 
         self.tape.truncate(idx);
 

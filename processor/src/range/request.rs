@@ -20,10 +20,7 @@ impl CycleRangeChecks {
     pub fn new_from_memory(values: &[u16; 2]) -> Self {
         Self {
             stack: None,
-            memory: Some(RangeCheckRequest::Memory([
-                Felt::from(values[0]),
-                Felt::from(values[1]),
-            ])),
+            memory: Some(RangeCheckRequest::Memory([Felt::from(values[0]), Felt::from(values[1])])),
         }
     }
 
@@ -47,10 +44,8 @@ impl CycleRangeChecks {
     /// is assumed that the existing instance does not already contain checks from Memory.
     pub fn add_memory_checks(&mut self, values: &[u16]) {
         debug_assert_eq!(self.memory, None);
-        self.memory = Some(RangeCheckRequest::Memory([
-            Felt::from(values[0]),
-            Felt::from(values[1]),
-        ]));
+        self.memory =
+            Some(RangeCheckRequest::Memory([Felt::from(values[0]), Felt::from(values[1])]));
     }
 
     // ACCESSORS

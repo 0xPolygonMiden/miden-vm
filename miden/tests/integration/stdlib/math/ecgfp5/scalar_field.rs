@@ -158,6 +158,7 @@ impl Scalar {
         }
         r_mont.from_mont()
     }
+
     /// Computes multiplicative inverse ( say a' ) of scalar field element a | a * a' = 1 ( mod N )
     ///
     /// Note, if a = 0, then a' = 0.

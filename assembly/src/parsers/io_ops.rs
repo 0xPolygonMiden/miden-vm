@@ -253,16 +253,12 @@ pub fn parse_loc_storew(op: &Token) -> Result<Node, ParsingError> {
 /// an appropriate push instruction node.
 fn parse_param_list(op: &Token) -> Result<Node, ParsingError> {
     let values =
-        op.parts()
-            .iter()
-            .enumerate()
-            .skip(1)
-            .map(
-                |(param_idx, &param_str)| match param_str.strip_prefix("0x") {
-                    Some(param_str) => parse_hex_value(op, param_str, param_idx),
-                    None => parse_checked_param(op, param_idx, 0, Felt::MODULUS - 1),
-                },
-            );
+        op.parts().iter().enumerate().skip(1).map(|(param_idx, &param_str)| {
+            match param_str.strip_prefix("0x") {
+                Some(param_str) => parse_hex_value(op, param_str, param_idx),
+                None => parse_checked_param(op, param_idx, 0, Felt::MODULUS - 1),
+            }
+        });
 
     build_push_many_instruction(values)
 }
@@ -359,29 +355,20 @@ where
     I: Iterator<Item = Result<u64, ParsingError>> + Clone + ExactSizeIterator,
 {
     assert!(values_iter.len() != 0);
-    let max_value = values_iter
-        .clone()
-        .try_fold(0, |max, value| Ok(value?.max(max)))?;
+    let max_value = values_iter.clone().try_fold(0, |max, value| Ok(value?.max(max)))?;
     if max_value <= u8::MAX as u64 {
-        let values_u8 = values_iter
-            .map(|v| Ok(v? as u8))
-            .collect::<Result<Vec<u8>, _>>()?;
+        let values_u8 = values_iter.map(|v| Ok(v? as u8)).collect::<Result<Vec<u8>, _>>()?;
         Ok(Instruction(PushU8List(values_u8)))
     } else if max_value <= u16::MAX as u64 {
-        let values_u16 = values_iter
-            .map(|v| Ok(v? as u16))
-            .collect::<Result<Vec<u16>, _>>()?;
+        let values_u16 = values_iter.map(|v| Ok(v? as u16)).collect::<Result<Vec<u16>, _>>()?;
         Ok(Instruction(PushU16List(values_u16)))
     } else if max_value <= u32::MAX as u64 {
-        let values_u32 = values_iter
-            .map(|v| Ok(v? as u32))
-            .collect::<Result<Vec<u32>, _>>()?;
+        let values_u32 = values_iter.map(|v| Ok(v? as u32)).collect::<Result<Vec<u32>, _>>()?;
         Ok(Instruction(PushU32List(values_u32)))
     } else if max_value < Felt::MODULUS {
         let values_len = values_iter.len();
-        let values_felt = values_iter
-            .map(|imm| Ok(Felt::new(imm?)))
-            .collect::<Result<Vec<Felt>, _>>()?;
+        let values_felt =
+            values_iter.map(|imm| Ok(Felt::new(imm?))).collect::<Result<Vec<Felt>, _>>()?;
         if values_len == WORD_LEN {
             Ok(Instruction(PushWord(
                 values_felt.try_into().expect("Invalid constatnts length"),

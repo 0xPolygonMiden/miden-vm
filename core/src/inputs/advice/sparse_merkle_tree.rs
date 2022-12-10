@@ -28,8 +28,7 @@ impl SparseMerkleTree {
         let (store, root) = Store::new(depth);
         let mut tree = Self { root, depth, store };
         for (key, val) in keys.into_iter().zip(values) {
-            tree.insert_leaf(key, val)
-                .expect("Failed to insert leaf value");
+            tree.insert_leaf(key, val).expect("Failed to insert leaf value");
         }
         Ok(tree)
     }
@@ -194,10 +193,7 @@ impl Store {
     }
 
     fn get_leaf_node(&self, key: u64) -> Result<Word, AdviceSetError> {
-        self.leaves
-            .get(&key)
-            .cloned()
-            .ok_or(AdviceSetError::InvalidKey(key))
+        self.leaves.get(&key).cloned().ok_or(AdviceSetError::InvalidKey(key))
     }
 
     fn insert_leaf_node(&mut self, key: u64, node: Word) {
@@ -205,10 +201,7 @@ impl Store {
     }
 
     fn get_branch_node(&self, key: u64, depth: u32) -> Result<BranchNode, AdviceSetError> {
-        self.branches
-            .get(&(key, depth))
-            .cloned()
-            .ok_or(AdviceSetError::InvalidKey(key))
+        self.branches.get(&(key, depth)).cloned().ok_or(AdviceSetError::InvalidKey(key))
     }
 
     fn insert_branch_node(&mut self, key: u64, depth: u32, left: Digest, right: Digest) {
@@ -232,12 +225,7 @@ mod tests {
     const KEYS4: [u64; 4] = [0, 1, 2, 3];
     const KEYS8: [u64; 8] = [0, 1, 2, 3, 4, 5, 6, 7];
 
-    const VALUES4: [Word; 4] = [
-        int_to_node(1),
-        int_to_node(2),
-        int_to_node(3),
-        int_to_node(4),
-    ];
+    const VALUES4: [Word; 4] = [int_to_node(1), int_to_node(2), int_to_node(3), int_to_node(4)];
 
     const VALUES8: [Word; 8] = [
         int_to_node(1),
@@ -268,8 +256,7 @@ mod tests {
         let key = 6;
         let new_node = int_to_node(7);
         values[key as usize] = new_node;
-        smt.insert_leaf(key, new_node)
-            .expect("Failed to insert leaf");
+        smt.insert_leaf(key, new_node).expect("Failed to insert leaf");
         let mt2 = MerkleTree::new(values.clone()).unwrap();
         assert_eq!(mt2.root(), smt.root());
         assert_eq!(mt2.get_path(3, 6).unwrap(), smt.get_path(3, 6).unwrap());
@@ -278,8 +265,7 @@ mod tests {
         let key = 2;
         let new_node = int_to_node(3);
         values[key as usize] = new_node;
-        smt.insert_leaf(key, new_node)
-            .expect("Failed to insert leaf");
+        smt.insert_leaf(key, new_node).expect("Failed to insert leaf");
         let mt3 = MerkleTree::new(values).unwrap();
         assert_eq!(mt3.root(), smt.root());
         assert_eq!(mt3.get_path(3, 2).unwrap(), smt.get_path(3, 2).unwrap());

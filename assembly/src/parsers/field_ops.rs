@@ -178,10 +178,5 @@ fn parse_bit_len_param(op: &Token, param_idx: usize) -> Result<u8, ParsingError>
 }
 
 fn parse_imm_value(op: &Token) -> Result<Felt, ParsingError> {
-    Ok(Felt::new(parse_checked_param::<u64>(
-        op,
-        1,
-        0,
-        Felt::MODULUS - 1,
-    )?))
+    Ok(Felt::new(parse_checked_param::<u64>(op, 1, 0, Felt::MODULUS - 1)?))
 }

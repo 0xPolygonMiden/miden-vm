@@ -36,11 +36,8 @@ fn rpperm() {
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let mut stack_inputs: Vec<u64> = vec![1, 2, 3, 4];
-    let expected_stack_slice = stack_inputs
-        .iter()
-        .rev()
-        .map(|&v| Felt::new(v))
-        .collect::<Vec<Felt>>();
+    let expected_stack_slice =
+        stack_inputs.iter().rev().map(|&v| Felt::new(v)).collect::<Vec<Felt>>();
 
     let values_to_hash: Vec<u64> = vec![2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
     stack_inputs.extend_from_slice(&values_to_hash);
@@ -75,11 +72,8 @@ fn rphash() {
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let mut stack_inputs: Vec<u64> = vec![1, 2, 3, 4];
-    let expected_stack_slice = stack_inputs
-        .iter()
-        .rev()
-        .map(|&v| Felt::new(v))
-        .collect::<Vec<Felt>>();
+    let expected_stack_slice =
+        stack_inputs.iter().rev().map(|&v| Felt::new(v)).collect::<Vec<Felt>>();
 
     let values_to_hash: Vec<u64> = vec![1, 1, 0, 0, 0, 0, 0, 0];
     stack_inputs.extend_from_slice(&values_to_hash);

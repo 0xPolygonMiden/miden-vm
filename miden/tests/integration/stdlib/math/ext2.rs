@@ -27,10 +27,7 @@ fn mul_extension_2() {
     let arr = vec![a * b];
     let c = ExtElement::as_base_elements(&arr);
 
-    let test = build_test!(
-        source,
-        &[b0.as_int(), b1.as_int(), a0.as_int(), a1.as_int()]
-    );
+    let test = build_test!(source, &[b0.as_int(), b1.as_int(), a0.as_int(), a1.as_int()]);
     test.expect_stack(&[c[1].as_int(), c[0].as_int()]);
 }
 

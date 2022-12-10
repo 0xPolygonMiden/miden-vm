@@ -94,11 +94,7 @@ pub fn enforce_constraints<E: FieldElement<BaseField = Felt>>(
     constraint_offset += bitwise::get_transition_constraint_count();
 
     // memory transition constraints
-    memory::enforce_constraints(
-        frame,
-        &mut result[constraint_offset..],
-        frame.memory_flag(false),
-    );
+    memory::enforce_constraints(frame, &mut result[constraint_offset..], frame.memory_flag(false));
 }
 
 // TRANSITION CONSTRAINT HELPERS
@@ -179,10 +175,12 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     fn hasher_flag(&self) -> E {
         binary_not(self.s(0))
     }
+
     #[inline(always)]
     fn bitwise_flag(&self) -> E {
         self.s(0) * binary_not(self.s_next(1))
     }
+
     #[inline(always)]
     fn memory_flag(&self, include_last_row: bool) -> E {
         if include_last_row {

@@ -15,9 +15,7 @@ impl MarkdownRenderer {
     fn write_docs_header(mut writer: &File, ns: &str) {
         let header =
             format!("\n## {ns}\n| Procedure | Description |\n| ----------- | ------------- |\n");
-        writer
-            .write_all(header.as_bytes())
-            .expect("unable to write header to writer");
+        writer.write_all(header.as_bytes()).expect("unable to write header to writer");
     }
 
     fn write_docs_procedure(mut writer: &File, proc: &ProcedureAst) {
@@ -27,11 +25,7 @@ impl MarkdownRenderer {
         let func_output = format!(
             "| {} | {} |\n",
             proc.name.as_str(),
-            proc.docs
-                .clone()
-                .unwrap()
-                .replace('|', "\\|")
-                .replace('\n', "<br /><br />")
+            proc.docs.clone().unwrap().replace('|', "\\|").replace('\n', "<br /><br />")
         );
         writer
             .write_all(func_output.as_bytes())
@@ -43,14 +37,7 @@ impl MarkdownRenderer {
             return;
         }
         writer
-            .write_all(
-                module
-                    .docs
-                    .clone()
-                    .unwrap()
-                    .replace('\n', "<br />")
-                    .as_bytes(),
-            )
+            .write_all(module.docs.clone().unwrap().replace('\n', "<br />").as_bytes())
             .expect("unable to write module comments");
     }
 }

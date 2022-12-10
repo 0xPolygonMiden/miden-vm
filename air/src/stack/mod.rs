@@ -240,10 +240,7 @@ pub fn get_aux_assertions_first_step<E: FieldElement>(
 {
     let step = 0;
     let value = if stack_inputs.len() > STACK_TOP_SIZE {
-        get_overflow_table_init(
-            alphas.get_segment_elements(0),
-            &stack_inputs[STACK_TOP_SIZE..],
-        )
+        get_overflow_table_init(alphas.get_segment_elements(0), &stack_inputs[STACK_TOP_SIZE..])
     } else {
         E::ONE
     };

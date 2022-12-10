@@ -124,11 +124,7 @@ impl ProcedureName {
 
     /// Append the procedure name to a module path.
     pub fn to_absolute(&self, module: &AbsolutePath) -> AbsolutePath {
-        AbsolutePath::new_unchecked(format!(
-            "{}{MODULE_PATH_DELIM}{}",
-            module.as_str(),
-            &self.name
-        ))
+        AbsolutePath::new_unchecked(format!("{}{MODULE_PATH_DELIM}{}", module.as_str(), &self.name))
     }
 
     // HELPERS
@@ -149,10 +145,7 @@ impl TryFrom<String> for ProcedureName {
             return Err(ProcedureNameError::empty_procedure_name());
         } else if name.len() > MAX_PROC_NAME_LEN as usize {
             // procedure name cannot be more than 100 characters long
-            return Err(ProcedureNameError::procedure_name_too_long(
-                &name,
-                MAX_PROC_NAME_LEN,
-            ));
+            return Err(ProcedureNameError::procedure_name_too_long(&name, MAX_PROC_NAME_LEN));
         } else if !name.chars().next().unwrap().is_ascii_alphabetic() {
             // procedure name must start with a letter
             return Err(ProcedureNameError::invalid_fist_letter(&name));
@@ -235,11 +228,7 @@ impl ProcedureId {
         N: AsRef<str>,
         M: AsRef<str>,
     {
-        format!(
-            "{}{MODULE_PATH_DELIM}{}",
-            module_path.as_ref(),
-            name.as_ref()
-        )
+        format!("{}{MODULE_PATH_DELIM}{}", module_path.as_ref(), name.as_ref())
     }
 
     /// Creates a new procedure ID from a name to be resolved in the kernel.
@@ -300,9 +289,7 @@ impl Serializable for ProcedureId {
 impl Deserializable for ProcedureId {
     fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
         let proc_id_bytes = bytes.read_bytes(Self::SIZE)?;
-        let proc_id = proc_id_bytes
-            .try_into()
-            .expect("to array conversion failed");
+        let proc_id = proc_id_bytes.try_into().expect("to array conversion failed");
         Ok(Self(proc_id))
     }
 }

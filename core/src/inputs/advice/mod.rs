@@ -41,9 +41,7 @@ impl AdviceSet {
         values: Vec<Word>,
         depth: u32,
     ) -> Result<Self, AdviceSetError> {
-        Ok(Self::SparseMerkleTree(SparseMerkleTree::new(
-            keys, values, depth,
-        )?))
+        Ok(Self::SparseMerkleTree(SparseMerkleTree::new(keys, values, depth)?))
     }
 
     // PUBLIC ACCESSORS

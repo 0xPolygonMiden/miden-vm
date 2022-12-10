@@ -287,11 +287,7 @@ fn u32checked_sub() {
     let val1 = rand_value::<u32>();
     let val2 = rand_value::<u32>();
     // assign the larger value to a and the smaller value to b.
-    let (a, b) = if val1 >= val2 {
-        (val1, val2)
-    } else {
-        (val2, val1)
-    };
+    let (a, b) = if val1 >= val2 { (val1, val2) } else { (val2, val1) };
     let expected = a - b;
 
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
@@ -338,11 +334,7 @@ fn u32checked_sub_b() {
     let val1 = rand_value::<u32>();
     let val2 = rand_value::<u32>();
     // assign the larger value to a and the smaller value to b.
-    let (a, b) = if val1 >= val2 {
-        (val1, val2)
-    } else {
-        (val2, val1)
-    };
+    let (a, b) = if val1 >= val2 { (val1, val2) } else { (val2, val1) };
     let expected = a - b;
 
     let test = build_op_test!(build_asm_op(b).as_str(), &[a as u64]);
@@ -453,11 +445,7 @@ fn u32overflowing_sub() {
     // --- random u32 values: a >= b --------------------------------------------------------------
     let val1 = rand_value::<u32>();
     let val2 = rand_value::<u32>();
-    let (a, b) = if val1 >= val2 {
-        (val1, val2)
-    } else {
-        (val2, val1)
-    };
+    let (a, b) = if val1 >= val2 { (val1, val2) } else { (val2, val1) };
     let c = a - b;
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);
     test.expect_stack(&[0, c as u64]);
@@ -465,11 +453,7 @@ fn u32overflowing_sub() {
     // --- random u32 values: a < b ---------------------------------------------------------------
     let val1 = rand_value::<u32>();
     let val2 = rand_value::<u32>();
-    let (a, b) = if val1 >= val2 {
-        (val2, val1)
-    } else {
-        (val1, val2)
-    };
+    let (a, b) = if val1 >= val2 { (val2, val1) } else { (val1, val2) };
     let (c, _) = a.overflowing_sub(b);
     let d = 1;
     let test = build_op_test!(asm_op, &[a as u64, b as u64]);

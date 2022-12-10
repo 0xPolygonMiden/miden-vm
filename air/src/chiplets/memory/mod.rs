@@ -240,42 +240,52 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     fn selector(&self, idx: usize) -> E {
         self.current()[MEMORY_TRACE_OFFSET + idx]
     }
+
     #[inline(always)]
     fn selector_next(&self, idx: usize) -> E {
         self.next()[MEMORY_TRACE_OFFSET + idx]
     }
+
     #[inline(always)]
     fn ctx(&self) -> E {
         self.current()[MEMORY_CTX_COL_IDX]
     }
+
     #[inline(always)]
     fn addr(&self) -> E {
         self.next()[MEMORY_ADDR_COL_IDX]
     }
+
     #[inline(always)]
     fn clk(&self) -> E {
         self.current()[MEMORY_CLK_COL_IDX]
     }
+
     #[inline(always)]
     fn clk_next(&self) -> E {
         self.next()[MEMORY_CLK_COL_IDX]
     }
+
     #[inline(always)]
     fn v(&self, index: usize) -> E {
         self.current()[MEMORY_V_COL_RANGE.start + index]
     }
+
     #[inline(always)]
     fn v_next(&self, index: usize) -> E {
         self.next()[MEMORY_V_COL_RANGE.start + index]
     }
+
     #[inline(always)]
     fn d0_next(&self) -> E {
         self.next()[MEMORY_D0_COL_IDX]
     }
+
     #[inline(always)]
     fn d1_next(&self) -> E {
         self.next()[MEMORY_D1_COL_IDX]
     }
+
     #[inline(always)]
     fn d_inv_next(&self) -> E {
         self.next()[MEMORY_D_INV_COL_IDX]
@@ -368,6 +378,7 @@ impl<E: FieldElement> MemoryFrameExt<E> for &EvaluationFrame<E> {
     fn memory_d0(&self) -> E {
         self.current()[MEMORY_D0_COL_IDX]
     }
+
     #[inline(always)]
     fn memory_d1(&self) -> E {
         self.current()[MEMORY_D1_COL_IDX]

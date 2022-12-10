@@ -14,13 +14,13 @@ impl Process {
             Decorator::Advice(injector) => self.dec_advice(injector)?,
             Decorator::AsmOp(assembly_op) => {
                 if self.decoder.in_debug_mode() {
-                    self.decoder
-                        .append_asmop(self.system.clk(), assembly_op.clone());
+                    self.decoder.append_asmop(self.system.clk(), assembly_op.clone());
                 }
             }
         }
         Ok(())
     }
+
     // ADVICE INJECTION
     // --------------------------------------------------------------------------------------------
 
@@ -55,12 +55,7 @@ impl Process {
         // read node depth, node index, and tree root from the stack
         let depth = self.stack.get(0);
         let index = self.stack.get(1);
-        let root = [
-            self.stack.get(5),
-            self.stack.get(4),
-            self.stack.get(3),
-            self.stack.get(2),
-        ];
+        let root = [self.stack.get(5), self.stack.get(4), self.stack.get(3), self.stack.get(2)];
 
         // look up the node in the advice provider
         let node = self.advice.get_tree_node(root, depth, index)?;

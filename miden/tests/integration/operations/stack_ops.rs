@@ -12,10 +12,7 @@ fn drop() {
     let asm_op = "drop";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0]);
 }
 
@@ -24,10 +21,7 @@ fn dropw() {
     let asm_op = "dropw";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0]);
 }
 
@@ -36,10 +30,7 @@ fn padw() {
     let asm_op = "padw";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 }
 
@@ -48,10 +39,7 @@ fn dup() {
     let asm_op = "dup";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
 }
 
@@ -60,10 +48,7 @@ fn dupn() {
     let asm_op = "dup.1";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
 }
 
@@ -72,10 +57,7 @@ fn dupn_fail() {
     let asm_op = "dup.16";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -84,10 +66,7 @@ fn dupw() {
     let asm_op = "dupw";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 }
 
@@ -96,10 +75,7 @@ fn dupwn() {
     let asm_op = "dupw.1";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 }
 
@@ -108,10 +84,7 @@ fn dupwn_fail() {
     let asm_op = "dupw.4";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -120,10 +93,7 @@ fn swap() {
     let asm_op = "swap";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
 }
 
@@ -132,10 +102,7 @@ fn swapn() {
     let asm_op = "swap.2";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[3, 2, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
 }
 
@@ -144,10 +111,7 @@ fn swapn_fail() {
     let asm_op = "swap.16";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -156,10 +120,7 @@ fn swapw() {
     let asm_op = "swapw";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[5, 6, 7, 8, 1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 16]);
 }
 
@@ -168,10 +129,7 @@ fn swapwn() {
     let asm_op = "swapw.2";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[9, 10, 11, 12, 5, 6, 7, 8, 1, 2, 3, 4, 13, 14, 15, 16]);
 }
 
@@ -180,10 +138,7 @@ fn swapwn_fail() {
     let asm_op = "swapw.4";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -192,10 +147,7 @@ fn swapdw() {
     let asm_op = "swapdw";
 
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8]);
 }
 
@@ -203,34 +155,22 @@ fn swapdw() {
 fn movup() {
     let asm_op = "movup.2";
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[3, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
 }
 
 #[test]
 fn movup_fail() {
     let asm_op = "movup.0";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movup.1";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movup.16";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -238,34 +178,22 @@ fn movup_fail() {
 fn movupw() {
     let asm_op = "movupw.2";
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 13, 14, 15, 16]);
 }
 
 #[test]
 fn movupw_fail() {
     let asm_op = "movupw.0";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movupw.1";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movupw.4";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -273,34 +201,22 @@ fn movupw_fail() {
 fn movdn() {
     let asm_op = "movdn.2";
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[2, 3, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
 }
 
 #[test]
 fn movdn_fail() {
     let asm_op = "movdn.0";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movdn.1";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movdn.16";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -308,34 +224,22 @@ fn movdn_fail() {
 fn movdnw() {
     let asm_op = "movdnw.2";
     // --- simple case ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 13, 14, 15, 16]);
 }
 
 #[test]
 fn movdnw_fail() {
     let asm_op = "movdnw.0";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movdnw.1";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 
     let asm_op = "movdnw.4";
-    let test = build_op_test!(
-        asm_op,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_op_test!(asm_op, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_error(TestError::AssemblyError("parameter"));
 }
 
@@ -343,16 +247,10 @@ fn movdnw_fail() {
 fn cswap() {
     let asm_op = "cswap";
     // --- simple cases ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
     test.expect_stack(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]);
 
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]);
     test.expect_stack(&[2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]);
 }
 
@@ -360,16 +258,10 @@ fn cswap() {
 fn cswapw() {
     let asm_op = "cswapw";
     // --- simple cases ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
     test.expect_stack(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]);
 
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]);
     test.expect_stack(&[5, 6, 7, 8, 1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 0]);
 }
 
@@ -377,16 +269,10 @@ fn cswapw() {
 fn cdrop() {
     let asm_op = "cdrop";
     // --- simple cases ----------------------------------------------------------------------------
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
     test.expect_stack(&[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0]);
 
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]);
     test.expect_stack(&[1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0]);
 }
 
@@ -395,16 +281,10 @@ fn cdropw() {
     let asm_op = "cdropw";
     // --- simple cases ----------------------------------------------------------------------------
 
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
     test.expect_stack(&[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0]);
 
-    let test = build_op_test!(
-        asm_op,
-        &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]
-    );
+    let test = build_op_test!(asm_op, &[15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 1]);
     test.expect_stack(&[1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0]);
 }
 

@@ -76,12 +76,8 @@ impl Stack {
         let (trace, overflow) = if init_values.len() > STACK_TOP_SIZE {
             let overflow =
                 OverflowTable::new_with_inputs(keep_overflow_trace, &init_values[STACK_TOP_SIZE..]);
-            let trace = StackTrace::new(
-                &init_values[..STACK_TOP_SIZE],
-                init_trace_capacity,
-                depth,
-                -ONE,
-            );
+            let trace =
+                StackTrace::new(&init_values[..STACK_TOP_SIZE], init_trace_capacity, depth, -ONE);
 
             (trace, overflow)
         } else {
@@ -188,17 +184,13 @@ impl Stack {
     /// stack is set to ZERO.
     pub fn shift_left(&mut self, start_pos: usize) {
         debug_assert!(start_pos > 0, "start position must be greater than 0");
-        debug_assert!(
-            start_pos < STACK_TOP_SIZE,
-            "start position cannot exceed stack top size"
-        );
+        debug_assert!(start_pos < STACK_TOP_SIZE, "start position cannot exceed stack top size");
 
         match self.active_depth {
             0..=MAX_TOP_IDX => unreachable!("stack underflow"),
             STACK_TOP_SIZE => {
                 // Shift in a ZERO, to prevent depth shrinking below the minimum stack depth.
-                self.trace
-                    .stack_shift_left_at(self.clk, start_pos, ZERO, None);
+                self.trace.stack_shift_left_at(self.clk, start_pos, ZERO, None);
             }
             _ => {
                 // Update the stack & overflow table.
@@ -222,10 +214,7 @@ impl Stack {
     ///
     /// If stack depth grows beyond 16 items, the additional item is pushed into the overflow table.
     pub fn shift_right(&mut self, start_pos: usize) {
-        debug_assert!(
-            start_pos < STACK_TOP_SIZE,
-            "start position cannot exceed stack top size"
-        );
+        debug_assert!(start_pos < STACK_TOP_SIZE, "start position cannot exceed stack top size");
 
         // Update the stack.
         self.trace.stack_shift_right_at(self.clk, start_pos);
@@ -260,10 +249,7 @@ impl Stack {
     /// This has the effect bringing back items previously hidden from the overflow table.
     pub fn restore_context(&mut self, stack_depth: usize, next_overflow_addr: Felt) {
         debug_assert!(stack_depth <= self.full_depth, "stack depth too big");
-        debug_assert_eq!(
-            self.active_depth, STACK_TOP_SIZE,
-            "overflow table not empty"
-        );
+        debug_assert_eq!(self.active_depth, STACK_TOP_SIZE, "overflow table not empty");
         self.active_depth = stack_depth;
         self.overflow.set_last_row_addr(next_overflow_addr);
     }
@@ -284,17 +270,11 @@ impl Stack {
     pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> super::StackTrace {
         let clk = self.current_clk() as usize;
         // make sure that only the duplicate rows will be overwritten with random values
-        assert!(
-            clk + num_rand_rows <= trace_len,
-            "target trace length too small"
-        );
+        assert!(clk + num_rand_rows <= trace_len, "target trace length too small");
 
         // at the end of program execution we must be in the root context, and thus active and
         // full stack depth must be the same.
-        assert_eq!(
-            self.active_depth, self.full_depth,
-            "inconsistent stack depth"
-        );
+        assert_eq!(self.active_depth, self.full_depth, "inconsistent stack depth");
 
         // fill in all trace columns after the last clock cycle with the value at the last clock
         // cycle

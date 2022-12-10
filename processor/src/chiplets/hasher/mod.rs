@@ -121,8 +121,7 @@ impl Hasher {
         lookups.push(lookup);
 
         // perform the hash.
-        self.trace
-            .append_permutation(&mut state, LINEAR_HASH, RETURN_STATE);
+        self.trace.append_permutation(&mut state, LINEAR_HASH, RETURN_STATE);
 
         // add the lookup for the hash result.
         let lookup = self.get_lookup(RETURN_STATE_LABEL, ZERO, HasherLookupContext::Return);
@@ -156,8 +155,7 @@ impl Hasher {
             self.trace.copy_trace(&mut state, *start_row..*end_row);
         } else {
             // perform the hash.
-            self.trace
-                .append_permutation(&mut state, LINEAR_HASH, RETURN_HASH);
+            self.trace.append_permutation(&mut state, LINEAR_HASH, RETURN_HASH);
 
             self.insert_to_memoized_trace_map(addr, expected_hash);
         };
@@ -406,14 +404,7 @@ impl Hasher {
             // handle path of length 1 separately because pattern for init and final selectors
             // is different from other cases
             self.update_sibling_hints(context, index, path[0], depth);
-            self.verify_mp_leg(
-                root,
-                path[0],
-                &mut index,
-                main_selectors,
-                RETURN_HASH,
-                lookups,
-            )
+            self.verify_mp_leg(root, path[0], &mut index, main_selectors, RETURN_HASH, lookups)
         } else {
             // process the first node of the path; for this node, init and final selectors are
             // the same
@@ -446,14 +437,7 @@ impl Hasher {
             // process the last node
             let sibling = path[path.len() - 1];
             self.update_sibling_hints(context, index, sibling, depth);
-            self.verify_mp_leg(
-                root,
-                sibling,
-                &mut index,
-                part_selectors,
-                RETURN_HASH,
-                lookups,
-            )
+            self.verify_mp_leg(root, sibling, &mut index, part_selectors, RETURN_HASH, lookups)
         }
     }
 
@@ -533,8 +517,7 @@ impl Hasher {
         let step = self.trace.trace_len() as u32;
         match context {
             MerklePathContext::MrUpdateOld => {
-                self.aux_trace
-                    .sibling_added(step, Felt::new(index), sibling);
+                self.aux_trace.sibling_added(step, Felt::new(index), sibling);
             }
             MerklePathContext::MrUpdateNew => {
                 // we use node depth as row offset here because siblings are added to the table

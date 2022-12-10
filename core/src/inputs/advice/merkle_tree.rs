@@ -148,12 +148,7 @@ mod tests {
     use super::{Felt, FieldElement, Word};
     use crypto::{hashers::Rp64_256, ElementHasher, Hasher};
 
-    const LEAVES4: [Word; 4] = [
-        int_to_node(1),
-        int_to_node(2),
-        int_to_node(3),
-        int_to_node(4),
-    ];
+    const LEAVES4: [Word; 4] = [int_to_node(1), int_to_node(2), int_to_node(3), int_to_node(4)];
 
     const LEAVES8: [Word; 8] = [
         int_to_node(1),

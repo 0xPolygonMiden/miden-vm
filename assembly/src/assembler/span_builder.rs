@@ -116,10 +116,8 @@ impl SpanBuilder {
     /// call, and syscall.
     pub fn set_instruction_cycle_count(&mut self) {
         // get the last asmop decorator and the cycle at which it was added
-        let (op_start, assembly_op) = self
-            .decorators
-            .get_mut(self.last_asmop_pos)
-            .expect("no asmop decorator");
+        let (op_start, assembly_op) =
+            self.decorators.get_mut(self.last_asmop_pos).expect("no asmop decorator");
         assert!(matches!(assembly_op, Decorator::AsmOp(_)));
 
         // compute the cycle count for the instruction

@@ -37,11 +37,7 @@ pub const NUM_PERIODIC_COLUMNS: usize = STATE_WIDTH * 2 + NUM_PERIODIC_SELECTOR_
 /// - k2 column, which has a repeating pattern of a single one followed by 7 zeros.
 /// - the round constants for the Rescue Prime permutation.
 pub fn get_periodic_column_values() -> Vec<Vec<Felt>> {
-    let mut result = vec![
-        HASH_K0_MASK.to_vec(),
-        HASH_K1_MASK.to_vec(),
-        HASH_K2_MASK.to_vec(),
-    ];
+    let mut result = vec![HASH_K0_MASK.to_vec(), HASH_K1_MASK.to_vec(), HASH_K2_MASK.to_vec()];
     result.append(&mut get_round_constants());
     result
 }
@@ -252,11 +248,7 @@ fn enforce_hasher_state<E: FieldElement + From<Felt>>(
     // When absorbing the next set of elements into the state during linear hash computation,
     // the first 4 elements (the capacity portion) is carried over to the next row.
     let hash_abp_flag = last_row * frame.f_abp();
-    for (idx, result) in result[constraint_offset..]
-        .iter_mut()
-        .take(CAPACITY_LEN)
-        .enumerate()
-    {
+    for (idx, result) in result[constraint_offset..].iter_mut().take(CAPACITY_LEN).enumerate() {
         *result = hash_abp_flag * (frame.h_next(idx) - frame.h(idx))
     }
     constraint_offset += CAPACITY_LEN;
@@ -266,11 +258,7 @@ fn enforce_hasher_state<E: FieldElement + From<Felt>>(
     // on the value of b.
     let mp_abp_flag = last_row
         * (frame.f_mp(periodic_values) + frame.f_mv(periodic_values) + frame.f_mu(periodic_values));
-    for (idx, result) in result[constraint_offset..]
-        .iter_mut()
-        .take(DIGEST_LEN)
-        .enumerate()
-    {
+    for (idx, result) in result[constraint_offset..].iter_mut().take(DIGEST_LEN).enumerate() {
         let digest_idx = DIGEST_RANGE.start + idx;
         let h_copy_down = frame.h_next(digest_idx) - frame.h(digest_idx);
         let h_copy_over = frame.h_next(DIGEST_LEN + digest_idx) - frame.h(digest_idx);
@@ -342,14 +330,11 @@ fn apply_mds<E: FieldElement + From<Felt>>(state: &mut [E; STATE_WIDTH]) {
 #[inline(always)]
 fn apply_inv_mds<E: FieldElement + From<Felt>>(state: &mut [E; STATE_WIDTH]) {
     let mut result = [E::ZERO; STATE_WIDTH];
-    result
-        .iter_mut()
-        .zip(Hasher::INV_MDS)
-        .for_each(|(r, mds_row)| {
-            state.iter().zip(mds_row).for_each(|(&s, m)| {
-                *r += E::from(m) * s;
-            });
+    result.iter_mut().zip(Hasher::INV_MDS).for_each(|(r, mds_row)| {
+        state.iter().zip(mds_row).for_each(|(&s, m)| {
+            *r += E::from(m) * s;
         });
+    });
     *state = result
 }
 
@@ -444,38 +429,47 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     fn s(&self, idx: usize) -> E {
         self.current()[HASHER_SELECTOR_COL_RANGE.start + idx]
     }
+
     #[inline(always)]
     fn s_next(&self, idx: usize) -> E {
         self.next()[HASHER_SELECTOR_COL_RANGE.start + idx]
     }
+
     #[inline(always)]
     fn row(&self) -> E {
         self.current()[HASHER_ROW_COL_IDX]
     }
+
     #[inline(always)]
     fn row_next(&self) -> E {
         self.next()[HASHER_ROW_COL_IDX]
     }
+
     #[inline(always)]
     fn hash_state(&self) -> &[E] {
         &self.current()[HASHER_STATE_COL_RANGE]
     }
+
     #[inline(always)]
     fn hash_state_next(&self) -> &[E] {
         &self.next()[HASHER_STATE_COL_RANGE]
     }
+
     #[inline(always)]
     fn h(&self, idx: usize) -> E {
         self.current()[HASHER_STATE_COL_RANGE.start + idx]
     }
+
     #[inline(always)]
     fn h_next(&self, idx: usize) -> E {
         self.next()[HASHER_STATE_COL_RANGE.start + idx]
     }
+
     #[inline(always)]
     fn i(&self) -> E {
         self.current()[HASHER_NODE_INDEX_COL_IDX]
     }
+
     #[inline(always)]
     fn i_next(&self) -> E {
         self.next()[HASHER_NODE_INDEX_COL_IDX]
@@ -494,54 +488,67 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     fn f_rpr(&self, k: &[E]) -> E {
         binary_not(k[0])
     }
+
     #[inline(always)]
     fn f_bp(&self, k: &[E]) -> E {
         k[2] * self.s(0) * binary_not(self.s(1)) * binary_not(self.s(2))
     }
+
     #[inline(always)]
     fn f_mp(&self, k: &[E]) -> E {
         k[2] * self.s(0) * binary_not(self.s(1)) * self.s(2)
     }
+
     #[inline(always)]
     fn f_mv(&self, k: &[E]) -> E {
         k[2] * self.s(0) * self.s(1) * binary_not(self.s(2))
     }
+
     #[inline(always)]
     fn f_mu(&self, k: &[E]) -> E {
         k[2] * self.s(0) * self.s(1) * self.s(2)
     }
+
     #[inline(always)]
     fn f_hout(&self, k: &[E]) -> E {
         k[0] * binary_not(self.s(0)) * binary_not(self.s(1)) * binary_not(self.s(2))
     }
+
     #[inline(always)]
     fn f_sout(&self, k: &[E]) -> E {
         k[0] * binary_not(self.s(0)) * binary_not(self.s(1)) * self.s(2)
     }
+
     #[inline(always)]
     fn f_out(&self, k: &[E]) -> E {
         k[0] * binary_not(self.s(0)) * binary_not(self.s(1))
     }
+
     #[inline(always)]
     fn f_out_next(&self, k: &[E]) -> E {
         k[1] * binary_not(self.s_next(0)) * binary_not(self.s_next(1))
     }
+
     #[inline(always)]
     fn f_abp(&self) -> E {
         self.s(0) * binary_not(self.s(1)) * binary_not(self.s(2))
     }
+
     #[inline(always)]
     fn f_mpa(&self) -> E {
         self.s(0) * binary_not(self.s(1)) * self.s(2)
     }
+
     #[inline(always)]
     fn f_mva(&self) -> E {
         self.s(0) * self.s(1) * binary_not(self.s(2))
     }
+
     #[inline(always)]
     fn f_mua(&self) -> E {
         self.s(0) * self.s(1) * self.s(2)
     }
+
     #[inline(always)]
     fn f_an(&self, k: &[E]) -> E {
         self.f_mp(k)

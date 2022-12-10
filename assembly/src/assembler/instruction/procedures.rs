@@ -98,10 +98,7 @@ impl Assembler {
 
         // since call and syscall instructions cannot be executed inside a kernel, a callset for
         // a kernel procedure must be empty.
-        debug_assert!(
-            proc.callset().is_empty(),
-            "non-empty callset for a kernel procedure"
-        );
+        debug_assert!(proc.callset().is_empty(), "non-empty callset for a kernel procedure");
 
         // register and "non-inlined" call to the procedure; this updates the callset of the
         // procedure currently being compiled

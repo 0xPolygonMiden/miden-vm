@@ -162,27 +162,21 @@ impl<'a> ByteReader<'a> {
         self.check_eor(2)?;
         let result = &self.bytes[self.pos..self.pos + 2];
         self.pos += 2;
-        Ok(u16::from_le_bytes(
-            result.try_into().expect("u16 conversion failure"),
-        ))
+        Ok(u16::from_le_bytes(result.try_into().expect("u16 conversion failure")))
     }
 
     pub fn read_u32(&mut self) -> Result<u32, SerializationError> {
         self.check_eor(4)?;
         let result = &self.bytes[self.pos..self.pos + 4];
         self.pos += 4;
-        Ok(u32::from_le_bytes(
-            result.try_into().expect("u32 conversion failure"),
-        ))
+        Ok(u32::from_le_bytes(result.try_into().expect("u32 conversion failure")))
     }
 
     pub fn read_u64(&mut self) -> Result<u64, SerializationError> {
         self.check_eor(8)?;
         let result = &self.bytes[self.pos..self.pos + 8];
         self.pos += 8;
-        Ok(u64::from_le_bytes(
-            result.try_into().expect("u64 conversion failure"),
-        ))
+        Ok(u64::from_le_bytes(result.try_into().expect("u64 conversion failure")))
     }
 
     pub fn read_len(&mut self) -> Result<usize, SerializationError> {

@@ -119,10 +119,7 @@ impl LookupTableRow for HasherLookup {
                 }
             }
             HasherLookupContext::Absorb => {
-                assert!(
-                    self.label == LINEAR_HASH_LABEL,
-                    "unrecognized hash operation"
-                );
+                assert!(self.label == LINEAR_HASH_LABEL, "unrecognized hash operation");
                 let (curr_hasher_rate, next_hasher_rate) =
                     get_adjacent_hasher_rates(self.addr, main_trace);
                 // build the value from the delta of the hasher state's rate before and after the
@@ -141,10 +138,7 @@ impl LookupTableRow for HasherLookup {
                             &get_hasher_state_at(self.addr, main_trace, 0..STATE_WIDTH),
                         )
                 } else {
-                    assert!(
-                        self.label == RETURN_HASH_LABEL,
-                        "unrecognized hash operation"
-                    );
+                    assert!(self.label == RETURN_HASH_LABEL, "unrecognized hash operation");
                     // build the value from the result, which is the digest portion of the state
                     header
                         + build_value(

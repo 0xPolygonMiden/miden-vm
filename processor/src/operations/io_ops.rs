@@ -74,8 +74,7 @@ impl Process {
         self.stack.copy_state(1);
 
         // write the 3 unused elements to the helpers so they're available for constraint evaluation
-        self.decoder
-            .set_user_op_helpers(Operation::MLoad, &word[..3]);
+        self.decoder.set_user_op_helpers(Operation::MLoad, &word[..3]);
 
         Ok(())
     }
@@ -132,12 +131,7 @@ impl Process {
         let addr = self.stack.get(0);
 
         // build the word in memory order (reverse of stack order)
-        let word = [
-            self.stack.get(4),
-            self.stack.get(3),
-            self.stack.get(2),
-            self.stack.get(1),
-        ];
+        let word = [self.stack.get(4), self.stack.get(3), self.stack.get(2), self.stack.get(1)];
 
         // write the word to memory and get the previous word
         self.chiplets.write_mem(ctx, addr, word);
@@ -176,8 +170,7 @@ impl Process {
         old_word.reverse();
 
         // write the 3 unused elements to the helpers so they're available for constraint evaluation
-        self.decoder
-            .set_user_op_helpers(Operation::MStore, &old_word[..3]);
+        self.decoder.set_user_op_helpers(Operation::MStore, &old_word[..3]);
 
         // update the stack state
         self.stack.shift_left(1);

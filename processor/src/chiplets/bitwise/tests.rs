@@ -42,18 +42,9 @@ fn bitwise_and() {
 
     for i in 0..OP_CYCLE_LEN {
         let c0 = binary_and(trace[A_COL_RANGE.start][i], trace[B_COL_RANGE.start][i]);
-        let c1 = binary_and(
-            trace[A_COL_RANGE.start + 1][i],
-            trace[B_COL_RANGE.start + 1][i],
-        );
-        let c2 = binary_and(
-            trace[A_COL_RANGE.start + 2][i],
-            trace[B_COL_RANGE.start + 2][i],
-        );
-        let c3 = binary_and(
-            trace[A_COL_RANGE.start + 3][i],
-            trace[B_COL_RANGE.start + 3][i],
-        );
+        let c1 = binary_and(trace[A_COL_RANGE.start + 1][i], trace[B_COL_RANGE.start + 1][i]);
+        let c2 = binary_and(trace[A_COL_RANGE.start + 2][i], trace[B_COL_RANGE.start + 2][i]);
+        let c3 = binary_and(trace[A_COL_RANGE.start + 3][i], trace[B_COL_RANGE.start + 3][i]);
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
@@ -99,18 +90,9 @@ fn bitwise_xor() {
 
     for i in 0..8 {
         let c0 = binary_xor(trace[A_COL_RANGE.start][i], trace[B_COL_RANGE.start][i]);
-        let c1 = binary_xor(
-            trace[A_COL_RANGE.start + 1][i],
-            trace[B_COL_RANGE.start + 1][i],
-        );
-        let c2 = binary_xor(
-            trace[A_COL_RANGE.start + 2][i],
-            trace[B_COL_RANGE.start + 2][i],
-        );
-        let c3 = binary_xor(
-            trace[A_COL_RANGE.start + 3][i],
-            trace[B_COL_RANGE.start + 3][i],
-        );
+        let c1 = binary_xor(trace[A_COL_RANGE.start + 1][i], trace[B_COL_RANGE.start + 1][i]);
+        let c2 = binary_xor(trace[A_COL_RANGE.start + 2][i], trace[B_COL_RANGE.start + 2][i]);
+        let c3 = binary_xor(trace[A_COL_RANGE.start + 3][i], trace[B_COL_RANGE.start + 3][i]);
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
@@ -163,18 +145,9 @@ fn bitwise_multiple() {
     let mut prev_result = ZERO;
     for i in 0..OP_CYCLE_LEN {
         let c0 = binary_and(trace[A_COL_RANGE.start][i], trace[B_COL_RANGE.start][i]);
-        let c1 = binary_and(
-            trace[A_COL_RANGE.start + 1][i],
-            trace[B_COL_RANGE.start + 1][i],
-        );
-        let c2 = binary_and(
-            trace[A_COL_RANGE.start + 2][i],
-            trace[B_COL_RANGE.start + 2][i],
-        );
-        let c3 = binary_and(
-            trace[A_COL_RANGE.start + 3][i],
-            trace[B_COL_RANGE.start + 3][i],
-        );
+        let c1 = binary_and(trace[A_COL_RANGE.start + 1][i], trace[B_COL_RANGE.start + 1][i]);
+        let c2 = binary_and(trace[A_COL_RANGE.start + 2][i], trace[B_COL_RANGE.start + 2][i]);
+        let c3 = binary_and(trace[A_COL_RANGE.start + 3][i], trace[B_COL_RANGE.start + 3][i]);
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
@@ -188,18 +161,9 @@ fn bitwise_multiple() {
     let mut prev_result = ZERO;
     for i in OP_CYCLE_LEN..(2 * OP_CYCLE_LEN) {
         let c0 = binary_xor(trace[A_COL_RANGE.start][i], trace[B_COL_RANGE.start][i]);
-        let c1 = binary_xor(
-            trace[A_COL_RANGE.start + 1][i],
-            trace[B_COL_RANGE.start + 1][i],
-        );
-        let c2 = binary_xor(
-            trace[A_COL_RANGE.start + 2][i],
-            trace[B_COL_RANGE.start + 2][i],
-        );
-        let c3 = binary_xor(
-            trace[A_COL_RANGE.start + 3][i],
-            trace[B_COL_RANGE.start + 3][i],
-        );
+        let c1 = binary_xor(trace[A_COL_RANGE.start + 1][i], trace[B_COL_RANGE.start + 1][i]);
+        let c2 = binary_xor(trace[A_COL_RANGE.start + 2][i], trace[B_COL_RANGE.start + 2][i]);
+        let c3 = binary_xor(trace[A_COL_RANGE.start + 3][i], trace[B_COL_RANGE.start + 3][i]);
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
@@ -213,18 +177,9 @@ fn bitwise_multiple() {
     let mut prev_result = ZERO;
     for i in (2 * OP_CYCLE_LEN)..(3 * OP_CYCLE_LEN) {
         let c0 = binary_and(trace[A_COL_RANGE.start][i], trace[B_COL_RANGE.start][i]);
-        let c1 = binary_and(
-            trace[A_COL_RANGE.start + 1][i],
-            trace[B_COL_RANGE.start + 1][i],
-        );
-        let c2 = binary_and(
-            trace[A_COL_RANGE.start + 2][i],
-            trace[B_COL_RANGE.start + 2][i],
-        );
-        let c3 = binary_and(
-            trace[A_COL_RANGE.start + 3][i],
-            trace[B_COL_RANGE.start + 3][i],
-        );
+        let c1 = binary_and(trace[A_COL_RANGE.start + 1][i], trace[B_COL_RANGE.start + 1][i]);
+        let c2 = binary_and(trace[A_COL_RANGE.start + 2][i], trace[B_COL_RANGE.start + 2][i]);
+        let c3 = binary_and(trace[A_COL_RANGE.start + 3][i], trace[B_COL_RANGE.start + 3][i]);
 
         let result_4_bit = c0 + Felt::new(2) * c1 + Felt::new(4) * c2 + Felt::new(8) * c3;
         let result = prev_result * Felt::new(16) + result_4_bit;
@@ -236,39 +191,17 @@ fn bitwise_multiple() {
     }
 
     // make sure the lookups were sent to the bus correctly
-    let bitwise_lookup = BitwiseLookup::new(
-        BITWISE_AND_LABEL,
-        a[0],
-        b[0],
-        Felt::new(a[0].as_int() & b[0].as_int()),
-    );
+    let bitwise_lookup =
+        BitwiseLookup::new(BITWISE_AND_LABEL, a[0], b[0], Felt::new(a[0].as_int() & b[0].as_int()));
     verify_bus(&chiplets_bus, 0, (OP_CYCLE_LEN - 1) as u32, &bitwise_lookup);
 
-    let bitwise_lookup = BitwiseLookup::new(
-        BITWISE_XOR_LABEL,
-        a[1],
-        b[1],
-        Felt::new(a[1].as_int() ^ b[1].as_int()),
-    );
-    verify_bus(
-        &chiplets_bus,
-        1,
-        (OP_CYCLE_LEN * 2 - 1) as u32,
-        &bitwise_lookup,
-    );
+    let bitwise_lookup =
+        BitwiseLookup::new(BITWISE_XOR_LABEL, a[1], b[1], Felt::new(a[1].as_int() ^ b[1].as_int()));
+    verify_bus(&chiplets_bus, 1, (OP_CYCLE_LEN * 2 - 1) as u32, &bitwise_lookup);
 
-    let bitwise_lookup = BitwiseLookup::new(
-        BITWISE_AND_LABEL,
-        a[2],
-        b[2],
-        Felt::new(a[2].as_int() & b[2].as_int()),
-    );
-    verify_bus(
-        &chiplets_bus,
-        2,
-        (OP_CYCLE_LEN * 3 - 1) as u32,
-        &bitwise_lookup,
-    );
+    let bitwise_lookup =
+        BitwiseLookup::new(BITWISE_AND_LABEL, a[2], b[2], Felt::new(a[2].as_int() & b[2].as_int()));
+    verify_bus(&chiplets_bus, 2, (OP_CYCLE_LEN * 3 - 1) as u32, &bitwise_lookup);
 }
 
 // HELPER FUNCTIONS
@@ -277,9 +210,7 @@ fn bitwise_multiple() {
 /// Builds a trace of the specified length and fills it with data from the provided Bitwise instance.
 fn build_trace(bitwise: Bitwise, num_rows: usize) -> (Vec<Vec<Felt>>, ChipletsBus) {
     let mut chiplets_bus = ChipletsBus::default();
-    let mut trace = (0..TRACE_WIDTH)
-        .map(|_| vec![Felt::new(0); num_rows])
-        .collect::<Vec<_>>();
+    let mut trace = (0..TRACE_WIDTH).map(|_| vec![Felt::new(0); num_rows]).collect::<Vec<_>>();
     let mut fragment = TraceFragment::trace_to_fragment(&mut trace);
     bitwise.fill_trace(&mut fragment, &mut chiplets_bus, 0);
 

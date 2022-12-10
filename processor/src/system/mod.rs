@@ -225,10 +225,7 @@ impl System {
     pub fn into_trace(mut self, trace_len: usize, num_rand_rows: usize) -> SysTrace {
         let clk = self.clk() as usize;
         // make sure that only the duplicate rows will be overwritten with random values
-        assert!(
-            clk + num_rand_rows <= trace_len,
-            "target trace length too small"
-        );
+        assert!(clk + num_rand_rows <= trace_len, "target trace length too small");
 
         // complete the clk column by filling in all values after the last clock cycle. The values
         // in the clk column are equal to the index of the row in the trace table.
@@ -254,12 +251,7 @@ impl System {
         debug_assert!(!self.in_syscall);
         self.in_syscall_trace.resize(trace_len, ZERO);
 
-        let mut trace = vec![
-            self.clk_trace,
-            self.fmp_trace,
-            self.ctx_trace,
-            self.in_syscall_trace,
-        ];
+        let mut trace = vec![self.clk_trace, self.fmp_trace, self.ctx_trace, self.in_syscall_trace];
 
         // complete the fn hash columns by filling them with ZEROs as program execution must always
         // end in the root context.

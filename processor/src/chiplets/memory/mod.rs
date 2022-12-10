@@ -145,10 +145,11 @@ impl Memory {
     /// Writes the provided word at the specified context/address.
     pub fn write(&mut self, ctx: u32, addr: Felt, clk: u32, value: Word) {
         self.num_trace_rows += 1;
-        self.trace
-            .entry(ctx)
-            .or_insert_with(MemorySegmentTrace::default)
-            .write(addr, Felt::from(clk), value);
+        self.trace.entry(ctx).or_insert_with(MemorySegmentTrace::default).write(
+            addr,
+            Felt::from(clk),
+            value,
+        );
     }
 
     // EXECUTION TRACE GENERATION
@@ -343,9 +344,7 @@ impl LookupTableRow for MemoryLookup {
             .word
             .iter()
             .enumerate()
-            .fold(E::ZERO, |acc, (j, element)| {
-                acc + alphas[j + 5].mul_base(*element)
-            });
+            .fold(E::ZERO, |acc, (j, element)| acc + alphas[j + 5].mul_base(*element));
 
         alphas[0]
             + alphas[1].mul_base(Felt::from(self.label))

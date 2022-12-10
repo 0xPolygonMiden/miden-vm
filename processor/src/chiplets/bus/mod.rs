@@ -84,8 +84,7 @@ impl ChipletsBus {
             "incorrect number of lookup rows for hasher operation request"
         );
         self.request_lookup(cycle);
-        self.request_rows
-            .push(ChipletsLookupRow::HasherMulti(lookups.to_vec()));
+        self.request_rows.push(ChipletsLookupRow::HasherMulti(lookups.to_vec()));
     }
 
     /// Requests the specified lookup from the Hash Chiplet at the specified `cycle`. Single lookup
@@ -237,15 +236,15 @@ impl LookupTableRow for ChipletsLookupRow {
         alphas: &[E],
     ) -> E {
         match self {
-            ChipletsLookupRow::HasherMulti(lookups) => lookups
-                .iter()
-                .fold(E::ONE, |acc, row| acc * row.to_value(main_trace, alphas)),
+            ChipletsLookupRow::HasherMulti(lookups) => {
+                lookups.iter().fold(E::ONE, |acc, row| acc * row.to_value(main_trace, alphas))
+            }
             ChipletsLookupRow::Hasher(row) => row.to_value(main_trace, alphas),
             ChipletsLookupRow::Bitwise(row) => row.to_value(main_trace, alphas),
             ChipletsLookupRow::Memory(row) => row.to_value(main_trace, alphas),
-            ChipletsLookupRow::MemoryMulti(lookups) => lookups
-                .iter()
-                .fold(E::ONE, |acc, row| acc * row.to_value(main_trace, alphas)),
+            ChipletsLookupRow::MemoryMulti(lookups) => {
+                lookups.iter().fold(E::ONE, |acc, row| acc * row.to_value(main_trace, alphas))
+            }
         }
     }
 }

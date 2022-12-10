@@ -30,27 +30,9 @@ fn verify(pubkey: Point, h: ScalarField, r: ScalarField, s: ScalarField) {
     let mut stack = [0u64; 48];
 
     // copy public key ( expressed in projective coordinate system )
-    stack[0..8].copy_from_slice(
-        &pubkey.0[0]
-            .0
-            .iter()
-            .map(|v| *v as u64)
-            .collect::<Vec<u64>>(),
-    );
-    stack[8..16].copy_from_slice(
-        &pubkey.0[1]
-            .0
-            .iter()
-            .map(|v| *v as u64)
-            .collect::<Vec<u64>>(),
-    );
-    stack[16..24].copy_from_slice(
-        &pubkey.0[2]
-            .0
-            .iter()
-            .map(|v| *v as u64)
-            .collect::<Vec<u64>>(),
-    );
+    stack[0..8].copy_from_slice(&pubkey.0[0].0.iter().map(|v| *v as u64).collect::<Vec<u64>>());
+    stack[8..16].copy_from_slice(&pubkey.0[1].0.iter().map(|v| *v as u64).collect::<Vec<u64>>());
+    stack[16..24].copy_from_slice(&pubkey.0[2].0.iter().map(|v| *v as u64).collect::<Vec<u64>>());
 
     // copy hash of message
     stack[24..32].copy_from_slice(&h.0.iter().map(|v| *v as u64).collect::<Vec<u64>>());
