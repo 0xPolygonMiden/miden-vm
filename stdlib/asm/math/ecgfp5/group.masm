@@ -756,17 +756,14 @@ export.gen_mul.8
     loc_storew.3
     dropw
     loc_store.4 # initialize and cache res_x
-    drop
 
     push.0.0.0.0.0
     loc_storew.5
     dropw
     loc_store.6 # initialize and cache res_y
-    drop
 
     push.1
     loc_store.7 # initialize and cache res_inf
-    drop
 
     push.0.8623373087021137817.12280941316336150722.16498106075800537106.17561351883262171669.14191612778916076371.18286383079848041790.5863339128417000744.11451759428629996034.14179124258460441178.4768624678334228939
     push.0.16248535820734672314.12843058077554438509.14604603115652880441.1861370543582612103.12413761366396265525.4176022593458990041.3883454194479152564.14208568149880154517.30496475895846659.10372352552633189742
@@ -1124,15 +1121,12 @@ export.gen_mul.8
                     loc_storew.3
                     dropw
                     loc_store.4
-                    drop
 
                     loc_storew.5
                     dropw
                     loc_store.6
-                    drop
 
                     loc_store.7
-                    drop
                 else
                     dropw
                     dropw
@@ -1192,15 +1186,12 @@ export.gen_mul.8
                 loc_storew.3
                 dropw
                 loc_store.4
-                drop
 
                 loc_storew.5
                 dropw
                 loc_store.6
-                drop
 
                 loc_store.7
-                drop
             else
                 dropw
                 dropw

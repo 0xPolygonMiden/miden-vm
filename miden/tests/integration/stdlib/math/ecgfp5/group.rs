@@ -1,6 +1,5 @@
 use super::base_field::{bv_or, Ext5};
 use super::{build_test, Felt};
-use ::air::FieldElement;
 use std::ops::Add;
 use test_case::test_case;
 use vm_core::{FieldElement, StarkField};

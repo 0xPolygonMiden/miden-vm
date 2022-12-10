@@ -289,8 +289,8 @@ fn test_secp256k1_scalar_field_inv() {
         dupw.1
         dupw.1
 
-        exec.secp256k1_scalar_field::inv
-        exec.secp256k1_scalar_field::mul
+        exec.scalar_field::inv
+        exec.scalar_field::mul
     end";
 
     let elm0 = ScalarField {

@@ -1,6 +1,6 @@
-use.std::math::secp256k1_base_field
-use.std::math::secp256k1_scalar_field
-use.std::math::secp256k1_ec
+use.std::math::secp256k1::base_field
+use.std::math::secp256k1::scalar_field
+use.std::math::secp256k1::group
 
 #! Given an ECDSA public key ( in projective coordinate system i.e. each secp256k1 curve point 
 #! is represented in terms of X, Y, Z coordinates ), hashed message h ( a 256 -bit element represented 
@@ -54,7 +54,7 @@ export.verify.24
 
     # Only s lives on stack
     # Invert s, over secp256k1 scalar field
-    exec.secp256k1_scalar_field::inv
+    exec.scalar_field::inv
 
     dupw.1
     dupw.1
@@ -69,8 +69,8 @@ export.verify.24
     loc_loadw.6
 
     # compute h * s^-1
-    exec.secp256k1_scalar_field::mul
-    exec.secp256k1_scalar_field::from_mont
+    exec.scalar_field::mul
+    exec.scalar_field::from_mont
 
     # cache h * s^-1
     loc_storew.6
@@ -83,8 +83,8 @@ export.verify.24
     loc_loadw.8
 
     # compute r * s^-1
-    exec.secp256k1_scalar_field::mul
-    exec.secp256k1_scalar_field::from_mont
+    exec.scalar_field::mul
+    exec.scalar_field::from_mont
 
     # cache r * s^-1
     loc_storew.10
@@ -105,7 +105,7 @@ export.verify.24
     loc_loadw.6
 
     # compute G * ((h * s^-1) mod N) = P0
-    exec.secp256k1_ec::gen_mul
+    exec.group::gen_mul
 
     push.0.0.0.0
 
@@ -155,7 +155,7 @@ export.verify.24
     locaddr.0
 
     # compute pkey * ((r * s^-1) mod N) = P1
-    exec.secp256k1_ec::mul
+    exec.group::mul
 
     push.0.0.0.0
 
@@ -207,7 +207,7 @@ export.verify.24
     locaddr.0
 
     # compute P0 + P1 = P2
-    exec.secp256k1_ec::add
+    exec.group::add
 
     push.0.0.0.0
 
@@ -240,7 +240,7 @@ export.verify.24
     swapw
     loc_loadw.4
 
-    exec.secp256k1_base_field::inv
+    exec.base_field::inv
 
     push.0.0.0.0.0.0.0.0
     loc_loadw.1
@@ -248,8 +248,8 @@ export.verify.24
     loc_loadw.0
 
     # compute r' ( in radix-2^32 form )
-    exec.secp256k1_base_field::mul
-    exec.secp256k1_base_field::from_mont
+    exec.base_field::mul
+    exec.base_field::from_mont
 
     push.0.0.0.0.0.0.0.0
     loc_loadw.9
@@ -257,7 +257,7 @@ export.verify.24
     loc_loadw.8
 
     # compute r ( in radix-2^32 form )
-    exec.secp256k1_scalar_field::from_mont
+    exec.scalar_field::from_mont
 
     # check if r == r'
     movup.8
