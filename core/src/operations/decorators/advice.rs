@@ -26,6 +26,10 @@ pub enum AdviceInjector {
 
     /// Injects a list of words from the memory starting from the specified start address.
     Memory(u32, u32),
+
+    /// Given an element of quadratic extension field, it computes multiplicative inverse and
+    /// injects the result into advice tape
+    Ext2Inv,
 }
 
 impl fmt::Display for AdviceInjector {
@@ -35,6 +39,7 @@ impl fmt::Display for AdviceInjector {
             Self::DivResultU64 => write!(f, "div_result_u64"),
             Self::MapValue => write!(f, "map_value"),
             Self::Memory(start_addr, num_words) => write!(f, "mem({start_addr}, {num_words})"),
+            Self::Ext2Inv => write!(f, "ext2_inv"),
         }
     }
 }

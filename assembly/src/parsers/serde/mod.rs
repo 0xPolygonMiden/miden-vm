@@ -242,20 +242,21 @@ pub enum OpCode {
     AdvU64Div = 214,
     AdvKeyval = 215,
     AdvMem = 216,
+    AdvExt2Inv = 217,
 
     // ----- cryptographic operations -------------------------------------------------------------
-    RPHash = 217,
-    RPPerm = 218,
-    MTreeGet = 219,
-    MTreeSet = 220,
-    MTreeCwm = 221,
+    RPHash = 218,
+    RPPerm = 219,
+    MTreeGet = 220,
+    MTreeSet = 221,
+    MTreeCwm = 222,
 
     // ----- exec / call --------------------------------------------------------------------------
-    ExecLocal = 222,
-    ExecImported = 223,
-    CallLocal = 224,
-    CallImported = 225,
-    SysCall = 226,
+    ExecLocal = 223,
+    ExecImported = 224,
+    CallLocal = 225,
+    CallImported = 226,
+    SysCall = 227,
 
     // ----- control flow -------------------------------------------------------------------------
     IfElse = 253,

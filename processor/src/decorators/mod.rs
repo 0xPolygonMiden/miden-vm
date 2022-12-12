@@ -35,6 +35,7 @@ impl Process {
             AdviceInjector::Memory(start_addr, num_words) => {
                 self.inject_mem_values(*start_addr, *num_words)
             }
+            AdviceInjector::Ext2Inv => self.inject_ext2_inv_result(),
         }
     }
 

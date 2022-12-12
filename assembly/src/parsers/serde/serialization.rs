@@ -421,6 +421,7 @@ impl Serializable for Instruction {
                 target.write_u8(*v);
             }
             Self::AdvLoadW => OpCode::AdvLoadW.write_into(target)?,
+            Self::AdvExt2Inv => OpCode::AdvExt2Inv.write_into(target)?,
 
             // ----- cryptographic operations ---------------------------------------------------------
             Self::RpHash => OpCode::RPHash.write_into(target)?,
