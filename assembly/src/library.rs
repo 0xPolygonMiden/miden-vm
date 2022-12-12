@@ -61,7 +61,6 @@ impl MaslLibrary {
 
     /// File extension for the Assembly Library.
     pub const LIBRARY_EXTENSION: &str = "masl";
-
     /// File extension for the Assembly Module.
     pub const MODULE_EXTENSION: &str = "masm";
 }
@@ -260,11 +259,9 @@ impl Module {
 
     /// Validate if the module belongs to the provided namespace.
     pub fn check_namespace(&self, namespace: &LibraryNamespace) -> Result<(), LibraryError> {
-        (self.path.namespace() == namespace.as_str())
-            .then_some(())
-            .ok_or_else(|| {
-                LibraryError::namespace_violation(self.path.namespace(), namespace.as_str())
-            })
+        (self.path.namespace() == namespace.as_str()).then_some(()).ok_or_else(|| {
+            LibraryError::namespace_violation(self.path.namespace(), namespace.as_str())
+        })
     }
 }
 
@@ -412,22 +409,12 @@ impl TryFrom<&str> for Version {
     type Error = SerializationError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let mut tokens = value.split('.').map(|n| {
-            n.parse::<u16>()
-                .map_err(|_| SerializationError::InvalidNumber)
-        });
-        let major = tokens
-            .next()
-            .transpose()?
-            .ok_or(SerializationError::UnexpectedEndOfStream)?;
-        let minor = tokens
-            .next()
-            .transpose()?
-            .ok_or(SerializationError::UnexpectedEndOfStream)?;
-        let patch = tokens
-            .next()
-            .transpose()?
-            .ok_or(SerializationError::UnexpectedEndOfStream)?;
+        let mut tokens = value
+            .split('.')
+            .map(|n| n.parse::<u16>().map_err(|_| SerializationError::InvalidNumber));
+        let major = tokens.next().transpose()?.ok_or(SerializationError::UnexpectedEndOfStream)?;
+        let minor = tokens.next().transpose()?.ok_or(SerializationError::UnexpectedEndOfStream)?;
+        let patch = tokens.next().transpose()?.ok_or(SerializationError::UnexpectedEndOfStream)?;
         Ok(Self {
             major,
             minor,

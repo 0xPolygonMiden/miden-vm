@@ -146,11 +146,7 @@ impl Assembler {
         let cb_table = context.into_cb_table(&self.proc_cache.borrow());
 
         // build and return the program
-        Ok(Program::with_kernel(
-            program_root,
-            self.kernel.clone(),
-            cb_table,
-        ))
+        Ok(Program::with_kernel(program_root, self.kernel.clone(), cb_table))
     }
 
     // MODULE COMPILER
@@ -366,11 +362,7 @@ pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
     // build a binary tree of blocks joining them using Join blocks
     let mut blocks = merged_blocks;
     while blocks.len() > 1 {
-        let last_block = if blocks.len() % 2 == 0 {
-            None
-        } else {
-            blocks.pop()
-        };
+        let last_block = if blocks.len() % 2 == 0 { None } else { blocks.pop() };
 
         let mut grouped_blocks = Vec::new();
         core::mem::swap(&mut blocks, &mut grouped_blocks);

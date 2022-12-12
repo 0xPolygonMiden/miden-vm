@@ -66,10 +66,7 @@ impl ECExt5 {
     pub fn validate(w: Ext5) -> Felt {
         let e = w.square() - Self::a();
         let delta = e.square().subk1(Self::bmul4_1());
-        bv_or(
-            Felt::new((delta.legendre() == Felt::ONE) as u64),
-            w.is_zero(),
-        )
+        bv_or(Felt::new((delta.legendre() == Felt::ONE) as u64), w.is_zero())
     }
 
     // Given an encoded elliptic curve point, this routine attempts to decode it using
@@ -92,7 +89,7 @@ impl ECExt5 {
         (
             ECExt5 {
                 x: x + Self::adiv3(),
-                y: y,
+                y,
                 point_at_infinity: inf,
             },
             c,
@@ -234,13 +231,7 @@ fn test_ec_ext5_point_validate(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, shou
     let w = Ext5::new(a0, a1, a2, a3, a4);
     let flg = ECExt5::validate(w);
 
-    let mut stack = [
-        w.a0.as_int(),
-        w.a1.as_int(),
-        w.a2.as_int(),
-        w.a3.as_int(),
-        w.a4.as_int(),
-    ];
+    let mut stack = [w.a0.as_int(), w.a1.as_int(), w.a2.as_int(), w.a3.as_int(), w.a4.as_int()];
     stack.reverse();
 
     let test = build_test!(source, &stack);
@@ -276,13 +267,7 @@ fn test_ec_ext5_point_decode(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, should
     let w = Ext5::new(a0, a1, a2, a3, a4);
     let (point, flg) = ECExt5::decode(w);
 
-    let mut stack = [
-        w.a0.as_int(),
-        w.a1.as_int(),
-        w.a2.as_int(),
-        w.a3.as_int(),
-        w.a4.as_int(),
-    ];
+    let mut stack = [w.a0.as_int(), w.a1.as_int(), w.a2.as_int(), w.a3.as_int(), w.a4.as_int()];
     stack.reverse();
 
     let test = build_test!(source, &stack);
@@ -601,18 +586,18 @@ fn test_ec_ext5_gen_multiplication() {
     // Note, (x, u) = (x, x/ y)
     let gen = ECExt5 {
         x: Ext5::new(
-            0xB2CA178ECF4453A1,
-            0x3C757788836D3EA4,
-            0x48D7F28A26DAFD0B,
-            0x1E0F15C7FD44C28E,
-            0x21FA7FFCC8252211,
+            0xb2ca178ecf4453a1,
+            0x3c757788836d3ea4,
+            0x48d7f28a26dafd0b,
+            0x1e0f15c7fd44c28e,
+            0x21fa7ffcc8252211,
         ),
         y: Ext5::new(
-            0xB2CA178ECF4453A1,
-            0x3C757788836D3EA4,
-            0x48D7F28A26DAFD0B,
-            0x1E0F15C7FD44C28E,
-            0x21FA7FFCC8252211,
+            0xb2ca178ecf4453a1,
+            0x3c757788836d3ea4,
+            0x48d7f28a26dafd0b,
+            0x1e0f15c7fd44c28e,
+            0x21fa7ffcc8252211,
         ) * Ext5::from_int(4),
         point_at_infinity: Felt::ZERO,
     };

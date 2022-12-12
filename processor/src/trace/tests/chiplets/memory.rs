@@ -64,14 +64,8 @@ fn b_aux_trace_mem() {
 
     // The next memory request from the stack is sent when `MLoad` is executed at cycle 6 and
     // included at row 7
-    let value = build_expected_memory(
-        &rand_elements,
-        MEMORY_READ_LABEL,
-        ZERO,
-        ZERO,
-        Felt::new(6),
-        word,
-    );
+    let value =
+        build_expected_memory(&rand_elements, MEMORY_READ_LABEL, ZERO, ZERO, Felt::new(6), word);
     expected *= value.inv();
     assert_eq!(expected, b_aux[7]);
 
@@ -86,14 +80,8 @@ fn b_aux_trace_mem() {
     // to the 5 memory operations (MStream requires 2 rows).
 
     // At cycle 8 `MLoadW` is requested by the stack and `MStoreW` is provided by memory
-    let value = build_expected_memory(
-        &rand_elements,
-        MEMORY_READ_LABEL,
-        ZERO,
-        ZERO,
-        Felt::new(8),
-        word,
-    );
+    let value =
+        build_expected_memory(&rand_elements, MEMORY_READ_LABEL, ZERO, ZERO, Felt::new(8), word);
     expected *= value.inv();
     expected *= build_expected_memory_from_trace(&trace, &rand_elements, 8);
     assert_eq!(expected, b_aux[9]);
@@ -126,14 +114,8 @@ fn b_aux_trace_mem() {
 
     // At cycle 13, `MStream` is requested by the stack, and the second read of `MStream` is
     // provided by the memory.
-    let value1 = build_expected_memory(
-        &rand_elements,
-        MEMORY_READ_LABEL,
-        ZERO,
-        ZERO,
-        Felt::new(13),
-        word,
-    );
+    let value1 =
+        build_expected_memory(&rand_elements, MEMORY_READ_LABEL, ZERO, ZERO, Felt::new(13), word);
     let value2 = build_expected_memory(
         &rand_elements,
         MEMORY_READ_LABEL,

@@ -658,10 +658,7 @@ impl fmt::Display for LibraryError {
                 write!(f, "'{name}' cannot contain a module delimiter")
             }
             NamespaceViolation { expected, found } => {
-                write!(
-                    f,
-                    "invalid namespace! expected '{expected}', found '{found}'"
-                )
+                write!(f, "invalid namespace! expected '{expected}', found '{found}'")
             }
         }
     }

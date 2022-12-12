@@ -295,10 +295,8 @@ fn decoder_p2_span_with_respan() {
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
     let p2 = aux_columns.get_column(P2_COL_IDX);
 
-    let row_values = [
-        BlockHashTableRow::new_test(ZERO, span.hash().into(), false, false)
-            .to_value(&trace.main_trace, &alphas),
-    ];
+    let row_values = [BlockHashTableRow::new_test(ZERO, span.hash().into(), false, false)
+        .to_value(&trace.main_trace, &alphas)];
 
     // make sure the first entry is initialized to program hash
     let mut expected_value = row_values[0];

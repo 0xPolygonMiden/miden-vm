@@ -17,9 +17,7 @@ mod stack;
 pub fn build_trace_from_block(program: &CodeBlock, stack: &[u64]) -> ExecutionTrace {
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(&Kernel::default(), inputs);
-    process
-        .execute_code_block(program, &CodeBlockTable::default())
-        .unwrap();
+    process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
     ExecutionTrace::new(process, ProgramOutputs::default())
 }
 
@@ -39,8 +37,6 @@ pub fn build_trace_from_ops_with_inputs(
 ) -> ExecutionTrace {
     let mut process = Process::new(&Kernel::default(), inputs);
     let program = CodeBlock::new_span(operations);
-    process
-        .execute_code_block(&program, &CodeBlockTable::default())
-        .unwrap();
+    process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
     ExecutionTrace::new(process, ProgramOutputs::default())
 }

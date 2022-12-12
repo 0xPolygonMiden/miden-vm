@@ -41,13 +41,8 @@ impl VerifyCmd {
         let now = Instant::now();
 
         // verify proof
-        verifier::verify(
-            program_hash,
-            &input_data.stack_init(),
-            &outputs_data.outputs(),
-            proof,
-        )
-        .map_err(|err| format!("Program failed verification! - {}", err))?;
+        verifier::verify(program_hash, &input_data.stack_init(), &outputs_data.outputs(), proof)
+            .map_err(|err| format!("Program failed verification! - {}", err))?;
 
         println!("Verification complete in {} ms", now.elapsed().as_millis());
 

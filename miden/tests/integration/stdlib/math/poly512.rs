@@ -106,9 +106,7 @@ fn test_poly512_neg_zq() {
 fn generate_test_script_neg_zq() -> String {
     let polynomial_1 = rand_utils::rand_array::<u32, POLYNOMIAL_LENGTH>().map(|v| v % Q);
 
-    let result_polynomial: Vec<u32> = (0..POLYNOMIAL_LENGTH)
-        .map(|i| Q - polynomial_1[i])
-        .collect();
+    let result_polynomial: Vec<u32> = (0..POLYNOMIAL_LENGTH).map(|i| Q - polynomial_1[i]).collect();
 
     let mut polynomial_1_script = String::new();
     let mut check_result_script = String::new();
@@ -276,9 +274,8 @@ fn generate_test_script_mul_zq() -> String {
     let mut upper = upper.to_vec();
     upper.push(0);
 
-    let result_polynomial: Vec<u64> = (0..POLYNOMIAL_LENGTH)
-        .map(|i| (lower[i] + Q - upper[i]) % Q)
-        .collect();
+    let result_polynomial: Vec<u64> =
+        (0..POLYNOMIAL_LENGTH).map(|i| (lower[i] + Q - upper[i]) % Q).collect();
 
     let mut polynomial_1_script = String::new();
     let mut polynomial_2_script = String::new();

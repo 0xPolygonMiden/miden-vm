@@ -496,13 +496,7 @@ fn test_ext5_square() {
     let a = Ext5::rand();
     let b = a.square();
 
-    let mut stack = [
-        a.a0.as_int(),
-        a.a1.as_int(),
-        a.a2.as_int(),
-        a.a3.as_int(),
-        a.a4.as_int(),
-    ];
+    let mut stack = [a.a0.as_int(), a.a1.as_int(), a.a2.as_int(), a.a3.as_int(), a.a4.as_int()];
     stack.reverse();
 
     let test = build_test!(source, &stack);
@@ -527,13 +521,7 @@ fn test_ext5_inv() {
     let a = Ext5::rand();
     let b = a.inv();
 
-    let mut stack = [
-        a.a0.as_int(),
-        a.a1.as_int(),
-        a.a2.as_int(),
-        a.a3.as_int(),
-        a.a4.as_int(),
-    ];
+    let mut stack = [a.a0.as_int(), a.a1.as_int(), a.a2.as_int(), a.a3.as_int(), a.a4.as_int()];
     stack.reverse();
 
     let test = build_test!(source, &stack);
@@ -595,13 +583,7 @@ fn test_ext5_legendre() {
     let a = Ext5::rand();
     let b = a.legendre();
 
-    let mut stack = [
-        a.a0.as_int(),
-        a.a1.as_int(),
-        a.a2.as_int(),
-        a.a3.as_int(),
-        a.a4.as_int(),
-    ];
+    let mut stack = [a.a0.as_int(), a.a1.as_int(), a.a2.as_int(), a.a3.as_int(), a.a4.as_int()];
     stack.reverse();
 
     let test = build_test!(source, &stack);
@@ -622,13 +604,7 @@ fn test_ext5_sqrt() {
     let a = Ext5::rand();
     let (b, c) = a.sqrt();
 
-    let mut stack = [
-        a.a0.as_int(),
-        a.a1.as_int(),
-        a.a2.as_int(),
-        a.a3.as_int(),
-        a.a4.as_int(),
-    ];
+    let mut stack = [a.a0.as_int(), a.a1.as_int(), a.a2.as_int(), a.a3.as_int(), a.a4.as_int()];
     stack.reverse();
 
     let test = build_test!(source, &stack);

@@ -212,10 +212,7 @@ impl<E: FieldElement> OpFlags<E> {
 
         // helper register is multiplied with the intermediate values to enumerate all the possible
         // degree 4 operations flags.
-        degree4_op_flags
-            .iter_mut()
-            .take(8)
-            .for_each(|v| *v *= helper);
+        degree4_op_flags.iter_mut().take(8).for_each(|v| *v *= helper);
 
         // flag of END operation shifting stack to the left. It's effect on stack depends if the current
         // block being executed is a loop block or not.

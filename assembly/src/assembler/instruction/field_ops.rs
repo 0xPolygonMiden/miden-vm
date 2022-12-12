@@ -16,7 +16,6 @@ const TWO: Felt = Felt::new(2);
 /// - else if imm = 1: INCR
 /// - else if imm = 2: INCR INCR
 /// - otherwise: PUSH(imm) ADD
-///
 pub fn add_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
     if imm == ZERO {
         span.add_op(Noop)
@@ -34,7 +33,6 @@ pub fn add_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, A
 /// - if imm = 0: DROP PAD
 /// - else if imm = 1: NOOP
 /// - otherwise: PUSH(imm) MUL
-///
 pub fn mul_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
     if imm == ZERO {
         span.add_ops([Drop, Pad])

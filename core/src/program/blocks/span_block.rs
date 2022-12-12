@@ -382,10 +382,7 @@ fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
     if !decorators.is_empty() {
         // check if decorator list is sorted
         for i in 0..(decorators.len() - 1) {
-            debug_assert!(
-                decorators[i + 1].0 >= decorators[i].0,
-                "unsorted decorators list"
-            );
+            debug_assert!(decorators[i + 1].0 >= decorators[i].0, "unsorted decorators list");
         }
         // assert the last index in decorator list is less than operations vector length
         debug_assert!(

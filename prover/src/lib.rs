@@ -53,11 +53,8 @@ pub fn prove(
     let outputs = trace.program_outputs();
 
     // generate STARK proof
-    let prover = ExecutionProver::new(
-        options.clone(),
-        inputs.stack_init().to_vec(),
-        outputs.clone(),
-    );
+    let prover =
+        ExecutionProver::new(options.clone(), inputs.stack_init().to_vec(), outputs.clone());
     let proof = prover.prove(trace).map_err(ExecutionError::ProverError)?;
 
     Ok((outputs, proof))
@@ -86,10 +83,8 @@ impl ExecutionProver {
 
     /// Validates the stack inputs against the provided execution trace and returns true if valid.
     fn are_inputs_valid(&self, trace: &ExecutionTrace) -> bool {
-        for (input_element, trace_element) in self
-            .stack_inputs
-            .iter()
-            .zip(trace.init_stack_state().iter())
+        for (input_element, trace_element) in
+            self.stack_inputs.iter().zip(trace.init_stack_state().iter())
         {
             if *input_element != *trace_element {
                 return false;
@@ -101,11 +96,8 @@ impl ExecutionProver {
 
     /// Validates the program outputs against the provided execution trace and returns true if valid.
     fn are_outputs_valid(&self, trace: &ExecutionTrace) -> bool {
-        for (output_element, trace_element) in self
-            .outputs
-            .stack_top()
-            .iter()
-            .zip(trace.last_stack_state().iter())
+        for (output_element, trace_element) in
+            self.outputs.stack_top().iter().zip(trace.last_stack_state().iter())
         {
             if *output_element != *trace_element {
                 return false;
@@ -117,8 +109,8 @@ impl ExecutionProver {
 }
 
 impl Prover for ExecutionProver {
-    type BaseField = Felt;
     type Air = ProcessorAir;
+    type BaseField = Felt;
     type Trace = ExecutionTrace;
 
     fn options(&self) -> &prover::ProofOptions {
@@ -136,10 +128,6 @@ impl Prover for ExecutionProver {
             "provided outputs do not match the execution trace"
         );
 
-        PublicInputs::new(
-            trace.program_hash(),
-            self.stack_inputs.clone(),
-            self.outputs.clone(),
-        )
+        PublicInputs::new(trace.program_hash(), self.stack_inputs.clone(), self.outputs.clone())
     }
 }

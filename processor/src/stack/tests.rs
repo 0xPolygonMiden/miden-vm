@@ -35,9 +35,7 @@ fn initialize() {
 #[test]
 fn initialize_overflow() {
     // Initialize a new stack with enough initial values that the overflow table is non-empty.
-    let mut stack_inputs = [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-    ];
+    let mut stack_inputs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
     let inputs = ProgramInputs::new(&stack_inputs, &[], vec![]).unwrap();
     let stack = Stack::new(&inputs, 4, false);
 
@@ -107,10 +105,7 @@ fn shift_left() {
 
     // Check the state of stack item and helper columns.
     assert_eq!(stack.trace_state(), build_stack(&[0, 4, 3, 2, 1]));
-    assert_eq!(
-        stack.helpers_state(),
-        build_helpers_partial(1, prev_overflow_addr)
-    );
+    assert_eq!(stack.helpers_state(), build_helpers_partial(1, prev_overflow_addr));
 
     // ---- left shift an entire stack with one overflow item -------------------------------------
 
@@ -344,24 +339,12 @@ fn generate_trace() {
     assert_eq!(read_stack_top(&trace, 2), build_stack(&[0, 4, 3, 2, 1]));
     assert_eq!(read_stack_top(&trace, 3), build_stack(&[0, 0, 4, 3, 2, 1])); // start context
     assert_eq!(read_stack_top(&trace, 4), build_stack(&[0, 0, 4, 3, 2, 1]));
-    assert_eq!(
-        read_stack_top(&trace, 5),
-        build_stack(&[0, 0, 0, 4, 3, 2, 1])
-    );
-    assert_eq!(
-        read_stack_top(&trace, 6),
-        build_stack(&[0, 0, 0, 4, 3, 2, 1])
-    );
+    assert_eq!(read_stack_top(&trace, 5), build_stack(&[0, 0, 0, 4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 6), build_stack(&[0, 0, 0, 4, 3, 2, 1]));
     assert_eq!(read_stack_top(&trace, 7), build_stack(&[0, 0, 4, 3, 2, 1])); // restore context
     assert_eq!(read_stack_top(&trace, 8), build_stack(&[0, 0, 4, 3, 2, 1]));
-    assert_eq!(
-        read_stack_top(&trace, 9),
-        build_stack(&[0, 0, 0, 4, 3, 2, 1])
-    );
-    assert_eq!(
-        read_stack_top(&trace, 10),
-        build_stack(&[0, 0, 0, 4, 3, 2, 1])
-    );
+    assert_eq!(read_stack_top(&trace, 9), build_stack(&[0, 0, 0, 4, 3, 2, 1]));
+    assert_eq!(read_stack_top(&trace, 10), build_stack(&[0, 0, 0, 4, 3, 2, 1]));
     assert_eq!(read_stack_top(&trace, 11), build_stack(&[0, 0, 4, 3, 2, 1]));
     assert_eq!(read_stack_top(&trace, 12), build_stack(&[0, 4, 3, 2, 1]));
     assert_eq!(read_stack_top(&trace, 13), build_stack(&[4, 3, 2, 1]));
@@ -427,9 +410,5 @@ fn read_stack_top(trace: &[Vec<Felt>; STACK_TRACE_WIDTH], row: usize) -> StackTo
 
 /// Returns values in the stack helper columns of the provided trace in the specified row.
 fn read_helpers(trace: &[Vec<Felt>; STACK_TRACE_WIDTH], row: usize) -> StackHelpersState {
-    [
-        trace[B0_COL_IDX][row],
-        trace[B1_COL_IDX][row],
-        trace[H0_COL_IDX][row],
-    ]
+    [trace[B0_COL_IDX][row], trace[B1_COL_IDX][row], trace[H0_COL_IDX][row]]
 }

@@ -373,10 +373,7 @@ impl DecoderTrace {
     pub fn into_vec(mut self, trace_len: usize, num_rand_rows: usize) -> Vec<Vec<Felt>> {
         let own_len = self.trace_len();
         // make sure that only the duplicate rows will be overwritten with random values
-        assert!(
-            own_len + num_rand_rows <= trace_len,
-            "target trace length too small"
-        );
+        assert!(own_len + num_rand_rows <= trace_len, "target trace length too small");
 
         let mut trace = Vec::new();
 
@@ -489,10 +486,7 @@ impl DecoderTrace {
     /// The specified USER_OP_HELPERS in the `hasher_trace` are used as helper registers, since they
     /// are not required for hashing during execution of user operations.
     pub fn set_user_op_helpers(&mut self, values: &[Felt]) {
-        assert!(
-            values.len() <= USER_OP_HELPERS.len(),
-            "too many values for helper columns"
-        );
+        assert!(values.len() <= USER_OP_HELPERS.len(), "too many values for helper columns");
 
         for (idx, value) in values.iter().enumerate() {
             *self.last_helper_mut(idx) = *value;

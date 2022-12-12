@@ -17,16 +17,9 @@ pub struct VmState {
 impl fmt::Display for VmState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let stack: Vec<u64> = self.stack.iter().map(|x| x.as_int()).collect();
-        let memory: Vec<(u64, [u64; 4])> = self
-            .memory
-            .iter()
-            .map(|x| (x.0, word_to_ints(&x.1)))
-            .collect();
-        write!(
-            f,
-            "clk={}, fmp={}, stack={stack:?}, memory={memory:?}",
-            self.clk, self.fmp
-        )
+        let memory: Vec<(u64, [u64; 4])> =
+            self.memory.iter().map(|x| (x.0, word_to_ints(&x.1))).collect();
+        write!(f, "clk={}, fmp={}, stack={stack:?}, memory={memory:?}", self.clk, self.fmp)
     }
 }
 
@@ -98,7 +91,7 @@ impl VmStateIterator {
             let asmop = Some(AsmOpInfo::new(
                 curr_asmop.1.op().clone(),
                 curr_asmop.1.num_cycles(),
-                cycle_idx, // diff between curr clock cycle and start clock cycle of the current asmop
+                cycle_idx, /* diff between curr clock cycle and start clock cycle of the current asmop */
             ));
             (asmop, false)
         }
@@ -156,12 +149,7 @@ impl Iterator for VmStateIterator {
 // HELPER FUNCTIONS
 // ================================================================================================
 fn word_to_ints(word: &Word) -> [u64; 4] {
-    [
-        word[0].as_int(),
-        word[1].as_int(),
-        word[2].as_int(),
-        word[3].as_int(),
-    ]
+    [word[0].as_int(), word[1].as_int(), word[2].as_int(), word[3].as_int()]
 }
 
 /// Contains assembly instruction and operation index in the sequence corresponding to the specified

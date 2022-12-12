@@ -70,10 +70,8 @@ fn adv_pipe() {
     // is built by adding the top 8 values from the head of the advice tape to the values on
     // the top of the stack (i.e., 8 through 1). Thus, the first 8 elements on the stack will be
     // equal to 9, and the remaining 4 are untouched (i.e., 9, 10, 11, 12).
-    let mut state: [Felt; 12] = [12_u64, 11, 10, 9, 9, 9, 9, 9, 9, 9, 9, 9]
-        .to_elements()
-        .try_into()
-        .unwrap();
+    let mut state: [Felt; 12] =
+        [12_u64, 11, 10, 9, 9, 9, 9, 9, 9, 9, 9, 9].to_elements().try_into().unwrap();
 
     // apply a hash permutation to the state
     apply_permutation(&mut state);

@@ -307,16 +307,10 @@ fn test_ast_parsing_module_sequential_if() {
             vec![],
         ),
         Node::IfElse(
-            [
-                Node::Instruction(Instruction::PushU8(0)),
-                Node::Instruction(Instruction::Sub),
-            ]
-            .to_vec(),
-            [
-                Node::Instruction(Instruction::PushU8(1)),
-                Node::Instruction(Instruction::Sub),
-            ]
-            .to_vec(),
+            [Node::Instruction(Instruction::PushU8(0)), Node::Instruction(Instruction::Sub)]
+                .to_vec(),
+            [Node::Instruction(Instruction::PushU8(1)), Node::Instruction(Instruction::Sub)]
+                .to_vec(),
         ),
     ];
     procedures.insert(
@@ -388,9 +382,7 @@ fn test_unterminated_proc() {
     let result = parse_module(source);
     match result {
         Ok(_) => assert!(false),
-        Err(err) => assert!(err
-            .to_string()
-            .contains("procedure 'foo' has no matching end")),
+        Err(err) => assert!(err.to_string().contains("procedure 'foo' has no matching end")),
     }
 }
 
@@ -499,10 +491,8 @@ of the comments is correctly parsed. There was a bug here earlier."
         ),
     );
 
-    let proc_body_baz: Vec<Node> = vec![
-        Node::Instruction(Instruction::PadW),
-        Node::Instruction(Instruction::PushU8(0)),
-    ];
+    let proc_body_baz: Vec<Node> =
+        vec![Node::Instruction(Instruction::PadW), Node::Instruction(Instruction::PushU8(0))];
     let docs_baz =
         "Test documenation for export procedure baz in parsing test. Lorem ipsum dolor sit amet,
 consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna

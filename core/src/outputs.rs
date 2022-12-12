@@ -49,10 +49,7 @@ impl ProgramOutputs {
 
     pub fn from_elements(stack: Vec<Felt>, overflow_addrs: Vec<Felt>) -> Self {
         let stack = stack.iter().map(|&v| v.as_int()).collect::<Vec<_>>();
-        let overflow_addrs = overflow_addrs
-            .iter()
-            .map(|&v| v.as_int())
-            .collect::<Vec<_>>();
+        let overflow_addrs = overflow_addrs.iter().map(|&v| v.as_int()).collect::<Vec<_>>();
 
         Self {
             stack,

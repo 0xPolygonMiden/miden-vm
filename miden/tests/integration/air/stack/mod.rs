@@ -54,9 +54,7 @@ fn full_inputs_overflow_outputs() {
 fn overflow_inputs() {
     let asm_op = "push.19 drop";
 
-    let pub_inputs = vec![
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
-    ];
+    let pub_inputs = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 
     build_op_test!(&asm_op, &pub_inputs).prove_and_verify(pub_inputs, false);
 }
@@ -66,9 +64,7 @@ fn overflow_inputs() {
 #[test]
 fn overflow_inputs_overflow_outputs() {
     let asm_op = "push.19 push.20";
-    let pub_inputs = vec![
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
-    ];
+    let pub_inputs = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 
     build_op_test!(&asm_op, &pub_inputs).prove_and_verify(pub_inputs, false);
 }

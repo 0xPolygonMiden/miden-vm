@@ -57,14 +57,8 @@ pub fn b_chip_span() {
     state[0] = ONE;
     fill_state_from_decoder(&trace, &mut state, 0);
     // request the initialization of the span hash
-    let request_init = build_expected(
-        &alphas,
-        LINEAR_HASH_LABEL,
-        state,
-        [ZERO; STATE_WIDTH],
-        ONE,
-        ZERO,
-    );
+    let request_init =
+        build_expected(&alphas, LINEAR_HASH_LABEL, state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = request_init.inv();
 
     // provide the initialization of the span hash
@@ -129,14 +123,8 @@ pub fn b_chip_span_with_respan() {
     state[0] = Felt::new(12);
     fill_state_from_decoder(&trace, &mut state, 0);
     // request the initialization of the span hash
-    let request_init = build_expected(
-        &alphas,
-        LINEAR_HASH_LABEL,
-        state,
-        [ZERO; STATE_WIDTH],
-        ONE,
-        ZERO,
-    );
+    let request_init =
+        build_expected(&alphas, LINEAR_HASH_LABEL, state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = request_init.inv();
 
     // provide the initialization of the span hash
@@ -162,14 +150,8 @@ pub fn b_chip_span_with_respan() {
     let prev_state = state;
     // get the state with the next absorbed batch.
     absorb_state_from_decoder(&trace, &mut state, 9);
-    let request_respan = build_expected(
-        &alphas,
-        LINEAR_HASH_LABEL,
-        prev_state,
-        state,
-        Felt::new(8),
-        ZERO,
-    );
+    let request_respan =
+        build_expected(&alphas, LINEAR_HASH_LABEL, prev_state, state, Felt::new(8), ZERO);
     expected *= request_respan.inv();
     assert_eq!(expected, b_chip[10]);
 
@@ -191,14 +173,8 @@ pub fn b_chip_span_with_respan() {
     // At cycle 21, after the second operation batch, the decoder ends the SPAN block and requests
     // its hash.
     apply_permutation(&mut state);
-    let request_result = build_expected(
-        &alphas,
-        RETURN_HASH_LABEL,
-        state,
-        [ZERO; STATE_WIDTH],
-        Felt::new(16),
-        ZERO,
-    );
+    let request_result =
+        build_expected(&alphas, RETURN_HASH_LABEL, state, [ZERO; STATE_WIDTH], Felt::new(16), ZERO);
     expected *= request_result.inv();
     assert_eq!(expected, b_chip[22]);
 
@@ -234,14 +210,8 @@ pub fn b_chip_merge() {
     split_state[0] = Felt::new(8);
     fill_state_from_decoder(&trace, &mut split_state, 0);
     // request the initialization of the span hash
-    let split_init = build_expected(
-        &alphas,
-        LINEAR_HASH_LABEL,
-        split_state,
-        [ZERO; STATE_WIDTH],
-        ONE,
-        ZERO,
-    );
+    let split_init =
+        build_expected(&alphas, LINEAR_HASH_LABEL, split_state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = split_init.inv();
 
     // provide the initialization of the span hash
@@ -354,14 +324,8 @@ pub fn b_chip_permutation() {
     span_state[0] = ONE;
     fill_state_from_decoder(&trace, &mut span_state, 0);
     // request the initialization of the span hash
-    let span_init = build_expected(
-        &alphas,
-        LINEAR_HASH_LABEL,
-        span_state,
-        [ZERO; STATE_WIDTH],
-        ONE,
-        ZERO,
-    );
+    let span_init =
+        build_expected(&alphas, LINEAR_HASH_LABEL, span_state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = span_init.inv();
     // provide the initialization of the span hash
     expected *= build_expected_from_trace(&trace, &alphas, 0);
@@ -473,14 +437,8 @@ fn b_chip_mpverify() {
     span_state[0] = ONE;
     fill_state_from_decoder(&trace, &mut span_state, 0);
     // request the initialization of the span hash
-    let span_init = build_expected(
-        &alphas,
-        LINEAR_HASH_LABEL,
-        span_state,
-        [ZERO; STATE_WIDTH],
-        ONE,
-        ZERO,
-    );
+    let span_init =
+        build_expected(&alphas, LINEAR_HASH_LABEL, span_state, [ZERO; STATE_WIDTH], ONE, ZERO);
     let mut expected = span_init.inv();
     // provide the initialization of the span hash
     expected *= build_expected_from_trace(&trace, &alphas, 0);
@@ -493,12 +451,7 @@ fn b_chip_mpverify() {
         .expect("failed to get Merkle tree path");
     let mp_state = init_state_from_words(
         &[path[0][0], path[0][1], path[0][2], path[0][3]],
-        &[
-            leaves[index][0],
-            leaves[index][1],
-            leaves[index][2],
-            leaves[index][3],
-        ],
+        &[leaves[index][0], leaves[index][1], leaves[index][2], leaves[index][3]],
     );
     let mp_init = build_expected(
         &alphas,
@@ -592,11 +545,7 @@ fn build_expected(
     index: Felt,
 ) -> Felt {
     let first_cycle_row = addr_to_cycle_row(addr) == 0;
-    let transition_label = if first_cycle_row {
-        label + 16_u8
-    } else {
-        label + 32_u8
-    };
+    let transition_label = if first_cycle_row { label + 16_u8 } else { label + 32_u8 };
     let header =
         alphas[0] + alphas[1] * Felt::from(transition_label) + alphas[2] * addr + alphas[3] * index;
     let mut value = header;

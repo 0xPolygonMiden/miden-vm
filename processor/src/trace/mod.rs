@@ -127,9 +127,8 @@ impl ExecutionTrace {
     pub fn get_user_op_helpers_at(&self, clk: u32) -> [Felt; NUM_USER_OP_HELPERS] {
         let mut result = [ZERO; NUM_USER_OP_HELPERS];
         for (i, result) in result.iter_mut().enumerate() {
-            *result = self
-                .main_trace
-                .get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)[clk as usize];
+            *result = self.main_trace.get_column(DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + i)
+                [clk as usize];
         }
         result
     }
@@ -203,28 +202,20 @@ impl Trace for ExecutionTrace {
         );
 
         // add stack's running product columns
-        let stack_aux_columns = self
-            .aux_trace_hints
-            .stack
-            .build_aux_columns(&self.main_trace, rand_elements);
+        let stack_aux_columns =
+            self.aux_trace_hints.stack.build_aux_columns(&self.main_trace, rand_elements);
 
         // add the range checker's running product columns
-        let range_aux_columns = self
-            .aux_trace_hints
-            .range
-            .build_aux_columns(&self.main_trace, rand_elements);
+        let range_aux_columns =
+            self.aux_trace_hints.range.build_aux_columns(&self.main_trace, rand_elements);
 
         // add hasher's running product columns
-        let hasher_aux_columns = self
-            .aux_trace_hints
-            .hasher
-            .build_aux_columns(&self.main_trace, rand_elements);
+        let hasher_aux_columns =
+            self.aux_trace_hints.hasher.build_aux_columns(&self.main_trace, rand_elements);
 
         // add running product columns for the chiplets module
-        let chiplets_aux_columns = self
-            .aux_trace_hints
-            .chiplets
-            .build_aux_columns(&self.main_trace, rand_elements);
+        let chiplets_aux_columns =
+            self.aux_trace_hints.chiplets.build_aux_columns(&self.main_trace, rand_elements);
 
         // combine all auxiliary columns into a single vector
         let mut aux_columns = decoder_aux_columns
@@ -249,8 +240,7 @@ impl Trace for ExecutionTrace {
     fn read_main_frame(&self, row_idx: usize, frame: &mut EvaluationFrame<Felt>) {
         let next_row_idx = (row_idx + 1) % self.length();
         self.main_trace.read_row_into(row_idx, frame.current_mut());
-        self.main_trace
-            .read_row_into(next_row_idx, frame.next_mut());
+        self.main_trace.read_row_into(next_row_idx, frame.next_mut());
     }
 }
 
@@ -271,21 +261,9 @@ fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, Aux
     let clk = system.clk();
 
     // trace lengths of system and stack components must be equal to the number of executed cycles
-    assert_eq!(
-        clk as usize,
-        system.trace_len(),
-        "inconsistent system trace lengths"
-    );
-    assert_eq!(
-        clk as usize,
-        decoder.trace_len(),
-        "inconsistent decoder trace length"
-    );
-    assert_eq!(
-        clk as usize,
-        stack.trace_len(),
-        "inconsistent stack trace lengths"
-    );
+    assert_eq!(clk as usize, system.trace_len(), "inconsistent system trace lengths");
+    assert_eq!(clk as usize, decoder.trace_len(), "inconsistent decoder trace length");
+    assert_eq!(clk as usize, stack.trace_len(), "inconsistent stack trace lengths");
 
     // Add the range checks required by the chiplets to the range checker.
     chiplets.append_range_checks(&mut range);

@@ -94,11 +94,7 @@ impl KernelRom {
 
     /// Populates the provided execution trace fragment with execution trace of this kernel ROM.
     pub fn fill_trace(self, trace: &mut TraceFragment) {
-        debug_assert_eq!(
-            TRACE_WIDTH,
-            trace.width(),
-            "inconsistent trace fragment width"
-        );
+        debug_assert_eq!(TRACE_WIDTH, trace.width(), "inconsistent trace fragment width");
         let mut row = 0;
         for (idx, access_info) in self.access_map.values().enumerate() {
             let idx = Felt::from(idx as u16);

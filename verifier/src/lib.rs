@@ -44,11 +44,8 @@ pub fn verify(
     // convert stack inputs to field elements
     let mut stack_input_felts = Vec::with_capacity(stack_inputs.len());
     for &input in stack_inputs.iter().rev() {
-        stack_input_felts.push(
-            input
-                .try_into()
-                .map_err(|_| VerificationError::InputNotFieldElement(input))?,
-        );
+        stack_input_felts
+            .push(input.try_into().map_err(|_| VerificationError::InputNotFieldElement(input))?);
     }
 
     // build public inputs and try to verify the proof

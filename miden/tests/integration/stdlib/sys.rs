@@ -6,10 +6,7 @@ use vm_core::stack::STACK_TOP_SIZE;
 #[test]
 fn truncate_stack() {
     let source = "use.std::sys begin repeat.12 push.0 end exec.sys::truncate_stack end";
-    let test = build_test!(
-        source,
-        &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    );
+    let test = build_test!(source, &[16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
     test.expect_stack(&[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4]);
 }
 

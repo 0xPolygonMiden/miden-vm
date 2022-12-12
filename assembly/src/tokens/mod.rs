@@ -16,23 +16,21 @@ pub struct Token<'a> {
 }
 
 impl<'a> Token<'a> {
+    pub const BEGIN: &'static str = "begin";
+    pub const CALL: &'static str = "call";
+    pub const ELSE: &'static str = "else";
+    pub const END: &'static str = "end";
+    pub const EXEC: &'static str = "exec";
+    pub const EXPORT: &'static str = "export";
+    pub const IF: &'static str = "if";
+    pub const PROC: &'static str = "proc";
+    pub const REPEAT: &'static str = "repeat";
+    pub const SYSCALL: &'static str = "syscall";
     // CONTROL TOKENS
     // --------------------------------------------------------------------------------------------
 
     pub const USE: &'static str = "use";
-    pub const PROC: &'static str = "proc";
-    pub const EXPORT: &'static str = "export";
-
-    pub const BEGIN: &'static str = "begin";
-    pub const IF: &'static str = "if";
-    pub const ELSE: &'static str = "else";
     pub const WHILE: &'static str = "while";
-    pub const REPEAT: &'static str = "repeat";
-    pub const END: &'static str = "end";
-
-    pub const EXEC: &'static str = "exec";
-    pub const CALL: &'static str = "call";
-    pub const SYSCALL: &'static str = "syscall";
 
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
@@ -169,9 +167,7 @@ impl<'a> Token<'a> {
         match self.num_parts() {
             0 => unreachable!(),
             1 => Err(ParsingError::missing_param(self)),
-            2 => self.parts[1]
-                .parse::<u16>()
-                .map_err(|_| ParsingError::invalid_param(self, 1)),
+            2 => self.parts[1].parse::<u16>().map_err(|_| ParsingError::invalid_param(self, 1)),
             _ => Err(ParsingError::extra_param(self)),
         }
     }
@@ -259,11 +255,7 @@ fn validate_proc_locals(locals: &str, token: &Token) -> Result<u16, ParsingError
     match locals.parse::<u64>() {
         Ok(num_locals) => {
             if num_locals > u16::MAX as u64 {
-                return Err(ParsingError::too_many_proc_locals(
-                    token,
-                    num_locals,
-                    u16::MAX as u64,
-                ));
+                return Err(ParsingError::too_many_proc_locals(token, num_locals, u16::MAX as u64));
             }
             Ok(num_locals as u16)
         }

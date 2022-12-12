@@ -33,10 +33,7 @@ fn push_many() {
     test.expect_stack(&[23, 19, 17]);
 
     // --- push the maximum number of decimal values (16) -------------------------------------
-    let asm_op = format!(
-        "{}.16.17.18.19.20.21.22.23.24.25.26.27.28.29.30.31",
-        base_op
-    );
+    let asm_op = format!("{}.16.17.18.19.20.21.22.23.24.25.26.27.28.29.30.31", base_op);
     let mut expected = Vec::with_capacity(16);
     for i in (16..32).rev() {
         expected.push(i);

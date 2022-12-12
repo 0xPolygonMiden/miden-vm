@@ -32,7 +32,5 @@ pub fn adv_mem(
     num_words: u32,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
     validate_param(num_words, 0, u32::MAX - start_addr)?;
-    span.add_decorator(Decorator::Advice(AdviceInjector::Memory(
-        start_addr, num_words,
-    )))
+    span.add_decorator(Decorator::Advice(AdviceInjector::Memory(start_addr, num_words)))
 }

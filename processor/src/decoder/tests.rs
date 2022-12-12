@@ -82,10 +82,8 @@ fn span_block_one_group() {
     assert!(aux_hints.op_group_table_rows().is_empty());
 
     // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(0)),
-        (4, BlockTableUpdate::BlockEnded(false)),
-    ];
+    let expected_hints =
+        vec![(0, BlockTableUpdate::BlockStarted(0)), (4, BlockTableUpdate::BlockEnded(false))];
     assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
@@ -100,11 +98,7 @@ fn span_block_one_group() {
 #[test]
 fn span_block_small() {
     let iv = [ONE, TWO];
-    let ops = vec![
-        Operation::Push(iv[0]),
-        Operation::Push(iv[1]),
-        Operation::Add,
-    ];
+    let ops = vec![Operation::Push(iv[0]), Operation::Push(iv[1]), Operation::Add];
     let span = Span::new(ops.clone());
     let program = CodeBlock::new_span(ops.clone());
 
@@ -162,10 +156,8 @@ fn span_block_small() {
     assert_eq!(expected_ogt_rows, aux_hints.op_group_table_rows());
 
     // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(0)),
-        (5, BlockTableUpdate::BlockEnded(false)),
-    ];
+    let expected_hints =
+        vec![(0, BlockTableUpdate::BlockStarted(0)), (5, BlockTableUpdate::BlockEnded(false))];
     assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
@@ -775,10 +767,8 @@ fn loop_block_skip() {
     assert!(aux_hints.op_group_table_rows().is_empty());
 
     // --- check block execution hints ------------------------------------------------------------
-    let expected_hints = vec![
-        (0, BlockTableUpdate::BlockStarted(0)),
-        (1, BlockTableUpdate::BlockEnded(false)),
-    ];
+    let expected_hints =
+        vec![(0, BlockTableUpdate::BlockStarted(0)), (1, BlockTableUpdate::BlockEnded(false))];
     assert_eq!(expected_hints, aux_hints.block_exec_hints());
 
     // --- check block stack table hints ----------------------------------------------------------
@@ -1468,7 +1458,7 @@ fn set_user_op_helpers_many() {
     let a = rand_value::<u32>();
     let b = rand_value::<u32>();
     let (dividend, divisor) = if a > b { (a, b) } else { (b, a) };
-    let (trace, _, _) = build_trace(&[dividend as u64, divisor as u64], &program);
+    let (trace, ..) = build_trace(&[dividend as u64, divisor as u64], &program);
     let hasher_state = get_hasher_state(&trace, 1);
 
     // Check the hasher state of the user operation which was executed.
@@ -1495,9 +1485,7 @@ fn set_user_op_helpers_many() {
 fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxTraceHints, usize) {
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(&Kernel::default(), inputs);
-    process
-        .execute_code_block(program, &CodeBlockTable::default())
-        .unwrap();
+    process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
 
     let (trace, aux_hints) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
@@ -1592,12 +1580,7 @@ fn contains_op(trace: &DecoderTrace, row_idx: usize, op: Operation) -> bool {
 
 fn read_opcode(trace: &DecoderTrace, row_idx: usize) -> u8 {
     let mut result = 0;
-    for (i, column) in trace
-        .iter()
-        .skip(OP_BITS_OFFSET)
-        .take(NUM_OP_BITS)
-        .enumerate()
-    {
+    for (i, column) in trace.iter().skip(OP_BITS_OFFSET).take(NUM_OP_BITS).enumerate() {
         let op_bit = column[row_idx].as_int();
         assert!(op_bit <= 1, "invalid op bit");
         result += op_bit << i;
@@ -1655,10 +1638,7 @@ fn get_hasher_state1(trace: &DecoderTrace, row_idx: usize) -> Word {
 
 fn get_hasher_state2(trace: &DecoderTrace, row_idx: usize) -> Word {
     let mut result = [ZERO; 4];
-    for (result, column) in result
-        .iter_mut()
-        .zip(trace[HASHER_STATE_RANGE].iter().skip(4))
-    {
+    for (result, column) in result.iter_mut().zip(trace[HASHER_STATE_RANGE].iter().skip(4)) {
         *result = column[row_idx];
     }
     result

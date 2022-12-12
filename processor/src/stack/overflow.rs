@@ -95,8 +95,7 @@ impl OverflowTable {
         self.last_row_addr = Felt::from(clk);
 
         // mark this clock cycle as the cycle at which a new row was inserted into the table
-        self.update_trace
-            .push((clk, OverflowTableUpdate::RowInserted(row_idx)));
+        self.update_trace.push((clk, OverflowTableUpdate::RowInserted(row_idx)));
 
         if self.trace_enabled {
             // insert a copy of the current table state into the trace
@@ -224,11 +223,7 @@ impl OverflowTable {
     /// Saves a copy of the current table state into the trace at the specified clock cycle.
     fn save_current_state(&mut self, clk: u64) {
         debug_assert!(self.trace_enabled, "overflow table trace not enabled");
-        let current_state = self
-            .active_rows
-            .iter()
-            .map(|&idx| self.all_rows[idx].val)
-            .collect();
+        let current_state = self.active_rows.iter().map(|&idx| self.all_rows[idx].val).collect();
         self.trace.insert(clk, current_state);
     }
 

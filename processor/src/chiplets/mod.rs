@@ -165,9 +165,7 @@ impl Chiplets {
     /// - The provided index is out of range for the specified path.
     pub fn build_merkle_root(&mut self, value: Word, path: &[Word], index: Felt) -> (Felt, Word) {
         let mut lookups = Vec::new();
-        let (addr, root) = self
-            .hasher
-            .build_merkle_root(value, path, index, &mut lookups);
+        let (addr, root) = self.hasher.build_merkle_root(value, path, index, &mut lookups);
 
         self.bus.request_hasher_operation(&lookups, self.clk);
 
@@ -196,8 +194,7 @@ impl Chiplets {
     ) -> (Felt, Word, Word) {
         let mut lookups = Vec::new();
         let (addr, old_root, new_root) =
-            self.hasher
-                .update_merkle_root(old_value, new_value, path, index, &mut lookups);
+            self.hasher.update_merkle_root(old_value, new_value, path, index, &mut lookups);
         self.bus.request_hasher_operation(&lookups, self.clk);
 
         // provide the responses to the bus
@@ -215,9 +212,7 @@ impl Chiplets {
     /// It returns the row address of the execution trace at which the hash computation started.
     pub fn hash_control_block(&mut self, h1: Word, h2: Word, expected_hash: Digest) -> Felt {
         let mut lookups = Vec::new();
-        let (addr, result) = self
-            .hasher
-            .hash_control_block(h1, h2, expected_hash, &mut lookups);
+        let (addr, result) = self.hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(expected_hash, result.into());
@@ -342,10 +337,7 @@ impl Chiplets {
     pub fn read_mem_double(&mut self, ctx: u32, addr: Felt) -> [Word; 2] {
         // read two words from memory: from addr and from addr + 1
         let addr2 = addr + ONE;
-        let words = [
-            self.memory.read(ctx, addr, self.clk),
-            self.memory.read(ctx, addr2, self.clk),
-        ];
+        let words = [self.memory.read(ctx, addr, self.clk), self.memory.read(ctx, addr2, self.clk)];
 
         // create lookups for both memory reads
         let lookups = [
@@ -456,8 +448,7 @@ impl Chiplets {
     /// Adds all range checks required by the memory chiplet to the provided [RangeChecker]
     /// instance, along with the cycle rows at which the processor performs the lookups.
     pub fn append_range_checks(&self, range_checker: &mut RangeChecker) {
-        self.memory
-            .append_range_checks(self.memory_start(), range_checker);
+        self.memory.append_range_checks(self.memory_start(), range_checker);
     }
 
     /// Returns an execution trace of the chiplets containing the stacked traces of the
@@ -467,10 +458,7 @@ impl Chiplets {
     /// overwritten with random values.
     pub fn into_trace(self, trace_len: usize, num_rand_rows: usize) -> ChipletsTrace {
         // make sure that only padding rows will be overwritten by random values
-        assert!(
-            self.trace_len() + num_rand_rows <= trace_len,
-            "target trace length too small"
-        );
+        assert!(self.trace_len() + num_rand_rows <= trace_len, "target trace length too small");
 
         // Allocate columns for the trace of the chiplets.
         let mut trace = (0..CHIPLETS_WIDTH)

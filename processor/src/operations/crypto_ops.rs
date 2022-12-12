@@ -65,20 +65,11 @@ impl Process {
     /// Panics if the computed root does not match the root provided via the stack.
     pub(super) fn op_mpverify(&mut self) -> Result<(), ExecutionError> {
         // read node value, depth, index and root value from the stack
-        let node = [
-            self.stack.get(3),
-            self.stack.get(2),
-            self.stack.get(1),
-            self.stack.get(0),
-        ];
+        let node = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
         let depth = self.stack.get(4);
         let index = self.stack.get(5);
-        let provided_root = [
-            self.stack.get(9),
-            self.stack.get(8),
-            self.stack.get(7),
-            self.stack.get(6),
-        ];
+        let provided_root =
+            [self.stack.get(9), self.stack.get(8), self.stack.get(7), self.stack.get(6)];
 
         // get a Merkle path from the advice provider for the specified root and node index.
         // the path is expected to be of the specified depth.
@@ -89,15 +80,11 @@ impl Process {
 
         // save address(r) of the hasher trace from when the computation starts in the decoder
         // helper registers.
-        self.decoder
-            .set_user_op_helpers(Operation::MpVerify, &[addr]);
+        self.decoder.set_user_op_helpers(Operation::MpVerify, &[addr]);
 
         // Asserting the computed root of the merkle path from the advice provider is consistent with
         // the input root.
-        assert_eq!(
-            provided_root, computed_root,
-            "inconsistent Merkle tree root"
-        );
+        assert_eq!(provided_root, computed_root, "inconsistent Merkle tree root");
 
         // The same state is copied over to the next clock cycle with no changes.
         self.stack.copy_state(0);
@@ -142,41 +129,24 @@ impl Process {
     /// Panics if the computed old root does not match the input root provided via the stack.
     pub(super) fn op_mrupdate(&mut self, copy: bool) -> Result<(), ExecutionError> {
         // read old node value, depth, index, tree root and new node values from the stack
-        let old_node = [
-            self.stack.get(3),
-            self.stack.get(2),
-            self.stack.get(1),
-            self.stack.get(0),
-        ];
+        let old_node = [self.stack.get(3), self.stack.get(2), self.stack.get(1), self.stack.get(0)];
         let depth = self.stack.get(4);
         let index = self.stack.get(5);
-        let old_root = [
-            self.stack.get(9),
-            self.stack.get(8),
-            self.stack.get(7),
-            self.stack.get(6),
-        ];
-        let new_node = [
-            self.stack.get(13),
-            self.stack.get(12),
-            self.stack.get(11),
-            self.stack.get(10),
-        ];
+        let old_root = [self.stack.get(9), self.stack.get(8), self.stack.get(7), self.stack.get(6)];
+        let new_node =
+            [self.stack.get(13), self.stack.get(12), self.stack.get(11), self.stack.get(10)];
 
         // update the leaf at the specified index in the advice set specified by the old root, and
         // get a Merkle path to the specified leaf. the length of the returned path is expected to
         // match the specified depth.
         // TODO: in the future, we should be able to replace sub-trees and not just the leaves,
         // and, thus, the assert on depth would not be needed.
-        let path = self
-            .advice
-            .update_merkle_leaf(old_root, index, new_node, copy)?;
+        let path = self.advice.update_merkle_leaf(old_root, index, new_node, copy)?;
         assert_eq!(path.len(), depth.as_int() as usize);
 
         // use hasher to update the Merkle root.
-        let (addr, computed_old_root, new_root) = self
-            .chiplets
-            .update_merkle_root(old_node, new_node, &path, index);
+        let (addr, computed_old_root, new_root) =
+            self.chiplets.update_merkle_root(old_node, new_node, &path, index);
 
         // Asserts the computed old root of the merkle path from the advice provider is consistent
         // with the input root provided via the stack. This will panic only if the advice provider
@@ -185,8 +155,7 @@ impl Process {
 
         // save address(r) of the hasher trace from when the computation starts in the decoder
         // helper registers.
-        self.decoder
-            .set_user_op_helpers(Operation::MrUpdate(copy), &[addr]);
+        self.decoder.set_user_op_helpers(Operation::MrUpdate(copy), &[addr]);
 
         // Replace the old node value with computed new root; everything else remains the same.
         for (i, &value) in new_root.iter().rev().enumerate() {
@@ -237,11 +206,7 @@ mod tests {
 
         // --- test that the rest of the stack isn't affected -------------------------------------
         let mut inputs: Vec<u64> = vec![1, 2, 3, 4];
-        let expected = inputs
-            .iter()
-            .rev()
-            .map(|&v| Felt::new(v))
-            .collect::<Vec<Felt>>();
+        let expected = inputs.iter().rev().map(|&v| Felt::new(v)).collect::<Vec<Felt>>();
         let values: Vec<u64> = vec![2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
         inputs.extend_from_slice(&values);
 

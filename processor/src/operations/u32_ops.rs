@@ -205,17 +205,11 @@ impl Process {
         let (t3, t2) = split_u32_into_u16(hi.as_int());
 
         // add lookup values to the range checker.
-        self.range
-            .add_stack_checks(self.system.clk(), &[t0, t1, t2, t3]);
+        self.range.add_stack_checks(self.system.clk(), &[t0, t1, t2, t3]);
 
         // save the range check lookups to the decoder's user operation helper columns.
-        let mut helper_values = [
-            Felt::from(t0),
-            Felt::from(t1),
-            Felt::from(t2),
-            Felt::from(t3),
-            Felt::ZERO,
-        ];
+        let mut helper_values =
+            [Felt::from(t0), Felt::from(t1), Felt::from(t2), Felt::from(t3), Felt::ZERO];
 
         if check_element_validity {
             let m = (Felt::from(u32::MAX) - hi).inv();
@@ -310,10 +304,7 @@ mod tests {
 
         let expected_helper_registers =
             build_expected_helper_registers(&[b0 as u32, b1 as u32, over as u32]);
-        assert_eq!(
-            expected_helper_registers,
-            process.decoder.get_user_op_helpers()
-        );
+        assert_eq!(expected_helper_registers, process.decoder.get_user_op_helpers());
     }
 
     #[test]

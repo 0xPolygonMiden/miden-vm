@@ -137,11 +137,7 @@ fn enforce_input_decomposition<E: FieldElement>(
     constraint_offset += NUM_DECOMP_BITS;
 
     // Values in bit decomposition columns b0..b3 should be binary.
-    for (idx, result) in result[constraint_offset..]
-        .iter_mut()
-        .take(NUM_DECOMP_BITS)
-        .enumerate()
-    {
+    for (idx, result) in result[constraint_offset..].iter_mut().take(NUM_DECOMP_BITS).enumerate() {
         *result = processor_flag * is_binary(frame.b_bit(idx));
     }
     constraint_offset += NUM_DECOMP_BITS;
@@ -307,46 +303,57 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     fn selector(&self) -> E {
         self.current()[BITWISE_SELECTOR_COL_IDX]
     }
+
     #[inline(always)]
     fn selector_next(&self) -> E {
         self.next()[BITWISE_SELECTOR_COL_IDX]
     }
+
     #[inline(always)]
     fn a(&self) -> E {
         self.current()[BITWISE_A_COL_IDX]
     }
+
     #[inline(always)]
     fn a_next(&self) -> E {
         self.next()[BITWISE_A_COL_IDX]
     }
+
     #[inline(always)]
     fn a_bit(&self, index: usize) -> E {
         self.current()[BITWISE_A_COL_RANGE.start + index]
     }
+
     #[inline(always)]
     fn b(&self) -> E {
         self.current()[BITWISE_B_COL_IDX]
     }
+
     #[inline(always)]
     fn b_next(&self) -> E {
         self.next()[BITWISE_B_COL_IDX]
     }
+
     #[inline(always)]
     fn b_bit(&self, index: usize) -> E {
         self.current()[BITWISE_B_COL_RANGE.start + index]
     }
+
     #[inline(always)]
     fn bit_decomp(&self) -> &[E] {
         &self.current()[BITWISE_A_COL_RANGE.start..BITWISE_B_COL_RANGE.end]
     }
+
     #[inline(always)]
     fn output_prev(&self) -> E {
         self.current()[BITWISE_PREV_OUTPUT_COL_IDX]
     }
+
     #[inline(always)]
     fn output_prev_next(&self) -> E {
         self.next()[BITWISE_PREV_OUTPUT_COL_IDX]
     }
+
     #[inline(always)]
     fn output(&self) -> E {
         self.current()[BITWISE_OUTPUT_COL_IDX]
@@ -357,14 +364,17 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     fn a_agg_bits(&self) -> E {
         agg_bits(self.current(), BITWISE_A_COL_RANGE.start)
     }
+
     #[inline(always)]
     fn a_agg_bits_next(&self) -> E {
         agg_bits(self.next(), BITWISE_A_COL_RANGE.start)
     }
+
     #[inline(always)]
     fn b_agg_bits(&self) -> E {
         agg_bits(self.current(), BITWISE_B_COL_RANGE.start)
     }
+
     #[inline(always)]
     fn b_agg_bits_next(&self) -> E {
         agg_bits(self.next(), BITWISE_B_COL_RANGE.start)
@@ -376,6 +386,7 @@ impl<E: FieldElement> EvaluationFrameExt<E> for &EvaluationFrame<E> {
     fn bitwise_and_flag(&self) -> E {
         binary_not(self.current()[BITWISE_SELECTOR_COL_IDX])
     }
+
     #[inline(always)]
     fn bitwise_xor_flag(&self) -> E {
         self.current()[BITWISE_SELECTOR_COL_IDX]

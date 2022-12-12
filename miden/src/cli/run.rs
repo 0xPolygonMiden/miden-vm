@@ -32,10 +32,7 @@ impl RunCmd {
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
         let program_hash: [u8; 32] = program.hash().into();
-        print!(
-            "Executing program with hash {}... ",
-            hex::encode(program_hash)
-        );
+        print!("Executing program with hash {}... ", hex::encode(program_hash));
         let now = Instant::now();
 
         // execute program and generate outputs
@@ -49,10 +46,7 @@ impl RunCmd {
             OutputFile::write(trace.program_outputs(), output_path)?;
         } else {
             // write the stack outputs to the screen.
-            println!(
-                "Output: {:?}",
-                trace.program_outputs().stack_outputs(self.num_outputs)
-            );
+            println!("Output: {:?}", trace.program_outputs().stack_outputs(self.num_outputs));
         }
 
         Ok(())

@@ -200,8 +200,7 @@ impl Process {
         exp *= exp;
 
         // save val in the decoder helper register.
-        self.decoder
-            .set_user_op_helpers(Operation::Expacc, &[value]);
+        self.decoder.set_user_op_helpers(Operation::Expacc, &[value]);
 
         self.stack.set(0, Felt::new(bit));
         self.stack.set(1, exp);

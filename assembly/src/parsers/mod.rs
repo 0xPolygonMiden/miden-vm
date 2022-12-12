@@ -45,9 +45,7 @@ impl ProgramAst {
         // local procedures
         byte_writer.write_u16(self.local_procs.len() as u16);
 
-        self.local_procs
-            .iter()
-            .try_for_each(|proc| proc.write_into(&mut byte_writer))?;
+        self.local_procs.iter().try_for_each(|proc| proc.write_into(&mut byte_writer))?;
 
         // body
         self.body.write_into(&mut byte_writer)?;
@@ -186,9 +184,7 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, ParsingError> {
     context.parse_procedures(&mut tokens, false)?;
 
     // make sure program body is present
-    let next_token = tokens
-        .read()
-        .ok_or_else(|| ParsingError::unexpected_eof(tokens.pos()))?;
+    let next_token = tokens.read().ok_or_else(|| ParsingError::unexpected_eof(tokens.pos()))?;
     if next_token.parts()[0] != Token::BEGIN {
         return Err(ParsingError::unexpected_token(next_token, Token::BEGIN));
     }
@@ -363,11 +359,7 @@ fn parse_checked_param<I: core::str::FromStr + Ord + Display>(
 /// immediate value.
 fn check_div_by_zero(value: u64, op: &Token, param_idx: usize) -> Result<(), ParsingError> {
     if value == 0 {
-        Err(ParsingError::invalid_param_with_reason(
-            op,
-            param_idx,
-            "division by zero",
-        ))
+        Err(ParsingError::invalid_param_with_reason(op, param_idx, "division by zero"))
     } else {
         Ok(())
     }

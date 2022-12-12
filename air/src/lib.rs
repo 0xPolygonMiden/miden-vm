@@ -262,20 +262,11 @@ impl Serializable for PublicInputs {
         target.write(self.stack_inputs.as_slice());
 
         // write program outputs.
-        let stack = self
-            .outputs
-            .stack()
-            .iter()
-            .map(|v| Felt::new(*v))
-            .collect::<Vec<_>>();
+        let stack = self.outputs.stack().iter().map(|v| Felt::new(*v)).collect::<Vec<_>>();
         target.write(&stack);
 
-        let overflow_addrs = self
-            .outputs
-            .overflow_addrs()
-            .iter()
-            .map(|v| Felt::new(*v))
-            .collect::<Vec<_>>();
+        let overflow_addrs =
+            self.outputs.overflow_addrs().iter().map(|v| Felt::new(*v)).collect::<Vec<_>>();
         target.write(&overflow_addrs);
     }
 }

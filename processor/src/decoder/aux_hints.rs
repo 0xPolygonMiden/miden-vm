@@ -178,15 +178,13 @@ impl AuxTraceHints {
     /// need to specify whether the block was the first child of a JOIN block so that we can find
     /// correct block hash table row.
     pub fn block_ended(&mut self, clk: u32, is_first_child: bool) {
-        self.block_exec_hints
-            .push((clk, BlockTableUpdate::BlockEnded(is_first_child)));
+        self.block_exec_hints.push((clk, BlockTableUpdate::BlockEnded(is_first_child)));
     }
 
     /// Specifies that another execution of a loop's body started at the specified clock cycle.
     /// This is triggered by the REPEAT operation.
     pub fn loop_repeat_started(&mut self, clk: u32) {
-        self.block_exec_hints
-            .push((clk, BlockTableUpdate::LoopRepeated));
+        self.block_exec_hints.push((clk, BlockTableUpdate::LoopRepeated));
     }
 
     /// Specifies that execution of a SPAN block was extended at the specified clock cycle. This
@@ -195,8 +193,7 @@ impl AuxTraceHints {
     pub fn span_extended(&mut self, clk: u32, block_info: &BlockInfo) {
         let row = BlockStackTableRow::new(block_info);
         self.block_stack_rows.push(row);
-        self.block_exec_hints
-            .push((clk, BlockTableUpdate::SpanExtended))
+        self.block_exec_hints.push((clk, BlockTableUpdate::SpanExtended))
     }
 
     /// Specifies that an operation batch may have been inserted into the op group table at the
@@ -227,13 +224,11 @@ impl AuxTraceHints {
         group_pos: Felt,
         group_value: Felt,
     ) {
-        self.op_group_hints
-            .push((clk, OpGroupTableUpdate::RemoveRow));
+        self.op_group_hints.push((clk, OpGroupTableUpdate::RemoveRow));
         // we record a row only when it is deleted because rows are added and deleted in the same
         // order. thus, a sequence of deleted rows is exactly the same as the sequence of added
         // rows.
-        self.op_group_rows
-            .push(OpGroupTableRow::new(batch_id, group_pos, group_value));
+        self.op_group_rows.push(OpGroupTableRow::new(batch_id, group_pos, group_value));
     }
 
     /// Inserts the first entry into the block hash table.

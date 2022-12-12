@@ -291,11 +291,7 @@ impl ModulePath {
 
     /// Append the module path to a library namespace.
     pub fn to_absolute(&self, library: &LibraryNamespace) -> AbsolutePath {
-        let delimiter = if self.path.is_empty() {
-            ""
-        } else {
-            MODULE_PATH_DELIM
-        };
+        let delimiter = if self.path.is_empty() { "" } else { MODULE_PATH_DELIM };
         AbsolutePath::new_unchecked(format!("{}{delimiter}{}", library.as_str(), &self.path))
     }
 

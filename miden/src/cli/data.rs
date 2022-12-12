@@ -60,10 +60,7 @@ impl InputFile {
 
     /// Parse stack_init vector of strings to a vector of u64
     pub fn stack_init(&self) -> Vec<u64> {
-        self.stack_init
-            .iter()
-            .map(|v| v.parse::<u64>().unwrap())
-            .collect::<Vec<u64>>()
+        self.stack_init.iter().map(|v| v.parse::<u64>().unwrap()).collect::<Vec<u64>>()
     }
 
     /// Parse advice_tape vector of strings to a vector of u64
@@ -92,11 +89,7 @@ impl OutputFile {
     /// Returns a new [OutputFile] from the specified outputs vectors
     pub fn new(outputs: ProgramOutputs) -> Self {
         Self {
-            stack: outputs
-                .stack()
-                .iter()
-                .map(|&v| v.to_string())
-                .collect::<Vec<String>>(),
+            stack: outputs.stack().iter().map(|&v| v.to_string()).collect::<Vec<String>>(),
             overflow_addrs: outputs
                 .overflow_addrs()
                 .iter()
@@ -133,11 +126,7 @@ impl OutputFile {
         println!("Creating output file `{}`", path.display());
 
         let file = fs::File::create(&path).map_err(|err| {
-            format!(
-                "Failed to create output file `{}` - {}",
-                path.display(),
-                err
-            )
+            format!("Failed to create output file `{}` - {}", path.display(), err)
         })?;
 
         println!("Writing data to output file");
@@ -149,11 +138,7 @@ impl OutputFile {
 
     /// Converts outputs vectors for stack and overflow addresses to [ProgramOutputs].
     pub fn outputs(&self) -> ProgramOutputs {
-        let stack = self
-            .stack
-            .iter()
-            .map(|v| v.parse::<u64>().unwrap())
-            .collect::<Vec<u64>>();
+        let stack = self.stack.iter().map(|v| v.parse::<u64>().unwrap()).collect::<Vec<u64>>();
 
         let overflow_addrs = self
             .overflow_addrs
@@ -243,10 +228,7 @@ impl ProofFile {
 
         let proof_bytes = proof.to_bytes();
 
-        println!(
-            "Writing data to proof file - size {} KB",
-            proof_bytes.len() / 1024
-        );
+        println!("Writing data to proof file - size {} KB", proof_bytes.len() / 1024);
 
         // write proof bytes to file
         file.write_all(&proof_bytes).unwrap();

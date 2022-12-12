@@ -63,12 +63,7 @@ fn memory_chiplet_trace() {
 fn stacked_chiplet_trace() {
     // --- operations in hasher, bitwise, and memory processors without stack manipulation --------
     let stack = [8, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 1];
-    let ops = vec![
-        Operation::U32xor,
-        Operation::Push(ZERO),
-        Operation::MStoreW,
-        Operation::RpPerm,
-    ];
+    let ops = vec![Operation::U32xor, Operation::Push(ZERO), Operation::MStoreW, Operation::RpPerm];
     let kernel = build_kernel();
     let (chiplets_trace, trace_len) = build_trace(&stack, ops, kernel);
     let memory_len = 1;
@@ -114,9 +109,7 @@ fn build_trace(
     let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
     let mut process = Process::new(&kernel, inputs);
     let program = CodeBlock::new_span(operations);
-    process
-        .execute_code_block(&program, &CodeBlockTable::default())
-        .unwrap();
+    process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
 
     let (trace, _) = ExecutionTrace::test_finalize_trace(process);
     let trace_len = get_trace_len(&trace) - ExecutionTrace::NUM_RAND_ROWS;
@@ -173,10 +166,7 @@ fn validate_bitwise_trace(trace: &ChipletsTrace, start: usize, end: usize) {
         assert_eq!(BITWISE_XOR, trace[2][row]);
 
         // the final columns should be padded
-        for column in trace
-            .iter()
-            .skip(BITWISE_TRACE_WIDTH + NUM_BITWISE_SELECTORS)
-        {
+        for column in trace.iter().skip(BITWISE_TRACE_WIDTH + NUM_BITWISE_SELECTORS) {
             assert_eq!(ZERO, column[row]);
         }
     }
@@ -214,10 +204,7 @@ fn validate_kernel_rom_trace(trace: &ChipletsTrace, start: usize, end: usize) {
         assert_eq!(ZERO, trace[4][row]);
 
         // the final columns should be padded
-        for column in trace
-            .iter()
-            .skip(KERNEL_ROM_TRACE_WIDTH + NUM_KERNEL_ROM_SELECTORS)
-        {
+        for column in trace.iter().skip(KERNEL_ROM_TRACE_WIDTH + NUM_KERNEL_ROM_SELECTORS) {
             assert_eq!(ZERO, column[row]);
         }
     }

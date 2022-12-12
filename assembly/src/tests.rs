@@ -199,9 +199,7 @@ fn program_with_one_import() {
     impl Default for DummyLibrary {
         fn default() -> Self {
             let namespace = LibraryNamespace::try_from(NAMESPACE.to_string()).unwrap();
-            let path = ModulePath::try_from(MODULE.to_string())
-                .unwrap()
-                .to_absolute(&namespace);
+            let path = ModulePath::try_from(MODULE.to_string()).unwrap().to_absolute(&namespace);
             let ast = parse_module(PROCEDURE).unwrap();
             Self {
                 namespace,
@@ -226,9 +224,7 @@ fn program_with_one_import() {
         }
     }
 
-    let assembler = super::Assembler::default()
-        .with_library(&DummyLibrary::default())
-        .unwrap();
+    let assembler = super::Assembler::default().with_library(&DummyLibrary::default()).unwrap();
     let source = format!(
         r#"
         use.{}::{}
@@ -373,10 +369,7 @@ fn invalid_program() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(
-            error.to_string(),
-            "unexpected token: expected 'begin' but was 'none'"
-        );
+        assert_eq!(error.to_string(), "unexpected token: expected 'begin' but was 'none'");
     }
 
     let source = "begin add";
@@ -390,10 +383,7 @@ fn invalid_program() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(
-            error.to_string(),
-            "a code block must contain at least one instruction"
-        );
+        assert_eq!(error.to_string(), "a code block must contain at least one instruction");
     }
 
     let source = "begin add end mul";
@@ -433,10 +423,7 @@ fn invalid_proc() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(
-            error.to_string(),
-            "invalid procedure name: '123' does not start with a letter"
-        );
+        assert_eq!(error.to_string(), "invalid procedure name: '123' does not start with a letter");
     }
 
     let source = "proc.foo add mul end proc.foo push.3 end begin push.1 end";
@@ -521,10 +508,7 @@ fn invalid_while() {
     let program = assembler.compile(source);
     assert!(program.is_err());
     if let Err(error) = program {
-        assert_eq!(
-            error.to_string(),
-            "malformed instruction 'while': missing required parameter"
-        );
+        assert_eq!(error.to_string(), "malformed instruction 'while': missing required parameter");
     }
 
     let source = "begin push.1 add while.abc mul end end";

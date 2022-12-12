@@ -112,7 +112,9 @@ macro_rules! build_test_by_mode {
             in_debug_mode: $in_debug_mode,
         }
     }};
-    ($in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_tape:expr, $advice_sets:expr) => {{
+    (
+        $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_tape:expr, $advice_sets:expr
+    ) => {{
         let inputs =
             $crate::helpers::ProgramInputs::new($stack_inputs, $advice_tape, $advice_sets).unwrap();
 

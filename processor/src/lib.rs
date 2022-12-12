@@ -100,11 +100,7 @@ pub fn execute(
     let mut process = Process::new(program.kernel(), inputs.clone());
     let program_outputs = process.execute(program)?;
     let trace = ExecutionTrace::new(process, program_outputs);
-    assert_eq!(
-        program.hash(),
-        trace.program_hash(),
-        "inconsistent program hash"
-    );
+    assert_eq!(program.hash(), trace.program_hash(), "inconsistent program hash");
     Ok(trace)
 }
 
@@ -164,11 +160,7 @@ impl Process {
 
     /// Executes the provided [Program] in this process.
     pub fn execute(&mut self, program: &Program) -> Result<ProgramOutputs, ExecutionError> {
-        assert_eq!(
-            self.system.clk(),
-            0,
-            "a program has already been executed in this process"
-        );
+        assert_eq!(self.system.clk(), 0, "a program has already been executed in this process");
         self.execute_code_block(program.root(), program.cb_table())?;
 
         Ok(self.stack.get_outputs())
@@ -412,12 +404,6 @@ impl Process {
     }
 
     pub fn to_components(self) -> (System, Decoder, Stack, RangeChecker, Chiplets) {
-        (
-            self.system,
-            self.decoder,
-            self.stack,
-            self.range,
-            self.chiplets,
-        )
+        (self.system, self.decoder, self.stack, self.range, self.chiplets)
     }
 }

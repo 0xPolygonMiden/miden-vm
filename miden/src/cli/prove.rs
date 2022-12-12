@@ -57,12 +57,9 @@ impl ProveCmd {
         let now = Instant::now();
 
         // execute program and generate proof
-        let (outputs, proof) = prover::prove(
-            &program,
-            &input_data.get_program_inputs(),
-            &self.get_proof_security(),
-        )
-        .map_err(|err| format!("Failed to prove program - {:?}", err))?;
+        let (outputs, proof) =
+            prover::prove(&program, &input_data.get_program_inputs(), &self.get_proof_security())
+                .map_err(|err| format!("Failed to prove program - {:?}", err))?;
 
         println!(
             "Program with hash {} proved in {} ms",

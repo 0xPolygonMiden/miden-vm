@@ -123,7 +123,6 @@ use rustyline::{error::ReadlineError, Editor};
 /// If the `addr` has not been initialized:
 /// >> !mem[87]
 /// Memory at address 87 is empty
-///
 
 /// Initiates the Miden Repl tool.
 pub fn start_repl() {
@@ -271,9 +270,7 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramErro
     let pub_inputs = vec![];
     let inputs = ProgramInputs::new(&pub_inputs, &[], vec![]).unwrap();
     let mut process = Process::new_debug(program.kernel(), inputs);
-    let _program_outputs = process
-        .execute(&program)
-        .map_err(ProgramError::ExecutionError);
+    let _program_outputs = process.execute(&program).map_err(ProgramError::ExecutionError);
 
     let (sys, _, stack, _, chiplets) = process.to_components();
 
@@ -324,14 +321,7 @@ fn print_instructions() {
 /// Returns the state of the stack along with its overflown part in a string format.
 fn print_stack(stack: Vec<Felt>) {
     // converts the stack which is a vector of felt into string and prints it.
-    println!(
-        "{}",
-        stack
-            .iter()
-            .map(|f| format!("{}", f))
-            .collect::<Vec<_>>()
-            .join(" "),
-    )
+    println!("{}", stack.iter().map(|f| format!("{}", f)).collect::<Vec<_>>().join(" "),)
 }
 
 /// Accepts and returns a memory at an address by converting its register into integer
