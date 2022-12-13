@@ -28,7 +28,7 @@ pub enum AdviceInjector {
     Memory(u32, u32),
 
     /// Given an element of quadratic extension field, it computes multiplicative inverse and
-    /// injects the result into advice tape
+    /// injects the result into advice tape.
     Ext2Inv,
 }
 

@@ -1,10 +1,12 @@
 use super::{AdviceInjector, Decorator, ExecutionError, Felt, Process, StarkField};
 use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_LEN, ZERO};
 
+// TYPE ALIASES
+// ================================================================================================
+type Ext2Element = QuadExtension<Felt>;
+
 // DECORATORS
 // ================================================================================================
-
-type Ext2Element = QuadExtension<Felt>;
 
 impl Process {
     /// Executes the specified decorator
@@ -155,7 +157,7 @@ impl Process {
     /// Given a quadratic extension field element ( say a ) on stack top, this routine computes
     /// multiplicative inverse of that element ( say b ) s.t.
     ///
-    /// a * b = 1 ( mod P ) | b = a ^ -1, P = irreducible polynomial of degree 1 over F_q, q = 2^64 - 2^32 + 1
+    /// a * b = 1 ( mod P ) | b = a ^ -1, P = irreducible polynomial x^2 - x + 2 over F_q, q = 2^64 - 2^32 + 1
     ///
     /// Input on stack expected in following order
     ///
@@ -168,12 +170,17 @@ impl Process {
     /// Meaning when a Miden program is going to read it from advice tape, it'll see
     /// coefficient_0 first and then coefficient_1.
     ///
-    /// Note, in case input operand is zero, multiplicative inverse is returned to be zero.
+    /// Note, in case input operand is zero, division by zero error is returned, because
+    /// that's a non-invertible element of extension field.
     fn inject_ext2_inv_result(&mut self) -> Result<(), ExecutionError> {
         let coef0 = self.stack.get(1);
         let coef1 = self.stack.get(0);
 
         let elm = Ext2Element::new(coef0, coef1);
+        if elm == Ext2Element::ZERO {
+            return Err(ExecutionError::DivideByZero(self.system.clk()));
+        }
+
         let inv_elm = elm.inv();
 
         let elm_arr = [inv_elm];
