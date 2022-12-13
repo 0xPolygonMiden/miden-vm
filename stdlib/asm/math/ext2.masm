@@ -52,3 +52,40 @@ export.sub
     swap        #[b1,a1,a0-b0,...]
     sub         #[a1-b1,a0-b0,...]
 end
+
+#! Given an invertible quadratic extension field element on stack, this routine computes 
+#! multiplicative inverse of that element, using non-deterministic technique ( i.e. takes help
+#! of advice provider ). Just to ensure that non-deterministic computation resulted in corrected value,
+#! it multiplies input operand with computed output, over quadratic extension field which must produce
+#! multiplicative identity (1, 0) of quadratic extension field.
+#!
+#! Expected input stack
+#!
+#! [a1, a0, ...] | a = (a0, a1) ∈ Quadratic extension field over F_q, q = 2^64 - 2^32 + 1
+#!
+#! Expected output stack
+#!
+#! [a'1, a'0, ...] | a' = (a'0, a'1) ∈ Quadratic extension field over F_q, q = 2^64 - 2^32 + 1
+#!
+#! Following is what is checked after reading result of computation, performed outside of VM
+#!
+#! a  = (a0, a1)
+#! a' = (a'0, a'1) ( = a ^ -1 )
+#!
+#! b  = a * a' ( mod P ) | P = irreducible polynomial x^2 - x + 2 over F_q, q = 2^64 - 2^32 + 1
+#! assert b  = (1, 0) | (1, 0) is the multiplicative identity of extension field
+export.inv
+    adv.ext2inv
+    adv_push.2
+    dup.1
+    dup.1
+
+    movup.5
+    movup.5
+    exec.mul
+
+    eq.0
+    assert
+    eq.1
+    assert
+end
