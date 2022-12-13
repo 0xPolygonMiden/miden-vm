@@ -53,11 +53,13 @@ export.sub
     sub         #[a1-b1,a0-b0,...]
 end
 
-#! Given an invertible quadratic extension field element on stack, this routine computes 
-#! multiplicative inverse of that element, using non-deterministic technique ( i.e. takes help
-#! of advice provider ). Just to ensure that non-deterministic computation resulted in corrected value,
+#! Given an invertible quadratic extension field element on the stack, this routine computes
+#! multiplicative inverse of that element, using non-deterministic technique ( i.e. it takes help
+#! of advice provider ). To ensure that non-deterministic computation resulted in correct value,
 #! it multiplies input operand with computed output, over quadratic extension field which must produce
-#! multiplicative identity (1, 0) of quadratic extension field.
+#! multiplicative identity (1, 0) of quadratic extension field. In case input operand is additive
+#! identity which can't be inverted, program execution fails, as advice provider won't calculate
+#! multiplicative inverse in that case.
 #!
 #! Expected input stack
 #!
@@ -84,8 +86,6 @@ export.inv
     movup.5
     exec.mul
 
-    eq.0
-    assert
-    eq.1
+    assertz
     assert
 end
