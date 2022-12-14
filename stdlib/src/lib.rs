@@ -12,12 +12,7 @@ pub struct StdLibrary {
 
 impl Default for StdLibrary {
     fn default() -> Self {
-        #[cfg(not(target_os = "windows"))]
         let bytes = include_bytes!("../assets/std.masl");
-
-        #[cfg(target_os = "windows")]
-        let bytes = include_bytes!("..\\assets\\std.masl");
-
         let contents = MaslLibrary::read_from_bytes(bytes).expect("failed to read std masl!");
         Self { contents }
     }

@@ -51,6 +51,30 @@ jobs:
           command: test
           args: --release
 
+  # we separate the script so the CI will not require the same runner to have
+  # both windows and linux capabilities
+  test-windows:
+    name: Test Rust nightly on windows-2022
+    # run windows check only when the target is `main`. will execute for release, push or PR.
+    if: github.ref_name == 'main'
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@main
+      - name: Install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+      - name: Test
+        uses: actions-rs/cargo@v1
+        env:
+          RUSTFLAGS: -C debug-assertions
+        with:
+          command: test
+          args: --release
+
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
