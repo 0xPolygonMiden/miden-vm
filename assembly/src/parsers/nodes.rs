@@ -246,6 +246,7 @@ pub enum Instruction {
     AdvU64Div,
     AdvKeyval,
     AdvMem(u32, u32),
+    AdvExt2Inv,
 
     // ----- cryptographic operations ---------------------------------------------------------
     RpHash,
@@ -494,6 +495,7 @@ impl fmt::Display for Instruction {
             Self::AdvU64Div => write!(f, "adv.u64div"),
             Self::AdvKeyval => write!(f, "adv.keyval"),
             Self::AdvMem(start_addr, num_words) => write!(f, "adv.mem.{start_addr}.{num_words}"),
+            Self::AdvExt2Inv => write!(f, "adv.ext2inv"),
 
             // ----- cryptographic operations ---------------------------------------------------------
             Self::RpHash => write!(f, "rphash"),

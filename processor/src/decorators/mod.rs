@@ -1,5 +1,9 @@
 use super::{AdviceInjector, Decorator, ExecutionError, Felt, Process, StarkField};
-use vm_core::{utils::collections::Vec, WORD_LEN, ZERO};
+use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_LEN, ZERO};
+
+// TYPE ALIASES
+// ================================================================================================
+type Ext2Element = QuadExtension<Felt>;
 
 // DECORATORS
 // ================================================================================================
@@ -33,6 +37,7 @@ impl Process {
             AdviceInjector::Memory(start_addr, num_words) => {
                 self.inject_mem_values(*start_addr, *num_words)
             }
+            AdviceInjector::Ext2Inv => self.inject_ext2_inv_result(),
         }
     }
 
@@ -140,6 +145,44 @@ impl Process {
         }
         let top_word = self.stack.get_top_word();
         self.advice.insert_into_map(top_word, values)?;
+
+        Ok(())
+    }
+
+    /// Given a quadratic extension field element ( say a ) on stack top, this routine computes
+    /// multiplicative inverse of that element ( say b ) s.t.
+    ///
+    /// a * b = 1 ( mod P ) | b = a ^ -1, P = irreducible polynomial x^2 - x + 2 over F_q, q = 2^64 - 2^32 + 1
+    ///
+    /// Input on stack expected in following order
+    ///
+    /// [coeff_1, coeff_0, ...]
+    ///
+    /// While computed multiplicative inverse is put on advice provider in following order
+    ///
+    /// [coeff'_0, coeff'_1, ...]
+    ///
+    /// Meaning when a Miden program is going to read it from advice tape, it'll see
+    /// coefficient_0 first and then coefficient_1.
+    ///
+    /// Note, in case input operand is zero, division by zero error is returned, because
+    /// that's a non-invertible element of extension field.
+    fn inject_ext2_inv_result(&mut self) -> Result<(), ExecutionError> {
+        let coef0 = self.stack.get(1);
+        let coef1 = self.stack.get(0);
+
+        let elm = Ext2Element::new(coef0, coef1);
+        if elm == Ext2Element::ZERO {
+            return Err(ExecutionError::DivideByZero(self.system.clk()));
+        }
+
+        let inv_elm = elm.inv();
+
+        let elm_arr = [inv_elm];
+        let coeffs = Ext2Element::as_base_elements(&elm_arr);
+
+        self.advice.write_tape(coeffs[1]);
+        self.advice.write_tape(coeffs[0]);
 
         Ok(())
     }

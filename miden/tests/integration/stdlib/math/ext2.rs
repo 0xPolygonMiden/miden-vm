@@ -54,3 +54,28 @@ fn mul_base() {
     let test = build_test!(source, &[a0.as_int(), a1.as_int(), x.as_int()]);
     test.expect_stack(&[c1.as_int(), c0.as_int()]);
 }
+
+#[test]
+fn inv_extension_2() {
+    let source = "
+    use.std::math::ext2
+    
+    begin
+        exec.ext2::inv
+    end";
+
+    let a0 = Felt::new(rand_value::<u64>() + 1u64);
+    let a1 = Felt::new(rand_value::<u64>());
+
+    let a = ExtElement::new(a0, a1);
+    let a_inv = a.inv();
+
+    let arr = vec![a_inv];
+    let b = ExtElement::as_base_elements(&arr);
+
+    let istack = [a0.as_int(), a1.as_int()];
+    let ostack = [b[1].as_int(), b[0].as_int()];
+
+    let test = build_test!(source, &istack);
+    test.expect_stack(&ostack);
+}
