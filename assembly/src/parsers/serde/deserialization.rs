@@ -305,6 +305,7 @@ impl Deserializable for Instruction {
             OpCode::AdvPush => Ok(Instruction::AdvPush(bytes.read_u8()?)),
             OpCode::AdvLoadW => Ok(Instruction::AdvLoadW),
             OpCode::AdvExt2Inv => Ok(Instruction::AdvExt2Inv),
+            OpCode::AdvExt2INTT => Ok(Instruction::AdvExt2INTT),
 
             // ----- cryptographic operations -----------------------------------------------------
             OpCode::RPHash => Ok(Instruction::RpHash),
