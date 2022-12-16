@@ -30,6 +30,11 @@ pub enum AdviceInjector {
     /// Given an element of quadratic extension field, it computes multiplicative inverse and
     /// injects the result into advice tape.
     Ext2Inv,
+
+    /// Given a polynomial ( in NTT form ) of domain size power of 2, this routine interpolates
+    /// ( using inverse NTT ) the polynomial to get a polynomial in coefficient form, which
+    /// injected into advice tape.
+    Ext2INTT,
 }
 
 impl fmt::Display for AdviceInjector {
@@ -40,6 +45,7 @@ impl fmt::Display for AdviceInjector {
             Self::MapValue => write!(f, "map_value"),
             Self::Memory(start_addr, num_words) => write!(f, "mem({start_addr}, {num_words})"),
             Self::Ext2Inv => write!(f, "ext2_inv"),
+            Self::Ext2INTT => write!(f, "ext2_intt"),
         }
     }
 }
