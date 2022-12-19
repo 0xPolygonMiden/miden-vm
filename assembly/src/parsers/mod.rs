@@ -31,7 +31,7 @@ type LocalProcMap = BTreeMap<String, (u16, ProcedureAst)>;
 /// An abstract syntax tree (AST) of a Miden program.
 ///
 /// A program AST consists of a list of internal procedure ASTs and a list of body nodes.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgramAst {
     pub local_procs: Vec<ProcedureAst>,
     pub body: Vec<Node>,
@@ -128,7 +128,7 @@ impl Deserializable for ModuleAst {
 /// A procedure AST consists of a list of body nodes and additional metadata about the procedure
 /// (e.g., procedure name, number of memory locals used by the procedure, and whether a procedure
 /// is exported or internal).
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProcedureAst {
     pub name: ProcedureName,
     pub docs: Option<String>,
