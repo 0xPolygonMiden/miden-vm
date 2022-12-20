@@ -1,5 +1,6 @@
 use super::{AdviceInjector, Decorator, ExecutionError, Felt, Process, StarkField};
 use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_LEN, ZERO};
+use winterfell::math::fft;
 
 // TYPE ALIASES
 // ================================================================================================
@@ -190,57 +191,53 @@ impl Process {
 
     /// Given a polynomial ( in NTT form ), over quadratic extension field, of domain size
     /// power of 2, on stack top, this routine interpolates the polynomial using inverse
-    /// Number Theoretic Transform, producing the polynomial in its coefficient form, which
-    /// is written on advice tape.
+    /// Number Theoretic Transform, producing the polynomial in its coefficient form, of
+    /// provided domain size, which is written on the advice tape.
     ///
-    /// Note, we're fixing that blow-up factor is 8.
+    /// Input stack state should look like
     ///
-    /// Input stack state looks like
+    /// `[result_poly_domain_size, input_poly_domain_size, input_poly_begin_mem_address, ...]`
     ///
-    /// `[poly_domain_size, begin_memory_address, ...]`
-    ///
-    /// - `poly_domain_size` must be a power of 2.
+    /// - `result_poly_domain_size` must be a power of 2.
+    /// - `input_poly_domain_size` must be a power of 2.
+    /// - `result_poly_domain_size <= input_poly_domain_size`
     /// - Only starting memory address i.e. first code-word's address is provided on stack, consecutive
-    ///  memory addresses are expected to be holding remaining `poly_domain_size - 1` many code-words.
-    /// - Because blow-up factor of 8 is being used, resulting coefficient form polynomial should have
-    /// (poly_domain_size >> 3) -many coefficients.
+    ///  memory addresses are expected to be holding remaining `input_poly_domain_size - 1` many code-words.
+    /// - Each memory address can hold two code-words i.e. each code-word consists of two elements ∈ Z_q | q = `2^64 - 2^32 + 1`
     ///
     /// Final advice tape should look like
     ///
-    /// `[coeff0, coeff1, ..., coeffn, ...]` | n = poly_domain_size >> 2
+    /// `[coeff_0, coeff_1, ..., coeff_{n-1}, ...]` | n = result_poly_domain_size
     ///
     /// Program which is requesting this non-deterministic computation should read `coeff0`
-    /// first i.e. `coeffn` should be seen at the very end.
+    /// first i.e. `coeff{n-1}` should be seen at the very end.
     fn inject_ext2_intt_result(&mut self) -> Result<(), ExecutionError> {
-        const blowup_factor: usize = 8;
+        let out_poly_len = self.stack.get(0).as_int() as usize;
+        let in_poly_len = self.stack.get(1).as_int() as usize;
+        let in_poly_addr = self.stack.get(2).as_int();
 
-        let poly_len = self.stack.get(0).as_int();
-        let poly_addr = self.stack.get(1).as_int();
-
-        if (poly_len & (poly_len - 1)) != 0 {
-            return Err(ExecutionError::NonPowerOf2PolyDomainSize(poly_len));
+        if !in_poly_len.is_power_of_two() {
+            return Err(ExecutionError::NonPowerOf2PolyDomainSize(in_poly_len as u64));
+        }
+        if !out_poly_len.is_power_of_two() {
+            return Err(ExecutionError::NonPowerOf2PolyDomainSize(out_poly_len as u64));
         }
 
-        let mut poly = Vec::with_capacity(poly_len);
-        for i in 0..(poly_len >> 1) {
-            let word = self.get_memory_value(self.system.ctx(), poly_addr + i);
-            if word.is_none() {
-                return Err(ExecutionError::InaccessibleMemoryAddress(poly_addr + i));
-            }
+        let mut poly = Vec::with_capacity(in_poly_len);
+        for i in 0..(in_poly_len >> 1) {
+            let word = self
+                .get_memory_value(self.system.ctx(), in_poly_addr + i as u64)
+                .ok_or_else(|| ExecutionError::CallerNotInSyscall)?;
 
-            let word = word.unwrap();
             poly.push(Ext2Element::new(word[0], word[1]));
             poly.push(Ext2Element::new(word[2], word[3]));
         }
 
-        let twiddles = winterfell::math::fft::get_inv_twiddles::<Ext2Element>(poly_len as usize);
-        winterfell::math::fft::interpolate_poly(&mut poly, &twiddles);
+        let twiddles = fft::get_inv_twiddles::<Felt>(in_poly_len);
+        fft::interpolate_poly::<Felt, Ext2Element>(&mut poly, &twiddles);
 
-        let poly_felts = Ext2Element::as_base_elements(&poly[..(poly_len / blowup_factor)]);
-        assert_eq!(poly_felts.len(), (poly_len / blowup_factor) << 1);
-
-        for i in poly_felts.rev() {
-            self.advice.write_tape(i);
+        for i in Ext2Element::as_base_elements(&poly[..out_poly_len]).iter().rev() {
+            self.advice.write_tape(*i);
         }
 
         Ok(())
