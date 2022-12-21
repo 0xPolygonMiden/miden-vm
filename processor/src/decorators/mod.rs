@@ -189,51 +189,56 @@ impl Process {
         Ok(())
     }
 
-    /// Given a polynomial ( in NTT form ), over quadratic extension field, of domain size
-    /// power of 2, on stack top, this routine interpolates the polynomial using inverse
-    /// Number Theoretic Transform, producing the polynomial in its coefficient form, of
-    /// provided domain size, which is written on the advice tape.
+    /// Given evaluations of a polynomial over some specified domain, this routine
+    /// interpolates the evaluations into a polynomial in coefficient form and writes
+    /// the result into the advice tape. The interpolation is performed using the iNTT
+    /// algorithm. The evaluations are expected to be in the quadratic extension field of
+    /// Z_q and the resulting coefficients are in the quadratic extension field as
+    /// well | q = 2^64 - 2^32 + 1.
     ///
     /// Input stack state should look like
     ///
-    /// `[result_poly_domain_size, input_poly_domain_size, input_poly_begin_mem_address, ...]`
+    /// `[output_poly_len, input_eval_len, input_eval_begin_address, ...]`
     ///
-    /// - `result_poly_domain_size` must be a power of 2.
-    /// - `input_poly_domain_size` must be a power of 2.
-    /// - `result_poly_domain_size <= input_poly_domain_size`
-    /// - Only starting memory address i.e. first code-word's address is provided on stack, consecutive
-    ///  memory addresses are expected to be holding remaining `input_poly_domain_size - 1` many code-words.
-    /// - Each memory address can hold two code-words i.e. each code-word consists of two elements ∈ Z_q | q = `2^64 - 2^32 + 1`
+    /// - `output_poly_len` must be a power of 2.
+    /// - `input_eval_len` must be a power of 2.
+    /// - `output_poly_len <= input_eval_len`
+    /// - Only starting memory address of evaluations ( of length `input_eval_len` ) is
+    /// provided on the stack, consecutive memory addresses are expected to be holding
+    /// remaining `input_eval_len - 2` many evaluations.
+    /// - Each memory address holds two evaluations of the polynomial at adjacent points
     ///
     /// Final advice tape should look like
     ///
-    /// `[coeff_0, coeff_1, ..., coeff_{n-1}, ...]` | n = result_poly_domain_size
+    /// `[coeff_0, coeff_1, ..., coeff_{n-1}, ...]` | n = output_poly_len
     ///
     /// Program which is requesting this non-deterministic computation should read `coeff0`
     /// first i.e. `coeff{n-1}` should be seen at the very end.
     fn inject_ext2_intt_result(&mut self) -> Result<(), ExecutionError> {
         let out_poly_len = self.stack.get(0).as_int() as usize;
-        let in_poly_len = self.stack.get(1).as_int() as usize;
-        let in_poly_addr = self.stack.get(2).as_int();
+        let in_evaluations_len = self.stack.get(1).as_int() as usize;
+        let in_evaluations_addr = self.stack.get(2).as_int();
 
-        if !in_poly_len.is_power_of_two() {
-            return Err(ExecutionError::NonPowerOf2PolyDomainSize(in_poly_len as u64));
+        if !in_evaluations_len.is_power_of_two() {
+            return Err(ExecutionError::NttDomainSizeNotPowerof2(in_evaluations_len as u64));
         }
         if !out_poly_len.is_power_of_two() {
-            return Err(ExecutionError::NonPowerOf2PolyDomainSize(out_poly_len as u64));
+            return Err(ExecutionError::NttDomainSizeNotPowerof2(out_poly_len as u64));
         }
 
-        let mut poly = Vec::with_capacity(in_poly_len);
-        for i in 0..(in_poly_len >> 1) {
+        let mut poly = Vec::with_capacity(in_evaluations_len);
+        for i in 0..(in_evaluations_len >> 1) {
             let word = self
-                .get_memory_value(self.system.ctx(), in_poly_addr + i as u64)
-                .ok_or_else(|| ExecutionError::CallerNotInSyscall)?;
+                .get_memory_value(self.system.ctx(), in_evaluations_addr + i as u64)
+                .ok_or_else(|| {
+                    ExecutionError::UninitializedMemoryAddress(in_evaluations_addr + i as u64)
+                })?;
 
             poly.push(Ext2Element::new(word[0], word[1]));
             poly.push(Ext2Element::new(word[2], word[3]));
         }
 
-        let twiddles = fft::get_inv_twiddles::<Felt>(in_poly_len);
+        let twiddles = fft::get_inv_twiddles::<Felt>(in_evaluations_len);
         fft::interpolate_poly::<Felt, Ext2Element>(&mut poly, &twiddles);
 
         for i in Ext2Element::as_base_elements(&poly[..out_poly_len]).iter().rev() {
