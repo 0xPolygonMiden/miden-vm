@@ -1,3 +1,4 @@
+use super::errors::FRIInterpolationMetadata;
 use super::{AdviceInjector, Decorator, ExecutionError, Felt, Process, StarkField};
 use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_LEN, ZERO};
 use winterfell::math::fft;
@@ -200,8 +201,7 @@ impl Process {
     ///
     /// `[output_poly_len, input_eval_len, input_eval_begin_address, ...]`
     ///
-    /// - `output_poly_len` must be a power of 2.
-    /// - `input_eval_len` must be a power of 2.
+    /// - `input_eval_len` must be a power of 2 and > 1.
     /// - `output_poly_len <= input_eval_len`
     /// - Only starting memory address of evaluations ( of length `input_eval_len` ) is
     /// provided on the stack, consecutive memory addresses are expected to be holding
@@ -219,11 +219,16 @@ impl Process {
         let in_evaluations_len = self.stack.get(1).as_int() as usize;
         let in_evaluations_addr = self.stack.get(2).as_int();
 
-        if !in_evaluations_len.is_power_of_two() {
+        let flg0 = (in_evaluations_len > 1) & in_evaluations_len.is_power_of_two();
+        if !flg0 {
             return Err(ExecutionError::NttDomainSizeNotPowerof2(in_evaluations_len as u64));
         }
-        if !out_poly_len.is_power_of_two() {
-            return Err(ExecutionError::NttDomainSizeNotPowerof2(out_poly_len as u64));
+        let flg1 = out_poly_len <= in_evaluations_len;
+        if !flg1 {
+            return Err(ExecutionError::InvalidFRIPolyDomainSize(FRIInterpolationMetadata {
+                in_evaluations_len,
+                out_polynomial_len: out_poly_len,
+            }));
         }
 
         let mut poly = Vec::with_capacity(in_evaluations_len);

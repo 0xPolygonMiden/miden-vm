@@ -31,9 +31,9 @@ pub enum AdviceInjector {
     /// injects the result into advice tape.
     Ext2Inv,
 
-    /// Given a polynomial ( in NTT form ) of domain size power of 2, this routine interpolates
-    /// ( using inverse NTT ) the polynomial to get a polynomial in coefficient form, which
-    /// injected into advice tape.
+    /// Given ( power of 2 many ) evaluations of a polynomial over some specified domain, this
+    /// routine interpolates ( using inverse NTT ) the evaluations into a polynomial in
+    /// coefficient form and injects the result into the advice tape.
     Ext2INTT,
 }
 
