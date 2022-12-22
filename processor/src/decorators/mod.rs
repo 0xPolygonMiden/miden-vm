@@ -1,4 +1,3 @@
-use super::errors::FRIInterpolationMetadata;
 use super::{AdviceInjector, Decorator, ExecutionError, Felt, Process, StarkField};
 use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_LEN, ZERO};
 use winterfell::math::fft;
@@ -219,16 +218,14 @@ impl Process {
         let in_evaluations_len = self.stack.get(1).as_int() as usize;
         let in_evaluations_addr = self.stack.get(2).as_int();
 
-        let flg0 = (in_evaluations_len > 1) & in_evaluations_len.is_power_of_two();
-        if !flg0 {
+        if !(in_evaluations_len > 1) {
+            return Err(ExecutionError::NttDomainSizeTooSmall(in_evaluations_len as u64));
+        }
+        if !in_evaluations_len.is_power_of_two() {
             return Err(ExecutionError::NttDomainSizeNotPowerof2(in_evaluations_len as u64));
         }
-        let flg1 = out_poly_len <= in_evaluations_len;
-        if !flg1 {
-            return Err(ExecutionError::InvalidFRIPolyDomainSize(FRIInterpolationMetadata {
-                in_evaluations_len,
-                out_polynomial_len: out_poly_len,
-            }));
+        if !(out_poly_len <= in_evaluations_len) {
+            return Err(ExecutionError::InterpolationResultSizeTooBig(out_poly_len as u64));
         }
 
         let mut poly = Vec::with_capacity(in_evaluations_len);

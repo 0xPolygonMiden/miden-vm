@@ -5,12 +5,6 @@ use winterfell::ProverError;
 // ================================================================================================
 
 #[derive(Debug)]
-pub struct FRIInterpolationMetadata {
-    pub in_evaluations_len: usize,
-    pub out_polynomial_len: usize,
-}
-
-#[derive(Debug)]
 pub enum ExecutionError {
     AdviceKeyNotFound(Word),
     AdviceSetLookupFailed(AdviceSetError),
@@ -24,9 +18,10 @@ pub enum ExecutionError {
     FailedAssertion(u32),
     UninitializedMemoryAddress(u64),
     InvalidFmpValue(Felt, Felt),
-    InvalidFRIPolyDomainSize(FRIInterpolationMetadata),
+    NttDomainSizeTooSmall(u64),
     NttDomainSizeNotPowerof2(u64),
     InvalidStackDepthOnReturn(usize),
+    InterpolationResultSizeTooBig(u64),
     NotBinaryValue(Felt),
     NotU32Value(Felt),
     ProverError(ProverError),
