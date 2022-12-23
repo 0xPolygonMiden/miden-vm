@@ -218,13 +218,13 @@ impl Process {
         let in_evaluations_len = self.stack.get(1).as_int() as usize;
         let in_evaluations_addr = self.stack.get(2).as_int();
 
-        if !(in_evaluations_len > 1) {
+        if in_evaluations_len <= 1 {
             return Err(ExecutionError::NttDomainSizeTooSmall(in_evaluations_len as u64));
         }
         if !in_evaluations_len.is_power_of_two() {
             return Err(ExecutionError::NttDomainSizeNotPowerof2(in_evaluations_len as u64));
         }
-        if !(out_poly_len <= in_evaluations_len) {
+        if out_poly_len > in_evaluations_len {
             return Err(ExecutionError::InterpolationResultSizeTooBig(out_poly_len as u64));
         }
 
