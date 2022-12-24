@@ -422,6 +422,7 @@ impl Serializable for Instruction {
             }
             Self::AdvLoadW => OpCode::AdvLoadW.write_into(target)?,
             Self::AdvExt2Inv => OpCode::AdvExt2Inv.write_into(target)?,
+            Self::AdvExt2INTT => OpCode::AdvExt2INTT.write_into(target)?,
 
             // ----- cryptographic operations ---------------------------------------------------------
             Self::RpHash => OpCode::RPHash.write_into(target)?,

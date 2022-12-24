@@ -272,6 +272,7 @@ impl Assembler {
             Instruction::AdvKeyval => span.add_decorator(Decorator::Advice(MapValue)),
             Instruction::AdvMem(a, n) => adv_ops::adv_mem(span, *a, *n),
             Instruction::AdvExt2Inv => span.add_decorator(Decorator::Advice(Ext2Inv)),
+            Instruction::AdvExt2INTT => span.add_decorator(Decorator::Advice(Ext2INTT)),
 
             Instruction::RpPerm => span.add_op(RpPerm),
             Instruction::RpHash => crypto_ops::rphash(span),

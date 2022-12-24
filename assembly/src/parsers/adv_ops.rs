@@ -49,6 +49,12 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
             }
             Ok(Instruction(AdvExt2Inv))
         }
+        "ext2intt" => {
+            if op.num_parts() > 2 {
+                return Err(ParsingError::extra_param(op));
+            }
+            Ok(Instruction(AdvExt2INTT))
+        }
         _ => Err(ParsingError::invalid_op(op)),
     }
 }
