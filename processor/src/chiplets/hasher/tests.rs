@@ -658,22 +658,22 @@ fn hash_memoization_control_blocks() {
 
     let expected_hash = join_block.hash();
 
-    let mut lookups = Vec::new();
     // builds the trace of the join block.
-    let (_, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+    let (addr, final_state, lookup_start) = hasher.hash_control_block(h1, h2, expected_hash);
+    let lookup_end = hasher.read_hash_result(addr + Felt::new(7));
 
     let lookup_start_addr = 1;
-    let expected_lookups_len = 2;
     // make sure the lookups have correct labels, addresses, indices and contexts.
-    let lookup_start =
+    let expected_lookup_start =
         HasherLookup::new(LINEAR_HASH_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
-    let lookup_end = HasherLookup::new(
+    let expected_lookup_end = HasherLookup::new(
         RETURN_HASH_LABEL,
         lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
         ZERO,
         HasherLookupContext::Return,
     );
-    check_lookups_validity(lookups, expected_lookups_len, vec![lookup_start, lookup_end]);
+    check_lookup_validity(lookup_start, expected_lookup_start);
+    check_lookup_validity(lookup_end, expected_lookup_end);
 
     // make sure the hash of the final state is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
@@ -691,22 +691,22 @@ fn hash_memoization_control_blocks() {
 
     let expected_hash = split1_block.hash();
 
-    let mut lookups = Vec::new();
     // builds the hash execution trace of the first split block from scratch.
-    let (addr, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+    let (addr, final_state, lookup_start) = hasher.hash_control_block(h1, h2, expected_hash);
+    let lookup_end = hasher.read_hash_result(addr + Felt::new(7));
 
     let lookup_start_addr = 9;
-    let expected_lookups_len = 2;
     // make sure the lookups have correct labels, addresses, indices and contexts.
-    let lookup_start =
+    let expected_lookup_start =
         HasherLookup::new(LINEAR_HASH_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
-    let lookup_end = HasherLookup::new(
+    let expected_lookup_end = HasherLookup::new(
         RETURN_HASH_LABEL,
         lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
         ZERO,
         HasherLookupContext::Return,
     );
-    check_lookups_validity(lookups, expected_lookups_len, vec![lookup_start, lookup_end]);
+    check_lookup_validity(lookup_start, expected_lookup_start);
+    check_lookup_validity(lookup_end, expected_lookup_end);
 
     let first_block_final_state = final_state;
 
@@ -729,23 +729,23 @@ fn hash_memoization_control_blocks() {
         .expect("Could not convert slice to array");
     let expected_hash = split2_block.hash();
 
-    let mut lookups = Vec::new();
     // builds the hash execution trace of the second split block by copying it from the trace of
     // the first split block.
-    let (addr, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+    let (addr, final_state, lookup_start) = hasher.hash_control_block(h1, h2, expected_hash);
+    let lookup_end = hasher.read_hash_result(addr + Felt::new(7));
 
     let lookup_start_addr = 17;
-    let expected_lookups_len = 2;
     // make sure the lookups have correct labels, addresses, indices and contexts.
-    let lookup_start =
+    let expected_lookup_start =
         HasherLookup::new(LINEAR_HASH_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
-    let lookup_end = HasherLookup::new(
+    let expected_lookup_end = HasherLookup::new(
         RETURN_HASH_LABEL,
         lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
         ZERO,
         HasherLookupContext::Return,
     );
-    check_lookups_validity(lookups, expected_lookups_len, vec![lookup_start, lookup_end]);
+    check_lookup_validity(lookup_start, expected_lookup_start);
+    check_lookup_validity(lookup_end, expected_lookup_end);
 
     // make sure the hash of the final state of the second split block is the same as the expected
     // hash.
@@ -761,7 +761,7 @@ fn hash_memoization_control_blocks() {
     // check row addresses of trace to make sure they start from 1 and incremented by 1 each row.
     check_row_addr_trace(&trace);
     //  check the row address at which memoized block starts.
-    let hash_cycle_len: u64 = HASH_CYCLE_LEN.try_into().expect("Could not convert usize to u64");
+    let hash_cycle_len = HASH_CYCLE_LEN as u64;
     assert_eq!(Felt::new(hash_cycle_len * 2 + 1), addr);
     // check the trace length of the final trace.
     assert_eq!(trace.last().unwrap(), &[ZERO; HASH_CYCLE_LEN * 3]);
@@ -855,22 +855,23 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
         .expect("Could not convert slice to array");
     let expected_hash = join1_block.hash();
 
-    let mut lookups = Vec::new();
     // builds the trace of the Join1 block.
-    let (_, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+    let (addr, final_state, lookup_start) = hasher.hash_control_block(h1, h2, expected_hash);
+    let lookup_end = hasher.read_hash_result(addr + Felt::new(7));
 
     let lookup_start_addr = 1;
-    let expected_lookups_len = 2;
     // make sure the lookups have correct labels, addresses, indices and contexts.
-    let lookup_start =
+    let expected_lookup_start =
         HasherLookup::new(LINEAR_HASH_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
-    let lookup_end = HasherLookup::new(
+    let expected_lookup_end = HasherLookup::new(
         RETURN_HASH_LABEL,
         lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
         ZERO,
         HasherLookupContext::Return,
     );
-    check_lookups_validity(lookups, expected_lookups_len, vec![lookup_start, lookup_end]);
+    check_lookup_validity(lookup_start, expected_lookup_start);
+    check_lookup_validity(lookup_end, expected_lookup_end);
+
     // make sure the hash of the final state of Join1 is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
 
@@ -886,21 +887,21 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
         .expect("Could not convert slice to array");
     let expected_hash = join2_block.hash();
 
-    let mut lookups = Vec::new();
-    let (_, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+    let (addr, final_state, lookup_start) = hasher.hash_control_block(h1, h2, expected_hash);
+    let lookup_end = hasher.read_hash_result(addr + Felt::new(7));
 
     let lookup_start_addr = 9;
-    let expected_lookups_len = 2;
     // make sure the lookups have correct labels, addresses, indices and contexts.
-    let lookup_start =
+    let expected_lookup_start =
         HasherLookup::new(LINEAR_HASH_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
-    let lookup_end = HasherLookup::new(
+    let expected_lookup_end = HasherLookup::new(
         RETURN_HASH_LABEL,
         lookup_start_addr + HASH_CYCLE_LEN as u32 - 1,
         ZERO,
         HasherLookupContext::Return,
     );
-    check_lookups_validity(lookups, expected_lookups_len, vec![lookup_start, lookup_end]);
+    check_lookup_validity(lookup_start, expected_lookup_start);
+    check_lookup_validity(lookup_end, expected_lookup_end);
 
     // make sure the hash of the final state of Join2 is the same as the expected hash.
     assert_eq!(Digest::new(final_state), expected_hash);
@@ -911,12 +912,27 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
         unreachable!()
     };
 
-    // builds the hash execution trace of the first span block from scratch.
+    // TODO: add intermediate lookups for the span block
     let mut lookups = Vec::new();
-    let (addr, final_state) =
-        hasher.hash_span_block(span1_block_val.op_batches(), span1_block.hash(), &mut lookups);
+    // builds the hash execution trace of the first span block from scratch.
+    let (mut addr, final_state, lookup_start) = hasher.hash_span_block(
+        span1_block_val.op_batches(),
+        span1_block.hash(),
+    );
+    lookups.push(lookup_start);
 
     let num_batches = span1_block_val.op_batches().len();
+
+    addr = addr + Felt::new(HASH_CYCLE_LEN as u64 - 1);
+    for _ in 1..num_batches {
+        let lookup = hasher.absorb_span_batch(addr);
+        lookups.push(lookup);
+        addr = addr + Felt::new(HASH_CYCLE_LEN as u64);
+    }
+
+    let lookup_end = hasher.read_hash_result(addr);
+    lookups.push(lookup_end);
+
     let lookup_start_addr = 17;
 
     let expected_lookups_len = 2 + num_batches - 1;
@@ -924,9 +940,9 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
     let mut expected_lookups = Vec::new();
 
     // add lookup for start of span block
-    let lookup_start =
+    let expected_lookup_start =
         HasherLookup::new(LINEAR_HASH_LABEL, lookup_start_addr, ZERO, HasherLookupContext::Start);
-    expected_lookups.push(lookup_start);
+    expected_lookups.push(expected_lookup_start);
 
     // add lookups for absorbed batches
     for i in 1..num_batches {
@@ -943,13 +959,13 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
         lookup_start_addr + (num_batches * HASH_CYCLE_LEN) as u32 - 1;
 
     // add lookup for end of span block
-    let lookup_end = HasherLookup::new(
+    let expected_lookup_end = HasherLookup::new(
         RETURN_HASH_LABEL,
         last_lookup_addr_memoized_block,
         ZERO,
         HasherLookupContext::Return,
     );
-    expected_lookups.push(lookup_end);
+    expected_lookups.push(expected_lookup_end);
 
     check_lookups_validity(lookups, expected_lookups_len, expected_lookups);
 
@@ -968,13 +984,28 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
         unreachable!()
     };
 
+    // TODO: add intermediate lookups for the span block
     let mut lookups = Vec::new();
     // builds the hash execution trace of the second span block by copying the sections of the
     // trace corresponding to the first span block with the same hash.
-    let (addr, final_state) =
-        hasher.hash_span_block(span2_block_val.op_batches(), span2_block.hash(), &mut lookups);
+    let (mut addr, final_state, lookup_start) = hasher.hash_span_block(
+        span2_block_val.op_batches(),
+        span2_block.hash(),
+    );
+
+    lookups.push(lookup_start);
 
     let num_batches = span2_block_val.op_batches().len();
+
+    addr = addr + Felt::new(HASH_CYCLE_LEN as u64 - 1);
+    for _ in 1..num_batches {
+        let lookup = hasher.absorb_span_batch(addr);
+        lookups.push(lookup);
+        addr = addr + Felt::new(HASH_CYCLE_LEN as u64);
+    }
+
+    let lookup_end = hasher.read_hash_result(addr);
+    lookups.push(lookup_end);
     let lookup_start_addr = last_lookup_addr_memoized_block + 1;
 
     let expected_lookups_len = 2 + num_batches - 1;
@@ -1171,6 +1202,12 @@ fn check_lookups_validity(
         // make sure the lookups match with what we expect.
         assert_eq!(expected_lookup, *lookup);
     }
+}
+
+/// Makes sure the lookup is built correctly.
+fn check_lookup_validity(lookup: HasherLookup, expected_lookup: HasherLookup) {
+    // make sure the lookups match with what we expect.
+    assert_eq!(expected_lookup, lookup);
 }
 
 /// Makes sure that a row in the provided trace is equal to the provided values at the specified

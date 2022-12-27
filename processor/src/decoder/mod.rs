@@ -47,7 +47,7 @@ where
     // --------------------------------------------------------------------------------------------
 
     /// Starts decoding of a JOIN block.
-    pub(super) fn start_join_block(&mut self, block: &Join) -> Result<(), ExecutionError> {
+    pub(super) fn start_join_block(&mut self, block: &Join) -> Result<Felt, ExecutionError> {
         // use the hasher to compute the hash of the JOIN block; the row address returned by the
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
@@ -58,17 +58,23 @@ where
         // start decoding the JOIN block; this appends a row with JOIN operation to the decoder
         // trace. when JOIN operation is executed, the rest of the VM state does not change
         self.decoder.start_join(child1_hash, child2_hash, addr);
-        self.execute_op(Operation::Noop)
+        self.execute_op(Operation::Noop)?;
+
+        Ok(addr)
     }
 
     ///  Ends decoding of a JOIN block.
-    pub(super) fn end_join_block(&mut self, block: &Join) -> Result<(), ExecutionError> {
+    pub(super) fn end_join_block(
+        &mut self,
+        block: &Join,
+        addr: Felt,
+    ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(block.hash().into());
 
         // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
+        self.chiplets.read_hash_result(addr + Felt::new(7));
 
         self.execute_op(Operation::Noop)
     }
@@ -78,7 +84,10 @@ where
 
     /// Starts decoding a SPLIT block. This also pops the value from the top of the stack and
     /// returns it.
-    pub(super) fn start_split_block(&mut self, block: &Split) -> Result<Felt, ExecutionError> {
+    pub(super) fn start_split_block(
+        &mut self,
+        block: &Split,
+    ) -> Result<(Felt, Felt), ExecutionError> {
         let condition = self.stack.peek();
 
         // use the hasher to compute the hash of the SPLIT block; the row address returned by the
@@ -92,17 +101,21 @@ where
         // trace. we also pop the value off the top of the stack and return it.
         self.decoder.start_split(child1_hash, child2_hash, addr, condition);
         self.execute_op(Operation::Drop)?;
-        Ok(condition)
+        Ok((condition, addr))
     }
 
     /// Ends decoding of a SPLIT block.
-    pub(super) fn end_split_block(&mut self, block: &Split) -> Result<(), ExecutionError> {
+    pub(super) fn end_split_block(
+        &mut self,
+        block: &Split,
+        addr: Felt,
+    ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_control_block(block.hash().into());
 
         // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
+        self.chiplets.read_hash_result(addr + Felt::new(7));
 
         self.execute_op(Operation::Noop)
     }
@@ -112,7 +125,10 @@ where
 
     /// Starts decoding a LOOP block. This also pops the value from the top of the stack and
     /// returns it.
-    pub(super) fn start_loop_block(&mut self, block: &Loop) -> Result<Felt, ExecutionError> {
+    pub(super) fn start_loop_block(
+        &mut self,
+        block: &Loop,
+    ) -> Result<(Felt, Felt), ExecutionError> {
         let condition = self.stack.peek();
 
         // use the hasher to compute the hash of the LOOP block; for LOOP block there is no
@@ -129,7 +145,7 @@ where
         // followed by an END operation.
         self.decoder.start_loop(body_hash, addr, condition);
         self.execute_op(Operation::Drop)?;
-        Ok(condition)
+        Ok((condition, addr))
     }
 
     /// Ends decoding of a LOOP block. If pop_stack is set to true, this also removes the
@@ -138,12 +154,13 @@ where
         &mut self,
         block: &Loop,
         pop_stack: bool,
+        addr: Felt,
     ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace.
         self.decoder.end_control_block(block.hash().into());
 
         // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
+        self.chiplets.read_hash_result(addr + Felt::new(7));
 
         // if we are exiting a loop, we also need to pop the top value off the stack (and this
         // value must be ZERO - otherwise, we should have stayed in the loop). but, if we never
@@ -164,7 +181,7 @@ where
     // --------------------------------------------------------------------------------------------
 
     /// Starts decoding of a CALL or a SYSCALL block.
-    pub(super) fn start_call_block(&mut self, block: &Call) -> Result<(), ExecutionError> {
+    pub(super) fn start_call_block(&mut self, block: &Call) -> Result<Felt, ExecutionError> {
         // use the hasher to compute the hash of the CALL or SYSCALL block; the row address
         // returned by the hasher is used as the ID of the block; the result of the hash is
         // expected to be in row addr + 7.
@@ -197,11 +214,17 @@ where
         }
 
         // the rest of the VM state does not change
-        self.execute_op(Operation::Noop)
+        self.execute_op(Operation::Noop)?;
+
+        Ok(addr)
     }
 
     /// Ends decoding of a CALL or a SYSCALL block.
-    pub(super) fn end_call_block(&mut self, block: &Call) -> Result<(), ExecutionError> {
+    pub(super) fn end_call_block(
+        &mut self,
+        block: &Call,
+        addr: Felt,
+    ) -> Result<(), ExecutionError> {
         // when a CALL block ends, stack depth must be exactly 16
         let stack_depth = self.stack.depth();
         if stack_depth > STACK_TOP_SIZE {
@@ -216,7 +239,7 @@ where
             .expect("no execution context");
 
         // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
+        self.chiplets.read_hash_result(addr + Felt::new(7));
 
         // when returning from a function call or a syscall, restore the context of the system
         // registers and the operand stack to what it was prior to the call.
@@ -238,7 +261,7 @@ where
     // --------------------------------------------------------------------------------------------
 
     /// Starts decoding a SPAN block.
-    pub(super) fn start_span_block(&mut self, block: &Span) -> Result<(), ExecutionError> {
+    pub(super) fn start_span_block(&mut self, block: &Span) -> Result<Felt, ExecutionError> {
         // use the hasher to compute the hash of the SPAN block; the row address returned by the
         // hasher is used as the ID of the block; hash of a SPAN block is computed by sequentially
         // hashing operation batches. Thus, the result of the hash is expected to be in row
@@ -251,25 +274,31 @@ where
         // set the value of the group_count register at the beginning of the SPAN.
         let num_op_groups = get_span_op_group_count(op_batches);
         self.decoder.start_span(&op_batches[0], Felt::new(num_op_groups as u64), addr);
-        self.execute_op(Operation::Noop)
+        self.execute_op(Operation::Noop)?;
+
+        Ok(addr)
     }
 
     /// Continues decoding a SPAN block by absorbing the next batch of operations.
-    pub(super) fn respan(&mut self, op_batch: &OpBatch) {
+    pub(super) fn respan(&mut self, op_batch: &OpBatch, addr: Felt) -> Felt {
         self.decoder.respan(op_batch);
 
         // send a request to the chiplets to continue the hash and absorb new elements.
-        self.chiplets.absorb_span_batch();
+        self.chiplets.absorb_span_batch(addr)
     }
 
     /// Ends decoding a SPAN block.
-    pub(super) fn end_span_block(&mut self, block: &Span) -> Result<(), ExecutionError> {
+    pub(super) fn end_span_block(
+        &mut self,
+        block: &Span,
+        addr: Felt,
+    ) -> Result<(), ExecutionError> {
         // this appends a row with END operation to the decoder trace. when END operation is
         // executed the rest of the VM state does not change
         self.decoder.end_span(block.hash().into());
 
         // send the end of control block to the chiplets bus to handle the final hash request.
-        self.chiplets.read_hash_result();
+        self.chiplets.read_hash_result(addr + Felt::new(7));
 
         self.execute_op(Operation::Noop)
     }

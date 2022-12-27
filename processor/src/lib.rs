@@ -217,13 +217,13 @@ where
         block: &Join,
         cb_table: &CodeBlockTable,
     ) -> Result<(), ExecutionError> {
-        self.start_join_block(block)?;
+        let addr = self.start_join_block(block)?;
 
         // execute first and then second child of the join block
         self.execute_code_block(block.first(), cb_table)?;
         self.execute_code_block(block.second(), cb_table)?;
 
-        self.end_join_block(block)
+        self.end_join_block(block, addr)
     }
 
     /// Executes the specified [Split] block.
@@ -234,7 +234,7 @@ where
         cb_table: &CodeBlockTable,
     ) -> Result<(), ExecutionError> {
         // start the SPLIT block; this also pops the stack and returns the popped element
-        let condition = self.start_split_block(block)?;
+        let (condition, addr) = self.start_split_block(block)?;
 
         // execute either the true or the false branch of the split block based on the condition
         if condition == ONE {
@@ -245,7 +245,7 @@ where
             return Err(ExecutionError::NotBinaryValue(condition));
         }
 
-        self.end_split_block(block)
+        self.end_split_block(block, addr)
     }
 
     /// Executes the specified [Loop] block.
@@ -256,7 +256,7 @@ where
         cb_table: &CodeBlockTable,
     ) -> Result<(), ExecutionError> {
         // start the LOOP block; this also pops the stack and returns the popped element
-        let condition = self.start_loop_block(block)?;
+        let (condition, addr) = self.start_loop_block(block)?;
 
         // if the top of the stack is ONE, execute the loop body; otherwise skip the loop body
         if condition == ONE {
@@ -273,11 +273,11 @@ where
             }
 
             // end the LOOP block and drop the condition from the stack
-            self.end_loop_block(block, true)
+            self.end_loop_block(block, true, addr)
         } else if condition == ZERO {
             // end the LOOP block, but don't drop the condition from the stack because it was
             // already dropped when we started the LOOP block
-            self.end_loop_block(block, false)
+            self.end_loop_block(block, false, addr)
         } else {
             Err(ExecutionError::NotBinaryValue(condition))
         }
@@ -295,7 +295,7 @@ where
             self.chiplets.access_kernel_proc(block.fn_hash())?;
         }
 
-        self.start_call_block(block)?;
+        let addr = self.start_call_block(block)?;
 
         // get function body from the code block table and execute it
         let fn_body = cb_table
@@ -303,13 +303,13 @@ where
             .ok_or_else(|| ExecutionError::CodeBlockNotFound(block.fn_hash()))?;
         self.execute_code_block(fn_body, cb_table)?;
 
-        self.end_call_block(block)
+        self.end_call_block(block, addr)
     }
 
     /// Executes the specified [Span] block.
     #[inline(always)]
     fn execute_span_block(&mut self, block: &Span) -> Result<(), ExecutionError> {
-        self.start_span_block(block)?;
+        let mut addr = self.start_span_block(block)?;
 
         let mut op_offset = 0;
         let mut decorators = block.decorator_iter();
@@ -322,13 +322,13 @@ where
         // preceded by a RESPAN operation; executing RESPAN operation does not change the state
         // of the stack
         for op_batch in block.op_batches().iter().skip(1) {
-            self.respan(op_batch);
+            addr = self.respan(op_batch, addr);
             self.execute_op(Operation::Noop)?;
             self.execute_op_batch(op_batch, &mut decorators, op_offset)?;
             op_offset += op_batch.ops().len();
         }
 
-        self.end_span_block(block)
+        self.end_span_block(block, addr)
     }
 
     /// Executes all operations in an [OpBatch]. This also ensures that all alignment rules are
