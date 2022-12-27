@@ -1,4 +1,4 @@
-use super::{fmt, hasher, Box, CodeBlock, Digest};
+use super::{fmt, Box, CodeBlock, CodeBlockType::SPLIT, Digest};
 
 // SPLIT BLOCK
 // ================================================================================================
@@ -22,7 +22,7 @@ impl Split {
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Split] block instantiated with the specified true and false branches.
     pub fn new(t_branch: CodeBlock, f_branch: CodeBlock) -> Self {
-        let hash = hasher::merge(&[t_branch.hash(), f_branch.hash()]);
+        let hash = SPLIT.hash_merge(&[t_branch.hash(), f_branch.hash()]);
         Self {
             branches: Box::new([t_branch, f_branch]),
             hash,

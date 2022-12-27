@@ -1,4 +1,4 @@
-use super::{fmt, hasher, Digest, Felt, FieldElement, Operation, Vec};
+use super::{fmt, CodeBlockType::SPAN, Digest, Felt, FieldElement, Operation, Vec};
 use crate::{DecoratorIterator, DecoratorList};
 use winter_utils::flatten_slice_elements;
 
@@ -354,7 +354,7 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
     // compute the hash of all operation groups
     let num_op_groups = get_span_op_group_count(&batches);
     let op_groups = &flatten_slice_elements(&batch_groups)[..num_op_groups];
-    let hash = hasher::hash_elements(op_groups);
+    let hash = SPAN.hash_elements(op_groups);
 
     (batches, hash)
 }
@@ -397,7 +397,7 @@ fn validate_decorators(operations: &[Operation], decorators: &DecoratorList) {
 
 #[cfg(test)]
 mod tests {
-    use super::{hasher, Felt, FieldElement, Operation, BATCH_SIZE};
+    use super::{Felt, FieldElement, Operation, BATCH_SIZE, SPAN};
 
     #[test]
     fn batch_ops() {
@@ -415,7 +415,7 @@ mod tests {
 
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([1_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
-        assert_eq!(hasher::hash_elements(&batch_groups[..1]), hash);
+        assert_eq!(SPAN.hash_elements(&batch_groups[..1]), hash);
 
         // --- two operations ---------------------------------------------------------------------
         let ops = vec![Operation::Add, Operation::Mul];
@@ -431,7 +431,7 @@ mod tests {
 
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([2_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
-        assert_eq!(hasher::hash_elements(&batch_groups[..1]), hash);
+        assert_eq!(SPAN.hash_elements(&batch_groups[..1]), hash);
 
         // --- one group with one immediate value -------------------------------------------------
         let ops = vec![Operation::Add, Operation::Push(Felt::new(12345678))];
@@ -448,7 +448,7 @@ mod tests {
 
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([2_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
-        assert_eq!(hasher::hash_elements(&batch_groups[..2]), hash);
+        assert_eq!(SPAN.hash_elements(&batch_groups[..2]), hash);
 
         // --- one group with 7 immediate values --------------------------------------------------
         let ops = vec![
@@ -481,7 +481,7 @@ mod tests {
 
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([8_usize, 0, 0, 0, 0, 0, 0, 0], batch.op_counts);
-        assert_eq!(hasher::hash_elements(&batch_groups), hash);
+        assert_eq!(SPAN.hash_elements(&batch_groups), hash);
 
         // --- two groups with 7 immediate values; the last push overflows to the second batch ----
         let ops = vec![
@@ -529,7 +529,7 @@ mod tests {
         assert_eq!(batch1_groups, batch1.groups);
 
         let all_groups = [batch0_groups, batch1_groups].concat();
-        assert_eq!(hasher::hash_elements(&all_groups[..10]), hash);
+        assert_eq!(SPAN.hash_elements(&all_groups[..10]), hash);
 
         // --- immediate values in-between groups -------------------------------------------------
         let ops = vec![
@@ -565,7 +565,7 @@ mod tests {
 
         assert_eq!([9_usize, 0, 0, 1, 0, 0, 0, 0], batch.op_counts);
         assert_eq!(batch_groups, batch.groups);
-        assert_eq!(hasher::hash_elements(&batch_groups[..4]), hash);
+        assert_eq!(SPAN.hash_elements(&batch_groups[..4]), hash);
 
         // --- push at the end of a group is moved into the next group ----------------------------
         let ops = vec![
@@ -599,7 +599,7 @@ mod tests {
 
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([8_usize, 1, 0, 0, 0, 0, 0, 0], batch.op_counts);
-        assert_eq!(hasher::hash_elements(&batch_groups[..4]), hash);
+        assert_eq!(SPAN.hash_elements(&batch_groups[..4]), hash);
 
         // --- push at the end of a group is moved into the next group ----------------------------
         let ops = vec![
@@ -633,7 +633,7 @@ mod tests {
 
         assert_eq!(batch_groups, batch.groups);
         assert_eq!([8_usize, 0, 1, 0, 0, 0, 0, 0], batch.op_counts);
-        assert_eq!(hasher::hash_elements(&batch_groups[..4]), hash);
+        assert_eq!(SPAN.hash_elements(&batch_groups[..4]), hash);
 
         // --- push at the end of the 7th group overflows to the next batch -----------------------
         let ops = vec![
@@ -697,7 +697,7 @@ mod tests {
         assert_eq!([2_usize, 0, 0, 0, 0, 0, 0, 0], batch1.op_counts);
 
         let all_groups = [batch0_groups, batch1_groups].concat();
-        assert_eq!(hasher::hash_elements(&all_groups[..10]), hash);
+        assert_eq!(SPAN.hash_elements(&all_groups[..10]), hash);
     }
 
     // TEST HELPERS

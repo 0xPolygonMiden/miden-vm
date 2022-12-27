@@ -111,10 +111,10 @@ Every Miden VM program can be reduced to a unique hash value. Specifically, it i
 
 Below we denote $hash$ to be an arithmetization-friendly hash function with $4$-element output and capable of absorbing $8$ elements in a single permutation.
 
-* The hash of a **join** block is computed as $hash(a, b)$, where $a$ and $b$ are hashes of the code block being joined.
-* The hash of a **split** block is computed as $hash(a, b)$, where $a$ is a hash of a code block corresponding to the *true* branch of execution, and $b$ is a hash of a code block corresponding to the *false branch* of execution.
-* The hash of a **loop** block is computed as $hash(a, 0)$, where $a$ is a hash of a code block corresponding to the loop body.
-* The hash of a **call** block is computed as $hash(a)$, where $a$ is a hash of a program of which the VM is aware.
-* The hash of a **syscall** block is computed as $hash(a)$, where $a$ is a hash of a program belonging to the kernel against which the code was compiled.
-* The hash of a **span** block is computed as $hash(a_1, ..., a_k)$, where $a_i$ is the $i$th batch of operations in the *span* block. Each batch of operations is defined as containing $8$ field elements, and thus, hashing a $k$-batch *span* block requires $k$ absorption steps.
+* The hash of a **join** block is computed as $5*hash(a, b)$, where $a$ and $b$ are hashes of the code block being joined.
+* The hash of a **split** block is computed as $7*hash(a, b)$, where $a$ is a hash of a code block corresponding to the *true* branch of execution, and $b$ is a hash of a code block corresponding to the *false branch* of execution.
+* The hash of a **loop** block is computed as $11*hash(a, 0)$, where $a$ is a hash of a code block corresponding to the loop body.
+* The hash of a **call** block is computed as $13*hash(a)$, where $a$ is a hash of a program of which the VM is aware.
+* The hash of a **syscall** block is computed as $17*hash(a)$, where $a$ is a hash of a program belonging to the kernel against which the code was compiled.
+* The hash of a **span** block is computed as $3*hash(a_1, ..., a_k)$, where $a_i$ is the $i$th batch of operations in the *span* block. Each batch of operations is defined as containing $8$ field elements, and thus, hashing a $k$-batch *span* block requires $k$ absorption steps.
     * In cases when the number of operations is insufficient to fill the last batch entirely, `NOOPs` are appended to the end of the last batch to ensure that the number of operations in the batch is always equal to $8$.

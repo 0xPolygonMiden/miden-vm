@@ -9,7 +9,7 @@ use vm_core::{
         hasher::{Digest, HasherState},
         memory::{MEMORY_READ_LABEL, MEMORY_WRITE_LABEL},
     },
-    code_blocks::OpBatch,
+    code_blocks::{OpBatch, CodeBlockType},
     Kernel,
 };
 
@@ -210,9 +210,11 @@ impl Chiplets {
     /// hash(h1, h2) against the provided `expected_result`.
     ///
     /// It returns the row address of the execution trace at which the hash computation started.
-    pub fn hash_control_block(&mut self, h1: Word, h2: Word, expected_hash: Digest) -> Felt {
+    pub fn hash_control_block(&mut self, block_type: CodeBlockType, h1: Word, h2: Word, expected_hash: Digest) -> Felt {
         let mut lookups = Vec::new();
-        let (addr, result) = self.hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+        let (addr, result) = self
+            .hasher
+            .hash_control_block(block_type, h1, h2, expected_hash, &mut lookups);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(expected_hash, result.into());

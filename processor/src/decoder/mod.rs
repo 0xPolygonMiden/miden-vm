@@ -4,7 +4,7 @@ use super::{
 };
 use vm_core::{
     chiplets::hasher::DIGEST_LEN,
-    code_blocks::get_span_op_group_count,
+    code_blocks::{get_span_op_group_count, CodeBlockType},
     decoder::{
         NUM_HASHER_COLUMNS, NUM_OP_BATCH_FLAGS, NUM_OP_BITS, OP_BATCH_1_GROUPS, OP_BATCH_2_GROUPS,
         OP_BATCH_4_GROUPS, OP_BATCH_8_GROUPS,
@@ -50,7 +50,9 @@ impl Process {
         // row addr + 7.
         let child1_hash = block.first().hash().into();
         let child2_hash = block.second().hash().into();
-        let addr = self.chiplets.hash_control_block(child1_hash, child2_hash, block.hash());
+        let addr = self
+            .chiplets
+            .hash_control_block(CodeBlockType::JOIN, child1_hash, child2_hash, block.hash());
 
         // start decoding the JOIN block; this appends a row with JOIN operation to the decoder
         // trace. when JOIN operation is executed, the rest of the VM state does not change
@@ -83,7 +85,9 @@ impl Process {
         // row addr + 7.
         let child1_hash = block.on_true().hash().into();
         let child2_hash = block.on_false().hash().into();
-        let addr = self.chiplets.hash_control_block(child1_hash, child2_hash, block.hash());
+        let addr = self
+            .chiplets
+            .hash_control_block(CodeBlockType::SPLIT, child1_hash, child2_hash, block.hash());
 
         // start decoding the SPLIT block. this appends a row with SPLIT operation to the decoder
         // trace. we also pop the value off the top of the stack and return it.
@@ -117,7 +121,9 @@ impl Process {
         // hasher is used as the ID of the block; the result of the hash is expected to be in
         // row addr + 7.
         let body_hash = block.body().hash().into();
-        let addr = self.chiplets.hash_control_block(body_hash, [ZERO; 4], block.hash());
+        let addr = self
+            .chiplets
+            .hash_control_block(CodeBlockType::LOOP, body_hash, [ZERO; 4], block.hash());
 
         // start decoding the LOOP block; this appends a row with LOOP operation to the decoder
         // trace, but if the value on the top of the stack is not ONE, the block is not marked
@@ -166,7 +172,9 @@ impl Process {
         // returned by the hasher is used as the ID of the block; the result of the hash is
         // expected to be in row addr + 7.
         let fn_hash = block.fn_hash().into();
-        let addr = self.chiplets.hash_control_block(fn_hash, [ZERO; 4], block.hash());
+        let addr = self
+            .chiplets
+            .hash_control_block(block.block_type(), fn_hash, [ZERO; 4], block.hash());
 
         // start new execution context for the operand stack. this has the effect of resetting
         // stack depth to 16.
