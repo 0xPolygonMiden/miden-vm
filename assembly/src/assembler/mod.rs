@@ -338,7 +338,6 @@ struct BodyWrapper {
 // ================================================================================================
 
 pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
-    debug_assert!(!blocks.is_empty(), "cannot combine empty block list");
     // merge consecutive Span blocks.
     let mut merged_blocks: Vec<CodeBlock> = Vec::with_capacity(blocks.len());
     // Keep track of all the consecutive Span blocks and are merged together when
@@ -376,8 +375,11 @@ pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
         }
     }
 
-    debug_assert!(!blocks.is_empty(), "no blocks");
-    blocks.remove(0)
+    if blocks.is_empty() {
+        CodeBlock::new_span(vec![Operation::Noop])
+    } else {
+        blocks.remove(0)
+    }
 }
 
 /// Returns a CodeBlock [Span] from sequence of Span blocks provided as input.

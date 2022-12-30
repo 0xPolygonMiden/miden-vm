@@ -32,6 +32,42 @@ fn simple_new_instrctns() {
 }
 
 #[test]
+fn empty_program() {
+    let assembler = super::Assembler::default();
+    let source = "begin end";
+    let program = assembler.compile(source).unwrap();
+    let expected = "begin span noop end end";
+    assert_eq!(expected, format!("{}", program));
+}
+
+#[test]
+fn empty_if() {
+    let assembler = super::Assembler::default();
+    let source = "begin if.true end end";
+    let program = assembler.compile(source).unwrap();
+    let expected = "begin if.true span noop end else span noop end end end";
+    assert_eq!(expected, format!("{}", program));
+}
+
+#[test]
+fn empty_while() {
+    let assembler = super::Assembler::default();
+    let source = "begin while.true end end";
+    let program = assembler.compile(source).unwrap();
+    let expected = "begin while.true span noop end end end";
+    assert_eq!(expected, format!("{}", program));
+}
+
+#[test]
+fn empty_repeat() {
+    let assembler = super::Assembler::default();
+    let source = "begin repeat.5 end end";
+    let program = assembler.compile(source).unwrap();
+    let expected = "begin span noop noop noop noop noop end end";
+    assert_eq!(expected, format!("{}", program));
+}
+
+#[test]
 fn single_span() {
     let assembler = super::Assembler::default();
     let source = "begin push.1 push.2 add end";
@@ -119,6 +155,15 @@ fn program_with_one_procedure() {
     let source = "proc.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end";
     let program = assembler.compile(source).unwrap();
     let expected = "begin span push(2) push(3) add push(3) push(7) mul end end";
+    assert_eq!(expected, format!("{}", program));
+}
+
+#[test]
+fn program_with_one_empty_procedure() {
+    let assembler = super::Assembler::default();
+    let source = "proc.foo end begin exec.foo end";
+    let program = assembler.compile(source).unwrap();
+    let expected = "begin span noop end end";
     assert_eq!(expected, format!("{}", program));
 }
 
@@ -377,13 +422,6 @@ fn invalid_program() {
     assert!(program.is_err());
     if let Err(error) = program {
         assert_eq!(error.to_string(), "begin without matching end");
-    }
-
-    let source = "begin end";
-    let program = assembler.compile(source);
-    assert!(program.is_err());
-    if let Err(error) = program {
-        assert_eq!(error.to_string(), "a code block must contain at least one instruction");
     }
 
     let source = "begin add end mul";
