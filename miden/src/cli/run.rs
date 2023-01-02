@@ -1,4 +1,7 @@
-use super::data::{InputFile, OutputFile, ProgramFile};
+use super::{
+    data::{InputFile, OutputFile, ProgramFile},
+    BaseAdviceProvider,
+};
 use std::{path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
@@ -36,7 +39,9 @@ impl RunCmd {
         let now = Instant::now();
 
         // execute program and generate outputs
-        let trace = processor::execute(&program, &input_data.get_program_inputs())
+        let inputs = input_data.get_program_inputs();
+        let advice = BaseAdviceProvider::from(inputs.clone());
+        let trace = processor::execute(&program, advice, inputs.stack_init().iter().rev().copied())
             .map_err(|err| format!("Failed to generate exection trace = {:?}", err))?;
 
         println!("done ({} ms)", now.elapsed().as_millis());

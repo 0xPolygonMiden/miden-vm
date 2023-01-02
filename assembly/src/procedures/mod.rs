@@ -1,6 +1,6 @@
 use super::{
     AbsolutePath, BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable, Felt,
-    ProcedureNameError, Serializable, SerializationError, String, MAX_PROC_NAME_LEN,
+    ProcedureNameError, Serializable, SerializationError, String, ToString, MAX_PROC_NAME_LEN,
     MODULE_PATH_DELIM,
 };
 use core::{

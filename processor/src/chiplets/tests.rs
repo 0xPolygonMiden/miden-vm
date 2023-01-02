@@ -1,4 +1,6 @@
-use crate::{utils::get_trace_len, CodeBlock, ExecutionTrace, Kernel, Operation, Process};
+use crate::{
+    utils::get_trace_len, BaseAdviceProvider, CodeBlock, ExecutionTrace, Kernel, Operation, Process,
+};
 use vm_core::{
     chiplets::{
         bitwise::{BITWISE_XOR, OP_CYCLE_LEN, TRACE_WIDTH as BITWISE_TRACE_WIDTH},
@@ -7,7 +9,7 @@ use vm_core::{
         memory::TRACE_WIDTH as MEMORY_TRACE_WIDTH,
         NUM_BITWISE_SELECTORS, NUM_KERNEL_ROM_SELECTORS, NUM_MEMORY_SELECTORS,
     },
-    CodeBlockTable, Felt, ProgramInputs, CHIPLETS_RANGE, CHIPLETS_WIDTH, ONE, ZERO,
+    CodeBlockTable, Felt, CHIPLETS_RANGE, CHIPLETS_WIDTH, ONE, ZERO,
 };
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
@@ -106,8 +108,7 @@ fn build_trace(
     operations: Vec<Operation>,
     kernel: Kernel,
 ) -> (ChipletsTrace, usize) {
-    let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
-    let mut process = Process::new(&kernel, inputs);
+    let mut process = Process::new(&kernel, BaseAdviceProvider::default(), stack.iter().copied());
     let program = CodeBlock::new_span(operations);
     process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
 

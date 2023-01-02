@@ -1,4 +1,4 @@
-use super::{ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
+use super::{AdviceProvider, ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
 use vm_core::stack::STACK_TOP_SIZE;
 
 mod crypto_ops;
@@ -10,12 +10,15 @@ mod u32_ops;
 mod utils;
 
 #[cfg(test)]
-use super::Kernel;
+use super::{BaseAdviceProvider, Kernel};
 
 // OPERATION DISPATCHER
 // ================================================================================================
 
-impl Process {
+impl<ADV> Process<ADV>
+where
+    ADV: AdviceProvider,
+{
     /// Executes the specified operation.
     pub(super) fn execute_op(&mut self, op: Operation) -> Result<(), ExecutionError> {
         // make sure there is enough memory allocated to hold the execution trace
@@ -156,7 +159,10 @@ impl Process {
         self.system.ensure_trace_capacity();
         self.stack.ensure_trace_capacity();
     }
+}
 
+#[cfg(test)]
+impl Process<BaseAdviceProvider> {
     // TEST METHODS
     // --------------------------------------------------------------------------------------------
 
@@ -164,8 +170,11 @@ impl Process {
     /// initialized with the provided values.
     #[cfg(test)]
     fn new_dummy(stack_inputs: &[u64]) -> Self {
-        let inputs = super::ProgramInputs::new(stack_inputs, &[], vec![]);
-        let mut process = Self::new(&Kernel::default(), inputs.unwrap());
+        let mut process = Self::new(
+            &Kernel::default(),
+            BaseAdviceProvider::default(),
+            stack_inputs.iter().copied(),
+        );
         process.execute_op(Operation::Noop).unwrap();
         process
     }
@@ -173,8 +182,8 @@ impl Process {
     /// Instantiates a new process with an advice tape for testing purposes.
     #[cfg(test)]
     fn new_dummy_with_advice_tape(advice_tape: &[u64]) -> Self {
-        let inputs = super::ProgramInputs::new(&[], advice_tape, vec![]).unwrap();
-        let mut process = Self::new(&Kernel::default(), inputs);
+        let advice = BaseAdviceProvider::default().with_tape(advice_tape.iter().copied());
+        let mut process = Self::new_with_empty_stack(&Kernel::default(), advice);
         process.execute_op(Operation::Noop).unwrap();
         process
     }
@@ -185,17 +194,35 @@ impl Process {
     /// The stack in the process is initialized with the provided values.
     #[cfg(test)]
     fn new_dummy_with_decoder_helpers(stack_inputs: &[u64]) -> Self {
-        let inputs = super::ProgramInputs::new(stack_inputs, &[], vec![]);
-        Self::new_dummy_with_inputs_and_decoder_helpers(inputs.unwrap())
+        let mut process = Self::new(
+            &Kernel::default(),
+            BaseAdviceProvider::default(),
+            stack_inputs.iter().copied(),
+        );
+        process.decoder.add_dummy_trace_row();
+        process.execute_op(Operation::Noop).unwrap();
+        process
+    }
+
+    /// Instantiates a new blank process with one decoder trace row for testing purposes. This
+    /// allows for setting helpers in the decoder when executing operations during tests.
+    ///
+    /// The stack in the process is initialized with the provided values.
+    #[cfg(test)]
+    fn new_dummy_with_advice_and_decoder_helpers(
+        advice: BaseAdviceProvider,
+        stack_inputs: &[u64],
+    ) -> Self {
+        let mut process = Self::new(&Kernel::default(), advice, stack_inputs.iter().copied());
+        process.decoder.add_dummy_trace_row();
+        process.execute_op(Operation::Noop).unwrap();
+        process
     }
 
     /// Instantiates a new process having Program inputs along with one decoder trace row
     /// for testing purposes.
     #[cfg(test)]
-    fn new_dummy_with_inputs_and_decoder_helpers(input: super::ProgramInputs) -> Self {
-        let mut process = Self::new(&Kernel::default(), input);
-        process.decoder.add_dummy_trace_row();
-        process.execute_op(Operation::Noop).unwrap();
-        process
+    fn new_dummy_with_inputs_and_decoder_helpers(stack_inputs: &[u64]) -> Self {
+        Self::new_dummy_with_advice_and_decoder_helpers(BaseAdviceProvider::default(), stack_inputs)
     }
 }

@@ -1,4 +1,4 @@
-use super::ProgramError;
+use super::{BaseAdviceProvider, ProgramError};
 use miden::{
     math::{Felt, StarkField},
     ProgramInputs, Word,
@@ -269,7 +269,9 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramErro
 
     let pub_inputs = vec![];
     let inputs = ProgramInputs::new(&pub_inputs, &[], vec![]).unwrap();
-    let mut process = Process::new_debug(program.kernel(), inputs);
+    let advice = BaseAdviceProvider::from(inputs.clone());
+    let mut process =
+        Process::new_debug(program.kernel(), advice, inputs.stack_init().iter().rev().copied());
     let _program_outputs = process.execute(&program).map_err(ProgramError::ExecutionError);
 
     let (sys, _, stack, _, chiplets) = process.to_components();

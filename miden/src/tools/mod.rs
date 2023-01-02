@@ -1,4 +1,4 @@
-use super::{cli::InputFile, ProgramError};
+use super::{cli::InputFile, BaseAdviceProvider, ProgramError};
 use core::fmt;
 use miden::{utils::collections::Vec, Assembler, Operation, ProgramInputs};
 use processor::AsmOpInfo;
@@ -145,7 +145,9 @@ pub fn analyze(program: &str, inputs: ProgramInputs) -> Result<ProgramInfo, Prog
         .map_err(ProgramError::AssemblyError)?
         .compile(program)
         .map_err(ProgramError::AssemblyError)?;
-    let vm_state_iterator = processor::execute_iter(&program, &inputs);
+    let advice = BaseAdviceProvider::from(inputs.clone());
+    let vm_state_iterator =
+        processor::execute_iter(&program, advice, inputs.stack_init().iter().rev().copied());
     let mut program_info = ProgramInfo::default();
 
     for state in vm_state_iterator {

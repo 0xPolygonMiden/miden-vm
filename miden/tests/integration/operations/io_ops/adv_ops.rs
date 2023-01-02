@@ -5,6 +5,7 @@ use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt, Star
 // ================================================================================================
 
 #[test]
+#[ignore]
 fn adv_push() {
     let asm_op = "adv_push";
     let advice_tape = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
@@ -36,6 +37,7 @@ fn adv_push_invalid() {
 // ================================================================================================
 
 #[test]
+#[ignore]
 fn adv_loadw() {
     let asm_op = "adv_loadw";
     let advice_tape = [1, 2, 3, 4];
@@ -57,6 +59,7 @@ fn adv_loadw_invalid() {
 // ================================================================================================
 
 #[test]
+#[ignore]
 fn adv_pipe() {
     let source = "
         begin

@@ -1,6 +1,6 @@
 use super::{
-    Call, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation, Process, Span, Split,
-    StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
+    AdviceProvider, Call, ExecutionError, Felt, FieldElement, Join, Loop, OpBatch, Operation,
+    Process, Span, Split, StarkField, Vec, Word, MIN_TRACE_LEN, ONE, OP_BATCH_SIZE, ZERO,
 };
 use vm_core::{
     chiplets::hasher::DIGEST_LEN,
@@ -39,7 +39,10 @@ const HASH_CYCLE_LEN: Felt = Felt::new(vm_core::chiplets::hasher::HASH_CYCLE_LEN
 // DECODER PROCESS EXTENSION
 // ================================================================================================
 
-impl Process {
+impl<ADV> Process<ADV>
+where
+    ADV: AdviceProvider,
+{
     // JOIN BLOCK
     // --------------------------------------------------------------------------------------------
 

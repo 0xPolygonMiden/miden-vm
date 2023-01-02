@@ -1,5 +1,5 @@
 use crate::build_debug_test;
-use processor::{AsmOpInfo, VmStateIterator};
+use processor::{AsmOpInfo, BaseAdviceProvider, VmStateIterator};
 use vm_core::{Felt, Operation};
 
 #[test]
@@ -368,7 +368,7 @@ fn asmop_conditional_execution_test() {
 }
 
 /// This is a helper function to build a vector of [VmStatePartial] from a specified [VmStateIterator].
-fn build_vm_state(vm_state_iterator: VmStateIterator) -> Vec<VmStatePartial> {
+fn build_vm_state(vm_state_iterator: VmStateIterator<BaseAdviceProvider>) -> Vec<VmStatePartial> {
     let mut vm_state = Vec::new();
     for state in vm_state_iterator {
         vm_state.push(VmStatePartial {

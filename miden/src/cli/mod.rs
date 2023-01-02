@@ -1,3 +1,5 @@
+use processor::BaseAdviceProvider;
+
 mod compile;
 mod data;
 mod prove;

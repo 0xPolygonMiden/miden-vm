@@ -1,11 +1,14 @@
 use vm_core::StarkField;
 
-use super::{ExecutionError, Operation, Process};
+use super::{AdviceProvider, ExecutionError, Operation, Process};
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
 
-impl Process {
+impl<ADV> Process<ADV>
+where
+    ADV: AdviceProvider,
+{
     // HASHING OPERATIONS
     // --------------------------------------------------------------------------------------------
     /// Applies Rescue Prime permutation to the top 12 elements of the stack. The stack is assumed
@@ -176,11 +179,11 @@ mod tests {
         super::{Felt, FieldElement, Operation, StarkField},
         Process,
     };
-    use crate::Word;
+    use crate::{BaseAdviceProvider, Word};
     use rand_utils::rand_vector;
     use vm_core::{
         chiplets::hasher::{apply_permutation, STATE_WIDTH},
-        AdviceSet, ProgramInputs,
+        AdviceSet,
     };
 
     #[test]
@@ -234,8 +237,8 @@ mod tests {
             leaves[index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let advice = BaseAdviceProvider::default().with_sets([tree.clone()]).unwrap();
+        let mut process = Process::new_dummy_with_advice_and_decoder_helpers(advice, &stack_inputs);
 
         process.execute_op(Operation::MpVerify).unwrap();
         let expected_stack = build_expected(&[
@@ -282,8 +285,8 @@ mod tests {
             leaves[node_index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let advice = BaseAdviceProvider::default().with_sets([tree.clone()]).unwrap();
+        let mut process = Process::new_dummy_with_advice_and_decoder_helpers(advice, &stack_inputs);
 
         // update the Merkle tree and discard the old copy
         process.execute_op(Operation::MrUpdate(false)).unwrap();
@@ -339,8 +342,8 @@ mod tests {
             leaves[node_index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let advice = BaseAdviceProvider::default().with_sets([tree.clone()]).unwrap();
+        let mut process = Process::new_dummy_with_advice_and_decoder_helpers(advice, &stack_inputs);
 
         // update the Merkle tree but keep the old copy
         process.execute_op(Operation::MrUpdate(true)).unwrap();

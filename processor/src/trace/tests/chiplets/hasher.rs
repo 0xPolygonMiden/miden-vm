@@ -5,6 +5,7 @@ use super::{
     rand_array, ExecutionTrace, Felt, FieldElement, Operation, Trace, AUX_TRACE_RAND_ELEMENTS,
     CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
 };
+use crate::BaseAdviceProvider;
 
 use vm_core::{
     chiplets::{
@@ -19,7 +20,7 @@ use vm_core::{
     },
     code_blocks::CodeBlock,
     utils::range,
-    AdviceSet, ProgramInputs, StarkField, Word, DECODER_TRACE_OFFSET,
+    AdviceSet, StarkField, Word, DECODER_TRACE_OFFSET,
 };
 
 // CONSTANTS
@@ -418,9 +419,10 @@ fn b_chip_mpverify() {
         leaves[index][2].as_int(),
         leaves[index][3].as_int(),
     ];
-    let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
 
-    let mut trace = build_trace_from_ops_with_inputs(vec![Operation::MpVerify], inputs);
+    let advice = BaseAdviceProvider::default().with_sets([tree.clone()]).unwrap();
+    let mut trace =
+        build_trace_from_ops_with_inputs(vec![Operation::MpVerify], advice, &stack_inputs);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);

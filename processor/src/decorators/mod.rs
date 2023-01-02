@@ -1,4 +1,4 @@
-use super::{AdviceInjector, Decorator, ExecutionError, Felt, Process, StarkField};
+use super::{AdviceInjector, AdviceProvider, Decorator, ExecutionError, Felt, Process, StarkField};
 use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_LEN, ZERO};
 use winterfell::math::fft;
 
@@ -9,7 +9,10 @@ type Ext2Element = QuadExtension<Felt>;
 // DECORATORS
 // ================================================================================================
 
-impl Process {
+impl<ADV> Process<ADV>
+where
+    ADV: AdviceProvider,
+{
     /// Executes the specified decorator
     pub(super) fn execute_decorator(
         &mut self,
@@ -269,9 +272,9 @@ mod tests {
         super::{Felt, FieldElement, Kernel, Operation, StarkField},
         Process,
     };
-    use crate::Word;
+    use crate::{BaseAdviceProvider, Word};
 
-    use vm_core::{AdviceInjector, AdviceSet, Decorator, ProgramInputs};
+    use vm_core::{AdviceInjector, AdviceSet, Decorator};
 
     #[test]
     fn inject_merkle_node() {
@@ -287,8 +290,8 @@ mod tests {
             tree.depth() as u64,
         ];
 
-        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new(&Kernel::default(), inputs);
+        let advice = BaseAdviceProvider::default().with_sets([tree.clone()]).unwrap();
+        let mut process = Process::new(&Kernel::default(), advice, stack_inputs);
         process.execute_op(Operation::Noop).unwrap();
 
         // inject the node into the advice tape

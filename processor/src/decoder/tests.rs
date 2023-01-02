@@ -3,8 +3,8 @@ use super::{
     OpGroupTableRow, OpGroupTableUpdate,
 };
 use crate::{
-    decoder::block_stack::ExecutionContextInfo, utils::get_trace_len, ExecutionTrace, Felt, Kernel,
-    Operation, Process, ProgramInputs, Word,
+    decoder::block_stack::ExecutionContextInfo, utils::get_trace_len, BaseAdviceProvider,
+    ExecutionTrace, Felt, Kernel, Operation, Process, Word,
 };
 use rand_utils::rand_value;
 use vm_core::{
@@ -1483,8 +1483,8 @@ fn set_user_op_helpers_many() {
 // ================================================================================================
 
 fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxTraceHints, usize) {
-    let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
-    let mut process = Process::new(&Kernel::default(), inputs);
+    let mut process =
+        Process::new(&Kernel::default(), BaseAdviceProvider::default(), stack.iter().copied());
     process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
 
     let (trace, aux_hints) = ExecutionTrace::test_finalize_trace(process);
@@ -1509,8 +1509,7 @@ fn build_call_trace(
         Some(ref proc) => Kernel::new(&[proc.hash()]),
         None => Kernel::default(),
     };
-    let inputs = ProgramInputs::new(&[], &[], vec![]).unwrap();
-    let mut process = Process::new(&kernel, inputs);
+    let mut process = Process::new_with_empty_stack(&kernel, BaseAdviceProvider::default());
 
     // build code block table
     let mut cb_table = CodeBlockTable::default();

@@ -1,11 +1,62 @@
 use super::{ExecutionError, Felt, ProgramInputs, Word};
+use core::mem;
 use vm_core::{
+    errors::InputError,
     utils::{
         collections::{BTreeMap, Vec},
         IntoBytes,
     },
     AdviceSet, StarkField,
 };
+
+pub trait AdviceProvider {
+    // ADVICE TAPE
+    // --------------------------------------------------------------------------------------------
+
+    // TODO this looks like a `Self: Iterator<Item = Felt>`
+    fn read_tape(&mut self) -> Result<Felt, ExecutionError>;
+    fn read_tape_w(&mut self) -> Result<Word, ExecutionError>;
+    fn read_tape_dw(&mut self) -> Result<[Word; 2], ExecutionError>;
+
+    // TODO this looks like a `Self: Extend<Felt>`
+    fn write_tape(&mut self, value: Felt);
+    fn write_tape_from_map(&mut self, key: Word) -> Result<(), ExecutionError>;
+
+    // TODO consider creating an `extend_into_map` so the user can extend a given set for a given
+    // key
+    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError>;
+
+    // ADVISE SETS
+    // --------------------------------------------------------------------------------------------
+
+    fn get_tree_node(&self, root: Word, depth: Felt, index: Felt) -> Result<Word, ExecutionError>;
+    fn get_merkle_path(
+        &self,
+        root: Word,
+        depth: Felt,
+        index: Felt,
+    ) -> Result<Vec<Word>, ExecutionError>;
+
+    // TODO the compact merkle tree will take depth as argument so leaves can be inserted on
+    // arbitrary depth. this design doesn't support that, so we likely need to add a `depth`
+    // parameter in the future.
+    fn update_merkle_leaf(
+        &mut self,
+        root: Word,
+        index: Felt,
+        leaf_value: Word,
+        update_in_copy: bool,
+    ) -> Result<Vec<Word>, ExecutionError>;
+
+    // CONTEXT MANAGEMENT
+    // --------------------------------------------------------------------------------------------
+
+    // TODO review if we are not enforcing some external control that should be internal to the VM.
+    // example: if the read_tape fails, the provider sends the VM the current step so it can keep
+    // track of where the error happened. however, this seems to be a responsibility of the VM as
+    // it should also know what is the step that caused the failure.
+    fn advance_clock(&mut self);
+}
 
 // ADVICE PROVIDER
 // ================================================================================================
@@ -19,39 +70,87 @@ use vm_core::{
 ///    trees and can be used to provide Merkle paths.
 ///
 /// An advice provider can be instantiated from [ProgramInputs].
-pub struct AdviceProvider {
+#[derive(Debug, Clone, Default)]
+pub struct BaseAdviceProvider {
     step: u32,
     tape: Vec<Felt>,
     values: BTreeMap<[u8; 32], Vec<Felt>>,
     sets: BTreeMap<[u8; 32], AdviceSet>,
 }
 
-impl AdviceProvider {
+impl BaseAdviceProvider {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Returns a new advice provider instantiated from the specified program inputs.
-    pub fn new(inputs: ProgramInputs) -> Self {
-        let (_, mut advice_tape, advice_map, advice_sets) = inputs.into_parts();
 
+    /// Append the given tape to the advice provider.
+    pub fn with_tape<T, I, V>(mut self, tape: T) -> Self
+    where
+        T: IntoIterator<Item = V, IntoIter = I>,
+        I: Iterator<Item = V> + DoubleEndedIterator,
+        V: Into<Felt>,
+    {
         // reverse the advice tape so that we can pop elements off the end
-        advice_tape.reverse();
-
-        Self {
-            step: 0,
-            tape: advice_tape,
-            values: advice_map,
-            sets: advice_sets,
-        }
+        let tape = tape.into_iter().map(V::into).rev().collect();
+        let tape = mem::replace(&mut self.tape, tape);
+        self.tape.extend(tape);
+        self
     }
 
-    // ADVICE TAPE
+    /// Insert or replace the key/values pairs for the advice provider.
+    pub fn with_values<I>(mut self, values: I) -> Self
+    where
+        I: IntoIterator<Item = ([u8; 32], Vec<Felt>)>,
+    {
+        self.values.extend(values);
+        self
+    }
+
+    /// Attempt to append the sets to the advice provider.
+    ///
+    /// Will error if the iterator yields duplicatesd set root keys to the existing/candidate set.
+    pub fn with_sets<I>(mut self, sets: I) -> Result<Self, InputError>
+    where
+        I: IntoIterator<Item = AdviceSet>,
+    {
+        sets.into_iter().try_for_each(|set| {
+            let key = set.root().into_bytes();
+            self.sets
+                .insert(key, set)
+                .is_none()
+                .then_some(())
+                .ok_or(InputError::DuplicateAdviceRoot(key))
+        })?;
+        Ok(self)
+    }
+
+    // ADVISE SETS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns true if the advice set with the specified root is present in this advice provider.
+    pub fn has_advice_set(&self, root: Word) -> bool {
+        self.sets.contains_key(&root.into_bytes())
+    }
+}
+
+// TODO remove if `ProgramInputs` is deprecated, or convert to `TryFrom`
+impl From<ProgramInputs> for BaseAdviceProvider {
+    fn from(inputs: ProgramInputs) -> Self {
+        let (_, tape, values, sets) = inputs.into_parts();
+        Self {
+            step: 0,
+            tape,
+            values,
+            sets,
+        }
+    }
+}
+
+impl AdviceProvider for BaseAdviceProvider {
     /// Removes the next element from the advice tape and returns it.
     ///
     /// # Errors
     /// Returns an error if the advice tape is empty.
-    pub fn read_tape(&mut self) -> Result<Felt, ExecutionError> {
+    fn read_tape(&mut self) -> Result<Felt, ExecutionError> {
         self.tape.pop().ok_or(ExecutionError::AdviceTapeReadFailed(self.step))
     }
 
@@ -59,7 +158,7 @@ impl AdviceProvider {
     ///
     /// # Errors
     /// Returns an error if the advice tape does not contain a full word.
-    pub fn read_tapew(&mut self) -> Result<Word, ExecutionError> {
+    fn read_tape_w(&mut self) -> Result<Word, ExecutionError> {
         if self.tape.len() < 4 {
             return Err(ExecutionError::AdviceTapeReadFailed(self.step));
         }
@@ -76,15 +175,15 @@ impl AdviceProvider {
     ///
     /// # Errors
     /// Returns an error if the advice tape does not contain two words.
-    pub fn read_tape_double(&mut self) -> Result<[Word; 2], ExecutionError> {
-        let word0 = self.read_tapew()?;
-        let word1 = self.read_tapew()?;
+    fn read_tape_dw(&mut self) -> Result<[Word; 2], ExecutionError> {
+        let word0 = self.read_tape_w()?;
+        let word1 = self.read_tape_w()?;
 
         Ok([word0, word1])
     }
 
     /// Writes the provided value at the head of the advice tape.
-    pub fn write_tape(&mut self, value: Felt) {
+    fn write_tape(&mut self, value: Felt) {
         self.tape.push(value);
     }
 
@@ -94,7 +193,7 @@ impl AdviceProvider {
     ///
     /// # Errors
     /// Returns an error if the key was not found in a key-value map.
-    pub fn write_tape_from_map(&mut self, key: Word) -> Result<(), ExecutionError> {
+    fn write_tape_from_map(&mut self, key: Word) -> Result<(), ExecutionError> {
         let values = self
             .values
             .get(&key.into_bytes())
@@ -111,20 +210,11 @@ impl AdviceProvider {
     ///
     /// # Errors
     /// Returns an error if the key is already present in the advice map.
-    pub fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
+    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
         match self.values.insert(key.into_bytes(), values) {
             None => Ok(()),
             Some(_) => Err(ExecutionError::DuplicateAdviceKey(key)),
         }
-    }
-
-    // ADVISE SETS
-    // --------------------------------------------------------------------------------------------
-
-    /// Returns true if the advice set with the specified root is present in this advice provider.
-    #[cfg(test)]
-    pub fn has_advice_set(&self, root: Word) -> bool {
-        self.sets.contains_key(&root.into_bytes())
     }
 
     /// Returns a node at the specified index in a Merkle tree with the specified root.
@@ -135,12 +225,7 @@ impl AdviceProvider {
     /// - The specified depth is either zero or greater than the depth of the Merkle tree
     ///   identified by the specified root.
     /// - Value of the node at the specified depth and index is not known to this advice provider.
-    pub fn get_tree_node(
-        &mut self,
-        root: Word,
-        depth: Felt,
-        index: Felt,
-    ) -> Result<Word, ExecutionError> {
+    fn get_tree_node(&self, root: Word, depth: Felt, index: Felt) -> Result<Word, ExecutionError> {
         // look up the advice set and return an error if none is found
         let advice_set = self
             .sets
@@ -163,8 +248,8 @@ impl AdviceProvider {
     /// - The specified depth is either zero or greater than the depth of the Merkle tree
     ///   identified by the specified root.
     /// - Path to the node at the specified depth and index is not known to this advice provider.
-    pub fn get_merkle_path(
-        &mut self,
+    fn get_merkle_path(
+        &self,
         root: Word,
         depth: Felt,
         index: Felt,
@@ -197,7 +282,7 @@ impl AdviceProvider {
     ///   identified by the specified root.
     /// - Path to the leaf at the specified index in the specified Merkle tree is not known to this
     ///   advice provider.
-    pub fn update_merkle_leaf(
+    fn update_merkle_leaf(
         &mut self,
         root: Word,
         index: Felt,
@@ -233,11 +318,8 @@ impl AdviceProvider {
         Ok(path)
     }
 
-    // CONTEXT MANAGEMENT
-    // --------------------------------------------------------------------------------------------
-
     /// Increments the clock cycle.
-    pub fn advance_clock(&mut self) {
+    fn advance_clock(&mut self) {
         self.step += 1;
     }
 }

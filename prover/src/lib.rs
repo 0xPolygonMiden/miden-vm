@@ -16,8 +16,8 @@ use std::time::Instant;
 
 pub use air::{FieldExtension, HashFunction, ProofOptions};
 pub use processor::{
-    math, utils, AdviceSet, AdviceSetError, Digest, ExecutionError, InputError, Program,
-    ProgramInputs, ProgramOutputs, Word,
+    math, utils, AdviceSet, AdviceSetError, BaseAdviceProvider, Digest, ExecutionError, InputError,
+    Program, ProgramInputs, ProgramOutputs, Word,
 };
 pub use prover::StarkProof;
 
@@ -41,7 +41,9 @@ pub fn prove(
     // execute the program to create an execution trace
     #[cfg(feature = "std")]
     let now = Instant::now();
-    let trace = processor::execute(program, inputs)?;
+    // TODO expose advice provider as generic argument
+    let advice = BaseAdviceProvider::from(inputs.clone());
+    let trace = processor::execute(program, advice, inputs.stack_init().iter().rev().copied())?;
     #[cfg(feature = "std")]
     debug!(
         "Generated execution trace of {} columns and {} steps in {} ms",

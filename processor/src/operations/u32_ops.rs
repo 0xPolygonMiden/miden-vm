@@ -1,7 +1,10 @@
-use super::{ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
+use super::{AdviceProvider, ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
 use crate::utils::{split_element, split_u32_into_u16};
 
-impl Process {
+impl<ADV> Process<ADV>
+where
+    ADV: AdviceProvider,
+{
     // CASTING OPERATIONS
     // --------------------------------------------------------------------------------------------
 

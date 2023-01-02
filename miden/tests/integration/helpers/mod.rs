@@ -1,4 +1,4 @@
-pub use miden::{ProofOptions, StarkProof};
+pub use miden::{BaseAdviceProvider, ProofOptions, StarkProof};
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
 use stdlib::StdLibrary;
@@ -106,7 +106,9 @@ impl Test {
         let program = self.compile();
 
         // execute the test
-        let mut process = Process::new(program.kernel(), self.inputs.clone());
+        let advice = BaseAdviceProvider::from(self.inputs.clone());
+        let mut process =
+            Process::new(program.kernel(), advice, self.inputs.stack_init().iter().rev().copied());
         process.execute(&program).unwrap();
 
         // validate the memory state
@@ -155,7 +157,8 @@ impl Test {
     /// resulting execution trace or error.
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let program = self.compile();
-        processor::execute(&program, &self.inputs)
+        let advice = BaseAdviceProvider::from(self.inputs.clone());
+        processor::execute(&program, advice, self.inputs.stack_init().iter().rev().copied())
     }
 
     /// Compiles the test's code into a program, then generates and verifies a proof of execution
@@ -178,9 +181,10 @@ impl Test {
     /// Compiles the test's source to a Program and executes it with the tests inputs. Returns a
     /// VmStateIterator that allows us to iterate through each clock cycle and inspect the process
     /// state.
-    pub fn execute_iter(&self) -> VmStateIterator {
+    pub fn execute_iter(&self) -> VmStateIterator<BaseAdviceProvider> {
         let program = self.compile();
-        processor::execute_iter(&program, &self.inputs)
+        let advice = BaseAdviceProvider::from(self.inputs.clone());
+        processor::execute_iter(&program, advice, self.inputs.stack_init().iter().rev().copied())
     }
 
     /// Returns the last state of the stack after executing a test.

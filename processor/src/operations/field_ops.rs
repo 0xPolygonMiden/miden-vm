@@ -1,10 +1,13 @@
-use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Process};
+use super::{utils::assert_binary, AdviceProvider, ExecutionError, Felt, FieldElement, Process};
 use vm_core::{Operation, StarkField, ZERO};
 
 // FIELD OPERATIONS
 // ================================================================================================
 
-impl Process {
+impl<ADV> Process<ADV>
+where
+    ADV: AdviceProvider,
+{
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
     /// Pops two elements off the stack, adds them together, and pushes the result back onto the
@@ -222,7 +225,7 @@ mod tests {
         Process,
     };
     use rand_utils::rand_value;
-    use vm_core::{ProgramInputs, ONE, ZERO};
+    use vm_core::{ONE, ZERO};
 
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
@@ -430,40 +433,35 @@ mod tests {
     #[test]
     fn op_eq() {
         // --- test when top two values are equal -----------------------------
-        let inputs = ProgramInputs::new(&[3, 7, 7], &[], vec![]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(&[3, 7, 7]);
 
         process.execute_op(Operation::Eq).unwrap();
         let expected = build_expected(&[Felt::ONE, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test when top two values are not equal -------------------------
-        let inputs = ProgramInputs::new(&[3, 5, 7], &[], vec![]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(&[3, 5, 7]);
 
         process.execute_op(Operation::Eq).unwrap();
         let expected = build_expected(&[Felt::ZERO, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- calling EQ with a stack of minimum depth is a ok ---------------
-        let inputs = ProgramInputs::new(&[], &[], vec![]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(&[]);
         assert!(process.execute_op(Operation::Eq).is_ok());
     }
 
     #[test]
     fn op_eqz() {
         // --- test when top is zero ------------------------------------------
-        let inputs = ProgramInputs::new(&[3, 0], &[], vec![]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(&[3, 0]);
 
         process.execute_op(Operation::Eqz).unwrap();
         let expected = build_expected(&[Felt::ONE, Felt::new(3)]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test when top is not zero --------------------------------------
-        let inputs = ProgramInputs::new(&[3, 4], &[], vec![]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(&[3, 4]);
 
         process.execute_op(Operation::Eqz).unwrap();
         let expected = build_expected(&[Felt::ZERO, Felt::new(3)]);
@@ -481,8 +479,7 @@ mod tests {
         let b = 32;
         let c = 4;
 
-        let inputs = ProgramInputs::new(&[a, b, c, 0], &[], vec![]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(&[a, b, c, 0]);
 
         process.execute_op(Operation::Expacc).unwrap();
         let expected = build_expected(&[ZERO, Felt::new(16), Felt::new(32), Felt::new(a >> 1)]);
@@ -494,8 +491,7 @@ mod tests {
         let b = 1;
         let c = 16;
 
-        let inputs = ProgramInputs::new(&[a, b, c, 0], &[], vec![]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(&[a, b, c, 0]);
 
         process.execute_op(Operation::Expacc).unwrap();
         let expected = build_expected(&[ONE, Felt::new(256), Felt::new(16), Felt::new(a >> 1)]);
@@ -507,8 +503,7 @@ mod tests {
         let b = 5;
         let c = 625;
 
-        let inputs = ProgramInputs::new(&[a, b, c, 0], &[], vec![]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(&[a, b, c, 0]);
 
         process.execute_op(Operation::Expacc).unwrap();
         let expected =

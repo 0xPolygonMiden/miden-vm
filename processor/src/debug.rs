@@ -1,4 +1,4 @@
-use crate::{ExecutionError, Felt, Process, StarkField, Vec};
+use crate::{AdviceProvider, ExecutionError, Felt, Process, StarkField, Vec};
 use core::fmt;
 use vm_core::{utils::string::String, Operation, ProgramOutputs, Word};
 
@@ -28,15 +28,24 @@ impl fmt::Display for VmState {
 /// at each clock cycle.
 /// If the execution returned an error, it returns that error on the clock cycle
 /// it stopped.
-pub struct VmStateIterator {
-    process: Process,
+pub struct VmStateIterator<ADV>
+where
+    ADV: AdviceProvider,
+{
+    process: Process<ADV>,
     error: Option<ExecutionError>,
     clk: u32,
     asmop_idx: usize,
 }
 
-impl VmStateIterator {
-    pub(super) fn new(process: Process, result: Result<ProgramOutputs, ExecutionError>) -> Self {
+impl<ADV> VmStateIterator<ADV>
+where
+    ADV: AdviceProvider,
+{
+    pub(super) fn new(
+        process: Process<ADV>,
+        result: Result<ProgramOutputs, ExecutionError>,
+    ) -> Self {
         Self {
             process,
             error: result.err(),
@@ -103,7 +112,10 @@ impl VmStateIterator {
     }
 }
 
-impl Iterator for VmStateIterator {
+impl<ADV> Iterator for VmStateIterator<ADV>
+where
+    ADV: AdviceProvider,
+{
     type Item = Result<VmState, ExecutionError>;
 
     fn next(&mut self) -> Option<Self::Item> {

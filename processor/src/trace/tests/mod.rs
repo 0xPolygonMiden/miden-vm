@@ -1,8 +1,8 @@
 use super::{ExecutionTrace, Felt, FieldElement, LookupTableRow, Process, Trace, NUM_RAND_ROWS};
+use crate::{AdviceProvider, BaseAdviceProvider};
 use rand_utils::rand_array;
 use vm_core::{
-    code_blocks::CodeBlock, CodeBlockTable, Kernel, Operation, ProgramInputs, ProgramOutputs, Word,
-    ONE, ZERO,
+    code_blocks::CodeBlock, CodeBlockTable, Kernel, Operation, ProgramOutputs, Word, ONE, ZERO,
 };
 
 mod chiplets;
@@ -15,8 +15,8 @@ mod stack;
 
 /// Builds a sample trace by executing the provided code block against the provided stack inputs.
 pub fn build_trace_from_block(program: &CodeBlock, stack: &[u64]) -> ExecutionTrace {
-    let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
-    let mut process = Process::new(&Kernel::default(), inputs);
+    let mut process =
+        Process::new(&Kernel::default(), BaseAdviceProvider::default(), stack.iter().copied());
     process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
     ExecutionTrace::new(process, ProgramOutputs::default())
 }
@@ -31,11 +31,15 @@ pub fn build_trace_from_ops(operations: Vec<Operation>, stack: &[u64]) -> Execut
 /// Builds a sample trace by executing a span block containing the specified operations. Unlike the
 /// function above, this function accepts the full [ProgramInputs] object, which means it can run
 /// the programs with initialized advice provider.
-pub fn build_trace_from_ops_with_inputs(
+pub fn build_trace_from_ops_with_inputs<ADV>(
     operations: Vec<Operation>,
-    inputs: ProgramInputs,
-) -> ExecutionTrace {
-    let mut process = Process::new(&Kernel::default(), inputs);
+    advice: ADV,
+    stack: &[u64],
+) -> ExecutionTrace
+where
+    ADV: AdviceProvider,
+{
+    let mut process = Process::new(&Kernel::default(), advice, stack.iter().copied());
     let program = CodeBlock::new_span(operations);
     process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
     ExecutionTrace::new(process, ProgramOutputs::default())

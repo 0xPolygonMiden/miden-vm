@@ -1,4 +1,4 @@
-use super::{ExecutionError, Felt, Operation, Process};
+use super::{AdviceProvider, ExecutionError, Felt, Operation, Process};
 
 // CONSTANTS
 // ================================================================================================
@@ -8,7 +8,10 @@ const TWO: Felt = Felt::new(2);
 // INPUT / OUTPUT OPERATIONS
 // ================================================================================================
 
-impl Process {
+impl<ADV> Process<ADV>
+where
+    ADV: AdviceProvider,
+{
     // CONSTANT INPUTS
     // --------------------------------------------------------------------------------------------
 
@@ -195,7 +198,7 @@ impl Process {
         let addr = self.stack.get(12);
 
         // read two words from the advice tape
-        let words = self.advice.read_tape_double()?;
+        let words = self.advice.read_tape_dw()?;
 
         // write the words memory
         self.chiplets.write_mem_double(ctx, addr, words);
@@ -241,7 +244,7 @@ impl Process {
     /// # Errors
     /// Returns an error if the advice tape contains fewer than four elements.
     pub(super) fn op_readw(&mut self) -> Result<(), ExecutionError> {
-        let word = self.advice.read_tapew()?;
+        let word = self.advice.read_tape_w()?;
 
         self.stack.set(0, word[3]);
         self.stack.set(1, word[2]);
@@ -260,7 +263,7 @@ impl Process {
 mod tests {
     use super::{
         super::{Operation, STACK_TOP_SIZE},
-        Felt, Process,
+        AdviceProvider, Felt, Process,
     };
     use vm_core::{utils::ToElements, Word, ONE, ZERO};
 
@@ -552,7 +555,10 @@ mod tests {
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
-    fn store_value(process: &mut Process, addr: u64, value: [Felt; 4]) {
+    fn store_value<ADV>(process: &mut Process<ADV>, addr: u64, value: [Felt; 4])
+    where
+        ADV: AdviceProvider,
+    {
         for &value in value.iter() {
             process.execute_op(Operation::Push(value)).unwrap();
         }
@@ -561,7 +567,10 @@ mod tests {
         process.execute_op(Operation::MStoreW).unwrap();
     }
 
-    fn store_element(process: &mut Process, addr: u64, value: Felt) {
+    fn store_element<ADV>(process: &mut Process<ADV>, addr: u64, value: Felt)
+    where
+        ADV: AdviceProvider,
+    {
         process.execute_op(Operation::Push(value)).unwrap();
         let addr = Felt::new(addr);
         process.execute_op(Operation::Push(addr)).unwrap();
