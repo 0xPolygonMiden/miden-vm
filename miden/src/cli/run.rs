@@ -39,7 +39,7 @@ impl RunCmd {
         let trace = processor::execute(&program, &input_data.get_program_inputs())
             .map_err(|err| format!("Failed to generate exection trace = {:?}", err))?;
 
-        println!("done ({} ms)", now.elapsed().as_millis());
+        println!("done ({} steps in {} ms)", trace.get_trace_len(), now.elapsed().as_millis());
 
         if let Some(output_path) = &self.output_file {
             // write outputs to file if one was specified
