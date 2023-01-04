@@ -9,8 +9,8 @@ use vm_core::{
         MR_UPDATE_NEW_LABEL, MR_UPDATE_OLD, MR_UPDATE_OLD_LABEL, RETURN_HASH, RETURN_HASH_LABEL,
         RETURN_STATE, RETURN_STATE_LABEL, STATE_WIDTH, TRACE_WIDTH,
     },
+    code_blocks::CodeBlockType::{self, SPAN},
     utils::collections::BTreeMap,
-    code_blocks::CodeBlockType::{self, SPAN}
 };
 
 mod lookups;

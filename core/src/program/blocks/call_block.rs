@@ -1,4 +1,8 @@
-use super::{fmt, CodeBlockType::{self, CALL, SYSCALL}, Digest};
+use super::{
+    fmt,
+    CodeBlockType::{self, CALL, SYSCALL},
+    Digest,
+};
 
 // CALL BLOCK
 // ================================================================================================
@@ -63,7 +67,11 @@ impl Call {
     }
 
     pub fn block_type(&self) -> CodeBlockType {
-        if self.is_syscall { SYSCALL } else { CALL }
+        if self.is_syscall {
+            SYSCALL
+        } else {
+            CALL
+        }
     }
 }
 
