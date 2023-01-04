@@ -131,10 +131,10 @@ impl CodeBlockType {
         map_raw_digest(raw_digest, |x| Felt::from(self as u8) * *x)
     }
     pub fn hash_merge(self, body: &[Digest; 2]) -> Digest {
-        self.tag(hasher::merge(&body))
+        self.tag(hasher::merge(body))
     }
     pub fn hash_elements(self, body: &[Felt]) -> Digest {
-        self.tag(hasher::hash_elements(&body))
+        self.tag(hasher::hash_elements(body))
     }
 }
 
