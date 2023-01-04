@@ -9,7 +9,7 @@ fn adv_push() {
     let asm_op = "adv_push";
     let advice_tape = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
     let test_n = |n: usize| {
-        let source = format!("{}.{}", asm_op, n);
+        let source = format!("{asm_op}.{n}");
         let mut final_stack = vec![0; n];
         final_stack.copy_from_slice(&advice_tape[..n]);
         final_stack.reverse();

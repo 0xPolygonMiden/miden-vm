@@ -1594,7 +1594,7 @@ fn build_op_batch_flags(num_groups: usize) -> [Felt; NUM_OP_BATCH_FLAGS] {
         2 => OP_BATCH_2_GROUPS,
         4 => OP_BATCH_4_GROUPS,
         8 => OP_BATCH_8_GROUPS,
-        _ => panic!("invalid num groups: {}", num_groups),
+        _ => panic!("invalid num groups: {num_groups}"),
     }
 }
 

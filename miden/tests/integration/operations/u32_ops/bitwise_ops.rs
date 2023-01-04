@@ -216,7 +216,7 @@ fn u32checked_shl_fail() {
 fn u32checked_shl_b() {
     // left shift: pops a from the stack and pushes (a * 2^b) mod 2^32 for a provided value b
     let op_base = "u32checked_shl";
-    let get_asm_op = |b: u32| format!("{}.{}", op_base, b);
+    let get_asm_op = |b: u32| format!("{op_base}.{b}");
 
     // --- test simple case -----------------------------------------------------------------------
     let a = 1_u32;
@@ -295,7 +295,7 @@ fn u32unchecked_shl() {
 fn u32unchecked_shl_b() {
     // left shift: pops a from the stack and pushes (a * 2^b) mod 2^32 for a provided value b
     let op_base = "u32unchecked_shl";
-    let get_asm_op = |b: u32| format!("{}.{}", op_base, b);
+    let get_asm_op = |b: u32| format!("{op_base}.{b}");
 
     // --- test simple case -----------------------------------------------------------------------
     let a = 1_u32;
@@ -380,7 +380,7 @@ fn u32checked_shr_fail() {
 fn u32checked_shr_b() {
     // right shift: pops a from the stack and pushes a / 2^b for a provided value b
     let op_base = "u32checked_shr";
-    let get_asm_op = |b: u32| format!("{}.{}", op_base, b);
+    let get_asm_op = |b: u32| format!("{op_base}.{b}");
 
     // --- test simple case -----------------------------------------------------------------------
     let a = 4_u32;
@@ -459,7 +459,7 @@ fn u32unchecked_shr() {
 fn u32unchecked_shr_b() {
     // right shift: pops a from the stack and pushes a / 2^b for a provided value b
     let op_base = "u32unchecked_shr";
-    let get_asm_op = |b: u32| format!("{}.{}", op_base, b);
+    let get_asm_op = |b: u32| format!("{op_base}.{b}");
 
     // --- test simple case -----------------------------------------------------------------------
     let a = 4_u32;
@@ -542,7 +542,7 @@ fn u32checked_rotl() {
 fn u32checked_rotl_b() {
     // Computes c by rotating a 32-bit representation of a to the left by b bits.
     let op_base = "u32checked_rotl";
-    let get_asm_op = |b: u32| format!("{}.{}", op_base, b);
+    let get_asm_op = |b: u32| format!("{op_base}.{b}");
 
     // --- test simple case -----------------------------------------------------------------------
     let a = 1_u32;
@@ -700,7 +700,7 @@ fn u32checked_rotr_fail() {
 fn u32checked_rotr_b() {
     // Computes c by rotating a 32-bit representation of a to the right by b bits.
     let op_base = "u32checked_rotr";
-    let get_asm_op = |b: u32| format!("{}.{}", op_base, b);
+    let get_asm_op = |b: u32| format!("{op_base}.{b}");
 
     // --- test simple case -----------------------------------------------------------------------
     let a = 2_u32;
@@ -883,7 +883,7 @@ proptest! {
 
     #[test]
     fn u32checked_shl_b_proptest(a in any::<u32>(), b in 0_u32..32) {
-        let asm_opcode = format!("u32checked_shl.{}", b);
+        let asm_opcode = format!("u32checked_shl.{b}");
 
         // should execute left shift
         let expected = a << b;
@@ -903,7 +903,7 @@ proptest! {
 
     #[test]
     fn u32unchecked_shl_b_proptest(a in any::<u32>(), b in 0_u32..32) {
-        let asm_opcode = format!("u32unchecked_shl.{}", b);
+        let asm_opcode = format!("u32unchecked_shl.{b}");
 
         // should execute left shift
         let c = a.wrapping_shl(b);
@@ -923,7 +923,7 @@ proptest! {
 
     #[test]
     fn u32checked_shr_b_proptest(a in any::<u32>(), b in 0_u32..32) {
-        let asm_opcode = format!("u32checked_shr.{}", b);
+        let asm_opcode = format!("u32checked_shr.{b}");
 
         // should execute right shift
         let expected = a >> b;
@@ -943,7 +943,7 @@ proptest! {
     #[test]
     fn u32checked_rotl_b_proptest(a in any::<u32>(), b in 0_u32..32) {
         let op_base = "u32checked_rotl";
-        let asm_opcode = format!("{}.{}", op_base, b);
+        let asm_opcode = format!("{op_base}.{b}");
 
         // should execute left bit rotation
         let test = build_op_test!(asm_opcode, &[a as u64]);
@@ -962,7 +962,7 @@ proptest! {
     #[test]
     fn u32unchecked_rotl_b_proptest(a in any::<u32>(), b in 0_u32..32) {
         let op_base = "u32unchecked_rotl";
-        let asm_opcode = format!("{}.{}", op_base, b);
+        let asm_opcode = format!("{op_base}.{b}");
 
         // should execute left bit rotation
         let test = build_op_test!(asm_opcode, &[a as u64]);
@@ -981,7 +981,7 @@ proptest! {
     #[test]
     fn u32checked_rotr_b_proptest(a in any::<u32>(), b in 0_u32..32) {
         let op_base = "u32checked_rotr";
-        let asm_opcode = format!("{}.{}", op_base, b);
+        let asm_opcode = format!("{op_base}.{b}");
 
         // should execute right bit rotation
         let test = build_op_test!(asm_opcode, &[a as u64]);
@@ -1000,7 +1000,7 @@ proptest! {
     #[test]
     fn u32unchecked_rotr_b_proptest(a in any::<u32>(), b in 0_u32..32) {
         let op_base = "u32unchecked_rotr";
-        let asm_opcode = format!("{}.{}", op_base, b);
+        let asm_opcode = format!("{op_base}.{b}");
 
         // should execute right bit rotation
         let test = build_op_test!(asm_opcode, &[a as u64]);
@@ -1010,7 +1010,7 @@ proptest! {
     #[test]
     fn u32checked_popcount_proptest(a in any::<u32>()) {
         let asm_opcode = "u32checked_popcnt";
-        let expected = a.count_ones() as u32;
+        let expected = a.count_ones();
         let test = build_op_test!(asm_opcode, &[a as u64]);
         test.prop_expect_stack(&[expected as u64])?;
     }
@@ -1018,7 +1018,7 @@ proptest! {
     #[test]
     fn u32unchecked_popcount_proptest(a in any::<u32>()) {
         let asm_opcode = "u32unchecked_popcnt";
-        let expected = a.count_ones() as u32;
+        let expected = a.count_ones();
         let test = build_op_test!(asm_opcode, &[a as u64]);
         test.prop_expect_stack(&[expected as u64])?;
     }

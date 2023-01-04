@@ -72,7 +72,7 @@ fn add() {
 
 #[test]
 fn add_b() {
-    let build_asm_op = |param: u64| format!("add.{}", param);
+    let build_asm_op = |param: u64| format!("add.{param}");
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(2), &[1]);
@@ -120,7 +120,7 @@ fn sub() {
 
 #[test]
 fn sub_b() {
-    let build_asm_op = |param: u64| format!("sub.{}", param);
+    let build_asm_op = |param: u64| format!("sub.{param}");
 
     // --- simple case ----------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(2), &[3]);
@@ -164,7 +164,7 @@ fn mul() {
 
 #[test]
 fn mul_b() {
-    let build_asm_op = |param: u64| format!("mul.{}", param);
+    let build_asm_op = |param: u64| format!("mul.{param}");
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(0), &[1]);
@@ -212,7 +212,7 @@ fn div() {
 
 #[test]
 fn div_b() {
-    let build_asm_op = |param: u64| format!("div.{}", param);
+    let build_asm_op = |param: u64| format!("div.{param}");
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(1), &[0]);
@@ -331,7 +331,7 @@ fn pow2_fail() {
 
 #[test]
 fn exp_bits_length() {
-    let build_asm_op = |param: u64| format!("exp.u{}", param);
+    let build_asm_op = |param: u64| format!("exp.u{param}");
 
     //---------------------- exp with parameter containing bits length ----------------------------
 
@@ -345,7 +345,7 @@ fn exp_bits_length() {
 
 #[test]
 fn exp_bits_length_fail() {
-    let build_asm_op = |param: u64| format!("exp.u{}", param);
+    let build_asm_op = |param: u64| format!("exp.u{param}");
 
     //---------------------- exp containing more bits than specified in the parameter ------------
 
@@ -366,7 +366,7 @@ fn exp_bits_length_fail() {
 
 #[test]
 fn exp_small_pow() {
-    let build_asm_op = |param: u64| format!("exp.{}", param);
+    let build_asm_op = |param: u64| format!("exp.{param}");
 
     let base = rand_value::<u64>();
     let pow = 7;
@@ -582,7 +582,7 @@ proptest! {
         test.prop_expect_stack(&[expected as u64])?;
 
         // b provided as a parameter
-        let asm_op = format!("{}.{}", asm_op, b);
+        let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a]);
         test.prop_expect_stack(&[expected as u64])?;
     }
@@ -609,12 +609,12 @@ proptest! {
         test.prop_expect_stack(&[Felt::MODULUS - expected])?;
 
         // b provided as a parameter
-        let asm_op_b = format!("{}.{}", asm_op, b);
+        let asm_op_b = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op_b, &[a]);
         test.prop_expect_stack(&[expected])?;
 
         // underflow by a provided as a parameter
-        let asm_op_b = format!("{}.{}", asm_op, a);
+        let asm_op_b = format!("{asm_op}.{a}");
         let test = build_op_test!(asm_op_b, &[b]);
         test.prop_expect_stack(&[Felt::MODULUS - expected])?;
     }
@@ -631,7 +631,7 @@ proptest! {
         test.prop_expect_stack(&[expected as u64])?;
 
         // b provided as a parameter
-        let asm_op = format!("{}.{}", asm_op, b);
+        let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a]);
         test.prop_expect_stack(&[expected as u64])?;
     }
@@ -648,7 +648,7 @@ proptest! {
         test.prop_expect_stack(&[expected as u64])?;
 
         // b provided as a parameter
-        let asm_op = format!("{}.{}", asm_op, b);
+        let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a]);
         test.prop_expect_stack(&[expected as u64])?;
     }
@@ -682,7 +682,7 @@ proptest! {
         let asm_op = "pow2";
         let expected = 2_u64.wrapping_pow(b);
 
-        build_op_test!(asm_op, &[b as u64]).prop_expect_stack(&[expected as u64])?;
+        build_op_test!(asm_op, &[b as u64]).prop_expect_stack(&[expected])?;
     }
 
     #[test]
@@ -700,7 +700,7 @@ proptest! {
 
         //----------------------- exp with parameter containing pow ----------------
 
-        let build_asm_op = |param: u64| format!("exp.{}", param);
+        let build_asm_op = |param: u64| format!("exp.{param}");
         let base = a;
         let pow = b;
         let expected = Felt::new(base).exp(pow);
