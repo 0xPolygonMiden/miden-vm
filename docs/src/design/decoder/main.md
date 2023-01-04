@@ -487,7 +487,7 @@ Operation batch flags (denoted as $c_0, c_1, c_2$), encode the number of groups 
 
 * `(1, 0, 0)` - $8$ groups. Groups in $h_1, ... h_7$ are added to the op group table.
 * `(0, 1, 0)` - $4$ groups. Groups in $h_1, ... h_3$ are added to the op group table
-* `(0, 0, 1)` - $2$ groups. Groups in $h_1, h_2$ are added to the op group table.
+* `(0, 0, 1)` - $2$ groups. Groups in $h_1$ is added to the op group table.
 * `(0, 1, 1)` - $1$ group. Nothing is added to the op group table
 * `(0, 0, 0)` - not a `SPAN` or `RESPAN` operation.
 
