@@ -63,5 +63,5 @@ The second way to access memory is via procedure locals using the instructions l
 
 Unlike regular memory, procedure locals are not guaranteed to be initialized to zeros. Thus, when working with locals, one must assume that before a local memory address has been written to, it contains "garbage".
 
-Internally in the VM, procedure locals are stored at memory offset stating at $2^{30}$. Thus, every procedure local has an absolute address in regular memory. The `push.env.locaddr` is provided specifically to map an index of a procedure's local to an absolute address so that it can be passed to downstream procedures, when needed.
+Internally in the VM, procedure locals are stored at memory offset stating at $2^{30}$. Thus, every procedure local has an absolute address in regular memory. The `locaddr.i` instruction is provided specifically to map an index of a procedure's local to an absolute address so that it can be passed to downstream procedures, when needed.
 
