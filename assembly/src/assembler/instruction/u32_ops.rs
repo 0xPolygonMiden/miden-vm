@@ -619,14 +619,15 @@ pub fn u32max(
 /// - u32unchecked_popcnt: 33 cycles
 pub fn u32popcnt(
     span: &mut SpanBuilder,
-    op_mode: U32OpMode
+    op_mode: U32OpMode,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
     match op_mode {
         U32OpMode::Checked => span.push_ops([Pad, U32assert2, Drop]),
         U32OpMode::Unchecked => (),
         _ => unreachable!("unsupported operation mode"),
     }
-    span.add_ops([
+    #[rustfmt::skip]
+    let ops = [
         // i = i - ((i >> 1) & 0x55555555);
         Dup0,
         Push(Felt::new(1 << 1)), U32div, Drop,
@@ -652,7 +653,8 @@ pub fn u32popcnt(
         Push(Felt::new(0x01010101)),
         U32mul, Drop,
         Push(Felt::new(1 << 24)), U32div, Drop
-    ])
+    ];
+    span.add_ops(ops)
 }
 
 // COMPARISON OPERATIONS - HELPERS
