@@ -133,6 +133,10 @@ impl ExecutionTrace {
         result
     }
 
+    pub fn get_trace_len(&self) -> usize {
+        self.main_trace.num_rows()
+    }
+
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
