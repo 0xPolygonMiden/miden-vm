@@ -154,6 +154,8 @@ impl Assembler {
             Instruction::U32UncheckedMin => u32_ops::u32min(span, Unchecked),
             Instruction::U32CheckedMax => u32_ops::u32max(span, Checked),
             Instruction::U32UncheckedMax => u32_ops::u32max(span, Unchecked),
+            Instruction::U32CheckedPopcnt => u32_ops::u32popcnt(span, Checked),
+            Instruction::U32UncheckedPopcnt => u32_ops::u32popcnt(span, Unchecked),
 
             Instruction::Drop => span.add_op(Drop),
             Instruction::DropW => span.add_ops([Drop; 4]),

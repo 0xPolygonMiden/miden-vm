@@ -124,6 +124,8 @@ pub enum OpCode {
     U32UncheckedMin = 105,
     U32CheckedMax = 106,
     U32UncheckedMax = 107,
+    U32CheckedPopcnt = 229,
+    U32UncheckedPopcnt = 230,
 
     // ----- stack manipulation -------------------------------------------------------------------
     Drop = 108,

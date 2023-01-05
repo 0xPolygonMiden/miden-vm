@@ -154,6 +154,8 @@ impl Deserializable for Instruction {
             OpCode::U32UncheckedMin => Ok(Instruction::U32UncheckedMin),
             OpCode::U32CheckedMax => Ok(Instruction::U32CheckedMax),
             OpCode::U32UncheckedMax => Ok(Instruction::U32UncheckedMax),
+            OpCode::U32CheckedPopcnt => Ok(Instruction::U32CheckedPopcnt),
+            OpCode::U32UncheckedPopcnt => Ok(Instruction::U32UncheckedPopcnt),
 
             // ----- stack manipulation -----------------------------------------------------------
             OpCode::Drop => Ok(Instruction::Drop),

@@ -128,6 +128,8 @@ pub enum Instruction {
     U32UncheckedMin,
     U32CheckedMax,
     U32UncheckedMax,
+    U32CheckedPopcnt,
+    U32UncheckedPopcnt,
 
     // ----- stack manipulation ---------------------------------------------------------------
     Drop,
@@ -377,6 +379,8 @@ impl fmt::Display for Instruction {
             Self::U32UncheckedMin => write!(f, "u32unchecked_min"),
             Self::U32CheckedMax => write!(f, "u32checked_max"),
             Self::U32UncheckedMax => write!(f, "u32unchecked_max"),
+            Self::U32CheckedPopcnt => write!(f, "u32checked_popcnt"),
+            Self::U32UncheckedPopcnt => write!(f, "u32unchecked_popcnt"),
 
             // ----- stack manipulation ---------------------------------------------------------------
             Self::Drop => write!(f, "drop"),

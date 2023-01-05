@@ -612,6 +612,49 @@ pub fn u32max(
     span.add_ops([Swap, Drop])
 }
 
+/// Translates u32popcnt assembly instructions to VM operations.
+///
+/// VM cycles per mode:
+/// - u32checked_popcnt: 36 cycles
+/// - u32unchecked_popcnt: 33 cycles
+pub fn u32popcnt(
+    span: &mut SpanBuilder,
+    op_mode: U32OpMode
+) -> Result<Option<CodeBlock>, AssemblyError> {
+    match op_mode {
+        U32OpMode::Checked => span.push_ops([Pad, U32assert2, Drop]),
+        U32OpMode::Unchecked => (),
+        _ => unreachable!("unsupported operation mode"),
+    }
+    span.add_ops([
+        // i = i - ((i >> 1) & 0x55555555);
+        Dup0,
+        Push(Felt::new(1 << 1)), U32div, Drop,
+        Push(Felt::new(0x55555555)),
+        U32and,
+        U32sub, Drop,
+        // i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
+        Dup0,
+        Push(Felt::new(1 << 2)), U32div, Drop,
+        Push(Felt::new(0x33333333)),
+        U32and,
+        Swap,
+        Push(Felt::new(0x33333333)),
+        U32and,
+        U32add, Drop,
+        // i = (i + (i >> 4)) & 0x0F0F0F0F;
+        Dup0,
+        Push(Felt::new(1 << 4)), U32div, Drop,
+        U32add, Drop,
+        Push(Felt::new(0x0F0F0F0F)),
+        U32and,
+        // return (i * 0x01010101) >> 24;
+        Push(Felt::new(0x01010101)),
+        U32mul, Drop,
+        Push(Felt::new(1 << 24)), U32div, Drop
+    ])
+}
+
 // COMPARISON OPERATIONS - HELPERS
 // ================================================================================================
 

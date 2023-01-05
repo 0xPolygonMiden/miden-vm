@@ -431,6 +431,9 @@ impl ParserContext {
             "u32checked_max" => simple_instruction(op, U32CheckedMax),
             "u32unchecked_max" => simple_instruction(op, U32UncheckedMax),
 
+            "u32checked_popcnt" => simple_instruction(op, U32CheckedPopcnt),
+            "u32unchecked_popcnt" => simple_instruction(op, U32UncheckedPopcnt),
+
             // ----- stack manipulation -----------------------------------------------------------
             "drop" => simple_instruction(op, Drop),
             "dropw" => simple_instruction(op, DropW),

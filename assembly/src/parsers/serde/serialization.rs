@@ -240,6 +240,8 @@ impl Serializable for Instruction {
             Self::U32UncheckedMin => OpCode::U32UncheckedMin.write_into(target)?,
             Self::U32CheckedMax => OpCode::U32CheckedMax.write_into(target)?,
             Self::U32UncheckedMax => OpCode::U32UncheckedMax.write_into(target)?,
+            Self::U32CheckedPopcnt => OpCode::U32CheckedPopcnt.write_into(target)?,
+            Self::U32UncheckedPopcnt => OpCode::U32UncheckedPopcnt.write_into(target)?,
 
             // ----- stack manipulation ---------------------------------------------------------------
             Self::Drop => OpCode::Drop.write_into(target)?,
