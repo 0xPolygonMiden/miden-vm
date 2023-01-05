@@ -267,8 +267,7 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramErro
         .compile(&program)
         .map_err(ProgramError::AssemblyError)?;
 
-    let pub_inputs = vec![];
-    let inputs = ProgramInputs::new(&pub_inputs, &[], vec![]).unwrap();
+    let inputs = ProgramInputs::new(&[], vec![]).unwrap();
     let advice = BaseAdviceProvider::from(inputs.clone());
     let mut process =
         Process::new_debug(program.kernel(), advice, inputs.stack_init().iter().rev().copied());

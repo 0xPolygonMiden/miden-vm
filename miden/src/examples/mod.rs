@@ -1,4 +1,5 @@
-use miden::{Program, ProgramInputs, ProofOptions, StarkProof};
+use miden::{Program, ProgramInputs, ProofOptions, StackInputs, StarkProof};
+use processor::AdviceProvider;
 use std::io::Write;
 use std::time::Instant;
 use structopt::StructOpt;
@@ -8,9 +9,9 @@ pub mod fibonacci;
 // EXAMPLE
 // ================================================================================================
 
-pub struct Example {
+pub struct Example<ADV> {
     pub program: Program,
-    pub inputs: ProgramInputs,
+    pub inputs: StackInputs,
     pub pub_inputs: Vec<u64>,
     pub num_outputs: usize,
     pub expected_result: Vec<u64>,
@@ -69,6 +70,7 @@ impl ExampleOptions {
         let Example {
             program,
             inputs,
+            advice,
             num_outputs,
             pub_inputs,
             expected_result,
@@ -77,7 +79,7 @@ impl ExampleOptions {
 
         // execute the program and generate the proof of execution
         let now = Instant::now();
-        let (outputs, proof) = miden::prove(&program, &inputs, &proof_options).unwrap();
+        let (outputs, proof) = miden::prove(&program, &inputs, &advice, &proof_options).unwrap();
         println!("--------------------------------");
 
         println!(
@@ -124,7 +126,7 @@ pub fn test_example(example: Example, fail: bool) {
         expected_result,
     } = example;
 
-    let (mut outputs, proof) = miden::prove(&program, &inputs, &ProofOptions::default()).unwrap();
+    let (mut outputs, proof) = miden::prove(&program, &inputs, &advice, &ProofOptions::default()).unwrap();
 
     assert_eq!(
         expected_result,

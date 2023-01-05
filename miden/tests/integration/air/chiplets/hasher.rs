@@ -36,25 +36,27 @@ fn mtree_get() {
         tree.depth() as u64,
     ];
 
-    build_op_test!(asm_op, &stack_inputs, &[], vec![tree])
+    build_op_test!(asm_op, stack_inputs.into(), &[], vec![tree])
         .prove_and_verify(stack_inputs.to_vec(), false);
 }
 
 #[test]
 fn mtree_set() {
     let asm_op = "mtree_set";
-    let (stack_inputs, tree) = build_mtree_update_test_inputs();
+    let (stack_inputs, _tree) = build_mtree_update_test_inputs();
 
-    build_op_test!(asm_op, &stack_inputs, &[], vec![tree])
+    // TODO: Remove clone
+    build_op_test!(asm_op, stack_inputs.clone().into(), &[], vec![tree])
         .prove_and_verify(stack_inputs.to_vec(), false);
 }
 
 #[test]
 fn mtree_cwm() {
     let asm_op = "mtree_cwm";
-    let (stack_inputs, tree) = build_mtree_update_test_inputs();
+    let (stack_inputs, _tree) = build_mtree_update_test_inputs();
 
-    build_op_test!(asm_op, &stack_inputs, &[], vec![tree]).prove_and_verify(stack_inputs, false);
+    // TODO: Remove clone
+    build_op_test!(asm_op, stack_inputs.clone().into(), &[], vec![tree]).prove_and_verify(stack_inputs, false);
 }
 
 /// Helper function that builds a test stack and Merkle tree for testing mtree updates.

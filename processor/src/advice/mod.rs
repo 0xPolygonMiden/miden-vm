@@ -1,4 +1,4 @@
-use super::{ExecutionError, Felt, ProgramInputs, Word};
+use super::{ExecutionError, Felt, Word};
 use core::mem;
 use vm_core::{
     errors::InputError,
@@ -132,18 +132,18 @@ impl BaseAdviceProvider {
     }
 }
 
-// TODO remove if `ProgramInputs` is deprecated, or convert to `TryFrom`
-impl From<ProgramInputs> for BaseAdviceProvider {
-    fn from(inputs: ProgramInputs) -> Self {
-        let (_, tape, values, sets) = inputs.into_parts();
-        Self {
-            step: 0,
-            tape,
-            values,
-            sets,
-        }
-    }
-}
+// // TODO remove if `ProgramInputs` is deprecated, or convert to `TryFrom`
+// impl From<ProgramInputs> for BaseAdviceProvider {
+//     fn from(inputs: ProgramInputs) -> Self {
+//         let (tape, values, sets) = inputs.into_parts();
+//         Self {
+//             step: 0,
+//             tape,
+//             values,
+//             sets,
+//         }
+//     }
+// }
 
 impl AdviceProvider for BaseAdviceProvider {
     /// Removes the next element from the advice tape and returns it.

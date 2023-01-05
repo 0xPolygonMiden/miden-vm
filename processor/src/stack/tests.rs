@@ -2,7 +2,7 @@ use super::{Felt, OverflowTableRow, Stack, ONE, STACK_TOP_SIZE, ZERO};
 use crate::StackTopState;
 use vm_core::{
     stack::{B0_COL_IDX, B1_COL_IDX, H0_COL_IDX, NUM_STACK_HELPER_COLS},
-    FieldElement, StarkField, STACK_TRACE_WIDTH,
+    FieldElement, StarkField, STACK_TRACE_WIDTH, StackInputs,
 };
 
 // TYPE ALIASES
@@ -17,7 +17,7 @@ type StackHelpersState = [Felt; NUM_STACK_HELPER_COLS];
 fn initialize() {
     // initialize a new stack with some initial values
     let mut stack_inputs = [1, 2, 3, 4];
-    let stack = Stack::new(stack_inputs, 4, false);
+    let stack = Stack::new(StackInputs::from_vec(&stack_inputs), 4, false);
 
     // Prepare the expected results.
     stack_inputs.reverse();
@@ -35,7 +35,7 @@ fn initialize() {
 fn initialize_overflow() {
     // Initialize a new stack with enough initial values that the overflow table is non-empty.
     let mut stack_inputs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
-    let stack = Stack::new(stack_inputs, 4, false);
+    let stack = Stack::new(StackInputs::from_vec(&stack_inputs), 4, false);
 
     // Prepare the expected results.
     stack_inputs.reverse();
@@ -71,7 +71,7 @@ fn initialize_overflow() {
 #[test]
 fn shift_left() {
     let inputs = [1u64, 2, 3, 4];
-    let mut stack = Stack::new(inputs, 4, false);
+    let mut stack = Stack::new(StackInputs::from_vec(&inputs), 4, false);
 
     // ---- left shift an entire stack of minimum depth -------------------------------------------
     // Perform the left shift.
@@ -83,7 +83,7 @@ fn shift_left() {
     assert_eq!(stack.helpers_state(), build_helpers_partial(0, 0));
 
     // ---- left shift an entire stack with multiple overflow items -------------------------------
-    let mut stack = Stack::new(inputs, 4, false);
+    let mut stack = Stack::new(StackInputs::from_vec(&inputs), 4, false);
 
     // make sure the first right shift is not executed at clk = 0
     stack.copy_state(0);
@@ -122,7 +122,7 @@ fn shift_left() {
 #[test]
 fn shift_right() {
     let inputs = [1u64, 2, 3, 4];
-    let mut stack = Stack::new(inputs, 4, false);
+    let mut stack = Stack::new(StackInputs::from_vec(&inputs), 4, false);
 
     // make sure the first right shift is not executed at clk = 0
     stack.copy_state(0);
@@ -161,7 +161,7 @@ fn shift_right() {
 #[test]
 fn start_restore_context() {
     let stack_init = (0..16).map(|v| v as u64 + 1).collect::<Vec<u64>>();
-    let mut stack = Stack::new(stack_init.iter().copied(), 8, false);
+    let mut stack = Stack::new(StackInputs::from_vec(&stack_init), 8, false);
 
     // ----- when overflow table is empty -------------------------------------
 
@@ -198,7 +198,7 @@ fn start_restore_context() {
 
     // ----- when overflow table is not empty ---------------------------------
     let stack_init = (0..16).map(|v| v as u64 + 1).collect::<Vec<u64>>();
-    let mut stack = Stack::new(stack_init.iter().copied(), 8, false);
+    let mut stack = Stack::new(StackInputs::from_vec(&stack_init), 8, false);
 
     let mut stack_state = stack_init;
     stack_state.reverse();
@@ -271,7 +271,7 @@ fn start_restore_context() {
 #[test]
 fn generate_trace() {
     let inputs = [1u64, 2, 3, 4];
-    let mut stack = Stack::new(inputs, 16, false);
+    let mut stack = Stack::new(StackInputs::from_vec(&inputs), 16, false);
 
     // clk = 0
     stack.copy_state(0);

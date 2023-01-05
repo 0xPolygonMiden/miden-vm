@@ -1,4 +1,5 @@
 use super::{build_op_test, build_test, TestError};
+use processor::VecDeque;
 use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt, StarkField};
 
 // PUSHING VALUES ONTO THE STACK (PUSH)
@@ -15,7 +16,7 @@ fn adv_push() {
         final_stack.copy_from_slice(&advice_tape[..n]);
         final_stack.reverse();
 
-        let test = build_op_test!(source, &[], &advice_tape, vec![]);
+        let test = build_op_test!(source, VecDeque::new(), &advice_tape, vec![]);
         test.expect_stack(&final_stack);
     };
 
@@ -44,7 +45,7 @@ fn adv_loadw() {
     let mut final_stack = advice_tape;
     final_stack.reverse();
 
-    let test = build_op_test!(asm_op, &[8, 7, 6, 5], &advice_tape, vec![]);
+    let test = build_op_test!(asm_op, VecDeque::new(), &advice_tape, vec![]);
     test.expect_stack(&final_stack);
 }
 
@@ -67,7 +68,7 @@ fn adv_pipe() {
             adv_pipe
         end";
 
-    let advice_tape = [1, 2, 3, 4, 5, 6, 7, 8];
+    let _advice_tape = [1, 2, 3, 4, 5, 6, 7, 8];
 
     // the state of the hasher is the first 12 elements of the stack (in reverse order). the state
     // is built by adding the top 8 values from the head of the advice tape to the values on
@@ -85,6 +86,6 @@ fn adv_pipe() {
     final_stack.reverse();
     final_stack.push(2);
 
-    let test = build_test!(source, &[], &advice_tape, vec![]);
+    let test = build_test!(source, VecDeque::new(), &advice_tape, vec![]);
     test.expect_stack(&final_stack);
 }

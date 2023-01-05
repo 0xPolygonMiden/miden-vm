@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use air::{ProcessorAir, PublicInputs};
-use processor::{math::Felt, utils::collections::Vec, ExecutionTrace};
+use processor::{math::Felt, ExecutionTrace, AdviceProvider};
 use prover::Prover;
 
 #[cfg(feature = "std")]
@@ -17,7 +17,7 @@ use std::time::Instant;
 pub use air::{FieldExtension, HashFunction, ProofOptions};
 pub use processor::{
     math, utils, AdviceSet, AdviceSetError, BaseAdviceProvider, Digest, ExecutionError, InputError,
-    Program, ProgramInputs, ProgramOutputs, Word,
+    Program, ProgramInputs, ProgramOutputs, StackInputs, Word,
 };
 pub use prover::StarkProof;
 
@@ -33,17 +33,17 @@ pub use prover::StarkProof;
 ///
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
-pub fn prove(
+pub fn prove<ADV>(
     program: &Program,
-    inputs: &ProgramInputs,
+    inputs: StackInputs,
+    advice: ADV,
     options: &ProofOptions,
-) -> Result<(ProgramOutputs, StarkProof), ExecutionError> {
+) -> Result<(ProgramOutputs, StarkProof), ExecutionError> where ADV: AdviceProvider {
     // execute the program to create an execution trace
     #[cfg(feature = "std")]
     let now = Instant::now();
-    // TODO expose advice provider as generic argument
-    let advice = BaseAdviceProvider::from(inputs.clone());
-    let trace = processor::execute(program, advice, inputs.stack_init().iter().rev().copied())?;
+    // TODO: Remove clone
+    let trace = processor::execute(program, advice, inputs.clone())?;
     #[cfg(feature = "std")]
     debug!(
         "Generated execution trace of {} columns and {} steps in {} ms",
@@ -56,7 +56,7 @@ pub fn prove(
 
     // generate STARK proof
     let prover =
-        ExecutionProver::new(options.clone(), inputs.stack_init().to_vec(), outputs.clone());
+        ExecutionProver::new(options.clone(), inputs, outputs.clone());
     let proof = prover.prove(trace).map_err(ExecutionError::ProverError)?;
 
     Ok((outputs, proof))
@@ -67,12 +67,12 @@ pub fn prove(
 
 struct ExecutionProver {
     options: ProofOptions,
-    stack_inputs: Vec<Felt>,
+    stack_inputs: StackInputs,
     outputs: ProgramOutputs,
 }
 
 impl ExecutionProver {
-    pub fn new(options: ProofOptions, stack_inputs: Vec<Felt>, outputs: ProgramOutputs) -> Self {
+    pub fn new(options: ProofOptions, stack_inputs: StackInputs, outputs: ProgramOutputs) -> Self {
         Self {
             options,
             stack_inputs,
@@ -86,7 +86,7 @@ impl ExecutionProver {
     /// Validates the stack inputs against the provided execution trace and returns true if valid.
     fn are_inputs_valid(&self, trace: &ExecutionTrace) -> bool {
         for (input_element, trace_element) in
-            self.stack_inputs.iter().zip(trace.init_stack_state().iter())
+            self.stack_inputs.to_felt().iter().zip(trace.init_stack_state().iter())
         {
             if *input_element != *trace_element {
                 return false;
@@ -130,6 +130,6 @@ impl Prover for ExecutionProver {
             "provided outputs do not match the execution trace"
         );
 
-        PublicInputs::new(trace.program_hash(), self.stack_inputs.clone(), self.outputs.clone())
+        PublicInputs::new(trace.program_hash(), self.stack_inputs.to_felt(), self.outputs.clone())
     }
 }

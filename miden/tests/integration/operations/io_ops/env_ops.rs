@@ -1,7 +1,8 @@
 use crate::{build_op_test, build_test, helpers::Test};
+use miden::BaseAdviceProvider;
 use processor::FMP_MIN;
 use vm_core::{
-    code_blocks::CodeBlock, stack::STACK_TOP_SIZE, Operation, ProgramInputs, StarkField, Word,
+    code_blocks::CodeBlock, stack::STACK_TOP_SIZE, Operation, StarkField, Word, StackInputs,
 };
 
 // SDEPTH INSTRUCTION
@@ -146,7 +147,8 @@ fn caller() {
     let test = Test {
         source: program_source.to_string(),
         kernel: Some(kernel_source.to_string()),
-        inputs: ProgramInputs::from_stack_inputs(&[1, 2, 3, 4, 5]).unwrap(),
+        inputs: StackInputs::from_vec(&[1, 2, 3, 4, 5]),
+        advice: BaseAdviceProvider::default(),
         in_debug_mode: false,
     };
     // top 4 elements should be overwritten with the hash of `bar` procedure, but the 5th

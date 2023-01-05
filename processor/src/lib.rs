@@ -5,11 +5,12 @@
 extern crate alloc;
 
 // TODO maybe deprecate ProgramInputs?
-use core::iter;
+
 pub use vm_core::{
     chiplets::hasher::Digest,
     errors::{AdviceSetError, InputError},
-    AdviceSet, Operation, Program, ProgramInputs, ProgramOutputs, Word,
+    AdviceSet, Operation, Program, ProgramInputs, ProgramOutputs, StackInputs, Word,
+    utils::VecDeque,
 };
 use vm_core::{
     code_blocks::{
@@ -95,17 +96,15 @@ pub struct ChipletsTrace {
 
 /// Returns an execution trace resulting from executing the provided program against the provided
 /// inputs.
-pub fn execute<ADV, STK, V>(
+pub fn execute<ADV>(
     program: &Program,
     advice: ADV,
-    stack_init: STK,
+    stack_inputs: StackInputs,
 ) -> Result<ExecutionTrace, ExecutionError>
 where
     ADV: AdviceProvider,
-    STK: IntoIterator<Item = V>,
-    V: Into<Felt>,
 {
-    let mut process: Process<ADV> = Process::new(program.kernel(), advice, stack_init);
+    let mut process: Process<ADV> = Process::new(program.kernel(), advice, stack_inputs);
     let program_outputs = process.execute(program)?;
     let trace = ExecutionTrace::new(process, program_outputs);
     assert_eq!(program.hash(), trace.program_hash(), "inconsistent program hash");
@@ -114,17 +113,15 @@ where
 
 /// Returns an iterator which allows callers to step through the execution and inspect VM state at
 /// each execution step.
-pub fn execute_iter<ADV, STK, V>(
+pub fn execute_iter<ADV>(
     program: &Program,
     advice: ADV,
-    stack_init: STK,
+    stack_inputs: StackInputs,
 ) -> VmStateIterator<ADV>
 where
     ADV: AdviceProvider,
-    STK: IntoIterator<Item = V>,
-    V: Into<Felt>,
 {
-    let mut process = Process::new_debug(program.kernel(), advice, stack_init);
+    let mut process = Process::new_debug(program.kernel(), advice, stack_inputs);
     let result = process.execute(program);
     if result.is_ok() {
         assert_eq!(
@@ -159,42 +156,33 @@ where
     // --------------------------------------------------------------------------------------------
 
     /// Creates a new process with the provided stack inputs.
-    pub fn new<STK, V>(kernel: &Kernel, advice: ADV, stack_init: STK) -> Self
+    pub fn new(kernel: &Kernel, advice: ADV, stack_inputs: StackInputs) -> Self
     where
-        STK: IntoIterator<Item = V>,
-        V: Into<Felt>,
     {
-        Self::initialize(kernel, advice, stack_init, false)
+        Self::initialize(kernel, advice, stack_inputs, false)
     }
 
     /// Creates a new process with an empty stack.
     pub fn new_with_empty_stack(kernel: &Kernel, advice: ADV) -> Self {
-        Self::initialize(kernel, advice, iter::empty::<Felt>(), false)
+        Self::initialize(kernel, advice, StackInputs::default(), false)
     }
 
     /// Creates a new process with provided inputs and debug options enabled.
-    pub fn new_debug<STK, V>(kernel: &Kernel, advice: ADV, stack_init: STK) -> Self
-    where
-        STK: IntoIterator<Item = V>,
-        V: Into<Felt>,
+    pub fn new_debug(kernel: &Kernel, advice: ADV, stack_inputs: StackInputs) -> Self
     {
-        Self::initialize(kernel, advice, stack_init, true)
+        Self::initialize(kernel, advice, stack_inputs, true)
     }
 
-    fn initialize<STK, V>(
+    fn initialize(
         kernel: &Kernel,
         advice: ADV,
-        stack_init: STK,
+        stack_inputs: StackInputs,
         in_debug_mode: bool,
-    ) -> Self
-    where
-        STK: IntoIterator<Item = V>,
-        V: Into<Felt>,
-    {
+    ) -> Self {
         Self {
             system: System::new(MIN_TRACE_LEN),
             decoder: Decoder::new(in_debug_mode),
-            stack: Stack::new(stack_init, MIN_TRACE_LEN, in_debug_mode),
+            stack: Stack::new(stack_inputs, MIN_TRACE_LEN, in_debug_mode),
             range: RangeChecker::new(),
             chiplets: Chiplets::new(kernel),
             advice,

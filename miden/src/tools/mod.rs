@@ -247,7 +247,7 @@ mod tests {
     fn analyze_test_execution_error() {
         let source = "begin div end";
         let stack_input = vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        let program_inputs = super::ProgramInputs::new(&stack_input, &[], vec![]).unwrap();
+        let program_inputs = super::ProgramInputs::new(&[], vec![]).unwrap();
         let program_info = super::analyze(source, program_inputs);
         let expected_error = "Execution Error: DivideByZero(1)";
         assert_eq!(program_info.err().unwrap().to_string(), expected_error);

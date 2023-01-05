@@ -1,6 +1,6 @@
 use super::{BTreeMap, Felt, FieldElement, ProgramOutputs, Vec, ONE, STACK_TRACE_WIDTH, ZERO};
 use core::cmp;
-use vm_core::stack::STACK_TOP_SIZE;
+use vm_core::{stack::STACK_TOP_SIZE, StackInputs};
 use vm_core::Word;
 
 mod trace;
@@ -63,19 +63,13 @@ impl Stack {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a [Stack] initialized with the specified program inputs.
-    pub fn new<STK, V>(
-        stack_init: STK,
+    pub fn new(
+        stack_inputs: StackInputs,
         init_trace_capacity: usize,
         keep_overflow_trace: bool,
-    ) -> Self
-    where
-        STK: IntoIterator<Item = V>,
-        V: Into<Felt>,
-    {
-        let mut init_values: Vec<_> = stack_init.into_iter().map(V::into).collect();
+    ) -> Self {
+        let init_values = stack_inputs.to_felt();
         let depth = cmp::max(STACK_TOP_SIZE, init_values.len());
-
-        init_values.reverse();
 
         let (trace, overflow) = if init_values.len() > STACK_TOP_SIZE {
             let overflow =

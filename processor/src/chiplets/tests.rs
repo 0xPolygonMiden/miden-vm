@@ -9,7 +9,7 @@ use vm_core::{
         memory::TRACE_WIDTH as MEMORY_TRACE_WIDTH,
         NUM_BITWISE_SELECTORS, NUM_KERNEL_ROM_SELECTORS, NUM_MEMORY_SELECTORS,
     },
-    CodeBlockTable, Felt, CHIPLETS_RANGE, CHIPLETS_WIDTH, ONE, ZERO,
+    CodeBlockTable, Felt, CHIPLETS_RANGE, CHIPLETS_WIDTH, ONE, ZERO, StackInputs,
 };
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
@@ -108,7 +108,7 @@ fn build_trace(
     operations: Vec<Operation>,
     kernel: Kernel,
 ) -> (ChipletsTrace, usize) {
-    let mut process = Process::new(&kernel, BaseAdviceProvider::default(), stack.iter().copied());
+    let mut process = Process::new(&kernel, BaseAdviceProvider::default(), StackInputs::from_vec(stack));
     let program = CodeBlock::new_span(operations);
     process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
 

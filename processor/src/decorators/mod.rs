@@ -274,7 +274,7 @@ mod tests {
     };
     use crate::{BaseAdviceProvider, Word};
 
-    use vm_core::{AdviceInjector, AdviceSet, Decorator};
+    use vm_core::{AdviceInjector, AdviceSet, Decorator, StackInputs};
 
     #[test]
     fn inject_merkle_node() {
@@ -291,7 +291,7 @@ mod tests {
         ];
 
         let advice = BaseAdviceProvider::default().with_sets([tree.clone()]).unwrap();
-        let mut process = Process::new(&Kernel::default(), advice, stack_inputs);
+        let mut process = Process::new(&Kernel::default(), advice, StackInputs::from_vec(&stack_inputs));
         process.execute_op(Operation::Noop).unwrap();
 
         // inject the node into the advice tape

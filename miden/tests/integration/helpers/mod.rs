@@ -3,7 +3,7 @@ use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
 use stdlib::StdLibrary;
 pub use vm_core::{
-    stack::STACK_TOP_SIZE, Felt, FieldElement, Program, ProgramInputs, ProgramOutputs,
+    stack::STACK_TOP_SIZE, Felt, FieldElement, Program, ProgramInputs, ProgramOutputs, StackInputs,
 };
 
 pub mod crypto;
@@ -40,7 +40,8 @@ pub enum TestError<'a> {
 pub struct Test {
     pub source: String,
     pub kernel: Option<String>,
-    pub inputs: ProgramInputs,
+    pub inputs: StackInputs,
+    pub advice: BaseAdviceProvider,
     pub in_debug_mode: bool,
 }
 
@@ -53,7 +54,8 @@ impl Test {
         Test {
             source: String::from(source),
             kernel: None,
-            inputs: ProgramInputs::none(),
+            inputs: StackInputs::default(),
+            advice: BaseAdviceProvider::default(),
             in_debug_mode,
         }
     }
@@ -105,10 +107,10 @@ impl Test {
         // compile the program
         let program = self.compile();
 
+        // TODO: Remove clone
         // execute the test
-        let advice = BaseAdviceProvider::from(self.inputs.clone());
         let mut process =
-            Process::new(program.kernel(), advice, self.inputs.stack_init().iter().rev().copied());
+            Process::new(program.kernel(), self.advice.clone(), self.inputs.clone());
         process.execute(&program).unwrap();
 
         // validate the memory state
@@ -157,8 +159,8 @@ impl Test {
     /// resulting execution trace or error.
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let program = self.compile();
-        let advice = BaseAdviceProvider::from(self.inputs.clone());
-        processor::execute(&program, advice, self.inputs.stack_init().iter().rev().copied())
+        // TODO: Remove clone
+        processor::execute(&program, self.advice.clone(), self.inputs.clone())
     }
 
     /// Compiles the test's code into a program, then generates and verifies a proof of execution
@@ -166,8 +168,9 @@ impl Test {
     /// is true, this function will force a failure by modifying the first output.
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let program = self.compile();
+        // TODO: Remove clone
         let (mut outputs, proof) =
-            prover::prove(&program, &self.inputs, &ProofOptions::default()).unwrap();
+            prover::prove(&program, self.inputs.clone(), BaseAdviceProvider::default(), &ProofOptions::default()).unwrap();
 
         if test_fail {
             outputs.stack_mut()[0] += 1;
@@ -183,8 +186,8 @@ impl Test {
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator<BaseAdviceProvider> {
         let program = self.compile();
-        let advice = BaseAdviceProvider::from(self.inputs.clone());
-        processor::execute_iter(&program, advice, self.inputs.stack_init().iter().rev().copied())
+        // TODO: Remove clone
+        processor::execute_iter(&program, self.advice.clone(), self.inputs.clone())
     }
 
     /// Returns the last state of the stack after executing a test.

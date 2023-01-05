@@ -2,7 +2,7 @@ use super::{ExecutionTrace, Felt, FieldElement, LookupTableRow, Process, Trace, 
 use crate::{AdviceProvider, BaseAdviceProvider};
 use rand_utils::rand_array;
 use vm_core::{
-    code_blocks::CodeBlock, CodeBlockTable, Kernel, Operation, ProgramOutputs, Word, ONE, ZERO,
+    code_blocks::CodeBlock, CodeBlockTable, Kernel, Operation, ProgramOutputs, Word, ONE, ZERO, StackInputs,
 };
 
 mod chiplets;
@@ -16,7 +16,7 @@ mod stack;
 /// Builds a sample trace by executing the provided code block against the provided stack inputs.
 pub fn build_trace_from_block(program: &CodeBlock, stack: &[u64]) -> ExecutionTrace {
     let mut process =
-        Process::new(&Kernel::default(), BaseAdviceProvider::default(), stack.iter().copied());
+        Process::new(&Kernel::default(), BaseAdviceProvider::default(), StackInputs::from_vec(stack));
     process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
     ExecutionTrace::new(process, ProgramOutputs::default())
 }
@@ -39,7 +39,7 @@ pub fn build_trace_from_ops_with_inputs<ADV>(
 where
     ADV: AdviceProvider,
 {
-    let mut process = Process::new(&Kernel::default(), advice, stack.iter().copied());
+    let mut process = Process::new(&Kernel::default(), advice, StackInputs::from_vec(stack));
     let program = CodeBlock::new_span(operations);
     process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
     ExecutionTrace::new(process, ProgramOutputs::default())

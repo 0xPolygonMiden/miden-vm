@@ -55,7 +55,7 @@ impl InputFile {
 
     /// Returns program inputs.
     pub fn get_program_inputs(&self) -> ProgramInputs {
-        ProgramInputs::new(&self.stack_init(), &self.advice_tape(), Vec::new()).unwrap()
+        ProgramInputs::new(&self.advice_tape(), Vec::new()).unwrap()
     }
 
     /// Parse stack_init vector of strings to a vector of u64

@@ -103,25 +103,27 @@ macro_rules! build_test_by_mode {
         $crate::helpers::Test::new($source, $in_debug_mode)
     }};
     ($in_debug_mode:expr, $source:expr, $stack_inputs:expr) => {{
-        let inputs = $crate::helpers::ProgramInputs::new($stack_inputs, &[], vec![]).unwrap();
-
+        let inputs = $crate::helpers::StackInputs::from_vec($stack_inputs).into();
+        let advice = $crate::helpers::BaseAdviceProvider::default();
         $crate::helpers::Test {
             source: String::from($source),
             kernel: None,
             inputs,
+            advice,
             in_debug_mode: $in_debug_mode,
         }
     }};
     (
         $in_debug_mode:expr, $source:expr, $stack_inputs:expr, $advice_tape:expr, $advice_sets:expr
     ) => {{
-        let inputs =
-            $crate::helpers::ProgramInputs::new($stack_inputs, $advice_tape, $advice_sets).unwrap();
-
+        let inputs = $crate::helpers::StackInputs::new($stack_inputs).into();
+        let advice = $crate::helpers::BaseAdviceProvider::default();
+        // let advice = $crate::helpers::BaseAdviceProvider::default().with_tape($advice_tape).with_sets($advice_sets).expect("invalid advice sets");
         $crate::helpers::Test {
             source: String::from($source),
             kernel: None,
             inputs,
+            advice,
             in_debug_mode: $in_debug_mode,
         }
     }};

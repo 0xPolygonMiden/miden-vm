@@ -112,7 +112,7 @@ fn mtree_get() {
         tree.root()[0].as_int(),
     ];
 
-    let test = build_op_test!(asm_op, &stack_inputs, &[], vec![tree]);
+    let test = build_op_test!(asm_op, stack_inputs.into(), &[], vec![tree]);
     test.expect_stack(&final_stack);
 }
 
@@ -156,7 +156,7 @@ fn mtree_update() {
         new_node[0].as_int(),
     ];
 
-    let test = build_op_test!(asm_op, &stack_inputs, &[], vec![tree.clone()]);
+    let test = build_op_test!(asm_op, stack_inputs.into(), &[], vec![tree.clone()]);
     test.expect_stack(&final_stack);
 
     // --- mtree_cwm ----------------------------------------------------------------------
@@ -179,7 +179,7 @@ fn mtree_update() {
         tree.root()[0].as_int(),
     ];
 
-    let test = build_op_test!(asm_op, &stack_inputs, &[], vec![tree]);
+    let test = build_op_test!(asm_op, stack_inputs.into(), &[], vec![tree]);
     test.expect_stack(&final_stack);
 }
 

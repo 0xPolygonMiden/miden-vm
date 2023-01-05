@@ -1,5 +1,5 @@
 use super::{AdviceProvider, ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
-use vm_core::stack::STACK_TOP_SIZE;
+use vm_core::{stack::STACK_TOP_SIZE};
 
 mod crypto_ops;
 mod field_ops;
@@ -10,7 +10,7 @@ mod u32_ops;
 mod utils;
 
 #[cfg(test)]
-use super::{BaseAdviceProvider, Kernel};
+use super::{BaseAdviceProvider, Kernel, StackInputs};
 
 // OPERATION DISPATCHER
 // ================================================================================================
@@ -173,7 +173,7 @@ impl Process<BaseAdviceProvider> {
         let mut process = Self::new(
             &Kernel::default(),
             BaseAdviceProvider::default(),
-            stack_inputs.iter().copied(),
+            StackInputs::from_vec(stack_inputs),
         );
         process.execute_op(Operation::Noop).unwrap();
         process
@@ -197,7 +197,7 @@ impl Process<BaseAdviceProvider> {
         let mut process = Self::new(
             &Kernel::default(),
             BaseAdviceProvider::default(),
-            stack_inputs.iter().copied(),
+            StackInputs::from_vec(stack_inputs),
         );
         process.decoder.add_dummy_trace_row();
         process.execute_op(Operation::Noop).unwrap();
@@ -213,7 +213,7 @@ impl Process<BaseAdviceProvider> {
         advice: BaseAdviceProvider,
         stack_inputs: &[u64],
     ) -> Self {
-        let mut process = Self::new(&Kernel::default(), advice, stack_inputs.iter().copied());
+        let mut process = Self::new(&Kernel::default(), advice, StackInputs::from_vec(stack_inputs));
         process.decoder.add_dummy_trace_row();
         process.execute_op(Operation::Noop).unwrap();
         process

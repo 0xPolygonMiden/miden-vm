@@ -2,7 +2,8 @@ use crate::{
     build_test,
     helpers::{Test, TestError},
 };
-use vm_core::ProgramInputs;
+use miden::BaseAdviceProvider;
+use vm_core::StackInputs;
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -204,7 +205,8 @@ fn simple_syscall() {
     let test = Test {
         source: program_source.to_string(),
         kernel: Some(kernel_source.to_string()),
-        inputs: ProgramInputs::from_stack_inputs(&[1, 2]).unwrap(),
+        inputs: StackInputs::from_vec(&[1, 2]),
+        advice: BaseAdviceProvider::default(),
         in_debug_mode: false,
     };
     test.expect_stack(&[3]);
