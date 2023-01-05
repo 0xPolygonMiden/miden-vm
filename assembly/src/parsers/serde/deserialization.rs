@@ -138,6 +138,8 @@ impl Deserializable for Instruction {
             OpCode::U32CheckedRotlImm => Ok(Instruction::U32CheckedRotlImm(bytes.read_u8()?)),
             OpCode::U32UncheckedRotl => Ok(Instruction::U32UncheckedRotl),
             OpCode::U32UncheckedRotlImm => Ok(Instruction::U32UncheckedRotlImm(bytes.read_u8()?)),
+            OpCode::U32CheckedPopcnt => Ok(Instruction::U32CheckedPopcnt),
+            OpCode::U32UncheckedPopcnt => Ok(Instruction::U32UncheckedPopcnt),
             OpCode::U32CheckedEq => Ok(Instruction::U32CheckedEq),
             OpCode::U32CheckedEqImm => Ok(Instruction::U32CheckedEqImm(bytes.read_u32()?)),
             OpCode::U32CheckedNeq => Ok(Instruction::U32CheckedNeq),
@@ -154,8 +156,6 @@ impl Deserializable for Instruction {
             OpCode::U32UncheckedMin => Ok(Instruction::U32UncheckedMin),
             OpCode::U32CheckedMax => Ok(Instruction::U32CheckedMax),
             OpCode::U32UncheckedMax => Ok(Instruction::U32UncheckedMax),
-            OpCode::U32CheckedPopcnt => Ok(Instruction::U32CheckedPopcnt),
-            OpCode::U32UncheckedPopcnt => Ok(Instruction::U32UncheckedPopcnt),
 
             // ----- stack manipulation -----------------------------------------------------------
             OpCode::Drop => Ok(Instruction::Drop),

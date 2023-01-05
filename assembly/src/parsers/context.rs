@@ -410,6 +410,9 @@ impl ParserContext {
             "u32checked_rotl" => u32_ops::parse_u32_rotl(op, true),
             "u32unchecked_rotl" => u32_ops::parse_u32_rotl(op, false),
 
+            "u32checked_popcnt" => simple_instruction(op, U32CheckedPopcnt),
+            "u32unchecked_popcnt" => simple_instruction(op, U32UncheckedPopcnt),
+
             "u32checked_eq" => u32_ops::parse_u32checked_eq(op),
             "u32checked_neq" => u32_ops::parse_u32checked_neq(op),
 
@@ -430,9 +433,6 @@ impl ParserContext {
 
             "u32checked_max" => simple_instruction(op, U32CheckedMax),
             "u32unchecked_max" => simple_instruction(op, U32UncheckedMax),
-
-            "u32checked_popcnt" => simple_instruction(op, U32CheckedPopcnt),
-            "u32unchecked_popcnt" => simple_instruction(op, U32UncheckedPopcnt),
 
             // ----- stack manipulation -----------------------------------------------------------
             "drop" => simple_instruction(op, Drop),
