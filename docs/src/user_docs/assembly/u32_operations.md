@@ -62,6 +62,8 @@ In all the table below, the number of cycles it takes for the VM to execute each
 | u32unchecked_rotl <br> - *(40 cycles)* <br> u32unchecked_rotl.*b* <br> - *(3 cycles)*   | [b, a, ...] | [c, ...] | Computes $c$ by rotating a 32-bit representation of $a$ to the left by $b$ bits. <br> Undefined if $a \ge 2^{32}$ or $b > 31$ |
 | u32checked_rotr <br> - *(59 cycles)* <br> u32checked_rotr.*b* <br> - *(6 cycles)*      | [b, a, ...] | [c, ...] | Computes $c$ by rotating a 32-bit representation of $a$ to the right by $b$ bits. <br> Fails if $a \ge 2^{32}$ or $b > 31$ |
 | u32unchecked_rotr <br> - *(44 cycles)* <br> u32unchecked_rotr.*b* <br> - *(3 cycles)*   | [b, a, ...] | [c, ...] | Computes $c$ by rotating a 32-bit representation of $a$ to the right by $b$ bits. <br> Undefined if $a \ge 2^{32}$ or $b > 31$ |
+| u32checked_popcnt <br> - *(36 cycles)*   | [a, ...] | [b, ...] | Computes $b$ by counting the number of set bits in $a$ (hamming weight of $a$). <br> Fails if $a \ge 2^{32}$ |
+| u32unchecked_popcnt <br> - *(33 cycles)* | [a, ...] | [b, ...] | Computes $b$ by counting the number of set bits in $a$ (hamming weight of $a$). <br> Undefined if $a \ge 2^{32}$ |
 
 ### Comparison operations
 
