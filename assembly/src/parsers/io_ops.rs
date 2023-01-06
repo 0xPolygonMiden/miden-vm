@@ -1,6 +1,6 @@
 use super::{
     parse_checked_param, parse_param, Felt,
-    Instruction::*,
+    Instruction::{AdvPush, Caller, LocLoad, LocLoadW, LocStore, LocStoreW, Locaddr, MemLoad, MemLoadImm, MemLoadW, MemLoadWImm, MemStore, MemStoreImm, MemStoreW, MemStoreWImm, PushFelt, PushFeltList, PushU16, PushU16List, PushU32, PushU32List, PushU8, PushU8List, PushWord},
     Node::{self, Instruction},
     ParsingError, Token, Vec,
 };

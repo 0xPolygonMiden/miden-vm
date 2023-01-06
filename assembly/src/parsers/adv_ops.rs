@@ -1,6 +1,6 @@
 use super::{
     parse_checked_param, parse_param,
-    Instruction::*,
+    Instruction::{AdvExt2INTT, AdvExt2Inv, AdvKeyval, AdvMem, AdvU64Div},
     Node::{self, Instruction},
     ParsingError, Token,
 };

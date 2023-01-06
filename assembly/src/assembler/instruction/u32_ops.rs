@@ -1,7 +1,7 @@
 use super::{
     field_ops::append_pow2_op,
     push_u32_value, validate_param, AssemblyError, CodeBlock, Felt,
-    Operation::{self, *},
+    Operation::{self, Add, And, Assert, CSwap, Drop, Dup0, Dup1, Dup2, Dup3, Eq, Eqz, Incr, MovUp3, Noop, Not, Pad, Push, Swap, U32add, U32and, U32assert2, U32div, U32mul, U32split, U32sub},
     SpanBuilder,
 };
 use crate::{MAX_U32_ROTATE_VALUE, MAX_U32_SHIFT_VALUE};

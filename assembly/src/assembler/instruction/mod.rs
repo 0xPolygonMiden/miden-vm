@@ -12,7 +12,7 @@ mod mem_ops;
 mod procedures;
 mod u32_ops;
 
-use u32_ops::U32OpMode::*;
+use u32_ops::U32OpMode::{Checked, Overflowing, Unchecked, Wrapping};
 
 // INSTRUCTION HANDLERS
 // ================================================================================================
@@ -24,8 +24,8 @@ impl Assembler {
         span: &mut SpanBuilder,
         ctx: &mut AssemblyContext,
     ) -> Result<Option<CodeBlock>, AssemblyError> {
-        use AdviceInjector::*;
-        use Operation::*;
+        use AdviceInjector::{DivResultU64, Ext2INTT, Ext2Inv, MapValue};
+        use Operation::{Add, And, Assert, CSwap, CSwapW, Drop, Dup0, Dup1, Dup11, Dup13, Dup15, Dup2, Dup3, Dup4, Dup5, Dup6, Dup7, Dup9, Eq, Eqz, Incr, Inv, MStream, MovDn2, MovDn3, MovDn4, MovDn5, MovDn6, MovDn7, MovDn8, MovUp2, MovUp3, MovUp4, MovUp5, MovUp6, MovUp7, MovUp8, Mul, Neg, Not, Or, Pad, Pipe, Push, ReadW, RpPerm, SDepth, Swap, SwapDW, SwapW, SwapW2, SwapW3, U32add3, U32and, U32assert2, U32madd, U32split, U32xor};
 
         // if the assembler is in debug mode, start tracking the instruction about to be executed;
         // this will allow us to map the instruction to the sequence of operations which were
@@ -307,7 +307,7 @@ impl Assembler {
 /// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
 /// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
 fn push_u32_value(span: &mut SpanBuilder, value: u32) {
-    use Operation::*;
+    use Operation::{Incr, Pad, Push};
 
     if value == 0 {
         span.push_op(Pad);
@@ -325,7 +325,7 @@ fn push_u32_value(span: &mut SpanBuilder, value: u32) {
 /// When the value is 0, PUSH operation is replaced with PAD. When the value is 1, PUSH operation
 /// is replaced with PAD INCR because in most cases this will be more efficient than doing a PUSH.
 fn push_felt(span: &mut SpanBuilder, value: Felt) {
-    use Operation::*;
+    use Operation::{Incr, Pad, Push};
 
     if value == ZERO {
         span.push_op(Pad);

@@ -1,4 +1,4 @@
-use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder};
+use super::{AssemblyError, CodeBlock, Operation::{Drop, MovUp4, MpVerify, MrUpdate, Pad, Push, Read, RpPerm, SwapW, SwapW2}, SpanBuilder};
 use vm_core::{AdviceInjector, Decorator, Felt};
 
 // HASHING

@@ -1,6 +1,6 @@
 use super::{validate_param, AdviceInjector, AssemblyError, Decorator, SpanBuilder};
 use crate::ADVICE_READ_LIMIT;
-use vm_core::{code_blocks::CodeBlock, Operation::*};
+use vm_core::{code_blocks::CodeBlock, Operation::Read};
 
 // NON-DETERMINISTIC (ADVICE) INPUTS
 // ================================================================================================

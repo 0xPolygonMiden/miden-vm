@@ -1,6 +1,6 @@
 use super::{
     check_div_by_zero, parse_checked_param, parse_param,
-    Instruction::*,
+    Instruction::{U32Assert, U32Assert2, U32CheckedAdd, U32CheckedAddImm, U32CheckedDiv, U32CheckedDivImm, U32CheckedDivMod, U32CheckedDivModImm, U32CheckedEq, U32CheckedEqImm, U32CheckedMod, U32CheckedModImm, U32CheckedMul, U32CheckedMulImm, U32CheckedNeq, U32CheckedNeqImm, U32CheckedRotl, U32CheckedRotlImm, U32CheckedRotr, U32CheckedRotrImm, U32CheckedShl, U32CheckedShlImm, U32CheckedShr, U32CheckedShrImm, U32CheckedSub, U32CheckedSubImm, U32OverflowingAdd, U32OverflowingAddImm, U32OverflowingMul, U32OverflowingMulImm, U32OverflowingSub, U32OverflowingSubImm, U32UncheckedDiv, U32UncheckedDivImm, U32UncheckedDivMod, U32UncheckedDivModImm, U32UncheckedMod, U32UncheckedModImm, U32UncheckedRotl, U32UncheckedRotlImm, U32UncheckedRotr, U32UncheckedRotrImm, U32UncheckedShl, U32UncheckedShlImm, U32UncheckedShr, U32UncheckedShrImm, U32WrappingAdd, U32WrappingAddImm, U32WrappingMul, U32WrappingMulImm, U32WrappingSub, U32WrappingSubImm},
     Node::{self, Instruction},
     ParsingError, Token,
 };

@@ -1,6 +1,6 @@
 use super::{
     mem_ops::local_to_absolute_addr, push_felt, AssemblyContext, AssemblyError, CodeBlock, Felt,
-    Operation::*, SpanBuilder,
+    Operation::Caller, SpanBuilder,
 };
 
 // CONSTANT INPUTS

@@ -1,6 +1,6 @@
 use super::{
     push_felt, push_u32_value, validate_param, AssemblyContext, AssemblyError, CodeBlock, Felt,
-    Operation::*, SpanBuilder,
+    Operation::{Drop, FmpAdd, MLoad, MLoadW, MStore, MStoreW}, SpanBuilder,
 };
 
 // INSTRUCTION PARSERS

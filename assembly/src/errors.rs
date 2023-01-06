@@ -102,7 +102,7 @@ impl From<ProcedureNameError> for AssemblyError {
 
 impl fmt::Display for AssemblyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use AssemblyError::*;
+        use AssemblyError::{CallInKernel, CallerOutOKernel, CircularModuleDependency, DivisionByZero, DuplicateProcName, ExportedProcInProgram, ImportedProcModuleNotFound, ImportedProcNotFoundInModule, InvalidCacheLock, Io, KernelProcNotFound, LibraryError, LocalProcNotFound, ParamOutOfBounds, ParsingError, ProcedureNameError, SysCallInKernel};
         match self {
             CallInKernel(proc_name) => write!(f, "call instruction used kernel procedure '{proc_name}'"),
             CallerOutOKernel => write!(f, "caller instruction used outside of kernel"),
@@ -512,7 +512,7 @@ impl ProcedureNameError {
 
 impl fmt::Display for ProcedureNameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use ProcedureNameError::*;
+        use ProcedureNameError::{EmptyProcedureName, InvalidFirstLetter, InvalidProcedureName, ProcedureNameTooLong};
         match self {
             EmptyProcedureName => write!(f, "procedure name cannot be empty"),
             InvalidFirstLetter(proc_name) => {
@@ -550,7 +550,7 @@ pub enum SerializationError {
 
 impl fmt::Display for SerializationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use SerializationError::*;
+        use SerializationError::{EndOfReader, InvalidBoolValue, InvalidFieldElement, InvalidModulePath, InvalidNamespace, InvalidNumOfPushValues, InvalidNumber, InvalidOpCode, InvalidPathNoDelimiter, InvalidProcedureName, InvalidUtf8, LengthTooLong, UnexpectedEndOfStream};
         match self {
             EndOfReader => write!(f, "unexpected reader EOF"),
             InvalidBoolValue => write!(f, "invalid boolean value"),
@@ -639,7 +639,7 @@ impl LibraryError {
 
 impl fmt::Display for LibraryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use LibraryError::*;
+        use LibraryError::{DuplicateModulePath, DuplicateNamespace, EmptyProcedureName, LibraryNameWithDelimiter, ModuleNotFound, ModulePathEndsWithDelimiter, ModulePathStartsWithDelimiter, NamespaceViolation, ProcedureNameWithDelimiter};
         match self {
             ModuleNotFound(path) => write!(f, "module '{path}' not found"),
             DuplicateModulePath(path) => write!(f, "duplciate module path '{path}'"),
