@@ -312,7 +312,7 @@ pub fn get_u32div_test_frame(a: u32, b: u32) -> EvaluationFrame<Felt> {
 /// Splits an element into two field elements containing 32-bit integer values
 pub fn split_element(value: Felt) -> (Felt, Felt) {
     let value = value.as_int();
-    let lo = u64::from((value as u32));
+    let lo = u64::from(value as u32);
     let hi = value >> 32;
     (Felt::new(hi), Felt::new(lo))
 }

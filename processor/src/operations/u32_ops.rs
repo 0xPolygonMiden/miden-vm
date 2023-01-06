@@ -241,7 +241,7 @@ mod tests {
         let a: u64 = rand_value();
         let mut process = Process::new_dummy_with_decoder_helpers(&[a]);
         let hi = a >> 32;
-        let lo = u64::from((a as u32));
+        let lo = u64::from(a as u32);
 
         process.execute_op(Operation::U32split).unwrap();
         let mut expected = [Felt::ZERO; 16];
@@ -253,7 +253,7 @@ mod tests {
         let b: u64 = rand_value();
         let mut process = Process::new_dummy_with_decoder_helpers(&[a, b]);
         let hi = b >> 32;
-        let lo = u64::from((b as u32));
+        let lo = u64::from(b as u32);
 
         process.execute_op(Operation::U32split).unwrap();
         let mut expected = [Felt::ZERO; 16];

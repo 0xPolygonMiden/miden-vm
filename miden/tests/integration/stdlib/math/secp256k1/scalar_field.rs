@@ -272,12 +272,12 @@ fn test_secp256k1_scalar_field_mul() {
     let elm2 = elm0 * elm1;
 
     let mut stack = [0u64; 16];
-    stack[..8].copy_from_slice(&elm0.limbs.map(|v| u64::from(v)));
-    stack[8..].copy_from_slice(&elm1.limbs.map(|v| u64::from(v)));
+    stack[..8].copy_from_slice(&elm0.limbs.map(u64::from));
+    stack[8..].copy_from_slice(&elm1.limbs.map(u64::from));
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm2.limbs.map(|v| u64::from(v)));
+    test.expect_stack(&elm2.limbs.map(u64::from));
 }
 
 #[test]
@@ -302,9 +302,9 @@ fn test_secp256k1_scalar_field_inv() {
     assert_eq!(elm2, ScalarField::one());
 
     let mut stack = [0u64; 8];
-    stack.copy_from_slice(&elm0.limbs.map(|v| u64::from(v)));
+    stack.copy_from_slice(&elm0.limbs.map(u64::from));
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm2.limbs.map(|v| u64::from(v)));
+    test.expect_stack(&elm2.limbs.map(u64::from));
 }

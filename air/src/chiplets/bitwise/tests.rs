@@ -185,11 +185,11 @@ pub fn get_test_frame(
         Felt::new(u64::from(result >> previous_shift))
     };
     current[BITWISE_PREV_OUTPUT_COL_IDX] = output_prev;
-    next[BITWISE_PREV_OUTPUT_COL_IDX] = Felt::new(u64::from((output_current)));
+    next[BITWISE_PREV_OUTPUT_COL_IDX] = Felt::new(u64::from(output_current));
 
     // Set the output.
     current[BITWISE_OUTPUT_COL_IDX] = Felt::new(u64::from(output_current));
-    next[BITWISE_OUTPUT_COL_IDX] = Felt::new(u64::from((output_next)));
+    next[BITWISE_OUTPUT_COL_IDX] = Felt::new(u64::from(output_next));
 
     EvaluationFrame::<Felt>::from_rows(current, next)
 }
@@ -237,11 +237,11 @@ pub fn get_test_frame_with_two_ops(
         Felt::new(u64::from(result_op_current >> previous_shift))
     };
     current[BITWISE_PREV_OUTPUT_COL_IDX] = output_prev;
-    next[BITWISE_PREV_OUTPUT_COL_IDX] = Felt::new(u64::from((output_current)));
+    next[BITWISE_PREV_OUTPUT_COL_IDX] = Felt::new(u64::from(output_current));
 
     // Set the output.
     current[BITWISE_OUTPUT_COL_IDX] = Felt::new(u64::from(output_current));
-    next[BITWISE_OUTPUT_COL_IDX] = Felt::new(u64::from((output_next)));
+    next[BITWISE_OUTPUT_COL_IDX] = Felt::new(u64::from(output_next));
 
     EvaluationFrame::<Felt>::from_rows(current, next)
 }

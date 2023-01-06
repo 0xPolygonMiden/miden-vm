@@ -330,7 +330,7 @@ fn test_secp256k1_base_field_montgomery_repr() {
     end";
 
     let num_u32 = rand_utils::rand_array::<u32, 8>();
-    let mut stack = num_u32.map(|v| u64::from(v));
+    let mut stack = num_u32.map(u64::from);
 
     stack.reverse();
     let test = build_test!(source, &stack);
@@ -356,12 +356,12 @@ fn test_secp256k1_base_field_mul() {
     let elm2 = elm0 * elm1;
 
     let mut stack = [0u64; 16];
-    stack[..8].copy_from_slice(&elm0.limbs.map(|v| u64::from(v)));
-    stack[8..].copy_from_slice(&elm1.limbs.map(|v| u64::from(v)));
+    stack[..8].copy_from_slice(&elm0.limbs.map(u64::from));
+    stack[8..].copy_from_slice(&elm1.limbs.map(u64::from));
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm2.limbs.map(|v| u64::from(v)));
+    test.expect_stack(&elm2.limbs.map(u64::from));
 }
 
 #[test]
@@ -382,12 +382,12 @@ fn test_secp256k1_base_field_add() {
     let elm2 = elm0 + elm1;
 
     let mut stack = [0u64; 16];
-    stack[..8].copy_from_slice(&elm0.limbs.map(|v| u64::from(v)));
-    stack[8..].copy_from_slice(&elm1.limbs.map(|v| u64::from(v)));
+    stack[..8].copy_from_slice(&elm0.limbs.map(u64::from));
+    stack[8..].copy_from_slice(&elm1.limbs.map(u64::from));
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm2.limbs.map(|v| u64::from(v)));
+    test.expect_stack(&elm2.limbs.map(u64::from));
 }
 
 #[test]
@@ -406,11 +406,11 @@ fn test_secp256k1_base_field_neg() {
     let elm1 = -elm0;
 
     let mut stack = [0u64; 8];
-    stack.copy_from_slice(&elm0.limbs.map(|v| u64::from(v)));
+    stack.copy_from_slice(&elm0.limbs.map(u64::from));
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm1.limbs.map(|v| u64::from(v)));
+    test.expect_stack(&elm1.limbs.map(u64::from));
 }
 
 #[test]
@@ -431,12 +431,12 @@ fn test_secp256k1_base_field_sub() {
     let elm2 = elm0 - elm1;
 
     let mut stack = [0u64; 16];
-    stack[..8].copy_from_slice(&elm0.limbs.map(|v| u64::from(v)));
-    stack[8..].copy_from_slice(&elm1.limbs.map(|v| u64::from(v)));
+    stack[..8].copy_from_slice(&elm0.limbs.map(u64::from));
+    stack[8..].copy_from_slice(&elm1.limbs.map(u64::from));
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm2.limbs.map(|v| u64::from(v)));
+    test.expect_stack(&elm2.limbs.map(u64::from));
 }
 
 #[test]
@@ -463,28 +463,28 @@ fn test_secp256k1_base_field_add_then_sub() {
     }; // b
 
     let mut stack = [0u64; 16];
-    stack[..8].copy_from_slice(&elm0.limbs.map(|v| u64::from(v)));
-    stack[8..].copy_from_slice(&elm1.limbs.map(|v| u64::from(v)));
+    stack[..8].copy_from_slice(&elm0.limbs.map(u64::from));
+    stack[8..].copy_from_slice(&elm1.limbs.map(u64::from));
 
     let elm2 = {
         let elm2 = elm0 + elm1; // c = a + b
 
         stack.reverse();
         let test = build_test!(source_add, &stack);
-        test.expect_stack(&elm2.limbs.map(|v| u64::from(v)));
+        test.expect_stack(&elm2.limbs.map(u64::from));
 
         elm2
     };
 
-    stack[..8].copy_from_slice(&elm2.limbs.map(|v| u64::from(v)));
-    stack[8..].copy_from_slice(&elm0.limbs.map(|v| u64::from(v)));
+    stack[..8].copy_from_slice(&elm2.limbs.map(u64::from));
+    stack[8..].copy_from_slice(&elm0.limbs.map(u64::from));
 
     let elm3 = {
         let elm3 = elm2 - elm0; // d = c - a
 
         stack.reverse();
         let test = build_test!(source_sub, &stack);
-        test.expect_stack(&elm3.limbs.map(|v| u64::from(v)));
+        test.expect_stack(&elm3.limbs.map(u64::from));
 
         elm3
     };
@@ -511,9 +511,9 @@ fn test_secp256k1_base_field_inv() {
     let elm1 = BaseField::one();
 
     let mut stack = [0u64; 8];
-    stack.copy_from_slice(&elm0.limbs.map(|v| u64::from(v)));
+    stack.copy_from_slice(&elm0.limbs.map(u64::from));
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm1.limbs.map(|v| u64::from(v)));
+    test.expect_stack(&elm1.limbs.map(u64::from));
 }

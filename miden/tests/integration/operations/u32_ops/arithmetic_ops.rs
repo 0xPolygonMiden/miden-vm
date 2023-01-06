@@ -1025,7 +1025,7 @@ proptest! {
         let asm_op = "u32overflowing_add3";
 
         let sum: u64 = u64::from(a) + u64::from(b) + u64::from(c);
-        let lo = u64::from((sum as u32));
+        let lo = u64::from(sum as u32);
         let hi = sum >> 32;
 
         let test = build_op_test!(asm_op, &[u64::from(c), u64::from(a), u64::from(b)]);
