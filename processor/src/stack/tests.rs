@@ -380,8 +380,8 @@ fn build_stack(stack_inputs: &[u64]) -> StackTopState {
 
 /// Builds expected values of stack helper registers for the specified parameters.
 fn build_helpers(stack_depth: u64, next_overflow_addr: u64) -> StackHelpersState {
-    let b0 = Felt::new(stack_depth as u64);
-    let b1 = Felt::new(next_overflow_addr as u64);
+    let b0 = Felt::new(stack_depth);
+    let b1 = Felt::new(next_overflow_addr);
     let h0 = (b0 - Felt::new(STACK_TOP_SIZE as u64)).inv();
 
     [b0, b1, h0]

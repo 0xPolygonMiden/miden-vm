@@ -24,8 +24,8 @@ fn msquare(v: Felt, n: usize) -> Felt {
 fn legendre(v: Felt) -> Felt {
     let v0 = msquare(v, 31);
     let v1 = msquare(v0, 32);
-    let v2 = v1 / v0;
-    v2
+
+    v1 / v0
 }
 
 fn is_zero(a: Felt) -> Felt {
@@ -357,8 +357,7 @@ impl PartialEq for Ext5 {
         let flg3 = self.a3 == other.a3;
         let flg4 = self.a4 == other.a4;
 
-        let flg = flg0 & flg1 & flg2 & flg3 & flg4;
-        flg
+        flg0 & flg1 & flg2 & flg3 & flg4
     }
 
     fn ne(&self, other: &Self) -> bool {
@@ -368,8 +367,7 @@ impl PartialEq for Ext5 {
         let flg3 = self.a3 != other.a3;
         let flg4 = self.a4 != other.a4;
 
-        let flg = flg0 | flg1 | flg2 | flg3 | flg4;
-        flg
+        flg0 | flg1 | flg2 | flg3 | flg4
     }
 }
 

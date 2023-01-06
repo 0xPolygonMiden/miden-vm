@@ -47,7 +47,7 @@ fn keccak256_2_to_1_hash() {
 
     // computing keccak256 of 64 -bytes input, on host CPU
     let mut hasher = Keccak256::new();
-    hasher.update(&i_digest);
+    hasher.update(i_digest);
     // producing 32 -bytes keccak256 digest
     let digest = hasher.finalize();
 
