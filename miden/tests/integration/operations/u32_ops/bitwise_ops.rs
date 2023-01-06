@@ -797,6 +797,34 @@ fn u32unchecked_rotr() {
     assert!(test.execute().is_ok());
 }
 
+#[test]
+fn u32checked_popcnt() {
+    let asm_op = "u32checked_popcnt";
+    build_op_test!(asm_op, &[0]).expect_stack(&[0]);
+    build_op_test!(asm_op, &[1]).expect_stack(&[1]);
+    build_op_test!(asm_op, &[555]).expect_stack(&[5]);
+    build_op_test!(asm_op, &[65536]).expect_stack(&[1]);
+    build_op_test!(asm_op, &[4294967295]).expect_stack(&[32]);
+}
+
+#[test]
+fn u32checked_popcnt_fail() {
+    let asm_op = "u32checked_popcnt";
+    build_op_test!(asm_op, &[4294967296]).expect_error(TestError::ExecutionError("NotU32Value"));
+    build_op_test!(asm_op, &[281474976710655])
+        .expect_error(TestError::ExecutionError("NotU32Value"));
+}
+
+#[test]
+fn u32unchecked_popcnt() {
+    let asm_op = "u32unchecked_popcnt";
+    build_op_test!(asm_op, &[0]).expect_stack(&[0]);
+    build_op_test!(asm_op, &[1]).expect_stack(&[1]);
+    build_op_test!(asm_op, &[555]).expect_stack(&[5]);
+    build_op_test!(asm_op, &[65536]).expect_stack(&[1]);
+    build_op_test!(asm_op, &[4294967295]).expect_stack(&[32]);
+}
+
 // U32 OPERATIONS TESTS - RANDOMIZED - BITWISE OPERATIONS
 // ================================================================================================
 
@@ -977,5 +1005,21 @@ proptest! {
         // should execute right bit rotation
         let test = build_op_test!(asm_opcode, &[a as u64]);
         test.prop_expect_stack(&[a.rotate_right(b) as u64])?;
+    }
+
+    #[test]
+    fn u32checked_popcount_proptest(a in any::<u32>()) {
+        let asm_opcode = "u32checked_popcnt";
+        let expected = a.count_ones() as u32;
+        let test = build_op_test!(asm_opcode, &[a as u64]);
+        test.prop_expect_stack(&[expected as u64])?;
+    }
+
+    #[test]
+    fn u32unchecked_popcount_proptest(a in any::<u32>()) {
+        let asm_opcode = "u32unchecked_popcnt";
+        let expected = a.count_ones() as u32;
+        let test = build_op_test!(asm_opcode, &[a as u64]);
+        test.prop_expect_stack(&[expected as u64])?;
     }
 }

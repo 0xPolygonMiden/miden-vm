@@ -137,6 +137,8 @@ impl Assembler {
             Instruction::U32CheckedRotrImm(v) => u32_ops::u32rotr(span, Checked, Some(*v)),
             Instruction::U32UncheckedRotr => u32_ops::u32rotr(span, Unchecked, None),
             Instruction::U32UncheckedRotrImm(v) => u32_ops::u32rotr(span, Unchecked, Some(*v)),
+            Instruction::U32CheckedPopcnt => u32_ops::u32popcnt(span, Checked),
+            Instruction::U32UncheckedPopcnt => u32_ops::u32popcnt(span, Unchecked),
 
             Instruction::U32CheckedEq => u32_ops::u32eq(span, None),
             Instruction::U32CheckedEqImm(v) => u32_ops::u32eq(span, Some(*v)),
