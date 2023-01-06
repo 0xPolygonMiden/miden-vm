@@ -163,7 +163,7 @@ impl Store {
         let leaves = BTreeMap::new();
 
         // Construct empty node digests for each layer of the tree
-        let empty_hashes: Vec<Digest> = (0..depth + 1)
+        let empty_hashes: Vec<Digest> = (0..=depth)
             .scan(Word::default().into(), |state, _| {
                 let value = *state;
                 *state = hasher::merge(&[value, value]);
