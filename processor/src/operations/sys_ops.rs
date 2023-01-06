@@ -1,12 +1,15 @@
 use super::{
     super::system::{FMP_MAX, FMP_MIN},
-    ExecutionError, Felt, FieldElement, Process, StarkField,
+    AdviceProvider, ExecutionError, Felt, FieldElement, Process, StarkField,
 };
 
 // SYSTEM OPERATIONS
 // ================================================================================================
 
-impl Process {
+impl<A> Process<A>
+where
+    A: AdviceProvider,
+{
     /// Pops a value off the stack and asserts that it is equal to ONE.
     ///
     /// # Errors

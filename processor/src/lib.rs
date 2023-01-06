@@ -38,7 +38,7 @@ mod range;
 use range::RangeChecker;
 
 mod advice;
-use advice::AdviceProvider;
+use advice::{AdviceProvider, MemAdviceProvider};
 
 mod chiplets;
 use chiplets::Chiplets;
@@ -122,16 +122,19 @@ pub fn execute_iter(program: &Program, inputs: &ProgramInputs) -> VmStateIterato
 // PROCESS
 // ================================================================================================
 
-pub struct Process {
+pub struct Process<A>
+where
+    A: AdviceProvider,
+{
     system: System,
     decoder: Decoder,
     stack: Stack,
     range: RangeChecker,
     chiplets: Chiplets,
-    advice: AdviceProvider,
+    advice: A,
 }
 
-impl Process {
+impl Process<MemAdviceProvider> {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// Creates a new process with the provided inputs.
@@ -151,10 +154,15 @@ impl Process {
             stack: Stack::new(&inputs, MIN_TRACE_LEN, in_debug_mode),
             range: RangeChecker::new(),
             chiplets: Chiplets::new(kernel),
-            advice: AdviceProvider::new(inputs),
+            advice: MemAdviceProvider::from(inputs),
         }
     }
+}
 
+impl<A> Process<A>
+where
+    A: AdviceProvider,
+{
     // PROGRAM EXECUTOR
     // --------------------------------------------------------------------------------------------
 
@@ -403,7 +411,7 @@ impl Process {
         self.chiplets.get_mem_value(ctx, addr)
     }
 
-    pub fn to_components(self) -> (System, Decoder, Stack, RangeChecker, Chiplets) {
-        (self.system, self.decoder, self.stack, self.range, self.chiplets)
+    pub fn into_parts(self) -> (System, Decoder, Stack, RangeChecker, Chiplets, A) {
+        (self.system, self.decoder, self.stack, self.range, self.chiplets, self.advice)
     }
 }

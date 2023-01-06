@@ -1,11 +1,13 @@
+use super::{AdviceProvider, ExecutionError, Operation, Process};
 use vm_core::StarkField;
-
-use super::{ExecutionError, Operation, Process};
 
 // CRYPTOGRAPHIC OPERATIONS
 // ================================================================================================
 
-impl Process {
+impl<A> Process<A>
+where
+    A: AdviceProvider,
+{
     // HASHING OPERATIONS
     // --------------------------------------------------------------------------------------------
     /// Applies Rescue Prime permutation to the top 12 elements of the stack. The stack is assumed

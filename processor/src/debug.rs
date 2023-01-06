@@ -1,4 +1,7 @@
-use crate::{ExecutionError, Felt, Process, StarkField, Vec};
+use crate::{
+    advice::AdviceProvider, Chiplets, Decoder, ExecutionError, Felt, Process, Stack, StarkField,
+    System, Vec,
+};
 use core::fmt;
 use vm_core::{utils::string::String, Operation, ProgramOutputs, Word};
 
@@ -29,16 +32,29 @@ impl fmt::Display for VmState {
 /// If the execution returned an error, it returns that error on the clock cycle
 /// it stopped.
 pub struct VmStateIterator {
-    process: Process,
+    chiplets: Chiplets,
+    decoder: Decoder,
+    stack: Stack,
+    system: System,
     error: Option<ExecutionError>,
     clk: u32,
     asmop_idx: usize,
 }
 
 impl VmStateIterator {
-    pub(super) fn new(process: Process, result: Result<ProgramOutputs, ExecutionError>) -> Self {
+    pub(super) fn new<A>(
+        process: Process<A>,
+        result: Result<ProgramOutputs, ExecutionError>,
+    ) -> Self
+    where
+        A: AdviceProvider,
+    {
+        let (system, decoder, stack, _, chiplets, _) = process.into_parts();
         Self {
-            process,
+            chiplets,
+            decoder,
+            stack,
+            system,
             error: result.err(),
             clk: 0,
             asmop_idx: 0,
@@ -48,7 +64,7 @@ impl VmStateIterator {
     /// Returns the asm op info corresponding to this vm state and whether this is the start of
     /// operation sequence corresponding to current assembly instruction.
     fn get_asmop(&self) -> (Option<AsmOpInfo>, bool) {
-        let assembly_ops = self.process.decoder.debug_info().assembly_ops();
+        let assembly_ops = self.decoder.debug_info().assembly_ops();
 
         if self.clk == 0 || self.asmop_idx > assembly_ops.len() {
             return (None, false);
@@ -107,7 +123,7 @@ impl Iterator for VmStateIterator {
     type Item = Result<VmState, ExecutionError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.clk > self.process.system.clk() {
+        if self.clk > self.system.clk() {
             match &self.error {
                 Some(_) => {
                     let error = core::mem::take(&mut self.error);
@@ -117,12 +133,12 @@ impl Iterator for VmStateIterator {
             }
         }
 
-        let ctx = self.process.system.get_ctx_at(self.clk);
+        let ctx = self.system.get_ctx_at(self.clk);
 
         let op = if self.clk == 0 {
             None
         } else {
-            Some(self.process.decoder.debug_info().operations()[self.clk as usize - 1])
+            Some(self.decoder.debug_info().operations()[self.clk as usize - 1])
         };
 
         let (asmop, is_start) = self.get_asmop();
@@ -135,9 +151,9 @@ impl Iterator for VmStateIterator {
             ctx,
             op,
             asmop,
-            fmp: self.process.system.get_fmp_at(self.clk),
-            stack: self.process.stack.get_state_at(self.clk),
-            memory: self.process.chiplets.get_mem_state_at(ctx, self.clk),
+            fmp: self.system.get_fmp_at(self.clk),
+            stack: self.stack.get_state_at(self.clk),
+            memory: self.chiplets.get_mem_state_at(ctx, self.clk),
         }));
 
         self.clk += 1;
