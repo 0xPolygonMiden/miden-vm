@@ -132,7 +132,7 @@ impl Scalar {
     /// Given a scalar in radix-2^32 form, this routine converts it to Montgomery form
     ///
     /// Inspired by https://github.com/itzmeanjan/secp256k1/blob/37b339d/field/scalar_field_utils.py#L235-L242
-    fn to_mont(&self) -> Self {
+    fn as_mont(&self) -> Self {
         self.mont_mul(&Self::get_r2())
     }
 
@@ -145,8 +145,8 @@ impl Scalar {
 
     /// Raises scalar field element to n -th power | n = exp i.e. represented in radix-2^32 form
     fn pow(self, exp: Self) -> Self {
-        let s_mont = self.to_mont();
-        let mut r_mont = Self::one().to_mont();
+        let s_mont = self.as_mont();
+        let mut r_mont = Self::one().as_mont();
 
         for i in exp.limbs.iter().rev() {
             for j in (0u32..32).rev() {
@@ -296,7 +296,7 @@ fn test_ec_ext5_scalar_to_and_from_mont_repr() {
             rand_utils::rand_value::<u32>() >> 1,
         ],
     };
-    let b = a.to_mont();
+    let b = a.as_mont();
     let c = b.from_mont();
 
     assert_eq!(a, c);
