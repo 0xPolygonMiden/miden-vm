@@ -309,11 +309,11 @@ pub fn enforce_rescue_round<E: FieldElement + From<Felt>>(
 
 #[inline(always)]
 fn apply_sbox<E: FieldElement + From<Felt>>(state: &mut [E; STATE_WIDTH]) {
-    state.iter_mut().for_each(|v| {
+    for v in state.iter_mut() {
         let t2 = v.square();
         let t4 = t2.square();
         *v *= t2 * t4;
-    });
+    }
 }
 
 #[inline(always)]
