@@ -171,7 +171,7 @@ impl Process {
         // start new execution context for the operand stack. this has the effect of resetting
         // stack depth to 16.
         let (stack_depth, next_overflow_addr) = self.stack.start_context();
-        debug_assert!(stack_depth <= u32::MAX as usize, "stack depth too big");
+        debug_assert!(u32::try_from(stack_depth).is_ok(), "stack depth too big");
 
         // update the system registers and start decoding the block; this appends a row with
         // CALL/SYSCALL operation to the decoder trace and records information about the current
