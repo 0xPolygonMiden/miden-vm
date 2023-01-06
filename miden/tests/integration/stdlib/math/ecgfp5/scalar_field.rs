@@ -194,10 +194,6 @@ impl PartialEq for Scalar {
 
         !flg
     }
-
-    fn ne(&self, other: &Self) -> bool {
-        !(*self == *other)
-    }
 }
 
 #[test]
