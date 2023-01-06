@@ -124,6 +124,7 @@ mod use_std {
         where
             P: AsRef<Path>,
         {
+            std::fs::create_dir_all(&dir_path)?;
             let mut path = dir_path.as_ref().join(self.namespace.as_str());
             path.set_extension(Self::LIBRARY_EXTENSION);
 
