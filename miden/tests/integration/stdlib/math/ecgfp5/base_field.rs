@@ -40,7 +40,7 @@ pub fn bv_or(a: Felt, b: Felt) -> Felt {
     let flg_a = (a == Felt::ZERO) | (a == Felt::ONE);
     let flg_b = (b == Felt::ZERO) | (b == Felt::ONE);
 
-    assert_eq!(flg_a & flg_b, true);
+    assert!(flg_a & flg_b);
 
     let c = a.as_int() | b.as_int();
     Felt::new(c)

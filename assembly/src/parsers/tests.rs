@@ -352,7 +352,7 @@ fn test_missing_import() {
 
     let result = parse_program(source);
     match result {
-        Ok(_) => assert!(false),
+        Ok(_) => panic!(),
         Err(err) => assert!(err.to_string().contains("module 'u64' was not imported")),
     }
 }
@@ -370,7 +370,7 @@ fn test_use_in_proc_body() {
 
     let result = parse_module(source);
     match result {
-        Ok(_) => assert!(false),
+        Ok(_) => panic!(),
         Err(err) => assert!(err.to_string().contains("import in procedure body")),
     }
 }
@@ -381,7 +381,7 @@ fn test_unterminated_proc() {
 
     let result = parse_module(source);
     match result {
-        Ok(_) => assert!(false),
+        Ok(_) => panic!(),
         Err(err) => assert!(err.to_string().contains("procedure 'foo' has no matching end")),
     }
 }
@@ -392,7 +392,7 @@ fn test_unterminated_if() {
 
     let result = parse_module(source);
     match result {
-        Ok(_) => assert!(false),
+        Ok(_) => panic!(),
         Err(err) => assert!(err.to_string().contains("if without matching else/end")),
     }
 }
