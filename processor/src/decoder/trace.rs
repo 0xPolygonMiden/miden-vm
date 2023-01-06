@@ -419,7 +419,7 @@ impl DecoderTrace {
         trace.push(self.op_idx_trace);
 
         // put ZEROs into the unfilled rows of op_batch_flags columns
-        for mut column in self.op_batch_flag_trace.into_iter() {
+        for mut column in self.op_batch_flag_trace {
             debug_assert_eq!(own_len, column.len());
             column.resize(trace_len, ZERO);
             trace.push(column);

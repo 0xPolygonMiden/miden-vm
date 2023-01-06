@@ -256,7 +256,7 @@ impl System {
         // complete the fn hash columns by filling them with ZEROs as program execution must always
         // end in the root context.
         debug_assert_eq!(self.fn_hash, [ZERO; 4]);
-        for mut column in self.fn_hash_trace.into_iter() {
+        for mut column in self.fn_hash_trace {
             column.resize(trace_len, ZERO);
             trace.push(column);
         }
