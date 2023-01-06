@@ -178,7 +178,7 @@ impl Memory {
 
                     // compute delta as difference between context IDs, addresses, or clock cycles
                     let delta = if prev_ctx != ctx {
-                        (ctx - prev_ctx) as u64
+                        u64::from(ctx - prev_ctx)
                     } else if prev_addr != addr {
                         addr - prev_addr
                     } else {

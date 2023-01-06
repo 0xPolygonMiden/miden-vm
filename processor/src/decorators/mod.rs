@@ -141,7 +141,7 @@ impl Process {
         for i in 0..num_words {
             let mem_value = self
                 .chiplets
-                .get_mem_value(ctx, (start_addr + i) as u64)
+                .get_mem_value(ctx, u64::from(start_addr + i))
                 .unwrap_or([ZERO; WORD_LEN]);
             values.extend_from_slice(&mem_value);
         }
@@ -256,7 +256,7 @@ impl Process {
 
 fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
     let hi = Felt::new(value >> 32);
-    let lo = Felt::new((value as u32) as u64);
+    let lo = Felt::new(u64::from(value as u32));
     (hi, lo)
 }
 
@@ -284,7 +284,7 @@ mod tests {
             tree.root()[2].as_int(),
             tree.root()[3].as_int(),
             1,
-            tree.depth() as u64,
+            u64::from(tree.depth()),
         ];
 
         let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();

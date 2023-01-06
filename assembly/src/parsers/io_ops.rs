@@ -335,11 +335,11 @@ fn parse_hex_value(op: &Token, param_str: &str, param_idx: usize) -> Result<u64,
 /// Determines the minimal type appropriate for provided value and returns appropriate instruction
 /// for this value
 fn build_push_one_instruction(value: u64) -> Result<Node, ParsingError> {
-    if value <= u8::MAX as u64 {
+    if value <= u64::from(u8::MAX) {
         Ok(Instruction(PushU8(value as u8)))
-    } else if value <= u16::MAX as u64 {
+    } else if value <= u64::from(u16::MAX) {
         Ok(Instruction(PushU16(value as u16)))
-    } else if value <= u32::MAX as u64 {
+    } else if value <= u64::from(u32::MAX) {
         Ok(Instruction(PushU32(value as u32)))
     } else if value < Felt::MODULUS {
         Ok(Instruction(PushFelt(Felt::new(value))))
@@ -356,13 +356,13 @@ where
 {
     assert!(values_iter.len() != 0);
     let max_value = values_iter.clone().try_fold(0, |max, value| Ok(value?.max(max)))?;
-    if max_value <= u8::MAX as u64 {
+    if max_value <= u64::from(u8::MAX) {
         let values_u8 = values_iter.map(|v| Ok(v? as u8)).collect::<Result<Vec<u8>, _>>()?;
         Ok(Instruction(PushU8List(values_u8)))
-    } else if max_value <= u16::MAX as u64 {
+    } else if max_value <= u64::from(u16::MAX) {
         let values_u16 = values_iter.map(|v| Ok(v? as u16)).collect::<Result<Vec<u16>, _>>()?;
         Ok(Instruction(PushU16List(values_u16)))
-    } else if max_value <= u32::MAX as u64 {
+    } else if max_value <= u64::from(u32::MAX) {
         let values_u32 = values_iter.map(|v| Ok(v? as u32)).collect::<Result<Vec<u32>, _>>()?;
         Ok(Instruction(PushU32List(values_u32)))
     } else if max_value < Felt::MODULUS {

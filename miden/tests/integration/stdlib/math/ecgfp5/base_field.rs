@@ -29,11 +29,11 @@ fn legendre(v: Felt) -> Felt {
 }
 
 fn is_zero(a: Felt) -> Felt {
-    Felt::new((a == Felt::ZERO) as u64)
+    Felt::new(u64::from(a == Felt::ZERO))
 }
 
 fn is_one(a: Felt) -> Felt {
-    Felt::new((a == Felt::ONE) as u64)
+    Felt::new(u64::from(a == Felt::ONE))
 }
 
 pub fn bv_or(a: Felt, b: Felt) -> Felt {
@@ -204,7 +204,7 @@ impl Ext5 {
                 * (self.a1 * t2.a4 + self.a2 * t2.a3 + self.a3 * t2.a2 + self.a4 * t2.a1);
 
         let flg = t3 == Felt::new(0);
-        let t3 = t3 + Felt::new(flg as u64);
+        let t3 = t3 + Felt::new(u64::from(flg));
         let t4 = Felt::new(1) / t3;
 
         Self {
@@ -266,7 +266,7 @@ impl Ext5 {
         let flg4 = self.a4 == Felt::ZERO;
 
         let flg = flg0 & flg1 & flg2 & flg3 & flg4;
-        Felt::new(flg as u64)
+        Felt::new(u64::from(flg))
     }
 }
 

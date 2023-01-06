@@ -182,14 +182,14 @@ pub fn get_test_frame(
     let output_prev = if cycle_row_num == 0 {
         Felt::ZERO
     } else {
-        Felt::new((result >> previous_shift) as u64)
+        Felt::new(u64::from(result >> previous_shift))
     };
     current[BITWISE_PREV_OUTPUT_COL_IDX] = output_prev;
-    next[BITWISE_PREV_OUTPUT_COL_IDX] = Felt::new((output_current) as u64);
+    next[BITWISE_PREV_OUTPUT_COL_IDX] = Felt::new(u64::from((output_current)));
 
     // Set the output.
-    current[BITWISE_OUTPUT_COL_IDX] = Felt::new(output_current as u64);
-    next[BITWISE_OUTPUT_COL_IDX] = Felt::new((output_next) as u64);
+    current[BITWISE_OUTPUT_COL_IDX] = Felt::new(u64::from(output_current));
+    next[BITWISE_OUTPUT_COL_IDX] = Felt::new(u64::from((output_next)));
 
     EvaluationFrame::<Felt>::from_rows(current, next)
 }
@@ -234,14 +234,14 @@ pub fn get_test_frame_with_two_ops(
     let output_prev = if cycle_row_num == 0 {
         Felt::ZERO
     } else {
-        Felt::new((result_op_current >> previous_shift) as u64)
+        Felt::new(u64::from(result_op_current >> previous_shift))
     };
     current[BITWISE_PREV_OUTPUT_COL_IDX] = output_prev;
-    next[BITWISE_PREV_OUTPUT_COL_IDX] = Felt::new((output_current) as u64);
+    next[BITWISE_PREV_OUTPUT_COL_IDX] = Felt::new(u64::from((output_current)));
 
     // Set the output.
-    current[BITWISE_OUTPUT_COL_IDX] = Felt::new(output_current as u64);
-    next[BITWISE_OUTPUT_COL_IDX] = Felt::new((output_next) as u64);
+    current[BITWISE_OUTPUT_COL_IDX] = Felt::new(u64::from(output_current));
+    next[BITWISE_OUTPUT_COL_IDX] = Felt::new(u64::from((output_next)));
 
     EvaluationFrame::<Felt>::from_rows(current, next)
 }
@@ -265,10 +265,10 @@ fn set_frame_inputs(current: &mut [Felt], next: &mut [Felt], a: u32, b: u32, cyc
     let (_, current_shift, next_shift) = get_row_shifts(cycle_row_num);
 
     // Set the input aggregation values.
-    let current_a = (a >> current_shift) as u64;
-    let current_b = (b >> current_shift) as u64;
-    let next_a = (a >> next_shift) as u64;
-    let next_b = (b >> next_shift) as u64;
+    let current_a = u64::from(a >> current_shift);
+    let current_b = u64::from(b >> current_shift);
+    let next_a = u64::from(a >> next_shift);
+    let next_b = u64::from(b >> next_shift);
 
     current[BITWISE_A_COL_IDX] = Felt::new(current_a);
     next[BITWISE_A_COL_IDX] = Felt::new(next_a);

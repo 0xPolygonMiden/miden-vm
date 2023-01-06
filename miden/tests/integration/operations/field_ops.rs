@@ -153,7 +153,7 @@ fn mul() {
     // --- test overflow --------------------------------------------------------------------------
     let high_number = Felt::MODULUS - 1;
     let test = build_op_test!(asm_op, &[high_number, 2]);
-    let expected = high_number as u128 * 2_u128 % Felt::MODULUS as u128;
+    let expected = u128::from(high_number) * 2_u128 % u128::from(Felt::MODULUS);
     test.expect_stack(&[expected as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
@@ -179,7 +179,7 @@ fn mul_b() {
     // --- test overflow --------------------------------------------------------------------------
     let high_number = Felt::MODULUS - 1;
     let test = build_op_test!(build_asm_op(2), &[high_number]);
-    let expected = high_number as u128 * 2_u128 % Felt::MODULUS as u128;
+    let expected = u128::from(high_number) * 2_u128 % u128::from(Felt::MODULUS);
     test.expect_stack(&[expected as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
@@ -201,7 +201,7 @@ fn div() {
 
     // --- test remainder -------------------------------------------------------------------------
     let test = build_op_test!(asm_op, &[5, 2]);
-    let expected = (Felt::new(2).inv().as_int() as u128 * 5_u128) % Felt::MODULUS as u128;
+    let expected = (u128::from(Felt::new(2).inv().as_int()) * 5_u128) % u128::from(Felt::MODULUS);
     test.expect_stack(&[expected as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
@@ -229,7 +229,7 @@ fn div_b() {
 
     // --- test remainder -------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(2), &[5]);
-    let expected = (Felt::new(2).inv().as_int() as u128 * 5_u128) % Felt::MODULUS as u128;
+    let expected = (u128::from(Felt::new(2).inv().as_int()) * 5_u128) % u128::from(Felt::MODULUS);
     test.expect_stack(&[expected as u64]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
@@ -323,8 +323,8 @@ fn pow2_fail() {
 
     // --- random u32 values > 63 ------------------------------------------------------
 
-    let mut value = rand_value::<u32>() as u64;
-    value += (u32::MAX as u64) + 1;
+    let mut value = u64::from(rand_value::<u32>());
+    value += u64::from(u32::MAX) + 1;
 
     build_op_test!(asm_op, &[value]).expect_error(TestError::ExecutionError("FailedAssertion"));
 }
@@ -575,7 +575,7 @@ proptest! {
         let asm_op = "add";
 
         // allow a possible overflow then mod by the Felt Modulus
-        let expected = (a as u128 + b as u128) % Felt::MODULUS as u128;
+        let expected = (u128::from(a) + u128::from(b)) % u128::from(Felt::MODULUS);
 
         // b provided via the stack
         let test = build_op_test!(asm_op, &[a, b]);
@@ -624,7 +624,7 @@ proptest! {
         let asm_op = "mul";
 
         // allow a possible overflow then mod by the Felt Modulus
-        let expected = (a as u128 * b as u128) % Felt::MODULUS as u128;
+        let expected = (u128::from(a) * u128::from(b)) % u128::from(Felt::MODULUS);
 
         // b provided via the stack
         let test = build_op_test!(asm_op, &[a, b]);
@@ -641,7 +641,7 @@ proptest! {
         let asm_op = "div";
 
         // allow a possible overflow then mod by the Felt Modulus
-        let expected = (Felt::new(b).inv().as_int() as u128 * a as u128) % Felt::MODULUS as u128;
+        let expected = (u128::from(Felt::new(b).inv().as_int()) * u128::from(a)) % u128::from(Felt::MODULUS);
 
         // b provided via the stack
         let test = build_op_test!(asm_op, &[a, b]);
@@ -682,7 +682,7 @@ proptest! {
         let asm_op = "pow2";
         let expected = 2_u64.wrapping_pow(b);
 
-        build_op_test!(asm_op, &[b as u64]).prop_expect_stack(&[expected])?;
+        build_op_test!(asm_op, &[u64::from(b)]).prop_expect_stack(&[expected])?;
     }
 
     #[test]

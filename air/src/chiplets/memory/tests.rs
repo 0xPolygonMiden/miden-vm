@@ -156,11 +156,11 @@ fn get_test_frame(
 
     // Set the old and new values.
     for idx in 0..NUM_ELEMENTS {
-        let old_value = Felt::new(old_values[idx] as u64);
+        let old_value = Felt::new(u64::from(old_values[idx]));
         // Add a write for the old values to the current row.
         current[MEMORY_V_COL_RANGE.start + idx] = old_value;
         // Change the values from old to new in the next row.
-        next[MEMORY_V_COL_RANGE.start + idx] = Felt::new(new_values[idx] as u64);
+        next[MEMORY_V_COL_RANGE.start + idx] = Felt::new(u64::from(new_values[idx]));
     }
 
     // Set the delta and delta inverse values. Treat the current row as if it's the first row.
@@ -174,7 +174,7 @@ fn get_test_frame(
         MemoryTestDeltaType::Context => delta_row[MemoryTestDeltaType::Context as usize],
         MemoryTestDeltaType::Address => delta_row[MemoryTestDeltaType::Address as usize],
     };
-    next[MEMORY_D0_COL_IDX] = Felt::new(delta as u16 as u64);
+    next[MEMORY_D0_COL_IDX] = Felt::new(u64::from(delta as u16));
     next[MEMORY_D1_COL_IDX] = Felt::new(delta >> 16);
     next[MEMORY_D_INV_COL_IDX] = (Felt::new(delta)).inv();
 
@@ -189,7 +189,7 @@ fn get_test_frame(
 /// - When the delta type is Address, the context must remain unchanged but the clock can change.
 /// - When the delta type is Clock, both the context and address columns must remain unchanged.
 fn get_test_delta_row(delta_type: &MemoryTestDeltaType) -> Vec<u64> {
-    let delta_value = rand_value::<u32>() as u64;
+    let delta_value = u64::from(rand_value::<u32>());
     let mut row = vec![0; 3];
     let ctx_idx = MemoryTestDeltaType::Context as usize;
     let addr_idx = MemoryTestDeltaType::Address as usize;
@@ -202,8 +202,8 @@ fn get_test_delta_row(delta_type: &MemoryTestDeltaType) -> Vec<u64> {
             row[ctx_idx] = delta_value;
 
             // Set addr and clock in the row column to random values.
-            row[addr_idx] = rand_value::<u32>() as u64;
-            row[clk_idx] = rand_value::<u32>() as u64;
+            row[addr_idx] = u64::from(rand_value::<u32>());
+            row[clk_idx] = u64::from(rand_value::<u32>());
         }
         MemoryTestDeltaType::Address => {
             // Keep the context value the same in current and row rows (leave it as ZERO).
@@ -211,7 +211,7 @@ fn get_test_delta_row(delta_type: &MemoryTestDeltaType) -> Vec<u64> {
             row[addr_idx] = delta_value;
 
             // Set clock in the row column to a random value.
-            row[clk_idx] = rand_value::<u32>() as u64;
+            row[clk_idx] = u64::from(rand_value::<u32>());
         }
         MemoryTestDeltaType::Clock => {
             // Keep the context and address values the same in the current and row rows.

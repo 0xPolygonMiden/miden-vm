@@ -129,7 +129,7 @@ impl Stack {
     pub fn get_state_at(&self, clk: u32) -> Vec<Felt> {
         let mut result = Vec::with_capacity(self.active_depth);
         self.trace.append_state_into(&mut result, clk);
-        self.overflow.append_state_into(&mut result, clk as u64);
+        self.overflow.append_state_into(&mut result, u64::from(clk));
 
         result
     }
@@ -194,7 +194,7 @@ impl Stack {
             }
             _ => {
                 // Update the stack & overflow table.
-                let from_overflow = self.overflow.pop(self.clk as u64);
+                let from_overflow = self.overflow.pop(u64::from(self.clk));
                 self.trace.stack_shift_left_at(
                     self.clk,
                     start_pos,
@@ -221,7 +221,7 @@ impl Stack {
 
         // Update the overflow table.
         let to_overflow = self.trace.get_stack_value_at(self.clk, MAX_TOP_IDX);
-        self.overflow.push(to_overflow, self.clk as u64);
+        self.overflow.push(to_overflow, u64::from(self.clk));
 
         // Stack depth always increases on right shift.
         self.active_depth += 1;

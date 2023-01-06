@@ -33,7 +33,7 @@ fn mtree_get() {
         tree.root()[2].as_int(),
         tree.root()[3].as_int(),
         index as u64,
-        tree.depth() as u64,
+        u64::from(tree.depth()),
     ];
 
     build_op_test!(asm_op, &stack_inputs, &[], vec![tree])
@@ -77,7 +77,7 @@ fn build_mtree_update_test_inputs() -> (Vec<u64>, AdviceSet) {
         tree.root()[2].as_int(),
         tree.root()[3].as_int(),
         index as u64,
-        tree.depth() as u64,
+        u64::from(tree.depth()),
     ];
 
     (stack_inputs, tree)

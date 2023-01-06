@@ -24,20 +24,20 @@ fn u32checked_eq() {
     // --- random u32: equality -------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
 
-    let test = build_op_test!(asm_op, &[a as u64, a as u64]);
+    let test = build_op_test!(asm_op, &[u64::from(a), u64::from(a)]);
     test.expect_stack(&[1]);
 
     // --- random u32: probable inequality --------------------------------------------------------
     let b = rand_value::<u64>() as u32;
     let expected = if a == b { 1 } else { 0 };
 
-    let test = build_op_test!(asm_op, &[a as u64, b as u64]);
+    let test = build_op_test!(asm_op, &[u64::from(a), u64::from(b)]);
     test.expect_stack(&[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
-    let test = build_op_test!(asm_op, &[c, a as u64, b as u64]);
+    let test = build_op_test!(asm_op, &[c, u64::from(a), u64::from(b)]);
     test.expect_stack(&[expected, c]);
 }
 
@@ -63,20 +63,20 @@ fn u32checked_eq_b() {
     // --- random u32: equality -------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
 
-    let test = build_op_test!(build_asm_op(a).as_str(), &[a as u64]);
+    let test = build_op_test!(build_asm_op(a).as_str(), &[u64::from(a)]);
     test.expect_stack(&[1]);
 
     // --- random u32: probable inequality --------------------------------------------------------
     let b = rand_value::<u64>() as u32;
     let expected = if a == b { 1 } else { 0 };
 
-    let test = build_op_test!(build_asm_op(b).as_str(), &[a as u64]);
+    let test = build_op_test!(build_asm_op(b).as_str(), &[u64::from(a)]);
     test.expect_stack(&[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
-    let test = build_op_test!(build_asm_op(b).as_str(), &[c, a as u64]);
+    let test = build_op_test!(build_asm_op(b).as_str(), &[c, u64::from(a)]);
     test.expect_stack(&[expected, c]);
 }
 
@@ -107,20 +107,20 @@ fn u32checked_neq() {
     // --- random u32: equality -------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
 
-    let test = build_op_test!(asm_op, &[a as u64, a as u64]);
+    let test = build_op_test!(asm_op, &[u64::from(a), u64::from(a)]);
     test.expect_stack(&[0]);
 
     // --- random u32: probable inequality --------------------------------------------------------
     let b = rand_value::<u64>() as u32;
     let expected = if a != b { 1 } else { 0 };
 
-    let test = build_op_test!(asm_op, &[a as u64, b as u64]);
+    let test = build_op_test!(asm_op, &[u64::from(a), u64::from(b)]);
     test.expect_stack(&[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
-    let test = build_op_test!(asm_op, &[c, a as u64, b as u64]);
+    let test = build_op_test!(asm_op, &[c, u64::from(a), u64::from(b)]);
     test.expect_stack(&[expected, c]);
 }
 
@@ -146,20 +146,20 @@ fn u32checked_neq_b() {
     // --- random u32: equality -------------------------------------------------------------------
     let a = rand_value::<u64>() as u32;
 
-    let test = build_op_test!(build_asm_op(a).as_str(), &[a as u64]);
+    let test = build_op_test!(build_asm_op(a).as_str(), &[u64::from(a)]);
     test.expect_stack(&[0]);
 
     // --- random u32: probable inequality --------------------------------------------------------
     let b = rand_value::<u64>() as u32;
     let expected = if a != b { 1 } else { 0 };
 
-    let test = build_op_test!(build_asm_op(b).as_str(), &[a as u64]);
+    let test = build_op_test!(build_asm_op(b).as_str(), &[u64::from(a)]);
     test.expect_stack(&[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
-    let test = build_op_test!(build_asm_op(b).as_str(), &[c, a as u64]);
+    let test = build_op_test!(build_asm_op(b).as_str(), &[c, u64::from(a)]);
     test.expect_stack(&[expected, c]);
 }
 
@@ -345,7 +345,7 @@ proptest! {
     #[test]
     fn u32checked_eq_proptest(a in any::<u32>(), b in any::<u32>()) {
         let asm_op = "u32checked_eq";
-        let values = [b as u64, a as u64];
+        let values = [u64::from(b), u64::from(a)];
 
         // should test for equality
         let expected = if a == b { 1 } else { 0 };
@@ -355,14 +355,14 @@ proptest! {
 
         // b provided as a parameter
         let asm_op = format!("{asm_op}.{b}");
-        let test = build_op_test!(&asm_op, &[a as u64]);
+        let test = build_op_test!(&asm_op, &[u64::from(a)]);
         test.prop_expect_stack(&[expected])?;
     }
 
     #[test]
     fn u32checked_neq_proptest(a in any::<u32>(), b in any::<u32>()) {
         let asm_op = "u32checked_neq";
-        let values = [b as u64, a as u64];
+        let values = [u64::from(b), u64::from(a)];
 
         // should test for inequality
         let expected = if a != b { 1 } else { 0 };
@@ -372,7 +372,7 @@ proptest! {
 
         // b provided as a parameter
         let asm_op = format!("{asm_op}.{b}");
-        let test = build_op_test!(&asm_op, &[a as u64]);
+        let test = build_op_test!(&asm_op, &[u64::from(a)]);
         test.prop_expect_stack(&[expected])?;
     }
 
@@ -386,11 +386,11 @@ proptest! {
         };
 
         // checked and unchecked should produce the same result for valid values
-        let test = build_op_test!(asm_op, &[a as u64, b as u64]);
+        let test = build_op_test!(asm_op, &[u64::from(a), u64::from(b)]);
         test.prop_expect_stack(&[expected])?;
 
         let asm_op = "u32unchecked_lt";
-        let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
+        let test = build_op_test!(&asm_op, &[u64::from(a), u64::from(b)]);
         test.prop_expect_stack(&[expected])?;
     }
 
@@ -404,11 +404,11 @@ proptest! {
         };
 
         // checked and unchecked should produce the same result for valid values
-        let test = build_op_test!(asm_op, &[a as u64, b as u64]);
+        let test = build_op_test!(asm_op, &[u64::from(a), u64::from(b)]);
         test.prop_expect_stack(&[expected])?;
 
         let asm_op = "u32unchecked_lte";
-        let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
+        let test = build_op_test!(&asm_op, &[u64::from(a), u64::from(b)]);
         test.prop_expect_stack(&[expected])?;
     }
 
@@ -422,11 +422,11 @@ proptest! {
         };
 
         // checked and unchecked should produce the same result for valid values
-        let test = build_op_test!(asm_op, &[a as u64, b as u64]);
+        let test = build_op_test!(asm_op, &[u64::from(a), u64::from(b)]);
         test.prop_expect_stack(&[expected])?;
 
         let asm_op = "u32unchecked_gt";
-        let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
+        let test = build_op_test!(&asm_op, &[u64::from(a), u64::from(b)]);
         test.prop_expect_stack(&[expected])?;
     }
 
@@ -440,11 +440,11 @@ proptest! {
         };
 
         // checked and unchecked should produce the same result for valid values
-        let test = build_op_test!(asm_op, &[a as u64, b as u64]);
+        let test = build_op_test!(asm_op, &[u64::from(a), u64::from(b)]);
         test.prop_expect_stack(&[expected])?;
 
         let asm_op = "u32unchecked_gte";
-        let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
+        let test = build_op_test!(&asm_op, &[u64::from(a), u64::from(b)]);
         test.prop_expect_stack(&[expected])?;
     }
 
@@ -454,12 +454,12 @@ proptest! {
         let expected = if a < b { a } else { b };
 
         // checked and unchecked should produce the same result for valid values
-        let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        let test = build_op_test!(asm_op, &[u64::from(a), u64::from(b)]);
+        test.prop_expect_stack(&[u64::from(expected)])?;
 
         let asm_op = "u32unchecked_min";
-        let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        let test = build_op_test!(&asm_op, &[u64::from(a), u64::from(b)]);
+        test.prop_expect_stack(&[u64::from(expected)])?;
     }
 
     #[test]
@@ -468,12 +468,12 @@ proptest! {
         let expected = if a > b { a } else { b };
 
         // checked and unchecked should produce the same result for valid values
-        let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        let test = build_op_test!(asm_op, &[u64::from(a), u64::from(b)]);
+        test.prop_expect_stack(&[u64::from(expected)])?;
 
         let asm_op = "u32unchecked_max";
-        let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        let test = build_op_test!(&asm_op, &[u64::from(a), u64::from(b)]);
+        test.prop_expect_stack(&[u64::from(expected)])?;
     }
 }
 
@@ -505,13 +505,13 @@ fn test_comparison_op(asm_op: &str, expected_lt: u64, expected_eq: u64, expected
         Ordering::Greater => expected_gt,
     };
 
-    let test = build_op_test!(asm_op, &[a as u64, b as u64]);
+    let test = build_op_test!(asm_op, &[u64::from(a), u64::from(b)]);
     test.expect_stack(&[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
-    let test = build_op_test!(asm_op, &[c, a as u64, b as u64]);
+    let test = build_op_test!(asm_op, &[c, u64::from(a), u64::from(b)]);
     test.expect_stack(&[expected, c]);
 }
 
@@ -540,14 +540,14 @@ fn test_min(asm_op: &str) {
         Ordering::Greater => b,
     };
 
-    let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[expected as u64]);
+    let test = build_op_test!(asm_op, &[u64::from(a), u64::from(b)]);
+    test.expect_stack(&[u64::from(expected)]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
-    let test = build_op_test!(asm_op, &[c, a as u64, b as u64]);
-    test.expect_stack(&[expected as u64, c]);
+    let test = build_op_test!(asm_op, &[c, u64::from(a), u64::from(b)]);
+    test.expect_stack(&[u64::from(expected), c]);
 }
 
 /// Tests a u32max assembly operation (u32checked_max or u32unchecked_max) against a number of
@@ -575,12 +575,12 @@ fn test_max(asm_op: &str) {
         Ordering::Greater => a,
     };
 
-    let test = build_op_test!(asm_op, &[a as u64, b as u64]);
-    test.expect_stack(&[expected as u64]);
+    let test = build_op_test!(asm_op, &[u64::from(a), u64::from(b)]);
+    test.expect_stack(&[u64::from(expected)]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
 
-    let test = build_op_test!(asm_op, &[c, a as u64, b as u64]);
-    test.expect_stack(&[expected as u64, c]);
+    let test = build_op_test!(asm_op, &[c, u64::from(a), u64::from(b)]);
+    test.expect_stack(&[u64::from(expected), c]);
 }

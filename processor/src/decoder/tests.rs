@@ -1458,7 +1458,7 @@ fn set_user_op_helpers_many() {
     let a = rand_value::<u32>();
     let b = rand_value::<u32>();
     let (dividend, divisor) = if a > b { (a, b) } else { (b, a) };
-    let (trace, ..) = build_trace(&[dividend as u64, divisor as u64], &program);
+    let (trace, ..) = build_trace(&[u64::from(dividend), u64::from(divisor)], &program);
     let hasher_state = get_hasher_state(&trace, 1);
 
     // Check the hasher state of the user operation which was executed.

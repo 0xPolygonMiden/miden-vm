@@ -82,7 +82,7 @@ impl Process {
         let a = self.stack.get(1).as_int();
         let result = a.wrapping_sub(b);
         let d = Felt::new(result >> 63);
-        let c = Felt::new((result as u32) as u64);
+        let c = Felt::new(u64::from(result as u32));
 
         // Force this operation to consume 4 range checks, even though only `lo` is needed.
         // This is required for making the constraints more uniform and grouping the opcodes of
@@ -241,7 +241,7 @@ mod tests {
         let a: u64 = rand_value();
         let mut process = Process::new_dummy_with_decoder_helpers(&[a]);
         let hi = a >> 32;
-        let lo = (a as u32) as u64;
+        let lo = u64::from((a as u32));
 
         process.execute_op(Operation::U32split).unwrap();
         let mut expected = [Felt::ZERO; 16];
@@ -253,7 +253,7 @@ mod tests {
         let b: u64 = rand_value();
         let mut process = Process::new_dummy_with_decoder_helpers(&[a, b]);
         let hi = b >> 32;
-        let lo = (b as u32) as u64;
+        let lo = u64::from((b as u32));
 
         process.execute_op(Operation::U32split).unwrap();
         let mut expected = [Felt::ZERO; 16];
@@ -268,7 +268,7 @@ mod tests {
         // --- test random values ensuring other elements are still values are still intact ----------
         let (a, b, c, d) = get_rand_values();
         let mut process =
-            Process::new_dummy_with_decoder_helpers(&[d as u64, c as u64, b as u64, a as u64]);
+            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
 
         process.execute_op(Operation::U32assert2).unwrap();
         let expected = build_expected(&[a, b, c, d]);
@@ -283,36 +283,36 @@ mod tests {
         // --- test random values ---------------------------------------------
         let (a, b, c, d) = get_rand_values();
         let mut process =
-            Process::new_dummy_with_decoder_helpers(&[d as u64, c as u64, b as u64, a as u64]);
+            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
         let (result, over) = a.overflowing_add(b);
 
         process.execute_op(Operation::U32add).unwrap();
-        let expected = build_expected(&[over as u32, result, c, d]);
+        let expected = build_expected(&[u32::from(over), result, c, d]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test overflow --------------------------------------------------
         let a = u32::MAX - 1;
         let b = 2u32;
 
-        let mut process = Process::new_dummy_with_decoder_helpers(&[a as u64, b as u64]);
+        let mut process = Process::new_dummy_with_decoder_helpers(&[u64::from(a), u64::from(b)]);
         let (result, over) = a.overflowing_add(b);
         let (b1, b0) = split_u32_into_u16(result.into());
 
         process.execute_op(Operation::U32add).unwrap();
-        let expected = build_expected(&[over as u32, result]);
+        let expected = build_expected(&[u32::from(over), result]);
         assert_eq!(expected, process.stack.trace_state());
 
         let expected_helper_registers =
-            build_expected_helper_registers(&[b0 as u32, b1 as u32, over as u32]);
+            build_expected_helper_registers(&[u32::from(b0), u32::from(b1), u32::from(over)]);
         assert_eq!(expected_helper_registers, process.decoder.get_user_op_helpers());
     }
 
     #[test]
     fn op_u32add3() {
-        let a = rand_value::<u32>() as u64;
-        let b = rand_value::<u32>() as u64;
-        let c = rand_value::<u32>() as u64;
-        let d = rand_value::<u32>() as u64;
+        let a = u64::from(rand_value::<u32>());
+        let b = u64::from(rand_value::<u32>());
+        let c = u64::from(rand_value::<u32>());
+        let d = u64::from(rand_value::<u32>());
 
         let mut process = Process::new_dummy_with_decoder_helpers(&[d, c, b, a]);
 
@@ -335,22 +335,22 @@ mod tests {
         // --- test random values ---------------------------------------------
         let (a, b, c, d) = get_rand_values();
         let mut process =
-            Process::new_dummy_with_decoder_helpers(&[d as u64, c as u64, b as u64, a as u64]);
+            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
         let (result, under) = b.overflowing_sub(a);
 
         process.execute_op(Operation::U32sub).unwrap();
-        let expected = build_expected(&[under as u32, result, c, d]);
+        let expected = build_expected(&[u32::from(under), result, c, d]);
         assert_eq!(expected, process.stack.trace_state());
 
         // --- test underflow -------------------------------------------------
         let a = 10u32;
         let b = 11u32;
 
-        let mut process = Process::new_dummy_with_decoder_helpers(&[a as u64, b as u64]);
+        let mut process = Process::new_dummy_with_decoder_helpers(&[u64::from(a), u64::from(b)]);
         let (result, under) = a.overflowing_sub(b);
 
         process.execute_op(Operation::U32sub).unwrap();
-        let expected = build_expected(&[under as u32, result]);
+        let expected = build_expected(&[u32::from(under), result]);
         assert_eq!(expected, process.stack.trace_state());
     }
 
@@ -358,8 +358,8 @@ mod tests {
     fn op_u32mul() {
         let (a, b, c, d) = get_rand_values();
         let mut process =
-            Process::new_dummy_with_decoder_helpers(&[d as u64, c as u64, b as u64, a as u64]);
-        let result = (a as u64) * (b as u64);
+            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
+        let result = u64::from(a) * u64::from(b);
         let hi = (result >> 32) as u32;
         let lo = result as u32;
 
@@ -372,8 +372,8 @@ mod tests {
     fn op_u32madd() {
         let (a, b, c, d) = get_rand_values();
         let mut process =
-            Process::new_dummy_with_decoder_helpers(&[d as u64, c as u64, b as u64, a as u64]);
-        let result = (a as u64) * (b as u64) + (c as u64);
+            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
+        let result = u64::from(a) * u64::from(b) + u64::from(c);
         let hi = (result >> 32) as u32;
         let lo = result as u32;
 
@@ -390,7 +390,7 @@ mod tests {
     fn op_u32div() {
         let (a, b, c, d) = get_rand_values();
         let mut process =
-            Process::new_dummy_with_decoder_helpers(&[d as u64, c as u64, b as u64, a as u64]);
+            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
         let q = b / a;
         let r = b % a;
 
@@ -406,7 +406,7 @@ mod tests {
     fn op_u32and() {
         let (a, b, c, d) = get_rand_values();
         let mut process =
-            Process::new_dummy_with_decoder_helpers(&[d as u64, c as u64, b as u64, a as u64]);
+            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
 
         process.execute_op(Operation::U32and).unwrap();
         let expected = build_expected(&[a & b, c, d]);
@@ -421,7 +421,7 @@ mod tests {
     fn op_u32xor() {
         let (a, b, c, d) = get_rand_values();
         let mut process =
-            Process::new_dummy_with_decoder_helpers(&[d as u64, c as u64, b as u64, a as u64]);
+            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
 
         process.execute_op(Operation::U32xor).unwrap();
         let expected = build_expected(&[a ^ b, c, d]);
@@ -446,7 +446,7 @@ mod tests {
     fn build_expected(values: &[u32]) -> [Felt; STACK_TOP_SIZE] {
         let mut expected = [Felt::ZERO; STACK_TOP_SIZE];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
-            *result = Felt::new(value as u64);
+            *result = Felt::new(u64::from(value));
         }
         expected
     }
@@ -454,7 +454,7 @@ mod tests {
     fn build_expected_helper_registers(values: &[u32]) -> [Felt; NUM_USER_OP_HELPERS] {
         let mut expected = [Felt::ZERO; NUM_USER_OP_HELPERS];
         for (&value, result) in values.iter().zip(expected.iter_mut()) {
-            *result = Felt::new(value as u64);
+            *result = Felt::new(u64::from(value));
         }
         expected
     }

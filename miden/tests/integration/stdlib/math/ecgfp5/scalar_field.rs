@@ -69,7 +69,7 @@ impl Scalar {
             let (t1, flg1) = t0.overflowing_sub(c);
 
             r.limbs[i] = t1;
-            c = (flg0 | flg1) as u32;
+            c = u32::from(flg0 | flg1);
         }
         (r, c.wrapping_neg())
     }
@@ -104,19 +104,19 @@ impl Scalar {
             let mut cc2 = 0u32;
 
             for j in 0..10 {
-                let v0 = (self.limbs[j] as u64) * (m as u64);
+                let v0 = u64::from(self.limbs[j]) * u64::from(m);
                 let (t0, flg0) = (v0 as u32, (v0 >> 32) as u32);
                 let (t1, flg1) = t0.overflowing_add(r.limbs[j]);
                 let (t2, flg2) = t1.overflowing_add(cc1);
 
-                cc1 = flg0 + flg1 as u32 + flg2 as u32;
+                cc1 = flg0 + u32::from(flg1) + u32::from(flg2);
 
-                let v1 = (f as u64) * (Self::get_n().limbs[j] as u64);
+                let v1 = u64::from(f) * u64::from(Self::get_n().limbs[j]);
                 let (t3, flg3) = (v1 as u32, (v1 >> 32) as u32);
                 let (t4, flg4) = t3.overflowing_add(t2);
                 let (t5, flg5) = t4.overflowing_add(cc2);
 
-                cc2 = flg3 + flg4 as u32 + flg5 as u32;
+                cc2 = flg3 + u32::from(flg4) + u32::from(flg5);
 
                 if j > 0 {
                     r.limbs[j - 1] = t5;
@@ -259,8 +259,8 @@ fn test_ec_ext5_scalar_mont_mul() {
 
     let mut stack = [0u64; 20];
     for i in 0..10 {
-        stack[i] = a.limbs[i] as u64;
-        stack[i + 10] = b.limbs[i] as u64;
+        stack[i] = u64::from(a.limbs[i]);
+        stack[i + 10] = u64::from(b.limbs[i]);
     }
     stack.reverse();
 
@@ -268,7 +268,7 @@ fn test_ec_ext5_scalar_mont_mul() {
     let strace = test.get_last_stack_state();
 
     for i in 0..10 {
-        assert_eq!(strace[i].as_int(), c.limbs[i] as u64);
+        assert_eq!(strace[i].as_int(), u64::from(c.limbs[i]));
     }
 }
 
@@ -303,7 +303,7 @@ fn test_ec_ext5_scalar_to_and_from_mont_repr() {
 
     let mut stack = [0u64; 10];
     for i in 0..10 {
-        stack[i] = a.limbs[i] as u64;
+        stack[i] = u64::from(a.limbs[i]);
     }
     stack.reverse();
 
@@ -311,7 +311,7 @@ fn test_ec_ext5_scalar_to_and_from_mont_repr() {
     let strace = test.get_last_stack_state();
 
     for i in 0..10 {
-        assert_eq!(strace[i].as_int(), c.limbs[i] as u64);
+        assert_eq!(strace[i].as_int(), u64::from(c.limbs[i]));
     }
 }
 
@@ -342,7 +342,7 @@ fn test_ec_ext5_scalar_inv() {
 
     let mut stack = [0u64; 10];
     for i in 0..10 {
-        stack[i] = a.limbs[i] as u64;
+        stack[i] = u64::from(a.limbs[i]);
     }
     stack.reverse();
 
@@ -350,6 +350,6 @@ fn test_ec_ext5_scalar_inv() {
     let strace = test.get_last_stack_state();
 
     for i in 0..10 {
-        assert_eq!(strace[i].as_int(), b.limbs[i] as u64);
+        assert_eq!(strace[i].as_int(), u64::from(b.limbs[i]));
     }
 }

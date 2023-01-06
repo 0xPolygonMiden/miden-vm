@@ -16,8 +16,8 @@ fn keccak256_bit_interleaving() {
 
     let word = rand_utils::rand_value::<u64>();
 
-    let high = (word >> 32) as u32 as u64;
-    let low = word as u32 as u64;
+    let high = u64::from((word >> 32) as u32);
+    let low = u64::from(word as u32);
 
     let test = build_test!(source, &[low, high]);
     let stack = test.get_last_stack_state();
@@ -77,14 +77,14 @@ fn keccak256_2_to_1_hash() {
 fn to_stack(i_digest: &[u8], stack: &mut [u64]) {
     for i in 0..(i_digest.len() >> 3) {
         // byte array ( = 8 -bytes ) to little endian 64 -bit unsigned integer
-        let word = (i_digest[(i << 3) + 7] as u64) << 56
-            | (i_digest[(i << 3) + 6] as u64) << 48
-            | (i_digest[(i << 3) + 5] as u64) << 40
-            | (i_digest[(i << 3) + 4] as u64) << 32
-            | (i_digest[(i << 3) + 3] as u64) << 24
-            | (i_digest[(i << 3) + 2] as u64) << 16
-            | (i_digest[(i << 3) + 1] as u64) << 8
-            | (i_digest[(i << 3)] as u64);
+        let word = u64::from(i_digest[(i << 3) + 7]) << 56
+            | u64::from(i_digest[(i << 3) + 6]) << 48
+            | u64::from(i_digest[(i << 3) + 5]) << 40
+            | u64::from(i_digest[(i << 3) + 4]) << 32
+            | u64::from(i_digest[(i << 3) + 3]) << 24
+            | u64::from(i_digest[(i << 3) + 2]) << 16
+            | u64::from(i_digest[(i << 3) + 1]) << 8
+            | u64::from(i_digest[(i << 3)]);
 
         // split into higher/ lower bits of u64
         let high = (word >> 32) as u32;
@@ -93,7 +93,7 @@ fn to_stack(i_digest: &[u8], stack: &mut [u64]) {
         // 64 -bit standard representation number kept as two 32 -bit numbers
         // where first one holds higher 32 -bits and second one holds remaining lower
         // 32 -bits of u64 word
-        stack[(i << 1)] = high as u64;
-        stack[(i << 1) + 1] = low as u64;
+        stack[(i << 1)] = u64::from(high);
+        stack[(i << 1) + 1] = u64::from(low);
     }
 }

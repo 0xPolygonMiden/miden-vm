@@ -11,21 +11,21 @@ fn advice_inject_u64div() {
     // get two random 64-bit integers and split them into 32-bit limbs
     let a = rand_value::<u64>();
     let a_hi = a >> 32;
-    let a_lo = a as u32 as u64;
+    let a_lo = u64::from(a as u32);
 
     let b = rand_value::<u64>();
     let b_hi = b >> 32;
-    let b_lo = b as u32 as u64;
+    let b_lo = u64::from(b as u32);
 
     // compute expected quotient
     let q = a / b;
     let q_hi = q >> 32;
-    let q_lo = q as u32 as u64;
+    let q_lo = u64::from(q as u32);
 
     // compute expected remainder
     let r = a % b;
     let r_hi = r >> 32;
-    let r_lo = r as u32 as u64;
+    let r_lo = u64::from(r as u32);
 
     // inject a/b into the advice tape and then read these values from the tape
     let test = build_test!(source, &[a_lo, a_hi, b_lo, b_hi]);
@@ -83,21 +83,21 @@ fn advice_inject_u64div_local_procedure() {
     // get two random 64-bit integers and split them into 32-bit limbs
     let a = rand_value::<u64>();
     let a_hi = a >> 32;
-    let a_lo = a as u32 as u64;
+    let a_lo = u64::from(a as u32);
 
     let b = rand_value::<u64>();
     let b_hi = b >> 32;
-    let b_lo = b as u32 as u64;
+    let b_lo = u64::from(b as u32);
 
     // compute expected quotient
     let q = a / b;
     let q_hi = q >> 32;
-    let q_lo = q as u32 as u64;
+    let q_lo = u64::from(q as u32);
 
     // compute expected remainder
     let r = a % b;
     let r_hi = r >> 32;
-    let r_lo = r as u32 as u64;
+    let r_lo = u64::from(r as u32);
 
     // inject a/b into the advice tape and then read these values from the tape
     let test = build_test!(source, &[a_lo, a_hi, b_lo, b_hi]);

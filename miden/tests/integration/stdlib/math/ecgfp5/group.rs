@@ -66,7 +66,7 @@ impl ECExt5 {
     pub fn validate(w: Ext5) -> Felt {
         let e = w.square() - Self::a();
         let delta = e.square().subk1(Self::bmul4_1());
-        bv_or(Felt::new((delta.legendre() == Felt::ONE) as u64), w.is_zero())
+        bv_or(Felt::new(u64::from(delta.legendre() == Felt::ONE)), w.is_zero())
     }
 
     // Given an encoded elliptic curve point, this routine attempts to decode it using
@@ -171,7 +171,7 @@ impl Add for ECExt5 {
 
         let x3 = lamb.square() - self.x - rhs.x;
         let y3 = lamb * (self.x - x3) - self.y;
-        let inf3 = Felt::new((samex & diffy) as u64);
+        let inf3 = Felt::new(u64::from(samex & diffy));
 
         Self {
             x: if rhs.point_at_infinity == Felt::ONE {
@@ -232,7 +232,7 @@ fn test_ec_ext5_point_validate(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, shou
     let strace = test.get_last_stack_state();
 
     assert_eq!(strace[0], flg);
-    assert_eq!(strace[0], Felt::new(should_validate as u64));
+    assert_eq!(strace[0], Felt::new(u64::from(should_validate)));
 }
 
 // Test vectors taken from https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1528-L1556
@@ -279,7 +279,7 @@ fn test_ec_ext5_point_decode(a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, should
     assert_eq!(strace[9], point.y.a4);
     assert_eq!(strace[10], point.point_at_infinity);
     assert_eq!(strace[11], flg);
-    assert_eq!(strace[11], Felt::new(should_decode as u64));
+    assert_eq!(strace[11], Felt::new(u64::from(should_decode)));
 }
 
 // Test vectors taken from https://github.com/pornin/ecgfp5/blob/ce059c6/python/ecGFp5.py#L1528-L1548
@@ -538,16 +538,16 @@ fn test_ec_ext5_point_multiplication() {
         p0.y.a3.as_int(),
         p0.y.a4.as_int(),
         p0.point_at_infinity.as_int(),
-        e[0] as u64,
-        e[1] as u64,
-        e[2] as u64,
-        e[3] as u64,
-        e[4] as u64,
-        e[5] as u64,
-        e[6] as u64,
-        e[7] as u64,
-        e[8] as u64,
-        e[9] as u64,
+        u64::from(e[0]),
+        u64::from(e[1]),
+        u64::from(e[2]),
+        u64::from(e[3]),
+        u64::from(e[4]),
+        u64::from(e[5]),
+        u64::from(e[6]),
+        u64::from(e[7]),
+        u64::from(e[8]),
+        u64::from(e[9]),
     ];
     stack.reverse();
 
@@ -620,16 +620,16 @@ fn test_ec_ext5_gen_multiplication() {
     let res = gen.scalar_mul(&scalar);
 
     let mut stack = [
-        scalar[0] as u64,
-        scalar[1] as u64,
-        scalar[2] as u64,
-        scalar[3] as u64,
-        scalar[4] as u64,
-        scalar[5] as u64,
-        scalar[6] as u64,
-        scalar[7] as u64,
-        scalar[8] as u64,
-        scalar[9] as u64,
+        u64::from(scalar[0]),
+        u64::from(scalar[1]),
+        u64::from(scalar[2]),
+        u64::from(scalar[3]),
+        u64::from(scalar[4]),
+        u64::from(scalar[5]),
+        u64::from(scalar[6]),
+        u64::from(scalar[7]),
+        u64::from(scalar[8]),
+        u64::from(scalar[9]),
     ];
     stack.reverse();
 

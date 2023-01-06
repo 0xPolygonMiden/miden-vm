@@ -205,9 +205,9 @@ impl RangeChecker {
         for (&value, &num_lookups) in self.lookups.iter() {
             // when the delta between two values is greater than 255, insert "bridge" rows
             for value in (prev_value..value).step_by(255).skip(1) {
-                write_value(&mut trace, &mut i, 0, value as u64, &mut row_flags);
+                write_value(&mut trace, &mut i, 0, u64::from(value), &mut row_flags);
             }
-            write_value(&mut trace, &mut i, num_lookups, value as u64, &mut row_flags);
+            write_value(&mut trace, &mut i, num_lookups, u64::from(value), &mut row_flags);
             prev_value = value;
         }
 

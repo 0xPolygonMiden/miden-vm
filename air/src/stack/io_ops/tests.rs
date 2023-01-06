@@ -12,7 +12,7 @@ use vm_core::{Felt, FieldElement, Operation, STACK_TRACE_OFFSET};
 #[test]
 fn test_sdepth_operation() {
     let expected = [Felt::ZERO; NUM_CONSTRAINTS];
-    let depth = rand_value::<u32>() as u64;
+    let depth = u64::from(rand_value::<u32>());
 
     let frame = get_sdepth_test_frame(depth);
     let result = get_constraint_evaluation(frame);

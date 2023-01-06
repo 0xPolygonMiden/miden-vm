@@ -17,20 +17,20 @@ impl ScalarField {
 
     /// See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field_utils.py#L41-L46
     fn mac(a: u32, b: u32, c: u32, carry: u32) -> (u32, u32) {
-        let tmp = a as u64 + (b as u64 * c as u64) + carry as u64;
+        let tmp = u64::from(a) + (u64::from(b) * u64::from(c)) + u64::from(carry);
         ((tmp >> 32) as u32, tmp as u32)
     }
 
     /// See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field_utils.py#L33-L38
     fn adc(a: u32, b: u32, carry: u32) -> (u32, u32) {
-        let tmp = a as u64 + b as u64 + carry as u64;
+        let tmp = u64::from(a) + u64::from(b) + u64::from(carry);
         ((tmp >> 32) as u32, tmp as u32)
     }
 
     /// See https://github.com/itzmeanjan/secp256k1/blob/6e5e654823a073add7d62b21ed88e9de9bb06869/field/scalar_field_utils.py#L49-L55
     #[allow(dead_code)]
     fn sbb(a: u32, b: u32, borrow: u32) -> (u32, u32) {
-        let tmp = (a as u64).wrapping_sub(b as u64 + (borrow >> 31) as u64);
+        let tmp = u64::from(a).wrapping_sub(u64::from(b) + u64::from(borrow >> 31));
         ((tmp >> 32) as u32, tmp as u32)
     }
 
@@ -272,12 +272,12 @@ fn test_secp256k1_scalar_field_mul() {
     let elm2 = elm0 * elm1;
 
     let mut stack = [0u64; 16];
-    stack[..8].copy_from_slice(&elm0.limbs.map(|v| v as u64));
-    stack[8..].copy_from_slice(&elm1.limbs.map(|v| v as u64));
+    stack[..8].copy_from_slice(&elm0.limbs.map(|v| u64::from(v)));
+    stack[8..].copy_from_slice(&elm1.limbs.map(|v| u64::from(v)));
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm2.limbs.map(|v| v as u64));
+    test.expect_stack(&elm2.limbs.map(|v| u64::from(v)));
 }
 
 #[test]
@@ -302,9 +302,9 @@ fn test_secp256k1_scalar_field_inv() {
     assert_eq!(elm2, ScalarField::one());
 
     let mut stack = [0u64; 8];
-    stack.copy_from_slice(&elm0.limbs.map(|v| v as u64));
+    stack.copy_from_slice(&elm0.limbs.map(|v| u64::from(v)));
     stack.reverse();
 
     let test = build_test!(source, &stack);
-    test.expect_stack(&elm2.limbs.map(|v| v as u64));
+    test.expect_stack(&elm2.limbs.map(|v| u64::from(v)));
 }

@@ -412,7 +412,7 @@ fn b_chip_mpverify() {
         tree.root()[2].as_int(),
         tree.root()[3].as_int(),
         index as u64,
-        tree.depth() as u64,
+        u64::from(tree.depth()),
         leaves[index][0].as_int(),
         leaves[index][1].as_int(),
         leaves[index][2].as_int(),

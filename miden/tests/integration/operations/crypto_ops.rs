@@ -98,7 +98,7 @@ fn mtree_get() {
         tree.root()[2].as_int(),
         tree.root()[3].as_int(),
         index as u64,
-        tree.depth() as u64,
+        u64::from(tree.depth()),
     ];
 
     let final_stack = [
@@ -137,7 +137,7 @@ fn mtree_update() {
         tree.root()[2].as_int(),
         tree.root()[3].as_int(),
         index as u64,
-        tree.depth() as u64,
+        u64::from(tree.depth()),
     ];
 
     // --- mtree_set ----------------------------------------------------------------------

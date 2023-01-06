@@ -485,6 +485,6 @@ impl ProcedureContext {
             callset,
         } = self;
 
-        Procedure::new(id, name, is_export, num_locals as u32, code_root, callset)
+        Procedure::new(id, name, is_export, u32::from(num_locals), code_root, callset)
     }
 }

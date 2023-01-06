@@ -14,7 +14,7 @@ impl ByteWriter {
     }
 
     pub fn write_bool(&mut self, val: bool) {
-        self.write_u8(val as u8);
+        self.write_u8(u8::from(val));
     }
 
     pub fn write_u8(&mut self, val: u8) {

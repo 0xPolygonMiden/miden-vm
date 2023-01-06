@@ -756,7 +756,7 @@ struct SpanContext {
 
 /// Removes the specified operation from the op group and returns the resulting op group.
 fn remove_opcode_from_group(op_group: Felt, op: Operation) -> Felt {
-    let opcode = op.op_code() as u64;
+    let opcode = u64::from(op.op_code());
     let result = Felt::new((op_group.as_int() - opcode) >> NUM_OP_BITS);
     debug_assert!(op_group.as_int() >= result.as_int(), "op group underflow");
     result
@@ -781,7 +781,7 @@ pub fn build_op_group(ops: &[Operation]) -> Felt {
     let mut group = 0u64;
     let mut i = 0;
     for op in ops.iter() {
-        group |= (op.op_code() as u64) << (Operation::OP_BITS * i);
+        group |= u64::from(op.op_code()) << (Operation::OP_BITS * i);
         i += 1;
     }
     assert!(i <= super::OP_GROUP_SIZE, "too many ops");
