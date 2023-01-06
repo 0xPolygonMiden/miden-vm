@@ -1,6 +1,9 @@
 use super::{
     check_div_by_zero, parse_checked_param,
-    Instruction::{Add, AddImm, Div, DivImm, Eq, EqImm, Exp, ExpBitLength, ExpImm, Incr, Mul, MulImm, Neq, NeqImm, Sub, SubImm},
+    Instruction::{
+        Add, AddImm, Div, DivImm, Eq, EqImm, Exp, ExpBitLength, ExpImm, Incr, Mul, MulImm, Neq,
+        NeqImm, Sub, SubImm,
+    },
     Node::{self, Instruction},
     ParsingError, Token,
 };

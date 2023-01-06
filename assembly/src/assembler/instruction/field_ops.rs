@@ -1,6 +1,10 @@
 use super::{
-    validate_param, AssemblyError, CodeBlock, Felt, FieldElement, Operation::{Add, And, Assert, Drop, Dup0, Dup2, Dup3, Dup4, Dup5, Dup6, Dup7, Eq, Eqz, Expacc, Incr, MovDn2, MovUp2, MovUp3, Mul, Noop, Not, Or, Pad, Push, Swap, U32split, U32sub}, SpanBuilder,
-    StarkField, ONE, ZERO,
+    validate_param, AssemblyError, CodeBlock, Felt, FieldElement,
+    Operation::{
+        Add, And, Assert, Drop, Dup0, Dup2, Dup3, Dup4, Dup5, Dup6, Dup7, Eq, Eqz, Expacc, Incr,
+        MovDn2, MovUp2, MovUp3, Mul, Noop, Not, Or, Pad, Push, Swap, U32split, U32sub,
+    },
+    SpanBuilder, StarkField, ONE, ZERO,
 };
 use crate::MAX_EXP_BITS;
 

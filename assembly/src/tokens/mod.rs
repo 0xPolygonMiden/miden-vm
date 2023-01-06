@@ -255,7 +255,11 @@ fn validate_proc_locals(locals: &str, token: &Token) -> Result<u16, ParsingError
     match locals.parse::<u64>() {
         Ok(num_locals) => {
             if num_locals > u64::from(u16::MAX) {
-                return Err(ParsingError::too_many_proc_locals(token, num_locals, u64::from(u16::MAX)));
+                return Err(ParsingError::too_many_proc_locals(
+                    token,
+                    num_locals,
+                    u64::from(u16::MAX),
+                ));
             }
             Ok(num_locals as u16)
         }

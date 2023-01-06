@@ -326,7 +326,16 @@ impl ParserContext {
 
     /// Parses a token into an instruction node.
     fn parse_op_token(&self, op: &Token) -> Result<Node, ParsingError> {
-        use Instruction::{AdvLoadW, AdvPipe, And, Assert, AssertEq, Assertz, CDrop, CDropW, CSwap, CSwapW, Drop, DropW, Eqw, Gt, Gte, Inv, Lt, Lte, MTreeCwm, MTreeGet, MTreeSet, MemStream, Neg, Not, Or, PadW, Pow2, RpHash, RpPerm, Sdepth, SwapDw, U32AssertW, U32Cast, U32CheckedAnd, U32CheckedGt, U32CheckedGte, U32CheckedLt, U32CheckedLte, U32CheckedMax, U32CheckedMin, U32CheckedNot, U32CheckedOr, U32CheckedPopcnt, U32CheckedXor, U32OverflowingAdd3, U32OverflowingMadd, U32Split, U32Test, U32TestW, U32UncheckedGt, U32UncheckedGte, U32UncheckedLt, U32UncheckedLte, U32UncheckedMax, U32UncheckedMin, U32UncheckedPopcnt, U32WrappingAdd3, U32WrappingMadd, Xor};
+        use Instruction::{
+            AdvLoadW, AdvPipe, And, Assert, AssertEq, Assertz, CDrop, CDropW, CSwap, CSwapW, Drop,
+            DropW, Eqw, Gt, Gte, Inv, Lt, Lte, MTreeCwm, MTreeGet, MTreeSet, MemStream, Neg, Not,
+            Or, PadW, Pow2, RpHash, RpPerm, Sdepth, SwapDw, U32AssertW, U32Cast, U32CheckedAnd,
+            U32CheckedGt, U32CheckedGte, U32CheckedLt, U32CheckedLte, U32CheckedMax, U32CheckedMin,
+            U32CheckedNot, U32CheckedOr, U32CheckedPopcnt, U32CheckedXor, U32OverflowingAdd3,
+            U32OverflowingMadd, U32Split, U32Test, U32TestW, U32UncheckedGt, U32UncheckedGte,
+            U32UncheckedLt, U32UncheckedLte, U32UncheckedMax, U32UncheckedMin, U32UncheckedPopcnt,
+            U32WrappingAdd3, U32WrappingMadd, Xor,
+        };
 
         // based on the instruction, invoke the correct parser for the operation
         match op.parts()[0] {

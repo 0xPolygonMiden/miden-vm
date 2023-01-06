@@ -25,7 +25,13 @@ impl Assembler {
         ctx: &mut AssemblyContext,
     ) -> Result<Option<CodeBlock>, AssemblyError> {
         use AdviceInjector::{DivResultU64, Ext2INTT, Ext2Inv, MapValue};
-        use Operation::{Add, And, Assert, CSwap, CSwapW, Drop, Dup0, Dup1, Dup11, Dup13, Dup15, Dup2, Dup3, Dup4, Dup5, Dup6, Dup7, Dup9, Eq, Eqz, Incr, Inv, MStream, MovDn2, MovDn3, MovDn4, MovDn5, MovDn6, MovDn7, MovDn8, MovUp2, MovUp3, MovUp4, MovUp5, MovUp6, MovUp7, MovUp8, Mul, Neg, Not, Or, Pad, Pipe, Push, ReadW, RpPerm, SDepth, Swap, SwapDW, SwapW, SwapW2, SwapW3, U32add3, U32and, U32assert2, U32madd, U32split, U32xor};
+        use Operation::{
+            Add, And, Assert, CSwap, CSwapW, Drop, Dup0, Dup1, Dup11, Dup13, Dup15, Dup2, Dup3,
+            Dup4, Dup5, Dup6, Dup7, Dup9, Eq, Eqz, Incr, Inv, MStream, MovDn2, MovDn3, MovDn4,
+            MovDn5, MovDn6, MovDn7, MovDn8, MovUp2, MovUp3, MovUp4, MovUp5, MovUp6, MovUp7, MovUp8,
+            Mul, Neg, Not, Or, Pad, Pipe, Push, ReadW, RpPerm, SDepth, Swap, SwapDW, SwapW, SwapW2,
+            SwapW3, U32add3, U32and, U32assert2, U32madd, U32split, U32xor,
+        };
 
         // if the assembler is in debug mode, start tracking the instruction about to be executed;
         // this will allow us to map the instruction to the sequence of operations which were
@@ -259,13 +265,19 @@ impl Assembler {
             Instruction::MemLoadImm(v) => mem_ops::mem_read(span, ctx, Some(*v), false, true),
             Instruction::MemLoadW => mem_ops::mem_read(span, ctx, None, false, false),
             Instruction::MemLoadWImm(v) => mem_ops::mem_read(span, ctx, Some(*v), false, false),
-            Instruction::LocLoad(v) => mem_ops::mem_read(span, ctx, Some(u32::from(*v)), true, true),
-            Instruction::LocLoadW(v) => mem_ops::mem_read(span, ctx, Some(u32::from(*v)), true, false),
+            Instruction::LocLoad(v) => {
+                mem_ops::mem_read(span, ctx, Some(u32::from(*v)), true, true)
+            }
+            Instruction::LocLoadW(v) => {
+                mem_ops::mem_read(span, ctx, Some(u32::from(*v)), true, false)
+            }
             Instruction::MemStore => mem_ops::mem_write(span, ctx, None, false, true),
             Instruction::MemStoreImm(v) => mem_ops::mem_write(span, ctx, Some(*v), false, true),
             Instruction::MemStoreW => mem_ops::mem_write(span, ctx, None, false, false),
             Instruction::MemStoreWImm(v) => mem_ops::mem_write(span, ctx, Some(*v), false, false),
-            Instruction::LocStore(v) => mem_ops::mem_write(span, ctx, Some(u32::from(*v)), true, true),
+            Instruction::LocStore(v) => {
+                mem_ops::mem_write(span, ctx, Some(u32::from(*v)), true, true)
+            }
             Instruction::LocStoreW(v) => {
                 mem_ops::mem_write(span, ctx, Some(u32::from(*v)), true, false)
             }

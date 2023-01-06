@@ -267,8 +267,12 @@ mod tests {
     fn op_u32assert2() {
         // --- test random values ensuring other elements are still values are still intact ----------
         let (a, b, c, d) = get_rand_values();
-        let mut process =
-            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
+        let mut process = Process::new_dummy_with_decoder_helpers(&[
+            u64::from(d),
+            u64::from(c),
+            u64::from(b),
+            u64::from(a),
+        ]);
 
         process.execute_op(Operation::U32assert2).unwrap();
         let expected = build_expected(&[a, b, c, d]);
@@ -282,8 +286,12 @@ mod tests {
     fn op_u32add() {
         // --- test random values ---------------------------------------------
         let (a, b, c, d) = get_rand_values();
-        let mut process =
-            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
+        let mut process = Process::new_dummy_with_decoder_helpers(&[
+            u64::from(d),
+            u64::from(c),
+            u64::from(b),
+            u64::from(a),
+        ]);
         let (result, over) = a.overflowing_add(b);
 
         process.execute_op(Operation::U32add).unwrap();
@@ -334,8 +342,12 @@ mod tests {
     fn op_u32sub() {
         // --- test random values ---------------------------------------------
         let (a, b, c, d) = get_rand_values();
-        let mut process =
-            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
+        let mut process = Process::new_dummy_with_decoder_helpers(&[
+            u64::from(d),
+            u64::from(c),
+            u64::from(b),
+            u64::from(a),
+        ]);
         let (result, under) = b.overflowing_sub(a);
 
         process.execute_op(Operation::U32sub).unwrap();
@@ -357,8 +369,12 @@ mod tests {
     #[test]
     fn op_u32mul() {
         let (a, b, c, d) = get_rand_values();
-        let mut process =
-            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
+        let mut process = Process::new_dummy_with_decoder_helpers(&[
+            u64::from(d),
+            u64::from(c),
+            u64::from(b),
+            u64::from(a),
+        ]);
         let result = u64::from(a) * u64::from(b);
         let hi = (result >> 32) as u32;
         let lo = result as u32;
@@ -371,8 +387,12 @@ mod tests {
     #[test]
     fn op_u32madd() {
         let (a, b, c, d) = get_rand_values();
-        let mut process =
-            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
+        let mut process = Process::new_dummy_with_decoder_helpers(&[
+            u64::from(d),
+            u64::from(c),
+            u64::from(b),
+            u64::from(a),
+        ]);
         let result = u64::from(a) * u64::from(b) + u64::from(c);
         let hi = (result >> 32) as u32;
         let lo = result as u32;
@@ -389,8 +409,12 @@ mod tests {
     #[test]
     fn op_u32div() {
         let (a, b, c, d) = get_rand_values();
-        let mut process =
-            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
+        let mut process = Process::new_dummy_with_decoder_helpers(&[
+            u64::from(d),
+            u64::from(c),
+            u64::from(b),
+            u64::from(a),
+        ]);
         let q = b / a;
         let r = b % a;
 
@@ -405,8 +429,12 @@ mod tests {
     #[test]
     fn op_u32and() {
         let (a, b, c, d) = get_rand_values();
-        let mut process =
-            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
+        let mut process = Process::new_dummy_with_decoder_helpers(&[
+            u64::from(d),
+            u64::from(c),
+            u64::from(b),
+            u64::from(a),
+        ]);
 
         process.execute_op(Operation::U32and).unwrap();
         let expected = build_expected(&[a & b, c, d]);
@@ -420,8 +448,12 @@ mod tests {
     #[test]
     fn op_u32xor() {
         let (a, b, c, d) = get_rand_values();
-        let mut process =
-            Process::new_dummy_with_decoder_helpers(&[u64::from(d), u64::from(c), u64::from(b), u64::from(a)]);
+        let mut process = Process::new_dummy_with_decoder_helpers(&[
+            u64::from(d),
+            u64::from(c),
+            u64::from(b),
+            u64::from(a),
+        ]);
 
         process.execute_op(Operation::U32xor).unwrap();
         let expected = build_expected(&[a ^ b, c, d]);

@@ -122,9 +122,12 @@ pub fn get_u32split_test_frame(a: u64) -> EvaluationFrame<Felt> {
 
     // set the helper registers in the decoder.
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] = Felt::new(u64::from(t0));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] = Felt::new(u64::from(t1));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2] = Felt::new(u64::from(t2));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 3] = Felt::new(u64::from(t3));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] =
+        Felt::new(u64::from(t1));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2] =
+        Felt::new(u64::from(t2));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 3] =
+        Felt::new(u64::from(t3));
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 4] = m;
 
     frame
@@ -150,7 +153,8 @@ pub fn get_u32add_test_frame(a: u32, b: u32) -> EvaluationFrame<Felt> {
 
     // set the helper registers in the decoder.
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] = Felt::new(u64::from(t0));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] = Felt::new(u64::from(t1));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] =
+        Felt::new(u64::from(t1));
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2] = hi;
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 3] = ZERO;
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 4] = ZERO;
@@ -179,7 +183,8 @@ pub fn get_u32add3_test_frame(a: u32, b: u32, c: u32) -> EvaluationFrame<Felt> {
 
     // set the helper registers in the decoder.
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] = Felt::new(u64::from(t0));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] = Felt::new(u64::from(t1));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] =
+        Felt::new(u64::from(t1));
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2] = hi;
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 3] = ZERO;
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 4] = ZERO;
@@ -209,9 +214,12 @@ pub fn get_u32mul_test_frame(a: u32, b: u32) -> EvaluationFrame<Felt> {
 
     // set the helper registers in the decoder.
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] = Felt::new(u64::from(t0));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] = Felt::new(u64::from(t1));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2] = Felt::new(u64::from(t2));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 3] = Felt::new(u64::from(t3));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] =
+        Felt::new(u64::from(t1));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2] =
+        Felt::new(u64::from(t2));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 3] =
+        Felt::new(u64::from(t3));
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 4] = m;
 
     frame
@@ -241,9 +249,12 @@ pub fn get_u32madd_test_frame(a: u32, b: u32, c: u32) -> EvaluationFrame<Felt> {
 
     // set the helper registers in the decoder.
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] = Felt::new(u64::from(t0));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] = Felt::new(u64::from(t1));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2] = Felt::new(u64::from(t2));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 3] = Felt::new(u64::from(t3));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] =
+        Felt::new(u64::from(t1));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2] =
+        Felt::new(u64::from(t2));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 3] =
+        Felt::new(u64::from(t3));
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 4] = m;
 
     frame
@@ -268,7 +279,8 @@ pub fn get_u32sub_test_frame(a: u32, b: u32) -> EvaluationFrame<Felt> {
 
     // set the helper registers in the decoder.
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] = Felt::new(u64::from(t0));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] = Felt::new(u64::from(t1));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] =
+        Felt::new(u64::from(t1));
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2] = ZERO;
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 3] = ZERO;
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 4] = ZERO;
@@ -301,9 +313,12 @@ pub fn get_u32div_test_frame(a: u32, b: u32) -> EvaluationFrame<Felt> {
 
     // set the helper registers in the decoder.
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET] = Felt::new(u64::from(t0));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] = Felt::new(u64::from(t1));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2] = Felt::new(u64::from(t2));
-    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 3] = Felt::new(u64::from(t3));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 1] =
+        Felt::new(u64::from(t1));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 2] =
+        Felt::new(u64::from(t2));
+    frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 3] =
+        Felt::new(u64::from(t3));
     frame.current_mut()[DECODER_TRACE_OFFSET + USER_OP_HELPERS_OFFSET + 4] = ZERO;
 
     frame

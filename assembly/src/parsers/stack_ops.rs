@@ -1,5 +1,13 @@
 use super::{
-    Instruction::{Dup0, Dup1, Dup10, Dup11, Dup12, Dup13, Dup14, Dup15, Dup2, Dup3, Dup4, Dup5, Dup6, Dup7, Dup8, Dup9, DupW0, DupW1, DupW2, DupW3, MovDn10, MovDn11, MovDn12, MovDn13, MovDn14, MovDn15, MovDn2, MovDn3, MovDn4, MovDn5, MovDn6, MovDn7, MovDn8, MovDn9, MovDnW2, MovDnW3, MovUp10, MovUp11, MovUp12, MovUp13, MovUp14, MovUp15, MovUp2, MovUp3, MovUp4, MovUp5, MovUp6, MovUp7, MovUp8, MovUp9, MovUpW2, MovUpW3, Swap1, Swap10, Swap11, Swap12, Swap13, Swap14, Swap15, Swap2, Swap3, Swap4, Swap5, Swap6, Swap7, Swap8, Swap9, SwapW1, SwapW2, SwapW3},
+    Instruction::{
+        Dup0, Dup1, Dup10, Dup11, Dup12, Dup13, Dup14, Dup15, Dup2, Dup3, Dup4, Dup5, Dup6, Dup7,
+        Dup8, Dup9, DupW0, DupW1, DupW2, DupW3, MovDn10, MovDn11, MovDn12, MovDn13, MovDn14,
+        MovDn15, MovDn2, MovDn3, MovDn4, MovDn5, MovDn6, MovDn7, MovDn8, MovDn9, MovDnW2, MovDnW3,
+        MovUp10, MovUp11, MovUp12, MovUp13, MovUp14, MovUp15, MovUp2, MovUp3, MovUp4, MovUp5,
+        MovUp6, MovUp7, MovUp8, MovUp9, MovUpW2, MovUpW3, Swap1, Swap10, Swap11, Swap12, Swap13,
+        Swap14, Swap15, Swap2, Swap3, Swap4, Swap5, Swap6, Swap7, Swap8, Swap9, SwapW1, SwapW2,
+        SwapW3,
+    },
     Node::{self, Instruction},
     ParsingError, Token,
 };
