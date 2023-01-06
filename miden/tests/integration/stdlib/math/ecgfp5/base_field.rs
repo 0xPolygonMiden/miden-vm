@@ -344,6 +344,7 @@ impl Mul for Ext5 {
 impl Div for Ext5 {
     type Output = Self;
 
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Self) -> Self::Output {
         self * rhs.inv()
     }
