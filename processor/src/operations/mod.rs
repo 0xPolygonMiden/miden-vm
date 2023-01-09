@@ -139,6 +139,8 @@ where
             Operation::RpPerm => self.op_rpperm()?,
             Operation::MpVerify => self.op_mpverify()?,
             Operation::MrUpdate(copy) => self.op_mrupdate(copy)?,
+
+            Operation::Ext2Mul => todo!(),
         }
 
         self.advance_clock();

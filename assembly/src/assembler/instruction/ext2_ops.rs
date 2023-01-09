@@ -22,20 +22,13 @@ pub fn ext2_add(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 pub fn ext2_sub(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
     let ops = [
-        Swap,           // [a0,a1,b1,b0,...]
-        
+        Swap,           // [a0,a1,b1,b0,...]  
         MovUp3,         // [b0,a0,a1,b1,...]
-        
         Neg,            // [-b0,a0,a1,b1,...]
-        
         Add,            // [a0-b0,a1,b1,...]
-        
         MovDn2,         // [a1,b1,a0-b0,...]
-        
         Swap,           // [b1,a1,a0-b0,...]
-        
         Neg,            // [-b1,a1,a0-b0,...]
-        
         Add             // [a1-b1,a0-b0,...]
     ];
     span.add_ops(ops)
@@ -76,14 +69,10 @@ pub fn ext2_div(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 pub fn ext2_neg(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
     let ops = [
-        // [a1,a0,...]
-        Neg,
-        // [a0,-a1,...]
-        Swap,
-        // [-a0,-a1,...]
-        Neg,
-        // [-a1,-a0,...]
-        Swap
+        Neg,            // [a1,a0,...]
+        Swap,           // [a0,-a1,...]
+        Neg,            // [-a0,-a1,...]
+        Swap            // [-a1,-a0,...]
         ];
     span.add_ops(ops)
 }

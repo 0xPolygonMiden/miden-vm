@@ -50,6 +50,14 @@ pub enum Instruction {
     Gt,
     Gte,
 
+    // ----- ext2 operations ----------------------------------------------------------------------
+    Ext2Add,
+    Ext2Sub,
+    Ext2Mul,
+    Ext2Div,
+    Ext2Neg,
+    Ext2Inv,
+
     // ----- u32 manipulation ---------------------------------------------------------------------
     U32Test,
     U32TestW,
@@ -257,14 +265,6 @@ pub enum Instruction {
     MTreeGet,
     MTreeSet,
     MTreeCwm,
-
-    // ----- ext2 operations ----------------------------------------------------------------------
-    Ext2Add,
-    Ext2Sub,
-    Ext2Mul,
-    Ext2Div,
-    Ext2Neg,
-    Ext2Inv,
 
     // ----- exec / call --------------------------------------------------------------------------
     ExecLocal(u16),
