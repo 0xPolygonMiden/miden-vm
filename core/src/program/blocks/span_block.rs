@@ -321,7 +321,7 @@ impl OpBatchAccumulator {
 // ================================================================================================
 
 /// Groups the provided operations into batches as described in the docs for this module (i.e.,
-/// up to 9 operations per group, and up to 8 groups per batch).
+/// up to 9 operations per group, and 8 groups per batch).
 ///
 /// After the operations have been grouped, computes the hash of the block.
 fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
@@ -352,8 +352,7 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
     }
 
     // compute the hash of all operation groups
-    let num_op_groups = get_span_op_group_count(&batches);
-    let op_groups = &flatten_slice_elements(&batch_groups)[..num_op_groups];
+    let op_groups = &flatten_slice_elements(&batch_groups);
     let hash = hasher::hash_elements(op_groups);
 
     (batches, hash)

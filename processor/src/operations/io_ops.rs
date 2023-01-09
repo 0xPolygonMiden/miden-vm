@@ -82,12 +82,13 @@ where
         Ok(())
     }
 
-    /// Loads two words from memory and adds their contents to the top 8 elements of the stack.
+    /// Loads two words from memory and replaces the top 8 elements of the stack with their
+    /// contents.
     ///
     /// The operation works as follows:
     /// - The memory address of the first word is retrieved from 13th stack element (position 12).
     /// - Two consecutive words, starting at this address, are loaded from memory.
-    /// - Elements of these words are added to the top 8 elements of the stack (element-wise, in
+    /// - Elements of these words are written to the top 8 elements of the stack (element-wise, in
     ///   stack order).
     /// - Memory address (in position 12) is incremented by 2.
     /// - All other stack elements remain the same.
@@ -99,10 +100,9 @@ where
         // load two words from memory
         let words = self.chiplets.read_mem_double(ctx, addr);
 
-        // add word elements to the elements already on the stack (in stack order)
+        // replace the stack elements with the elements from memory (in stack order)
         for (i, &mem_value) in words.iter().flat_map(|word| word.iter()).rev().enumerate() {
-            let stack_value = self.stack.get(i);
-            self.stack.set(i, stack_value + mem_value);
+            self.stack.set(i, mem_value);
         }
 
         // copy over the next 4 elements
@@ -188,8 +188,7 @@ where
     /// - The destination memory address for the first word is retrieved from the 13th stack element
     ///   (position 12).
     /// - The two words are written to memory consecutively, starting at this address.
-    /// - Elements of these words are added to the top 8 elements of the stack (element-wise, in
-    ///   stack order).
+    /// - These words replace the top 8 elements of the stack (element-wise, in stack order).
     /// - Memory address (in position 12) is incremented by 2.
     /// - All other stack elements remain the same.
     pub(super) fn op_pipe(&mut self) -> Result<(), ExecutionError> {
@@ -203,10 +202,9 @@ where
         // write the words memory
         self.chiplets.write_mem_double(ctx, addr, words);
 
-        // add word elements to the elements already on the stack (in stack order)
+        // replace the elements on the stack with the word elements (in stack order)
         for (i, &adv_value) in words.iter().flat_map(|word| word.iter()).rev().enumerate() {
-            let stack_value = self.stack.get(i);
-            self.stack.set(i, stack_value + adv_value);
+            self.stack.set(i, adv_value);
         }
 
         // copy over the next 4 elements

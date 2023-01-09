@@ -2,17 +2,11 @@
 
 use super::{create_range, Felt, Word, HASHER_AUX_TRACE_OFFSET, ONE, ZERO};
 use core::ops::Range;
-use crypto::{ElementHasher, Hasher as HashFn};
 
-pub use crypto::hashers::Rp64_256 as Hasher;
+pub use crypto::hash::rpo::{Rpo256 as Hasher, RpoDigest as Digest};
 
 // TYPES ALIASES
 // ================================================================================================
-
-/// Output type of Rescue Prime hash function.
-///
-/// The digest consists of 4 field elements or 32 bytes.
-pub type Digest = <Hasher as HashFn>::Digest;
 
 /// Type for Hasher trace selector. These selectors are used to define which transition function
 /// is to be applied at a specific row of the hasher execution trace.
@@ -161,12 +155,18 @@ pub fn apply_permutation(state: &mut [Felt; STATE_WIDTH]) {
 // HASHER STATE MUTATORS
 // ================================================================================================
 
-/// Initializes hasher state with the first 8 elements to be absorbed and the specified total
-/// number of elements to be absorbed.
+/// Initializes hasher state with the first 8 elements to be absorbed. In accordance with the RPO
+/// padding rule, the first capacity element is set with the provided padding flag, which is assumed
+/// to be ZERO or ONE, depending on whether the number of elements to be absorbed is a multiple of
+/// the rate or not. The remaining elements in the capacity portion of the state are set to ZERO.
 #[inline(always)]
-pub fn init_state(init_values: &[Felt; RATE_LEN], num_elements: usize) -> [Felt; STATE_WIDTH] {
+pub fn init_state(init_values: &[Felt; RATE_LEN], padding_flag: Felt) -> [Felt; STATE_WIDTH] {
+    debug_assert!(
+        padding_flag == ZERO || padding_flag == ONE,
+        "first capacity element must be 0 or 1"
+    );
     [
-        Felt::new(num_elements as u64),
+        padding_flag,
         ZERO,
         ZERO,
         ZERO,
@@ -181,38 +181,26 @@ pub fn init_state(init_values: &[Felt; RATE_LEN], num_elements: usize) -> [Felt;
     ]
 }
 
-/// Initializes hasher state with the elements from the provided words. The number of elements
-/// to be hashed is set to 8.
+/// Initializes hasher state with the elements from the provided words. Because the length of the
+/// input is a multiple of the rate, all capacity elements are initialized to zero, as specified by
+/// the Rescue Prime Optimized padding rule.
 #[inline(always)]
 pub fn init_state_from_words(w1: &Word, w2: &Word) -> [Felt; STATE_WIDTH] {
-    [
-        Felt::from(8_u8),
-        ZERO,
-        ZERO,
-        ZERO,
-        w1[0],
-        w1[1],
-        w1[2],
-        w1[3],
-        w2[0],
-        w2[1],
-        w2[2],
-        w2[3],
-    ]
+    [ZERO, ZERO, ZERO, ZERO, w1[0], w1[1], w1[2], w1[3], w2[0], w2[1], w2[2], w2[3]]
 }
 
-/// Absorbs the specified values into the provided state by adding values to corresponding
-/// elements in the rate portion of the state.
+/// Absorbs the specified values into the provided state by overwriting the corresponding elements
+/// in the rate portion of the state.
 #[inline(always)]
 pub fn absorb_into_state(state: &mut [Felt; STATE_WIDTH], values: &[Felt; RATE_LEN]) {
-    state[4] += values[0];
-    state[5] += values[1];
-    state[6] += values[2];
-    state[7] += values[3];
-    state[8] += values[4];
-    state[9] += values[5];
-    state[10] += values[6];
-    state[11] += values[7];
+    state[4] = values[0];
+    state[5] = values[1];
+    state[6] = values[2];
+    state[7] = values[3];
+    state[8] = values[4];
+    state[9] = values[5];
+    state[10] = values[6];
+    state[11] = values[7];
 }
 
 /// Returns elements representing the digest portion of the provided hasher's state.

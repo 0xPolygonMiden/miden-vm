@@ -1,10 +1,8 @@
 use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder};
-use vm_core::{AdviceInjector, Decorator, Felt};
+use vm_core::{AdviceInjector, Decorator};
 
 // HASHING
 // ================================================================================================
-// The number of elements to be hashed by the rphash operation
-const RPHASH_NUM_ELEMENTS: u64 = 8;
 
 /// Appends RPPERM and stack manipulation operations to the span block as required to compute a
 /// 2-to-1 Rescue Prime hash. The top of the stack is expected to be arranged with 2 words
@@ -16,11 +14,13 @@ const RPHASH_NUM_ELEMENTS: u64 = 8;
 ///
 /// To perform the operation, we do the following:
 /// 1. Prepare the stack with 12 elements for RPPERM by pushing 4 more elements for the capacity,
-///    including the number of elements to be hashed (8), so the stack looks like [C, B, A, ...]
-///    where C is the capacity, and the number of elements is the deepest element in C.
-/// 2. Reorder the stack so the capacity is deepest in the stack [B, A, C, ...]
-/// 3. Append the RPPERM operation, which performs a Rescue Prime permutation on the top 12
-///    elements and leaves an output of [F, E, D, ...] on the stack. E is our 2-to-1 hash result.
+///    then reordering so the stack looks like [A, B, C, ...] where C is the capacity. All capacity
+///    elements are set to ZERO, in accordance with the RPO padding rule for when the input length
+///    is a multiple of the rate.
+/// 2. Reorder the top 2 words to restore the order of the elements to be hashed to [B, A, C, ...].
+/// 3. Append the RPPERM operation, which performs a permutation of Rescue Prime Optimized on the
+///    top 12 elements and leaves an output of [F, E, D, ...] on the stack. E is our 2-to-1 hash
+///    result.
 /// 4. Drop F and D to return our result [E, ...].
 ///
 /// This operation takes 16 VM cycles.
@@ -30,7 +30,7 @@ pub(super) fn rphash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assemb
         // Add 4 elements to the stack to prepare the capacity portion for the Rescue Prime permutation
         // The capacity should start at stack[8], and the number of elements to be hashed should
         // be deepest in the stack at stack[11]
-        Push(Felt::new(RPHASH_NUM_ELEMENTS)), Pad, Pad, Pad, SwapW2,
+        Pad, Pad, Pad, Pad, SwapW2,
 
         // restore the order of the top 2 words to be hashed
         SwapW,
