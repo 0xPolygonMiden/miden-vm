@@ -392,6 +392,8 @@ pub enum Operation {
     /// the specified root will be removed from the advice provider. Otherwise, the advice
     /// provider will keep track of both, the old and the new advice sets.
     MrUpdate(bool),
+
+    Ext2Mul,
 }
 
 impl Operation {
@@ -506,6 +508,7 @@ impl Operation {
             Self::Repeat    => 0b0111_0100,
             Self::Respan    => 0b0111_1000,
             Self::Halt      => 0b0111_1100,
+            Self::Ext2Mul   => todo!()
         }
     }
 
@@ -656,6 +659,7 @@ impl fmt::Display for Operation {
                     write!(f, "mrupdate(move)")
                 }
             }
+            Self::Ext2Mul => todo!(),
         }
     }
 }
