@@ -1,10 +1,13 @@
-use super::{utils::assert_binary, ExecutionError, Felt, FieldElement, Process};
+use super::{utils::assert_binary, AdviceProvider, ExecutionError, Felt, FieldElement, Process};
 use vm_core::{Operation, StarkField, ZERO};
 
 // FIELD OPERATIONS
 // ================================================================================================
 
-impl Process {
+impl<A> Process<A>
+where
+    A: AdviceProvider,
+{
     // ARITHMETIC OPERATIONS
     // --------------------------------------------------------------------------------------------
     /// Pops two elements off the stack, adds them together, and pushes the result back onto the
