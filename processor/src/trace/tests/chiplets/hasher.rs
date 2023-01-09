@@ -51,9 +51,8 @@ pub fn b_chip_span() {
     // - the initialization of the span hash is requested by the decoder
     // - the initialization of the span hash is provided by the hasher
 
-    // initialize the request state with capacity equal to the number of operation groups.
+    // initialize the request state.
     let mut state = [ZERO; STATE_WIDTH];
-    state[0] = ONE;
     fill_state_from_decoder(&trace, &mut state, 0);
     // request the initialization of the span hash
     let request_init =
@@ -117,9 +116,8 @@ pub fn b_chip_span_with_respan() {
     // - the initialization of the span hash is requested by the decoder
     // - the initialization of the span hash is provided by the hasher
 
-    // initialize the request state with capacity equal to the number of operation groups.
+    // initialize the request state.
     let mut state = [ZERO; STATE_WIDTH];
-    state[0] = Felt::new(12);
     fill_state_from_decoder(&trace, &mut state, 0);
     // request the initialization of the span hash
     let request_init =
@@ -204,9 +202,8 @@ pub fn b_chip_merge() {
     // - the initialization of the merge of the split's child hashes is requested by the decoder
     // - the initialization of the code block merge is provided by the hasher
 
-    // initialize the request state with capacity equal to the number of operation groups.
+    // initialize the request state.
     let mut split_state = [ZERO; STATE_WIDTH];
-    split_state[0] = Felt::new(8);
     fill_state_from_decoder(&trace, &mut split_state, 0);
     // request the initialization of the span hash
     let split_init =
@@ -220,7 +217,6 @@ pub fn b_chip_merge() {
     // at cycle 1 the initialization of the span block hash for the false branch is requested by the
     // decoder
     let mut f_branch_state = [ZERO; STATE_WIDTH];
-    f_branch_state[0] = Felt::new(1);
     fill_state_from_decoder(&trace, &mut f_branch_state, 1);
     // request the initialization of the false branch hash
     let f_branch_init = build_expected(
@@ -318,9 +314,8 @@ pub fn b_chip_permutation() {
     // - the initialization of the span hash is requested by the decoder
     // - the initialization of the span hash is provided by the hasher
 
-    // initialize the request state with capacity equal to the number of operation groups.
+    // initialize the request state.
     let mut span_state = [ZERO; STATE_WIDTH];
-    span_state[0] = ONE;
     fill_state_from_decoder(&trace, &mut span_state, 0);
     // request the initialization of the span hash
     let span_init =
@@ -432,9 +427,8 @@ fn b_chip_mpverify() {
     // - the initialization of the span hash is requested by the decoder
     // - the initialization of the span hash is provided by the hasher
 
-    // initialize the request state with capacity equal to the number of operation groups.
+    // initialize the request state.
     let mut span_state = [ZERO; STATE_WIDTH];
-    span_state[0] = ONE;
     fill_state_from_decoder(&trace, &mut span_state, 0);
     // request the initialization of the span hash
     let span_init =
@@ -646,7 +640,7 @@ fn fill_state_from_decoder(trace: &ExecutionTrace, state: &mut HasherState, row:
 /// row into the provided HasherState.
 fn absorb_state_from_decoder(trace: &ExecutionTrace, state: &mut HasherState, row: usize) {
     for (i, col_idx) in DECODER_HASHER_STATE_RANGE.enumerate() {
-        state[CAPACITY_LEN + i] += trace.main_trace.get_column(col_idx)[row];
+        state[CAPACITY_LEN + i] = trace.main_trace.get_column(col_idx)[row];
     }
 }
 

@@ -43,13 +43,13 @@ fn mem_stream_pipe() {
 
     let advice_tape = [1, 2, 3, 4, 5, 6, 7, 8];
 
-    // --- different stack values should cause different results from adv_pipe and mem_stream -----
+    // --- different stack values should yield the same results from adv_pipe and mem_stream ------
     // initialize with anything other than zeros, since the stack is set to 0s between the adv_pipe
     // and mem_stream operations in the source script.
     let stack_inputs = [1, 1, 1, 1, 1, 1, 1, 1];
     let test = build_test!(source, &stack_inputs, &advice_tape, vec![]);
     let final_stack = test.get_last_stack_state();
-    assert_ne!(final_stack[0..4], final_stack[4..8]);
+    assert_eq!(final_stack[0..4], final_stack[4..8]);
 
     // --- the same stack values should yield the same results from adv_pipe and mem_stream -------
     // initialize with all zeros, just like between the adv_pipe and mem_stream operations above.

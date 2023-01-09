@@ -12,10 +12,10 @@ use winter_air::EvaluationFrame;
 // UNIT TESTS
 // ================================================================================================
 
-/// Tests instruction RPR, which is executed on all cycles that are not one less than a multiple of
-/// eight, and applies a round of Rescue-XLIX.
+/// Tests instruction HR, which is executed on all cycles that are not one less than a multiple of
+/// eight, and applies a round of the VM's native hash function.
 #[test]
-fn rescue_round() {
+fn hash_round() {
     let expected = [Felt::ZERO; NUM_CONSTRAINTS];
 
     let cycle_row_num: usize = 3;
