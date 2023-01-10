@@ -4,14 +4,16 @@ use vm_core::{AdviceInjector::Ext2Inv, Decorator, Felt, Operation};
 /// Given a stack in the following initial configuration [a1, a0, b1, b0, ...] where a = (a0, a1)
 /// and b = (b0, b1) represent elements in the extension field of degree 2, this series of
 /// operations outputs the result c = (c1, c0) where c1 = a1 + b1 and c0 = a0 + b0.
+///
+/// This operation takes 5 VM cycles.
 pub fn ext2_add(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
     let ops = [
-        Swap,           // [a0,a1,b1,b0,...]
-        MovUp3,         // [b0,a0,a1,b1,...]
-        Add,            // [b0+a0,a1,b1,...]
-        MovDn2,         // [a1,b1,b0+a0,...]
-        Add             // [a1+b1,b0+a0,...]
+        Swap,           // [a0, a1, b1, b0, ...]
+        MovUp3,         // [b0, a0, a1, b1, ...]
+        Add,            // [b0+a0, a1, b1, ...]
+        MovDn2,         // [a1, b1, b0+a0, ...]
+        Add             // [a1+b1, b0+a0, ...]
     ];
     span.add_ops(ops)
 }
@@ -19,17 +21,19 @@ pub fn ext2_add(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 /// Given a stack in the following initial configuration [a1, a0, b1, b0, ...] where a = (a0, a1)
 /// and b = (b0, b1) represent elements in the extension field of degree 2, this series of
 /// operations outputs the result c = (c1, c0) where c1 = a1 - b1 and c0 = a0 - b0.
+///
+/// This operation takes 8 VM cycles.
 pub fn ext2_sub(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
     let ops = [
-        Swap,           // [a0,a1,b1,b0,...]  
-        MovUp3,         // [b0,a0,a1,b1,...]
-        Neg,            // [-b0,a0,a1,b1,...]
-        Add,            // [a0-b0,a1,b1,...]
-        MovDn2,         // [a1,b1,a0-b0,...]
-        Swap,           // [b1,a1,a0-b0,...]
-        Neg,            // [-b1,a1,a0-b0,...]
-        Add             // [a1-b1,a0-b0,...]
+        Swap,           // [a0, a1, b1, b0, ...]  
+        MovUp3,         // [b0, a0, a1, b1, ...]
+        Neg,            // [-b0, a0, a1, b1, ...]
+        Add,            // [a0-b0, a1, b1, ...]
+        MovDn2,         // [a1, b1, a0-b0, ...]
+        Swap,           // [b1, a1, a0-b0, ...]
+        Neg,            // [-b1, a1, a0-b0, ...]
+        Add             // [a1-b1, a0-b0, ...]
     ];
     span.add_ops(ops)
 }
@@ -37,6 +41,8 @@ pub fn ext2_sub(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 /// Given a stack with initial configuration given by [a1, a0, b1, b0, ...] where a = (a0, a1) and
 /// b = (b0, b1) represent elements in the extension field of degree 2, this series of operations
 /// outputs the product c = (c1, c0) where c0 = a0b0 - 2(a1b1) and c1 = (a0 + a1)(b0 + b1) - a0b0
+///
+/// This operation takes 24 cycles.
 pub fn ext2_mul(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     span.add_ops(ext2_mul_ops())
 }
@@ -44,6 +50,8 @@ pub fn ext2_mul(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 /// Given a stack in the following initial configuration [a1,a0,b1,b0,...] where a = (a0, a1) and
 /// b = (b0, b1) represent elements in the extension field of degree 2, this series of operations
 /// outputs the result c = (c1, c0) where c1 = a1 / b1 and c0 = a0 / b0.
+///
+/// This operation takes 57 VM cycles.
 pub fn ext2_div(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     span.add_decorator(Decorator::Advice(Ext2Inv))?;
     #[rustfmt::skip]
@@ -65,15 +73,17 @@ pub fn ext2_div(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 
 /// Given a stack with initial configuration given by [a1, a0, ...] where a = (a0,a1) represents
 /// elements in the extension field of degree 2, the procedure outputs the negative of a, i.e.
-/// [-a1,-a0,...]
+/// [-a1, -a0, ...]
+///
+/// This operation takes 4 VM cycles.
 pub fn ext2_neg(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
     let ops = [
-        Neg,            // [a1,a0,...]
-        Swap,           // [a0,-a1,...]
-        Neg,            // [-a0,-a1,...]
-        Swap            // [-a1,-a0,...]
-        ];
+        Neg,            // [a1, a0, ...]
+        Swap,           // [a0, -a1, ...]
+        Neg,            // [-a0, -a1, ...]
+        Swap            // [-a1, -a0, ...]
+    ];
     span.add_ops(ops)
 }
 
@@ -99,7 +109,9 @@ pub fn ext2_neg(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 /// a' = (a'0, a'1) ( = a ^ -1 )
 ///
 /// b  = a * a' ( mod P ) | P = irreducible polynomial x^2 - x + 2 over F_q, q = 2^64 - 2^32 + 1
-/// assert b  = (1, 0) | (1, 0) is the multiplicative identity of extension field
+/// assert b  = (1, 0) | (1, 0) is the multiplicative identity of extension field.
+///
+/// This operation takes 33 VM cycles.
 pub fn ext2_inv(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     span.add_decorator(Decorator::Advice(Ext2Inv))?;
     #[rustfmt::skip]
@@ -122,28 +134,30 @@ pub fn ext2_inv(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 /// Given a stack with initial configuration given by [a1,a0,b1,b0,...] where a = (a0,a1) and
 /// b = (b0,b1) represent elements in the extension field of degree 2, the procedure outputs the
 /// product c = (c1,c0) where c0 = a0b0 - 2(a1b1) and c1 = (a0 + a1)(b0 + b1) - a0b0
+///
+/// This sequence of operations takes 24 VM cycles.
 fn ext2_mul_ops() -> Vec<Operation> {
     #[rustfmt::skip]
     let ops = vec![
-        Dup3, Dup3, Dup3, Dup3,   // [a1,a0,b1,b0,a1,a0,b1,b0,...]
-        MovDn2, MovUp3,           // [b0,a0,b1,a1,a1,a0,b1,b0,...]
-        Mul,                      // [b0a0,a1,a1,a0,b1,b0,...]
-        Dup0,                     // [b0a0,b0a0,a1,a1,a0,b1,b0,...]
-        MovDn7,                   // [b0a0,b1,a1,a1,a0,b1,b0,b0a0,...]
-        MovDn2,                   // [b1,a1,b0a0,a1,a0,b1,b0,b0a0,...]
-        Push(Felt::new(2)),       // [2,b1,a1,b0a0,a1,a0,b1,b0,b0a0,...]
-        Mul,                      // [2b1,a1,b0a0,a1,a0,b1,b0,b0a0,...]
-        Mul,                      // [2b1a1,b0a0,a1,a0,b1,b0,b0a0,...]
-        Neg,                      // [-2b1a1,b0a0,a1,a0,b1,b0,b0a0,...]
-        Add,                      // [b0a0-2b1a1,a1,a0,b1,b0,b0a0,...]
-        MovDn5,                   // [a1,a0,b1,b0,b0a0,b0a0-2b1a1,...]
-        Add,                      // [a1+a0,b1,b0,b0a0,b0a0-2b1a1,...]
-        Swap, MovUp2,             // [b0,b1,a1+a0,b0a0,b0a0-2b1a1,...]
-        Add,                      // [b0+b1,a1+a0,b0a0,b0a0-2b1a1,...]
-        Mul,                      // [(b0+b1)(a1+a0),b0a0,b0a0-2b1a1,...]
-        Swap,                     // [b0a0,(b0+b1)(a1+a0),b0a0-2b1a1,...]
-        Neg,                      // [-b0a0,(b0+b1)(a1+a0),b0a0-2b1a1,...]
-        Add,                      // [(b0+b1)(a1+a0)-b0a0,b0a0-2b1a1,...]
+        Dup3, Dup3, Dup3, Dup3,   // [a1, a0, b1, b0, a1, a0, b1, b0, ...]
+        MovDn2, MovUp3,           // [b0, a0, b1, a1, a1, a0, b1, b0, ...]
+        Mul,                      // [b0a0, a1, a1, a0, b1, b0, ...]
+        Dup0,                     // [b0a0, b0a0, a1, a1, a0, b1, b0, ...]
+        MovDn7,                   // [b0a0, b1, a1, a1, a0, b1, b0, b0a0, ...]
+        MovDn2,                   // [b1, a1, b0a0, a1, a0, b1, b0, b0a0, ...]
+        Push(Felt::new(2)),       // [2, b1, a1, b0a0, a1, a0, b1, b0, b0a0, ...]
+        Mul,                      // [2b1, a1, b0a0, a1, a0, b1, b0, b0a0, ...]
+        Mul,                      // [2b1a1, b0a0, a1, a0, b1, b0, b0a0, ...]
+        Neg,                      // [-2b1a1, b0a0, a1, a0, b1, b0, b0a0, ...]
+        Add,                      // [b0a0-2b1a1, a1, a0, b1, b0, b0a0, ...]
+        MovDn5,                   // [a1, a0, b1, b0, b0a0, b0a0-2b1a1, ...]
+        Add,                      // [a1+a0, b1, b0, b0a0, b0a0-2b1a1, ...]
+        Swap, MovUp2,             // [b0, b1, a1+a0, b0a0, b0a0-2b1a1, ...]
+        Add,                      // [b0+b1, a1+a0, b0a0, b0a0-2b1a1, ...]
+        Mul,                      // [(b0+b1)(a1+a0), b0a0, b0a0-2b1a1, ...]
+        Swap,                     // [b0a0, (b0+b1)(a1+a0), b0a0-2b1a1, ...]
+        Neg,                      // [-b0a0, (b0+b1)(a1+a0), b0a0-2b1a1, ...]
+        Add,                      // [(b0+b1)(a1+a0)-b0a0, b0a0-2b1a1, ...]
     ];
     ops
 }

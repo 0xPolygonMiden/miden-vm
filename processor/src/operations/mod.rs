@@ -65,6 +65,9 @@ where
 
             Operation::Expacc => self.op_expacc()?,
 
+            // ----- ext2 operations --------------------------------------------------------------
+            Operation::Ext2Mul => todo!(),
+
             // ----- u32 operations ---------------------------------------------------------------
             Operation::U32split => self.op_u32split()?,
             Operation::U32add => self.op_u32add()?,
@@ -139,8 +142,6 @@ where
             Operation::RpPerm => self.op_rpperm()?,
             Operation::MpVerify => self.op_mpverify()?,
             Operation::MrUpdate(copy) => self.op_mrupdate(copy)?,
-
-            Operation::Ext2Mul => todo!(),
         }
 
         self.advance_clock();

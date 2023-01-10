@@ -440,7 +440,7 @@ impl Operation {
             Self::MovUp7    => 0b0001_0110,
             Self::MovDn7    => 0b0001_0111,
             Self::SwapW     => 0b0001_1000,
-            // <empty>      => 0b0001_1001
+            Self::Ext2Mul   => 0b0001_1001,
             Self::MovUp8    => 0b0001_1010,
             Self::MovDn8    => 0b0001_1011,
             Self::SwapW2    => 0b0001_1100,
@@ -508,7 +508,6 @@ impl Operation {
             Self::Repeat    => 0b0111_0100,
             Self::Respan    => 0b0111_1000,
             Self::Halt      => 0b0111_1100,
-            Self::Ext2Mul   => todo!()
         }
     }
 
@@ -578,6 +577,9 @@ impl fmt::Display for Operation {
             Self::Eqz => write!(f, "eqz"),
 
             Self::Expacc => write!(f, "expacc"),
+
+            // ----- ext2 operations --------------------------------------------------------------
+            Self::Ext2Mul => write!(f, "ext2mul"),
 
             // ----- u32 operations ---------------------------------------------------------------
             Self::U32assert2 => write!(f, "u32assert2"),
@@ -659,7 +661,6 @@ impl fmt::Display for Operation {
                     write!(f, "mrupdate(move)")
                 }
             }
-            Self::Ext2Mul => todo!(),
         }
     }
 }
