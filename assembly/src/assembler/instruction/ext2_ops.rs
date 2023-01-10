@@ -42,20 +42,21 @@ pub fn ext2_sub(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 /// b = (b0, b1) represent elements in the extension field of degree 2, this series of operations
 /// outputs the product c = (c1, c0) where c0 = a0b0 - 2(a1b1) and c1 = (a0 + a1)(b0 + b1) - a0b0
 ///
-/// This operation takes 24 cycles.
+/// This operation takes 24 VM cycles.
 pub fn ext2_mul(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     span.add_ops(ext2_mul_ops())
 }
 
-/// Given a stack in the following initial configuration [a1,a0,b1,b0,...] where a = (a0, a1) and
-/// b = (b0, b1) represent elements in the extension field of degree 2, this series of operations
-/// outputs the result c = (c1, c0) where c1 = a1 / b1 and c0 = a0 / b0.
+/// Given a stack in the following initial configuration [a1, a0, b1, b0, ...] where a = (a0, a1)
+/// and b = (b0, b1) represent elements in the extension field of degree 2, this series of
+/// operations outputs the result c = (c1, c0) where c1 = a1 / b1 and c0 = a0 / b0.
 ///
-/// This operation takes 57 VM cycles.
+/// This operation takes 59 VM cycles.
 pub fn ext2_div(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+    span.add_ops(vec![MovUp3, MovUp3])?;
     span.add_decorator(Decorator::Advice(Ext2Inv))?;
     #[rustfmt::skip]
-    let mut ops = vec![
+    let ops = vec![
         Read,
         Read,
         Dup1,
@@ -63,15 +64,13 @@ pub fn ext2_div(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
         MovUp5,
         MovUp5,
     ];
-    #[rustfmt::skip]
-    ops.extend_from_slice(&ext2_mul_ops());
-    ops.extend_from_slice(&[Eqz, Assert, Assert]);
-    ops.extend_from_slice(&ext2_mul_ops());
-
-    span.add_ops(ops)
+    span.add_ops(ops)?;
+    span.add_ops(ext2_mul_ops())?;
+    span.add_ops([Eqz, Assert, Assert])?;
+    span.add_ops(ext2_mul_ops())
 }
 
-/// Given a stack with initial configuration given by [a1, a0, ...] where a = (a0,a1) represents
+/// Given a stack with initial configuration given by [a1, a0, ...] where a = (a0, a1) represents
 /// elements in the extension field of degree 2, the procedure outputs the negative of a, i.e.
 /// [-a1, -a0, ...]
 ///
@@ -97,18 +96,18 @@ pub fn ext2_neg(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 ///
 /// Expected input stack
 ///
-/// [a1, a0, ...] | a = (a0, a1) ∈ Quadratic extension field over F_q, q = 2^64 - 2^32 + 1
+/// [a1, a0, ...] | a = (a0, a1) ∈ Quadratic extension field over F_p, p = 2^64 - 2^32 + 1
 ///
 /// Expected output stack
 ///
-/// [a'1, a'0, ...] | a' = (a'0, a'1) ∈ Quadratic extension field over F_q, q = 2^64 - 2^32 + 1
+/// [a'1, a'0, ...] | a' = (a'0, a'1) ∈ Quadratic extension field over F_p, p = 2^64 - 2^32 + 1
 ///
 /// Following is what is checked after reading result of computation, performed outside of VM
 ///
 /// a  = (a0, a1)
 /// a' = (a'0, a'1) ( = a ^ -1 )
 ///
-/// b  = a * a' ( mod P ) | P = irreducible polynomial x^2 - x + 2 over F_q, q = 2^64 - 2^32 + 1
+/// b  = a * a' ( mod Q ) | Q = irreducible polynomial x^2 - x + 2 over F_p, p = 2^64 - 2^32 + 1
 /// assert b  = (1, 0) | (1, 0) is the multiplicative identity of extension field.
 ///
 /// This operation takes 33 VM cycles.
@@ -123,9 +122,8 @@ pub fn ext2_inv(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
         MovUp5,
         MovUp5,
     ];
-    #[rustfmt::skip]
-    ops.extend_from_slice(&ext2_mul_ops());
-    ops.extend_from_slice(&[Eqz, Assert, Assert]);
+    ops.extend(ext2_mul_ops());
+    ops.extend([Eqz, Assert, Assert]);
     span.add_ops(ops)
 }
 

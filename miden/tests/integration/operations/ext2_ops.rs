@@ -11,106 +11,116 @@ type ExtElement = QuadExtension<Felt>;
 fn ext2add() {
     let asm_op = "ext2add";
 
-    let a_ext = rand_value::<ExtElement>();
-    let b_ext = rand_value::<ExtElement>();
-    let a_ext_arr = [a_ext];
-    let b_ext_arr = [b_ext];
-    let c_ext_arr = vec![a_ext + b_ext];
-    let a = ExtElement::as_base_elements(&a_ext_arr);
-    let b = ExtElement::as_base_elements(&b_ext_arr);
-    let c = ExtElement::as_base_elements(&c_ext_arr);
+    let a = rand_value::<ExtElement>();
+    let b = rand_value::<ExtElement>();
+    let c = a + b;
 
-    let test =
-        build_op_test!(asm_op, &[a[0].as_int(), a[1].as_int(), b[0].as_int(), b[1].as_int()]);
-    test.expect_stack(&[c[1].as_int(), c[0].as_int()]);
+    let (a0, a1) = ext_element_to_ints(a);
+    let (b0, b1) = ext_element_to_ints(b);
+    let (c0, c1) = ext_element_to_ints(c);
+
+    let stack_init = [a0, a1, b0, b1];
+    let expected = [c1, c0];
+
+    let test = build_op_test!(asm_op, &stack_init);
+    test.expect_stack(&expected);
 }
 
 #[test]
 fn ext2sub() {
     let asm_op = "ext2sub";
 
-    let a_ext = rand_value::<ExtElement>();
-    let b_ext = rand_value::<ExtElement>();
-    let a_ext_arr = [a_ext];
-    let b_ext_arr = [b_ext];
-    let c_ext_arr = vec![b_ext - a_ext];
-    let a = ExtElement::as_base_elements(&a_ext_arr);
-    let b = ExtElement::as_base_elements(&b_ext_arr);
-    let c = ExtElement::as_base_elements(&c_ext_arr);
+    let a = rand_value::<ExtElement>();
+    let b = rand_value::<ExtElement>();
+    let c = b - a;
 
-    let test =
-        build_op_test!(asm_op, &[a[0].as_int(), a[1].as_int(), b[0].as_int(), b[1].as_int()]);
-    test.expect_stack(&[c[1].as_int(), c[0].as_int()]);
+    let (a0, a1) = ext_element_to_ints(a);
+    let (b0, b1) = ext_element_to_ints(b);
+    let (c0, c1) = ext_element_to_ints(c);
+
+    let stack_init = [a0, a1, b0, b1];
+    let expected = [c1, c0];
+
+    let test = build_op_test!(asm_op, &stack_init);
+    test.expect_stack(&expected);
 }
 
 #[test]
 fn ext2mul() {
     let asm_op = "ext2mul";
 
-    let a_ext = rand_value::<ExtElement>();
-    let b_ext = rand_value::<ExtElement>();
-    let a_ext_arr = [a_ext];
-    let b_ext_arr = [b_ext];
-    let c_ext_arr = vec![b_ext * a_ext];
-    let a = ExtElement::as_base_elements(&a_ext_arr);
-    let b = ExtElement::as_base_elements(&b_ext_arr);
-    let c = ExtElement::as_base_elements(&c_ext_arr);
+    let a = rand_value::<ExtElement>();
+    let b = rand_value::<ExtElement>();
+    let c = b * a;
 
-    let test =
-        build_op_test!(asm_op, &[a[0].as_int(), a[1].as_int(), b[0].as_int(), b[1].as_int()]);
-    test.expect_stack(&[c[1].as_int(), c[0].as_int()]);
+    let (a0, a1) = ext_element_to_ints(a);
+    let (b0, b1) = ext_element_to_ints(b);
+    let (c0, c1) = ext_element_to_ints(c);
+
+    let stack_init = [a0, a1, b0, b1];
+    let expected = [c1, c0];
+
+    let test = build_op_test!(asm_op, &stack_init);
+    test.expect_stack(&expected);
 }
 
 #[test]
 fn ext2div() {
     let asm_op = "ext2div";
 
-    let a_ext = rand_value::<ExtElement>();
-    let b_ext = rand_value::<ExtElement>();
-    let b_inv = b_ext.inv();
-    let a_ext_arr = [a_ext];
-    let b_ext_arr = [b_ext];
-    let c_ext_arr = vec![a_ext * b_inv];
-    let a = ExtElement::as_base_elements(&a_ext_arr);
-    let b = ExtElement::as_base_elements(&b_ext_arr);
-    let c = ExtElement::as_base_elements(&c_ext_arr);
+    let a = rand_value::<ExtElement>();
+    let b = rand_value::<ExtElement>();
+    let c = b * a.inv();
+    let (a0, a1) = ext_element_to_ints(a);
+    let (b0, b1) = ext_element_to_ints(b);
+    let (c0, c1) = ext_element_to_ints(c);
 
-    let istack = [a[0].as_int(), a[1].as_int(), b[0].as_int(), b[1].as_int()];
-    let ostack = [c[1].as_int(), c[0].as_int()];
+    let stack_init = [a0, a1, b0, b1];
+    let expected = [c1, c0];
 
-    let test = build_op_test!(asm_op, &istack);
-    test.expect_stack(&ostack);
+    let test = build_op_test!(asm_op, &stack_init);
+    test.expect_stack(&expected);
 }
 
 #[test]
 fn ext2neg() {
     let asm_op = "ext2neg";
 
-    let a_ext = rand_value::<ExtElement>();
-    let a_ext_arr = [a_ext];
-    let b_ext_arr = vec![-a_ext];
-    let a = ExtElement::as_base_elements(&a_ext_arr);
-    let b = ExtElement::as_base_elements(&b_ext_arr);
+    let a = rand_value::<ExtElement>();
+    let b = -a;
+    let (a0, a1) = ext_element_to_ints(a);
+    let (b0, b1) = ext_element_to_ints(b);
 
-    let test = build_op_test!(asm_op, &[a[0].as_int(), a[1].as_int()]);
-    test.expect_stack(&[b[1].as_int(), b[0].as_int()]);
+    let stack_init = [a0, a1];
+    let expected = [b1, b0];
+
+    let test = build_op_test!(asm_op, &stack_init);
+    test.expect_stack(&expected);
 }
 
 #[test]
 fn ext2inv() {
     let asm_op = "ext2inv";
 
-    let a_ext = rand_value::<ExtElement>();
-    let a_ext_arr = [a_ext];
-    let a_inv = a_ext.inv();
+    let a = rand_value::<ExtElement>();
+    let b = a.inv();
 
-    let b_ext_arr = vec![a_inv];
-    let a = ExtElement::as_base_elements(&a_ext_arr);
-    let b = ExtElement::as_base_elements(&b_ext_arr);
+    let (a0, a1) = ext_element_to_ints(a);
+    let (b0, b1) = ext_element_to_ints(b);
 
-    let istack = [a[0].as_int(), a[1].as_int()];
-    let ostack = [b[1].as_int(), b[0].as_int()];
+    let stack_init = [a0, a1];
+    let expected = [b1, b0];
 
-    let test = build_op_test!(asm_op, &istack);
-    test.expect_stack(&ostack);
+    let test = build_op_test!(asm_op, &stack_init);
+    test.expect_stack(&expected);
+}
+
+// HELPER FUNCTIONS
+// ================================================================================================
+/// Helper function to convert a list of field elements into a list of elements in the underlying
+/// base field and convert them into integers. Returns a tuple of integers.
+fn ext_element_to_ints(ext_elem: ExtElement) -> (u64, u64) {
+    let ext_elem_arr = [ext_elem];
+    let ext_elem_to_base_field = ExtElement::as_base_elements(&ext_elem_arr);
+    (ext_elem_to_base_field[0].as_int(), ext_elem_to_base_field[1].as_int())
 }

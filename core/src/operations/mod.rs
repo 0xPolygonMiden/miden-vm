@@ -123,6 +123,10 @@ pub enum Operation {
     /// by one bit.
     Expacc,
 
+    // ----- ext2 operations -----------------------------------------------------------------------
+    /// TODO: add comments
+    Ext2Mul,
+
     // ----- u32 operations -----------------------------------------------------------------------
     /// Pops an element off the stack, splits it into upper and lower 32-bit values, and pushes
     /// these values back onto the stack.
@@ -392,8 +396,6 @@ pub enum Operation {
     /// the specified root will be removed from the advice provider. Otherwise, the advice
     /// provider will keep track of both, the old and the new advice sets.
     MrUpdate(bool),
-
-    Ext2Mul,
 }
 
 impl Operation {
