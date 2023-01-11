@@ -1,6 +1,6 @@
 use miden::{
     utils::{Deserializable, SliceReader},
-    Assembler, Digest, Program, ProgramInputs, ProgramOutputs, StarkProof,
+    Assembler, Digest, Program, ProgramInputs, ProgramOutputs, StackInputs, StarkProof,
 };
 use serde_derive::{Deserialize, Serialize};
 use std::{
@@ -55,23 +55,30 @@ impl InputFile {
     }
 
     /// Returns program inputs.
-    pub fn get_program_inputs(&self) -> ProgramInputs {
-        ProgramInputs::new(&self.stack_init(), &self.advice_tape(), Vec::new()).unwrap()
-    }
-
-    /// Parse stack_init vector of strings to a vector of u64
-    pub fn stack_init(&self) -> Vec<u64> {
-        self.stack_init.iter().map(|v| v.parse::<u64>().unwrap()).collect::<Vec<u64>>()
-    }
-
-    /// Parse advice_tape vector of strings to a vector of u64
-    pub fn advice_tape(&self) -> Vec<u64> {
-        self.advice_tape
+    pub fn get_program_inputs(&self) -> Result<ProgramInputs, String> {
+        // TODO provide advice sets from the inputs file
+        let sets = vec![];
+        let tape = self
+            .advice_tape
             .as_ref()
-            .unwrap_or(&vec![])
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
             .iter()
-            .map(|v| v.parse::<u64>().unwrap())
-            .collect::<Vec<u64>>()
+            .map(|v| v.parse::<u64>().map_err(|e| e.to_string()))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        ProgramInputs::new(&tape, sets).map_err(|e| e.to_string())
+    }
+
+    /// Parse and return the stack inputs for the program.
+    pub fn get_stack_inputs(&self) -> Result<StackInputs, String> {
+        let stack_inputs = self
+            .stack_init
+            .iter()
+            .map(|v| v.parse::<u64>().map_err(|e| e.to_string()))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        StackInputs::try_from_values(stack_inputs).map_err(|e| e.to_string())
     }
 }
 

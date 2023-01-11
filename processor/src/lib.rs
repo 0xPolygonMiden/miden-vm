@@ -7,7 +7,7 @@ extern crate alloc;
 pub use vm_core::{
     chiplets::hasher::Digest,
     errors::{AdviceSetError, InputError},
-    AdviceSet, Operation, Program, ProgramInputs, ProgramOutputs, Word,
+    AdviceSet, Operation, Program, ProgramInputs, ProgramOutputs, StackInputs, Word,
 };
 use vm_core::{
     code_blocks::{
@@ -95,9 +95,10 @@ pub struct ChipletsTrace {
 /// inputs.
 pub fn execute(
     program: &Program,
-    inputs: &ProgramInputs,
+    stack_inputs: StackInputs,
+    advice_inputs: &ProgramInputs,
 ) -> Result<ExecutionTrace, ExecutionError> {
-    let mut process = Process::new(program.kernel(), inputs.clone());
+    let mut process = Process::new(program.kernel(), stack_inputs, advice_inputs.clone());
     let program_outputs = process.execute(program)?;
     let trace = ExecutionTrace::new(process, program_outputs);
     assert_eq!(program.hash(), trace.program_hash(), "inconsistent program hash");
@@ -106,8 +107,12 @@ pub fn execute(
 
 /// Returns an iterator which allows callers to step through the execution and inspect VM state at
 /// each execution step.
-pub fn execute_iter(program: &Program, inputs: &ProgramInputs) -> VmStateIterator {
-    let mut process = Process::new_debug(program.kernel(), inputs.clone());
+pub fn execute_iter(
+    program: &Program,
+    stack_inputs: StackInputs,
+    advice_inputs: &ProgramInputs,
+) -> VmStateIterator {
+    let mut process = Process::new_debug(program.kernel(), stack_inputs, advice_inputs.clone());
     let result = process.execute(program);
     if result.is_ok() {
         assert_eq!(
@@ -131,30 +136,37 @@ where
     stack: Stack,
     range: RangeChecker,
     chiplets: Chiplets,
-    advice: A,
+    advice_provider: A,
 }
 
 impl Process<MemAdviceProvider> {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// Creates a new process with the provided inputs.
-    pub fn new(kernel: &Kernel, inputs: ProgramInputs) -> Self {
-        Self::initialize(kernel, inputs, false)
+    pub fn new(kernel: &Kernel, stack: StackInputs, inputs: ProgramInputs) -> Self {
+        let advice_provider = MemAdviceProvider::from(inputs);
+        Self::initialize(kernel, stack, advice_provider, false)
     }
 
     /// Creates a new process with provided inputs and debug options enabled.
-    pub fn new_debug(kernel: &Kernel, inputs: ProgramInputs) -> Self {
-        Self::initialize(kernel, inputs, true)
+    pub fn new_debug(kernel: &Kernel, stack: StackInputs, inputs: ProgramInputs) -> Self {
+        let advice_provider = MemAdviceProvider::from(inputs);
+        Self::initialize(kernel, stack, advice_provider, true)
     }
 
-    fn initialize(kernel: &Kernel, inputs: ProgramInputs, in_debug_mode: bool) -> Self {
+    fn initialize(
+        kernel: &Kernel,
+        stack: StackInputs,
+        advice_provider: MemAdviceProvider,
+        in_debug_mode: bool,
+    ) -> Self {
         Self {
             system: System::new(MIN_TRACE_LEN),
             decoder: Decoder::new(in_debug_mode),
-            stack: Stack::new(&inputs, MIN_TRACE_LEN, in_debug_mode),
+            stack: Stack::new(&stack, MIN_TRACE_LEN, in_debug_mode),
             range: RangeChecker::new(),
             chiplets: Chiplets::new(kernel),
-            advice: MemAdviceProvider::from(inputs),
+            advice_provider,
         }
     }
 }
@@ -412,6 +424,13 @@ where
     }
 
     pub fn into_parts(self) -> (System, Decoder, Stack, RangeChecker, Chiplets, A) {
-        (self.system, self.decoder, self.stack, self.range, self.chiplets, self.advice)
+        (
+            self.system,
+            self.decoder,
+            self.stack,
+            self.range,
+            self.chiplets,
+            self.advice_provider,
+        )
     }
 }

@@ -2,7 +2,7 @@
 
 use air::{ProcessorAir, PublicInputs};
 use core::fmt;
-use vm_core::utils::collections::Vec;
+use vm_core::StackInputs;
 use winterfell::VerifierError;
 
 // EXPORTS
@@ -37,19 +37,12 @@ mod math {
 /// Returns an error if the provided proof does not prove a correct execution of the program.
 pub fn verify(
     program_hash: Digest,
-    stack_inputs: &[u64],
+    stack_inputs: StackInputs,
     outputs: &ProgramOutputs,
     proof: StarkProof,
 ) -> Result<(), VerificationError> {
-    // convert stack inputs to field elements
-    let mut stack_input_felts = Vec::with_capacity(stack_inputs.len());
-    for &input in stack_inputs.iter().rev() {
-        stack_input_felts
-            .push(input.try_into().map_err(|_| VerificationError::InputNotFieldElement(input))?);
-    }
-
     // build public inputs and try to verify the proof
-    let pub_inputs = PublicInputs::new(program_hash, stack_input_felts, outputs.clone());
+    let pub_inputs = PublicInputs::new(program_hash, stack_inputs, outputs.clone());
     winterfell::verify::<ProcessorAir>(proof, pub_inputs).map_err(VerificationError::VerifierError)
 }
 

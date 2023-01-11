@@ -102,13 +102,14 @@ mod tests {
     use super::{
         super::Operation, super::STACK_TOP_SIZE, Felt, FieldElement, Process, FMP_MAX, FMP_MIN,
     };
+    use crate::StackInputs;
 
     const MAX_PROC_LOCALS: u64 = 2_u64.pow(31) - 1;
 
     #[test]
     fn op_assert() {
         // calling assert with a minimum stack should be an ok, as long as the top value is ONE
-        let mut process = Process::new_dummy(&[]);
+        let mut process = Process::new_dummy_with_empty_stack();
         process.execute_op(Operation::Push(Felt::ONE)).unwrap();
         process.execute_op(Operation::Swap).unwrap();
         process.execute_op(Operation::Drop).unwrap();
@@ -118,7 +119,7 @@ mod tests {
 
     #[test]
     fn op_fmpupdate() {
-        let mut process = Process::new_dummy(&[]);
+        let mut process = Process::new_dummy_with_empty_stack();
 
         // initial value of fmp register should be 2^30
         assert_eq!(Felt::new(2_u64.pow(30)), process.system.fmp());
@@ -143,29 +144,32 @@ mod tests {
         assert!(process.execute_op(Operation::FmpUpdate).is_err());
 
         // going up to the max fmp value should be OK
-        let mut process = Process::new_dummy(&[MAX_PROC_LOCALS]);
+        let stack = StackInputs::try_from_values([MAX_PROC_LOCALS]).unwrap();
+        let mut process = Process::new_dummy(stack);
         process.execute_op(Operation::FmpUpdate).unwrap();
         assert_eq!(Felt::new(FMP_MAX), process.system.fmp());
 
         // but going beyond that should be an error
-        let mut process = Process::new_dummy(&[MAX_PROC_LOCALS + 1]);
+        let stack = StackInputs::try_from_values([MAX_PROC_LOCALS + 1]).unwrap();
+        let mut process = Process::new_dummy(stack);
         assert!(process.execute_op(Operation::FmpUpdate).is_err());
 
         // should not affect the rest of the stack state
-        let mut process = Process::new_dummy(&[2, 3]);
+        let stack = StackInputs::try_from_values([2, 3]).unwrap();
+        let mut process = Process::new_dummy(stack);
         process.execute_op(Operation::FmpUpdate).unwrap();
 
         let expected = build_expected_stack(&[2]);
         assert_eq!(expected, process.stack.trace_state());
 
         // calling fmpupdate with a minimum stack should be ok
-        let mut process = Process::new_dummy(&[]);
+        let mut process = Process::new_dummy_with_empty_stack();
         assert!(process.execute_op(Operation::FmpUpdate).is_ok());
     }
 
     #[test]
     fn op_fmpadd() {
-        let mut process = Process::new_dummy(&[]);
+        let mut process = Process::new_dummy_with_empty_stack();
 
         // set value of fmp register
         process.execute_op(Operation::Push(Felt::new(2))).unwrap();
@@ -189,7 +193,7 @@ mod tests {
     #[test]
     fn op_sdepth() {
         // stack is empty
-        let mut process = Process::new_dummy(&[]);
+        let mut process = Process::new_dummy_with_empty_stack();
         process.execute_op(Operation::SDepth).unwrap();
         let expected = build_expected_stack(&[STACK_TOP_SIZE as u64]);
         assert_eq!(expected, process.stack.trace_state());

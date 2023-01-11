@@ -154,7 +154,7 @@ where
         self.system.advance_clock();
         self.stack.advance_clock();
         self.chiplets.advance_clock();
-        self.advice.advance_clock();
+        self.advice_provider.advance_clock();
     }
 
     /// Makes sure there is enough memory allocated for the trace to accommodate a new clock cycle.
@@ -171,34 +171,51 @@ impl Process<super::MemAdviceProvider> {
 
     /// Instantiates a new blank process for testing purposes. The stack in the process is
     /// initialized with the provided values.
-    fn new_dummy(stack_inputs: &[u64]) -> Self {
-        let inputs = super::ProgramInputs::new(stack_inputs, &[], vec![]);
-        let mut process = Self::new(&Kernel::default(), inputs.unwrap());
+    fn new_dummy(stack: super::StackInputs) -> Self {
+        let inputs = super::ProgramInputs::new(&[], vec![]);
+        let mut process = Self::new(&Kernel::default(), stack, inputs.unwrap());
         process.execute_op(Operation::Noop).unwrap();
         process
     }
 
+    /// Instantiates a new blank process for testing purposes.
+    fn new_dummy_with_empty_stack() -> Self {
+        let stack = super::StackInputs::empty();
+        Self::new_dummy(stack)
+    }
+
     /// Instantiates a new process with an advice tape for testing purposes.
     fn new_dummy_with_advice_tape(advice_tape: &[u64]) -> Self {
-        let inputs = super::ProgramInputs::new(&[], advice_tape, vec![]).unwrap();
-        let mut process = Self::new(&Kernel::default(), inputs);
+        let inputs = super::ProgramInputs::new(advice_tape, vec![]).unwrap();
+        let stack = super::StackInputs::empty();
+        let mut process = Self::new(&Kernel::default(), stack, inputs);
         process.execute_op(Operation::Noop).unwrap();
         process
     }
 
     /// Instantiates a new blank process with one decoder trace row for testing purposes. This
     /// allows for setting helpers in the decoder when executing operations during tests.
+    fn new_dummy_with_decoder_helpers_and_empty_stack() -> Self {
+        let stack = super::StackInputs::empty();
+        Self::new_dummy_with_decoder_helpers(stack)
+    }
+
+    /// Instantiates a new blank process with one decoder trace row for testing purposes. This
+    /// allows for setting helpers in the decoder when executing operations during tests.
     ///
     /// The stack in the process is initialized with the provided values.
-    fn new_dummy_with_decoder_helpers(stack_inputs: &[u64]) -> Self {
-        let inputs = super::ProgramInputs::new(stack_inputs, &[], vec![]);
-        Self::new_dummy_with_inputs_and_decoder_helpers(inputs.unwrap())
+    fn new_dummy_with_decoder_helpers(stack: super::StackInputs) -> Self {
+        let inputs = super::ProgramInputs::new(&[], vec![]);
+        Self::new_dummy_with_inputs_and_decoder_helpers(stack, inputs.unwrap())
     }
 
     /// Instantiates a new process having Program inputs along with one decoder trace row
     /// for testing purposes.
-    fn new_dummy_with_inputs_and_decoder_helpers(input: super::ProgramInputs) -> Self {
-        let mut process = Self::new(&Kernel::default(), input);
+    fn new_dummy_with_inputs_and_decoder_helpers(
+        stack: super::StackInputs,
+        input: super::ProgramInputs,
+    ) -> Self {
+        let mut process = Self::new(&Kernel::default(), stack, input);
         process.decoder.add_dummy_trace_row();
         process.execute_op(Operation::Noop).unwrap();
         process

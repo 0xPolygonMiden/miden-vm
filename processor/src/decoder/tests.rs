@@ -1483,8 +1483,9 @@ fn set_user_op_helpers_many() {
 // ================================================================================================
 
 fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxTraceHints, usize) {
-    let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
-    let mut process = Process::new(&Kernel::default(), inputs);
+    let stack = crate::StackInputs::try_from_values(stack.iter().copied()).unwrap();
+    let inputs = ProgramInputs::new(&[], vec![]).unwrap();
+    let mut process = Process::new(&Kernel::default(), stack, inputs);
     process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
 
     let (trace, aux_hints) = ExecutionTrace::test_finalize_trace(process);
@@ -1509,8 +1510,9 @@ fn build_call_trace(
         Some(ref proc) => Kernel::new(&[proc.hash()]),
         None => Kernel::default(),
     };
-    let inputs = ProgramInputs::new(&[], &[], vec![]).unwrap();
-    let mut process = Process::new(&kernel, inputs);
+    let inputs = ProgramInputs::new(&[], vec![]).unwrap();
+    let stack = crate::StackInputs::empty();
+    let mut process = Process::new(&kernel, stack, inputs);
 
     // build code block table
     let mut cb_table = CodeBlockTable::default();
