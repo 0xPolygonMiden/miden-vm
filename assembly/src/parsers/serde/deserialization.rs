@@ -68,6 +68,14 @@ impl Deserializable for Instruction {
             OpCode::Gt => Ok(Instruction::Gt),
             OpCode::Gte => Ok(Instruction::Gte),
 
+            // ----- ext2 operations --------------------------------------------------------------
+            OpCode::Ext2Add => Ok(Instruction::Ext2Add),
+            OpCode::Ext2Sub => Ok(Instruction::Ext2Sub),
+            OpCode::Ext2Mul => Ok(Instruction::Ext2Mul),
+            OpCode::Ext2Div => Ok(Instruction::Ext2Div),
+            OpCode::Ext2Neg => Ok(Instruction::Ext2Neg),
+            OpCode::Ext2Inv => Ok(Instruction::Ext2Inv),
+
             // ----- u32 manipulation -------------------------------------------------------------
             OpCode::U32Test => Ok(Instruction::U32Test),
             OpCode::U32TestW => Ok(Instruction::U32TestW),

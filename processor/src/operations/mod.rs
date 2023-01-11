@@ -65,6 +65,9 @@ where
 
             Operation::Expacc => self.op_expacc()?,
 
+            // ----- ext2 operations --------------------------------------------------------------
+            Operation::Ext2Mul => todo!(),
+
             // ----- u32 operations ---------------------------------------------------------------
             Operation::U32split => self.op_u32split()?,
             Operation::U32add => self.op_u32add()?,
