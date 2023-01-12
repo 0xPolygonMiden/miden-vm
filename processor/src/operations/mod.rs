@@ -1,4 +1,4 @@
-use super::{ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
+use super::{AdviceProvider, ExecutionError, Felt, FieldElement, Operation, Process, StarkField};
 use vm_core::stack::STACK_TOP_SIZE;
 
 mod crypto_ops;
@@ -15,7 +15,10 @@ use super::Kernel;
 // OPERATION DISPATCHER
 // ================================================================================================
 
-impl Process {
+impl<A> Process<A>
+where
+    A: AdviceProvider,
+{
     /// Executes the specified operation.
     pub(super) fn execute_op(&mut self, op: Operation) -> Result<(), ExecutionError> {
         // make sure there is enough memory allocated to hold the execution trace
@@ -61,6 +64,9 @@ impl Process {
             Operation::Eqz => self.op_eqz()?,
 
             Operation::Expacc => self.op_expacc()?,
+
+            // ----- ext2 operations --------------------------------------------------------------
+            Operation::Ext2Mul => todo!(),
 
             // ----- u32 operations ---------------------------------------------------------------
             Operation::U32split => self.op_u32split()?,
@@ -156,13 +162,15 @@ impl Process {
         self.system.ensure_trace_capacity();
         self.stack.ensure_trace_capacity();
     }
+}
 
+#[cfg(test)]
+impl Process<super::MemAdviceProvider> {
     // TEST METHODS
     // --------------------------------------------------------------------------------------------
 
     /// Instantiates a new blank process for testing purposes. The stack in the process is
     /// initialized with the provided values.
-    #[cfg(test)]
     fn new_dummy(stack_inputs: &[u64]) -> Self {
         let inputs = super::ProgramInputs::new(stack_inputs, &[], vec![]);
         let mut process = Self::new(&Kernel::default(), inputs.unwrap());
@@ -171,7 +179,6 @@ impl Process {
     }
 
     /// Instantiates a new process with an advice tape for testing purposes.
-    #[cfg(test)]
     fn new_dummy_with_advice_tape(advice_tape: &[u64]) -> Self {
         let inputs = super::ProgramInputs::new(&[], advice_tape, vec![]).unwrap();
         let mut process = Self::new(&Kernel::default(), inputs);
@@ -183,7 +190,6 @@ impl Process {
     /// allows for setting helpers in the decoder when executing operations during tests.
     ///
     /// The stack in the process is initialized with the provided values.
-    #[cfg(test)]
     fn new_dummy_with_decoder_helpers(stack_inputs: &[u64]) -> Self {
         let inputs = super::ProgramInputs::new(stack_inputs, &[], vec![]);
         Self::new_dummy_with_inputs_and_decoder_helpers(inputs.unwrap())
@@ -191,7 +197,6 @@ impl Process {
 
     /// Instantiates a new process having Program inputs along with one decoder trace row
     /// for testing purposes.
-    #[cfg(test)]
     fn new_dummy_with_inputs_and_decoder_helpers(input: super::ProgramInputs) -> Self {
         let mut process = Self::new(&Kernel::default(), input);
         process.decoder.add_dummy_trace_row();

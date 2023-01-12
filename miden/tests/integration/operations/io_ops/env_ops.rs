@@ -21,7 +21,7 @@ fn sdepth() {
 
     // --- overflowed stack -----------------------------------------------------------------------
     // push 2 values to increase the lenth of the stack beyond 16
-    let source = format!("begin push.1 push.1 {} end", test_op);
+    let source = format!("begin push.1 push.1 {test_op} end");
     let test = build_test!(&source, &[0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7]);
     test.expect_stack(&[18, 1, 1, 7, 6, 5, 4, 3, 2, 1, 0, 7, 6, 5, 4, 3]);
 }

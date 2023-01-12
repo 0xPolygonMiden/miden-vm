@@ -372,7 +372,7 @@ fn build_vm_state(vm_state_iterator: VmStateIterator) -> Vec<VmStatePartial> {
     let mut vm_state = Vec::new();
     for state in vm_state_iterator {
         vm_state.push(VmStatePartial {
-            clk: state.as_ref().unwrap().clk as u32,
+            clk: state.as_ref().unwrap().clk,
             asmop: state.as_ref().unwrap().asmop.clone(),
             op: state.as_ref().unwrap().op,
         });

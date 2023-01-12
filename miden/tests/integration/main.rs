@@ -1,6 +1,7 @@
 mod helpers;
 
 mod air;
+mod cli;
 mod exec_iters;
 mod flow_control;
 mod operations;

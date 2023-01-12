@@ -25,7 +25,7 @@ fn sha256_2_to_1_hash() {
         .collect::<Vec<u64>>();
 
     let mut hasher = Sha256::new();
-    hasher.update(&ibytes);
+    hasher.update(ibytes);
 
     let obytes = hasher.finalize();
     let ofelts = group_slice_elements::<u8, 4>(&obytes)
@@ -54,7 +54,7 @@ fn sha256_1_to_1_hash() {
         .collect::<Vec<u64>>();
 
     let mut hasher = Sha256::new();
-    hasher.update(&ibytes);
+    hasher.update(ibytes);
 
     let obytes = hasher.finalize();
     let ofelts = group_slice_elements::<u8, 4>(&obytes)

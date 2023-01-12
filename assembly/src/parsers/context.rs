@@ -358,6 +358,14 @@ impl ParserContext {
             "gte" => simple_instruction(op, Gte),
             "eqw" => simple_instruction(op, Eqw),
 
+            // ----- ext2 operations -----------------------------------------------------
+            "ext2add" => simple_instruction(op, Ext2Add),
+            "ext2sub" => simple_instruction(op, Ext2Sub),
+            "ext2mul" => simple_instruction(op, Ext2Mul),
+            "ext2div" => simple_instruction(op, Ext2Div),
+            "ext2neg" => simple_instruction(op, Ext2Neg),
+            "ext2inv" => simple_instruction(op, Ext2Inv),
+
             // ----- u32 operations ---------------------------------------------------------------
             "u32test" => simple_instruction(op, U32Test),
             "u32testw" => simple_instruction(op, U32TestW),
@@ -409,6 +417,9 @@ impl ParserContext {
 
             "u32checked_rotl" => u32_ops::parse_u32_rotl(op, true),
             "u32unchecked_rotl" => u32_ops::parse_u32_rotl(op, false),
+
+            "u32checked_popcnt" => simple_instruction(op, U32CheckedPopcnt),
+            "u32unchecked_popcnt" => simple_instruction(op, U32UncheckedPopcnt),
 
             "u32checked_eq" => u32_ops::parse_u32checked_eq(op),
             "u32checked_neq" => u32_ops::parse_u32checked_neq(op),

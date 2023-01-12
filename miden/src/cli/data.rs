@@ -14,6 +14,7 @@ use stdlib::StdLibrary;
 // INPUT FILE
 // ================================================================================================
 
+// TODO consider using final types instead of string representations.
 /// Input file struct
 #[derive(Deserialize, Debug)]
 pub struct InputFile {

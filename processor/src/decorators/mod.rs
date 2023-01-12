@@ -1,4 +1,4 @@
-use super::{AdviceInjector, Decorator, ExecutionError, Felt, Process, StarkField};
+use super::{AdviceInjector, AdviceProvider, Decorator, ExecutionError, Felt, Process, StarkField};
 use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_LEN, ZERO};
 use winterfell::math::fft;
 
@@ -9,7 +9,10 @@ type Ext2Element = QuadExtension<Felt>;
 // DECORATORS
 // ================================================================================================
 
-impl Process {
+impl<A> Process<A>
+where
+    A: AdviceProvider,
+{
     /// Executes the specified decorator
     pub(super) fn execute_decorator(
         &mut self,

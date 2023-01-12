@@ -14,7 +14,7 @@ fn mem_load() {
     test.expect_stack(&[0]);
 
     // --- read from uninitialized memory - address provided as a parameter -----------------------
-    let asm_op = format!("{}.{}", asm_op, addr);
+    let asm_op = format!("{asm_op}.{addr}");
     let test = build_op_test!(&asm_op);
     test.expect_stack(&[0]);
 
@@ -36,7 +36,7 @@ fn mem_store() {
     test.expect_stack_and_memory(&[3, 2, 1], addr, &[4, 0, 0, 0]);
 
     // --- address provided as a parameter --------------------------------------------------------
-    let asm_op = format!("{}.{}", asm_op, addr);
+    let asm_op = format!("{asm_op}.{addr}");
     let test = build_op_test!(&asm_op, &[1, 2, 3, 4]);
     test.expect_stack_and_memory(&[3, 2, 1], addr, &[4, 0, 0, 0]);
 }
@@ -54,7 +54,7 @@ fn mem_loadw() {
     test.expect_stack(&[0, 0, 0, 0]);
 
     // --- read from uninitialized memory - address provided as a parameter -----------------------
-    let asm_op = format!("{}.{}", asm_op, addr);
+    let asm_op = format!("{asm_op}.{addr}");
 
     let test = build_op_test!(asm_op, &[5, 6, 7, 8]);
     test.expect_stack(&[0, 0, 0, 0]);
@@ -78,7 +78,7 @@ fn mem_storew() {
     test.expect_stack_and_memory(&[4, 3, 2, 1], addr, &[1, 2, 3, 4]);
 
     // --- address provided as a parameter --------------------------------------------------------
-    let asm_op = format!("{}.{}", asm_op, addr);
+    let asm_op = format!("{asm_op}.{addr}");
     let test = build_op_test!(&asm_op, &[1, 2, 3, 4]);
     test.expect_stack_and_memory(&[4, 3, 2, 1], addr, &[1, 2, 3, 4]);
 

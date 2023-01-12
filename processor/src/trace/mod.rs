@@ -3,7 +3,7 @@ use super::{
     decoder::AuxTraceHints as DecoderAuxTraceHints,
     range::AuxTraceBuilder as RangeCheckerAuxTraceBuilder,
     stack::AuxTraceBuilder as StackAuxTraceBuilder,
-    Digest, Felt, FieldElement, Process, StackTopState, Vec,
+    AdviceProvider, Digest, Felt, FieldElement, Process, StackTopState, Vec,
 };
 use vm_core::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
@@ -72,7 +72,10 @@ impl ExecutionTrace {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Builds an execution trace for the provided process.
-    pub(super) fn new(process: Process, program_outputs: ProgramOutputs) -> Self {
+    pub(super) fn new<A>(process: Process<A>, program_outputs: ProgramOutputs) -> Self
+    where
+        A: AdviceProvider,
+    {
         // use program hash to initialize random element generator; this generator will be used
         // to inject random values at the end of the trace; using program hash here is OK because
         // we are using random values only to stabilize constraint degrees, and not to achieve
@@ -133,6 +136,10 @@ impl ExecutionTrace {
         result
     }
 
+    pub fn get_trace_len(&self) -> usize {
+        self.main_trace.num_rows()
+    }
+
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
@@ -154,7 +161,10 @@ impl ExecutionTrace {
     }
 
     #[cfg(test)]
-    pub fn test_finalize_trace(process: Process) -> (Vec<Vec<Felt>>, AuxTraceHints) {
+    pub fn test_finalize_trace<A>(process: Process<A>) -> (Vec<Vec<Felt>>, AuxTraceHints)
+    where
+        A: AdviceProvider,
+    {
         let rng = RandomCoin::new(&[0; 32]);
         finalize_trace(process, rng)
     }
@@ -255,8 +265,11 @@ impl Trace for ExecutionTrace {
 /// - Inserting random values in the last row of all columns. This helps ensure that there
 ///   are no repeating patterns in each column and each column contains a least two distinct
 ///   values. This, in turn, ensures that polynomial degrees of all columns are stable.
-fn finalize_trace(process: Process, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, AuxTraceHints) {
-    let (system, decoder, stack, mut range, chiplets) = process.to_components();
+fn finalize_trace<A>(process: Process<A>, mut rng: RandomCoin) -> (Vec<Vec<Felt>>, AuxTraceHints)
+where
+    A: AdviceProvider,
+{
+    let (system, decoder, stack, mut range, chiplets, _) = process.into_parts();
 
     let clk = system.clk();
 

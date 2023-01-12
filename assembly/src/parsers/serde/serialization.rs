@@ -87,6 +87,14 @@ impl Serializable for Instruction {
             Self::Gt => OpCode::Gt.write_into(target)?,
             Self::Gte => OpCode::Gte.write_into(target)?,
 
+            // ----- ext2 operations --------------------------------------------------------------
+            Self::Ext2Add => OpCode::Ext2Add.write_into(target)?,
+            Self::Ext2Sub => OpCode::Ext2Sub.write_into(target)?,
+            Self::Ext2Mul => OpCode::Ext2Mul.write_into(target)?,
+            Self::Ext2Div => OpCode::Ext2Div.write_into(target)?,
+            Self::Ext2Neg => OpCode::Ext2Neg.write_into(target)?,
+            Self::Ext2Inv => OpCode::Ext2Inv.write_into(target)?,
+
             // ----- u32 operations ---------------------------------------------------------------
             Self::U32Test => OpCode::U32Test.write_into(target)?,
             Self::U32TestW => OpCode::U32TestW.write_into(target)?,
@@ -218,6 +226,8 @@ impl Serializable for Instruction {
                 OpCode::U32UncheckedRotlImm.write_into(target)?;
                 target.write_u8(*v);
             }
+            Self::U32CheckedPopcnt => OpCode::U32CheckedPopcnt.write_into(target)?,
+            Self::U32UncheckedPopcnt => OpCode::U32UncheckedPopcnt.write_into(target)?,
             Self::U32CheckedEq => OpCode::U32CheckedEq.write_into(target)?,
             Self::U32CheckedEqImm(v) => {
                 OpCode::U32CheckedEqImm.write_into(target)?;
@@ -424,14 +434,14 @@ impl Serializable for Instruction {
             Self::AdvExt2Inv => OpCode::AdvExt2Inv.write_into(target)?,
             Self::AdvExt2INTT => OpCode::AdvExt2INTT.write_into(target)?,
 
-            // ----- cryptographic operations ---------------------------------------------------------
+            // ----- cryptographic operations -----------------------------------------------------
             Self::RpHash => OpCode::RPHash.write_into(target)?,
             Self::RpPerm => OpCode::RPPerm.write_into(target)?,
             Self::MTreeGet => OpCode::MTreeGet.write_into(target)?,
             Self::MTreeSet => OpCode::MTreeSet.write_into(target)?,
             Self::MTreeCwm => OpCode::MTreeCwm.write_into(target)?,
 
-            // ----- exec / call ----------------------------------------------------------------------
+            // ----- exec / call ------------------------------------------------------------------
             Self::ExecLocal(v) => {
                 OpCode::ExecLocal.write_into(target)?;
                 target.write_u16(*v);

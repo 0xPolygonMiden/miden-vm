@@ -73,7 +73,7 @@ fn single_span() {
     let source = "begin push.1 push.2 add end";
     let program = assembler.compile(source).unwrap();
     let expected = "begin span pad incr push(2) add end end";
-    assert_eq!(expected, format!("{}", program));
+    assert_eq!(expected, format!("{program}"));
 }
 
 #[test]
@@ -90,7 +90,7 @@ fn span_and_simple_if() {
                 if.true span add end else span mul end end \
             end \
         end";
-    assert_eq!(expected, format!("{}", program));
+    assert_eq!(expected, format!("{program}"));
 
     // if without else
     let source = "begin push.2 push.3 if.true add end end";
@@ -102,7 +102,7 @@ fn span_and_simple_if() {
                 if.true span add end else span noop end end \
             end \
         end";
-    assert_eq!(expected, format!("{}", program));
+    assert_eq!(expected, format!("{program}"));
 }
 
 // NESTED CONTROL BLOCKS
@@ -143,7 +143,7 @@ fn nested_control_blocks() {
             span push(3) add end \
             end \
         end";
-    assert_eq!(expected, format!("{}", program));
+    assert_eq!(expected, format!("{program}"));
 }
 
 // PROGRAMS WITH PROCEDURES
@@ -155,7 +155,7 @@ fn program_with_one_procedure() {
     let source = "proc.foo push.3 push.7 mul end begin push.2 push.3 add exec.foo end";
     let program = assembler.compile(source).unwrap();
     let expected = "begin span push(2) push(3) add push(3) push(7) mul end end";
-    assert_eq!(expected, format!("{}", program));
+    assert_eq!(expected, format!("{program}"));
 }
 
 #[test]
@@ -179,7 +179,7 @@ fn program_with_nested_procedure() {
         span push(2) push(4) add push(3) push(7) mul \
         push(11) push(5) push(3) push(7) mul add neg add \
         end end";
-    assert_eq!(expected, format!("{}", program));
+    assert_eq!(expected, format!("{program}"));
 }
 
 #[test]
@@ -209,7 +209,7 @@ fn program_with_proc_locals() {
                 push(18446744069414584320) fmpupdate \
             end \
         end";
-    assert_eq!(expected, format!("{}", program));
+    assert_eq!(expected, format!("{program}"));
 }
 
 #[test]
@@ -272,14 +272,13 @@ fn program_with_one_import() {
     let assembler = super::Assembler::default().with_library(&DummyLibrary::default()).unwrap();
     let source = format!(
         r#"
-        use.{}::{}
+        use.{NAMESPACE}::{MODULE}
         begin
             push.4 push.3
             exec.u256::iszero_unsafe
-        end"#,
-        NAMESPACE, MODULE
+        end"#
     );
-    let program = assembler.compile(&source).unwrap();
+    let program = assembler.compile(source).unwrap();
     let expected = "\
         begin \
             span \
@@ -294,7 +293,7 @@ fn program_with_one_import() {
                 swap eqz and \
             end \
         end";
-    assert_eq!(expected, format!("{}", program));
+    assert_eq!(expected, format!("{program}"));
 }
 
 #[test]
@@ -329,7 +328,7 @@ fn comment_simple() {
     let source = "begin # simple comment \n push.1 push.2 add end";
     let program = assembler.compile(source).unwrap();
     let expected = "begin span pad incr push(2) add end end";
-    assert_eq!(expected, format!("{}", program));
+    assert_eq!(expected, format!("{program}"));
 }
 
 #[test]
@@ -369,7 +368,7 @@ fn comment_in_nested_control_blocks() {
             span push(3) add end \
             end \
         end";
-    assert_eq!(expected, format!("{}", program));
+    assert_eq!(expected, format!("{program}"));
 }
 
 #[test]
@@ -378,7 +377,7 @@ fn comment_before_program() {
     let source = " # starting comment \n begin push.1 push.2 add end";
     let program = assembler.compile(source).unwrap();
     let expected = "begin span pad incr push(2) add end end";
-    assert_eq!(expected, format!("{}", program));
+    assert_eq!(expected, format!("{program}"));
 }
 
 #[test]
@@ -387,7 +386,7 @@ fn comment_after_program() {
     let source = "begin push.1 push.2 add end # closing comment";
     let program = assembler.compile(source).unwrap();
     let expected = "begin span pad incr push(2) add end end";
-    assert_eq!(expected, format!("{}", program));
+    assert_eq!(expected, format!("{program}"));
 }
 
 // ERRORS

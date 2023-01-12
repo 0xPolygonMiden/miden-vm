@@ -39,7 +39,7 @@ fn generate_test_script_add_zq() -> String {
             polynomial_1[4 * i]
         )
         .unwrap();
-        writeln!(polynomial_1_script, "loc_storew.{}", i).unwrap();
+        writeln!(polynomial_1_script, "loc_storew.{i}").unwrap();
         writeln!(polynomial_1_script, "dropw").unwrap();
 
         // fill script for polynomial 2
@@ -73,9 +73,9 @@ fn generate_test_script_add_zq() -> String {
         use.std::math::poly512
 
         proc.wrapper.384
-            {}
+            {polynomial_1_script}
 
-            {}
+            {polynomial_2_script}
 
             locaddr.256 # output
             locaddr.128 # input 1
@@ -83,14 +83,13 @@ fn generate_test_script_add_zq() -> String {
 
             exec.poly512::add_zq
 
-            {}
+            {check_result_script}
         end
 
         begin
             exec.wrapper
         end
-    ",
-        polynomial_1_script, polynomial_2_script, check_result_script
+    "
     );
     script
 }
@@ -122,7 +121,7 @@ fn generate_test_script_neg_zq() -> String {
             polynomial_1[4 * i]
         )
         .unwrap();
-        writeln!(polynomial_1_script, "loc_storew.{}", i).unwrap();
+        writeln!(polynomial_1_script, "loc_storew.{i}").unwrap();
         writeln!(polynomial_1_script, "dropw").unwrap();
 
         // fill script for checking the result
@@ -143,21 +142,20 @@ fn generate_test_script_neg_zq() -> String {
         use.std::math::poly512
 
         proc.wrapper.256
-            {}
+            {polynomial_1_script}
 
             locaddr.128 # output
             locaddr.0 # input 0
 
             exec.poly512::neg_zq
 
-            {}
+            {check_result_script}
         end
 
         begin
             exec.wrapper
         end
-    ",
-        polynomial_1_script, check_result_script
+    "
     );
     script
 }
@@ -193,7 +191,7 @@ fn generate_test_script_sub_zq() -> String {
             polynomial_1[4 * i]
         )
         .unwrap();
-        writeln!(polynomial_1_script, "loc_storew.{}", i).unwrap();
+        writeln!(polynomial_1_script, "loc_storew.{i}").unwrap();
         writeln!(polynomial_1_script, "dropw").unwrap();
 
         // fill script for polynomial 2
@@ -227,9 +225,9 @@ fn generate_test_script_sub_zq() -> String {
         use.std::math::poly512
 
         proc.wrapper.384
-            {}
+            {polynomial_1_script}
 
-            {}
+            {polynomial_2_script}
 
             locaddr.256 # output
             locaddr.128 # input 1
@@ -237,14 +235,13 @@ fn generate_test_script_sub_zq() -> String {
 
             exec.poly512::sub_zq
 
-            {}
+            {check_result_script}
         end
 
         begin
             exec.wrapper
         end
-    ",
-        polynomial_1_script, polynomial_2_script, check_result_script
+    "
     );
     script
 }
@@ -292,7 +289,7 @@ fn generate_test_script_mul_zq() -> String {
             polynomial_1[4 * i]
         )
         .unwrap();
-        writeln!(polynomial_1_script, "loc_storew.{}", i).unwrap();
+        writeln!(polynomial_1_script, "loc_storew.{i}").unwrap();
         writeln!(polynomial_1_script, "dropw").unwrap();
 
         // fill script for polynomial 2
@@ -326,9 +323,9 @@ fn generate_test_script_mul_zq() -> String {
         use.std::math::poly512
 
         proc.wrapper.384
-            {}
+            {polynomial_1_script}
 
-            {}
+            {polynomial_2_script}
 
             locaddr.256 # output
             locaddr.128 # input 1
@@ -336,14 +333,13 @@ fn generate_test_script_mul_zq() -> String {
 
             exec.poly512::mul_zq
 
-            {}
+            {check_result_script}
         end
 
         begin
             exec.wrapper
         end
-    ",
-        polynomial_1_script, polynomial_2_script, check_result_script
+    "
     );
     script
 }
