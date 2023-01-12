@@ -7,6 +7,7 @@ use vm_core::{AdviceInjector, FieldElement, StarkField};
 mod adv_ops;
 mod crypto_ops;
 mod env_ops;
+mod ext2_ops;
 mod field_ops;
 mod mem_ops;
 mod procedures;
@@ -71,6 +72,15 @@ impl Assembler {
             Instruction::Gt => field_ops::gt(span),
             Instruction::Gte => field_ops::gte(span),
 
+            // ----- ext2 instructions ------------------------------------------------------------
+            Instruction::Ext2Add => ext2_ops::ext2_add(span),
+            Instruction::Ext2Sub => ext2_ops::ext2_sub(span),
+            Instruction::Ext2Mul => ext2_ops::ext2_mul(span),
+            Instruction::Ext2Div => ext2_ops::ext2_div(span),
+            Instruction::Ext2Neg => ext2_ops::ext2_neg(span),
+            Instruction::Ext2Inv => ext2_ops::ext2_inv(span),
+
+            // ----- u32 manipulation -------------------------------------------------------------
             Instruction::U32Test => span.add_ops([Dup0, U32split, Swap, Drop, Eqz]),
             Instruction::U32TestW => u32_ops::u32testw(span),
             Instruction::U32Assert => span.add_ops([Pad, U32assert2, Drop]),
@@ -157,6 +167,7 @@ impl Assembler {
             Instruction::U32CheckedMax => u32_ops::u32max(span, Checked),
             Instruction::U32UncheckedMax => u32_ops::u32max(span, Unchecked),
 
+            // ----- stack manipulation -----------------------------------------------------------
             Instruction::Drop => span.add_op(Drop),
             Instruction::DropW => span.add_ops([Drop; 4]),
             Instruction::PadW => span.add_ops([Pad; 4]),
@@ -237,6 +248,7 @@ impl Assembler {
             Instruction::CDrop => span.add_ops([CSwap, Drop]),
             Instruction::CDropW => span.add_ops([CSwapW, Drop, Drop, Drop, Drop]),
 
+            // ----- input / output instructions --------------------------------------------------
             Instruction::PushU8(imm) => env_ops::push_one(*imm, span),
             Instruction::PushU16(imm) => env_ops::push_one(*imm, span),
             Instruction::PushU32(imm) => env_ops::push_one(*imm, span),
@@ -276,12 +288,14 @@ impl Assembler {
             Instruction::AdvExt2Inv => span.add_decorator(Decorator::Advice(Ext2Inv)),
             Instruction::AdvExt2INTT => span.add_decorator(Decorator::Advice(Ext2INTT)),
 
+            // ----- cryptographic instructions ---------------------------------------------------
             Instruction::RpPerm => span.add_op(RpPerm),
             Instruction::RpHash => crypto_ops::rphash(span),
             Instruction::MTreeGet => crypto_ops::mtree_get(span),
             Instruction::MTreeSet => crypto_ops::mtree_set(span),
             Instruction::MTreeCwm => crypto_ops::mtree_cwm(span),
 
+            // ----- exec/call instructions -------------------------------------------------------
             Instruction::ExecLocal(idx) => self.exec_local(*idx, ctx),
             Instruction::ExecImported(id) => self.exec_imported(id, ctx),
             Instruction::CallLocal(idx) => self.call_local(*idx, ctx),

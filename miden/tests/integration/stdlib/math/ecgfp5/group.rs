@@ -176,30 +176,24 @@ impl Add for ECExt5 {
         Self {
             x: if rhs.point_at_infinity == Felt::ONE {
                 self.x
+            } else if self.point_at_infinity == Felt::ONE {
+                rhs.x
             } else {
-                if self.point_at_infinity == Felt::ONE {
-                    rhs.x
-                } else {
-                    x3
-                }
+                x3
             },
             y: if rhs.point_at_infinity == Felt::ONE {
                 self.y
+            } else if self.point_at_infinity == Felt::ONE {
+                rhs.y
             } else {
-                if self.point_at_infinity == Felt::ONE {
-                    rhs.y
-                } else {
-                    y3
-                }
+                y3
             },
             point_at_infinity: if rhs.point_at_infinity == Felt::ONE {
                 self.point_at_infinity
+            } else if self.point_at_infinity == Felt::ONE {
+                rhs.point_at_infinity
             } else {
-                if self.point_at_infinity == Felt::ONE {
-                    rhs.point_at_infinity
-                } else {
-                    inf3
-                }
+                inf3
             },
         }
     }

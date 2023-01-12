@@ -123,6 +123,10 @@ pub enum Operation {
     /// by one bit.
     Expacc,
 
+    // ----- ext2 operations -----------------------------------------------------------------------
+    /// TODO: add comments
+    Ext2Mul,
+
     // ----- u32 operations -----------------------------------------------------------------------
     /// Pops an element off the stack, splits it into upper and lower 32-bit values, and pushes
     /// these values back onto the stack.
@@ -438,7 +442,7 @@ impl Operation {
             Self::MovUp7    => 0b0001_0110,
             Self::MovDn7    => 0b0001_0111,
             Self::SwapW     => 0b0001_1000,
-            // <empty>      => 0b0001_1001
+            Self::Ext2Mul   => 0b0001_1001,
             Self::MovUp8    => 0b0001_1010,
             Self::MovDn8    => 0b0001_1011,
             Self::SwapW2    => 0b0001_1100,
@@ -575,6 +579,9 @@ impl fmt::Display for Operation {
             Self::Eqz => write!(f, "eqz"),
 
             Self::Expacc => write!(f, "expacc"),
+
+            // ----- ext2 operations --------------------------------------------------------------
+            Self::Ext2Mul => write!(f, "ext2mul"),
 
             // ----- u32 operations ---------------------------------------------------------------
             Self::U32assert2 => write!(f, "u32assert2"),

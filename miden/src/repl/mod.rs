@@ -272,7 +272,7 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramErro
     let mut process = Process::new_debug(program.kernel(), inputs);
     let _program_outputs = process.execute(&program).map_err(ProgramError::ExecutionError);
 
-    let (sys, _, stack, _, chiplets) = process.to_components();
+    let (sys, _, stack, _, chiplets, _) = process.into_parts();
 
     // loads the memory at the latest clock cycle.
     let mem = chiplets.get_mem_state_at(0, sys.clk());

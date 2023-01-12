@@ -50,7 +50,15 @@ pub enum Instruction {
     Gt,
     Gte,
 
-    // ----- u32 manipulation ---------------------------------------------------------------
+    // ----- ext2 operations ----------------------------------------------------------------------
+    Ext2Add,
+    Ext2Sub,
+    Ext2Mul,
+    Ext2Div,
+    Ext2Neg,
+    Ext2Inv,
+
+    // ----- u32 manipulation ---------------------------------------------------------------------
     U32Test,
     U32TestW,
     U32Assert,
@@ -131,7 +139,7 @@ pub enum Instruction {
     U32CheckedMax,
     U32UncheckedMax,
 
-    // ----- stack manipulation ---------------------------------------------------------------
+    // ----- stack manipulation -------------------------------------------------------------------
     Drop,
     DropW,
     PadW,
@@ -211,7 +219,7 @@ pub enum Instruction {
     CDrop,
     CDropW,
 
-    // ----- input / output operations --------------------------------------------------------
+    // ----- input / output operations ------------------------------------------------------------
     PushU8(u8),
     PushU16(u16),
     PushU32(u32),
@@ -251,14 +259,14 @@ pub enum Instruction {
     AdvExt2Inv,
     AdvExt2INTT,
 
-    // ----- cryptographic operations ---------------------------------------------------------
+    // ----- cryptographic operations -------------------------------------------------------------
     RpHash,
     RpPerm,
     MTreeGet,
     MTreeSet,
     MTreeCwm,
 
-    // ----- exec / call ----------------------------------------------------------------------
+    // ----- exec / call --------------------------------------------------------------------------
     ExecLocal(u16),
     ExecImported(ProcedureId),
     CallLocal(u16),
@@ -300,6 +308,14 @@ impl fmt::Display for Instruction {
             Self::Lte => write!(f, "lte"),
             Self::Gt => write!(f, "gt"),
             Self::Gte => write!(f, "gte"),
+
+            // ----- ext2 operations --------------------------------------------------------------
+            Self::Ext2Add => write!(f, "ext2add"),
+            Self::Ext2Sub => write!(f, "ext2sub"),
+            Self::Ext2Mul => write!(f, "ext2mul"),
+            Self::Ext2Div => write!(f, "ext2div"),
+            Self::Ext2Neg => write!(f, "ext2neg"),
+            Self::Ext2Inv => write!(f, "ext2inv"),
 
             // ----- u32 manipulation ---------------------------------------------------------------
             Self::U32Test => write!(f, "u32test"),
@@ -462,7 +478,7 @@ impl fmt::Display for Instruction {
             Self::CDrop => write!(f, "cdrop"),
             Self::CDropW => write!(f, "cdropw"),
 
-            // ----- input / output operations --------------------------------------------------------
+            // ----- input / output operations ----------------------------------------------------
             Self::PushU8(value) => write!(f, "push.{value}"),
             Self::PushU16(value) => write!(f, "push.{value}"),
             Self::PushU32(value) => write!(f, "push.{value}"),
@@ -503,14 +519,14 @@ impl fmt::Display for Instruction {
             Self::AdvExt2Inv => write!(f, "adv.ext2inv"),
             Self::AdvExt2INTT => write!(f, "adv.ext2intt"),
 
-            // ----- cryptographic operations ---------------------------------------------------------
+            // ----- cryptographic operations -----------------------------------------------------
             Self::RpHash => write!(f, "rphash"),
             Self::RpPerm => write!(f, "rpperm"),
             Self::MTreeGet => write!(f, "mtree_get"),
             Self::MTreeSet => write!(f, "mtree_set"),
             Self::MTreeCwm => write!(f, "mtree_cwm"),
 
-            // ----- exec / call ----------------------------------------------------------------------
+            // ----- exec / call ------------------------------------------------------------------
             // TODO: print exec/call instructions with procedures names, not indexes or id's
             Self::ExecLocal(index) => write!(f, "exec.{index}"),
             Self::ExecImported(proc_id) => write!(f, "exec.{proc_id}"),

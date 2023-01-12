@@ -221,7 +221,7 @@ impl Mul for ScalarField {
 
         let mut one = Self::one().limbs;
         for i in 0..8 {
-            one[i] = one[i] * pc;
+            one[i] *= pc;
         }
 
         pc = 0;

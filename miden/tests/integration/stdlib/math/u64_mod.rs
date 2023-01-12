@@ -179,8 +179,8 @@ fn checked_sub_fail() {
     test.expect_error(TestError::ExecutionError("FailedAssertion"));
 
     // u32 limb assertion failure
-    let a0 = rand_value::<u64>() as u64;
-    let b0 = rand_value::<u64>() as u64;
+    let a0 = rand_value::<u64>();
+    let b0 = rand_value::<u64>();
     let a1 = U32_BOUND;
     let b1 = U32_BOUND;
 
@@ -1201,7 +1201,7 @@ proptest! {
 
         let (a1, a0) = split_u64(a);
         let (b1, b0) = split_u64(b);
-        let c = cmp::min(a, b) as u64;
+        let c = cmp::min(a, b);
         let (c1, c0) = split_u64(c);
         let source = "
             use.std::math::u64
@@ -1217,7 +1217,7 @@ proptest! {
 
         let (a1, a0) = split_u64(a);
         let (b1, b0) = split_u64(b);
-        let c = cmp::max(a, b) as u64;
+        let c = cmp::max(a, b);
         let (c1, c0) = split_u64(c);
         let source = "
             use.std::math::u64

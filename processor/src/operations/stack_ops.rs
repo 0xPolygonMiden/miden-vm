@@ -1,6 +1,11 @@
-use super::{ExecutionError, Felt, FieldElement, Process, StarkField, STACK_TOP_SIZE};
+use super::{
+    AdviceProvider, ExecutionError, Felt, FieldElement, Process, StarkField, STACK_TOP_SIZE,
+};
 
-impl Process {
+impl<A> Process<A>
+where
+    A: AdviceProvider,
+{
     // STACK MANIPULATION
     // --------------------------------------------------------------------------------------------
     /// Pushes a ZERO onto the stack.

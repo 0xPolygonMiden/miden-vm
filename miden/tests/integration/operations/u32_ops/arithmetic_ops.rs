@@ -51,7 +51,7 @@ fn u32checked_add_fail() {
 
 #[test]
 fn u32checked_add_b() {
-    let build_asm_op = |param: u16| format!("u32checked_add.{}", param);
+    let build_asm_op = |param: u16| format!("u32checked_add.{param}");
 
     // --- simple cases ----------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(2).as_str(), &[1]);
@@ -78,7 +78,7 @@ fn u32checked_add_b() {
 
 #[test]
 fn u32checked_add_b_fail() {
-    let build_asm_op = |param: u64| format!("u32checked_add.{}", param);
+    let build_asm_op = |param: u64| format!("u32checked_add.{param}");
 
     // should fail during execution if a >= 2^32.
     let test = build_op_test!(build_asm_op(0).as_str(), &[U32_BOUND]);
@@ -132,7 +132,7 @@ fn u32wrapping_add() {
 
 #[test]
 fn u32wrapping_add_b() {
-    let build_asm_op = |param: u64| format!("u32wrapping_add.{}", param);
+    let build_asm_op = |param: u64| format!("u32wrapping_add.{param}");
 
     // --- (a + b) < 2^32 -------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(2), &[1]);
@@ -321,7 +321,7 @@ fn u32checked_sub_fail() {
 
 #[test]
 fn u32checked_sub_b() {
-    let build_asm_op = |param: u32| format!("u32checked_sub.{}", param);
+    let build_asm_op = |param: u32| format!("u32checked_sub.{param}");
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(1).as_str(), &[2]);
@@ -349,7 +349,7 @@ fn u32checked_sub_b() {
 
 #[test]
 fn u32checked_sub_b_fail() {
-    let build_asm_op = |param: u64| format!("u32checked_sub.{}", param);
+    let build_asm_op = |param: u64| format!("u32checked_sub.{param}");
 
     // should fail during execution if a >= 2^32.
     let test = build_op_test!(build_asm_op(0).as_str(), &[U32_BOUND]);
@@ -396,7 +396,7 @@ fn u32wrapping_sub() {
 
 #[test]
 fn u32wrapping_sub_b() {
-    let build_asm_op = |param: u64| format!("u32wrapping_sub.{}", param);
+    let build_asm_op = |param: u64| format!("u32wrapping_sub.{param}");
 
     // --- a > b -------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(1), &[2]);
@@ -518,7 +518,7 @@ fn u32checked_mul_fail() {
 
 #[test]
 fn u32checked_mul_b() {
-    let build_asm_op = |param: u16| format!("u32checked_mul.{}", param);
+    let build_asm_op = |param: u16| format!("u32checked_mul.{param}");
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(0).as_str(), &[1]);
@@ -537,7 +537,7 @@ fn u32checked_mul_b() {
 
     let expected: u64 = a as u64 * b as u64;
     let test = build_op_test!(build_asm_op(b).as_str(), &[a as u64]);
-    test.expect_stack(&[expected as u64]);
+    test.expect_stack(&[expected]);
 
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
@@ -547,7 +547,7 @@ fn u32checked_mul_b() {
 
 #[test]
 fn u32checked_mul_b_fail() {
-    let build_asm_op = |param: u64| format!("u32checked_mul.{}", param);
+    let build_asm_op = |param: u64| format!("u32checked_mul.{param}");
 
     // should fail during execution if a >= 2^32.
     let test = build_op_test!(build_asm_op(0).as_str(), &[U32_BOUND]);
@@ -594,7 +594,7 @@ fn u32wrapping_mul() {
 
 #[test]
 fn u32wrapping_mul_b() {
-    let build_asm_op = |param: u64| format!("u32wrapping_mul.{}", param);
+    let build_asm_op = |param: u64| format!("u32wrapping_mul.{param}");
 
     // --- no overflow ----------------------------------------------------------------------------
     // c = a * b and d should be unset, since there was no arithmetic overflow.
@@ -731,7 +731,7 @@ fn u32checked_div_fail() {
 
 #[test]
 fn u32checked_div_b() {
-    let build_asm_op = |param: u32| format!("u32checked_div.{}", param);
+    let build_asm_op = |param: u32| format!("u32checked_div.{param}");
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(1).as_str(), &[0]);
@@ -760,12 +760,12 @@ fn u32checked_div_b() {
     // --- test that the rest of the stack isn't affected -----------------------------------------
     let c = rand_value::<u64>();
     let test = build_op_test!(build_asm_op(b).as_str(), &[c, a as u64]);
-    test.expect_stack(&[expected as u64, c]);
+    test.expect_stack(&[expected, c]);
 }
 
 #[test]
 fn u32checked_div_b_fail() {
-    let build_asm_op = |param: u64| format!("u32checked_div.{}", param);
+    let build_asm_op = |param: u64| format!("u32checked_div.{param}");
 
     // should fail during execution if a >= 2^32.
     let test = build_op_test!(build_asm_op(1).as_str(), &[U32_BOUND]);
@@ -825,7 +825,7 @@ fn u32checked_mod_fail() {
 
 #[test]
 fn u32checked_mod_b() {
-    let build_asm_op = |param: u32| format!("u32checked_mod.{}", param);
+    let build_asm_op = |param: u32| format!("u32checked_mod.{param}");
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(5).as_str(), &[10]);
@@ -858,7 +858,7 @@ fn u32checked_mod_b() {
 
 #[test]
 fn u32checked_mod_b_fail() {
-    let build_asm_op = |param: u64| format!("u32checked_mod.{}", param);
+    let build_asm_op = |param: u64| format!("u32checked_mod.{param}");
 
     // should fail during execution if a >= 2^32.
     let test = build_op_test!(build_asm_op(1).as_str(), &[U32_BOUND]);
@@ -917,7 +917,7 @@ fn u32checked_divmod_fail() {
 
 #[test]
 fn u32checked_divmod_b() {
-    let build_asm_op = |param: u32| format!("u32checked_divmod.{}", param);
+    let build_asm_op = |param: u32| format!("u32checked_divmod.{param}");
 
     // --- simple cases ---------------------------------------------------------------------------
     let test = build_op_test!(build_asm_op(1).as_str(), &[0]);
@@ -953,7 +953,7 @@ fn u32checked_divmod_b() {
 
 #[test]
 fn u32checked_divmod_b_fail() {
-    let build_asm_op = |param: u64| format!("u32checked_divmod.{}", param);
+    let build_asm_op = |param: u64| format!("u32checked_divmod.{param}");
 
     // should fail during execution if a >= 2^32.
     let test = build_op_test!(build_asm_op(1).as_str(), &[U32_BOUND]);
@@ -1000,7 +1000,7 @@ proptest! {
         test.prop_expect_stack(&[expected])?;
 
         // b provided as a parameter.
-        let asm_op = format!("{}.{}", asm_op, b);
+        let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a as u64]);
         test.prop_expect_stack(&[expected])?;
     }
@@ -1049,7 +1049,7 @@ proptest! {
         test.prop_expect_stack(&[expected as u64])?;
 
         // b provided as a parameter.
-        let asm_op = format!("{}.{}", asm_op, b);
+        let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a as u64]);
         test.prop_expect_stack(&[expected as u64])?;
 
@@ -1082,7 +1082,7 @@ proptest! {
         test.prop_expect_stack(&[expected])?;
 
         // b provided as a parameter
-        let asm_op = format!("{}.{}", asm_op, b);
+        let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a as u64]);
         test.prop_expect_stack(&[expected])?;
     }
@@ -1115,7 +1115,7 @@ proptest! {
         let e = madd / U32_BOUND;
 
         let test = build_op_test!(asm_op, &[c as u64, a as u64, b as u64]);
-        test.prop_expect_stack(&[e, d as u64])?;
+        test.prop_expect_stack(&[e, d])?;
     }
 
     #[test]
@@ -1129,18 +1129,18 @@ proptest! {
         test.prop_expect_stack(&[expected])?;
 
         // b provided as a parameter.
-        let asm_op = format!("{}.{}", asm_op, b);
+        let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a as u64]);
         test.prop_expect_stack(&[expected])?;
 
         // unchecked version should produce the same result for valid values.
         let asm_op = "u32unchecked_div";
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected])?;
 
-        let asm_op = format!("{}.{}", asm_op, b);
+        let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a as u64]);
-        test.prop_expect_stack(&[expected as u64])?;
+        test.prop_expect_stack(&[expected])?;
     }
 
     #[test]
@@ -1154,7 +1154,7 @@ proptest! {
         test.prop_expect_stack(&[expected as u64])?;
 
         // b provided as a parameter
-        let asm_op = format!("{}.{}", base_op, b);
+        let asm_op = format!("{base_op}.{b}");
         let test = build_op_test!(&asm_op, &[a as u64]);
         test.prop_expect_stack(&[expected as u64])?;
 
@@ -1163,7 +1163,7 @@ proptest! {
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[expected as u64])?;
 
-        let asm_op = format!("{}.{}", asm_op, b);
+        let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a as u64]);
         test.prop_expect_stack(&[expected as u64])?;
     }
@@ -1180,7 +1180,7 @@ proptest! {
         test.prop_expect_stack(&[rem, quot])?;
 
         // b provided as a parameter.
-        let asm_op = format!("{}.{}", asm_op, b);
+        let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a as u64]);
         test.prop_expect_stack(&[rem, quot])?;
 
@@ -1189,7 +1189,7 @@ proptest! {
         let test = build_op_test!(&asm_op, &[a as u64, b as u64]);
         test.prop_expect_stack(&[rem, quot])?;
 
-        let asm_op = format!("{}.{}", asm_op, b);
+        let asm_op = format!("{asm_op}.{b}");
         let test = build_op_test!(&asm_op, &[a as u64]);
         test.prop_expect_stack(&[rem, quot])?;
     }
