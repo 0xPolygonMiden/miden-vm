@@ -13,7 +13,7 @@ pub mod tests;
 // ================================================================================================
 
 /// The number of transition constraints in all the field operations.
-pub const NUM_CONSTRAINTS: usize = 18;
+pub const NUM_CONSTRAINTS: usize = 22;
 
 /// The degrees of constraints in individual stack operations of the field operations.
 pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
@@ -30,6 +30,7 @@ pub const CONSTRAINT_DEGREES: [usize; NUM_CONSTRAINTS] = [
     9, 9, // two constraints for EQ field operation.
     9, 9, // two constraints for EQZ field operation.
     9, 9, 9, 8, // four constraints for EXPACC field operation.
+    8, 8, 9, 9, // four constraints for EXT2MUL field operation.
 ];
 
 // FIELD OPERATIONS TRANSITION CONSTRAINTS
@@ -88,6 +89,9 @@ pub fn enforce_constraints<E: FieldElement>(
 
     // Enforce constaints of the EXPACC operation.
     index += enforce_expacc_constraints(frame, &mut result[index..], op_flag.expacc());
+
+    // Enforce constraints of the EXT2MUL operation.
+    index += enforce_ext2mul_constraints(frame, &mut result[index..], op_flag.ext2mul());
 
     index
 }
@@ -347,6 +351,42 @@ pub fn enforce_expacc_constraints<E: FieldElement>(
 
     // Enforces that b_next is equal to b after a right shift.
     result[3] = op_flag * are_equal(b, b_next * E::from(2u32) + bit);
+
+    4
+}
+
+/// Enforces constraints of the EXT2MUL operation. The EXT2MUL operation computes the product of
+/// two elements in the extension field of degree 2. Therefore, the following constraints are
+/// enforced, assuming the first 4 elements of the stack in the current frame are a1, a0, b1, b0:
+/// - The first element in the next frame should be a1.
+/// - The second element in the next frame should be a0.
+/// - The third element in the next frame should be equal to (b0 + b1) * (a0 + a1) - b0 * a0.
+/// - The fourth element in the next frame should be equal to b0 * a0 - 2 * b1 * a1.
+pub fn enforce_ext2mul_constraints<E: FieldElement>(
+    frame: &EvaluationFrame<E>,
+    result: &mut [E],
+    op_flag: E,
+) -> usize {
+    let a1 = frame.stack_item(0);
+    let a0 = frame.stack_item(1);
+    let b1 = frame.stack_item(2);
+    let b0 = frame.stack_item(3);
+    let c1 = frame.stack_item_next(0);
+    let c0 = frame.stack_item_next(1);
+    let d1 = frame.stack_item_next(2);
+    let d0 = frame.stack_item_next(3);
+
+    // Enforce that c1 = a1
+    result[0] = op_flag * are_equal(c1, a1);
+
+    // Enforce that c0 = a0
+    result[1] = op_flag * are_equal(c0, a0);
+
+    // Enforce that d1 = (b0 + b1) * (a1 + a0) - b0 * a0
+    result[2] = op_flag * are_equal(d1, (b0 + b1) * (a1 + a0) - b0 * a0);
+
+    // Enforce that d0 = b0 * a0 - 2 * b1 * a1
+    result[3] = op_flag * are_equal(d0, b0 * a0 - E::from(2_u32) * b1 * a1);
 
     4
 }

@@ -115,6 +115,16 @@ proptest! {
             assert_eq!(expected, result);
         }
     }
+
+    // -------------------------------- EXT2MUL test --------------------------------------------------
+
+    #[test]
+    fn test_ext2mul_stack_operation(a0 in any::<u64>(), a1 in any::<u64>(), b0 in any::<u64>(), b1 in any::<u64>()) {
+        let expected = [Felt::ZERO; NUM_CONSTRAINTS];
+        let frame = get_ext2_mul_test_frame(Felt::new(a0), Felt::new(a1), Felt::new(b0), Felt::new(b1));
+        let result = get_constraint_evaluation(frame);
+        assert_eq!(expected, result);
+    }
 }
 
 // UNIT TESTS
@@ -419,6 +429,26 @@ pub fn get_expacc_test_frame(a: u64, base: u64, exp: u64) -> EvaluationFrame<Fel
     frame.next_mut()[STACK_TRACE_OFFSET + 1] = exp * exp;
     frame.next_mut()[STACK_TRACE_OFFSET + 2] = res * val;
     frame.next_mut()[STACK_TRACE_OFFSET + 3] = b;
+
+    frame
+}
+
+/// Generates the correct current and next rows for the EXT2MUL operation and inputs and
+/// returns an EvaluationFrame for testing.
+pub fn get_ext2_mul_test_frame(a0: Felt, a1: Felt, b0: Felt, b1: Felt) -> EvaluationFrame<Felt> {
+    // frame initialised with a EXT2MUL operation using it's unique opcode.
+    let mut frame = generate_evaluation_frame(Operation::Ext2Mul.op_code() as usize);
+
+    // Set the output.
+    frame.current_mut()[STACK_TRACE_OFFSET] = a1;
+    frame.current_mut()[STACK_TRACE_OFFSET + 1] = a0;
+    frame.current_mut()[STACK_TRACE_OFFSET + 2] = b1;
+    frame.current_mut()[STACK_TRACE_OFFSET + 3] = b0;
+
+    frame.next_mut()[STACK_TRACE_OFFSET] = a1;
+    frame.next_mut()[STACK_TRACE_OFFSET + 1] = a0;
+    frame.next_mut()[STACK_TRACE_OFFSET + 2] = (b0 + b1) * (a1 + a0) - b0 * a0;
+    frame.next_mut()[STACK_TRACE_OFFSET + 3] = b0 * a0 - Felt::new(2) * b1 * a1;
 
     frame
 }

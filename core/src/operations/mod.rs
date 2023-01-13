@@ -124,7 +124,9 @@ pub enum Operation {
     Expacc,
 
     // ----- ext2 operations -----------------------------------------------------------------------
-    /// TODO: add comments
+    /// Computes the product of two elements in the extension field of degree 2 and pushes the
+    /// result back onto the stack as the third and fourth elemtns. Pushes 0 onto the stack as
+    /// the first and second elements.
     Ext2Mul,
 
     // ----- u32 operations -----------------------------------------------------------------------

@@ -43,18 +43,15 @@ For instructions where one or more operands can be provided as immediate paramet
 | gte <br> - *(19 cycles)*              | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ge b \\ 0, & \text{otherwise}\ \end{cases}$ |
 | eqw <br> - *(15 cycles)*              | [A, B, ...] | [c, A, B, ...] | $c \leftarrow \begin{cases} 1, & \text{if}\ a_i = b_i \; \forall i \in \{0, 1, 2, 3\} \\ 0, & \text{otherwise}\ \end{cases}$ |
 
-## Extension Field Operations
-Miden assembly provides a set of instructions which can perform operations with extension field elements. These instructions are described in the table below.
-
-### Arithmetic operations
+### Extension Field Operations
 
 | Instruction | Stack Input | Stack Output | Notes |
 | ----------- | ----------- | ------------ | ----------- |
 | ext2_add <br> - *(5 cycles)*  <br>  | [b, a, ...] | [c, ...] | $c \leftarrow (a + b) \mod q$                                |
-| ext2_sub <br> - *(8 cycles)*  <br>  | [b, a, ...] | [c, ...] | $c \leftarrow (a - b) \mod q$                                |
-| ext2_mul <br> - *(24 cycles)*  <br> | [b, a, ...] | [c, ...] | $c \leftarrow (a \cdot b) \mod q$                            |
-| ext2_div <br> - *(59 cycles)*  <br> | [b, a, ...] | [c, ...] | $c \leftarrow (a \cdot b^{-1}) \mod q$ <br> Fails if $b = 0$ |
+| ext2_sub <br> - *(7 cycles)*  <br>  | [b, a, ...] | [c, ...] | $c \leftarrow (a - b) \mod q$                                |
+| ext2_mul <br> - *(3 cycles)*  <br>  | [b, a, ...] | [c, ...] | $c \leftarrow (a \cdot b) \mod q$                            |
+| ext2_div <br> - *(11 cycles)*  <br> | [b, a, ...] | [c, ...] | $c \leftarrow (a \cdot b^{-1}) \mod q$ <br> Fails if $b = 0$ |
 | ext2_neg <br> - *(4 cycles)*  <br>  | [a, ...]    | [b, ...] | $b \leftarrow -a \mod q$                                     |
-| ext2_inv <br> - *(33 cycles)*  <br> | [a, ...]    | [b, ...] | $b \leftarrow a^{-1} \mod q$ <br> Fails if $a = 0$           |
+| ext2_inv <br> - *(8 cycles)*  <br>  | [a, ...]    | [b, ...] | $b \leftarrow a^{-1} \mod q$ <br> Fails if $a = 0$           |
 
-where $q$ is an irreducible polynomial $x^2 - x + 2$ over $F_p$ for $p = 2^64 - 2^32 + 1$
+where $q$ is an irreducible polynomial $x^2 - x + 2$ over $F_p$ for $p = 2^{64} - 2^{32} + 1$

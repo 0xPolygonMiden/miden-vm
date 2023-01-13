@@ -180,7 +180,7 @@ The effect on the rest of the stack is:
 ## EXPACC
 The `EXPACC` operation pops top $4$ elements from the top of the stack, performs a single round of exponent aggregation, and pushes the resulting $4$ values onto the stack. The diagram below illustrates this graphically.
 
-![eqz](../../assets/design/stack/field_operations/EXPACC.png)
+![expacc](../../assets/design/stack/field_operations/EXPACC.png)
 
 Stack transition for this operation must satisfy the following constraints:
 
@@ -212,6 +212,40 @@ $$
 
 >$$
 s_3' - (s_3 * 2 + s_0')  = 0 \text{ | degree} = 1
+$$
+
+The effect on the rest of the stack is:
+* **No change** starting from position $4$.
+
+## EXT2MUL
+The `EXT2MUL` operation pops top $4$ values from the top of the stack, performs mulitplication between the two extension field elements, and pushes the resulting $4$ values onto the stack. The diagram below illustrates this graphically.
+
+![ext2mul](../../assets/design/stack/field_operations/EXT2MUL.png)
+
+Stack transition for this operation must satisfy the following constraints:
+
+The first stack element should be unchanged in the next frame.
+
+>$$
+s_0' - s_0 = 0 \text{ | degree} = 1
+$$
+
+The second stack element should be unchanged in the next frame.
+
+>$$
+s_1' - s_1 = 0 \text{ | degree} = 1
+$$
+
+The third stack element should satisfy the following constraint.
+
+>$$
+s_2' - (s_0 + s_1) \cdot (s_2 + s_3) + s_0 \cdot s_2 = 0 \text{ | degree} = 2
+$$
+
+The fourth stack element should satisfy the following constraint.
+
+>$$
+s_3' - s_1 \cdot s_3 + 2 \cdot s_0 \cdot s_2 = 0 \text{ | degree} = 2
 $$
 
 The effect on the rest of the stack is:

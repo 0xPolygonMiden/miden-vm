@@ -1,7 +1,7 @@
-use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder, Vec};
-use vm_core::{AdviceInjector::Ext2Inv, Decorator, Felt, Operation};
+use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder};
+use vm_core::{AdviceInjector::Ext2Inv, Decorator};
 
-/// Given a stack in the following initial configuration [a1, a0, b1, b0, ...] where a = (a0, a1)
+/// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
 /// and b = (b0, b1) represent elements in the extension field of degree 2, this series of
 /// operations outputs the result c = (c1, c0) where c1 = a1 + b1 and c0 = a0 + b0.
 ///
@@ -9,65 +9,65 @@ use vm_core::{AdviceInjector::Ext2Inv, Decorator, Felt, Operation};
 pub fn ext2_add(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
     let ops = [
-        Swap,           // [a0, a1, b1, b0, ...]
-        MovUp3,         // [b0, a0, a1, b1, ...]
-        Add,            // [b0+a0, a1, b1, ...]
-        MovDn2,         // [a1, b1, b0+a0, ...]
-        Add             // [a1+b1, b0+a0, ...]
+        Swap,           // [b0, b1, a1, a0, ...]
+        MovUp3,         // [a0, b0, b1, a1, ...]
+        Add,            // [a0+b0, b1, a1, ...]
+        MovDn2,         // [b1, a1, a0+b0, ...]
+        Add             // [b1+a1, a0+b0, ...]
     ];
     span.add_ops(ops)
 }
 
-/// Given a stack in the following initial configuration [a1, a0, b1, b0, ...] where a = (a0, a1)
+/// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
 /// and b = (b0, b1) represent elements in the extension field of degree 2, this series of
 /// operations outputs the result c = (c1, c0) where c1 = a1 - b1 and c0 = a0 - b0.
 ///
-/// This operation takes 8 VM cycles.
+/// This operation takes 7 VM cycles.
 pub fn ext2_sub(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
     let ops = [
-        Swap,           // [a0, a1, b1, b0, ...]  
-        MovUp3,         // [b0, a0, a1, b1, ...]
-        Neg,            // [-b0, a0, a1, b1, ...]
-        Add,            // [a0-b0, a1, b1, ...]
-        MovDn2,         // [a1, b1, a0-b0, ...]
-        Swap,           // [b1, a1, a0-b0, ...]
-        Neg,            // [-b1, a1, a0-b0, ...]
-        Add             // [a1-b1, a0-b0, ...]
+        Neg,        // [-b1, b0, a1, a0, ...]
+        Swap,       // [b0, -b1, a1, a0, ...]
+        Neg,        // [-b0, -b1, a1, a0, ...]
+        MovUp3,     // [a0, -b0, -b1, a1, ...]
+        Add,        // [a0-b0, -b1, a1, ...]
+        MovDn2,     // [-b1, a1, a0-b0, ...]
+        Add         // [a1-b1, a0-b0, ...]
     ];
     span.add_ops(ops)
 }
 
-/// Given a stack with initial configuration given by [a1, a0, b1, b0, ...] where a = (a0, a1) and
+/// Given a stack with initial configuration given by [b1, b0, a1, a0, ...] where a = (a0, a1) and
 /// b = (b0, b1) represent elements in the extension field of degree 2, this series of operations
 /// outputs the product c = (c1, c0) where c0 = a0b0 - 2(a1b1) and c1 = (a0 + a1)(b0 + b1) - a0b0
 ///
-/// This operation takes 24 VM cycles.
+/// This operation takes 3 VM cycles.
 pub fn ext2_mul(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    span.add_ops(ext2_mul_ops())
+    span.add_ops([Ext2Mul, Drop, Drop])
 }
 
-/// Given a stack in the following initial configuration [a1, a0, b1, b0, ...] where a = (a0, a1)
+/// Given a stack in the following initial configuration [b1, b0, a1, a0, ...] where a = (a0, a1)
 /// and b = (b0, b1) represent elements in the extension field of degree 2, this series of
-/// operations outputs the result c = (c1, c0) where c1 = a1 / b1 and c0 = a0 / b0.
+/// operations outputs the result c = (c1, c0) where c = a * b^-1.
 ///
-/// This operation takes 59 VM cycles.
+/// This operation takes 11 VM cycles.
 pub fn ext2_div(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    span.add_ops(vec![MovUp3, MovUp3])?;
     span.add_decorator(Decorator::Advice(Ext2Inv))?;
     #[rustfmt::skip]
-    let ops = vec![
-        Read,
-        Read,
-        Dup1,
-        Dup1,
-        MovUp5,
-        MovUp5,
+    let ops = [
+        Read,        // [b0', b1, b0, a1, a0, ...]
+        Read,        // [b1', b0', b1, b0, a1, a0, ...]
+        Ext2Mul,     // [b1', b0', 0, 1, a1, a0, ...]
+        MovUp2,      // [0, b1', b0', 1, a1, a0, ...]
+        Eqz,         // [1, b1', b0', 1, a1, a0, ...]
+        Assert,      // [b1', b0', 1, a1, a0, ...] 
+        MovUp2,      // [1, b1', b0', a1, a0, ...]      
+        Assert,      // [b1', b0', a1, a0, ...]      
+        Ext2Mul,     // [b1', b0', a1*b1', a0*b0', ...]
+        Drop,        // [b0', a1*b1', a0*b0'...]
+        Drop         // [a1*b1', a0*b0'...]
     ];
-    span.add_ops(ops)?;
-    span.add_ops(ext2_mul_ops())?;
-    span.add_ops([Eqz, Assert, Assert])?;
-    span.add_ops(ext2_mul_ops())
+    span.add_ops(ops)
 }
 
 /// Given a stack with initial configuration given by [a1, a0, ...] where a = (a0, a1) represents
@@ -110,52 +110,19 @@ pub fn ext2_neg(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyErr
 /// b  = a * a' ( mod Q ) | Q = irreducible polynomial x^2 - x + 2 over F_p, p = 2^64 - 2^32 + 1
 /// assert b  = (1, 0) | (1, 0) is the multiplicative identity of extension field.
 ///
-/// This operation takes 33 VM cycles.
+/// This operation takes 8 VM cycles.
 pub fn ext2_inv(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     span.add_decorator(Decorator::Advice(Ext2Inv))?;
     #[rustfmt::skip]
-    let mut ops = vec![
-        Read,
-        Read,
-        Dup1,
-        Dup1,
-        MovUp5,
-        MovUp5,
+    let ops = [
+        Read,     // [a0', a1, a0, ...]
+        Read,     // [a1', a0', a1, a0, ...]
+        Ext2Mul,  // [a1', a0', 0, 1, ...]
+        MovUp2,   // [0, a1', a0', 1, ...]
+        Eqz,      // [1, a1', a0', 1, ...]
+        Assert,   // [a1', a0', 1, ...]
+        MovUp2,   // [1, a1', a0', ...]
+        Assert    // [a1', a0', ...]
     ];
-    ops.extend(ext2_mul_ops());
-    ops.extend([Eqz, Assert, Assert]);
     span.add_ops(ops)
-}
-
-/// A helper function that returns the operations to compute the product of two elements in the
-/// extension field of degree 2.
-/// Given a stack with initial configuration given by [a1,a0,b1,b0,...] where a = (a0,a1) and
-/// b = (b0,b1) represent elements in the extension field of degree 2, the procedure outputs the
-/// product c = (c1,c0) where c0 = a0b0 - 2(a1b1) and c1 = (a0 + a1)(b0 + b1) - a0b0
-///
-/// This sequence of operations takes 24 VM cycles.
-fn ext2_mul_ops() -> Vec<Operation> {
-    #[rustfmt::skip]
-    let ops = vec![
-        Dup3, Dup3, Dup3, Dup3,   // [a1, a0, b1, b0, a1, a0, b1, b0, ...]
-        MovDn2, MovUp3,           // [b0, a0, b1, a1, a1, a0, b1, b0, ...]
-        Mul,                      // [b0a0, a1, a1, a0, b1, b0, ...]
-        Dup0,                     // [b0a0, b0a0, a1, a1, a0, b1, b0, ...]
-        MovDn7,                   // [b0a0, b1, a1, a1, a0, b1, b0, b0a0, ...]
-        MovDn2,                   // [b1, a1, b0a0, a1, a0, b1, b0, b0a0, ...]
-        Push(Felt::new(2)),       // [2, b1, a1, b0a0, a1, a0, b1, b0, b0a0, ...]
-        Mul,                      // [2b1, a1, b0a0, a1, a0, b1, b0, b0a0, ...]
-        Mul,                      // [2b1a1, b0a0, a1, a0, b1, b0, b0a0, ...]
-        Neg,                      // [-2b1a1, b0a0, a1, a0, b1, b0, b0a0, ...]
-        Add,                      // [b0a0-2b1a1, a1, a0, b1, b0, b0a0, ...]
-        MovDn5,                   // [a1, a0, b1, b0, b0a0, b0a0-2b1a1, ...]
-        Add,                      // [a1+a0, b1, b0, b0a0, b0a0-2b1a1, ...]
-        Swap, MovUp2,             // [b0, b1, a1+a0, b0a0, b0a0-2b1a1, ...]
-        Add,                      // [b0+b1, a1+a0, b0a0, b0a0-2b1a1, ...]
-        Mul,                      // [(b0+b1)(a1+a0), b0a0, b0a0-2b1a1, ...]
-        Swap,                     // [b0a0, (b0+b1)(a1+a0), b0a0-2b1a1, ...]
-        Neg,                      // [-b0a0, (b0+b1)(a1+a0), b0a0-2b1a1, ...]
-        Add,                      // [(b0+b1)(a1+a0)-b0a0, b0a0-2b1a1, ...]
-    ];
-    ops
 }

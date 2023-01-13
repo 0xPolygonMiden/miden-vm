@@ -2,6 +2,7 @@ use super::{AdviceProvider, ExecutionError, Felt, FieldElement, Operation, Proce
 use vm_core::stack::STACK_TOP_SIZE;
 
 mod crypto_ops;
+mod ext2_ops;
 mod field_ops;
 mod io_ops;
 mod stack_ops;
@@ -66,7 +67,7 @@ where
             Operation::Expacc => self.op_expacc()?,
 
             // ----- ext2 operations --------------------------------------------------------------
-            Operation::Ext2Mul => todo!(),
+            Operation::Ext2Mul => self.op_ext2mul()?,
 
             // ----- u32 operations ---------------------------------------------------------------
             Operation::U32split => self.op_u32split()?,
