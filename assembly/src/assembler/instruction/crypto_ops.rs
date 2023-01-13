@@ -5,7 +5,7 @@ use vm_core::{AdviceInjector, Decorator};
 // ================================================================================================
 
 /// Appends RPPERM and stack manipulation operations to the span block as required to compute a
-/// 2-to-1 Rescue Prime hash. The top of the stack is expected to be arranged with 2 words
+/// 2-to-1 Rescue Prime Optimized hash. The top of the stack is expected to be arranged with 2 words
 /// (8 elements) to be hashed: [B, A, ...]. The resulting stack will contain the 2-to-1 hash result
 /// [E, ...].
 ///
@@ -27,7 +27,7 @@ use vm_core::{AdviceInjector, Decorator};
 pub(super) fn rphash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
     let ops = [
-        // Add 4 elements to the stack to prepare the capacity portion for the Rescue Prime permutation
+        // Add 4 elements to the stack to prepare the capacity portion for the RPO permutation
         // The capacity should start at stack[8], and the number of elements to be hashed should
         // be deepest in the stack at stack[11]
         Pad, Pad, Pad, Pad, SwapW2,
@@ -35,7 +35,7 @@ pub(super) fn rphash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assemb
         // restore the order of the top 2 words to be hashed
         SwapW,
 
-        // Do the Rescue Prime permutation on the top 12 elements in the stack
+        // Do the RPO permutation on the top 12 elements in the stack
         RpPerm,
 
         // Drop 4 elements (the part of the rate that doesn't have our result)

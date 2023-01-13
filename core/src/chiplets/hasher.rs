@@ -63,8 +63,8 @@ pub const NUM_ROUNDS: usize = Hasher::NUM_ROUNDS;
 /// Number of selector columns in the trace.
 pub const NUM_SELECTORS: usize = 3;
 
-/// The number of rows in the execution trace required to compute a Rescue Prime permutation. This
-/// is equal to 8.
+/// The number of rows in the execution trace required to compute a permutation of Rescue Prime
+/// Optimized. This is equal to 8.
 pub const HASH_CYCLE_LEN: usize = NUM_ROUNDS.next_power_of_two();
 
 /// Number of columns in Hasher execution trace. Additional two columns are for row address and

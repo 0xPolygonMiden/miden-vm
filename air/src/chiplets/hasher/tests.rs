@@ -54,7 +54,7 @@ fn get_test_periodic_values(cycle_row: usize) -> Vec<Felt> {
         _ => vec![Felt::ZERO, Felt::ZERO, Felt::ZERO],
     };
 
-    // Add the Rescue Prime round constants for the first 7 rows of the cycle, or pad with zeros.
+    // Add the RPO round constants for the first 7 rows of the cycle, or pad with zeros.
     if cycle_row == 7 {
         periodic_values.resize(periodic_values.len() + STATE_WIDTH * 2, Felt::ZERO);
     } else {

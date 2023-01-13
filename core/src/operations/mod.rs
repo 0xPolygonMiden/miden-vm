@@ -332,36 +332,37 @@ pub enum Operation {
     /// memory address. The remaining 3 elements of the word are not affected.
     MStore,
 
-    /// Loads two words from memory and adds their contents to the top 8 elements of the stack.
+    /// Loads two words from memory, and replaces the top 8 elements of the stack with them,
+    /// element-wise, in stack order.
     ///
     /// The operation works as follows:
     /// - The memory address of the first word is retrieved from 13th stack element (position 12).
     /// - Two consecutive words, starting at this address, are loaded from memory.
-    /// - Elements of these words are added to the top 8 elements of the stack (element-wise, in
-    ///   stack order).
+    /// - The top 8 elements of the stack are overwritten with these words (element-wise, in stack
+    ///   order).
     /// - Memory address (in position 12) is incremented by 2.
     /// - All other stack elements remain the same.
     MStream,
 
-    /// Loads two words from the advice tape, writes them to memory, and adds their contents to the
-    /// top 8 elements of the stack.
+    /// Loads two words from the advice tape, writes them to memory, and replaces the top 8 elements
+    /// of the stack with them, element-wise, in stack order.
     ///
     /// The operation works as follows:
     /// - Two words are read from the head of the advice tape.
     /// - The destination memory address for the first word is retrieved from the 13th stack element
     ///   (position 12).
     /// - The two words are written to memory consecutively, starting at this address.
-    /// - Elements of these words are added to the top 8 elements of the stack (element-wise, in
-    ///   stack order).
+    /// - The top 8 elements of the stack are overwritten with these words (element-wise, in stack
+    ///   order).
     /// - Memory address (in position 12) is incremented by 2.
     /// - All other stack elements remain the same.
     Pipe,
 
     // ----- cryptographic operations -------------------------------------------------------------
-    /// Applies Rescue Prime permutation to the top 12 elements of the stack. The rate part of the
-    /// sponge is assumed to be on top of the stack, and the capacity is expected to be deepest in
-    /// the stack, starting at stack[8]. For a Rescue Prime permutation of [A, B, C] where A is the
-    /// capacity, the stack should look like [C, B, A, ...] from the top.
+    /// Applies a permutation of Rescue Prime Optimized to the top 12 elements of the stack. The
+    /// rate part of the sponge is assumed to be on top of the stack, and the capacity is expected
+    /// to be deepest in the stack, starting at stack[8]. For an RPO permutation of [A, B, C] where
+    /// A is the capacity, the stack should look like [C, B, A, ...] from the top.
     RpPerm,
 
     /// Verifies that a Merkle path from the specified node resolves to the specified root. This
