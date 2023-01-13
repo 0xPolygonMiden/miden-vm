@@ -1,0 +1,735 @@
+# This procedure is approximately 5 cycles, it is used to test the end
+# condition on loops copying data that *may* be padded with one word.
+#
+# On those loops the counter is decremented by 2, the operation is done on a
+# field element instead of an u32 because the former is two cycles while the
+# later is three for equality checking. This is faster than range checking.
+proc.is_zero_or_negative_one.0
+    # input: [el, ...]
+    # output: [b, ...]
+
+    # [b1, el, ...]
+    dup eq.0
+
+    # [b2, b1, ...]
+    swap eq.18446744069414584320
+
+    or
+end
+
+# Counts how many words are needed for `length` items.
+#
+# Note: `adv_pipe` copies **two** words per instruction, this procedure returns
+# how many words in total will be copied, this allows easier padding checking.
+proc.count_to_word.0
+    # input: [length, ...]
+    # output: [word_count, ...]
+
+    # Fix the inner loop counter. The data is copied using `adv_pipe` which
+    # copies 8 elements per instruction. In total we only need `col/8`
+    # iterations. Below we are diving by `4` instead, so that the loop can
+    # detect padding without having to cary extra data in the stack.
+    u32checked_divmod.4 eq.0 not add
+end
+
+proc.multiply_add_word.0
+    # input: [A, B, ...]
+    # output: [c, ...]
+
+    # [a1, a2, a3, a4, b1, b2, b3, b4, ...]
+
+    # [c1, a2, a3, a4, b2, b3, b4, ...]
+    movup.4 mul
+
+    # [c2, c1, a3, a4, b3, b4, ...]
+    swap movup.4 mul
+
+    # [c3, c, a4, b4, ...]
+    add swap movup.3 mul
+
+    # [c4, c, ...]
+    add movdn.2 mul
+
+    # [c, ...]
+    add
+end
+
+# Multiply two matrices `A*B=C`.
+#
+# A must be in row-major order
+# B must be in column-major order
+# C will be in row-major order
+#
+# Notes: 
+# - `addrC` must different to `addrA` and `addrB`
+# - This procedure only works with matrixes where both row and col are u32
+# values
+proc.matrix_multiply.0
+    # input: [addrA, addrB, addrC, ...]
+    # output: [...]
+
+    # copy dimensions of A
+    # [[row1, col1, 0, 0], addrA, addrB, addrC, ...]
+    padw dup.4 mem_loadw
+
+    # copy dimensions of B
+    # [[row2, col2, 0, 0], [row1, col1, 0, 0], addrA, addrB, addrC, ...]
+    padw dup.9 mem_loadw
+
+    # assert row2==col1 requirement for matrix multiplication
+    # [[col2, 0, 0, row1], [col1, 0, 0, addrA], addrB, addrC, ...]
+    dup.5 assert_eq
+
+    # Set C's size, where row=row1 col=col2
+    # [[row, col, 0, 0], [col1, 0, 0, addrA], addrB, addrC, ...]
+    movup.3 dup.9 mem_storew
+
+    # count the number of words the inner most loop have to consume.
+    # [[words, row, col, 0], [0, 0, 0, addrA], addrB, addrC, ...]
+    movup.4 exec.count_to_word
+
+    # discard padding in the middle of the data
+    # [[words, row, col, 0], addrA, addrB, addrC, ...]
+    push.0 movdn.4 swapw dropw
+
+    # udpate all indices by one, accounts for the size being set
+    # [[words, row, col, 0], addrA+1, addrB+1, addrC+1, ...]
+    swapw add.1 swap add.1 movup.2 add.1 swap.2 swapw
+
+    # [[0, row, col, addrC+1], [0, addrA+1, addrB+1, words, ...]
+    swap.6 movdn.2 push.0
+
+    # Order elements as [words, addrA+1, addrB+1, 0]. This reduces the number of
+    # maintenance operations needed in the inner loop. (values are moved only
+    # once, from back to front, when an update is necessary)
+    #
+    # [[0, row, col, addrC+1], [words, addrA+1, addrB+1, 0], ...]
+    swapw movdn.2 movup.3 swapw
+
+    # `r`: starts at `row` and decrements until `0`
+    # `writePtr`: starts at `addrC+1` and increment as data is written
+    # `readA`: starts at `addrA+1` and increments by `words` after every row is
+    # computed
+    # [[r, 0, col, writePtr], [words, readA, addrB, 0], ...]
+    swap
+
+    ## # DEBUG
+    ## dup.0 eq.2 assert   # rows(A)
+    ## dup.1 eq.0 assert   # always 0
+    ## dup.2 eq.2 assert   # columns(B)
+    ## dup.3 eq.301 assert # address(C) + 1
+    ## dup.4 eq.1 assert   # round_up(columns(A) / 4)
+    ## dup.5 eq.101 assert # address(A) + 1
+    ## dup.6 eq.201 assert # address(B) + 1
+    ## dup.7 eq.0 assert
+    ## # /DEBUG
+
+    # ROW: [[r, 0, col, writePtr], [words, readA, addrB, 0], ...]
+    # while(r!=0)
+    dup neq.0 while.true
+
+        # The loop counter `c` will be increasing from 0 to col.
+        # Used for:
+        #   1. End condition when c==col
+        #   2. Offset into addrB
+        #   3. To determine how many padding zeros are needed for row
+        # [[c, r, col, writePtr], [words, readA, addrB, 0], ...]
+        swap
+
+        ## # DEBUG
+        ## dup.0 eq.0 assert         # c==0
+        ## dup.1 push.2 lte assert   # r <= rows(A)
+        ## dup.2 eq.2 assert         # columns(B)
+        ## dup.3 push.300 gt assert  # writePtr > address(C)
+        ## dup.3 push.302 lte assert # && writePtr < address(C) + total_words_in(A)
+        ## dup.4 eq.1 assert         # round_up(columns(A) / 4)
+        ## dup.5 push.100 gt assert  # readA > address(A)
+        ## dup.5 push.102 lte assert # && readA < address(A) + total_words_in(A)
+        ## dup.6 push.200 gt assert  # addrB > address(B)
+        ## dup.6 push.202 lte assert # && addrB < address(B) + total_words_in(B)
+        ## dup.7 eq.0 assert
+        ## # /DEBUG
+
+        # COLUMN: [[c, r, col, writePtr], [words, readA, addrB, 0], RESULT_DATA, ...]
+        # while(c!=col)
+        dup dup.3 neq while.true
+            ## DEBUG
+            ## dup.0 push.0 gte assert   # c>=0
+            ## dup.0 push.2 lt assert    # && c<columns(B)
+            ## dup.1 push.2 lte assert   # r <= rows(A)
+            ## dup.2 eq.2 assert         # columns(B)
+            ## dup.3 push.300 gt assert  # writePtr > address(C)
+            ## dup.3 push.302 lte assert # && writePtr < address(C) + total_words_in(A)
+            ## dup.4 eq.1 assert         # round_up(columns(A) / 4)
+            ## dup.5 push.100 gt assert  # readA > address(A)
+            ## dup.5 push.102 lte assert # && readA < address(A) + total_words_in(A)
+            ## dup.6 push.200 gt assert  # addrB > address(B)
+            ## dup.6 push.202 lte assert # && addrB < address(B) + total_words_in(B)
+            ## dup.7 eq.0 assert
+            ## /DEBUG
+
+            # [[i, readA, addrB, acc], [words, readA, addrB, 0], [c, r, col, writePtr], ...]
+            swapw dupw
+
+            # setup curr_col to the right column
+            # curr_col = addrB + (words * c)
+            # [[i, readA, curr_col, acc], [words, readA, addrB, 0], [c, r, col, writePtr], ...]
+            dup dup.9 mul movup.3 add movdn.2
+
+            # MATH: [[i, readA, curr_col, acc], [words, readA, addrB, 0], [c, r, col, writePtr], ...]
+            # if(i!=0)
+            dup neq.0 while.true
+
+                # [[acc, i, readA, curr_col], [words, readA, addrB, 0], [c, r, col, writePtr], ...]
+                movup.3
+
+                # [[A], [acc, i, readA, curr_col], [words, readA, addrB, 0], [c, r, col, writePtr], ...]
+                padw dup.6 mem_loadw
+
+                # [[B], [A], [acc, i, readA, curr_col], [words, readA, addrB, 0], [c, r, col, writePtr], ...]
+                padw dup.11 mem_loadw
+
+                # note: it is okay to use this procedure for matrixes that
+                # don't have enough elements to fill the last word, because the
+                # word is padded with zeros
+                # [[acc, i, readA, curr_col], [words, readA, addrB, 0], [c, r, col, writePtr], ...]
+                exec.multiply_add_word add
+
+                # update indices
+                # [[readA, curr_col+1, acc, i], [words, readA, addrB, 0], [c, r, col, writePtr], ...]
+                movup.3 add.1 movup.3
+
+                # [[i, readA, curr_col, acc], [words, readA, addrB, 0], [c, r, col, writePtr], ...]
+                movup.3
+
+                # while(i!=0)
+                sub.1 dup neq.0
+            end
+
+            # discard the auxiliary loop data, and save the computed element
+            # [[words, readA, addrB, 0], [c, r, col, writePtr], acc, ...]
+            drop drop drop movdn.8
+
+            # count the element
+            # [[c, r, col, writePtr], [words, readA, addrB, 0], acc, ...]
+            swapw add.1 
+
+            push.0 drop
+
+            # while(c!=col)
+            dup dup.3 neq
+        end
+
+        # add the padding
+        # [[c, r, col, writePtr], [words, readA, addrB, 0], acc, ...]
+        dup push.3 u32checked_and neq.0 while.true
+            push.0 movdn.7
+
+            add.1 dup push.3 u32checked_and neq.0 
+        end
+
+        # at this point the there is a complete row of C's data on the stack.
+        # push it to the memory
+        # [[word_offset, r, col, writePtr], [words, readA, addrB, 0], acc, ...]
+        drop dup.3
+
+        # COPY: [[word_offset, r, col, writePtr], [words, readA, addrB, 0], acc, ...]
+        # while(word_offset>0)
+        dup neq.0 while.true
+            # This does two things:
+            # - Adjust the word for pointer arithmethic, the 3rd word is 2
+            # positions ahead of writePtr.
+            # - Already decrements the loop variable prior to the loop check below
+            sub.1 
+
+            # [[DATA], [word_offset, r, col, writePtr], [words, readA, addrB, 0], acc, ...]
+            movupw.2
+
+            # data is stored from back to front
+            swap movup.2 movup.3
+
+            # offset writePtr, data is store from back to front
+            dup.7 dup.5 add
+
+            # COPY: [[word_offset, r, col, writePtr], [words, readA, addrB, 0], acc, ...]
+            mem_storew dropw
+
+            ## DEBUG
+            ## dup.0 push.1 lte assert   # word_offset<=total_words_in(A)
+            ## dup.1 push.2 lte assert   # r <= rows(A)
+            ## dup.2 eq.2 assert         # columns(B)
+            ## dup.3 push.300 gt assert  # writePtr > address(C)
+            ## dup.3 push.302 lte assert # && writePtr < address(C) + total_words_in(A)
+            ## /DEBUG
+
+            dup neq.0 # while(word_offset>0)
+        end
+
+        # Advance writePtr by a complete row
+        # [[0, r, col, writePtr+1], [words, readA, addrB, 0], ...]
+        movup.3 dup.4 add movdn.3
+
+        # Advance readA by a complete row
+        # [[0, r, col, writePtr], [words, readA+1, addrB, 0], ...]
+        swapw swap dup.1 add swap swapw
+
+        # ROW: [[r, 0, col, writePtr], [words, readA, addrB, 0], ...]
+        swap
+
+        # while(r!=0)
+        sub.1 dup neq.0
+    end
+
+    # Clean stack
+    dropw dropw
+end
+
+# matrix_row_major_copy(destination: addr)
+#
+# Copies a matrix from the advice tape to memory. The matrix data must be
+# carefully encoded into the advice tape. The first four elements must be:
+#
+#   [0, 0, col, row, 0, 0, 0, 0]
+#
+# Then the matrix is encoded row-wise, from top to bottom. Each row must be
+# first padded with the element 0 until its size is a multiple of 8. These
+# elements are then handled in groups of 4, in each group their elements be in
+# reverse order. As an example, the following matrix:
+#
+#   [2, 3, 4]
+#   [5, 6, 7]
+#
+# First has its rows padded to be a multiple of 8:
+#
+#   [2, 3, 4, 0, 0, 0, 0, 0]
+#   [5, 6, 7, 0, 0, 0, 0, 0]
+#
+# Then reverse the elements order for each 4-element group:
+#
+#   [0, 4, 3, 2, 0, 0, 0, 0]
+#   [0, 7, 6, 5, 0, 0, 0, 0]
+#
+# Resulting in the following encoding:
+#
+# [
+#     0, 0, 3, 2, 0, 0, 0, 0,  # matrix size
+#     0, 4, 3, 2, 0, 0, 0, 0,  # first row
+#     0, 7, 6, 5, 0, 0, 0, 0,  # second row
+# ]
+#
+# The data is read into memory preserving padding *elements*, but removing
+# padding *words*. So the data above will be store as:
+#
+#     addr+0: [2, 3, 0, 0]  # matrix size
+#     addr+1: [2, 3, 4, 0]  # first row
+#     addr+2: [5, 6, 7, 0]  # second row
+#
+# Notes:
+# - This procedure *must* be called with `exec` to copy the data to memory.
+# - The data packingig done to take advantage of `adv_pipe`, a very efficient
+# primitive to load and verify data from tape to memory. Tightly packing the
+# data into the tape would likely be two orders of magnitude slower.
+# - This procedure can use up to `size//4 + 2`
+#
+proc.matrix_row_major_copy.0
+    # input: [addr, ...]
+    # output: [H, H, H, ...]
+
+    # [H, H, H, addr, 0, 0, 0, ...]
+    push.0 push.0 push.0 movup.3 padw padw padw
+
+    adv_pipe
+
+    # [addr, 0, 0, 0, H, H, H, ...]
+    movupw.3
+
+    # remove the padding word after the [row, column]
+    sub.1
+
+    # [addr, 0, 0, 0, addr, H, H, H, ...]
+    dup movdn.4
+
+    # [row, col, 0, 0, addr, H, H, H, ...]
+    dup sub.1 mem_loadw
+
+    # [row, col, addr, H, H, H, ...]
+    movup.2 drop movup.2 drop
+
+    # Outter loop. The value `row` won't be needed again, so reuse it as a loop
+    # counter `r`.
+    # OUTER: [r, words, addr, H, H, H, ...]
+    swap exec.count_to_word swap
+
+    # if(r>0)
+    dup neq.0 while.true
+
+        # save a copy of `words` for the next iteration, call the loop counter `c`
+        # [c, words, r, addr, H, H, H, ...]
+        swap dup
+
+        # INNER: [c, addr, words, r, H, H, H, ...]
+        movup.3 swap
+
+        # if(c>0)
+        dup neq.0 while.true
+            # [H, H, H, addr, c, words, r, ...]
+            swap movdnw.3
+
+            # [H, H, H, addr, c, words, r, ...]
+            adv_pipe
+
+            # INNER: [c, addr, words, r, H, H, H, ...]
+            movupw.3 swap
+
+            # every call to `adv_pipe` copies *two* words
+            sub.2
+
+            # while(c>0)
+            dup exec.is_zero_or_negative_one not
+        end
+
+        # remove the padding word at the end of the row
+        eq.18446744069414584320 if.true
+            sub.1
+        end
+
+        # OUTER: [r, words, addr, H, H, H, ...]
+        movdn.2 swap
+
+        # while(r>0)
+        sub.1 dup neq.0
+    end
+
+    # [H, H, H, ...]
+    drop drop drop
+end
+
+# matrix_column_major_copy(destination: addr)
+#
+# Copies a matrix from the advice tape to memory. The matrix data must be
+# carefully encoded into the advice tape. The first four elements must be:
+#
+#   [0, 0, col, row, 0, 0, 0, 0]
+#
+# Then the matrix is encoded column-wise, from left to right. Each column must
+# be first padded with the element 0 until its size is a multiple of 8. These
+# elements are then handled in groups of 4, in each group their elements be in
+# reverse order. As an example, the following matrix:
+#
+#   [8, 3, 1]
+#   [9, 6, 7]
+#
+# First has its columns padded to be a multiple of 8:
+#
+#   [8, 3, 0, 0, 0, 0, 0, 0]
+#   [9, 6, 0, 0, 0, 0, 0, 0]
+#   [1, 7, 0, 0, 0, 0, 0, 0]
+#
+# Then reverse the elements order for each 4-element group:
+#
+#   [0, 0, 3, 8, 0, 0, 0, 0]
+#   [0, 0, 6, 9, 0, 0, 0, 0]
+#   [0, 0, 7, 1, 0, 0, 0, 0]
+#
+# Resulting in the following encoding:
+#
+# [
+#     0, 0, 3, 2, 0, 0, 0, 0,  # matrix size
+#     0, 0, 3, 8, 0, 0, 0, 0,  # first column
+#     0, 0, 6, 9, 0, 0, 0, 0,  # second column
+#     0, 0, 7, 1, 0, 0, 0, 0   # third column
+# ]
+#
+# The data is read into memory preserving padding *elements*, but removing
+# padding *words*. So the data above will be store as:
+#
+#     addr+0: [2, 3, 0, 0]  # matrix size
+#     addr+1: [8, 3, 0, 0]  # first column
+#     addr+2: [9, 6, 0, 0]  # second column
+#     addr+3: [1, 7, 0, 0]  # third column
+#
+# Notes:
+# - This procedure *must* be called with `exec` to copy the data to memory.
+# - The data packingig done to take advantage of `adv_pipe`, a very efficient
+# primitive to load and verify data from tape to memory. Tightly packing the
+# data into the tape would likely be two orders of magnitude slower.
+#
+proc.matrix_column_major_copy.0
+    # input: [addr, ...]
+    # output: [H, H, H, ...]
+
+    # [H, H, H, addr, 0, 0, 0, ...]
+    push.0 push.0 push.0 movup.3 padw padw padw
+
+    adv_pipe
+
+    # [addr, 0, 0, 0, H, H, H, ...]
+    movupw.3
+
+    # remove the padding word after the [row, column]
+    sub.1
+
+    # [addr, 0, 0, 0, addr, H, H, H, ...]
+    dup movdn.4
+
+    # [row, col, 0, 0, addr, H, H, H, ...]
+    dup sub.1 mem_loadw
+
+    # [row, col, addr, H, H, H, ...]
+    movup.2 drop movup.2 drop
+
+    # Outter loop. The value `col` won't be needed again, so reuse it as a loop counter `c`.
+    # OUTER: [c, words, addr, H, H, H, ...]
+    exec.count_to_word swap
+
+    # if(c>0)
+    dup neq.0 while.true
+
+        # save a copy of `words` for the next iteration, call the loop counter `r`
+        # [r, words, c, addr, H, H, H, ...]
+        swap dup
+
+        # INNER: [r, addr, words, c, H, H, H, ...]
+        movup.3 swap
+
+        # if(r>0)
+        dup neq.0 while.true
+            # [H, H, H, addr, r, words, c, ...]
+            swap movdnw.3
+
+            # [H, H, H, addr, r, words, c, ...]
+            adv_pipe
+
+            # INNER: [r, addr, words, c, H, H, H, ...]
+            movupw.3 swap
+
+            # every call to `adv_pipe` copies *two* words
+            sub.2
+
+            # while(c>0)
+            dup exec.is_zero_or_negative_one not
+        end
+
+        # remove the padding word at the end of the column
+        eq.18446744069414584320 if.true
+            sub.1
+        end
+
+        # OUTER: [c, words, addr, H, H, H, ...]
+        movdn.2 swap
+
+        # while(c>0)
+        sub.1 dup neq.0
+    end
+
+    # [H, H, H, ...]
+    drop drop drop
+end
+
+proc.test_is_zero_or_negative_one.0
+    push.0 exec.is_zero_or_negative_one assert
+    push.0 sub.1 exec.is_zero_or_negative_one assert
+    push.1 exec.is_zero_or_negative_one not assert
+    push.2 exec.is_zero_or_negative_one not assert
+    push.0 sub.2 exec.is_zero_or_negative_one not assert
+end
+
+proc.test_count_to_word.0
+    push.0 exec.count_to_word push.0 assert_eq
+    push.1 exec.count_to_word push.1 assert_eq
+    push.2 exec.count_to_word push.1 assert_eq
+    push.3 exec.count_to_word push.1 assert_eq
+    push.4 exec.count_to_word push.1 assert_eq
+    push.5 exec.count_to_word push.2 assert_eq
+    push.9 exec.count_to_word push.3 assert_eq
+    push.13 exec.count_to_word push.4 assert_eq
+end
+
+proc.test_multiply_add_word.0
+    push.1 push.1 push.1 push.1 # A
+    push.1 push.1 push.1 push.1 # B
+    exec.multiply_add_word
+    push.4 assert_eq
+
+    push.1 push.2 push.3 push.4 # A
+    push.1 push.1 push.1 push.1 # B
+    exec.multiply_add_word
+    push.10 assert_eq
+
+    push.1 push.2 push.3 push.4 # A
+    push.4 push.3 push.2 push.1 # B
+    exec.multiply_add_word
+    push.20 assert_eq
+end
+
+proc.test_matrix_1_1.0
+    # matrix A (row-major)
+    # [row=1, col=1, 0, 0]
+    # [1]
+    push.0 push.0 push.1 push.1
+    push.0 push.0 push.0 push.1
+    push.101 mem_storew dropw
+    push.100 mem_storew dropw
+
+    # matrix B (column-major)
+    # [row=1, col=1, 0, 0]
+    # [2]
+    push.0 push.0 push.1 push.1
+    push.0 push.0 push.0 push.2
+    push.201 mem_storew dropw
+    push.200 mem_storew dropw
+
+    push.300 push.200 push.100 # [addrA, addrB, addrC]
+    exec.matrix_multiply
+
+    # matrix C (row-major)
+    # [row=1, col=1, 0, 0]
+    # [2]
+    push.0 push.0 push.1 push.1
+    push.0 push.0 push.0 push.2
+
+    padw push.301 mem_loadw
+    eqw assert dropw dropw
+    padw push.300 mem_loadw
+    eqw assert dropw dropw
+end
+
+proc.test_matrix_2_1.0
+    # matrix A (row-major)
+    # [row=1, col=4, 0, 0]
+    # [2, 3, 4, 5]
+    push.0 push.0 push.4 push.1
+    push.5 push.4 push.3 push.2
+    push.401 mem_storew dropw
+    push.400 mem_storew dropw
+
+    # matrix B (column-major)
+    # [row=4, col=1, 0, 0]
+    # [6]
+    # [7]
+    # [8]
+    # [9]
+    push.0 push.0 push.1 push.4
+    push.9 push.8 push.7 push.6
+    push.501 mem_storew dropw
+    push.500 mem_storew dropw
+
+    push.600 push.500 push.400 # [addrA, addrB, addrC]
+    exec.matrix_multiply
+
+    # matrix C (row-major)
+    # [row=1, col=1, 0, 0]
+    # [110]
+    push.0 push.0 push.1 push.1
+    push.0 push.0 push.0 push.110
+
+    padw push.601 mem_loadw
+    eqw assert dropw dropw
+    padw push.600 mem_loadw
+    eqw assert dropw dropw
+end
+
+proc.test_matrix_4_4.0
+    # matrix A (row-major)
+    # [row=2, col=4, 0, 0]
+    # [2, 3, 4, 5]
+    # [6, 7, 8, 9]
+    push.0 push.0 push.4 push.2
+    push.5 push.4 push.3 push.2
+    push.9 push.8 push.7 push.6
+    push.702 mem_storew dropw
+    push.701 mem_storew dropw
+    push.700 mem_storew dropw
+
+    # matrix B (column-major)
+    # [row=4, col=2, 0, 0]
+    # [1, 1]
+    # [1, 1]
+    # [1, 1]
+    # [1, 1]
+    push.0 push.0 push.2 push.4
+    push.1 push.1 push.1 push.1
+    push.1 push.1 push.1 push.1
+    push.802 mem_storew dropw
+    push.801 mem_storew dropw
+    push.800 mem_storew dropw
+
+    push.900 push.800 push.700 # [addrA, addrB, addrC]
+    exec.matrix_multiply
+
+    # matrix C (row-major)
+    # [row=2, col=2, 0, 0]
+    # [14, 14]
+    # [30, 30]
+    push.0 push.0 push.2 push.2
+    push.0 push.0 push.14 push.14
+    push.0 push.0 push.30 push.30
+
+    padw push.902 mem_loadw
+    eqw assert dropw dropw
+    padw push.901 mem_loadw
+    eqw assert dropw dropw
+    padw push.900 mem_loadw
+    eqw assert dropw dropw
+end
+
+proc.test_matrix_row_major_copy.0
+    push.1000
+    exec.matrix_row_major_copy
+
+    # matrix (row-major)
+    # [row=2, col=3, 0, 0]
+    # [3, 2, 0]
+    # [7, 5, 1]
+    push.0 push.0 push.3 push.2
+    push.0 push.0 push.2 push.3
+    push.0 push.1 push.5 push.7
+
+    padw push.1002 mem_loadw
+    eqw assert dropw dropw
+    padw push.1001 mem_loadw
+    eqw assert dropw dropw
+    padw push.1000 mem_loadw
+    eqw assert dropw dropw
+
+    dropw dropw dropw
+end
+
+proc.test_matrix_column_major_copy.0
+    push.1100
+    exec.matrix_column_major_copy
+
+    # matrix (row-major)
+    # [row=2, col=4, 0, 0]
+    # [0, 2, 0, 2]
+    # [1, 3, 1, 3]
+    push.0 push.0 push.4 push.2
+    push.0 push.0 push.1 push.0
+    push.0 push.0 push.3 push.2
+    push.0 push.0 push.1 push.0
+    push.0 push.0 push.3 push.2
+
+    padw push.1104 mem_loadw
+    eqw assert dropw dropw
+    padw push.1103 mem_loadw
+    eqw assert dropw dropw
+    padw push.1102 mem_loadw
+    eqw assert dropw dropw
+    padw push.1101 mem_loadw
+    eqw assert dropw dropw
+    padw push.1100 mem_loadw
+    eqw assert dropw dropw
+
+    dropw dropw dropw
+end
+
+begin
+    exec.test_is_zero_or_negative_one
+    exec.test_count_to_word
+    exec.test_multiply_add_word
+    exec.test_matrix_1_1
+    exec.test_matrix_2_1
+    exec.test_matrix_4_4
+    exec.test_matrix_row_major_copy
+    exec.test_matrix_column_major_copy
+end
