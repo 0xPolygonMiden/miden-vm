@@ -1,5 +1,8 @@
 use super::{Felt, StarkField};
-use core::{fmt::Debug, ops::Range};
+use core::{
+    fmt::Debug,
+    ops::{Bound, Range},
+};
 use winter_utils::collections::Vec;
 
 // FEATURE BASED RE-EXPORT
@@ -86,6 +89,24 @@ pub const fn range(start: usize, len: usize) -> Range<usize> {
     Range {
         start,
         end: start + len,
+    }
+}
+
+/// Converts and parses a [Bound] into an included u64 value.
+pub fn bound_into_included_u64<I>(bound: Bound<&I>, is_start: bool) -> u64
+where
+    I: Clone + Into<u64>,
+{
+    match bound {
+        Bound::Excluded(i) => i.clone().into().saturating_sub(1),
+        Bound::Included(i) => i.clone().into(),
+        Bound::Unbounded => {
+            if is_start {
+                0
+            } else {
+                u64::MAX
+            }
+        }
     }
 }
 

@@ -38,7 +38,7 @@ pub fn parse_push(op: &Token) -> Result<Node, ParsingError> {
                 Some(param_str) => parse_long_hex_param(op, param_str),
                 // if we have one decimal parameter
                 None => {
-                    let value = parse_checked_param(op, 1, 0, Felt::MODULUS - 1)?;
+                    let value = parse_checked_param(op, 1, 0..Felt::MODULUS)?;
                     build_push_one_instruction(value)
                 }
             }
@@ -91,7 +91,7 @@ pub fn parse_adv_push(op: &Token) -> Result<Node, ParsingError> {
         0 => unreachable!(),
         1 => Err(ParsingError::missing_param(op)),
         2 => {
-            let num_vals = parse_checked_param(op, 1, 1, ADVICE_READ_LIMIT)?;
+            let num_vals = parse_checked_param(op, 1, 1..=ADVICE_READ_LIMIT)?;
             Ok(Instruction(AdvPush(num_vals)))
         }
         _ => Err(ParsingError::extra_param(op)),
@@ -256,7 +256,7 @@ fn parse_param_list(op: &Token) -> Result<Node, ParsingError> {
         op.parts().iter().enumerate().skip(1).map(|(param_idx, &param_str)| {
             match param_str.strip_prefix("0x") {
                 Some(param_str) => parse_hex_value(op, param_str, param_idx),
-                None => parse_checked_param(op, param_idx, 0, Felt::MODULUS - 1),
+                None => parse_checked_param(op, param_idx, 0..Felt::MODULUS),
             }
         });
 

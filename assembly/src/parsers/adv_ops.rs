@@ -38,7 +38,7 @@ pub fn parse_adv_inject(op: &Token) -> Result<Node, ParsingError> {
             2 | 3 => Err(ParsingError::missing_param(op)),
             4 => {
                 let start_addr = parse_param(op, 2)?;
-                let num_words = parse_checked_param(op, 3, 1, u32::MAX - start_addr)?;
+                let num_words = parse_checked_param(op, 3, 1..=(u32::MAX - start_addr))?;
                 Ok(Instruction(AdvMem(start_addr, num_words)))
             }
             _ => Err(ParsingError::extra_param(op)),

@@ -299,7 +299,7 @@ pub fn u32rotr(
             return Ok(None);
         }
         (Some(imm), U32OpMode::Checked) => {
-            validate_param(imm, 1, MAX_U32_ROTATE_VALUE)?;
+            validate_param(imm, 1..=MAX_U32_ROTATE_VALUE)?;
             span.push_ops([Push(Felt::new(1 << (32 - imm))), U32assert2]);
         }
         (Some(imm), U32OpMode::Unchecked) if imm == 0 => {
@@ -308,7 +308,7 @@ pub fn u32rotr(
             return Ok(None);
         }
         (Some(imm), U32OpMode::Unchecked) => {
-            validate_param(imm, 1, MAX_U32_ROTATE_VALUE)?;
+            validate_param(imm, 1..=MAX_U32_ROTATE_VALUE)?;
             span.push_op(Push(Felt::new(1 << (32 - imm))));
         }
         (None, U32OpMode::Checked) => {
@@ -476,7 +476,7 @@ fn prepare_bitwise<const MAX_VALUE: u8>(
             return Ok(None);
         }
         (Some(imm), U32OpMode::Checked) => {
-            validate_param(imm, 1, MAX_VALUE)?;
+            validate_param(imm, 1..=MAX_VALUE)?;
             span.push_ops([Push(Felt::new(1 << imm)), U32assert2]);
         }
         (Some(imm), U32OpMode::Unchecked) if imm == 0 => {
