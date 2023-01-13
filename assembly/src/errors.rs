@@ -171,14 +171,6 @@ impl ParsingError {
         }
     }
 
-    pub fn empty_block(token: &Token) -> Self {
-        ParsingError {
-            message: "a code block must contain at least one instruction".to_string(),
-            step: token.pos(),
-            op: token.to_string(),
-        }
-    }
-
     // INVALID / MALFORMED INSTRUCTIONS
     // --------------------------------------------------------------------------------------------
 

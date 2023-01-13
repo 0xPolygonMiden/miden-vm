@@ -283,8 +283,11 @@ impl Assembler {
         }
 
         span.extract_final_span_into(&mut blocks);
-
-        Ok(combine_blocks(blocks))
+        Ok(if blocks.is_empty() {
+            CodeBlock::new_span(vec![Operation::Noop])
+        } else {
+            combine_blocks(blocks)
+        })
     }
 
     // PROCEDURE CACHE

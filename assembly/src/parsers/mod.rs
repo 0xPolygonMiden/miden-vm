@@ -205,17 +205,10 @@ pub fn parse_program(source: &str) -> Result<ProgramAst, ParsingError> {
 
     // parse the sequence of nodes and add each node to the list
     let mut end_of_nodes = false;
-    let beginning_node_count = body.len();
     while !end_of_nodes {
         let node_count = body.len();
         context.parse_body(&mut tokens, &mut body, false)?;
         end_of_nodes = body.len() == node_count;
-    }
-
-    // make sure at least one block has been read
-    if body.len() == beginning_node_count {
-        let start_op = tokens.read_at(start_pos).expect("no start token");
-        return Err(ParsingError::empty_block(start_op));
     }
 
     // consume the 'end' token
