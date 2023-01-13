@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use air::{ProcessorAir, PublicInputs};
-use processor::{math::Felt, utils::collections::Vec, ExecutionTrace};
+use processor::{math::Felt, ExecutionTrace};
 use prover::Prover;
 
 #[cfg(feature = "std")]
@@ -17,7 +17,7 @@ use std::time::Instant;
 pub use air::{FieldExtension, HashFunction, ProofOptions};
 pub use processor::{
     math, utils, AdviceSet, AdviceSetError, Digest, ExecutionError, InputError, Program,
-    ProgramInputs, ProgramOutputs, Word,
+    ProgramInputs, ProgramOutputs, StackInputs, Word,
 };
 pub use prover::StarkProof;
 
@@ -35,13 +35,14 @@ pub use prover::StarkProof;
 /// Returns an error if program execution or STARK proof generation fails for any reason.
 pub fn prove(
     program: &Program,
-    inputs: &ProgramInputs,
+    stack_inputs: StackInputs,
+    advice_inputs: &ProgramInputs,
     options: &ProofOptions,
 ) -> Result<(ProgramOutputs, StarkProof), ExecutionError> {
     // execute the program to create an execution trace
     #[cfg(feature = "std")]
     let now = Instant::now();
-    let trace = processor::execute(program, inputs)?;
+    let trace = processor::execute(program, stack_inputs.clone(), advice_inputs)?;
     #[cfg(feature = "std")]
     debug!(
         "Generated execution trace of {} columns and {} steps in {} ms",
@@ -53,8 +54,7 @@ pub fn prove(
     let outputs = trace.program_outputs();
 
     // generate STARK proof
-    let prover =
-        ExecutionProver::new(options.clone(), inputs.stack_init().to_vec(), outputs.clone());
+    let prover = ExecutionProver::new(options.clone(), stack_inputs, outputs.clone());
     let proof = prover.prove(trace).map_err(ExecutionError::ProverError)?;
 
     Ok((outputs, proof))
@@ -65,12 +65,12 @@ pub fn prove(
 
 struct ExecutionProver {
     options: ProofOptions,
-    stack_inputs: Vec<Felt>,
+    stack_inputs: StackInputs,
     outputs: ProgramOutputs,
 }
 
 impl ExecutionProver {
-    pub fn new(options: ProofOptions, stack_inputs: Vec<Felt>, outputs: ProgramOutputs) -> Self {
+    pub fn new(options: ProofOptions, stack_inputs: StackInputs, outputs: ProgramOutputs) -> Self {
         Self {
             options,
             stack_inputs,
@@ -84,7 +84,7 @@ impl ExecutionProver {
     /// Validates the stack inputs against the provided execution trace and returns true if valid.
     fn are_inputs_valid(&self, trace: &ExecutionTrace) -> bool {
         for (input_element, trace_element) in
-            self.stack_inputs.iter().zip(trace.init_stack_state().iter())
+            self.stack_inputs.values().iter().zip(trace.init_stack_state().iter())
         {
             if *input_element != *trace_element {
                 return false;

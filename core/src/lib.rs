@@ -26,7 +26,7 @@ pub use operations::{
 };
 
 mod inputs;
-pub use inputs::{AdviceSet, ProgramInputs};
+pub use inputs::{AdviceSet, ProgramInputs, StackInputs};
 
 mod outputs;
 pub use outputs::ProgramOutputs;

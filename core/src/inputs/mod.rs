@@ -5,10 +5,13 @@ use super::{
     Felt, FieldElement, Word,
 };
 use core::convert::TryInto;
-use winter_utils::collections::{BTreeMap, Vec};
+use winter_utils::collections::{vec, BTreeMap, Vec};
 
 mod advice;
 pub use advice::AdviceSet;
+
+mod stack;
+pub use stack::StackInputs;
 
 // PROGRAM INPUTS
 // ================================================================================================
@@ -29,7 +32,6 @@ pub use advice::AdviceSet;
 /// TODO: add more detailed explanation.
 #[derive(Clone, Debug)]
 pub struct ProgramInputs {
-    stack_init: Vec<Felt>,
     advice_tape: Vec<Felt>,
     advice_map: BTreeMap<[u8; 32], Vec<Felt>>,
     advice_sets: BTreeMap<[u8; 32], AdviceSet>,
@@ -41,29 +43,17 @@ impl ProgramInputs {
     /// Returns [ProgramInputs] instantiated with the specified initial stack values, advice tape
     /// values, and advice sets.
     ///
-    /// The initial stack values are put onto the stack in the order as if they were pushed onto
-    /// the stack one by one. The result of this is that the last value in the `stack_init` slice
-    /// will end up at the top of the stack.
-    ///
     /// # Errors
     /// Returns an error if:
     /// - The number initial stack values is greater than 16.
     /// - Any of the initial stack values or the advice tape values are not valid field elements.
     /// - Any of the advice sets have the same root.
-    pub fn new(
-        stack_init: &[u64],
-        advice_tape: &[u64],
-        advice_sets: Vec<AdviceSet>,
-    ) -> Result<Self, InputError> {
-        Self::with_advice_map(stack_init, advice_tape, BTreeMap::new(), advice_sets)
+    pub fn new(advice_tape: &[u64], advice_sets: Vec<AdviceSet>) -> Result<Self, InputError> {
+        Self::with_advice_map(advice_tape, BTreeMap::new(), advice_sets)
     }
 
     /// Returns [ProgramInputs] instantiated with the specified initial stack values, advice tape,
     /// key-value advice map, and advice sets.
-    ///
-    /// The initial stack values are put onto the stack in the order as if they were pushed onto
-    /// the stack one by one. The result of this is that the last value in the `stack_init` slice
-    /// will end up at the top of the stack.
     ///
     /// # Errors
     /// Returns an error if:
@@ -71,20 +61,10 @@ impl ProgramInputs {
     /// - Any of the initial stack values or the advice tape values are not valid field elements.
     /// - Any of the advice sets have the same root.
     pub fn with_advice_map(
-        stack_init: &[u64],
         advice_tape: &[u64],
         advice_map: BTreeMap<[u8; 32], Vec<Felt>>,
         advice_sets: Vec<AdviceSet>,
     ) -> Result<Self, InputError> {
-        // convert initial stack values into field elements
-        let mut init_stack_elements = Vec::with_capacity(stack_init.len());
-        for &value in stack_init.iter().rev() {
-            let element = value
-                .try_into()
-                .map_err(|_| InputError::NotFieldElement(value, "initial stack value"))?;
-            init_stack_elements.push(element);
-        }
-
         // convert advice tape values into field elements
         let mut advice_tape_elements = Vec::with_capacity(advice_tape.len());
         for &value in advice_tape {
@@ -104,32 +84,15 @@ impl ProgramInputs {
         }
 
         Ok(Self {
-            stack_init: init_stack_elements,
             advice_tape: advice_tape_elements,
             advice_map,
             advice_sets: advice_sets_elements,
         })
     }
 
-    /// Returns [ProgramInputs] initialized with stack inputs only.
-    ///
-    /// The provided inputs are pushed onto the stack one after the other. Thus, the first
-    /// element in the `stack_init` list will be the deepest in the stack.
-    ///
-    /// Advice tape and advice sets for the returned inputs are blank.
-    ///
-    /// # Errors
-    /// Returns an error if:
-    /// - The number initial stack values is greater than 16.
-    /// - Any of the initial stack values is not valid field elements.
-    pub fn from_stack_inputs(stack_init: &[u64]) -> Result<Self, InputError> {
-        Self::new(stack_init, &[], vec![])
-    }
-
     /// Returns [ProgramInputs] with no input values.
     pub fn none() -> Self {
         Self {
-            stack_init: Vec::new(),
             advice_tape: Vec::new(),
             advice_map: BTreeMap::new(),
             advice_sets: BTreeMap::new(),
@@ -138,11 +101,6 @@ impl ProgramInputs {
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
-
-    /// Returns a reference to the initial stack values.
-    pub fn stack_init(&self) -> &[Felt] {
-        &self.stack_init
-    }
 
     /// Returns a reference to the advice tape.
     pub fn advice_tape(&self) -> &[Felt] {
@@ -156,19 +114,13 @@ impl ProgramInputs {
     #[allow(clippy::type_complexity)]
     pub fn into_parts(
         self,
-    ) -> (
-        Vec<Felt>,
-        Vec<Felt>,
-        BTreeMap<[u8; 32], Vec<Felt>>,
-        BTreeMap<[u8; 32], AdviceSet>,
-    ) {
+    ) -> (Vec<Felt>, BTreeMap<[u8; 32], Vec<Felt>>, BTreeMap<[u8; 32], AdviceSet>) {
         let Self {
-            stack_init,
             advice_tape,
             advice_map,
             advice_sets,
         } = self;
 
-        (stack_init, advice_tape, advice_map, advice_sets)
+        (advice_tape, advice_map, advice_sets)
     }
 }

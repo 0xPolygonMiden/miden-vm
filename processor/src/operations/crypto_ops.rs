@@ -75,7 +75,7 @@ where
 
         // get a Merkle path from the advice provider for the specified root and node index.
         // the path is expected to be of the specified depth.
-        let path = self.advice.get_merkle_path(provided_root, depth, index)?;
+        let path = self.advice_provider.get_merkle_path(provided_root, depth, index)?;
 
         // use hasher to compute the Merkle root of the path
         let (addr, computed_root) = self.chiplets.build_merkle_root(node, &path, index);
@@ -143,7 +143,7 @@ where
         // match the specified depth.
         // TODO: in the future, we should be able to replace sub-trees and not just the leaves,
         // and, thus, the assert on depth would not be needed.
-        let path = self.advice.update_merkle_leaf(old_root, index, new_node, copy)?;
+        let path = self.advice_provider.update_merkle_leaf(old_root, index, new_node, copy)?;
         assert_eq!(path.len(), depth.as_int() as usize);
 
         // use hasher to update the Merkle root.
@@ -178,7 +178,7 @@ mod tests {
         super::{Felt, FieldElement, Operation, StarkField},
         Process,
     };
-    use crate::Word;
+    use crate::{StackInputs, Word};
     use rand_utils::rand_vector;
     use vm_core::{
         chiplets::hasher::{apply_permutation, STATE_WIDTH},
@@ -189,7 +189,8 @@ mod tests {
     fn op_rpperm() {
         // --- test hashing [ONE, ONE] ------------------------------------------------------------
         let inputs: [u64; STATE_WIDTH] = [2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
-        let mut process = Process::new_dummy(&inputs);
+        let stack = StackInputs::try_from_values(inputs).unwrap();
+        let mut process = Process::new_dummy(stack);
 
         let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
         process.execute_op(Operation::RpPerm).unwrap();
@@ -199,7 +200,8 @@ mod tests {
         let values = rand_vector::<u64>(8);
         let mut inputs: Vec<u64> = vec![values.len() as u64, 0, 0, 0];
         inputs.extend_from_slice(&values);
-        let mut process = Process::new_dummy(&inputs);
+        let stack = StackInputs::try_from_values(inputs.clone()).unwrap();
+        let mut process = Process::new_dummy(stack);
 
         // add the capacity to prepare the input vector
         let expected: [Felt; STATE_WIDTH] = build_expected_perm(&inputs);
@@ -212,7 +214,8 @@ mod tests {
         let values: Vec<u64> = vec![2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
         inputs.extend_from_slice(&values);
 
-        let mut process = Process::new_dummy(&inputs);
+        let stack = StackInputs::try_from_values(inputs).unwrap();
+        let mut process = Process::new_dummy(stack);
         process.execute_op(Operation::RpPerm).unwrap();
         assert_eq!(expected, &process.stack.trace_state()[12..16]);
     }
@@ -236,8 +239,9 @@ mod tests {
             leaves[index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
+        let stack = StackInputs::try_from_values(stack_inputs).unwrap();
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(stack, inputs);
 
         process.execute_op(Operation::MpVerify).unwrap();
         let expected_stack = build_expected(&[
@@ -284,8 +288,9 @@ mod tests {
             leaves[node_index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
+        let stack = StackInputs::try_from_values(stack_inputs).unwrap();
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(stack, inputs);
 
         // update the Merkle tree and discard the old copy
         process.execute_op(Operation::MrUpdate(false)).unwrap();
@@ -308,8 +313,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // make sure the old Merkle tree was discarded
-        assert!(!process.advice.has_advice_set(tree.root()));
-        assert!(process.advice.has_advice_set(new_tree.root()));
+        assert!(!process.advice_provider.has_advice_set(tree.root()));
+        assert!(process.advice_provider.has_advice_set(new_tree.root()));
     }
 
     #[test]
@@ -341,8 +346,9 @@ mod tests {
             leaves[node_index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(inputs);
+        let inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
+        let stack = StackInputs::try_from_values(stack_inputs).unwrap();
+        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(stack, inputs);
 
         // update the Merkle tree but keep the old copy
         process.execute_op(Operation::MrUpdate(true)).unwrap();
@@ -365,8 +371,8 @@ mod tests {
         assert_eq!(expected_stack, process.stack.trace_state());
 
         // make sure both Merkle trees are still in the advice set
-        assert!(process.advice.has_advice_set(tree.root()));
-        assert!(process.advice.has_advice_set(new_tree.root()));
+        assert!(process.advice_provider.has_advice_set(tree.root()));
+        assert!(process.advice_provider.has_advice_set(new_tree.root()));
     }
 
     // HELPER FUNCTIONS

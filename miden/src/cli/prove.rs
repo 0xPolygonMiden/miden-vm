@@ -56,9 +56,13 @@ impl ProveCmd {
         println!("Proving program with hash {}...", hex::encode(program_hash));
         let now = Instant::now();
 
+        // fetch the stack and program inputs from the arguments
+        let program_inputs = input_data.get_program_inputs()?;
+        let stack_inputs = input_data.get_stack_inputs()?;
+
         // execute program and generate proof
         let (outputs, proof) =
-            prover::prove(&program, &input_data.get_program_inputs(), &self.get_proof_security())
+            prover::prove(&program, stack_inputs, &program_inputs, &self.get_proof_security())
                 .map_err(|err| format!("Failed to prove program - {:?}", err))?;
 
         println!(

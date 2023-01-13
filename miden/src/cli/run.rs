@@ -31,12 +31,16 @@ impl RunCmd {
         // load input data from file
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
+        // fetch the stack and program inputs from the arguments
+        let program_inputs = input_data.get_program_inputs()?;
+        let stack_inputs = input_data.get_stack_inputs()?;
+
         let program_hash: [u8; 32] = program.hash().into();
         print!("Executing program with hash {}... ", hex::encode(program_hash));
         let now = Instant::now();
 
         // execute program and generate outputs
-        let trace = processor::execute(&program, &input_data.get_program_inputs())
+        let trace = processor::execute(&program, stack_inputs, &program_inputs)
             .map_err(|err| format!("Failed to generate exection trace = {:?}", err))?;
 
         println!("done ({} steps in {} ms)", trace.get_trace_len(), now.elapsed().as_millis());

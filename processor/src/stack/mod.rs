@@ -1,5 +1,5 @@
 use super::{
-    BTreeMap, Felt, FieldElement, ProgramInputs, ProgramOutputs, Vec, ONE, STACK_TRACE_WIDTH, ZERO,
+    BTreeMap, Felt, FieldElement, ProgramOutputs, StackInputs, Vec, ONE, STACK_TRACE_WIDTH, ZERO,
 };
 use core::cmp;
 use vm_core::stack::STACK_TOP_SIZE;
@@ -66,11 +66,11 @@ impl Stack {
     // --------------------------------------------------------------------------------------------
     /// Returns a [Stack] initialized with the specified program inputs.
     pub fn new(
-        inputs: &ProgramInputs,
+        inputs: &StackInputs,
         init_trace_capacity: usize,
         keep_overflow_trace: bool,
     ) -> Self {
-        let init_values = inputs.stack_init();
+        let init_values = inputs.values();
         let depth = cmp::max(STACK_TOP_SIZE, init_values.len());
 
         let (trace, overflow) = if init_values.len() > STACK_TOP_SIZE {

@@ -1,7 +1,7 @@
 use super::Example;
 use miden::{
     math::{Felt, FieldElement, StarkField},
-    Assembler, Program, ProgramInputs,
+    Assembler, Program, ProgramInputs, StackInputs,
 };
 
 // EXAMPLE BUILDER
@@ -18,8 +18,8 @@ pub fn get_example(n: usize) -> Example {
 
     Example {
         program,
-        inputs: ProgramInputs::from_stack_inputs(&[0, 1]).unwrap(),
-        pub_inputs: vec![0, 1],
+        stack_inputs: StackInputs::try_from_values([0, 1]).unwrap(),
+        program_inputs: ProgramInputs::none(),
         expected_result,
         num_outputs: 1,
     }

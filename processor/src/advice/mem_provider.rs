@@ -20,7 +20,7 @@ pub struct MemAdviceProvider {
 // TODO remove if `ProgramInputs` is deprecated, or convert to `TryFrom`
 impl From<ProgramInputs> for MemAdviceProvider {
     fn from(inputs: ProgramInputs) -> Self {
-        let (_, mut tape, values, sets) = inputs.into_parts();
+        let (mut tape, values, sets) = inputs.into_parts();
         tape.reverse();
         Self {
             step: 0,

@@ -1,4 +1,4 @@
-use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder};
+use super::{AssemblyError, CodeBlock, Operation::*, SpanBuilder, Vec};
 use vm_core::{AdviceInjector::Ext2Inv, Decorator, Felt, Operation};
 
 /// Given a stack in the following initial configuration [a1, a0, b1, b0, ...] where a = (a0, a1)

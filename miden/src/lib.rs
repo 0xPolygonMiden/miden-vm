@@ -5,8 +5,8 @@
 
 pub use assembly::{Assembler, AssemblyError, ParsingError};
 pub use processor::{
-    execute, execute_iter, utils, AsmOpInfo, ExecutionError, ExecutionTrace, Operation, VmState,
-    VmStateIterator,
+    execute, execute_iter, utils, AsmOpInfo, ExecutionError, ExecutionTrace, Operation,
+    StackInputs, VmState, VmStateIterator,
 };
 pub use prover::{
     math, prove, AdviceSet, AdviceSetError, Digest, FieldExtension, HashFunction, InputError,

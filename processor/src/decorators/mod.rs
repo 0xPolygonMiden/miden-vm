@@ -68,14 +68,14 @@ where
         let root = [self.stack.get(5), self.stack.get(4), self.stack.get(3), self.stack.get(2)];
 
         // look up the node in the advice provider
-        let node = self.advice.get_tree_node(root, depth, index)?;
+        let node = self.advice_provider.get_tree_node(root, depth, index)?;
 
         // write the node into the advice tape with first element written last so that it can be
         // removed first
-        self.advice.write_tape(node[3]);
-        self.advice.write_tape(node[2]);
-        self.advice.write_tape(node[1]);
-        self.advice.write_tape(node[0]);
+        self.advice_provider.write_tape(node[3]);
+        self.advice_provider.write_tape(node[2]);
+        self.advice_provider.write_tape(node[1]);
+        self.advice_provider.write_tape(node[0]);
 
         Ok(())
     }
@@ -110,10 +110,10 @@ where
         let (q_hi, q_lo) = u64_to_u32_elements(quotient);
         let (r_hi, r_lo) = u64_to_u32_elements(remainder);
 
-        self.advice.write_tape(r_hi);
-        self.advice.write_tape(r_lo);
-        self.advice.write_tape(q_hi);
-        self.advice.write_tape(q_lo);
+        self.advice_provider.write_tape(r_hi);
+        self.advice_provider.write_tape(r_lo);
+        self.advice_provider.write_tape(q_hi);
+        self.advice_provider.write_tape(q_lo);
 
         Ok(())
     }
@@ -126,7 +126,7 @@ where
     /// Returns an error if the required key was not found in the key-value map.
     fn inject_map_value(&mut self) -> Result<(), ExecutionError> {
         let top_word = self.stack.get_top_word();
-        self.advice.write_tape_from_map(top_word)?;
+        self.advice_provider.write_tape_from_map(top_word)?;
 
         Ok(())
     }
@@ -149,7 +149,7 @@ where
             values.extend_from_slice(&mem_value);
         }
         let top_word = self.stack.get_top_word();
-        self.advice.insert_into_map(top_word, values)?;
+        self.advice_provider.insert_into_map(top_word, values)?;
 
         Ok(())
     }
@@ -186,8 +186,8 @@ where
         let elm_arr = [inv_elm];
         let coeffs = Ext2Element::as_base_elements(&elm_arr);
 
-        self.advice.write_tape(coeffs[1]);
-        self.advice.write_tape(coeffs[0]);
+        self.advice_provider.write_tape(coeffs[1]);
+        self.advice_provider.write_tape(coeffs[0]);
 
         Ok(())
     }
@@ -247,7 +247,7 @@ where
         fft::interpolate_poly::<Felt, Ext2Element>(&mut poly, &twiddles);
 
         for i in Ext2Element::as_base_elements(&poly[..out_poly_len]).iter().rev() {
-            self.advice.write_tape(*i);
+            self.advice_provider.write_tape(*i);
         }
 
         Ok(())
@@ -272,8 +272,7 @@ mod tests {
         super::{Felt, FieldElement, Kernel, Operation, StarkField},
         Process,
     };
-    use crate::Word;
-
+    use crate::{StackInputs, Word};
     use vm_core::{AdviceInjector, AdviceSet, Decorator, ProgramInputs};
 
     #[test]
@@ -290,8 +289,9 @@ mod tests {
             tree.depth() as u64,
         ];
 
-        let inputs = ProgramInputs::new(&stack_inputs, &[], vec![tree.clone()]).unwrap();
-        let mut process = Process::new(&Kernel::default(), inputs);
+        let inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
+        let stack = StackInputs::try_from_values(stack_inputs).unwrap();
+        let mut process = Process::new(&Kernel::default(), stack, inputs);
         process.execute_op(Operation::Noop).unwrap();
 
         // inject the node into the advice tape

@@ -1,4 +1,5 @@
 pub use miden::{ProofOptions, StarkProof};
+pub use processor::StackInputs;
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
 use stdlib::StdLibrary;
@@ -40,7 +41,8 @@ pub enum TestError<'a> {
 pub struct Test {
     pub source: String,
     pub kernel: Option<String>,
-    pub inputs: ProgramInputs,
+    pub stack_inputs: StackInputs,
+    pub advice_inputs: ProgramInputs,
     pub in_debug_mode: bool,
 }
 
@@ -53,7 +55,8 @@ impl Test {
         Test {
             source: String::from(source),
             kernel: None,
-            inputs: ProgramInputs::none(),
+            stack_inputs: StackInputs::empty(),
+            advice_inputs: ProgramInputs::none(),
             in_debug_mode,
         }
     }
@@ -106,7 +109,8 @@ impl Test {
         let program = self.compile();
 
         // execute the test
-        let mut process = Process::new(program.kernel(), self.inputs.clone());
+        let mut process =
+            Process::new(program.kernel(), self.stack_inputs.clone(), self.advice_inputs.clone());
         process.execute(&program).unwrap();
 
         // validate the memory state
@@ -155,22 +159,28 @@ impl Test {
     /// resulting execution trace or error.
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let program = self.compile();
-        processor::execute(&program, &self.inputs)
+        processor::execute(&program, self.stack_inputs.clone(), &self.advice_inputs)
     }
 
     /// Compiles the test's code into a program, then generates and verifies a proof of execution
     /// using the given public inputs and the specified number of stack outputs. When `test_fail`
     /// is true, this function will force a failure by modifying the first output.
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
+        let stack_inputs = StackInputs::try_from_values(pub_inputs).unwrap();
         let program = self.compile();
-        let (mut outputs, proof) =
-            prover::prove(&program, &self.inputs, &ProofOptions::default()).unwrap();
+        let (mut outputs, proof) = prover::prove(
+            &program,
+            stack_inputs.clone(),
+            &self.advice_inputs,
+            &ProofOptions::default(),
+        )
+        .unwrap();
 
         if test_fail {
             outputs.stack_mut()[0] += 1;
-            assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_err());
+            assert!(miden::verify(program.hash(), stack_inputs, &outputs, proof).is_err());
         } else {
-            let result = miden::verify(program.hash(), &pub_inputs, &outputs, proof);
+            let result = miden::verify(program.hash(), stack_inputs, &outputs, proof);
             assert!(result.is_ok(), "error: {result:?}");
         }
     }
@@ -180,7 +190,7 @@ impl Test {
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
         let program = self.compile();
-        processor::execute_iter(&program, &self.inputs)
+        processor::execute_iter(&program, self.stack_inputs.clone(), &self.advice_inputs)
     }
 
     /// Returns the last state of the stack after executing a test.

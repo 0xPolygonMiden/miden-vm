@@ -1,7 +1,7 @@
 use super::ProgramError;
 use miden::{
     math::{Felt, StarkField},
-    ProgramInputs, Word,
+    ProgramInputs, StackInputs, Word,
 };
 use processor::Process;
 use rustyline::{error::ReadlineError, Editor};
@@ -267,9 +267,10 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramErro
         .compile(&program)
         .map_err(ProgramError::AssemblyError)?;
 
-    let pub_inputs = vec![];
-    let inputs = ProgramInputs::new(&pub_inputs, &[], vec![]).unwrap();
-    let mut process = Process::new_debug(program.kernel(), inputs);
+    let stack_inputs = StackInputs::empty();
+    let program_inputs = ProgramInputs::none();
+
+    let mut process = Process::new_debug(program.kernel(), stack_inputs, program_inputs);
     let _program_outputs = process.execute(&program).map_err(ProgramError::ExecutionError);
 
     let (sys, _, stack, _, chiplets, _) = process.into_parts();

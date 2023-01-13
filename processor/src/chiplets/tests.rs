@@ -106,8 +106,9 @@ fn build_trace(
     operations: Vec<Operation>,
     kernel: Kernel,
 ) -> (ChipletsTrace, usize) {
-    let inputs = ProgramInputs::new(stack, &[], vec![]).unwrap();
-    let mut process = Process::new(&kernel, inputs);
+    let stack = crate::StackInputs::try_from_values(stack.iter().copied()).unwrap();
+    let inputs = ProgramInputs::new(&[], vec![]).unwrap();
+    let mut process = Process::new(&kernel, stack, inputs);
     let program = CodeBlock::new_span(operations);
     process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
 

@@ -1,4 +1,4 @@
-use miden::{Program, ProgramInputs, ProofOptions, StarkProof};
+use miden::{Program, ProgramInputs, ProofOptions, StackInputs, StarkProof};
 use std::io::Write;
 use std::time::Instant;
 use structopt::StructOpt;
@@ -10,8 +10,8 @@ pub mod fibonacci;
 
 pub struct Example {
     pub program: Program,
-    pub inputs: ProgramInputs,
-    pub pub_inputs: Vec<u64>,
+    pub stack_inputs: StackInputs,
+    pub program_inputs: ProgramInputs,
     pub num_outputs: usize,
     pub expected_result: Vec<u64>,
 }
@@ -68,16 +68,18 @@ impl ExampleOptions {
 
         let Example {
             program,
-            inputs,
+            stack_inputs,
+            program_inputs,
             num_outputs,
-            pub_inputs,
             expected_result,
+            ..
         } = example;
         println!("--------------------------------");
 
         // execute the program and generate the proof of execution
         let now = Instant::now();
-        let (outputs, proof) = miden::prove(&program, &inputs, &proof_options).unwrap();
+        let (outputs, proof) =
+            miden::prove(&program, stack_inputs.clone(), &program_inputs, &proof_options).unwrap();
         println!("--------------------------------");
 
         println!(
@@ -102,7 +104,7 @@ impl ExampleOptions {
         // results in the expected output
         let proof = StarkProof::from_bytes(&proof_bytes).unwrap();
         let now = Instant::now();
-        match miden::verify(program.hash(), &pub_inputs, &outputs, proof) {
+        match miden::verify(program.hash(), stack_inputs, &outputs, proof) {
             Ok(_) => println!("Execution verified in {} ms", now.elapsed().as_millis()),
             Err(err) => println!("Failed to verify execution: {}", err),
         }
@@ -118,13 +120,15 @@ impl ExampleOptions {
 pub fn test_example(example: Example, fail: bool) {
     let Example {
         program,
-        inputs,
-        pub_inputs,
+        stack_inputs,
+        program_inputs,
         num_outputs,
         expected_result,
     } = example;
 
-    let (mut outputs, proof) = miden::prove(&program, &inputs, &ProofOptions::default()).unwrap();
+    let (mut outputs, proof) =
+        miden::prove(&program, stack_inputs.clone(), &program_inputs, &ProofOptions::default())
+            .unwrap();
 
     assert_eq!(
         expected_result,
@@ -134,8 +138,8 @@ pub fn test_example(example: Example, fail: bool) {
 
     if fail {
         outputs.stack_mut()[0] += 1;
-        assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_err())
+        assert!(miden::verify(program.hash(), stack_inputs, &outputs, proof).is_err())
     } else {
-        assert!(miden::verify(program.hash(), &pub_inputs, &outputs, proof).is_ok());
+        assert!(miden::verify(program.hash(), stack_inputs, &outputs, proof).is_ok());
     }
 }

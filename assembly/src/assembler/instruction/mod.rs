@@ -1,6 +1,6 @@
 use super::{
     Assembler, AssemblyContext, AssemblyError, CodeBlock, Decorator, Felt, Instruction, Operation,
-    ProcedureId, SpanBuilder, ONE, ZERO,
+    ProcedureId, SpanBuilder, Vec, ONE, ZERO,
 };
 use vm_core::{AdviceInjector, FieldElement, StarkField};
 
