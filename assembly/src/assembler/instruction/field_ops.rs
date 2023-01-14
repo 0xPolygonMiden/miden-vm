@@ -105,7 +105,7 @@ pub fn append_pow2_op(span: &mut SpanBuilder) {
 /// # Errors
 /// Returns an error if num_pow_bits is greater than 64.
 pub fn exp(span: &mut SpanBuilder, num_pow_bits: u8) -> Result<Option<CodeBlock>, AssemblyError> {
-    validate_param(num_pow_bits, 0, MAX_EXP_BITS)?;
+    validate_param(num_pow_bits, 0..=MAX_EXP_BITS)?;
 
     // arranging the stack to prepare it for expacc instruction.
     span.push_ops([Pad, Incr, MovUp2, Pad]);

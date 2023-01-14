@@ -13,7 +13,7 @@ use vm_core::{code_blocks::CodeBlock, Operation::*};
 /// Returns an error if the specified number of values to pushed is smaller than 1 or greater
 /// than 16.
 pub fn adv_push(span: &mut SpanBuilder, n: u8) -> Result<Option<CodeBlock>, AssemblyError> {
-    validate_param(n, 1, ADVICE_READ_LIMIT)?;
+    validate_param(n, 1..=ADVICE_READ_LIMIT)?;
     span.push_op_many(Read, n as usize);
     Ok(None)
 }
@@ -31,6 +31,6 @@ pub fn adv_mem(
     start_addr: u32,
     num_words: u32,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
-    validate_param(num_words, 0, u32::MAX - start_addr)?;
+    validate_param(num_words, 0..=(u32::MAX - start_addr))?;
     span.add_decorator(Decorator::Advice(AdviceInjector::Memory(start_addr, num_words)))
 }

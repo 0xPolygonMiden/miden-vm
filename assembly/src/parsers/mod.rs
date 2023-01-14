@@ -3,11 +3,11 @@ use super::{
     Felt, ParsingError, ProcedureId, ProcedureName, Serializable, String, ToString, Token,
     TokenStream, Vec,
 };
-use core::fmt::Display;
+use core::{fmt::Display, ops::RangeBounds};
 
 mod nodes;
+use crate::utils::bound_into_included_u64;
 pub(crate) use nodes::{Instruction, Node};
-
 mod context;
 use context::ParserContext;
 
@@ -318,12 +318,11 @@ fn parse_param<I: core::str::FromStr>(op: &Token, param_idx: usize) -> Result<I,
 
 /// Parses a param from the op token with the specified type and ensures that it falls within the
 /// bounds specified by the caller.
-fn parse_checked_param<I: core::str::FromStr + Ord + Display>(
-    op: &Token,
-    param_idx: usize,
-    lower_bound: I,
-    upper_bound: I,
-) -> Result<I, ParsingError> {
+fn parse_checked_param<I, R>(op: &Token, param_idx: usize, range: R) -> Result<I, ParsingError>
+where
+    I: core::str::FromStr + Ord + Clone + Into<u64> + Display,
+    R: RangeBounds<I>,
+{
     let param_value = op.parts()[param_idx];
 
     let result = match param_value.parse::<I>() {
@@ -332,18 +331,17 @@ fn parse_checked_param<I: core::str::FromStr + Ord + Display>(
     };
 
     // check that the parameter is within the specified bounds
-    if result < lower_bound || result > upper_bound {
-        return Err(ParsingError::invalid_param_with_reason(
+    range.contains(&result).then_some(result).ok_or_else(||
+        ParsingError::invalid_param_with_reason(
             op,
             param_idx,
             format!(
-                "parameter value must be greater than or equal to {lower_bound} and less than or equal to {upper_bound}"
+                "parameter value must be greater than or equal to {lower_bound} and less than or equal to {upper_bound}", lower_bound = bound_into_included_u64(range.start_bound(), true), 
+                upper_bound = bound_into_included_u64(range.end_bound(), false)
             )
             .as_str(),
-        ));
-    }
-
-    Ok(result)
+        )
+    )
 }
 
 /// Returns an error if the passed in value is 0.

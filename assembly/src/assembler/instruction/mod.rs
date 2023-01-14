@@ -2,6 +2,8 @@ use super::{
     Assembler, AssemblyContext, AssemblyError, CodeBlock, Decorator, Felt, Instruction, Operation,
     ProcedureId, SpanBuilder, ONE, ZERO,
 };
+use crate::utils::bound_into_included_u64;
+use core::ops::RangeBounds;
 use vm_core::{AdviceInjector, FieldElement, StarkField};
 
 mod adv_ops;
@@ -353,10 +355,16 @@ fn push_felt(span: &mut SpanBuilder, value: Felt) {
 
 /// Returns an error if the specified value is smaller than or equal to min or greater than or
 /// equal to max. Otherwise, returns Ok(()).
-fn validate_param<I: Ord + Into<u64>>(value: I, min: I, max: I) -> Result<(), AssemblyError> {
-    if value < min || value > max {
-        Err(AssemblyError::param_out_of_bounds(value.into(), min.into(), max.into()))
-    } else {
-        Ok(())
-    }
+fn validate_param<I, R>(value: I, range: R) -> Result<(), AssemblyError>
+where
+    I: Ord + Clone + Into<u64>,
+    R: RangeBounds<I>,
+{
+    range.contains(&value).then_some(()).ok_or_else(|| {
+        AssemblyError::param_out_of_bounds(
+            value.into(),
+            bound_into_included_u64(range.start_bound(), true),
+            bound_into_included_u64(range.end_bound(), false),
+        )
+    })
 }

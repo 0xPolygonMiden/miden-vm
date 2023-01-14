@@ -118,7 +118,7 @@ pub fn local_to_absolute_addr(
     num_proc_locals: u16,
 ) -> Result<(), AssemblyError> {
     let max = num_proc_locals - 1;
-    validate_param(index, 0, max)?;
+    validate_param(index, 0..=max)?;
 
     push_felt(span, -Felt::from(max - index));
     span.push_op(FmpAdd);
