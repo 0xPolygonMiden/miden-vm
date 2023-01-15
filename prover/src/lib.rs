@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use air::{ProcessorAir, PublicInputs};
-use processor::{math::Felt, ExecutionTrace};
+use processor::{math::Felt, AdviceProvider, ExecutionTrace};
 use prover::Prover;
 
 #[cfg(feature = "std")]
@@ -33,16 +33,19 @@ pub use prover::StarkProof;
 ///
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
-pub fn prove(
+pub fn prove<A>(
     program: &Program,
     stack_inputs: StackInputs,
-    advice_inputs: &ProgramInputs,
+    advice_provider: A,
     options: &ProofOptions,
-) -> Result<(ProgramOutputs, StarkProof), ExecutionError> {
+) -> Result<(ProgramOutputs, StarkProof), ExecutionError>
+where
+    A: AdviceProvider,
+{
     // execute the program to create an execution trace
     #[cfg(feature = "std")]
     let now = Instant::now();
-    let trace = processor::execute(program, stack_inputs.clone(), advice_inputs)?;
+    let trace = processor::execute(program, stack_inputs.clone(), advice_provider)?;
     #[cfg(feature = "std")]
     debug!(
         "Generated execution trace of {} columns and {} steps in {} ms",

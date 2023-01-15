@@ -1,5 +1,5 @@
 use super::data::{InputFile, OutputFile, ProgramFile, ProofFile};
-use miden::ProofOptions;
+use miden::{MemAdviceProvider, ProofOptions};
 use std::{io::Write, path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
@@ -57,12 +57,13 @@ impl ProveCmd {
         let now = Instant::now();
 
         // fetch the stack and program inputs from the arguments
-        let program_inputs = input_data.get_program_inputs()?;
         let stack_inputs = input_data.get_stack_inputs()?;
+        let program_inputs = input_data.get_program_inputs()?;
+        let advice_provider = MemAdviceProvider::from(program_inputs);
 
         // execute program and generate proof
         let (outputs, proof) =
-            prover::prove(&program, stack_inputs, &program_inputs, &self.get_proof_security())
+            prover::prove(&program, stack_inputs, advice_provider, &self.get_proof_security())
                 .map_err(|err| format!("Failed to prove program - {:?}", err))?;
 
         println!(

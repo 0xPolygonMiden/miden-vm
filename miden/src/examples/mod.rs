@@ -1,4 +1,4 @@
-use miden::{Program, ProgramInputs, ProofOptions, StackInputs, StarkProof};
+use miden::{AdviceProvider, Program, ProofOptions, StackInputs, StarkProof};
 use std::io::Write;
 use std::time::Instant;
 use structopt::StructOpt;
@@ -8,10 +8,13 @@ pub mod fibonacci;
 // EXAMPLE
 // ================================================================================================
 
-pub struct Example {
+pub struct Example<A>
+where
+    A: AdviceProvider,
+{
     pub program: Program,
     pub stack_inputs: StackInputs,
-    pub program_inputs: ProgramInputs,
+    pub advice_provider: A,
     pub num_outputs: usize,
     pub expected_result: Vec<u64>,
 }
@@ -69,7 +72,7 @@ impl ExampleOptions {
         let Example {
             program,
             stack_inputs,
-            program_inputs,
+            advice_provider,
             num_outputs,
             expected_result,
             ..
@@ -79,7 +82,7 @@ impl ExampleOptions {
         // execute the program and generate the proof of execution
         let now = Instant::now();
         let (outputs, proof) =
-            miden::prove(&program, stack_inputs.clone(), &program_inputs, &proof_options).unwrap();
+            miden::prove(&program, stack_inputs.clone(), advice_provider, &proof_options).unwrap();
         println!("--------------------------------");
 
         println!(
@@ -117,17 +120,20 @@ impl ExampleOptions {
 // ================================================================================================
 
 #[cfg(test)]
-pub fn test_example(example: Example, fail: bool) {
+pub fn test_example<A>(example: Example<A>, fail: bool)
+where
+    A: AdviceProvider,
+{
     let Example {
         program,
         stack_inputs,
-        program_inputs,
+        advice_provider,
         num_outputs,
         expected_result,
     } = example;
 
     let (mut outputs, proof) =
-        miden::prove(&program, stack_inputs.clone(), &program_inputs, &ProofOptions::default())
+        miden::prove(&program, stack_inputs.clone(), advice_provider, &ProofOptions::default())
             .unwrap();
 
     assert_eq!(

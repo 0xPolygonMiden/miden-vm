@@ -17,7 +17,6 @@ pub struct MemAdviceProvider {
     sets: BTreeMap<[u8; 32], AdviceSet>,
 }
 
-// TODO remove if `ProgramInputs` is deprecated, or convert to `TryFrom`
 impl From<ProgramInputs> for MemAdviceProvider {
     fn from(inputs: ProgramInputs) -> Self {
         let (mut tape, values, sets) = inputs.into_parts();
@@ -28,6 +27,16 @@ impl From<ProgramInputs> for MemAdviceProvider {
             values,
             sets,
         }
+    }
+}
+
+impl MemAdviceProvider {
+    // CONSTRUCTORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Creates a new memory advice provider with empty values and sets.
+    pub fn empty() -> Self {
+        Self::from(ProgramInputs::empty())
     }
 }
 

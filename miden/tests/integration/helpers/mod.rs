@@ -1,4 +1,4 @@
-pub use miden::{ProofOptions, StarkProof};
+pub use miden::{MemAdviceProvider, ProofOptions, StarkProof};
 pub use processor::StackInputs;
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
@@ -56,7 +56,7 @@ impl Test {
             source: String::from(source),
             kernel: None,
             stack_inputs: StackInputs::empty(),
-            advice_inputs: ProgramInputs::none(),
+            advice_inputs: ProgramInputs::empty(),
             in_debug_mode,
         }
     }
@@ -107,10 +107,11 @@ impl Test {
     ) {
         // compile the program
         let program = self.compile();
+        let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
 
         // execute the test
         let mut process =
-            Process::new(program.kernel(), self.stack_inputs.clone(), self.advice_inputs.clone());
+            Process::new(program.kernel(), self.stack_inputs.clone(), advice_provider);
         process.execute(&program).unwrap();
 
         // validate the memory state
@@ -159,7 +160,8 @@ impl Test {
     /// resulting execution trace or error.
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
         let program = self.compile();
-        processor::execute(&program, self.stack_inputs.clone(), &self.advice_inputs)
+        let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
+        processor::execute(&program, self.stack_inputs.clone(), advice_provider)
     }
 
     /// Compiles the test's code into a program, then generates and verifies a proof of execution
@@ -168,10 +170,11 @@ impl Test {
     pub fn prove_and_verify(&self, pub_inputs: Vec<u64>, test_fail: bool) {
         let stack_inputs = StackInputs::try_from_values(pub_inputs).unwrap();
         let program = self.compile();
+        let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
         let (mut outputs, proof) = prover::prove(
             &program,
             stack_inputs.clone(),
-            &self.advice_inputs,
+            advice_provider,
             &ProofOptions::default(),
         )
         .unwrap();
@@ -190,7 +193,8 @@ impl Test {
     /// state.
     pub fn execute_iter(&self) -> VmStateIterator {
         let program = self.compile();
-        processor::execute_iter(&program, self.stack_inputs.clone(), &self.advice_inputs)
+        let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
+        processor::execute_iter(&program, self.stack_inputs.clone(), advice_provider)
     }
 
     /// Returns the last state of the stack after executing a test.

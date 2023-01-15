@@ -272,7 +272,7 @@ mod tests {
         super::{Felt, FieldElement, Kernel, Operation, StarkField},
         Process,
     };
-    use crate::{StackInputs, Word};
+    use crate::{MemAdviceProvider, StackInputs, Word};
     use vm_core::{AdviceInjector, AdviceSet, Decorator, ProgramInputs};
 
     #[test]
@@ -289,9 +289,10 @@ mod tests {
             tree.depth() as u64,
         ];
 
-        let inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
-        let stack = StackInputs::try_from_values(stack_inputs).unwrap();
-        let mut process = Process::new(&Kernel::default(), stack, inputs);
+        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let program_inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
+        let advice_provider = MemAdviceProvider::from(program_inputs);
+        let mut process = Process::new(&Kernel::default(), stack_inputs, advice_provider);
         process.execute_op(Operation::Noop).unwrap();
 
         // inject the node into the advice tape

@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use miden::{execute, Assembler, ProgramInputs, StackInputs};
+use miden::{execute, Assembler, MemAdviceProvider, StackInputs};
 use std::time::Duration;
 use stdlib::StdLibrary;
 
@@ -18,7 +18,7 @@ fn program_execution(c: &mut Criterion) {
             .with_library(&StdLibrary::default())
             .expect("failed to load stdlib");
         let program = assembler.compile(source).expect("Failed to compile test source.");
-        bench.iter(|| execute(&program, StackInputs::empty(), &ProgramInputs::none()));
+        bench.iter(|| execute(&program, StackInputs::empty(), MemAdviceProvider::empty()));
     });
 
     group.finish();

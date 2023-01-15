@@ -1,5 +1,5 @@
 use super::{ExecutionTrace, Felt, FieldElement, LookupTableRow, Process, Trace, NUM_RAND_ROWS};
-use crate::StackInputs;
+use crate::{MemAdviceProvider, StackInputs};
 use rand_utils::rand_array;
 use vm_core::{
     code_blocks::CodeBlock, CodeBlockTable, Kernel, Operation, ProgramInputs, ProgramOutputs, Word,
@@ -15,10 +15,10 @@ mod stack;
 // ================================================================================================
 
 /// Builds a sample trace by executing the provided code block against the provided stack inputs.
-pub fn build_trace_from_block(program: &CodeBlock, stack: &[u64]) -> ExecutionTrace {
-    let inputs = ProgramInputs::new(&[], vec![]).unwrap();
-    let stack = StackInputs::try_from_values(stack.iter().copied()).unwrap();
-    let mut process = Process::new(&Kernel::default(), stack, inputs);
+pub fn build_trace_from_block(program: &CodeBlock, stack_inputs: &[u64]) -> ExecutionTrace {
+    let stack_inputs = StackInputs::try_from_values(stack_inputs.iter().copied()).unwrap();
+    let advice_provider = MemAdviceProvider::empty();
+    let mut process = Process::new(&Kernel::default(), stack_inputs, advice_provider);
     process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
     ExecutionTrace::new(process, ProgramOutputs::default())
 }
@@ -35,10 +35,11 @@ pub fn build_trace_from_ops(operations: Vec<Operation>, stack: &[u64]) -> Execut
 /// the programs with initialized advice provider.
 pub fn build_trace_from_ops_with_inputs(
     operations: Vec<Operation>,
-    stack: StackInputs,
-    inputs: ProgramInputs,
+    stack_inputs: StackInputs,
+    program_inputs: ProgramInputs,
 ) -> ExecutionTrace {
-    let mut process = Process::new(&Kernel::default(), stack, inputs);
+    let advice_provider = MemAdviceProvider::from(program_inputs);
+    let mut process = Process::new(&Kernel::default(), stack_inputs, advice_provider);
     let program = CodeBlock::new_span(operations);
     process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
     ExecutionTrace::new(process, ProgramOutputs::default())

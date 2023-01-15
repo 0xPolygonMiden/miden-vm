@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     decoder::block_stack::ExecutionContextInfo, utils::get_trace_len, ExecutionTrace, Felt, Kernel,
-    Operation, Process, ProgramInputs, Word,
+    MemAdviceProvider, Operation, Process, StackInputs, Word,
 };
 use rand_utils::rand_value;
 use vm_core::{
@@ -1482,10 +1482,10 @@ fn set_user_op_helpers_many() {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-fn build_trace(stack: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxTraceHints, usize) {
-    let stack = crate::StackInputs::try_from_values(stack.iter().copied()).unwrap();
-    let inputs = ProgramInputs::new(&[], vec![]).unwrap();
-    let mut process = Process::new(&Kernel::default(), stack, inputs);
+fn build_trace(stack_inputs: &[u64], program: &CodeBlock) -> (DecoderTrace, AuxTraceHints, usize) {
+    let stack_inputs = StackInputs::try_from_values(stack_inputs.iter().copied()).unwrap();
+    let advice_provider = MemAdviceProvider::empty();
+    let mut process = Process::new(&Kernel::default(), stack_inputs, advice_provider);
     process.execute_code_block(program, &CodeBlockTable::default()).unwrap();
 
     let (trace, aux_hints) = ExecutionTrace::test_finalize_trace(process);
@@ -1510,9 +1510,9 @@ fn build_call_trace(
         Some(ref proc) => Kernel::new(&[proc.hash()]),
         None => Kernel::default(),
     };
-    let inputs = ProgramInputs::new(&[], vec![]).unwrap();
-    let stack = crate::StackInputs::empty();
-    let mut process = Process::new(&kernel, stack, inputs);
+    let advice_provider = MemAdviceProvider::empty();
+    let stack_inputs = crate::StackInputs::empty();
+    let mut process = Process::new(&kernel, stack_inputs, advice_provider);
 
     // build code block table
     let mut cb_table = CodeBlockTable::default();
