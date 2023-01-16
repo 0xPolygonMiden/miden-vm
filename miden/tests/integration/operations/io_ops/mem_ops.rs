@@ -1,5 +1,4 @@
-use super::{build_op_test, build_test};
-use vm_core::{chiplets::hasher::apply_permutation, utils::ToElements, Felt, StarkField};
+use super::{apply_permutation, build_op_test, build_test, Felt, StarkField, ToElements};
 
 // LOADING SINGLE ELEMENT ONTO THE STACK (MLOAD)
 // ================================================================================================
