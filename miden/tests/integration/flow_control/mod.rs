@@ -205,7 +205,7 @@ fn simple_syscall() {
         source: program_source.to_string(),
         kernel: Some(kernel_source.to_string()),
         stack_inputs: StackInputs::try_from_values([1, 2]).unwrap(),
-        advice_inputs: ProgramInputs::none(),
+        advice_inputs: ProgramInputs::empty(),
         in_debug_mode: false,
     };
     test.expect_stack(&[3]);

@@ -148,7 +148,7 @@ fn caller() {
         source: program_source.to_string(),
         kernel: Some(kernel_source.to_string()),
         stack_inputs: StackInputs::try_from_values([1, 2, 3, 4, 5]).unwrap(),
-        advice_inputs: ProgramInputs::none(),
+        advice_inputs: ProgramInputs::empty(),
         in_debug_mode: false,
     };
     // top 4 elements should be overwritten with the hash of `bar` procedure, but the 5th

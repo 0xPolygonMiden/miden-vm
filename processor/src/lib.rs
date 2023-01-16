@@ -38,7 +38,7 @@ mod range;
 use range::RangeChecker;
 
 mod advice;
-use advice::{AdviceProvider, MemAdviceProvider};
+pub use advice::{AdviceProvider, MemAdviceProvider};
 
 mod chiplets;
 use chiplets::Chiplets;
@@ -93,12 +93,15 @@ pub struct ChipletsTrace {
 
 /// Returns an execution trace resulting from executing the provided program against the provided
 /// inputs.
-pub fn execute(
+pub fn execute<A>(
     program: &Program,
     stack_inputs: StackInputs,
-    advice_inputs: &ProgramInputs,
-) -> Result<ExecutionTrace, ExecutionError> {
-    let mut process = Process::new(program.kernel(), stack_inputs, advice_inputs.clone());
+    advice_provider: A,
+) -> Result<ExecutionTrace, ExecutionError>
+where
+    A: AdviceProvider,
+{
+    let mut process = Process::new(program.kernel(), stack_inputs, advice_provider);
     let program_outputs = process.execute(program)?;
     let trace = ExecutionTrace::new(process, program_outputs);
     assert_eq!(program.hash(), trace.program_hash(), "inconsistent program hash");
@@ -107,12 +110,15 @@ pub fn execute(
 
 /// Returns an iterator which allows callers to step through the execution and inspect VM state at
 /// each execution step.
-pub fn execute_iter(
+pub fn execute_iter<A>(
     program: &Program,
     stack_inputs: StackInputs,
-    advice_inputs: &ProgramInputs,
-) -> VmStateIterator {
-    let mut process = Process::new_debug(program.kernel(), stack_inputs, advice_inputs.clone());
+    advice_provider: A,
+) -> VmStateIterator
+where
+    A: AdviceProvider,
+{
+    let mut process = Process::new_debug(program.kernel(), stack_inputs, advice_provider);
     let result = process.execute(program);
     if result.is_ok() {
         assert_eq!(
@@ -139,25 +145,26 @@ where
     advice_provider: A,
 }
 
-impl Process<MemAdviceProvider> {
+impl<A> Process<A>
+where
+    A: AdviceProvider,
+{
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// Creates a new process with the provided inputs.
-    pub fn new(kernel: &Kernel, stack: StackInputs, inputs: ProgramInputs) -> Self {
-        let advice_provider = MemAdviceProvider::from(inputs);
-        Self::initialize(kernel, stack, advice_provider, false)
+    pub fn new(kernel: &Kernel, stack_inputs: StackInputs, advice_provider: A) -> Self {
+        Self::initialize(kernel, stack_inputs, advice_provider, false)
     }
 
     /// Creates a new process with provided inputs and debug options enabled.
-    pub fn new_debug(kernel: &Kernel, stack: StackInputs, inputs: ProgramInputs) -> Self {
-        let advice_provider = MemAdviceProvider::from(inputs);
-        Self::initialize(kernel, stack, advice_provider, true)
+    pub fn new_debug(kernel: &Kernel, stack_inputs: StackInputs, advice_provider: A) -> Self {
+        Self::initialize(kernel, stack_inputs, advice_provider, true)
     }
 
     fn initialize(
         kernel: &Kernel,
         stack: StackInputs,
-        advice_provider: MemAdviceProvider,
+        advice_provider: A,
         in_debug_mode: bool,
     ) -> Self {
         Self {
@@ -169,12 +176,7 @@ impl Process<MemAdviceProvider> {
             advice_provider,
         }
     }
-}
 
-impl<A> Process<A>
-where
-    A: AdviceProvider,
-{
     // PROGRAM EXECUTOR
     // --------------------------------------------------------------------------------------------
 

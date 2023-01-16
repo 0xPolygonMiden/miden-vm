@@ -90,10 +90,10 @@ impl ProgramInputs {
         })
     }
 
-    /// Returns [ProgramInputs] with no input values.
-    pub fn none() -> Self {
+    /// Returns [ProgramInputs] with empty values and sets.
+    pub fn empty() -> Self {
         Self {
-            advice_tape: Vec::new(),
+            advice_tape: vec![],
             advice_map: BTreeMap::new(),
             advice_sets: BTreeMap::new(),
         }

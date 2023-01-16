@@ -1,4 +1,7 @@
-use crate::{utils::get_trace_len, CodeBlock, ExecutionTrace, Kernel, Operation, Process};
+use crate::{
+    utils::get_trace_len, CodeBlock, ExecutionTrace, Kernel, MemAdviceProvider, Operation, Process,
+    StackInputs,
+};
 use vm_core::{
     chiplets::{
         bitwise::{BITWISE_XOR, OP_CYCLE_LEN, TRACE_WIDTH as BITWISE_TRACE_WIDTH},
@@ -7,7 +10,7 @@ use vm_core::{
         memory::TRACE_WIDTH as MEMORY_TRACE_WIDTH,
         NUM_BITWISE_SELECTORS, NUM_KERNEL_ROM_SELECTORS, NUM_MEMORY_SELECTORS,
     },
-    CodeBlockTable, Felt, ProgramInputs, CHIPLETS_RANGE, CHIPLETS_WIDTH, ONE, ZERO,
+    CodeBlockTable, Felt, CHIPLETS_RANGE, CHIPLETS_WIDTH, ONE, ZERO,
 };
 
 type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
@@ -102,13 +105,13 @@ fn build_kernel() -> Kernel {
 /// Builds a sample trace by executing a span block containing the specified operations. This
 /// results in 1 additional hash cycle (8 rows) at the beginning of the hash chiplet.
 fn build_trace(
-    stack: &[u64],
+    stack_inputs: &[u64],
     operations: Vec<Operation>,
     kernel: Kernel,
 ) -> (ChipletsTrace, usize) {
-    let stack = crate::StackInputs::try_from_values(stack.iter().copied()).unwrap();
-    let inputs = ProgramInputs::new(&[], vec![]).unwrap();
-    let mut process = Process::new(&kernel, stack, inputs);
+    let stack_inputs = StackInputs::try_from_values(stack_inputs.iter().copied()).unwrap();
+    let advice_provider = MemAdviceProvider::empty();
+    let mut process = Process::new(&kernel, stack_inputs, advice_provider);
     let program = CodeBlock::new_span(operations);
     process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();
 
