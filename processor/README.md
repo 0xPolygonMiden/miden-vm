@@ -5,7 +5,8 @@ This crate contains an implementation of Miden VM processor. The purpose of the 
 The processor exposes two functions which can be used to execute programs: `execute()` and `execute_iter()`. Both of these functions take the same arguments:
 
 * `program: &Program` - a reference to a Miden program to be executed.
-* `inputs: &ProgramInputs` - a reference to a set of public and secret inputs with which to execute the program.
+* `stack_inputs: StackInputs` - a set of public inputs with which to execute the program.
+* `advice_provider: AdviceProvider` - an instance of an advice provider that yields secret, non-deterministic inputs to the prover.
 
 The `execute()` function returns a `Result<ExecutionTrace, ExecutionError>` which will contain the execution trace of the program if the execution was successful, or an error, if the execution failed. Internally, the VM then passes this execution trace to the prover to generate a proof of a correct execution of the program.
 
@@ -14,7 +15,7 @@ The `execute_iter()` function returns a `VmStateIterator` which can be used to i
 For example:
 ```Rust
 use miden_assembly::Assembler;
-use miden_processor::{execute, execute_iter, ProgramInputs};
+use miden_processor::{execute, execute_iter, MemAdviceProvider, StackInputs};
 
 // instantiate the assembler
 let assembler = Assembler::default();
@@ -22,11 +23,17 @@ let assembler = Assembler::default();
 // compile Miden assembly source code into a program
 let program = assembler.compile("begin push.3 push.5 add end").unwrap();
 
+// use an empty list as initial stack
+let stack_inputs = StackInputs::default();
+
+// instantiate an empty advice provider
+let mut advice_provider = MemAdviceProvider::default();
+
 // execute the program with no inputs
-let trace = execute(&program, &ProgramInputs::none()).unwrap();
+let trace = execute(&program, stack_inputs.clone(), &mut advice_provider).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
-for vm_state in execute_iter(&program, &ProgramInputs::none()) {
+for vm_state in execute_iter(&program, stack_inputs, advice_provider) {
     match vm_state {
         Ok(vm_state) => println!("{:?}", vm_state),
         Err(_) => println!("something went terribly wrong!"),

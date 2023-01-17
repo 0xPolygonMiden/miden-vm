@@ -29,13 +29,14 @@ jobs:
           args: --all-targets
 
   test:
-    name: Test Rust ${{matrix.toolchain}} on ${{matrix.os}}
+    name: Test Rust ${{matrix.toolchain}} on ${{matrix.os}} with ${{matrix.args}}
     runs-on: ${{matrix.os}}-latest
     strategy:
       fail-fast: false
       matrix:
         toolchain: [stable, nightly]
         os: [ubuntu]
+        args: [--release, --doc]
     steps:
       - uses: actions/checkout@main
       - name: Install rust
@@ -49,7 +50,7 @@ jobs:
           RUSTFLAGS: -C debug-assertions
         with:
           command: test
-          args: --release
+          args: ${{matrix.args}}
 
   # we separate the script so the CI will not require the same runner to have
   # both windows and linux capabilities

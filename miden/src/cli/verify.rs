@@ -32,7 +32,7 @@ impl VerifyCmd {
         let input_data = InputFile::read(&self.input_file, &self.proof_file)?;
 
         // fetch the stack inputs from the arguments
-        let stack_inputs = input_data.get_stack_inputs()?;
+        let stack_inputs = input_data.parse_stack_inputs()?;
 
         // load outputs data from file
         let outputs_data = OutputFile::read(&self.output_file, &self.proof_file)?;
@@ -44,7 +44,7 @@ impl VerifyCmd {
         let now = Instant::now();
 
         // verify proof
-        verifier::verify(program_hash, stack_inputs, &outputs_data.outputs(), proof)
+        verifier::verify(program_hash, stack_inputs, outputs_data.stack_outputs(), proof)
             .map_err(|err| format!("Program failed verification! - {}", err))?;
 
         println!("Verification complete in {} ms", now.elapsed().as_millis());

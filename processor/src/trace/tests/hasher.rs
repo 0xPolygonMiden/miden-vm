@@ -1,6 +1,6 @@
 use super::{
     super::{Trace, NUM_RAND_ROWS},
-    build_trace_from_ops_with_inputs, rand_array, Felt, LookupTableRow, Operation, ProgramInputs,
+    build_trace_from_ops_with_inputs, rand_array, AdviceInputs, Felt, LookupTableRow, Operation,
     Word, ONE, ZERO,
 };
 use crate::{chiplets::SiblingTableRow, StackInputs};
@@ -23,12 +23,12 @@ fn hasher_p1_mp_verify() {
     init_stack.extend_from_slice(&[3, 1]);
     append_word(&mut init_stack, tree.root());
     init_stack.reverse();
-    let stack = StackInputs::try_from_values(init_stack).unwrap();
-    let inputs = ProgramInputs::new(&[], vec![tree]).unwrap();
+    let stack_inputs = StackInputs::try_from_values(init_stack).unwrap();
+    let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree]).unwrap();
 
     // build execution trace and extract the sibling table column from it
     let ops = vec![Operation::MpVerify];
-    let mut trace = build_trace_from_ops_with_inputs(ops, stack, inputs);
+    let mut trace = build_trace_from_ops_with_inputs(ops, stack_inputs, advice_inputs);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);
@@ -57,12 +57,12 @@ fn hasher_p1_mr_update() {
     append_word(&mut init_stack, new_node);
 
     init_stack.reverse();
-    let stack = StackInputs::try_from_values(init_stack).unwrap();
-    let inputs = ProgramInputs::new(&[], vec![tree]).unwrap();
+    let stack_inputs = StackInputs::try_from_values(init_stack).unwrap();
+    let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree]).unwrap();
 
     // build execution trace and extract the sibling table column from it
     let ops = vec![Operation::MrUpdate(false)];
-    let mut trace = build_trace_from_ops_with_inputs(ops, stack, inputs);
+    let mut trace = build_trace_from_ops_with_inputs(ops, stack_inputs, advice_inputs);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
     let p1 = aux_columns.get_column(P1_COL_IDX);

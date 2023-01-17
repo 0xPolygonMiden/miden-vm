@@ -1,9 +1,8 @@
-use crate::{stack::STACK_TOP_SIZE, StackTopState};
-
 use super::{Felt, StarkField};
+use crate::{stack::STACK_TOP_SIZE, StackTopState};
 use winter_utils::collections::Vec;
 
-// PROGRAM OUTPUTS
+// STACK OUTPUTS
 // ================================================================================================
 
 /// Output container for Miden VM programs.
@@ -21,14 +20,14 @@ use winter_utils::collections::Vec;
 /// the address (`clk` value) of each row in the table starting from the deepest element in the
 /// stack and finishing with the row which was added to the table last.
 #[derive(Debug, Clone, Default)]
-pub struct ProgramOutputs {
+pub struct StackOutputs {
     /// The elements on the stack at the end of execution.
     stack: Vec<u64>,
     /// The overflow table row addresse required to reconstruct the final state of the table.
     overflow_addrs: Vec<u64>,
 }
 
-impl ProgramOutputs {
+impl StackOutputs {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     pub fn new(stack: Vec<u64>, overflow_addrs: Vec<u64>) -> Self {
@@ -68,12 +67,9 @@ impl ProgramOutputs {
 
     /// Returns the number of requested stack outputs or returns the full stack if fewer than the
     /// requested number of stack values exist.
-    pub fn stack_outputs(&self, num_outputs: usize) -> &[u64] {
-        if num_outputs < self.stack.len() {
-            return &self.stack[..num_outputs];
-        }
-
-        &self.stack
+    pub fn stack_truncated(&self, num_outputs: usize) -> &[u64] {
+        let len = self.stack.len().min(num_outputs);
+        &self.stack[..len]
     }
 
     /// Returns the state of the top of the stack at the end of execution.

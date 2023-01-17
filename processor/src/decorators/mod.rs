@@ -269,11 +269,11 @@ fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Felt, FieldElement, Kernel, Operation, StarkField},
+        super::{AdviceInputs, Felt, FieldElement, Kernel, Operation, StarkField},
         Process,
     };
     use crate::{MemAdviceProvider, StackInputs, Word};
-    use vm_core::{AdviceInjector, AdviceSet, Decorator, ProgramInputs};
+    use vm_core::{AdviceInjector, AdviceSet, Decorator};
 
     #[test]
     fn inject_merkle_node() {
@@ -290,8 +290,8 @@ mod tests {
         ];
 
         let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
-        let program_inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
-        let advice_provider = MemAdviceProvider::from(program_inputs);
+        let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+        let advice_provider = MemAdviceProvider::from(advice_inputs);
         let mut process = Process::new(&Kernel::default(), stack_inputs, advice_provider);
         process.execute_op(Operation::Noop).unwrap();
 

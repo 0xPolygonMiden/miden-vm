@@ -26,10 +26,10 @@ pub use operations::{
 };
 
 mod inputs;
-pub use inputs::{AdviceSet, ProgramInputs, StackInputs};
+pub use inputs::{AdviceSet, StackInputs};
 
 mod outputs;
-pub use outputs::ProgramOutputs;
+pub use outputs::StackOutputs;
 
 pub mod utils;
 use utils::range;

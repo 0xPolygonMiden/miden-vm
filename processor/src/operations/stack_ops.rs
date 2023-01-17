@@ -308,7 +308,7 @@ mod tests {
 
     #[test]
     fn op_pad() {
-        let stack = StackInputs::empty();
+        let stack = StackInputs::default();
         let mut process = Process::new_dummy(stack);
 
         // push one item onto the stack
@@ -336,7 +336,7 @@ mod tests {
     #[test]
     fn op_drop() {
         // push a few items onto the stack
-        let stack = StackInputs::empty();
+        let stack = StackInputs::default();
         let mut process = Process::new_dummy(stack);
         process.execute_op(Operation::Push(Felt::ONE)).unwrap();
         process.execute_op(Operation::Push(Felt::new(2))).unwrap();
@@ -359,7 +359,7 @@ mod tests {
 
     #[test]
     fn op_dup() {
-        let stack = StackInputs::empty();
+        let stack = StackInputs::default();
         let mut process = Process::new_dummy(stack);
 
         // push one item onto the stack
@@ -420,7 +420,7 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // swapping with a minimum stack should be ok
-        let stack = StackInputs::empty();
+        let stack = StackInputs::default();
         let mut process = Process::new_dummy(stack);
         assert!(process.execute_op(Operation::Swap).is_ok());
     }
@@ -436,7 +436,7 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // swapping with a minimum stack should be ok
-        let stack = StackInputs::empty();
+        let stack = StackInputs::default();
         let mut process = Process::new_dummy(stack);
         assert!(process.execute_op(Operation::SwapW).is_ok());
     }
@@ -453,7 +453,7 @@ mod tests {
         assert_eq!(expected, process.stack.trace_state());
 
         // swapping with a minimum stack should be ok
-        let stack = StackInputs::empty();
+        let stack = StackInputs::default();
         let mut process = Process::new_dummy(stack);
         assert!(process.execute_op(Operation::SwapW2).is_ok());
     }

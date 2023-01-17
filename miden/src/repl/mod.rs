@@ -267,8 +267,8 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramErro
         .compile(&program)
         .map_err(ProgramError::AssemblyError)?;
 
-    let stack_inputs = StackInputs::empty();
-    let advice_provider = MemAdviceProvider::empty();
+    let stack_inputs = StackInputs::default();
+    let advice_provider = MemAdviceProvider::default();
 
     let mut process = Process::new_debug(program.kernel(), stack_inputs, advice_provider);
     let _program_outputs = process.execute(&program).map_err(ProgramError::ExecutionError);

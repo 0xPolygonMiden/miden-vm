@@ -1,8 +1,8 @@
 use crate::{
     build_test,
-    helpers::{Test, TestError},
+    helpers::{AdviceInputs, Test, TestError},
 };
-use vm_core::{ProgramInputs, StackInputs};
+use vm_core::StackInputs;
 
 // SIMPLE FLOW CONTROL TESTS
 // ================================================================================================
@@ -205,7 +205,7 @@ fn simple_syscall() {
         source: program_source.to_string(),
         kernel: Some(kernel_source.to_string()),
         stack_inputs: StackInputs::try_from_values([1, 2]).unwrap(),
-        advice_inputs: ProgramInputs::empty(),
+        advice_inputs: AdviceInputs::default(),
         in_debug_mode: false,
     };
     test.expect_stack(&[3]);

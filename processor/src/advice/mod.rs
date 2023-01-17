@@ -1,4 +1,4 @@
-use super::{ExecutionError, Felt, ProgramInputs, Word};
+use super::{utils, ExecutionError, Felt, InputError, Word};
 use vm_core::{
     utils::{
         collections::{BTreeMap, Vec},
@@ -6,6 +6,9 @@ use vm_core::{
     },
     AdviceSet, StarkField,
 };
+
+mod inputs;
+pub use inputs::AdviceInputs;
 
 mod mem_provider;
 pub use mem_provider::MemAdviceProvider;

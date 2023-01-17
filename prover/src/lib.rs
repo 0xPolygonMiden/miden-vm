@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use air::{ProcessorAir, PublicInputs};
-use processor::{math::Felt, AdviceProvider, ExecutionTrace};
+use processor::{math::Felt, ExecutionTrace};
 use prover::Prover;
 
 #[cfg(feature = "std")]
@@ -16,8 +16,8 @@ use std::time::Instant;
 
 pub use air::{FieldExtension, HashFunction, ProofOptions};
 pub use processor::{
-    math, utils, AdviceSet, AdviceSetError, Digest, ExecutionError, InputError, Program,
-    ProgramInputs, ProgramOutputs, StackInputs, Word,
+    math, utils, AdviceInputs, AdviceProvider, AdviceSet, AdviceSetError, Digest, ExecutionError,
+    InputError, MemAdviceProvider, Program, StackInputs, StackOutputs, Word,
 };
 pub use prover::StarkProof;
 
@@ -38,7 +38,7 @@ pub fn prove<A>(
     stack_inputs: StackInputs,
     advice_provider: A,
     options: &ProofOptions,
-) -> Result<(ProgramOutputs, StarkProof), ExecutionError>
+) -> Result<(StackOutputs, StarkProof), ExecutionError>
 where
     A: AdviceProvider,
 {
@@ -54,13 +54,13 @@ where
         now.elapsed().as_millis()
     );
 
-    let outputs = trace.program_outputs();
+    let stack_outputs = trace.stack_outputs().clone();
 
     // generate STARK proof
-    let prover = ExecutionProver::new(options.clone(), stack_inputs, outputs.clone());
+    let prover = ExecutionProver::new(options.clone(), stack_inputs, stack_outputs.clone());
     let proof = prover.prove(trace).map_err(ExecutionError::ProverError)?;
 
-    Ok((outputs, proof))
+    Ok((stack_outputs, proof))
 }
 
 // PROVER
@@ -69,15 +69,19 @@ where
 struct ExecutionProver {
     options: ProofOptions,
     stack_inputs: StackInputs,
-    outputs: ProgramOutputs,
+    stack_outputs: StackOutputs,
 }
 
 impl ExecutionProver {
-    pub fn new(options: ProofOptions, stack_inputs: StackInputs, outputs: ProgramOutputs) -> Self {
+    pub fn new(
+        options: ProofOptions,
+        stack_inputs: StackInputs,
+        stack_outputs: StackOutputs,
+    ) -> Self {
         Self {
             options,
             stack_inputs,
-            outputs,
+            stack_outputs,
         }
     }
 
@@ -97,10 +101,10 @@ impl ExecutionProver {
         true
     }
 
-    /// Validates the program outputs against the provided execution trace and returns true if valid.
+    /// Validates the stack outputs against the provided execution trace and returns true if valid.
     fn are_outputs_valid(&self, trace: &ExecutionTrace) -> bool {
         for (output_element, trace_element) in
-            self.outputs.stack_top().iter().zip(trace.last_stack_state().iter())
+            self.stack_outputs.stack_top().iter().zip(trace.last_stack_state().iter())
         {
             if *output_element != *trace_element {
                 return false;
@@ -131,6 +135,10 @@ impl Prover for ExecutionProver {
             "provided outputs do not match the execution trace"
         );
 
-        PublicInputs::new(trace.program_hash(), self.stack_inputs.clone(), self.outputs.clone())
+        PublicInputs::new(
+            trace.program_hash(),
+            self.stack_inputs.clone(),
+            self.stack_outputs.clone(),
+        )
     }
 }

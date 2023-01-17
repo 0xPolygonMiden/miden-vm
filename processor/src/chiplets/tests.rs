@@ -110,7 +110,7 @@ fn build_trace(
     kernel: Kernel,
 ) -> (ChipletsTrace, usize) {
     let stack_inputs = StackInputs::try_from_values(stack_inputs.iter().copied()).unwrap();
-    let advice_provider = MemAdviceProvider::empty();
+    let advice_provider = MemAdviceProvider::default();
     let mut process = Process::new(&kernel, stack_inputs, advice_provider);
     let program = CodeBlock::new_span(operations);
     process.execute_code_block(&program, &CodeBlockTable::default()).unwrap();

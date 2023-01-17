@@ -19,7 +19,7 @@ pub fn get_example(n: usize) -> Example<MemAdviceProvider> {
     Example {
         program,
         stack_inputs: StackInputs::try_from_values([0, 1]).unwrap(),
-        advice_provider: MemAdviceProvider::empty(),
+        advice_provider: MemAdviceProvider::default(),
         expected_result,
         num_outputs: 1,
     }

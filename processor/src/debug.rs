@@ -3,7 +3,7 @@ use crate::{
     System, Vec,
 };
 use core::fmt;
-use vm_core::{utils::string::String, Operation, ProgramOutputs, Word};
+use vm_core::{utils::string::String, Operation, StackOutputs, Word};
 
 /// VmState holds a current process state information at a specific clock cycle.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -42,10 +42,7 @@ pub struct VmStateIterator {
 }
 
 impl VmStateIterator {
-    pub(super) fn new<A>(
-        process: Process<A>,
-        result: Result<ProgramOutputs, ExecutionError>,
-    ) -> Self
+    pub(super) fn new<A>(process: Process<A>, result: Result<StackOutputs, ExecutionError>) -> Self
     where
         A: AdviceProvider,
     {
@@ -66,7 +63,7 @@ impl VmStateIterator {
     fn get_asmop(&self) -> (Option<AsmOpInfo>, bool) {
         let assembly_ops = self.decoder.debug_info().assembly_ops();
 
-        if self.clk == 0 || self.asmop_idx > assembly_ops.len() {
+        if self.clk == 0 || assembly_ops.is_empty() || self.asmop_idx > assembly_ops.len() {
             return (None, false);
         }
 

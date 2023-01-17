@@ -81,7 +81,7 @@ impl ExampleOptions {
 
         // execute the program and generate the proof of execution
         let now = Instant::now();
-        let (outputs, proof) =
+        let (stack_outputs, proof) =
             miden::prove(&program, stack_inputs.clone(), advice_provider, &proof_options).unwrap();
         println!("--------------------------------");
 
@@ -90,10 +90,10 @@ impl ExampleOptions {
             //hex::encode(program.hash()), // TODO: include into message
             now.elapsed().as_millis()
         );
-        println!("Program output: {:?}", outputs.stack_outputs(num_outputs));
+        println!("Program output: {:?}", stack_outputs.stack_truncated(num_outputs));
         assert_eq!(
             expected_result,
-            outputs.stack_outputs(num_outputs),
+            stack_outputs.stack_truncated(num_outputs),
             "Program result was computed incorrectly"
         );
 
@@ -107,7 +107,7 @@ impl ExampleOptions {
         // results in the expected output
         let proof = StarkProof::from_bytes(&proof_bytes).unwrap();
         let now = Instant::now();
-        match miden::verify(program.hash(), stack_inputs, &outputs, proof) {
+        match miden::verify(program.hash(), stack_inputs, stack_outputs, proof) {
             Ok(_) => println!("Execution verified in {} ms", now.elapsed().as_millis()),
             Err(err) => println!("Failed to verify execution: {}", err),
         }

@@ -1,11 +1,9 @@
 pub use miden::{MemAdviceProvider, ProofOptions, StarkProof};
-pub use processor::StackInputs;
+pub use processor::{AdviceInputs, StackInputs};
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
 use stdlib::StdLibrary;
-pub use vm_core::{
-    stack::STACK_TOP_SIZE, Felt, FieldElement, Program, ProgramInputs, ProgramOutputs,
-};
+pub use vm_core::{stack::STACK_TOP_SIZE, Felt, FieldElement, Program, StackOutputs};
 
 pub mod crypto;
 
@@ -42,7 +40,7 @@ pub struct Test {
     pub source: String,
     pub kernel: Option<String>,
     pub stack_inputs: StackInputs,
-    pub advice_inputs: ProgramInputs,
+    pub advice_inputs: AdviceInputs,
     pub in_debug_mode: bool,
 }
 
@@ -55,8 +53,8 @@ impl Test {
         Test {
             source: String::from(source),
             kernel: None,
-            stack_inputs: StackInputs::empty(),
-            advice_inputs: ProgramInputs::empty(),
+            stack_inputs: StackInputs::default(),
+            advice_inputs: AdviceInputs::default(),
             in_debug_mode,
         }
     }
@@ -171,7 +169,7 @@ impl Test {
         let stack_inputs = StackInputs::try_from_values(pub_inputs).unwrap();
         let program = self.compile();
         let advice_provider = MemAdviceProvider::from(self.advice_inputs.clone());
-        let (mut outputs, proof) = prover::prove(
+        let (mut stack_outputs, proof) = prover::prove(
             &program,
             stack_inputs.clone(),
             advice_provider,
@@ -180,10 +178,10 @@ impl Test {
         .unwrap();
 
         if test_fail {
-            outputs.stack_mut()[0] += 1;
-            assert!(miden::verify(program.hash(), stack_inputs, &outputs, proof).is_err());
+            stack_outputs.stack_mut()[0] += 1;
+            assert!(miden::verify(program.hash(), stack_inputs, stack_outputs, proof).is_err());
         } else {
-            let result = miden::verify(program.hash(), stack_inputs, &outputs, proof);
+            let result = miden::verify(program.hash(), stack_inputs, stack_outputs, proof);
             assert!(result.is_ok(), "error: {result:?}");
         }
     }

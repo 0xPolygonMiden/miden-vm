@@ -173,7 +173,7 @@ impl Process<super::MemAdviceProvider> {
     /// Instantiates a new blank process for testing purposes. The stack in the process is
     /// initialized with the provided values.
     fn new_dummy(stack_inputs: super::StackInputs) -> Self {
-        let advice_provider = super::MemAdviceProvider::empty();
+        let advice_provider = super::MemAdviceProvider::default();
         let mut process = Self::new(&Kernel::default(), stack_inputs, advice_provider);
         process.execute_op(Operation::Noop).unwrap();
         process
@@ -181,15 +181,17 @@ impl Process<super::MemAdviceProvider> {
 
     /// Instantiates a new blank process for testing purposes.
     fn new_dummy_with_empty_stack() -> Self {
-        let stack = super::StackInputs::empty();
+        let stack = super::StackInputs::default();
         Self::new_dummy(stack)
     }
 
     /// Instantiates a new process with an advice tape for testing purposes.
     fn new_dummy_with_advice_tape(advice_tape: &[u64]) -> Self {
-        let stack_inputs = super::StackInputs::empty();
-        let program_inputs = super::ProgramInputs::new(advice_tape, vec![]).unwrap();
-        let advice_provider = super::MemAdviceProvider::from(program_inputs);
+        let stack_inputs = super::StackInputs::default();
+        let advice_inputs = super::AdviceInputs::default()
+            .with_tape_values(advice_tape.iter().copied())
+            .unwrap();
+        let advice_provider = super::MemAdviceProvider::from(advice_inputs);
         let mut process = Self::new(&Kernel::default(), stack_inputs, advice_provider);
         process.execute_op(Operation::Noop).unwrap();
         process
@@ -198,7 +200,7 @@ impl Process<super::MemAdviceProvider> {
     /// Instantiates a new blank process with one decoder trace row for testing purposes. This
     /// allows for setting helpers in the decoder when executing operations during tests.
     fn new_dummy_with_decoder_helpers_and_empty_stack() -> Self {
-        let stack_inputs = super::StackInputs::empty();
+        let stack_inputs = super::StackInputs::default();
         Self::new_dummy_with_decoder_helpers(stack_inputs)
     }
 
@@ -207,17 +209,17 @@ impl Process<super::MemAdviceProvider> {
     ///
     /// The stack in the process is initialized with the provided values.
     fn new_dummy_with_decoder_helpers(stack_inputs: super::StackInputs) -> Self {
-        let program_inputs = super::ProgramInputs::empty();
-        Self::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, program_inputs)
+        let advice_inputs = super::AdviceInputs::default();
+        Self::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs)
     }
 
     /// Instantiates a new process having Program inputs along with one decoder trace row
     /// for testing purposes.
     fn new_dummy_with_inputs_and_decoder_helpers(
         stack_inputs: super::StackInputs,
-        program_inputs: super::ProgramInputs,
+        advice_inputs: super::AdviceInputs,
     ) -> Self {
-        let advice_provider = super::MemAdviceProvider::from(program_inputs);
+        let advice_provider = super::MemAdviceProvider::from(advice_inputs);
         let mut process = Self::new(&Kernel::default(), stack_inputs, advice_provider);
         process.decoder.add_dummy_trace_row();
         process.execute_op(Operation::Noop).unwrap();

@@ -1,6 +1,7 @@
 use miden::{
     utils::{Deserializable, SliceReader},
-    Assembler, Digest, Program, ProgramInputs, ProgramOutputs, StackInputs, StarkProof,
+    AdviceInputs, Assembler, Digest, MemAdviceProvider, Program, StackInputs, StackOutputs,
+    StarkProof,
 };
 use serde_derive::{Deserialize, Serialize};
 use std::{
@@ -54,10 +55,7 @@ impl InputFile {
         Ok(inputs)
     }
 
-    /// Returns program inputs.
-    pub fn get_program_inputs(&self) -> Result<ProgramInputs, String> {
-        // TODO provide advice sets from the inputs file
-        let sets = vec![];
+    pub fn parse_advice_provider(&self) -> Result<MemAdviceProvider, String> {
         let tape = self
             .advice_tape
             .as_ref()
@@ -66,12 +64,13 @@ impl InputFile {
             .iter()
             .map(|v| v.parse::<u64>().map_err(|e| e.to_string()))
             .collect::<Result<Vec<_>, _>>()?;
-
-        ProgramInputs::new(&tape, sets).map_err(|e| e.to_string())
+        let advice_inputs =
+            AdviceInputs::default().with_tape_values(tape).map_err(|e| e.to_string())?;
+        Ok(MemAdviceProvider::from(advice_inputs))
     }
 
     /// Parse and return the stack inputs for the program.
-    pub fn get_stack_inputs(&self) -> Result<StackInputs, String> {
+    pub fn parse_stack_inputs(&self) -> Result<StackInputs, String> {
         let stack_inputs = self
             .stack_init
             .iter()
@@ -95,10 +94,10 @@ pub struct OutputFile {
 /// Helper methods to interact with the output file
 impl OutputFile {
     /// Returns a new [OutputFile] from the specified outputs vectors
-    pub fn new(outputs: ProgramOutputs) -> Self {
+    pub fn new(stack_outputs: &StackOutputs) -> Self {
         Self {
-            stack: outputs.stack().iter().map(|&v| v.to_string()).collect::<Vec<String>>(),
-            overflow_addrs: outputs
+            stack: stack_outputs.stack().iter().map(|&v| v.to_string()).collect::<Vec<String>>(),
+            overflow_addrs: stack_outputs
                 .overflow_addrs()
                 .iter()
                 .map(|&v| v.to_string())
@@ -129,7 +128,7 @@ impl OutputFile {
     }
 
     /// Write the output file
-    pub fn write(outputs: ProgramOutputs, path: &PathBuf) -> Result<(), String> {
+    pub fn write(stack_outputs: &StackOutputs, path: &PathBuf) -> Result<(), String> {
         // if path provided, create output file
         println!("Creating output file `{}`", path.display());
 
@@ -140,12 +139,12 @@ impl OutputFile {
         println!("Writing data to output file");
 
         // write outputs to output file
-        serde_json::to_writer_pretty(file, &Self::new(outputs))
+        serde_json::to_writer_pretty(file, &Self::new(stack_outputs))
             .map_err(|err| format!("Failed to write output data - {}", err))
     }
 
-    /// Converts outputs vectors for stack and overflow addresses to [ProgramOutputs].
-    pub fn outputs(&self) -> ProgramOutputs {
+    /// Converts outputs vectors for stack and overflow addresses to [StackOutputs].
+    pub fn stack_outputs(&self) -> StackOutputs {
         let stack = self.stack.iter().map(|v| v.parse::<u64>().unwrap()).collect::<Vec<u64>>();
 
         let overflow_addrs = self
@@ -154,7 +153,7 @@ impl OutputFile {
             .map(|v| v.parse::<u64>().unwrap())
             .collect::<Vec<u64>>();
 
-        ProgramOutputs::new(stack, overflow_addrs)
+        StackOutputs::new(stack, overflow_addrs)
     }
 }
 

@@ -1,6 +1,6 @@
 use super::{
-    AdviceProvider, AdviceSet, BTreeMap, ExecutionError, Felt, IntoBytes, ProgramInputs,
-    StarkField, Vec, Word,
+    AdviceInputs, AdviceProvider, AdviceSet, BTreeMap, ExecutionError, Felt, IntoBytes, StarkField,
+    Vec, Word,
 };
 
 // MEMORY ADVICE PROVIDER
@@ -17,8 +17,8 @@ pub struct MemAdviceProvider {
     sets: BTreeMap<[u8; 32], AdviceSet>,
 }
 
-impl From<ProgramInputs> for MemAdviceProvider {
-    fn from(inputs: ProgramInputs) -> Self {
+impl From<AdviceInputs> for MemAdviceProvider {
+    fn from(inputs: AdviceInputs) -> Self {
         let (mut tape, values, sets) = inputs.into_parts();
         tape.reverse();
         Self {
@@ -27,16 +27,6 @@ impl From<ProgramInputs> for MemAdviceProvider {
             values,
             sets,
         }
-    }
-}
-
-impl MemAdviceProvider {
-    // CONSTRUCTORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Creates a new memory advice provider with empty values and sets.
-    pub fn empty() -> Self {
-        Self::from(ProgramInputs::empty())
     }
 }
 
