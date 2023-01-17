@@ -439,7 +439,7 @@ The above steps are repeated until the top of the stack becomes $0$, at which po
 
 #### Skipping the loop
 
-If the top of the stack is $0$, the VM still executes the `LOOP` operation. But unlike in the case when we need to entre the loop, the VM sets `is_loop` flag to $0$ in the block stack table, and does not add any rows to the block hash table. The last point means that the only possible operation to be executed after the `LOOP` operation is the `END` operation. This is illustrated in the diagram below.
+If the top of the stack is $0$, the VM still executes the `LOOP` operation. But unlike in the case when we need to enter the loop, the VM sets `is_loop` flag to $0$ in the block stack table, and does not add any rows to the block hash table. The last point means that the only possible operation to be executed after the `LOOP` operation is the `END` operation. This is illustrated in the diagram below.
 
 ![decoder_loop_skipping](../../assets/design/decoder/decoder_loop_skipping.png)
 
@@ -487,7 +487,7 @@ Operation batch flags (denoted as $c_0, c_1, c_2$), encode the number of groups 
 
 * `(1, 0, 0)` - $8$ groups. Groups in $h_1, ... h_7$ are added to the op group table.
 * `(0, 1, 0)` - $4$ groups. Groups in $h_1, ... h_3$ are added to the op group table
-* `(0, 0, 1)` - $2$ groups. Groups in $h_1, h_2$ are added to the op group table.
+* `(0, 0, 1)` - $2$ groups. Groups in $h_1$ is added to the op group table.
 * `(0, 1, 1)` - $1$ group. Nothing is added to the op group table
 * `(0, 0, 0)` - not a `SPAN` or `RESPAN` operation.
 

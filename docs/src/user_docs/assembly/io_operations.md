@@ -38,6 +38,8 @@ In both case the values must still encode valid field elements.
 | adv_loadw <br> - *(1 cycle)*     | [0, 0, 0, 0, ... ] | [A, ... ] | $A \leftarrow tape.next(4)$ <br> Removes the next word (4 elements) from the advice tape and overwrites the top four stack elements with it. <br> Fails if the advice tape has fewer than $4$ values. |
 | adv_pipe <br> - *(2 cycles)*     | [S2, S1, S0, a, ... ] | [T2, T1, T0, b, ... ] | $[T_0, T_1, T_2] \leftarrow permute(S_0, S_1 + tape.next(4), S_2 + tape.next(4))$ <br> $b \leftarrow a + 2$ <br> Removes the next two words (8 elements) from the advice tape, inserts them into memory sequentially starting from address $a$, then adds them to the top 8 elements of the stack and applies a Rescue Prime permutation to the top 12 elements of the stack. At the end of the operation, the address is incremented by $2$. <br> Fails if the advice tape has fewer than $8$ values. |
 
+> **Note**: The opcodes above always push data onto the stack so that the first element is placed deepest in the stack. For example, if the data on the tape is `a,b,c,d` and you use the opcode `adv_push.4`, the data will be `d,c,b,a` on your stack. This is also the behavior of the other opcodes.
+
 ### Random access memory
 
  As mentioned above, there are two ways to access memory in Miden VM. The first way is via memory addresses using the instructions listed below. The addresses are absolute - i.e., they don't depend on the procedure context. Memory addresses can be in the range $[0, 2^{32})$.
