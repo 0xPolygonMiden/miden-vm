@@ -47,11 +47,11 @@ For instructions where one or more operands can be provided as immediate paramet
 
 | Instruction | Stack Input | Stack Output | Notes |
 | ----------- | ----------- | ------------ | ----------- |
-| ext2_add <br> - *(5 cycles)*  <br>  | [b, a, ...] | [c, ...] | $c \leftarrow (a + b) \mod q$                                |
-| ext2_sub <br> - *(7 cycles)*  <br>  | [b, a, ...] | [c, ...] | $c \leftarrow (a - b) \mod q$                                |
-| ext2_mul <br> - *(3 cycles)*  <br>  | [b, a, ...] | [c, ...] | $c \leftarrow (a \cdot b) \mod q$                            |
-| ext2_div <br> - *(11 cycles)*  <br> | [b, a, ...] | [c, ...] | $c \leftarrow (a \cdot b^{-1}) \mod q$ <br> Fails if $b = 0$ |
-| ext2_neg <br> - *(4 cycles)*  <br>  | [a, ...]    | [b, ...] | $b \leftarrow -a \mod q$                                     |
-| ext2_inv <br> - *(8 cycles)*  <br>  | [a, ...]    | [b, ...] | $b \leftarrow a^{-1} \mod q$ <br> Fails if $a = 0$           |
+| ext2add <br> - *(5 cycles)*  <br>  | [b, a, ...] | [c, ...] | $c \leftarrow (a + b) \mod q$                                |
+| ext2sub <br> - *(7 cycles)*  <br>  | [b, a, ...] | [c, ...] | $c \leftarrow (a - b) \mod q$                                |
+| ext2mul <br> - *(3 cycles)*  <br>  | [b, a, ...] | [c, ...] | $c \leftarrow (a \cdot b) \mod q$                            |
+| ext2div <br> - *(11 cycles)*  <br> | [b, a, ...] | [c, ...] | $c \leftarrow (a \cdot b^{-1}) \mod q$ <br> Fails if $b = 0$ |
+| ext2neg <br> - *(4 cycles)*  <br>  | [a, ...]    | [b, ...] | $b \leftarrow -a \mod q$                                     |
+| ext2inv <br> - *(8 cycles)*  <br>  | [a, ...]    | [b, ...] | $b \leftarrow a^{-1} \mod q$ <br> Fails if $a = 0$           |
 
 where $q$ is an irreducible polynomial $x^2 - x + 2$ over $F_p$ for $p = 2^{64} - 2^{32} + 1$
