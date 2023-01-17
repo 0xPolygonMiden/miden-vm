@@ -244,12 +244,12 @@ where
         // hashing operation batches. Thus, the result of the hash is expected to be in row
         // addr + (num_batches * 8) - 1.
         let op_batches = block.op_batches();
-        let num_op_groups = get_span_op_group_count(op_batches);
-        let addr = self.chiplets.hash_span_block(op_batches, num_op_groups, block.hash());
+        let addr = self.chiplets.hash_span_block(op_batches, block.hash());
 
         // start decoding the first operation batch; this also appends a row with SPAN operation
         // to the decoder trace. we also need the total number of operation groups so that we can
         // set the value of the group_count register at the beginning of the SPAN.
+        let num_op_groups = get_span_op_group_count(op_batches);
         self.decoder.start_span(&op_batches[0], Felt::new(num_op_groups as u64), addr);
         self.execute_op(Operation::Noop)
     }

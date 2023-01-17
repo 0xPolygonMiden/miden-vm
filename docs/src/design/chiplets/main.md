@@ -4,7 +4,7 @@ The Chiplets module contains specialized components dedicated to accelerating co
 
 Currently, Miden VM relies on 3 chiplets:
 
-- The [Hash Chiplet](./hasher.md) (also referred to as the Hasher), used to compute Rescue Prime hashes both for sequential hashing and for Merkle tree hashing.
+- The [Hash Chiplet](./hasher.md) (also referred to as the Hasher), used to compute Rescue Prime Optimized hashes both for sequential hashing and for Merkle tree hashing.
 - The [Bitwise Chiplet](./bitwise.md), used to compute bitwise operations (e.g., `AND`, `XOR`) over 32-bit integers.
 - The [Memory Chiplet](./memory.md), used to support random-access memory in the VM.
 

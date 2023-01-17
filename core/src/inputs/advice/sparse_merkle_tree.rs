@@ -220,7 +220,7 @@ mod tests {
         super::{MerkleTree, SparseMerkleTree},
         Word,
     };
-    use crypto::{hashers::Rp64_256, ElementHasher, Hasher};
+    use crypto::hash::rpo::Rpo256 as Hasher;
 
     const KEYS4: [u64; 4] = [0, 1, 2, 3];
     const KEYS8: [u64; 8] = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -339,9 +339,9 @@ mod tests {
     // --------------------------------------------------------------------------------------------
 
     fn compute_internal_nodes() -> (Word, Word, Word) {
-        let node2 = Rp64_256::hash_elements(&[VALUES4[0], VALUES4[1]].concat());
-        let node3 = Rp64_256::hash_elements(&[VALUES4[2], VALUES4[3]].concat());
-        let root = Rp64_256::merge(&[node2, node3]);
+        let node2 = Hasher::hash_elements(&[VALUES4[0], VALUES4[1]].concat());
+        let node3 = Hasher::hash_elements(&[VALUES4[2], VALUES4[3]].concat());
+        let root = Hasher::merge(&[node2, node3]);
 
         (root.into(), node2.into(), node3.into())
     }

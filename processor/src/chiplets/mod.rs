@@ -233,16 +233,9 @@ impl Chiplets {
     /// chiplet and checks the result against the provided `expected_result`.
     ///
     /// It returns the row address of the execution trace at which the hash computation started.
-    pub fn hash_span_block(
-        &mut self,
-        op_batches: &[OpBatch],
-        num_op_groups: usize,
-        expected_hash: Digest,
-    ) -> Felt {
+    pub fn hash_span_block(&mut self, op_batches: &[OpBatch], expected_hash: Digest) -> Felt {
         let mut lookups = Vec::new();
-        let (addr, result) =
-            self.hasher
-                .hash_span_block(op_batches, num_op_groups, expected_hash, &mut lookups);
+        let (addr, result) = self.hasher.hash_span_block(op_batches, expected_hash, &mut lookups);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(expected_hash, result.into());

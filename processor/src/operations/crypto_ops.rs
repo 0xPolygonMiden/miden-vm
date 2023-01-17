@@ -10,11 +10,11 @@ where
 {
     // HASHING OPERATIONS
     // --------------------------------------------------------------------------------------------
-    /// Applies Rescue Prime permutation to the top 12 elements of the stack. The stack is assumed
-    /// to be arranged so that the 8 elements of the rate are at the top of the stack. The capacity
-    /// word follows, with the number of elements to be hashed at the deepest position in stack[11].
-    /// For a Rescue Prime permutation of [A, B, C] where A is the capacity, the stack should be
-    /// arranged (from the top) as [C, B, A, ...].
+    /// Applies a permutation of Rescue Prime Optimized to the top 12 elements of the stack. The
+    /// stack is assumed to be arranged so that the 8 elements of the rate are at the top of the
+    /// stack. The capacity word follows, with the element that specifies the padding rule at the
+    /// deepest position in stack[11]. For an RPO permutation of [A, B, C] where A is the capacity,
+    /// the stack should be arranged (from the top) as [C, B, A, ...].
     pub(super) fn op_rpperm(&mut self) -> Result<(), ExecutionError> {
         let input_state = [
             self.stack.get(11),

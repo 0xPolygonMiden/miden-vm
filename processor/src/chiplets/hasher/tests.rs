@@ -12,7 +12,7 @@ use vm_core::{
         MR_UPDATE_OLD_LABEL, NUM_ROUNDS, NUM_SELECTORS, RETURN_HASH_LABEL, RETURN_STATE_LABEL,
         STATE_COL_RANGE,
     },
-    code_blocks::{get_span_op_group_count, CodeBlock},
+    code_blocks::CodeBlock,
     AdviceSet, Operation, StarkField, ONE, ZERO,
 };
 
@@ -913,12 +913,8 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
 
     // builds the hash execution trace of the first span block from scratch.
     let mut lookups = Vec::new();
-    let (addr, final_state) = hasher.hash_span_block(
-        span1_block_val.op_batches(),
-        get_span_op_group_count(span1_block_val.op_batches()),
-        span1_block.hash(),
-        &mut lookups,
-    );
+    let (addr, final_state) =
+        hasher.hash_span_block(span1_block_val.op_batches(), span1_block.hash(), &mut lookups);
 
     let num_batches = span1_block_val.op_batches().len();
     let lookup_start_addr = 17;
@@ -975,12 +971,8 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
     let mut lookups = Vec::new();
     // builds the hash execution trace of the second span block by copying the sections of the
     // trace corresponding to the first span block with the same hash.
-    let (addr, final_state) = hasher.hash_span_block(
-        span2_block_val.op_batches(),
-        get_span_op_group_count(span2_block_val.op_batches()),
-        span2_block.hash(),
-        &mut lookups,
-    );
+    let (addr, final_state) =
+        hasher.hash_span_block(span2_block_val.op_batches(), span2_block.hash(), &mut lookups);
 
     let num_batches = span2_block_val.op_batches().len();
     let lookup_start_addr = last_lookup_addr_memoized_block + 1;

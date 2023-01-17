@@ -178,7 +178,6 @@ impl Hasher {
     pub(super) fn hash_span_block(
         &mut self,
         op_batches: &[OpBatch],
-        num_op_groups: usize,
         expected_hash: Digest,
         lookups: &mut Vec<HasherLookup>,
     ) -> (Felt, Word) {
@@ -198,7 +197,7 @@ impl Hasher {
         let addr = self.trace.next_row_addr();
 
         // initialize the state and absorb the first operation batch into it
-        let mut state = init_state(op_batches[0].groups(), num_op_groups);
+        let mut state = init_state(op_batches[0].groups(), ZERO);
 
         // add the lookup for the hash initialization.
         let lookup = self.get_lookup(START_LABEL, ZERO, HasherLookupContext::Start);
