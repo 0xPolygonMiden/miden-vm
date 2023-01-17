@@ -1,0 +1,2044 @@
+export.verify_remainder_64.4
+    push.64
+    push.8
+
+    adv.ext2intt
+
+    drop
+    drop
+    dup
+
+    # Initialize Rescue state
+    push.144.0.0.0.0.0.0.0.0.0.0.0
+
+    # Consume `p` into Rescue state
+    repeat.16
+        mem_stream
+    end
+
+    movup.12
+    drop
+    locaddr.0
+    movdn.12
+
+    # Consume `q` into Rescue state
+    repeat.2
+        adv_pipe
+    end
+
+    movup.12
+    drop
+
+    dropw
+    swapw
+    dropw
+    drop
+    drop
+
+    # τ on stack top
+    # Compute β
+
+    push.0.0.0.0 # accumulators ( denominator, numerator in order )
+
+    # for j = 0
+    dup.5
+    dup.5
+    push.1.0
+    ext2sub
+    ext2inv
+    push.1.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 1
+    dup.7
+    dup.7
+    push.549755813888.0
+    ext2sub
+    ext2inv
+    push.549755813888.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 2
+    dup.5
+    dup.5
+    push.70368744161280.0
+    ext2sub
+    ext2inv
+    push.70368744161280.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 3
+    dup.7
+    dup.7
+    push.18446744069412487169.0
+    ext2sub
+    ext2inv
+    push.18446744069412487169.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 4
+    dup.5
+    dup.5
+    push.17293822564807737345.0
+    ext2sub
+    ext2inv
+    push.17293822564807737345.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 5
+    dup.7
+    dup.7
+    push.8.0
+    ext2sub
+    ext2inv
+    push.8.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 6
+    dup.5
+    dup.5
+    push.4398046511104.0
+    ext2sub
+    ext2inv
+    push.4398046511104.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 7
+    dup.7
+    dup.7
+    push.562949953290240.0
+    ext2sub
+    ext2inv
+    push.562949953290240.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 8
+    dup.5
+    dup.5
+    push.18446744069397807105.0
+    ext2sub
+    ext2inv
+    push.18446744069397807105.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 9
+    dup.7
+    dup.7
+    push.9223372032559808513.0
+    ext2sub
+    ext2inv
+    push.9223372032559808513.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 10
+    dup.5
+    dup.5
+    push.64.0
+    ext2sub
+    ext2inv
+    push.64.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 11
+    dup.7
+    dup.7
+    push.35184372088832.0
+    ext2sub
+    ext2inv
+    push.35184372088832.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 12
+    dup.5
+    dup.5
+    push.4503599626321920.0
+    ext2sub
+    ext2inv
+    push.4503599626321920.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 13
+    dup.7
+    dup.7
+    push.18446744069280366593.0
+    ext2sub
+    ext2inv
+    push.18446744069280366593.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 14
+    dup.5
+    dup.5
+    push.18446744052234715141.0
+    ext2sub
+    ext2inv
+    push.18446744052234715141.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 15
+    dup.7
+    dup.7
+    push.512.0
+    ext2sub
+    ext2inv
+    push.512.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 16
+    dup.5
+    dup.5
+    push.281474976710656.0
+    ext2sub
+    ext2inv
+    push.281474976710656.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 17
+    dup.7
+    dup.7
+    push.36028797010575360.0
+    ext2sub
+    ext2inv
+    push.36028797010575360.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 18
+    dup.5
+    dup.5
+    push.18446744068340842497.0
+    ext2sub
+    ext2inv
+    push.18446744068340842497.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 19
+    dup.7
+    dup.7
+    push.18446743931975630881.0
+    ext2sub
+    ext2inv
+    push.18446743931975630881.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 20
+    dup.5
+    dup.5
+    push.4096.0
+    ext2sub
+    ext2inv
+    push.4096.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 21
+    dup.7
+    dup.7
+    push.2251799813685248.0
+    ext2sub
+    ext2inv
+    push.2251799813685248.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 22
+    dup.5
+    dup.5
+    push.288230376084602880.0
+    ext2sub
+    ext2inv
+    push.288230376084602880.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 23
+    dup.7
+    dup.7
+    push.18446744060824649729.0
+    ext2sub
+    ext2inv
+    push.18446744060824649729.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 24
+    dup.5
+    dup.5
+    push.18446742969902956801.0
+    ext2sub
+    ext2inv
+    push.18446742969902956801.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 25
+    dup.7
+    dup.7
+    push.32768.0
+    ext2sub
+    ext2inv
+    push.32768.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 26
+    dup.5
+    dup.5
+    push.18014398509481984.0
+    ext2sub
+    ext2inv
+    push.18014398509481984.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 27
+    dup.7
+    dup.7
+    push.2305843008676823040.0
+    ext2sub
+    ext2inv
+    push.2305843008676823040.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 28
+    dup.5
+    dup.5
+    push.18446744000695107585.0
+    ext2sub
+    ext2inv
+    push.18446744000695107585.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 29
+    dup.7
+    dup.7
+    push.18446735273321564161.0
+    ext2sub
+    ext2inv
+    push.18446735273321564161.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 30
+    dup.5
+    dup.5
+    push.262144.0
+    ext2sub
+    ext2inv
+    push.262144.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 31
+    dup.7
+    dup.7
+    push.144115188075855872.0
+    ext2sub
+    ext2inv
+    push.144115188075855872.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 32
+    dup.5
+    dup.5
+    push.18446744069414584320.0
+    ext2sub
+    ext2inv
+    push.18446744069414584320.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 33
+    dup.7
+    dup.7
+    push.18446743519658770433.0
+    ext2sub
+    ext2inv
+    push.18446743519658770433.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 34
+    dup.5
+    dup.5
+    push.18446673700670423041.0
+    ext2sub
+    ext2inv
+    push.18446673700670423041.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 35
+    dup.7
+    dup.7
+    push.2097152.0
+    ext2sub
+    ext2inv
+    push.2097152.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 36
+    dup.5
+    dup.5
+    push.1152921504606846976.0
+    ext2sub
+    ext2inv
+    push.1152921504606846976.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 37
+    dup.7
+    dup.7
+    push.18446744069414584313.0
+    ext2sub
+    ext2inv
+    push.18446744069414584313.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 38
+    dup.5
+    dup.5
+    push.18446739671368073217.0
+    ext2sub
+    ext2inv
+    push.18446739671368073217.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 39
+    dup.7
+    dup.7
+    push.18446181119461294081.0
+    ext2sub
+    ext2inv
+    push.18446181119461294081.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 40
+    dup.5
+    dup.5
+    push.16777216.0
+    ext2sub
+    ext2inv
+    push.16777216.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 41
+    dup.7
+    dup.7
+    push.9223372036854775808.0
+    ext2sub
+    ext2inv
+    push.9223372036854775808.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 42
+    dup.5
+    dup.5
+    push.18446744069414584257.0
+    ext2sub
+    ext2inv
+    push.18446744069414584257.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 43
+    dup.7
+    dup.7
+    push.18446708885042495489.0
+    ext2sub
+    ext2inv
+    push.18446708885042495489.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 44
+    dup.5
+    dup.5
+    push.18442240469788262401.0
+    ext2sub
+    ext2inv
+    push.18442240469788262401.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 45
+    dup.7
+    dup.7
+    push.134217728.0
+    ext2sub
+    ext2inv
+    push.134217728.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 46
+    dup.5
+    dup.5
+    push.17179869180.0
+    ext2sub
+    ext2inv
+    push.17179869180.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 47
+    dup.7
+    dup.7
+    push.18446744069414583809.0
+    ext2sub
+    ext2inv
+    push.18446744069414583809.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 48
+    dup.5
+    dup.5
+    push.18446462594437873665.0
+    ext2sub
+    ext2inv
+    push.18446462594437873665.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 49
+    dup.7
+    dup.7
+    push.18410715272404008961.0
+    ext2sub
+    ext2inv
+    push.18410715272404008961.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 50
+    dup.5
+    dup.5
+    push.1073741824.0
+    ext2sub
+    ext2inv
+    push.1073741824.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 51
+    dup.7
+    dup.7
+    push.137438953440.0
+    ext2sub
+    ext2inv
+    push.137438953440.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 52
+    dup.5
+    dup.5
+    push.18446744069414580225.0
+    ext2sub
+    ext2inv
+    push.18446744069414580225.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 53
+    dup.7
+    dup.7
+    push.18444492269600899073.0
+    ext2sub
+    ext2inv
+    push.18444492269600899073.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 54
+    dup.5
+    dup.5
+    push.18158513693329981441.0
+    ext2sub
+    ext2inv
+    push.18158513693329981441.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 55
+    dup.7
+    dup.7
+    push.8589934592.0
+    ext2sub
+    ext2inv
+    push.8589934592.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 56
+    dup.5
+    dup.5
+    push.1099511627520.0
+    ext2sub
+    ext2inv
+    push.1099511627520.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 57
+    dup.7
+    dup.7
+    push.18446744069414551553.0
+    ext2sub
+    ext2inv
+    push.18446744069414551553.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 58
+    dup.5
+    dup.5
+    push.18428729670905102337.0
+    ext2sub
+    ext2inv
+    push.18428729670905102337.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 59
+    dup.7
+    dup.7
+    push.16140901060737761281.0
+    ext2sub
+    ext2inv
+    push.16140901060737761281.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 60
+    dup.5
+    dup.5
+    push.68719476736.0
+    ext2sub
+    ext2inv
+    push.68719476736.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 61
+    dup.7
+    dup.7
+    push.8796093020160.0
+    ext2sub
+    ext2inv
+    push.8796093020160.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    # for j = 62
+    dup.5
+    dup.5
+    push.18446744069414322177.0
+    ext2sub
+    ext2inv
+    push.18446744069414322177.0
+    ext2mul
+
+    movup.8
+    push.0.0.0.0
+    dup.4
+    mem_loadw
+    movup.4
+    add.1
+    movdn.12
+
+    dup.5
+    dup.5
+    movup.9
+    movup.9
+    ext2add
+    movdn.7
+    movdn.7
+
+    movup.5
+    movup.5
+    movup.5
+    movup.5
+    ext2mul
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    # for j = 63
+    dup.7
+    dup.7
+    push.18302628881338728449.0
+    ext2sub
+    ext2inv
+    push.18302628881338728449.0
+    ext2mul
+
+    dup.1
+    dup.1
+    movup.7
+    movup.7
+    ext2add
+    movdn.5
+    movdn.5
+
+    ext2mul
+    movup.5
+    movup.5
+    ext2add
+    movdn.3
+    movdn.3
+
+    ext2div
+
+    # β on stack top
+
+    movup.4
+    drop
+
+    # Compute α
+
+    push.0.0 # accumulator for α
+
+    # for i = 7
+    push.0.0.0.0
+    loc_loadw.3
+    movup.5
+    movup.5
+    ext2add
+
+    # for i = 6
+    dup.7
+    dup.7
+    ext2mul
+    ext2add
+
+    # for i = 5
+    push.0.0.0.0
+    loc_loadw.2
+    movup.5
+    movup.5
+    dup.9
+    dup.9
+    ext2mul
+    ext2add
+
+    # for i = 4
+    dup.7
+    dup.7
+    ext2mul
+    ext2add
+
+    # for i = 3
+    push.0.0.0.0
+    loc_loadw.1
+    movup.5
+    movup.5
+    dup.9
+    dup.9
+    ext2mul
+    ext2add
+
+    # for i = 2
+    dup.7
+    dup.7
+    ext2mul
+    ext2add
+
+    # for i = 1
+    push.0.0.0.0
+    loc_loadw.0
+    movup.5
+    movup.5
+    dup.9
+    dup.9
+    ext2mul
+    ext2add
+
+    # for i = 0
+    movup.7
+    movup.7
+    ext2mul
+    ext2add
+
+    # α on stack top
+    # assert α == β
+    
+    movup.2
+    eq
+    movdn.2
+    eq
+    eq
+    assert
+end
