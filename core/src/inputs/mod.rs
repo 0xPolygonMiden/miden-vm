@@ -3,7 +3,10 @@ use super::{
     errors::{AdviceSetError, InputError},
     Felt, FieldElement, Word,
 };
-use winter_utils::collections::{vec, Vec};
+use winter_utils::{
+    collections::{vec, Vec},
+    ByteWriter, Serializable,
+};
 
 mod advice;
 pub use advice::AdviceSet;

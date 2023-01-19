@@ -174,7 +174,7 @@ impl Process<super::MemAdviceProvider> {
     /// initialized with the provided values.
     fn new_dummy(stack_inputs: super::StackInputs) -> Self {
         let advice_provider = super::MemAdviceProvider::default();
-        let mut process = Self::new(&Kernel::default(), stack_inputs, advice_provider);
+        let mut process = Self::new(Kernel::default(), stack_inputs, advice_provider);
         process.execute_op(Operation::Noop).unwrap();
         process
     }
@@ -192,7 +192,7 @@ impl Process<super::MemAdviceProvider> {
             .with_tape_values(advice_tape.iter().copied())
             .unwrap();
         let advice_provider = super::MemAdviceProvider::from(advice_inputs);
-        let mut process = Self::new(&Kernel::default(), stack_inputs, advice_provider);
+        let mut process = Self::new(Kernel::default(), stack_inputs, advice_provider);
         process.execute_op(Operation::Noop).unwrap();
         process
     }
@@ -220,7 +220,7 @@ impl Process<super::MemAdviceProvider> {
         advice_inputs: super::AdviceInputs,
     ) -> Self {
         let advice_provider = super::MemAdviceProvider::from(advice_inputs);
-        let mut process = Self::new(&Kernel::default(), stack_inputs, advice_provider);
+        let mut process = Self::new(Kernel::default(), stack_inputs, advice_provider);
         process.decoder.add_dummy_trace_row();
         process.execute_op(Operation::Noop).unwrap();
         process

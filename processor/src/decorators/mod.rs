@@ -292,7 +292,7 @@ mod tests {
         let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
         let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
         let advice_provider = MemAdviceProvider::from(advice_inputs);
-        let mut process = Process::new(&Kernel::default(), stack_inputs, advice_provider);
+        let mut process = Process::new(Kernel::default(), stack_inputs, advice_provider);
         process.execute_op(Operation::Noop).unwrap();
 
         // inject the node into the advice tape

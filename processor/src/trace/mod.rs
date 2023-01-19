@@ -8,8 +8,8 @@ use super::{
 use vm_core::{
     decoder::{NUM_USER_OP_HELPERS, USER_OP_HELPERS_OFFSET},
     stack::STACK_TOP_SIZE,
-    StackOutputs, AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET, MIN_TRACE_LEN,
-    STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO,
+    ProgramInfo, StackOutputs, AUX_TRACE_RAND_ELEMENTS, AUX_TRACE_WIDTH, DECODER_TRACE_OFFSET,
+    MIN_TRACE_LEN, STACK_TRACE_OFFSET, TRACE_WIDTH, ZERO,
 };
 use winterfell::{EvaluationFrame, Matrix, Serializable, Trace, TraceLayout};
 
@@ -58,7 +58,7 @@ pub struct ExecutionTrace {
     layout: TraceLayout,
     main_trace: Matrix<Felt>,
     aux_trace_hints: AuxTraceHints,
-    program_hash: Digest,
+    program_info: ProgramInfo,
     stack_outputs: StackOutputs,
 }
 
@@ -82,6 +82,10 @@ impl ExecutionTrace {
         // perfect zero knowledge.
         let program_hash: Digest = process.decoder.program_hash().into();
         let rng = RandomCoin::new(&program_hash.to_bytes());
+
+        // create a new program info instance with the underlying kernel
+        let kernel = process.kernel().clone();
+        let program_info = ProgramInfo::new(program_hash, kernel);
         let (main_trace, aux_trace_hints) = finalize_trace(process, rng);
 
         Self {
@@ -89,7 +93,7 @@ impl ExecutionTrace {
             layout: TraceLayout::new(TRACE_WIDTH, [AUX_TRACE_WIDTH], [AUX_TRACE_RAND_ELEMENTS]),
             main_trace: Matrix::new(main_trace),
             aux_trace_hints,
-            program_hash,
+            program_info,
             stack_outputs,
         }
     }
@@ -97,9 +101,14 @@ impl ExecutionTrace {
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
+    /// Returns the program info of this execution trace.
+    pub fn program_info(&self) -> &ProgramInfo {
+        &self.program_info
+    }
+
     /// Returns hash of the program execution of which resulted in this execution trace.
-    pub fn program_hash(&self) -> Digest {
-        self.program_hash
+    pub fn program_hash(&self) -> &Digest {
+        self.program_info.program_hash()
     }
 
     /// Returns outputs of the program execution which resulted in this execution trace.
@@ -237,7 +246,7 @@ impl Trace for ExecutionTrace {
             .collect::<Vec<_>>();
 
         // inject random values into the last rows of the trace
-        let mut rng = RandomCoin::new(&self.program_hash.to_bytes());
+        let mut rng = RandomCoin::new(&self.program_hash().to_bytes());
         for i in self.length() - NUM_RAND_ROWS..self.length() {
             for column in aux_columns.iter_mut() {
                 column[i] = rng.draw().expect("failed to draw a random value");

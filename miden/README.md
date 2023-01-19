@@ -21,7 +21,7 @@ Currently, there are 3 ways to get values onto the stack:
 
 The stack is provided to Miden VM via `StackInputs` struct. These are public inputs of the execution, and should also be provided to the verifier. The secret inputs of the program are provided via `AdviceProvider` instances. There is one in-memory advice provider that can be commonly used for operations that won't require persistence: `MemAdviceProvider`.
 
-Values remaining on the stack after a program is executed can be returned as program outputs. You can specify exactly how many values (from the top of the stack) should be returned. Currently, the maximum number of outputs is limited to 16.
+Values remaining on the stack after a program is executed can be returned as stack outputs. You can specify exactly how many values (from the top of the stack) should be returned. Currently, the maximum number of outputs is limited to 16.
 
 Having only 16 elements to describe public inputs and outputs of a program may seem limiting, however, just 4 elements are sufficient to represent a root of a Merkle tree or a sequential hash of elements. Both of these can be expanded into an arbitrary number of values by supplying the actual values non-deterministically via the advice provider.
 
@@ -95,7 +95,7 @@ let program = assembler.compile("begin push.3 push.5 add end").unwrap();
 let (outputs, proof) = prove(
     &program,
     StackInputs::default(),       // we won't provide any inputs
-    MemAdviceProvider::default(), //
+    MemAdviceProvider::default(), // we won't provide advice inputs
     &ProofOptions::default(),     // we'll be using default options
 )
 .unwrap();
@@ -187,7 +187,7 @@ let (outputs, proof) = miden::prove(
 )
 .unwrap();
 
-// fetch the stack, truncating to the first element
+// fetch the stack outputs, truncating to the first element
 let stack = outputs.stack_truncated(1);
 
 // the output should be the 50th Fibonacci number

@@ -135,10 +135,7 @@ impl Prover for ExecutionProver {
             "provided outputs do not match the execution trace"
         );
 
-        PublicInputs::new(
-            trace.program_hash(),
-            self.stack_inputs.clone(),
-            self.stack_outputs.clone(),
-        )
+        let program_info = trace.program_info().clone();
+        PublicInputs::new(program_info, self.stack_inputs.clone(), self.stack_outputs.clone())
     }
 }

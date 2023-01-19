@@ -1,4 +1,4 @@
-use miden::{AdviceProvider, Program, ProofOptions, StackInputs, StarkProof};
+use miden::{AdviceProvider, Program, ProgramInfo, ProofOptions, StackInputs, StarkProof};
 use std::io::Write;
 use std::time::Instant;
 use structopt::StructOpt;
@@ -90,7 +90,7 @@ impl ExampleOptions {
             //hex::encode(program.hash()), // TODO: include into message
             now.elapsed().as_millis()
         );
-        println!("Program output: {:?}", stack_outputs.stack_truncated(num_outputs));
+        println!("Stack outputs: {:?}", stack_outputs.stack_truncated(num_outputs));
         assert_eq!(
             expected_result,
             stack_outputs.stack_truncated(num_outputs),
@@ -107,7 +107,9 @@ impl ExampleOptions {
         // results in the expected output
         let proof = StarkProof::from_bytes(&proof_bytes).unwrap();
         let now = Instant::now();
-        match miden::verify(program.hash(), stack_inputs, stack_outputs, proof) {
+        let program_info = ProgramInfo::from(program);
+
+        match miden::verify(program_info, stack_inputs, stack_outputs, proof) {
             Ok(_) => println!("Execution verified in {} ms", now.elapsed().as_millis()),
             Err(err) => println!("Failed to verify execution: {}", err),
         }

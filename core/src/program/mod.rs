@@ -7,9 +7,13 @@ use super::{
     Felt, FieldElement, Operation,
 };
 use core::fmt;
+use winter_utils::{ByteWriter, Serializable};
 
 pub mod blocks;
 use blocks::CodeBlock;
+
+mod info;
+pub use info::ProgramInfo;
 
 // PROGRAM
 // ================================================================================================
@@ -145,5 +149,18 @@ impl Kernel {
     /// Returns a list of procedure hashes contained in this kernel.
     pub fn proc_hashes(&self) -> &[Digest] {
         &self.0
+    }
+}
+
+// this is required by AIR as public inputs will be serialized with the proof
+impl Serializable for Kernel {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        // TODO the serialization of MAST will not support values greater than `u16::MAX`, so we
+        // reflect the same restriction here. however, this should be tweaked in the future. This
+        // value will likely be capped to `u8::MAX`.
+
+        debug_assert!(self.0.len() <= u16::MAX as usize);
+        target.write_u16(self.0.len() as u16);
+        Digest::write_batch_into(&self.0, target)
     }
 }

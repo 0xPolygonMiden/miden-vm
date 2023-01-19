@@ -1,4 +1,4 @@
-use super::{vec, Felt, InputError, Vec};
+use super::{vec, ByteWriter, Felt, InputError, Serializable, Vec};
 use core::slice;
 
 // STACK INPUTS
@@ -63,5 +63,17 @@ impl IntoIterator for StackInputs {
 
     fn into_iter(self) -> Self::IntoIter {
         self.values.into_iter()
+    }
+}
+
+impl Serializable for StackInputs {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        // TODO the length of the stack, by design, will not be greater than `u32::MAX`. however,
+        // we must define a common serialization format as we might diverge from the implementation
+        // here and the one provided by default from winterfell.
+
+        debug_assert!(self.values.len() <= u32::MAX as usize);
+        target.write_u32(self.values.len() as u32);
+        self.values.iter().copied().for_each(|v| target.write(v));
     }
 }
