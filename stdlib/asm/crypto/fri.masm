@@ -122,6 +122,29 @@ proc.accumulate_into_numerator_odd_index
     movdn.3
 end
 
+#! Given remainder codeword with 64 evaluations ( as starting memory address on stack ), this routine attempts to
+#! probabilistically verify remainder following the technique described in https://github.com/0xPolygonMiden/miden-vm/issues/592
+#!
+#! Expected stack state
+#!
+#! [mem_ptr, ...]
+#!
+#! A few assumptions about mem_ptr
+#!
+#! - mem_ptr should be absolute memory address of the beginning of remainder codeword
+#! - Each evaluation is 2 field elements wide because they belong to quadratic extension field over F_p | p = 2^64 - 2^32 + 1
+#! - Meaning each memory address will hold two consecutive evaluations
+#! - Words ( four field elements ), in memory, are laid out in this order (a1_0, a1_0, a0_1, a0_0)
+#! - That means (a0_1, a0_0) -> first evaluation and (a1_1, a1_0) -> next evaluation
+#! - Next 31 memory addresses should be holding remaining 62 evaluations
+#! - If mem_ptr holds (a1_0, a1_0, a0_1, a0_0), then mem_ptr + 1, must hold (a3_0, a3_0, a2_1, a2_0)
+#! - That way, mem_ptr + 31 should be holding (a63_0, a63_0, a62_1, a62_0)
+#!
+#! Final stack looks like
+#!
+#! [...]
+#!
+#! If remainder verification fails, execution of the program stops.
 export.verify_remainder_64.4
     push.64
     push.8
@@ -780,14 +803,9 @@ export.verify_remainder_64.4
 
     # Compute α
 
-    push.0.0 # accumulator for α
-
     # for i = 7
     push.0.0.0.0
     loc_loadw.3
-    movup.5
-    movup.5
-    ext2add
 
     # for i = 6
     dup.7
