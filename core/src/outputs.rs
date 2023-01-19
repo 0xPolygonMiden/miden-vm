@@ -11,7 +11,7 @@ use winter_utils::{collections::Vec, ByteWriter, Serializable};
 /// addresses in the overflow table which are required to reconstruct the table (when combined with
 /// the overflow values from the stack state).
 ///
-/// `stack` is expected to be ordered as if they elements were popped off the stack one by one.
+/// `stack` is expected to be ordered as if the elements were popped off the stack one by one.
 /// Thus, the value at the top of the stack is expected to be in the first position, and the order
 /// of the rest of the output elements will also match the order on the stack.
 ///
