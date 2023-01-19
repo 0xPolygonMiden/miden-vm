@@ -70,11 +70,12 @@ export.verify_remainder_64.4
     push.1
     exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -98,11 +99,12 @@ export.verify_remainder_64.4
     push.549755813888
     exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -117,11 +119,12 @@ export.verify_remainder_64.4
 	push.70368744161280
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -146,11 +149,12 @@ export.verify_remainder_64.4
     push.18446744069412487169
     exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -165,11 +169,12 @@ export.verify_remainder_64.4
     push.17293822564807737345
     exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -194,11 +199,12 @@ export.verify_remainder_64.4
 	push.8
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -213,11 +219,12 @@ export.verify_remainder_64.4
 	push.4398046511104
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -242,11 +249,12 @@ export.verify_remainder_64.4
 	push.562949953290240
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -261,11 +269,12 @@ export.verify_remainder_64.4
 	push.18446744069397807105
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -290,11 +299,12 @@ export.verify_remainder_64.4
 	push.9223372032559808513
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -309,11 +319,12 @@ export.verify_remainder_64.4
 	push.64
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -338,11 +349,12 @@ export.verify_remainder_64.4
 	push.35184372088832
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -357,11 +369,12 @@ export.verify_remainder_64.4
 	push.4503599626321920
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -386,11 +399,12 @@ export.verify_remainder_64.4
 	push.18446744069280366593
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -405,11 +419,12 @@ export.verify_remainder_64.4
 	push.18446744052234715141
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -434,11 +449,12 @@ export.verify_remainder_64.4
 	push.512
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -453,11 +469,12 @@ export.verify_remainder_64.4
 	push.281474976710656
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -482,11 +499,12 @@ export.verify_remainder_64.4
 	push.36028797010575360
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -501,11 +519,12 @@ export.verify_remainder_64.4
 	push.18446744068340842497
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -530,11 +549,12 @@ export.verify_remainder_64.4
 	push.18446743931975630881
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -549,11 +569,12 @@ export.verify_remainder_64.4
 	push.4096
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -578,11 +599,12 @@ export.verify_remainder_64.4
 	push.2251799813685248
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -597,11 +619,12 @@ export.verify_remainder_64.4
 	push.288230376084602880
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -626,11 +649,12 @@ export.verify_remainder_64.4
 	push.18446744060824649729
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -645,11 +669,12 @@ export.verify_remainder_64.4
 	push.18446742969902956801
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -674,11 +699,12 @@ export.verify_remainder_64.4
 	push.32768
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -693,11 +719,12 @@ export.verify_remainder_64.4
 	push.18014398509481984
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -722,11 +749,12 @@ export.verify_remainder_64.4
 	push.2305843008676823040
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -741,11 +769,12 @@ export.verify_remainder_64.4
 	push.18446744000695107585
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -770,11 +799,12 @@ export.verify_remainder_64.4
 	push.18446735273321564161
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -789,11 +819,12 @@ export.verify_remainder_64.4
 	push.262144
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -818,11 +849,12 @@ export.verify_remainder_64.4
 	push.144115188075855872
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -837,11 +869,12 @@ export.verify_remainder_64.4
 	push.18446744069414584320
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -866,11 +899,12 @@ export.verify_remainder_64.4
 	push.18446743519658770433
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -885,11 +919,12 @@ export.verify_remainder_64.4
 	push.18446673700670423041
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -914,11 +949,12 @@ export.verify_remainder_64.4
 	push.2097152
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -933,11 +969,12 @@ export.verify_remainder_64.4
 	push.1152921504606846976
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -962,11 +999,12 @@ export.verify_remainder_64.4
 	push.18446744069414584313
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -981,11 +1019,12 @@ export.verify_remainder_64.4
 	push.18446739671368073217
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -1010,11 +1049,12 @@ export.verify_remainder_64.4
 	push.18446181119461294081
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -1029,11 +1069,12 @@ export.verify_remainder_64.4
 	push.16777216
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -1058,11 +1099,12 @@ export.verify_remainder_64.4
 	push.9223372036854775808
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -1077,11 +1119,12 @@ export.verify_remainder_64.4
 	push.18446744069414584257
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -1106,11 +1149,12 @@ export.verify_remainder_64.4
 	push.18446708885042495489
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -1125,11 +1169,12 @@ export.verify_remainder_64.4
 	push.18442240469788262401
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -1154,11 +1199,12 @@ export.verify_remainder_64.4
 	push.134217728
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -1173,11 +1219,12 @@ export.verify_remainder_64.4
 	push.17179869180
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -1202,11 +1249,12 @@ export.verify_remainder_64.4
 	push.18446744069414583809
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -1221,11 +1269,12 @@ export.verify_remainder_64.4
 	push.18446462594437873665
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -1250,11 +1299,12 @@ export.verify_remainder_64.4
 	push.18410715272404008961
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -1269,11 +1319,12 @@ export.verify_remainder_64.4
 	push.1073741824
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -1298,11 +1349,12 @@ export.verify_remainder_64.4
 	push.137438953440
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -1317,11 +1369,12 @@ export.verify_remainder_64.4
 	push.18446744069414580225
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -1346,11 +1399,12 @@ export.verify_remainder_64.4
 	push.18444492269600899073
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -1365,11 +1419,12 @@ export.verify_remainder_64.4
 	push.18158513693329981441
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -1394,11 +1449,12 @@ export.verify_remainder_64.4
 	push.8589934592
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -1413,11 +1469,12 @@ export.verify_remainder_64.4
 	push.1099511627520
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -1442,11 +1499,12 @@ export.verify_remainder_64.4
 	push.18446744069414551553
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -1461,11 +1519,12 @@ export.verify_remainder_64.4
 	push.18428729670905102337
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -1490,11 +1549,12 @@ export.verify_remainder_64.4
 	push.16140901060737761281
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -1509,11 +1569,12 @@ export.verify_remainder_64.4
 	push.68719476736
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -1538,11 +1599,12 @@ export.verify_remainder_64.4
 	push.8796093020160
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
@@ -1557,11 +1619,12 @@ export.verify_remainder_64.4
 	push.18446744069414322177
 	exec.compute_common_factor_of_beta
 
-    movup.3
-    movup.3
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.4
+    add
+    dup.1
+    movup.4
+    add
     movdn.3
     movdn.3
 
@@ -1586,11 +1649,12 @@ export.verify_remainder_64.4
 	push.18302628881338728449
 	exec.compute_common_factor_of_beta
 
-    movup.5
-    movup.5
-    dup.3
-    dup.3
-    ext2add
+    dup.1
+    movup.6
+    add
+    dup.1
+    movup.6
+    add
     movdn.5
     movdn.5
 
