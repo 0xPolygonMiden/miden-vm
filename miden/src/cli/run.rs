@@ -1,5 +1,4 @@
 use super::data::{InputFile, OutputFile, ProgramFile};
-use miden::MemAdviceProvider;
 use std::{path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
@@ -33,9 +32,8 @@ impl RunCmd {
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
         // fetch the stack and program inputs from the arguments
-        let stack_inputs = input_data.get_stack_inputs()?;
-        let program_inputs = input_data.get_program_inputs()?;
-        let advice_provider = MemAdviceProvider::from(program_inputs);
+        let stack_inputs = input_data.parse_stack_inputs()?;
+        let advice_provider = input_data.parse_advice_provider()?;
 
         let program_hash: [u8; 32] = program.hash().into();
         print!("Executing program with hash {}... ", hex::encode(program_hash));
@@ -49,10 +47,10 @@ impl RunCmd {
 
         if let Some(output_path) = &self.output_file {
             // write outputs to file if one was specified
-            OutputFile::write(trace.program_outputs(), output_path)?;
+            OutputFile::write(trace.stack_outputs(), output_path)?;
         } else {
             // write the stack outputs to the screen.
-            println!("Output: {:?}", trace.program_outputs().stack_outputs(self.num_outputs));
+            println!("Output: {:?}", trace.stack_outputs().stack_truncated(self.num_outputs));
         }
 
         Ok(())

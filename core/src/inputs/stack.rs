@@ -23,11 +23,6 @@ impl StackInputs {
         Self { values }
     }
 
-    /// Returns `[StackInputs]` without values.
-    pub const fn empty() -> Self {
-        Self { values: vec![] }
-    }
-
     /// Attempts to create stack inputs from an iterator of numbers, failing if they do not
     /// represent a valid field element.
     pub fn try_from_values<I>(iter: I) -> Result<Self, InputError>

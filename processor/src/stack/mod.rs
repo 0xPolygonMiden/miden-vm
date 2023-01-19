@@ -1,5 +1,5 @@
 use super::{
-    BTreeMap, Felt, FieldElement, ProgramOutputs, StackInputs, Vec, ONE, STACK_TRACE_WIDTH, ZERO,
+    BTreeMap, Felt, FieldElement, StackInputs, StackOutputs, Vec, ONE, STACK_TRACE_WIDTH, ZERO,
 };
 use core::cmp;
 use vm_core::stack::STACK_TOP_SIZE;
@@ -134,13 +134,13 @@ impl Stack {
         result
     }
 
-    /// Returns [ProgramOutputs] consisting of all values on the stack and all addresses in the
+    /// Returns [StackOutputs] consisting of all values on the stack and all addresses in the
     /// overflow table that are required to rebuild the rows in the overflow table.
-    pub fn get_outputs(&self) -> ProgramOutputs {
+    pub fn build_stack_outputs(&self) -> StackOutputs {
         let mut stack_items = Vec::with_capacity(self.active_depth);
         self.trace.append_state_into(&mut stack_items, self.clk);
         self.overflow.append_into(&mut stack_items);
-        ProgramOutputs::from_elements(stack_items, self.overflow.get_addrs())
+        StackOutputs::from_elements(stack_items, self.overflow.get_addrs())
     }
 
     // TRACE ACCESSORS AND MUTATORS

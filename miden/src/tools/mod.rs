@@ -1,8 +1,6 @@
 use super::{cli::InputFile, ProgramError};
 use core::fmt;
-use miden::{
-    utils::collections::Vec, AdviceProvider, Assembler, MemAdviceProvider, Operation, StackInputs,
-};
+use miden::{utils::collections::Vec, AdviceProvider, Assembler, Operation, StackInputs};
 use processor::AsmOpInfo;
 use std::{fs, path::PathBuf};
 use stdlib::StdLibrary;
@@ -33,9 +31,8 @@ impl Analyze {
         let input_data = InputFile::read(&self.input_file, &self.assembly_file)?;
 
         // fetch the stack and program inputs from the arguments
-        let stack_inputs = input_data.get_stack_inputs()?;
-        let program_inputs = input_data.get_program_inputs()?;
-        let advice_provider = MemAdviceProvider::from(program_inputs);
+        let stack_inputs = input_data.parse_stack_inputs()?;
+        let advice_provider = input_data.parse_advice_provider()?;
 
         let program_info: ProgramInfo = analyze(program.as_str(), stack_inputs, advice_provider)
             .expect("Could not retrieve program info");
@@ -236,14 +233,15 @@ impl AsmOpStats {
 
 #[cfg(test)]
 mod tests {
-    use super::{AsmOpStats, MemAdviceProvider, ProgramInfo, StackInputs};
+    use super::{AsmOpStats, ProgramInfo, StackInputs};
+    use miden::MemAdviceProvider;
 
     #[test]
     fn analyze_test() {
         let source =
             "proc.foo.1 loc_store.0 end begin mem_storew.1 dropw push.17 push.1 movdn.2 exec.foo end";
-        let stack_inputs = StackInputs::empty();
-        let advice_provider = MemAdviceProvider::empty();
+        let stack_inputs = StackInputs::default();
+        let advice_provider = MemAdviceProvider::default();
         let program_info = super::analyze(source, stack_inputs, advice_provider)
             .expect("analyze_test: Unexpected Error");
         let expected_program_info = ProgramInfo {
@@ -265,7 +263,7 @@ mod tests {
         let source = "begin div end";
         let stack_inputs = vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
-        let advice_provider = MemAdviceProvider::empty();
+        let advice_provider = MemAdviceProvider::default();
         let program_info = super::analyze(source, stack_inputs, advice_provider);
         let expected_error = "Execution Error: DivideByZero(1)";
         assert_eq!(program_info.err().unwrap().to_string(), expected_error);
@@ -274,8 +272,8 @@ mod tests {
     #[test]
     fn analyze_test_assembly_error() {
         let source = "proc.foo.1 loc_store.0 end mem_storew.1 dropw push.17 exec.foo end";
-        let stack_inputs = StackInputs::empty();
-        let advice_provider = MemAdviceProvider::empty();
+        let stack_inputs = StackInputs::default();
+        let advice_provider = MemAdviceProvider::default();
         let program_info = super::analyze(source, stack_inputs, advice_provider);
         let expected_error = "Assembly Error: ParsingError(\"unexpected token: expected 'begin' but was 'mem_storew.1'\")";
         assert_eq!(program_info.err().unwrap().to_string(), expected_error);

@@ -106,7 +106,7 @@ macro_rules! build_test_by_mode {
     ($in_debug_mode:expr, $source:expr, $stack_inputs:expr) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
         let stack_inputs = $crate::helpers::StackInputs::try_from_values(stack_inputs).unwrap();
-        let advice_inputs = $crate::helpers::ProgramInputs::new(&[], vec![]).unwrap();
+        let advice_inputs = $crate::helpers::AdviceInputs::default();
 
         $crate::helpers::Test {
             source: String::from($source),
@@ -121,8 +121,12 @@ macro_rules! build_test_by_mode {
     ) => {{
         let stack_inputs: Vec<u64> = $stack_inputs.to_vec();
         let stack_inputs = $crate::helpers::StackInputs::try_from_values(stack_inputs).unwrap();
-        let advice_inputs =
-            $crate::helpers::ProgramInputs::new($advice_tape, $advice_sets).unwrap();
+        let tape_values: Vec<u64> = $advice_tape.to_vec();
+        let advice_inputs = $crate::helpers::AdviceInputs::default()
+            .with_tape_values(tape_values)
+            .unwrap()
+            .with_merkle_sets($advice_sets)
+            .unwrap();
 
         $crate::helpers::Test {
             source: String::from($source),

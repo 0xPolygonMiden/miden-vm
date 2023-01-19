@@ -1,7 +1,7 @@
 use super::{
     build_span_with_respan_ops, build_trace_from_block, build_trace_from_ops_with_inputs,
-    rand_array, ExecutionTrace, Felt, FieldElement, Operation, Trace, AUX_TRACE_RAND_ELEMENTS,
-    CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
+    rand_array, AdviceInputs, ExecutionTrace, Felt, FieldElement, Operation, Trace,
+    AUX_TRACE_RAND_ELEMENTS, CHIPLETS_AUX_TRACE_OFFSET, NUM_RAND_ROWS, ONE, ZERO,
 };
 use crate::StackInputs;
 use core::ops::Range;
@@ -18,7 +18,7 @@ use vm_core::{
     },
     code_blocks::CodeBlock,
     utils::range,
-    AdviceSet, ProgramInputs, StarkField, Word, DECODER_TRACE_OFFSET,
+    AdviceSet, StarkField, Word, DECODER_TRACE_OFFSET,
 };
 
 // CONSTANTS
@@ -412,10 +412,11 @@ fn b_chip_mpverify() {
         leaves[index][2].as_int(),
         leaves[index][3].as_int(),
     ];
-    let stack = StackInputs::try_from_values(stack_inputs).unwrap();
-    let inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
+    let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+    let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
 
-    let mut trace = build_trace_from_ops_with_inputs(vec![Operation::MpVerify], stack, inputs);
+    let mut trace =
+        build_trace_from_ops_with_inputs(vec![Operation::MpVerify], stack_inputs, advice_inputs);
     let alphas = rand_array::<Felt, AUX_TRACE_RAND_ELEMENTS>();
     let aux_columns = trace.build_aux_segment(&[], &alphas).unwrap();
     let b_chip = aux_columns.get_column(CHIPLETS_AUX_TRACE_OFFSET);

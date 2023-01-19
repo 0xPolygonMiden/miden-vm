@@ -178,11 +178,11 @@ mod tests {
         super::{Felt, FieldElement, Operation, StarkField},
         Process,
     };
-    use crate::{StackInputs, Word};
+    use crate::{AdviceInputs, StackInputs, Word};
     use rand_utils::rand_vector;
     use vm_core::{
         chiplets::hasher::{apply_permutation, STATE_WIDTH},
-        AdviceSet, ProgramInputs,
+        AdviceSet,
     };
 
     #[test]
@@ -239,9 +239,10 @@ mod tests {
             leaves[index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
-        let stack = StackInputs::try_from_values(stack_inputs).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(stack, inputs);
+        let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let mut process =
+            Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         process.execute_op(Operation::MpVerify).unwrap();
         let expected_stack = build_expected(&[
@@ -288,9 +289,10 @@ mod tests {
             leaves[node_index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
-        let stack = StackInputs::try_from_values(stack_inputs).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(stack, inputs);
+        let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let mut process =
+            Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         // update the Merkle tree and discard the old copy
         process.execute_op(Operation::MrUpdate(false)).unwrap();
@@ -346,9 +348,10 @@ mod tests {
             leaves[node_index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
-        let stack = StackInputs::try_from_values(stack_inputs).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(stack, inputs);
+        let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let mut process =
+            Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         // update the Merkle tree but keep the old copy
         process.execute_op(Operation::MrUpdate(true)).unwrap();

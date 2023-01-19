@@ -1,15 +1,16 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![doc = include_str!("../README.md")]
 
 // EXPORTS
 // ================================================================================================
 
 pub use assembly::{Assembler, AssemblyError, ParsingError};
 pub use processor::{
-    execute, execute_iter, utils, AdviceProvider, AsmOpInfo, ExecutionError, ExecutionTrace,
-    MemAdviceProvider, Operation, StackInputs, VmState, VmStateIterator,
+    execute, execute_iter, utils, AdviceInputs, AdviceProvider, AsmOpInfo, ExecutionError,
+    ExecutionTrace, MemAdviceProvider, Operation, StackInputs, VmState, VmStateIterator,
 };
 pub use prover::{
     math, prove, AdviceSet, AdviceSetError, Digest, FieldExtension, HashFunction, InputError,
-    Program, ProgramInputs, ProgramOutputs, ProofOptions, StarkProof, Word,
+    Program, ProofOptions, StackOutputs, StarkProof, Word,
 };
 pub use verifier::{verify, VerificationError};

@@ -7,8 +7,8 @@ While [Miden](../miden) crate also contains verifier functionality, if a project
 This crate exposes a `verify()` function which can be used to verify proofs of program execution. The function takes the following parameters:
 
 * `program_hash: Digest` - a hash of the program to be verified (represented as a 32-byte digest).
-* `stack_inputs: &[u64]` - a list of the values with which the stack was initialized prior to the program's execution..
-* `stack_outputs: &[u64]` - a list of the values returned from the stack after the program completed execution.
+* `stack_inputs: StackInputs` - a list of the values with which the stack was initialized prior to the program's execution.
+* `stack_outputs: StackOutputs` - a list of the values returned from the stack after the program completed execution.
 * `proof: StarkProof` - the proof generated during program execution.
 
 Stack inputs are expected to be ordered as if they would be pushed onto the stack one by one. Thus, their expected order on the stack will be the reverse of the order in which they are provided, and the last value in the `stack_inputs` slice is expected to be the value at the top of the stack.

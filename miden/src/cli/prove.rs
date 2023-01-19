@@ -1,5 +1,5 @@
 use super::data::{InputFile, OutputFile, ProgramFile, ProofFile};
-use miden::{MemAdviceProvider, ProofOptions};
+use miden::ProofOptions;
 use std::{io::Write, path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
@@ -57,12 +57,11 @@ impl ProveCmd {
         let now = Instant::now();
 
         // fetch the stack and program inputs from the arguments
-        let stack_inputs = input_data.get_stack_inputs()?;
-        let program_inputs = input_data.get_program_inputs()?;
-        let advice_provider = MemAdviceProvider::from(program_inputs);
+        let stack_inputs = input_data.parse_stack_inputs()?;
+        let advice_provider = input_data.parse_advice_provider()?;
 
         // execute program and generate proof
-        let (outputs, proof) =
+        let (stack_outputs, proof) =
             prover::prove(&program, stack_inputs, advice_provider, &self.get_proof_security())
                 .map_err(|err| format!("Failed to prove program - {:?}", err))?;
 
@@ -78,16 +77,16 @@ impl ProveCmd {
         // provide outputs
         if let Some(output_path) = &self.output_file {
             // write all outputs to specified file.
-            OutputFile::write(outputs, output_path)?;
+            OutputFile::write(&stack_outputs, output_path)?;
         } else {
             // if no output path was provided, get the stack outputs for printing to the screen.
-            let stack_outputs = outputs.stack_outputs(self.num_outputs).to_vec();
+            let stack = stack_outputs.stack_truncated(self.num_outputs).to_vec();
 
             // write all outputs to default location if none was provided
-            OutputFile::write(outputs, &self.assembly_file.with_extension("outputs"))?;
+            OutputFile::write(&stack_outputs, &self.assembly_file.with_extension("outputs"))?;
 
             // print stack outputs to screen.
-            println!("Output: {:?}", stack_outputs);
+            println!("Output: {:?}", stack);
         }
 
         Ok(())

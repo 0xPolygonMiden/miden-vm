@@ -7,7 +7,7 @@ extern crate alloc;
 pub use vm_core::{
     chiplets::hasher::Digest,
     errors::{AdviceSetError, InputError},
-    AdviceSet, Operation, Program, ProgramInputs, ProgramOutputs, StackInputs, Word,
+    AdviceSet, Operation, Program, StackInputs, StackOutputs, Word,
 };
 use vm_core::{
     code_blocks::{
@@ -38,7 +38,7 @@ mod range;
 use range::RangeChecker;
 
 mod advice;
-pub use advice::{AdviceProvider, MemAdviceProvider};
+pub use advice::{AdviceInputs, AdviceProvider, MemAdviceProvider};
 
 mod chiplets;
 use chiplets::Chiplets;
@@ -102,8 +102,8 @@ where
     A: AdviceProvider,
 {
     let mut process = Process::new(program.kernel(), stack_inputs, advice_provider);
-    let program_outputs = process.execute(program)?;
-    let trace = ExecutionTrace::new(process, program_outputs);
+    let stack_outputs = process.execute(program)?;
+    let trace = ExecutionTrace::new(process, stack_outputs);
     assert_eq!(program.hash(), trace.program_hash(), "inconsistent program hash");
     Ok(trace)
 }
@@ -181,11 +181,11 @@ where
     // --------------------------------------------------------------------------------------------
 
     /// Executes the provided [Program] in this process.
-    pub fn execute(&mut self, program: &Program) -> Result<ProgramOutputs, ExecutionError> {
+    pub fn execute(&mut self, program: &Program) -> Result<StackOutputs, ExecutionError> {
         assert_eq!(self.system.clk(), 0, "a program has already been executed in this process");
         self.execute_code_block(program.root(), program.cb_table())?;
 
-        Ok(self.stack.get_outputs())
+        Ok(self.stack.build_stack_outputs())
     }
 
     // CODE BLOCK EXECUTORS
