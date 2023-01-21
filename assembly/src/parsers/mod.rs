@@ -1,6 +1,6 @@
 use super::{
-    errors::SerializationError, AbsolutePath, BTreeMap, ByteReader, ByteWriter, Deserializable,
-    Felt, ParsingError, ProcedureId, ProcedureName, Serializable, String, ToString, Token,
+    AbsolutePath, BTreeMap, ByteReader, ByteWriter, Deserializable, Felt, ParsingError,
+    ProcedureId, ProcedureName, Serializable, SerializationError, String, ToString, Token,
     TokenStream, Vec,
 };
 use core::{fmt::Display, ops::RangeBounds};

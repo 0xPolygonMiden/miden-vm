@@ -89,7 +89,7 @@ impl Chiplets {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Chiplets] component instantiated with the provided Kernel.
-    pub fn new(kernel: &Kernel) -> Self {
+    pub fn new(kernel: Kernel) -> Self {
         Self {
             clk: 0,
             hasher: Hasher::default(),
@@ -132,6 +132,11 @@ impl Chiplets {
     /// Returns the index of the first row of the padding section of the execution trace.
     pub fn padding_start(&self) -> usize {
         self.kernel_rom_start() + self.kernel_rom.trace_len()
+    }
+
+    /// Returns the underlying kernel used to initilize this instance.
+    pub const fn kernel(&self) -> &Kernel {
+        self.kernel_rom.kernel()
     }
 
     // HASH CHIPLET ACCESSORS FOR OPERATIONS

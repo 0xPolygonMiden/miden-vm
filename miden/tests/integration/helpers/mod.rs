@@ -1,4 +1,4 @@
-pub use miden::{MemAdviceProvider, ProofOptions, StarkProof};
+pub use miden::{MemAdviceProvider, ProgramInfo, ProofOptions, StarkProof};
 pub use processor::{AdviceInputs, StackInputs};
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
@@ -109,7 +109,7 @@ impl Test {
 
         // execute the test
         let mut process =
-            Process::new(program.kernel(), self.stack_inputs.clone(), advice_provider);
+            Process::new(program.kernel().clone(), self.stack_inputs.clone(), advice_provider);
         process.execute(&program).unwrap();
 
         // validate the memory state
@@ -177,11 +177,12 @@ impl Test {
         )
         .unwrap();
 
+        let program_info = ProgramInfo::from(program);
         if test_fail {
             stack_outputs.stack_mut()[0] += 1;
-            assert!(miden::verify(program.hash(), stack_inputs, stack_outputs, proof).is_err());
+            assert!(miden::verify(program_info, stack_inputs, stack_outputs, proof).is_err());
         } else {
-            let result = miden::verify(program.hash(), stack_inputs, stack_outputs, proof);
+            let result = miden::verify(program_info, stack_inputs, stack_outputs, proof);
             assert!(result.is_ok(), "error: {result:?}");
         }
     }

@@ -7,14 +7,14 @@ extern crate alloc;
 pub use vm_core::{
     chiplets::hasher::Digest,
     errors::{AdviceSetError, InputError},
-    AdviceSet, Operation, Program, StackInputs, StackOutputs, Word,
+    AdviceSet, Kernel, Operation, Program, ProgramInfo, StackInputs, StackOutputs, Word,
 };
 use vm_core::{
     code_blocks::{
         Call, CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
     utils::collections::{BTreeMap, Vec},
-    AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, Kernel,
+    AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement,
     StackTopState, StarkField, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, ONE,
     RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
@@ -101,10 +101,10 @@ pub fn execute<A>(
 where
     A: AdviceProvider,
 {
-    let mut process = Process::new(program.kernel(), stack_inputs, advice_provider);
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, advice_provider);
     let stack_outputs = process.execute(program)?;
     let trace = ExecutionTrace::new(process, stack_outputs);
-    assert_eq!(program.hash(), trace.program_hash(), "inconsistent program hash");
+    assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
     Ok(trace)
 }
 
@@ -118,7 +118,7 @@ pub fn execute_iter<A>(
 where
     A: AdviceProvider,
 {
-    let mut process = Process::new_debug(program.kernel(), stack_inputs, advice_provider);
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, advice_provider);
     let result = process.execute(program);
     if result.is_ok() {
         assert_eq!(
@@ -152,17 +152,17 @@ where
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// Creates a new process with the provided inputs.
-    pub fn new(kernel: &Kernel, stack_inputs: StackInputs, advice_provider: A) -> Self {
+    pub fn new(kernel: Kernel, stack_inputs: StackInputs, advice_provider: A) -> Self {
         Self::initialize(kernel, stack_inputs, advice_provider, false)
     }
 
     /// Creates a new process with provided inputs and debug options enabled.
-    pub fn new_debug(kernel: &Kernel, stack_inputs: StackInputs, advice_provider: A) -> Self {
+    pub fn new_debug(kernel: Kernel, stack_inputs: StackInputs, advice_provider: A) -> Self {
         Self::initialize(kernel, stack_inputs, advice_provider, true)
     }
 
     fn initialize(
-        kernel: &Kernel,
+        kernel: Kernel,
         stack: StackInputs,
         advice_provider: A,
         in_debug_mode: bool,
@@ -420,6 +420,10 @@ where
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
+
+    pub const fn kernel(&self) -> &Kernel {
+        self.chiplets.kernel()
+    }
 
     pub fn get_memory_value(&self, ctx: u32, addr: u64) -> Option<Word> {
         self.chiplets.get_mem_value(ctx, addr)

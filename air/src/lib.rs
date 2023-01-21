@@ -5,10 +5,9 @@
 extern crate alloc;
 
 use vm_core::{
-    chiplets::hasher::Digest,
     utils::{collections::Vec, ByteWriter, Serializable},
-    ExtensionOf, StackInputs, StackOutputs, CLK_COL_IDX, FMP_COL_IDX, ONE, STACK_TRACE_OFFSET,
-    ZERO,
+    ExtensionOf, ProgramInfo, StackInputs, StackOutputs, CLK_COL_IDX, FMP_COL_IDX, ONE,
+    STACK_TRACE_OFFSET, ZERO,
 };
 use winter_air::{
     Air, AirContext, Assertion, AuxTraceRandElements, EvaluationFrame,
@@ -246,19 +245,19 @@ impl Air for ProcessorAir {
 
 #[derive(Debug)]
 pub struct PublicInputs {
-    program_hash: Digest,
+    program_info: ProgramInfo,
     stack_inputs: StackInputs,
     stack_outputs: StackOutputs,
 }
 
 impl PublicInputs {
     pub fn new(
-        program_hash: Digest,
+        program_info: ProgramInfo,
         stack_inputs: StackInputs,
         stack_outputs: StackOutputs,
     ) -> Self {
         Self {
-            program_hash,
+            program_info,
             stack_inputs,
             stack_outputs,
         }
@@ -267,19 +266,8 @@ impl PublicInputs {
 
 impl Serializable for PublicInputs {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        target.write(self.program_hash.as_elements());
-        target.write(self.stack_inputs.values());
-
-        // write program outputs.
-        let stack = self.stack_outputs.stack().iter().map(|v| Felt::new(*v)).collect::<Vec<_>>();
-        target.write(stack);
-
-        let overflow_addrs = self
-            .stack_outputs
-            .overflow_addrs()
-            .iter()
-            .map(|v| Felt::new(*v))
-            .collect::<Vec<_>>();
-        target.write(overflow_addrs);
+        self.program_info.write_into(target);
+        self.stack_inputs.write_into(target);
+        self.stack_outputs.write_into(target);
     }
 }

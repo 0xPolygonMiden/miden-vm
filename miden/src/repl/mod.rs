@@ -270,7 +270,7 @@ fn execute(program: String) -> Result<(Vec<(u64, Word)>, Vec<Felt>), ProgramErro
     let stack_inputs = StackInputs::default();
     let advice_provider = MemAdviceProvider::default();
 
-    let mut process = Process::new_debug(program.kernel(), stack_inputs, advice_provider);
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, advice_provider);
     let _program_outputs = process.execute(&program).map_err(ProgramError::ExecutionError);
 
     let (sys, _, stack, _, chiplets, _) = process.into_parts();
