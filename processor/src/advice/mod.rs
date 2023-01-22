@@ -13,6 +13,9 @@ pub use inputs::AdviceInputs;
 mod mem_provider;
 pub use mem_provider::MemAdviceProvider;
 
+mod source;
+pub use source::AdviceSource;
+
 // ADVICE PROVIDER
 // ================================================================================================
 
@@ -88,21 +91,8 @@ pub trait AdviceProvider {
     /// Returns an error if the advice tape does not contain two words.
     fn read_tape_dw(&mut self) -> Result<[Word; 2], ExecutionError>;
 
-    /// Writes the provided value at the head of the advice tape.
-    fn write_tape(&mut self, value: Felt);
-
-    /// Fetch a keyed tape from the values map, reversing and appending it to the advice tape.
-    ///
-    /// Note: this operation shouldn't consume the map element so it can be called multiple times
-    /// for the same key.
-    ///
-    /// # Example
-    /// Given an advice map `[a,b,c]`, and a map `x |-> [d,e,f]`, a call `write_tape_from_map(x)`
-    /// will result in `[a,b,c,f,e,d]` for the advice tape, and will preserve `x |-> [d,e,f]`.
-    ///
-    /// # Errors
-    /// Returns an error if the key was not found in a key-value map.
-    fn write_tape_from_map(&mut self, key: Word) -> Result<(), ExecutionError>;
+    /// Writes values specified by the source to the head of the advice tape.
+    fn write_tape(&mut self, source: AdviceSource) -> Result<(), ExecutionError>;
 
     /// Maps a key to a value list to be yielded by `write_tape_from_map`.
     ///
@@ -186,12 +176,8 @@ where
         T::read_tape_dw(self)
     }
 
-    fn write_tape(&mut self, value: Felt) {
-        T::write_tape(self, value)
-    }
-
-    fn write_tape_from_map(&mut self, key: Word) -> Result<(), ExecutionError> {
-        T::write_tape_from_map(self, key)
+    fn write_tape(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
+        T::write_tape(self, source)
     }
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
