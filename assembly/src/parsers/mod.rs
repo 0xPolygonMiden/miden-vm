@@ -80,7 +80,7 @@ pub struct ModuleAst {
 }
 
 impl ModuleAst {
-    /// Returns byte representation of the `ModuleAst.
+    /// Returns byte representation of the `ModuleAst`.
     pub fn to_bytes(&self) -> Result<Vec<u8>, SerializationError> {
         let mut byte_writer = ByteWriter::default();
 
