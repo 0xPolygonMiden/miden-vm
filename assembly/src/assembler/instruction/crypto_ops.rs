@@ -94,21 +94,64 @@ pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
 /// - new root of the tree after the update, 4 elements
 /// - new value of the node, 4 elements
 ///
-/// This operation takes 14 VM cycles.
+/// This operation takes 29 VM cycles.
 pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    // Inject the old node value onto the stack for the call to MRUPDATE.
-    // [d, i, R, V_new, ...] => [V_old, d, i, R, V_new, ...]
-    read_mtree_node(span);
-    update_mtree(span, false);
-    #[rustfmt::skip]
-    let ops = [
-        // Move the old root to the top of the stack => [R, R_new, V_new, ...]
-        SwapW,
+    // stack: [d, i, R_old, V_new, ...]
 
-        // Drop old root from the stack => [R_new, V_new ...]
-        Drop, Drop, Drop, Drop,
+    // Inject the old node value onto the stack for the call to MRUPDATE.
+    // stack: [V_old, d, i, R_old, V_new, ...] (4 cycles)
+    read_mtree_node(span);
+
+    // Note: The stack is 14 elements deep already. The existing ops manipulate up to depth 16, so
+    // it's only possible to copy 2-elements at the time.
+    #[rustfmt::skip]
+    let copy_old_element_ops = [
+        // These instructions will push the current copy of V_old down, and create a new word with
+        // the same elements on the top of the stack.
+
+        // Renamed V_old => o<pos>, R_old => r<pos>, V_new => n<pos>
+        // stack: [[o3, o2, o1, o0], [d, i, r3, r2], [r1, r0, n3, n2], n1, n0, ...]
+
+        // Move i then d up
+        // stack: [[d, i, o3, o2], [o1, o0, r3, r2], [r1, r0, n3, n2], n1, n0, ...]
+        MovUp5, MovUp5,
+
+        // Copy half of the word, o0 then o1
+        // stack: [[o1, o0, d, i], [o3, o2, o1, o0], [r3, r2, r1, r0], [n3, n2, n1, n0], ...]
+        Dup5, Dup5,
+
+        // Move the data down
+        // stack: [[o1, o0, d, i], [r3, r2, r1, r0], [n3, n2, n1, n0], [o3, o2, o1, o0], ...]
+        SwapDW, SwapW, SwapW2,
+
+        // Copy the other half of the word, o2 then o3
+        // stack: [[o3, o2, o1, o0], [d, i, r3, r2], [r1, r0, n3, n2,] [n1, n0, o3, o2], o1, o0, ...]
+        Dup13, Dup13
     ];
-    span.add_ops(ops)
+
+    // stack: [V_old, d, i, R_old, V_new, V_old, ...] (9 cycles)
+    span.add_ops(copy_old_element_ops)?;
+
+    // stack: [R_new, R_old, V_new, V_old, ...] (5 cycles)
+    update_mtree(span, false);
+
+    #[rustfmt::skip]
+    let remove_old_root_and_new_value_ops = [
+        // drop old merkle root from the stack
+        // stack: [R_new, V_new, V_old, ...]
+        SwapW, Drop, Drop, Drop, Drop,
+
+        // drop new value from stack
+        // stack: [R_new, V_old, ...]
+        SwapW, Drop, Drop, Drop, Drop,
+
+        // move the V_old to the front
+        // stack: [V_old, R_new, ...]
+        SwapW
+    ];
+
+    // stack: [V_old, R_new, ...] (11 cycles)
+    span.add_ops(remove_old_root_and_new_value_ops)
 }
 
 /// Appends the MRUPDATE op with a parameter of "true" and stack manipulations to the span block as
@@ -171,6 +214,8 @@ fn read_mtree_node(span: &mut SpanBuilder) {
 
 /// Update a node in the merkle tree. The `copy` flag will be passed as argument of the `MrUpdate`
 /// operation.
+///
+/// This operation takes 5 VM cycles.
 fn update_mtree(span: &mut SpanBuilder, copy: bool) {
     #[rustfmt::skip]
     span.push_ops([
