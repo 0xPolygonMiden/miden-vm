@@ -1,6 +1,6 @@
 use super::{
-    Felt, FieldElement, HasherState, LookupTableRow, OpBatch, StarkField, TraceFragment, Vec, Word,
-    ZERO,
+    Felt, FieldElement, HasherState, LookupTableRow, MerkleRootUpdate, OpBatch, StarkField,
+    TraceFragment, Vec, Word, ZERO,
 };
 use vm_core::{
     chiplets::hasher::{
@@ -317,13 +317,8 @@ impl Hasher {
     /// lookups required for verifying its correctness so that they can be provided to the Chiplets
     /// Bus.
     ///
-    /// The computation consists of two Merkle path verification procedures for a node at the
-    /// specified index. The procedures compute Merkle roots for the specified path for the old
-    /// value of the node (value before the update), and the new value of the node (value after
-    /// the update).
-    ///
-    /// The returned tuple contains these roots, as well as the row address of the execution trace
-    /// at which the computation started.
+    /// The computation consists of two Merkle path verifications, one for the old value of the
+    /// node (value before the update), and another for the new value (value after the update).
     ///
     /// # Panics
     /// Panics if:
@@ -336,8 +331,8 @@ impl Hasher {
         path: &[Word],
         index: Felt,
         lookups: &mut Vec<HasherLookup>,
-    ) -> (Felt, Word, Word) {
-        let addr = self.trace.next_row_addr();
+    ) -> MerkleRootUpdate {
+        let address = self.trace.next_row_addr();
         let index = index.as_int();
 
         let old_root = self.verify_merkle_path(
@@ -355,7 +350,11 @@ impl Hasher {
             lookups,
         );
 
-        (addr, old_root, new_root)
+        MerkleRootUpdate {
+            address,
+            old_root,
+            new_root,
+        }
     }
 
     // TRACE GENERATION

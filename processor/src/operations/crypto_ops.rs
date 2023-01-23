@@ -146,21 +146,20 @@ where
         let path = self.advice_provider.update_merkle_leaf(old_root, index, new_node, copy)?;
         assert_eq!(path.len(), depth.as_int() as usize);
 
-        // use hasher to update the Merkle root.
-        let (addr, computed_old_root, new_root) =
-            self.chiplets.update_merkle_root(old_node, new_node, &path, index);
+        let merkle_tree_update = self.chiplets.update_merkle_root(old_node, new_node, &path, index);
 
         // Asserts the computed old root of the merkle path from the advice provider is consistent
         // with the input root provided via the stack. This will panic only if the advice provider
         // returns a Merkle path inconsistent with the specified root.
-        assert_eq!(old_root, computed_old_root, "inconsistent Merkle tree root");
+        assert_eq!(old_root, merkle_tree_update.get_old_root(), "inconsistent Merkle tree root");
 
         // save address(r) of the hasher trace from when the computation starts in the decoder
         // helper registers.
-        self.decoder.set_user_op_helpers(Operation::MrUpdate(copy), &[addr]);
+        self.decoder
+            .set_user_op_helpers(Operation::MrUpdate(copy), &[merkle_tree_update.get_address()]);
 
         // Replace the old node value with computed new root; everything else remains the same.
-        for (i, &value) in new_root.iter().rev().enumerate() {
+        for (i, &value) in merkle_tree_update.get_new_root().iter().rev().enumerate() {
             self.stack.set(i, value);
         }
         self.stack.copy_state(4);

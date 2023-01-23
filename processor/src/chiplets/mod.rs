@@ -32,6 +32,31 @@ pub use bus::{AuxTraceBuilder, ChipletsBus};
 #[cfg(test)]
 mod tests;
 
+// HELPER STRUCTS
+// ================================================================================================
+
+/// Result of a merkle tree node update. The result contains the old merkle_root, which
+/// corresponding to the old_value, and the new merkle_root, for the updated value. As well as the
+/// row address of the execution trace at which the computation started.
+#[derive(Debug, Copy, Clone)]
+pub struct MerkleRootUpdate {
+    address: Felt,
+    old_root: Word,
+    new_root: Word,
+}
+
+impl MerkleRootUpdate {
+    pub fn get_address(&self) -> Felt {
+        self.address
+    }
+    pub fn get_old_root(&self) -> Word {
+        self.old_root
+    }
+    pub fn get_new_root(&self) -> Word {
+        self.new_root
+    }
+}
+
 // CHIPLETS MODULE OF HASHER, BITWISE, MEMORY, AND KERNEL ROM CHIPLETS
 // ================================================================================================
 
@@ -182,10 +207,6 @@ impl Chiplets {
 
     /// Requests a Merkle root update computation from the Hash chiplet.
     ///
-    /// The returned tuple contains computed roots for the old value and the new value of the node
-    /// with the specified path, as well as the row address of the execution trace at which the
-    /// computation started.
-    ///
     /// # Panics
     /// Panics if:
     /// - The provided path does not contain any nodes.
@@ -196,16 +217,17 @@ impl Chiplets {
         new_value: Word,
         path: &[Word],
         index: Felt,
-    ) -> (Felt, Word, Word) {
+    ) -> MerkleRootUpdate {
         let mut lookups = Vec::new();
-        let (addr, old_root, new_root) =
+
+        let merkle_root_update =
             self.hasher.update_merkle_root(old_value, new_value, path, index, &mut lookups);
         self.bus.request_hasher_operation(&lookups, self.clk);
 
         // provide the responses to the bus
         self.bus.provide_hasher_lookups(&lookups);
 
-        (addr, old_root, new_root)
+        merkle_root_update
     }
 
     // HASH CHIPLET ACCESSORS FOR CONTROL BLOCK DECODING
