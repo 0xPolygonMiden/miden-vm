@@ -98,60 +98,8 @@ pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
 pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     // stack: [d, i, R_old, V_new, ...]
 
-    // Inject the old node value onto the stack for the call to MRUPDATE.
-    // stack: [V_old, d, i, R_old, V_new, ...] (4 cycles)
-    read_mtree_node(span);
-
-    // Note: The stack is 14 elements deep already. The existing ops manipulate up to depth 16, so
-    // it's only possible to copy 2-elements at the time.
-    #[rustfmt::skip]
-    let copy_old_element_ops = [
-        // These instructions will push the current copy of V_old down, and create a new word with
-        // the same elements on the top of the stack.
-
-        // Renamed V_old => o<pos>, R_old => r<pos>, V_new => n<pos>
-        // stack: [[o3, o2, o1, o0], [d, i, r3, r2], [r1, r0, n3, n2], n1, n0, ...]
-
-        // Move i then d up
-        // stack: [[d, i, o3, o2], [o1, o0, r3, r2], [r1, r0, n3, n2], n1, n0, ...]
-        MovUp5, MovUp5,
-
-        // Copy half of the word, o0 then o1
-        // stack: [[o1, o0, d, i], [o3, o2, o1, o0], [r3, r2, r1, r0], [n3, n2, n1, n0], ...]
-        Dup5, Dup5,
-
-        // Move the data down
-        // stack: [[o1, o0, d, i], [r3, r2, r1, r0], [n3, n2, n1, n0], [o3, o2, o1, o0], ...]
-        SwapDW, SwapW, SwapW2,
-
-        // Copy the other half of the word, o2 then o3
-        // stack: [[o3, o2, o1, o0], [d, i, r3, r2], [r1, r0, n3, n2,] [n1, n0, o3, o2], o1, o0, ...]
-        Dup13, Dup13
-    ];
-
-    // stack: [V_old, d, i, R_old, V_new, V_old, ...] (9 cycles)
-    span.add_ops(copy_old_element_ops)?;
-
-    // stack: [R_new, R_old, V_new, V_old, ...] (5 cycles)
-    update_mtree(span, false);
-
-    #[rustfmt::skip]
-    let remove_old_root_and_new_value_ops = [
-        // drop old merkle root from the stack
-        // stack: [R_new, V_new, V_old, ...]
-        SwapW, Drop, Drop, Drop, Drop,
-
-        // drop new value from stack
-        // stack: [R_new, V_old, ...]
-        SwapW, Drop, Drop, Drop, Drop,
-
-        // move the V_old to the front
-        // stack: [V_old, R_new, ...]
-        SwapW
-    ];
-
-    // stack: [V_old, R_new, ...] (11 cycles)
-    span.add_ops(remove_old_root_and_new_value_ops)
+    // stack: [V_old, R_new, ...] (29 cycles)
+    update_mtree(span, false)
 }
 
 /// Appends the MRUPDATE op with a parameter of "true" and stack manipulations to the span block as
@@ -163,19 +111,15 @@ pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
 /// - new value of the node, 4 element
 ///
 /// After the operations are executed, the stack will be arranged as follows:
+/// - old value of the node, 4 elements
 /// - new root of the tree after the update, 4 elements
-/// - new value of the node, 4 elements
-/// - root of the old tree which was copied, 4 elements
 ///
-/// This operation takes 12 VM cycles.
+/// This operation takes 29 VM cycles.
 pub(super) fn mtree_cwm(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
-    // Inject the old node value onto the stack for the call to MRUPDATE.
-    // [d, i, R, V_new, ...] => [V_old, d, i, R, V_new, ...]
-    read_mtree_node(span);
-    update_mtree(span, true);
+    // stack: [d, i, R_old, V_new, ...]
 
-    // Move the new value to the top => [R_new, V_new, R ...]
-    span.add_ops([SwapW, SwapW2, SwapW])
+    // stack: [V_old, R_new, ...] (29 cycles)
+    update_mtree(span, true)
 }
 
 // MERKLE TREES - HELPERS
@@ -215,17 +159,75 @@ fn read_mtree_node(span: &mut SpanBuilder) {
 /// Update a node in the merkle tree. The `copy` flag will be passed as argument of the `MrUpdate`
 /// operation.
 ///
-/// This operation takes 5 VM cycles.
-fn update_mtree(span: &mut SpanBuilder, copy: bool) {
+/// This operation takes 29 VM cycles.
+fn update_mtree(span: &mut SpanBuilder, copy: bool) -> Result<Option<CodeBlock>, AssemblyError> {
+    // stack: [d, i, R_old, V_new, ...]
+    // output: [R_new, R_old, V_new, V_old, ...]
+
+    // Inject the old node value onto the stack for the call to MRUPDATE.
+    // stack: [V_old, d, i, R_old, V_new, ...] (4 cycles)
+    read_mtree_node(span);
+
     #[rustfmt::skip]
-    span.push_ops([
-        // Update the Merkle tree with the new value without copying the old tree. This replaces the
-        // old node value with the computed new Merkle root.
-        // => [R_new, d, i, R, V_new, ...]
+    let ops = [
+        // Note: The stack is 14 elements deep already. The existing ops manipulate up to depth 16,
+        // so it's only possible to copy 2-elements at the time.
+
+        // COPY V_old
+        // These instructions will push the current copy of V_old down, and create a new word with
+        // the same elements on the top of the stack.
+        //
+        // ========================================================================================
+        // Renamed V_old => o<pos>, R_old => r<pos>, V_new => n<pos>
+        // stack: [[o3, o2, o1, o0], [d, i, r3, r2], [r1, r0, n3, n2], n1, n0, ...]
+
+        // Renamed V_old => o<pos>, R_old => r<pos>, V_new => n<pos>
+        // stack: [[o3, o2, o1, o0], [d, i, r3, r2], [r1, r0, n3, n2], n1, n0, ...]
+
+        // Move i then d up
+        // stack: [[d, i, o3, o2], [o1, o0, r3, r2], [r1, r0, n3, n2], n1, n0, ...]
+        MovUp5, MovUp5,
+
+        // Copy half of the word, o0 then o1
+        // stack: [[o1, o0, d, i], [o3, o2, o1, o0], [r3, r2, r1, r0], [n3, n2, n1, n0], ...]
+        Dup5, Dup5,
+
+        // Move the data down
+        // stack: [[o1, o0, d, i], [r3, r2, r1, r0], [n3, n2, n1, n0], [o3, o2, o1, o0], ...]
+        SwapDW, SwapW, SwapW2,
+
+        // Copy the other half of the word, o2 then o3
+        // stack: [[o3, o2, o1, o0], [d, i, r3, r2], [r1, r0, n3, n2,] [n1, n0, o3, o2], o1, o0, ...]
+        Dup13, Dup13,
+
+        // Update the Merkle tree
+        // ========================================================================================
+
+        // Update the node at depth `d` and position `i`. Copy of the Merkle tree depends on the
+        // value of the `copy` flag.
+        // stack: [R_new, d, i, R_old, V_new, V_old, ...]
         MrUpdate(copy),
 
-        // move d, i back to the top of the stack and are dropped since they are
-        // no longer needed => [R_new, R, V_new, ...]
+        // Drop unecessary values
+        // ========================================================================================
+
+        // drop d and i since they are no longer needed
+        // stack: [R_new, R_old, V_new, V_old, ...]
         MovUp4, Drop, MovUp4, Drop,
-    ]);
+
+        // drop old Merkle root from the stack
+        // stack: [R_new, V_new, V_old, ...]
+        SwapW, Drop, Drop, Drop, Drop,
+
+        // drop new value from stack
+        // stack: [R_new, V_old, ...]
+        SwapW, Drop, Drop, Drop, Drop,
+
+        // move the V_old to the front
+        // stack: [V_old, R_new, ...]
+        SwapW
+    ];
+
+    // stack: [V_old, R_new, ...] (25 cycles)
+    span.add_ops(ops)
 }
