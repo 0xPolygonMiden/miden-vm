@@ -1,5 +1,33 @@
-#! Given ω, τ on stack top, this routine computes common factor `ω/ (τ - ω)`
-#! of β, as written in formula https://github.com/0xPolygonMiden/miden-vm/issues/592#issue-1481983459
+#! Given ω, τ on stack top, this routine computes factor `ω/ (τ - ω)`
+#! of β, as written in formula https://github.com/0xPolygonMiden/miden-vm/pull/644#pullrequestreview-1265141094
+#! only when index j is even | j ∈ [0..64)
+#!
+#! Note, ω ∈ F_p | p = 2^64 - 2^32 + 1
+#!       τ ∈ Quadratic extension field over F_p
+#!
+#! Expected stack state looks like
+#!
+#! [ω, _, _, τ1, τ0, ...]
+#!
+#! Final stack state looks like
+#!
+#! [⍳1, ⍳0, _, _, τ1, τ0, ...] | ⍳ = ω/ (τ - ω)
+proc.compute_factor_of_beta_for_even_index
+    dup.4
+    dup.1
+    sub
+    dup.4
+    ext2inv
+    swap
+    dup.2
+    mul
+    movdn.2
+    mul
+end
+
+#! Given ω, τ on stack top, this routine computes factor `ω/ (τ - ω)`
+#! of β, as written in formula https://github.com/0xPolygonMiden/miden-vm/pull/644#pullrequestreview-1265141094
+#! only when index j is odd | j ∈ [0..64)
 #!
 #! Note, ω ∈ F_p | p = 2^64 - 2^32 + 1
 #!       τ ∈ Quadratic extension field over F_p
@@ -10,8 +38,8 @@
 #!
 #! Final stack state looks like
 #!
-#! [⍳, _, _, _, _, τ1, τ0, ...] | ⍳ = ω/ (τ - ω)
-proc.compute_common_factor_of_beta
+#! [⍳1, ⍳0, _, _, _, _, τ1, τ0, ...] | ⍳ = ω/ (τ - ω)
+proc.compute_factor_of_beta_for_odd_index
     dup.6
     dup.1
     sub
@@ -24,93 +52,21 @@ proc.compute_common_factor_of_beta
     mul
 end
 
-#! Given ⍳, denominator δ on stack top, this routine accumulates ⍳ into δ when j is even | j ∈ [0..64)
-#!
-#! This routine partially implements formula for computing β, as described in https://github.com/0xPolygonMiden/miden-vm/issues/592#issue-1481983459
-#! I say partially because it can only be applied when index j is even.
+#! Given ⍳, accumulator ν on stack top, this routine accumulates ⍳ into ν only when j is even | j ∈ [0..64)
+#! following formula described in https://github.com/0xPolygonMiden/miden-vm/pull/644#pullrequestreview-1265141094
 #!
 #! Expected stack top
 #!
-#! [⍳1, ⍳0, δ1, δ0, ...]
+#! [a3, a2, a1, a0, ⍳1, ⍳0, ν1, ν0, ...]
 #!
 #! Final stack state
 #!
-#! [⍳1, ⍳0, δ1', δ0', ...] | δ1' = δ1 + ⍳1, δ0' = δ0 + ⍳0
-proc.accumulate_into_denominator_even_index
-    dup.1
-    movup.4
-    add
-    dup.1
-    movup.4
-    add
-    movdn.3
-    movdn.3
-end
-
-#! Given ⍳, denominator δ on stack top, this routine accumulates ⍳ into δ when j is odd | j ∈ [0..64)
-#!
-#! This routine partially implements formula for computing β, as described in https://github.com/0xPolygonMiden/miden-vm/issues/592#issue-1481983459
-#! I say partially because it can only be applied when index j is odd.
-#!
-#! Expected stack top
-#!
-#! [⍳1, ⍳0, _, _, δ1, δ0, ...]
-#!
-#! Final stack state
-#!
-#! [⍳1, ⍳0, _, _, δ1', δ0', ...] | δ1' = δ1 + ⍳1, δ0' = δ0 + ⍳0
-proc.accumulate_into_denominator_odd_index
-    dup.1
-    movup.6
-    add
-    dup.1
-    movup.6
-    add
-    movdn.5
-    movdn.5
-end
-
-#! Given ⍳, numerator ν on stack top, this routine accumulates ⍳ into ν when j is even | j ∈ [0..64)
-#!
-#! This routine partially implements formula for computing β, as described in https://github.com/0xPolygonMiden/miden-vm/issues/592#issue-1481983459
-#! I say partially because it can only be applied when index j is even.
-#!
-#! Expected stack top
-#!
-#! [a3, a2, a1, a0, ⍳1, ⍳0, _, _, ν1, ν0, ...]
-#!
-#! Final stack state
-#!
-#! [a3, a2, _, _, ν1', ν0', ...] | ν' = (ν * a) + ⍳ s.t. a = (a1, a0), ⍳ = (⍳1, ⍳0), ν = (ν1, ν0), ν' = (ν0', ν1')
-proc.accumulate_into_numerator_even_index
+#! [a3, a2, ν1', ν0', ...] | ν' = ν + (a * ⍳) s.t. a = (a1, a0), ⍳ = (⍳1, ⍳0), ν = (ν1, ν0), ν' = (ν0', ν1')
+proc.accumulate_for_even_index
     movup.5
     movup.5
     movup.5
     movup.5
-    ext2mul
-    swap
-    movup.7
-    add
-    swap
-    movup.6
-    add
-    movdn.5
-    movdn.5
-end
-
-#! Given ⍳, numerator ν on stack top, this routine accumulates ⍳ into ν when j is odd | j ∈ [0..64)
-#!
-#! This routine partially implements formula for computing β, as described in https://github.com/0xPolygonMiden/miden-vm/issues/592#issue-1481983459
-#! I say partially because it can only be applied when index j is odd.
-#!
-#! Expected stack top
-#!
-#! [a3, a2, ⍳1, ⍳0, _, _, ν1, ν0, ...]
-#!
-#! Final stack state
-#!
-#! [_, _, ν1', ν0', ...] | ν' = (ν * a) + ⍳ s.t. a = (a3, a2), ⍳ = (⍳1, ⍳0), ν = (ν1, ν0), ν' = (ν0', ν1')
-proc.accumulate_into_numerator_odd_index
     ext2mul
     swap
     movup.5
@@ -120,10 +76,31 @@ proc.accumulate_into_numerator_odd_index
     add
     movdn.3
     movdn.3
+end
+
+#! Given ⍳, accumulator ν on stack top, this routine accumulates ⍳ into ν only when j is odd | j ∈ [0..64)
+#! following formula described in https://github.com/0xPolygonMiden/miden-vm/pull/644#pullrequestreview-1265141094
+#!
+#! Expected stack top
+#!
+#! [⍳1, ⍳0, a3, a2, ν1, ν0, ...]
+#!
+#! Final stack state
+#!
+#! [ν1', ν0', ...] | ν' = ν + (a * ⍳) s.t. a = (a3, a2), ⍳ = (⍳1, ⍳0), ν = (ν1, ν0), ν' = (ν0', ν1')
+proc.accumulate_for_odd_index
+    ext2mul
+    swap
+    movup.3
+    add
+    swap
+    movup.2
+    add
 end
 
 #! Given remainder codeword with 64 evaluations ( as starting memory address on stack ), this routine attempts to
 #! probabilistically verify remainder following the technique described in https://github.com/0xPolygonMiden/miden-vm/issues/592
+#! and an optimization of how to efficiently compute β in https://github.com/0xPolygonMiden/miden-vm/pull/644#pullrequestreview-1265141094
 #!
 #! Expected stack state
 #!
@@ -185,616 +162,568 @@ export.verify_remainder_64.4
     # τ on stack top
     # Compute β
 
-    push.0.0.0.0 # accumulators ( denominator, numerator in order )
+    push.0.0 # accumulator
 
     # for j = 0
     push.1
-    exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+    exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 1
     push.549755813888
-    exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+    exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 2
 	push.70368744161280
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.1
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 3
     push.18446744069412487169
-    exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+    exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 4
     push.17293822564807737345
-    exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+    exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.2
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 5
 	push.8
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 6
 	push.4398046511104
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.3
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 7
 	push.562949953290240
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 8
 	push.18446744069397807105
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.4
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 9
 	push.9223372032559808513
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index    
+    exec.accumulate_for_odd_index
 
     # for j = 10
 	push.64
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.5
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 11
 	push.35184372088832
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 12
 	push.4503599626321920
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.6
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 13
 	push.18446744069280366593
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 14
 	push.18446744052234715141
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.7
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 15
 	push.512
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 16
 	push.281474976710656
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.8
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 17
 	push.36028797010575360
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 18
 	push.18446744068340842497
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.9
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 19
 	push.18446743931975630881
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 20
 	push.4096
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.10
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 21
 	push.2251799813685248
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index    
+    exec.accumulate_for_odd_index
 
     # for j = 22
 	push.288230376084602880
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.11
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 23
 	push.18446744060824649729
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 24
 	push.18446742969902956801
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.12
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 25
 	push.32768
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 26
 	push.18014398509481984
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.13
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 27
 	push.2305843008676823040
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 28
 	push.18446744000695107585
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.14
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 29
 	push.18446735273321564161
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 30
 	push.262144
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.15
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 31
 	push.144115188075855872
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 32
 	push.18446744069414584320
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.16
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 33
 	push.18446743519658770433
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 34
 	push.18446673700670423041
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.17
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 35
 	push.2097152
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 36
 	push.1152921504606846976
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.18
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 37
 	push.18446744069414584313
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 38
 	push.18446739671368073217
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.19
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 39
 	push.18446181119461294081
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 40
 	push.16777216
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.20
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 41
 	push.9223372036854775808
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 42
 	push.18446744069414584257
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.21
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 43
 	push.18446708885042495489
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index    
+    exec.accumulate_for_odd_index
 
     # for j = 44
 	push.18442240469788262401
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.22
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 45
 	push.134217728
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 46
 	push.17179869180
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.23
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 47
 	push.18446744069414583809
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 48
 	push.18446462594437873665
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.24
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 49
 	push.18410715272404008961
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 50
 	push.1073741824
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.25
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 51
 	push.137438953440
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 52
 	push.18446744069414580225
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index    
 
-    dup.8
+    dup.6
     add.26
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 53
 	push.18444492269600899073
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 54
 	push.18158513693329981441
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.27
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 55
 	push.8589934592
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 56
 	push.1099511627520
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.28
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 57
 	push.18446744069414551553
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 58
 	push.18428729670905102337
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.29
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 59
 	push.16140901060737761281
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 60
 	push.68719476736
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.30
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 61
 	push.8796093020160
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
     # for j = 62
 	push.18446744069414322177
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_even_index
+	exec.compute_factor_of_beta_for_even_index
 
-    dup.8
+    dup.6
     add.31
     push.0.0.0.0
     movup.4
     mem_loadw
 
-    exec.accumulate_into_numerator_even_index
+    exec.accumulate_for_even_index
 
     # for j = 63
 	push.18302628881338728449
-	exec.compute_common_factor_of_beta
-    exec.accumulate_into_denominator_odd_index
-    exec.accumulate_into_numerator_odd_index
+	exec.compute_factor_of_beta_for_odd_index
+    exec.accumulate_for_odd_index
 
-    ext2div
+    # compute (τ^64 - 1)/ 64
+    dup.3
+    dup.3
+
+    repeat.6
+        dup.1
+        dup.1
+        ext2mul
+    end
+
+    swap
+    sub.1
+    swap
+
+    push.18158513693329981441.0
+    ext2mul
+    ext2mul
 
     # β on stack top
 
