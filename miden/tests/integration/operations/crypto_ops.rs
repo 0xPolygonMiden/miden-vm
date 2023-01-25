@@ -144,16 +144,20 @@ fn mtree_update() {
     // update a node value and replace the old root
     let asm_op = "mtree_set";
 
+    let old_node = tree
+        .get_node(tree.depth(), index as u64)
+        .expect("Value should have been set on initialization");
+
     // expected state has the new leaf and the new root of the tree
     let final_stack = [
+        old_node[3].as_int(),
+        old_node[2].as_int(),
+        old_node[1].as_int(),
+        old_node[0].as_int(),
         new_tree.root()[3].as_int(),
         new_tree.root()[2].as_int(),
         new_tree.root()[1].as_int(),
         new_tree.root()[0].as_int(),
-        new_node[3].as_int(),
-        new_node[2].as_int(),
-        new_node[1].as_int(),
-        new_node[0].as_int(),
     ];
 
     let test = build_op_test!(asm_op, &stack_inputs, &[], vec![tree.clone()]);
