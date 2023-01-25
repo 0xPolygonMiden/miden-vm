@@ -1,3 +1,70 @@
+#! Given starting memory address to q i.e. 64 polynomial evaluations ( FRI codeword ), this routine computes
+#! τ, by first non-deterministically interpolating polynomial p ( of degree at max 7 i.e. with 8 coefficients )
+#! using advice provider ( i.e. computation performed outside of the VM ) and then sequentially hashing coefficients
+#! of q, p ( in order ), using Rescue Prime hashing.
+#!
+#! Note, both q ( polynomial evaluations i.e. in NTT form ), p ( polynomial in coefficient form ), is over quadratic 
+#! extension field over Fq | q = 2^64 - 2^32 + 1
+#!
+#! Other than starting address of q, starting memory address of p is also provided on stack, which is used for
+#! piping interpolated polynomial coefficients into memory, which will be later used for computing α.
+#!
+#! See https://github.com/0xPolygonMiden/miden-vm/issues/592#issuecomment-1341814867 for how τ is computed.
+#!
+#! Expected stack state
+#!
+#! [mem_ptr_q, mem_ptr_p, ...]
+#!
+#! Final stack state
+#!
+#! [τ1, τ0, mem_ptr_q, ...] | τ = (τ0, τ1)
+#!
+#! τ = rescue_prime::hash_elements(q... ++ p...)[..2]
+#!
+#! - `hash_elements` routine works over vector of elements of Fq | q = 2^64 -2^32 + 1
+#! - ... -> spread operator
+#! - ++ -> concatenate two vectors
+#! - q... -> vector of length 128 s.t. each element ∈ Fq
+#! - p... -> vector of length 16 s.t. each element ∈ Fq
+#! - Rescue Prime hash produces four Fq elements as its digest
+#! - [..2] -> picks first two Fq elements from digest
+proc.compute_tau
+    push.64
+    push.8
+    adv.ext2intt # interpolate polynomial p, using advice provider
+
+    drop
+    drop
+    dup
+
+    # Initialize Rescue state
+    push.144.0.0.0.0.0.0.0.0.0.0.0
+
+    # Consume `q` into Rescue state
+    repeat.16
+        mem_stream
+    end
+
+    movup.12
+    drop
+    movup.13
+    movdn.12
+
+    # Consume `p` into Rescue state
+    repeat.2
+        adv_pipe
+    end
+
+    movup.12
+    drop
+
+    dropw
+    swapw
+    dropw
+    drop
+    drop
+end
+
 #! Given ω, τ on stack top, this routine computes factor `ω/ (τ - ω)`
 #! of β, as written in formula https://github.com/0xPolygonMiden/miden-vm/pull/644#pullrequestreview-1265141094
 #! only when index j is even | j ∈ [0..64)
@@ -57,12 +124,23 @@ end
 #!
 #! Expected stack top
 #!
-#! [a3, a2, a1, a0, ⍳1, ⍳0, ν1, ν0, ...]
+#! [ω, ν1, ν0, τ1, τ0, mem_ptr_q - 1, ...]
 #!
 #! Final stack state
 #!
-#! [a3, a2, ν1', ν0', ...] | ν' = ν + (a * ⍳) s.t. a = (a1, a0), ⍳ = (⍳1, ⍳0), ν = (ν1, ν0), ν' = (ν0', ν1')
+#! [a3, a2, ν1', ν0', τ1, τ0, mem_ptr_q, ...]
 proc.accumulate_for_even_index
+    exec.compute_factor_of_beta_for_even_index
+
+    movup.6
+    add.1
+    movdn.6
+    push.0.0.0
+    dup.9
+    push.0
+    swap
+    mem_loadw
+
     movup.5
     movup.5
     movup.5
@@ -83,12 +161,14 @@ end
 #!
 #! Expected stack top
 #!
-#! [⍳1, ⍳0, a3, a2, ν1, ν0, ...]
+#! [ω, a3, a2, ν1, ν0, τ1, τ0, mem_ptr_q, ...]
 #!
 #! Final stack state
 #!
-#! [ν1', ν0', ...] | ν' = ν + (a * ⍳) s.t. a = (a3, a2), ⍳ = (⍳1, ⍳0), ν = (ν1, ν0), ν' = (ν0', ν1')
+#! [ν1', ν0', τ1, τ0, mem_ptr_q, ...]
 proc.accumulate_for_odd_index
+    exec.compute_factor_of_beta_for_odd_index
+
     ext2mul
     swap
     movup.3
@@ -96,6 +176,387 @@ proc.accumulate_for_odd_index
     swap
     movup.2
     add
+end
+
+#! Given τ and starting memory address to q ( FRI codeword with 64 evaluations ), this routine computes β
+#! using formula described in https://github.com/0xPolygonMiden/miden-vm/pull/644#pullrequestreview-1265141094
+#!
+#! Expected stack state
+#!
+#! [τ1, τ0, mem_ptr_q, ...]
+#!
+#! Final stack state
+#!
+#! [β1, β0, τ1, τ0, mem_ptr_q, ...]
+proc.compute_beta
+    # subtract starting address by 1, because we first increment and then load
+    # onto stack
+    movup.2
+    sub.1
+    movdn.2
+
+    push.0.0 # accumulator for β
+
+    # for j = 0
+    push.1
+    exec.accumulate_for_even_index
+
+    # for j = 1
+    push.549755813888
+    exec.accumulate_for_odd_index
+
+    # for j = 2
+	push.70368744161280
+    exec.accumulate_for_even_index
+
+    # for j = 3
+    push.18446744069412487169
+    exec.accumulate_for_odd_index
+
+    # for j = 4
+    push.17293822564807737345
+    exec.accumulate_for_even_index
+
+    # for j = 5
+	push.8
+    exec.accumulate_for_odd_index
+
+    # for j = 6
+	push.4398046511104
+    exec.accumulate_for_even_index
+
+    # for j = 7
+	push.562949953290240
+    exec.accumulate_for_odd_index
+
+    # for j = 8
+	push.18446744069397807105
+    exec.accumulate_for_even_index
+
+    # for j = 9
+	push.9223372032559808513
+    exec.accumulate_for_odd_index
+
+    # for j = 10
+	push.64
+    exec.accumulate_for_even_index
+
+    # for j = 11
+	push.35184372088832
+    exec.accumulate_for_odd_index
+
+    # for j = 12
+	push.4503599626321920
+    exec.accumulate_for_even_index
+
+    # for j = 13
+	push.18446744069280366593
+    exec.accumulate_for_odd_index
+
+    # for j = 14
+	push.18446744052234715141
+    exec.accumulate_for_even_index
+
+    # for j = 15
+	push.512
+    exec.accumulate_for_odd_index
+
+    # for j = 16
+	push.281474976710656
+    exec.accumulate_for_even_index
+
+    # for j = 17
+	push.36028797010575360
+    exec.accumulate_for_odd_index
+
+    # for j = 18
+	push.18446744068340842497
+    exec.accumulate_for_even_index
+
+    # for j = 19
+	push.18446743931975630881
+    exec.accumulate_for_odd_index
+
+    # for j = 20
+	push.4096
+    exec.accumulate_for_even_index
+
+    # for j = 21
+	push.2251799813685248
+    exec.accumulate_for_odd_index
+
+    # for j = 22
+	push.288230376084602880
+    exec.accumulate_for_even_index
+
+    # for j = 23
+	push.18446744060824649729
+    exec.accumulate_for_odd_index
+
+    # for j = 24
+	push.18446742969902956801
+    exec.accumulate_for_even_index
+
+    # for j = 25
+	push.32768
+    exec.accumulate_for_odd_index
+
+    # for j = 26
+	push.18014398509481984
+    exec.accumulate_for_even_index
+
+    # for j = 27
+	push.2305843008676823040
+    exec.accumulate_for_odd_index
+
+    # for j = 28
+	push.18446744000695107585
+    exec.accumulate_for_even_index
+
+    # for j = 29
+	push.18446735273321564161
+    exec.accumulate_for_odd_index
+
+    # for j = 30
+	push.262144
+    exec.accumulate_for_even_index
+
+    # for j = 31
+	push.144115188075855872
+    exec.accumulate_for_odd_index
+
+    # for j = 32
+	push.18446744069414584320
+    exec.accumulate_for_even_index
+
+    # for j = 33
+	push.18446743519658770433
+    exec.accumulate_for_odd_index
+
+    # for j = 34
+	push.18446673700670423041
+    exec.accumulate_for_even_index
+
+    # for j = 35
+	push.2097152
+    exec.accumulate_for_odd_index
+
+    # for j = 36
+	push.1152921504606846976
+    exec.accumulate_for_even_index
+
+    # for j = 37
+	push.18446744069414584313
+    exec.accumulate_for_odd_index
+
+    # for j = 38
+	push.18446739671368073217
+    exec.accumulate_for_even_index
+
+    # for j = 39
+	push.18446181119461294081
+    exec.accumulate_for_odd_index
+
+    # for j = 40
+	push.16777216
+    exec.accumulate_for_even_index
+
+    # for j = 41
+	push.9223372036854775808
+    exec.accumulate_for_odd_index
+
+    # for j = 42
+	push.18446744069414584257
+    exec.accumulate_for_even_index
+
+    # for j = 43
+	push.18446708885042495489
+    exec.accumulate_for_odd_index
+
+    # for j = 44
+	push.18442240469788262401
+    exec.accumulate_for_even_index
+
+    # for j = 45
+	push.134217728
+    exec.accumulate_for_odd_index
+
+    # for j = 46
+	push.17179869180
+    exec.accumulate_for_even_index
+
+    # for j = 47
+	push.18446744069414583809
+    exec.accumulate_for_odd_index
+
+    # for j = 48
+	push.18446462594437873665
+    exec.accumulate_for_even_index
+
+    # for j = 49
+	push.18410715272404008961
+    exec.accumulate_for_odd_index
+
+    # for j = 50
+	push.1073741824
+    exec.accumulate_for_even_index
+
+    # for j = 51
+	push.137438953440
+    exec.accumulate_for_odd_index
+
+    # for j = 52
+	push.18446744069414580225
+    exec.accumulate_for_even_index
+
+    # for j = 53
+	push.18444492269600899073
+    exec.accumulate_for_odd_index
+
+    # for j = 54
+	push.18158513693329981441
+    exec.accumulate_for_even_index
+
+    # for j = 55
+	push.8589934592
+    exec.accumulate_for_odd_index
+
+    # for j = 56
+	push.1099511627520
+    exec.accumulate_for_even_index
+
+    # for j = 57
+	push.18446744069414551553
+    exec.accumulate_for_odd_index
+
+    # for j = 58
+	push.18428729670905102337
+    exec.accumulate_for_even_index
+
+    # for j = 59
+	push.16140901060737761281
+    exec.accumulate_for_odd_index
+
+    # for j = 60
+	push.68719476736
+    exec.accumulate_for_even_index
+
+    # for j = 61
+	push.8796093020160
+    exec.accumulate_for_odd_index
+
+    # for j = 62
+	push.18446744069414322177
+    exec.accumulate_for_even_index
+
+    # for j = 63
+	push.18302628881338728449
+    exec.accumulate_for_odd_index
+
+    # compute (τ^64 - 1)/ 64
+    dup.3
+    dup.3
+
+    repeat.6
+        dup.1
+        dup.1
+        ext2mul
+    end
+
+    swap
+    sub.1
+    swap
+
+    push.18158513693329981441.0
+    ext2mul
+    ext2mul
+end
+
+#! Given τ and end memory address of interpolated polynomial p ( with degree at max 7, over 
+#! quadratic extension field of Fq ) on stack top, this routine computes α, following formula described
+#! in https://github.com/0xPolygonMiden/miden-vm/issues/592#issue-1481983459
+#!
+#! Expected stack state
+#!
+#! [_, _, τ1, τ0, mem_ptr_p, ...]
+#!
+#! Final stack state
+#!
+#! [α1, α0, _, _, ...]
+#!
+#! Note, mem_ptr_p is absolute memory address of polynomial p ( which was interpolated using advice provider )
+#! s.t. next 3 decreasing ( by 1 ) memory addresses hold remaining 6 coefficients of p. Why this descending order of
+#! memory addressing ? - Read point 2 of https://github.com/0xPolygonMiden/miden-vm/issues/592#issue-1481983459
+proc.compute_alpha
+    movup.4
+    dup
+    sub.1
+    movdn.5
+    push.0.0.0.0
+    movup.4
+    mem_loadw
+
+    dup.7
+    dup.7
+    ext2mul
+    ext2add
+
+    movup.6
+    dup
+    sub.1
+    movdn.7
+    push.0.0.0.0
+    movup.4
+    mem_loadw
+
+    movup.5
+    movup.5
+    dup.9
+    dup.9
+    ext2mul
+    ext2add
+
+    dup.7
+    dup.7
+    ext2mul
+    ext2add
+
+    movup.6
+    dup
+    sub.1
+    movdn.7
+    push.0.0.0.0
+    movup.4
+    mem_loadw
+
+    movup.5
+    movup.5
+    dup.9
+    dup.9
+    ext2mul
+    ext2add
+
+    dup.7
+    dup.7
+    ext2mul
+    ext2add
+
+    movup.6
+    push.0.0.0.0
+    movup.4
+    mem_loadw
+
+    movup.5
+    movup.5
+    dup.9
+    dup.9
+    ext2mul
+    ext2add
+
+    movup.7
+    movup.7
+    ext2mul
+    ext2add
 end
 
 #! Given remainder codeword with 64 evaluations ( as starting memory address on stack ), this routine attempts to
@@ -123,676 +584,20 @@ end
 #!
 #! If remainder verification fails, execution of the program stops.
 export.verify_remainder_64.4
-    push.64
-    push.8
-
-    adv.ext2intt
-
-    drop
-    drop
-    dup
-
-    # Initialize Rescue state
-    push.144.0.0.0.0.0.0.0.0.0.0.0
-
-    # Consume `p` into Rescue state
-    repeat.16
-        mem_stream
-    end
-
-    movup.12
-    drop
     locaddr.0
-    movdn.12
-
-    # Consume `q` into Rescue state
-    repeat.2
-        adv_pipe
-    end
-
-    movup.12
-    drop
-
-    dropw
-    swapw
-    dropw
-    drop
-    drop
-
-    # τ on stack top
-    # Compute β
-
-    push.0.0 # accumulator
-
-    # for j = 0
-    push.1
-    exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 1
-    push.549755813888
-    exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 2
-	push.70368744161280
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.1
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 3
-    push.18446744069412487169
-    exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 4
-    push.17293822564807737345
-    exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.2
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 5
-	push.8
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 6
-	push.4398046511104
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.3
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 7
-	push.562949953290240
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 8
-	push.18446744069397807105
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.4
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 9
-	push.9223372032559808513
-	exec.compute_factor_of_beta_for_odd_index    
-    exec.accumulate_for_odd_index
-
-    # for j = 10
-	push.64
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.5
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 11
-	push.35184372088832
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 12
-	push.4503599626321920
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.6
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 13
-	push.18446744069280366593
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 14
-	push.18446744052234715141
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.7
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 15
-	push.512
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 16
-	push.281474976710656
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.8
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 17
-	push.36028797010575360
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 18
-	push.18446744068340842497
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.9
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 19
-	push.18446743931975630881
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 20
-	push.4096
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.10
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 21
-	push.2251799813685248
-	exec.compute_factor_of_beta_for_odd_index    
-    exec.accumulate_for_odd_index
-
-    # for j = 22
-	push.288230376084602880
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.11
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 23
-	push.18446744060824649729
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 24
-	push.18446742969902956801
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.12
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 25
-	push.32768
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 26
-	push.18014398509481984
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.13
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 27
-	push.2305843008676823040
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 28
-	push.18446744000695107585
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.14
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 29
-	push.18446735273321564161
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 30
-	push.262144
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.15
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 31
-	push.144115188075855872
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 32
-	push.18446744069414584320
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.16
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 33
-	push.18446743519658770433
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 34
-	push.18446673700670423041
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.17
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 35
-	push.2097152
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 36
-	push.1152921504606846976
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.18
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 37
-	push.18446744069414584313
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 38
-	push.18446739671368073217
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.19
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 39
-	push.18446181119461294081
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 40
-	push.16777216
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.20
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 41
-	push.9223372036854775808
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 42
-	push.18446744069414584257
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.21
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 43
-	push.18446708885042495489
-	exec.compute_factor_of_beta_for_odd_index    
-    exec.accumulate_for_odd_index
-
-    # for j = 44
-	push.18442240469788262401
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.22
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 45
-	push.134217728
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 46
-	push.17179869180
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.23
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 47
-	push.18446744069414583809
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 48
-	push.18446462594437873665
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.24
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 49
-	push.18410715272404008961
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 50
-	push.1073741824
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.25
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 51
-	push.137438953440
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 52
-	push.18446744069414580225
-	exec.compute_factor_of_beta_for_even_index    
-
-    dup.6
-    add.26
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 53
-	push.18444492269600899073
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 54
-	push.18158513693329981441
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.27
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 55
-	push.8589934592
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 56
-	push.1099511627520
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.28
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 57
-	push.18446744069414551553
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 58
-	push.18428729670905102337
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.29
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 59
-	push.16140901060737761281
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 60
-	push.68719476736
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.30
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 61
-	push.8796093020160
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # for j = 62
-	push.18446744069414322177
-	exec.compute_factor_of_beta_for_even_index
-
-    dup.6
-    add.31
-    push.0.0.0.0
-    movup.4
-    mem_loadw
-
-    exec.accumulate_for_even_index
-
-    # for j = 63
-	push.18302628881338728449
-	exec.compute_factor_of_beta_for_odd_index
-    exec.accumulate_for_odd_index
-
-    # compute (τ^64 - 1)/ 64
-    dup.3
-    dup.3
-
-    repeat.6
-        dup.1
-        dup.1
-        ext2mul
-    end
-
-    swap
-    sub.1
     swap
 
-    push.18158513693329981441.0
-    ext2mul
-    ext2mul
-
-    # β on stack top
+    exec.compute_tau
+    exec.compute_beta
 
     movup.4
     drop
+    locaddr.3
+    movdn.4
 
-    # Compute α
+    exec.compute_alpha
 
-    # for i = 7
-    push.0.0.0.0
-    loc_loadw.3
-
-    # for i = 6
-    dup.7
-    dup.7
-    ext2mul
-    ext2add
-
-    # for i = 5
-    push.0.0.0.0
-    loc_loadw.2
-    movup.5
-    movup.5
-    dup.9
-    dup.9
-    ext2mul
-    ext2add
-
-    # for i = 4
-    dup.7
-    dup.7
-    ext2mul
-    ext2add
-
-    # for i = 3
-    push.0.0.0.0
-    loc_loadw.1
-    movup.5
-    movup.5
-    dup.9
-    dup.9
-    ext2mul
-    ext2add
-
-    # for i = 2
-    dup.7
-    dup.7
-    ext2mul
-    ext2add
-
-    # for i = 1
-    push.0.0.0.0
-    loc_loadw.0
-    movup.5
-    movup.5
-    dup.9
-    dup.9
-    ext2mul
-    ext2add
-
-    # for i = 0
-    movup.7
-    movup.7
-    ext2mul
-    ext2add
-
-    # α on stack top
     # assert α == β
-    
     movup.2
     eq
     movdn.2
