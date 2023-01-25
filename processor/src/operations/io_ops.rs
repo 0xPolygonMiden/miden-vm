@@ -263,6 +263,7 @@ mod tests {
         super::{Operation, STACK_TOP_SIZE},
         AdviceProvider, Felt, Process,
     };
+    use crate::AdviceSource;
     use vm_core::{utils::ToElements, Word, ONE, ZERO};
 
     #[test]
@@ -482,9 +483,9 @@ mod tests {
         let word2 = [26, 25, 24, 23];
         let word1_felts: Word = word1.to_elements().try_into().unwrap();
         let word2_felts: Word = word2.to_elements().try_into().unwrap();
-        for element in word2_felts.iter().rev().chain(word1_felts.iter().rev()) {
+        for element in word2_felts.iter().rev().chain(word1_felts.iter().rev()).copied() {
             // reverse the word order, since elements are pushed onto the advice tape.
-            process.advice_provider.write_tape(*element);
+            process.advice_provider.write_tape(AdviceSource::Value(element)).unwrap();
         }
 
         // arrange the stack such that:
