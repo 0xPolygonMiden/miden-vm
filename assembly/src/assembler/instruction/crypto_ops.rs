@@ -91,8 +91,8 @@ pub(super) fn mtree_get(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Ass
 /// - new value of the node, 4 element
 ///
 /// After the operations are executed, the stack will be arranged as follows:
+/// - old value of the node, 4 elements
 /// - new root of the tree after the update, 4 elements
-/// - new value of the node, 4 elements
 ///
 /// This operation takes 29 VM cycles.
 pub(super) fn mtree_set(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
