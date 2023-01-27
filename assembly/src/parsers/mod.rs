@@ -7,7 +7,7 @@ use core::{fmt::Display, ops::RangeBounds};
 
 mod nodes;
 use crate::utils::bound_into_included_u64;
-pub(crate) use nodes::{Instruction, Node};
+pub use nodes::{Instruction, Node};
 mod context;
 use context::ParserContext;
 

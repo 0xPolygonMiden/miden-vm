@@ -22,7 +22,9 @@ use procedures::{CallSet, Procedure};
 pub use procedures::{ProcedureId, ProcedureName};
 
 mod parsers;
-pub use parsers::{parse_module, parse_program, ModuleAst, ProcedureAst, ProgramAst};
+pub use parsers::{
+    parse_module, parse_program, Instruction, ModuleAst, Node, ProcedureAst, ProgramAst,
+};
 
 mod serde;
 pub use serde::{ByteReader, ByteWriter, Deserializable, Serializable};
