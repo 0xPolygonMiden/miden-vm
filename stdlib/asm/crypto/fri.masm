@@ -1,7 +1,7 @@
 #! Given starting memory address to q i.e. 64 polynomial evaluations ( FRI codeword ), this routine computes
 #! τ, by first non-deterministically interpolating polynomial p ( of degree at max 7 i.e. with 8 coefficients )
 #! using advice provider ( i.e. computation performed outside of the VM ) and then sequentially hashing coefficients
-#! of q, p ( in order ), using Rescue Prime hashing.
+#! of q, p ( in order ), using Rescue Prime Optimized hash function.
 #!
 #! Note, both q ( polynomial evaluations i.e. in NTT form ), p ( polynomial in coefficient form ), is over quadratic 
 #! extension field over Fq | q = 2^64 - 2^32 + 1
@@ -19,14 +19,14 @@
 #!
 #! [τ1, τ0, mem_ptr_q, ...] | τ = (τ0, τ1)
 #!
-#! τ = rescue_prime::hash_elements(q... ++ p...)[..2]
+#! τ = rescue_prime_optimized::hash_elements(q... ++ p...)[..2]
 #!
 #! - `hash_elements` routine works over vector of elements of Fq | q = 2^64 -2^32 + 1
 #! - ... -> spread operator
 #! - ++ -> concatenate two vectors
 #! - q... -> vector of length 128 s.t. each element ∈ Fq
 #! - p... -> vector of length 16 s.t. each element ∈ Fq
-#! - Rescue Prime hash produces four Fq elements as its digest
+#! - Rescue Prime Optimized hash produces four Fq elements as its digest
 #! - [..2] -> picks first two Fq elements from digest
 proc.compute_tau
     push.64
@@ -37,8 +37,9 @@ proc.compute_tau
     drop
     dup
 
-    # Initialize Rescue state
-    push.144.0.0.0.0.0.0.0.0.0.0.0
+    # Initialize Rescue Prime Optimized state
+    # More on RPO256 @ https://github.com/0xPolygonMiden/crypto/blob/3c60484/src/hash/rpo/mod.rs
+    push.0.0.0.0.0.0.0.0.0.0.0.0
 
     # Consume `q` into Rescue state
     repeat.16
