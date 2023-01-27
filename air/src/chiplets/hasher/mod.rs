@@ -23,7 +23,8 @@ pub const NUM_CONSTRAINTS: usize = 31;
 /// within the hash cycle.
 pub const NUM_PERIODIC_SELECTOR_COLUMNS: usize = 3;
 /// The total number of periodic columns used by the hash processor, which is the sum of the number
-/// of periodic selector columns plus the columns of round constants for the Rescue Hash permutation.
+/// of periodic selector columns plus the columns of round constants for the Rescue Prime Optimized
+/// hash permutation.
 pub const NUM_PERIODIC_COLUMNS: usize = STATE_WIDTH * 2 + NUM_PERIODIC_SELECTOR_COLUMNS;
 
 // PERIODIC COLUMNS
@@ -35,7 +36,7 @@ pub const NUM_PERIODIC_COLUMNS: usize = STATE_WIDTH * 2 + NUM_PERIODIC_SELECTOR_
 /// - k0 column, which has a repeating pattern of 7 zeros followed by a single one.
 /// - k1 column, which has a repeating pattern of 6 zeros, a single 1, and a final zero.
 /// - k2 column, which has a repeating pattern of a single one followed by 7 zeros.
-/// - the round constants for the Rescue Prime permutation.
+/// - the round constants for the Rescue Prime Optimized permutation.
 pub fn get_periodic_column_values() -> Vec<Vec<Felt>> {
     let mut result = vec![HASH_K0_MASK.to_vec(), HASH_K1_MASK.to_vec(), HASH_K2_MASK.to_vec()];
     result.append(&mut get_round_constants());
@@ -73,7 +74,7 @@ pub fn get_transition_constraint_degrees() -> Vec<TransitionConstraintDegree> {
         TransitionConstraintDegree::with_cycles(4, vec![HASH_CYCLE_LEN]),
         TransitionConstraintDegree::with_cycles(6, vec![HASH_CYCLE_LEN]),
         TransitionConstraintDegree::with_cycles(5, vec![HASH_CYCLE_LEN]),
-        // Apply rescue rounds.
+        // Apply RPO rounds.
         TransitionConstraintDegree::with_cycles(8, vec![HASH_CYCLE_LEN]),
         TransitionConstraintDegree::with_cycles(8, vec![HASH_CYCLE_LEN]),
         TransitionConstraintDegree::with_cycles(8, vec![HASH_CYCLE_LEN]),
@@ -220,7 +221,7 @@ fn enforce_node_index<E: FieldElement>(
 }
 
 /// Enforces constraints on the correct update of the hasher state. For all rounds in the cycle
-/// except the last, the constraints for the Rescue-XLIX round computation are applied.
+/// except the last, the constraints for the RPO round computation are applied.
 ///
 /// For the last row in the cycle, the hash state update depends on the selector flags as follows.
 /// - When absorbing a new set of elements during linear hash computation, the capacity portion is
@@ -236,13 +237,13 @@ fn enforce_hasher_state<E: FieldElement + From<Felt>>(
 ) -> usize {
     let mut constraint_offset = 0;
 
-    // Get the constraint flags and the Rescue round constants from the periodic values.
+    // Get the constraint flags and the RPO round constants from the periodic values.
     let hash_flag = processor_flag * binary_not(periodic_values[0]);
     let last_row = processor_flag * periodic_values[0];
     let ark = &periodic_values[NUM_PERIODIC_SELECTOR_COLUMNS..];
 
-    // Enforce the Rescue-XLIX round constraints.
-    enforce_rescue_round(frame, result, ark, hash_flag);
+    // Enforce the RPO round constraints.
+    enforce_rpo_round(frame, result, ark, hash_flag);
     constraint_offset += STATE_WIDTH;
 
     // When absorbing the next set of elements into the state during linear hash computation,
@@ -270,35 +271,37 @@ fn enforce_hasher_state<E: FieldElement + From<Felt>>(
     constraint_offset
 }
 
-/// Enforces constraints for a single round of Rescue hash functions when flag = 1 using the
-/// provided round constants.
-pub fn enforce_rescue_round<E: FieldElement + From<Felt>>(
+/// Enforces constraints for a single round of the Rescue Prime Optimized hash functions when
+/// flag = 1 using the provided round constants.
+pub fn enforce_rpo_round<E: FieldElement + From<Felt>>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],
     ark: &[E],
     flag: E,
 ) {
-    // Compute the state that should result from applying the first half of Rescue round
-    // to the current state of the computation.
+    // compute the state that should result from applying the first 5 operations of the RPO round to
+    // the current hash state.
     let mut step1 = [E::ZERO; STATE_WIDTH];
     step1.copy_from_slice(frame.hash_state());
-    apply_sbox(&mut step1);
     apply_mds(&mut step1);
+    // add constants
     for i in 0..STATE_WIDTH {
         step1[i] += ark[i];
     }
+    apply_sbox(&mut step1);
+    apply_mds(&mut step1);
+    // add constants
+    for i in 0..STATE_WIDTH {
+        step1[i] += ark[STATE_WIDTH + i];
+    }
 
-    // Compute the state that should result from applying the inverse for the second
-    // half for Rescue round to the next step of the computation.
+    // compute the state that should result from applying the inverse of the last operation of the
+    // RPO round to the next step of the computation.
     let mut step2 = [E::ZERO; STATE_WIDTH];
     step2.copy_from_slice(frame.hash_state_next());
-    for i in 0..STATE_WIDTH {
-        step2[i] -= ark[STATE_WIDTH + i];
-    }
-    apply_inv_mds(&mut step2);
     apply_sbox(&mut step2);
 
-    // Make sure that the results are equal.
+    // make sure that the results are equal.
     for i in 0..STATE_WIDTH {
         result.agg_constraint(i, flag, are_equal(step2[i], step1[i]));
     }
@@ -320,17 +323,6 @@ fn apply_sbox<E: FieldElement + From<Felt>>(state: &mut [E; STATE_WIDTH]) {
 fn apply_mds<E: FieldElement + From<Felt>>(state: &mut [E; STATE_WIDTH]) {
     let mut result = [E::ZERO; STATE_WIDTH];
     result.iter_mut().zip(Hasher::MDS).for_each(|(r, mds_row)| {
-        state.iter().zip(mds_row).for_each(|(&s, m)| {
-            *r += E::from(m) * s;
-        });
-    });
-    *state = result
-}
-
-#[inline(always)]
-fn apply_inv_mds<E: FieldElement + From<Felt>>(state: &mut [E; STATE_WIDTH]) {
-    let mut result = [E::ZERO; STATE_WIDTH];
-    result.iter_mut().zip(Hasher::INV_MDS).for_each(|(r, mds_row)| {
         state.iter().zip(mds_row).for_each(|(&s, m)| {
             *r += E::from(m) * s;
         });
@@ -600,7 +592,7 @@ pub const HASH_K2_MASK: [Felt; HASH_CYCLE_LEN] = [
 // ROUND CONSTANTS
 // ================================================================================================
 
-/// Returns Rescue round constants arranged in column-major form.
+/// Returns RPO round constants arranged in column-major form.
 pub fn get_round_constants() -> Vec<Vec<Felt>> {
     let mut constants = Vec::new();
     for _ in 0..(STATE_WIDTH * 2) {

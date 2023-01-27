@@ -14,8 +14,10 @@ use crate::helpers::crypto::{init_merkle_leaf, init_merkle_leaves};
 fn rpperm() {
     let asm_op = "rpperm";
 
-    // --- test hashing [ONE, ONE] ----------------------------------------------------------------
-    let values: Vec<u64> = vec![2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
+    // --- test hashing 8 random values -----------------------------------------------------------
+    let mut values = rand_vector::<u64>(8);
+    let capacity: Vec<u64> = vec![0, 0, 0, 0];
+    values.extend_from_slice(&capacity);
     let expected = build_expected_perm(&values);
 
     let test = build_op_test!(asm_op, &values);
@@ -23,10 +25,8 @@ fn rpperm() {
 
     assert_eq!(expected, &last_state[0..12]);
 
-    // --- test hashing 8 random values -----------------------------------------------------------
-    let mut values = rand_vector::<u64>(8);
-    let capacity: Vec<u64> = vec![0, 0, 0, 8];
-    values.extend_from_slice(&capacity);
+    // --- test hashing # of values that's not a multiple of the rate: [ONE, ONE] -----------------
+    let values: Vec<u64> = vec![1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0];
     let expected = build_expected_perm(&values);
 
     let test = build_op_test!(asm_op, &values);
@@ -39,7 +39,7 @@ fn rpperm() {
     let expected_stack_slice =
         stack_inputs.iter().rev().map(|&v| Felt::new(v)).collect::<Vec<Felt>>();
 
-    let values_to_hash: Vec<u64> = vec![2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
+    let values_to_hash: Vec<u64> = vec![1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0];
     stack_inputs.extend_from_slice(&values_to_hash);
 
     let test = build_op_test!(asm_op, &stack_inputs);
@@ -144,16 +144,20 @@ fn mtree_update() {
     // update a node value and replace the old root
     let asm_op = "mtree_set";
 
+    let old_node = tree
+        .get_node(tree.depth(), index as u64)
+        .expect("Value should have been set on initialization");
+
     // expected state has the new leaf and the new root of the tree
     let final_stack = [
+        old_node[3].as_int(),
+        old_node[2].as_int(),
+        old_node[1].as_int(),
+        old_node[0].as_int(),
         new_tree.root()[3].as_int(),
         new_tree.root()[2].as_int(),
         new_tree.root()[1].as_int(),
         new_tree.root()[0].as_int(),
-        new_node[3].as_int(),
-        new_node[2].as_int(),
-        new_node[1].as_int(),
-        new_node[0].as_int(),
     ];
 
     let test = build_op_test!(asm_op, &stack_inputs, &[], vec![tree.clone()]);

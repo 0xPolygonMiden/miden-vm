@@ -19,9 +19,9 @@ Currently, there are 3 ways to get values onto the stack:
 2. The stack can be initialized to some set of values at the beginning of the program. These inputs are public and must be shared with the verifier for them to verify a proof of the correct execution of a Miden program. The number of elements at the top of the stack which can receive an initial value is limited to 16.
 3. The program may request nondeterministic advice inputs from the prover. These inputs are secret inputs. This means that the prover does not need to share them with the verifier. There are two types of advice inputs: (1) a single advice tape which can contain any number of elements and (2) a list of advice sets, which are used to provide nondeterministic inputs for instructions which work with Merkle trees. There are no restrictions on the number of advice inputs a program can request.
 
-Stack and advice inputs are provided to Miden VM via `ProgramInputs` struct. To instantiate this struct, you can use `ProgramInputs::new()` constructor, as well as `ProgramInputs::from_stack_inputs()` and `ProgramInputs:none()` convenience constructors.
+The stack is provided to Miden VM via `StackInputs` struct. These are public inputs of the execution, and should also be provided to the verifier. The secret inputs of the program are provided via `AdviceProvider` instances. There is one in-memory advice provider that can be commonly used for operations that won't require persistence: `MemAdviceProvider`.
 
-Values remaining on the stack after a program is executed can be returned as program outputs. You can specify exactly how many values (from the top of the stack) should be returned. Currently, the maximum number of outputs is limited to 16.
+Values remaining on the stack after a program is executed can be returned as stack outputs. You can specify exactly how many values (from the top of the stack) should be returned. Currently, the maximum number of outputs is limited to 16.
 
 Having only 16 elements to describe public inputs and outputs of a program may seem limiting, however, just 4 elements are sufficient to represent a root of a Merkle tree or a sequential hash of elements. Both of these can be expanded into an arbitrary number of values by supplying the actual values non-deterministically via the advice provider.
 
@@ -32,15 +32,16 @@ Miden crate exposes several functions which can be used to execute programs, gen
 To execute a program on Miden VM, you can use either `execute()` or `execute_iter()` functions. Both of these functions take the same arguments:
 
 * `program: &Program` - a reference to a Miden program to be executed.
-* `inputs: &ProgramInputs` - a reference to a set of public and secret inputs with which to execute the program.
+* `stack_inputs: StackInputs` - a set of public inputs with which to execute the program.
+* `advice_provider: AdviceProvider` - an instance of an advice provider that yields secret, non-deterministic inputs to the prover.
 
 The `execute()` function returns a `Result<ExecutionTrace, ExecutionError>` which will contain the execution trace of the program if the execution was successful, or an error, if the execution failed. You can inspect the trace to get the final state of the VM out of it, but generally, this trace is intended to be used internally by the prover during proof generation process.
 
 The `execute_iter()` function returns a `VmStateIterator` which can be used to iterate over the cycles of the executed program for debug purposes. In fact, when we execute a program using this function, a lot of the debug information is retained and we can get a precise picture of the VM's state at any cycle. Moreover, if the execution results in an error, the `VmStateIterator` can still be used to inspect VM states right up to the cycle at which the error occurred.
 
 For example:
-```Rust
-use miden::{Assembler, ProgramInputs};
+```rust
+use miden::{Assembler, execute, execute_iter, MemAdviceProvider, StackInputs};
 
 // instantiate the assembler
 let assembler = Assembler::default();
@@ -48,11 +49,17 @@ let assembler = Assembler::default();
 // compile Miden assembly source code into a program
 let program = assembler.compile("begin push.3 push.5 add end").unwrap();
 
+// use an empty list as initial stack
+let stack_inputs = StackInputs::default();
+
+// instantiate an empty advice provider
+let mut advice_provider = MemAdviceProvider::default();
+
 // execute the program with no inputs
-let trace = miden::execute(&program, &ProgramInputs::none()).unwrap();
+let trace = execute(&program, stack_inputs.clone(), &mut advice_provider).unwrap();
 
 // now, execute the same program in debug mode and iterate over VM states
-for vm_state in miden::execute_iter(&program, &ProgramInputs::none()) {
+for vm_state in execute_iter(&program, stack_inputs, advice_provider) {
     match vm_state {
         Ok(vm_state) => println!("{:?}", vm_state),
         Err(_) => println!("something went terribly wrong!"),
@@ -64,8 +71,8 @@ for vm_state in miden::execute_iter(&program, &ProgramInputs::none()) {
 To execute a program on Miden VM and generate a proof that the program was executed correctly, you can use the `prove()` function. This function takes the following arguments:
 
 * `program: &Program` - a reference to a Miden program to be executed.
-* `inputs: &ProgramInputs` - a reference to a set of public and secret inputs with which to execute the program.
-* `num_stack_outputs: usize` - number of items on the stack to be returned as program output.
+* `stack_inputs: StackInputs` - a set of public inputs with which to execute the program.
+* `advice_provider: AdviceProvider` - an instance of an advice provider that yields secret, non-deterministic inputs to the prover.
 * `options: &ProofOptions` - config parameters for proof generation. The default options target 96-bit security level.
 
 If the program is executed successfully, the function returns a tuple with 2 elements:
@@ -75,8 +82,8 @@ If the program is executed successfully, the function returns a tuple with 2 ele
 
 #### Proof generation example
 Here is a simple example of executing a program which pushes two numbers onto the stack and computes their sum:
-```Rust
-use miden::{Assembler, ProgramInputs, ProofOptions};
+```rust
+use miden::{Assembler, MemAdviceProvider, ProofOptions, prove, StackInputs};
 
 // instantiate the assembler
 let assembler = Assembler::default();
@@ -85,16 +92,16 @@ let assembler = Assembler::default();
 let program = assembler.compile("begin push.3 push.5 add end").unwrap();
 
 // let's execute it and generate a STARK proof
-let (outputs, proof) = miden::prove(
+let (outputs, proof) = prove(
     &program,
-    &ProgramInputs::none(),   // we won't provide any inputs
-    1,                        // we'll return one item from the stack
-    &ProofOptions::default(), // we'll be using default options
+    StackInputs::default(),       // we won't provide any inputs
+    MemAdviceProvider::default(), // we won't provide advice inputs
+    &ProofOptions::default(),     // we'll be using default options
 )
 .unwrap();
 
 // the output should be 8
-assert_eq!(vec![8], outputs);
+assert_eq!(Some(&8), outputs.stack().first());
 ```
 
 ### Verifying program execution
@@ -117,14 +124,14 @@ Notice how the verifier needs to know only the hash of the program - not what th
 
 #### Proof verification example
 Here is a simple example of verifying execution of the program from the previous example:
-```Rust
+```rust,ignore
 use miden;
 
 let program =   /* value from previous example */;
 let proof =     /* value from previous example */;
 
 // let's verify program execution
-match miden::verify(program.hash(), &[], &[8], proof) {
+match miden::verify(program.hash(), StackInputs::default(), &[8], proof) {
     Ok(_) => println!("Execution verified!"),
     Err(msg) => println!("Something went terribly wrong: {}", msg),
 }
@@ -133,7 +140,7 @@ match miden::verify(program.hash(), &[], &[8], proof) {
 ## Fibonacci calculator
 Let's write a simple program for Miden VM (using [Miden assembly](../assembly)). Our program will compute the 5-th [Fibonacci number](https://en.wikipedia.org/wiki/Fibonacci_number):
 
-```
+```masm
 push.0      // stack state: 0
 push.1      // stack state: 1 0
 swap        // stack state: 0 1
@@ -147,8 +154,8 @@ dup.1       // stack state: 2 1 2
 add         // stack state: 3 2
 ```
 Notice that except for the first 2 operations which initialize the stack, the sequence of `swap dup.1 add` operations repeats over and over. In fact, we can repeat these operations an arbitrary number of times to compute an arbitrary Fibonacci number. In Rust, it would look like this (this is actually a simplified version of the example in [fibonacci.rs](src/examples/src/fibonacci.rs)):
-```Rust
-use miden::{Assembler, ProgramInputs, ProofOptions};
+```rust
+use miden::{Assembler, MemAdviceProvider, ProofOptions, StackInputs};
 
 // set the number of terms to compute
 let n = 50;
@@ -165,20 +172,26 @@ let source = format!(
 );
 let program = Assembler::default().compile(&source).unwrap();
 
+// initialize an empty advice provider
+let advice_provider = MemAdviceProvider::default();
+
 // initialize the stack with values 0 and 1
-let inputs = ProgramInputs::from_stack_inputs(&[0, 1]).unwrap();
+let stack_inputs = StackInputs::try_from_values([0, 1]).unwrap();
 
 // execute the program
 let (outputs, proof) = miden::prove(
     &program,
-    &inputs,
-    1,                        // top stack item is the output
+    stack_inputs,
+    advice_provider,
     &ProofOptions::default(), // use default proof options
 )
 .unwrap();
 
+// fetch the stack outputs, truncating to the first element
+let stack = outputs.stack_truncated(1);
+
 // the output should be the 50th Fibonacci number
-assert_eq!(vec![12586269025], outputs);
+assert_eq!(&[12586269025], stack);
 ```
 Above, we used public inputs to initialize the stack rather than using `push` operations. This makes the program a bit simpler, and also allows us to run the program from arbitrary starting points without changing program hash.
 
@@ -189,19 +202,19 @@ If you want to execute, prove, and verify programs on Miden VM, but don't want t
 First, make sure you have Rust [installed](https://www.rust-lang.org/tools/install). The current version of Miden VM requires Rust version **1.62** or later.
 
 Then, to compile Miden VM into a binary, run the following command:
-```
+```shell
 cargo build --release --features executable
 ```
 This will place `miden` executable in the `./target/release` directory.
 
 By default, the executable will be compiled in the single-threaded mode. If you would like to enable multi-threaded proof generation, you can compile Miden VM using the following command:
-```
+```shell
 cargo build --release --features "executable concurrent"
 ```
 
 ### Running Miden VM
 Once the executable has been compiled, you can run Miden VM like so:
-```
+```shell
 ./target/release/miden [subcommand] [parameters]
 ```
 Currently, Miden VM can be executed with the following subcommands:
@@ -212,17 +225,17 @@ Currently, Miden VM can be executed with the following subcommands:
 * `analyze` - this will run a Miden assembly program against specific inputs and will output stats about its execution.
 
 All of the above subcommands require various parameters to be provided. To get more detailed help on what is needed for a given subcommand, you can run the following:
-```
+```shell
 ./target/release/miden [subcommand] --help
 ```
 For example:
-```
+```shell
 ./target/release/miden prove --help
 ```
 
 ### Fibonacci example
 In the `miden/examples/fib` directory, we provide a very simple Fibonacci calculator example. This example computes the 1000th term of the Fibonacci sequence. You can execute this example on Miden VM like so:
-```
+```shell
 ./target/release/miden run -a miden/examples/fib/fib.masm -n 1
 ```
 This will run the example code to completion and will output the top element remaining on the stack.

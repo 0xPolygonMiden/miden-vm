@@ -12,14 +12,14 @@ const PROC2_HASH: Word = [ONE, ONE, ONE, ONE];
 #[test]
 fn kernel_rom_empty() {
     let kernel = Kernel::default();
-    let rom = KernelRom::new(&kernel);
+    let rom = KernelRom::new(kernel);
     assert_eq!(0, rom.trace_len());
 }
 
 #[test]
 fn kernel_rom_invalid_access() {
     let kernel = build_kernel();
-    let mut rom = KernelRom::new(&kernel);
+    let mut rom = KernelRom::new(kernel);
 
     // accessing procedure which is in the kernel should be fine
     assert!(rom.access_proc(PROC1_HASH.into()).is_ok());
@@ -31,7 +31,7 @@ fn kernel_rom_invalid_access() {
 #[test]
 fn kernel_rom_no_access() {
     let kernel = build_kernel();
-    let rom = KernelRom::new(&kernel);
+    let rom = KernelRom::new(kernel);
 
     let expected_trace_len = 2;
     assert_eq!(expected_trace_len, rom.trace_len());
@@ -63,7 +63,7 @@ fn kernel_rom_no_access() {
 #[test]
 fn kernel_rom_with_access() {
     let kernel = build_kernel();
-    let mut rom = KernelRom::new(&kernel);
+    let mut rom = KernelRom::new(kernel);
 
     // generate 5 access: 3 for proc1 and 2 for proc2
     rom.access_proc(PROC1_HASH.into()).unwrap();

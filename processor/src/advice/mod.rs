@@ -1,4 +1,4 @@
-use super::{ExecutionError, Felt, ProgramInputs, Word};
+use super::{utils, ExecutionError, Felt, InputError, Word};
 use vm_core::{
     utils::{
         collections::{BTreeMap, Vec},
@@ -7,8 +7,14 @@ use vm_core::{
     AdviceSet, StarkField,
 };
 
+mod inputs;
+pub use inputs::AdviceInputs;
+
 mod mem_provider;
 pub use mem_provider::MemAdviceProvider;
+
+mod source;
+pub use source::AdviceSource;
 
 // ADVICE PROVIDER
 // ================================================================================================
@@ -40,6 +46,24 @@ pub use mem_provider::MemAdviceProvider;
 /// 3. Provide advice sets, that are mappings from a Merkle root its tree. The tree should yield
 ///    nodes & leaves, and will provide a Merkle path if a leaf is updated.
 pub trait AdviceProvider {
+    // ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Creates a "by reference" advice provider for this instance.
+    ///
+    /// The returned adapter also implements `AdviceProvider` and will simply mutably borrow this
+    /// instance.
+    fn by_ref(&mut self) -> &mut Self {
+        // this trait follows the same model as
+        // [io::Read](https://doc.rust-lang.org/std/io/trait.Read.html#method.by_ref).
+        //
+        // this approach allows the flexibility to take an advice provider either as owned or by
+        // mutable reference - both equally compatible with the trait requirements as we implement
+        // `AdviceProvider` for mutable references of any type that also implements advice
+        // provider.
+        self
+    }
+
     // ADVICE TAPE
     // --------------------------------------------------------------------------------------------
 
@@ -67,21 +91,8 @@ pub trait AdviceProvider {
     /// Returns an error if the advice tape does not contain two words.
     fn read_tape_dw(&mut self) -> Result<[Word; 2], ExecutionError>;
 
-    /// Writes the provided value at the head of the advice tape.
-    fn write_tape(&mut self, value: Felt);
-
-    /// Fetch a keyed tape from the values map, reversing and appending it to the advice tape.
-    ///
-    /// Note: this operation shouldn't consume the map element so it can be called multiple times
-    /// for the same key.
-    ///
-    /// # Example
-    /// Given an advice map `[a,b,c]`, and a map `x |-> [d,e,f]`, a call `write_tape_from_map(x)`
-    /// will result in `[a,b,c,f,e,d]` for the advice tape, and will preserve `x |-> [d,e,f]`.
-    ///
-    /// # Errors
-    /// Returns an error if the key was not found in a key-value map.
-    fn write_tape_from_map(&mut self, key: Word) -> Result<(), ExecutionError>;
+    /// Writes values specified by the source to the head of the advice tape.
+    fn write_tape(&mut self, source: AdviceSource) -> Result<(), ExecutionError>;
 
     /// Maps a key to a value list to be yielded by `write_tape_from_map`.
     ///
@@ -147,4 +158,56 @@ pub trait AdviceProvider {
     /// This is used to keep the state of the VM in sync with the state of the advice provider, and
     /// should be incrementally updated when called.
     fn advance_clock(&mut self);
+}
+
+impl<'a, T> AdviceProvider for &'a mut T
+where
+    T: AdviceProvider,
+{
+    fn read_tape(&mut self) -> Result<Felt, ExecutionError> {
+        T::read_tape(self)
+    }
+
+    fn read_tape_w(&mut self) -> Result<Word, ExecutionError> {
+        T::read_tape_w(self)
+    }
+
+    fn read_tape_dw(&mut self) -> Result<[Word; 2], ExecutionError> {
+        T::read_tape_dw(self)
+    }
+
+    fn write_tape(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
+        T::write_tape(self, source)
+    }
+
+    fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {
+        T::insert_into_map(self, key, values)
+    }
+
+    fn get_tree_node(&self, root: Word, depth: Felt, index: Felt) -> Result<Word, ExecutionError> {
+        T::get_tree_node(self, root, depth, index)
+    }
+
+    fn get_merkle_path(
+        &self,
+        root: Word,
+        depth: Felt,
+        index: Felt,
+    ) -> Result<Vec<Word>, ExecutionError> {
+        T::get_merkle_path(self, root, depth, index)
+    }
+
+    fn update_merkle_leaf(
+        &mut self,
+        root: Word,
+        index: Felt,
+        leaf_value: Word,
+        update_in_copy: bool,
+    ) -> Result<Vec<Word>, ExecutionError> {
+        T::update_merkle_leaf(self, root, index, leaf_value, update_in_copy)
+    }
+
+    fn advance_clock(&mut self) {
+        T::advance_clock(self)
+    }
 }

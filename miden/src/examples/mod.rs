@@ -1,4 +1,4 @@
-use miden::{Program, ProgramInputs, ProofOptions, StackInputs, StarkProof};
+use miden::{AdviceProvider, Program, ProgramInfo, ProofOptions, StackInputs, StarkProof};
 use std::io::Write;
 use std::time::Instant;
 use structopt::StructOpt;
@@ -8,10 +8,13 @@ pub mod fibonacci;
 // EXAMPLE
 // ================================================================================================
 
-pub struct Example {
+pub struct Example<A>
+where
+    A: AdviceProvider,
+{
     pub program: Program,
     pub stack_inputs: StackInputs,
-    pub program_inputs: ProgramInputs,
+    pub advice_provider: A,
     pub num_outputs: usize,
     pub expected_result: Vec<u64>,
 }
@@ -69,7 +72,7 @@ impl ExampleOptions {
         let Example {
             program,
             stack_inputs,
-            program_inputs,
+            advice_provider,
             num_outputs,
             expected_result,
             ..
@@ -78,8 +81,8 @@ impl ExampleOptions {
 
         // execute the program and generate the proof of execution
         let now = Instant::now();
-        let (outputs, proof) =
-            miden::prove(&program, stack_inputs.clone(), &program_inputs, &proof_options).unwrap();
+        let (stack_outputs, proof) =
+            miden::prove(&program, stack_inputs.clone(), advice_provider, &proof_options).unwrap();
         println!("--------------------------------");
 
         println!(
@@ -87,10 +90,10 @@ impl ExampleOptions {
             //hex::encode(program.hash()), // TODO: include into message
             now.elapsed().as_millis()
         );
-        println!("Program output: {:?}", outputs.stack_outputs(num_outputs));
+        println!("Stack outputs: {:?}", stack_outputs.stack_truncated(num_outputs));
         assert_eq!(
             expected_result,
-            outputs.stack_outputs(num_outputs),
+            stack_outputs.stack_truncated(num_outputs),
             "Program result was computed incorrectly"
         );
 
@@ -104,7 +107,9 @@ impl ExampleOptions {
         // results in the expected output
         let proof = StarkProof::from_bytes(&proof_bytes).unwrap();
         let now = Instant::now();
-        match miden::verify(program.hash(), stack_inputs, &outputs, proof) {
+        let program_info = ProgramInfo::from(program);
+
+        match miden::verify(program_info, stack_inputs, stack_outputs, proof) {
             Ok(_) => println!("Execution verified in {} ms", now.elapsed().as_millis()),
             Err(err) => println!("Failed to verify execution: {}", err),
         }
@@ -117,17 +122,20 @@ impl ExampleOptions {
 // ================================================================================================
 
 #[cfg(test)]
-pub fn test_example(example: Example, fail: bool) {
+pub fn test_example<A>(example: Example<A>, fail: bool)
+where
+    A: AdviceProvider,
+{
     let Example {
         program,
         stack_inputs,
-        program_inputs,
+        advice_provider,
         num_outputs,
         expected_result,
     } = example;
 
     let (mut outputs, proof) =
-        miden::prove(&program, stack_inputs.clone(), &program_inputs, &ProofOptions::default())
+        miden::prove(&program, stack_inputs.clone(), advice_provider, &ProofOptions::default())
             .unwrap();
 
     assert_eq!(

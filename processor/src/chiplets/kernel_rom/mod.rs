@@ -37,6 +37,7 @@ type ProcHashBytes = [u8; 32];
 ///   column, these form tuples (index, procedure root) for all procedures in the kernel.
 pub struct KernelRom {
     access_map: BTreeMap<ProcHashBytes, ProcAccessInfo>,
+    kernel: Kernel,
     trace_len: usize,
 }
 
@@ -47,7 +48,8 @@ impl KernelRom {
     ///
     /// The kernel ROM is populated with all procedures from the provided kernel. For each
     /// procedure access count is set to 0.
-    pub fn new(kernel: &Kernel) -> Self {
+    pub fn new(kernel: Kernel) -> Self {
+        let trace_len = kernel.proc_hashes().len();
         let mut access_map = BTreeMap::new();
         for &proc_hash in kernel.proc_hashes() {
             access_map.insert(proc_hash.into(), ProcAccessInfo::new(proc_hash));
@@ -55,7 +57,8 @@ impl KernelRom {
 
         Self {
             access_map,
-            trace_len: kernel.proc_hashes().len(),
+            kernel,
+            trace_len,
         }
     }
 
@@ -110,6 +113,14 @@ impl KernelRom {
                 row += 1;
             }
         }
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns the underlying kernel for this ROM.
+    pub const fn kernel(&self) -> &Kernel {
+        &self.kernel
     }
 }
 

@@ -1,4 +1,7 @@
-use super::{AdviceInjector, AdviceProvider, Decorator, ExecutionError, Felt, Process, StarkField};
+use super::{
+    AdviceInjector, AdviceProvider, AdviceSource, Decorator, ExecutionError, Felt, Process,
+    StarkField,
+};
 use vm_core::{utils::collections::Vec, FieldElement, QuadExtension, WORD_LEN, ZERO};
 use winterfell::math::fft;
 
@@ -72,10 +75,10 @@ where
 
         // write the node into the advice tape with first element written last so that it can be
         // removed first
-        self.advice_provider.write_tape(node[3]);
-        self.advice_provider.write_tape(node[2]);
-        self.advice_provider.write_tape(node[1]);
-        self.advice_provider.write_tape(node[0]);
+        self.advice_provider.write_tape(AdviceSource::Value(node[3]))?;
+        self.advice_provider.write_tape(AdviceSource::Value(node[2]))?;
+        self.advice_provider.write_tape(AdviceSource::Value(node[1]))?;
+        self.advice_provider.write_tape(AdviceSource::Value(node[0]))?;
 
         Ok(())
     }
@@ -110,10 +113,10 @@ where
         let (q_hi, q_lo) = u64_to_u32_elements(quotient);
         let (r_hi, r_lo) = u64_to_u32_elements(remainder);
 
-        self.advice_provider.write_tape(r_hi);
-        self.advice_provider.write_tape(r_lo);
-        self.advice_provider.write_tape(q_hi);
-        self.advice_provider.write_tape(q_lo);
+        self.advice_provider.write_tape(AdviceSource::Value(r_hi))?;
+        self.advice_provider.write_tape(AdviceSource::Value(r_lo))?;
+        self.advice_provider.write_tape(AdviceSource::Value(q_hi))?;
+        self.advice_provider.write_tape(AdviceSource::Value(q_lo))?;
 
         Ok(())
     }
@@ -126,7 +129,7 @@ where
     /// Returns an error if the required key was not found in the key-value map.
     fn inject_map_value(&mut self) -> Result<(), ExecutionError> {
         let top_word = self.stack.get_top_word();
-        self.advice_provider.write_tape_from_map(top_word)?;
+        self.advice_provider.write_tape(AdviceSource::Map { key: top_word })?;
 
         Ok(())
     }
@@ -186,8 +189,8 @@ where
         let elm_arr = [inv_elm];
         let coeffs = Ext2Element::as_base_elements(&elm_arr);
 
-        self.advice_provider.write_tape(coeffs[1]);
-        self.advice_provider.write_tape(coeffs[0]);
+        self.advice_provider.write_tape(AdviceSource::Value(coeffs[1]))?;
+        self.advice_provider.write_tape(AdviceSource::Value(coeffs[0]))?;
 
         Ok(())
     }
@@ -246,8 +249,8 @@ where
         let twiddles = fft::get_inv_twiddles::<Felt>(in_evaluations_len);
         fft::interpolate_poly::<Felt, Ext2Element>(&mut poly, &twiddles);
 
-        for i in Ext2Element::as_base_elements(&poly[..out_poly_len]).iter().rev() {
-            self.advice_provider.write_tape(*i);
+        for i in Ext2Element::as_base_elements(&poly[..out_poly_len]).iter().rev().copied() {
+            self.advice_provider.write_tape(AdviceSource::Value(i))?;
         }
 
         Ok(())
@@ -269,11 +272,11 @@ fn u64_to_u32_elements(value: u64) -> (Felt, Felt) {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Felt, FieldElement, Kernel, Operation, StarkField},
+        super::{AdviceInputs, Felt, FieldElement, Kernel, Operation, StarkField},
         Process,
     };
-    use crate::{StackInputs, Word};
-    use vm_core::{AdviceInjector, AdviceSet, Decorator, ProgramInputs};
+    use crate::{MemAdviceProvider, StackInputs, Word};
+    use vm_core::{AdviceInjector, AdviceSet, Decorator};
 
     #[test]
     fn inject_merkle_node() {
@@ -289,9 +292,10 @@ mod tests {
             tree.depth() as u64,
         ];
 
-        let inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
-        let stack = StackInputs::try_from_values(stack_inputs).unwrap();
-        let mut process = Process::new(&Kernel::default(), stack, inputs);
+        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+        let advice_provider = MemAdviceProvider::from(advice_inputs);
+        let mut process = Process::new(Kernel::default(), stack_inputs, advice_provider);
         process.execute_op(Operation::Noop).unwrap();
 
         // inject the node into the advice tape

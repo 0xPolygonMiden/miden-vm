@@ -146,7 +146,7 @@ impl MerkleTree {
 #[cfg(test)]
 mod tests {
     use super::{Felt, FieldElement, Word};
-    use crypto::{hashers::Rp64_256, ElementHasher, Hasher};
+    use crypto::hash::rpo::Rpo256 as Hasher;
 
     const LEAVES4: [Word; 4] = [int_to_node(1), int_to_node(2), int_to_node(3), int_to_node(4)];
 
@@ -242,9 +242,9 @@ mod tests {
     // --------------------------------------------------------------------------------------------
 
     fn compute_internal_nodes() -> (Word, Word, Word) {
-        let node2 = Rp64_256::hash_elements(&[LEAVES4[0], LEAVES4[1]].concat());
-        let node3 = Rp64_256::hash_elements(&[LEAVES4[2], LEAVES4[3]].concat());
-        let root = Rp64_256::merge(&[node2, node3]);
+        let node2 = Hasher::hash_elements(&[LEAVES4[0], LEAVES4[1]].concat());
+        let node3 = Hasher::hash_elements(&[LEAVES4[2], LEAVES4[3]].concat());
+        let root = Hasher::merge(&[node2, node3]);
 
         (root.into(), node2.into(), node3.into())
     }

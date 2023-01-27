@@ -7,14 +7,14 @@ extern crate alloc;
 pub use vm_core::{
     chiplets::hasher::Digest,
     errors::{AdviceSetError, InputError},
-    AdviceSet, Operation, Program, ProgramInputs, ProgramOutputs, StackInputs, Word,
+    AdviceSet, Kernel, Operation, Program, ProgramInfo, StackInputs, StackOutputs, Word,
 };
 use vm_core::{
     code_blocks::{
         Call, CodeBlock, Join, Loop, OpBatch, Span, Split, OP_BATCH_SIZE, OP_GROUP_SIZE,
     },
     utils::collections::{BTreeMap, Vec},
-    AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement, Kernel,
+    AdviceInjector, CodeBlockTable, Decorator, DecoratorIterator, Felt, FieldElement,
     StackTopState, StarkField, CHIPLETS_WIDTH, DECODER_TRACE_WIDTH, MIN_TRACE_LEN, ONE,
     RANGE_CHECK_TRACE_WIDTH, STACK_TRACE_WIDTH, SYS_TRACE_WIDTH, ZERO,
 };
@@ -38,7 +38,7 @@ mod range;
 use range::RangeChecker;
 
 mod advice;
-use advice::{AdviceProvider, MemAdviceProvider};
+pub use advice::{AdviceInputs, AdviceProvider, AdviceSource, MemAdviceProvider};
 
 mod chiplets;
 use chiplets::Chiplets;
@@ -93,26 +93,32 @@ pub struct ChipletsTrace {
 
 /// Returns an execution trace resulting from executing the provided program against the provided
 /// inputs.
-pub fn execute(
+pub fn execute<A>(
     program: &Program,
     stack_inputs: StackInputs,
-    advice_inputs: &ProgramInputs,
-) -> Result<ExecutionTrace, ExecutionError> {
-    let mut process = Process::new(program.kernel(), stack_inputs, advice_inputs.clone());
-    let program_outputs = process.execute(program)?;
-    let trace = ExecutionTrace::new(process, program_outputs);
-    assert_eq!(program.hash(), trace.program_hash(), "inconsistent program hash");
+    advice_provider: A,
+) -> Result<ExecutionTrace, ExecutionError>
+where
+    A: AdviceProvider,
+{
+    let mut process = Process::new(program.kernel().clone(), stack_inputs, advice_provider);
+    let stack_outputs = process.execute(program)?;
+    let trace = ExecutionTrace::new(process, stack_outputs);
+    assert_eq!(&program.hash(), trace.program_hash(), "inconsistent program hash");
     Ok(trace)
 }
 
 /// Returns an iterator which allows callers to step through the execution and inspect VM state at
 /// each execution step.
-pub fn execute_iter(
+pub fn execute_iter<A>(
     program: &Program,
     stack_inputs: StackInputs,
-    advice_inputs: &ProgramInputs,
-) -> VmStateIterator {
-    let mut process = Process::new_debug(program.kernel(), stack_inputs, advice_inputs.clone());
+    advice_provider: A,
+) -> VmStateIterator
+where
+    A: AdviceProvider,
+{
+    let mut process = Process::new_debug(program.kernel().clone(), stack_inputs, advice_provider);
     let result = process.execute(program);
     if result.is_ok() {
         assert_eq!(
@@ -139,25 +145,26 @@ where
     advice_provider: A,
 }
 
-impl Process<MemAdviceProvider> {
+impl<A> Process<A>
+where
+    A: AdviceProvider,
+{
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
     /// Creates a new process with the provided inputs.
-    pub fn new(kernel: &Kernel, stack: StackInputs, inputs: ProgramInputs) -> Self {
-        let advice_provider = MemAdviceProvider::from(inputs);
-        Self::initialize(kernel, stack, advice_provider, false)
+    pub fn new(kernel: Kernel, stack_inputs: StackInputs, advice_provider: A) -> Self {
+        Self::initialize(kernel, stack_inputs, advice_provider, false)
     }
 
     /// Creates a new process with provided inputs and debug options enabled.
-    pub fn new_debug(kernel: &Kernel, stack: StackInputs, inputs: ProgramInputs) -> Self {
-        let advice_provider = MemAdviceProvider::from(inputs);
-        Self::initialize(kernel, stack, advice_provider, true)
+    pub fn new_debug(kernel: Kernel, stack_inputs: StackInputs, advice_provider: A) -> Self {
+        Self::initialize(kernel, stack_inputs, advice_provider, true)
     }
 
     fn initialize(
-        kernel: &Kernel,
+        kernel: Kernel,
         stack: StackInputs,
-        advice_provider: MemAdviceProvider,
+        advice_provider: A,
         in_debug_mode: bool,
     ) -> Self {
         Self {
@@ -169,21 +176,16 @@ impl Process<MemAdviceProvider> {
             advice_provider,
         }
     }
-}
 
-impl<A> Process<A>
-where
-    A: AdviceProvider,
-{
     // PROGRAM EXECUTOR
     // --------------------------------------------------------------------------------------------
 
     /// Executes the provided [Program] in this process.
-    pub fn execute(&mut self, program: &Program) -> Result<ProgramOutputs, ExecutionError> {
+    pub fn execute(&mut self, program: &Program) -> Result<StackOutputs, ExecutionError> {
         assert_eq!(self.system.clk(), 0, "a program has already been executed in this process");
         self.execute_code_block(program.root(), program.cb_table())?;
 
-        Ok(self.stack.get_outputs())
+        Ok(self.stack.build_stack_outputs())
     }
 
     // CODE BLOCK EXECUTORS
@@ -418,6 +420,10 @@ where
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
+
+    pub const fn kernel(&self) -> &Kernel {
+        self.chiplets.kernel()
+    }
 
     pub fn get_memory_value(&self, ctx: u32, addr: u64) -> Option<Word> {
         self.chiplets.get_mem_value(ctx, addr)

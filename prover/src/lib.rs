@@ -16,8 +16,8 @@ use std::time::Instant;
 
 pub use air::{FieldExtension, HashFunction, ProofOptions};
 pub use processor::{
-    math, utils, AdviceSet, AdviceSetError, Digest, ExecutionError, InputError, Program,
-    ProgramInputs, ProgramOutputs, StackInputs, Word,
+    math, utils, AdviceInputs, AdviceProvider, AdviceSet, AdviceSetError, Digest, ExecutionError,
+    InputError, MemAdviceProvider, Program, StackInputs, StackOutputs, Word,
 };
 pub use prover::StarkProof;
 
@@ -33,16 +33,19 @@ pub use prover::StarkProof;
 ///
 /// # Errors
 /// Returns an error if program execution or STARK proof generation fails for any reason.
-pub fn prove(
+pub fn prove<A>(
     program: &Program,
     stack_inputs: StackInputs,
-    advice_inputs: &ProgramInputs,
+    advice_provider: A,
     options: &ProofOptions,
-) -> Result<(ProgramOutputs, StarkProof), ExecutionError> {
+) -> Result<(StackOutputs, StarkProof), ExecutionError>
+where
+    A: AdviceProvider,
+{
     // execute the program to create an execution trace
     #[cfg(feature = "std")]
     let now = Instant::now();
-    let trace = processor::execute(program, stack_inputs.clone(), advice_inputs)?;
+    let trace = processor::execute(program, stack_inputs.clone(), advice_provider)?;
     #[cfg(feature = "std")]
     debug!(
         "Generated execution trace of {} columns and {} steps in {} ms",
@@ -51,13 +54,13 @@ pub fn prove(
         now.elapsed().as_millis()
     );
 
-    let outputs = trace.program_outputs();
+    let stack_outputs = trace.stack_outputs().clone();
 
     // generate STARK proof
-    let prover = ExecutionProver::new(options.clone(), stack_inputs, outputs.clone());
+    let prover = ExecutionProver::new(options.clone(), stack_inputs, stack_outputs.clone());
     let proof = prover.prove(trace).map_err(ExecutionError::ProverError)?;
 
-    Ok((outputs, proof))
+    Ok((stack_outputs, proof))
 }
 
 // PROVER
@@ -66,15 +69,19 @@ pub fn prove(
 struct ExecutionProver {
     options: ProofOptions,
     stack_inputs: StackInputs,
-    outputs: ProgramOutputs,
+    stack_outputs: StackOutputs,
 }
 
 impl ExecutionProver {
-    pub fn new(options: ProofOptions, stack_inputs: StackInputs, outputs: ProgramOutputs) -> Self {
+    pub fn new(
+        options: ProofOptions,
+        stack_inputs: StackInputs,
+        stack_outputs: StackOutputs,
+    ) -> Self {
         Self {
             options,
             stack_inputs,
-            outputs,
+            stack_outputs,
         }
     }
 
@@ -83,28 +90,20 @@ impl ExecutionProver {
 
     /// Validates the stack inputs against the provided execution trace and returns true if valid.
     fn are_inputs_valid(&self, trace: &ExecutionTrace) -> bool {
-        for (input_element, trace_element) in
-            self.stack_inputs.values().iter().zip(trace.init_stack_state().iter())
-        {
-            if *input_element != *trace_element {
-                return false;
-            }
-        }
-
-        true
+        self.stack_inputs
+            .values()
+            .iter()
+            .zip(trace.init_stack_state().iter())
+            .all(|(l, r)| l == r)
     }
 
-    /// Validates the program outputs against the provided execution trace and returns true if valid.
+    /// Validates the stack outputs against the provided execution trace and returns true if valid.
     fn are_outputs_valid(&self, trace: &ExecutionTrace) -> bool {
-        for (output_element, trace_element) in
-            self.outputs.stack_top().iter().zip(trace.last_stack_state().iter())
-        {
-            if *output_element != *trace_element {
-                return false;
-            }
-        }
-
-        true
+        self.stack_outputs
+            .stack_top()
+            .iter()
+            .zip(trace.last_stack_state().iter())
+            .all(|(l, r)| l == r)
     }
 }
 
@@ -128,6 +127,7 @@ impl Prover for ExecutionProver {
             "provided outputs do not match the execution trace"
         );
 
-        PublicInputs::new(trace.program_hash(), self.stack_inputs.clone(), self.outputs.clone())
+        let program_info = trace.program_info().clone();
+        PublicInputs::new(program_info, self.stack_inputs.clone(), self.stack_outputs.clone())
     }
 }

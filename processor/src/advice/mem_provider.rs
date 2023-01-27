@@ -1,6 +1,6 @@
 use super::{
-    AdviceProvider, AdviceSet, BTreeMap, ExecutionError, Felt, IntoBytes, ProgramInputs,
-    StarkField, Vec, Word,
+    AdviceInputs, AdviceProvider, AdviceSet, AdviceSource, BTreeMap, ExecutionError, Felt,
+    IntoBytes, StarkField, Vec, Word,
 };
 
 // MEMORY ADVICE PROVIDER
@@ -17,9 +17,8 @@ pub struct MemAdviceProvider {
     sets: BTreeMap<[u8; 32], AdviceSet>,
 }
 
-// TODO remove if `ProgramInputs` is deprecated, or convert to `TryFrom`
-impl From<ProgramInputs> for MemAdviceProvider {
-    fn from(inputs: ProgramInputs) -> Self {
+impl From<AdviceInputs> for MemAdviceProvider {
+    fn from(inputs: AdviceInputs) -> Self {
         let (mut tape, values, sets) = inputs.into_parts();
         tape.reverse();
         Self {
@@ -59,18 +58,22 @@ impl AdviceProvider for MemAdviceProvider {
         Ok([word0, word1])
     }
 
-    fn write_tape(&mut self, value: Felt) {
-        self.tape.push(value);
-    }
+    fn write_tape(&mut self, source: AdviceSource) -> Result<(), ExecutionError> {
+        match source {
+            AdviceSource::Value(value) => {
+                self.tape.push(value);
+                Ok(())
+            }
 
-    fn write_tape_from_map(&mut self, key: Word) -> Result<(), ExecutionError> {
-        let values = self
-            .values
-            .get(&key.into_bytes())
-            .ok_or(ExecutionError::AdviceKeyNotFound(key))?;
-        self.tape.extend(values.iter().rev());
-
-        Ok(())
+            AdviceSource::Map { key } => {
+                let values = self
+                    .values
+                    .get(&key.into_bytes())
+                    .ok_or(ExecutionError::AdviceKeyNotFound(key))?;
+                self.tape.extend(values.iter().rev());
+                Ok(())
+            }
+        }
     }
 
     fn insert_into_map(&mut self, key: Word, values: Vec<Felt>) -> Result<(), ExecutionError> {

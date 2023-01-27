@@ -1,9 +1,8 @@
-use crate::{stack::STACK_TOP_SIZE, StackTopState};
-
 use super::{Felt, StarkField};
-use winter_utils::collections::Vec;
+use crate::{stack::STACK_TOP_SIZE, StackTopState};
+use winter_utils::{collections::Vec, ByteWriter, Serializable};
 
-// PROGRAM OUTPUTS
+// STACK OUTPUTS
 // ================================================================================================
 
 /// Output container for Miden VM programs.
@@ -12,7 +11,7 @@ use winter_utils::collections::Vec;
 /// addresses in the overflow table which are required to reconstruct the table (when combined with
 /// the overflow values from the stack state).
 ///
-/// `stack` is expected to be ordered as if they elements were popped off the stack one by one.
+/// `stack` is expected to be ordered as if the elements were popped off the stack one by one.
 /// Thus, the value at the top of the stack is expected to be in the first position, and the order
 /// of the rest of the output elements will also match the order on the stack.
 ///
@@ -21,14 +20,14 @@ use winter_utils::collections::Vec;
 /// the address (`clk` value) of each row in the table starting from the deepest element in the
 /// stack and finishing with the row which was added to the table last.
 #[derive(Debug, Clone, Default)]
-pub struct ProgramOutputs {
+pub struct StackOutputs {
     /// The elements on the stack at the end of execution.
     stack: Vec<u64>,
     /// The overflow table row addresse required to reconstruct the final state of the table.
     overflow_addrs: Vec<u64>,
 }
 
-impl ProgramOutputs {
+impl StackOutputs {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     pub fn new(stack: Vec<u64>, overflow_addrs: Vec<u64>) -> Self {
@@ -68,12 +67,9 @@ impl ProgramOutputs {
 
     /// Returns the number of requested stack outputs or returns the full stack if fewer than the
     /// requested number of stack values exist.
-    pub fn stack_outputs(&self, num_outputs: usize) -> &[u64] {
-        if num_outputs < self.stack.len() {
-            return &self.stack[..num_outputs];
-        }
-
-        &self.stack
+    pub fn stack_truncated(&self, num_outputs: usize) -> &[u64] {
+        let len = self.stack.len().min(num_outputs);
+        &self.stack[..len]
     }
 
     /// Returns the state of the top of the stack at the end of execution.
@@ -141,4 +137,22 @@ fn are_valid_elements(outputs: &[u64]) -> bool {
         }
     }
     true
+}
+
+impl Serializable for StackOutputs {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        // TODO the length of the stack, by design, will not be greater than `u32::MAX`. however,
+        // we must define a common serialization format as we might diverge from the implementation
+        // here and the one provided by default from winterfell.
+
+        // stack
+        debug_assert!(self.stack.len() <= u32::MAX as usize);
+        target.write_u32(self.stack.len() as u32);
+        self.stack.iter().copied().for_each(|v| target.write_u64(v));
+
+        // overflow addrs
+        debug_assert!(self.overflow_addrs.len() <= u32::MAX as usize);
+        target.write_u32(self.overflow_addrs.len() as u32);
+        self.overflow_addrs.iter().copied().for_each(|v| target.write_u64(v));
+    }
 }

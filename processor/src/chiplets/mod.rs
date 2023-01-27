@@ -32,6 +32,31 @@ pub use bus::{AuxTraceBuilder, ChipletsBus};
 #[cfg(test)]
 mod tests;
 
+// HELPER STRUCTS
+// ================================================================================================
+
+/// Result of a merkle tree node update. The result contains the old merkle_root, which
+/// corresponding to the old_value, and the new merkle_root, for the updated value. As well as the
+/// row address of the execution trace at which the computation started.
+#[derive(Debug, Copy, Clone)]
+pub struct MerkleRootUpdate {
+    address: Felt,
+    old_root: Word,
+    new_root: Word,
+}
+
+impl MerkleRootUpdate {
+    pub fn get_address(&self) -> Felt {
+        self.address
+    }
+    pub fn get_old_root(&self) -> Word {
+        self.old_root
+    }
+    pub fn get_new_root(&self) -> Word {
+        self.new_root
+    }
+}
+
 // CHIPLETS MODULE OF HASHER, BITWISE, MEMORY, AND KERNEL ROM CHIPLETS
 // ================================================================================================
 
@@ -89,7 +114,7 @@ impl Chiplets {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Chiplets] component instantiated with the provided Kernel.
-    pub fn new(kernel: &Kernel) -> Self {
+    pub fn new(kernel: Kernel) -> Self {
         Self {
             clk: 0,
             hasher: Hasher::default(),
@@ -132,6 +157,11 @@ impl Chiplets {
     /// Returns the index of the first row of the padding section of the execution trace.
     pub fn padding_start(&self) -> usize {
         self.kernel_rom_start() + self.kernel_rom.trace_len()
+    }
+
+    /// Returns the underlying kernel used to initilize this instance.
+    pub const fn kernel(&self) -> &Kernel {
+        self.kernel_rom.kernel()
     }
 
     // HASH CHIPLET ACCESSORS FOR OPERATIONS
@@ -177,10 +207,6 @@ impl Chiplets {
 
     /// Requests a Merkle root update computation from the Hash chiplet.
     ///
-    /// The returned tuple contains computed roots for the old value and the new value of the node
-    /// with the specified path, as well as the row address of the execution trace at which the
-    /// computation started.
-    ///
     /// # Panics
     /// Panics if:
     /// - The provided path does not contain any nodes.
@@ -191,16 +217,17 @@ impl Chiplets {
         new_value: Word,
         path: &[Word],
         index: Felt,
-    ) -> (Felt, Word, Word) {
+    ) -> MerkleRootUpdate {
         let mut lookups = Vec::new();
-        let (addr, old_root, new_root) =
+
+        let merkle_root_update =
             self.hasher.update_merkle_root(old_value, new_value, path, index, &mut lookups);
         self.bus.request_hasher_operation(&lookups, self.clk);
 
         // provide the responses to the bus
         self.bus.provide_hasher_lookups(&lookups);
 
-        (addr, old_root, new_root)
+        merkle_root_update
     }
 
     // HASH CHIPLET ACCESSORS FOR CONTROL BLOCK DECODING
@@ -233,16 +260,9 @@ impl Chiplets {
     /// chiplet and checks the result against the provided `expected_result`.
     ///
     /// It returns the row address of the execution trace at which the hash computation started.
-    pub fn hash_span_block(
-        &mut self,
-        op_batches: &[OpBatch],
-        num_op_groups: usize,
-        expected_hash: Digest,
-    ) -> Felt {
+    pub fn hash_span_block(&mut self, op_batches: &[OpBatch], expected_hash: Digest) -> Felt {
         let mut lookups = Vec::new();
-        let (addr, result) =
-            self.hasher
-                .hash_span_block(op_batches, num_op_groups, expected_hash, &mut lookups);
+        let (addr, result) = self.hasher.hash_span_block(op_batches, expected_hash, &mut lookups);
 
         // make sure the result computed by the hasher is the same as the expected block hash
         debug_assert_eq!(expected_hash, result.into());

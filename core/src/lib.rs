@@ -18,7 +18,7 @@ pub use math::{
 };
 
 mod program;
-pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Program};
+pub use program::{blocks as code_blocks, CodeBlockTable, Kernel, Program, ProgramInfo};
 
 mod operations;
 pub use operations::{
@@ -26,10 +26,10 @@ pub use operations::{
 };
 
 mod inputs;
-pub use inputs::{AdviceSet, ProgramInputs, StackInputs};
+pub use inputs::{AdviceSet, StackInputs};
 
 mod outputs;
-pub use outputs::ProgramOutputs;
+pub use outputs::StackOutputs;
 
 pub mod utils;
 use utils::range;

@@ -2,13 +2,13 @@
 
 use air::{ProcessorAir, PublicInputs};
 use core::fmt;
-use vm_core::StackInputs;
+use vm_core::{ProgramInfo, StackInputs};
 use winterfell::VerifierError;
 
 // EXPORTS
 // ================================================================================================
 
-pub use vm_core::{chiplets::hasher::Digest, ProgramOutputs, Word};
+pub use vm_core::{chiplets::hasher::Digest, StackOutputs, Word};
 pub use winterfell::StarkProof;
 
 mod math {
@@ -36,13 +36,13 @@ mod math {
 /// # Errors
 /// Returns an error if the provided proof does not prove a correct execution of the program.
 pub fn verify(
-    program_hash: Digest,
+    program_info: ProgramInfo,
     stack_inputs: StackInputs,
-    outputs: &ProgramOutputs,
+    stack_outputs: StackOutputs,
     proof: StarkProof,
 ) -> Result<(), VerificationError> {
     // build public inputs and try to verify the proof
-    let pub_inputs = PublicInputs::new(program_hash, stack_inputs, outputs.clone());
+    let pub_inputs = PublicInputs::new(program_info, stack_inputs, stack_outputs);
     winterfell::verify::<ProcessorAir>(proof, pub_inputs).map_err(VerificationError::VerifierError)
 }
 

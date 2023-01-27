@@ -82,12 +82,13 @@ where
         Ok(())
     }
 
-    /// Loads two words from memory and adds their contents to the top 8 elements of the stack.
+    /// Loads two words from memory and replaces the top 8 elements of the stack with their
+    /// contents.
     ///
     /// The operation works as follows:
     /// - The memory address of the first word is retrieved from 13th stack element (position 12).
     /// - Two consecutive words, starting at this address, are loaded from memory.
-    /// - Elements of these words are added to the top 8 elements of the stack (element-wise, in
+    /// - Elements of these words are written to the top 8 elements of the stack (element-wise, in
     ///   stack order).
     /// - Memory address (in position 12) is incremented by 2.
     /// - All other stack elements remain the same.
@@ -99,10 +100,9 @@ where
         // load two words from memory
         let words = self.chiplets.read_mem_double(ctx, addr);
 
-        // add word elements to the elements already on the stack (in stack order)
+        // replace the stack elements with the elements from memory (in stack order)
         for (i, &mem_value) in words.iter().flat_map(|word| word.iter()).rev().enumerate() {
-            let stack_value = self.stack.get(i);
-            self.stack.set(i, stack_value + mem_value);
+            self.stack.set(i, mem_value);
         }
 
         // copy over the next 4 elements
@@ -188,8 +188,7 @@ where
     /// - The destination memory address for the first word is retrieved from the 13th stack element
     ///   (position 12).
     /// - The two words are written to memory consecutively, starting at this address.
-    /// - Elements of these words are added to the top 8 elements of the stack (element-wise, in
-    ///   stack order).
+    /// - These words replace the top 8 elements of the stack (element-wise, in stack order).
     /// - Memory address (in position 12) is incremented by 2.
     /// - All other stack elements remain the same.
     pub(super) fn op_pipe(&mut self) -> Result<(), ExecutionError> {
@@ -203,10 +202,9 @@ where
         // write the words memory
         self.chiplets.write_mem_double(ctx, addr, words);
 
-        // add word elements to the elements already on the stack (in stack order)
+        // replace the elements on the stack with the word elements (in stack order)
         for (i, &adv_value) in words.iter().flat_map(|word| word.iter()).rev().enumerate() {
-            let stack_value = self.stack.get(i);
-            self.stack.set(i, stack_value + adv_value);
+            self.stack.set(i, adv_value);
         }
 
         // copy over the next 4 elements
@@ -265,6 +263,7 @@ mod tests {
         super::{Operation, STACK_TOP_SIZE},
         AdviceProvider, Felt, Process,
     };
+    use crate::AdviceSource;
     use vm_core::{utils::ToElements, Word, ONE, ZERO};
 
     #[test]
@@ -358,15 +357,17 @@ mod tests {
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
 
         // save two words into memory addresses 1 and 2
-        let word1 = [30, 29, 28, 27].to_elements().try_into().unwrap();
-        let word2 = [26, 25, 24, 23].to_elements().try_into().unwrap();
-        store_value(&mut process, 1, word1);
-        store_value(&mut process, 2, word2);
+        let word1 = [30, 29, 28, 27];
+        let word2 = [26, 25, 24, 23];
+        let word1_felts: Word = word1.to_elements().try_into().unwrap();
+        let word2_felts: Word = word2.to_elements().try_into().unwrap();
+        store_value(&mut process, 1, word1_felts);
+        store_value(&mut process, 2, word2_felts);
 
         // check memory state
         assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(word1, process.chiplets.get_mem_value(0, 1).unwrap());
-        assert_eq!(word2, process.chiplets.get_mem_value(0, 2).unwrap());
+        assert_eq!(word1_felts, process.chiplets.get_mem_value(0, 1).unwrap());
+        assert_eq!(word2_felts, process.chiplets.get_mem_value(0, 2).unwrap());
 
         // clear the stack
         for _ in 0..8 {
@@ -387,10 +388,12 @@ mod tests {
         // execute the MSTREAM operation
         process.execute_op(Operation::MStream).unwrap();
 
-        // the result the first 8 values should be the result of adding the values on the stack
-        // to the values in memory (each should result in 35), the next 4 values should remain
+        // the first 8 values should contain the values from memory. the next 4 values should remain
         // unchanged, and the address should be incremented by 2 (i.e., 1 -> 3).
-        let stack_values = [35, 35, 35, 35, 35, 35, 35, 35, 4, 3, 2, 1, 3, 101];
+        let stack_values = [
+            word2[3], word2[2], word2[1], word2[0], word1[3], word1[2], word1[1], word1[0], 4, 3,
+            2, 1, 3, 101,
+        ];
         let expected_stack = build_expected_stack(&stack_values);
         assert_eq!(expected_stack, process.stack.trace_state());
     }
@@ -476,18 +479,21 @@ mod tests {
         let mut process = Process::new_dummy_with_decoder_helpers_and_empty_stack();
 
         // write words to the advice tape
-        let word1: Word = [30, 29, 28, 27].to_elements().try_into().unwrap();
-        let word2: Word = [26, 25, 24, 23].to_elements().try_into().unwrap();
-        for element in word2.iter().rev().chain(word1.iter().rev()) {
+        let word1 = [30, 29, 28, 27];
+        let word2 = [26, 25, 24, 23];
+        let word1_felts: Word = word1.to_elements().try_into().unwrap();
+        let word2_felts: Word = word2.to_elements().try_into().unwrap();
+        for element in word2_felts.iter().rev().chain(word1_felts.iter().rev()).copied() {
             // reverse the word order, since elements are pushed onto the advice tape.
-            process.advice_provider.write_tape(*element);
+            process.advice_provider.write_tape(AdviceSource::Value(element)).unwrap();
         }
 
         // arrange the stack such that:
         // - 101 is at position 13 (to make sure it is not overwritten)
         // - 1 (the address) is at position 12
-        // - values 1 - 12 are at positions 0 - 11. Adding the first 8 of these values to the
-        //   values from the advice tape should result in 35.
+        // - values 1 - 12 are at positions 0 - 11. Replacing the first 8 of these values with the
+        //   values from the advice tape should result in 30 through 23 in stack order (with 23 at
+        //   stack[0]).
         process.execute_op(Operation::Push(Felt::new(101))).unwrap();
         process.execute_op(Operation::Push(ONE)).unwrap();
         for i in 1..13 {
@@ -499,13 +505,15 @@ mod tests {
 
         // check memory state contains the words from the advice tape
         assert_eq!(2, process.chiplets.get_mem_size());
-        assert_eq!(word1, process.chiplets.get_mem_value(0, 1).unwrap());
-        assert_eq!(word2, process.chiplets.get_mem_value(0, 2).unwrap());
+        assert_eq!(word1_felts, process.chiplets.get_mem_value(0, 1).unwrap());
+        assert_eq!(word2_felts, process.chiplets.get_mem_value(0, 2).unwrap());
 
-        // the first 8 values should be the result of adding the values on the stack to the values
-        // from the advice tape (each should result in 35). the next 4 values should remain
-        // unchanged, and the address should be incremented by 2 (i.e., 1 -> 3).
-        let stack_values = [35, 35, 35, 35, 35, 35, 35, 35, 4, 3, 2, 1, 3, 101];
+        // the first 8 values should be the values from the advice tape. the next 4 values should
+        // remain unchanged, and the address should be incremented by 2 (i.e., 1 -> 3).
+        let stack_values = [
+            word2[3], word2[2], word2[1], word2[0], word1[3], word1[2], word1[1], word1[0], 4, 3,
+            2, 1, 3, 101,
+        ];
         let expected_stack = build_expected_stack(&stack_values);
         assert_eq!(expected_stack, process.stack.trace_state());
     }

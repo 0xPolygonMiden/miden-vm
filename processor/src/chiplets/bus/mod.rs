@@ -40,16 +40,16 @@ impl ChipletsBus {
     /// can contain one or more lookups, while Bitwise and Memory requests will only contain a
     /// single lookup.
     fn request_lookup(&mut self, request_cycle: u32) {
-        // All requests are sent from the stack. Requests are guaranteed not to share cycles with
-        // other requests, but they might share a cycle with a response which has already been
-        // sent.
         let request_idx = self.request_rows.len();
         self.lookup_hints
             .entry(request_cycle)
-            .and_modify(|lookup| {
-                if let ChipletsLookup::Response(response_idx) = *lookup {
-                    *lookup = ChipletsLookup::RequestAndResponse((request_idx, response_idx));
+            .and_modify(|lookup| match lookup {
+                // Requests might share a cycle with a response which has already been sent.
+                ChipletsLookup::Response(response_idx) => {
+                    *lookup = ChipletsLookup::RequestAndResponse((request_idx, *response_idx));
                 }
+                // Requests are guaranteed not to share cycles with other requests.
+                _ => debug_assert!(false, "bus already contains a Request"),
             })
             .or_insert_with(|| ChipletsLookup::Request(request_idx));
     }
@@ -57,14 +57,17 @@ impl ChipletsBus {
     /// Provides lookup data at the specified cycle, which is the row of the Chiplets execution
     /// trace that contains this lookup row.
     fn provide_lookup(&mut self, response_cycle: u32) {
-        // results are guaranteed not to share cycles with other results, but they might share
-        // a cycle with a request which has already been sent.
         let response_idx = self.response_rows.len();
         self.lookup_hints
             .entry(response_cycle)
             .and_modify(|lookup| {
-                if let ChipletsLookup::Request(request_idx) = *lookup {
-                    *lookup = ChipletsLookup::RequestAndResponse((request_idx, response_idx));
+                match lookup {
+                    // Responses might share a cycle with a request which has already been sent.
+                    ChipletsLookup::Request(request_idx) => {
+                        *lookup = ChipletsLookup::RequestAndResponse((*request_idx, response_idx));
+                    }
+                    // Responses are guaranteed not to share cycles with other results.
+                    _ => debug_assert!(false, "bus already contains a Request"),
                 }
             })
             .or_insert_with(|| ChipletsLookup::Response(response_idx));

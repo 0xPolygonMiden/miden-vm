@@ -1,13 +1,13 @@
 use super::Example;
 use miden::{
     math::{Felt, FieldElement, StarkField},
-    Assembler, Program, ProgramInputs, StackInputs,
+    Assembler, MemAdviceProvider, Program, StackInputs,
 };
 
 // EXAMPLE BUILDER
 // ================================================================================================
 
-pub fn get_example(n: usize) -> Example {
+pub fn get_example(n: usize) -> Example<MemAdviceProvider> {
     // generate the program and expected results
     let program = generate_fibonacci_program(n);
     let expected_result = vec![compute_fibonacci(n).as_int()];
@@ -19,7 +19,7 @@ pub fn get_example(n: usize) -> Example {
     Example {
         program,
         stack_inputs: StackInputs::try_from_values([0, 1]).unwrap(),
-        program_inputs: ProgramInputs::none(),
+        advice_provider: MemAdviceProvider::default(),
         expected_result,
         num_outputs: 1,
     }

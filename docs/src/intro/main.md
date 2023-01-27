@@ -14,7 +14,7 @@ Miden VM is a fully-featured virtual machine. Despite being optimized for zero-k
 * **Execution contexts.** Miden VM program execution can span multiple isolated contexts, each with its own dedicated memory space. The contexts are separated into the *root context* and *user contexts*. The root context can be accessed from user contexts via customizable kernel calls.
 * **Memory.** Miden VM supports read-write random-access memory. Procedures can reserve portions of global memory for easier management of local variables.
 * **u32 operations.** Miden VM supports native operations with 32-bit unsigned integers. This includes basic arithmetic, comparison, and bitwise operations.
-* **Cryptographic operations.** Miden assembly provides built-in instructions for computing hashes and verifying Merkle paths. These instructions use Rescue Prime hash function (which is the native hash function of the VM).
+* **Cryptographic operations.** Miden assembly provides built-in instructions for computing hashes and verifying Merkle paths. These instructions use Rescue Prime Optimized hash function (which is the native hash function of the VM).
 * **Standard library.** Miden VM ships with a standard library which expands the core functionality of the VM (e.g., by adding support for 64-bit unsigned integers). Currently, the standard library is quite limited, but we plan to expand it significantly in the future.
 * **Nondeterminism**. Unlike traditional virtual machines, Miden VM supports nondeterministic programming. This means a prover may do additional work outside of the VM and then provide execution *hints* to the VM. These hints can be used to dramatically speed up certain types of computations, as well as to supply secret inputs to the VM.
 

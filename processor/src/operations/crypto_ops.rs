@@ -10,11 +10,11 @@ where
 {
     // HASHING OPERATIONS
     // --------------------------------------------------------------------------------------------
-    /// Applies Rescue Prime permutation to the top 12 elements of the stack. The stack is assumed
-    /// to be arranged so that the 8 elements of the rate are at the top of the stack. The capacity
-    /// word follows, with the number of elements to be hashed at the deepest position in stack[11].
-    /// For a Rescue Prime permutation of [A, B, C] where A is the capacity, the stack should be
-    /// arranged (from the top) as [C, B, A, ...].
+    /// Applies a permutation of Rescue Prime Optimized to the top 12 elements of the stack. The
+    /// stack is assumed to be arranged so that the 8 elements of the rate are at the top of the
+    /// stack. The capacity word follows, with the element that specifies the padding rule at the
+    /// deepest position in stack[11]. For an RPO permutation of [A, B, C] where A is the capacity,
+    /// the stack should be arranged (from the top) as [C, B, A, ...].
     pub(super) fn op_rpperm(&mut self) -> Result<(), ExecutionError> {
         let input_state = [
             self.stack.get(11),
@@ -146,21 +146,20 @@ where
         let path = self.advice_provider.update_merkle_leaf(old_root, index, new_node, copy)?;
         assert_eq!(path.len(), depth.as_int() as usize);
 
-        // use hasher to update the Merkle root.
-        let (addr, computed_old_root, new_root) =
-            self.chiplets.update_merkle_root(old_node, new_node, &path, index);
+        let merkle_tree_update = self.chiplets.update_merkle_root(old_node, new_node, &path, index);
 
         // Asserts the computed old root of the merkle path from the advice provider is consistent
         // with the input root provided via the stack. This will panic only if the advice provider
         // returns a Merkle path inconsistent with the specified root.
-        assert_eq!(old_root, computed_old_root, "inconsistent Merkle tree root");
+        assert_eq!(old_root, merkle_tree_update.get_old_root(), "inconsistent Merkle tree root");
 
         // save address(r) of the hasher trace from when the computation starts in the decoder
         // helper registers.
-        self.decoder.set_user_op_helpers(Operation::MrUpdate(copy), &[addr]);
+        self.decoder
+            .set_user_op_helpers(Operation::MrUpdate(copy), &[merkle_tree_update.get_address()]);
 
         // Replace the old node value with computed new root; everything else remains the same.
-        for (i, &value) in new_root.iter().rev().enumerate() {
+        for (i, &value) in merkle_tree_update.get_new_root().iter().rev().enumerate() {
             self.stack.set(i, value);
         }
         self.stack.copy_state(4);
@@ -178,11 +177,11 @@ mod tests {
         super::{Felt, FieldElement, Operation, StarkField},
         Process,
     };
-    use crate::{StackInputs, Word};
+    use crate::{AdviceInputs, StackInputs, Word};
     use rand_utils::rand_vector;
     use vm_core::{
         chiplets::hasher::{apply_permutation, STATE_WIDTH},
-        AdviceSet, ProgramInputs,
+        AdviceSet,
     };
 
     #[test]
@@ -239,9 +238,10 @@ mod tests {
             leaves[index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
-        let stack = StackInputs::try_from_values(stack_inputs).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(stack, inputs);
+        let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let mut process =
+            Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         process.execute_op(Operation::MpVerify).unwrap();
         let expected_stack = build_expected(&[
@@ -288,9 +288,10 @@ mod tests {
             leaves[node_index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
-        let stack = StackInputs::try_from_values(stack_inputs).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(stack, inputs);
+        let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let mut process =
+            Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         // update the Merkle tree and discard the old copy
         process.execute_op(Operation::MrUpdate(false)).unwrap();
@@ -346,9 +347,10 @@ mod tests {
             leaves[node_index][3].as_int(),
         ];
 
-        let inputs = ProgramInputs::new(&[], vec![tree.clone()]).unwrap();
-        let stack = StackInputs::try_from_values(stack_inputs).unwrap();
-        let mut process = Process::new_dummy_with_inputs_and_decoder_helpers(stack, inputs);
+        let advice_inputs = AdviceInputs::default().with_merkle_sets(vec![tree.clone()]).unwrap();
+        let stack_inputs = StackInputs::try_from_values(stack_inputs).unwrap();
+        let mut process =
+            Process::new_dummy_with_inputs_and_decoder_helpers(stack_inputs, advice_inputs);
 
         // update the Merkle tree but keep the old copy
         process.execute_op(Operation::MrUpdate(true)).unwrap();
