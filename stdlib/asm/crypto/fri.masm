@@ -85,6 +85,7 @@ end
 #! Remaining part of word i.e. a3, a2 will be consumed during immediate next iteration
 #! of computing β which involves invocation of accumulate_for_odd_index.
 proc.accumulate_for_even_index
+    # compute ⍳ s.t. ⍳ = ω/ (τ - ω)
     dup.4
     dup.1
     sub
@@ -96,6 +97,9 @@ proc.accumulate_for_even_index
     movdn.2
     mul
 
+    # load <a3, a2, a1, a0> from mem_ptr_q + 1
+    #
+    # notice, first increment memory address and then load from it.
     movup.6
     add.1
     movdn.6
@@ -105,6 +109,10 @@ proc.accumulate_for_even_index
     swap
     mem_loadw
 
+    # consume <a1, a0> into ν' s.t. j is even && j ∈ [0..64)
+    #
+    # uses formula ν' = ν + ⍳ * a | a = (a0, a1), ⍳ = (⍳0, ⍳1), ν = (ν0, ν1) and ν' = (ν'0, ν'1)
+    # also note, ν' becomes the new state of accumulator ν
     movup.5
     movup.5
     movup.5
@@ -118,6 +126,8 @@ proc.accumulate_for_even_index
     add
     movdn.3
     movdn.3
+    # notice, <a3, a2> were not consumed in this iteration, they will be consumed
+    # into ν, in next iteration, when j is odd.
 end
 
 #! Given ω, accumulator ν and τ on stack top, this routine first computes ⍳ ( using following formula ), and then accumulates
@@ -136,6 +146,7 @@ end
 #!
 #! [ν1', ν0', τ1, τ0, mem_ptr_q, ...]
 proc.accumulate_for_odd_index
+    # compute ⍳ s.t. ⍳ = ω/ (τ - ω)
     dup.6
     dup.1
     sub
@@ -147,6 +158,10 @@ proc.accumulate_for_odd_index
     movdn.2
     mul
 
+    # consume <a3, a2> into ν' s.t. j is odd && j ∈ [0..64)
+    #
+    # uses formula ν' = ν + ⍳ * a | a = (a2, a3), ⍳ = (⍳0, ⍳1), ν = (ν0, ν1) and ν' = (ν'0, ν'1)
+    # and ν' becomes the new value of accumulator ν
     ext2mul
     swap
     movup.3
@@ -543,18 +558,18 @@ end
 #!
 #! Expected stack state
 #!
-#! [mem_ptr, ...]
+#! [mem_ptr_q, ...]
 #!
-#! A few assumptions about mem_ptr
+#! A few assumptions about mem_ptr_q
 #!
-#! - mem_ptr should be absolute memory address of the beginning of remainder codeword
+#! - mem_ptr_q should be absolute memory address of the beginning of remainder codeword
 #! - Each evaluation is 2 field elements wide because they belong to quadratic extension field over F_p | p = 2^64 - 2^32 + 1
 #! - Meaning each memory address will hold two consecutive evaluations
 #! - Words ( four field elements ), in memory, are laid out in this order (a0_0, a0_1, a1_0, a1_1)
 #! - That means (a0_1, a0_0) -> first evaluation and (a1_1, a1_0) -> next evaluation
 #! - Next 31 memory addresses should be holding remaining 62 evaluations
-#! - If mem_ptr holds (a0_0, a0_1, a1_0, a1_1), then mem_ptr + 1, must hold (a2_0, a2_1, a3_0, a3_1)
-#! - That way, mem_ptr + 31 should be holding (a62_0, a62_1, a63_0, a63_1)
+#! - If mem_ptr_q holds (a0_0, a0_1, a1_0, a1_1), then mem_ptr_q + 1, must hold (a2_0, a2_1, a3_0, a3_1)
+#! - That way, mem_ptr_q + 31 should be holding (a62_0, a62_1, a63_0, a63_1)
 #!
 #! Final stack looks like
 #!
@@ -567,6 +582,10 @@ export.verify_remainder_64.4
     swap
 
     # [mem_ptr_q, mem_ptr_p, ...]
+    #
+    # note, mem_ptr_p is pointing to function local memory address space
+    # which will be filled up with polynomial p's coefficients, which is computed
+    # outside of the VM, from given codeword q.
     exec.compute_tau
 
     # [τ1, τ0, mem_ptr_q, ...]
