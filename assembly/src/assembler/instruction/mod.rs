@@ -262,6 +262,7 @@ impl Assembler {
             Instruction::PushFeltList(imms) => env_ops::push_many(imms, span),
             Instruction::Sdepth => span.add_op(SDepth),
             Instruction::Caller => env_ops::caller(span, ctx),
+            Instruction::Clk => span.add_op(Clk),
             Instruction::AdvPipe => span.add_ops([Pipe, RpPerm]),
             Instruction::AdvPush(n) => adv_ops::adv_push(span, *n),
             Instruction::AdvLoadW => span.add_op(ReadW),

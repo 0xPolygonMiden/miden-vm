@@ -288,6 +288,7 @@ impl Deserializable for Instruction {
             OpCode::Locaddr => Ok(Instruction::Locaddr(bytes.read_u16()?)),
             OpCode::Sdepth => Ok(Instruction::Sdepth),
             OpCode::Caller => Ok(Instruction::Caller),
+            OpCode::Clk => Ok(Instruction::Clk),
 
             OpCode::MemLoad => Ok(Instruction::MemLoad),
             OpCode::MemLoadImm => Ok(Instruction::MemLoadImm(bytes.read_u32()?)),
