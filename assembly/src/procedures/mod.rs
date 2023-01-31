@@ -189,9 +189,7 @@ impl Deserializable for ProcedureName {
     fn read_from(bytes: &mut ByteReader) -> Result<Self, SerializationError> {
         let num_bytes = bytes.read_u8()?;
         let name_bytes = bytes.read_bytes(num_bytes as usize)?;
-        // TODO should not panic on input
-        // https://github.com/maticnetwork/miden/issues/578
-        let name = from_utf8(name_bytes).expect("String conversion failure");
+        let name = from_utf8(name_bytes).map_err(|_| SerializationError::InvalidUtf8)?;
         let name = ProcedureName::try_from(name.to_string())?;
         Ok(name)
     }
