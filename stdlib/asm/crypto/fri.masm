@@ -598,6 +598,15 @@ export.verify_remainder_64.4
     movdn.4
 
     # [β1, β0, τ1, τ0, mem_ptr_p, ...]
+    #
+    # notice, mem_ptr_p was previously set to locaddr.0, which was used ( and dropped ) during
+    # computation of τ. Now mem_ptr_p is set to locaddr.3, because it's easier to compute α, by
+    # accessing coefficients of interpolated polynomial p in reverse ( i.e. descending ) order, as
+    # suggested in point 2 of https://github.com/0xPolygonMiden/miden-vm/issues/592#issue-1481983459.
+    #
+    # You may wish to look at this Rust function which performs Horner's evaluation 
+    # https://github.com/Al-Kindi-0/miden/blob/1b9801c/miden/tests/integration/stdlib/crypto/fri/verifier_fri_e2f4.rs#L338-L345
+    # i.e. computes α.
     exec.compute_alpha
     
     # assert α == β
