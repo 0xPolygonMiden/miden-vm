@@ -92,6 +92,19 @@ where
 
         Ok(())
     }
+
+    // CLOCK CYCLE
+    // --------------------------------------------------------------------------------------------
+
+    /// Pushes the current clock cycle onto the stack. The clock cycle is the number of times the
+    /// `execute` method has been called on the VM. The clock cycle is incremented after the
+    /// execution of each operation.
+    pub(super) fn op_clk(&mut self) -> Result<(), ExecutionError> {
+        let clk = self.system.clk();
+        self.stack.set(0, Felt::new(clk.into()));
+        self.stack.shift_right(0);
+        Ok(())
+    }
 }
 
 // TESTS
@@ -216,6 +229,22 @@ mod tests {
         ]);
         assert_eq!(expected, process.stack.trace_state());
         assert_eq!(STACK_TOP_SIZE + 4, process.stack.depth());
+    }
+
+    #[test]
+    fn op_clk() {
+        let mut process = Process::new_dummy(&[]);
+
+        // initial value of clk register should be 1.
+        assert_eq!(1, process.system.clk());
+
+        // increment clk register.
+        process.execute_op(Operation::Push(Felt::new(2))).unwrap();
+        assert_eq!(2, process.system.clk());
+
+        // increment clk register again.
+        process.execute_op(Operation::Push(Felt::new(3))).unwrap();
+        assert_eq!(3, process.system.clk());
     }
 
     // HELPER FUNCTIONS
