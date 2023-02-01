@@ -4,8 +4,23 @@ use super::{
 };
 use crate::MAX_EXP_BITS;
 
-/// Field element representing TWO in the base field of the VM.
-const TWO: Felt = Felt::new(2);
+/// Values for which it makes sense to encode instructions into multiple opcodes instead of using
+/// an immediate value.
+///
+/// It takes space equivalent to 10 operations on a span block to operate on an immediate value
+/// (the opcode itself + the immediate). So as long as an instruction can be encoded to fewer than
+/// 10 operations, this format is preferrable to using an opcode and an immediated.
+const SMALL_IMMEDIATES: [Felt; 9] = [
+    Felt::new(1),
+    Felt::new(2),
+    Felt::new(3),
+    Felt::new(4),
+    Felt::new(5),
+    Felt::new(6),
+    Felt::new(7),
+    Felt::new(8),
+    Felt::new(9),
+];
 
 // BASIC ARITHMETIC OPERATIONS
 // ================================================================================================
@@ -19,10 +34,12 @@ const TWO: Felt = Felt::new(2);
 pub fn add_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
     if imm == ZERO {
         span.add_op(Noop)
-    } else if imm == ONE {
-        span.add_op(Incr)
-    } else if imm == TWO {
-        span.add_ops([Incr, Incr])
+    // optimization: saves space on a span block by encoding operations on small immediates as a
+    // sequence of opcodes instead of an opcode + immediate, since the later takes 10 positions.
+    } else if let Some((count, _)) = SMALL_IMMEDIATES.iter().enumerate().find(|(_, e)| **e == imm) {
+        let mut ops = Vec::new();
+        ops.resize(count + 1, Incr);
+        span.add_ops(ops)
     } else {
         span.add_ops([Push(imm), Add])
     }
