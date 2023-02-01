@@ -45,7 +45,7 @@ impl Assembler {
             Instruction::Add => span.add_op(Add),
             Instruction::AddImm(imm) => field_ops::add_imm(span, *imm),
             Instruction::Sub => span.add_ops([Neg, Add]),
-            Instruction::SubImm(imm) => span.add_ops([Push(-*imm), Add]),
+            Instruction::SubImm(imm) => field_ops::sub_imm(span, *imm),
             Instruction::Mul => span.add_op(Mul),
             Instruction::MulImm(imm) => field_ops::mul_imm(span, *imm),
             Instruction::Div => span.add_ops([Inv, Mul]),

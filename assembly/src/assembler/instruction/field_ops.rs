@@ -28,6 +28,18 @@ pub fn add_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, A
     }
 }
 
+/// Appends a sequence of operations to subtract an immediate value from the value at the top of the
+/// stack. Specifically, the sequences are:
+/// - if imm = 0: NOOP
+/// - otherwise: PUSH(-imm) ADD
+pub fn sub_imm(span: &mut SpanBuilder, imm: Felt) -> Result<Option<CodeBlock>, AssemblyError> {
+    if imm == ZERO {
+        span.add_op(Noop)
+    } else {
+        span.add_ops([Push(-imm), Add])
+    }
+}
+
 /// Appends a sequence of operations to multiply the value at the top of the stack by an immediate
 /// value. Specifically, the sequences are:
 /// - if imm = 0: DROP PAD
