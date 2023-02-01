@@ -36,7 +36,7 @@ For instructions where one or more operands can be provided as immediate paramet
 | Instruction      | Stack_input | Stack_output   | Notes                         |
 | ---------------- | ----------- | -------------- | ----------------------------- |
 | eq <br> - *(1 cycle)*  <br> eq.*b* <br> - *(1-2 cycles)*   | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a=b \\ 0, & \text{otherwise}\ \end{cases}$ |
-| neq <br> - *(1 cycle)*  <br> neq.*b* <br> - *(1-2 cycles)*  | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ne b \\ 0, & \text{otherwise}\ \end{cases}$ |
+| neq <br> - *(2 cycle)*  <br> neq.*b* <br> - *(2-3 cycles)*  | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \ne b \\ 0, & \text{otherwise}\ \end{cases}$ |
 | lt <br> - *(17 cycles)*               | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a < b \\ 0, & \text{otherwise}\ \end{cases}$ |
 | lte <br> - *(18 cycles)*              | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a \le b \\ 0, & \text{otherwise}\ \end{cases}$ |
 | gt <br> - *(18 cycles)*               | [b, a, ...] | [c, ...]       | $c \leftarrow \begin{cases} 1, & \text{if}\ a > b \\ 0, & \text{otherwise}\ \end{cases}$ |
