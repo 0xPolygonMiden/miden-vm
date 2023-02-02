@@ -67,19 +67,6 @@ pub fn parse_locaddr(op: &Token) -> Result<Node, ParsingError> {
     }
 }
 
-/// Returns `Caller` instruction node.
-///
-/// # Errors
-/// Returns an error if the instruction token is malformed.
-pub fn parse_caller(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "caller");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(Caller)),
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
-
 /// Returns `AdvPush` instruction node.
 ///
 /// # Errors
