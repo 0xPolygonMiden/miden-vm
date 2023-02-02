@@ -81,7 +81,7 @@ fn test_decorator_ext2intt(in_poly_len: usize, blowup: usize) {
 #[test]
 fn test_verify_remainder_64() {
     let source = "
-    use.std::crypto::fri
+    use.std::crypto::fri::ext2fri
 
     proc.helper.32
         locaddr.31
@@ -95,7 +95,7 @@ fn test_verify_remainder_64() {
         drop
 
         locaddr.0
-        exec.fri::verify_remainder_64
+        exec.ext2fri::verify_remainder_64
     end
 
     begin
