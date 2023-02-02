@@ -29,175 +29,123 @@ pub fn parse_u32assert(op: &Token) -> Result<Node, ParsingError> {
     }
 }
 
-/// Returns `U32CheckedAdd` instruction node if no immediate value is provided or
-/// `U32CheckedAddImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32checked_add(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32checked_add");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(U32CheckedAdd)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32CheckedAddImm(value)))
+macro_rules! parseop {
+    ($(#[$attr:meta])* fn $fn: ident $op: literal => ( $ins: ident , $imm_ins: ident)) => {
+        $(#[$attr])*
+        pub fn $fn(op: &Token) -> Result<Node, ParsingError> {
+            debug_assert_eq!(op.parts()[0], $op);
+            match op.num_parts() {
+                0 => unreachable!(),
+                1 => Ok(Instruction($ins)),
+                2 => {
+                    let value = parse_param::<u32>(op, 1)?;
+                    Ok(Instruction($imm_ins(value)))
+                }
+                _ => Err(ParsingError::extra_param(op)),
+            }
         }
-        _ => Err(ParsingError::extra_param(op)),
-    }
+    };
 }
 
-/// Returns `U32WrappingAdd` instruction node if no immediate value is provided or
-/// `U32WrappingAddImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32wrapping_add(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32wrapping_add");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(U32WrappingAdd)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32WrappingAddImm(value)))
-        }
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
+parseop!(
+    /// Returns `U32CheckedAdd` instruction node if no immediate value is provided or
+    /// `U32CheckedAddImm` instruction node otherwise.
+    ///
+    /// # Errors
+    /// Returns an error if the instruction token contains wrong number of parameters, or if the
+    /// provided parameter is not a u32 value.
+    fn parse_u32checked_add "u32checked_add" => (U32CheckedAdd, U32CheckedAddImm)
+);
 
-/// Returns `U32OverflowingAdd` instruction node if no immediate value is provided or
-/// `U32OverflowingAddImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32overflowing_add(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32overflowing_add");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(U32OverflowingAdd)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32OverflowingAddImm(value)))
-        }
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
+parseop!(
+    /// Returns `U32WrappingAdd` instruction node if no immediate value is provided or
+    /// `U32WrappingAddImm` instruction node otherwise.
+    ///
+    /// # Errors
+    /// Returns an error if the instruction token contains wrong number of parameters, or if the
+    /// provided parameter is not a u32 value.
+    fn parse_u32wrapping_add "u32wrapping_add" => (U32WrappingAdd, U32WrappingAddImm)
+);
 
-/// Returns `U32CheckedSub` instruction node if no immediate value is provided or
-/// `U32CheckedSubImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32checked_sub(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32checked_sub");
-    match op.num_parts() {
-        1 => Ok(Instruction(U32CheckedSub)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32CheckedSubImm(value)))
-        }
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
+parseop!(
+    /// Returns `U32OverflowingAdd` instruction node if no immediate value is provided or
+    /// `U32OverflowingAddImm` instruction node otherwise.
+    ///
+    /// # Errors
+    /// Returns an error if the instruction token contains wrong number of parameters, or if the
+    /// provided parameter is not a u32 value.
+    fn parse_u32overflowing_add "u32overflowing_add" => (U32OverflowingAdd, U32OverflowingAddImm)
+);
 
-/// Returns `U32WrappingSub` instruction node if no immediate value is provided or
-/// `U32WrappingSubImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32wrapping_sub(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32wrapping_sub");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(U32WrappingSub)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32WrappingSubImm(value)))
-        }
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
+parseop!(
+    /// Returns `U32CheckedSub` instruction node if no immediate value is provided or
+    /// `U32CheckedSubImm` instruction node otherwise.
+    ///
+    /// # Errors
+    /// Returns an error if the instruction token contains wrong number of parameters, or if the
+    /// provided parameter is not a u32 value.
+    fn parse_u32checked_sub "u32checked_sub" => (U32CheckedSub, U32CheckedSubImm)
+);
 
-/// Returns `U32OverflowingSub` instruction node if no immediate value is provided or
-/// `U32OverflowingSubImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32overflowing_sub(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32overflowing_sub");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(U32OverflowingSub)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32OverflowingSubImm(value)))
-        }
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
+parseop!(
+    /// Returns `U32WrappingSub` instruction node if no immediate value is provided or
+    /// `U32WrappingSubImm` instruction node otherwise.
+    ///
+    /// # Errors
+    /// Returns an error if the instruction token contains wrong number of parameters, or if the
+    /// provided parameter is not a u32 value.
+    fn parse_u32wrapping_sub "u32wrapping_sub" => (U32WrappingSub, U32WrappingSubImm)
+);
 
-/// Returns `U32CheckedMul` instruction node if no immediate value is provided or
-/// `U32CheckedMulImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32checked_mul(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32checked_mul");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(U32CheckedMul)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32CheckedMulImm(value)))
-        }
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
+parseop!(
+    /// Returns `U32OverflowingSub` instruction node if no immediate value is provided or
+    /// `U32OverflowingSubImm` instruction node otherwise.
+    ///
+    /// # Errors
+    /// Returns an error if the instruction token contains wrong number of parameters, or if the
+    /// provided parameter is not a u32 value.
+    fn parse_u32overflowing_sub "u32overflowing_sub" => (U32OverflowingSub, U32OverflowingSubImm)
+);
 
-/// Returns `U32WrappingMul` instruction node if no immediate value is provided or
-/// `U32WrappingMulImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32wrapping_mul(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32wrapping_mul");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(U32WrappingMul)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32WrappingMulImm(value)))
-        }
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
+parseop!(
+    /// Returns `U32CheckedMul` instruction node if no immediate value is provided or
+    /// `U32CheckedMulImm` instruction node otherwise.
+    ///
+    /// # Errors
+    /// Returns an error if the instruction token contains wrong number of parameters, or if the
+    /// provided parameter is not a u32 value.
+    fn parse_u32checked_mul "u32checked_mul" => (U32CheckedMul, U32CheckedMulImm)
+);
 
-/// Returns `U32OverflowingMul` instruction node if no immediate value is provided or
-/// `U32OverflowingMulImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32overflowing_mul(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32overflowing_mul",);
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(U32OverflowingMul)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32OverflowingMulImm(value)))
-        }
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
+parseop!(
+    /// Returns `U32WrappingMul` instruction node if no immediate value is provided or
+    /// `U32WrappingMulImm` instruction node otherwise.
+    ///
+    /// # Errors
+    /// Returns an error if the instruction token contains wrong number of parameters, or if the
+    /// provided parameter is not a u32 value.
+    fn parse_u32wrapping_mul "u32wrapping_mul" => (U32WrappingMul, U32WrappingMulImm)
+);
+
+parseop!(
+    /// Returns `U32OverflowingMul` instruction node if no immediate value is provided or
+    /// `U32OverflowingMulImm` instruction node otherwise.
+    ///
+    /// # Errors
+    /// Returns an error if the instruction token contains wrong number of parameters, or if the
+    /// provided parameter is not a u32 value.
+    fn parse_u32overflowing_mul "u32overflowing_mul" => (U32OverflowingMul, U32OverflowingMulImm)
+);
+
+parseop!(
+    /// Returns `U32CheckedNeq` instruction node if no immediate value is provided or
+    /// `U32CheckedNeqImm` instruction node otherwise.
+    ///
+    /// # Errors
+    /// Returns an error if the instruction token contains wrong number of parameters, or if the
+    /// provided parameter is not a u32 value.
+    fn parse_u32checked_neq "u32checked_neq" => (U32CheckedNeq, U32CheckedNeqImm)
+);
 
 /// Returns one of four possible instructions:
 /// - checked without parameter: `U32CheckedDiv`
@@ -434,25 +382,6 @@ pub fn parse_u32checked_eq(op: &Token) -> Result<Node, ParsingError> {
         2 => {
             let value = parse_param::<u32>(op, 1)?;
             Ok(Instruction(U32CheckedEqImm(value)))
-        }
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
-
-/// Returns `U32CheckedNeq` instruction node if no immediate value is provided or
-/// `U32CheckedNeqImm` instruction node otherwise.
-///
-/// # Errors
-/// Returns an error if the instruction token contains wrong number of parameters, or if the
-/// provided parameter is not a u32 value.
-pub fn parse_u32checked_neq(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "u32checked_neq");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(U32CheckedNeq)),
-        2 => {
-            let value = parse_param::<u32>(op, 1)?;
-            Ok(Instruction(U32CheckedNeqImm(value)))
         }
         _ => Err(ParsingError::extra_param(op)),
     }
