@@ -1,33 +1,29 @@
-#! Given starting memory address to q i.e. 64 polynomial evaluations ( FRI codeword ), this routine computes
-#! τ, by first non-deterministically interpolating polynomial p ( of degree at max 7 i.e. with 8 coefficients )
-#! using advice provider ( i.e. computation performed outside of the VM ) and then sequentially hashing coefficients
-#! of q, p ( in order ), using Rescue Prime Optimized hash function.
+#! Given starting memory address of a FRI codeword of size 64 q, this routine computes τ, by
+#! first non-deterministically interpolating polynomial q into p (a polynomial of degree 7) using
+#! the advice provider (i.e. computation performed outside of the VM) and then sequentially hashing
+#! coefficients of q, p (in order), using Rescue Prime Optimized (RPO) hash function.
 #!
-#! Note, both q ( polynomial evaluations i.e. in NTT form ), p ( polynomial in coefficient form ), is over quadratic 
+#! Note, both q (polynomial evaluations), p (polynomial in coefficient form), is over quadratic
 #! extension field over Fq | q = 2^64 - 2^32 + 1
 #!
-#! Other than starting address of q, starting memory address of p is also provided on stack, which is used for
-#! piping interpolated polynomial coefficients into memory, which will be later used for computing α.
+#! Other than starting address of q, starting memory address of p is also provided via the stack,
+#! which is used for piping interpolated polynomial coefficients into memory, which will be later
+#! used for computing α.
 #!
-#! See https://github.com/0xPolygonMiden/miden-vm/issues/592#issuecomment-1341814867 for how τ is computed.
+#! Expected stack state:
 #!
-#! Expected stack state
+#! [q_ptr, p_ptr, ...]
 #!
-#! [mem_ptr_q, mem_ptr_p, ...]
+#! Final stack state:
 #!
-#! Final stack state
+#! [τ1, τ0, q_ptr, ...] | τ = (τ0, τ1)
 #!
-#! [τ1, τ0, mem_ptr_q, ...] | τ = (τ0, τ1)
-#!
-#! τ = rescue_prime_optimized::hash_elements(q... ++ p...)[..2]
+#! τ = rpo::hash_elements(q || p)[..2]
 #!
 #! - `hash_elements` routine works over vector of elements of Fq | q = 2^64 -2^32 + 1
-#! - ... -> spread operator
-#! - ++ -> concatenate two vectors
-#! - q... -> vector of length 128 s.t. each element ∈ Fq
-#! - p... -> vector of length 16 s.t. each element ∈ Fq
-#! - Rescue Prime Optimized hash produces four Fq elements as its digest
-#! - [..2] -> picks first two Fq elements from digest
+#! - q is a vector of length 128 s.t. each element ∈ Fq.
+#! - p is a vector of length 16 s.t. each element ∈ Fq.
+#! - [..2] picks first two Fq elements from the digest.
 proc.compute_tau
     push.64
     push.8
@@ -37,8 +33,8 @@ proc.compute_tau
     drop
     dup
 
-    # Initialize Rescue Prime Optimized state
-    # More on RPO256 @ https://github.com/0xPolygonMiden/crypto/blob/3c60484/src/hash/rpo/mod.rs
+    # Initialize RPO state; since the number of elements to be hashed is a multiple of 8, all
+    # capacity elements are set to zeros
     push.0.0.0.0.0.0.0.0.0.0.0.0
 
     # Consume `q` into Rescue state
@@ -66,26 +62,25 @@ proc.compute_tau
     drop
 end
 
-#! Given ω, accumulator ν and τ on stack top, this routine first computes ⍳ ( using following formula ), 
-#! then it loads four elements from memory address (mem_ptr_q + 1) i.e. a3, a2, a1, a0 and finally accumulates
-#! it into ν, while consuming <a1, a0>, only when j is even | j ∈ [0..64), following formula for computing β,
-#! described in https://github.com/0xPolygonMiden/miden-vm/pull/644#pullrequestreview-1265141094
+#! Given ω, accumulator ν and τ on the top of the stack, this routine first computes ⍳, then it
+#! loads four elements from memory address (q_ptr + 1) i.e. a0, a1, a2, a3 and finally accumulates
+#! it into ν, while consuming <a1, a0>, only when j is even | j ∈ [0..64)
 #!
-#! Expected stack state
+#! Expected stack state:
 #!
-#! [ω, ν1, ν0, τ1, τ0, mem_ptr_q - 1, ...]
+#! [ω, ν1, ν0, τ1, τ0, q_ptr - 1, ...]
 #!
-#! One computes ⍳ = ω/ (τ - ω)
-#! <a3, a2, a1, a0> loaded from (mem_ptr_q + 1) s.t. a1, a0 are consumed into ν
+#! One computes ⍳ = ω / (τ - ω)
+#! <a0, a1, a2, a3> loaded from (q_ptr + 1) s.t. a1, a0 are consumed into ν
 #!
-#! Final stack state
+#! Final stack state:
 #!
-#! [a3, a2, ν1', ν0', τ1, τ0, mem_ptr_q, ...]
+#! [a3, a2, ν1', ν0', τ1, τ0, q_ptr, ...]
 #!
 #! Remaining part of word i.e. a3, a2 will be consumed during immediate next iteration
 #! of computing β which involves invocation of accumulate_for_odd_index.
 proc.accumulate_for_even_index
-    # compute ⍳ s.t. ⍳ = ω/ (τ - ω)
+    # compute ⍳ = ω / (τ - ω)
     dup.4
     dup.1
     sub
@@ -97,9 +92,9 @@ proc.accumulate_for_even_index
     movdn.2
     mul
 
-    # load <a3, a2, a1, a0> from mem_ptr_q + 1
+    # load <a0, a1, a2, a3> from q_ptr + 1
     #
-    # notice, first increment memory address and then load from it.
+    # notice, first increment the memory address and then load from it.
     movup.6
     add.1
     movdn.6
@@ -126,27 +121,27 @@ proc.accumulate_for_even_index
     add
     movdn.3
     movdn.3
-    # notice, <a3, a2> were not consumed in this iteration, they will be consumed
+    # notice, <a2, a3> were not consumed in this iteration, they will be consumed
     # into ν, in next iteration, when j is odd.
 end
 
-#! Given ω, accumulator ν and τ on stack top, this routine first computes ⍳ ( using following formula ), and then accumulates
-#! ⍳ into ν, while consuming <a3, a2>, only when j is odd | j ∈ [0..64), following formula for computing β,
-#! described in https://github.com/0xPolygonMiden/miden-vm/pull/644#pullrequestreview-1265141094
+#! Given ω, accumulator ν and τ on stack top, this routine first computes ⍳ , and then accumulates
+#! ⍳ into ν, while consuming <a2, a3>, only when j is odd | j ∈ [0..64), following formula for 
+#! computing β.
 #!
-#! Expected stack state
+#! Expected stack state:
 #!
-#! [ω, a3, a2, ν1, ν0, τ1, τ0, mem_ptr_q, ...]
+#! [ω, a3, a2, ν1, ν0, τ1, τ0, q_ptr, ...]
 #!
-#! One computes ⍳ = ω/ (τ - ω)
-#! <a3, a2> which was loaded ( during previous itertion i.e. when j was even ) from mem_ptr_q 
+#! One computes ⍳ = ω / (τ - ω)
+#! <a2, a3> which was loaded (during the previous iteration i.e. when j was even) from q_ptr 
 #! is consumed into ν.
 #!
-#! Final stack state
+#! Final stack state:
 #!
-#! [ν1', ν0', τ1, τ0, mem_ptr_q, ...]
+#! [ν1', ν0', τ1, τ0, q_ptr, ...]
 proc.accumulate_for_odd_index
-    # compute ⍳ s.t. ⍳ = ω/ (τ - ω)
+    # compute ⍳ = ω / (τ - ω)
     dup.6
     dup.1
     sub
@@ -158,7 +153,7 @@ proc.accumulate_for_odd_index
     movdn.2
     mul
 
-    # consume <a3, a2> into ν' s.t. j is odd && j ∈ [0..64)
+    # consume <a2, a3> into ν' s.t. j is odd && j ∈ [0..64)
     #
     # uses formula ν' = ν + ⍳ * a | a = (a2, a3), ⍳ = (⍳0, ⍳1), ν = (ν0, ν1) and ν' = (ν'0, ν'1)
     # and ν' becomes the new value of accumulator ν
@@ -171,19 +166,17 @@ proc.accumulate_for_odd_index
     add
 end
 
-#! Given τ and starting memory address to q ( FRI codeword with 64 evaluations ), this routine computes β
-#! using formula described in https://github.com/0xPolygonMiden/miden-vm/pull/644#pullrequestreview-1265141094
+#! Given τ and starting memory address to q (FRI codeword of size 64), this routine computes β.
 #!
 #! Expected stack state
 #!
-#! [τ1, τ0, mem_ptr_q, ...]
+#! [τ1, τ0, q_ptr, ...]
 #!
 #! Final stack state
 #!
-#! [β1, β0, τ1, τ0, mem_ptr_q, ...]
+#! [β1, β0, τ1, τ0, q_ptr, ...]
 proc.compute_beta
-    # subtract starting address by 1, because we first increment and then load
-    # onto stack
+    # decrement starting address by 1, because we first increment and then load onto the stack
     movup.2
     sub.1
     movdn.2
@@ -446,7 +439,7 @@ proc.compute_beta
     push.18302628881338728449
     exec.accumulate_for_odd_index
 
-    # compute (τ^64 - 1)/ 64
+    # compute (τ^64 - 1) / 64
     dup.3
     dup.3
 
@@ -465,21 +458,19 @@ proc.compute_beta
     ext2mul
 end
 
-#! Given τ and end memory address of interpolated polynomial p ( with degree at max 7, over 
-#! quadratic extension field of Fq ) on stack top, this routine computes α, following formula described
-#! in https://github.com/0xPolygonMiden/miden-vm/issues/592#issue-1481983459
+#! Given τ and end memory address of interpolated polynomial p (with degree at max 7, over 
+#! quadratic extension field of Fq) on the top of the stack, this routine computes α.
 #!
-#! Expected stack state
+#! Expected stack state:
 #!
-#! [_, _, τ1, τ0, mem_ptr_p, ...]
+#! [_, _, τ1, τ0, p_ptr, ...]
 #!
-#! Final stack state
+#! Final stack state:
 #!
 #! [α1, α0, _, _, ...]
 #!
-#! Note, mem_ptr_p is absolute memory address of polynomial p ( which was interpolated using advice provider )
-#! s.t. next 3 decreasing ( by 1 ) memory addresses hold remaining 6 coefficients of p. Why this descending order of
-#! memory addressing ? - Read point 2 of https://github.com/0xPolygonMiden/miden-vm/issues/592#issue-1481983459
+#! Note, p_ptr is absolute memory address of polynomial p (which was interpolated using advice
+#! provider)! s.t. next 3 decreasing (by 1) memory addresses hold remaining 6 coefficients of p.
 proc.compute_alpha
     movup.4
     dup
@@ -552,61 +543,52 @@ proc.compute_alpha
     ext2add
 end
 
-#! Given remainder codeword with 64 evaluations ( as starting memory address on stack ), this routine attempts to
-#! probabilistically verify remainder following the technique described in https://github.com/0xPolygonMiden/miden-vm/issues/592
-#! and an optimization of how to efficiently compute β in https://github.com/0xPolygonMiden/miden-vm/pull/644#pullrequestreview-1265141094
+#! Given memory address of the remainder codeword with 64 evaluations, this routine attempts to
+#! probabilistically verify that the codeword contains evaluations of a a degree 7 polynomial.
 #!
-#! Expected stack state
+#! Expected stack state:
 #!
-#! [mem_ptr_q, ...]
+#! [q_ptr, ...]
 #!
-#! A few assumptions about mem_ptr_q
+#! A few assumptions about q_ptr:
+#! - q_ptr is an absolute memory address of the beginning of remainder codeword.
+#! - Each evaluation is 2 elements wide because they belong to quadratic extension field (meaning
+#!   each memory address will hold two consecutive evaluations)
+#! - Words (four field elements), in memory, are laid out in this order (a0_0, a0_1, a1_0, a1_1).
+#!   This means that (a0_1, a0_0) -> first evaluation and (a1_1, a1_0) -> next evaluation
+#! - Next 31 memory addresses should be holding remaining 62 evaluations. That is, f q_ptr holds
+#!   (a0_0, a0_1, a1_0, a1_1), then q_ptr + 1, must hold (a2_0, a2_1, a3_0, a3_1), and q_ptr + 31
+#!   should be holding (a62_0, a62_1, a63_0, a63_1).
 #!
-#! - mem_ptr_q should be absolute memory address of the beginning of remainder codeword
-#! - Each evaluation is 2 field elements wide because they belong to quadratic extension field over F_p | p = 2^64 - 2^32 + 1
-#! - Meaning each memory address will hold two consecutive evaluations
-#! - Words ( four field elements ), in memory, are laid out in this order (a0_0, a0_1, a1_0, a1_1)
-#! - That means (a0_1, a0_0) -> first evaluation and (a1_1, a1_0) -> next evaluation
-#! - Next 31 memory addresses should be holding remaining 62 evaluations
-#! - If mem_ptr_q holds (a0_0, a0_1, a1_0, a1_1), then mem_ptr_q + 1, must hold (a2_0, a2_1, a3_0, a3_1)
-#! - That way, mem_ptr_q + 31 should be holding (a62_0, a62_1, a63_0, a63_1)
-#!
-#! Final stack looks like
-#!
-#! [...]
+#! At the end of execution q_ptr is popped off the stack.
 #!
 #! If remainder verification fails, execution of the program stops.
 export.verify_remainder_64.4
-    # [mem_ptr_q, ...]
+    # [q_ptr, ...]
     locaddr.0
     swap
 
-    # [mem_ptr_q, mem_ptr_p, ...]
+    # [q_ptr, p_ptr, ...]
     #
-    # note, mem_ptr_p is pointing to function local memory address space
-    # which will be filled up with polynomial p's coefficients, which is computed
-    # outside of the VM, from given codeword q.
+    # note, p_ptr is pointing to function local memory address space which will be filled with
+    # coefficients of polynomial p, which is computed outside of the VM, from given codeword q.
     exec.compute_tau
 
-    # [τ1, τ0, mem_ptr_q, ...]
+    # [τ1, τ0, q_ptr, ...]
     exec.compute_beta
 
-    # [β1, β0, τ1, τ0, mem_ptr_q, ...]
+    # [β1, β0, τ1, τ0, q_ptr, ...]
     movup.4
     drop
     locaddr.3
     movdn.4
 
-    # [β1, β0, τ1, τ0, mem_ptr_p, ...]
+    # [β1, β0, τ1, τ0, p_ptr, ...]
     #
-    # notice, mem_ptr_p was previously set to locaddr.0, which was used ( and dropped ) during
-    # computation of τ. Now mem_ptr_p is set to locaddr.3, because it's easier to compute α, by
-    # accessing coefficients of interpolated polynomial p in reverse ( i.e. descending ) order, as
-    # suggested in point 2 of https://github.com/0xPolygonMiden/miden-vm/issues/592#issue-1481983459.
-    #
-    # You may wish to look at this Rust function which performs Horner's evaluation 
-    # https://github.com/Al-Kindi-0/miden/blob/1b9801c/miden/tests/integration/stdlib/crypto/fri/verifier_fri_e2f4.rs#L338-L345
-    # i.e. computes α.
+    # notice, p_ptr was previously set to locaddr.0, which was used (and dropped) during the 
+    # computation of τ. Now p_ptr is set to locaddr.3, because it's easier to compute α, by
+    # accessing coefficients of the interpolated polynomial p in reverse (i.e. descending) order
+    # using Horner's evaluation.
     exec.compute_alpha
     
     # assert α == β
