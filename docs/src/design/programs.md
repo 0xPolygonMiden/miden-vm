@@ -1,5 +1,5 @@
 # Programs in Miden VM
-Miden VM consumes programs in a form of a Merkelized Abstract Syntax Tree (MAST). This tree is a binary tree where each node is a *code block*. The execution starts at the root of the tree, and recursively executes all required blocks according to their semantics. A set of currently available blocks and their execution semantics are described below.
+Miden VM consumes programs in a form of a Merkelized Abstract Syntax Tree (MAST). This tree is a binary tree where each node is a *code block*. The VM starts execution at the root of the tree, and attempts to recursively execute each required block according to its semantics. If the execution of a code block fails, the VM halts at that point and no further blocks are executed. A set of currently available blocks and their execution semantics are described below.
 
 ## Code blocks
 
