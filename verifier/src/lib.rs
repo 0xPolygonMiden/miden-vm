@@ -2,8 +2,8 @@
 
 use air::{ProcessorAir, PublicInputs};
 use core::fmt;
-use vm_core::{ProgramInfo, StackInputs};
-use winterfell::VerifierError;
+pub use vm_core::{Kernel, ProgramInfo, StackInputs};
+pub use winterfell::VerifierError;
 
 // EXPORTS
 // ================================================================================================
@@ -11,7 +11,7 @@ use winterfell::VerifierError;
 pub use vm_core::{chiplets::hasher::Digest, StackOutputs, Word};
 pub use winterfell::StarkProof;
 
-mod math {
+pub mod math {
     pub use vm_core::{Felt, FieldElement, StarkField};
 }
 
