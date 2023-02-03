@@ -1058,7 +1058,7 @@ push.0x0000000000001234000000000000abcd
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
 <h1 id="programs-in-miden-vm"><a class="header" href="#programs-in-miden-vm">Programs in Miden VM</a></h1>
-<p>Miden VM consumes programs in a form of a Merkelized Abstract Syntax Tree (MAST). This tree is a binary tree where each node is a <em>code block</em>. The execution starts at the root of the tree, and recursively executes all required blocks according to their semantics. A set of currently available blocks and their execution semantics are described below.</p>
+<p>Miden VM consumes programs in a form of a Merkelized Abstract Syntax Tree (MAST). This tree is a binary tree where each node is a <em>code block</em>. The VM starts execution at the root of the tree, and attempts to recursively execute each required block according to its semantics. If the execution of a code block fails, the VM halts at that point and no further blocks are executed. A set of currently available blocks and their execution semantics are described below.</p>
 <h2 id="code-blocks"><a class="header" href="#code-blocks">Code blocks</a></h2>
 <h3 id="join-block"><a class="header" href="#join-block">Join block</a></h3>
 <p>A <strong>join</strong> block is used to describe sequential execution. When the VM encounters a <em>join</em> block, it executes its left child first, and then executes its right child.</p>
