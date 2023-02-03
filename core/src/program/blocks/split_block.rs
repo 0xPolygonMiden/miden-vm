@@ -1,4 +1,4 @@
-use super::{fmt, hasher, Box, CodeBlock, Digest};
+use super::{fmt, hasher, Box, CodeBlock, Digest, Felt, Operation};
 
 // SPLIT BLOCK
 // ================================================================================================
@@ -18,11 +18,16 @@ pub struct Split {
 }
 
 impl Split {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+    /// The domain of the split block (used for control block hashing).
+    pub const DOMAIN: Felt = Felt::new(Operation::Split.op_code() as u64);
+
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Split] block instantiated with the specified true and false branches.
     pub fn new(t_branch: CodeBlock, f_branch: CodeBlock) -> Self {
-        let hash = hasher::merge(&[t_branch.hash(), f_branch.hash()]);
+        let hash = hasher::merge_in_domain(&[t_branch.hash(), f_branch.hash()], Self::DOMAIN);
         Self {
             branches: Box::new([t_branch, f_branch]),
             hash,

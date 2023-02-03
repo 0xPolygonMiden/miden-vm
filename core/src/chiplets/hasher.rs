@@ -34,6 +34,9 @@ pub const STATE_COL_RANGE: Range<usize> = create_range(ROW_COL_IDX + 1, STATE_WI
 /// Number of field elements in the capacity portion of the hasher's state.
 pub const CAPACITY_LEN: usize = STATE_WIDTH - RATE_LEN;
 
+/// The index of the capacity register where the domain is set when initializing the hasher.
+pub const CAPACITY_DOMAIN_IDX: usize = 1;
+
 /// The capacity portion of the hasher state in the execution trace, located in 4 .. 8 columns.
 pub const CAPACITY_COL_RANGE: Range<usize> = Range {
     start: STATE_COL_RANGE.start,
@@ -130,6 +133,12 @@ pub fn merge(values: &[Digest; 2]) -> Digest {
     Hasher::merge(values)
 }
 
+/// Returns a hash of two digests with a specified domain.
+#[inline(always)]
+pub fn merge_in_domain(values: &[Digest; 2], domain: Felt) -> Digest {
+    Hasher::merge_in_domain(values, domain)
+}
+
 /// Returns a hash of the provided list of field elements.
 #[inline(always)]
 pub fn hash_elements(elements: &[Felt]) -> Digest {
@@ -186,7 +195,18 @@ pub fn init_state(init_values: &[Felt; RATE_LEN], padding_flag: Felt) -> [Felt; 
 /// the Rescue Prime Optimized padding rule.
 #[inline(always)]
 pub fn init_state_from_words(w1: &Word, w2: &Word) -> [Felt; STATE_WIDTH] {
-    [ZERO, ZERO, ZERO, ZERO, w1[0], w1[1], w1[2], w1[3], w2[0], w2[1], w2[2], w2[3]]
+    init_state_from_words_with_domain(w1, w2, ZERO)
+}
+
+/// Initializes hasher state with elements from the provided words.  Sets the second element of the
+/// capacity register to the provided domain.  All other elements of the capacity register are set to 0.
+#[inline(always)]
+pub fn init_state_from_words_with_domain(
+    w1: &Word,
+    w2: &Word,
+    domain: Felt,
+) -> [Felt; STATE_WIDTH] {
+    [ZERO, domain, ZERO, ZERO, w1[0], w1[1], w1[2], w1[3], w2[0], w2[1], w2[2], w2[3]]
 }
 
 /// Absorbs the specified values into the provided state by overwriting the corresponding elements
