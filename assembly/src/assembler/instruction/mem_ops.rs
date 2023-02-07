@@ -48,13 +48,12 @@ pub fn mem_read(
     Ok(None)
 }
 
-/// Appends operations to the span needed to execute a memory write instruction. This includes
-/// writing a single element or an entire word into either local or global memory. Specifically,
-/// this handles mem_store, mem_storew, loc_store, and loc_storew instructions.
+/// Appends operations to the span needed to execute a memory write instruction with an immediate
+/// address. This includes writing a single element or an entire word into either local or global
+/// memory. Specifically, this handles mem_store, mem_storew, loc_store, and loc_storew
+/// instructions.
 ///
 /// VM cycles per operation:
-/// - mem_store: 2 cycles
-/// - mem_storew: 1 cyle
 /// - mem_store.b:
 ///   - 4 cycles if b = 1
 ///   - 3 cycles if b != 1
@@ -71,22 +70,17 @@ pub fn mem_read(
 /// # Errors
 /// Returns an error if we are writing to local memory and local memory index is greater than
 /// the number of procedure locals.
-pub fn mem_write(
+pub fn mem_write_imm(
     span: &mut SpanBuilder,
     context: &AssemblyContext,
-    addr: Option<u32>,
+    addr: u32,
     is_local: bool,
     is_single: bool,
 ) -> Result<Option<CodeBlock>, AssemblyError> {
-    // if the address was provided as an immediate value, put it onto the stack
-    if let Some(addr) = addr {
-        if is_local {
-            local_to_absolute_addr(span, addr as u16, context.num_proc_locals())?;
-        } else {
-            push_u32_value(span, addr);
-        }
-    } else if is_local {
-        unreachable!("local always contains addr value");
+    if is_local {
+        local_to_absolute_addr(span, addr as u16, context.num_proc_locals())?;
+    } else {
+        push_u32_value(span, addr);
     }
 
     if is_single {

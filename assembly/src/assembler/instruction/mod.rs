@@ -275,14 +275,12 @@ impl Assembler {
             Instruction::MemLoadWImm(v) => mem_ops::mem_read(span, ctx, Some(*v), false, false),
             Instruction::LocLoad(v) => mem_ops::mem_read(span, ctx, Some(*v as u32), true, true),
             Instruction::LocLoadW(v) => mem_ops::mem_read(span, ctx, Some(*v as u32), true, false),
-            Instruction::MemStore => mem_ops::mem_write(span, ctx, None, false, true),
-            Instruction::MemStoreImm(v) => mem_ops::mem_write(span, ctx, Some(*v), false, true),
-            Instruction::MemStoreW => mem_ops::mem_write(span, ctx, None, false, false),
-            Instruction::MemStoreWImm(v) => mem_ops::mem_write(span, ctx, Some(*v), false, false),
-            Instruction::LocStore(v) => mem_ops::mem_write(span, ctx, Some(*v as u32), true, true),
-            Instruction::LocStoreW(v) => {
-                mem_ops::mem_write(span, ctx, Some(*v as u32), true, false)
-            }
+            Instruction::MemStore => span.add_ops([MStore, Drop]),
+            Instruction::MemStoreW => span.add_ops([MStoreW]),
+            Instruction::MemStoreImm(v) => mem_ops::mem_write_imm(span, ctx, *v, false, true),
+            Instruction::MemStoreWImm(v) => mem_ops::mem_write_imm(span, ctx, *v, false, false),
+            Instruction::LocStore(v) => mem_ops::mem_write_imm(span, ctx, *v as u32, true, true),
+            Instruction::LocStoreW(v) => mem_ops::mem_write_imm(span, ctx, *v as u32, true, false),
 
             Instruction::AdvU64Div => span.add_decorator(Decorator::Advice(DivResultU64)),
             Instruction::AdvKeyval => span.add_decorator(Decorator::Advice(MapValue)),
