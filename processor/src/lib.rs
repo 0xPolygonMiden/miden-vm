@@ -439,4 +439,34 @@ where
             self.advice_provider,
         )
     }
+
+    /// Returns the process system.
+    pub fn system(&self) -> &System {
+        &self.system
+    }
+
+    /// Returns the process decoder.
+    pub fn decoder(&self) -> &Decoder {
+        &self.decoder
+    }
+
+    /// Returns the process stack.
+    pub fn stack(&self) -> &Stack {
+        &self.stack
+    }
+
+    /// Returns the process range checker.
+    pub fn range(&self) -> &RangeChecker {
+        &self.range
+    }
+
+    /// Returns the process chiplets.
+    pub fn chiplets(&self) -> &Chiplets {
+        &self.chiplets
+    }
+
+    /// Returns the process advice provider.
+    pub fn advice_provider(&self) -> &A {
+        &self.advice_provider
+    }
 }
