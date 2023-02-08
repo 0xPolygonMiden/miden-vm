@@ -798,10 +798,10 @@ impl<E: FieldElement> OpFlags<E> {
 
     // ------ Degree 6 non u32 operations  --------------------------------------------------------
 
-    /// Operation Flag of RPPERM operation.
+    /// Operation Flag of HPERM operation.
     #[inline(always)]
-    pub fn rpperm(&self) -> E {
-        self.degree6_op_flags[get_op_index(Operation::RpPerm.op_code())]
+    pub fn hperm(&self) -> E {
+        self.degree6_op_flags[get_op_index(Operation::HPerm.op_code())]
     }
 
     /// Operation Flag of MPVERIFY operation.

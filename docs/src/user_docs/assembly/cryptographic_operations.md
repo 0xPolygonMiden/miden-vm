@@ -6,8 +6,8 @@ Miden assembly provides a set of instructions for performing common cryptographi
 
 | Instruction    | Stack_input     | Stack_output   | Notes                                      |
 | -------------- | --------------- | -------------- | ------------------------------------------ |
-| rpperm  <br> - *(1 cycle)*      | [C, B, A, ...]  | [F, E, D, ...] | $\{D, E, F\} \leftarrow permute(A, B, C)$ <br> where, $permute()$ computes a Rescue Prime Optimized permutation. |
-| rphash  <br> - *(16 cycles)*        | [B, A, ...]     | [C, ...]       | $C \leftarrow hash(A,B)$ <br> where, $hash()$ computes a 2-to-1 Rescue Prime Optimized hash. |
+| hperm  <br> - *(1 cycle)*      | [C, B, A, ...]  | [F, E, D, ...] | $\{D, E, F\} \leftarrow permute(A, B, C)$ <br> where, $permute()$ computes a Rescue Prime Optimized permutation. |
+| hmerge  <br> - *(16 cycles)*        | [B, A, ...]     | [C, ...]       | $C \leftarrow hash(A,B)$ <br> where, $hash()$ computes a 2-to-1 Rescue Prime Optimized hash. |
 | mtree_get  <br> - *(9 cycles)*     | [d, i, R, ...]  | [V, R, ...] |  Verifies that a Merkle tree with root $R$ opens to node $V$ at depth $d$ and index $i$. Merkle tree with root $R$ must be present in the advice provider, otherwise execution fails. |
 | mtree_set <br> - *(29 cycles)*      | [d, i, R, V', ...] | [V, R', ...] | Updates a node in the Merkle tree with root $R$ at depth $d$ and index $i$ to value $V'$. $R'$ is the Merkle root of the resulting tree and $V$ is old value of the node. Merkle tree with root $R$ must be present in the advice provider, otherwise execution fails. At the end of the operation Merkle tree in the advice provider with root $R$ is replaced with the Merkle tree with root $R'$. |
 | mtree_cwm <br> - *(29 cycles)*      | [d, i, R, V', ...] | [V, R', ...] | Copies a Merkle tree with root $R$ and updates a node at depth $d$ and index $i$ in the copied tree to value $V'$. $R'$ is the Merkle root of the new tree and $V$ is old value of the node. Merkle tree with root $R$ must be present in the advice provider, otherwise execution fails. At the end of the operation the advice provider will contain both Merkle trees. |

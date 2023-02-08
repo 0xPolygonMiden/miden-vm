@@ -319,8 +319,8 @@ impl Deserializable for Instruction {
             OpCode::AdvExt2INTT => Ok(Instruction::AdvExt2INTT),
 
             // ----- cryptographic operations -----------------------------------------------------
-            OpCode::RPHash => Ok(Instruction::RpHash),
-            OpCode::RPPerm => Ok(Instruction::RpPerm),
+            OpCode::HMerge => Ok(Instruction::HMerge),
+            OpCode::HPerm => Ok(Instruction::HPerm),
             OpCode::MTreeGet => Ok(Instruction::MTreeGet),
             OpCode::MTreeSet => Ok(Instruction::MTreeSet),
             OpCode::MTreeCwm => Ok(Instruction::MTreeCwm),
