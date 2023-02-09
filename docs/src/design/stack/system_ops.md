@@ -51,3 +51,17 @@ $$
 
 The effect on the rest of the stack is:
 * **Left shift** starting from position $1$.
+
+## CLK
+The `CLK` operation pushes the current value of the clock cycle onto the stack. The diagram below illustrates this graphically.
+
+![clk](../../assets/design/stack/system_ops/CLK.png)
+
+The stack transition for this operation must follow the following constraint:
+
+>$$
+s_0' - clk = 0 \text{ | degree} = 1
+$$
+
+The effect on the rest of the stack is:
+* **Right shift** starting from position $0$.

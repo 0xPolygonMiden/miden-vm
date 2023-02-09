@@ -107,7 +107,7 @@ pub fn enforce_fmpupdate_constraints<E: FieldElement>(
 
 /// Enforces constraints of the CLK operation. The CLK operation pushes the current cycle number to
 /// the stack. Therefore, the following constraints are enforced:
-/// - The first element in the next frame should be equal to the current cycle number. s0` - (cycle) = 0.
+/// - The first element in the next frame should be equal to the current cycle number. s0' - (cycle) = 0.
 pub fn enforce_clk_constraints<E: FieldElement>(
     frame: &EvaluationFrame<E>,
     result: &mut [E],

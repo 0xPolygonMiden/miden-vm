@@ -110,7 +110,7 @@ pub fn get_assert_test_frame() -> EvaluationFrame<Felt> {
 /// Generates the correct current and next rows for the CLK operation and inputs and
 /// returns an EvaluationFrame for testing.
 pub fn get_clk_test_frame(a: u64) -> EvaluationFrame<Felt> {
-    // frame initialised with a fmpupdate operation using it's unique opcode.
+    // frame initialised with a clk operation using it's unique opcode.
     let mut frame = generate_evaluation_frame(Operation::Clk.op_code() as usize);
 
     // Set the output. The top element in the next frame should be the current clock cycle value.

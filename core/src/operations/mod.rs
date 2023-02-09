@@ -32,8 +32,8 @@ pub enum Operation {
     /// SYSCALL. Thus, this operation can be executed only inside a SYSCALL code block.
     Caller,
 
-    /// Pushes the current value of the cycle counter onto the stack. This operation is used to
-    /// measure the execution time of a program.
+    /// Pushes the current value of the clock cycle onto the stack. This operation can be used to
+    /// measure the number of cycles it has taken to execute the program up to the current instruction.
     Clk,
 
     // ----- flow control operations --------------------------------------------------------------

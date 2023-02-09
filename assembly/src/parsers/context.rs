@@ -467,7 +467,7 @@ impl ParserContext {
             "sdepth" => simple_instruction(op, Sdepth),
             "locaddr" => io_ops::parse_locaddr(op),
             "caller" => simple_instruction(op, Caller), // TODO: error if not in SYSCALL (issue #551)
-            "clk" => io_ops::parse_clk(op),
+            "clk" => simple_instruction(op, Clk),
 
             "mem_load" => io_ops::parse_mem_load(op),
             "loc_load" => io_ops::parse_loc_load(op),

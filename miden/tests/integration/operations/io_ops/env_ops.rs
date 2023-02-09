@@ -180,8 +180,8 @@ fn clk() {
 
     let source = "
         proc.foo
-            push.1
-            push.1
+            push.5
+            push.4
             clk
         end
         begin
@@ -189,5 +189,5 @@ fn clk() {
         end";
 
     let test = build_test!(source, &[]);
-    test.expect_stack(&[5, 1, 1]);
+    test.expect_stack(&[3, 4, 5]);
 }

@@ -67,19 +67,6 @@ pub fn parse_locaddr(op: &Token) -> Result<Node, ParsingError> {
     }
 }
 
-/// Returns `Clk` instruction node.
-///
-/// # Errors
-/// Returns an error if the instruction token is malformed.
-pub fn parse_clk(op: &Token) -> Result<Node, ParsingError> {
-    debug_assert_eq!(op.parts()[0], "clk");
-    match op.num_parts() {
-        0 => unreachable!(),
-        1 => Ok(Instruction(Clk)),
-        _ => Err(ParsingError::extra_param(op)),
-    }
-}
-
 /// Returns `AdvPush` instruction node.
 ///
 /// # Errors
