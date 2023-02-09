@@ -1,7 +1,7 @@
 use super::{
-    AbsolutePath, BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable, Felt,
-    ProcedureNameError, Serializable, SerializationError, String, ToString, MAX_PROC_NAME_LEN,
-    MODULE_PATH_DELIM,
+    AbsolutePath, BTreeSet, ByteReader, ByteWriter, CodeBlock, Deserializable, Felt, LabelError,
+    Serializable, SerializationError, String, ToString, MAX_LABEL_LEN, MODULE_PATH_DELIM,
+    PROCEDURE_LABEL_PARSER,
 };
 use core::{
     fmt,
@@ -137,23 +137,12 @@ impl ProcedureName {
 }
 
 impl TryFrom<String> for ProcedureName {
-    type Error = ProcedureNameError;
+    type Error = LabelError;
 
     fn try_from(name: String) -> Result<Self, Self::Error> {
-        if name.is_empty() {
-            // procedure name cannot be empty
-            return Err(ProcedureNameError::empty_procedure_name());
-        } else if name.len() > MAX_PROC_NAME_LEN as usize {
-            // procedure name cannot be more than 100 characters long
-            return Err(ProcedureNameError::procedure_name_too_long(&name, MAX_PROC_NAME_LEN));
-        } else if !name.chars().next().unwrap().is_ascii_alphabetic() {
-            // procedure name must start with a letter
-            return Err(ProcedureNameError::invalid_fist_letter(&name));
-        } else if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-            // procedure name can consists only of numbers, letters, and underscores
-            return Err(ProcedureNameError::invalid_procedure_name(&name));
-        }
-        Ok(Self { name })
+        Ok(Self {
+            name: PROCEDURE_LABEL_PARSER.parse_label(name)?,
+        })
     }
 }
 
@@ -175,7 +164,7 @@ impl Serializable for ProcedureName {
     fn write_into(&self, target: &mut ByteWriter) -> Result<(), SerializationError> {
         let name_bytes = self.name.as_bytes();
         let num_bytes = name_bytes.len() as u8;
-        if num_bytes > MAX_PROC_NAME_LEN {
+        if num_bytes > MAX_LABEL_LEN {
             return Err(SerializationError::LengthTooLong);
         }
 

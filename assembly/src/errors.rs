@@ -94,8 +94,8 @@ impl From<LibraryError> for AssemblyError {
     }
 }
 
-impl From<ProcedureNameError> for AssemblyError {
-    fn from(err: ProcedureNameError) -> Self {
+impl From<LabelError> for AssemblyError {
+    fn from(err: LabelError) -> Self {
         Self::ProcedureNameError(format!("invalid procedure name: {err}"))
     }
 }
@@ -166,6 +166,50 @@ impl ParsingError {
     pub fn unexpected_token(token: &Token, expected: &str) -> Self {
         ParsingError {
             message: format!("unexpected token: expected '{expected}' but was '{token}'"),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    // CONSTANTS DECLARATION
+    // --------------------------------------------------------------------------------------------
+    pub fn duplicate_const_name(token: &Token, label: &str) -> Self {
+        ParsingError {
+            message: format!("duplicate constant name: '{label}'"),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn invalid_const_name(token: &Token, err: LabelError) -> Self {
+        ParsingError {
+            message: format!("invalid constant name: {err}"),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn invalid_const_value(token: &Token, value: &str, reason: &str) -> Self {
+        ParsingError {
+            message: format!(
+                "malformed constant `{token}` - invalid value: `{value}` - reason: {reason}"
+            ),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn const_invalid_scope(token: &Token) -> Self {
+        ParsingError {
+            message: format!("invalid constant declaration: `{token}` - constants can only be defined below imports and above procedure / program bodies"),
+            step: token.pos(),
+            op: token.to_string(),
+        }
+    }
+
+    pub fn const_not_found(token: &Token) -> Self {
+        ParsingError {
+            message: format!("constant used in operation `{token}` not found"),
             step: token.pos(),
             op: token.to_string(),
         }
@@ -315,7 +359,7 @@ impl ParsingError {
         }
     }
 
-    pub fn invalid_proc_name(token: &Token, err: ProcedureNameError) -> Self {
+    pub fn invalid_proc_name(token: &Token, err: LabelError) -> Self {
         ParsingError {
             message: format!("invalid procedure name: {err}"),
             step: token.pos(),
@@ -473,49 +517,55 @@ impl From<ParsingError> for std::io::Error {
 #[cfg(feature = "std")]
 impl std::error::Error for ParsingError {}
 
-// PROCEDURE NAME ERROR
+// NAME ERROR
 // ================================================================================================
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum ProcedureNameError {
-    EmptyProcedureName,
+pub enum LabelError {
+    EmptyLabel,
     InvalidFirstLetter(String),
-    InvalidProcedureName(String),
-    ProcedureNameTooLong(String, u8),
+    InvalidChars(String),
+    LabelTooLong(String, u8),
+    Uppercase(String),
 }
 
-impl ProcedureNameError {
-    pub const fn empty_procedure_name() -> Self {
-        Self::EmptyProcedureName
+impl LabelError {
+    pub const fn empty_label() -> Self {
+        Self::EmptyLabel
     }
 
-    pub fn invalid_procedure_name(proc_name: &str) -> Self {
-        Self::InvalidProcedureName(proc_name.to_string())
+    pub fn invalid_label(label: &str) -> Self {
+        Self::InvalidChars(label.to_string())
     }
 
-    pub fn invalid_fist_letter(proc_name: &str) -> Self {
-        Self::InvalidFirstLetter(proc_name.to_string())
+    pub fn invalid_fist_letter(label: &str) -> Self {
+        Self::InvalidFirstLetter(label.to_string())
     }
 
-    pub fn procedure_name_too_long(proc_name: &str, max_len: u8) -> Self {
-        Self::ProcedureNameTooLong(proc_name.to_string(), max_len)
+    pub fn label_too_long(label: &str, max_len: u8) -> Self {
+        Self::LabelTooLong(label.to_string(), max_len)
+    }
+
+    pub fn must_be_uppercase(label: &str) -> Self {
+        Self::Uppercase(label.to_string())
     }
 }
 
-impl fmt::Display for ProcedureNameError {
+impl fmt::Display for LabelError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use ProcedureNameError::*;
+        use LabelError::*;
         match self {
-            EmptyProcedureName => write!(f, "procedure name cannot be empty"),
-            InvalidFirstLetter(proc_name) => {
-                write!(f, "'{proc_name}' does not start with a letter")
+            EmptyLabel => write!(f, "label cannot be empty"),
+            InvalidFirstLetter(label) => {
+                write!(f, "'{label}' does not start with a letter")
             }
-            InvalidProcedureName(proc_name) => {
-                write!(f, "'{proc_name}' contains invalid characters")
+            InvalidChars(label) => {
+                write!(f, "'{label}' contains invalid characters")
             }
-            ProcedureNameTooLong(proc_name, max_len) => {
-                write!(f, "'{proc_name}' is over {max_len} characters long")
+            LabelTooLong(label, max_len) => {
+                write!(f, "'{label}' is over {max_len} characters long")
             }
+            Uppercase(label) => write!(f, "'{label}' cannot contain lower-case characters"),
         }
     }
 }
@@ -571,8 +621,8 @@ impl From<SerializationError> for std::io::Error {
 #[cfg(feature = "std")]
 impl std::error::Error for SerializationError {}
 
-impl From<ProcedureNameError> for SerializationError {
-    fn from(_err: ProcedureNameError) -> Self {
+impl From<LabelError> for SerializationError {
+    fn from(_err: LabelError) -> Self {
         Self::InvalidProcedureName
     }
 }

@@ -22,6 +22,7 @@ use procedures::{CallSet, Procedure};
 pub use procedures::{ProcedureId, ProcedureName};
 
 mod parsers;
+use parsers::PROCEDURE_LABEL_PARSER;
 pub use parsers::{parse_module, parse_program, ModuleAst, ProcedureAst, ProgramAst};
 
 mod serde;
@@ -31,9 +32,7 @@ mod tokens;
 use tokens::{Token, TokenStream};
 
 mod errors;
-pub use errors::{
-    AssemblyError, LibraryError, ParsingError, ProcedureNameError, SerializationError,
-};
+pub use errors::{AssemblyError, LabelError, LibraryError, ParsingError, SerializationError};
 
 mod assembler;
 pub use assembler::Assembler;
@@ -67,8 +66,8 @@ const MAX_U32_ROTATE_VALUE: u8 = 31;
 /// The maximum number of bits allowed for the exponent parameter for exponentiation instructions.
 const MAX_EXP_BITS: u8 = 64;
 
-/// The maximum length of a procedure's name.
-const MAX_PROC_NAME_LEN: u8 = 100;
+/// The maximum length of a constant or procedure's label.
+const MAX_LABEL_LEN: u8 = 100;
 
 /// The required length of the hexadecimal representation for an input value when more than one hex
 /// input is provided to `push` masm operation without period separators.
