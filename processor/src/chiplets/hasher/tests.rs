@@ -660,7 +660,8 @@ fn hash_memoization_control_blocks() {
 
     let mut lookups = Vec::new();
     // builds the trace of the join block.
-    let (_, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+    let (_, final_state) =
+        hasher.hash_control_block(h1, h2, join_block.domain(), expected_hash, &mut lookups);
 
     let lookup_start_addr = 1;
     let expected_lookups_len = 2;
@@ -693,7 +694,8 @@ fn hash_memoization_control_blocks() {
 
     let mut lookups = Vec::new();
     // builds the hash execution trace of the first split block from scratch.
-    let (addr, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+    let (addr, final_state) =
+        hasher.hash_control_block(h1, h2, split1_block.domain(), expected_hash, &mut lookups);
 
     let lookup_start_addr = 9;
     let expected_lookups_len = 2;
@@ -732,7 +734,8 @@ fn hash_memoization_control_blocks() {
     let mut lookups = Vec::new();
     // builds the hash execution trace of the second split block by copying it from the trace of
     // the first split block.
-    let (addr, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+    let (addr, final_state) =
+        hasher.hash_control_block(h1, h2, split2_block.domain(), expected_hash, &mut lookups);
 
     let lookup_start_addr = 17;
     let expected_lookups_len = 2;
@@ -857,7 +860,8 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
 
     let mut lookups = Vec::new();
     // builds the trace of the Join1 block.
-    let (_, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+    let (_, final_state) =
+        hasher.hash_control_block(h1, h2, join1_block.domain(), expected_hash, &mut lookups);
 
     let lookup_start_addr = 1;
     let expected_lookups_len = 2;
@@ -887,7 +891,8 @@ fn hash_memoization_span_blocks_check(span_block: CodeBlock) {
     let expected_hash = join2_block.hash();
 
     let mut lookups = Vec::new();
-    let (_, final_state) = hasher.hash_control_block(h1, h2, expected_hash, &mut lookups);
+    let (_, final_state) =
+        hasher.hash_control_block(h1, h2, join2_block.domain(), expected_hash, &mut lookups);
 
     let lookup_start_addr = 9;
     let expected_lookups_len = 2;

@@ -1,4 +1,4 @@
-use super::{fmt, hasher, Box, CodeBlock, Digest};
+use super::{fmt, hasher, Box, CodeBlock, Digest, Felt, Operation};
 
 // JOIN BLOCKS
 // ================================================================================================
@@ -7,7 +7,6 @@ use super::{fmt, hasher, Box, CodeBlock, Digest};
 /// When the VM executes a Join block, it executes joined blocks in sequence one after the other.
 ///
 /// Hash of a Join block is computed by hashing a concatenation of the hashes of joined blocks.
-/// TODO: update hashing methodology to make it different from Split block.
 #[derive(Clone, Debug)]
 pub struct Join {
     body: Box<[CodeBlock; 2]>,
@@ -15,11 +14,16 @@ pub struct Join {
 }
 
 impl Join {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+    /// The domain of the join block (used for control block hashing).
+    pub const DOMAIN: Felt = Felt::new(Operation::Join.op_code() as u64);
+
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Join] block instantiated with the specified code blocks.
     pub fn new(body: [CodeBlock; 2]) -> Self {
-        let hash = hasher::merge(&[body[0].hash(), body[1].hash()]);
+        let hash = hasher::merge_in_domain(&[body[0].hash(), body[1].hash()], Self::DOMAIN);
         Self {
             body: Box::new(body),
             hash,

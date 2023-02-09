@@ -43,6 +43,11 @@ pub struct Span {
 }
 
 impl Span {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+    /// The domain of the span block (used for control block hashing).
+    pub const DOMAIN: Felt = Felt::ZERO;
+
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
     /// Returns a new [Span] block instantiated with the specified operations.
