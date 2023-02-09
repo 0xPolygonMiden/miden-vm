@@ -92,6 +92,19 @@ where
 
         Ok(())
     }
+
+    // CLOCK CYCLE
+    // --------------------------------------------------------------------------------------------
+
+    /// Pushes the current value of the clock cycle counter onto the stack. The clock cycle starts
+    /// at 0 and is incremented with every operation executed by the VM, including control flow
+    /// operations such as GRUOP, END etc.
+    pub(super) fn op_clk(&mut self) -> Result<(), ExecutionError> {
+        let clk = self.system.clk();
+        self.stack.set(0, Felt::from(clk));
+        self.stack.shift_right(0);
+        Ok(())
+    }
 }
 
 // TESTS
@@ -216,6 +229,28 @@ mod tests {
         ]);
         assert_eq!(expected, process.stack.trace_state());
         assert_eq!(STACK_TOP_SIZE + 4, process.stack.depth());
+    }
+
+    #[test]
+    fn op_clk() {
+        let mut process = Process::new_dummy_with_empty_stack();
+
+        // initial value of clk register should be 1.
+        process.execute_op(Operation::Clk).unwrap();
+        let expected = build_expected_stack(&[1]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // increment clk register.
+        process.execute_op(Operation::Push(Felt::new(2))).unwrap();
+        process.execute_op(Operation::Clk).unwrap();
+        let expected = build_expected_stack(&[3, 2, 1]);
+        assert_eq!(expected, process.stack.trace_state());
+
+        // increment clk register again.
+        process.execute_op(Operation::Push(Felt::new(3))).unwrap();
+        process.execute_op(Operation::Clk).unwrap();
+        let expected = build_expected_stack(&[5, 3, 3, 2, 1]);
+        assert_eq!(expected, process.stack.trace_state());
     }
 
     // HELPER FUNCTIONS

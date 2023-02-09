@@ -232,6 +232,7 @@ pub enum Instruction {
     Locaddr(u16),
     Sdepth,
     Caller,
+    Clk,
 
     MemLoad,
     MemLoadImm(u32),
@@ -492,6 +493,7 @@ impl fmt::Display for Instruction {
             Self::Locaddr(value) => write!(f, "locaddr.{value}"),
             Self::Sdepth => write!(f, "sdepth"),
             Self::Caller => write!(f, "caller"),
+            Self::Clk => write!(f, "clk"),
 
             Self::MemLoad => write!(f, "mem_load"),
             Self::MemLoadImm(value) => write!(f, "mem_load.{value}"),

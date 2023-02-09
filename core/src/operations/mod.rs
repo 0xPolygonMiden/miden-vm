@@ -32,6 +32,10 @@ pub enum Operation {
     /// SYSCALL. Thus, this operation can be executed only inside a SYSCALL code block.
     Caller,
 
+    /// Pushes the current value of the clock cycle onto the stack. This operation can be used to
+    /// measure the number of cycles it has taken to execute the program up to the current instruction.
+    Clk,
+
     // ----- flow control operations --------------------------------------------------------------
     /// Marks the beginning of a join block.
     Join,
@@ -485,7 +489,7 @@ impl Operation {
             Self::Dup15     => 0b0011_1100,
             Self::Read      => 0b0011_1101,
             Self::SDepth    => 0b0011_1110,
-            // <empty>      => 0b0011_1111
+            Self::Clk       => 0b0011_1111,
 
             Self::U32add    => 0b0100_0000,
             Self::U32sub    => 0b0100_0010,
@@ -554,6 +558,8 @@ impl fmt::Display for Operation {
 
             Self::SDepth => write!(f, "sdepth"),
             Self::Caller => write!(f, "caller"),
+
+            Self::Clk => write!(f, "clk"),
 
             // ----- flow control operations ------------------------------------------------------
             Self::Join => write!(f, "join"),

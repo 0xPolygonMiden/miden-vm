@@ -378,6 +378,7 @@ impl Serializable for Instruction {
             }
             Self::Sdepth => OpCode::Sdepth.write_into(target)?,
             Self::Caller => OpCode::Caller.write_into(target)?,
+            Self::Clk => OpCode::Clk.write_into(target)?,
 
             Self::MemLoad => OpCode::MemLoad.write_into(target)?,
             Self::MemLoadImm(v) => {

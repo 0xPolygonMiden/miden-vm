@@ -37,6 +37,8 @@ where
             Operation::SDepth => self.op_sdepth()?,
             Operation::Caller => self.op_caller()?,
 
+            Operation::Clk => self.op_clk()?,
+
             // ----- flow control operations ------------------------------------------------------
             // control flow operations are never executed directly
             Operation::Join => unreachable!("control flow operation"),
