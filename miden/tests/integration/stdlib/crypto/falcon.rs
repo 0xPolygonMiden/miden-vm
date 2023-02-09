@@ -1988,7 +1988,7 @@ fn test_falcon512_vector_squared_norm() {
             in_vec[(i << 2) ^ 3],
             in_vec[(i << 2) ^ 2],
             in_vec[(i << 2) ^ 1],
-            in_vec[(i << 2)],
+            in_vec[(i << 2) ^ 0],
             i
         )
         .unwrap();
