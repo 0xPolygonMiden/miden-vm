@@ -367,7 +367,7 @@ pub enum Operation {
     /// rate part of the sponge is assumed to be on top of the stack, and the capacity is expected
     /// to be deepest in the stack, starting at stack[8]. For an RPO permutation of [A, B, C] where
     /// A is the capacity, the stack should look like [C, B, A, ...] from the top.
-    RpPerm,
+    HPerm,
 
     /// Verifies that a Merkle path from the specified node resolves to the specified root. This
     /// operation can be used to prove that the prover knows a path in the specified Merkle tree
@@ -500,7 +500,7 @@ impl Operation {
             Self::U32add3   => 0b0100_1100,
             Self::U32madd   => 0b0100_1110,
 
-            Self::RpPerm    => 0b0101_0000,
+            Self::HPerm    => 0b0101_0000,
             Self::MpVerify  => 0b0101_0010,
             Self::Pipe      => 0b0101_0100,
             Self::MStream   => 0b0101_0110,
@@ -663,7 +663,7 @@ impl fmt::Display for Operation {
             Self::Pipe => write!(f, "pipe"),
 
             // ----- cryptographic operations -----------------------------------------------------
-            Self::RpPerm => write!(f, "rpperm"),
+            Self::HPerm => write!(f, "hperm"),
             Self::MpVerify => write!(f, "mpverify"),
             Self::MrUpdate(copy) => {
                 if *copy {

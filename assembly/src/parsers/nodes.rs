@@ -261,8 +261,8 @@ pub enum Instruction {
     AdvExt2INTT,
 
     // ----- cryptographic operations -------------------------------------------------------------
-    RpHash,
-    RpPerm,
+    HMerge,
+    HPerm,
     MTreeGet,
     MTreeSet,
     MTreeCwm,
@@ -522,8 +522,8 @@ impl fmt::Display for Instruction {
             Self::AdvExt2INTT => write!(f, "adv.ext2intt"),
 
             // ----- cryptographic operations -----------------------------------------------------
-            Self::RpHash => write!(f, "rphash"),
-            Self::RpPerm => write!(f, "rpperm"),
+            Self::HMerge => write!(f, "hmerge"),
+            Self::HPerm => write!(f, "hperm"),
             Self::MTreeGet => write!(f, "mtree_get"),
             Self::MTreeSet => write!(f, "mtree_set"),
             Self::MTreeCwm => write!(f, "mtree_cwm"),

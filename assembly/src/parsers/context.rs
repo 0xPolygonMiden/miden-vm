@@ -490,8 +490,8 @@ impl ParserContext {
             "adv" => adv_ops::parse_adv_inject(op),
 
             // ----- cryptographic operations -----------------------------------------------------
-            "rphash" => simple_instruction(op, RpHash),
-            "rpperm" => simple_instruction(op, RpPerm),
+            "hmerge" => simple_instruction(op, HMerge),
+            "hperm" => simple_instruction(op, HPerm),
 
             "mtree_get" => simple_instruction(op, MTreeGet),
             "mtree_set" => simple_instruction(op, MTreeSet),

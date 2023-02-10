@@ -19,10 +19,10 @@ type ChipletsTrace = [Vec<Felt>; CHIPLETS_WIDTH];
 fn hasher_chiplet_trace() {
     // --- single hasher permutation with no stack manipulation -----------------------------------
     let stack = [2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0];
-    let operations = vec![Operation::RpPerm];
+    let operations = vec![Operation::HPerm];
     let (chiplets_trace, trace_len) = build_trace(&stack, operations, Kernel::default());
 
-    // Skip the hash of the span block generated while building the trace to check only the RpPerm.
+    // Skip the hash of the span block generated while building the trace to check only the HPerm.
     let hasher_start = HASH_CYCLE_LEN;
     let hasher_end = hasher_start + HASH_CYCLE_LEN;
     validate_hasher_trace(&chiplets_trace, hasher_start, hasher_end);
@@ -66,13 +66,13 @@ fn memory_chiplet_trace() {
 fn stacked_chiplet_trace() {
     // --- operations in hasher, bitwise, and memory processors without stack manipulation --------
     let stack = [8, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 1];
-    let ops = vec![Operation::U32xor, Operation::Push(ZERO), Operation::MStoreW, Operation::RpPerm];
+    let ops = vec![Operation::U32xor, Operation::Push(ZERO), Operation::MStoreW, Operation::HPerm];
     let kernel = build_kernel();
     let (chiplets_trace, trace_len) = build_trace(&stack, ops, kernel);
     let memory_len = 1;
     let kernel_rom_len = 2;
 
-    // Skip the hash of the span block generated while building the trace to check only the RpPerm.
+    // Skip the hash of the span block generated while building the trace to check only the HPerm.
     let hasher_start = HASH_CYCLE_LEN;
     let hasher_end = hasher_start + HASH_CYCLE_LEN;
     validate_hasher_trace(&chiplets_trace, hasher_start, hasher_end);
@@ -127,7 +127,7 @@ fn build_trace(
     )
 }
 
-/// Validate the hasher trace output by the rpperm operation. The full hasher trace is tested in
+/// Validate the hasher trace output by the hperm operation. The full hasher trace is tested in
 /// the Hasher module, so this just tests the ChipletsTrace selectors and the initial columns
 /// of the hasher trace.
 fn validate_hasher_trace(trace: &ChipletsTrace, start: usize, end: usize) {

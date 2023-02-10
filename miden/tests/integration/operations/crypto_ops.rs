@@ -11,8 +11,8 @@ use crate::helpers::crypto::{init_merkle_leaf, init_merkle_leaves};
 // ================================================================================================
 
 #[test]
-fn rpperm() {
-    let asm_op = "rpperm";
+fn hperm() {
+    let asm_op = "hperm";
 
     // --- test hashing 8 random values -----------------------------------------------------------
     let mut values = rand_vector::<u64>(8);
@@ -49,8 +49,8 @@ fn rpperm() {
 }
 
 #[test]
-fn rphash() {
-    let asm_op = "rphash";
+fn hmerge() {
+    let asm_op = "hmerge";
 
     // --- test hashing [ONE, ONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO] ----------------------------
     let values = [1, 1, 0, 0, 0, 0, 0, 0];

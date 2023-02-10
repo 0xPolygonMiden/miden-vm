@@ -5,14 +5,14 @@ Cryptographic operations in Miden VM are performed by the [Hash chiplet](../chip
 
 Thus, to describe AIR constraints for the cryptographic operations, we need to define how to compute these input and output values within the stack. We do this in the following sections.
 
-## RPPERM
-The `RPPERM` operation applies Rescue Prime Optimized permutation to the top $12$ elements of the stack. The stack is assumed to be arranged so that the $8$ elements of the rate are at the top of the stack. The capacity word follows, with the number of elements to be hashed at the deepest position in stack. The diagram below illustrates this graphically.
+## HPERM
+The `HPERM` operation applies Rescue Prime Optimized permutation to the top $12$ elements of the stack. The stack is assumed to be arranged so that the $8$ elements of the rate are at the top of the stack. The capacity word follows, with the number of elements to be hashed at the deepest position in stack. The diagram below illustrates this graphically.
 
-![rpperm](../../assets/design/stack/crypto_ops/RPPERM.png)
+![hperm](../../assets/design/stack/crypto_ops/HPERM.png)
 
 In the above, $r$ (located in the helper register $h_0$) is the row address from the hash chiplet set by the prover non-deterministically.
 
-For the `RPPERM` operation, we define input and output values as follows:
+For the `HPERM` operation, we define input and output values as follows:
 
 $$
 v_{input} = \alpha_0 + \alpha_1 \cdot op_{linhash} + \alpha_2 \cdot h_0 + \sum_{j=0}^{11} (\alpha_{j+4} \cdot s_{11-i})

@@ -257,8 +257,8 @@ pub enum OpCode {
     AdvExt2INTT = 227,
 
     // ----- cryptographic operations -------------------------------------------------------------
-    RPHash = 228,
-    RPPerm = 229,
+    HMerge = 228,
+    HPerm = 229,
     MTreeGet = 230,
     MTreeSet = 231,
     MTreeCwm = 232,

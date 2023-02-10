@@ -177,7 +177,7 @@ This group contains operations which require constraints with degree up to $3$. 
 
 | Operation    | Opcode value | Binary encoding | Operation group                        | Flag degree |
 | ------------ | :----------: | :-------------: | :-------------------------------------:| :---------: |
-| `RPPERM`     | $80$         | `101_0000`      | [Crypto ops](./crypto_ops.md)          | $6$         |
+| `HPERM`     | $80$         | `101_0000`      | [Crypto ops](./crypto_ops.md)          | $6$         |
 | `MPVERIFY`   | $82$         | `101_0010`      | [Crypto ops](./crypto_ops.md)          | $6$         |
 | `<unused>`   | $84$         | `101_0100`      |                                        | $6$         |
 | `<unused>`   | $86$         | `101_0110`      |                                        | $6$         |

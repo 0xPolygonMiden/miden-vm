@@ -4,27 +4,27 @@ use vm_core::{AdviceInjector, Decorator};
 // HASHING
 // ================================================================================================
 
-/// Appends RPPERM and stack manipulation operations to the span block as required to compute a
+/// Appends HPERM and stack manipulation operations to the span block as required to compute a
 /// 2-to-1 Rescue Prime Optimized hash. The top of the stack is expected to be arranged with 2 words
 /// (8 elements) to be hashed: [B, A, ...]. The resulting stack will contain the 2-to-1 hash result
 /// [E, ...].
 ///
-/// This assembly operation uses the VM operation RPPERM at its core, which permutes the top 12
+/// This assembly operation uses the VM operation HPERM at its core, which permutes the top 12
 /// elements of the stack.
 ///
 /// To perform the operation, we do the following:
-/// 1. Prepare the stack with 12 elements for RPPERM by pushing 4 more elements for the capacity,
+/// 1. Prepare the stack with 12 elements for HPERM by pushing 4 more elements for the capacity,
 ///    then reordering so the stack looks like [A, B, C, ...] where C is the capacity. All capacity
 ///    elements are set to ZERO, in accordance with the RPO padding rule for when the input length
 ///    is a multiple of the rate.
 /// 2. Reorder the top 2 words to restore the order of the elements to be hashed to [B, A, C, ...].
-/// 3. Append the RPPERM operation, which performs a permutation of Rescue Prime Optimized on the
+/// 3. Append the HPERM operation, which performs a permutation of Rescue Prime Optimized on the
 ///    top 12 elements and leaves an output of [F, E, D, ...] on the stack. E is our 2-to-1 hash
 ///    result.
 /// 4. Drop F and D to return our result [E, ...].
 ///
 /// This operation takes 16 VM cycles.
-pub(super) fn rphash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
+pub(super) fn hmerge(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, AssemblyError> {
     #[rustfmt::skip]
     let ops = [
         // Add 4 elements to the stack to prepare the capacity portion for the RPO permutation
@@ -36,7 +36,7 @@ pub(super) fn rphash(span: &mut SpanBuilder) -> Result<Option<CodeBlock>, Assemb
         SwapW,
 
         // Do the RPO permutation on the top 12 elements in the stack
-        RpPerm,
+        HPerm,
 
         // Drop 4 elements (the part of the rate that doesn't have our result)
         Drop, Drop, Drop, Drop,
