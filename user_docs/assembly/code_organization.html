@@ -220,6 +220,20 @@ end
 </code></pre>
 <p>In the above example we import <code>std::math::u64</code> module from the <a href="../stdlib/main.html">standard library</a>. We then execute a program which pushes two 64-bit integers onto the stack, and then invokes a 64-bit addition procedure from the imported module.</p>
 <p>The set of modules which can be imported by a program can be specified via a Module Provider when instantiating the <a href="https://crates.io/crates/miden-assembly">Miden Assembler</a> used to compile the program.</p>
+<h3 id="constants"><a class="header" href="#constants">Constants</a></h3>
+<p>Miden assembly supports constant declarations. These constants are scoped to the module they are defined in and can be used as immediate parameters for Miden assembly instructions. Currently only <code>push</code> instruction supports this.</p>
+<p>Constants must be declared right after module imports and before any procedures or program bodies. A constant's name must start with an upper-case letter and can contain any combination of numbers, upper-case ASCII letters, and underscores (<code>_</code>). The number of characters in a constant name cannot exceed 100.</p>
+<pre><code>use.std::math::u64
+
+const.CONSTANT_1=100
+const.CONSTANT_2=200
+
+begin
+    push.CONSTANT_1.CONSTANT_2
+    exec.u64::checked_add
+end
+
+</code></pre>
 <h3 id="comments"><a class="header" href="#comments">Comments</a></h3>
 <p>Miden assembly allows annotating code with simple comments. There are two types of comments: single-line comments which start with a <code>#</code> (pound) character, and documentation comments which start with <code>#!</code> characters. For example:</p>
 <pre><code>#! This is a documentation comment
